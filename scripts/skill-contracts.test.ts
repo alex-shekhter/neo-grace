@@ -100,6 +100,33 @@ describe("GRACE lifecycle skill contracts", () => {
     expect(status).toContain("ready-to-execute");
     expect(status).toContain("mutually exclusive");
   });
+
+  it("makes the grace CLI a hard precondition of init, not a recommendation", () => {
+    // Skills without the CLI can author .grace artifacts that nothing validates — the
+    // GRACE 3 failure this refusal exists to close. The wording is pinned so it cannot
+    // be softened back into "when the CLI is available" without a test failing.
+    const init = read("skills/grace/grace-init/SKILL.md");
+
+    expect(init).toContain("<cli_precondition>");
+    expect(init).toContain("grace --version");
+    expect(init).toContain("bun add -g @osovv/grace-cli");
+    expect(init).toContain("refuse to initialize");
+    expect(init).toContain("Create no");
+
+    // The check must precede any write; a precondition that fires mid-run is not one.
+    expect(init.indexOf("<cli_precondition>")).toBeLessThan(init.indexOf("<steps>"));
+
+    // No escape hatch: a "continue anyway" path would defeat the refusal entirely.
+    expect(init).toContain("Do not offer to continue without validation");
+
+    // And init must not report success over a failing lint.
+    expect(init).toContain("Do not report init complete while lint is failing");
+
+    // The hedge this replaced must not come back, in either skill tree.
+    for (const path of ["skills/grace/grace-init/SKILL.md", "plugins/grace/skills/grace/grace-init/SKILL.md"]) {
+      expect(read(path)).not.toContain("when the CLI is available");
+    }
+  });
 });
 
 describe("GRACE migration cleanup contract", () => {
