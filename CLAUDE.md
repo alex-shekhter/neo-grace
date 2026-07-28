@@ -14,6 +14,18 @@ GRACE means Graph-RAG Anchored Code Engineering: a contract-first AI engineering
 - `README.md` is the user-facing overview and install guide.
 - `package.json`, `src/grace.ts`, and `src/grace-lint.ts` define the published Bun-powered CLI package `@osovv/grace-cli` and the `grace lint` command.
 - `scripts/validate-marketplace.ts` validates packaging, path safety, version sync, and packaged-vs-canonical drift.
+- `docs/plans/*` contains roadmap-level implementation plans (see below).
+
+## Where Plans Live
+
+- Index of every plan and its status: `docs/plans/README.md` — **read this before starting work.**
+- Active plans: `docs/plans/active/<RM-SLUG>/plan.md` (normative) plus `review.md` (explanatory).
+- Completed, superseded, or cancelled: `docs/plans/archive/`. **Never edit anything under `archive/`.**
+- Per-change execution artifacts are GRACE change bundles under `.grace/changes/`, not markdown. Do not put plans there.
+
+A plan's `status` appears in its YAML frontmatter and must agree with its directory
+(`active/` vs `archive/`). Superseding a plan means setting `status: superseded`, filling
+`supersededBy`, and moving it to `archive/` — never rewriting it in place.
 
 ## Core Purpose
 
