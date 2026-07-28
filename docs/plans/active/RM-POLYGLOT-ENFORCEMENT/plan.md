@@ -222,6 +222,7 @@ Keep this table current. It is the single source of truth for progress.
 
 | # | Phase | Gaps closed | Release | Status |
 |---|---|---|---|---|
+| — | Pre-Phase-0 hotfix: lexical vs realpath project paths (see §0.2) | — (unblocking) | 4.1.0 | `COMPLETE` |
 | 0 | Test harness & polyglot fixtures | — (enabling) | 4.1.0 | `NOT STARTED` |
 | 1 | Stop the misleading signals | G-01, G-02, G-21 | 4.1.0 | `NOT STARTED` |
 | 2 | Go export adapter | G-03 | 4.1.0 | `NOT STARTED` |
@@ -250,6 +251,32 @@ Create reusable fixture builders so that later phases write ten-line tests inste
 ## 0.2 Preconditions
 
 → verify: `bun run validate:ci` passes on a clean checkout. If it does not, **stop** — you must not build on a red baseline.
+
+### Pre-Phase-0 hotfix (landed 2026-07-28)
+
+Phase 0 was blocked at 4.0.4: **9 tests failed on macOS** because `resolveContainedProjectPath`
+returns a realpath'd `absolutePath` while `listXmlFiles` and the status root stay lexical.
+Where `/var/folders` symlinks to `/private/var/folders` the two forms never compare equal,
+producing false `projection.*.unindexed-document` issues and drift routes that escaped the
+project root, so graph drift was never attributed.
+
+Fixed by `canonicalizeExistingPath` / `toProjectRelativePath` in `src/grace4/paths.ts`, applied
+at the two mixing call sites (`projections.reportUnindexedDocuments`,
+`grace-status.buildDriftRouteIndex`). Both are pinned by pre-existing tests: reverting
+`projections.ts` alone reproduces 25 failures, `grace-status.ts` alone reproduces 1.
+
+**This is a precondition, not a phase.** It is recorded here because Phase 0's fixture builders
+run entirely in `mkdtempSync(tmpdir())` directories — on macOS every fixture in this plan sits
+behind that symlink, so without the fix every later phase would inherit false failures.
+
+Two constraints this creates for later phases:
+
+- `toProjectRelativePath` is **not** a containment boundary — it returns `../`-escaping output
+  for paths outside the root. Only use it for paths GRACE derived itself. Every author-supplied
+  path still goes through `resolveContainedProjectPath`, including the new path fields in
+  Phases 6 and 7 (`TokenSource`, `IC-*/Schema`, `VisualCheck/Baseline`).
+- `canonicalizeExistingPath` is best-effort identity: it degrades to the lexical form on an
+  unreadable or racing path rather than throwing. Do not build a check on it that must fail closed.
 
 ## 0.3 Files touched
 
