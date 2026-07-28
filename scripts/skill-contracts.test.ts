@@ -30,13 +30,23 @@ describe("GRACE lifecycle skill contracts", () => {
     for (const section of ["Summary", "Goals", "Constraints", "NonGoals", "AcceptanceCriteria", "AffectedAreas", "VerificationIntent"]) {
       expect(spec).toContain(section);
     }
+    expect(spec).toContain("AC-*");
+    expect(spec).toContain("<acceptance_criteria_anchors>");
     expect(specTemplate).toContain("<Constraints>");
+    expect(specTemplate).toContain("AC-EXAMPLE-CRITERION");
     expect(plan).toContain("<approved_plan_immutability>");
     expect(plan).toContain("Create a new `C-*` bundle");
     expect(plan).toContain("mark the old bundle superseded");
     expect(plan).toContain("as draft unless the user explicitly approves");
     expect(plan).toContain("--assertions current");
     expect(plan).toContain("--parallel-preflight");
+    expect(plan).toContain("<spec_plan_traceability>");
+    expect(plan).toContain("Satisfies");
+    expect(plan).toContain("OutOfPlanScope");
+    const planTemplate = read("skills/grace/grace-plan/references/change-plan-template.xml");
+    expect(planTemplate).toContain("<Satisfies>");
+    expect(planTemplate).toContain("AC-EXAMPLE-CRITERION");
+    expect(planTemplate).toContain("OutOfPlanScope");
   });
 
   it("defines one recovery table and explicit selected assertion commands", () => {

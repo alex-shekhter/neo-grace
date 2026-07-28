@@ -95,6 +95,56 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
     explanation: "A GraceChangeSpec or GraceChangePlan with status='superseded' should name the replacement C-* anchor via a <Replacement> or <ReplacementChange> child tag.",
     remediation: ["Add a <Replacement>C-REPLACEMENT-ID</Replacement> child to the superseded wrapper.", "Or add a direct <C-REPLACEMENT-ID /> child tag as the replacement reference."],
   },
+  "change.scope-does-not-cover-spec": {
+    title: "Plan Scope Does Not Cover Spec AffectedAreas",
+    explanation: "The plan's DurableScope omits a module or data-flow anchor that the authorizing GraceChangeSpec lists under AffectedAreas, and the omission is not justified under OutOfPlanScope.",
+    remediation: [
+      "Add the missing M-* or DF-* under DurableScope/GraphAnchors (or the matching V-M-* under DurableScope/VerificationAnchors).",
+      "Or justify the exclusion with <OutOfPlanScope><M-ID><Reason>why this plan deliberately omits it</Reason></M-ID></OutOfPlanScope>.",
+    ],
+  },
+  "change.plan-scope-exceeds-spec": {
+    title: "Plan Scope Exceeds Spec AffectedAreas",
+    explanation: "The plan's DurableScope includes a module or data-flow the approved GraceChangeSpec never named in AffectedAreas.",
+    remediation: [
+      "Add the anchor to the spec's AffectedAreas if the plan is correct, then re-approve.",
+      "Or remove the extra anchor from DurableScope so the plan stays within the authorized surface.",
+    ],
+  },
+  "change.acceptance-criterion-unmapped": {
+    title: "Acceptance Criterion Not Mapped To A Task",
+    explanation: "The spec declares an AC-* acceptance criterion that no task Satisfies element references.",
+    remediation: [
+      "Add <Satisfies><AC-ID /></Satisfies> under the task that implements the criterion.",
+      "Or remove the unused AC-* from the spec's AcceptanceCriteria if it is no longer required.",
+    ],
+  },
+  "change.unknown-acceptance-criterion": {
+    title: "Plan References Unknown Acceptance Criterion",
+    explanation: "A task Satisfies element references an AC-* id that the approved GraceChangeSpec does not define.",
+    remediation: [
+      "Define the criterion under the spec as <AcceptanceCriteria><AC-ID>text</AC-ID></AcceptanceCriteria>.",
+      "Or remove the unknown AC-* from the task's <Satisfies> list.",
+    ],
+  },
+  "change.duplicate-acceptance-criterion": {
+    title: "Duplicate Acceptance Criterion Id",
+    explanation: "The same AC-* tag appears more than once under AcceptanceCriteria in a single GraceChangeSpec.",
+    remediation: ["Keep each AC-* id unique within the spec.", "Merge or rename the duplicate criterion."],
+  },
+  "change.empty-acceptance-criterion": {
+    title: "Empty Acceptance Criterion",
+    explanation: "An AC-* element under AcceptanceCriteria has no text content, so it cannot be evaluated.",
+    remediation: ["Write a concrete, testable statement inside the AC-* element.", "Example: <AC-KEYBOARD-NAV>Arrow keys move focus between rows.</AC-KEYBOARD-NAV>."],
+  },
+  "change.out-of-plan-scope-missing-reason": {
+    title: "OutOfPlanScope Entry Missing Reason",
+    explanation: "An OutOfPlanScope escape hatch must record why the plan deliberately omits a spec AffectedAreas anchor; empty reasons are rejected so the hatch cannot become a silent opt-out.",
+    remediation: [
+      "Add a non-empty <Reason> under the justified anchor, e.g. <M-LEGACY><Reason>Deprecated; tracked in C-DROP-LEGACY.</Reason></M-LEGACY>.",
+      "Or remove the OutOfPlanScope entry and cover the anchor in DurableScope instead.",
+    ],
+  },
   "assertion.phase-incompatible-command": {
     title: "Phase-Incompatible Assertion Command",
     explanation: "A target command assertion invokes current-mode lifecycle lint. Current mode evaluates active approved baselines, so it is a pre-implementation check and cannot serve as target or final evidence after writes begin.",

@@ -29,6 +29,18 @@ description: Read an approved GRACE 4 GraceChangeSpec and optional design contex
 Produce `plan.xml` from `references/change-plan-template.xml` as draft unless the user explicitly approves the completed plan. Require a matching `C-*` wrapper, meaningful intent, non-empty machine-checkable baseline and target assertions, explicit durable and observed scopes, and unique acyclic `T-NNN` tasks. A scope with no writes must use an explicit `<None />` marker; prose such as "none" is invalid. Every task has one `Title`, one `DependsOn`, non-empty acceptance criteria, and non-empty verification commands. Surface stale-state and coexistence warnings, and reject unsupported scope glob syntax instead of guessing.
 </must_do>
 
+<spec_plan_traceability>
+- `DurableScope` must cover every `M-*` / `DF-*` named in the authorizing spec `AffectedAreas`. A matching `V-M-*` under `VerificationAnchors` counts as covering `M-*`.
+- If a plan deliberately omits a spec-affected anchor, declare it under optional `<OutOfPlanScope>` with a non-empty `<Reason>`:
+  ```xml
+  <OutOfPlanScope>
+    <M-LEGACY-EXPORT><Reason>Deprecated; removal tracked in C-DROP-LEGACY.</Reason></M-LEGACY-EXPORT>
+  </OutOfPlanScope>
+  ```
+- When the spec declares `AC-*` criteria, each task that implements one should list it under optional `<Satisfies><AC-ID /></Satisfies>`. Unmapped criteria warn; Satisfies of unknown `AC-*` ids error.
+- Absence of `<Satisfies>` or `<OutOfPlanScope>` is never an error by itself.
+</spec_plan_traceability>
+
 <command_phase_rules>
 - `current` is an active-baseline preflight and is valid only before observed writes begin.
 - `baseline` is the selected pre-edit gate, `target` is selected post-edit evidence, and `final` is the outer apply/archive gate owned by `grace-execute`.

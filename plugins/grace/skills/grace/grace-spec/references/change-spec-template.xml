@@ -12,7 +12,8 @@
       <NonGoal>$NON_GOAL</NonGoal>
     </NonGoals>
     <AcceptanceCriteria>
-      <Criterion>$ACCEPTANCE_CRITERION</Criterion>
+      <!-- Prefer addressable AC-* anchors so grace-plan can map them via <Satisfies>. Legacy free-text <Criterion> remains valid. -->
+      <AC-EXAMPLE-CRITERION>$ACCEPTANCE_CRITERION</AC-EXAMPLE-CRITERION>
     </AcceptanceCriteria>
     <AffectedAreas>
       <M-AFFECTED-MODULE />

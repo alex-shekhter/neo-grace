@@ -55,6 +55,7 @@ export const ANCHOR_PATTERNS = {
   verification: /^V-M-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   dataFlow: /^DF-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   task: /^T-[0-9]{3}$/,
+  acceptanceCriterion: /^AC-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
 } as const;
 
 /** Canonical semantic-anchor family recognized by Artifact Grammar. */
@@ -65,7 +66,8 @@ export type SemanticAnchorFamily =
   | "module"
   | "verification"
   | "data-flow"
-  | "task";
+  | "task"
+  | "acceptance-criterion";
 
 /** Result of classifying any XML tag that resembles a semantic anchor. */
 export type SemanticAnchorClassification =

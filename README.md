@@ -171,6 +171,12 @@ Common anchors:
 - `V-M-*` verification IDs
 - `C-*` change bundles
 - `T-*` implementation plan tasks
+- `AC-*` acceptance criteria (optional under `GraceChangeSpec` `AcceptanceCriteria`; referenced from plan task `Satisfies`)
+
+When a spec declares `AC-*` criteria, each id should be referenced by a task
+`<Satisfies>` element. Plan `DurableScope` must cover every `M-*` / `DF-*` in the
+spec `AffectedAreas` (or justify omissions under `<OutOfPlanScope>` with a
+non-empty `<Reason>`).
 
 ## Repository Layout
 

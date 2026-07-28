@@ -150,6 +150,68 @@ describe("lintGraceProject", () => {
     expect(issueCodes).toContain("change.plan-missing-section");
   });
 
+  it("G-05: errors when an approved plan DurableScope covers a different module than the spec AffectedAreas", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(
+      root,
+      ".grace/changes/active/C-MISMATCH/spec.xml",
+      `<GraceChangeSpec graceVersion="4.0" status="approved"><C-MISMATCH><Summary>Spec A.</Summary><Goals><Goal>Govern M-EXAMPLE.</Goal></Goals><Constraints><Constraint>Keep fixtures valid.</Constraint></Constraints><NonGoals><NonGoal>Unrelated work.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Scope matches.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></C-MISMATCH></GraceChangeSpec>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/changes/active/C-MISMATCH/plan.xml",
+      `<GraceChangePlan graceVersion="4.0" status="approved"><C-MISMATCH><IntentSummary>Plan B for a different module.</IntentSummary><BaselineAssertions><MustExist><Value>M-OTHER</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-OTHER</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-OTHER /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/other.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Wrong scope</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Done.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-MISMATCH></GraceChangePlan>`,
+    );
+
+    const codes = lintGraceProject(root).issues.map((issue) => issue.code);
+    expect(codes).toContain("change.scope-does-not-cover-spec");
+    expect(codes).toContain("change.plan-scope-exceeds-spec");
+  });
+
+  it("accepts a well-formed AC-* / Satisfies change bundle", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(
+      root,
+      ".grace/changes/active/C-AC/spec.xml",
+      `<GraceChangeSpec graceVersion="4.0" status="approved"><C-AC><Summary>AC coverage.</Summary><Goals><Goal>Map criteria.</Goal></Goals><Constraints><Constraint>Keep fixtures valid.</Constraint></Constraints><NonGoals><NonGoal>Unrelated work.</NonGoal></NonGoals><AcceptanceCriteria><AC-KEYBOARD-NAV>Arrow keys move focus.</AC-KEYBOARD-NAV><AC-AXE-CLEAN>axe is clean.</AC-AXE-CLEAN></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></C-AC></GraceChangeSpec>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/changes/active/C-AC/plan.xml",
+      `<GraceChangePlan graceVersion="4.0" status="approved"><C-AC><IntentSummary>Implement criteria.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Wire both criteria</Title><DependsOn></DependsOn><Satisfies><AC-KEYBOARD-NAV /><AC-AXE-CLEAN /></Satisfies><AcceptanceCriteria><Criterion>Both pass.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-AC></GraceChangePlan>`,
+    );
+
+    const result = lintGraceProject(root);
+    expect(result.summary.errors).toBe(0);
+    expect(result.issues.map((issue) => issue.code)).not.toContain("change.acceptance-criterion-unmapped");
+    expect(result.issues.map((issue) => issue.code)).not.toContain("change.unknown-acceptance-criterion");
+    expect(result.issues.map((issue) => issue.code)).not.toContain("change.scope-does-not-cover-spec");
+  });
+
+  it("keeps the shipped spec and plan templates mutually consistent under spec→plan coverage", () => {
+    // String assertions in skill-contracts cannot catch the templates naming different
+    // placeholder modules. Linting them as a real bundle can.
+    const skills = path.resolve(import.meta.dir, "../skills/grace");
+    const fill = (relativePath: string) =>
+      readFileSync(path.join(skills, relativePath), "utf8")
+        .replace(/C-CHANGE-ID/g, "C-TEMPLATE")
+        .replace(/\$[A-Z_]+/g, "Placeholder prose.")
+        .replace(/status="draft"/, `status="approved"`);
+
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(root, ".grace/changes/active/C-TEMPLATE/spec.xml", fill("grace-spec/references/change-spec-template.xml"));
+    writeProjectFile(root, ".grace/changes/active/C-TEMPLATE/plan.xml", fill("grace-plan/references/change-plan-template.xml"));
+
+    const codes = lintGraceProject(root).issues.map((issue) => issue.code);
+    expect(codes).not.toContain("change.scope-does-not-cover-spec");
+    expect(codes).not.toContain("change.plan-scope-exceeds-spec");
+    expect(codes).not.toContain("change.unknown-acceptance-criterion");
+    expect(codes).not.toContain("change.acceptance-criterion-unmapped");
+  });
+
   it("documents GRACE 4 diagnostic prefixes and removes allow-missing-docs CLI exposure", () => {
     expect(getLintIssueGuide("projection.graph.wrapper-mismatch").title).toContain("Projection");
     expect(getLintIssueGuide("assertion.MustExist").title).toContain("Assertion");

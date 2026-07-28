@@ -342,7 +342,7 @@ Keep this table current. It is the single source of truth for progress.
 | 2 | Go export adapter | G-03 | 4.1.0 | `COMPLETE` |
 | 3 | Rust export adapter | G-04 | 4.1.0 | `COMPLETE` |
 | 4 | Polyglot health restoration | G-10, G-11, G-12 | 4.1.0 | `COMPLETE` |
-| 5 | Spec→plan traceability (`AC-*`) | G-05 | 4.2.0 | `NOT STARTED` |
+| 5 | Spec→plan traceability (`AC-*`) | G-05 | 4.2.0 | `COMPLETE` |
 | 6 | Design-system layer | G-06, G-09 | 5.0.0 | `NOT STARTED` |
 | 7 | Systems modeling | G-07, G-08, G-14, G-15 | 5.0.0 | `NOT STARTED` |
 | 8 | Scale & ergonomics | G-13, G-16, G-22 | 5.0.0 | `NOT STARTED` |
@@ -2179,7 +2179,7 @@ Each part is independently revertible. Part B is one function and one call site.
 
 # PHASE 5 — Spec→plan traceability
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Gaps:** G-05
 **Release:** 4.2.0
 
@@ -2860,8 +2860,21 @@ them as a checklist of four specific bugs.
 | 2 | 2 | Grouped Go declarations skipped to end of line, so struct fields and interface methods became package exports at `exact` confidence | yes | **0.7.3** — multi-line variant of a table case |
 | 3 | 3 | Rust raw identifiers (`r#type`) read as `r`, producing a false mismatch at `exact` confidence | yes | **0.7.3** — near-miss (`rfoo` vs `r#type`) |
 | 4 | 4 | Module `<Path>` detected by regex over flattened text, so `<Summary>Path resolution…</Summary>` counted as a declared path | yes | **0.7.3** — syntax appearing inside prose |
+| 5 | 5 | `change.plan-scope-exceeds-spec` warned on *every* plan anchor when the spec described `AffectedAreas` in prose — a legacy spec made a well-anchored plan noisy | yes | **0.7.3** — the case-table fixture blanked the other side of the comparison, so the reverse direction was never exercised |
+| 6 | 5 | Coverage re-litigated `status="superseded"` bundles, erroring on a divergence that is the historical record of *why* the bundle was superseded | yes | **0.7.4** — compat sweep across lifecycle states, not just directories |
+| 7 | 5 | A non-`AC-*` child of `<Satisfies>` was silently dropped, so a typo surfaced as an unmapped warning pointing at the *spec* file rather than at the plan | yes | **0.7.5** — "new tag with no validator" |
+| 8 | 5 | The shipped spec and plan templates named different placeholder modules, so scaffolding both verbatim demonstrated a violation of the rule the plan template's own comment states | yes | **0.7.3** — run the shipped artifacts themselves through the new check |
 
-Three of the four share one shape: **the code was confidently wrong rather than
+Defect 5 is the sharpest lesson in the table. When a check compares two sides, a
+case table that neuters one side proves nothing about the other. If the rule is
+"A must cover B", there are four fixtures, not two: both populated, each populated
+alone, neither populated. **Write all four.**
+
+Defect 8 generalizes: whatever the phase ships as an example — a template, a
+fixture, a README snippet — must be run through the check the phase adds. Shipping
+an example that violates the new rule teaches every user the wrong thing.
+
+Three of the first four share one shape: **the code was confidently wrong rather than
 honestly unsure**, at `exact` confidence or as a hard error. That is the failure
 mode this whole roadmap exists to remove — G-01 and G-02 were the same shape — so
 weight your probing toward it. A check that says "I cannot verify this" is always

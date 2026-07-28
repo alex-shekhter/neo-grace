@@ -71,6 +71,8 @@ const ANCHOR_FAMILIES: readonly {
   pattern: RegExp;
 }[] = [
   { family: "verification", prefix: "V-M-", pattern: ANCHOR_PATTERNS.verification },
+  // AC-* after V-M- so prefix classification cannot shadow verification anchors.
+  { family: "acceptance-criterion", prefix: "AC-", pattern: ANCHOR_PATTERNS.acceptanceCriterion },
   { family: "graph-document", prefix: "GD-", pattern: ANCHOR_PATTERNS.graphDocument },
   { family: "verification-document", prefix: "VD-", pattern: ANCHOR_PATTERNS.verificationDocument },
   { family: "data-flow", prefix: "DF-", pattern: ANCHOR_PATTERNS.dataFlow },
@@ -307,6 +309,7 @@ export function validateChangeArtifact(
         result.issues,
       );
       validateMeaningfulRequiredSections(artifact.file, wrapper, SPEC_REQUIRED_SECTIONS, result.issues);
+      validateSpecAcceptanceCriteria(artifact.file, wrapper, result.issues);
     } else {
       validateDirectSectionCardinality(
         artifact.file,
@@ -542,6 +545,16 @@ function validateChangeBundlesInDirectory(
       if (specWrapper && planWrapper && specWrapper.tag !== planWrapper.tag) {
         planResult.issues.push(issue("error", "change.spec-plan-id-mismatch", planFile, `spec.xml uses ${specWrapper.tag}, but plan.xml uses ${planWrapper.tag}.`));
       }
+      // Spec→plan coverage (G-05). Run for active and archive: historical bundles that
+      // already match stay quiet; mismatches surface so archives remain truthful.
+      // Safeguard 5 decided by fixture audit: well-formed archives stay quiet; no active-only gate.
+      for (const coverageIssue of validateSpecPlanCoverage(specArtifact, planArtifact, specFile, planFile)) {
+        if (coverageIssue.file === specFile) {
+          specResult.issues.push(coverageIssue);
+        } else {
+          planResult.issues.push(coverageIssue);
+        }
+      }
       results.push(planResult);
     }
 
@@ -714,6 +727,263 @@ function validateStructuredPlanSections(file: string, wrapper: GraceXmlNode, iss
       issues.push(issue("error", "change.plan-invalid-section-shape", file, "<ObservedWriteScope> must declare File/Path/Glob entries or <None />."));
     }
   }
+
+  for (const section of wrapper.children.filter((child) => child.tag === "OutOfPlanScope")) {
+    validateOutOfPlanScopeSection(file, section, issues);
+  }
+}
+
+function validateOutOfPlanScopeSection(file: string, section: GraceXmlNode, issues: Grace4Issue[]): void {
+  for (const child of section.children) {
+    const isModuleOrFlow = ANCHOR_PATTERNS.module.test(child.tag) || ANCHOR_PATTERNS.dataFlow.test(child.tag);
+    if (!isModuleOrFlow) {
+      issues.push(
+        issue(
+          "error",
+          "change.plan-invalid-section-shape",
+          file,
+          `<OutOfPlanScope> does not allow child <${child.tag}>; declare M-* or DF-* anchors with a non-empty <Reason>.`,
+        ),
+      );
+      continue;
+    }
+    const reason = child.children.find((node) => node.tag === "Reason");
+    if (!reason || !reason.text.trim()) {
+      issues.push(
+        issue(
+          "error",
+          "change.out-of-plan-scope-missing-reason",
+          file,
+          `<OutOfPlanScope> entry <${child.tag}> requires a non-empty <Reason>.`,
+        ),
+      );
+    }
+  }
+}
+
+function validateSpecAcceptanceCriteria(file: string, wrapper: GraceXmlNode, issues: Grace4Issue[]): void {
+  for (const section of wrapper.children.filter((child) => child.tag === "AcceptanceCriteria")) {
+    const seen = new Set<string>();
+    for (const node of walkNodes(section)) {
+      if (node === section || !ANCHOR_PATTERNS.acceptanceCriterion.test(node.tag)) {
+        continue;
+      }
+      if (seen.has(node.tag)) {
+        issues.push(
+          issue(
+            "error",
+            "change.duplicate-acceptance-criterion",
+            file,
+            `AcceptanceCriteria declares duplicate acceptance criterion ${node.tag}.`,
+          ),
+        );
+      } else {
+        seen.add(node.tag);
+      }
+      // Descendant text counts, matching validateMeaningfulSection: <AC-X><Detail>…</Detail></AC-X>
+      // states a criterion just as well as direct text does.
+      const hasText = [...walkNodes(node)].some((descendant) => descendant.text.trim().length > 0);
+      if (!hasText) {
+        issues.push(
+          issue(
+            "error",
+            "change.empty-acceptance-criterion",
+            file,
+            `Acceptance criterion ${node.tag} must contain non-empty text.`,
+          ),
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Validates that an approved plan's DurableScope covers the authorizing spec's
+ * AffectedAreas, and that AC-* acceptance criteria map to task Satisfies when present.
+ * Additive: legacy free-text AcceptanceCriteria without AC-* skips unmapped warnings.
+ */
+export function validateSpecPlanCoverage(
+  specArtifact: ParsedGraceXmlArtifact,
+  planArtifact: ParsedGraceXmlArtifact,
+  specFile: string,
+  planFile: string,
+): Grace4Issue[] {
+  const issues: Grace4Issue[] = [];
+  if (!specArtifact.root || !planArtifact.root) {
+    return issues;
+  }
+
+  // A superseded bundle is history: the plan diverged from the spec, which is why it
+  // was abandoned. Re-litigating that divergence now would tighten the past retroactively.
+  if (specArtifact.root.attributes.status === "superseded" || planArtifact.root.attributes.status === "superseded") {
+    return issues;
+  }
+
+  const specWrapper = directChangeWrapper(specArtifact.root);
+  const planWrapper = directChangeWrapper(planArtifact.root);
+  if (!specWrapper || !planWrapper) {
+    return issues;
+  }
+
+  const specAnchors = collectModuleAndFlowAnchorsUnder(specWrapper, "AffectedAreas");
+  const planDurable = collectDurableScopeAnchors(planWrapper);
+  const justified = collectJustifiedOutOfPlanAnchors(planWrapper);
+
+  for (const anchor of specAnchors) {
+    const covered =
+      planDurable.has(anchor)
+      || planDurable.has(`V-${anchor}`)
+      || justified.has(anchor);
+    if (!covered) {
+      issues.push(
+        issue(
+          "error",
+          "change.scope-does-not-cover-spec",
+          planFile,
+          `Spec AffectedAreas names ${anchor}, but the plan's DurableScope does not include it and it is not justified under OutOfPlanScope.`,
+        ),
+      );
+    }
+  }
+
+  // Legacy specs describe AffectedAreas in prose, so there is nothing to exceed. Warning on
+  // every plan anchor there would punish well-anchored plans for the spec's authoring style.
+  // Same backward-compatibility instinct as the AC-* mapping skip below.
+  for (const anchor of specAnchors.size === 0 ? [] : planDurable) {
+    if (!isModuleOrFlowOrVerification(anchor)) {
+      continue;
+    }
+    const base = anchor.startsWith("V-") ? anchor.slice(2) : anchor;
+    if (!isModuleOrFlowAnchor(base)) {
+      continue;
+    }
+    if (!specAnchors.has(base)) {
+      issues.push(
+        issue(
+          "warning",
+          "change.plan-scope-exceeds-spec",
+          planFile,
+          `Plan DurableScope includes ${anchor}, which the approved spec never mentions.`,
+        ),
+      );
+    }
+  }
+
+  const specCriteria = collectAcceptanceCriteriaIds(specWrapper);
+  const satisfied = collectSatisfiedAcceptanceCriteria(planWrapper);
+
+  // Unmapped warnings only when the spec authored AC-* (legacy free-text stays quiet).
+  if (specCriteria.size > 0) {
+    for (const id of specCriteria) {
+      if (!satisfied.has(id)) {
+        issues.push(
+          issue(
+            "warning",
+            "change.acceptance-criterion-unmapped",
+            specFile,
+            `${id} is not referenced by any task's Satisfies element.`,
+          ),
+        );
+      }
+    }
+  }
+
+  // Unknown Satisfies targets always error — referencing a non-existent AC-* is never valid.
+  for (const id of satisfied) {
+    if (!specCriteria.has(id)) {
+      issues.push(
+        issue(
+          "error",
+          "change.unknown-acceptance-criterion",
+          planFile,
+          `Plan references ${id}, which the approved spec does not define.`,
+        ),
+      );
+    }
+  }
+
+  return issues;
+}
+
+function collectModuleAndFlowAnchorsUnder(wrapper: GraceXmlNode, sectionTag: string): Set<string> {
+  const anchors = new Set<string>();
+  for (const section of wrapper.children.filter((child) => child.tag === sectionTag)) {
+    for (const node of walkNodes(section)) {
+      if (node !== section && isModuleOrFlowAnchor(node.tag)) {
+        anchors.add(node.tag);
+      }
+    }
+  }
+  return anchors;
+}
+
+function collectDurableScopeAnchors(wrapper: GraceXmlNode): Set<string> {
+  const anchors = new Set<string>();
+  for (const section of wrapper.children.filter((child) => child.tag === "DurableScope")) {
+    for (const node of walkNodes(section)) {
+      if (node === section) continue;
+      if (
+        ANCHOR_PATTERNS.module.test(node.tag)
+        || ANCHOR_PATTERNS.dataFlow.test(node.tag)
+        || ANCHOR_PATTERNS.verification.test(node.tag)
+      ) {
+        anchors.add(node.tag);
+      }
+    }
+  }
+  return anchors;
+}
+
+function collectJustifiedOutOfPlanAnchors(wrapper: GraceXmlNode): Set<string> {
+  const anchors = new Set<string>();
+  for (const section of wrapper.children.filter((child) => child.tag === "OutOfPlanScope")) {
+    for (const child of section.children) {
+      if (!isModuleOrFlowAnchor(child.tag)) continue;
+      const reason = child.children.find((node) => node.tag === "Reason");
+      if (reason && reason.text.trim()) {
+        anchors.add(child.tag);
+      }
+    }
+  }
+  return anchors;
+}
+
+function collectAcceptanceCriteriaIds(wrapper: GraceXmlNode): Set<string> {
+  const ids = new Set<string>();
+  for (const section of wrapper.children.filter((child) => child.tag === "AcceptanceCriteria")) {
+    for (const node of walkNodes(section)) {
+      if (node !== section && ANCHOR_PATTERNS.acceptanceCriterion.test(node.tag)) {
+        ids.add(node.tag);
+      }
+    }
+  }
+  return ids;
+}
+
+function collectSatisfiedAcceptanceCriteria(wrapper: GraceXmlNode): Set<string> {
+  const ids = new Set<string>();
+  const implementationPlan = wrapper.children.find((child) => child.tag === "ImplementationPlan");
+  if (!implementationPlan) {
+    return ids;
+  }
+  for (const task of implementationPlan.children.filter((child) => ANCHOR_PATTERNS.task.test(child.tag))) {
+    for (const satisfies of task.children.filter((child) => child.tag === "Satisfies")) {
+      for (const node of walkNodes(satisfies)) {
+        if (node !== satisfies && ANCHOR_PATTERNS.acceptanceCriterion.test(node.tag)) {
+          ids.add(node.tag);
+        }
+      }
+    }
+  }
+  return ids;
+}
+
+function isModuleOrFlowAnchor(tag: string): boolean {
+  return ANCHOR_PATTERNS.module.test(tag) || ANCHOR_PATTERNS.dataFlow.test(tag);
+}
+
+function isModuleOrFlowOrVerification(tag: string): boolean {
+  return isModuleOrFlowAnchor(tag) || ANCHOR_PATTERNS.verification.test(tag);
 }
 
 function isSupportedDurableScopeChild(tag: string): boolean {
@@ -768,6 +1038,25 @@ function validatePlanTask(file: string, task: GraceXmlNode, issues: Grace4Issue[
     const commands = verification.children.filter((child) => child.tag === "Command" && child.text.trim());
     if (commands.length === 0) {
       issues.push(issue("error", "change.task-empty-verification", file, `${task.tag} must contain at least one non-empty verification Command.`));
+    }
+  }
+
+  // <Satisfies> is optional, but a child that is not an AC-* anchor is silently dropped by
+  // coverage collection — the author believes a criterion is mapped when it is not, and the
+  // only symptom is an unmapped warning pointing at the spec instead of the typo in the plan.
+  for (const satisfies of task.children.filter((child) => child.tag === "Satisfies")) {
+    for (const child of satisfies.children) {
+      if (child.tag === "None" || ANCHOR_PATTERNS.acceptanceCriterion.test(child.tag)) {
+        continue;
+      }
+      issues.push(
+        issue(
+          "error",
+          "change.plan-invalid-section-shape",
+          file,
+          `<Satisfies> does not allow child <${child.tag}>; reference canonical AC-* acceptance criteria.`,
+        ),
+      );
     }
   }
 

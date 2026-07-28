@@ -182,11 +182,11 @@ describe("GRACE 4 Artifact Grammar", () => {
   it("rejects malformed semantic-anchor tags across every anchor family", () => {
     const artifact = parseGraceXmlArtifact(
       "anchors.xml",
-      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-bad /><GD-bad /><VD-bad /><C-bad /><V-M-bad /><DF-bad /><T-bad /></GD-MAIN></GraceGraphDocument>`,
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-bad /><GD-bad /><VD-bad /><C-bad /><V-M-bad /><DF-bad /><T-bad /><AC-bad /></GD-MAIN></GraceGraphDocument>`,
     );
 
     const resultCodes = codes({ issues: validateSemanticAnchorDiscipline("anchors.xml", artifact.root!) });
-    expect(resultCodes.filter((code) => code === "artifact.malformed-semantic-anchor")).toHaveLength(7);
+    expect(resultCodes.filter((code) => code === "artifact.malformed-semantic-anchor")).toHaveLength(8);
   });
 
   it("rejects attributes on canonical anchors and anchor-like attribute names or values", () => {
@@ -476,5 +476,196 @@ describe("GRACE 4 Artifact Grammar", () => {
       designContext: `<GraceChangeDesignContext graceVersion="4.0"><C-WRONG><Rationale>Wrong bundle.</Rationale></C-WRONG></GraceChangeDesignContext>`,
     });
     expect(codes(validateGrace4Project(root))).toContain("design-context.bundle-id-mismatch");
+  });
+});
+
+describe("spec→plan coverage (G-05 / AC-*)", () => {
+  function projectWithBundle(specXml: string, planXml: string | null, changeId = "C-EXAMPLE") {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(root, `.grace/changes/active/${changeId}/spec.xml`, specXml);
+    if (planXml) {
+      writeProjectFile(root, `.grace/changes/active/${changeId}/plan.xml`, planXml);
+    }
+    return root;
+  }
+
+  function issueCodes(root: string) {
+    return codes(validateGrace4Project(root));
+  }
+
+  it("accepts matching AffectedAreas and DurableScope GraphAnchors", () => {
+    const root = projectWithBundle(validSpec(), validPlan(task("T-001")));
+    expect(issueCodes(root)).not.toContain("change.scope-does-not-cover-spec");
+    expect(issueCodes(root)).not.toContain("change.plan-scope-exceeds-spec");
+  });
+
+  it("errors when plan DurableScope omits a spec AffectedAreas module and warns on extras", () => {
+    const spec = validSpec().replace("<AffectedAreas><M-EXAMPLE /></AffectedAreas>", "<AffectedAreas><M-A /></AffectedAreas>");
+    const plan = validPlan(task("T-001")).replace(
+      "<DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>",
+      "<DurableScope><GraphAnchors><M-B /></GraphAnchors></DurableScope>",
+    );
+    const resultCodes = issueCodes(projectWithBundle(spec, plan));
+    expect(resultCodes).toContain("change.scope-does-not-cover-spec");
+    expect(resultCodes).toContain("change.plan-scope-exceeds-spec");
+    expect(validateGrace4Project(projectWithBundle(spec, plan)).issues.find((i) => i.code === "change.scope-does-not-cover-spec")?.severity).toBe("error");
+    expect(validateGrace4Project(projectWithBundle(spec, plan)).issues.find((i) => i.code === "change.plan-scope-exceeds-spec")?.severity).toBe("warning");
+  });
+
+  it("treats V-M-X in DurableScope as covering M-X in the spec", () => {
+    const plan = validPlan(task("T-001")).replace(
+      "<DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>",
+      "<DurableScope><VerificationAnchors><V-M-EXAMPLE /></VerificationAnchors></DurableScope>",
+    );
+    const resultCodes = issueCodes(projectWithBundle(validSpec(), plan));
+    expect(resultCodes).not.toContain("change.scope-does-not-cover-spec");
+    expect(resultCodes).not.toContain("change.plan-scope-exceeds-spec");
+  });
+
+  it("accepts OutOfPlanScope with a non-empty Reason as covering the spec anchor", () => {
+    const plan = validPlan(
+      task("T-001"),
+      "<OutOfPlanScope><M-EXAMPLE><Reason>Deprecated; tracked in C-DROP-LEGACY.</Reason></M-EXAMPLE></OutOfPlanScope>",
+    ).replace("<DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>", "<DurableScope><None /></DurableScope>");
+    expect(issueCodes(projectWithBundle(validSpec(), plan))).not.toContain("change.scope-does-not-cover-spec");
+  });
+
+  it("errors when OutOfPlanScope Reason is empty", () => {
+    const plan = validPlan(
+      task("T-001"),
+      "<OutOfPlanScope><M-EXAMPLE><Reason></Reason></M-EXAMPLE></OutOfPlanScope>",
+    );
+    expect(issueCodes(projectWithBundle(validSpec(), plan))).toContain("change.out-of-plan-scope-missing-reason");
+  });
+
+  it("ignores free-text AffectedAreas prose and does not fire scope coverage", () => {
+    const spec = validSpec().replace("<AffectedAreas><M-EXAMPLE /></AffectedAreas>", "<AffectedAreas>services/ledger and the web UI</AffectedAreas>");
+    const plan = validPlan(task("T-001")).replace(
+      "<DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>",
+      "<DurableScope><None /></DurableScope>",
+    );
+    const resultCodes = issueCodes(projectWithBundle(spec, plan));
+    expect(resultCodes).not.toContain("change.scope-does-not-cover-spec");
+  });
+
+  it("does not warn on plan anchors when a legacy spec describes AffectedAreas in prose", () => {
+    // The plan keeps real anchors: a legacy spec must not make a well-anchored plan noisy.
+    const spec = validSpec().replace("<AffectedAreas><M-EXAMPLE /></AffectedAreas>", "<AffectedAreas>services/ledger and the web UI</AffectedAreas>");
+    const plan = validPlan(task("T-001")).replace(
+      "<GraphAnchors><M-EXAMPLE /></GraphAnchors>",
+      "<GraphAnchors><M-EXAMPLE /><M-OTHER /><DF-LEDGER-FLOW /></GraphAnchors>",
+    );
+    const resultCodes = issueCodes(projectWithBundle(spec, plan));
+    expect(resultCodes).not.toContain("change.plan-scope-exceeds-spec");
+    expect(resultCodes).not.toContain("change.scope-does-not-cover-spec");
+  });
+
+  it("does not re-litigate scope for superseded bundles", () => {
+    const spec = validSpec("C-EXAMPLE", "<Replacement>C-NEXT</Replacement>").replace('status="approved"', 'status="superseded"');
+    const plan = validPlan(task("T-001"), "<Replacement>C-NEXT</Replacement>")
+      .replace('status="approved"', 'status="superseded"')
+      .replace("<GraphAnchors><M-EXAMPLE /></GraphAnchors>", "<GraphAnchors><M-DIVERGED /></GraphAnchors>");
+    const resultCodes = issueCodes(projectWithBundle(spec, plan));
+    expect(resultCodes).not.toContain("change.scope-does-not-cover-spec");
+    expect(resultCodes).not.toContain("change.plan-scope-exceeds-spec");
+  });
+
+  it("rejects a Satisfies child that is not a canonical AC-* anchor", () => {
+    const spec = validSpec().replace(
+      "<AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria>",
+      "<AcceptanceCriteria><AC-KEYBOARD-NAV>Arrow keys move focus.</AC-KEYBOARD-NAV></AcceptanceCriteria>",
+    );
+    const plan = validPlan(
+      `<T-001><Title>T-001 title</Title><DependsOn></DependsOn><Satisfies><ac-keyboard-nav /></Satisfies><AcceptanceCriteria><Criterion>T-001 accepted.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001>`,
+    );
+    expect(issueCodes(projectWithBundle(spec, plan))).toContain("change.plan-invalid-section-shape");
+  });
+
+  it("accepts an AC-* whose text lives in a child element", () => {
+    const spec = validSpec().replace(
+      "<AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria>",
+      "<AcceptanceCriteria><AC-KEYBOARD-NAV><Detail>Arrow keys move focus.</Detail></AC-KEYBOARD-NAV></AcceptanceCriteria>",
+    );
+    const plan = validPlan(
+      `<T-001><Title>T-001 title</Title><DependsOn></DependsOn><Satisfies><AC-KEYBOARD-NAV /></Satisfies><AcceptanceCriteria><Criterion>T-001 accepted.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001>`,
+    );
+    expect(issueCodes(projectWithBundle(spec, plan))).not.toContain("change.empty-acceptance-criterion");
+  });
+
+  it("accepts plans that satisfy every AC-* criterion", () => {
+    const spec = validSpec().replace(
+      "<AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria>",
+      "<AcceptanceCriteria><AC-KEYBOARD-NAV>Arrow keys move focus.</AC-KEYBOARD-NAV><AC-AXE-CLEAN>axe is clean.</AC-AXE-CLEAN></AcceptanceCriteria>",
+    );
+    const plan = validPlan(
+      `<T-001><Title>T-001 title</Title><DependsOn></DependsOn><Satisfies><AC-KEYBOARD-NAV /><AC-AXE-CLEAN /></Satisfies><AcceptanceCriteria><Criterion>T-001 accepted.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001>`,
+    );
+    const resultCodes = issueCodes(projectWithBundle(spec, plan));
+    expect(resultCodes).not.toContain("change.acceptance-criterion-unmapped");
+    expect(resultCodes).not.toContain("change.unknown-acceptance-criterion");
+  });
+
+  it("warns when one of two AC-* criteria is unmapped", () => {
+    const spec = validSpec().replace(
+      "<AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria>",
+      "<AcceptanceCriteria><AC-KEYBOARD-NAV>Arrow keys.</AC-KEYBOARD-NAV><AC-AXE-CLEAN>axe clean.</AC-AXE-CLEAN></AcceptanceCriteria>",
+    );
+    const plan = validPlan(
+      `<T-001><Title>T-001 title</Title><DependsOn></DependsOn><Satisfies><AC-KEYBOARD-NAV /></Satisfies><AcceptanceCriteria><Criterion>T-001 accepted.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001>`,
+    );
+    const result = validateGrace4Project(projectWithBundle(spec, plan));
+    const unmapped = result.issues.filter((i) => i.code === "change.acceptance-criterion-unmapped");
+    expect(unmapped).toHaveLength(1);
+    expect(unmapped[0]?.message).toContain("AC-AXE-CLEAN");
+    expect(unmapped[0]?.severity).toBe("warning");
+  });
+
+  it("errors when plan Satisfies references AC-* absent from the spec", () => {
+    const plan = validPlan(
+      `<T-001><Title>T-001 title</Title><DependsOn></DependsOn><Satisfies><AC-MISSING /></Satisfies><AcceptanceCriteria><Criterion>T-001 accepted.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001>`,
+    );
+    expect(issueCodes(projectWithBundle(validSpec(), plan))).toContain("change.unknown-acceptance-criterion");
+  });
+
+  it("skips criteria mapping for legacy free-text AcceptanceCriteria", () => {
+    const root = projectWithBundle(validSpec(), validPlan(task("T-001")));
+    const resultCodes = issueCodes(root);
+    expect(resultCodes).not.toContain("change.acceptance-criterion-unmapped");
+    expect(resultCodes).not.toContain("change.unknown-acceptance-criterion");
+  });
+
+  it("rejects duplicate AC-* ids in one spec", () => {
+    const spec = validSpec().replace(
+      "<AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria>",
+      "<AcceptanceCriteria><AC-DUP>one</AC-DUP><AC-DUP>two</AC-DUP></AcceptanceCriteria>",
+    );
+    expect(issueCodes(projectWithBundle(spec, validPlan(task("T-001"))))).toContain("change.duplicate-acceptance-criterion");
+  });
+
+  it("rejects empty AC-* elements", () => {
+    const spec = validSpec().replace(
+      "<AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria>",
+      "<AcceptanceCriteria><AC-EMPTY></AC-EMPTY></AcceptanceCriteria>",
+    );
+    expect(issueCodes(projectWithBundle(spec, validPlan(task("T-001"))))).toContain("change.empty-acceptance-criterion");
+  });
+
+  it("emits no coverage issues when the plan is absent", () => {
+    const root = projectWithBundle(validSpec(), null);
+    const resultCodes = issueCodes(root);
+    expect(resultCodes).not.toContain("change.scope-does-not-cover-spec");
+    expect(resultCodes).not.toContain("change.plan-scope-exceeds-spec");
+    expect(resultCodes).not.toContain("change.acceptance-criterion-unmapped");
+  });
+
+  it("classifies AC-lowercase as a malformed acceptance-criterion anchor", () => {
+    const root = parseGraceXmlArtifact(
+      "spec.xml",
+      `<GraceChangeSpec graceVersion="4.0"><C-X><AcceptanceCriteria><AC-lowercase>bad</AC-lowercase></AcceptanceCriteria></C-X></GraceChangeSpec>`,
+    ).root!;
+    const issues = validateSemanticAnchorDiscipline("spec.xml", root);
+    const malformed = issues.filter((i) => i.code === "artifact.malformed-semantic-anchor");
+    expect(malformed.some((i) => i.message.includes("acceptance-criterion"))).toBe(true);
   });
 });
