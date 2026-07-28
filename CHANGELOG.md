@@ -2,7 +2,7 @@
 
 ### Summary
 
-GRACE 5.0.0 is a major adoption release that keeps the artifact grammar version at `graceVersion="4.0"` (all new structure is additive and optional) while shipping polyglot enforcement, design-system and systems-modeling layers, scale ergonomics, and a golden-path example monorepo. New optional anchor families (`AC-*`, `DT-*`/`BP-*`/`ST-*`, `IC-*`, `INV-*`) and context artifacts (`design-system.xml`, `invariants.xml`) give projects a complete home for UI contracts, interface contracts, and cross-cutting invariants without breaking existing green trees. The CLI gains `grace doctor`, `grace graph split`, multi-stack `GraceTechnology`, document-size warnings, design-artifact links on change specs, ceremony-tier skill guidance (T0–T3), and CI-enforced `examples/polyglot` so the worked example cannot bitrot.
+GRACE 5.0.0 is a major adoption release that keeps the artifact grammar version at `graceVersion="4.0"` (all new structure is additive and optional) while shipping polyglot enforcement, design-system and systems-modeling layers, scale ergonomics, and a golden-path example monorepo. New optional anchor families (`AC-*`, `DT-*`/`BP-*`/`ST-*`, `IC-*`, `INV-*`) and context artifacts (`design-system.xml`, `invariants.xml`) give projects a complete home for UI contracts, interface contracts, and cross-cutting invariants without breaking existing green trees. The CLI gains `grace doctor`, `grace graph split`, multi-stack `GraceTechnology`, document-size warnings, design-artifact links on change specs, ceremony-tier skill guidance (T0–T3), and CI-enforced `examples/polyglot` so the worked example cannot bitrot. Projects can also govern languages GRACE ships no adapter for via `codeExtensions`, and the on-ramp is rebuilt around a CI-verified twenty-minute walkthrough and a standalone visual introduction.
 
 ### Breaking
 
@@ -18,12 +18,18 @@ GRACE 5.0.0 is a major adoption release that keeps the artifact grammar version 
 * feat(spec): optional `<DesignReferences>` with http(s) Figma URLs and contained `UserResearch` paths (G-18)
 * docs(skills): ceremony tiers T0–T3 (skill guidance only; gates never skipped) and table-formatted `must_do` / `strict_contract` (G-17, G-19)
 * docs(examples): golden-path `examples/polyglot` (React + Go + Rust) with segmented graph/verification, enforced by `validate:examples` in CI (G-20)
+* feat(lint): `codeExtensions` in `.grace-lint.json` — govern a language GRACE ships no adapter for without forking; additive, so it can never remove governance for another language
+* feat(skills): `grace-init` verifies the `grace` binary before writing and refuses to initialize without it — an unvalidated `.grace` tree is not a finished init
+* docs(examples): `examples/polyglot/WALKTHROUGH.md`, a twenty-minute guided tour whose four deliberate breaks are verified in CI by `validate:walkthrough`
+* docs: standalone visual introduction at `docs/grace-explainer.html`, and a "New to GRACE? Start Here" entry point in the README
 
 ### Fixes (review-era)
 
 * fix(graph): stage all `grace graph split` writes; refuse path collisions; preserve numeric character references on rewrite
 * fix(change): thread `IC-*` through spec→plan coverage; explicit Provider/Consumer and DesignReferences child shape checks
 * fix(assert): real capture-group detection for `MustPassBudget` Extract patterns
+* fix(lint): derive `ADAPTER_BACKED_EXTENSIONS` from the registered adapters instead of maintaining a parallel list that `grace doctor` reports from
+* docs: correct the README's claim that the CLI is optional — it is required, and the execute gates are defined in terms of it
 
 ## <small>4.0.4 (2026-07-27)</small>
 
