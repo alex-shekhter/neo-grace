@@ -7,9 +7,14 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 | ID | Title | Status | Baseline | Targets | Plan |
 |---|---|---|---|---|---|
 | `RM-AGENT-RELIABILITY` | Context discipline, scope drift, and self-verification | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-AGENT-RELIABILITY/review.md) |
+| `RM-LANGUAGE-EXTENSIBILITY` | Language bundles, conformance fixtures, and parser strategy | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-LANGUAGE-EXTENSIBILITY/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
+
+These two are siblings and cross-reference each other, but are deliberately not merged:
+they argue from different evidence and will complete at different times. A plan bundle
+archives as a unit, so combining them would hold one hostage to the other.
 
 ## Archive
 

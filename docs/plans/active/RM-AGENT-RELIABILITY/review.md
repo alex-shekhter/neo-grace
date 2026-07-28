@@ -17,6 +17,11 @@ plan: null
 > and no phase has been approved. Nothing here is normative. It exists to record the
 > reasoning while it is fresh, so that a future `plan.md` can be argued from evidence
 > rather than re-derived from memory.
+>
+> Sibling document: [RM-LANGUAGE-EXTENSIBILITY](../RM-LANGUAGE-EXTENSIBILITY/review.md)
+> covers the tool's own extension model — who can add a language and what it costs. This
+> one covers the agent operating on GRACE artifacts. Kept separate because they argue from
+> different evidence and will finish at different times.
 
 ## 1. Why this document exists
 
