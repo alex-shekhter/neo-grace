@@ -343,7 +343,7 @@ Keep this table current. It is the single source of truth for progress.
 | 3 | Rust export adapter | G-04 | 4.1.0 | `COMPLETE` |
 | 4 | Polyglot health restoration | G-10, G-11, G-12 | 4.1.0 | `COMPLETE` |
 | 5 | Spec→plan traceability (`AC-*`) | G-05 | 4.2.0 | `COMPLETE` |
-| 6 | Design-system layer | G-06, G-09 | 5.0.0 | `NOT STARTED` |
+| 6 | Design-system layer | G-06, G-09 | 5.0.0 | `COMPLETE` |
 | 7 | Systems modeling | G-07, G-08, G-14, G-15 | 5.0.0 | `NOT STARTED` |
 | 8 | Scale & ergonomics | G-13, G-16, G-22 | 5.0.0 | `NOT STARTED` |
 | 9 | Adoption surface & release | G-17, G-18, G-19, G-20 | 5.0.0 | `NOT STARTED` |
@@ -2449,7 +2449,7 @@ Remove the `validateSpecPlanCoverage` call site. The `AC-*` family can remain re
 
 # PHASE 6 — Design-system layer
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Gaps:** G-06, G-09
 **Release:** 5.0.0
 
@@ -2864,6 +2864,20 @@ them as a checklist of four specific bugs.
 | 6 | 5 | Coverage re-litigated `status="superseded"` bundles, erroring on a divergence that is the historical record of *why* the bundle was superseded | yes | **0.7.4** — compat sweep across lifecycle states, not just directories |
 | 7 | 5 | A non-`AC-*` child of `<Satisfies>` was silently dropped, so a typo surfaced as an unmapped warning pointing at the *spec* file rather than at the plan | yes | **0.7.5** — "new tag with no validator" |
 | 8 | 5 | The shipped spec and plan templates named different placeholder modules, so scaffolding both verbatim demonstrated a violation of the rule the plan template's own comment states | yes | **0.7.3** — run the shipped artifacts themselves through the new check |
+
+| 9 | 6 | The ReDoS guard was a regex over the pattern text, so it could not see paren nesting: `((a+))+` and `(a|a)*` were accepted and ran exponentially, while `(a+){2}` was rejected despite being safe | yes | **0.7.3** — near-misses of the one shape the guard was written against |
+| 10 | 6 | `stateMatchesEvidence` matched substrings, so "downloading assets" counted as evidence for `ST-LOADING` and "terror scenario" for `ST-ERROR` | yes | **0.7.3** — the silent direction: a check that reports coverage it does not have |
+| 11 | 6 | UI health read `<Applicability>` with a regex over raw XML while the grammar validator already parsed the same field, so a nested `<Applicability>` flipped the answer for every module | yes | **0.7.5** — anti-pattern 1, and the same shape as defect 4 |
+
+Defects 9 and 11 are a matched pair worth internalizing: **a guard written as a regex
+over structured text is a guard you do not have.** Defect 4 was this. Defect 11 is this
+again, in a file that imports a parser three lines above. When the thing being inspected
+has structure — XML, source code, a regex — scan the structure.
+
+Defect 9 adds the sharper point: a safety check that only recognizes the textbook example
+of the hazard is worse than none, because it licenses the belief that the hazard is
+handled. When you write a guard, probe it with variants of the thing it guards against,
+not with the example from the plan.
 
 Defect 5 is the sharpest lesson in the table. When a check compares two sides, a
 case table that neuters one side proves nothing about the other. If the rule is

@@ -48,6 +48,7 @@
         "./skills/grace/grace-cli",
         "./skills/grace/grace-explainer",
         "./skills/grace/grace-verification",
+        "./skills/grace/grace-design",
         "./skills/grace/grace-reviewer",
         "./skills/grace/grace-migrate"
       ]

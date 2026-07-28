@@ -63,6 +63,38 @@ Canonical grep-stable naming rules:
 | UTILITY | Shared helpers, configuration, logging |
 | INTEGRATION | External service adapters |
 
+`grace lint` accepts these values on module `<Type>`. Other free-text types emit
+`graph.unknown-module-type` as a **warning** (not an error) so legacy projects stay green.
+
+## UI Component States
+
+`UI_COMPONENT` modules may declare interaction states under `<States>`:
+
+```xml
+<M-LEDGER-TABLE>
+  <Summary>Ledger rows</Summary>
+  <Type>UI_COMPONENT</Type>
+  <Path>apps/web/src/LedgerTable.tsx</Path>
+  <States>
+    <ST-DEFAULT />
+    <ST-EMPTY />
+    <ST-LOADING />
+    <ST-ERROR />
+    <ST-FOCUS-VISIBLE />
+    <ST-DISABLED />
+  </States>
+</M-LEDGER-TABLE>
+```
+
+Each declared `ST-*` must be named by at least one `Scenario`, `AccessibilityCheck`,
+or `VisualCheck` under `V-M-*`. Matching rule: case-insensitive match of the state id
+**without the `ST-` prefix**, as consecutive **whole words**, with `-` and camelCase
+treated as word separators (so `ST-FOCUS-VISIBLE` matches "focus visible",
+"focus-visible", or "focusVisible", and `ST-LOADING` matches "loading spinner" but not
+"downloading assets"). Missing coverage is
+`health.ui-state-unverified`. A `UI_COMPONENT` with no states while UX guidelines are
+applicable gets `health.ui-states-undeclared`.
+
 ## Annotation Tags
 
 | Tag | Purpose |

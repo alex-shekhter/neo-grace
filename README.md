@@ -172,6 +172,8 @@ Common anchors:
 - `C-*` change bundles
 - `T-*` implementation plan tasks
 - `AC-*` acceptance criteria (optional under `GraceChangeSpec` `AcceptanceCriteria`; referenced from plan task `Satisfies`)
+- `DT-*` design tokens / `BP-*` breakpoints (optional `design-system.xml`)
+- `ST-*` UI states on `UI_COMPONENT` modules (covered by verification Scenario / AccessibilityCheck / VisualCheck)
 
 When a spec declares `AC-*` criteria, each id should be referenced by a task
 `<Satisfies>` element. Plan `DurableScope` must cover every `M-*` / `DF-*` in the

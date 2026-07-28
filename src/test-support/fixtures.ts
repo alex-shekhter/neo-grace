@@ -20,6 +20,8 @@ export type ModuleSpec = {
   path: string;
   type?: string;
   links?: string[];
+  /** Optional ST-* UI states declared under <States>. */
+  states?: string[];
 };
 
 export type GovernedFileSpec = {
@@ -281,8 +283,11 @@ export class GraceProjectBuilder {
       const summary = escapeXml(m.summary ?? `${m.id} fixture module.`);
       const modulePath = escapeXml(m.path);
       const typeXml = m.type ? `<Type>${escapeXml(m.type)}</Type>` : "";
+      const statesXml = m.states && m.states.length > 0
+        ? `<States>${m.states.map((state) => `<${state} />`).join("")}</States>`
+        : "";
       const linksXml = (m.links ?? []).map((link) => `<${link} />`).join("");
-      return `<${m.id}><Summary>${summary}</Summary><Path>${modulePath}</Path>${typeXml}${linksXml}</${m.id}>`;
+      return `<${m.id}><Summary>${summary}</Summary><Path>${modulePath}</Path>${typeXml}${statesXml}${linksXml}</${m.id}>`;
     }).join("");
 
     const dataFlowElements = this.dataFlows.map((df) => {
@@ -465,6 +470,8 @@ export function polyglotFixture(): string {
       summary: "Web ledger table component.",
       path: "apps/web/src/components/LedgerTable.tsx",
       type: "UI_COMPONENT",
+      // Declare and cover default state so Phase 6 health stays ready for this fixture.
+      states: ["ST-DEFAULT"],
     })
     .dataFlow("DF-POSTING", ["M-WEB-LEDGER-TABLE", "M-GATEWAY-ROUTER", "M-LEDGER-CORE"], "Posting flow.")
     .governedFile({
@@ -540,11 +547,10 @@ export function polyglotFixture(): string {
       moduleId: "M-WEB-LEDGER-TABLE",
       cwd: "apps/web",
       commands: ["bun test apps/web/src/components/LedgerTable.test.ts"],
-      scenarios: ["Ledger table renders."],
+      // Scenario names ST-DEFAULT ("default") so health.ui-state-unverified stays quiet.
+      scenarios: ["Ledger table default render."],
       // TraceAssertion rather than Marker: a UI component proves render behavior
-      // through tests, not log emission. Keeping this module healthy also makes
-      // the fixture self-documenting - the only blocked modules are the two
-      // blocked by G-02.
+      // through tests, not log emission.
       traceAssertions: ["Render output is asserted by component tests without runtime log emission."],
     })
     .write();

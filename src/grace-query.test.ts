@@ -273,6 +273,71 @@ describe("grace query core", () => {
     expect(health.blockers.map((blocker) => blocker.code)).not.toContain("health.verification-test-file-missing-on-disk");
   });
 
+  it("blocks UI_COMPONENT states without evidence and warns when states are undeclared", () => {
+    const root = createProject();
+    writeProjectSkeleton(root);
+    writeProjectFile(
+      root,
+      ".grace/graph/index.xml",
+      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-UI-COVERED /><M-UI-BARE /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/graph/main.xml",
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>
+        <M-UI-COVERED><Summary>Covered UI</Summary><Path>src/covered.tsx</Path><Type>UI_COMPONENT</Type><States><ST-DEFAULT /><ST-ERROR /></States></M-UI-COVERED>
+        <M-UI-BARE><Summary>Bare UI</Summary><Path>src/bare.tsx</Path><Type>UI_COMPONENT</Type></M-UI-BARE>
+      </GD-MAIN></GraceGraphDocument>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/verification/index.xml",
+      `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-UI-COVERED /><V-M-UI-BARE /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/verification/main.xml",
+      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>
+        <V-M-UI-COVERED><Command>bun test</Command><Scenario>default render</Scenario><TraceAssertion>render ok</TraceAssertion></V-M-UI-COVERED>
+        <V-M-UI-BARE><Command>bun test</Command><Scenario>renders</Scenario><TraceAssertion>ok</TraceAssertion></V-M-UI-BARE>
+      </VD-MAIN></GraceVerificationDocument>`,
+    );
+    writeProjectFile(root, "src/covered.tsx", `// START_MODULE_CONTRACT\n// PURPOSE: UI.\n// LINKS: M-UI-COVERED\n// END_MODULE_CONTRACT\nexport const Covered = () => null;\n`);
+    writeProjectFile(root, "src/bare.tsx", `// START_MODULE_CONTRACT\n// PURPOSE: UI.\n// LINKS: M-UI-BARE\n// END_MODULE_CONTRACT\nexport const Bare = () => null;\n`);
+    writeProjectFile(root, ".grace/context/ux-guidelines.xml", `<GraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></GraceUXGuidelines>`);
+
+    const index = loadGraceArtifactIndex(root);
+    const uncovered = buildModuleHealth(index, resolveModule(index, "M-UI-COVERED"));
+    expect(uncovered.blockers.map((b) => b.code)).toContain("health.ui-state-unverified");
+    expect(uncovered.blockers.some((b) => b.message.includes("ST-ERROR"))).toBe(true);
+
+    const bare = buildModuleHealth(index, resolveModule(index, "M-UI-BARE"));
+    expect(bare.warnings.map((w) => w.code)).toContain("health.ui-states-undeclared");
+
+    writeProjectFile(
+      root,
+      ".grace/verification/main.xml",
+      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>
+        <V-M-UI-COVERED><Command>bun test</Command><Scenario>default render</Scenario><Scenario>error banner</Scenario><AccessibilityCheck><Tool>axe</Tool><Command>bun run a11y</Command></AccessibilityCheck><TraceAssertion>ok</TraceAssertion></V-M-UI-COVERED>
+        <V-M-UI-BARE><Command>bun test</Command><Scenario>renders</Scenario><TraceAssertion>ok</TraceAssertion></V-M-UI-BARE>
+      </VD-MAIN></GraceVerificationDocument>`,
+    );
+    const fixed = buildModuleHealth(loadGraceArtifactIndex(root), resolveModule(loadGraceArtifactIndex(root), "M-UI-COVERED"));
+    expect(fixed.blockers.map((b) => b.code)).not.toContain("health.ui-state-unverified");
+
+    // Only the artifact's own direct <Applicability> decides. Reading the first match at
+    // any depth let a nested value flip the answer for every module in the project.
+    writeProjectFile(
+      root,
+      ".grace/context/ux-guidelines.xml",
+      `<GraceUXGuidelines graceVersion="4.0"><Notes><Applicability>applicable</Applicability></Notes><Applicability>not-applicable</Applicability><Reason>Headless service with no user interface surface.</Reason></GraceUXGuidelines>`,
+    );
+    const notApplicable = loadGraceArtifactIndex(root);
+    expect(buildModuleHealth(notApplicable, resolveModule(notApplicable, "M-UI-BARE")).warnings.map((w) => w.code)).not.toContain(
+      "health.ui-states-undeclared",
+    );
+  });
+
   it("builds module health from projections and linked files", () => {
     const root = createQueryProject();
     const index = loadGraceArtifactIndex(root);

@@ -5,7 +5,13 @@ import { describe, expect, it } from "bun:test";
 
 import { resolveGrace4Paths } from "./project";
 import { buildGraphProjection, buildVerificationProjection } from "./projections";
-import { evaluateAssertion, extractAssertionsWithIssues, type AssertionContext, type GraceAssertion } from "./assertions";
+import {
+  compileSafeAssertionPattern,
+  evaluateAssertion,
+  extractAssertionsWithIssues,
+  type AssertionContext,
+  type GraceAssertion,
+} from "./assertions";
 
 function createProject() {
   const root = path.join(os.tmpdir(), `grace4-assertions-${crypto.randomUUID()}`);
@@ -231,5 +237,119 @@ describe("GRACE 4 assertions", () => {
     if (failAssertions.length > 0) {
       expect(evaluateAssertion(failAssertions[0]!, failCtx)[0]?.code).toBe("assertion.MustVerify");
     }
+  });
+
+  it("evaluates MustMatchPattern and rejects catastrophic-backtracking patterns", () => {
+    const root = createProject();
+    writeProjectionFixture(root);
+    const ctx = context(root);
+
+    expect(evaluateAssertion(assertion("MustMatchPattern", ["src/example.ts", "fr..h"]), ctx)).toHaveLength(0);
+    expect(evaluateAssertion(assertion("MustMatchPattern", ["src/example.ts", "absent"]), ctx)[0]?.code).toBe("assertion.MustMatchPattern");
+
+    const unsafe = compileSafeAssertionPattern("(a+)+$");
+    expect(unsafe.ok).toBe(false);
+    if (!unsafe.ok) {
+      expect(unsafe.error).toContain("nested unbounded");
+    }
+
+    const started = Date.now();
+    const issues = evaluateAssertion(assertion("MustMatchPattern", ["src/example.ts", "(a+)+b"]), ctx);
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(issues[0]?.code).toBe("assertion.invalid-pattern");
+
+    const tooLong = "a".repeat(201);
+    expect(compileSafeAssertionPattern(tooLong).ok).toBe(false);
+  });
+
+  it("rejects catastrophic patterns that hide behind paren nesting or overlapping alternation", () => {
+    // A regex over the pattern text cannot see nesting, so these slipped past and ran
+    // exponentially. Each must be rejected, and the check itself must stay fast.
+    for (const source of ["((a+))+$", "(((a+)))+$", "(a|a)*$", "(?:a|a)*$", "(a|ab)*$", "(\\s|\\s)+$", "(a+){2,}"]) {
+      const started = Date.now();
+      const compiled = compileSafeAssertionPattern(source);
+      expect(Date.now() - started).toBeLessThan(1000);
+      expect(compiled.ok).toBe(false);
+    }
+  });
+
+  it("still accepts ordinary design-check patterns", () => {
+    for (const source of [
+      "^(foo|bar)+$",
+      "var\\(--[a-z-]+\\)",
+      "^#[0-9a-fA-F]{6}$",
+      "(a+){2}",
+      "^(https?://[^\\s]+)\\s*$",
+      "\\d+px",
+      "(?:color|background)-[a-z]+",
+      "^(?<name>[a-z]+)$",
+      "(?=.*foo).*bar",
+      "[(){}]+",
+    ]) {
+      const compiled = compileSafeAssertionPattern(source);
+      expect(compiled.ok).toBe(true);
+    }
+  });
+
+  it("evaluates MustUseToken against design-system token values", () => {
+    const root = createProject();
+    writeProjectionFixture(root);
+    writeProjectFile(root, "src/tokens.css", ":root { --accent: #0af; }\n");
+    writeProjectFile(root, "src/ui.ts", "const c = 'var(--accent)';\n");
+    writeProjectFile(root, "src/raw.ts", "const c = '#ff0000';\n");
+    writeProjectFile(
+      root,
+      ".grace/context/design-system.xml",
+      `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-COLOR-ACCENT><Value>var(--accent)</Value></DT-COLOR-ACCENT></Tokens></GraceDesignSystem>`,
+    );
+    const ctx = context(root);
+    expect(evaluateAssertion(assertion("MustUseToken", ["src/ui.ts", "DT-COLOR-ACCENT"]), ctx)).toHaveLength(0);
+    expect(evaluateAssertion(assertion("MustUseToken", ["src/raw.ts", "DT-COLOR-ACCENT"]), ctx)[0]?.code).toBe("assertion.MustUseToken");
+  });
+
+  it("evaluates MustNotUseLiteral against forbidden raw patterns", () => {
+    const root = createProject();
+    writeProjectionFixture(root);
+    writeProjectFile(root, "src/raw.ts", "const c = '#ff0000';\n");
+    writeProjectFile(root, "src/clean.ts", "const c = 'var(--accent)';\n");
+    const ctx = context(root);
+    expect(evaluateAssertion(assertion("MustNotUseLiteral", ["src/raw.ts", "#[0-9a-fA-F]{6}"]), ctx)[0]?.code).toBe("assertion.MustNotUseLiteral");
+    expect(evaluateAssertion(assertion("MustNotUseLiteral", ["src/clean.ts", "#[0-9a-fA-F]{6}"]), ctx)).toHaveLength(0);
+  });
+
+  it("evaluates MustCoverStates against verification evidence", () => {
+    const root = createProject();
+    writeProjectFile(root, "src/example.ts", "export const marker = 'fresh';\n");
+    writeProjectFile(
+      root,
+      ".grace/graph/index.xml",
+      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-WEB /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/graph/main.xml",
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-WEB><Summary>UI</Summary><Path>src/example.ts</Path><Type>UI_COMPONENT</Type><States><ST-DEFAULT /><ST-ERROR /></States></M-WEB></GD-MAIN></GraceGraphDocument>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/verification/index.xml",
+      `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-WEB /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/verification/main.xml",
+      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-WEB><Command>bun test</Command><Scenario>default render works</Scenario></V-M-WEB></VD-MAIN></GraceVerificationDocument>`,
+    );
+    const ctx = context(root);
+    const issues = evaluateAssertion(assertion("MustCoverStates", ["M-WEB"]), ctx);
+    expect(issues.some((i) => i.message.includes("ST-ERROR"))).toBe(true);
+    expect(issues.some((i) => i.message.includes("ST-DEFAULT"))).toBe(false);
+
+    writeProjectFile(
+      root,
+      ".grace/verification/main.xml",
+      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-WEB><Command>bun test</Command><Scenario>default render works</Scenario><AccessibilityCheck><Tool>axe</Tool><Command>bun run a11y</Command><MaxSeverity>serious</MaxSeverity></AccessibilityCheck><Scenario>error state announced</Scenario></V-M-WEB></VD-MAIN></GraceVerificationDocument>`,
+    );
+    expect(evaluateAssertion(assertion("MustCoverStates", ["M-WEB"]), context(root))).toHaveLength(0);
   });
 });

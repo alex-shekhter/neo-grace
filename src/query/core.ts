@@ -78,7 +78,8 @@ export function getModuleName(moduleRecord: ModuleRecord) {
 }
 
 export function getModuleType(moduleRecord: ModuleRecord) {
-  return moduleRecord.type ?? moduleRecord.graph.kind;
+  // Prefer authored <Type> over graph anchor kind ("module" | "data-flow").
+  return moduleRecord.type ?? moduleRecord.graph.moduleType ?? moduleRecord.graph.type;
 }
 
 export function getModulePath(moduleRecord: ModuleRecord) {
@@ -135,7 +136,7 @@ export function loadGraceArtifactIndex(projectRoot: string): GraceArtifactIndex 
       return {
         id: record.id,
         name: extractNamedField(record.text, "Name"),
-        type: graphRecord.kind,
+        type: graphRecord.moduleType ?? graphRecord.type,
         graph: graphRecord,
         verification: moduleVerifications[0] ?? null,
         verifications: moduleVerifications,
@@ -160,12 +161,14 @@ function toModuleGraphRecord(record: GraphAnchorRecord): ModuleGraphRecord {
   return {
     ...record,
     name: extractNamedField(record.text, "Name"),
-    type: record.kind,
+    type: record.moduleType,
     status: extractNamedField(record.text, "Status"),
     purpose: extractNamedField(record.text, "Summary") ?? extractNamedField(record.text, "Purpose"),
-    path: extractPath(record.text),
+    // Prefer structured <Path>; fall back to legacy text extraction only when absent.
+    path: record.path ?? extractPath(record.text),
     depends: record.links,
     annotations: [],
+    states: record.states ?? [],
   };
 }
 
@@ -183,6 +186,8 @@ function toModuleVerificationRecord(record: VerificationAnchorRecord): ModuleVer
     scenarios: record.scenarios.map((text, index) => ({ tag: "Scenario-" + (index + 1), text })),
     requiredLogMarkers: record.markers,
     requiredTraceAssertions: record.traceAssertions,
+    accessibilityChecks: record.accessibilityChecks,
+    visualChecks: record.visualChecks,
   };
 }
 

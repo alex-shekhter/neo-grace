@@ -2,9 +2,11 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 import type { Grace4Issue } from "./types";
+import { ANCHOR_PATTERNS } from "./types";
 import { ProjectPathError, resolveContainedProjectPath } from "./paths";
 import type { GraphAnchorRecord, GraphProjection, VerificationProjection } from "./projections";
-import { readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
+import { stateMatchesEvidence } from "./projections";
+import { childText, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
 /** Supported machine-checkable GRACE 4 assertion kinds. */
 export type AssertionKind =
@@ -15,7 +17,14 @@ export type AssertionKind =
   | "MustVerify"
   | "MustPassCommand"
   | "MustContain"
-  | "MustNotContain";
+  | "MustNotContain"
+  | "MustMatchPattern"
+  | "MustUseToken"
+  | "MustNotUseLiteral"
+  | "MustCoverStates";
+
+/** Maximum accepted length for artifact-authored regex patterns. */
+export const ASSERTION_PATTERN_MAX_LENGTH = 200;
 
 /** Parsed assertion from BaselineAssertions or TargetAssertions. */
 export type GraceAssertion = {
@@ -55,6 +64,10 @@ export const ASSERTION_SCHEMAS: Record<AssertionKind, AssertionSchema> = {
   MustPassCommand: { fields: ["Command"], allowManyValues: true },
   MustContain: { fields: ["File", "Text"], fileField: "File" },
   MustNotContain: { fields: ["File", "Text"], fileField: "File" },
+  MustMatchPattern: { fields: ["File", "Pattern"], fileField: "File" },
+  MustUseToken: { fields: ["File", "Token"], fileField: "File" },
+  MustNotUseLiteral: { fields: ["File", "Pattern"], fileField: "File" },
+  MustCoverStates: { fields: ["Module"] },
 };
 
 export const ASSERTION_KINDS = new Set<AssertionKind>([
@@ -66,6 +79,10 @@ export const ASSERTION_KINDS = new Set<AssertionKind>([
   "MustPassCommand",
   "MustContain",
   "MustNotContain",
+  "MustMatchPattern",
+  "MustUseToken",
+  "MustNotUseLiteral",
+  "MustCoverStates",
 ]);
 
 /** Evaluates one assertion and returns current-state issues. */
@@ -87,6 +104,14 @@ export function evaluateAssertion(assertion: GraceAssertion, context: AssertionC
       return evaluateTextContainment(assertion, context, true);
     case "MustNotContain":
       return evaluateTextContainment(assertion, context, false);
+    case "MustMatchPattern":
+      return evaluateMustMatchPattern(assertion, context);
+    case "MustUseToken":
+      return evaluateMustUseToken(assertion, context);
+    case "MustNotUseLiteral":
+      return evaluateMustNotUseLiteral(assertion, context);
+    case "MustCoverStates":
+      return evaluateMustCoverStates(assertion, context);
   }
 }
 
@@ -240,6 +265,329 @@ function evaluateTextContainment(assertion: GraceAssertion, context: AssertionCo
     return [assertionIssue(assertion, `${assertion.kind} requires file and text values.`)];
   }
 
+  const contents = readAssertionFile(assertion, context, fileValue);
+  if (typeof contents !== "string") {
+    return contents;
+  }
+
+  const contains = contents.includes(expectedText);
+  if (contains === shouldContain) {
+    return [];
+  }
+
+  return [assertionIssue(assertion, shouldContain ? `${fileValue} must contain requested text.` : `${fileValue} must not contain requested text.`)];
+}
+
+function evaluateMustMatchPattern(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+  const [fileValue, patternSource] = assertion.values;
+  if (!fileValue || patternSource == null) {
+    return [assertionIssue(assertion, "MustMatchPattern requires File and Pattern values.")];
+  }
+
+  const compiled = compileSafeAssertionPattern(patternSource);
+  if (!compiled.ok) {
+    return [issue("error", "assertion.invalid-pattern", assertion.file, `MustMatchPattern pattern rejected: ${compiled.error}`)];
+  }
+
+  const contents = readAssertionFile(assertion, context, fileValue);
+  if (typeof contents !== "string") {
+    return contents;
+  }
+
+  return compiled.pattern.test(contents)
+    ? []
+    : [assertionIssue(assertion, `${fileValue} does not match pattern ${JSON.stringify(patternSource)}.`)];
+}
+
+function evaluateMustNotUseLiteral(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+  const [fileValue, patternSource] = assertion.values;
+  if (!fileValue || patternSource == null) {
+    return [assertionIssue(assertion, "MustNotUseLiteral requires File and Pattern values.")];
+  }
+
+  const compiled = compileSafeAssertionPattern(patternSource);
+  if (!compiled.ok) {
+    return [issue("error", "assertion.invalid-pattern", assertion.file, `MustNotUseLiteral pattern rejected: ${compiled.error}`)];
+  }
+
+  const contents = readAssertionFile(assertion, context, fileValue);
+  if (typeof contents !== "string") {
+    return contents;
+  }
+
+  return compiled.pattern.test(contents)
+    ? [assertionIssue(assertion, `${fileValue} matches forbidden pattern ${JSON.stringify(patternSource)}.`) ]
+    : [];
+}
+
+function evaluateMustUseToken(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+  const [fileValue, tokenId] = assertion.values;
+  if (!fileValue || !tokenId) {
+    return [assertionIssue(assertion, "MustUseToken requires File and Token values.")];
+  }
+  if (!ANCHOR_PATTERNS.designToken.test(tokenId)) {
+    return [assertionIssue(assertion, `Token ${JSON.stringify(tokenId)} must be a canonical DT-* design token id.`)];
+  }
+
+  const tokens = loadDesignTokenValues(context.root);
+  const tokenValue = tokens.get(tokenId);
+  if (!tokenValue) {
+    return [assertionIssue(assertion, `Design token ${tokenId} is not defined in .grace/context/design-system.xml.`)];
+  }
+
+  const contents = readAssertionFile(assertion, context, fileValue);
+  if (typeof contents !== "string") {
+    return contents;
+  }
+
+  return contents.includes(tokenValue)
+    ? []
+    : [assertionIssue(assertion, `${fileValue} does not reference token value ${JSON.stringify(tokenValue)} for ${tokenId}.`)];
+}
+
+function evaluateMustCoverStates(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+  const [moduleId] = assertion.values;
+  if (!moduleId) {
+    return [assertionIssue(assertion, "MustCoverStates requires a Module value.")];
+  }
+  if (!ANCHOR_PATTERNS.module.test(moduleId)) {
+    return [assertionIssue(assertion, `Module ${JSON.stringify(moduleId)} must be a canonical M-* id.`)];
+  }
+
+  const moduleRecord = context.graph.modules.get(moduleId);
+  if (!moduleRecord) {
+    return [assertionIssue(assertion, `Module ${moduleId} does not exist in the graph projection.`)];
+  }
+
+  const states = moduleRecord.states ?? [];
+  if (states.length === 0) {
+    return [assertionIssue(assertion, `${moduleId} declares no ST-* states to cover.`)];
+  }
+
+  const verificationId = `V-${moduleId}`;
+  const verification = context.verification.entries.get(verificationId);
+  if (!verification) {
+    return [assertionIssue(assertion, `${moduleId} has no ${verificationId} verification entry.`)];
+  }
+
+  const evidence = [
+    ...verification.scenarios,
+    ...verification.accessibilityChecks,
+    ...verification.visualChecks,
+  ];
+
+  return states.flatMap((stateId) => {
+    if (evidence.some((text) => stateMatchesEvidence(stateId, text))) {
+      return [];
+    }
+    return [assertionIssue(assertion, `${moduleId} state ${stateId} has no Scenario/AccessibilityCheck/VisualCheck evidence.`)];
+  });
+}
+
+/**
+ * Compiles an artifact-authored regex safely: length cap, no nested unbounded
+ * quantifiers, no flags from the artifact. Rejects rather than hanging.
+ */
+export function compileSafeAssertionPattern(
+  patternSource: string,
+): { ok: true; pattern: RegExp } | { ok: false; error: string } {
+  if (patternSource.length === 0) {
+    return { ok: false, error: "pattern must not be empty" };
+  }
+  if (patternSource.length > ASSERTION_PATTERN_MAX_LENGTH) {
+    return { ok: false, error: `pattern exceeds ${ASSERTION_PATTERN_MAX_LENGTH} characters` };
+  }
+  const risk = findBacktrackingRisk(patternSource);
+  if (risk) {
+    return { ok: false, error: risk };
+  }
+  try {
+    // Never accept flags from the artifact — always construct with no flags.
+    return { ok: true, pattern: new RegExp(patternSource) };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "invalid regular expression" };
+  }
+}
+
+type GroupFrame = {
+  /** An unbounded quantifier (`*`, `+`, `{n,}`) applies to something inside this group. */
+  hasUnbounded: boolean;
+  /** Source text of each top-level alternative inside this group. */
+  alternatives: string[];
+  current: string;
+};
+
+/**
+ * Structural scan for catastrophic-backtracking shapes. A regex over the pattern text
+ * cannot see paren nesting, so `((a+))+` and `(a|a)*` both slipped past the previous
+ * heuristic and take exponential time. Returns a rejection reason, or null when safe.
+ *
+ * Rejects a group under an unbounded quantifier when either
+ *   - the group itself contains an unbounded quantifier — `(a+)+`, `((a+))+`, `(x+x+)+`
+ *   - two of its alternatives overlap, one being a prefix of the other — `(a|a)*`, `(a|ab)*`
+ * Bounded repetition (`{2}`, `{2,5}`, `?`) is safe and stays accepted, so `(a+){2}` passes.
+ */
+function findBacktrackingRisk(source: string): string | null {
+  const stack: GroupFrame[] = [{ hasUnbounded: false, alternatives: [], current: "" }];
+  const top = () => stack[stack.length - 1]!;
+
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i]!;
+
+    if (char === "\\") {
+      top().current += source.slice(i, i + 2);
+      i += 1;
+      continue;
+    }
+
+    if (char === "[") {
+      const end = charClassEnd(source, i);
+      top().current += source.slice(i, end + 1);
+      i = end;
+      continue;
+    }
+
+    if (char === "(") {
+      stack.push({ hasUnbounded: false, alternatives: [], current: "" });
+      i = skipGroupPrefix(source, i);
+      continue;
+    }
+
+    if (char === "|") {
+      const frame = top();
+      frame.alternatives.push(frame.current);
+      frame.current = "";
+      continue;
+    }
+
+    if (char === ")") {
+      if (stack.length === 1) {
+        // Unbalanced — let the RegExp constructor produce the real diagnostic.
+        return null;
+      }
+      const frame = stack.pop()!;
+      frame.alternatives.push(frame.current);
+      const quantifier = quantifierAt(source, i + 1);
+      if (quantifier.unbounded) {
+        if (frame.hasUnbounded) {
+          return "nested unbounded quantifiers are not allowed";
+        }
+        const overlap = overlappingAlternative(frame.alternatives);
+        if (overlap) {
+          return `ambiguous alternation ${JSON.stringify(overlap)} under an unbounded quantifier is not allowed`;
+        }
+      }
+      const parent = top();
+      parent.hasUnbounded = parent.hasUnbounded || frame.hasUnbounded || quantifier.unbounded;
+      parent.current += `(${frame.alternatives.join("|")})${source.slice(i + 1, quantifier.end)}`;
+      i = quantifier.end - 1;
+      continue;
+    }
+
+    if (char === "*" || char === "+") {
+      top().hasUnbounded = true;
+      top().current += char;
+      continue;
+    }
+
+    if (char === "{") {
+      const quantifier = quantifierAt(source, i);
+      if (quantifier.end > i) {
+        top().hasUnbounded = top().hasUnbounded || quantifier.unbounded;
+        top().current += source.slice(i, quantifier.end);
+        i = quantifier.end - 1;
+        continue;
+      }
+    }
+
+    top().current += char;
+  }
+
+  return null;
+}
+
+function charClassEnd(source: string, start: number): number {
+  for (let i = start + 1; i < source.length; i += 1) {
+    if (source[i] === "\\") {
+      i += 1;
+      continue;
+    }
+    if (source[i] === "]") {
+      return i;
+    }
+  }
+  return source.length - 1;
+}
+
+/** Consumes `?:`, `?=`, `?!`, `?<=`, `?<!`, `?<name>` so a group prefix never reads as content. */
+function skipGroupPrefix(source: string, openIndex: number): number {
+  if (source[openIndex + 1] !== "?") {
+    return openIndex;
+  }
+  const third = source[openIndex + 2];
+  if (third === ":" || third === "=" || third === "!") {
+    return openIndex + 2;
+  }
+  if (third === "<") {
+    const fourth = source[openIndex + 3];
+    if (fourth === "=" || fourth === "!") {
+      return openIndex + 3;
+    }
+    const close = source.indexOf(">", openIndex + 3);
+    return close === -1 ? openIndex + 2 : close;
+  }
+  return openIndex + 1;
+}
+
+/** Reads the quantifier starting at `index`; `end` is the first index past it. */
+function quantifierAt(source: string, index: number): { unbounded: boolean; end: number } {
+  const char = source[index];
+  if (char === "*" || char === "+") {
+    return { unbounded: true, end: lazyOrPossessiveEnd(source, index + 1) };
+  }
+  if (char === "?") {
+    return { unbounded: false, end: lazyOrPossessiveEnd(source, index + 1) };
+  }
+  if (char === "{") {
+    const close = source.indexOf("}", index);
+    if (close === -1) {
+      return { unbounded: false, end: index };
+    }
+    const body = source.slice(index + 1, close);
+    if (!/^\d+(?:,\d*)?$/.test(body)) {
+      return { unbounded: false, end: index };
+    }
+    return { unbounded: /,\s*$/.test(body), end: lazyOrPossessiveEnd(source, close + 1) };
+  }
+  return { unbounded: false, end: index };
+}
+
+function lazyOrPossessiveEnd(source: string, index: number): number {
+  return source[index] === "?" || source[index] === "+" ? index + 1 : index;
+}
+
+/** Returns the offending alternative when one is a prefix of another (equal counts). */
+function overlappingAlternative(alternatives: string[]): string | null {
+  if (alternatives.length < 2) {
+    return null;
+  }
+  for (let i = 0; i < alternatives.length; i += 1) {
+    for (let j = i + 1; j < alternatives.length; j += 1) {
+      const left = alternatives[i]!;
+      const right = alternatives[j]!;
+      if (left.startsWith(right) || right.startsWith(left)) {
+        return left.length <= right.length ? left : right;
+      }
+    }
+  }
+  return null;
+}
+
+function readAssertionFile(
+  assertion: GraceAssertion,
+  context: AssertionContext,
+  fileValue: string,
+): string | Grace4Issue[] {
   let file: string;
   try {
     file = resolveAssertionPath(context.root, fileValue);
@@ -258,17 +606,31 @@ function evaluateTextContainment(assertion: GraceAssertion, context: AssertionCo
     return [assertionIssue(assertion, `Unable to inspect ${fileValue}: ${error instanceof Error ? error.message : String(error)}`)];
   }
 
-  let contains: boolean;
   try {
-    contains = readFileSync(file, "utf8").includes(expectedText);
+    return readFileSync(file, "utf8");
   } catch (error) {
     return [assertionIssue(assertion, `Unable to read ${fileValue}: ${error instanceof Error ? error.message : String(error)}`)];
   }
-  if (contains === shouldContain) {
-    return [];
-  }
+}
 
-  return [assertionIssue(assertion, shouldContain ? `${fileValue} must contain requested text.` : `${fileValue} must not contain requested text.`)];
+function loadDesignTokenValues(projectRoot: string): Map<string, string> {
+  const tokens = new Map<string, string>();
+  const file = path.join(projectRoot, ".grace", "context", "design-system.xml");
+  if (!existsSync(file)) {
+    return tokens;
+  }
+  const artifact = readGraceXmlArtifact(file);
+  if (!artifact.root) {
+    return tokens;
+  }
+  for (const node of walkNodes(artifact.root)) {
+    if (!ANCHOR_PATTERNS.designToken.test(node.tag)) continue;
+    const value = childText(node, "Value")?.trim();
+    if (value) {
+      tokens.set(node.tag, value);
+    }
+  }
+  return tokens;
 }
 
 function existsInContext(value: string, context: AssertionContext): boolean {
@@ -350,6 +712,14 @@ function extractAssertionNode(
       } catch (error) {
         issues.push(invalidPathIssue({ kind, file: planFile, values }, fileValue, error));
       }
+    }
+  }
+
+  if ((kind === "MustMatchPattern" || kind === "MustNotUseLiteral") && values.length >= 2) {
+    const patternSource = values[1]!;
+    const compiled = compileSafeAssertionPattern(patternSource);
+    if (!compiled.ok) {
+      issues.push(issue("error", "assertion.invalid-pattern", planFile, `${kind} pattern rejected: ${compiled.error}`));
     }
   }
 

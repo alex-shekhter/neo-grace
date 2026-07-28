@@ -26,6 +26,8 @@ export type ModuleVerificationRecord = {
   scenarios: VerificationScenario[];
   requiredLogMarkers: string[];
   requiredTraceAssertions: string[];
+  accessibilityChecks: string[];
+  visualChecks: string[];
   waveFollowUp?: string;
   phaseFollowUp?: string;
 };
@@ -38,6 +40,8 @@ export type ModuleGraphRecord = GraphAnchorRecord & {
   path?: string;
   depends: string[];
   annotations: ModuleInterfaceItem[];
+  /** Declared ST-* UI states (from graph <States>). */
+  states: string[];
 };
 
 export type Grace4ModuleRecord = {

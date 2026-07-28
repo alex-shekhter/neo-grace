@@ -150,6 +150,73 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
     explanation: "A target command assertion invokes current-mode lifecycle lint. Current mode evaluates active approved baselines, so it is a pre-implementation check and cannot serve as target or final evidence after writes begin.",
     remediation: ["Keep MustPassCommand entries as leaf project evidence such as tests, typecheck, build, format, or package checks.", "Run selected target or final GRACE lint as the outer execution gate instead of nesting it inside the plan."],
   },
+  "assertion.invalid-pattern": {
+    title: "Unsafe Or Invalid Assertion Pattern",
+    explanation: "A MustMatchPattern or MustNotUseLiteral pattern was rejected: it was empty, too long, used nested unbounded quantifiers (catastrophic backtracking risk), or failed to compile. Artifact-authored patterns never accept flags.",
+    remediation: [
+      "Keep patterns under 200 characters and avoid nested forms such as (a+)+ or (a*)*.",
+      "Use a simple literal or character-class pattern; do not embed /flags/ in the Pattern text.",
+    ],
+  },
+  "graph.unknown-module-type": {
+    title: "Unknown Module Type",
+    explanation: "A graph module declares a <Type> value outside the documented set. GRACE warns rather than errors so free-text legacy types remain loadable.",
+    remediation: [
+      "Use ENTRY_POINT, UI_COMPONENT, CORE_LOGIC, DATA_LAYER, INTEGRATION, or UTILITY.",
+      "Or keep a project-specific type deliberately and treat the warning as documentation drift.",
+    ],
+  },
+  "health.ui-state-unverified": {
+    title: "UI State Lacks Verification Evidence",
+    explanation: "A UI_COMPONENT module declares an ST-* state that is not named by any Scenario, AccessibilityCheck, or VisualCheck under its V-M-* entry.",
+    remediation: [
+      "Add a Scenario/AccessibilityCheck/VisualCheck whose text mentions the state body (e.g. ERROR for ST-ERROR), case-insensitive with - as a word separator.",
+      "Or remove the unused ST-* declaration from the module's <States>.",
+    ],
+  },
+  "health.ui-states-undeclared": {
+    title: "UI Component States Undeclared",
+    explanation: "A UI_COMPONENT module has no <States> while UX guidelines are applicable, so UI interaction surfaces are untracked.",
+    remediation: [
+      "Declare ST-* states under the module (ST-DEFAULT, ST-EMPTY, ST-LOADING, ST-ERROR, …).",
+      "Cover each declared state in V-M-* Scenario, AccessibilityCheck, or VisualCheck evidence.",
+    ],
+  },
+  "design-system.duplicate-token": {
+    title: "Duplicate Design Token",
+    explanation: "The same DT-* id appears more than once in design-system.xml.",
+    remediation: ["Keep each DT-* unique.", "Merge or rename the duplicate token."],
+  },
+  "design-system.duplicate-breakpoint": {
+    title: "Duplicate Breakpoint",
+    explanation: "The same BP-* id appears more than once in design-system.xml.",
+    remediation: ["Keep each BP-* unique.", "Merge or rename the duplicate breakpoint."],
+  },
+  "design-system.empty-token-value": {
+    title: "Empty Design Token Value",
+    explanation: "A DT-* token is missing a non-empty <Value>.",
+    remediation: ["Add <Value>var(--token)</Value> or the concrete token string the codebase must use."],
+  },
+  "design-system.breakpoint-missing-width": {
+    title: "Breakpoint Missing Width Bounds",
+    explanation: "A BP-* breakpoint declares neither MinWidth nor MaxWidth.",
+    remediation: ["Add <MinWidth> and/or <MaxWidth> so the breakpoint is machine-checkable."],
+  },
+  "design-system.invalid-token-source": {
+    title: "Invalid TokenSource Path",
+    explanation: "TokenSource escaped the project root or is otherwise not a contained project path.",
+    remediation: ["Use a project-relative path (no .., no absolute paths).", "Point TokenSource at a file inside the repository."],
+  },
+  "design-system.token-source-missing": {
+    title: "TokenSource File Missing",
+    explanation: "TokenSource names a project-relative path that does not exist on disk.",
+    remediation: ["Create the token source file or correct the path."],
+  },
+  "design-system.empty-token-source": {
+    title: "Empty TokenSource",
+    explanation: "TokenSource is present but empty.",
+    remediation: ["Provide a project-relative path to the design-token source file."],
+  },
 };
 
 const PREFIX_GUIDES: Array<{ prefix: string; title: string; explanation: string; remediation: string[] }> = [

@@ -78,6 +78,9 @@ describe("GRACE 4 semantic anchor patterns", () => {
     expect(ANCHOR_PATTERNS.dataFlow.test("DF-AUTH-TOKEN-FLOW")).toBe(true);
     expect(ANCHOR_PATTERNS.task.test("T-001")).toBe(true);
     expect(ANCHOR_PATTERNS.acceptanceCriterion.test("AC-KEYBOARD-NAV")).toBe(true);
+    expect(ANCHOR_PATTERNS.designToken.test("DT-COLOR-ACCENT")).toBe(true);
+    expect(ANCHOR_PATTERNS.breakpoint.test("BP-MOBILE")).toBe(true);
+    expect(ANCHOR_PATTERNS.uiState.test("ST-FOCUS-VISIBLE")).toBe(true);
   });
 
   it("rejects lowercase anchors and attribute-style identifiers", () => {
@@ -90,6 +93,9 @@ describe("GRACE 4 semantic anchor patterns", () => {
       dataFlow: ["df-auth", "DF-auth", "DF_AUTH", "dataFlowId", "id"],
       task: ["t-001", "T-abc", "T_001", "taskId", "id"],
       acceptanceCriterion: ["ac-keyboard", "AC-keyboard", "AC_KEYBOARD", "criterionId", "id"],
+      designToken: ["dt-color", "DT-color", "DT_COLOR", "tokenId", "id"],
+      breakpoint: ["bp-mobile", "BP-mobile", "BP_MOBILE", "breakpointId", "id"],
+      uiState: ["st-default", "ST-default", "ST_DEFAULT", "stateId", "id"],
     } as const;
 
     for (const [patternName, invalidValues] of Object.entries(invalidByPattern)) {

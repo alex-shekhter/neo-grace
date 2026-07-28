@@ -9,6 +9,7 @@ import {
   CHANGE_STATUSES,
   GRACE4_CHANGE_COMPANION_TAGS,
   GRACE4_CONTEXT_ARTIFACTS,
+  GRACE4_OPTIONAL_CONTEXT_ARTIFACTS,
   GRACE4_ROOT_TAGS,
   GRACE4_VERSION,
   type Grace4Issue,
@@ -16,6 +17,7 @@ import {
   type SemanticAnchorClassification,
   type SemanticAnchorFamily,
 } from "./types";
+import { ProjectPathError, resolveContainedProjectPath } from "./paths";
 import { childText, readGraceXmlArtifact, walkNodes, type GraceXmlNode, type ParsedGraceXmlArtifact } from "./xml";
 
 const STANDARD_ROOT_TAGS = new Set<string>(GRACE4_ROOT_TAGS);
@@ -51,6 +53,10 @@ const ASSERTION_SECTION_TAGS = new Set([
   "MustPassCommand",
   "MustContain",
   "MustNotContain",
+  "MustMatchPattern",
+  "MustUseToken",
+  "MustNotUseLiteral",
+  "MustCoverStates",
 ]);
 const DURABLE_SCOPE_DIRECT_TAGS = new Set([
   "GraphAnchors",
@@ -73,6 +79,9 @@ const ANCHOR_FAMILIES: readonly {
   { family: "verification", prefix: "V-M-", pattern: ANCHOR_PATTERNS.verification },
   // AC-* after V-M- so prefix classification cannot shadow verification anchors.
   { family: "acceptance-criterion", prefix: "AC-", pattern: ANCHOR_PATTERNS.acceptanceCriterion },
+  { family: "design-token", prefix: "DT-", pattern: ANCHOR_PATTERNS.designToken },
+  { family: "breakpoint", prefix: "BP-", pattern: ANCHOR_PATTERNS.breakpoint },
+  { family: "ui-state", prefix: "ST-", pattern: ANCHOR_PATTERNS.uiState },
   { family: "graph-document", prefix: "GD-", pattern: ANCHOR_PATTERNS.graphDocument },
   { family: "verification-document", prefix: "VD-", pattern: ANCHOR_PATTERNS.verificationDocument },
   { family: "data-flow", prefix: "DF-", pattern: ANCHOR_PATTERNS.dataFlow },
@@ -261,6 +270,122 @@ export function validateContextArtifacts(paths: Grace4ProjectPaths): ArtifactVal
   });
 }
 
+/**
+ * Validates optional context artifacts when present.
+ * Absence is never an error — design-system.xml must not become required by accident.
+ */
+export function validateOptionalContextArtifacts(paths: Grace4ProjectPaths): ArtifactValidationResult[] {
+  const results: ArtifactValidationResult[] = [];
+  for (const file of GRACE4_OPTIONAL_CONTEXT_ARTIFACTS) {
+    const absolute = path.join(paths.contextDir, file);
+    if (!existsSync(absolute)) {
+      continue;
+    }
+    if (file === "design-system.xml") {
+      results.push(validateDesignSystemArtifact(absolute, paths.root));
+    }
+  }
+  return results;
+}
+
+/** Validates an optional GraceDesignSystem context artifact. */
+export function validateDesignSystemArtifact(file: string, projectRoot: string): ArtifactValidationResult {
+  const artifact = readGraceXmlArtifact(file);
+  const result = validateParsedArtifact(artifact);
+  if (!artifact.root) {
+    return result;
+  }
+
+  if (artifact.root.tag !== "GraceDesignSystem") {
+    result.issues.push(
+      issue("error", "context.unexpected-root-tag", file, `design-system.xml must use root tag GraceDesignSystem.`),
+    );
+    return result;
+  }
+
+  result.issues.push(...validateContextContent(file, artifact.root));
+  result.issues.push(...validateOptionalContextApplicability(file, artifact.root));
+  result.issues.push(...validateDesignSystemBody(file, artifact.root, projectRoot));
+  return result;
+}
+
+function validateDesignSystemBody(file: string, root: GraceXmlNode, projectRoot: string): Grace4Issue[] {
+  const issues: Grace4Issue[] = [];
+
+  for (const tokenSource of root.children.filter((child) => child.tag === "TokenSource")) {
+    const authored = tokenSource.text.trim();
+    if (!authored) {
+      issues.push(issue("error", "design-system.empty-token-source", file, "TokenSource must not be empty."));
+      continue;
+    }
+    try {
+      const resolved = resolveContainedProjectPath(projectRoot, authored, { mode: "existing" });
+      if (!existsSync(resolved.absolutePath)) {
+        issues.push(
+          issue(
+            "error",
+            "design-system.token-source-missing",
+            file,
+            `TokenSource ${JSON.stringify(authored)} does not exist inside the project.`,
+          ),
+        );
+      }
+    } catch (error) {
+      const detail = error instanceof ProjectPathError ? `${error.code}: ${error.message}` : String(error);
+      issues.push(
+        issue(
+          "error",
+          "design-system.invalid-token-source",
+          file,
+          `TokenSource ${JSON.stringify(authored)} is not a contained project path: ${detail}`,
+        ),
+      );
+    }
+  }
+
+  const seenTokens = new Set<string>();
+  for (const node of walkNodes(root)) {
+    if (!ANCHOR_PATTERNS.designToken.test(node.tag)) continue;
+    if (seenTokens.has(node.tag)) {
+      issues.push(issue("error", "design-system.duplicate-token", file, `Design token ${node.tag} is declared more than once.`));
+    } else {
+      seenTokens.add(node.tag);
+    }
+    const value = childText(node, "Value")?.trim() ?? "";
+    if (!value) {
+      issues.push(
+        issue("error", "design-system.empty-token-value", file, `Design token ${node.tag} requires a non-empty <Value>.`),
+      );
+    }
+  }
+
+  const seenBreakpoints = new Set<string>();
+  for (const node of walkNodes(root)) {
+    if (!ANCHOR_PATTERNS.breakpoint.test(node.tag)) continue;
+    if (seenBreakpoints.has(node.tag)) {
+      issues.push(
+        issue("error", "design-system.duplicate-breakpoint", file, `Breakpoint ${node.tag} is declared more than once.`),
+      );
+    } else {
+      seenBreakpoints.add(node.tag);
+    }
+    const minWidth = childText(node, "MinWidth")?.trim() ?? "";
+    const maxWidth = childText(node, "MaxWidth")?.trim() ?? "";
+    if (!minWidth && !maxWidth) {
+      issues.push(
+        issue(
+          "error",
+          "design-system.breakpoint-missing-width",
+          file,
+          `Breakpoint ${node.tag} requires <MinWidth> and/or <MaxWidth>.`,
+        ),
+      );
+    }
+  }
+
+  return issues;
+}
+
 /** Validates GraceChangeSpec and GraceChangePlan root statuses and C-* wrapper shape. */
 export function validateChangeArtifact(
   artifact: ParsedGraceXmlArtifact,
@@ -420,6 +545,7 @@ export function validateGrace4Project(root: string): Grace4ValidationResult {
   const paths = resolveGrace4Paths(projectRoot);
   issues.push(...validateGrace4ProjectLayout(paths));
   artifacts.push(...validateContextArtifacts(paths));
+  artifacts.push(...validateOptionalContextArtifacts(paths));
   artifacts.push(...validateRequiredArtifact(paths.graphIndex, "GraceGraphIndex"));
   artifacts.push(...validateXmlFilesInDirectory(paths.graphDir, [paths.graphIndex], "GraceGraphDocument"));
   artifacts.push(...validateRequiredArtifact(paths.verificationIndex, "GraceVerificationIndex"));
@@ -1241,4 +1367,4 @@ function issue(severity: Grace4Issue["severity"], code: string, file: string, me
   return { severity, code, file, message };
 }
 
-export { GRACE4_CONTEXT_ARTIFACTS };
+export { GRACE4_CONTEXT_ARTIFACTS, GRACE4_OPTIONAL_CONTEXT_ARTIFACTS };

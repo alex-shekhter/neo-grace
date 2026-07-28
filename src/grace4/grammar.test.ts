@@ -182,11 +182,11 @@ describe("GRACE 4 Artifact Grammar", () => {
   it("rejects malformed semantic-anchor tags across every anchor family", () => {
     const artifact = parseGraceXmlArtifact(
       "anchors.xml",
-      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-bad /><GD-bad /><VD-bad /><C-bad /><V-M-bad /><DF-bad /><T-bad /><AC-bad /></GD-MAIN></GraceGraphDocument>`,
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-bad /><GD-bad /><VD-bad /><C-bad /><V-M-bad /><DF-bad /><T-bad /><AC-bad /><DT-bad /><BP-bad /><ST-bad /></GD-MAIN></GraceGraphDocument>`,
     );
 
     const resultCodes = codes({ issues: validateSemanticAnchorDiscipline("anchors.xml", artifact.root!) });
-    expect(resultCodes.filter((code) => code === "artifact.malformed-semantic-anchor")).toHaveLength(8);
+    expect(resultCodes.filter((code) => code === "artifact.malformed-semantic-anchor")).toHaveLength(11);
   });
 
   it("rejects attributes on canonical anchors and anchor-like attribute names or values", () => {
@@ -667,5 +667,66 @@ describe("spec→plan coverage (G-05 / AC-*)", () => {
     const issues = validateSemanticAnchorDiscipline("spec.xml", root);
     const malformed = issues.filter((i) => i.code === "artifact.malformed-semantic-anchor");
     expect(malformed.some((i) => i.message.includes("acceptance-criterion"))).toBe(true);
+  });
+});
+
+describe("optional design-system.xml (Phase 6)", () => {
+  it("projects without design-system.xml still lint clean (compatibility)", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    expect(validateGrace4Project(root).issues.filter((i) => i.severity === "error")).toHaveLength(0);
+    expect(existsSync(path.join(root, ".grace/context/design-system.xml"))).toBe(false);
+  });
+
+  it("rejects duplicate DT-* tokens", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(root, "src/tokens.css", ":root { --accent: #f00; }\n");
+    writeProjectFile(
+      root,
+      ".grace/context/design-system.xml",
+      `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-COLOR-ACCENT><Value>var(--accent)</Value></DT-COLOR-ACCENT><DT-COLOR-ACCENT><Value>var(--accent2)</Value></DT-COLOR-ACCENT></Tokens></GraceDesignSystem>`,
+    );
+    expect(codes(validateGrace4Project(root))).toContain("design-system.duplicate-token");
+  });
+
+  it("rejects TokenSource that escapes the project root", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(
+      root,
+      ".grace/context/design-system.xml",
+      `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>../etc/passwd</TokenSource></GraceDesignSystem>`,
+    );
+    const resultCodes = codes(validateGrace4Project(root));
+    expect(resultCodes).toContain("design-system.invalid-token-source");
+    expect(resultCodes).not.toContain("xml.parse");
+  });
+
+  it("rejects empty DT-* Value and BP-* without widths", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(root, "src/tokens.css", ":root {}\n");
+    writeProjectFile(
+      root,
+      ".grace/context/design-system.xml",
+      `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-EMPTY><Value></Value></DT-EMPTY></Tokens><Breakpoints><BP-BAD><Intent>broken</Intent></BP-BAD></Breakpoints></GraceDesignSystem>`,
+    );
+    const resultCodes = codes(validateGrace4Project(root));
+    expect(resultCodes).toContain("design-system.empty-token-value");
+    expect(resultCodes).toContain("design-system.breakpoint-missing-width");
+  });
+
+  it("accepts a well-formed design-system.xml", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(root, "src/tokens.css", ":root { --accent: #0af; }\n");
+    writeProjectFile(
+      root,
+      ".grace/context/design-system.xml",
+      `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-COLOR-ACCENT><Value>var(--accent)</Value><Usage>Accent</Usage></DT-COLOR-ACCENT></Tokens><Breakpoints><BP-MOBILE><MinWidth>0</MinWidth><MaxWidth>767px</MaxWidth><Intent>phone</Intent></BP-MOBILE></Breakpoints><Accessibility><Standard>WCAG 2.2 AA</Standard><ContrastMinimum>4.5</ContrastMinimum></Accessibility></GraceDesignSystem>`,
+    );
+    const resultCodes = codes(validateGrace4Project(root));
+    expect(resultCodes.filter((c) => c.startsWith("design-system."))).toEqual([]);
   });
 });

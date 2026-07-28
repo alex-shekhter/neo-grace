@@ -8,6 +8,7 @@ export const GRACE4_ROOT_TAGS = [
   "GracePrinciples",
   "GraceDeployment",
   "GraceUXGuidelines",
+  "GraceDesignSystem",
   "GraceGraphIndex",
   "GraceGraphDocument",
   "GraceVerificationIndex",
@@ -44,7 +45,26 @@ export const GRACE4_CONTEXT_ARTIFACTS = [
   "ux-guidelines.xml",
 ] as const;
 
+/**
+ * Optional context artifacts validated only when present.
+ * Must never be merged into GRACE4_CONTEXT_ARTIFACTS — that would break every existing project.
+ */
+export const GRACE4_OPTIONAL_CONTEXT_ARTIFACTS = ["design-system.xml"] as const;
+
 export type Grace4ContextArtifact = (typeof GRACE4_CONTEXT_ARTIFACTS)[number];
+export type Grace4OptionalContextArtifact = (typeof GRACE4_OPTIONAL_CONTEXT_ARTIFACTS)[number];
+
+/** Documented module <Type> values (knowledge-graph.md). Unknown values warn, never error. */
+export const MODULE_TYPES = [
+  "ENTRY_POINT",
+  "UI_COMPONENT",
+  "CORE_LOGIC",
+  "DATA_LAYER",
+  "INTEGRATION",
+  "UTILITY",
+] as const;
+
+export type ModuleType = (typeof MODULE_TYPES)[number];
 
 /** Semantic anchor regexes. Semantic anchors are tags and never attributes. */
 export const ANCHOR_PATTERNS = {
@@ -56,6 +76,9 @@ export const ANCHOR_PATTERNS = {
   dataFlow: /^DF-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   task: /^T-[0-9]{3}$/,
   acceptanceCriterion: /^AC-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
+  designToken: /^DT-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
+  breakpoint: /^BP-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
+  uiState: /^ST-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
 } as const;
 
 /** Canonical semantic-anchor family recognized by Artifact Grammar. */
@@ -67,7 +90,10 @@ export type SemanticAnchorFamily =
   | "verification"
   | "data-flow"
   | "task"
-  | "acceptance-criterion";
+  | "acceptance-criterion"
+  | "design-token"
+  | "breakpoint"
+  | "ui-state";
 
 /** Result of classifying any XML tag that resembles a semantic anchor. */
 export type SemanticAnchorClassification =

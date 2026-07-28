@@ -190,6 +190,28 @@ describe("lintGraceProject", () => {
     expect(result.issues.map((issue) => issue.code)).not.toContain("change.scope-does-not-cover-spec");
   });
 
+  it("projects without design-system.xml remain compatible after Phase 6", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    const result = lintGraceProject(root);
+    expect(result.summary.errors).toBe(0);
+    expect(result.issues.map((i) => i.code).filter((c) => c.startsWith("design-system."))).toEqual([]);
+  });
+
+  it("reports unknown module Type as a warning, not an error", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(
+      root,
+      ".grace/graph/main.xml",
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example</Summary><Path>src/example.ts</Path><Type>NONSENSE</Type></M-EXAMPLE></GD-MAIN></GraceGraphDocument>`,
+    );
+    const result = lintGraceProject(root);
+    const issue = result.issues.find((i) => i.code === "graph.unknown-module-type");
+    expect(issue?.severity).toBe("warning");
+    expect(result.summary.errors).toBe(0);
+  });
+
   it("keeps the shipped spec and plan templates mutually consistent under spec→plan coverage", () => {
     // String assertions in skill-contracts cannot catch the templates naming different
     // placeholder modules. Linting them as a real bundle can.

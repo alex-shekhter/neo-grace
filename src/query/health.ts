@@ -2,6 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { getModuleImplementationFiles, getModuleName, getModulePath, getModuleType, resolveModule } from "./core";
+import { stateMatchesEvidence } from "../grace4/projections";
+import { readGraceXmlArtifact } from "../grace4/xml";
 import { hasRuntimeMarkerEvidence, parseMarkerBlockName } from "../project-utils";
 import { checkModuleCheckReferences } from "../verification/check-references";
 import type { GraceArtifactIndex, ModuleHealthIssue, ModuleHealthRecord, ModuleRecord } from "./types";
@@ -95,6 +97,8 @@ export function buildModuleHealth(index: GraceArtifactIndex, moduleRecord: Modul
     }
   }
 
+  evaluateUiStateHealth(index, moduleRecord, blockers, warnings);
+
   const state = blockers.length > 0 ? "blocked" : warnings.length > 0 ? "attention" : "ready";
   return {
     moduleId: moduleRecord.id,
@@ -117,6 +121,72 @@ export function buildModuleHealth(index: GraceArtifactIndex, moduleRecord: Modul
     },
     nextAction: buildNextAction(moduleRecord, blockers, warnings),
   };
+}
+
+function evaluateUiStateHealth(
+  index: GraceArtifactIndex,
+  moduleRecord: ModuleRecord,
+  blockers: ModuleHealthIssue[],
+  warnings: ModuleHealthIssue[],
+): void {
+  if (getModuleType(moduleRecord) !== "UI_COMPONENT") {
+    return;
+  }
+
+  const declaredStates = moduleRecord.graph.states ?? [];
+  if (declaredStates.length === 0) {
+    if (isUxGuidelinesApplicable(index.root)) {
+      pushIssue(
+        warnings,
+        "warning",
+        "health.ui-states-undeclared",
+        `UI_COMPONENT ${moduleRecord.id} declares no <States> while UX guidelines are applicable.`,
+        `Declare ST-* states under ${moduleRecord.id}/States (e.g. ST-DEFAULT, ST-EMPTY, ST-LOADING, ST-ERROR) and cover them in V-${moduleRecord.id}.`,
+      );
+    }
+    return;
+  }
+
+  const evidenceTexts = moduleRecord.verifications.flatMap((entry) => [
+    ...entry.scenarios.map((scenario) => scenario.text),
+    ...entry.accessibilityChecks,
+    ...entry.visualChecks,
+  ]);
+
+  for (const stateId of declaredStates) {
+    const covered = evidenceTexts.some((text) => stateMatchesEvidence(stateId, text));
+    if (!covered) {
+      pushIssue(
+        blockers,
+        "error",
+        "health.ui-state-unverified",
+        `${moduleRecord.id} declares ${stateId}, but no Scenario, AccessibilityCheck, or VisualCheck evidence names that state.`,
+        `Name ${stateId.replace(/^ST-/, "")} (or the full ${stateId}) in a Scenario, AccessibilityCheck, or VisualCheck under V-${moduleRecord.id}.`,
+      );
+    }
+  }
+}
+
+/**
+ * Reads the artifact's own direct <Applicability>, matching the grammar validator.
+ * Parsed, not regex-matched: a regex over the raw file takes the first <Applicability>
+ * at any depth, so a nested one flips the answer for the whole project.
+ */
+function isUxGuidelinesApplicable(projectRoot: string): boolean {
+  const file = path.join(projectRoot, ".grace", "context", "ux-guidelines.xml");
+  if (!existsSync(file)) {
+    return false;
+  }
+  try {
+    const artifact = readGraceXmlArtifact(file);
+    const declared = artifact.root?.children.filter((child) => child.tag === "Applicability") ?? [];
+    if (declared.length !== 1) {
+      return false;
+    }
+    return declared[0]!.text.trim().toLowerCase() === "applicable";
+  } catch {
+    return false;
+  }
 }
 
 export function collectModuleHealth(index: GraceArtifactIndex) {

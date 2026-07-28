@@ -2,8 +2,10 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { canonicalizeExistingPath, ProjectPathError, resolveContainedProjectPath } from "./paths";
-import { ANCHOR_PATTERNS, type Grace4Issue, type Grace4ProjectPaths } from "./types";
+import { ANCHOR_PATTERNS, MODULE_TYPES, type Grace4Issue, type Grace4ProjectPaths } from "./types";
 import { childNodes, childText, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
+
+const KNOWN_MODULE_TYPES = new Set<string>(MODULE_TYPES);
 
 /** One graph anchor owned by a graph document. */
 export type GraphAnchorRecord = {
@@ -19,6 +21,10 @@ export type GraphAnchorRecord = {
    * indistinguishable from a real Path element.
    */
   path?: string;
+  /** Direct <Type> child for modules (ENTRY_POINT, UI_COMPONENT, …). */
+  moduleType?: string;
+  /** Declared UI states (ST-*) under <States>, for UI_COMPONENT modules. */
+  states?: string[];
 };
 
 /** Unified current graph projection independent of physical segmentation. */
@@ -41,6 +47,8 @@ export type VerificationAnchorRecord = {
   scenarios: string[];
   markers: string[];
   traceAssertions: string[];
+  accessibilityChecks: string[];
+  visualChecks: string[];
   testFiles: string[];
 };
 
@@ -140,6 +148,18 @@ export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection
         continue;
       }
 
+      const moduleType = anchor.kind === "module" ? childText(anchor.node, "Type")?.trim() : undefined;
+      if (moduleType && !KNOWN_MODULE_TYPES.has(moduleType)) {
+        projection.issues.push(
+          issue(
+            "warning",
+            "graph.unknown-module-type",
+            route.file,
+            `${anchor.node.tag} declares Type ${JSON.stringify(moduleType)}; known values are ${MODULE_TYPES.join(", ")}.`,
+          ),
+        );
+      }
+      const states = anchor.kind === "module" ? collectModuleStates(anchor.node, route.file, projection.issues) : undefined;
       map.set(anchor.node.tag, {
         id: anchor.node.tag,
         kind: anchor.kind,
@@ -148,6 +168,8 @@ export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection
         text: aggregateNodeText(anchor.node),
         links: collectGraphLinks(anchor.node),
         ...(childText(anchor.node, "Path")?.trim() ? { path: childText(anchor.node, "Path")!.trim() } : {}),
+        ...(moduleType ? { moduleType } : {}),
+        ...(states && states.length > 0 ? { states } : {}),
       });
     }
   }
@@ -254,6 +276,8 @@ export function buildVerificationProjection(paths: Grace4ProjectPaths, graph: Gr
         scenarios: collectExactEvidence(node, "Scenario"),
         markers: collectExactEvidence(node, "Marker"),
         traceAssertions: collectExactEvidence(node, "TraceAssertion"),
+        accessibilityChecks: collectExactEvidence(node, "AccessibilityCheck"),
+        visualChecks: collectExactEvidence(node, "VisualCheck"),
         testFiles: collectTestFiles(node, paths.root, route.file, projection.issues),
       });
     }
@@ -420,10 +444,80 @@ function validateModuleVerificationCoverage(graph: GraphProjection, verification
   }
 }
 
-function collectExactEvidence(node: GraceXmlNode, tag: "Command" | "Scenario" | "Marker" | "TraceAssertion"): string[] {
+function collectExactEvidence(
+  node: GraceXmlNode,
+  tag: "Command" | "Scenario" | "Marker" | "TraceAssertion" | "AccessibilityCheck" | "VisualCheck",
+): string[] {
   return [...walkNodes(node)]
     .filter((candidate) => candidate !== node && candidate.tag === tag)
     .map((candidate) => aggregateNodeText(candidate).trim())
+    .filter(Boolean);
+}
+
+function collectModuleStates(moduleNode: GraceXmlNode, file: string, issues: Grace4Issue[]): string[] {
+  const states: string[] = [];
+  const seen = new Set<string>();
+  for (const section of moduleNode.children.filter((child) => child.tag === "States")) {
+    for (const child of section.children) {
+      if (!ANCHOR_PATTERNS.uiState.test(child.tag)) {
+        if (child.tag !== "None") {
+          issues.push(
+            issue(
+              "error",
+              "graph.invalid-module-state",
+              file,
+              `<States> does not allow child <${child.tag}>; declare canonical ST-* anchors.`,
+            ),
+          );
+        }
+        continue;
+      }
+      if (seen.has(child.tag)) {
+        issues.push(issue("error", "graph.duplicate-module-state", file, `${moduleNode.tag} declares duplicate state ${child.tag}.`));
+        continue;
+      }
+      seen.add(child.tag);
+      states.push(child.tag);
+    }
+  }
+  return states;
+}
+
+/**
+ * State evidence matching rule (documented in grace-design / explainer):
+ * drop the `ST-` prefix, split the remainder on `-` into words, and look for those
+ * words appearing consecutively as **whole words** in the evidence text, case-insensitively.
+ * The joined compact form is also accepted as a single whole word, so `ST-FOCUS-VISIBLE`
+ * is satisfied by both "focus visible" and "focusVisible".
+ *
+ * Whole words, not substrings: substring matching let "downloading assets" satisfy
+ * `ST-LOADING` and "terror scenario" satisfy `ST-ERROR`, reporting coverage that does
+ * not exist. A state check that lies about coverage is worse than no state check.
+ */
+export function stateMatchesEvidence(stateId: string, evidence: string): boolean {
+  const body = stateId.replace(/^ST-/, "");
+  if (!body) return false;
+
+  const words = evidenceWords(evidence);
+  const stateWords = evidenceWords(body);
+  if (stateWords.length === 0) return false;
+
+  if (words.includes(stateWords.join(""))) return true;
+
+  for (let start = 0; start + stateWords.length <= words.length; start += 1) {
+    if (stateWords.every((word, offset) => words[start + offset] === word)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Lowercases and splits on every non-alphanumeric run, so `focus-visible` and `focusVisible` agree. */
+function evidenceWords(text: string): string[] {
+  return text
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
     .filter(Boolean);
 }
 
