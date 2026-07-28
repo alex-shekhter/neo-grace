@@ -344,7 +344,7 @@ Keep this table current. It is the single source of truth for progress.
 | 4 | Polyglot health restoration | G-10, G-11, G-12 | 4.1.0 | `COMPLETE` |
 | 5 | Spec→plan traceability (`AC-*`) | G-05 | 4.2.0 | `COMPLETE` |
 | 6 | Design-system layer | G-06, G-09 | 5.0.0 | `COMPLETE` |
-| 7 | Systems modeling | G-07, G-08, G-14, G-15 | 5.0.0 | `NOT STARTED` |
+| 7 | Systems modeling | G-07, G-08, G-14, G-15 | 5.0.0 | `COMPLETE` |
 | 8 | Scale & ergonomics | G-13, G-16, G-22 | 5.0.0 | `NOT STARTED` |
 | 9 | Adoption surface & release | G-17, G-18, G-19, G-20 | 5.0.0 | `NOT STARTED` |
 
@@ -2620,7 +2620,7 @@ Unit coverage for every validator and every assertion kind, following the Phase 
 
 # PHASE 7 — Systems modeling
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Gaps:** G-07 (interface contracts), G-08 (ordered flows), G-14 (invariants), G-15 (perf budgets)
 **Release:** 5.0.0
 
@@ -2831,10 +2831,10 @@ Every code in this table needs a `src/lint/catalog.ts` guide and at least one in
 | `health.ui-state-unverified` | blocker | 6 | ☐ |
 | `health.ui-states-undeclared` | warning | 6 | ☐ |
 | `assertion.invalid-pattern` | error | 6 | ☐ |
-| `projection.graph.invalid-interface-contract` | error | 7 | ☐ |
-| `projection.graph.invalid-data-flow-step` | error | 7 | ☐ |
-| `context.invariants.*` (family) | error | 7 | ☐ |
-| `assertion.budget-no-match` | error | 7 | ☐ |
+| `projection.graph.invalid-interface-contract` | error | 7 | ☑ |
+| `projection.graph.invalid-data-flow-step` | error | 7 | ☑ |
+| `context.invariants.*` (family) | error | 7 | ☑ |
+| `assertion.budget-no-match` | error | 7 | ☑ |
 | `graph.document-too-large` | warning | 8 | ☐ |
 | `verification.document-too-large` | warning | 8 | ☐ |
 
@@ -2868,6 +2868,19 @@ them as a checklist of four specific bugs.
 | 9 | 6 | The ReDoS guard was a regex over the pattern text, so it could not see paren nesting: `((a+))+` and `(a|a)*` were accepted and ran exponentially, while `(a+){2}` was rejected despite being safe | yes | **0.7.3** — near-misses of the one shape the guard was written against |
 | 10 | 6 | `stateMatchesEvidence` matched substrings, so "downloading assets" counted as evidence for `ST-LOADING` and "terror scenario" for `ST-ERROR` | yes | **0.7.3** — the silent direction: a check that reports coverage it does not have |
 | 11 | 6 | UI health read `<Applicability>` with a regex over raw XML while the grammar validator already parsed the same field, so a nested `<Applicability>` flipped the answer for every module | yes | **0.7.5** — anti-pattern 1, and the same shape as defect 4 |
+
+| 12 | 7 | `IC-*` was wired into `DurableScope`, drift routing and dangling-link checks, but not into Phase 5's spec→plan coverage — so a plan could silently ignore an `IC-*` its spec named, while the same omission of an `M-*` errored | yes | **0.7.3** — run the *earlier phases'* checks against the new phase's anchors |
+| 13 | 7 | `MustPassBudget` tested for a capture group with `indexOf("(")`, so `(?:…)` and `(?=…)` passed; the failure then surfaced as `budget-no-match`, blaming the command for an `Extract` mistake | yes | **0.7.3** — near-misses of the construct being detected |
+| 14 | 7 | A non-anchor child of `<Provider>`/`<Consumer>` was silently dropped; because `Consumer` is zero-or-more, no count check could catch it | yes | **0.7.5** — the `<Satisfies>` lesson (defect 7) recurring in a new section |
+
+Defect 12 names an audit gap worth adding to §0.7.3 explicitly: **when a phase introduces a
+new anchor family, re-run every earlier phase's cross-artifact check against it.** Each
+earlier check encodes a guarantee; a new family that is not threaded through them is a hole
+in that guarantee, and it is invisible because every existing test still passes.
+
+Defect 14 is defect 7 verbatim in a different section, one phase later. When a section
+accepts a list of anchors and its cardinality is zero-or-more, the count check cannot
+protect it — the shape check must be explicit.
 
 Defects 9 and 11 are a matched pair worth internalizing: **a guard written as a regex
 over structured text is a guard you do not have.** Defect 4 was this. Defect 11 is this

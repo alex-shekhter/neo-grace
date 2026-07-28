@@ -217,6 +217,63 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
     explanation: "TokenSource is present but empty.",
     remediation: ["Provide a project-relative path to the design-token source file."],
   },
+  "projection.graph.invalid-interface-contract": {
+    title: "Invalid Interface Contract",
+    explanation:
+      "An IC-* interface contract is missing required fields, names a Schema outside the project, "
+      + "uses a non-semver Version, an unknown BreakingChangePolicy, or references a missing Provider/Consumer module.",
+    remediation: [
+      "Provide Schema (project-relative path that exists), Version (semver), Provider (one M-*), Consumer M-*s, and BreakingChangePolicy (additive-only|versioned|breaking-allowed).",
+      "List the IC-* under the owning GD-* in graph/index.xml Owns.",
+    ],
+  },
+  "projection.graph.invalid-data-flow-step": {
+    title: "Invalid Ordered Data-Flow Step",
+    explanation:
+      "A DF-* with <Step> children has a gap or duplicate order, names a missing M-*/IC-*, uses an unknown Property, or mixes ordered Steps with bare participant anchors.",
+    remediation: [
+      "Use contiguous order attributes starting at 1, exactly one M-* per Step, optional Contract IC-*, and Property in {idempotent, transactional, retryable, authenticated}.",
+      "Keep the legacy flat participant form (bare M-* children, no Step) for unordered flows.",
+    ],
+  },
+  "context.invariants.duplicate": {
+    title: "Duplicate Invariant",
+    explanation: "The same INV-* id appears more than once in invariants.xml.",
+    remediation: ["Keep each INV-* unique.", "Merge or rename the duplicate invariant."],
+  },
+  "context.invariants.empty-statement": {
+    title: "Empty Invariant Statement",
+    explanation: "An INV-* is missing a non-empty <Statement>.",
+    remediation: ["Write a concrete, testable invariant statement inside <Statement>."],
+  },
+  "context.invariants.invalid-applies-to": {
+    title: "Invalid Invariant AppliesTo",
+    explanation: "AppliesTo may only list M-* or DF-* anchors.",
+    remediation: ["Replace the invalid child with an M-* or DF-* tag."],
+  },
+  "context.invariants.invalid-verification": {
+    title: "Invalid Invariant Verification Ref",
+    explanation: "Verification under an INV-* may only list V-M-* anchors.",
+    remediation: ["Reference the matching V-M-* verification entry."],
+  },
+  "assertion.budget-no-match": {
+    title: "Budget Metric Not Found In Command Output",
+    explanation: "MustPassBudget ran the command successfully but Extract did not capture the Metric value from stdout.",
+    remediation: [
+      "Ensure the command prints the metric (e.g. p99=42) or supply a custom Extract regex with one capture group.",
+      "Do not treat a missing metric as a pass — fix the command output or the Extract pattern.",
+    ],
+  },
+  "assertion.budget-not-a-number": {
+    title: "Budget Capture Is Not A Number",
+    explanation: "MustPassBudget captured a value that could not be parsed as a finite number.",
+    remediation: ["Print a numeric measurement for the metric.", "Adjust Extract so group 1 is the number only."],
+  },
+  "assertion.budget-command-failed": {
+    title: "Budget Command Failed",
+    explanation: "MustPassBudget could not measure a budget because the command exited non-zero.",
+    remediation: ["Fix the command so it exits 0 and prints the metric.", "Run with --run-commands only when the harness is ready."],
+  },
 };
 
 const PREFIX_GUIDES: Array<{ prefix: string; title: string; explanation: string; remediation: string[] }> = [

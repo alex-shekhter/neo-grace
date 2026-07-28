@@ -317,6 +317,66 @@ describe("grace status", () => {
     expect(drift.unexplainedFiles).not.toContain(".grace/graph/index.xml");
   });
 
+  it("Phase 7: attributes graph drift to IC-* anchors in DurableScope (pins grace-status route index)", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(root, "proto/x.proto", "syntax = \"proto3\";\n");
+    writeProjectFile(
+      root,
+      ".grace/graph/index.xml",
+      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><IC-X /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/graph/main.xml",
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+        + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
+        + `<IC-X><Summary>Contract.</Summary><Schema>proto/x.proto</Schema><Version>1.0.0</Version>`
+        + `<Provider><M-EXAMPLE /></Provider><Consumer><M-EXAMPLE /></Consumer>`
+        + `<BreakingChangePolicy>additive-only</BreakingChangePolicy></IC-X>`
+        + `</GD-MAIN></GraceGraphDocument>`,
+    );
+    // Scope the change ONLY to the IC-* (not M-EXAMPLE), so explanation must come from IC in the route index.
+    writeProjectFile(
+      root,
+      ".grace/changes/active/C-IC-DRIFT/spec.xml",
+      `<GraceChangeSpec graceVersion="4.0" status="approved"><C-IC-DRIFT><Summary>Contract change.</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><AffectedAreas><IC-X /></AffectedAreas><VerificationIntent><ExpectedCommand>echo ok</ExpectedCommand></VerificationIntent></C-IC-DRIFT></GraceChangeSpec>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/changes/active/C-IC-DRIFT/plan.xml",
+      `<GraceChangePlan graceVersion="4.0" status="approved"><C-IC-DRIFT>`
+        + `<IntentSummary>Contract only.</IntentSummary>`
+        + `<BaselineAssertions><MustExist><Value>IC-X</Value></MustExist></BaselineAssertions>`
+        + `<TargetAssertions><MustExist><Value>IC-X</Value></MustExist></TargetAssertions>`
+        + `<DurableScope><GraphAnchors><IC-X /></GraphAnchors></DurableScope>`
+        + `<ObservedWriteScope><File>proto/x.proto</File></ObservedWriteScope>`
+        + `<ImplementationPlan><T-001><Title>t</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><Verification><Command>echo ok</Command></Verification></T-001></ImplementationPlan>`
+        + `</C-IC-DRIFT></GraceChangePlan>`,
+    );
+    runGit(root, ["init"]);
+    runGit(root, ["config", "user.email", "grace@example.test"]);
+    runGit(root, ["config", "user.name", "GRACE Test"]);
+    runGit(root, ["config", "commit.gpgsign", "false"]);
+    runGit(root, ["config", "core.hooksPath", "disabled-hooks"]);
+    runGit(root, ["add", "."]);
+    runGit(root, ["commit", "-m", "test: baseline"]);
+    writeProjectFile(
+      root,
+      ".grace/graph/main.xml",
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+        + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
+        + `<IC-X><Summary>Contract updated.</Summary><Schema>proto/x.proto</Schema><Version>1.1.0</Version>`
+        + `<Provider><M-EXAMPLE /></Provider><Consumer><M-EXAMPLE /></Consumer>`
+        + `<BreakingChangePolicy>additive-only</BreakingChangePolicy></IC-X>`
+        + `</GD-MAIN></GraceGraphDocument>`,
+    );
+
+    const drift = collectProjectStatus(root).observedDrift;
+    expect(drift.explainedFiles).toContain(".grace/graph/main.xml");
+    expect(drift.unexplainedFiles).not.toContain(".grace/graph/main.xml");
+  });
+
   it("hard-stops approved contract drift instead of reporting the bundle ready", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);

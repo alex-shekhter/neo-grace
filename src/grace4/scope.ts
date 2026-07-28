@@ -66,7 +66,14 @@ function durableGroupDefinition(tag: string):
   | null {
   switch (tag) {
     case "GraphAnchors":
-      return { kind: "anchor", target: "graphAnchors", predicate: (value) => ANCHOR_PATTERNS.module.test(value) || ANCHOR_PATTERNS.dataFlow.test(value) };
+      return {
+        kind: "anchor",
+        target: "graphAnchors",
+        predicate: (value) =>
+          ANCHOR_PATTERNS.module.test(value)
+          || ANCHOR_PATTERNS.dataFlow.test(value)
+          || ANCHOR_PATTERNS.interfaceContract.test(value),
+      };
     case "VerificationAnchors":
       return { kind: "anchor", target: "verificationAnchors", predicate: (value) => ANCHOR_PATTERNS.verification.test(value) };
     case "GraphDocuments":
@@ -179,7 +186,7 @@ export function createDurableOwnershipIndex(
     graphDocuments: new Map([...graph.documents.keys()].map((document) => [document, new Set<string>()])),
     verificationDocuments: new Map([...verification.documents.keys()].map((document) => [document, new Set<string>()])),
   };
-  for (const record of [...graph.modules.values(), ...graph.dataFlows.values()]) {
+  for (const record of [...graph.modules.values(), ...graph.dataFlows.values(), ...graph.interfaceContracts.values()]) {
     addOwnedAnchor(ownership.graphDocuments, record.owner, record.id);
   }
   for (const record of verification.entries.values()) {
@@ -335,8 +342,20 @@ function extractDurableScope(root: GraceXmlNode, planFile: string): { scope: Dur
       hasNone = true;
       continue;
     }
-    if (ANCHOR_PATTERNS.module.test(child.tag) || ANCHOR_PATTERNS.dataFlow.test(child.tag)) {
-      addAnchor(child, (tag) => ANCHOR_PATTERNS.module.test(tag) || ANCHOR_PATTERNS.dataFlow.test(tag), scope.graphAnchors, "DurableScope");
+    if (
+      ANCHOR_PATTERNS.module.test(child.tag)
+      || ANCHOR_PATTERNS.dataFlow.test(child.tag)
+      || ANCHOR_PATTERNS.interfaceContract.test(child.tag)
+    ) {
+      addAnchor(
+        child,
+        (tag) =>
+          ANCHOR_PATTERNS.module.test(tag)
+          || ANCHOR_PATTERNS.dataFlow.test(tag)
+          || ANCHOR_PATTERNS.interfaceContract.test(tag),
+        scope.graphAnchors,
+        "DurableScope",
+      );
       continue;
     }
     if (ANCHOR_PATTERNS.verification.test(child.tag)) {

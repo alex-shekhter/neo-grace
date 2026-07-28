@@ -76,6 +76,8 @@ describe("GRACE 4 semantic anchor patterns", () => {
     expect(ANCHOR_PATTERNS.module.test("M-AUTH-SESSION")).toBe(true);
     expect(ANCHOR_PATTERNS.verification.test("V-M-AUTH-SESSION")).toBe(true);
     expect(ANCHOR_PATTERNS.dataFlow.test("DF-AUTH-TOKEN-FLOW")).toBe(true);
+    expect(ANCHOR_PATTERNS.interfaceContract.test("IC-LEDGER-POSTING-V1")).toBe(true);
+    expect(ANCHOR_PATTERNS.invariant.test("INV-IDEMPOTENT-WRITES")).toBe(true);
     expect(ANCHOR_PATTERNS.task.test("T-001")).toBe(true);
     expect(ANCHOR_PATTERNS.acceptanceCriterion.test("AC-KEYBOARD-NAV")).toBe(true);
     expect(ANCHOR_PATTERNS.designToken.test("DT-COLOR-ACCENT")).toBe(true);
@@ -91,6 +93,8 @@ describe("GRACE 4 semantic anchor patterns", () => {
       module: ["m-auth", "M-auth", "M_AUTH", "moduleId", "id"],
       verification: ["v-m-auth", "V-M-auth", "V_M_AUTH", "verificationId", "id"],
       dataFlow: ["df-auth", "DF-auth", "DF_AUTH", "dataFlowId", "id"],
+      interfaceContract: ["ic-ledger", "IC-ledger", "IC_LEDGER", "contractId", "id"],
+      invariant: ["inv-idempotent", "INV-idempotent", "INV_IDEMPOTENT", "invariantId", "id"],
       task: ["t-001", "T-abc", "T_001", "taskId", "id"],
       acceptanceCriterion: ["ac-keyboard", "AC-keyboard", "AC_KEYBOARD", "criterionId", "id"],
       designToken: ["dt-color", "DT-color", "DT_COLOR", "tokenId", "id"],

@@ -930,4 +930,153 @@ export function run() {
     const warnings = result.issues.filter((i) => i.code === "graph.module-without-linked-files");
     expect(warnings.some((i) => i.message.includes("M-PROSE"))).toBe(false);
   });
+
+  it("Phase 7: IC-* Schema escape and missing Provider fire through grace lint", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(root, "src/gateway.ts", "export const g = 1;\n");
+    writeProjectFile(
+      root,
+      ".grace/graph/index.xml",
+      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-GATEWAY /><IC-BAD /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/graph/main.xml",
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+        + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
+        + `<M-GATEWAY><Summary>Gateway.</Summary><Path>src/gateway.ts</Path></M-GATEWAY>`
+        + `<IC-BAD><Summary>Bad contract.</Summary><Schema>../../etc/passwd</Schema><Version>1.0.0</Version>`
+        + `<Provider><M-DOES-NOT-EXIST /></Provider><Consumer><M-GATEWAY /></Consumer>`
+        + `<BreakingChangePolicy>additive-only</BreakingChangePolicy></IC-BAD>`
+        + `</GD-MAIN></GraceGraphDocument>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/verification/index.xml",
+      `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-GATEWAY /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/verification/main.xml",
+      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
+        + `<V-M-EXAMPLE><Command>echo ok</Command><Scenario>ok</Scenario></V-M-EXAMPLE>`
+        + `<V-M-GATEWAY><Command>echo ok</Command><Scenario>ok</Scenario></V-M-GATEWAY>`
+        + `</VD-MAIN></GraceVerificationDocument>`,
+    );
+
+    const result = lintGraceProject(root);
+    expect(result.issues.map((i) => i.code)).toContain("projection.graph.invalid-interface-contract");
+    expect(result.issues.some((i) => i.message.includes("contained project path") || i.message.includes("Provider"))).toBe(true);
+    expect(getLintIssueGuide("projection.graph.invalid-interface-contract").title).toContain("Interface Contract");
+  });
+
+  it("Phase 7: ordered DF gap and flat DF compatibility through grace lint", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(root, "src/gateway.ts", "export const g = 1;\n");
+    writeProjectFile(
+      root,
+      ".grace/graph/index.xml",
+      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-GATEWAY /><DF-FLAT /><DF-GAP /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/graph/main.xml",
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+        + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
+        + `<M-GATEWAY><Summary>Gateway.</Summary><Path>src/gateway.ts</Path></M-GATEWAY>`
+        + `<DF-FLAT><Summary>Legacy flat.</Summary><M-EXAMPLE /><M-GATEWAY /></DF-FLAT>`
+        + `<DF-GAP><Summary>Gapped.</Summary><Step order="1"><M-EXAMPLE /></Step><Step order="3"><M-GATEWAY /></Step></DF-GAP>`
+        + `</GD-MAIN></GraceGraphDocument>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/verification/index.xml",
+      `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-GATEWAY /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/verification/main.xml",
+      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
+        + `<V-M-EXAMPLE><Command>echo ok</Command><Scenario>ok</Scenario></V-M-EXAMPLE>`
+        + `<V-M-GATEWAY><Command>echo ok</Command><Scenario>ok</Scenario></V-M-GATEWAY>`
+        + `</VD-MAIN></GraceVerificationDocument>`,
+    );
+
+    const result = lintGraceProject(root);
+    expect(result.issues.map((i) => i.code)).toContain("projection.graph.invalid-data-flow-step");
+    expect(result.issues.some((i) => i.message.includes("DF-GAP") && i.message.includes("missing 2"))).toBe(true);
+    // Flat form must not invent step errors for DF-FLAT.
+    expect(result.issues.filter((i) => i.message.includes("DF-FLAT") && i.code === "projection.graph.invalid-data-flow-step")).toHaveLength(0);
+  });
+
+  it("Phase 7: project without invariants.xml gains no context.invariants codes", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    const result = lintGraceProject(root);
+    expect(result.issues.filter((i) => i.code.startsWith("context.invariants."))).toHaveLength(0);
+    expect(result.summary.errors).toBe(0);
+  });
+
+  it("Phase 7: MustConform and MustPassBudget respect --run-commands opt-in", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(root, "proto/x.proto", "syntax = \"proto3\";\n");
+    writeProjectFile(
+      root,
+      ".grace/graph/index.xml",
+      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><IC-X /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/graph/main.xml",
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+        + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
+        + `<IC-X><Summary>Contract.</Summary><Schema>proto/x.proto</Schema><Version>1.0.0</Version>`
+        + `<Provider><M-EXAMPLE /></Provider><Consumer><M-EXAMPLE /></Consumer>`
+        + `<BreakingChangePolicy>versioned</BreakingChangePolicy></IC-X>`
+        + `</GD-MAIN></GraceGraphDocument>`,
+    );
+    writeApprovedChange(
+      root,
+      "C-SYSTEMS",
+      `<MustConform><Contract>IC-X</Contract><Module>M-EXAMPLE</Module><Command>exit 0</Command></MustConform>`,
+      `<MustPassBudget><Command>${process.platform === "win32" ? "echo p99=42" : "printf 'p99=42\\n'"}</Command><Metric>p99</Metric><Operator>lt</Operator><Threshold>50</Threshold><Unit>ms</Unit></MustPassBudget>`,
+    );
+
+    const without = lintGraceProject(root, { assertionMode: "target", changeId: "C-SYSTEMS" });
+    // MustPassBudget is command-gated; MustConform ref-only passes without execution.
+    expect(without.issues.map((i) => i.code)).not.toContain("assertion.MustConform");
+    // Target mode evaluates MustPassBudget → command-not-evaluated without --run-commands.
+    expect(without.issues.map((i) => i.code)).toContain("assertion.command-not-evaluated");
+
+    const withCmds = lintGraceProject(root, {
+      assertionMode: "target",
+      changeId: "C-SYSTEMS",
+      runCommands: true,
+    });
+    expect(withCmds.issues.map((i) => i.code)).not.toContain("assertion.MustConform");
+    expect(withCmds.issues.map((i) => i.code)).not.toContain("assertion.MustPassBudget");
+    expect(withCmds.issues.map((i) => i.code)).not.toContain("assertion.budget-no-match");
+    expect(withCmds.issues.map((i) => i.code)).not.toContain("assertion.command-not-evaluated");
+  });
+
+  it("Phase 7: current lint skips unevaluated MustPassBudget on active baselines (pins lint/core.ts)", () => {
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    // Put MustPassBudget in BaselineAssertions of an active approved plan.
+    writeApprovedChange(
+      root,
+      "C-BUDGET-BASELINE",
+      `<MustPassBudget><Command>exit 99</Command><Metric>p99</Metric><Operator>lt</Operator><Threshold>50</Threshold><Unit>ms</Unit></MustPassBudget>`,
+      `<MustExist><Value>M-EXAMPLE</Value></MustExist>`,
+    );
+
+    const current = lintGraceProject(root);
+    // Without the skipUnevaluatedCommands extension to MustPassBudget, current mode would
+    // emit assertion.command-not-evaluated for every active plan that uses a budget gate.
+    expect(current.issues.map((i) => i.code)).not.toContain("assertion.command-not-evaluated");
+    expect(current.issues.map((i) => i.code)).not.toContain("assertion.budget-command-failed");
+  });
 });

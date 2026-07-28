@@ -2,15 +2,33 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { canonicalizeExistingPath, ProjectPathError, resolveContainedProjectPath } from "./paths";
-import { ANCHOR_PATTERNS, MODULE_TYPES, type Grace4Issue, type Grace4ProjectPaths } from "./types";
+import {
+  ANCHOR_PATTERNS,
+  DATA_FLOW_STEP_PROPERTIES,
+  INTERFACE_BREAKING_CHANGE_POLICIES,
+  MODULE_TYPES,
+  type Grace4Issue,
+  type Grace4ProjectPaths,
+} from "./types";
 import { childNodes, childText, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
 const KNOWN_MODULE_TYPES = new Set<string>(MODULE_TYPES);
+const KNOWN_STEP_PROPERTIES = new Set<string>(DATA_FLOW_STEP_PROPERTIES);
+const KNOWN_BREAKING_POLICIES = new Set<string>(INTERFACE_BREAKING_CHANGE_POLICIES);
+
+/** One ordered hop on a DF-* data flow. */
+export type DataFlowStepRecord = {
+  order: number;
+  moduleId: string;
+  emits?: string;
+  contract?: string;
+  properties: string[];
+};
 
 /** One graph anchor owned by a graph document. */
 export type GraphAnchorRecord = {
   id: string;
-  kind: "module" | "data-flow";
+  kind: "module" | "data-flow" | "interface-contract";
   owner: string;
   file: string;
   text: string;
@@ -25,6 +43,18 @@ export type GraphAnchorRecord = {
   moduleType?: string;
   /** Declared UI states (ST-*) under <States>, for UI_COMPONENT modules. */
   states?: string[];
+  /** Ordered DF-* steps when authored; absent for legacy flat participant sets. */
+  steps?: DataFlowStepRecord[];
+  /** IC-* Schema path (project-relative). */
+  schema?: string;
+  /** IC-* Version (semver). */
+  version?: string;
+  /** IC-* provider module. */
+  provider?: string;
+  /** IC-* consumer modules. */
+  consumers?: string[];
+  /** IC-* BreakingChangePolicy. */
+  breakingChangePolicy?: string;
 };
 
 /** Unified current graph projection independent of physical segmentation. */
@@ -32,6 +62,7 @@ export type GraphProjection = {
   documents: Map<string, string>;
   modules: Map<string, GraphAnchorRecord>;
   dataFlows: Map<string, GraphAnchorRecord>;
+  interfaceContracts: Map<string, GraphAnchorRecord>;
   issues: Grace4Issue[];
 };
 
@@ -73,6 +104,7 @@ export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection
     documents: new Map(),
     modules: new Map(),
     dataFlows: new Map(),
+    interfaceContracts: new Map(),
     issues: [],
   };
 
@@ -110,10 +142,10 @@ export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection
 
     // Detect nested/grouped sections that hide graph anchors below non-anchor grouping tags
     for (const child of wrapper.children) {
-      if (!ANCHOR_PATTERNS.module.test(child.tag) && !ANCHOR_PATTERNS.dataFlow.test(child.tag)) {
+      if (!isTopLevelGraphAnchor(child.tag)) {
         const nestedAnchors = [...walkNodes(child)]
           .filter((n) => n !== child)
-          .filter((n) => ANCHOR_PATTERNS.module.test(n.tag) || ANCHOR_PATTERNS.dataFlow.test(n.tag))
+          .filter((n) => isTopLevelGraphAnchor(n.tag))
           .map((n) => n.tag);
         if (nestedAnchors.length > 0) {
           projection.issues.push(
@@ -142,7 +174,7 @@ export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection
         );
       }
 
-      const map = anchor.kind === "module" ? projection.modules : projection.dataFlows;
+      const map = mapForGraphAnchorKind(projection, anchor.kind);
       if (map.has(anchor.node.tag)) {
         projection.issues.push(issue("error", "projection.graph.duplicate-anchor", route.file, `${anchor.node.tag} appears more than once.`));
         continue;
@@ -160,6 +192,12 @@ export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection
         );
       }
       const states = anchor.kind === "module" ? collectModuleStates(anchor.node, route.file, projection.issues) : undefined;
+      const steps = anchor.kind === "data-flow"
+        ? collectDataFlowSteps(anchor.node, route.file, projection.issues)
+        : undefined;
+      const contractFields = anchor.kind === "interface-contract"
+        ? collectInterfaceContractFields(anchor.node, paths.root, route.file, projection.issues)
+        : undefined;
       map.set(anchor.node.tag, {
         id: anchor.node.tag,
         kind: anchor.kind,
@@ -170,6 +208,8 @@ export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection
         ...(childText(anchor.node, "Path")?.trim() ? { path: childText(anchor.node, "Path")!.trim() } : {}),
         ...(moduleType ? { moduleType } : {}),
         ...(states && states.length > 0 ? { states } : {}),
+        ...(steps ? { steps } : {}),
+        ...(contractFields ?? {}),
       });
     }
   }
@@ -183,6 +223,8 @@ export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection
   }
 
   validateDanglingGraphLinks(projection);
+  validateInterfaceContractRefs(projection);
+  validateDataFlowStepRefs(projection);
   return projection;
 }
 
@@ -397,8 +439,20 @@ function graphAnchorsInWrapper(wrapper: GraceXmlNode): Array<{ node: GraceXmlNod
       if (ANCHOR_PATTERNS.dataFlow.test(node.tag)) {
         return [{ node, kind: "data-flow" as const }];
       }
+      if (ANCHOR_PATTERNS.interfaceContract.test(node.tag)) {
+        return [{ node, kind: "interface-contract" as const }];
+      }
       return [];
     });
+}
+
+function mapForGraphAnchorKind(
+  projection: GraphProjection,
+  kind: GraphAnchorRecord["kind"],
+): Map<string, GraphAnchorRecord> {
+  if (kind === "module") return projection.modules;
+  if (kind === "data-flow") return projection.dataFlows;
+  return projection.interfaceContracts;
 }
 
 function verificationAnchorsInWrapper(wrapper: GraceXmlNode): GraceXmlNode[] {
@@ -415,14 +469,386 @@ function collectGraphLinks(node: GraceXmlNode): string[] {
 }
 
 function validateDanglingGraphLinks(projection: GraphProjection) {
-  const known = new Set([...projection.modules.keys(), ...projection.dataFlows.keys()]);
-  for (const record of [...projection.modules.values(), ...projection.dataFlows.values()]) {
+  const known = knownGraphAnchorIds(projection);
+  for (const record of allGraphRecords(projection)) {
     for (const link of record.links) {
       if (!known.has(link)) {
         projection.issues.push(issue("error", "projection.graph.dangling-link", record.file, `${record.id} links to missing ${link}.`));
       }
     }
   }
+}
+
+/**
+ * Ordered DF-* form: direct <Step order="n"> children. Legacy flat form is any DF
+ * without Step children (bare M-* participants) and is accepted unchanged.
+ */
+function collectDataFlowSteps(
+  flowNode: GraceXmlNode,
+  file: string,
+  issues: Grace4Issue[],
+): DataFlowStepRecord[] | undefined {
+  const stepNodes = flowNode.children.filter((child) => child.tag === "Step");
+  if (stepNodes.length === 0) {
+    return undefined;
+  }
+
+  const bareParticipants = flowNode.children.filter(
+    (child) => ANCHOR_PATTERNS.module.test(child.tag) || ANCHOR_PATTERNS.dataFlow.test(child.tag),
+  );
+  if (bareParticipants.length > 0) {
+    issues.push(
+      issue(
+        "error",
+        "projection.graph.invalid-data-flow-step",
+        file,
+        `${flowNode.tag} mixes ordered <Step> children with bare participant anchors; use one form only.`,
+      ),
+    );
+  }
+
+  const steps: DataFlowStepRecord[] = [];
+  const seenOrders = new Set<number>();
+
+  for (const stepNode of stepNodes) {
+    const orderRaw = stepNode.attributes.order?.trim() ?? "";
+    const order = Number(orderRaw);
+    if (!orderRaw || !Number.isInteger(order) || order < 1) {
+      issues.push(
+        issue(
+          "error",
+          "projection.graph.invalid-data-flow-step",
+          file,
+          `${flowNode.tag} Step requires a positive integer order attribute (got ${JSON.stringify(orderRaw)}).`,
+        ),
+      );
+      continue;
+    }
+    if (seenOrders.has(order)) {
+      issues.push(
+        issue(
+          "error",
+          "projection.graph.invalid-data-flow-step",
+          file,
+          `${flowNode.tag} has duplicate Step order ${order}.`,
+        ),
+      );
+      continue;
+    }
+    seenOrders.add(order);
+
+    const modules = stepNode.children.filter((child) => ANCHOR_PATTERNS.module.test(child.tag));
+    if (modules.length !== 1) {
+      issues.push(
+        issue(
+          "error",
+          "projection.graph.invalid-data-flow-step",
+          file,
+          `${flowNode.tag} Step order=${order} must name exactly one M-* module (found ${modules.length}).`,
+        ),
+      );
+      continue;
+    }
+    const moduleId = modules[0]!.tag;
+
+    let contract: string | undefined;
+    for (const contractNode of stepNode.children.filter((child) => child.tag === "Contract")) {
+      const contracts = contractNode.children.filter((child) => ANCHOR_PATTERNS.interfaceContract.test(child.tag));
+      const textContract = contractNode.text.trim();
+      if (contracts.length === 1) {
+        contract = contracts[0]!.tag;
+      } else if (contracts.length === 0 && ANCHOR_PATTERNS.interfaceContract.test(textContract)) {
+        contract = textContract;
+      } else {
+        issues.push(
+          issue(
+            "error",
+            "projection.graph.invalid-data-flow-step",
+            file,
+            `${flowNode.tag} Step order=${order} Contract must name exactly one IC-* anchor.`,
+          ),
+        );
+      }
+    }
+
+    const properties: string[] = [];
+    for (const propNode of stepNode.children.filter((child) => child.tag === "Property")) {
+      const value = propNode.text.trim();
+      if (!value) {
+        issues.push(
+          issue(
+            "error",
+            "projection.graph.invalid-data-flow-step",
+            file,
+            `${flowNode.tag} Step order=${order} Property must not be empty.`,
+          ),
+        );
+        continue;
+      }
+      if (!KNOWN_STEP_PROPERTIES.has(value)) {
+        issues.push(
+          issue(
+            "error",
+            "projection.graph.invalid-data-flow-step",
+            file,
+            `${flowNode.tag} Step order=${order} Property ${JSON.stringify(value)} is not in {${DATA_FLOW_STEP_PROPERTIES.join(", ")}}.`,
+          ),
+        );
+        continue;
+      }
+      properties.push(value);
+    }
+
+    const emits = childText(stepNode, "Emits")?.trim() || undefined;
+    steps.push({ order, moduleId, ...(emits ? { emits } : {}), ...(contract ? { contract } : {}), properties });
+  }
+
+  if (seenOrders.size > 0) {
+    const max = Math.max(...seenOrders);
+    for (let expected = 1; expected <= max; expected += 1) {
+      if (!seenOrders.has(expected)) {
+        issues.push(
+          issue(
+            "error",
+            "projection.graph.invalid-data-flow-step",
+            file,
+            `${flowNode.tag} Step order sequence must be contiguous starting at 1 (missing ${expected}).`,
+          ),
+        );
+      }
+    }
+  }
+
+  return steps.sort((left, right) => left.order - right.order);
+}
+
+function collectInterfaceContractFields(
+  node: GraceXmlNode,
+  projectRoot: string,
+  file: string,
+  issues: Grace4Issue[],
+): Pick<GraphAnchorRecord, "schema" | "version" | "provider" | "consumers" | "breakingChangePolicy"> {
+  const schemaRaw = childText(node, "Schema")?.trim() ?? "";
+  let schema: string | undefined;
+  if (!schemaRaw) {
+    issues.push(
+      issue(
+        "error",
+        "projection.graph.invalid-interface-contract",
+        file,
+        `${node.tag} requires a non-empty <Schema> path.`,
+      ),
+    );
+  } else {
+    try {
+      // mode "output": containment without requiring existence, so missing vs escape stay distinct.
+      const resolved = resolveContainedProjectPath(projectRoot, schemaRaw, { mode: "output" });
+      if (!existsSync(resolved.absolutePath) || !statSync(resolved.absolutePath).isFile()) {
+        issues.push(
+          issue(
+            "error",
+            "projection.graph.invalid-interface-contract",
+            file,
+            `${node.tag} Schema ${JSON.stringify(schemaRaw)} does not exist inside the project.`,
+          ),
+        );
+      } else {
+        schema = resolved.relativePath;
+      }
+    } catch (error) {
+      const detail = error instanceof ProjectPathError ? `${error.code}: ${error.message}` : String(error);
+      issues.push(
+        issue(
+          "error",
+          "projection.graph.invalid-interface-contract",
+          file,
+          `${node.tag} Schema ${JSON.stringify(schemaRaw)} is not a contained project path: ${detail}`,
+        ),
+      );
+    }
+  }
+
+  const version = childText(node, "Version")?.trim() ?? "";
+  if (!version) {
+    issues.push(
+      issue("error", "projection.graph.invalid-interface-contract", file, `${node.tag} requires a non-empty <Version>.`),
+    );
+  } else if (!isSemver(version)) {
+    issues.push(
+      issue(
+        "error",
+        "projection.graph.invalid-interface-contract",
+        file,
+        `${node.tag} Version ${JSON.stringify(version)} is not a valid semver (major.minor.patch).`,
+      ),
+    );
+  }
+
+  const providers = collectAnchorChildren(node, "Provider", ANCHOR_PATTERNS.module, file, issues);
+  let provider: string | undefined;
+  if (providers.length !== 1) {
+    issues.push(
+      issue(
+        "error",
+        "projection.graph.invalid-interface-contract",
+        file,
+        `${node.tag} requires exactly one Provider M-* (found ${providers.length}).`,
+      ),
+    );
+  } else {
+    provider = providers[0];
+  }
+
+  const consumers = collectAnchorChildren(node, "Consumer", ANCHOR_PATTERNS.module, file, issues);
+
+  const policy = childText(node, "BreakingChangePolicy")?.trim() ?? "";
+  if (!policy) {
+    issues.push(
+      issue(
+        "error",
+        "projection.graph.invalid-interface-contract",
+        file,
+        `${node.tag} requires <BreakingChangePolicy> (${INTERFACE_BREAKING_CHANGE_POLICIES.join("|")}).`,
+      ),
+    );
+  } else if (!KNOWN_BREAKING_POLICIES.has(policy)) {
+    issues.push(
+      issue(
+        "error",
+        "projection.graph.invalid-interface-contract",
+        file,
+        `${node.tag} BreakingChangePolicy ${JSON.stringify(policy)} is not in {${INTERFACE_BREAKING_CHANGE_POLICIES.join(", ")}}.`,
+      ),
+    );
+  }
+
+  return {
+    ...(schema ? { schema } : {}),
+    ...(version ? { version } : {}),
+    ...(provider ? { provider } : {}),
+    ...(consumers.length > 0 ? { consumers } : {}),
+    ...(policy ? { breakingChangePolicy: policy } : {}),
+  };
+}
+
+/**
+ * Collects anchors under `<Provider>` / `<Consumer>`, accepting both the tag form
+ * (`<Consumer><M-X /></Consumer>`) and the text form (`<Consumer>M-X</Consumer>`).
+ *
+ * A child that is not an anchor is an error, not a silent drop: `<Consumer><Module>M-X</Module></Consumer>`
+ * would otherwise record zero consumers while the author believes one is declared, and
+ * Consumer is zero-or-more so no count check can catch it.
+ */
+function collectAnchorChildren(
+  node: GraceXmlNode,
+  sectionTag: string,
+  pattern: RegExp,
+  file?: string,
+  issues?: Grace4Issue[],
+): string[] {
+  const result: string[] = [];
+  for (const section of node.children.filter((child) => child.tag === sectionTag)) {
+    for (const child of section.children) {
+      if (pattern.test(child.tag)) {
+        result.push(child.tag);
+      } else if (file && issues) {
+        issues.push(
+          issue(
+            "error",
+            "projection.graph.invalid-interface-contract",
+            file,
+            `${node.tag} <${sectionTag}> does not allow child <${child.tag}>; name a canonical M-* module.`,
+          ),
+        );
+      }
+    }
+    const text = section.text.trim();
+    if (text && pattern.test(text) && !result.includes(text)) {
+      result.push(text);
+    }
+  }
+  return result;
+}
+
+function validateInterfaceContractRefs(projection: GraphProjection) {
+  for (const record of projection.interfaceContracts.values()) {
+    if (record.provider && !projection.modules.has(record.provider)) {
+      projection.issues.push(
+        issue(
+          "error",
+          "projection.graph.invalid-interface-contract",
+          record.file,
+          `${record.id} Provider ${record.provider} does not exist in the graph.`,
+        ),
+      );
+    }
+    for (const consumer of record.consumers ?? []) {
+      if (!projection.modules.has(consumer)) {
+        projection.issues.push(
+          issue(
+            "error",
+            "projection.graph.invalid-interface-contract",
+            record.file,
+            `${record.id} Consumer ${consumer} does not exist in the graph.`,
+          ),
+        );
+      }
+    }
+  }
+}
+
+function validateDataFlowStepRefs(projection: GraphProjection) {
+  for (const record of projection.dataFlows.values()) {
+    if (!record.steps) continue;
+    for (const step of record.steps) {
+      if (!projection.modules.has(step.moduleId)) {
+        projection.issues.push(
+          issue(
+            "error",
+            "projection.graph.invalid-data-flow-step",
+            record.file,
+            `${record.id} Step order=${step.order} names missing module ${step.moduleId}.`,
+          ),
+        );
+      }
+      if (step.contract && !projection.interfaceContracts.has(step.contract)) {
+        projection.issues.push(
+          issue(
+            "error",
+            "projection.graph.invalid-data-flow-step",
+            record.file,
+            `${record.id} Step order=${step.order} Contract ${step.contract} does not exist.`,
+          ),
+        );
+      }
+    }
+  }
+}
+
+function isSemver(value: string): boolean {
+  return /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/.test(
+    value,
+  );
+}
+
+function knownGraphAnchorIds(projection: GraphProjection): Set<string> {
+  return new Set([
+    ...projection.modules.keys(),
+    ...projection.dataFlows.keys(),
+    ...projection.interfaceContracts.keys(),
+  ]);
+}
+
+function allGraphRecords(projection: GraphProjection): GraphAnchorRecord[] {
+  return [
+    ...projection.modules.values(),
+    ...projection.dataFlows.values(),
+    ...projection.interfaceContracts.values(),
+  ];
+}
+
+function isTopLevelGraphAnchor(tag: string): boolean {
+  return isGraphAnchor(tag);
 }
 
 function validateModuleVerificationCoverage(graph: GraphProjection, verification: VerificationProjection) {
@@ -530,7 +956,11 @@ function moduleIdForVerification(verificationId: string) {
 }
 
 function isGraphAnchor(anchor: string) {
-  return ANCHOR_PATTERNS.module.test(anchor) || ANCHOR_PATTERNS.dataFlow.test(anchor);
+  return (
+    ANCHOR_PATTERNS.module.test(anchor)
+    || ANCHOR_PATTERNS.dataFlow.test(anchor)
+    || ANCHOR_PATTERNS.interfaceContract.test(anchor)
+  );
 }
 
 function collectPriority(node: GraceXmlNode): string | undefined {

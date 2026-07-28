@@ -457,7 +457,7 @@ function buildDriftRouteIndex(root: string, graph: GraphProjection, verification
   // Document absolute paths are realpathed; project root may be lexical (macOS /var vs /private/var).
   routes.graphFiles.set(toProjectRelativePath(root, paths.graphIndex), {
     documents: new Set(graph.documents.keys()),
-    anchors: new Set([...graph.modules.keys(), ...graph.dataFlows.keys()]),
+    anchors: new Set([...graph.modules.keys(), ...graph.dataFlows.keys(), ...graph.interfaceContracts.keys()]),
   });
   routes.verificationFiles.set(toProjectRelativePath(root, paths.verificationIndex), {
     documents: new Set(verification.documents.keys()),
@@ -466,7 +466,7 @@ function buildDriftRouteIndex(root: string, graph: GraphProjection, verification
   for (const [document, file] of graph.documents) {
     const relativeFile = toProjectRelativePath(root, file);
     const anchors = new Set(
-      [...graph.modules.values(), ...graph.dataFlows.values()]
+      [...graph.modules.values(), ...graph.dataFlows.values(), ...graph.interfaceContracts.values()]
         .filter((record) => record.owner === document)
         .map((record) => record.id),
     );

@@ -285,7 +285,11 @@ function evaluateSection(
   }
   if (evaluateSemantically) {
     for (const assertion of extraction.assertions) {
-      if (skipUnevaluatedCommands && assertion.kind === "MustPassCommand" && !context.runCommands) {
+      if (
+        skipUnevaluatedCommands
+        && (assertion.kind === "MustPassCommand" || assertion.kind === "MustPassBudget")
+        && !context.runCommands
+      ) {
         continue;
       }
       for (const issue of evaluateAssertion(assertion, context)) {

@@ -118,6 +118,72 @@ Links between modules are expressed as direct child tags:
 </M-CONFIG>
 ```
 
+## Interface Contracts (`IC-*`)
+
+Cross-service wire contracts live in graph documents alongside modules and flows:
+
+```xml
+<IC-LEDGER-POSTING-V1>
+  <Summary>gRPC posting contract between gateway and ledger core.</Summary>
+  <Schema>proto/ledger/v1/posting.proto</Schema>
+  <Version>1.2.0</Version>
+  <Provider><M-LEDGER-CORE /></Provider>
+  <Consumer><M-GATEWAY-ROUTER /></Consumer>
+  <BreakingChangePolicy>additive-only</BreakingChangePolicy>
+</IC-LEDGER-POSTING-V1>
+```
+
+Rules:
+
+- `Schema` is a project-relative path that must exist (no `..`, no absolute paths)
+- `Version` is semver (`major.minor.patch`)
+- `Provider` is exactly one existing `M-*`; each `Consumer` is an existing `M-*`
+- `BreakingChangePolicy` is one of `additive-only`, `versioned`, `breaking-allowed`
+- List every `IC-*` under the owning `GD-*` in `graph/index.xml` `<Owns>`
+- Assert conformance in plans with `MustConform` (`Contract`, `Module`, `Command`); without `--run-commands` only references are checked; with the flag the command runs (`buf breaking`, `oasdiff`, …)
+
+## Ordered Data Flows (`DF-*` Steps)
+
+Legacy flat participant sets stay valid:
+
+```xml
+<DF-POSTING>
+  <Summary>Posting flow.</Summary>
+  <M-WEB-LEDGER-TABLE />
+  <M-GATEWAY-ROUTER />
+  <M-LEDGER-CORE />
+</DF-POSTING>
+```
+
+Ordered form (backward compatible — use when sequence matters):
+
+```xml
+<DF-POSTING>
+  <Summary>Posting flow from console to ledger.</Summary>
+  <Step order="1"><M-WEB-LEDGER-TABLE /><Emits>PostingRequested</Emits></Step>
+  <Step order="2"><M-GATEWAY-ROUTER /><Contract><IC-LEDGER-POSTING-V1 /></Contract><Property>authenticated</Property></Step>
+  <Step order="3"><M-LEDGER-CORE /><Property>idempotent</Property><Property>transactional</Property></Step>
+</DF-POSTING>
+```
+
+`order` must be unique positive integers, contiguous from 1. Each `Step` names exactly one `M-*`. `Property` values: `idempotent`, `transactional`, `retryable`, `authenticated`. Do not mix bare participants with `<Step>` children.
+
+## Cross-Cutting Invariants (`invariants.xml`)
+
+Optional context artifact (absence is not an error):
+
+```xml
+<GraceInvariants graceVersion="4.0">
+  <INV-IDEMPOTENT-WRITES>
+    <Statement>Every ledger write is idempotent under posting id.</Statement>
+    <AppliesTo><M-LEDGER-CORE /><M-GATEWAY-ROUTER /></AppliesTo>
+    <Verification><V-M-LEDGER-CORE /></Verification>
+  </INV-IDEMPOTENT-WRITES>
+</GraceInvariants>
+```
+
+Assert with `MustUphold` (`Invariant`, `Module`). Performance thresholds use `MustPassBudget` (`Command`, `Metric`, `Operator` lt|lte|gt|gte, `Threshold`, `Unit`, optional `Extract` regex with one capture group). Budget checks require `--run-commands`.
+
 ## Verification References
 
 The `.grace/verification/` directory provides matching V-M-* entries. The verification reference is mechanically derivable from the module ID by replacing the leading `M-` with `V-M-`.

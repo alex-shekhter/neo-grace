@@ -21,10 +21,17 @@ export type AssertionKind =
   | "MustMatchPattern"
   | "MustUseToken"
   | "MustNotUseLiteral"
-  | "MustCoverStates";
+  | "MustCoverStates"
+  | "MustConform"
+  | "MustUphold"
+  | "MustPassBudget";
 
 /** Maximum accepted length for artifact-authored regex patterns. */
 export const ASSERTION_PATTERN_MAX_LENGTH = 200;
+
+/** Budget comparison operators for MustPassBudget. */
+export const BUDGET_OPERATORS = ["lt", "lte", "gt", "gte"] as const;
+export type BudgetOperator = (typeof BUDGET_OPERATORS)[number];
 
 /** Parsed assertion from BaselineAssertions or TargetAssertions. */
 export type GraceAssertion = {
@@ -50,6 +57,8 @@ export type AssertionExtractionResult = {
 /** Exact child-field schema for one assertion kind. */
 export type AssertionSchema = {
   fields: readonly string[];
+  /** Present at most once; omitted fields are not required. */
+  optionalFields?: readonly string[];
   fileField?: string;
   allowManyValues?: boolean;
 };
@@ -68,6 +77,12 @@ export const ASSERTION_SCHEMAS: Record<AssertionKind, AssertionSchema> = {
   MustUseToken: { fields: ["File", "Token"], fileField: "File" },
   MustNotUseLiteral: { fields: ["File", "Pattern"], fileField: "File" },
   MustCoverStates: { fields: ["Module"] },
+  MustConform: { fields: ["Contract", "Module", "Command"] },
+  MustUphold: { fields: ["Invariant", "Module"] },
+  MustPassBudget: {
+    fields: ["Command", "Metric", "Operator", "Threshold", "Unit"],
+    optionalFields: ["Extract"],
+  },
 };
 
 export const ASSERTION_KINDS = new Set<AssertionKind>([
@@ -83,6 +98,9 @@ export const ASSERTION_KINDS = new Set<AssertionKind>([
   "MustUseToken",
   "MustNotUseLiteral",
   "MustCoverStates",
+  "MustConform",
+  "MustUphold",
+  "MustPassBudget",
 ]);
 
 /** Evaluates one assertion and returns current-state issues. */
@@ -112,6 +130,12 @@ export function evaluateAssertion(assertion: GraceAssertion, context: AssertionC
       return evaluateMustNotUseLiteral(assertion, context);
     case "MustCoverStates":
       return evaluateMustCoverStates(assertion, context);
+    case "MustConform":
+      return evaluateMustConform(assertion, context);
+    case "MustUphold":
+      return evaluateMustUphold(assertion, context);
+    case "MustPassBudget":
+      return evaluateMustPassBudget(assertion, context);
   }
 }
 
@@ -240,15 +264,7 @@ function evaluateMustPassCommand(assertion: GraceAssertion, context: AssertionCo
   }
 
   return assertion.values.flatMap((command) => {
-    const shellCommand = process.platform === "win32"
-      ? ["cmd.exe", "/d", "/s", "/c", command]
-      : [process.env.SHELL || "sh", "-lc", command];
-    const result = Bun.spawnSync({
-      cmd: shellCommand,
-      cwd: context.root,
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    const result = spawnShellCommand(command, context.root);
 
     if (result.exitCode === 0) {
       return [];
@@ -382,6 +398,272 @@ function evaluateMustCoverStates(assertion: GraceAssertion, context: AssertionCo
     }
     return [assertionIssue(assertion, `${moduleId} state ${stateId} has no Scenario/AccessibilityCheck/VisualCheck evidence.`)];
   });
+}
+
+/**
+ * Without --run-commands: validate that Contract (IC-*) and Module (M-*) exist and Command is non-empty.
+ * With --run-commands: also execute Command (buf breaking, oasdiff, codegen-drift, …).
+ */
+function evaluateMustConform(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+  const [contractId, moduleId, command] = assertion.values;
+  if (!contractId || !moduleId || !command) {
+    return [assertionIssue(assertion, "MustConform requires Contract, Module, and Command values.")];
+  }
+  if (!ANCHOR_PATTERNS.interfaceContract.test(contractId)) {
+    return [assertionIssue(assertion, `Contract ${JSON.stringify(contractId)} must be a canonical IC-* id.`)];
+  }
+  if (!ANCHOR_PATTERNS.module.test(moduleId)) {
+    return [assertionIssue(assertion, `Module ${JSON.stringify(moduleId)} must be a canonical M-* id.`)];
+  }
+
+  const issues: Grace4Issue[] = [];
+  if (!context.graph.interfaceContracts.has(contractId)) {
+    issues.push(assertionIssue(assertion, `Interface contract ${contractId} does not exist in the graph projection.`));
+  }
+  if (!context.graph.modules.has(moduleId)) {
+    issues.push(assertionIssue(assertion, `Module ${moduleId} does not exist in the graph projection.`));
+  }
+  if (issues.length > 0) {
+    return issues;
+  }
+
+  if (!context.runCommands) {
+    // Reference-only pass — do not execute, and do not treat as "not evaluated" failure.
+    return [];
+  }
+
+  return runShellCommand(command, context.root).flatMap((failure) => [
+    assertionIssue(assertion, `Conform command failed (${failure.exitCode}): ${command}${failure.stderr ? `: ${failure.stderr}` : ""}`),
+  ]);
+}
+
+function evaluateMustUphold(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+  const [invariantId, moduleId] = assertion.values;
+  if (!invariantId || !moduleId) {
+    return [assertionIssue(assertion, "MustUphold requires Invariant and Module values.")];
+  }
+  if (!ANCHOR_PATTERNS.invariant.test(invariantId)) {
+    return [assertionIssue(assertion, `Invariant ${JSON.stringify(invariantId)} must be a canonical INV-* id.`)];
+  }
+  if (!ANCHOR_PATTERNS.module.test(moduleId)) {
+    return [assertionIssue(assertion, `Module ${JSON.stringify(moduleId)} must be a canonical M-* id.`)];
+  }
+
+  if (!context.graph.modules.has(moduleId)) {
+    return [assertionIssue(assertion, `Module ${moduleId} does not exist in the graph projection.`)];
+  }
+
+  const invariants = loadInvariants(context.root);
+  const inv = invariants.get(invariantId);
+  if (!inv) {
+    return [assertionIssue(assertion, `Invariant ${invariantId} is not defined in .grace/context/invariants.xml.`)];
+  }
+
+  if (inv.appliesTo.length > 0) {
+    const moduleTargets = inv.appliesTo.filter((target) => ANCHOR_PATTERNS.module.test(target));
+    const flowTargets = inv.appliesTo.filter((target) => ANCHOR_PATTERNS.dataFlow.test(target));
+    const inModuleList = moduleTargets.includes(moduleId);
+    const inFlow = flowTargets.some((flowId) => {
+      const flow = context.graph.dataFlows.get(flowId);
+      if (!flow) return false;
+      if (flow.steps?.some((step) => step.moduleId === moduleId)) return true;
+      return flow.links.includes(moduleId);
+    });
+    if (moduleTargets.length + flowTargets.length > 0 && !inModuleList && !inFlow) {
+      return [
+        assertionIssue(
+          assertion,
+          `Module ${moduleId} is not in AppliesTo for ${invariantId} (${inv.appliesTo.join(", ")}).`,
+        ),
+      ];
+    }
+  }
+
+  return [];
+}
+
+/**
+ * MustPassBudget failure modes (each a distinct code — none may be mistaken for a pass):
+ * 1. command fails → assertion.budget-command-failed
+ * 2. Extract finds no match → assertion.budget-no-match
+ * 3. capture is not a number → assertion.budget-not-a-number
+ * 4. comparison fails → assertion.MustPassBudget
+ */
+function evaluateMustPassBudget(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+  const [command, metric, operator, thresholdRaw, unit, extractSource] = assertion.values;
+  if (!command || !metric || !operator || thresholdRaw == null || !unit) {
+    return [assertionIssue(assertion, "MustPassBudget requires Command, Metric, Operator, Threshold, and Unit.")];
+  }
+  if (!(BUDGET_OPERATORS as readonly string[]).includes(operator)) {
+    return [assertionIssue(assertion, `Operator ${JSON.stringify(operator)} must be one of ${BUDGET_OPERATORS.join("|")}.`)];
+  }
+  const threshold = Number(thresholdRaw);
+  if (!Number.isFinite(threshold)) {
+    return [assertionIssue(assertion, `Threshold ${JSON.stringify(thresholdRaw)} must be a finite number.`)];
+  }
+
+  if (!context.runCommands) {
+    return [issue("error", "assertion.command-not-evaluated", assertion.file, "MustPassBudget requires explicit command execution opt-in.")];
+  }
+
+  const patternSource = extractSource?.trim()
+    || `${escapeRegExpLiteral(metric)}\\s*[=:]\\s*([0-9.]+)`;
+  const compiled = compileSafeAssertionPattern(patternSource);
+  if (!compiled.ok) {
+    return [issue("error", "assertion.invalid-pattern", assertion.file, `MustPassBudget Extract rejected: ${compiled.error}`)];
+  }
+  // A capturing group, not merely a "(" — `(?:…)` and `(?=…)` contain one but capture nothing,
+  // and would otherwise surface as budget-no-match, blaming the command for an Extract mistake.
+  if (!hasCapturingGroup(patternSource)) {
+    return [issue("error", "assertion.invalid-pattern", assertion.file, "MustPassBudget Extract must contain one capture group for the metric value.")];
+  }
+
+  const result = spawnShellCommand(command, context.root);
+  const stdout = new TextDecoder().decode(result.stdout);
+  const stderr = new TextDecoder().decode(result.stderr).trim();
+
+  if (result.exitCode !== 0) {
+    return [
+      issue(
+        "error",
+        "assertion.budget-command-failed",
+        assertion.file,
+        `Budget command failed (${result.exitCode}): ${command}${stderr ? `: ${stderr}` : ""}`,
+      ),
+    ];
+  }
+
+  const match = compiled.pattern.exec(stdout);
+  if (!match || match[1] == null) {
+    return [
+      issue(
+        "error",
+        "assertion.budget-no-match",
+        assertion.file,
+        `Budget metric ${JSON.stringify(metric)} not found in command output (Extract ${JSON.stringify(patternSource)}).`,
+      ),
+    ];
+  }
+
+  const measured = Number(match[1]);
+  if (!Number.isFinite(measured)) {
+    return [
+      issue(
+        "error",
+        "assertion.budget-not-a-number",
+        assertion.file,
+        `Budget capture ${JSON.stringify(match[1])} for ${metric} is not a number.`,
+      ),
+    ];
+  }
+
+  const ok = compareBudget(measured, operator as BudgetOperator, threshold);
+  if (ok) {
+    return [];
+  }
+  return [
+    assertionIssue(
+      assertion,
+      `Budget ${metric}=${measured} ${unit} fails ${operator} ${threshold} ${unit}.`,
+    ),
+  ];
+}
+
+function compareBudget(measured: number, operator: BudgetOperator, threshold: number): boolean {
+  switch (operator) {
+    case "lt":
+      return measured < threshold;
+    case "lte":
+      return measured <= threshold;
+    case "gt":
+      return measured > threshold;
+    case "gte":
+      return measured >= threshold;
+  }
+}
+
+function escapeRegExpLiteral(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Single shell-invocation shape for every command-running assertion, so they cannot drift apart. */
+export function spawnShellCommand(command: string, cwd: string) {
+  return Bun.spawnSync({
+    cmd: process.platform === "win32"
+      ? ["cmd.exe", "/d", "/s", "/c", command]
+      : [process.env.SHELL || "sh", "-lc", command],
+    cwd,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+}
+
+function runShellCommand(command: string, cwd: string): Array<{ exitCode: number; stderr: string }> {
+  const result = spawnShellCommand(command, cwd);
+  if (result.exitCode === 0) {
+    return [];
+  }
+  return [{ exitCode: result.exitCode ?? 1, stderr: new TextDecoder().decode(result.stderr).trim() }];
+}
+
+/**
+ * True when the pattern has at least one capturing group — a `(` that is not escaped,
+ * not inside a character class, and not the start of `(?…`.
+ */
+function hasCapturingGroup(source: string): boolean {
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i]!;
+    if (char === "\\") {
+      i += 1;
+      continue;
+    }
+    if (char === "[") {
+      i = charClassEnd(source, i);
+      continue;
+    }
+    if (char === "(") {
+      // `(?<name>…)` captures; `(?:`, `(?=`, `(?!`, `(?<=`, `(?<!` do not.
+      if (source[i + 1] !== "?") {
+        return true;
+      }
+      if (source[i + 2] === "<" && source[i + 3] !== "=" && source[i + 3] !== "!") {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+type InvariantRecord = {
+  id: string;
+  statement: string;
+  appliesTo: string[];
+};
+
+function loadInvariants(projectRoot: string): Map<string, InvariantRecord> {
+  const result = new Map<string, InvariantRecord>();
+  const file = path.join(projectRoot, ".grace", "context", "invariants.xml");
+  if (!existsSync(file)) {
+    return result;
+  }
+  const artifact = readGraceXmlArtifact(file);
+  if (!artifact.root) {
+    return result;
+  }
+  for (const node of artifact.root.children) {
+    if (!ANCHOR_PATTERNS.invariant.test(node.tag)) continue;
+    const statement = childText(node, "Statement")?.trim() ?? "";
+    const appliesTo: string[] = [];
+    for (const section of node.children.filter((child) => child.tag === "AppliesTo")) {
+      for (const child of section.children) {
+        if (ANCHOR_PATTERNS.module.test(child.tag) || ANCHOR_PATTERNS.dataFlow.test(child.tag)) {
+          appliesTo.push(child.tag);
+        }
+      }
+    }
+    result.set(node.tag, { id: node.tag, statement, appliesTo });
+  }
+  return result;
 }
 
 /**
@@ -643,11 +925,14 @@ function existsInContext(value: string, context: AssertionContext): boolean {
   if (value.startsWith("M-") && context.verification.entries.has(`V-${value}`)) {
     return true;
   }
+  if (ANCHOR_PATTERNS.invariant.test(value) && loadInvariants(context.root).has(value)) {
+    return true;
+  }
   return existsSync(resolveAssertionPath(context.root, value));
 }
 
 function graphRecord(value: string, graph: GraphProjection): GraphAnchorRecord | undefined {
-  return graph.modules.get(value) ?? graph.dataFlows.get(value);
+  return graph.modules.get(value) ?? graph.dataFlows.get(value) ?? graph.interfaceContracts.get(value);
 }
 
 function extractAssertionNode(
@@ -657,7 +942,7 @@ function extractAssertionNode(
 ): { assertion?: Omit<GraceAssertion, "file">; issues: Grace4Issue[] } {
   const issues: Grace4Issue[] = [];
   const schema = ASSERTION_SCHEMAS[kind];
-  const allowedFields = new Set(schema.fields);
+  const allowedFields = new Set([...schema.fields, ...(schema.optionalFields ?? [])]);
 
   if (node.text.trim() || Object.keys(node.attributes).length > 0) {
     issues.push(issue("error", "assertion.invalid-shape", planFile, `${kind} must contain only its declared child fields.`));
@@ -701,6 +986,21 @@ function extractAssertionNode(
         values.push(value);
       }
     }
+    for (const field of schema.optionalFields ?? []) {
+      const matches = node.children.filter((child) => child.tag === field);
+      if (matches.length > 1) {
+        issues.push(issue("error", "assertion.invalid-shape", planFile, `${kind} allows at most one <${field}> field.`));
+        continue;
+      }
+      if (matches.length === 1) {
+        const value = matches[0]!.text.trim();
+        if (!value) {
+          issues.push(issue("error", "assertion.invalid-shape", planFile, `${kind}/${field} must not be empty when present.`));
+        } else {
+          values.push(value);
+        }
+      }
+    }
   }
 
   if (schema.fileField) {
@@ -720,6 +1020,21 @@ function extractAssertionNode(
     const compiled = compileSafeAssertionPattern(patternSource);
     if (!compiled.ok) {
       issues.push(issue("error", "assertion.invalid-pattern", planFile, `${kind} pattern rejected: ${compiled.error}`));
+    }
+  }
+
+  if (kind === "MustPassBudget" && values.length >= 6) {
+    const extractSource = values[5]!;
+    const compiled = compileSafeAssertionPattern(extractSource);
+    if (!compiled.ok) {
+      issues.push(issue("error", "assertion.invalid-pattern", planFile, `MustPassBudget Extract rejected: ${compiled.error}`));
+    }
+  }
+
+  if (kind === "MustPassBudget" && values.length >= 3) {
+    const operator = values[2]!;
+    if (!(BUDGET_OPERATORS as readonly string[]).includes(operator)) {
+      issues.push(issue("error", "assertion.invalid-shape", planFile, `MustPassBudget Operator must be one of ${BUDGET_OPERATORS.join("|")}.`));
     }
   }
 

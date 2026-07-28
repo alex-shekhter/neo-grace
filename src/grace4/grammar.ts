@@ -57,6 +57,9 @@ const ASSERTION_SECTION_TAGS = new Set([
   "MustUseToken",
   "MustNotUseLiteral",
   "MustCoverStates",
+  "MustConform",
+  "MustUphold",
+  "MustPassBudget",
 ]);
 const DURABLE_SCOPE_DIRECT_TAGS = new Set([
   "GraphAnchors",
@@ -77,11 +80,14 @@ const ANCHOR_FAMILIES: readonly {
   pattern: RegExp;
 }[] = [
   { family: "verification", prefix: "V-M-", pattern: ANCHOR_PATTERNS.verification },
+  // Longer / more-specific prefixes before shorter ones that share a letter.
+  { family: "invariant", prefix: "INV-", pattern: ANCHOR_PATTERNS.invariant },
   // AC-* after V-M- so prefix classification cannot shadow verification anchors.
   { family: "acceptance-criterion", prefix: "AC-", pattern: ANCHOR_PATTERNS.acceptanceCriterion },
   { family: "design-token", prefix: "DT-", pattern: ANCHOR_PATTERNS.designToken },
   { family: "breakpoint", prefix: "BP-", pattern: ANCHOR_PATTERNS.breakpoint },
   { family: "ui-state", prefix: "ST-", pattern: ANCHOR_PATTERNS.uiState },
+  { family: "interface-contract", prefix: "IC-", pattern: ANCHOR_PATTERNS.interfaceContract },
   { family: "graph-document", prefix: "GD-", pattern: ANCHOR_PATTERNS.graphDocument },
   { family: "verification-document", prefix: "VD-", pattern: ANCHOR_PATTERNS.verificationDocument },
   { family: "data-flow", prefix: "DF-", pattern: ANCHOR_PATTERNS.dataFlow },
@@ -272,7 +278,7 @@ export function validateContextArtifacts(paths: Grace4ProjectPaths): ArtifactVal
 
 /**
  * Validates optional context artifacts when present.
- * Absence is never an error — design-system.xml must not become required by accident.
+ * Absence is never an error — design-system.xml / invariants.xml must not become required by accident.
  */
 export function validateOptionalContextArtifacts(paths: Grace4ProjectPaths): ArtifactValidationResult[] {
   const results: ArtifactValidationResult[] = [];
@@ -283,6 +289,8 @@ export function validateOptionalContextArtifacts(paths: Grace4ProjectPaths): Art
     }
     if (file === "design-system.xml") {
       results.push(validateDesignSystemArtifact(absolute, paths.root));
+    } else if (file === "invariants.xml") {
+      results.push(validateInvariantsArtifact(absolute));
     }
   }
   return results;
@@ -380,6 +388,85 @@ function validateDesignSystemBody(file: string, root: GraceXmlNode, projectRoot:
           `Breakpoint ${node.tag} requires <MinWidth> and/or <MaxWidth>.`,
         ),
       );
+    }
+  }
+
+  return issues;
+}
+
+/** Validates an optional GraceInvariants context artifact. */
+export function validateInvariantsArtifact(file: string): ArtifactValidationResult {
+  const artifact = readGraceXmlArtifact(file);
+  const result = validateParsedArtifact(artifact);
+  if (!artifact.root) {
+    return result;
+  }
+
+  if (artifact.root.tag !== "GraceInvariants") {
+    result.issues.push(
+      issue("error", "context.unexpected-root-tag", file, `invariants.xml must use root tag GraceInvariants.`),
+    );
+    return result;
+  }
+
+  result.issues.push(...validateContextContent(file, artifact.root));
+  result.issues.push(...validateInvariantsBody(file, artifact.root));
+  return result;
+}
+
+function validateInvariantsBody(file: string, root: GraceXmlNode): Grace4Issue[] {
+  const issues: Grace4Issue[] = [];
+  const seen = new Set<string>();
+
+  for (const node of root.children) {
+    if (!ANCHOR_PATTERNS.invariant.test(node.tag)) {
+      // Allow non-anchor prose wrappers; only INV-* carry load-bearing structure.
+      continue;
+    }
+    if (seen.has(node.tag)) {
+      issues.push(issue("error", "context.invariants.duplicate", file, `Invariant ${node.tag} is declared more than once.`));
+    } else {
+      seen.add(node.tag);
+    }
+
+    const statement = childText(node, "Statement")?.trim() ?? "";
+    if (!statement) {
+      issues.push(
+        issue("error", "context.invariants.empty-statement", file, `Invariant ${node.tag} requires a non-empty <Statement>.`),
+      );
+    }
+
+    for (const applies of node.children.filter((child) => child.tag === "AppliesTo")) {
+      for (const target of applies.children) {
+        if (
+          !ANCHOR_PATTERNS.module.test(target.tag)
+          && !ANCHOR_PATTERNS.dataFlow.test(target.tag)
+        ) {
+          issues.push(
+            issue(
+              "error",
+              "context.invariants.invalid-applies-to",
+              file,
+              `${node.tag} AppliesTo does not allow <${target.tag}>; declare M-* or DF-* anchors.`,
+            ),
+          );
+        }
+      }
+    }
+
+    for (const verification of node.children.filter((child) => child.tag === "Verification")) {
+      for (const target of verification.children) {
+        if (!ANCHOR_PATTERNS.verification.test(target.tag)) {
+          issues.push(
+            issue(
+              "error",
+              "context.invariants.invalid-verification",
+              file,
+              `${node.tag} Verification does not allow <${target.tag}>; declare V-M-* anchors.`,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -1048,11 +1135,7 @@ function collectDurableScopeAnchors(wrapper: GraceXmlNode): Set<string> {
   for (const section of wrapper.children.filter((child) => child.tag === "DurableScope")) {
     for (const node of walkNodes(section)) {
       if (node === section) continue;
-      if (
-        ANCHOR_PATTERNS.module.test(node.tag)
-        || ANCHOR_PATTERNS.dataFlow.test(node.tag)
-        || ANCHOR_PATTERNS.verification.test(node.tag)
-      ) {
+      if (isModuleOrFlowOrVerification(node.tag)) {
         anchors.add(node.tag);
       }
     }
@@ -1104,8 +1187,17 @@ function collectSatisfiedAcceptanceCriteria(wrapper: GraceXmlNode): Set<string> 
   return ids;
 }
 
+/**
+ * Anchor families a plan's DurableScope is expected to cover. IC-* belongs here: it is a
+ * first-class graph anchor that participates in DurableScope, drift routing and dangling-link
+ * validation, so leaving it out would exempt the newest cross-service family from G-05.
+ */
 function isModuleOrFlowAnchor(tag: string): boolean {
-  return ANCHOR_PATTERNS.module.test(tag) || ANCHOR_PATTERNS.dataFlow.test(tag);
+  return (
+    ANCHOR_PATTERNS.module.test(tag)
+    || ANCHOR_PATTERNS.dataFlow.test(tag)
+    || ANCHOR_PATTERNS.interfaceContract.test(tag)
+  );
 }
 
 function isModuleOrFlowOrVerification(tag: string): boolean {

@@ -9,6 +9,7 @@ export const GRACE4_ROOT_TAGS = [
   "GraceDeployment",
   "GraceUXGuidelines",
   "GraceDesignSystem",
+  "GraceInvariants",
   "GraceGraphIndex",
   "GraceGraphDocument",
   "GraceVerificationIndex",
@@ -49,7 +50,7 @@ export const GRACE4_CONTEXT_ARTIFACTS = [
  * Optional context artifacts validated only when present.
  * Must never be merged into GRACE4_CONTEXT_ARTIFACTS — that would break every existing project.
  */
-export const GRACE4_OPTIONAL_CONTEXT_ARTIFACTS = ["design-system.xml"] as const;
+export const GRACE4_OPTIONAL_CONTEXT_ARTIFACTS = ["design-system.xml", "invariants.xml"] as const;
 
 export type Grace4ContextArtifact = (typeof GRACE4_CONTEXT_ARTIFACTS)[number];
 export type Grace4OptionalContextArtifact = (typeof GRACE4_OPTIONAL_CONTEXT_ARTIFACTS)[number];
@@ -74,12 +75,33 @@ export const ANCHOR_PATTERNS = {
   module: /^M-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   verification: /^V-M-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   dataFlow: /^DF-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
+  interfaceContract: /^IC-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
+  invariant: /^INV-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   task: /^T-[0-9]{3}$/,
   acceptanceCriterion: /^AC-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   designToken: /^DT-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   breakpoint: /^BP-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   uiState: /^ST-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
 } as const;
+
+/** Breaking-change policies allowed on IC-* interface contracts. */
+export const INTERFACE_BREAKING_CHANGE_POLICIES = [
+  "additive-only",
+  "versioned",
+  "breaking-allowed",
+] as const;
+
+export type InterfaceBreakingChangePolicy = (typeof INTERFACE_BREAKING_CHANGE_POLICIES)[number];
+
+/** Approved hop properties on ordered DF-* steps. */
+export const DATA_FLOW_STEP_PROPERTIES = [
+  "idempotent",
+  "transactional",
+  "retryable",
+  "authenticated",
+] as const;
+
+export type DataFlowStepProperty = (typeof DATA_FLOW_STEP_PROPERTIES)[number];
 
 /** Canonical semantic-anchor family recognized by Artifact Grammar. */
 export type SemanticAnchorFamily =
@@ -89,6 +111,8 @@ export type SemanticAnchorFamily =
   | "module"
   | "verification"
   | "data-flow"
+  | "interface-contract"
+  | "invariant"
   | "task"
   | "acceptance-criterion"
   | "design-token"
