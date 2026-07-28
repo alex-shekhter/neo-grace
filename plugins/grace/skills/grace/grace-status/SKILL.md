@@ -4,7 +4,7 @@ description: Show GRACE 4 project health across .grace context, graph, verificat
 ---
 
 <skill>
-<task>Run `grace status --path PROJECT --json` and report current GRACE 4 state without mutating artifacts. Module-health summary counts are always evaluated; add `--with modules` only when detailed module records are needed.</task>
+<task>Run `ngrace status --path PROJECT --json` and report current GRACE 4 state without mutating artifacts. Module-health summary counts are always evaluated; add `--with modules` only when detailed module records are needed.</task>
 
 <must_report>
 - Project kind: GRACE 4, legacy GRACE 3 migration candidate, or missing GRACE; plus context completeness.
@@ -17,9 +17,9 @@ description: Show GRACE 4 project health across .grace context, graph, verificat
 </must_report>
 
 <commands>
-- Pre-implementation active-baseline integrity: `grace lint --path PROJECT --assertions current`
-- Parallel decision: `grace lint --path PROJECT --parallel-preflight`
-- Status snapshot: `grace status --path PROJECT --with modules --json --fail-on errors`
+- Pre-implementation active-baseline integrity: `ngrace lint --path PROJECT --assertions current`
+- Parallel decision: `ngrace lint --path PROJECT --parallel-preflight`
+- Status snapshot: `ngrace status --path PROJECT --with modules --json --fail-on errors`
 </commands>
 
 <hard_rules>Do not edit XML statuses. A draft spec without a plan is normal; an approved spec without a plan needs planning. A stale or integrity-invalid approved plan is never ready.</hard_rules>

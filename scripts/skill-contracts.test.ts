@@ -108,8 +108,8 @@ describe("GRACE lifecycle skill contracts", () => {
     const init = read("skills/grace/grace-init/SKILL.md");
 
     expect(init).toContain("<cli_precondition>");
-    expect(init).toContain("grace --version");
-    expect(init).toContain("bun add -g @osovv/grace-cli");
+    expect(init).toContain("ngrace --version");
+    expect(init).toContain("bun add -g neo-grace");
     expect(init).toContain("refuse to initialize");
     expect(init).toContain("Create no");
 
@@ -170,5 +170,53 @@ describe("published skill mirrors", () => {
         expect(readFileSync(path.join(packagedRoot, file))).toEqual(readFileSync(path.join(canonicalRoot, file)));
       }
     }
+  });
+});
+
+describe("fork attribution", () => {
+  // Attribution that nothing enforces erodes. These assertions are the enforcement:
+  // the methodology credit, the upstream credit, and the licence notice cannot be
+  // removed by a later edit without a test failing.
+  it("credits the methodology author and the upstream repository", () => {
+    const lineage = read("LINEAGE.md");
+    const readme = read("README.md");
+    const license = read("LICENSE");
+
+    // The methodology is Vladimir Ivanov's; forking the tooling never transfers that.
+    expect(lineage).toContain("Vladimir Ivanov");
+    expect(readme).toContain("Vladimir Ivanov");
+
+    // The parent repository, named and linked in both places.
+    expect(lineage).toContain("osovv/grace-marketplace");
+    expect(readme).toContain("osovv/grace-marketplace");
+    expect(readme).toContain("LINEAGE.md");
+
+    // MIT requires the original copyright notice be retained, not replaced.
+    expect(license).toContain("Copyright (c) 2026 GRACE Framework Contributors");
+    expect(license).toContain("MIT License");
+
+    // Every upstream contributor from the inherited git history.
+    for (const person of [
+      "Aleksei Chendemerov",
+      "Aleksey Chendemerov",
+      "Alex Shekhter",
+      "Denis Scheglov",
+      "dmkononenko",
+    ]) {
+      expect(lineage).toContain(person);
+    }
+  });
+
+  it("keeps upstream release history unedited in the changelog", () => {
+    const changelog = read("CHANGELOG.md");
+    const historyStart = changelog.indexOf("## <small>4.0.4");
+    expect(historyStart).toBeGreaterThan(0);
+
+    // Entries at 4.0.4 and below describe work done in the upstream repository. Their
+    // commit permalinks must keep pointing there — rewriting them would both break the
+    // links and falsely claim the work happened here.
+    const history = changelog.slice(historyStart);
+    expect(history).toContain("github.com/osovv/grace-marketplace/commit/");
+    expect(history).not.toContain("github.com/sas/neo-grace/commit/");
   });
 });

@@ -40,7 +40,7 @@ import {
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
-const PACKAGE_NAME = "@osovv/grace-cli";
+const PACKAGE_NAME = "neo-grace";
 const CAPTURE_MAX_BUFFER = 128 * 1024 * 1024;
 const RELEASE_TYPES = new Set(["major", "minor", "patch", "premajor", "preminor", "prepatch", "prerelease"]);
 const SEMVER_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -455,7 +455,7 @@ function ensureStableReleasePullRequest(repoRoot: string, branchName: string, ve
       "--base", "main",
       "--head", branchName,
       "--title", `chore: prepare ${version} stable release`,
-      "--body", `Prepare @osovv/grace-cli ${version} for stable publication. After required checks pass and the pull request is merged, run \`bun run release:finalize ${version}\` from clean synchronized main to create and push the immutable release tag.`,
+      "--body", `Prepare neo-grace ${version} for stable publication. After required checks pass and the pull request is merged, run \`bun run release:finalize ${version}\` from clean synchronized main to create and push the immutable release tag.`,
     ],
     "Stable release branch was pushed, but pull-request creation failed.",
     repoRoot,

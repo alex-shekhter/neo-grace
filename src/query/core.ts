@@ -40,7 +40,7 @@ function loadGovernedFiles(root: string) {
   const { config, issues } = loadGraceLintConfig(root);
   const configErrors = issues.filter((issue) => issue.severity === "error");
   if (configErrors.length > 0) {
-    throw new GraceCommandError("invalid-project", "GRACE query configuration is invalid. Run `grace lint --path PROJECT` for details.", {
+    throw new GraceCommandError("invalid-project", "GRACE query configuration is invalid. Run `ngrace lint --path PROJECT` for details.", {
       issues: configErrors.map((issue) => issue.code),
     });
   }
@@ -152,7 +152,7 @@ export function loadGraceArtifactIndex(projectRoot: string): GraceArtifactIndex 
 function invalidProjectError(issueCodes: string[]): GraceCommandError {
   return new GraceCommandError(
     "invalid-project",
-    "GRACE artifacts are invalid; no navigation records were returned. Run `grace lint --path PROJECT` for details.",
+    "GRACE artifacts are invalid; no navigation records were returned. Run `ngrace lint --path PROJECT` for details.",
     { issues: [...new Set(issueCodes)].sort() },
   );
 }
@@ -330,7 +330,7 @@ export function resolveModule(index: GraceArtifactIndex, target: string) {
     .sort((left, right) => right.score - left.score || left.module.id.localeCompare(right.module.id));
 
   if (candidates.length === 0) {
-    throw new GraceCommandError("not-found", `No module found for \`${target}\`. Use \`grace module find ${target}\` to inspect candidates.`);
+    throw new GraceCommandError("not-found", `No module found for \`${target}\`. Use \`ngrace module find ${target}\` to inspect candidates.`);
   }
   const topScore = candidates[0].score;
   const tiedCandidates = candidates.filter((candidate) => candidate.score === topScore);
@@ -417,7 +417,7 @@ export function resolveVerification(index: GraceArtifactIndex, target: string) {
       return { verification: moduleRecord.verifications[0], module: moduleRecord, score: 90, matchedBy: ["module"] } satisfies VerificationMatch;
     }
     if (moduleRecord.verifications.length > 1) {
-      throw new GraceCommandError("ambiguous-target", `Module \`${moduleRecord.id}\` has multiple verification entries (${moduleRecord.verifications.map((entry) => entry.id).join(", ")}). Use \`grace verification find ${target}\` to inspect candidates.`);
+      throw new GraceCommandError("ambiguous-target", `Module \`${moduleRecord.id}\` has multiple verification entries (${moduleRecord.verifications.map((entry) => entry.id).join(", ")}). Use \`ngrace verification find ${target}\` to inspect candidates.`);
     }
     throw new GraceCommandError("not-found", `Module \`${moduleRecord.id}\` has no verification entries.`);
   } catch (error) {
@@ -425,5 +425,5 @@ export function resolveVerification(index: GraceArtifactIndex, target: string) {
       throw error;
     }
   }
-  throw new GraceCommandError("not-found", `No verification found for \`${target}\`. Use \`grace verification find ${target}\` to inspect candidates.`);
+  throw new GraceCommandError("not-found", `No verification found for \`${target}\`. Use \`ngrace verification find ${target}\` to inspect candidates.`);
 }

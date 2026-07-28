@@ -63,7 +63,7 @@ Canonical grep-stable naming rules:
 | UTILITY | Shared helpers, configuration, logging |
 | INTEGRATION | External service adapters |
 
-`grace lint` accepts these values on module `<Type>`. Other free-text types emit
+`ngrace lint` accepts these values on module `<Type>`. Other free-text types emit
 `graph.unknown-module-type` as a **warning** (not an error) so legacy projects stay green.
 
 ## UI Component States
@@ -186,17 +186,17 @@ Assert with `MustUphold` (`Invariant`, `Module`). Performance thresholds use `Mu
 
 ## Document size and segmentation
 
-When a `GD-*` or `VD-*` document grows past ~50 anchors or ~30 KB, `grace lint`
+When a `GD-*` or `VD-*` document grows past ~50 anchors or ~30 KB, `ngrace lint`
 emits `graph.document-too-large` / `verification.document-too-large` **warnings**
 (limits configurable in `.grace-lint.json` as `documentAnchorLimit` /
 `documentByteLimit`). Split graph modules by path prefix:
 
 ```bash
-grace graph split --by services/api          # dry-run plan
-grace graph split --by services/api --apply  # write (refuses dirty git without --allow-dirty)
+ngrace graph split --by services/api          # dry-run plan
+ngrace graph split --by services/api --apply  # write (refuses dirty git without --allow-dirty)
 ```
 
-`grace doctor` reports adapter coverage, document-size pressure, and missing
+`ngrace doctor` reports adapter coverage, document-size pressure, and missing
 optional context artifacts without writing anything.
 
 ## Multi-stack technology

@@ -9,7 +9,7 @@ walkthrough is organised around what *you* do and decide.
 **Prerequisites:** [Bun](https://bun.sh) installed, and this repository cloned.
 
 ```bash
-bun add -g @osovv/grace-cli    # or, from a clone of this repo, replace
+bun add -g neo-grace    # or, from a clone of this repo, replace
                                # `grace` below with `bun run ./src/grace.ts`
 cd <this repo>
 ```
@@ -34,7 +34,7 @@ project** that an agent cannot lie to. Everything below is that idea made concre
 `examples/polyglot` is a React + Go + Rust monorepo under full GRACE governance.
 
 ```bash
-grace lint --path examples/polyglot
+ngrace lint --path examples/polyglot
 ```
 
 ```
@@ -54,7 +54,7 @@ No issues found.
 Green. Now ask what GRACE actually knows:
 
 ```bash
-grace status --path examples/polyglot
+ngrace status --path examples/polyglot
 ```
 
 ```
@@ -86,7 +86,7 @@ Three things worth noticing:
 And what GRACE can and cannot verify:
 
 ```bash
-grace doctor --path examples/polyglot
+ngrace doctor --path examples/polyglot
 ```
 
 ```
@@ -100,7 +100,7 @@ Optional context artifacts
   - invariants.xml: present
 ```
 
-`grace doctor` is the honesty surface. If a file's language had no adapter it would be
+`ngrace doctor` is the honesty surface. If a file's language had no adapter it would be
 listed under **Unverified** — GRACE tells you what it cannot check rather than pretending
 the check passed.
 
@@ -124,7 +124,7 @@ Open `examples/polyglot/services/api/internal/router/router.go` and add a line t
 ```
 
 ```bash
-grace lint --path examples/polyglot
+ngrace lint --path examples/polyglot
 ```
 
 ```
@@ -182,7 +182,7 @@ Open `.grace/graph/ui.xml` and declare a third state on the table component:
 Lint stays green — this is a *health* question, not a grammar one:
 
 ```bash
-grace module health --path examples/polyglot M-WEB-LEDGER-TABLE
+ngrace module health --path examples/polyglot M-WEB-LEDGER-TABLE
 ```
 
 ```
@@ -221,7 +221,7 @@ schema file, a version, exactly one provider, its consumers, and a breaking-chan
 policy — so "who owns this boundary and what is allowed to change" is a fact the tooling
 holds, not tribal knowledge.
 
-Undo it. `grace lint --path examples/polyglot` should be green again.
+Undo it. `ngrace lint --path examples/polyglot` should be green again.
 
 ---
 
@@ -325,9 +325,9 @@ emergency.
 | Understand the knowledge graph model | `skills/grace/grace-explainer/references/knowledge-graph.md` |
 | See the file-level markup rules | `skills/grace/grace-explainer/references/semantic-markup.md` |
 | Adopt GRACE in your own repo | Run `$grace-init` and let it interview you |
-| Check what GRACE can verify in your stack | `grace doctor --path .` |
+| Check what GRACE can verify in your stack | `ngrace doctor --path .` |
 
-**Start with `grace doctor`.** It tells you which of your languages have export
+**Start with `ngrace doctor`.** It tells you which of your languages have export
 verification, which files GRACE can only partially check, and what optional structure
 you are missing — before you commit to anything.
 

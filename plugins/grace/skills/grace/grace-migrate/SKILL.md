@@ -13,7 +13,7 @@ Migration is copy-and-validate, not destructive conversion. Before writing `.gra
 2. Inventory legacy source paths and create or verify a restorable backup. Record source coverage and backup evidence in the report.
 3. Map legacy requirements, technology, graph, verification, and operational content into the GRACE 4 layout. List ambiguities and unsupported structures rather than guessing.
 4. Produce `references/migration-report-template.xml`, review `references/migration-checklist.md`, and ask for explicit approval before writing `.grace`.
-5. Write `.grace`, then run `grace lint --path <project-root> --assertions current` and `grace status --path <project-root> --json`. Require status `projectKind` `grace4` with no integrity errors, and record commands, exit states, and findings.
+5. Write `.grace`, then run `ngrace lint --path <project-root> --assertions current` and `ngrace status --path <project-root> --json`. Require status `projectKind` `grace4` with no integrity errors, and record commands, exit states, and findings.
 6. If validation is not successful or generated coverage is incomplete, retain all legacy sources and stop.
 7. Detect git availability and worktree membership. If git is available for the project, record `git status --porcelain --untracked-files=all` before cleanup.
 8. Present an exact cleanup proposal containing only inventoried legacy paths. Ask for a separate explicit cleanup approval. For a dirty worktree or non-git project, require another explicit acknowledgement naming that risk.

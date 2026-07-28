@@ -172,7 +172,7 @@ function chooseNextAction(result: Omit<StatusResult, "nextAction">) {
   if (result.projectKind === "none") return "Run $grace-init to create a GRACE 4 .grace skeleton.";
   if (result.derivedStates.includes("approved-contract-drift")) return "Hard stop: an approved spec.xml or plan.xml changed. Restore it or supersede and replan through a new C-* bundle.";
   if (result.derivedStates.includes("stale-plan")) return "Supersede and replan the stale approved change; do not edit the approved plan or continue execution.";
-  if (result.integrity.errors > 0) return "Run grace lint --path <project-root> and fix GRACE 4 integrity errors.";
+  if (result.integrity.errors > 0) return "Run ngrace lint --path <project-root> and fix GRACE 4 integrity errors.";
   if (result.derivedStates.includes("unexplained-observed-drift")) return "Use $grace-refresh to reconcile unexplained repository changes through a new GraceChangeSpec and GraceChangePlan.";
   if (result.derivedStates.includes("scope-overlap")) return "Review active change scope overlaps; replan or execute sequentially before parallel-safe work.";
   if (result.changes.some((change) => change.derivedStates.includes("ready-to-execute"))) return "Run $grace-execute for approved active changes.";

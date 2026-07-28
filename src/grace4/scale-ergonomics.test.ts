@@ -117,7 +117,7 @@ describe("Phase 8 — document size warnings", () => {
     expect(sizeIssues.length).toBeGreaterThanOrEqual(1);
     expect(sizeIssues.every((i) => i.severity === "warning")).toBe(true);
     expect(sizeIssues[0]?.message).toContain("GD-MAIN");
-    expect(sizeIssues[0]?.message).toContain("grace graph split");
+    expect(sizeIssues[0]?.message).toContain("ngrace graph split");
     // Fail-on errors still green: warnings only.
     expect(result.summary.errors).toBe(0);
   });
@@ -208,7 +208,7 @@ describe("Phase 8 — XML serializer fidelity", () => {
   });
 });
 
-describe("Phase 8 — grace doctor", () => {
+describe("Phase 8 — ngrace doctor", () => {
   it("is strictly read-only (directory snapshot unchanged)", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
@@ -224,7 +224,7 @@ describe("Phase 8 — grace doctor", () => {
   });
 });
 
-describe("Phase 8 — grace graph split", () => {
+describe("Phase 8 — ngrace graph split", () => {
   it("defaults to dry-run and writes nothing", () => {
     const root = createProject();
     writeTwoModuleProject(root);

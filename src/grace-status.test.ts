@@ -94,7 +94,7 @@ function runGit(root: string, args: string[]) {
   }
 }
 
-describe("grace status", () => {
+describe("ngrace status", () => {
   it("summarizes durable GRACE 4 health and next action", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
@@ -154,7 +154,7 @@ describe("grace status", () => {
 
     expect(result.changes.find((change) => change.changeId === "C-BAD-ACTIVE")?.derivedStates).toContain("invalid-active-status");
     expect(result.integrity.topIssues.some((issue) => issue.includes("change.invalid-active-status"))).toBe(true);
-    expect(result.nextAction).toContain("grace lint");
+    expect(result.nextAction).toContain("ngrace lint");
   });
 
   it("recommends review or replan when the spec is approved but the plan is still draft", () => {

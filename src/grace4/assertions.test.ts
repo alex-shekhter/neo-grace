@@ -135,7 +135,7 @@ describe("GRACE 4 assertions", () => {
     const planFile = path.join(root, "plan.xml");
     writeFileSync(
       planFile,
-      `<GraceChangePlan graceVersion="4.0" status="approved"><C-EXAMPLE><TargetAssertions><MustPassCommand><Command>grace lint --path . --assertions current</Command><Command>bun run check</Command></MustPassCommand></TargetAssertions></C-EXAMPLE></GraceChangePlan>`,
+      `<GraceChangePlan graceVersion="4.0" status="approved"><C-EXAMPLE><TargetAssertions><MustPassCommand><Command>ngrace lint --path . --assertions current</Command><Command>bun run check</Command></MustPassCommand></TargetAssertions></C-EXAMPLE></GraceChangePlan>`,
     );
 
     const result = extractAssertionsWithIssues(planFile, "TargetAssertions");

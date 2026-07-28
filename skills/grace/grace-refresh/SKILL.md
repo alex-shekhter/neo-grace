@@ -9,7 +9,7 @@ Compare code, tests, and file-local markup against `.grace/context`, `.grace/gra
 </purpose>
 
 <workflow>
-1. Run or request `grace lint --path <project-root>` and `grace status --path <project-root>`.
+1. Run or request `ngrace lint --path <project-root>` and `ngrace status --path <project-root>`.
 2. Inspect `.grace/graph/index.xml` and routed graph documents for stale, missing, or orphaned `M-*` and `DF-*` anchors.
 3. Inspect `.grace/verification/index.xml` and routed verification documents for missing deterministic `V-M-*` coverage, stale commands, or missing evidence markers.
 4. Compare file-local `LINKS:`, module contracts, tests, and log markers against durable anchors.

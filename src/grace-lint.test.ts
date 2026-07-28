@@ -434,7 +434,7 @@ describe("lintGraceProject", () => {
       root,
       "C-PHASE-CONFLICT",
       `<MustExist><Value>M-EXAMPLE</Value></MustExist>`,
-      `<MustPassCommand><Command>grace lint --path . --assertions current</Command></MustPassCommand>`,
+      `<MustPassCommand><Command>ngrace lint --path . --assertions current</Command></MustPassCommand>`,
     );
 
     const current = lintGraceProject(root);
@@ -458,7 +458,7 @@ describe("lintGraceProject", () => {
     writeProjectFile(
       root,
       ".grace/changes/archive/C-HISTORICAL/plan.xml",
-      `<GraceChangePlan graceVersion="4.0" status="applied"><C-HISTORICAL><IntentSummary>Historical plan.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustPassCommand><Command>grace lint --path . --assertions current</Command></MustPassCommand></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Historical task</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Done.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-HISTORICAL></GraceChangePlan>`,
+      `<GraceChangePlan graceVersion="4.0" status="applied"><C-HISTORICAL><IntentSummary>Historical plan.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustPassCommand><Command>ngrace lint --path . --assertions current</Command></MustPassCommand></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Historical task</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Done.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-HISTORICAL></GraceChangePlan>`,
     );
 
     expect(lintGraceProject(root).issues.map((item) => item.code)).not.toContain("assertion.phase-incompatible-command");
@@ -931,7 +931,7 @@ export function run() {
     expect(warnings.some((i) => i.message.includes("M-PROSE"))).toBe(false);
   });
 
-  it("Phase 7: IC-* Schema escape and missing Provider fire through grace lint", () => {
+  it("Phase 7: IC-* Schema escape and missing Provider fire through ngrace lint", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
     writeProjectFile(root, "src/gateway.ts", "export const g = 1;\n");
@@ -971,7 +971,7 @@ export function run() {
     expect(getLintIssueGuide("projection.graph.invalid-interface-contract").title).toContain("Interface Contract");
   });
 
-  it("Phase 7: ordered DF gap and flat DF compatibility through grace lint", () => {
+  it("Phase 7: ordered DF gap and flat DF compatibility through ngrace lint", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
     writeProjectFile(root, "src/gateway.ts", "export const g = 1;\n");

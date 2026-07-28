@@ -1,7 +1,7 @@
-name: grace
+name: neo-grace
 description: "GRACE (Graph-RAG Anchored Code Engineering) - contract-first AI engineering with semantic markup, knowledge graphs, and log-driven verification"
 version: 5.0.0
-author: osovv
+author: sas
 license: MIT
 keywords:
   - grace

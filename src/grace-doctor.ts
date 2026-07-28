@@ -59,7 +59,7 @@ export function collectDoctorReport(projectRoot: string): DoctorResult {
     throw new GraceCommandError(
       "invalid-project",
       kind === "grace3"
-        ? "Detected GRACE 3 docs. Run grace-migrate before grace doctor."
+        ? "Detected GRACE 3 docs. Run grace-migrate before ngrace doctor."
         : "No GRACE 4 .grace project found.",
     );
   }
@@ -192,7 +192,7 @@ export const doctorCommand = defineCommand({
       } else {
         process.stdout.write(formatDoctorText(report));
       }
-    }, "Unable to complete grace doctor.");
+    }, "Unable to complete ngrace doctor.");
   },
 });
 

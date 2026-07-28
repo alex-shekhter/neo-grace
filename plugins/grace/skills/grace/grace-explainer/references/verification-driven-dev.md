@@ -82,7 +82,7 @@ logger.info("[ChatDomain][createChat][BLOCK_INSERT_CHAT] Chat created", {
 
 Execution packets in `grace-execute` should reuse these levels instead of inventing new checks ad hoc.
 
-Plan assertions use distinct evidence moments: `current` is the active-baseline preflight and is expected only before observed writes, selected `baseline` must pass immediately before edits, selected `target` proves the post-edit state, and selected `final` is the outer apply/archive gate. `MustPassCommand` is deliberately opt-in through `--run-commands` and contains leaf project evidence only; nesting `grace lint`, `grace status`, or another GRACE lifecycle command inside it is invalid.
+Plan assertions use distinct evidence moments: `current` is the active-baseline preflight and is expected only before observed writes, selected `baseline` must pass immediately before edits, selected `target` proves the post-edit state, and selected `final` is the outer apply/archive gate. `MustPassCommand` is deliberately opt-in through `--run-commands` and contains leaf project evidence only; nesting `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside it is invalid.
 
 ## Autonomy Gate
 

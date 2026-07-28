@@ -24,7 +24,7 @@ A worked GRACE 4 project for a React UI + Go API + Rust core monorepo. Use this 
 ## Validate
 
 ```bash
-grace lint --path examples/polyglot
+ngrace lint --path examples/polyglot
 ```
 
 CI runs this on every push. Zero errors is the contract; warnings (if any) are intentional documentation signals.

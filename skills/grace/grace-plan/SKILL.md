@@ -16,7 +16,7 @@ description: Read an approved GRACE 4 GraceChangeSpec and optional design contex
 - Require `.grace/changes/active/C-CHANGE-ID/spec.xml` with `GraceChangeSpec`, status `approved`, and exactly one matching direct `C-*` wrapper.
 - Refuse draft, rejected, cancelled, applied, or superseded specs.
 - Treat optional `design-context.xml` as explanatory; `spec.xml` wins on conflict.
-- Run `grace lint --path PROJECT --assertions current` before planning and surface stale or invalid active baselines.
+- Run `ngrace lint --path PROJECT --assertions current` before planning and surface stale or invalid active baselines.
 </preflight>
 
 <approved_plan_immutability>
@@ -74,14 +74,14 @@ Never invent a "skip plan" path. If the user wants an ungoverned edit, refuse an
 <command_phase_rules>
 - `current` is an active-baseline preflight and is valid only before observed writes begin.
 - `baseline` is the selected pre-edit gate, `target` is selected post-edit evidence, and `final` is the outer apply/archive gate owned by `grace-execute`.
-- `MustPassCommand` contains leaf project evidence such as tests, typecheck, build, format, or package checks. Never place `grace lint`, `grace status`, or another GRACE lifecycle command inside it.
+- `MustPassCommand` contains leaf project evidence such as tests, typecheck, build, format, or package checks. Never place `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside it.
 - Never put `--assertions current` in `TargetAssertions` or in task verification that runs after writes. Use selected target/final lint externally instead.
 </command_phase_rules>
 
 <validation>
-- Active-baseline preflight: `grace lint --path PROJECT --assertions current`
-- Parallel safety: `grace lint --path PROJECT --parallel-preflight`
-- Recommend `grace status --path PROJECT --json` after approval.
+- Active-baseline preflight: `ngrace lint --path PROJECT --assertions current`
+- Parallel safety: `ngrace lint --path PROJECT --parallel-preflight`
+- Recommend `ngrace status --path PROJECT --json` after approval.
 </validation>
 
 <hard_rules>

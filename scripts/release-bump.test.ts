@@ -49,7 +49,7 @@ function write(root: string, relativePath: string, content: string): void {
 }
 
 function writeReleaseFixture(root: string, version: string): void {
-  write(root, "package.json", `${JSON.stringify({ name: "@osovv/grace-cli", version }, null, 2)}\n`);
+  write(root, "package.json", `${JSON.stringify({ name: "neo-grace", version }, null, 2)}\n`);
   write(root, "README.md", `Current packaged version: \`${version}\`\n`);
   write(root, "openpackage.yml", `name: grace-marketplace\nversion: ${version}\n`);
   write(root, ".claude-plugin/marketplace.json", `${JSON.stringify({ metadata: { version }, plugins: [{ version }] }, null, 2)}\n`);

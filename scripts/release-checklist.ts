@@ -66,13 +66,13 @@ export function collectCurrentReleaseState(repoRoot: string): { state: ReleaseSt
   const packedFiles = pack[0]?.files?.map((entry) => entry.path).filter((entry): entry is string => typeof entry === "string") ?? [];
   const localPackShasum = pack[0]?.shasum ?? "";
   const npmDistTags = JSON.parse(
-    runCapture("npm", ["view", "@osovv/grace-cli", "dist-tags", "--json"], repoRoot),
+    runCapture("npm", ["view", "neo-grace", "dist-tags", "--json"], repoRoot),
   ) as Record<string, string>;
   const npmPackageShasum = JSON.parse(
-    runCapture("npm", ["view", `@osovv/grace-cli@${version}`, "dist.shasum", "--json"], repoRoot),
+    runCapture("npm", ["view", `neo-grace@${version}`, "dist.shasum", "--json"], repoRoot),
   ) as string;
   const githubRelease = JSON.parse(
-    runCapture("gh", ["release", "view", expectedTag, "--repo", "osovv/grace-marketplace", "--json", "tagName,isPrerelease"], repoRoot),
+    runCapture("gh", ["release", "view", expectedTag, "--repo", "sas/neo-grace", "--json", "tagName,isPrerelease"], repoRoot),
   ) as { tagName: string; isPrerelease: boolean };
 
   return {
@@ -83,25 +83,25 @@ export function collectCurrentReleaseState(repoRoot: string): { state: ReleaseSt
 
 /** Collects GitHub environment, branch protection, and release-tag ruleset state. */
 export function collectCurrentReleaseProtectionState(repoRoot: string): ReleaseProtectionState {
-  const environment = JSON.parse(runCapture("gh", ["api", "repos/osovv/grace-marketplace/environments/stable-release"], repoRoot)) as {
+  const environment = JSON.parse(runCapture("gh", ["api", "repos/sas/neo-grace/environments/stable-release"], repoRoot)) as {
     protection_rules?: Array<{ type?: string; reviewers?: unknown[] }>;
     deployment_branch_policy?: { custom_branch_policies?: boolean };
   };
-  const deploymentPolicies = JSON.parse(runCapture("gh", ["api", "repos/osovv/grace-marketplace/environments/stable-release/deployment-branch-policies"], repoRoot)) as {
+  const deploymentPolicies = JSON.parse(runCapture("gh", ["api", "repos/sas/neo-grace/environments/stable-release/deployment-branch-policies"], repoRoot)) as {
     branch_policies?: Array<{ name?: string; type?: string }>;
   };
-  const branch = JSON.parse(runCapture("gh", ["api", "repos/osovv/grace-marketplace/branches/main/protection"], repoRoot)) as {
+  const branch = JSON.parse(runCapture("gh", ["api", "repos/sas/neo-grace/branches/main/protection"], repoRoot)) as {
     required_status_checks?: { contexts?: string[]; checks?: Array<{ context?: string }> };
     enforce_admins?: { enabled?: boolean };
     allow_force_pushes?: { enabled?: boolean };
     allow_deletions?: { enabled?: boolean };
   };
-  const rulesetSummaries = JSON.parse(runCapture("gh", ["api", "repos/osovv/grace-marketplace/rulesets"], repoRoot)) as Array<{
+  const rulesetSummaries = JSON.parse(runCapture("gh", ["api", "repos/sas/neo-grace/rulesets"], repoRoot)) as Array<{
     id?: number;
   }>;
   const rulesets = rulesetSummaries.flatMap((summary) => {
     if (!summary.id) return [];
-    return [JSON.parse(runCapture("gh", ["api", `repos/osovv/grace-marketplace/rulesets/${summary.id}`], repoRoot)) as {
+    return [JSON.parse(runCapture("gh", ["api", `repos/sas/neo-grace/rulesets/${summary.id}`], repoRoot)) as {
       target?: string;
       enforcement?: string;
       conditions?: { ref_name?: { include?: string[] } };

@@ -43,7 +43,7 @@ export const LANGUAGE_ADAPTERS: readonly LanguageAdapter[] = [
  * Extensions with a registered language adapter and export/local analysis support.
  *
  * Derived by asking the adapters, never hand-maintained: a second list that must agree
- * with the first is a list that eventually won't, and `grace doctor` reports from this
+ * with the first is a list that eventually won't, and `ngrace doctor` reports from this
  * one — drift here would make the honesty surface itself dishonest.
  */
 export const ADAPTER_BACKED_EXTENSIONS: ReadonlySet<string> = new Set(

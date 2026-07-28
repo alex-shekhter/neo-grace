@@ -3,8 +3,8 @@
   "description": "Complete GRACE methodology: semantic markup, knowledge graphs, module contracts, testing, and log-driven verification for AI-driven engineering",
   "version": "5.0.0",
   "author": {
-    "name": "osovv",
-    "url": "https://github.com/osovv"
+    "name": "sas",
+    "url": "https://github.com/sas"
   },
   "license": "MIT"
 }

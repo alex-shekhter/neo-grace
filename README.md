@@ -2,7 +2,12 @@
 
 **GRACE** means **Graph-RAG Anchored Code Engineering**: a contract-first AI engineering methodology built around semantic markup, `.grace` XML artifacts, knowledge-graph navigation, assertions, scopes, and log-driven verification.
 
-This repository ships the GRACE skills and the `grace` CLI they depend on. It is a packaging and distribution repository, not an end-user application.
+This repository ships the GRACE skills and the `ngrace` CLI they depend on. It is a packaging and distribution repository, not an end-user application.
+
+> **`neo-grace` is a fork of [osovv/grace-marketplace](https://github.com/osovv/grace-marketplace),
+> implementing the GRACE methodology by Vladimir Ivanov.** Version numbering continues
+> upstream's, and changelog entries at 4.0.4 and below describe work done there.
+> See **[LINEAGE.md](./LINEAGE.md)** for full credits.
 
 Current packaged version: `5.0.0`
 
@@ -12,7 +17,7 @@ Current packaged version: `5.0.0`
 |---|---|---|
 | [**Visual introduction**](./docs/grace-explainer.html) | 5 min | Why GRACE exists and how the pieces relate. Open the file in a browser — it is self-contained. |
 | [**Twenty-minute walkthrough**](./examples/polyglot/WALKTHROUGH.md) | 20 min | A guided tour of a real React + Go + Rust project. You break it on purpose four times and watch the tooling catch you. |
-| `grace doctor --path .` | 1 min | Run against your own repository first. Reports which of your languages have export verification before you commit to anything. |
+| `ngrace doctor --path .` | 1 min | Run against your own repository first. Reports which of your languages have export verification before you commit to anything. |
 
 You never hand-author the XML — the skills write it and you approve it. Both documents are written from that side of the screen.
 
@@ -23,7 +28,7 @@ You never hand-author the XML — the skills write it and you approve it. Both d
 - Marketplace metadata in `.claude-plugin/marketplace.json`
 - Packaged plugin manifest in `plugins/grace/.claude-plugin/plugin.json`
 - OpenPackage metadata in `openpackage.yml`
-- Required Bun-powered CLI package `@osovv/grace-cli`
+- Required Bun-powered CLI package `neo-grace`
 
 ## GRACE 4 Model
 
@@ -64,45 +69,45 @@ TypeScript/JavaScript semantic analysis is bundled and compiler-backed. Governed
 { "codeExtensions": [".ex", ".exs"], "unverifiedLanguages": [".ex", ".exs"] }
 ```
 
-`codeExtensions` is additive to the built-in set, so it can add governance for a language but never remove it for another. Those files then get module contracts, `LINKS:`, semantic blocks, health, and drift detection. Export verification still requires an adapter, which is why the second key is there: it acknowledges that `MODULE_MAP` parity is unverified for those files rather than pretending it was checked. Run `grace doctor` to see which of your languages are adapter-backed.
+`codeExtensions` is additive to the built-in set, so it can add governance for a language but never remove it for another. Those files then get module contracts, `LINKS:`, semantic blocks, health, and drift detection. Export verification still requires an adapter, which is why the second key is there: it acknowledges that `MODULE_MAP` parity is unverified for those files rather than pretending it was checked. Run `ngrace doctor` to see which of your languages are adapter-backed.
 
 ## Install
 
 **The CLI is required, not optional.** Install the skills first, then the CLI — both are needed for a working GRACE setup.
 
-The skills can author `.grace` artifacts without it, but nothing validates them: XML well-formedness, required sections, anchor discipline, path containment, and every cross-artifact reference are checked by `grace lint`. The execute lifecycle is defined in terms of it — `--assertions baseline`, `target`, and `final` are the gates, and there is no gate without the binary. Skills plus no CLI is an unenforced methodology, which is the thing GRACE exists to replace.
+The skills can author `.grace` artifacts without it, but nothing validates them: XML well-formedness, required sections, anchor discipline, path containment, and every cross-artifact reference are checked by `ngrace lint`. The execute lifecycle is defined in terms of it — `--assertions baseline`, `target`, and `final` are the gates, and there is no gate without the binary. Skills plus no CLI is an unenforced methodology, which is the thing GRACE exists to replace.
 
 ### OpenPackage
 
 ```bash
-opkg install gh@osovv/grace-marketplace
-opkg install gh@osovv/grace-marketplace -g
-opkg install gh@osovv/grace-marketplace --platforms claude-code
+opkg install gh@sas/neo-grace
+opkg install gh@sas/neo-grace -g
+opkg install gh@sas/neo-grace --platforms claude-code
 ```
 
 ### Claude Code Marketplace
 
 ```bash
-/plugin marketplace add osovv/grace-marketplace
-/plugin install grace@grace-marketplace
+/plugin marketplace add sas/neo-grace
+/plugin install grace@neo-grace
 ```
 
 ### Agent Skills-Compatible Install
 
 ```bash
-git clone https://github.com/osovv/grace-marketplace
-cp -r grace-marketplace/skills/grace/grace-* /path/to/your/agent/skills/
+git clone https://github.com/sas/neo-grace
+cp -r neo-grace/skills/grace/grace-* /path/to/your/agent/skills/
 ```
 
 ### CLI
 
-Requires `bun` on `PATH`. GRACE skills invoke the installed stable `grace` binary directly; they do not default to `bunx`, `npx`, or a prerelease dist-tag.
+Requires `bun` on `PATH`. GRACE skills invoke the installed stable `ngrace` binary directly; they do not default to `bunx`, `npx`, or a prerelease dist-tag.
 
 ```bash
 # Install the current stable release from npm `latest`
-bun add -g @osovv/grace-cli
-grace --version
-grace lint --path /path/to/grace4-project
+bun add -g neo-grace
+ngrace --version
+ngrace lint --path /path/to/grace4-project
 ```
 
 ## GRACE 4 Quick Start
@@ -113,11 +118,11 @@ For a new GRACE 4 project:
 2. Fill `.grace/context` artifacts with your agent.
 3. Run `$grace-spec` for a change.
 4. Run `$grace-plan` after spec approval.
-5. Before observed writes begin, run the active-baseline preflight: `grace lint --path /path/to/project --assertions current`.
-6. Run `grace lint --path /path/to/project --change C-ID --assertions baseline` before execution; add `--run-commands` when the baseline declares `MustPassCommand`.
-7. Run `grace status --path /path/to/project --json`.
-8. Run `$grace-execute` and choose sequential or parallel-safe mode. Parallel-safe mode additionally requires `grace lint --path /path/to/project --parallel-preflight`.
-9. Before apply/archive, run `grace lint --path /path/to/project --change C-ID --assertions final`; add `--run-commands` when the target declares `MustPassCommand`.
+5. Before observed writes begin, run the active-baseline preflight: `ngrace lint --path /path/to/project --assertions current`.
+6. Run `ngrace lint --path /path/to/project --change C-ID --assertions baseline` before execution; add `--run-commands` when the baseline declares `MustPassCommand`.
+7. Run `ngrace status --path /path/to/project --json`.
+8. Run `$grace-execute` and choose sequential or parallel-safe mode. Parallel-safe mode additionally requires `ngrace lint --path /path/to/project --parallel-preflight`.
+9. Before apply/archive, run `ngrace lint --path /path/to/project --change C-ID --assertions final`; add `--run-commands` when the target declares `MustPassCommand`.
 
 Existing GRACE 3 projects should run `$grace-migrate` and review the migration report before writing `.grace` artifacts.
 
@@ -137,7 +142,7 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | `grace-refresh` | Detect drift and propose reconciliation changes |
 | `grace-status` | Report `.grace` health and suggest the next safe action |
 | `grace-ask` | Answer architecture and implementation questions from `.grace` artifacts |
-| `grace-cli` | Operate the required `grace` binary as the lint, gate, and artifact-query layer |
+| `grace-cli` | Operate the required `ngrace` binary as the lint, gate, and artifact-query layer |
 | `grace-explainer` | Explain the GRACE methodology itself |
 | `grace-verification` | Build and maintain `.grace/verification` entries and evidence |
 | `grace-reviewer` | Review semantic integrity, projections, scopes, and verification quality |
@@ -147,30 +152,30 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 
 | Command | What It Does |
 | --- | --- |
-| `grace lint --path <root> --assertions current` | Run the pre-implementation full-project check, including baselines of active approved changes; do not use it as post-edit target/final evidence |
-| `grace lint --path <root> --change C-ID --assertions baseline [--run-commands]` | Validate the immutable selected baseline before implementation; command assertions run only when explicitly enabled |
-| `grace lint --path <root> --change C-ID --assertions target --run-commands` | Validate selected target assertions and explicitly opt into `MustPassCommand` execution |
-| `grace lint --path <root> --change C-ID --assertions final [--run-commands]` | Run the final full-project gate, evaluate the selected target, and keep unrelated approved baselines active without re-evaluating the selected baseline |
-| `grace lint --path <root> --parallel-preflight` | Run the explicit approved-plan scope coexistence gate required for parallel-safe execution |
-| `grace status --path <root>` | Report durable health, stale plans, scope conflicts, and explained/unexplained observed git drift |
-| `grace module find <query> --path <root>` | Search graph projection modules by id, path, text, dependency, or verification id |
-| `grace module show <id-or-path> --path <root>` | Show graph projection context and linked file-local markup |
-| `grace module show <id> --with verification --path <root>` | Include matching deterministic `V-M-*` verification entries |
-| `grace verification find <query> --path <root>` | Search verification projection entries |
-| `grace verification show <id-or-module> --path <root>` | Show one verification entry and module context |
-| `grace file show <path> --path <root>` | Show file-local `MODULE_CONTRACT`, `MODULE_MAP`, and `CHANGE_SUMMARY` |
+| `ngrace lint --path <root> --assertions current` | Run the pre-implementation full-project check, including baselines of active approved changes; do not use it as post-edit target/final evidence |
+| `ngrace lint --path <root> --change C-ID --assertions baseline [--run-commands]` | Validate the immutable selected baseline before implementation; command assertions run only when explicitly enabled |
+| `ngrace lint --path <root> --change C-ID --assertions target --run-commands` | Validate selected target assertions and explicitly opt into `MustPassCommand` execution |
+| `ngrace lint --path <root> --change C-ID --assertions final [--run-commands]` | Run the final full-project gate, evaluate the selected target, and keep unrelated approved baselines active without re-evaluating the selected baseline |
+| `ngrace lint --path <root> --parallel-preflight` | Run the explicit approved-plan scope coexistence gate required for parallel-safe execution |
+| `ngrace status --path <root>` | Report durable health, stale plans, scope conflicts, and explained/unexplained observed git drift |
+| `ngrace module find <query> --path <root>` | Search graph projection modules by id, path, text, dependency, or verification id |
+| `ngrace module show <id-or-path> --path <root>` | Show graph projection context and linked file-local markup |
+| `ngrace module show <id> --with verification --path <root>` | Include matching deterministic `V-M-*` verification entries |
+| `ngrace verification find <query> --path <root>` | Search verification projection entries |
+| `ngrace verification show <id-or-module> --path <root>` | Show one verification entry and module context |
+| `ngrace file show <path> --path <root>` | Show file-local `MODULE_CONTRACT`, `MODULE_MAP`, and `CHANGE_SUMMARY` |
 
-`MustPassCommand` entries are leaf project evidence such as tests, typecheck, build, format, or package checks. Do not nest `grace lint`, `grace status`, or another GRACE lifecycle command inside plan assertions; selected target/final lint is the external orchestration gate.
+`MustPassCommand` entries are leaf project evidence such as tests, typecheck, build, format, or package checks. Do not nest `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside plan assertions; selected target/final lint is the external orchestration gate.
 
 Output modes:
 
-- `grace lint`: `text`, `json`
-- `grace status`: `text`, `json`
-- `grace module find`: `table`, `json`
-- `grace module show`: `text`, `json`
-- `grace verification find`: `table`, `json`
-- `grace verification show`: `text`, `json`
-- `grace file show`: `text`, `json`
+- `ngrace lint`: `text`, `json`
+- `ngrace status`: `text`, `json`
+- `ngrace module find`: `table`, `json`
+- `ngrace module show`: `text`, `json`
+- `ngrace verification find`: `table`, `json`
+- `ngrace verification show`: `text`, `json`
+- `ngrace file show`: `text`, `json`
 
 Lint, status, and projection-backed navigation fail closed: invalid options, invalid grammar, malformed active assertions/scopes, duplicate ownership, missing routed files, or ambiguous targets produce structured results or a nonzero error envelope. JSON command failures emit one stable `{ "schemaVersion": "1.0.0", "ok": false, "error": { ... } }` envelope on stdout; text failures emit one concise actionable line without a stack trace.
 
@@ -201,8 +206,8 @@ Common anchors:
 - `INV-*` cross-cutting invariants (optional `invariants.xml`)
 - `Stack-*` technology stacks under optional `GraceTechnology/Stacks` (multi-root monorepos)
 
-CLI helpers for scale: `grace doctor` (read-only coverage / size pressure) and
-`grace graph split --by <path-prefix>` (dry-run by default; `--apply` to write).
+CLI helpers for scale: `ngrace doctor` (read-only coverage / size pressure) and
+`ngrace graph split --by <path-prefix>` (dry-run by default; `--apply` to write).
 
 When a spec declares `AC-*` criteria, each id should be referenced by a task
 `<Satisfies>` element. Plan `DurableScope` must cover every `M-*` / `DF-*` in the
@@ -219,7 +224,7 @@ non-empty `<Reason>`).
 | `plugins/grace/.claude-plugin/plugin.json` | Packaged plugin manifest |
 | `src/grace.ts` | CLI entrypoint |
 | `src/grace4/*` | GRACE 4 project detection, XML parsing, grammar, projections, assertions, and scopes |
-| `src/lint/*` | `grace lint` implementation |
+| `src/lint/*` | `ngrace lint` implementation |
 | `src/query/*` | Projection-backed query layer for CLI navigation |
 | `scripts/validate-marketplace.ts` | Packaging, version, path, and mirror validation |
 | `RELEASING.md` | Manual release checklist and validation commands |

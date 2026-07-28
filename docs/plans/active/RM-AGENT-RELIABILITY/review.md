@@ -181,7 +181,7 @@ for the language adapters. Every claim in `.grace` records how it was establishe
 - `tool-verified` — a command or parser confirmed it
 - `agent-inferred` — the agent guessed from context and nobody confirmed
 
-Then `grace doctor` can report: *"41% of your graph is agent-inferred and never
+Then `ngrace doctor` can report: *"41% of your graph is agent-inferred and never
 confirmed."* That is a directly actionable hallucination metric, and it turns an
 invisible risk into a number that can be driven down.
 

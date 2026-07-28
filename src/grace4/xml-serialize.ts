@@ -37,7 +37,7 @@ function escapeAttr(value: string): string {
 
 /**
  * Deterministic XML serializer for GRACE nodes.
- * Used by `grace graph split` so moved anchors re-parse identically to the source tree.
+ * Used by `ngrace graph split` so moved anchors re-parse identically to the source tree.
  */
 export function serializeGraceXmlNode(node: GraceXmlNode): string {
   const attrs = Object.entries(node.attributes)

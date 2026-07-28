@@ -39,9 +39,9 @@ Every XML artifact uses `graceVersion="4.0"`. Semantic anchors are XML tags, nev
 </template_sources>
 
 <cli_precondition>
-**Check for the `grace` binary before writing anything.** Run `grace --version`.
+**Check for the `grace` binary before writing anything.** Run `ngrace --version`.
 
-If it is missing, install it with `bun add -g @osovv/grace-cli` and check again.
+If it is missing, install it with `bun add -g neo-grace` and check again.
 
 If it is still missing after the install attempt, **refuse to initialize**. Create no
 directories and write no files. Report exactly this, adapted to the observed error:
@@ -53,14 +53,14 @@ directories and write no files. Report exactly this, adapted to the observed err
 > execution gate (`--assertions baseline|target|final`). Without it, init would produce
 > artifacts that nothing checks, which is the failure mode GRACE exists to remove.
 >
-> Install it with `bun add -g @osovv/grace-cli`, then run `$grace-init` again.
+> Install it with `bun add -g neo-grace`, then run `$grace-init` again.
 > Requires Bun: https://bun.sh
 
 Do not offer to continue without validation, do not offer a reduced or "manual" init, and
 do not write a partial `.grace` tree for the user to finish later. A half-initialized,
 unvalidated project is worse than no project: later skills will treat it as a real model.
 
-This check runs first for the same reason `grace graph split` stages its writes — a
+This check runs first for the same reason `ngrace graph split` stages its writes — a
 precondition that fires after the work has begun is not a precondition.
 </cli_precondition>
 
@@ -70,7 +70,7 @@ precondition that fires after the work has begun is not a precondition.
 2. If `.grace` or `AGENTS.md` already exists, stop and ask whether to keep, merge, or overwrite each existing artifact. Never overwrite silently.
 3. Create `.grace/context`, `.grace/graph`, `.grace/verification`, `.grace/changes/active`, and `.grace/changes/archive`.
 4. Read each `.template` file, replace `$PLACEHOLDER` values with gathered project information, and write the target file.
-5. Run `grace lint --path <project-root>`. If it reports errors, fix the generated artifacts and re-run until clean. Do not report init complete while lint is failing.
+5. Run `ngrace lint --path <project-root>`. If it reports errors, fix the generated artifacts and re-run until clean. Do not report init complete while lint is failing.
 6. Print created files and recommend the next workflow: use `grace-spec` to create an active `GraceChangeSpec`, then `grace-plan` to produce a `GraceChangePlan` before implementation.
 </steps>
 
@@ -79,6 +79,6 @@ precondition that fires after the work has begun is not a precondition.
 - `GraceChangeSpec` and `GraceChangePlan` are created by later change workflows, not by init.
 - If legacy GRACE 3 docs are present, explain that migration is handled only by `grace-migrate`; init must not convert or delete them.
 - The `grace` CLI is a precondition, not a recommendation. Verify it before writing, and refuse to initialize when it cannot be obtained — see `<cli_precondition>`.
-- Validate the resulting project with `grace lint --path <project-root>` before reporting init complete. An unvalidated `.grace` tree is not a finished init.
+- Validate the resulting project with `ngrace lint --path <project-root>` before reporting init complete. An unvalidated `.grace` tree is not a finished init.
 </hard_rules>
 </skill>

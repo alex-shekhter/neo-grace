@@ -14,8 +14,8 @@
 - [ ] Generated `.grace/context` artifacts and source coverage were reviewed.
 - [ ] Generated graph index, routed graph documents, and projection coverage were reviewed.
 - [ ] Generated verification index, routed verification documents, and projection coverage were reviewed.
-- [ ] `grace lint --path <project-root> --assertions current` passed and the exit state is recorded.
-- [ ] `grace status --path <project-root> --json` reports `projectKind` `grace4`, no integrity errors, and its exit state is recorded.
+- [ ] `ngrace lint --path <project-root> --assertions current` passed and the exit state is recorded.
+- [ ] `ngrace status --path <project-root> --json` reports `projectKind` `grace4`, no integrity errors, and its exit state is recorded.
 - [ ] Any failed or incomplete gate stopped cleanup while preserving legacy sources.
 
 ## Before Legacy Cleanup

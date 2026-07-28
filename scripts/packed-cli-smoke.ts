@@ -139,7 +139,7 @@ export async function runPackedCliSmoke(repoRoot: string): Promise<void> {
     const tarball = path.join(packDir, filename);
     run("bun", ["add", tarball], consumer, "temporary packed-package install");
 
-    const cliEntry = path.join(consumer, "node_modules", "@osovv", "grace-cli", "src", "grace.ts");
+    const cliEntry = path.join(consumer, "node_modules", "neo-grace", "src", "grace.ts");
     readFileSync(cliEntry, "utf8");
     const project = path.join(tempRoot, "project");
     writeBaseProject(project);

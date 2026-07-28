@@ -108,7 +108,7 @@ export function documentSizeIssues(
     }
     const code = pressure.kind === "graph" ? "graph.document-too-large" : "verification.document-too-large";
     const splitHint = pressure.kind === "graph"
-      ? `Split ${pressure.documentId} with \`grace graph split --by <path-prefix>\` (e.g. by service or package root).`
+      ? `Split ${pressure.documentId} with \`ngrace graph split --by <path-prefix>\` (e.g. by service or package root).`
       : `Split ${pressure.documentId} into additional VD-* documents by module cluster or service boundary.`;
     issues.push({
       severity: "warning",

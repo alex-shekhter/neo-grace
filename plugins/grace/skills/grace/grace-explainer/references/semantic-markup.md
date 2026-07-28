@@ -42,8 +42,8 @@ Substantial test files should use the same structure when tests are the fastest 
 
 Optional lint-specific fields:
 
-- `ROLE` tells `grace lint` what kind of governed file this is.
-- `MAP_MODE` tells `grace lint` how to interpret `MODULE_MAP`.
+- `ROLE` tells `ngrace lint` what kind of governed file this is.
+- `MAP_MODE` tells `ngrace lint` how to interpret `MODULE_MAP`.
 
 Recommended defaults:
 

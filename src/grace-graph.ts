@@ -102,7 +102,7 @@ export function planGraphSplit(
   const root = path.resolve(projectRoot);
   const kind = detectGraceProjectKind(root);
   if (kind !== "grace4") {
-    throw new GraceCommandError("invalid-project", "grace graph split requires a GRACE 4 .grace project.");
+    throw new GraceCommandError("invalid-project", "ngrace graph split requires a GRACE 4 .grace project.");
   }
 
   const pathPrefix = normalizeSplitPrefix(options.pathPrefix);
@@ -118,7 +118,7 @@ export function planGraphSplit(
   if (graph.issues.some((issue) => issue.severity === "error")) {
     throw new GraceCommandError(
       "invalid-project",
-      "Graph projection has errors; fix `grace lint` projection issues before splitting.",
+      "Graph projection has errors; fix `ngrace lint` projection issues before splitting.",
       { issues: graph.issues.filter((i) => i.severity === "error").map((i) => i.code) },
     );
   }
@@ -377,7 +377,7 @@ export const graphCommand = defineCommand({
           } else {
             process.stdout.write(formatGraphSplitPlan(plan));
           }
-        }, "Unable to complete grace graph split.");
+        }, "Unable to complete ngrace graph split.");
       },
     }),
   },

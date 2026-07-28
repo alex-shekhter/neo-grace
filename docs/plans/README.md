@@ -30,7 +30,7 @@ This directory holds **roadmap plans**: multi-release, narrative, human-approved
 that explain what is being built and in what order.
 
 It does **not** hold per-change execution artifacts. Those are GRACE change bundles
-(`spec.xml` + `plan.xml`) under `.grace/changes/`, are machine-validated by `grace lint`,
+(`spec.xml` + `plan.xml`) under `.grace/changes/`, are machine-validated by `ngrace lint`,
 and must never be duplicated as markdown here.
 
 ```
@@ -63,7 +63,7 @@ in a GRACE change bundle — one normative, one explanatory, archived together a
 
 1. **Never edit anything under `archive/`.** Archived plans are history.
 2. **Status lives in two places and they must agree** — the frontmatter `status` field
-   and the `active/` vs `archive/` directory. This mirrors how `grace lint` validates a
+   and the `active/` vs `archive/` directory. This mirrors how `ngrace lint` validates a
    change bundle's location against its declared status.
 3. **Superseding, not rewriting.** When a plan is replaced, set `status: superseded`,
    set `supersededBy` to the replacing plan's `id`, and `git mv` it to `archive/`.

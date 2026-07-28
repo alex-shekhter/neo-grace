@@ -277,7 +277,7 @@ On rerun against an active approved change, `grace-execute` performs recovery pr
 Safe states may continue/retry after explicit user confirmation. Unknown drift, failed baseline, or ambiguous partial writes hard-stop and require rollback, superseding change, or reconciliation through normal GRACE workflows. `grace-execute` must never silently mark a change applied and must never silently rewrite an approved plan.
   ]]></architecture>
   <tech-stack><![CDATA[
-Runtime: Bun/TypeScript, preserving the current `@osovv/grace-cli` package model.
+Runtime: Bun/TypeScript, preserving the current `neo-grace` package model.
 
 XML parsing and validation:
 - use `fast-xml-parser` as the structural XML parser;
@@ -298,7 +298,7 @@ CLI runtime and compatibility:
 - CLI commands are `.grace` only, with no dual-mode GRACE 3 validation or navigation.
 
 CLI command surface:
-- keep and rewrite for `.grace`: `grace lint`, `grace status`, `grace module`, `grace verification`, `grace file`;
+- keep and rewrite for `.grace`: `ngrace lint`, `ngrace status`, `ngrace module`, `ngrace verification`, `ngrace file`;
 - do not add `grace migrate` as a core CLI command;
 - migration is agent-applied through the `grace-migrate` skill;
 - CLI may detect a GRACE 3 project only to emit guidance to use `grace-migrate`, not to validate or convert it.
@@ -406,7 +406,7 @@ CLI command surface:
     </component>
     <component>
       <name>CLI Navigation Commands</name>
-      <responsibility>Rewrite `grace module`, `grace verification`, and `grace file` to resolve `.grace` graph/verification/file-local anchors. They are navigation/reporting commands only and must not implement dual-mode v3 behavior.</responsibility>
+      <responsibility>Rewrite `ngrace module`, `ngrace verification`, and `ngrace file` to resolve `.grace` graph/verification/file-local anchors. They are navigation/reporting commands only and must not implement dual-mode v3 behavior.</responsibility>
       <depends-on>Graph Logical Projection, Verification Logical Projection, Artifact Grammar</depends-on>
     </component>
     <component>
@@ -469,7 +469,7 @@ On success:
 - fresh verification passes;
 - durable graph/verification/context updates are applied;
 - TargetAssertions pass;
-- full `grace lint` passes;
+- full `ngrace lint` passes;
 - spec and plan are marked `status="applied"`;
 - the whole bundle is moved to `.grace/changes/archive/C-.../`.
 
@@ -593,11 +593,11 @@ Migration fixtures:
 - no retroactive `C-*` bundles are created.
 
 CLI fixtures:
-- `grace lint` validates `.grace` and rejects invalid current state;
-- `grace status` reports derived overlap/stale/drift states without mutating XML;
-- `grace module` resolves `M-*` through graph index/projection;
-- `grace verification` resolves `V-M-*` through verification index/projection;
-- `grace file` reports file-local/private semantic markup and artifact-local anchors;
+- `ngrace lint` validates `.grace` and rejects invalid current state;
+- `ngrace status` reports derived overlap/stale/drift states without mutating XML;
+- `ngrace module` resolves `M-*` through graph index/projection;
+- `ngrace verification` resolves `V-M-*` through verification index/projection;
+- `ngrace file` reports file-local/private semantic markup and artifact-local anchors;
 - CLI detects GRACE 3 only to emit migration guidance, not to enter dual mode.
 
 Repository packaging fixtures:

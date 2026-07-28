@@ -153,7 +153,7 @@ verifies the adapter against its own fixtures before trusting it, a project can 
 local language bundle *and* the guarantee survives. Security of executing project-supplied
 analysis code is a separate question and still needs an answer.
 
-`grace doctor` then extends naturally to the analyzers themselves:
+`ngrace doctor` then extends naturally to the analyzers themselves:
 
 ```
 Languages

@@ -1,10 +1,10 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "grace-marketplace",
+  "name": "neo-grace",
   "strict": false,
   "owner": {
-    "name": "osovv",
-    "url": "https://github.com/osovv"
+    "name": "sas",
+    "url": "https://github.com/sas"
   },
   "metadata": {
     "description": "GRACE (Graph-RAG Anchored Code Engineering) - a methodology by Vladimir Ivanov for contract-first AI engineering with semantic markup, knowledge graphs, and log-driven verification",
@@ -17,8 +17,8 @@
       "description": "Complete GRACE methodology: semantic markup, knowledge graphs, module contracts, testing, and log-driven verification for AI-driven engineering",
       "version": "5.0.0",
       "author": {
-        "name": "osovv",
-        "url": "https://github.com/osovv"
+        "name": "sas",
+        "url": "https://github.com/sas"
       },
       "license": "MIT",
       "keywords": [

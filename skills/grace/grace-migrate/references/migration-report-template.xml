@@ -24,8 +24,8 @@
     <Unsupported source="$LEGACY_SOURCE_PATH">$UNSUPPORTED_STRUCTURE</Unsupported>
   </UnsupportedStructures>
   <Validation successful="false">
-    <Check command="grace lint --path $PROJECT_ROOT --assertions current" exitCode="$EXIT_CODE">$RESULT</Check>
-    <Check command="grace status --path $PROJECT_ROOT --json" exitCode="$EXIT_CODE" projectKind="$PROJECT_KIND" integrityErrors="$COUNT">$RESULT</Check>
+    <Check command="ngrace lint --path $PROJECT_ROOT --assertions current" exitCode="$EXIT_CODE">$RESULT</Check>
+    <Check command="ngrace status --path $PROJECT_ROOT --json" exitCode="$EXIT_CODE" projectKind="$PROJECT_KIND" integrityErrors="$COUNT">$RESULT</Check>
   </Validation>
   <GitPreflight available="false" inWorktree="false" dirty="false">
     <WorktreeRoot>$WORKTREE_ROOT_OR_NOT_APPLICABLE</WorktreeRoot>

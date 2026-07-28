@@ -303,7 +303,7 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
     explanation:
       "A GD-* graph document exceeds the configured anchor or byte limit. Large documents burn context when agents open them for one module question.",
     remediation: [
-      "Split by service or package path with `grace graph split --by <path-prefix> --apply`.",
+      "Split by service or package path with `ngrace graph split --by <path-prefix> --apply`.",
       "Raise limits only deliberately via .grace-lint.json documentAnchorLimit / documentByteLimit.",
     ],
   },

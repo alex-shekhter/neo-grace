@@ -66,5 +66,5 @@ export async function runQueryCommand(
   format: "text" | "json",
   operation: () => void | Promise<void>,
 ): Promise<void> {
-  return runGraceCommand(format, operation, "Unable to complete the GRACE query. Run `grace lint --path PROJECT` for actionable diagnostics.");
+  return runGraceCommand(format, operation, "Unable to complete the GRACE query. Run `ngrace lint --path PROJECT` for actionable diagnostics.");
 }

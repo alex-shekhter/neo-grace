@@ -2,7 +2,7 @@ export type LintSeverity = "error" | "warning";
 
 export type LintProfile = "standard";
 
-/** Selected assertion section evaluated by grace lint. */
+/** Selected assertion section evaluated by ngrace lint. */
 export type LintAssertionMode = "current" | "baseline" | "target" | "final";
 
 export type ModuleRole = "RUNTIME" | "TEST" | "BARREL" | "CONFIG" | "TYPES" | "SCRIPT";

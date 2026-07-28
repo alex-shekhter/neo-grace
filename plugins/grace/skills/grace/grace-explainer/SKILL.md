@@ -18,7 +18,7 @@ GRACE 4 uses `.grace` as the durable project model:
 2. `grace-spec` creates an active change spec and waits for approval.
 3. `grace-plan` creates assertions, scopes, and `T-*` implementation tasks.
 4. `grace-execute` runs sequential or parallel-safe mode from the approved plan.
-5. `grace lint` and `grace status` provide validation and health evidence.
+5. `ngrace lint` and `ngrace status` provide validation and health evidence.
 6. Existing GRACE 3 projects use `grace-migrate`; the CLI validates the result but does not convert legacy docs directly.
 </workflow>
 </skill>

@@ -1,15 +1,15 @@
 {
-  "name": "@osovv/grace-cli",
+  "name": "neo-grace",
   "version": "5.0.0",
   "description": "GRACE 4 CLI for .grace linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation with a Bun-powered grace binary.",
   "license": "MIT",
-  "homepage": "https://github.com/osovv/grace-marketplace#readme",
+  "homepage": "https://github.com/sas/neo-grace#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/osovv/grace-marketplace.git"
+    "url": "git+https://github.com/sas/neo-grace.git"
   },
   "bugs": {
-    "url": "https://github.com/osovv/grace-marketplace/issues"
+    "url": "https://github.com/sas/neo-grace/issues"
   },
   "keywords": [
     "grace",
@@ -69,7 +69,7 @@
     "hooks:install": "lefthook install --force"
   },
   "bin": {
-    "grace": "src/grace.ts"
+    "ngrace": "src/grace.ts"
   },
   "dependencies": {
     "citty": "^0.2.2",
@@ -82,5 +82,9 @@
     "commitlint": "^19.8.1",
     "conventional-changelog-cli": "^5.0.0",
     "lefthook": "^1.11.12"
+  },
+  "author": {
+    "name": "sas",
+    "url": "https://github.com/sas"
   }
 }

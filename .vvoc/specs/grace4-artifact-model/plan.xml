@@ -82,7 +82,7 @@
     </module>
     <module>
       <name>GRACE 4 Query and Navigation Layer</name>
-      <purpose>Replace GRACE 3 docs-based query loading with `.grace` projections used by `grace module`, `grace verification`, and `grace file`.</purpose>
+      <purpose>Replace GRACE 3 docs-based query loading with `.grace` projections used by `ngrace module`, `ngrace verification`, and `ngrace file`.</purpose>
       <file>
         <path>src/query/types.ts</path>
         <role>Modify query records for GRACE 4 projections while preserving stable command output concepts where possible.</role>
@@ -652,8 +652,8 @@ export function resolveVerification(index: GraceArtifactIndex, value: string): V
         <acceptance>
           <criterion>`loadGraceArtifactIndex` reads `.grace/graph` and `.grace/verification` only.</criterion>
           <criterion>No `docs/development-plan.xml`, `docs/knowledge-graph.xml`, or `docs/verification-plan.xml` constant remains in `src/query/core.ts`.</criterion>
-          <criterion>`grace module find` can find a module by `M-*`, observed file path text, dependency id, and verification id from `.grace` fixtures.</criterion>
-          <criterion>`grace verification find` can find a verification entry by `V-M-*`, module id, command text, scenario text, and marker text.</criterion>
+          <criterion>`ngrace module find` can find a module by `M-*`, observed file path text, dependency id, and verification id from `.grace` fixtures.</criterion>
+          <criterion>`ngrace verification find` can find a verification entry by `V-M-*`, module id, command text, scenario text, and marker text.</criterion>
           <criterion>Module health no longer depends on development-plan phases or steps.</criterion>
         </acceptance>
         <verification>
@@ -665,7 +665,7 @@ export function resolveVerification(index: GraceArtifactIndex, value: string): V
         <title>Rewrite lint command and lint core for GRACE 4</title>
         <file>src/grace-lint.ts; src/lint/types.ts; src/lint/core.ts; src/lint/catalog.ts</file>
         <status>pending</status>
-        <description>Make `grace lint` validate current `.grace` document state through parser-backed Artifact Grammar and projections. Remove GRACE 3 required-doc compatibility behavior and update diagnostics catalog.</description>
+        <description>Make `ngrace lint` validate current `.grace` document state through parser-backed Artifact Grammar and projections. Remove GRACE 3 required-doc compatibility behavior and update diagnostics catalog.</description>
         <depends_on>
           <task_id>T-003</task_id>
           <task_id>T-004</task_id>
@@ -700,8 +700,8 @@ export function lintGraceProject(root: string, options: LintOptions = {}): LintR
 export function lintResultFromGrace4Validation(root: string, validation: Grace4ValidationResult, options: LintOptions): LintResult;
 ]]></snippet>
         <acceptance>
-          <criterion>`grace lint` fails with migration guidance when only GRACE 3 docs are present.</criterion>
-          <criterion>`grace lint` fails with missing `.grace` guidance when neither `.grace` nor GRACE 3 docs are present.</criterion>
+          <criterion>`ngrace lint` fails with migration guidance when only GRACE 3 docs are present.</criterion>
+          <criterion>`ngrace lint` fails with missing `.grace` guidance when neither `.grace` nor GRACE 3 docs are present.</criterion>
           <criterion>The CLI no longer exposes or documents `--allow-missing-docs`.</criterion>
           <criterion>Lint JSON output keeps `tool`, `schemaVersion`, `generatedAt`, `root`, issue list, and summary counts.</criterion>
           <criterion>Diagnostics catalog includes GRACE 4 artifact, projection, lifecycle, assertion, and scope issue prefixes.</criterion>
@@ -715,7 +715,7 @@ export function lintResultFromGrace4Validation(root: string, validation: Grace4V
         <title>Rewrite status command for durable and operational GRACE 4 health</title>
         <file>src/grace-status.ts; src/grace-status.test.ts</file>
         <status>pending</status>
-        <description>Update `grace status` to summarize `.grace` context, graph, verification, active/archive changes, derived overlaps, stale plans, drift indications, and migration guidance without mutating XML statuses.</description>
+        <description>Update `ngrace status` to summarize `.grace` context, graph, verification, active/archive changes, derived overlaps, stale plans, drift indications, and migration guidance without mutating XML statuses.</description>
         <depends_on>
           <task_id>T-005</task_id>
           <task_id>T-006</task_id>
@@ -766,7 +766,7 @@ export function collectProjectStatus(root: string, options?: StatusOptions): Sta
           <criterion>Status text surfaces overlapping approved changes as derived state, not XML status.</criterion>
           <criterion>Status reports GRACE 3 projects as migration candidates and does not load GRACE 3 docs as healthy GRACE 4 state.</criterion>
           <criterion>Status reports invalid active or archive statuses from lint diagnostics.</criterion>
-          <criterion>Status next action recommends `grace lint`, `grace-migrate`, replan, or execute based on current state.</criterion>
+          <criterion>Status next action recommends `ngrace lint`, `grace-migrate`, replan, or execute based on current state.</criterion>
         </acceptance>
         <verification>
           <command>bun test src/grace-status.test.ts</command>
@@ -786,23 +786,23 @@ export function collectProjectStatus(root: string, options?: StatusOptions): Sta
 /** Loads projection-backed index or throws a user-facing command error. */
 function loadGrace4IndexOrThrow(root: string): GraceArtifactIndex;
 
-/** Handles `grace module find` by querying Graph Projection records. */
+/** Handles `ngrace module find` by querying Graph Projection records. */
 async function runModuleFind(root: string, query: string, options: ModuleFindCommandOptions): Promise<void>;
 
-/** Handles `grace module show` by resolving M-* or observed file path to graph plus verification context. */
+/** Handles `ngrace module show` by resolving M-* or observed file path to graph plus verification context. */
 async function runModuleShow(root: string, value: string, options: ModuleShowCommandOptions): Promise<void>;
 
-/** Handles `grace verification find` by querying Verification Projection records. */
+/** Handles `ngrace verification find` by querying Verification Projection records. */
 async function runVerificationFind(root: string, query: string, options: VerificationFindCommandOptions): Promise<void>;
 
-/** Handles `grace file show` for file-local/private semantic markup without requiring GRACE 3 shared docs. */
+/** Handles `ngrace file show` for file-local/private semantic markup without requiring GRACE 3 shared docs. */
 async function runFileShow(root: string, filePath: string, options: FileShowCommandOptions): Promise<void>;
 ]]></snippet>
         <acceptance>
-          <criterion>`grace module find` and `grace module show` resolve modules from `.grace/graph/index.xml` and graph documents.</criterion>
-          <criterion>`grace module show --with verification` includes the deterministic `V-` plus module id verification entry when present.</criterion>
-          <criterion>`grace verification find` and `grace verification show` resolve `V-M-*` from `.grace/verification/index.xml` and verification documents.</criterion>
-          <criterion>`grace file show` still reads file-local semantic markup and linked modules, but it does not require GRACE 3 shared docs.</criterion>
+          <criterion>`ngrace module find` and `ngrace module show` resolve modules from `.grace/graph/index.xml` and graph documents.</criterion>
+          <criterion>`ngrace module show --with verification` includes the deterministic `V-` plus module id verification entry when present.</criterion>
+          <criterion>`ngrace verification find` and `ngrace verification show` resolve `V-M-*` from `.grace/verification/index.xml` and verification documents.</criterion>
+          <criterion>`ngrace file show` still reads file-local semantic markup and linked modules, but it does not require GRACE 3 shared docs.</criterion>
           <criterion>Each command emits migration guidance for GRACE 3 roots rather than silently falling back.</criterion>
         </acceptance>
         <verification>
@@ -1121,8 +1121,8 @@ Read legacy docs, present migration draft/report, wait for approval, write .grac
 // 2. Fill .grace/context artifacts
 // 3. Run $grace-spec for a change
 // 4. Run $grace-plan after spec approval
-// 5. Run grace lint --path /path/to/project
-// 6. Run grace status --path /path/to/project
+// 5. Run ngrace lint --path /path/to/project
+// 6. Run ngrace status --path /path/to/project
 // 7. Run $grace-execute and choose sequential or parallel-safe mode
 // Existing GRACE 3 projects use $grace-migrate.
 ]]></snippet>
@@ -1218,8 +1218,8 @@ export const REPO_SELF_MIGRATION_FORBIDDEN = true;
 ]]></snippet>
         <acceptance>
           <criterion>`bun test` passes.</criterion>
-          <criterion>`grace lint` passes on a valid GRACE 4 fixture and fails with guidance on a GRACE 3 fixture.</criterion>
-          <criterion>`grace status --json --fail-on never` works on a valid GRACE 4 fixture.</criterion>
+          <criterion>`ngrace lint` passes on a valid GRACE 4 fixture and fails with guidance on a GRACE 3 fixture.</criterion>
+          <criterion>`ngrace status --json --fail-on never` works on a valid GRACE 4 fixture.</criterion>
           <criterion>`bun run ./scripts/validate-marketplace.ts` passes.</criterion>
           <criterion>`bun run validate:release` passes or any failure is documented with exact cause and next remediation.</criterion>
           <criterion>The repository's current operational GRACE 3 `docs/` files remain unmigrated.</criterion>

@@ -9,12 +9,12 @@ Require one active bundle with approved, identity-matched `spec.xml` and `plan.x
 </preflight>
 
 <assertion_commands>
-- Active-baseline preflight before observed writes: `grace lint --path PROJECT --assertions current`
-- Selected baseline: `grace lint --path PROJECT --change C-ID --assertions baseline` (add `--run-commands` when the baseline declares `MustPassCommand`)
-- Selected target without commands: `grace lint --path PROJECT --change C-ID --assertions target`
-- Selected target with command evidence: `grace lint --path PROJECT --change C-ID --assertions target --run-commands`
-- Final end-state validation: `grace lint --path PROJECT --change C-ID --assertions final` (add `--run-commands` when the target declares `MustPassCommand`)
-- Parallel preflight: `grace lint --path PROJECT --parallel-preflight`
+- Active-baseline preflight before observed writes: `ngrace lint --path PROJECT --assertions current`
+- Selected baseline: `ngrace lint --path PROJECT --change C-ID --assertions baseline` (add `--run-commands` when the baseline declares `MustPassCommand`)
+- Selected target without commands: `ngrace lint --path PROJECT --change C-ID --assertions target`
+- Selected target with command evidence: `ngrace lint --path PROJECT --change C-ID --assertions target --run-commands`
+- Final end-state validation: `ngrace lint --path PROJECT --change C-ID --assertions final` (add `--run-commands` when the target declares `MustPassCommand`)
+- Parallel preflight: `ngrace lint --path PROJECT --parallel-preflight`
 </assertion_commands>
 
 <mode_selection>

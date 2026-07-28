@@ -31,7 +31,7 @@ bun run release:finalize X.Y.Z
    - `openpackage.yml` — `version:` line
    - `.claude-plugin/marketplace.json` — `metadata.version` and plugin `version`
    - `plugins/grace/.claude-plugin/plugin.json` — `version` field
-   - `src/grace.ts` — CLI metadata shown by `grace --version`
+   - `src/grace.ts` — CLI metadata shown by `ngrace --version`
 8. Run `bun run validate:release` again against the proposed release state.
 9. Assert only expected release files have changed.
 10. Commit those files with a `chore:` message.

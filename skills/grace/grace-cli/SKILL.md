@@ -4,19 +4,19 @@ description: Operate the GRACE 4 CLI for .grace linting, status, module navigati
 ---
 
 <skill>
-<installation_contract>Invoke the installed stable `grace` binary directly. If it is missing, install it with `bun add -g @osovv/grace-cli`. Do not default to `bunx`, `npx`, or the `rc` dist-tag.</installation_contract>
+<installation_contract>Invoke the installed stable `grace` binary directly. If it is missing, install it with `bun add -g neo-grace`. Do not default to `bunx`, `npx`, or the `rc` dist-tag.</installation_contract>
 
 <commands>
-- Active-baseline preflight before observed writes: `grace lint --path PROJECT --assertions current`
-- Selected baseline: `grace lint --path PROJECT --change C-ID --assertions baseline` (add `--run-commands` when the baseline declares `MustPassCommand`)
-- Selected target: `grace lint --path PROJECT --change C-ID --assertions target --run-commands`
-- Final execution gate: `grace lint --path PROJECT --change C-ID --assertions final --run-commands`
-- Parallel preflight: `grace lint --path PROJECT --parallel-preflight`
-- Status: `grace status --path PROJECT --with modules --json`
-- Navigation: `grace module find|show`, `grace verification find|show`, and `grace file show`.
+- Active-baseline preflight before observed writes: `ngrace lint --path PROJECT --assertions current`
+- Selected baseline: `ngrace lint --path PROJECT --change C-ID --assertions baseline` (add `--run-commands` when the baseline declares `MustPassCommand`)
+- Selected target: `ngrace lint --path PROJECT --change C-ID --assertions target --run-commands`
+- Final execution gate: `ngrace lint --path PROJECT --change C-ID --assertions final --run-commands`
+- Parallel preflight: `ngrace lint --path PROJECT --parallel-preflight`
+- Status: `ngrace status --path PROJECT --with modules --json`
+- Navigation: `ngrace module find|show`, `ngrace verification find|show`, and `ngrace file show`.
 </commands>
 
-<lifecycle_command_contract>`current` evaluates active approved baselines and is not end-state evidence. Keep `MustPassCommand` entries as leaf project checks; do not nest `grace lint`, `grace status`, or another GRACE lifecycle command inside plan assertions. Run selected target/final lint externally.</lifecycle_command_contract>
+<lifecycle_command_contract>`current` evaluates active approved baselines and is not end-state evidence. Keep `MustPassCommand` entries as leaf project checks; do not nest `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside plan assertions. Run selected target/final lint externally.</lifecycle_command_contract>
 
 <failure_contract>
 Lint, status, and navigation commands validate before returning records. JSON argument/runtime failures are one `{ "schemaVersion": "1.0.0", "ok": false, "error": { ... } }` object on stdout. Text failures are one concise actionable line with a nonzero exit code and no stack trace.

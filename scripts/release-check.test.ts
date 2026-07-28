@@ -43,7 +43,7 @@ Initial release.
 `;
 
 function makePkg(version?: string) {
-  return { name: "@osovv/grace-cli", version: version ?? "4.0.0" };
+  return { name: "neo-grace", version: version ?? "4.0.0" };
 }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ describe("collectReleaseConsistencyErrors", () => {
 
   it("fails on missing version", () => {
     const errors = collectReleaseConsistencyErrors(
-      { name: "@osovv/grace-cli" },
+      { name: "neo-grace" },
       EXAMPLE_README,
       EXAMPLE_OPENPACKAGE,
       EXAMPLE_MARKETPLACE,

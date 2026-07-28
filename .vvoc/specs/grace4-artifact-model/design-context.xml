@@ -302,7 +302,7 @@
       <impact>GRACE 4 changes must keep canonical skills, packaged mirrors, marketplace manifest, plugin manifest, openpackage metadata, package metadata, README, and validation scripts synchronized.</impact>
     </constraint>
     <constraint>
-      <source>Existing CLI package `@osovv/grace-cli`</source>
+      <source>Existing CLI package `neo-grace`</source>
       <impact>The CLI remains Bun/TypeScript-first. `fast-xml-parser` is added as a runtime dependency; Node compatibility is not a requirement.</impact>
     </constraint>
     <constraint>

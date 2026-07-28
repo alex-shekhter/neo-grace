@@ -48,7 +48,7 @@ A declared `ST-*` state is covered when any `Scenario`, `AccessibilityCheck`, or
    - `MustUseToken` / `MustNotUseLiteral` for token discipline
    - `MustMatchPattern` for general regex file checks (safe patterns only)
    - `MustCoverStates` for declared `ST-*` coverage
-6. Run `grace lint --path PROJECT` and `grace status --with modules` and fix any `health.ui-state-unverified` or `health.ui-states-undeclared` findings.
+6. Run `ngrace lint --path PROJECT` and `ngrace status --with modules` and fix any `health.ui-state-unverified` or `health.ui-states-undeclared` findings.
 </workflow>
 
 <hard_rules>

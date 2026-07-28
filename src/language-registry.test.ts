@@ -44,7 +44,7 @@ end
 describe("language registry", () => {
   it("derives ADAPTER_BACKED_EXTENSIONS from the adapters themselves", () => {
     // A hand-maintained mirror of what the adapters support is a list that eventually
-    // disagrees with them, and `grace doctor` reports from this one.
+    // disagrees with them, and `ngrace doctor` reports from this one.
     const actuallySupported = new Set(
       [...CODE_EXTENSIONS].filter((extension) =>
         LANGUAGE_ADAPTERS.some((adapter) => adapter.supports(`probe${extension}`)),
