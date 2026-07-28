@@ -4,7 +4,12 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 
 ## Active
 
-_None._
+| ID | Title | Status | Baseline | Targets | Plan |
+|---|---|---|---|---|---|
+| `RM-AGENT-RELIABILITY` | Context discipline, scope drift, and self-verification | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-AGENT-RELIABILITY/review.md) |
+
+A row with no `plan.md` is exploration, not a commitment: the explanatory document
+exists and nothing has been approved or scheduled. See rule 6.
 
 ## Archive
 
@@ -62,6 +67,10 @@ in a GRACE change bundle — one normative, one explanatory, archived together a
 4. **Update this index in the same commit** that adds, promotes, or archives a plan.
 5. **Phase status lives inside the plan**, in its own status board. This index tracks the
    plan as a whole; the plan tracks its phases.
+6. **`review.md` may exist without `plan.md`.** That combination means exploration:
+   the reasoning is recorded, nothing is approved, and no work is scheduled. Such a
+   document is non-normative and must say so. Writing the `plan.md` is the act that
+   turns it into a commitment.
 
 ## Frontmatter
 
