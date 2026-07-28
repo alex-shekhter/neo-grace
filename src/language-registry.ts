@@ -1,6 +1,7 @@
 import { createDartAdapter } from "./lint/adapters/dart";
 import { createGoAdapter } from "./lint/adapters/go";
 import { createPythonAdapter } from "./lint/adapters/python";
+import { createRustAdapter } from "./lint/adapters/rust";
 import { createTypeScriptAdapter } from "./lint/adapters/typescript";
 import type { LanguageAdapter } from "./lint/types";
 
@@ -30,6 +31,7 @@ export const ADAPTER_BACKED_EXTENSIONS: ReadonlySet<string> = new Set([
   ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts",
   ".py", ".pyi", ".dart",
   ".go",
+  ".rs",
 ]);
 
 /**
@@ -42,4 +44,5 @@ export const LANGUAGE_ADAPTERS: readonly LanguageAdapter[] = [
   createPythonAdapter(),
   createDartAdapter(),
   createGoAdapter(),
+  createRustAdapter(),
 ];

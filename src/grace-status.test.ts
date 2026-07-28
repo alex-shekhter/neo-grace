@@ -434,10 +434,11 @@ describe("grace status", () => {
     const polyglot = collectProjectStatus(polyglotFixture());
     const polyglotText = formatStatusText(polyglot);
     expect(polyglotText).toContain("Analysis Coverage");
-    expect(polyglotText).toContain("Unverified");
-    // Phase 2: .go is adapter-backed; only .rs remains unverified.
-    expect(polyglot.analysisCoverage?.unverified.map((entry) => entry.extension).sort()).toEqual([".rs"]);
+    // Phase 3: .go and .rs are both adapter-backed — no Unverified line.
+    expect(polyglotText).not.toContain("Unverified");
+    expect(polyglot.analysisCoverage?.unverified).toEqual([]);
     expect(polyglot.analysisCoverage?.adapterBacked.some((entry) => entry.extension === ".go")).toBe(true);
+    expect(polyglot.analysisCoverage?.adapterBacked.some((entry) => entry.extension === ".rs")).toBe(true);
 
     const tsOnly = collectProjectStatus(minimalTsFixture());
     const tsText = formatStatusText(tsOnly);

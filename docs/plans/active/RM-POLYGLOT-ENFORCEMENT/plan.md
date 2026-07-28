@@ -226,7 +226,7 @@ Keep this table current. It is the single source of truth for progress.
 | 0 | Test harness & polyglot fixtures | — (enabling) | 4.1.0 | `COMPLETE` |
 | 1 | Stop the misleading signals | G-01, G-02, G-21 | 4.1.0 | `COMPLETE` |
 | 2 | Go export adapter | G-03 | 4.1.0 | `COMPLETE` |
-| 3 | Rust export adapter | G-04 | 4.1.0 | `NOT STARTED` |
+| 3 | Rust export adapter | G-04 | 4.1.0 | `READY FOR REVIEW` |
 | 4 | Polyglot health restoration | G-10, G-11, G-12 | 4.1.0 | `NOT STARTED` |
 | 5 | Spec→plan traceability (`AC-*`) | G-05 | 4.2.0 | `NOT STARTED` |
 | 6 | Design-system layer | G-06, G-09 | 5.0.0 | `NOT STARTED` |
@@ -1448,7 +1448,7 @@ Remove `.go` from `ADAPTER_BACKED_EXTENSIONS` and `createGoAdapter()` from `LANG
 
 # PHASE 3 — Rust export adapter
 
-**Status:** `NOT STARTED`
+**Status:** `READY FOR REVIEW`
 **Gaps:** G-04
 **Release:** 4.1.0
 

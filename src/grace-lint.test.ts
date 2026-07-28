@@ -492,23 +492,17 @@ describe("lintGraceProject", () => {
     expect(result.issues.filter((issue) => issue.code.startsWith("design-context.") || issue.code === "artifact.invalid-root-tag" || issue.code === "change.invalid-root-tag")).toHaveLength(0);
   });
 
-  it("reports analysis.no-adapter warnings and coverage for polyglot fixtures without failing green builds", async () => {
+  it("reports analysis coverage for polyglot fixtures with Go and Rust adapter-backed", async () => {
     const { polyglotFixture, minimalTsFixture } = await import("./test-support/fixtures");
     const root = polyglotFixture();
     const result = lintGraceProject(root);
-    // Phase 2: .go is adapter-backed; only .rs remains unverified.
-    const noAdapter = result.issues.filter((issue) => issue.code === "analysis.no-adapter");
-    expect(noAdapter.length).toBeGreaterThanOrEqual(1);
-    expect(noAdapter.every((issue) => issue.file.endsWith(".rs"))).toBe(true);
+    // Phase 3: both .go and .rs are adapter-backed; no analysis.no-adapter on polyglot.
+    expect(result.issues.filter((issue) => issue.code === "analysis.no-adapter")).toHaveLength(0);
     expect(result.summary.errors).toBe(0);
-    expect(result.analysisCoverage.unverified.map((entry) => entry.extension).sort()).toEqual([".rs"]);
+    expect(result.analysisCoverage.unverified).toEqual([]);
     expect(result.analysisCoverage.adapterBacked.some((entry) => entry.extension === ".tsx")).toBe(true);
     expect(result.analysisCoverage.adapterBacked.some((entry) => entry.extension === ".go" && entry.adapterId === "go")).toBe(true);
-
-    writeProjectFile(root, ".grace-lint.json", JSON.stringify({ unverifiedLanguages: [".rs"] }));
-    const suppressed = lintGraceProject(root);
-    expect(suppressed.issues.filter((issue) => issue.code === "analysis.no-adapter")).toHaveLength(0);
-    expect(suppressed.summary.errors).toBe(0);
+    expect(result.analysisCoverage.adapterBacked.some((entry) => entry.extension === ".rs" && entry.adapterId === "rust")).toBe(true);
 
     const tsOnly = lintGraceProject(minimalTsFixture());
     expect(tsOnly.issues.filter((issue) => issue.code === "analysis.no-adapter")).toHaveLength(0);
@@ -581,6 +575,97 @@ func LinuxHelper() {}
     expect(
       tagged.issues.some(
         (issue) => issue.code === "analysis.heuristic-confidence" && issue.file.includes("linux_only.go"),
+      ),
+    ).toBe(true);
+  });
+
+  it("enforces Rust MODULE_MAP parity and no longer emits analysis.no-adapter for .rs", async () => {
+    const { polyglotFixture } = await import("./test-support/fixtures");
+    const root = polyglotFixture();
+
+    const clean = lintGraceProject(root);
+    const rustIssues = clean.issues.filter((issue) => issue.file.endsWith(".rs") || issue.file.includes("lib.rs"));
+    expect(rustIssues.map((issue) => issue.code)).not.toContain("analysis.no-adapter");
+    expect(rustIssues.map((issue) => issue.code)).not.toContain("markup.module-map-mismatch");
+
+    // G-01 regression: fabricated Rust symbol must error.
+    writeProjectFile(
+      root,
+      "services/ledger/src/lib.rs",
+      `// START_MODULE_CONTRACT
+// PURPOSE: Ledger core posting and balance validation.
+// SCOPE: Post journal entries with balance checks.
+// DEPENDS: none
+// LINKS: M-LEDGER-CORE
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+// TotallyFakeSymbol - Fabricated for G-01 regression.
+// END_MODULE_MAP
+pub fn post(amount: i64) -> Result<(), String> {
+    // START_BLOCK_VALIDATE_BALANCE
+    tracing::warn!("[LedgerCore][post][BLOCK_VALIDATE_BALANCE] unbalanced");
+    // END_BLOCK_VALIDATE_BALANCE
+    Ok(())
+}
+`,
+    );
+    const broken = lintGraceProject(root);
+    const mismatch = broken.issues.filter(
+      (issue) => issue.code === "markup.module-map-mismatch" && issue.file.includes("lib.rs"),
+    );
+    expect(mismatch.length).toBeGreaterThanOrEqual(1);
+    expect(mismatch[0]?.severity).toBe("error");
+
+    // pub(crate) listed as EXPORTS is a mismatch (not a crate-external export).
+    writeProjectFile(
+      root,
+      "services/ledger/src/lib.rs",
+      `// START_MODULE_CONTRACT
+// PURPOSE: Ledger core.
+// SCOPE: Internal.
+// DEPENDS: none
+// LINKS: M-LEDGER-CORE
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+// internal - Not actually public.
+// END_MODULE_MAP
+pub(crate) fn internal() {}
+`,
+    );
+    const restricted = lintGraceProject(root);
+    expect(
+      restricted.issues.some(
+        (issue) => issue.code === "markup.module-map-mismatch" && issue.file.includes("lib.rs"),
+      ),
+    ).toBe(true);
+
+    // include! reports heuristic confidence.
+    writeProjectFile(
+      root,
+      "services/ledger/src/generated_wrap.rs",
+      `// START_MODULE_CONTRACT
+// PURPOSE: Generated wrapper.
+// SCOPE: Include generated code.
+// DEPENDS: none
+// LINKS: M-LEDGER-CORE
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+// wrap - Wrapper.
+// END_MODULE_MAP
+include!("generated.rs");
+pub fn wrap() {}
+`,
+    );
+    const included = lintGraceProject(root);
+    expect(
+      included.issues.some(
+        (issue) => issue.code === "analysis.heuristic-confidence" && issue.file.includes("generated_wrap.rs"),
       ),
     ).toBe(true);
   });

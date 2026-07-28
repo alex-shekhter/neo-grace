@@ -141,11 +141,11 @@ export const value = true;
 // END_MODULE_MAP
 pub fn post() {}
 `;
+    // Phase 3: .rs and .go are adapter-backed — no analysis.no-adapter.
     const rustFile = path.join(root, "lib.rs");
     const rustIssues = analyzeGovernedFile(root, rustFile, rustBody).issues;
-    expect(rustIssues.some((issue) => issue.code === "analysis.no-adapter" && issue.severity === "warning")).toBe(true);
+    expect(rustIssues.map((issue) => issue.code)).not.toContain("analysis.no-adapter");
 
-    // Phase 2: .go is adapter-backed — no analysis.no-adapter; parity is enforced.
     const goBody = `// START_MODULE_CONTRACT
 // PURPOSE: Go fixture.
 // SCOPE: Export Route.
@@ -166,26 +166,26 @@ func Route() {}
     // Still no adapter for other CODE_EXTENSIONS (e.g. .java).
     const javaBody = rustBody.replace("pub fn post() {}", "public void post() {}");
     const javaIssues = analyzeGovernedFile(root, path.join(root, "Main.java"), javaBody).issues;
-    expect(javaIssues.map((issue) => issue.code)).toContain("analysis.no-adapter");
+    expect(javaIssues.some((issue) => issue.code === "analysis.no-adapter" && issue.severity === "warning")).toBe(true);
 
-    const summaryBody = rustBody.replace("MAP_MODE: EXPORTS", "MAP_MODE: SUMMARY").replace("ROLE: RUNTIME", "ROLE: BARREL");
-    const summaryIssues = analyzeGovernedFile(root, path.join(root, "summary.rs"), summaryBody).issues;
+    const summaryBody = javaBody.replace("MAP_MODE: EXPORTS", "MAP_MODE: SUMMARY").replace("ROLE: RUNTIME", "ROLE: BARREL");
+    const summaryIssues = analyzeGovernedFile(root, path.join(root, "summary.java"), summaryBody).issues;
     expect(summaryIssues.map((issue) => issue.code)).not.toContain("analysis.no-adapter");
 
-    const noneBody = rustBody.replace("MAP_MODE: EXPORTS", "MAP_MODE: NONE").replace("ROLE: RUNTIME", "ROLE: CONFIG")
+    const noneBody = javaBody.replace("MAP_MODE: EXPORTS", "MAP_MODE: NONE").replace("ROLE: RUNTIME", "ROLE: CONFIG")
       .replace(/\/\/ START_MODULE_MAP[\s\S]*?\/\/ END_MODULE_MAP\n/, "");
-    const noneIssues = analyzeGovernedFile(root, path.join(root, "config.rs"), noneBody).issues;
+    const noneIssues = analyzeGovernedFile(root, path.join(root, "config.java"), noneBody).issues;
     expect(noneIssues.map((issue) => issue.code)).not.toContain("analysis.no-adapter");
 
-    const acknowledged = analyzeGovernedFile(root, rustFile, rustBody, { unverifiedLanguages: [".rs"] }).issues;
+    const acknowledged = analyzeGovernedFile(root, path.join(root, "Main.java"), javaBody, { unverifiedLanguages: [".java"] }).issues;
     expect(acknowledged.map((issue) => issue.code)).not.toContain("analysis.no-adapter");
 
     const tsBody = `${contract("EXPORTS", "// run - Run.\n")}export function run() {}\n`;
     const tsIssues = analyzeGovernedFile(root, path.join(root, "run.ts"), tsBody).issues;
     expect(tsIssues.map((issue) => issue.code)).not.toContain("analysis.no-adapter");
 
-    // 3-arg call (no options) still works and still warns for .rs EXPORTS
-    const threeArg = analyzeGovernedFile(root, rustFile, rustBody);
+    // 3-arg call (no options) still works and still warns for .java EXPORTS
+    const threeArg = analyzeGovernedFile(root, path.join(root, "Main.java"), javaBody);
     expect(threeArg.issues.map((issue) => issue.code)).toContain("analysis.no-adapter");
   });
 
