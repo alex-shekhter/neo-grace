@@ -1745,6 +1745,37 @@ export function createRustAdapter(): LanguageAdapter:
 | 31 | truncated file (`pub fn broken(`) | does not throw; confidence `heuristic` |
 | 32 | `pub union U { a: u32 }` | `typeExports={U}` |
 
+### Multi-line item bodies — write these first
+
+Phase 2 shipped a defect that cases 1–32 could not catch, because every case in
+that table used a **single-line** body. Grouped Go declarations skipped to end of
+line after reading a name, stepping over the opening brace of a multi-line body
+without counting it, so struct fields and interface methods were read as further
+declarations and reported as package exports at `exact` confidence — confident
+false `markup.module-map-mismatch` errors on ordinary Go.
+
+Rust has the same shape of trap in `enum`, `trait`, and `impl` bodies. Write these
+cases **before** the scanner, not after, and make each body span multiple lines:
+
+| # | Rust source | Expected |
+|---|---|---|
+| 33 | `pub enum Error {\n    NotFound { id: u64 },\n    Timeout,\n}` | `typeExports={Error}` — variants and their fields are **not** exports |
+| 34 | `pub trait Store {\n    fn get(&self) -> Result<()>;\n    fn put(&self);\n}` | `typeExports={Store}`; `get`/`put` in `localSymbols` only |
+| 35 | `impl Store for Db {\n    pub fn helper() {}\n}` | `helper` in `localSymbols`, **not** `exports` |
+| 36 | `pub struct S {\n    pub name: String,\n    pub age: u32,\n}` | `typeExports={S}` — `pub` **fields** are not module exports |
+| 37 | `pub mod api {\n    pub fn inner() {}\n}` | `exports` contains `api`; `inner` is **not** a top-level export |
+| 38 | `pub fn f(\n    a: u32,\n    b: u32,\n) -> u32 { 0 }` | `exports={f}`; `exportConfidence === "exact"` |
+| 39 | `pub use crate::a::{\n    Foo,\n    Bar as Baz,\n};` | `exports` has `Foo` and `Baz`; multi-line use tree |
+| 40 | `pub const TABLE: [u8; 4] = [\n    1, 2,\n    3, 4,\n];` | `valueExports={TABLE}` |
+
+Case 36 is the one most likely to be got wrong: `pub` on a struct **field** is
+visibility within the type, not a module export, and it sits directly beside the
+`pub` that *is* an export on the struct itself.
+
+**General rule for this scanner:** whenever an item can open a body, the body must
+be consumed by depth tracking, never by line. Any place the scanner advances "to
+end of line" after reading a name is a candidate for the Phase 2 bug.
+
 ## 3.9 Integration tests — `src/grace-lint.test.ts`
 
 | Case | Expected |
@@ -2719,6 +2750,8 @@ Every `skills/grace/**` edit gets a byte-identical copy at `plugins/grace/skills
 | Anti-pattern | Why it is forbidden |
 |---|---|
 | Regex over raw source instead of a lexer | Matches inside strings and comments; the exact class of bug this plan exists to fix |
+| Advancing "to end of line" past a construct that can open a body | Steps over the opening brace without counting it, so body contents are read as top-level declarations. This shipped in Phase 2 and produced confident false exports; use depth tracking |
+| A case table where every body is single-line | Multi-line bodies are where scanners break, and a table of one-liners will pass while the scanner is wrong |
 | `/g` or `/y` flags on a reused `RegExp` | `lastIndex` is stateful; produces alternating results across calls |
 | Making a new check an error to "be strict" | Breaks existing green projects; §10.1 severity policy governs |
 | Adding a tag with no validator | Reproduces the `ux-guidelines.xml` failure (`review.md` §5.6) |
