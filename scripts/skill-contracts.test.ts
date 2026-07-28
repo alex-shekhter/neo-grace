@@ -217,6 +217,6 @@ describe("fork attribution", () => {
     // links and falsely claim the work happened here.
     const history = changelog.slice(historyStart);
     expect(history).toContain("github.com/osovv/grace-marketplace/commit/");
-    expect(history).not.toContain("github.com/sas/neo-grace/commit/");
+    expect(history).not.toContain("github.com/alex-shekhter/neo-grace/commit/");
   });
 });

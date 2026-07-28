@@ -72,7 +72,7 @@ export function collectCurrentReleaseState(repoRoot: string): { state: ReleaseSt
     runCapture("npm", ["view", `neo-grace@${version}`, "dist.shasum", "--json"], repoRoot),
   ) as string;
   const githubRelease = JSON.parse(
-    runCapture("gh", ["release", "view", expectedTag, "--repo", "sas/neo-grace", "--json", "tagName,isPrerelease"], repoRoot),
+    runCapture("gh", ["release", "view", expectedTag, "--repo", "alex-shekhter/neo-grace", "--json", "tagName,isPrerelease"], repoRoot),
   ) as { tagName: string; isPrerelease: boolean };
 
   return {
@@ -83,25 +83,25 @@ export function collectCurrentReleaseState(repoRoot: string): { state: ReleaseSt
 
 /** Collects GitHub environment, branch protection, and release-tag ruleset state. */
 export function collectCurrentReleaseProtectionState(repoRoot: string): ReleaseProtectionState {
-  const environment = JSON.parse(runCapture("gh", ["api", "repos/sas/neo-grace/environments/stable-release"], repoRoot)) as {
+  const environment = JSON.parse(runCapture("gh", ["api", "repos/alex-shekhter/neo-grace/environments/stable-release"], repoRoot)) as {
     protection_rules?: Array<{ type?: string; reviewers?: unknown[] }>;
     deployment_branch_policy?: { custom_branch_policies?: boolean };
   };
-  const deploymentPolicies = JSON.parse(runCapture("gh", ["api", "repos/sas/neo-grace/environments/stable-release/deployment-branch-policies"], repoRoot)) as {
+  const deploymentPolicies = JSON.parse(runCapture("gh", ["api", "repos/alex-shekhter/neo-grace/environments/stable-release/deployment-branch-policies"], repoRoot)) as {
     branch_policies?: Array<{ name?: string; type?: string }>;
   };
-  const branch = JSON.parse(runCapture("gh", ["api", "repos/sas/neo-grace/branches/main/protection"], repoRoot)) as {
+  const branch = JSON.parse(runCapture("gh", ["api", "repos/alex-shekhter/neo-grace/branches/main/protection"], repoRoot)) as {
     required_status_checks?: { contexts?: string[]; checks?: Array<{ context?: string }> };
     enforce_admins?: { enabled?: boolean };
     allow_force_pushes?: { enabled?: boolean };
     allow_deletions?: { enabled?: boolean };
   };
-  const rulesetSummaries = JSON.parse(runCapture("gh", ["api", "repos/sas/neo-grace/rulesets"], repoRoot)) as Array<{
+  const rulesetSummaries = JSON.parse(runCapture("gh", ["api", "repos/alex-shekhter/neo-grace/rulesets"], repoRoot)) as Array<{
     id?: number;
   }>;
   const rulesets = rulesetSummaries.flatMap((summary) => {
     if (!summary.id) return [];
-    return [JSON.parse(runCapture("gh", ["api", `repos/sas/neo-grace/rulesets/${summary.id}`], repoRoot)) as {
+    return [JSON.parse(runCapture("gh", ["api", `repos/alex-shekhter/neo-grace/rulesets/${summary.id}`], repoRoot)) as {
       target?: string;
       enforcement?: string;
       conditions?: { ref_name?: { include?: string[] } };

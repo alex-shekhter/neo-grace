@@ -3,13 +3,13 @@
   "version": "5.0.0",
   "description": "GRACE 4 CLI for .grace linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation with a Bun-powered grace binary.",
   "license": "MIT",
-  "homepage": "https://github.com/sas/neo-grace#readme",
+  "homepage": "https://github.com/alex-shekhter/neo-grace#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sas/neo-grace.git"
+    "url": "git+https://github.com/alex-shekhter/neo-grace.git"
   },
   "bugs": {
-    "url": "https://github.com/sas/neo-grace/issues"
+    "url": "https://github.com/alex-shekhter/neo-grace/issues"
   },
   "keywords": [
     "grace",
@@ -84,7 +84,8 @@
     "lefthook": "^1.11.12"
   },
   "author": {
-    "name": "sas",
-    "url": "https://github.com/sas"
+    "name": "Alex Shekhter",
+    "email": "alex.shekhter@gmail.com",
+    "url": "https://github.com/alex-shekhter"
   }
 }

@@ -80,22 +80,22 @@ The skills can author `.grace` artifacts without it, but nothing validates them:
 ### OpenPackage
 
 ```bash
-opkg install gh@sas/neo-grace
-opkg install gh@sas/neo-grace -g
-opkg install gh@sas/neo-grace --platforms claude-code
+opkg install gh@alex-shekhter/neo-grace
+opkg install gh@alex-shekhter/neo-grace -g
+opkg install gh@alex-shekhter/neo-grace --platforms claude-code
 ```
 
 ### Claude Code Marketplace
 
 ```bash
-/plugin marketplace add sas/neo-grace
+/plugin marketplace add alex-shekhter/neo-grace
 /plugin install grace@neo-grace
 ```
 
 ### Agent Skills-Compatible Install
 
 ```bash
-git clone https://github.com/sas/neo-grace
+git clone https://github.com/alex-shekhter/neo-grace
 cp -r neo-grace/skills/grace/grace-* /path/to/your/agent/skills/
 ```
 
