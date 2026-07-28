@@ -1,3 +1,30 @@
+## <small>5.0.0 (2026-07-28)</small>
+
+### Summary
+
+GRACE 5.0.0 is a major adoption release that keeps the artifact grammar version at `graceVersion="4.0"` (all new structure is additive and optional) while shipping polyglot enforcement, design-system and systems-modeling layers, scale ergonomics, and a golden-path example monorepo. New optional anchor families (`AC-*`, `DT-*`/`BP-*`/`ST-*`, `IC-*`, `INV-*`) and context artifacts (`design-system.xml`, `invariants.xml`) give projects a complete home for UI contracts, interface contracts, and cross-cutting invariants without breaking existing green trees. The CLI gains `grace doctor`, `grace graph split`, multi-stack `GraceTechnology`, document-size warnings, design-artifact links on change specs, ceremony-tier skill guidance (T0–T3), and CI-enforced `examples/polyglot` so the worked example cannot bitrot.
+
+### Breaking
+
+* None for existing `graceVersion="4.0"` projects. Optional context files and anchors remain optional; `GRACE4_VERSION` stays `"4.0"` and no `grace-migrate` path is required for this release.
+
+### Features
+
+* feat(lint): polyglot honesty — Go/Rust adapters, language-aware markers, `DEPENDS`/`LINKS` referential checks, analysis.no-adapter (G-01–G-04, G-10–G-12, G-21)
+* feat(change): spec→plan traceability with `AC-*`, `Satisfies`, and `OutOfPlanScope` (G-05)
+* feat(design): `design-system.xml`, design tokens/breakpoints, UI states, a11y/visual evidence kinds (G-06, G-09)
+* feat(graph): `IC-*` interface contracts, ordered `DF-*` steps, `invariants.xml`, `MustPassBudget` (G-07, G-08, G-14, G-15)
+* feat(cli): document size warnings, `grace graph split`, `grace doctor`, multi-stack `Stacks` (G-13, G-16, G-22)
+* feat(spec): optional `<DesignReferences>` with http(s) Figma URLs and contained `UserResearch` paths (G-18)
+* docs(skills): ceremony tiers T0–T3 (skill guidance only; gates never skipped) and table-formatted `must_do` / `strict_contract` (G-17, G-19)
+* docs(examples): golden-path `examples/polyglot` (React + Go + Rust) with segmented graph/verification, enforced by `validate:examples` in CI (G-20)
+
+### Fixes (review-era)
+
+* fix(graph): stage all `grace graph split` writes; refuse path collisions; preserve numeric character references on rewrite
+* fix(change): thread `IC-*` through spec→plan coverage; explicit Provider/Consumer and DesignReferences child shape checks
+* fix(assert): real capture-group detection for `MustPassBudget` Extract patterns
+
 ## <small>4.0.4 (2026-07-27)</small>
 
 ### Summary

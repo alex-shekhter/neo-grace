@@ -1,0 +1,34 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-ADD-POSTING-CONTRACT>
+    <Summary>Introduce IC-POSTING-V1 and the ordered DF-POSTING flow across UI, API, and core.</Summary>
+    <Problem>Posting behavior was implicit; no versioned schema linked gateway to core.</Problem>
+    <Goals>
+      <Goal>Publish OpenAPI posting schema and wire Provider/Consumer modules under IC-POSTING-V1.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Ceremony tier T2 (cross-cutting): multi-package, integration gates required.</Constraint>
+      <Constraint>BreakingChangePolicy additive-only for the first major contract version.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>gRPC transport (HTTP JSON only for v1).</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-CONTRACT-WIRED>IC-POSTING-V1 owns Schema openapi/posting.yaml with Provider M-LEDGER-CORE and Consumer M-API-ROUTER.</AC-CONTRACT-WIRED>
+      <AC-FLOW-ORDERED>DF-POSTING declares ordered steps UI → API → Core.</AC-FLOW-ORDERED>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-WEB-LEDGER-TABLE />
+      <M-API-ROUTER />
+      <M-LEDGER-CORE />
+      <DF-POSTING />
+      <IC-POSTING-V1 />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>grace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>Project lints clean; IC and DF project into the graph without shape errors.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>OpenAPI file lands under openapi/ at repo root of this example.</Assumption>
+    </Assumptions>
+  </C-ADD-POSTING-CONTRACT>
+</GraceChangeSpec>

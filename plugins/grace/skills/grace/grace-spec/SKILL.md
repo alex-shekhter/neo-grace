@@ -17,8 +17,34 @@ Create `spec.xml` as `status="draft"`. Set `status="approved"` only after explic
 </status_rules>
 
 <strict_contract>
-The direct `C-*` wrapper must contain exactly one meaningful `Summary`, `Goals`, `Constraints`, `NonGoals`, `AcceptanceCriteria`, `AffectedAreas`, and `VerificationIntent` section. Empty containers are not approval-ready. Semantic anchors are canonical attribute-free XML tags, never attributes or attribute values.
+| # | requirement |
+|---|---|
+| 1 | The direct `C-*` wrapper contains exactly one meaningful `Summary` section. |
+| 2 | The wrapper contains exactly one meaningful `Goals` section. |
+| 3 | The wrapper contains exactly one meaningful `Constraints` section. |
+| 4 | The wrapper contains exactly one meaningful `NonGoals` section. |
+| 5 | The wrapper contains exactly one meaningful `AcceptanceCriteria` section. |
+| 6 | The wrapper contains exactly one meaningful `AffectedAreas` section. |
+| 7 | The wrapper contains exactly one meaningful `VerificationIntent` section. |
+| 8 | Empty containers are not approval-ready. |
+| 9 | Semantic anchors are canonical attribute-free XML tags, never attributes or attribute values. |
 </strict_contract>
+
+<ceremony_tiers>
+Ask the user which risk tier applies (default **T1**). Record the tier in `Constraints` (e.g. `Ceremony tier T1 (module change)`). Tiers change **which sections must be rich**, never **whether gates run**. `--assertions final` remains the release gate at every tier.
+
+| Tier | Name | Spec emphasis | Use when |
+|---|---|---|---|
+| **T0** | Hotfix | Tight `Summary`/`Problem`, narrow `AffectedAreas`, issue link in `Constraints`, minimal `AcceptanceCriteria`; optional thin design-context | Production break/fix with known blast radius |
+| **T1** | Module change | Full `strict_contract` sections; single-package `AffectedAreas` | Normal feature slice in one package |
+| **T2** | Cross-cutting | Full sections + multi-module/`DF-*`/`IC-*` in `AffectedAreas`; integration evidence in `VerificationIntent` | API+UI or multi-crate change |
+| **T3** | Architectural | Full sections + design freeze notes, multi-phase verification intent, explicit non-goals for migration windows | New subsystem, redesign, contract major bump |
+
+Hard rules for tiers:
+- T0 is **not** an ungoverned edit. A `GraceChangeSpec` still exists; only section depth shrinks.
+- Tiers never skip baseline, target, or final assertion gates and never skip user approval of the spec.
+- Mis-classifying an architectural change as T0 is a review failure — see `grace-reviewer`.
+</ceremony_tiers>
 
 <acceptance_criteria_anchors>
 Prefer addressable `AC-*` tags under `AcceptanceCriteria` so `grace-plan` can map them via task `<Satisfies>`:
@@ -34,14 +60,31 @@ Rules:
 - `AC-*` ids are uppercase kebab (`AC-[A-Z0-9]+(?:-[A-Z0-9]+)*`).
 - Each `AC-*` id is unique within the spec and must contain non-empty text.
 - Legacy free-text or `<Criterion>` children remain valid; when no `AC-*` is present, criteria mapping is skipped for backward compatibility.
-- `AffectedAreas` should name real `M-*` / `DF-*` anchors (not prose alone) so plan DurableScope coverage can be validated.
+- `AffectedAreas` should name real `M-*` / `DF-*` / `IC-*` anchors (not prose alone) so plan DurableScope coverage can be validated.
 </acceptance_criteria_anchors>
 
+<design_references>
+Optional `<DesignReferences>` under the `C-*` wrapper links design sources without bloating normative sections:
+
+```xml
+<DesignReferences>
+  <Figma url="https://www.figma.com/design/abc/Dashboard">Dashboard states</Figma>
+  <UserResearch>docs/research/auth-interviews.md</UserResearch>
+</DesignReferences>
+```
+
+Rules:
+- `<Figma url="…">` requires a well-formed **http(s)** URL (relative paths and other schemes are rejected by lint).
+- `<UserResearch>` holds a project-relative path that must stay inside the project root.
+- Only `Figma` and `UserResearch` children are allowed; other tags error.
+- Design references are not requirements; `spec.xml` sections remain the source of truth for `grace-plan`.
+</design_references>
+
 <workflow>
-1. Ask one focused question at a time until goal, scope, constraints, non-goals, acceptance criteria, affected areas, and verification expectations are clear.
+1. Ask one focused question at a time until goal, scope, constraints, non-goals, acceptance criteria, affected areas, verification expectations, and ceremony tier are clear.
 2. Propose a concise design summary and explicit assumptions. Ask for approval before writing an approved spec.
 3. Create a deterministic uppercase-kebab `C-*` change id.
-4. Write `spec.xml` from `references/change-spec-template.xml` with exactly one direct `C-*` wrapper and no empty required section. Prefer `AC-*` acceptance criteria.
+4. Write `spec.xml` from `references/change-spec-template.xml` with exactly one direct `C-*` wrapper and no empty required section. Prefer `AC-*` acceptance criteria. Add `DesignReferences` when Figma or research artifacts exist.
 5. If rationale, alternatives, scenarios, or external constraints would otherwise bloat the spec, write non-normative `design-context.xml` from its template.
 6. If approval is not explicit, leave `spec.xml` as `status="draft"` and report the approval step needed.
 </workflow>

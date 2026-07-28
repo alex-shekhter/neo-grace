@@ -26,14 +26,28 @@ describe("GRACE lifecycle skill contracts", () => {
     const spec = read("skills/grace/grace-spec/SKILL.md");
     const specTemplate = read("skills/grace/grace-spec/references/change-spec-template.xml");
     const plan = read("skills/grace/grace-plan/SKILL.md");
+    const reviewer = read("skills/grace/grace-reviewer/SKILL.md");
 
     for (const section of ["Summary", "Goals", "Constraints", "NonGoals", "AcceptanceCriteria", "AffectedAreas", "VerificationIntent"]) {
       expect(spec).toContain(section);
     }
     expect(spec).toContain("AC-*");
     expect(spec).toContain("<acceptance_criteria_anchors>");
+    // G-19: strict_contract is a numbered table (not a prose paragraph).
+    expect(spec).toContain("<strict_contract>");
+    expect(spec).toMatch(/\| # \| requirement \|/);
+    expect(spec).toContain("<ceremony_tiers>");
+    expect(spec).toContain("**T0**");
+    expect(spec).toContain("**T3**");
+    expect(spec).toContain("--assertions final");
+    expect(spec).toContain("<design_references>");
+    expect(spec).toContain("DesignReferences");
+    expect(spec).toContain("<Figma url=");
+    expect(spec).toContain("UserResearch");
     expect(specTemplate).toContain("<Constraints>");
     expect(specTemplate).toContain("AC-EXAMPLE-CRITERION");
+    expect(specTemplate).toContain("<DesignReferences>");
+    expect(specTemplate).toContain("<Figma url=");
     expect(plan).toContain("<approved_plan_immutability>");
     expect(plan).toContain("Create a new `C-*` bundle");
     expect(plan).toContain("mark the old bundle superseded");
@@ -43,6 +57,15 @@ describe("GRACE lifecycle skill contracts", () => {
     expect(plan).toContain("<spec_plan_traceability>");
     expect(plan).toContain("Satisfies");
     expect(plan).toContain("OutOfPlanScope");
+    // G-19: must_do is a numbered table preserving every requirement.
+    expect(plan).toContain("<must_do>");
+    expect(plan).toMatch(/\| # \| requirement \|/);
+    expect(plan).toContain("Reject unsupported scope glob syntax instead of guessing");
+    expect(plan).toContain("<ceremony_tiers>");
+    expect(plan).toContain("Never invent a \"skip plan\" path");
+    expect(reviewer).toContain("<ceremony_tier_review>");
+    expect(reviewer).toContain("T0 misuse on architectural change");
+    expect(reviewer).toContain("tiers never bypass `--assertions final`");
     const planTemplate = read("skills/grace/grace-plan/references/change-plan-template.xml");
     expect(planTemplate).toContain("<Satisfies>");
     expect(planTemplate).toContain("AC-EXAMPLE-CRITERION");

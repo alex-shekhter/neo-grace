@@ -478,10 +478,14 @@ function validateInvariantsBody(file: string, root: GraceXmlNode): Grace4Issue[]
   return issues;
 }
 
-/** Validates GraceChangeSpec and GraceChangePlan root statuses and C-* wrapper shape. */
+/**
+ * Validates GraceChangeSpec and GraceChangePlan root statuses and C-* wrapper shape.
+ * @param projectRoot When provided, optional DesignReferences paths are checked for project containment (G-18).
+ */
 export function validateChangeArtifact(
   artifact: ParsedGraceXmlArtifact,
   location: "active" | "archive",
+  projectRoot?: string,
 ): ArtifactValidationResult {
   const result = validateParsedArtifact(artifact);
   const root = artifact.root;
@@ -527,6 +531,7 @@ export function validateChangeArtifact(
       );
       validateMeaningfulRequiredSections(artifact.file, wrapper, SPEC_REQUIRED_SECTIONS, result.issues);
       validateSpecAcceptanceCriteria(artifact.file, wrapper, result.issues);
+      validateSpecDesignReferences(artifact.file, wrapper, projectRoot, result.issues);
     } else {
       validateDirectSectionCardinality(
         artifact.file,
@@ -643,8 +648,8 @@ export function validateGrace4Project(root: string): Grace4ValidationResult {
   artifacts.push(...validateRequiredArtifact(paths.verificationIndex, "GraceVerificationIndex"));
   artifacts.push(...validateXmlFilesInDirectory(paths.verificationDir, [paths.verificationIndex], "GraceVerificationDocument"));
   const knownChangeIds = collectChangeBundleIds(paths);
-  artifacts.push(...validateChangeBundlesInDirectory(paths.changesActiveDir, "active", knownChangeIds));
-  artifacts.push(...validateChangeBundlesInDirectory(paths.changesArchiveDir, "archive", knownChangeIds));
+  artifacts.push(...validateChangeBundlesInDirectory(paths.changesActiveDir, "active", knownChangeIds, projectRoot));
+  artifacts.push(...validateChangeBundlesInDirectory(paths.changesArchiveDir, "archive", knownChangeIds, projectRoot));
 
   return {
     root: projectRoot,
@@ -717,6 +722,7 @@ function validateChangeBundlesInDirectory(
   directory: string,
   location: "active" | "archive",
   knownChangeIds: ReadonlySet<string>,
+  projectRoot?: string,
 ): ArtifactValidationResult[] {
   if (!existsSync(directory)) {
     return [];
@@ -743,7 +749,7 @@ function validateChangeBundlesInDirectory(
     const planFile = path.join(entryPath, "plan.xml");
     const designFile = path.join(entryPath, "design-context.xml");
     const specArtifact = readGraceXmlArtifact(specFile);
-    const specResult = validateChangeArtifact(specArtifact, location);
+    const specResult = validateChangeArtifact(specArtifact, location, projectRoot);
     validateReplacementTargetExists(specArtifact, knownChangeIds, specResult.issues);
     const specWrapper = directChangeWrapper(specArtifact.root);
     if (specWrapper && specWrapper.tag !== bundleId) {
@@ -754,7 +760,7 @@ function validateChangeBundlesInDirectory(
     let planArtifact: ParsedGraceXmlArtifact | null = null;
     if (existsSync(planFile)) {
       planArtifact = readGraceXmlArtifact(planFile);
-      const planResult = validateChangeArtifact(planArtifact, location);
+      const planResult = validateChangeArtifact(planArtifact, location, projectRoot);
       validateReplacementTargetExists(planArtifact, knownChangeIds, planResult.issues);
       const planWrapper = directChangeWrapper(planArtifact.root);
       if (planWrapper && planWrapper.tag !== bundleId) {
@@ -1012,6 +1018,116 @@ function validateSpecAcceptanceCriteria(file: string, wrapper: GraceXmlNode, iss
         );
       }
     }
+  }
+}
+
+const DESIGN_REFERENCE_CHILD_TAGS = new Set(["Figma", "UserResearch"]);
+
+/**
+ * Optional DesignReferences under a GraceChangeSpec (G-18).
+ * Zero-or-more children: shape must be explicit (defect 14 / Satisfies lesson).
+ * Figma urls must be well-formed http(s); UserResearch paths must stay inside the project.
+ */
+function validateSpecDesignReferences(
+  file: string,
+  wrapper: GraceXmlNode,
+  projectRoot: string | undefined,
+  issues: Grace4Issue[],
+): void {
+  for (const section of wrapper.children.filter((child) => child.tag === "DesignReferences")) {
+    for (const child of section.children) {
+      if (!DESIGN_REFERENCE_CHILD_TAGS.has(child.tag)) {
+        issues.push(
+          issue(
+            "error",
+            "change.invalid-design-reference-child",
+            file,
+            `<DesignReferences> does not allow child <${child.tag}>; declare <Figma url="..."> or <UserResearch>path</UserResearch>.`,
+          ),
+        );
+        continue;
+      }
+
+      if (child.tag === "Figma") {
+        const url = (child.attributes.url ?? "").trim();
+        if (!url) {
+          issues.push(
+            issue(
+              "error",
+              "change.invalid-figma-url",
+              file,
+              `<Figma> requires a non-empty url attribute with an http(s) URL.`,
+            ),
+          );
+          continue;
+        }
+        if (!isHttpOrHttpsUrl(url)) {
+          issues.push(
+            issue(
+              "error",
+              "change.invalid-figma-url",
+              file,
+              `Figma url ${JSON.stringify(url)} must be a well-formed http or https URL.`,
+            ),
+          );
+        }
+        continue;
+      }
+
+      // UserResearch
+      const authored = child.text.trim();
+      if (!authored) {
+        issues.push(
+          issue(
+            "error",
+            "change.user-research-path-invalid",
+            file,
+            `<UserResearch> requires a non-empty project-relative path.`,
+          ),
+        );
+        continue;
+      }
+      if (!projectRoot) {
+        // validateChangeArtifact is exported with an optional root, so a caller that omits
+        // it must not silently disable the escape check. Fall back to a lexical rejection
+        // of the shapes that can leave the project; full resolution needs the real root.
+        const normalized = authored.replaceAll("\\", "/");
+        if (path.isAbsolute(authored) || normalized.split("/").includes("..")) {
+          issues.push(
+            issue(
+              "error",
+              "change.user-research-path-invalid",
+              file,
+              `UserResearch path ${JSON.stringify(authored)} must be a project-relative path without "..".`,
+            ),
+          );
+        }
+        continue;
+      }
+      try {
+        resolveContainedProjectPath(projectRoot, authored, { mode: "output" });
+      } catch (error) {
+        const detail = error instanceof ProjectPathError ? `${error.code}: ${error.message}` : String(error);
+        issues.push(
+          issue(
+            "error",
+            "change.user-research-path-invalid",
+            file,
+            `UserResearch path ${JSON.stringify(authored)} is not a contained project path: ${detail}`,
+          ),
+        );
+      }
+    }
+  }
+}
+
+/** True when value is an absolute http: or https: URL (rejects relative, javascript:, data:, ftp:). */
+function isHttpOrHttpsUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
   }
 }
 

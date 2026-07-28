@@ -1,0 +1,10 @@
+<GraceInvariants graceVersion="4.0">
+  <INV-IDEMPOTENT-POST>
+    <Statement>Replaying the same posting request must not create a second journal entry.</Statement>
+    <Scope>M-LEDGER-CORE</Scope>
+  </INV-IDEMPOTENT-POST>
+  <INV-NO-PII-IN-LOGS>
+    <Statement>Gateway and core logs must not emit raw account numbers or personal names.</Statement>
+    <Scope>M-API-ROUTER, M-LEDGER-CORE</Scope>
+  </INV-NO-PII-IN-LOGS>
+</GraceInvariants>

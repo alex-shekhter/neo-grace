@@ -4,7 +4,7 @@
 
 This repository ships the GRACE skills plus the optional `grace` CLI. It is a packaging and distribution repository, not an end-user application.
 
-Current packaged version: `4.0.4`
+Current packaged version: `5.0.0`
 
 ## What This Repository Ships
 
@@ -21,12 +21,15 @@ GRACE 4 uses `.grace` as the durable project model:
 
 | Area | Purpose |
 | --- | --- |
-| `.grace/context/*.xml` | Requirements, technology, principles, deployment, and UX constraints |
-| `.grace/graph/index.xml` + routed graph docs | Current graph projection source for `GD-*`, `M-*`, and `DF-*` anchors |
+| `.grace/context/*.xml` | Requirements, technology (optional multi-stack `Stacks`), principles, deployment, and UX constraints |
+| `.grace/context/design-system.xml` | Optional design tokens (`DT-*`), breakpoints (`BP-*`), and a11y standards |
+| `.grace/context/invariants.xml` | Optional cross-cutting invariants (`INV-*`) referenced by `MustUphold` |
+| `.grace/graph/index.xml` + routed graph docs | Current graph projection for `GD-*`, `M-*`, `DF-*`, and `IC-*` anchors |
 | `.grace/verification/index.xml` + routed verification docs | Current verification projection source for deterministic `V-M-*` entries |
-| `.grace/changes/active/C-*` | Active `GraceChangeSpec`, optional design context, and `GraceChangePlan` bundles |
+| `.grace/changes/active/C-*` | Active `GraceChangeSpec` (optional `DesignReferences`), design context, and `GraceChangePlan` |
 | `.grace/changes/archive/C-*` | Applied, rejected, cancelled, or superseded change bundles |
 | Source/test files with GRACE markup | File-local contracts, links, and semantic block anchors |
+| `examples/polyglot/` | Golden-path React + Go + Rust monorepo (CI-linted; see its README) |
 
 GRACE 4 does not dual-validate legacy GRACE 3 project docs as current state. Existing GRACE 3 projects use `$grace-migrate`; the CLI validates the generated `.grace` result but does not convert legacy docs itself.
 

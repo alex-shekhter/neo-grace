@@ -145,6 +145,30 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
       "Or remove the OutOfPlanScope entry and cover the anchor in DurableScope instead.",
     ],
   },
+  "change.invalid-design-reference-child": {
+    title: "Invalid DesignReferences Child",
+    explanation: "Optional DesignReferences under a GraceChangeSpec only accepts <Figma url=\"...\"> and <UserResearch>path</UserResearch>. Other children are dropped silently by free-form XML unless rejected here.",
+    remediation: [
+      "Use <Figma url=\"https://...\">optional label</Figma> for design-file links.",
+      "Use <UserResearch>docs/research/...</UserResearch> for project-relative research paths.",
+    ],
+  },
+  "change.invalid-figma-url": {
+    title: "Invalid Figma URL",
+    explanation: "A <Figma> design reference requires a non-empty url attribute that is a well-formed http or https URL. Relative paths, javascript:, data:, and other schemes are rejected.",
+    remediation: [
+      "Use an absolute https URL such as https://www.figma.com/file/... or https://www.figma.com/design/....",
+      "Put local design docs under <UserResearch>path</UserResearch> instead of Figma.",
+    ],
+  },
+  "change.user-research-path-invalid": {
+    title: "Invalid UserResearch Path",
+    explanation: "A <UserResearch> design reference must be a non-empty path contained inside the project root. Escaping paths (../) and empty values are rejected.",
+    remediation: [
+      "Use a project-relative path such as docs/research/auth-interviews.md.",
+      "Do not use absolute paths outside the project or URL schemes in UserResearch.",
+    ],
+  },
   "assertion.phase-incompatible-command": {
     title: "Phase-Incompatible Assertion Command",
     explanation: "A target command assertion invokes current-mode lifecycle lint. Current mode evaluates active approved baselines, so it is a pre-implementation check and cannot serve as target or final evidence after writes begin.",

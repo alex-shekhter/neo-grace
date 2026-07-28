@@ -1,0 +1,26 @@
+openapi: 3.0.3
+info:
+  title: Ledger Posting API
+  version: 1.2.0
+paths:
+  /postings:
+    post:
+      summary: Post a balanced journal entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Posting"
+      responses:
+        "201":
+          description: Created
+components:
+  schemas:
+    Posting:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: integer
+          format: int64

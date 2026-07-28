@@ -346,7 +346,7 @@ Keep this table current. It is the single source of truth for progress.
 | 6 | Design-system layer | G-06, G-09 | 5.0.0 | `COMPLETE` |
 | 7 | Systems modeling | G-07, G-08, G-14, G-15 | 5.0.0 | `COMPLETE` |
 | 8 | Scale & ergonomics | G-13, G-16, G-22 | 5.0.0 | `COMPLETE` |
-| 9 | Adoption surface & release | G-17, G-18, G-19, G-20 | 5.0.0 | `NOT STARTED` |
+| 9 | Adoption surface & release | G-17, G-18, G-19, G-20 | 5.0.0 | `COMPLETE` |
 
 **Hard sequencing rule:** phases 0→5 are strictly ordered. Phases 6, 7, 8 may be reordered among themselves after 5 lands, but 6 depends on `AC-*` from 5. Phase 9 is last.
 
@@ -2770,7 +2770,7 @@ This command **writes to `.grace/`**, which nothing else in the CLI does. Theref
 
 # PHASE 9 — Adoption surface & release
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Gaps:** G-20 (no example), G-17 (uniform ceremony), G-19 (dense skills), G-18 (design links)
 **Release:** 5.0.0
 
@@ -2837,6 +2837,9 @@ Every code in this table needs a `src/lint/catalog.ts` guide and at least one in
 | `assertion.budget-no-match` | error | 7 | ☑ |
 | `graph.document-too-large` | warning | 8 | ☑ |
 | `verification.document-too-large` | warning | 8 | ☑ |
+| `change.invalid-design-reference-child` | error | 9 | ☑ |
+| `change.invalid-figma-url` | error | 9 | ☑ |
+| `change.user-research-path-invalid` | error | 9 | ☑ |
 
 **Severity policy — apply it consistently:**
 
@@ -2876,6 +2879,14 @@ them as a checklist of four specific bugs.
 | 15 | 8 | The XML serializer escaped every `&`, turning an authored `&#169;` into `&amp;#169;` — silent, permanent corruption of the user's content by `grace graph split --apply` | yes | **0.7.3** — the round-trip test compared one serialization to another, so the bug cancelled out on both sides |
 | 16 | 8 | `grace graph split --apply` wrote each source document as it processed it, so a later failure — including its own "could not extract" guard — left anchors removed from disk with nothing holding them | yes | **0.7.3** — trace the failure path of a mutating command, not just its success path |
 | 17 | 8 | The new-document collision check compared GD-* ids, not files, so a document indexed under a different id at the derived path would be overwritten | yes | **0.7.3** — near-miss of the uniqueness being enforced |
+
+| 18 | 9 | `validate:examples` was added to `validate:ci` but not to `validate:release`, so `prepublishOnly` could publish a release whose shipped golden path was broken — the exact bitrot the job exists to prevent | yes | **0.7.1** — a new gate must be added to *every* pipeline that should enforce it, not the first one |
+| 19 | 9 | `validateChangeArtifact` takes an optional `projectRoot`; omitting it silently disabled the `UserResearch` path-containment check entirely | yes | **0.7.5** — a guard that no-ops on a missing optional parameter is a fail-open guard |
+
+Defect 19 generalizes the fail-open pattern seen in defect 9: **a safety check that
+quietly does nothing under some configuration is worse than no check, because callers
+believe the input was validated.** If a guard cannot do its full job, it must still do
+whatever part it can and say so — never return as if it passed.
 
 Defect 15 is defect 5's lesson in its purest form and the most expensive kind to miss.
 The test asserted `serialize(parse(x)) === serialize(parse(serialize(parse(x))))`. That is
