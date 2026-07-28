@@ -12,6 +12,7 @@ import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "../language-regist
 import { analyzeGovernedFile, collectCodeFiles, hasGraceMarkers, type FileMarkupRecord } from "../project-utils";
 import { withLintIssueGuide } from "./catalog";
 import { loadGraceLintConfig } from "./config";
+import { documentSizeIssues } from "./document-size";
 import type { AnalysisCoverage, AnalysisCoverageEntry, LintIssue, LintOptions, LintProfile, LintResult } from "./types";
 
 const TEXT_FORMAT_OPTIONS = new Set(["text", "json"]);
@@ -378,6 +379,8 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
   }
 
   const governedRecords = validateGovernedFiles(result, root);
+  // Config already validated (and issues emitted) inside validateGovernedFiles; re-read for size limits.
+  const { config } = loadGraceLintConfig(root);
 
   const paths = resolveGrace4Paths(root);
   const validation = validateGrace4Project(root);
@@ -390,6 +393,10 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
   const verification = buildVerificationProjection(paths, graph);
   for (const issue of [...graph.issues, ...verification.issues]) {
     addGrace4Issue(result, issue);
+  }
+
+  for (const issue of documentSizeIssues(graph, verification, config)) {
+    addIssue(result, issue);
   }
 
   validateFileHeaderReferences(result, governedRecords, graph, verification);

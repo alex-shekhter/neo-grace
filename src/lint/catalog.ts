@@ -274,6 +274,58 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
     explanation: "MustPassBudget could not measure a budget because the command exited non-zero.",
     remediation: ["Fix the command so it exits 0 and prints the metric.", "Run with --run-commands only when the harness is ready."],
   },
+  "graph.document-too-large": {
+    title: "Graph Document Too Large",
+    explanation:
+      "A GD-* graph document exceeds the configured anchor or byte limit. Large documents burn context when agents open them for one module question.",
+    remediation: [
+      "Split by service or package path with `grace graph split --by <path-prefix> --apply`.",
+      "Raise limits only deliberately via .grace-lint.json documentAnchorLimit / documentByteLimit.",
+    ],
+  },
+  "verification.document-too-large": {
+    title: "Verification Document Too Large",
+    explanation: "A VD-* verification document exceeds the configured anchor or byte limit.",
+    remediation: [
+      "Segment verification by service or module cluster into additional VD-* documents.",
+      "Keep index Owns routes in sync after the split.",
+    ],
+  },
+  "config.invalid-document-limit": {
+    title: "Invalid Document Size Limit",
+    explanation: "documentAnchorLimit and documentByteLimit must be positive integers.",
+    remediation: ["Use whole numbers, e.g. { \"documentAnchorLimit\": 50, \"documentByteLimit\": 30720 }."],
+  },
+  "context.technology.invalid-stack": {
+    title: "Invalid Technology Stack Child",
+    explanation: "<Stacks> only allows Stack-* anchors; other children are rejected so typos cannot vanish silently.",
+    remediation: ["Use <Stack-WEB>, <Stack-API>, … with a <Root> path each."],
+  },
+  "context.technology.stack-missing-root": {
+    title: "Technology Stack Missing Root",
+    explanation: "Each Stack-* requires exactly one non-empty <Root>.",
+    remediation: ["Add <Root>apps/web</Root> (or the stack's package root)."],
+  },
+  "context.technology.stack-root-missing": {
+    title: "Technology Stack Root Missing On Disk",
+    explanation: "Stack Root must exist inside the project.",
+    remediation: ["Create the directory or correct the path."],
+  },
+  "context.technology.invalid-stack-root": {
+    title: "Technology Stack Root Escapes Project",
+    explanation: "Stack Root must be a contained project-relative path.",
+    remediation: ["Remove .. and absolute paths; point Root inside the repository."],
+  },
+  "context.technology.duplicate-stack": {
+    title: "Duplicate Technology Stack",
+    explanation: "The same Stack-* id appears more than once under Stacks.",
+    remediation: ["Keep each Stack-* unique."],
+  },
+  "context.technology.duplicate-stacks": {
+    title: "Duplicate Stacks Section",
+    explanation: "GraceTechnology may contain at most one <Stacks> element.",
+    remediation: ["Merge stack declarations under a single <Stacks>."],
+  },
 };
 
 const PREFIX_GUIDES: Array<{ prefix: string; title: string; explanation: string; remediation: string[] }> = [

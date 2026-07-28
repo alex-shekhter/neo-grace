@@ -176,6 +176,10 @@ Common anchors:
 - `ST-*` UI states on `UI_COMPONENT` modules (covered by verification Scenario / AccessibilityCheck / VisualCheck)
 - `IC-*` interface contracts (Schema, Version, Provider/Consumer, BreakingChangePolicy) in graph documents
 - `INV-*` cross-cutting invariants (optional `invariants.xml`)
+- `Stack-*` technology stacks under optional `GraceTechnology/Stacks` (multi-root monorepos)
+
+CLI helpers for scale: `grace doctor` (read-only coverage / size pressure) and
+`grace graph split --by <path-prefix>` (dry-run by default; `--apply` to write).
 
 When a spec declares `AC-*` criteria, each id should be referenced by a task
 `<Satisfies>` element. Plan `DurableScope` must cover every `M-*` / `DF-*` in the

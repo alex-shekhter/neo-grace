@@ -2,7 +2,9 @@
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 
+import { doctorCommand } from "./grace-doctor";
 import { fileCommand } from "./grace-file";
+import { graphCommand } from "./grace-graph";
 import { lintCommand } from "./grace-lint";
 import { moduleCommand } from "./grace-module";
 import { statusCommand } from "./grace-status";
@@ -15,7 +17,9 @@ const main = defineCommand({
     description: "GRACE 4 CLI for .grace linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation.",
   },
   subCommands: {
+    doctor: doctorCommand,
     file: fileCommand,
+    graph: graphCommand,
     lint: lintCommand,
     module: moduleCommand,
     status: statusCommand,

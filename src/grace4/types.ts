@@ -82,6 +82,8 @@ export const ANCHOR_PATTERNS = {
   designToken: /^DT-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   breakpoint: /^BP-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   uiState: /^ST-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
+  /** Technology stack ids under GraceTechnology/Stacks (e.g. Stack-WEB). */
+  technologyStack: /^Stack-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
 } as const;
 
 /** Breaking-change policies allowed on IC-* interface contracts. */
@@ -117,7 +119,8 @@ export type SemanticAnchorFamily =
   | "acceptance-criterion"
   | "design-token"
   | "breakpoint"
-  | "ui-state";
+  | "ui-state"
+  | "technology-stack";
 
 /** Result of classifying any XML tag that resembles a semantic anchor. */
 export type SemanticAnchorClassification =

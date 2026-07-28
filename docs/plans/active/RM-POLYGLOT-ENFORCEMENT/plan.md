@@ -345,7 +345,7 @@ Keep this table current. It is the single source of truth for progress.
 | 5 | Spec→plan traceability (`AC-*`) | G-05 | 4.2.0 | `COMPLETE` |
 | 6 | Design-system layer | G-06, G-09 | 5.0.0 | `COMPLETE` |
 | 7 | Systems modeling | G-07, G-08, G-14, G-15 | 5.0.0 | `COMPLETE` |
-| 8 | Scale & ergonomics | G-13, G-16, G-22 | 5.0.0 | `NOT STARTED` |
+| 8 | Scale & ergonomics | G-13, G-16, G-22 | 5.0.0 | `COMPLETE` |
 | 9 | Adoption surface & release | G-17, G-18, G-19, G-20 | 5.0.0 | `NOT STARTED` |
 
 **Hard sequencing rule:** phases 0→5 are strictly ordered. Phases 6, 7, 8 may be reordered among themselves after 5 lands, but 6 depends on `AC-*` from 5. Phase 9 is last.
@@ -2737,7 +2737,7 @@ Unit tests per validator and assertion. Integration must include, at minimum:
 
 # PHASE 8 — Scale & ergonomics
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Gaps:** G-16 (segmentation), G-13 (single-stack technology), G-22 (no repair path)
 **Release:** 5.0.0
 
@@ -2835,8 +2835,8 @@ Every code in this table needs a `src/lint/catalog.ts` guide and at least one in
 | `projection.graph.invalid-data-flow-step` | error | 7 | ☑ |
 | `context.invariants.*` (family) | error | 7 | ☑ |
 | `assertion.budget-no-match` | error | 7 | ☑ |
-| `graph.document-too-large` | warning | 8 | ☐ |
-| `verification.document-too-large` | warning | 8 | ☐ |
+| `graph.document-too-large` | warning | 8 | ☑ |
+| `verification.document-too-large` | warning | 8 | ☑ |
 
 **Severity policy — apply it consistently:**
 
@@ -2872,6 +2872,23 @@ them as a checklist of four specific bugs.
 | 12 | 7 | `IC-*` was wired into `DurableScope`, drift routing and dangling-link checks, but not into Phase 5's spec→plan coverage — so a plan could silently ignore an `IC-*` its spec named, while the same omission of an `M-*` errored | yes | **0.7.3** — run the *earlier phases'* checks against the new phase's anchors |
 | 13 | 7 | `MustPassBudget` tested for a capture group with `indexOf("(")`, so `(?:…)` and `(?=…)` passed; the failure then surfaced as `budget-no-match`, blaming the command for an `Extract` mistake | yes | **0.7.3** — near-misses of the construct being detected |
 | 14 | 7 | A non-anchor child of `<Provider>`/`<Consumer>` was silently dropped; because `Consumer` is zero-or-more, no count check could catch it | yes | **0.7.5** — the `<Satisfies>` lesson (defect 7) recurring in a new section |
+
+| 15 | 8 | The XML serializer escaped every `&`, turning an authored `&#169;` into `&amp;#169;` — silent, permanent corruption of the user's content by `grace graph split --apply` | yes | **0.7.3** — the round-trip test compared one serialization to another, so the bug cancelled out on both sides |
+| 16 | 8 | `grace graph split --apply` wrote each source document as it processed it, so a later failure — including its own "could not extract" guard — left anchors removed from disk with nothing holding them | yes | **0.7.3** — trace the failure path of a mutating command, not just its success path |
+| 17 | 8 | The new-document collision check compared GD-* ids, not files, so a document indexed under a different id at the derived path would be overwritten | yes | **0.7.3** — near-miss of the uniqueness being enforced |
+
+Defect 15 is defect 5's lesson in its purest form and the most expensive kind to miss.
+The test asserted `serialize(parse(x)) === serialize(parse(serialize(parse(x))))`. That is
+a **stability** property, and a serializer that corrupts input satisfies it perfectly — the
+corruption is stable. Fidelity means comparing against the **authored source text**. When
+a test compares a function's output to another call of the same function, it cannot see a
+bug in that function.
+
+Defect 16 raises a rule for any phase that writes to a user's files: **compute everything,
+validate everything, then write.** A command that writes incrementally converts every
+later error — including its own guards — into partial, unrecoverable state. `grace graph
+split` is the only command in the CLI that mutates `.grace/`, which is exactly why it
+deserved the most careful failure-path review and got the least.
 
 Defect 12 names an audit gap worth adding to §0.7.3 explicitly: **when a phase introduces a
 new anchor family, re-run every earlier phase's cross-artifact check against it.** Each

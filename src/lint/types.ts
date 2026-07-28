@@ -64,7 +64,15 @@ export type GraceLintConfig = {
   ignoredDirs?: string[];
   /** Extensions that deliberately skip analysis.no-adapter, e.g. [".rs", ".go"]. */
   unverifiedLanguages?: string[];
+  /** Max anchors per graph/verification document before warning (default 50). */
+  documentAnchorLimit?: number;
+  /** Max bytes per graph/verification document before warning (default 30720 = 30 KB). */
+  documentByteLimit?: number;
 };
+
+/** Defaults for document-size pressure warnings (Phase 8 / G-16). */
+export const DEFAULT_DOCUMENT_ANCHOR_LIMIT = 50;
+export const DEFAULT_DOCUMENT_BYTE_LIMIT = 30 * 1024;
 
 export type MarkupSection = {
   content: string;

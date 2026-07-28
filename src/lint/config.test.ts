@@ -32,12 +32,29 @@ describe("loadGraceLintConfig", () => {
     expect(issues.map((issue) => issue.code)).toContain("config.invalid-unverified-languages");
   });
 
-  it("names both supported keys on unknown-key", () => {
+  it("names supported keys on unknown-key", () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "grace-lint-cfg-"));
     writeConfig(root, JSON.stringify({ nope: 1 }));
     const { issues } = loadGraceLintConfig(root);
     expect(issues.map((issue) => issue.code)).toContain("config.unknown-key");
     expect(issues[0]?.message).toContain("ignoredDirs");
     expect(issues[0]?.message).toContain("unverifiedLanguages");
+    expect(issues[0]?.message).toContain("documentAnchorLimit");
+  });
+
+  it("accepts document size limit keys", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-lint-cfg-"));
+    writeConfig(root, JSON.stringify({ documentAnchorLimit: 10, documentByteLimit: 4096 }));
+    const { config, issues } = loadGraceLintConfig(root);
+    expect(issues).toEqual([]);
+    expect(config?.documentAnchorLimit).toBe(10);
+    expect(config?.documentByteLimit).toBe(4096);
+  });
+
+  it("rejects non-positive document limits", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-lint-cfg-"));
+    writeConfig(root, JSON.stringify({ documentAnchorLimit: 0 }));
+    const { issues } = loadGraceLintConfig(root);
+    expect(issues.map((issue) => issue.code)).toContain("config.invalid-document-limit");
   });
 });

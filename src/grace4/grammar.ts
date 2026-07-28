@@ -87,6 +87,8 @@ const ANCHOR_FAMILIES: readonly {
   { family: "design-token", prefix: "DT-", pattern: ANCHOR_PATTERNS.designToken },
   { family: "breakpoint", prefix: "BP-", pattern: ANCHOR_PATTERNS.breakpoint },
   { family: "ui-state", prefix: "ST-", pattern: ANCHOR_PATTERNS.uiState },
+  // Stack-* before shorter prefixes; must not be confused with ST-*.
+  { family: "technology-stack", prefix: "Stack-", pattern: ANCHOR_PATTERNS.technologyStack },
   { family: "interface-contract", prefix: "IC-", pattern: ANCHOR_PATTERNS.interfaceContract },
   { family: "graph-document", prefix: "GD-", pattern: ANCHOR_PATTERNS.graphDocument },
   { family: "verification-document", prefix: "VD-", pattern: ANCHOR_PATTERNS.verificationDocument },
@@ -269,6 +271,9 @@ export function validateContextArtifacts(paths: Grace4ProjectPaths): ArtifactVal
       result.issues.push(...validateContextContent(artifact.file, artifact.root));
       if (artifact.root.tag === "GraceDeployment" || artifact.root.tag === "GraceUXGuidelines") {
         result.issues.push(...validateOptionalContextApplicability(artifact.file, artifact.root));
+      }
+      if (artifact.root.tag === "GraceTechnology") {
+        result.issues.push(...validateTechnologyStacks(artifact.file, artifact.root, paths.root));
       }
     }
 
@@ -1430,6 +1435,88 @@ function validateContextContent(file: string, root: GraceXmlNode): Grace4Issue[]
   return meaningful
     ? []
     : [issue("error", "context.empty-artifact", file, `${root.tag} must contain meaningful project context.`)];
+}
+
+/**
+ * Optional multi-stack form under GraceTechnology.
+ * Flat Language/Runtime/Framework/TestingStack remains valid without Stacks.
+ * When Stacks is present, each Stack-* requires a contained existing <Root>.
+ * Non-anchor children of Stacks are rejected (zero-or-more list — shape check explicit; defect 14).
+ */
+function validateTechnologyStacks(file: string, root: GraceXmlNode, projectRoot: string): Grace4Issue[] {
+  const issues: Grace4Issue[] = [];
+  const stacksSections = root.children.filter((child) => child.tag === "Stacks");
+  if (stacksSections.length === 0) {
+    return issues;
+  }
+  if (stacksSections.length > 1) {
+    issues.push(issue("error", "context.technology.duplicate-stacks", file, "GraceTechnology may contain at most one <Stacks> section."));
+  }
+
+  const seenStacks = new Set<string>();
+  for (const stacks of stacksSections) {
+    for (const child of stacks.children) {
+      if (!ANCHOR_PATTERNS.technologyStack.test(child.tag)) {
+        issues.push(
+          issue(
+            "error",
+            "context.technology.invalid-stack",
+            file,
+            `<Stacks> does not allow child <${child.tag}>; declare Stack-* anchors (e.g. Stack-WEB).`,
+          ),
+        );
+        continue;
+      }
+      if (seenStacks.has(child.tag)) {
+        issues.push(issue("error", "context.technology.duplicate-stack", file, `${child.tag} is declared more than once.`));
+      } else {
+        seenStacks.add(child.tag);
+      }
+
+      const roots = child.children.filter((node) => node.tag === "Root");
+      if (roots.length !== 1) {
+        issues.push(
+          issue(
+            "error",
+            "context.technology.stack-missing-root",
+            file,
+            `${child.tag} requires exactly one <Root> path (found ${roots.length}).`,
+          ),
+        );
+        continue;
+      }
+      const authored = roots[0]!.text.trim();
+      if (!authored) {
+        issues.push(issue("error", "context.technology.stack-missing-root", file, `${child.tag} <Root> must not be empty.`));
+        continue;
+      }
+      try {
+        const resolved = resolveContainedProjectPath(projectRoot, authored, { mode: "output" });
+        if (!existsSync(resolved.absolutePath)) {
+          issues.push(
+            issue(
+              "error",
+              "context.technology.stack-root-missing",
+              file,
+              `${child.tag} Root ${JSON.stringify(authored)} does not exist inside the project.`,
+            ),
+          );
+        }
+      } catch (error) {
+        const detail = error instanceof ProjectPathError ? `${error.code}: ${error.message}` : String(error);
+        issues.push(
+          issue(
+            "error",
+            "context.technology.invalid-stack-root",
+            file,
+            `${child.tag} Root ${JSON.stringify(authored)} is not a contained project path: ${detail}`,
+          ),
+        );
+      }
+    }
+  }
+
+  return issues;
 }
 
 function designContextChangeId(root: GraceXmlNode): string | undefined {

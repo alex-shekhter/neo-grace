@@ -83,6 +83,8 @@ describe("GRACE 4 semantic anchor patterns", () => {
     expect(ANCHOR_PATTERNS.designToken.test("DT-COLOR-ACCENT")).toBe(true);
     expect(ANCHOR_PATTERNS.breakpoint.test("BP-MOBILE")).toBe(true);
     expect(ANCHOR_PATTERNS.uiState.test("ST-FOCUS-VISIBLE")).toBe(true);
+    expect(ANCHOR_PATTERNS.technologyStack.test("Stack-WEB")).toBe(true);
+    expect(ANCHOR_PATTERNS.technologyStack.test("ST-WEB")).toBe(false);
   });
 
   it("rejects lowercase anchors and attribute-style identifiers", () => {
@@ -100,6 +102,7 @@ describe("GRACE 4 semantic anchor patterns", () => {
       designToken: ["dt-color", "DT-color", "DT_COLOR", "tokenId", "id"],
       breakpoint: ["bp-mobile", "BP-mobile", "BP_MOBILE", "breakpointId", "id"],
       uiState: ["st-default", "ST-default", "ST_DEFAULT", "stateId", "id"],
+      technologyStack: ["stack-web", "Stack-web", "Stack_WEB", "stackId", "id"],
     } as const;
 
     for (const [patternName, invalidValues] of Object.entries(invalidByPattern)) {

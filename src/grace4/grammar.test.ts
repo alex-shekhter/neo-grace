@@ -182,11 +182,11 @@ describe("GRACE 4 Artifact Grammar", () => {
   it("rejects malformed semantic-anchor tags across every anchor family", () => {
     const artifact = parseGraceXmlArtifact(
       "anchors.xml",
-      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-bad /><GD-bad /><VD-bad /><C-bad /><V-M-bad /><DF-bad /><IC-bad /><INV-bad /><T-bad /><AC-bad /><DT-bad /><BP-bad /><ST-bad /></GD-MAIN></GraceGraphDocument>`,
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-bad /><GD-bad /><VD-bad /><C-bad /><V-M-bad /><DF-bad /><IC-bad /><INV-bad /><T-bad /><AC-bad /><DT-bad /><BP-bad /><ST-bad /><Stack-bad /></GD-MAIN></GraceGraphDocument>`,
     );
 
     const resultCodes = codes({ issues: validateSemanticAnchorDiscipline("anchors.xml", artifact.root!) });
-    expect(resultCodes.filter((code) => code === "artifact.malformed-semantic-anchor")).toHaveLength(13);
+    expect(resultCodes.filter((code) => code === "artifact.malformed-semantic-anchor")).toHaveLength(14);
   });
 
   it("rejects attributes on canonical anchors and anchor-like attribute names or values", () => {

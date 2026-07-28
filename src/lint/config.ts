@@ -4,7 +4,12 @@ import path from "node:path";
 import type { GraceLintConfig, LintIssue } from "./types";
 
 const CONFIG_FILE_NAME = ".grace-lint.json";
-const SUPPORTED_KEYS = new Set(["ignoredDirs", "unverifiedLanguages"]);
+const SUPPORTED_KEYS = new Set([
+  "ignoredDirs",
+  "unverifiedLanguages",
+  "documentAnchorLimit",
+  "documentByteLimit",
+]);
 
 export function loadGraceLintConfig(projectRoot: string): { config: GraceLintConfig | null; issues: LintIssue[] } {
   const configPath = path.join(projectRoot, CONFIG_FILE_NAME);
@@ -35,7 +40,7 @@ export function loadGraceLintConfig(projectRoot: string): { config: GraceLintCon
         severity: "error",
         code: "config.unknown-key",
         file: CONFIG_FILE_NAME,
-        message: `Unsupported key \`${key}\` in ${CONFIG_FILE_NAME}. Supported keys: ignoredDirs, unverifiedLanguages.`,
+        message: `Unsupported key \`${key}\` in ${CONFIG_FILE_NAME}. Supported keys: ignoredDirs, unverifiedLanguages, documentAnchorLimit, documentByteLimit.`,
       });
     }
 
@@ -58,6 +63,19 @@ export function loadGraceLintConfig(projectRoot: string): { config: GraceLintCon
           code: "config.invalid-unverified-languages",
           file: CONFIG_FILE_NAME,
           message: "`unverifiedLanguages` must be an array of file extensions beginning with a dot, e.g. [\".rs\", \".go\"].",
+        });
+      }
+    }
+
+    for (const key of ["documentAnchorLimit", "documentByteLimit"] as const) {
+      const value = parsed[key];
+      if (value === undefined) continue;
+      if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+        issues.push({
+          severity: "error",
+          code: "config.invalid-document-limit",
+          file: CONFIG_FILE_NAME,
+          message: `\`${key}\` must be a positive integer.`,
         });
       }
     }

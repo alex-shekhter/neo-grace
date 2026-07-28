@@ -184,6 +184,36 @@ Optional context artifact (absence is not an error):
 
 Assert with `MustUphold` (`Invariant`, `Module`). Performance thresholds use `MustPassBudget` (`Command`, `Metric`, `Operator` lt|lte|gt|gte, `Threshold`, `Unit`, optional `Extract` regex with one capture group). Budget checks require `--run-commands`.
 
+## Document size and segmentation
+
+When a `GD-*` or `VD-*` document grows past ~50 anchors or ~30 KB, `grace lint`
+emits `graph.document-too-large` / `verification.document-too-large` **warnings**
+(limits configurable in `.grace-lint.json` as `documentAnchorLimit` /
+`documentByteLimit`). Split graph modules by path prefix:
+
+```bash
+grace graph split --by services/api          # dry-run plan
+grace graph split --by services/api --apply  # write (refuses dirty git without --allow-dirty)
+```
+
+`grace doctor` reports adapter coverage, document-size pressure, and missing
+optional context artifacts without writing anything.
+
+## Multi-stack technology
+
+Optional form in `technology.xml` (flat `Language`/`Runtime` still valid):
+
+```xml
+<GraceTechnology graceVersion="4.0">
+  <Stacks>
+    <Stack-WEB><Language>TypeScript</Language><Root>apps/web</Root></Stack-WEB>
+    <Stack-API><Language>Go</Language><Root>services/api</Root></Stack-API>
+  </Stacks>
+</GraceTechnology>
+```
+
+Each `Stack-*` requires a project-contained existing `<Root>`.
+
 ## Verification References
 
 The `.grace/verification/` directory provides matching V-M-* entries. The verification reference is mechanically derivable from the module ID by replacing the leading `M-` with `V-M-`.
