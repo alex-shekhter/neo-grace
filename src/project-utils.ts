@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { ANCHOR_PATTERNS } from "./grace4/types";
-import { ADAPTER_BACKED_EXTENSIONS, CODE_EXTENSIONS, LANGUAGE_ADAPTERS } from "./language-registry";
+import { ADAPTER_BACKED_EXTENSIONS, isGovernedCodeExtension, LANGUAGE_ADAPTERS } from "./language-registry";
 import { emissionPatternsFor } from "./lint/emission-patterns";
 import { LanguageRuntimeMissingError, type LanguageAnalysis, type LintIssue, type MapMode, type ModuleRole } from "./lint/types";
 
@@ -195,7 +195,13 @@ export function hasRuntimeMarkerEvidence(
   });
 }
 
-export function collectCodeFiles(root: string, ignoredDirs: string[], currentDir = root): string[] {
+export function collectCodeFiles(
+  root: string,
+  ignoredDirs: string[],
+  currentDir = root,
+  /** Project-declared extra extensions from `.grace-lint.json` `codeExtensions`. */
+  projectExtensions?: readonly string[],
+): string[] {
   const files: string[] = [];
   const ignoredDirSet = new Set([...DEFAULT_IGNORED_DIRS, ...ignoredDirs]);
   const entries = readdirSync(currentDir, { withFileTypes: true });
@@ -206,7 +212,7 @@ export function collectCodeFiles(root: string, ignoredDirs: string[], currentDir
         continue;
       }
 
-      files.push(...collectCodeFiles(root, ignoredDirs, path.join(currentDir, entry.name)));
+      files.push(...collectCodeFiles(root, ignoredDirs, path.join(currentDir, entry.name), projectExtensions));
       continue;
     }
 
@@ -215,7 +221,7 @@ export function collectCodeFiles(root: string, ignoredDirs: string[], currentDir
     }
 
     const filePath = path.join(currentDir, entry.name);
-    if (CODE_EXTENSIONS.has(path.extname(filePath))) {
+    if (isGovernedCodeExtension(path.extname(filePath), projectExtensions)) {
       files.push(filePath);
     }
   }
@@ -269,6 +275,8 @@ export function parseGovernedFile(root: string, filePath: string, text: string):
 /** Options for analyzeGovernedFile; optional so existing 3-arg callers stay valid. */
 export type GovernedFileAnalysisOptions = {
   unverifiedLanguages?: readonly string[];
+  /** Project-declared extra extensions from `.grace-lint.json` `codeExtensions`. */
+  codeExtensions?: readonly string[];
 };
 
 /** Validates structural markup, module-map semantics, and adapter-backed language analysis. */
@@ -330,7 +338,7 @@ export function analyzeGovernedFile(
   if (!adapter) {
     const claimsParity = effectiveMapMode === "EXPORTS" || effectiveMapMode === "LOCALS";
     const acknowledged = new Set(options.unverifiedLanguages ?? []).has(extension);
-    if (claimsParity && CODE_EXTENSIONS.has(extension) && !acknowledged) {
+    if (claimsParity && isGovernedCodeExtension(extension, options.codeExtensions) && !acknowledged) {
       issues.push(markupIssue(
         "warning",
         "analysis.no-adapter",

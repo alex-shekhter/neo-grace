@@ -64,6 +64,13 @@ export type GraceLintConfig = {
   ignoredDirs?: string[];
   /** Extensions that deliberately skip analysis.no-adapter, e.g. [".rs", ".go"]. */
   unverifiedLanguages?: string[];
+  /**
+   * Additional extensions GRACE should govern, e.g. [".ex", ".exs"] for a language with
+   * no built-in adapter. Additive to the built-in set; it cannot remove governance.
+   * Governed-without-adapter files still emit `analysis.no-adapter` unless the extension
+   * also appears in `unverifiedLanguages`.
+   */
+  codeExtensions?: string[];
   /** Max anchors per graph/verification document before warning (default 50). */
   documentAnchorLimit?: number;
   /** Max bytes per graph/verification document before warning (default 30720 = 30 KB). */

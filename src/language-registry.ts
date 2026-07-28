@@ -26,14 +26,6 @@ export const CODE_EXTENSIONS: ReadonlySet<string> = new Set([
   ".dart",
 ]);
 
-/** Extensions with a registered language adapter and export/local analysis support. */
-export const ADAPTER_BACKED_EXTENSIONS: ReadonlySet<string> = new Set([
-  ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts",
-  ".py", ".pyi", ".dart",
-  ".go",
-  ".rs",
-]);
-
 /**
  * Language adapters registered with the linter, in order.
  * The first adapter whose supports() returns true for a given file is used.
@@ -46,3 +38,34 @@ export const LANGUAGE_ADAPTERS: readonly LanguageAdapter[] = [
   createGoAdapter(),
   createRustAdapter(),
 ];
+
+/**
+ * Extensions with a registered language adapter and export/local analysis support.
+ *
+ * Derived by asking the adapters, never hand-maintained: a second list that must agree
+ * with the first is a list that eventually won't, and `grace doctor` reports from this
+ * one — drift here would make the honesty surface itself dishonest.
+ */
+export const ADAPTER_BACKED_EXTENSIONS: ReadonlySet<string> = new Set(
+  [...CODE_EXTENSIONS].filter((extension) => LANGUAGE_ADAPTERS.some((adapter) => adapter.supports(`probe${extension}`))),
+);
+
+/**
+ * True when GRACE governs files with this extension. Projects extend the built-in set
+ * through `codeExtensions` in `.grace-lint.json`; extension is additive, so a project
+ * can add a language but never silently drop governance for one.
+ */
+export function isGovernedCodeExtension(extension: string, projectExtensions?: Iterable<string>): boolean {
+  if (CODE_EXTENSIONS.has(extension)) {
+    return true;
+  }
+  if (!projectExtensions) {
+    return false;
+  }
+  for (const candidate of projectExtensions) {
+    if (candidate === extension) {
+      return true;
+    }
+  }
+  return false;
+}

@@ -46,7 +46,7 @@ function loadGovernedFiles(root: string) {
   }
 
   const files: FileMarkupRecord[] = [];
-  for (const filePath of collectCodeFiles(root, config?.ignoredDirs ?? [])) {
+  for (const filePath of collectCodeFiles(root, config?.ignoredDirs ?? [], root, config?.codeExtensions)) {
     const text = readFileSync(filePath, "utf8");
     if (hasGraceMarkers(text)) {
       files.push(parseGovernedFile(root, filePath, text));

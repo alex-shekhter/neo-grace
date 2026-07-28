@@ -58,6 +58,14 @@ TypeScript/JavaScript semantic analysis is bundled and compiler-backed. Governed
 
 **`CODE_EXTENSIONS` is a file-discovery list, not a support matrix.** A file's extension appearing there means GRACE will find and govern the file — not that GRACE can verify its `MODULE_MAP`. Languages without an export adapter emit `analysis.no-adapter` when `MAP_MODE` claims EXPORTS/LOCALS parity; acknowledge deliberately with `.grace-lint.json` `{ "unverifiedLanguages": [".rs", ".go"] }`.
 
+**Governing a language GRACE does not ship.** Declare its extensions in `.grace-lint.json` — no fork required:
+
+```json
+{ "codeExtensions": [".ex", ".exs"], "unverifiedLanguages": [".ex", ".exs"] }
+```
+
+`codeExtensions` is additive to the built-in set, so it can add governance for a language but never remove it for another. Those files then get module contracts, `LINKS:`, semantic blocks, health, and drift detection. Export verification still requires an adapter, which is why the second key is there: it acknowledges that `MODULE_MAP` parity is unverified for those files rather than pretending it was checked. Run `grace doctor` to see which of your languages are adapter-backed.
+
 ## Install
 
 **The CLI is required, not optional.** Install the skills first, then the CLI — both are needed for a working GRACE setup.

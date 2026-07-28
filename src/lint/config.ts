@@ -7,6 +7,7 @@ const CONFIG_FILE_NAME = ".grace-lint.json";
 const SUPPORTED_KEYS = new Set([
   "ignoredDirs",
   "unverifiedLanguages",
+  "codeExtensions",
   "documentAnchorLimit",
   "documentByteLimit",
 ]);
@@ -40,7 +41,7 @@ export function loadGraceLintConfig(projectRoot: string): { config: GraceLintCon
         severity: "error",
         code: "config.unknown-key",
         file: CONFIG_FILE_NAME,
-        message: `Unsupported key \`${key}\` in ${CONFIG_FILE_NAME}. Supported keys: ignoredDirs, unverifiedLanguages, documentAnchorLimit, documentByteLimit.`,
+        message: `Unsupported key \`${key}\` in ${CONFIG_FILE_NAME}. Supported keys: ignoredDirs, unverifiedLanguages, codeExtensions, documentAnchorLimit, documentByteLimit.`,
       });
     }
 
@@ -63,6 +64,22 @@ export function loadGraceLintConfig(projectRoot: string): { config: GraceLintCon
           code: "config.invalid-unverified-languages",
           file: CONFIG_FILE_NAME,
           message: "`unverifiedLanguages` must be an array of file extensions beginning with a dot, e.g. [\".rs\", \".go\"].",
+        });
+      }
+    }
+
+    if (parsed.codeExtensions !== undefined) {
+      const invalid = !Array.isArray(parsed.codeExtensions)
+        || parsed.codeExtensions.some(
+          (value) => typeof value !== "string"
+            || !/^\.[a-z0-9][a-z0-9.+-]*$/.test(value),
+        );
+      if (invalid) {
+        issues.push({
+          severity: "error",
+          code: "config.invalid-code-extensions",
+          file: CONFIG_FILE_NAME,
+          message: "`codeExtensions` must be an array of lowercase file extensions beginning with a dot, e.g. [\".ex\", \".exs\"].",
         });
       }
     }

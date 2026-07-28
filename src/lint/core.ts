@@ -93,7 +93,7 @@ function validateGovernedFiles(result: LintResult, root: string): FileMarkupReco
     return records;
   }
 
-  const files = collectCodeFiles(root, [".grace", ...(config?.ignoredDirs ?? [])]);
+  const files = collectCodeFiles(root, [".grace", ...(config?.ignoredDirs ?? [])], root, config?.codeExtensions);
   result.filesChecked = files.length;
   const adapterBackedCounts = new Map<string, number>();
   const unverifiedCounts = new Map<string, number>();
@@ -113,6 +113,7 @@ function validateGovernedFiles(result: LintResult, root: string): FileMarkupReco
 
     const analysis = analyzeGovernedFile(root, file, text, {
       unverifiedLanguages: config?.unverifiedLanguages,
+      codeExtensions: config?.codeExtensions,
     });
     records.push(analysis.record);
     for (const issue of analysis.issues) {
