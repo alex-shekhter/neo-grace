@@ -40,7 +40,7 @@ import {
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
-const PACKAGE_NAME = "neo-grace";
+const PACKAGE_NAME = "@neograce/cli";
 const CAPTURE_MAX_BUFFER = 128 * 1024 * 1024;
 const RELEASE_TYPES = new Set(["major", "minor", "patch", "premajor", "preminor", "prepatch", "prerelease"]);
 const SEMVER_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;

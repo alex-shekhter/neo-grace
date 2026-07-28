@@ -9,7 +9,7 @@ walkthrough is organised around what *you* do and decide.
 **Prerequisites:** [Bun](https://bun.sh) installed, and this repository cloned.
 
 ```bash
-bun add -g neo-grace    # or, from a clone of this repo, replace
+bun add -g @neograce/cli    # or, from a clone of this repo, replace
                                # `grace` below with `bun run ./src/grace.ts`
 cd <this repo>
 ```

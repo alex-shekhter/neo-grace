@@ -1,5 +1,5 @@
 {
-  "name": "neo-grace",
+  "name": "@neograce/cli",
   "version": "5.0.0",
   "description": "GRACE 4 CLI for .grace linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation with a Bun-powered grace binary.",
   "license": "MIT",

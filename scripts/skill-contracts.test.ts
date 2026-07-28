@@ -109,7 +109,7 @@ describe("GRACE lifecycle skill contracts", () => {
 
     expect(init).toContain("<cli_precondition>");
     expect(init).toContain("ngrace --version");
-    expect(init).toContain("bun add -g neo-grace");
+    expect(init).toContain("bun add -g @neograce/cli");
     expect(init).toContain("refuse to initialize");
     expect(init).toContain("Create no");
 

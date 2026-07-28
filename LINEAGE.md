@@ -61,7 +61,7 @@ side without one silently shadowing the other. That follows the Vim/Neovim prece
 fork that expects to coexist takes a distinct command name rather than fighting over the
 parent's.
 
-The npm package is `neo-grace`. The methodology it implements is still called GRACE.
+The npm package is `@neograce/cli`. The methodology it implements is still called GRACE.
 
 ## Licence
 

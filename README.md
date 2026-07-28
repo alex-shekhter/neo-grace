@@ -105,7 +105,7 @@ Requires `bun` on `PATH`. GRACE skills invoke the installed stable `ngrace` bina
 
 ```bash
 # Install the current stable release from npm `latest`
-bun add -g neo-grace
+bun add -g @neograce/cli
 ngrace --version
 ngrace lint --path /path/to/grace4-project
 ```

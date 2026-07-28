@@ -66,10 +66,10 @@ export function collectCurrentReleaseState(repoRoot: string): { state: ReleaseSt
   const packedFiles = pack[0]?.files?.map((entry) => entry.path).filter((entry): entry is string => typeof entry === "string") ?? [];
   const localPackShasum = pack[0]?.shasum ?? "";
   const npmDistTags = JSON.parse(
-    runCapture("npm", ["view", "neo-grace", "dist-tags", "--json"], repoRoot),
+    runCapture("npm", ["view", "@neograce/cli", "dist-tags", "--json"], repoRoot),
   ) as Record<string, string>;
   const npmPackageShasum = JSON.parse(
-    runCapture("npm", ["view", `neo-grace@${version}`, "dist.shasum", "--json"], repoRoot),
+    runCapture("npm", ["view", `@neograce/cli@${version}`, "dist.shasum", "--json"], repoRoot),
   ) as string;
   const githubRelease = JSON.parse(
     runCapture("gh", ["release", "view", expectedTag, "--repo", "alex-shekhter/neo-grace", "--json", "tagName,isPrerelease"], repoRoot),

@@ -41,7 +41,7 @@ Every XML artifact uses `graceVersion="4.0"`. Semantic anchors are XML tags, nev
 <cli_precondition>
 **Check for the `grace` binary before writing anything.** Run `ngrace --version`.
 
-If it is missing, install it with `bun add -g neo-grace` and check again.
+If it is missing, install it with `bun add -g @neograce/cli` and check again.
 
 If it is still missing after the install attempt, **refuse to initialize**. Create no
 directories and write no files. Report exactly this, adapted to the observed error:
@@ -53,7 +53,7 @@ directories and write no files. Report exactly this, adapted to the observed err
 > execution gate (`--assertions baseline|target|final`). Without it, init would produce
 > artifacts that nothing checks, which is the failure mode GRACE exists to remove.
 >
-> Install it with `bun add -g neo-grace`, then run `$grace-init` again.
+> Install it with `bun add -g @neograce/cli`, then run `$grace-init` again.
 > Requires Bun: https://bun.sh
 
 Do not offer to continue without validation, do not offer a reduced or "manual" init, and

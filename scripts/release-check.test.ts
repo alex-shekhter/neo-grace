@@ -43,7 +43,7 @@ Initial release.
 `;
 
 function makePkg(version?: string) {
-  return { name: "neo-grace", version: version ?? "4.0.0" };
+  return { name: "@neograce/cli", version: version ?? "4.0.0" };
 }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ describe("collectReleaseConsistencyErrors", () => {
 
   it("fails on missing version", () => {
     const errors = collectReleaseConsistencyErrors(
-      { name: "neo-grace" },
+      { name: "@neograce/cli" },
       EXAMPLE_README,
       EXAMPLE_OPENPACKAGE,
       EXAMPLE_MARKETPLACE,

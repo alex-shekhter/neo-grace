@@ -4,7 +4,7 @@ description: Operate the GRACE 4 CLI for .grace linting, status, module navigati
 ---
 
 <skill>
-<installation_contract>Invoke the installed stable `grace` binary directly. If it is missing, install it with `bun add -g neo-grace`. Do not default to `bunx`, `npx`, or the `rc` dist-tag.</installation_contract>
+<installation_contract>Invoke the installed stable `ngrace` binary directly. If it is missing, install it with `bun add -g @neograce/cli`. Do not default to `bunx`, `npx`, or the `rc` dist-tag.</installation_contract>
 
 <commands>
 - Active-baseline preflight before observed writes: `ngrace lint --path PROJECT --assertions current`

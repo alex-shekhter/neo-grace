@@ -24,7 +24,7 @@ import path from "node:path";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
-const PACKAGE_NAME = "neo-grace";
+const PACKAGE_NAME = "@neograce/cli";
 const STABLE_SEMVER = /^v?(\d+)\.(\d+)\.(\d+)$/;
 
 export type StableFinalizeState = {

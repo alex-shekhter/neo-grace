@@ -35,7 +35,7 @@ const PLUGIN_MANIFEST_PATH = path.join(REPO_ROOT, "plugins/grace/.claude-plugin/
 const CLI_ENTRY_PATH = path.join(REPO_ROOT, "src/grace.ts");
 const CHANGELOG_PATH = path.join(REPO_ROOT, "CHANGELOG.md");
 
-const EXPECTED_PACKAGE_NAME = "neo-grace";
+const EXPECTED_PACKAGE_NAME = "@neograce/cli";
 const PACKAGE_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const CHANGELOG_VERSION_HEADER = /^##\s+/m;
 const README_VERSION_MARKER = /Current packaged version:\s*`([^`]+)`/;
