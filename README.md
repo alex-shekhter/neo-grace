@@ -2,7 +2,7 @@
 
 **GRACE** means **Graph-RAG Anchored Code Engineering**: a contract-first AI engineering methodology built around semantic markup, `.grace` XML artifacts, knowledge-graph navigation, assertions, scopes, and log-driven verification.
 
-This repository ships the GRACE skills plus the optional `grace` CLI. It is a packaging and distribution repository, not an end-user application.
+This repository ships the GRACE skills and the `grace` CLI they depend on. It is a packaging and distribution repository, not an end-user application.
 
 Current packaged version: `5.0.0`
 
@@ -23,7 +23,7 @@ You never hand-author the XML — the skills write it and you approve it. Both d
 - Marketplace metadata in `.claude-plugin/marketplace.json`
 - Packaged plugin manifest in `plugins/grace/.claude-plugin/plugin.json`
 - OpenPackage metadata in `openpackage.yml`
-- Optional Bun-powered CLI package `@osovv/grace-cli`
+- Required Bun-powered CLI package `@osovv/grace-cli`
 
 ## GRACE 4 Model
 
@@ -60,7 +60,9 @@ TypeScript/JavaScript semantic analysis is bundled and compiler-backed. Governed
 
 ## Install
 
-Install **skills** first. The CLI is optional but recommended once skills are installed.
+**The CLI is required, not optional.** Install the skills first, then the CLI — both are needed for a working GRACE setup.
+
+The skills can author `.grace` artifacts without it, but nothing validates them: XML well-formedness, required sections, anchor discipline, path containment, and every cross-artifact reference are checked by `grace lint`. The execute lifecycle is defined in terms of it — `--assertions baseline`, `target`, and `final` are the gates, and there is no gate without the binary. Skills plus no CLI is an unenforced methodology, which is the thing GRACE exists to replace.
 
 ### OpenPackage
 
@@ -127,7 +129,7 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | `grace-refresh` | Detect drift and propose reconciliation changes |
 | `grace-status` | Report `.grace` health and suggest the next safe action |
 | `grace-ask` | Answer architecture and implementation questions from `.grace` artifacts |
-| `grace-cli` | Use the optional `grace` binary as a fast lint and artifact-query layer |
+| `grace-cli` | Operate the required `grace` binary as the lint, gate, and artifact-query layer |
 | `grace-explainer` | Explain the GRACE methodology itself |
 | `grace-verification` | Build and maintain `.grace/verification` entries and evidence |
 | `grace-reviewer` | Review semantic integrity, projections, scopes, and verification quality |

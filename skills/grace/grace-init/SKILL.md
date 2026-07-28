@@ -50,6 +50,6 @@ Every XML artifact uses `graceVersion="4.0"`. Semantic anchors are XML tags, nev
 - GRACE 4 state lives under `.grace`; do not create legacy `docs/*.xml` as the bootstrap surface.
 - `GraceChangeSpec` and `GraceChangePlan` are created by later change workflows, not by init.
 - If legacy GRACE 3 docs are present, explain that migration is handled only by `grace-migrate`; init must not convert or delete them.
-- Validate the resulting project with `grace lint --path <project-root>` when the CLI is available.
+- Validate the resulting project with `grace lint --path <project-root>` before reporting init complete. The CLI is required, not conditional: if `grace` is missing, install it with `bun add -g @osovv/grace-cli` and then validate. An unvalidated `.grace` tree is not a finished init.
 </hard_rules>
 </skill>
