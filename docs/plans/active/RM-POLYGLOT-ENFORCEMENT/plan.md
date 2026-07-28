@@ -225,7 +225,7 @@ Keep this table current. It is the single source of truth for progress.
 | — | Pre-Phase-0 hotfix: lexical vs realpath project paths (see §0.2) | — (unblocking) | 4.1.0 | `COMPLETE` |
 | 0 | Test harness & polyglot fixtures | — (enabling) | 4.1.0 | `COMPLETE` |
 | 1 | Stop the misleading signals | G-01, G-02, G-21 | 4.1.0 | `COMPLETE` |
-| 2 | Go export adapter | G-03 | 4.1.0 | `NOT STARTED` |
+| 2 | Go export adapter | G-03 | 4.1.0 | `COMPLETE` |
 | 3 | Rust export adapter | G-04 | 4.1.0 | `NOT STARTED` |
 | 4 | Polyglot health restoration | G-10, G-11, G-12 | 4.1.0 | `NOT STARTED` |
 | 5 | Spec→plan traceability (`AC-*`) | G-05 | 4.2.0 | `NOT STARTED` |
@@ -1032,7 +1032,7 @@ Revert the commit. No persisted state, no artifact format change.
 
 # PHASE 2 — Go export adapter
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Gaps:** G-03
 **Release:** 4.1.0
 

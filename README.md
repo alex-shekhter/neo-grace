@@ -39,7 +39,7 @@ TypeScript/JavaScript semantic analysis is bundled and compiler-backed. Governed
 | TypeScript / JavaScript | exact (compiler-backed) | ✅ | ✅ |
 | Python | exact with `__all__`, else heuristic | ✅ | ✅ |
 | Dart | exact (runtime adapter) | ✅ | ✅ |
-| Go | *(Phase 2)* | ✅ | *(Phase 4)* |
+| Go | exact (pure-TS scanner, no `go` toolchain) | ✅ | *(Phase 4)* |
 | Rust | *(Phase 3)* | ✅ | *(Phase 4)* |
 | Java, Kotlin, Ruby, PHP, Swift, Scala, Clojure, SQL, shell | ❌ unverified — `analysis.no-adapter` | partial (default patterns) | ❌ |
 

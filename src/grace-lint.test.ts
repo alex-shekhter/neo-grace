@@ -496,13 +496,16 @@ describe("lintGraceProject", () => {
     const { polyglotFixture, minimalTsFixture } = await import("./test-support/fixtures");
     const root = polyglotFixture();
     const result = lintGraceProject(root);
+    // Phase 2: .go is adapter-backed; only .rs remains unverified.
     const noAdapter = result.issues.filter((issue) => issue.code === "analysis.no-adapter");
-    expect(noAdapter.length).toBeGreaterThanOrEqual(2);
+    expect(noAdapter.length).toBeGreaterThanOrEqual(1);
+    expect(noAdapter.every((issue) => issue.file.endsWith(".rs"))).toBe(true);
     expect(result.summary.errors).toBe(0);
-    expect(result.analysisCoverage.unverified.map((entry) => entry.extension).sort()).toEqual([".go", ".rs"]);
+    expect(result.analysisCoverage.unverified.map((entry) => entry.extension).sort()).toEqual([".rs"]);
     expect(result.analysisCoverage.adapterBacked.some((entry) => entry.extension === ".tsx")).toBe(true);
+    expect(result.analysisCoverage.adapterBacked.some((entry) => entry.extension === ".go" && entry.adapterId === "go")).toBe(true);
 
-    writeProjectFile(root, ".grace-lint.json", JSON.stringify({ unverifiedLanguages: [".rs", ".go"] }));
+    writeProjectFile(root, ".grace-lint.json", JSON.stringify({ unverifiedLanguages: [".rs"] }));
     const suppressed = lintGraceProject(root);
     expect(suppressed.issues.filter((issue) => issue.code === "analysis.no-adapter")).toHaveLength(0);
     expect(suppressed.summary.errors).toBe(0);
@@ -510,5 +513,75 @@ describe("lintGraceProject", () => {
     const tsOnly = lintGraceProject(minimalTsFixture());
     expect(tsOnly.issues.filter((issue) => issue.code === "analysis.no-adapter")).toHaveLength(0);
     expect(tsOnly.analysisCoverage.unverified).toEqual([]);
+  });
+
+  it("enforces Go MODULE_MAP parity and no longer emits analysis.no-adapter for .go", async () => {
+    const { polyglotFixture } = await import("./test-support/fixtures");
+    const root = polyglotFixture();
+
+    // Matching map: no mismatch, no no-adapter for Go.
+    const clean = lintGraceProject(root);
+    const goIssues = clean.issues.filter((issue) => issue.file.endsWith(".go") || issue.file.includes("router.go"));
+    expect(goIssues.map((issue) => issue.code)).not.toContain("analysis.no-adapter");
+    expect(goIssues.map((issue) => issue.code)).not.toContain("markup.module-map-mismatch");
+
+    // G-01 regression: fabricated symbol must error (was silence at 4.0.4 / Phase 1).
+    writeProjectFile(
+      root,
+      "services/gateway/internal/router/router.go",
+      `// START_MODULE_CONTRACT
+// PURPOSE: Route gateway requests to ledger services.
+// SCOPE: Dispatch inbound HTTP/gRPC traffic.
+// DEPENDS: none
+// LINKS: M-GATEWAY-ROUTER
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+// TotallyFakeSymbol - Fabricated for G-01 regression.
+// END_MODULE_MAP
+func Route(path string) error {
+	// START_BLOCK_DISPATCH
+	slog.Info("[GatewayRouter][Route][BLOCK_DISPATCH] dispatch")
+	// END_BLOCK_DISPATCH
+	return nil
+}
+`,
+    );
+    const broken = lintGraceProject(root);
+    const mismatch = broken.issues.filter(
+      (issue) => issue.code === "markup.module-map-mismatch" && issue.file.includes("router.go"),
+    );
+    expect(mismatch.length).toBeGreaterThanOrEqual(1);
+    expect(mismatch[0]?.severity).toBe("error");
+
+    // Build-tag file reports heuristic confidence.
+    writeProjectFile(
+      root,
+      "services/gateway/internal/router/linux_only.go",
+      `//go:build linux
+
+// START_MODULE_CONTRACT
+// PURPOSE: Linux-only helper.
+// SCOPE: Platform file.
+// DEPENDS: none
+// LINKS: M-GATEWAY-ROUTER
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+// LinuxHelper - Platform helper.
+// END_MODULE_MAP
+package router
+
+func LinuxHelper() {}
+`,
+    );
+    const tagged = lintGraceProject(root);
+    expect(
+      tagged.issues.some(
+        (issue) => issue.code === "analysis.heuristic-confidence" && issue.file.includes("linux_only.go"),
+      ),
+    ).toBe(true);
   });
 });

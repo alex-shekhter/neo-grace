@@ -145,9 +145,28 @@ pub fn post() {}
     const rustIssues = analyzeGovernedFile(root, rustFile, rustBody).issues;
     expect(rustIssues.some((issue) => issue.code === "analysis.no-adapter" && issue.severity === "warning")).toBe(true);
 
-    const goBody = rustBody.replace("pub fn post() {}", "func post() {}");
+    // Phase 2: .go is adapter-backed — no analysis.no-adapter; parity is enforced.
+    const goBody = `// START_MODULE_CONTRACT
+// PURPOSE: Go fixture.
+// SCOPE: Export Route.
+// DEPENDS: none
+// LINKS: M-EXAMPLE
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+// Route - Dispatch.
+// END_MODULE_MAP
+package p
+func Route() {}
+`;
     const goIssues = analyzeGovernedFile(root, path.join(root, "router.go"), goBody).issues;
-    expect(goIssues.map((issue) => issue.code)).toContain("analysis.no-adapter");
+    expect(goIssues.map((issue) => issue.code)).not.toContain("analysis.no-adapter");
+
+    // Still no adapter for other CODE_EXTENSIONS (e.g. .java).
+    const javaBody = rustBody.replace("pub fn post() {}", "public void post() {}");
+    const javaIssues = analyzeGovernedFile(root, path.join(root, "Main.java"), javaBody).issues;
+    expect(javaIssues.map((issue) => issue.code)).toContain("analysis.no-adapter");
 
     const summaryBody = rustBody.replace("MAP_MODE: EXPORTS", "MAP_MODE: SUMMARY").replace("ROLE: RUNTIME", "ROLE: BARREL");
     const summaryIssues = analyzeGovernedFile(root, path.join(root, "summary.rs"), summaryBody).issues;
