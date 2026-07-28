@@ -5,7 +5,7 @@ import path from "node:path";
 import { defineCommand, type CommandDef, runMain } from "citty";
 
 import { lintGraceProject } from "./lint/core";
-import type { LintIssue } from "./lint/types";
+import type { AnalysisCoverage, LintIssue } from "./lint/types";
 import { toProjectRelativePath } from "./grace4/paths";
 import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "./grace4/project";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./grace4/projections";
@@ -64,6 +64,8 @@ export type StatusResult = {
   migrationGuidance?: string;
   modules?: ModuleHealthRecord[];
   moduleHealthLoadError?: string;
+  /** Sourced from lint result; MODULE_MAP parity coverage for governed files. */
+  analysisCoverage?: AnalysisCoverage;
 };
 
 /** Bundle-local facts used to derive mutually safe execution readiness. */
@@ -298,6 +300,7 @@ export function collectProjectStatus(projectRoot: string, options: { includeModu
     observedDrift,
     modules,
     moduleHealthLoadError,
+    analysisCoverage: lint.analysisCoverage,
   };
   return { ...partial, nextAction: chooseNextAction(partial) };
 }
@@ -341,6 +344,20 @@ export function formatStatusText(result: StatusResult) {
     `- Unexplained: ${result.observedDrift.unexplainedFiles.length}`,
   );
   for (const file of result.observedDrift.unexplainedFiles.slice(0, 10)) lines.push(`- unexplained: ${file}`);
+
+  if (result.analysisCoverage) {
+    const coverage = result.analysisCoverage;
+    const adapterExts = coverage.adapterBacked.map((entry) => entry.extension).join(", ");
+    const adapterFiles = coverage.adapterBacked.reduce((sum, entry) => sum + entry.files, 0);
+    lines.push("", "Analysis Coverage");
+    lines.push(`- Adapter-backed: ${adapterFiles} files (${adapterExts || "none"})`);
+    const unverifiedFiles = coverage.unverified.reduce((sum, entry) => sum + entry.files, 0);
+    if (unverifiedFiles > 0) {
+      const unverifiedExts = coverage.unverified.map((entry) => entry.extension).join(", ");
+      lines.push(`- Unverified:    ${unverifiedFiles} files (${unverifiedExts})  <- MODULE_MAP parity not enforced`);
+    }
+  }
+
   if (result.modules && result.modules.length > 0) lines.push("", "Module Health", formatModuleHealthTable(result.modules));
   if (result.moduleHealthLoadError) lines.push("", "Module Health", `- unavailable: ${result.moduleHealthLoadError}`);
   lines.push("", "Suggested Next Action", `- ${result.nextAction}`);

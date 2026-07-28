@@ -491,4 +491,24 @@ describe("lintGraceProject", () => {
     const result = lintGraceProject(root);
     expect(result.issues.filter((issue) => issue.code.startsWith("design-context.") || issue.code === "artifact.invalid-root-tag" || issue.code === "change.invalid-root-tag")).toHaveLength(0);
   });
+
+  it("reports analysis.no-adapter warnings and coverage for polyglot fixtures without failing green builds", async () => {
+    const { polyglotFixture, minimalTsFixture } = await import("./test-support/fixtures");
+    const root = polyglotFixture();
+    const result = lintGraceProject(root);
+    const noAdapter = result.issues.filter((issue) => issue.code === "analysis.no-adapter");
+    expect(noAdapter.length).toBeGreaterThanOrEqual(2);
+    expect(result.summary.errors).toBe(0);
+    expect(result.analysisCoverage.unverified.map((entry) => entry.extension).sort()).toEqual([".go", ".rs"]);
+    expect(result.analysisCoverage.adapterBacked.some((entry) => entry.extension === ".tsx")).toBe(true);
+
+    writeProjectFile(root, ".grace-lint.json", JSON.stringify({ unverifiedLanguages: [".rs", ".go"] }));
+    const suppressed = lintGraceProject(root);
+    expect(suppressed.issues.filter((issue) => issue.code === "analysis.no-adapter")).toHaveLength(0);
+    expect(suppressed.summary.errors).toBe(0);
+
+    const tsOnly = lintGraceProject(minimalTsFixture());
+    expect(tsOnly.issues.filter((issue) => issue.code === "analysis.no-adapter")).toHaveLength(0);
+    expect(tsOnly.analysisCoverage.unverified).toEqual([]);
+  });
 });

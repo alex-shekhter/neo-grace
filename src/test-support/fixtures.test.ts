@@ -28,22 +28,16 @@ describe("test-support fixtures", () => {
     expect(result.summary.errors).toBe(0);
   });
 
-  it("polyglotFixture module health encodes G-02 marker false-block", () => {
-    // Gap G-02: hasRuntimeMarkerEvidence only matches JS/TS emission shapes.
-    // Idiomatic tracing::warn! / slog.Info marker lines are not credited, so
-    // both backend modules are blocked. Phase 1 inverts this.
-    //
-    // The whole fixture shape is pinned, not just the one module: the two
-    // backend modules must be blocked by that single code and nothing else,
-    // and the UI module must be healthy. An unintended blocker anywhere would
-    // make Phase 1's inversion ambiguous.
+  it("polyglotFixture module health credits Rust/Go marker emission (G-02 fixed)", () => {
+    // Phase 1 inverted the pre-fix G-02 assertion: idiomatic tracing::warn!
+    // and slog.Info now count as marker evidence, so backend modules are ready.
     const root = polyglotFixture();
     const index = loadGraceArtifactIndex(root);
 
     for (const moduleId of ["M-LEDGER-CORE", "M-GATEWAY-ROUTER"]) {
       const health = buildModuleHealth(index, resolveModule(index, moduleId));
-      expect(health.state).toBe("blocked");
-      expect(health.blockers.map((b) => b.code)).toEqual(["health.required-log-marker-not-found"]);
+      expect(health.blockers.map((b) => b.code)).not.toContain("health.required-log-marker-not-found");
+      expect(health.state).toBe("ready");
     }
 
     const uiHealth = buildModuleHealth(index, resolveModule(index, "M-WEB-LEDGER-TABLE"));

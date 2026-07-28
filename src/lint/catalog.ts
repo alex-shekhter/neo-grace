@@ -21,7 +21,25 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
   "config.unknown-key": {
     title: "Unknown Lint Config Key",
     explanation: ".grace-lint.json contains a key the CLI does not understand.",
-    remediation: ["Remove unsupported keys from .grace-lint.json.", "Use only documented keys such as ignoredDirs."],
+    remediation: ["Remove unsupported keys from .grace-lint.json.", "Use only documented keys such as ignoredDirs and unverifiedLanguages."],
+  },
+  "config.invalid-unverified-languages": {
+    title: "Invalid unverifiedLanguages Config",
+    explanation: "`unverifiedLanguages` in .grace-lint.json must be an array of dot-prefixed file extensions.",
+    remediation: ["Use the form [\".rs\", \".go\"].", "Remove the key to restore default reporting."],
+  },
+  "analysis.no-adapter": {
+    title: "No Language Adapter For Governed File",
+    explanation:
+      "This governed file declares a MODULE_MAP that claims export or local parity, but GRACE has "
+      + "no language adapter for its extension. The map is therefore unverified documentation, not an "
+      + "enforced contract. GRACE reports this instead of passing silently.",
+    remediation: [
+      "Prefer MAP_MODE: SUMMARY for files whose exports GRACE cannot verify.",
+      "Back the module with MustPassCommand evidence such as the language's own test and lint commands.",
+      "Acknowledge the limitation deliberately with .grace-lint.json { \"unverifiedLanguages\": [\".ext\"] } "
+        + "so the silence is a recorded decision rather than an accident.",
+    ],
   },
   "analysis.adapter-failed": {
     title: "Language Adapter Failed",

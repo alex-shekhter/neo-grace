@@ -34,6 +34,17 @@ Verification commands run from the project root by default. A `V-M-*` entry may 
 
 TypeScript/JavaScript semantic analysis is bundled and compiler-backed. Governed Python and Dart files require their respective runtimes on `PATH`; Python export analysis is exact when a static `__all__` is present (including Unicode identifiers) and otherwise emits heuristic confidence. A missing runtime fails closed with actionable `analysis.runtime-missing`; an installed adapter that fails emits `analysis.adapter-failed`. Neither failure state is presented as exact `MODULE_MAP` parity.
 
+| Language | Export parity | Marker evidence | Test-file inference |
+|---|---|---|---|
+| TypeScript / JavaScript | exact (compiler-backed) | ✅ | ✅ |
+| Python | exact with `__all__`, else heuristic | ✅ | ✅ |
+| Dart | exact (runtime adapter) | ✅ | ✅ |
+| Go | *(Phase 2)* | ✅ | *(Phase 4)* |
+| Rust | *(Phase 3)* | ✅ | *(Phase 4)* |
+| Java, Kotlin, Ruby, PHP, Swift, Scala, Clojure, SQL, shell | ❌ unverified — `analysis.no-adapter` | partial (default patterns) | ❌ |
+
+**`CODE_EXTENSIONS` is a file-discovery list, not a support matrix.** A file's extension appearing there means GRACE will find and govern the file — not that GRACE can verify its `MODULE_MAP`. Languages without an export adapter emit `analysis.no-adapter` when `MAP_MODE` claims EXPORTS/LOCALS parity; acknowledge deliberately with `.grace-lint.json` `{ "unverifiedLanguages": [".rs", ".go"] }`.
+
 ## Install
 
 Install **skills** first. The CLI is optional but recommended once skills are installed.

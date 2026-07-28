@@ -4,7 +4,7 @@ import path from "node:path";
 import type { GraceLintConfig, LintIssue } from "./types";
 
 const CONFIG_FILE_NAME = ".grace-lint.json";
-const SUPPORTED_KEYS = new Set(["ignoredDirs"]);
+const SUPPORTED_KEYS = new Set(["ignoredDirs", "unverifiedLanguages"]);
 
 export function loadGraceLintConfig(projectRoot: string): { config: GraceLintConfig | null; issues: LintIssue[] } {
   const configPath = path.join(projectRoot, CONFIG_FILE_NAME);
@@ -35,7 +35,7 @@ export function loadGraceLintConfig(projectRoot: string): { config: GraceLintCon
         severity: "error",
         code: "config.unknown-key",
         file: CONFIG_FILE_NAME,
-        message: `Unsupported key \`${key}\` in ${CONFIG_FILE_NAME}. Supported keys: ignoredDirs.`,
+        message: `Unsupported key \`${key}\` in ${CONFIG_FILE_NAME}. Supported keys: ignoredDirs, unverifiedLanguages.`,
       });
     }
 
@@ -46,6 +46,20 @@ export function loadGraceLintConfig(projectRoot: string): { config: GraceLintCon
         file: CONFIG_FILE_NAME,
         message: `\`ignoredDirs\` in ${CONFIG_FILE_NAME} must be an array of directory names.`,
       });
+    }
+
+    if (parsed.unverifiedLanguages !== undefined) {
+      if (
+        !Array.isArray(parsed.unverifiedLanguages)
+        || parsed.unverifiedLanguages.some((value) => typeof value !== "string" || !value.startsWith("."))
+      ) {
+        issues.push({
+          severity: "error",
+          code: "config.invalid-unverified-languages",
+          file: CONFIG_FILE_NAME,
+          message: "`unverifiedLanguages` must be an array of file extensions beginning with a dot, e.g. [\".rs\", \".go\"].",
+        });
+      }
     }
 
     return { config: parsed, issues };

@@ -19,6 +19,18 @@ export type LintIssue = {
   remediation?: string[];
 };
 
+export type AnalysisCoverageEntry = {
+  extension: string;
+  files: number;
+  adapterId?: string;
+};
+
+export type AnalysisCoverage = {
+  adapterBacked: AnalysisCoverageEntry[];
+  unverified: AnalysisCoverageEntry[];
+  governedFiles: number;
+};
+
 export type LintResult = {
   schemaVersion: string;
   tool: "grace-lint";
@@ -37,6 +49,7 @@ export type LintResult = {
     errors: number;
     warnings: number;
   };
+  analysisCoverage: AnalysisCoverage;
 };
 
 export type LintOptions = {
@@ -49,6 +62,8 @@ export type LintOptions = {
 
 export type GraceLintConfig = {
   ignoredDirs?: string[];
+  /** Extensions that deliberately skip analysis.no-adapter, e.g. [".rs", ".go"]. */
+  unverifiedLanguages?: string[];
 };
 
 export type MarkupSection = {

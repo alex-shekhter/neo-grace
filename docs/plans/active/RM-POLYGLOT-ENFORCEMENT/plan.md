@@ -224,7 +224,7 @@ Keep this table current. It is the single source of truth for progress.
 |---|---|---|---|---|
 | — | Pre-Phase-0 hotfix: lexical vs realpath project paths (see §0.2) | — (unblocking) | 4.1.0 | `COMPLETE` |
 | 0 | Test harness & polyglot fixtures | — (enabling) | 4.1.0 | `COMPLETE` |
-| 1 | Stop the misleading signals | G-01, G-02, G-21 | 4.1.0 | `NOT STARTED` |
+| 1 | Stop the misleading signals | G-01, G-02, G-21 | 4.1.0 | `COMPLETE` |
 | 2 | Go export adapter | G-03 | 4.1.0 | `NOT STARTED` |
 | 3 | Rust export adapter | G-04 | 4.1.0 | `NOT STARTED` |
 | 4 | Polyglot health restoration | G-10, G-11, G-12 | 4.1.0 | `NOT STARTED` |
@@ -491,7 +491,7 @@ Delete `src/test-support/`. Nothing else was touched.
 
 # PHASE 1 — Stop the misleading signals
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Gaps:** G-02 (marker false-block), G-01 (fail-open parity), G-21 (docs imply parity)
 **Release:** 4.1.0
 

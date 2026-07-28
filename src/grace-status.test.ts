@@ -427,4 +427,20 @@ describe("grace status", () => {
     expect(Buffer.from(missing.stderr).toString("utf8")).toBe("");
     expect(JSON.parse(Buffer.from(missing.stdout).toString("utf8")).projectKind).toBe("none");
   });
+
+  it("renders analysis coverage for polyglot and omits Unverified for TS-only projects", async () => {
+    const { polyglotFixture, minimalTsFixture } = await import("./test-support/fixtures");
+
+    const polyglot = collectProjectStatus(polyglotFixture());
+    const polyglotText = formatStatusText(polyglot);
+    expect(polyglotText).toContain("Analysis Coverage");
+    expect(polyglotText).toContain("Unverified");
+    expect(polyglot.analysisCoverage?.unverified.map((entry) => entry.extension).sort()).toEqual([".go", ".rs"]);
+
+    const tsOnly = collectProjectStatus(minimalTsFixture());
+    const tsText = formatStatusText(tsOnly);
+    expect(tsText).toContain("Analysis Coverage");
+    expect(tsText).not.toContain("Unverified");
+    expect(tsOnly.analysisCoverage?.unverified).toEqual([]);
+  });
 });

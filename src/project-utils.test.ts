@@ -112,6 +112,64 @@ export const value = true;
     expect(hasRuntimeMarkerEvidence(`// const marker$ = "${marker}";\nconsole.info(marker$ + " ok");`, marker)).toBe(false);
   });
 
+  it("credits Go const and Rust const marker assignments as indirect emission", () => {
+    const marker = "[Example][run][BLOCK_RUN]";
+    expect(hasRuntimeMarkerEvidence(
+      `const MARKER: &str = "${marker}";\ntracing::info!("{}", MARKER);`,
+      marker,
+      { filePath: "lib.rs" },
+    )).toBe(true);
+    expect(hasRuntimeMarkerEvidence(
+      `const marker = "${marker}"\nslog.Info(marker)`,
+      marker,
+      { filePath: "router.go" },
+    )).toBe(true);
+  });
+
+  it("emits analysis.no-adapter for EXPORTS/LOCALS on non-adapter code extensions", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-no-adapter-"));
+    const rustBody = `// START_MODULE_CONTRACT
+// PURPOSE: Rust fixture.
+// SCOPE: Export post.
+// DEPENDS: none
+// LINKS: M-EXAMPLE
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+// post - Post an entry.
+// END_MODULE_MAP
+pub fn post() {}
+`;
+    const rustFile = path.join(root, "lib.rs");
+    const rustIssues = analyzeGovernedFile(root, rustFile, rustBody).issues;
+    expect(rustIssues.some((issue) => issue.code === "analysis.no-adapter" && issue.severity === "warning")).toBe(true);
+
+    const goBody = rustBody.replace("pub fn post() {}", "func post() {}");
+    const goIssues = analyzeGovernedFile(root, path.join(root, "router.go"), goBody).issues;
+    expect(goIssues.map((issue) => issue.code)).toContain("analysis.no-adapter");
+
+    const summaryBody = rustBody.replace("MAP_MODE: EXPORTS", "MAP_MODE: SUMMARY").replace("ROLE: RUNTIME", "ROLE: BARREL");
+    const summaryIssues = analyzeGovernedFile(root, path.join(root, "summary.rs"), summaryBody).issues;
+    expect(summaryIssues.map((issue) => issue.code)).not.toContain("analysis.no-adapter");
+
+    const noneBody = rustBody.replace("MAP_MODE: EXPORTS", "MAP_MODE: NONE").replace("ROLE: RUNTIME", "ROLE: CONFIG")
+      .replace(/\/\/ START_MODULE_MAP[\s\S]*?\/\/ END_MODULE_MAP\n/, "");
+    const noneIssues = analyzeGovernedFile(root, path.join(root, "config.rs"), noneBody).issues;
+    expect(noneIssues.map((issue) => issue.code)).not.toContain("analysis.no-adapter");
+
+    const acknowledged = analyzeGovernedFile(root, rustFile, rustBody, { unverifiedLanguages: [".rs"] }).issues;
+    expect(acknowledged.map((issue) => issue.code)).not.toContain("analysis.no-adapter");
+
+    const tsBody = `${contract("EXPORTS", "// run - Run.\n")}export function run() {}\n`;
+    const tsIssues = analyzeGovernedFile(root, path.join(root, "run.ts"), tsBody).issues;
+    expect(tsIssues.map((issue) => issue.code)).not.toContain("analysis.no-adapter");
+
+    // 3-arg call (no options) still works and still warns for .rs EXPORTS
+    const threeArg = analyzeGovernedFile(root, rustFile, rustBody);
+    expect(threeArg.issues.map((issue) => issue.code)).toContain("analysis.no-adapter");
+  });
+
   it("emits bounded-confidence diagnostics for heuristic Python analysis", () => {
     const hasPython = ["python3", "python"].some((binary) => {
       const result = spawnSync(binary, ["--version"], { stdio: "ignore" });

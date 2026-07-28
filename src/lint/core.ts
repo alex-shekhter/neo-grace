@@ -8,12 +8,17 @@ import { buildGraphProjection, buildVerificationProjection, type GraphProjection
 import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution } from "../grace4/scope";
 import { ANCHOR_PATTERNS, type Grace4Issue, type Grace4ProjectPaths } from "../grace4/types";
 import { readGraceXmlArtifact } from "../grace4/xml";
+import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "../language-registry";
 import { analyzeGovernedFile, collectCodeFiles, hasGraceMarkers } from "../project-utils";
 import { withLintIssueGuide } from "./catalog";
 import { loadGraceLintConfig } from "./config";
-import type { LintIssue, LintOptions, LintProfile, LintResult } from "./types";
+import type { AnalysisCoverage, AnalysisCoverageEntry, LintIssue, LintOptions, LintProfile, LintResult } from "./types";
 
 const TEXT_FORMAT_OPTIONS = new Set(["text", "json"]);
+
+function emptyAnalysisCoverage(): AnalysisCoverage {
+  return { adapterBacked: [], unverified: [], governedFiles: 0 };
+}
 
 function createResult(root: string, profile: LintProfile, options: LintOptions): LintResult {
   return {
@@ -30,6 +35,7 @@ function createResult(root: string, profile: LintProfile, options: LintOptions):
     xmlFilesChecked: 0,
     issues: [],
     summary: { issues: 0, errors: 0, warnings: 0 },
+    analysisCoverage: emptyAnalysisCoverage(),
   };
 }
 
@@ -58,6 +64,24 @@ function finalizeResult(result: LintResult): LintResult {
   return result;
 }
 
+function adapterIdForExtension(extension: string): string | undefined {
+  const probe = `probe${extension}`;
+  return LANGUAGE_ADAPTERS.find((adapter) => adapter.supports(probe))?.id;
+}
+
+function finalizeCoverageCounts(
+  counts: Map<string, number>,
+  adapterBacked: boolean,
+): AnalysisCoverageEntry[] {
+  return [...counts.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([extension, files]) => ({
+      extension,
+      files,
+      ...(adapterBacked ? { adapterId: adapterIdForExtension(extension) } : {}),
+    }));
+}
+
 function validateGovernedFiles(result: LintResult, root: string): void {
   const { config, issues } = loadGraceLintConfig(root);
   for (const configIssue of issues) {
@@ -69,16 +93,35 @@ function validateGovernedFiles(result: LintResult, root: string): void {
 
   const files = collectCodeFiles(root, [".grace", ...(config?.ignoredDirs ?? [])]);
   result.filesChecked = files.length;
+  const adapterBackedCounts = new Map<string, number>();
+  const unverifiedCounts = new Map<string, number>();
+
   for (const file of files) {
     const text = readText(file);
     if (!hasGraceMarkers(text)) {
       continue;
     }
     result.governedFiles += 1;
-    for (const issue of analyzeGovernedFile(root, file, text).issues) {
+    const extension = path.extname(file);
+    if (ADAPTER_BACKED_EXTENSIONS.has(extension)) {
+      adapterBackedCounts.set(extension, (adapterBackedCounts.get(extension) ?? 0) + 1);
+    } else {
+      unverifiedCounts.set(extension, (unverifiedCounts.get(extension) ?? 0) + 1);
+    }
+
+    const analysis = analyzeGovernedFile(root, file, text, {
+      unverifiedLanguages: config?.unverifiedLanguages,
+    });
+    for (const issue of analysis.issues) {
       addIssue(result, issue);
     }
   }
+
+  result.analysisCoverage = {
+    adapterBacked: finalizeCoverageCounts(adapterBackedCounts, true),
+    unverified: finalizeCoverageCounts(unverifiedCounts, false),
+    governedFiles: result.governedFiles,
+  };
 }
 
 function readText(file: string) {

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { ADAPTER_BACKED_EXTENSIONS, CODE_EXTENSIONS, LANGUAGE_ADAPTERS } from "./language-registry";
+import { emissionPatternsFor } from "./lint/emission-patterns";
 import { LanguageRuntimeMissingError, type LanguageAnalysis, type LintIssue, type MapMode, type ModuleRole } from "./lint/types";
 
 export type TextSection = {
@@ -131,9 +132,14 @@ function isCommentOnlyLine(line: string) {
   return /^\s*(\/\/|#|--|;+|\*)/.test(line);
 }
 
-function looksLikeEvidenceEmission(line: string) {
-  return /(console\.|logger\.|tracer\.|trace\s*\(|emit\s*\(|\.(info|warn|error|debug|trace)\s*\()/.test(line);
+function looksLikeEvidenceEmission(line: string, patterns: readonly RegExp[]) {
+  return patterns.some((pattern) => pattern.test(line));
 }
+
+/** Optional path so marker evidence can use language-aware emission patterns. */
+export type MarkerEvidenceOptions = {
+  filePath?: string;
+};
 
 /** Extracts the semantic block name encoded at the end of a required log marker. */
 export function parseMarkerBlockName(marker: string) {
@@ -145,10 +151,19 @@ export function parseMarkerBlockName(marker: string) {
  * Returns true when a required marker is emitted directly or through a same-file
  * identifier assigned to that exact marker. Identifier-aware boundaries keep
  * names such as marker$ distinct from marker$Other.
+ *
+ * When `options.filePath` is provided, emission detection is language-aware
+ * (Rust tracing!/println!, Go slog/zap/zerolog, etc.). Without a path, the
+ * union of all patterns is used so unknown-language code is not permanently blocked.
  */
-export function hasRuntimeMarkerEvidence(text: string, marker: string) {
+export function hasRuntimeMarkerEvidence(
+  text: string,
+  marker: string,
+  options: MarkerEvidenceOptions = {},
+) {
+  const patterns = emissionPatternsFor(options.filePath ? path.extname(options.filePath) : undefined);
   const lines = text.split("\n");
-  if (lines.some((line) => !isCommentOnlyLine(line) && line.includes(marker) && looksLikeEvidenceEmission(line))) {
+  if (lines.some((line) => !isCommentOnlyLine(line) && line.includes(marker) && looksLikeEvidenceEmission(line, patterns))) {
     return true;
   }
 
@@ -170,7 +185,7 @@ export function hasRuntimeMarkerEvidence(text: string, marker: string) {
 
   return [...identifiers].some((identifier) => {
     const identifierUse = new RegExp(`(?<![A-Za-z0-9_$])${escapeRegExp(identifier)}(?![A-Za-z0-9_$])`);
-    return lines.some((line) => !isCommentOnlyLine(line) && looksLikeEvidenceEmission(line) && identifierUse.test(line));
+    return lines.some((line) => !isCommentOnlyLine(line) && looksLikeEvidenceEmission(line, patterns) && identifierUse.test(line));
   });
 }
 
@@ -239,8 +254,18 @@ export function parseGovernedFile(root: string, filePath: string, text: string):
   };
 }
 
+/** Options for analyzeGovernedFile; optional so existing 3-arg callers stay valid. */
+export type GovernedFileAnalysisOptions = {
+  unverifiedLanguages?: readonly string[];
+};
+
 /** Validates structural markup, module-map semantics, and adapter-backed language analysis. */
-export function analyzeGovernedFile(root: string, filePath: string, text: string): GovernedFileAnalysis {
+export function analyzeGovernedFile(
+  root: string,
+  filePath: string,
+  text: string,
+  options: GovernedFileAnalysisOptions = {},
+): GovernedFileAnalysis {
   const record = parseGovernedFile(root, filePath, text);
   const issues = validateMarkerStructure(filePath, text);
   const contract = record.moduleContract;
@@ -271,7 +296,8 @@ export function analyzeGovernedFile(root: string, filePath: string, text: string
   }
   validateMapShape(filePath, record, effectiveMapMode, issues);
 
-  const adapter = ADAPTER_BACKED_EXTENSIONS.has(path.extname(filePath))
+  const extension = path.extname(filePath);
+  const adapter = ADAPTER_BACKED_EXTENSIONS.has(extension)
     ? LANGUAGE_ADAPTERS.find((candidate) => candidate.supports(filePath))
     : undefined;
   let language: LanguageAnalysis | null = null;
@@ -285,6 +311,23 @@ export function analyzeGovernedFile(root: string, filePath: string, text: string
         filePath,
         1,
         error instanceof Error ? error.message : String(error),
+      ));
+    }
+  }
+
+  if (!adapter) {
+    const claimsParity = effectiveMapMode === "EXPORTS" || effectiveMapMode === "LOCALS";
+    const acknowledged = new Set(options.unverifiedLanguages ?? []).has(extension);
+    if (claimsParity && CODE_EXTENSIONS.has(extension) && !acknowledged) {
+      issues.push(markupIssue(
+        "warning",
+        "analysis.no-adapter",
+        filePath,
+        contract?.startLine ?? 1,
+        `MODULE_MAP ${effectiveMapMode} parity is not verified for ${extension} files. `
+          + `GRACE has no export adapter for this language; treat MODULE_MAP as unverified `
+          + `documentation. Acknowledge per repo with .grace-lint.json `
+          + `{ "unverifiedLanguages": ["${extension}"] }.`,
       ));
     }
   }

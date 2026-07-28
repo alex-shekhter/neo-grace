@@ -84,7 +84,7 @@ export function buildModuleHealth(index: GraceArtifactIndex, moduleRecord: Modul
     }
 
     for (const marker of entry.requiredLogMarkers) {
-      if (!runtimeTexts.some(({ text }) => hasRuntimeMarkerEvidence(text, marker))) {
+      if (!runtimeTexts.some(({ path: filePath, text }) => hasRuntimeMarkerEvidence(text, marker, { filePath }))) {
         pushIssue(blockers, "error", "health.required-log-marker-not-found", `${entry.id} requires marker ${marker}, but it was not found in linked runtime files.`, `Emit ${marker} from ${moduleRecord.id} runtime code or update the verification entry.`);
       }
       const requiredBlock = parseMarkerBlockName(marker);

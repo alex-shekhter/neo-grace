@@ -581,4 +581,83 @@ const marker$Other = "[ProviderConfigPersistence][getProviderConfig][other]";`,
     expect(combinedOutput).toContain("Legacy GRACE 3 artifacts");
     expect(combinedOutput).toContain(".grace artifact model");
   });
+
+  it("selects emission patterns by linked file language, not the union", async () => {
+    // Pins that module health passes the linked file path into marker evidence.
+    // `.Msg(` is a Go/zerolog shape with no DEFAULT counterpart, so a TypeScript
+    // module must not credit it. If the path stopped being threaded through, the
+    // union fallback would credit it and this module would go ready.
+    const { GraceProjectBuilder, createTempProject } = await import("./test-support/fixtures");
+    const root = new GraceProjectBuilder(createTempProject("grace-lang-select-"))
+      .module({ id: "M-TS-ONLY", path: "src/tsonly.ts", summary: "TypeScript module." })
+      .governedFile({
+        path: "src/tsonly.ts",
+        links: ["M-TS-ONLY"],
+        role: "RUNTIME",
+        mapMode: "EXPORTS",
+        mapEntries: ["run - Run."],
+        body: `export function run() {
+  // START_BLOCK_RUN
+  foo.Msg("[TsOnly][run][BLOCK_RUN]");
+  // END_BLOCK_RUN
+}
+`,
+      })
+      .verification({
+        moduleId: "M-TS-ONLY",
+        commands: ["bun test src/tsonly.test.ts"],
+        scenarios: ["Runs."],
+        markers: ["[TsOnly][run][BLOCK_RUN]"],
+      })
+      .file("src/tsonly.test.ts", `import { expect, test } from "bun:test";\ntest("run", () => expect(1).toBe(1));\n`)
+      .write();
+
+    const index = loadGraceArtifactIndex(root);
+    const health = buildModuleHealth(index, resolveModule(index, "M-TS-ONLY"));
+    expect(health.blockers.map((blocker) => blocker.code)).toContain("health.required-log-marker-not-found");
+  });
+
+  it("credits polyglot marker evidence and still blocks comment-only Rust markers", async () => {
+    const { polyglotFixture, GraceProjectBuilder, createTempProject } = await import("./test-support/fixtures");
+    const root = polyglotFixture();
+    const index = loadGraceArtifactIndex(root);
+
+    for (const moduleId of ["M-LEDGER-CORE", "M-GATEWAY-ROUTER"]) {
+      const health = buildModuleHealth(index, resolveModule(index, moduleId));
+      expect(health.blockers.map((blocker) => blocker.code)).not.toContain("health.required-log-marker-not-found");
+    }
+
+    // Negative control: marker only in a comment still produces the blocker.
+    const commentOnly = new GraceProjectBuilder(createTempProject("grace-rs-comment-"))
+      .module({
+        id: "M-LEDGER-CORE",
+        path: "services/ledger/src/lib.rs",
+        summary: "Ledger core.",
+        type: "CORE_LOGIC",
+      })
+      .governedFile({
+        path: "services/ledger/src/lib.rs",
+        links: ["M-LEDGER-CORE"],
+        role: "RUNTIME",
+        mapMode: "EXPORTS",
+        mapEntries: ["post - Post."],
+        body: `pub fn post() {
+    // START_BLOCK_VALIDATE_BALANCE
+    // tracing::warn!("[LedgerCore][post][BLOCK_VALIDATE_BALANCE] unbalanced");
+    // END_BLOCK_VALIDATE_BALANCE
+}
+`,
+      })
+      .verification({
+        moduleId: "M-LEDGER-CORE",
+        commands: ["cargo test --lib"],
+        scenarios: ["Posts."],
+        markers: ["[LedgerCore][post][BLOCK_VALIDATE_BALANCE]"],
+      })
+      .write();
+
+    const commentIndex = loadGraceArtifactIndex(commentOnly);
+    const commentHealth = buildModuleHealth(commentIndex, resolveModule(commentIndex, "M-LEDGER-CORE"));
+    expect(commentHealth.blockers.map((blocker) => blocker.code)).toContain("health.required-log-marker-not-found");
+  });
 });

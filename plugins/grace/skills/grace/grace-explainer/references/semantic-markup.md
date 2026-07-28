@@ -27,6 +27,17 @@ Adapt comment syntax to the project language (`#` for Python, `//` for Dart/Go/T
 
 The CLI bundles TypeScript/JavaScript analysis and can enforce exact compiler-derived export parity there. Governed Python and Dart files use runtime-backed adapters and therefore require `python3`/`python` or `dart` on `PATH`. Python exports are exact when the source declares a static `__all__`, including Unicode identifiers; otherwise Python analysis emits `analysis.heuristic-confidence`. A missing runtime fails closed with actionable `analysis.runtime-missing`; a present adapter that fails emits `analysis.adapter-failed`. Neither diagnostic can count as parity success.
 
+| Language | Export parity | Marker evidence | Test-file inference |
+|---|---|---|---|
+| TypeScript / JavaScript | exact (compiler-backed) | ✅ | ✅ |
+| Python | exact with `__all__`, else heuristic | ✅ | ✅ |
+| Dart | exact (runtime adapter) | ✅ | ✅ |
+| Go | *(Phase 2)* | ✅ | *(Phase 4)* |
+| Rust | *(Phase 3)* | ✅ | *(Phase 4)* |
+| Java, Kotlin, Ruby, PHP, Swift, Scala, Clojure, SQL, shell | ❌ unverified — `analysis.no-adapter` | partial (default patterns) | ❌ |
+
+**`CODE_EXTENSIONS` is a file-discovery list, not a support matrix.** A file's extension appearing there means GRACE will find and govern the file — not that GRACE can verify its `MODULE_MAP`.
+
 Substantial test files should use the same structure when tests are the fastest way for future agents to understand behavior, fixtures, and expected evidence.
 
 Optional lint-specific fields:
