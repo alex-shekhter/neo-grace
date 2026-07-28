@@ -6,6 +6,7 @@ import { defineCommand, type CommandDef, runMain } from "citty";
 
 import { lintGraceProject } from "./lint/core";
 import type { LintIssue } from "./lint/types";
+import { toProjectRelativePath } from "./grace4/paths";
 import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "./grace4/project";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./grace4/projections";
 import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope } from "./grace4/scope";
@@ -436,16 +437,17 @@ function activeScopeExplainsFile(root: string, scope: ActiveChangeScope, file: s
 function buildDriftRouteIndex(root: string, graph: GraphProjection, verification: VerificationProjection): DriftRouteIndex {
   const routes: DriftRouteIndex = { graphFiles: new Map(), verificationFiles: new Map() };
   const paths = resolveGrace4Paths(root);
-  routes.graphFiles.set(path.relative(root, paths.graphIndex).replaceAll(path.sep, "/"), {
+  // Document absolute paths are realpathed; project root may be lexical (macOS /var vs /private/var).
+  routes.graphFiles.set(toProjectRelativePath(root, paths.graphIndex), {
     documents: new Set(graph.documents.keys()),
     anchors: new Set([...graph.modules.keys(), ...graph.dataFlows.keys()]),
   });
-  routes.verificationFiles.set(path.relative(root, paths.verificationIndex).replaceAll(path.sep, "/"), {
+  routes.verificationFiles.set(toProjectRelativePath(root, paths.verificationIndex), {
     documents: new Set(verification.documents.keys()),
     anchors: new Set(verification.entries.keys()),
   });
   for (const [document, file] of graph.documents) {
-    const relativeFile = path.relative(root, file).replaceAll(path.sep, "/");
+    const relativeFile = toProjectRelativePath(root, file);
     const anchors = new Set(
       [...graph.modules.values(), ...graph.dataFlows.values()]
         .filter((record) => record.owner === document)
@@ -454,7 +456,7 @@ function buildDriftRouteIndex(root: string, graph: GraphProjection, verification
     routes.graphFiles.set(relativeFile, { documents: new Set([document]), anchors });
   }
   for (const [document, file] of verification.documents) {
-    const relativeFile = path.relative(root, file).replaceAll(path.sep, "/");
+    const relativeFile = toProjectRelativePath(root, file);
     const anchors = new Set([...verification.entries.values()].filter((record) => record.owner === document).map((record) => record.id));
     routes.verificationFiles.set(relativeFile, { documents: new Set([document]), anchors });
   }

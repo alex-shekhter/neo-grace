@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
-import { ProjectPathError, resolveContainedProjectPath } from "./paths";
+import { canonicalizeExistingPath, ProjectPathError, resolveContainedProjectPath } from "./paths";
 import { ANCHOR_PATTERNS, type Grace4Issue, type Grace4ProjectPaths } from "./types";
 import { childNodes, childText, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
@@ -488,9 +488,14 @@ function reportUnindexedDocuments(
   kind: "graph" | "verification",
   issues: Grace4Issue[],
 ): void {
-  const routedFiles = new Set(routes.filter((route) => route.valid).map((route) => path.resolve(route.file)));
+  // Route files are resolved via realpath (resolveContainedProjectPath); readdir
+  // paths are lexical. On macOS, /var/folders → /private/var/folders, so plain
+  // path.resolve identity is insufficient and produces false unindexed-document hits.
+  const routedFiles = new Set(routes.filter((route) => route.valid).map((route) => canonicalizeExistingPath(route.file)));
+  const canonicalIndex = canonicalizeExistingPath(indexFile);
   for (const file of listXmlFiles(directory)) {
-    if (path.resolve(file) === path.resolve(indexFile) || routedFiles.has(path.resolve(file))) {
+    const canonicalFile = canonicalizeExistingPath(file);
+    if (canonicalFile === canonicalIndex || routedFiles.has(canonicalFile)) {
       continue;
     }
     issues.push(issue(

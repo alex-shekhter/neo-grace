@@ -123,6 +123,48 @@ export function resolveContainedProjectPath(
   };
 }
 
+/**
+ * Identity key for an on-disk path that may be lexical or already realpathed.
+ * On macOS, tmpdir is often `/var/folders/...` while realpathSync yields
+ * `/private/var/folders/...`; callers that mix both forms must canonicalize first.
+ *
+ * Nonexistent targets resolve their nearest existing ancestor and re-append the
+ * suffix, matching resolveContainedProjectPath output mode. Resolving only when
+ * the full path exists would leave the symlinked prefix unresolved and
+ * reintroduce the mismatch this helper removes.
+ *
+ * Best-effort identity, never a security boundary: an unreadable or racing path
+ * degrades to the lexical form rather than throwing, so one bad entry cannot
+ * fail a whole status or projection run.
+ */
+export function canonicalizeExistingPath(file: string): string {
+  const resolved = path.resolve(file);
+  try {
+    if (existsSync(resolved)) {
+      return realpathSync(resolved);
+    }
+    const { ancestor, suffix } = nearestExistingAncestor(resolved, file);
+    return path.join(realpathSync(ancestor), ...suffix);
+  } catch {
+    return resolved;
+  }
+}
+
+/**
+ * Project-relative POSIX path from an absolute path, tolerant of mixed
+ * lexical/realpath roots (see canonicalizeExistingPath).
+ *
+ * NOT a containment boundary. Returns `../`-escaping output for any path outside
+ * projectRoot and performs no traversal or symlink-escape checks. Use it only for
+ * paths GRACE itself derived. Every author-supplied path must go through
+ * resolveContainedProjectPath instead.
+ */
+export function toProjectRelativePath(projectRoot: string, absolutePath: string): string {
+  return path
+    .relative(canonicalizeExistingPath(projectRoot), canonicalizeExistingPath(absolutePath))
+    .replaceAll(path.sep, "/");
+}
+
 function nearestExistingAncestor(target: string, authoredPath: string): { ancestor: string; suffix: string[] } {
   const suffix: string[] = [];
   let current = target;

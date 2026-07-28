@@ -1,12 +1,14 @@
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import {
+  canonicalizeExistingPath,
   normalizeProjectRelativePath,
   ProjectPathError,
   resolveContainedProjectPath,
+  toProjectRelativePath,
 } from "./paths";
 
 function createDirectory(prefix: string): string {
@@ -50,10 +52,11 @@ describe("GRACE 4 contained project paths", () => {
     mkdirSync(path.dirname(file), { recursive: true });
     writeFileSync(file, "export {};\n");
 
+    // absolutePath is realpath'd (macOS: /var/folders → /private/var/folders).
     expect(resolveContainedProjectPath(root, "src\\example.ts")).toEqual({
       authoredPath: "src\\example.ts",
       relativePath: "src/example.ts",
-      absolutePath: file,
+      absolutePath: realpathSync(file),
     });
   });
 
@@ -73,10 +76,11 @@ describe("GRACE 4 contained project paths", () => {
     const existingDirectory = path.join(root, "generated");
     mkdirSync(existingDirectory);
 
+    // Output mode realpaths the nearest existing ancestor, then appends the suffix.
     expect(resolveContainedProjectPath(root, "generated/deep/result.xml", { mode: "output", extension: ".xml" })).toEqual({
       authoredPath: "generated/deep/result.xml",
       relativePath: "generated/deep/result.xml",
-      absolutePath: path.join(root, "generated", "deep", "result.xml"),
+      absolutePath: path.join(realpathSync(existingDirectory), "deep", "result.xml"),
     });
   });
 
@@ -87,6 +91,46 @@ describe("GRACE 4 contained project paths", () => {
 
     expect(() => resolveContainedProjectPath(root, "generated/result.xml", { mode: "output" })).toThrow(
       expect.objectContaining({ code: "path.symlink-escape", authoredPath: "generated/result.xml" }),
+    );
+  });
+
+  it("computes project-relative paths when root is lexical and absolute is realpathed", () => {
+    const root = createDirectory("grace4-paths-relative");
+    const file = path.join(root, ".grace", "graph", "main.xml");
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(file, "<x/>\n");
+
+    const realFile = realpathSync(file);
+    // Regression: path.relative(lexicalRoot, realFile) escapes on macOS (/var → /private/var).
+    expect(toProjectRelativePath(root, realFile)).toBe(".grace/graph/main.xml");
+    expect(toProjectRelativePath(root, file)).toBe(".grace/graph/main.xml");
+    expect(canonicalizeExistingPath(root)).toBe(realpathSync(root));
+    expect(canonicalizeExistingPath(file)).toBe(realFile);
+  });
+
+  it("canonicalizes paths that do not exist through their nearest existing ancestor", () => {
+    const root = createDirectory("grace4-paths-missing");
+    mkdirSync(path.join(root, ".grace", "graph"), { recursive: true });
+
+    // Regression: resolving only fully existing paths left the symlinked prefix
+    // lexical, so a missing document produced an escaping ../../.. route key.
+    const missing = path.join(root, ".grace", "graph", "deleted.xml");
+    expect(toProjectRelativePath(root, missing)).toBe(".grace/graph/deleted.xml");
+    expect(canonicalizeExistingPath(missing)).toBe(path.join(realpathSync(root), ".grace", "graph", "deleted.xml"));
+
+    // Nonexistent intermediate directories resolve too.
+    const deep = path.join(root, "never", "created", "file.xml");
+    expect(toProjectRelativePath(root, deep)).toBe("never/created/file.xml");
+  });
+
+  it("does not enforce containment and must not be used for authored paths", () => {
+    const root = createDirectory("grace4-paths-uncontained");
+
+    // Documents the trap: toProjectRelativePath is an identity helper for paths
+    // GRACE derived itself. resolveContainedProjectPath is the security boundary.
+    expect(toProjectRelativePath(root, "/etc/passwd").startsWith("../")).toBe(true);
+    expect(() => resolveContainedProjectPath(root, "../etc/passwd")).toThrow(
+      expect.objectContaining({ code: "path.traversal" }),
     );
   });
 });
