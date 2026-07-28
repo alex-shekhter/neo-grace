@@ -1,7 +1,7 @@
 ---
 id: RM-POLYGLOT-ENFORCEMENT
 kind: context
-status: draft
+status: complete
 created: 2026-07-28
 updated: 2026-07-28
 normative: false

@@ -1,10 +1,11 @@
 ---
 id: RM-POLYGLOT-ENFORCEMENT
 kind: plan
-status: draft
+status: complete
 supersededBy: null
 created: 2026-07-28
 updated: 2026-07-28
+completed: 2026-07-28
 baseline: 4.0.4
 targets: [4.1.0, 4.2.0, 5.0.0]
 context: ./review.md

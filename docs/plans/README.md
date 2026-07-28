@@ -4,13 +4,13 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 
 ## Active
 
-| ID | Title | Status | Baseline | Targets | Plan |
-|---|---|---|---|---|---|
-| `RM-POLYGLOT-ENFORCEMENT` | Polyglot enforcement, design layer, and systems modeling | `draft` | 4.0.4 | 4.1.0 · 4.2.0 · 5.0.0 | [plan.md](./active/RM-POLYGLOT-ENFORCEMENT/plan.md) |
+_None._
 
 ## Archive
 
-_None yet._
+| ID | Title | Status | Baseline | Targets | Completed | Plan |
+|---|---|---|---|---|---|---|
+| `RM-POLYGLOT-ENFORCEMENT` | Polyglot enforcement, design layer, and systems modeling | `complete` | 4.0.4 | 4.1.0 · 4.2.0 · 5.0.0 | 2026-07-28 | [plan.md](./archive/RM-POLYGLOT-ENFORCEMENT/plan.md) |
 
 ---
 
