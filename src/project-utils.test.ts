@@ -46,6 +46,29 @@ describe("governed file analysis", () => {
     expect(links("none")).toEqual([]);
   });
 
+  it("parses DEPENDS M-* and LINKS M-*/DF-*/V-M-* into separate fields", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-depends-links-"));
+    const file = path.join(root, "src", "example.ts");
+    const dependsBody = contract("NONE")
+      .replace("DEPENDS: none", "DEPENDS: M-DB, postgres, M-CACHE")
+      .replace("LINKS: M-EXAMPLE", "LINKS: M-AUTH, V-M-AUTH, DF-LOGIN");
+    const record = parseGovernedFile(root, file, dependsBody);
+    expect(record.dependsModuleIds).toEqual(["M-DB", "M-CACHE"]);
+    expect(record.linkedModuleIds).toEqual(["M-AUTH", "DF-LOGIN"]);
+    expect(record.linkedVerificationIds).toEqual(["V-M-AUTH"]);
+
+    const verifOnly = parseGovernedFile(
+      root,
+      file,
+      contract("NONE").replace("LINKS: M-EXAMPLE", "LINKS: V-M-AUTH"),
+    );
+    expect(verifOnly.linkedModuleIds).toEqual([]);
+    expect(verifOnly.linkedVerificationIds).toEqual(["V-M-AUTH"]);
+
+    const noneDepends = parseGovernedFile(root, file, contract("NONE"));
+    expect(noneDepends.dependsModuleIds).toEqual([]);
+  });
+
   it("reports line-addressed missing, reversed, duplicate, mismatched, and overlapping markers", () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "grace-markers-"));
     const file = path.join(root, "broken.ts");

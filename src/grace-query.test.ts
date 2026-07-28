@@ -660,4 +660,83 @@ const marker$Other = "[ProviderConfigPersistence][getProviderConfig][other]";`,
     const commentHealth = buildModuleHealth(commentIndex, resolveModule(commentIndex, "M-LEDGER-CORE"));
     expect(commentHealth.blockers.map((blocker) => blocker.code)).toContain("health.required-log-marker-not-found");
   });
+
+  it("infers cargo/go test targets and reports missing test files on disk (G-12)", async () => {
+    const { unlinkSync } = await import("node:fs");
+    const { GraceProjectBuilder, createTempProject } = await import("./test-support/fixtures");
+    const root = new GraceProjectBuilder(createTempProject("grace-g12-"))
+      .module({
+        id: "M-LEDGER-CORE",
+        path: "services/ledger/src/lib.rs",
+        summary: "Ledger core.",
+      })
+      .module({
+        id: "M-GATEWAY-ROUTER",
+        path: "services/gateway/internal/router/router.go",
+        summary: "Gateway router.",
+      })
+      .governedFile({
+        path: "services/ledger/src/lib.rs",
+        links: ["M-LEDGER-CORE"],
+        role: "RUNTIME",
+        mapMode: "EXPORTS",
+        mapEntries: ["post - Post."],
+        body: `pub fn post() {
+    // START_BLOCK_VALIDATE_BALANCE
+    tracing::warn!("[LedgerCore][post][BLOCK_VALIDATE_BALANCE] ok");
+    // END_BLOCK_VALIDATE_BALANCE
+}
+`,
+      })
+      .governedFile({
+        path: "services/gateway/internal/router/router.go",
+        links: ["M-GATEWAY-ROUTER"],
+        role: "RUNTIME",
+        mapMode: "EXPORTS",
+        mapEntries: ["Route - Route."],
+        body: `func Route() error {
+	// START_BLOCK_DISPATCH
+	slog.Info("[GatewayRouter][Route][BLOCK_DISPATCH] ok")
+	// END_BLOCK_DISPATCH
+	return nil
+}
+`,
+      })
+      // TestFiles must exist when the projection is loaded (mode: existing).
+      .file("services/gateway/internal/router/router_test.go", "package router\n")
+      .verification({
+        moduleId: "M-LEDGER-CORE",
+        cwd: "services/ledger",
+        commands: ["cargo test --lib"],
+        scenarios: ["Ledger posts."],
+        markers: ["[LedgerCore][post][BLOCK_VALIDATE_BALANCE]"],
+        testFiles: ["services/ledger/src/lib.rs"],
+      })
+      .verification({
+        moduleId: "M-GATEWAY-ROUTER",
+        cwd: "services/gateway",
+        commands: ["go test ./internal/router/..."],
+        scenarios: ["Gateway routes."],
+        markers: ["[GatewayRouter][Route][BLOCK_DISPATCH]"],
+        testFiles: ["services/gateway/internal/router/router_test.go"],
+      })
+      .write();
+
+    // Both files present: cargo --lib / go test package inference → no command warnings.
+    const presentIndex = loadGraceArtifactIndex(root);
+    const ledgerHealth = buildModuleHealth(presentIndex, resolveModule(presentIndex, "M-LEDGER-CORE"));
+    expect(ledgerHealth.blockers.map((b) => b.code)).not.toContain("health.verification-test-file-missing-on-disk");
+    expect(ledgerHealth.warnings.map((w) => w.code)).not.toContain("health.verification-command-does-not-reference-test-file");
+
+    const gatewayPresent = buildModuleHealth(presentIndex, resolveModule(presentIndex, "M-GATEWAY-ROUTER"));
+    expect(gatewayPresent.blockers.map((b) => b.code)).not.toContain("health.verification-test-file-missing-on-disk");
+    expect(gatewayPresent.warnings.map((w) => w.code)).not.toContain("health.verification-command-does-not-reference-test-file");
+
+    // Delete after load: health sees the path from the index but the file is gone.
+    unlinkSync(path.join(root, "services/gateway/internal/router/router_test.go"));
+    const gatewayMissing = buildModuleHealth(presentIndex, resolveModule(presentIndex, "M-GATEWAY-ROUTER"));
+    expect(gatewayMissing.blockers.map((b) => b.code)).toContain("health.verification-test-file-missing-on-disk");
+    // Inference still credits go test ./internal/router/... (no command warning).
+    expect(gatewayMissing.warnings.map((w) => w.code)).not.toContain("health.verification-command-does-not-reference-test-file");
+  });
 });

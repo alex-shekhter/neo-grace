@@ -32,8 +32,8 @@ The CLI bundles TypeScript/JavaScript analysis and can enforce exact compiler-de
 | TypeScript / JavaScript | exact (compiler-backed) | ✅ | ✅ |
 | Python | exact with `__all__`, else heuristic | ✅ | ✅ |
 | Dart | exact (runtime adapter) | ✅ | ✅ |
-| Go | exact (pure-TS scanner, no `go` toolchain) | ✅ | *(Phase 4)* |
-| Rust | exact (pure-TS scanner, no `cargo`/`rustc`) | ✅ | *(Phase 4)* |
+| Go | exact (pure-TS scanner, no `go` toolchain) | ✅ | ✅ |
+| Rust | exact (pure-TS scanner, no `cargo`/`rustc`) | ✅ | ✅ |
 | Java, Kotlin, Ruby, PHP, Swift, Scala, Clojure, SQL, shell | ❌ unverified — `analysis.no-adapter` | partial (default patterns) | ❌ |
 
 **`CODE_EXTENSIONS` is a file-discovery list, not a support matrix.** A file's extension appearing there means GRACE will find and govern the file — not that GRACE can verify its `MODULE_MAP`.

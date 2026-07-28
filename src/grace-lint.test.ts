@@ -669,4 +669,181 @@ pub fn wrap() {}
       ),
     ).toBe(true);
   });
+
+  it("validates DEPENDS and LINKS anchors against the graph (G-10, G-11)", async () => {
+    const { polyglotFixture } = await import("./test-support/fixtures");
+
+    // Unmodified polyglot must stay clean of new reference issues.
+    const polyglot = lintGraceProject(polyglotFixture());
+    expect(polyglot.issues.filter((issue) => issue.code === "markup.unknown-dependency")).toHaveLength(0);
+    expect(polyglot.issues.filter((issue) => issue.code === "markup.unknown-link")).toHaveLength(0);
+    expect(polyglot.summary.errors).toBe(0);
+
+    // Free-text DEPENDS (no M-*) are ignored.
+    const freeRoot = createProject();
+    writeMinimalGrace4Project(freeRoot);
+    writeProjectFile(
+      freeRoot,
+      "src/example.ts",
+      `// START_MODULE_CONTRACT
+// PURPOSE: Example.
+// SCOPE: Example.
+// DEPENDS: postgres, redis
+// LINKS: M-EXAMPLE
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+// run - Run.
+// END_MODULE_MAP
+export function run() {
+  console.info("[Example][run][BLOCK_RUN] run");
+  // START_BLOCK_RUN
+  return "ok";
+  // END_BLOCK_RUN
+}
+`,
+    );
+    expect(lintGraceProject(freeRoot).issues.filter((i) => i.code.startsWith("markup.unknown-"))).toHaveLength(0);
+
+    // G-10: phantom DEPENDS
+    writeProjectFile(
+      freeRoot,
+      "src/example.ts",
+      `// START_MODULE_CONTRACT
+// PURPOSE: Example.
+// SCOPE: Example.
+// DEPENDS: M-DOES-NOT-EXIST, M-ALSO-FAKE
+// LINKS: M-EXAMPLE
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+// run - Run.
+// END_MODULE_MAP
+export function run() {
+  console.info("[Example][run][BLOCK_RUN] run");
+  // START_BLOCK_RUN
+  return "ok";
+  // END_BLOCK_RUN
+}
+`,
+    );
+    const dependsBroken = lintGraceProject(freeRoot);
+    const depIssues = dependsBroken.issues.filter((i) => i.code === "markup.unknown-dependency");
+    expect(depIssues.length).toBe(2);
+
+    // G-11: phantom module link
+    writeProjectFile(
+      freeRoot,
+      "src/example.ts",
+      `// START_MODULE_CONTRACT
+// PURPOSE: Example.
+// SCOPE: Example.
+// DEPENDS: none
+// LINKS: M-NONEXISTENT
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+// run - Run.
+// END_MODULE_MAP
+export function run() {
+  console.info("[Example][run][BLOCK_RUN] run");
+  // START_BLOCK_RUN
+  return "ok";
+  // END_BLOCK_RUN
+}
+`,
+    );
+    const linkBroken = lintGraceProject(freeRoot);
+    expect(linkBroken.issues.some((i) => i.code === "markup.unknown-link" && i.message.includes("M-NONEXISTENT"))).toBe(true);
+
+    // Phantom verification link
+    writeProjectFile(
+      freeRoot,
+      "src/example.ts",
+      `// START_MODULE_CONTRACT
+// PURPOSE: Example.
+// SCOPE: Example.
+// DEPENDS: none
+// LINKS: M-EXAMPLE, V-M-NONEXISTENT
+// ROLE: RUNTIME
+// MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+// run - Run.
+// END_MODULE_MAP
+export function run() {
+  console.info("[Example][run][BLOCK_RUN] run");
+  // START_BLOCK_RUN
+  return "ok";
+  // END_BLOCK_RUN
+}
+`,
+    );
+    const verifBroken = lintGraceProject(freeRoot);
+    expect(verifBroken.issues.some((i) => i.code === "markup.unknown-link" && i.message.includes("V-M-NONEXISTENT"))).toBe(true);
+
+    // Module with Path but no linking governed file → warning
+    const orphanRoot = createProject();
+    writeMinimalGrace4Project(orphanRoot);
+    writeProjectFile(
+      orphanRoot,
+      ".grace/graph/index.xml",
+      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-ORPHAN /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    );
+    writeProjectFile(
+      orphanRoot,
+      ".grace/graph/main.xml",
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE><M-ORPHAN><Summary>Orphan.</Summary><Path>src/orphan.ts</Path></M-ORPHAN></GD-MAIN></GraceGraphDocument>`,
+    );
+    writeProjectFile(
+      orphanRoot,
+      ".grace/verification/index.xml",
+      `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-ORPHAN /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+    );
+    writeProjectFile(
+      orphanRoot,
+      ".grace/verification/main.xml",
+      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>echo ok</Command><Scenario>ok</Scenario></V-M-EXAMPLE><V-M-ORPHAN><Command>echo ok</Command><Scenario>ok</Scenario></V-M-ORPHAN></VD-MAIN></GraceVerificationDocument>`,
+    );
+    const orphan = lintGraceProject(orphanRoot);
+    const orphanWarn = orphan.issues.filter((i) => i.code === "graph.module-without-linked-files");
+    expect(orphanWarn.length).toBeGreaterThanOrEqual(1);
+    expect(orphanWarn.every((i) => i.severity === "warning")).toBe(true);
+    expect(orphanWarn.some((i) => i.message.includes("M-ORPHAN"))).toBe(true);
+  });
+
+  it("does not treat a Summary mentioning Path or File as a declared module Path", () => {
+    // The Path check reads the structured GraphAnchorRecord.path, not the
+    // flattened projection text, where `<Summary>Path resolution helper.</Summary>`
+    // is indistinguishable from a real `<Path>` element.
+    const root = createProject();
+    writeMinimalGrace4Project(root);
+    writeProjectFile(
+      root,
+      ".grace/graph/index.xml",
+      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-PROSE /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/graph/main.xml",
+      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE><M-PROSE><Summary>Path resolution and File loading helpers.</Summary></M-PROSE></GD-MAIN></GraceGraphDocument>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/verification/index.xml",
+      `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-PROSE /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+    );
+    writeProjectFile(
+      root,
+      ".grace/verification/main.xml",
+      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>echo ok</Command><Scenario>ok</Scenario></V-M-EXAMPLE><V-M-PROSE><Command>echo ok</Command><Scenario>ok</Scenario></V-M-PROSE></VD-MAIN></GraceVerificationDocument>`,
+    );
+
+    const result = lintGraceProject(root);
+    const warnings = result.issues.filter((i) => i.code === "graph.module-without-linked-files");
+    expect(warnings.some((i) => i.message.includes("M-PROSE"))).toBe(false);
+  });
 });

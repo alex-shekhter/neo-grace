@@ -10,6 +10,10 @@ function isLikelyTestPath(relativePath: string) {
   return /(^|\/)(__tests__|tests)(\/|$)|(^|\/)(test_[^/]+|[^/]+\.(test|spec)\.[^.]+)$/.test(relativePath);
 }
 
+function dirForRemediation(testFile: string) {
+  return path.dirname(testFile.replaceAll("\\", "/"));
+}
+
 function pushIssue(issues: ModuleHealthIssue[], severity: ModuleHealthIssue["severity"], code: string, message: string, remediation: string) {
   issues.push({ severity, code, message, remediation });
 }
@@ -69,17 +73,14 @@ export function buildModuleHealth(index: GraceArtifactIndex, moduleRecord: Modul
       pushIssue(warnings, "warning", "health.verification-missing-evidence", `${entry.id} has no markers or trace assertions.`, `Add Marker or TraceAssertion entries to ${entry.id}.`);
     }
 
-    const allChecksReferenceTestFiles = checkModuleCheckReferences(entry.testFiles, entry.moduleChecks, entry.cwd);
     for (const testFile of entry.testFiles) {
       const absolutePath = path.isAbsolute(testFile) ? testFile : path.join(index.root, testFile);
       if (!existsSync(absolutePath)) {
         pushIssue(blockers, "error", "health.verification-test-file-missing-on-disk", `${entry.id} references ${testFile}, but that file does not exist.`, `Create ${testFile} or update ${entry.id}.`);
       }
-      if (!allChecksReferenceTestFiles) {
-        const dir = path.dirname(testFile);
-        if (!entry.moduleChecks.some((check) => check.includes(testFile) || check.includes(dir))) {
-          pushIssue(warnings, "warning", "health.verification-command-does-not-reference-test-file", `${entry.id} does not have a command that clearly targets ${testFile}.`, `Make at least one command reference ${testFile} or ${dir}.`);
-        }
+      // Shared predicate with checkModuleCheckReferences (incl. go/cargo expandCommandTargets).
+      if (!checkModuleCheckReferences([testFile], entry.moduleChecks, entry.cwd)) {
+        pushIssue(warnings, "warning", "health.verification-command-does-not-reference-test-file", `${entry.id} does not have a command that clearly targets ${testFile}.`, `Make at least one command reference ${testFile} or ${dirForRemediation(testFile)}.`);
       }
     }
 

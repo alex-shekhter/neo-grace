@@ -13,6 +13,12 @@ export type GraphAnchorRecord = {
   file: string;
   text: string;
   links: string[];
+  /**
+   * Direct <Path> child when authored. Structured so consumers never have to
+   * pattern-match the flattened `text`, where a Summary mentioning "Path" is
+   * indistinguishable from a real Path element.
+   */
+  path?: string;
 };
 
 /** Unified current graph projection independent of physical segmentation. */
@@ -141,6 +147,7 @@ export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection
         file: route.file,
         text: aggregateNodeText(anchor.node),
         links: collectGraphLinks(anchor.node),
+        ...(childText(anchor.node, "Path")?.trim() ? { path: childText(anchor.node, "Path")!.trim() } : {}),
       });
     }
   }

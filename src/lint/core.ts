@@ -9,7 +9,7 @@ import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOver
 import { ANCHOR_PATTERNS, type Grace4Issue, type Grace4ProjectPaths } from "../grace4/types";
 import { readGraceXmlArtifact } from "../grace4/xml";
 import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "../language-registry";
-import { analyzeGovernedFile, collectCodeFiles, hasGraceMarkers } from "../project-utils";
+import { analyzeGovernedFile, collectCodeFiles, hasGraceMarkers, type FileMarkupRecord } from "../project-utils";
 import { withLintIssueGuide } from "./catalog";
 import { loadGraceLintConfig } from "./config";
 import type { AnalysisCoverage, AnalysisCoverageEntry, LintIssue, LintOptions, LintProfile, LintResult } from "./types";
@@ -82,13 +82,14 @@ function finalizeCoverageCounts(
     }));
 }
 
-function validateGovernedFiles(result: LintResult, root: string): void {
+function validateGovernedFiles(result: LintResult, root: string): FileMarkupRecord[] {
+  const records: FileMarkupRecord[] = [];
   const { config, issues } = loadGraceLintConfig(root);
   for (const configIssue of issues) {
     addIssue(result, configIssue);
   }
   if (issues.some((issue) => issue.severity === "error")) {
-    return;
+    return records;
   }
 
   const files = collectCodeFiles(root, [".grace", ...(config?.ignoredDirs ?? [])]);
@@ -112,6 +113,7 @@ function validateGovernedFiles(result: LintResult, root: string): void {
     const analysis = analyzeGovernedFile(root, file, text, {
       unverifiedLanguages: config?.unverifiedLanguages,
     });
+    records.push(analysis.record);
     for (const issue of analysis.issues) {
       addIssue(result, issue);
     }
@@ -122,6 +124,76 @@ function validateGovernedFiles(result: LintResult, root: string): void {
     unverified: finalizeCoverageCounts(unverifiedCounts, false),
     governedFiles: result.governedFiles,
   };
+  return records;
+}
+
+/**
+ * Validate DEPENDS/LINKS anchors against graph and verification projections (G-10, G-11).
+ * Unknown anchors are errors; modules with Path but no linking file are warnings.
+ */
+function validateFileHeaderReferences(
+  result: LintResult,
+  records: FileMarkupRecord[],
+  graph: GraphProjection,
+  verification: VerificationProjection,
+): void {
+  const knownModules = new Set(graph.modules.keys());
+  const knownFlows = new Set(graph.dataFlows.keys());
+  const knownVerif = new Set(verification.entries.keys());
+  const linkedModuleCount = new Map<string, number>();
+
+  for (const record of records) {
+    const contractLine = record.moduleContract?.startLine;
+
+    for (const dep of record.dependsModuleIds) {
+      if (!knownModules.has(dep)) {
+        addIssue(result, {
+          severity: "error",
+          code: "markup.unknown-dependency",
+          file: record.path,
+          line: contractLine,
+          message: `MODULE_CONTRACT DEPENDS references ${dep}, which does not exist in the graph.`,
+        });
+      }
+    }
+
+    for (const link of record.linkedModuleIds) {
+      if (knownModules.has(link) || knownFlows.has(link)) {
+        linkedModuleCount.set(link, (linkedModuleCount.get(link) ?? 0) + 1);
+      } else {
+        addIssue(result, {
+          severity: "error",
+          code: "markup.unknown-link",
+          file: record.path,
+          line: contractLine,
+          message: `MODULE_CONTRACT LINKS references ${link}, which does not exist in the graph.`,
+        });
+      }
+    }
+
+    for (const vid of record.linkedVerificationIds) {
+      if (!knownVerif.has(vid)) {
+        addIssue(result, {
+          severity: "error",
+          code: "markup.unknown-link",
+          file: record.path,
+          line: contractLine,
+          message: `MODULE_CONTRACT LINKS references ${vid}, which does not exist in verification.`,
+        });
+      }
+    }
+  }
+
+  for (const [moduleId, moduleRecord] of graph.modules) {
+    if (moduleRecord.path && (linkedModuleCount.get(moduleId) ?? 0) === 0) {
+      addIssue(result, {
+        severity: "warning",
+        code: "graph.module-without-linked-files",
+        file: moduleRecord.file,
+        message: `${moduleId} declares a Path but no governed file declares LINKS: ${moduleId}.`,
+      });
+    }
+  }
 }
 
 function readText(file: string) {
@@ -301,7 +373,7 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
     return finalizeResult(result);
   }
 
-  validateGovernedFiles(result, root);
+  const governedRecords = validateGovernedFiles(result, root);
 
   const paths = resolveGrace4Paths(root);
   const validation = validateGrace4Project(root);
@@ -315,6 +387,8 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
   for (const issue of [...graph.issues, ...verification.issues]) {
     addGrace4Issue(result, issue);
   }
+
+  validateFileHeaderReferences(result, governedRecords, graph, verification);
 
   const activeScopes = collectActiveChangeScopes(paths);
   const ownership = createDurableOwnershipIndex(graph, verification);

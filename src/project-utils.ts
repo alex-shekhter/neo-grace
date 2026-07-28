@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { ANCHOR_PATTERNS } from "./grace4/types";
 import { ADAPTER_BACKED_EXTENSIONS, CODE_EXTENSIONS, LANGUAGE_ADAPTERS } from "./language-registry";
 import { emissionPatternsFor } from "./lint/emission-patterns";
 import { LanguageRuntimeMissingError, type LanguageAnalysis, type LintIssue, type MapMode, type ModuleRole } from "./lint/types";
@@ -42,7 +43,12 @@ export type FileMarkupRecord = {
   changeSummary: FileFieldSection | null;
   contracts: FileContractRecord[];
   blocks: FileBlockRecord[];
+  /** M-* and DF-* anchors from LINKS (not V-M-*). */
   linkedModuleIds: string[];
+  /** M-* anchors from DEPENDS. */
+  dependsModuleIds: string[];
+  /** V-M-* anchors from LINKS. */
+  linkedVerificationIds: string[];
 };
 
 /** Parsed markup plus optional language analysis for one governed file. */
@@ -243,6 +249,7 @@ export function findSection(text: string, startMarker: string, endMarker: string
 /** Parses MODULE_CONTRACT, MODULE_MAP, CHANGE_SUMMARY, scoped contracts, and semantic blocks. */
 export function parseGovernedFile(root: string, filePath: string, text: string): FileMarkupRecord {
   const moduleContract = parseFieldSection(findSection(text, "START_MODULE_CONTRACT", "END_MODULE_CONTRACT"));
+  const linkTokens = splitList(moduleContract?.fields.LINKS);
   return {
     path: normalizeRelative(root, filePath),
     moduleContract,
@@ -250,7 +257,12 @@ export function parseGovernedFile(root: string, filePath: string, text: string):
     changeSummary: parseFieldSection(findSection(text, "START_CHANGE_SUMMARY", "END_CHANGE_SUMMARY")),
     contracts: parseScopedFieldSections(text),
     blocks: parseBlocks(text),
-    linkedModuleIds: splitList(moduleContract?.fields.LINKS).filter((item) => /^M-[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(item)),
+    // M-* and DF-* only — V-M-* must not leak into linkedModuleIds (G-11).
+    linkedModuleIds: linkTokens.filter(
+      (item) => ANCHOR_PATTERNS.module.test(item) || ANCHOR_PATTERNS.dataFlow.test(item),
+    ),
+    dependsModuleIds: splitList(moduleContract?.fields.DEPENDS).filter((item) => ANCHOR_PATTERNS.module.test(item)),
+    linkedVerificationIds: linkTokens.filter((item) => ANCHOR_PATTERNS.verification.test(item)),
   };
 }
 

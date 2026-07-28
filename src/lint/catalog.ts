@@ -41,6 +41,35 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
         + "so the silence is a recorded decision rather than an accident.",
     ],
   },
+  "markup.unknown-dependency": {
+    title: "Unknown MODULE_CONTRACT DEPENDS Anchor",
+    explanation:
+      "DEPENDS lists an M-* module anchor that does not exist in the knowledge graph. "
+      + "Non-anchor free-text dependency names are ignored; only M-* tokens are validated.",
+    remediation: [
+      "Add the missing module to .grace/graph or correct the DEPENDS list.",
+      "Use free-text names (e.g. postgres) for external libraries — only M-* anchors are checked.",
+    ],
+  },
+  "markup.unknown-link": {
+    title: "Unknown MODULE_CONTRACT LINKS Anchor",
+    explanation:
+      "LINKS references an M-*, DF-*, or V-M-* anchor that does not exist in the graph or verification projection.",
+    remediation: [
+      "Link only anchors that exist under .grace/graph and .grace/verification.",
+      "Add the missing module, data flow, or verification entry, or remove the stale link.",
+    ],
+  },
+  "graph.module-without-linked-files": {
+    title: "Graph Module Has No Linking Governed File",
+    explanation:
+      "A graph module declares a Path, but no governed source file lists that module in LINKS. "
+      + "This is common while a module is planned but not yet implemented.",
+    remediation: [
+      "Add START_MODULE_CONTRACT with LINKS: M-* on the implementation file.",
+      "Or remove the Path until the module is implemented, if the graph entry is only a placeholder.",
+    ],
+  },
   "analysis.adapter-failed": {
     title: "Language Adapter Failed",
     explanation: "The file-level export analysis adapter failed, so exact export/local parity could not be validated for this governed file.",

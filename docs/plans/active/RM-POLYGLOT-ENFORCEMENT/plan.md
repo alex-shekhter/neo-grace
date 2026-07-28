@@ -93,17 +93,131 @@ Verify output:
   bun run validate:cli         → <pass/fail>
   bun run validate:marketplace → <pass/fail>
 Regression evidence: <for bug-fix phases: the failing-before output and passing-after output>
+
+Self-review (§0.7) — all five are required:
+  Scope audit:        <files outside the declared list; deletions from existing tests; or "clean">
+  Mutation check:     <table: each production change reverted alone → failure count>
+                      <any row with 0 failures must name the discriminating negative added>
+  Adversarial probe:  <table of >=15 inputs NOT in the case table, pass/fail>
+                      <for each failure: the fix, and the test that now covers it>
+  Compat sweep:       <new issue codes per fixture; "[]" for each, or explain>
+  Anti-pattern audit: <§10.4 line by line: does the diff contain it?>
+
 Deviations from plan: <none, or explain>
 Open questions for review: <none, or list>
 ```
 
 Then **stop and wait for review**. Do not begin the next phase.
 
+The self-review block is the part a reviewer reads first. Its purpose is to let
+them spot-check your evidence rather than re-derive it — a probe table you ran is
+worth more than a claim that the phase is correct, and a mutation row reading `0`
+is more useful to everyone than a green suite that hides it.
+
 ### 0.6 Status legend
 
 `NOT STARTED` · `IN PROGRESS` · `BLOCKED` · `READY FOR REVIEW` · `COMPLETE`
 
 Update the status board in §2 as you go — it is the plan's own state, and keeping it accurate is part of the job.
+
+### 0.7 Phase self-review — mandatory before `READY FOR REVIEW`
+
+A green test suite proves your tests pass. It does not prove your tests are
+*about* anything, and it does not prove the code is right on inputs you did not
+think of. Every defect found in review so far was invisible to a green suite.
+
+Run all five audits below and **put their output in your report**. A phase whose
+report is missing an audit is not ready. These are mechanical — budget an hour.
+
+#### 0.7.1 Scope audit
+
+```bash
+git diff --name-only HEAD                      # everything you touched
+git diff --name-only HEAD | grep -vE '<the files this phase declares>'   # should be empty
+git diff HEAD -- <each test file> | grep '^-' | grep -v '^---'           # deletions from existing tests
+```
+
+Report: files touched outside the phase's declared list (with justification), and
+any deletion from a pre-existing test. Deleting or weakening an existing assertion
+is presumed wrong until you argue otherwise.
+
+#### 0.7.2 Mutation check — do your tests actually hold the code?
+
+For **each** production change in the phase, revert it alone, run `bun test`, record
+the failure count, restore. A change that can be reverted with **zero** failures is
+untested, no matter how many tests you added around it.
+
+```bash
+cp src/path/to/file.ts /tmp/f.bak
+# revert exactly one change (one function, one call site, one condition)
+bun test 2>&1 | tail -4
+cp /tmp/f.bak src/path/to/file.ts
+```
+
+Report as a table:
+
+| Reverted | Failures |
+|---|---|
+| `emissionPatternsFor` selection → always union | 2 |
+| `health.ts` path threading | 1 |
+
+**Zero failures is a finding, not a pass.** Phase 1 shipped a one-line change that
+no test held: the union fallback made it invisible for every positive case. The fix
+was one *discriminating negative* — an input where the correct and incorrect
+behaviours differ. If a revert yields zero, write that negative before proceeding.
+
+#### 0.7.3 Adversarial probe — go beyond your own case table
+
+Write a throwaway script in the scratchpad that exercises **at least 15 inputs that
+are not in the phase's case table**, and put the pass/fail table in your report. This
+is where every real bug has been found. Do not add these as unit tests first — probe,
+then promote whatever failed into a test alongside the fix.
+
+Probe these categories every time:
+
+| Category | Why | Real example |
+|---|---|---|
+| **Multi-line / nested** variants of every construct in the table | Case tables drift toward one-liners; scanners break on bodies | Go `type ( Foo struct {\n Name string\n} )` exported `Name` and `Age` as types |
+| **Near-misses** — input that resembles the target but is not it | Detection logic keys on a prefix or substring | Rust `rfoo` vs raw identifier `r#type`; the latter exported as `r` |
+| **The syntax appearing inside prose, comments, or strings** | Regex over flattened or raw text cannot tell them apart | `<Summary>Path resolution helper</Summary>` read as a declared `<Path>` |
+| **Empty, truncated, unterminated, pathological** | Must degrade, never throw or hang | unterminated `r#"`, 500 nested braces, 10k-char identifier |
+| **The silent direction** — does the check stay quiet when it should? | Over-firing is as bad as under-firing | free-text `DEPENDS: postgres` must not be flagged |
+| **Every row of the phase's own table, re-run through the public entry point** | Unit tests can pass while the wiring is wrong | — |
+
+For each failure ask: **could this produce a confident false error?** That is the
+worst outcome in this codebase — worse than the silent gap it replaced — because it
+blocks correct code and teaches people to ignore the tool. Rank findings by that.
+
+#### 0.7.4 Backward-compatibility sweep
+
+Any phase that adds an issue code must run it against **every** fixture and report
+the new codes per fixture:
+
+```
+polyglotFixture()   → []
+minimalTsFixture()  → []
+scaleFixture(20)    → []
+examples/           → []
+```
+
+A new **error** on a previously-green project is a release-breaking change. If one
+appears, either the severity is wrong (§10.1) or the check is. Do not proceed by
+editing the fixture to suit the check.
+
+#### 0.7.5 Anti-pattern self-audit
+
+Re-read §10.4 and state, per line, that your diff does not contain it. Two of the
+three defects found in review were already listed there when they were written —
+the list only works if it is actually consulted against the finished diff.
+
+#### 0.7.6 When a probe finds something
+
+Fix it in the same phase, add the failing input as a test, and **report both the
+probe output and the fix**. Do not silently fix and report clean: the probe result
+is the evidence that the test you added is worth having.
+
+If you believe a finding is out of scope, say so explicitly with your reasoning
+rather than omitting it.
 
 ---
 
@@ -227,7 +341,7 @@ Keep this table current. It is the single source of truth for progress.
 | 1 | Stop the misleading signals | G-01, G-02, G-21 | 4.1.0 | `COMPLETE` |
 | 2 | Go export adapter | G-03 | 4.1.0 | `COMPLETE` |
 | 3 | Rust export adapter | G-04 | 4.1.0 | `COMPLETE` |
-| 4 | Polyglot health restoration | G-10, G-11, G-12 | 4.1.0 | `NOT STARTED` |
+| 4 | Polyglot health restoration | G-10, G-11, G-12 | 4.1.0 | `COMPLETE` |
 | 5 | Spec→plan traceability (`AC-*`) | G-05 | 4.2.0 | `NOT STARTED` |
 | 6 | Design-system layer | G-06, G-09 | 5.0.0 | `NOT STARTED` |
 | 7 | Systems modeling | G-07, G-08, G-14, G-15 | 5.0.0 | `NOT STARTED` |
@@ -1806,7 +1920,7 @@ Rollback: remove `.rs` from `ADAPTER_BACKED_EXTENSIONS` and the factory from `LA
 
 # PHASE 4 — Polyglot health restoration
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Gaps:** G-12 (test-file inference), G-10 (`DEPENDS` unvalidated), G-11 (`LINKS` phantom anchors)
 **Release:** 4.1.0
 
@@ -2733,6 +2847,29 @@ Every code in this table needs a `src/lint/catalog.ts` guide and at least one in
 | A legitimate intermediate state (planned but unimplemented module) | warning |
 | A scale or ergonomics concern | warning |
 | Anything that would break an existing green project without a real defect | **do not ship as an error** |
+
+## 10.1a Defect log — what the self-review is calibrated against
+
+Every entry below shipped with a green suite and was found in review. Read them
+before running §0.7: the point is to make the patterns recognizable, not to treat
+them as a checklist of four specific bugs.
+
+| # | Phase | Defect | Green suite? | Which §0.7 audit finds it |
+|---|---|---|---|---|
+| 1 | 1 | `health.ts` passed no file path into marker evidence; the union fallback made the omission invisible for every positive case | yes | **0.7.2** — reverting the line failed 0 tests |
+| 2 | 2 | Grouped Go declarations skipped to end of line, so struct fields and interface methods became package exports at `exact` confidence | yes | **0.7.3** — multi-line variant of a table case |
+| 3 | 3 | Rust raw identifiers (`r#type`) read as `r`, producing a false mismatch at `exact` confidence | yes | **0.7.3** — near-miss (`rfoo` vs `r#type`) |
+| 4 | 4 | Module `<Path>` detected by regex over flattened text, so `<Summary>Path resolution…</Summary>` counted as a declared path | yes | **0.7.3** — syntax appearing inside prose |
+
+Three of the four share one shape: **the code was confidently wrong rather than
+honestly unsure**, at `exact` confidence or as a hard error. That is the failure
+mode this whole roadmap exists to remove — G-01 and G-02 were the same shape — so
+weight your probing toward it. A check that says "I cannot verify this" is always
+preferable to one that asserts something false.
+
+Two of the four were already named in §10.4 when they were written. The
+anti-pattern list is only worth having if §0.7.5 is actually run against the
+finished diff.
 
 ## 10.2 Skill mirroring
 
