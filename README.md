@@ -6,6 +6,16 @@ This repository ships the GRACE skills plus the optional `grace` CLI. It is a pa
 
 Current packaged version: `5.0.0`
 
+## New to GRACE? Start Here
+
+| Start | Time | What it is |
+|---|---|---|
+| [**Visual introduction**](./docs/grace-explainer.html) | 5 min | Why GRACE exists and how the pieces relate. Open the file in a browser — it is self-contained. |
+| [**Twenty-minute walkthrough**](./examples/polyglot/WALKTHROUGH.md) | 20 min | A guided tour of a real React + Go + Rust project. You break it on purpose four times and watch the tooling catch you. |
+| `grace doctor --path .` | 1 min | Run against your own repository first. Reports which of your languages have export verification before you commit to anything. |
+
+You never hand-author the XML — the skills write it and you approve it. Both documents are written from that side of the screen.
+
 ## What This Repository Ships
 
 - Canonical GRACE skills in `skills/grace/*`
@@ -29,7 +39,7 @@ GRACE 4 uses `.grace` as the durable project model:
 | `.grace/changes/active/C-*` | Active `GraceChangeSpec` (optional `DesignReferences`), design context, and `GraceChangePlan` |
 | `.grace/changes/archive/C-*` | Applied, rejected, cancelled, or superseded change bundles |
 | Source/test files with GRACE markup | File-local contracts, links, and semantic block anchors |
-| `examples/polyglot/` | Golden-path React + Go + Rust monorepo (CI-linted; see its README) |
+| `examples/polyglot/` | Golden-path React + Go + Rust monorepo (CI-linted; see its [walkthrough](./examples/polyglot/WALKTHROUGH.md)) |
 
 GRACE 4 does not dual-validate legacy GRACE 3 project docs as current state. Existing GRACE 3 projects use `$grace-migrate`; the CLI validates the generated `.grace` result but does not convert legacy docs itself.
 
