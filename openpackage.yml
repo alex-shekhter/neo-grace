@@ -1,6 +1,6 @@
 name: neo-grace
 description: "GRACE (Graph-RAG Anchored Code Engineering) - contract-first AI engineering with semantic markup, knowledge graphs, and log-driven verification"
-version: 6.0.0
+version: 6.0.1
 author: alex-shekhter
 license: MIT
 keywords:

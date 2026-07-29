@@ -1,3 +1,11 @@
+## <small>6.0.1 (2026-07-29)</small>
+
+### Summary
+
+First published 6.x release: the namespace separation from upstream GRACE, plus the publish-workflow fix that prevented 6.0.0 from reaching npm.
+
+* fix(ci): restore publish routing, and fail loudly when nothing ships (#7) ([b0c7888](https://github.com/alex-shekhter/neo-grace/commit/b0c7888)), closes [#7](https://github.com/alex-shekhter/neo-grace/issues/7)
+
 ## <small>6.0.0 (2026-07-29)</small>
 
 ### Summary
