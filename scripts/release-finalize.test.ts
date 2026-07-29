@@ -20,6 +20,8 @@ function dependencies(overrides: Partial<ReleaseFinalizeDependencies> = {}): Rel
     resolveLocalTagCommit: () => localTagCommit,
     resolveLocalTagType: () => localTagCommit ? "tag" : undefined,
     remoteTagExists: () => false,
+    readPackageName: () => "@neograce/cli",
+    isVersionPublished: () => false,
     runValidation: () => undefined,
     createAnnotatedTag: () => { localTagCommit = "release-sha"; },
     pushTag: () => undefined,
@@ -28,6 +30,18 @@ function dependencies(overrides: Partial<ReleaseFinalizeDependencies> = {}): Rel
 }
 
 describe("stable release finalization", () => {
+  it("refuses to tag a version that is already published", () => {
+    // npm versions are immutable. Without this the tag pushes, CI runs, and the publish
+    // step fails with a 403/409 that reads like an auth problem rather than "this version
+    // already exists" — after a tag exists that has to be cleaned up.
+    const deps = dependencies({ isVersionPublished: () => true });
+    expect(() => runStableReleaseFinalization(["4.0.0"], deps)).toThrow("already published to npm");
+
+    // And it must not be vacuous: an unpublished version still finalizes.
+    expect(() => runStableReleaseFinalization(["4.0.0"], dependencies())).not.toThrow();
+  });
+
+
   it("accepts only one stable semantic version", () => {
     expect(parseStableVersion("v4.0.0")).toBe("4.0.0");
     expect(() => parseStableVersion("4.0.0-rc.3")).toThrow("Usage");

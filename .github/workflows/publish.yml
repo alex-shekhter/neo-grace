@@ -72,6 +72,16 @@ jobs:
             fi
           fi
           echo "version=${PKG_VERSION}" >> "${GITHUB_OUTPUT}"
+
+      - name: Fail fast when the version is already published
+        run: |
+          PKG_NAME="$(node -p "require('./package.json').name")"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          if npm view "${PKG_NAME}@${PKG_VERSION}" version >/dev/null 2>&1; then
+            echo "::error::${PKG_NAME}@${PKG_VERSION} is already published. Published versions are immutable; bump to a new version instead of re-tagging."
+            exit 1
+          fi
+          echo "${PKG_NAME}@${PKG_VERSION} is not published yet."
           echo "prerelease=${PRERELEASE}" >> "${GITHUB_OUTPUT}"
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
 

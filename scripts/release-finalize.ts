@@ -38,6 +38,8 @@ export type StableFinalizeState = {
   localTagCommit?: string;
   localTagType?: string;
   remoteTagExists: boolean;
+  packageName: string;
+  versionAlreadyPublished: boolean;
 };
 
 export interface ReleaseFinalizeDependencies {
@@ -51,6 +53,8 @@ export interface ReleaseFinalizeDependencies {
   resolveLocalTagCommit: (tagName: string) => string | undefined;
   resolveLocalTagType: (tagName: string) => string | undefined;
   remoteTagExists: (tagName: string) => boolean;
+  readPackageName: () => string;
+  isVersionPublished: (packageName: string, version: string) => boolean;
   runValidation: () => void;
   createAnnotatedTag: (tagName: string) => void;
   pushTag: (tagName: string) => void;
@@ -75,6 +79,7 @@ export function collectStableFinalizePreconditionErrors(state: StableFinalizeSta
   const latestChangelogVersion = changelogLatestVersion(state.changelog);
   if (latestChangelogVersion !== state.requestedVersion) errors.push(`CHANGELOG.md latest version is ${latestChangelogVersion ?? "missing"}, expected ${state.requestedVersion}.`);
   if (state.remoteTagExists) errors.push(`Remote tag v${state.requestedVersion} already exists; use publish workflow recovery instead of finalizing again.`);
+  if (state.versionAlreadyPublished) errors.push(`${state.packageName}@${state.requestedVersion} is already published to npm. Published versions are immutable, so the tagged publish could only fail; bump to a new version instead.`);
   if (state.localTagCommit && state.localTagCommit !== state.head) errors.push(`Local tag v${state.requestedVersion} resolves to ${state.localTagCommit}, expected current main ${state.head}.`);
   if (state.localTagCommit && state.localTagType !== "tag") errors.push(`Local tag v${state.requestedVersion} is not annotated and cannot be reused safely.`);
   return errors;
@@ -93,6 +98,7 @@ export function runStableReleaseFinalization(
   const head = deps.getHead().trim();
   const localTagCommit = deps.resolveLocalTagCommit(tagName)?.trim();
   const localTagType = deps.resolveLocalTagType(tagName)?.trim();
+  const packageName = deps.readPackageName();
   const state: StableFinalizeState = {
     branch,
     worktreeStatus: status,
@@ -104,6 +110,8 @@ export function runStableReleaseFinalization(
     localTagCommit,
     localTagType,
     remoteTagExists: deps.remoteTagExists(tagName),
+    packageName,
+    versionAlreadyPublished: deps.isVersionPublished(packageName, version),
   };
   const errors = collectStableFinalizePreconditionErrors(state);
   if (errors.length > 0) throw new Error(errors.join("\n"));
@@ -160,6 +168,9 @@ function productionDependencies(repoRoot: string): ReleaseFinalizeDependencies {
       if (result.status === 2) return false;
       throw result.error ?? new Error(`Failed to inspect remote tag ${tagName}.`);
     },
+    readPackageName: () => JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")).name as string,
+    isVersionPublished: (packageName, version) =>
+      spawnSync("npm", ["view", `${packageName}@${version}`, "version"], { cwd: repoRoot, stdio: "ignore" }).status === 0,
     runValidation: () => run("bun", ["run", "validate:release"], "Stable release validation failed; no tag was pushed.", repoRoot),
     createAnnotatedTag: (tagName) => run("git", ["tag", "-a", tagName, "-m", tagName], `Failed to create ${tagName}.`, repoRoot),
     pushTag: (tagName) => run("git", ["push", "origin", tagName], `Failed to push ${tagName}; the verified local tag remains for recovery.`, repoRoot),
