@@ -481,3 +481,25 @@ describe("release state and packed content", () => {
     expect(changelog).toContain("tag is retained");
   });
 });
+
+describe("packed allowlist tracks package.json#files", () => {
+  it("approves every path the package actually declares", () => {
+    // This allowlist is deliberately a *separate* statement from package.json#files:
+    // adding a file to the published package must be a conscious second edit, so the
+    // list cannot be derived without making the check vacuous. But the two drifting
+    // apart silently is exactly what happened — grace-doctor.ts and grace-graph.ts
+    // shipped in 5.0.0 and 5.0.1 while release:checklist called them "unrelated files",
+    // and nobody saw it because the checklist needs gh auth to run.
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as { files: string[] };
+    const source = readFileSync(path.join(repoRoot, "scripts/release-check.ts"), "utf8");
+
+    const exact = new Set([...source.matchAll(/^ {2}"(src\/[^"]+)",$/gm)].map((m) => m[1]!));
+    const prefixes = [...source.matchAll(/"(src\/[a-z0-9-]+\/)"/g)].map((m) => m[1]!);
+
+    const unapproved = pkg.files.filter(
+      (file) => file.startsWith("src/") && !exact.has(file) && !prefixes.some((prefix) => `${file}/`.startsWith(prefix)),
+    );
+    expect(unapproved).toEqual([]);
+  });
+});

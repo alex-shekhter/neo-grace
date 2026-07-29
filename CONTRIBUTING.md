@@ -103,6 +103,18 @@ Changing these breaks the release path; `bun run release:checklist` verifies the
   `publish.yml`, **Environment left blank** so it matches both publish jobs. No token is
   stored anywhere; publishing runs on OIDC and produces a provenance attestation.
 
+## npm version
+
+CI pins npm to an exact version (`npm@11.17.0` in `publish.yml`), not a range.
+
+Two reasons. Trusted publishing needs npm >= 11.5.1, and a floating range once pulled
+npm 12 mid-release, whose changed `npm pack --json` output broke the packed smoke test.
+Separately, `release:checklist` compares the local `npm pack` shasum against the published
+tarball — `npm pack` is deterministic for a given tree *and npm version*, so that check
+only means anything when your local npm matches CI's.
+
+If you upgrade local npm, bump the pin in both publish jobs to match.
+
 ## Keeping the skill mirror in sync
 
 `skills/grace/*` is canonical; `plugins/grace/skills/grace/*` is the packaged mirror.
