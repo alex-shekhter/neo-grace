@@ -1072,6 +1072,12 @@ renames touch decisions in this document:
 | `Grace*` root tags | `Ngrace*` | D3 — `<NgraceRunLedger>`, `<NgraceRunCursor>` |
 | `GRACE4_VERSION = "4.0"` | `NGRACE_ARTIFACT_VERSION = "1.0"` | D13, and the grammar-version question in the packaging table |
 | `src/grace4/`, `skills/grace/grace-*` | `src/artifact/`, `skills/ngrace/ngrace-*` | every file citation |
+| `grace-execute`, `grace-reviewer`, … | `ngrace-execute`, `ngrace-reviewer`, … | skill names named in decision prose |
+
+**The mapping applies to the bare forms too** — `.grace` without a trailing slash, and skill names
+written without a path. The ratified text of D1–D15 keeps its original spelling on purpose; read this
+table over it. `plan.md` carries the current spelling throughout, and `plan.md` is the normative
+document.
 
 **Two things deliberately left as they were written.**
 

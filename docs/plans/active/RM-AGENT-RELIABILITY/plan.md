@@ -12,7 +12,7 @@ context: ./decisions.md
 
 # Agent Reliability Implementation Plan
 
-**Target repository:** `neo-grace` (`@neograce/cli`, 5.0.1)
+**Target repository:** `neo-grace` (`@neograce/cli`, 6.0.1)
 **Audience:** an executor coding agent
 **Authority:** derived from `decisions.md` in this directory, which records fifteen ratified
 design decisions (D1–D15) and four verified findings (F1–F4). Where this plan and a source
@@ -84,7 +84,7 @@ Rules:
 3. Nothing may degrade silently. Every code path that cannot perform a check must emit the
    absence value with a reason (D5).
 4. New grammar arrives only with the validator that makes it load-bearing.
-5. Existing valid `.grace` trees must keep validating. Additive only, unless a phase explicitly
+5. Existing valid `.ngrace` trees must keep validating. Additive only, unless a phase explicitly
    says otherwise. **The run ledger and cursor are additive by construction** (D1): a project
    without them lints clean.
 6. `NGRACE_ARTIFACT_VERSION` (`"1.0"`) is the *artifact grammar* version, validated on every root tag.
@@ -109,14 +109,14 @@ bun run ngrace <cmd> --help            # seven subcommands: doctor file graph li
 git show v3.11.0:<path>                # read GRACE 3 sources (F2) — they are in this repository
 ```
 
-**`bun run ngrace` only works after Phase -1.** At 5.0.1 the local script is named `grace`
-(`package.json#scripts.grace`) while the published binary is `ngrace` (`package.json#bin`), so
-`bun run ngrace --help` fails with *"Script not found"* — and `CLAUDE.md:48` documents the form
-that does not run. Phase -1 closes that gap by renaming the script, after which every command in
-this plan works as written and `CLAUDE.md` becomes correct without being edited.
+**Every command above resolves as written.** `package.json#scripts.ngrace` matches the published
+binary since RM-NAMESPACE-SEPARATION Phase 0 (`69475b4`); the plan's former Phase −1, which existed
+only to close that gap, was removed when that track completed. There is no `bun run grace` script
+and no substitution to make.
 
-**Until Phase -1 lands, substitute `bun run grace`.** Do not "fix" the plan's commands in the
-other direction.
+**One thing to be careful of:** upstream `@osovv/grace-cli` may be installed on your `PATH` as
+`grace`. It was, on the maintainer's machine, and `bun run grace lint` silently ran *upstream's*
+linter against this repository. If a command unexpectedly succeeds, check which binary answered.
 
 ### 0.5 Per-phase reporting format
 
@@ -330,7 +330,7 @@ Keep this table current. It is the single source of truth for progress.
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
 | 0 | Evidence harness & v3 capability audit | D4 (corpus), D7 (audit), D15 (measurement format) | TBD | `NOT STARTED` |
-| 1 | Thin `.grace` self-migration | §5.5 | TBD | `NOT STARTED` |
+| 1 | Thin `.ngrace` self-migration | §5.5 | TBD | `NOT STARTED` |
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `NOT STARTED` |
 | 3 | Run ledger & cursor | D1, D2, D3 | TBD | `NOT STARTED` |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
@@ -510,7 +510,7 @@ PSEUDOCODE
 
 skillTextLines(): { total: number; perSkill: Record<string, number> }
   // counts lines across skills/ngrace/*/SKILL.md and references/**
-  // baseline at 5.0.1 is 636 lines across 16 SKILL.md files (E2)
+  // baseline at 5.0.1 is 636 lines across 16 SKILL.md files (E2; re-measured 6.0.1, unchanged)
 
 commandOutputBytes(argv: string[], root: string): number
   // runs a CLI command against a fixture, returns stdout size
@@ -553,7 +553,7 @@ Delete `src/test-support/defect-corpus*`, `src/test-support/token-accounting*`, 
 
 ---
 
-# PHASE 1 — Thin `.grace` self-migration
+# PHASE 1 — Thin `.ngrace` self-migration
 
 **Status:** `NOT STARTED`
 **Decisions:** §5.5
@@ -561,7 +561,7 @@ Delete `src/test-support/defect-corpus*`, `src/test-support/token-accounting*`, 
 
 ## 1.1 Objective
 
-Give this repository a real `.grace` state, using **5.0.1 tooling only**, so every later phase is
+Give this repository a real `.ngrace` state, using **6.0.1 tooling only**, so every later phase is
 designed against a real project rather than a fixture.
 
 **Thin means thin:** context and graph for the CLI and skills packages, plus one active change for
@@ -570,9 +570,9 @@ the next phase. Not a heroic full markup of every adapter.
 ## 1.2 Preconditions
 
 → verify: `bun run ngrace lint --path .` reports `project.missing-grace`. That is the documented
-expected state at 5.0.1 (`CLAUDE.md`), and it is this phase's starting point.
+expected state at 6.0.1 (`CLAUDE.md`), and it is this phase's starting point.
 
-→ verify: Phase 0 is `COMPLETE`. The token baseline must be captured *before* `.grace` exists, or
+→ verify: Phase 0 is `COMPLETE`. The token baseline must be captured *before* `.ngrace` exists, or
 the skill-text delta for every later phase is measured against a moving baseline.
 
 ## 1.3 Files touched
@@ -583,7 +583,7 @@ the skill-text delta for every later phase is measured against a moving baseline
 | `.ngrace/graph/index.xml` | CREATE |
 | `.ngrace/graph/GD-*.xml` | CREATE |
 | `.ngrace/verification/index.xml` | CREATE |
-| `CLAUDE.md` | EDIT — remove the "does not yet contain its own `.grace` state" note |
+| `CLAUDE.md` | EDIT — remove the "does not yet contain its own `.ngrace` state" note |
 | `docs/plans/README.md` | EDIT — the note at line 44 says the same thing |
 
 ## 1.4 Design
@@ -620,8 +620,12 @@ There is no `verification index` subcommand — the surface is `find` and `show`
 is validated by `lint`. If you find yourself reaching for a subcommand this plan names but
 `--help` does not list, stop and report it rather than inventing an equivalent.
 
-**Step 1.5.4 — Update the two notes that say `.grace` does not exist.**
-→ verify: `grep -rn "does not yet contain its own .grace" . --include='*.md'` returns nothing
+**Step 1.5.4 — Update the two notes that say `.ngrace` does not exist.**
+→ verify: `grep -rln 'does not yet contain its own' . --include='*.md' | grep -v docs/plans` returns
+nothing. **Match on the prose, not on the path** — the sentence reads *"does not yet contain its own
+`.ngrace` state"*, with backticks, so any pattern that spans the directory name silently matches
+nothing and passes. This verify was written that way twice; run it before and after the edit and put
+both results in the report.
 outside `docs/plans/archive/`.
 
 ## 1.6 Definition of done
@@ -637,12 +641,12 @@ outside `docs/plans/archive/`.
 1. Is the slice actually thin? A migration that marks up every adapter has missed the point and
    will slow every later phase's lint run.
 2. Does any authored artifact reference a construct from a later phase? That is a bootstrapping
-   violation — the migration must be honest at 5.0.1.
+   violation — the migration must be honest at 6.0.1.
 3. Is the `doctor` baseline recorded verbatim rather than summarized?
 
 ## 1.8 Rollback
 
-`rm -rf .grace` and revert the two note edits. No source changes.
+`rm -rf .ngrace` and revert the two note edits. No source changes.
 
 ---
 
@@ -746,7 +750,7 @@ one of `derivedFrom` / `proposedBy`. Absence codes are the ones this track is bu
 unjustified one is a design error.
 
 **Step 2.5.4 — Teach `doctor` to report absences by reason.**
-→ verify: `ngrace doctor --path .` against the Phase 1 `.grace` prints an absence count per reason
+→ verify: `ngrace doctor --path .` against the Phase 1 `.ngrace` prints an absence count per reason
 code, and prints zero when nothing is absent. Include both outputs in the report.
 
 **Step 2.5.5 — Create `skills/ngrace/ngrace-cli/references/verdicts.md`.**
@@ -1514,7 +1518,7 @@ produces the full set rather than an empty one. Stage 1 errs toward inclusion.
 → verify: each candidate names why it is a candidate — which anchor, which state — not a bare name.
 
 **Step 8.5.7 — Measure.**
-→ verify: report `selectionRatio` for at least three real tasks from this repository's own `.grace`
+→ verify: report `selectionRatio` for at least three real tasks from this repository's own `.ngrace`
 (Phase 1). **This is the number §4.1 has never had.** If the saving is small, say so — the
 measurement is the deliverable, not a favourable result.
 
@@ -1701,7 +1705,7 @@ classifies as implementation. Both asserted against real ledger contents, not mo
 a decomposition failure.
 
 **Step 10.5.4 — The four doctor checks.**
-→ verify: each fires on a fixture designed for it and stays silent on the Phase 1 `.grace`. Report
+→ verify: each fires on a fixture designed for it and stays silent on the Phase 1 `.ngrace`. Report
 both.
 
 **Step 10.5.5 — Document the proxy caveat.**
