@@ -174,7 +174,7 @@ flowchart TB
 | # | Phase | Layer | Release | Status |
 |---|---|---|---|---|
 | 0 | Command name: `grace` → `ngrace` | Command | TBD | `COMPLETE` |
-| 1 | Centralize the scattered literals | — (enabling) | TBD | `IN PROGRESS` — reopened by A2, step 1.5.6 outstanding |
+| 1 | Centralize the scattered literals | — (enabling) | TBD | `IN PROGRESS` — reopened by A3, step 1.5.5b outstanding |
 | 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | TBD | `NOT STARTED` |
 | 3 | Artifact surface: `.ngrace/` and root tags | Artifact | TBD | `NOT STARTED` |
 | 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | TBD | `NOT STARTED` |
@@ -280,8 +280,9 @@ Revert `package.json` and one line in `src/grace.ts`.
 # PHASE 1 — Centralize the scattered literals
 
 **Status:** `IN PROGRESS` · **Layer:** enabling · **Release:** TBD
-**Amended 2026-07-29 (A2)** — see §9. Steps 1.5.1–1.5.5 are reviewed and accepted; the phase was
-reopened for step 1.5.6 because the original verify greps were narrower than the objective.
+**Amended 2026-07-29 (A2, A3)** — see §9. Steps 1.5.1–1.5.5 accepted; 1.5.5a and 1.5.6 executed
+correctly and accepted. Reopened once more for step 1.5.5b, because A2 stated the wrong population
+for 1.5.5a — the rule was right, the count was not.
 
 ## 1.1 Objective
 
@@ -416,6 +417,11 @@ green. **Any** changed output means the centralization was not faithful.
 
 **Step 1.5.5a — Test-file literals: draw the line and record it.** *(added by A2)*
 
+> **The counts in this step are wrong. Corrected by A3 — see step 1.5.5b.** The rule below is
+> sound and the executor applied it exactly as written; only the population it names is wrong.
+> Real figures: **227** `.grace` path literals in `*.test.ts`, of which **26** are assertions and
+> **201** are setup. Read the table's *kinds* as authoritative and its *counts* as void.
+
 Test files keep ~32 `.grace` literals. **This is correct and they must not all be centralized.**
 A test that builds its fixture from `ARTIFACT_DIR` and asserts against `ARTIFACT_DIR` passes for any
 value of `ARTIFACT_DIR`, including a wrong one — Phase 3 would then be self-verifying, which is
@@ -432,6 +438,40 @@ Split them, and do only the first half:
 → verify: list in the report which files were centralized and which assertions were deliberately
 left, with the count. An assertion left literal by *decision* is evidence; one left by *oversight*
 is a miss, and only the report distinguishes them.
+
+**Step 1.5.5b — Finish the setup literals A2 miscounted.** *(added by A3)*
+
+A2 named three shapes — `mkdirSync`, `rmSync`, `symlinkSync` — and you centralized all of them.
+It did not name `writeProjectFile(root, ".grace/context/requirements.xml", …)`, which is the same
+kind and is **65 of the remaining sites**. 201 setup literals remain in 13 test files.
+
+**Why this is not "close enough".** Flip `ARTIFACT_DIR` to `.ngrace` today and the suite produces
+**140 failures** — measured, not estimated. Phase 3's review gate asks *"did step 3.5.1 fail loudly,
+in fixtures rather than in logic?"* At 140 failures that question cannot be answered without reading
+all 140, and a genuine logic regression is indistinguishable from fixture noise. The alarm Phase 3
+depends on is drowned out by itself.
+
+With setup centralized, the value flip fires only the 26 assertions — few enough to read, and each
+one meaningful.
+
+There is also the thesis. Phase 1 exists to do the mechanical part **while it is provably
+value-neutral**. Leaving 201 sites for Phase 3 does not avoid the sweep; it moves it into the one
+phase that also changes a value, which is the situation this phase was created to prevent.
+
+Centralize every setup literal. Leave all 26 assertions untouched.
+
+```bash
+# the population, and the two halves of it
+grep -rn '\.grace[/"]' src --include='*.test.ts' | grep -vE 'graceVersion|grace3-detected|\.grace-lint'
+```
+
+→ verify: `bun test` still **589 tests / 586 pass / 3 skip / 0 fail / 1889 expects**. Unchanged
+counts are the whole proof — a centralization that alters any of them was not faithful.
+
+→ verify, and put the number in the report: temporarily set `ARTIFACT_DIR = ".ngrace"`, run
+`bun test`, record the failure count, then `git checkout -- src/grace4/paths.ts`. It must drop from
+140 to roughly the assertion count. **Restore the value before reporting** — leaving it flipped
+starts Phase 3 by accident.
 
 **Step 1.5.6 — The sentence-embedded literals the original greps could not see.** *(added by A2)*
 
@@ -470,6 +510,8 @@ step 1.5.4 is re-run and still byte-identical. Note that `src/grace-lint.test.ts
 - Rendered remediation text byte-identical
 - Both A2 greps run and reported: the `.grace` one empty, the skill-name one classified
 - The test-literal split is recorded per step 1.5.5a
+- *(A3)* Every setup literal centralized; exactly the 26 assertions left; the value-flip failure
+  count measured, reported, and reverted
 - `bun run validate:ci` green
 
 ## 1.7 Review gate
@@ -481,6 +523,9 @@ step 1.5.4 is re-run and still byte-identical. Note that `src/grace-lint.test.ts
    unclassified hit fails this gate.
 5. *(A2)* Which test assertions were left literal on purpose, and does the list read like a
    decision rather than a remainder?
+6. *(A3)* What does the value flip cost now? A number in the tens means Phase 3 has a readable
+   alarm; a number in the hundreds means it does not, and this phase is not done.
+7. *(A3)* Is `ARTIFACT_DIR` back to `".grace"` in the committed tree?
 
 ## 1.8 Rollback
 
@@ -647,6 +692,11 @@ untouched. Note it for that skill's owner; do not build it here.
 **Step 3.5.1 — Change `ARTIFACT_DIR` to `.ngrace`.**
 → verify: `bun test` fails loudly, in fixtures rather than in logic. A silent pass here means
 Phase 1 missed a literal — stop and report.
+
+*(A3)* **Expect roughly 26 failures, all in assertions.** Phase 1 step 1.5.5b measured this
+deliberately so the number is known before you see it. A count in the hundreds means 1.5.5b was
+undone or incomplete — stop, because at that volume you cannot tell a fixture failure from a logic
+one, and this step's verify is the only thing standing between you and a silent regression.
 
 **Step 3.5.2 — Change `ARTIFACT_TAG_PREFIX` to `Ngrace`.**
 → verify: `typecheck` clean and the root-tag union now reads `Ngrace*`.
@@ -1105,6 +1155,7 @@ open questions, and a sixth invented mid-phase will not be recorded anywhere.
 | backlog | Retire "GRACE 4" prose | 5, **widened by A1** to include 46 sites inside `src/`+`scripts/` |
 | A1 | `Grace4` code identifiers | 4 |
 | A2 | Sentence-embedded literals; test-literal policy; `.grace-lint.json` | 1, 3 |
+| A3 | A2's test-literal count corrected: 201 setup sites, not ~13 | 1, 3 |
 
 ---
 
@@ -1188,6 +1239,47 @@ which was correct and should not have looked like a deviation.
 **Phase 1 returns to `IN PROGRESS`.** Steps 1.5.1–1.5.5 stand as accepted and must not be redone.
 Phases 0 and 2 are untouched.
 
+### A3 — 2026-07-29 · A2 stated the wrong population for the test literals
+
+**Raised by the second Phase 1 review.** Steps 1.5.5a and 1.5.6 were executed correctly. All six
+sentence-embedded sites are behind constants, both A2 greps return exactly what A2 predicted, and
+zero value change is re-proven against the pre-Phase-1 tree: the rendered catalog is byte-identical
+across 65 codes and 768 lines, `ngrace --help` is byte-identical, and the suite is unchanged at
+589 tests / 586 pass / 3 skip / 0 fail / 1889 assertions. `validate:ci` and `validate:release` both
+exit 0.
+
+**The defect is in A2, not in the execution.** A2 wrote *"~32 test literals, ~13 inline setup"*. The
+real figures are **227** `.grace` path literals in `*.test.ts` — **26** assertions and **201**
+setup. That count came from grepping `"\.grace"` and the backtick form — the quoted-standalone
+shapes — and then reporting the result as the population.
+
+**This is the same defect A2 was written to correct**, one level up. A2's finding was that step
+1.5.1's grep matched the standalone shape and missed the embedded one. A2 then measured its own
+remediation with a grep matching the standalone shape, and missed the embedded one. The rule in
+1.5.5a is sound and needs no change; the three shapes it named — `mkdirSync`, `rmSync`,
+`symlinkSync` — were all handled. It simply never named
+`writeProjectFile(root, ".grace/context/…")`, which is 65 of the remainder.
+
+The lesson is narrower than "check your greps," and worth stating exactly: **a number in a plan is a
+claim and needs the same evidence as any other claim.** A2's greps were given verify steps. A2's
+counts were not — and the counts were what the executor scoped its work against.
+
+**Why it must be fixed rather than absorbed by Phase 3.** Measured, not argued: flipping
+`ARTIFACT_DIR` to `.ngrace` today yields **140 test failures**. Phase 3's gate asks whether step
+3.5.1 failed *in fixtures rather than in logic*; at 140 failures nobody answers that honestly, and a
+real regression hides in the noise. That alarm is the only evidence that the artifact rename reached
+production code, and A2's undercount would have left it unreadable.
+
+The second reason is the phase's own thesis. Phase 1 exists to do the mechanical work **while it is
+provably value-neutral**. Leaving 201 sites for Phase 3 does not avoid a sweep — it relocates one
+into the single phase that also changes a value.
+
+Step 1.5.5b adds the work and requires the flip count to be *measured and reported*, not asserted.
+Step 3.5.1 now carries the expected number, so Phase 3 can recognize a wrong one on sight.
+
+**Phase 1 returns to `IN PROGRESS` a second time.** Steps 1.5.1–1.5.6 all stand as accepted and must
+not be redone. Phases 0 and 2 untouched.
+
 ---
 
 ## 10. Final instruction to the executor
@@ -1209,3 +1301,8 @@ has when it stands alone and neither matched the shape it has inside a sentence.
 "what would this miss?" is anything at all, widen the pattern or say in the report that you checked
 by reading instead. A green check that is not about the claim is worse than no check, because it
 stops the search.
+
+And — added after A3 — **the counts in this plan are claims, not measurements.** Where a step says
+"11 sites" or "58 literals", run the grep and report what you actually find before you scope work
+against it. A2's "~13 inline setup sites" was really 201, and the phase was signed off twice on that
+number. If your count disagrees with the plan's, yours is the evidence: report both and keep going.
