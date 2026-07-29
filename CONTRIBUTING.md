@@ -58,6 +58,17 @@ git switch main && git pull
 bun run release:finalize 5.1.0             # tags v5.1.0 → triggers publish
 ```
 
+**The stable publish then pauses.** `stable-release` requires a reviewer, so the run waits
+in Actions until you approve the deployment — nothing reaches npm before you click. Open
+the run, click **Review deployments → Approve and deploy**. Prereleases do not pause;
+`publish-prerelease` uses no environment.
+
+Immediately after it publishes, while `main` is still exactly the release commit:
+
+```bash
+bun run release:checklist                  # only fully passes in this window
+```
+
 `release:finalize` only accepts stable versions. Prereleases never use it.
 
 ### The release summary
@@ -89,19 +100,54 @@ Each of these is a fail-closed gate that stops before anything permanent happens
 | `No release summary available` | Set `RELEASE_SUMMARY`, or install `opencode` |
 | `Tag "vX.Y.Z" is not allowed to deploy` | The `stable-release` environment has no **tag** rule for `v*` |
 
+## Reading `release:checklist`
+
+It exits non-zero if any item fails, so read the lines rather than the exit code.
+
+**"Git tag, ancestry, npm channel, and GitHub Release state are consistent"** requires
+`main`'s tip to *be* the release tag. Merge anything after a release and it is permanently
+red for that version — that is the design, not a misconfiguration. Run it in the window
+right after `release:finalize`; every other item is meaningful at any time.
+
+Checking out the tag does not help: the check also requires `branch === "main"`, so a
+detached HEAD fails a different assertion instead.
+
 ## Repository settings this workflow assumes
 
 Changing these breaks the release path; `bun run release:checklist` verifies them.
 
-- **Branch ruleset on `main`** — require a PR (0 approvals), require `validate`,
-  `dart-adapter`, `windows-compatibility`, require branches up to date, block force pushes.
-- **Tag ruleset on `v*`** — block force pushes and deletions. Published tags are the record
-  of what shipped.
-- **Environment `stable-release`** — deployment rules for branch `main` **and tag `v*`**.
-  The tag rule is separate from the branch rule and is easy to miss.
+- **Classic branch protection on `main`** — not a ruleset. `release:checklist` queries
+  `/branches/main/protection`, which reports classic protection only. Require a PR
+  (0 approvals — GitHub will not let you approve your own), require branches up to date,
+  include administrators, block force pushes and deletions, and require exactly these
+  status checks: `validate`, `windows-compatibility`, `dart-adapter`.
+- **Tag ruleset on `v*`** — a ruleset this time; the checklist reads `/rulesets` for tags.
+  Block force pushes and deletions. Published tags are the record of what shipped.
+- **Environment `stable-release`** — one required reviewer (you), plus deployment rules for
+  branch `main` **and tag `v*`**. The tag rule is separate from the branch rule and is easy
+  to miss; without it a tag-triggered deploy is rejected before the job runs.
 - **npm trusted publisher** on `@neograce/cli` — GitHub Actions, `alex-shekhter/neo-grace`,
   `publish.yml`, **Environment left blank** so it matches both publish jobs. No token is
   stored anywhere; publishing runs on OIDC and produces a provenance attestation.
+
+### When the settings UI will not cooperate
+
+Adding required status checks through Settings → Branches sometimes offers no editable
+control. `gh` reaches the same settings directly:
+
+```bash
+printf '{"strict":true,"checks":[{"context":"validate"},{"context":"windows-compatibility"},{"context":"dart-adapter"}]}' \
+  | gh api -X PATCH repos/alex-shekhter/neo-grace/branches/main/protection/required_status_checks --input -
+```
+
+Read current state the same way, which is faster than clicking through pages:
+
+```bash
+gh api repos/alex-shekhter/neo-grace/branches/main/protection
+gh api repos/alex-shekhter/neo-grace/environments/stable-release
+gh api repos/alex-shekhter/neo-grace/environments/stable-release/deployment-branch-policies
+gh api repos/alex-shekhter/neo-grace/rulesets
+```
 
 ## npm version
 
