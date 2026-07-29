@@ -14,7 +14,7 @@
 // END_MODULE_MAP
 
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { writeMinimalGrace4Project } from "../src/grace4/test-fixtures.ts";
@@ -132,11 +132,16 @@ export async function runPackedCliSmoke(repoRoot: string): Promise<void> {
     mkdirSync(consumer, { recursive: true });
     write(consumer, "package.json", `${JSON.stringify({ name: "grace-packed-smoke", private: true }, null, 2)}\n`);
 
-    const packJson = run("npm", ["pack", "--json", "--pack-destination", packDir], repoRoot, "npm pack");
-    const packed = JSON.parse(packJson) as Array<{ filename?: string }>;
-    const filename = packed[0]?.filename;
-    if (!filename) throw new Error("npm pack returned no tarball filename.");
-    const tarball = path.join(packDir, filename);
+    // Observe the tarball on disk rather than parsing npm's output. `npm pack --json`
+    // changed shape between npm 11 and 12, which turned a working smoke test into a
+    // "no tarball filename" failure during a release. The file it writes is the thing
+    // we actually care about, and it does not change between npm versions.
+    run("npm", ["pack", "--pack-destination", packDir], repoRoot, "npm pack");
+    const tarballs = readdirSync(packDir).filter((entry) => entry.endsWith(".tgz"));
+    if (tarballs.length !== 1) {
+      throw new Error(`npm pack produced ${tarballs.length} tarballs in ${packDir}; expected exactly 1.`);
+    }
+    const tarball = path.join(packDir, tarballs[0]!);
     run("bun", ["add", tarball], consumer, "temporary packed-package install");
 
     const cliEntry = path.join(consumer, "node_modules", "@neograce", "cli", "src", "grace.ts");
