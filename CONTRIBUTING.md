@@ -131,7 +131,25 @@ git diff main..<branch> | grep -E '^\+' | grep -v '^\+\+\+'
 ```
 
 If everything there is a superseded version of something `main` already has, the branch is
-spent. Then delete it in both places:
+spent.
+
+**Better: ask the question mechanically, so there is nothing to interpret.** The check above needs
+you to read a diff and decide whether its contents are superseded — and that judgment is exactly
+what goes wrong. `git diff main..<branch>` compares whole trees, so *any* branch that `main` has
+moved past reports differences even when its own work landed in full. Narrow the comparison to the
+files the branch actually touched:
+
+```bash
+b=<branch>
+files=$(git diff --name-only "$(git merge-base main "$b")".."$b")
+git diff --name-only main.."$b" -- $files    # empty → this branch's own changes are all in main
+```
+
+Empty means landed, regardless of how far `main` has advanced since. Non-empty lists precisely the
+files still outstanding, which is also the answer you want when a branch is *partly* merged — the
+case a tree-wide diff cannot distinguish from "behind main" at all.
+
+Then delete it in both places:
 
 ```bash
 git branch -d <branch>                  # -D if squash-merged; -d will refuse
