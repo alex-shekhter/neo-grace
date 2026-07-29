@@ -30,7 +30,7 @@ bun run release:finalize X.Y.Z
    - `README.md` — `Current packaged version: \`x.y.z\`` marker
    - `openpackage.yml` — `version:` line
    - `.claude-plugin/marketplace.json` — `metadata.version` and plugin `version`
-   - `plugins/grace/.claude-plugin/plugin.json` — `version` field
+   - `plugins/ngrace/.claude-plugin/plugin.json` — `version` field
    - `src/grace.ts` — CLI metadata shown by `ngrace --version`
 8. Run `bun run validate:release` again against the proposed release state.
 9. Assert only expected release files have changed.
@@ -44,7 +44,7 @@ Every command uses argument arrays without shell interpolation. Release automati
 
 `release:finalize` accepts exactly one stable semantic version. It fetches `origin/main` without broad tag mutation, requires clean checked-out `main` with `HEAD == origin/main`, verifies package/changelog version equality, rejects an existing remote tag, rejects a version already published to npm (published versions are immutable, so a re-tag could only fail), reruns `validate:release`, creates or recovers the exact local annotated tag, verifies the tag resolves to `HEAD`, and pushes only that tag.
 
-> **Note:** Canonical skill mirror syncing (`skills/grace/*` → `plugins/grace/skills/grace/*`) is **not** done automatically. The `validate:marketplace` script catches drift. Sync skills separately when needed.
+> **Note:** Canonical skill mirror syncing (`skills/ngrace/*` → `plugins/ngrace/skills/ngrace/*`) is **not** done automatically. The `validate:marketplace` script catches drift. Sync skills separately when needed.
 
 ## Environment Variables
 
@@ -147,7 +147,7 @@ If you need to release without the automated script:
 
    * conventional commit bullets...
    ```
-3. Update version in `README.md`, `openpackage.yml`, `.claude-plugin/marketplace.json`, `plugins/grace/.claude-plugin/plugin.json`.
+3. Update version in `README.md`, `openpackage.yml`, `.claude-plugin/marketplace.json`, `plugins/ngrace/.claude-plugin/plugin.json`.
 4. Run `bun run validate:marketplace` to catch any drift between canonical skills and the packaged mirror.
 5. Run `bun run release:check` to verify consistency.
 6. Put stable version changes through a required-check PR to protected `main`; after merge, run `bun run release:finalize X.Y.Z`. For prereleases, push the annotated `vX.Y.Z-prerelease` tag after branch validation.

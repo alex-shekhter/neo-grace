@@ -910,7 +910,7 @@ function collectModuleStates(moduleNode: GraceXmlNode, file: string, issues: Gra
 }
 
 /**
- * State evidence matching rule (documented in grace-design / explainer):
+ * State evidence matching rule (documented in ngrace-design / explainer):
  * drop the `ST-` prefix, split the remainder on `-` into words, and look for those
  * words appearing consecutively as **whole words** in the evidence text, case-insensitively.
  * The joined compact form is also accepted as a single whole word, so `ST-FOCUS-VISIBLE`

@@ -60,10 +60,10 @@ describe("GRACE 4 project detection", () => {
     expect(detectGraceProjectKind(createProject())).toBe("none");
   });
 
-  it("guides GRACE 3 projects to grace-migrate without claiming CLI migration support", () => {
+  it("guides GRACE 3 projects to ngrace-migrate without claiming CLI migration support", () => {
     const guidance = formatGrace3MigrationGuidance(createProject());
 
-    expect(guidance).toContain("grace-migrate");
+    expect(guidance).toContain("ngrace-migrate");
     expect(guidance).toContain("CLI does not migrate");
     expect(guidance).not.toContain("grace migrate");
   });

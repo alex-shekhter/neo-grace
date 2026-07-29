@@ -31,7 +31,7 @@ const PKG_PATH = path.join(REPO_ROOT, "package.json");
 const README_PATH = path.join(REPO_ROOT, "README.md");
 const OPENPACKAGE_PATH = path.join(REPO_ROOT, "openpackage.yml");
 const MARKETPLACE_PATH = path.join(REPO_ROOT, ".claude-plugin/marketplace.json");
-const PLUGIN_MANIFEST_PATH = path.join(REPO_ROOT, "plugins/grace/.claude-plugin/plugin.json");
+const PLUGIN_MANIFEST_PATH = path.join(REPO_ROOT, "plugins/ngrace/.claude-plugin/plugin.json");
 const CLI_ENTRY_PATH = path.join(REPO_ROOT, "src/grace.ts");
 const CHANGELOG_PATH = path.join(REPO_ROOT, "CHANGELOG.md");
 
@@ -279,17 +279,17 @@ export function collectReleaseConsistencyErrors(
     }
   }
 
-  // Validate plugins/grace/.claude-plugin/plugin.json version
+  // Validate plugins/ngrace/.claude-plugin/plugin.json version
   if (!pluginManifestText) {
-    errors.push("plugins/grace/.claude-plugin/plugin.json is missing or unreadable");
+    errors.push("plugins/ngrace/.claude-plugin/plugin.json is missing or unreadable");
   } else {
     try {
       const manifest = JSON.parse(pluginManifestText) as { version?: string };
       if (manifest.version && manifest.version !== version) {
-        errors.push(`plugins/grace/.claude-plugin/plugin.json version is "${manifest.version}", expected "${version}"`);
+        errors.push(`plugins/ngrace/.claude-plugin/plugin.json version is "${manifest.version}", expected "${version}"`);
       }
     } catch {
-      errors.push("plugins/grace/.claude-plugin/plugin.json is not valid JSON");
+      errors.push("plugins/ngrace/.claude-plugin/plugin.json is not valid JSON");
     }
   }
 

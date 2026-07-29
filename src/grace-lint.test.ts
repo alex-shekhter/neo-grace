@@ -112,7 +112,7 @@ describe("lintGraceProject", () => {
     const result = lintGraceProject(root);
 
     expect(result.issues[0]?.code).toBe("project.grace3-detected");
-    expect(result.issues[0]?.message).toContain("grace-migrate");
+    expect(result.issues[0]?.message).toContain("ngrace-migrate");
     expect(result.issues.map((issue) => issue.code)).toEqual(["project.grace3-detected"]);
   });
 
@@ -216,7 +216,7 @@ describe("lintGraceProject", () => {
   it("keeps the shipped spec and plan templates mutually consistent under spec→plan coverage", () => {
     // String assertions in skill-contracts cannot catch the templates naming different
     // placeholder modules. Linting them as a real bundle can.
-    const skills = path.resolve(import.meta.dir, "../skills/grace");
+    const skills = path.resolve(import.meta.dir, "../skills/ngrace");
     const fill = (relativePath: string) =>
       readFileSync(path.join(skills, relativePath), "utf8")
         .replace(/C-CHANGE-ID/g, "C-TEMPLATE")
@@ -225,8 +225,8 @@ describe("lintGraceProject", () => {
 
     const root = createProject();
     writeMinimalGrace4Project(root);
-    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEMPLATE/spec.xml`, fill("grace-spec/references/change-spec-template.xml"));
-    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEMPLATE/plan.xml`, fill("grace-plan/references/change-plan-template.xml"));
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEMPLATE/spec.xml`, fill("ngrace-spec/references/change-spec-template.xml"));
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEMPLATE/plan.xml`, fill("ngrace-plan/references/change-plan-template.xml"));
 
     const codes = lintGraceProject(root).issues.map((issue) => issue.code);
     expect(codes).not.toContain("change.scope-does-not-cover-spec");

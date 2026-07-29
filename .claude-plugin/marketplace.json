@@ -12,8 +12,8 @@
   },
   "plugins": [
     {
-      "name": "grace",
-      "source": "./plugins/grace",
+      "name": "ngrace",
+      "source": "./plugins/ngrace",
       "description": "Complete GRACE methodology: semantic markup, knowledge graphs, module contracts, testing, and log-driven verification for AI-driven engineering",
       "version": "5.0.1",
       "author": {
@@ -35,22 +35,22 @@
       "strict": true,
       "agents": [],
       "skills": [
-        "./skills/grace/grace-init",
-        "./skills/grace/grace-spec",
-        "./skills/grace/grace-plan",
-        "./skills/grace/grace-execute",
-        "./skills/grace/grace-refactor",
-        "./skills/grace/grace-setup-subagents",
-        "./skills/grace/grace-fix",
-        "./skills/grace/grace-refresh",
-        "./skills/grace/grace-status",
-        "./skills/grace/grace-ask",
-        "./skills/grace/grace-cli",
-        "./skills/grace/grace-explainer",
-        "./skills/grace/grace-verification",
-        "./skills/grace/grace-design",
-        "./skills/grace/grace-reviewer",
-        "./skills/grace/grace-migrate"
+        "./skills/ngrace/ngrace-init",
+        "./skills/ngrace/ngrace-spec",
+        "./skills/ngrace/ngrace-plan",
+        "./skills/ngrace/ngrace-execute",
+        "./skills/ngrace/ngrace-refactor",
+        "./skills/ngrace/ngrace-setup-subagents",
+        "./skills/ngrace/ngrace-fix",
+        "./skills/ngrace/ngrace-refresh",
+        "./skills/ngrace/ngrace-status",
+        "./skills/ngrace/ngrace-ask",
+        "./skills/ngrace/ngrace-cli",
+        "./skills/ngrace/ngrace-explainer",
+        "./skills/ngrace/ngrace-verification",
+        "./skills/ngrace/ngrace-design",
+        "./skills/ngrace/ngrace-reviewer",
+        "./skills/ngrace/ngrace-migrate"
       ]
     }
   ]

@@ -24,25 +24,36 @@ const pluginComponentFields = ["commands", "agents", "hooks", "mcpServers", "lsp
 
 /** Required published GRACE 4 skill directory names. */
 const REQUIRED_GRACE4_SKILLS = new Set([
-  "grace-init",
-  "grace-spec",
-  "grace-plan",
-  "grace-execute",
-  "grace-refactor",
-  "grace-setup-subagents",
-  "grace-fix",
-  "grace-refresh",
-  "grace-status",
-  "grace-ask",
-  "grace-cli",
-  "grace-explainer",
-  "grace-verification",
-  "grace-reviewer",
-  "grace-migrate",
+  "ngrace-init",
+  "ngrace-spec",
+  "ngrace-plan",
+  "ngrace-execute",
+  "ngrace-refactor",
+  "ngrace-setup-subagents",
+  "ngrace-fix",
+  "ngrace-refresh",
+  "ngrace-status",
+  "ngrace-ask",
+  "ngrace-cli",
+  "ngrace-explainer",
+  "ngrace-verification",
+  "ngrace-reviewer",
+  "ngrace-migrate",
 ]);
 
-/** Skill names that must not be published in the GRACE 4 marketplace manifest. */
-const FORBIDDEN_GRACE4_SKILLS = new Set(["grace-multiagent-execute"]);
+/**
+ * Skill names that must not be published in the marketplace manifest.
+ *
+ * Holds both spellings on purpose. `grace-multiagent-execute` is the name the skill
+ * actually shipped under before it was removed (see `git show v3.11.0`), so it is the
+ * one a resurrection would most likely arrive with; `ngrace-multiagent-execute` covers
+ * the same mistake made under the current naming convention. A guard named only for the
+ * new convention would not recognize the thing it was written to keep out.
+ */
+const FORBIDDEN_GRACE4_SKILLS = new Set([
+  "grace-multiagent-execute",
+  "ngrace-multiagent-execute",
+]);
 
 function readJson(filePath: string): JsonObject {
   return JSON.parse(readFileSync(filePath, "utf8")) as JsonObject;
@@ -281,20 +292,20 @@ function skillNamesFromEntry(entry: JsonObject): Set<string> {
 
 /** Validates that the marketplace skills array matches the GRACE 4 release surface. */
 function validateGrace4SkillSurface(entry: JsonObject, errors: string[]): void {
-  if (String(entry.name ?? "") !== "grace") {
+  if (String(entry.name ?? "") !== "ngrace") {
     return;
   }
 
   const publishedSkills = skillNamesFromEntry(entry);
   for (const requiredSkill of REQUIRED_GRACE4_SKILLS) {
     if (!publishedSkills.has(requiredSkill)) {
-      errors.push(`grace: missing required GRACE 4 skill in marketplace skills array (${requiredSkill})`);
+      errors.push(`ngrace: missing required GRACE 4 skill in marketplace skills array (${requiredSkill})`);
     }
   }
 
   for (const forbiddenSkill of FORBIDDEN_GRACE4_SKILLS) {
     if (publishedSkills.has(forbiddenSkill)) {
-      errors.push(`grace: forbidden GRACE 4 skill is still published (${forbiddenSkill})`);
+      errors.push(`ngrace: forbidden GRACE 4 skill is still published (${forbiddenSkill})`);
     }
   }
 }

@@ -322,8 +322,8 @@ emergency.
 
 | If you want to… | Read |
 |---|---|
-| Understand the knowledge graph model | `skills/grace/grace-explainer/references/knowledge-graph.md` |
-| See the file-level markup rules | `skills/grace/grace-explainer/references/semantic-markup.md` |
+| Understand the knowledge graph model | `skills/ngrace/ngrace-explainer/references/knowledge-graph.md` |
+| See the file-level markup rules | `skills/ngrace/ngrace-explainer/references/semantic-markup.md` |
 | Adopt GRACE in your own repo | Run `$grace-init` and let it interview you |
 | Check what GRACE can verify in your stack | `ngrace doctor --path .` |
 

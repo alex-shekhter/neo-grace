@@ -60,7 +60,7 @@ const RELEASE_FILES = [
   "README.md",
   "openpackage.yml",
   ".claude-plugin/marketplace.json",
-  "plugins/grace/.claude-plugin/plugin.json",
+  "plugins/ngrace/.claude-plugin/plugin.json",
   "src/grace.ts",
 ] as const;
 const ALLOWED_RELEASE_FILES = new Set<string>(RELEASE_FILES);
@@ -301,7 +301,7 @@ export function updateVersionSurfaceFiles(repoRoot: string, newVersion: string):
   const readmePath = path.join(repoRoot, "README.md");
   const openpackagePath = path.join(repoRoot, "openpackage.yml");
   const marketplacePath = path.join(repoRoot, ".claude-plugin/marketplace.json");
-  const pluginPath = path.join(repoRoot, "plugins/grace/.claude-plugin/plugin.json");
+  const pluginPath = path.join(repoRoot, "plugins/ngrace/.claude-plugin/plugin.json");
   const cliPath = path.join(repoRoot, "src/grace.ts");
 
   writeFileSync(readmePath, replaceRequired(readRequired(readmePath), /(Current packaged version:\s*`)([^`]+)(`)/, `$1${newVersion}$3`, "README.md"));

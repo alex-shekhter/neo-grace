@@ -208,7 +208,7 @@ If you upgrade local npm, bump the pin in both publish jobs to match.
 
 ## Keeping the skill mirror in sync
 
-`skills/grace/*` is canonical; `plugins/grace/skills/grace/*` is the packaged mirror.
+`skills/ngrace/*` is canonical; `plugins/ngrace/skills/ngrace/*` is the packaged mirror.
 Syncing is **not** automatic. Edit the canonical copy, mirror it, and let
 `bun run validate:marketplace` confirm they match — it is part of `validate:ci` and of
 every pre-commit hook.

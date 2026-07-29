@@ -113,7 +113,7 @@ describe("ngrace status", () => {
     expect(result.summary.verificationEntries).toBe(1);
     expect(result.summary.readyModules).toBe(1);
     expect(result.modules).toHaveLength(1);
-    expect(result.nextAction).toContain("$grace-spec");
+    expect(result.nextAction).toContain("$ngrace-spec");
     expect(result.observedDrift.available).toBe(false);
   });
 
@@ -129,7 +129,7 @@ describe("ngrace status", () => {
     expect(result.summary.archivedChanges).toBe(1);
     expect(result.changes.find((change) => change.changeId === "C-ACTIVE")?.planStatus).toBe("approved");
     expect(result.changes.find((change) => change.changeId === "C-ARCHIVED")?.specStatus).toBe("applied");
-    expect(result.nextAction).toContain("grace-execute");
+    expect(result.nextAction).toContain("ngrace-execute");
   });
 
   it("surfaces overlapping approved changes as derived state, not XML status", () => {
@@ -440,7 +440,7 @@ describe("ngrace status", () => {
     expect(result.projectKind).toBe("grace3");
     expect(result.derivedStates).toContain("migration-candidate");
     expect(result.summary.graphModules).toBe(0);
-    expect(result.nextAction).toContain("grace-migrate");
+    expect(result.nextAction).toContain("ngrace-migrate");
   });
 
   it("wires the status command through the CLI", () => {

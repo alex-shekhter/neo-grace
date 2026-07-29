@@ -53,7 +53,7 @@ function writeReleaseFixture(root: string, version: string): void {
   write(root, "README.md", `Current packaged version: \`${version}\`\n`);
   write(root, "openpackage.yml", `name: grace-marketplace\nversion: ${version}\n`);
   write(root, ".claude-plugin/marketplace.json", `${JSON.stringify({ metadata: { version }, plugins: [{ version }] }, null, 2)}\n`);
-  write(root, "plugins/grace/.claude-plugin/plugin.json", `${JSON.stringify({ version }, null, 2)}\n`);
+  write(root, "plugins/ngrace/.claude-plugin/plugin.json", `${JSON.stringify({ version }, null, 2)}\n`);
   write(root, "src/grace.ts", `const main = { meta: { name: "grace", version: "${version}" } };\n`);
   write(root, "CHANGELOG.md", `## <small>${version} (2026-07-13)</small>\n\n### Summary\n\nRelease ${version}.\n`);
 }
@@ -195,7 +195,7 @@ describe("stable release finalization", () => {
     expect(readFileSync(path.join(root, "README.md"), "utf8")).toContain("`4.0.0`");
     expect(readFileSync(path.join(root, "openpackage.yml"), "utf8")).toContain("version: 4.0.0");
     expect(JSON.parse(readFileSync(path.join(root, ".claude-plugin/marketplace.json"), "utf8")).metadata.version).toBe("4.0.0");
-    expect(JSON.parse(readFileSync(path.join(root, "plugins/grace/.claude-plugin/plugin.json"), "utf8")).version).toBe("4.0.0");
+    expect(JSON.parse(readFileSync(path.join(root, "plugins/ngrace/.claude-plugin/plugin.json"), "utf8")).version).toBe("4.0.0");
     expect(readFileSync(path.join(root, "src/grace.ts"), "utf8")).toContain('version: "4.0.0"');
   });
 

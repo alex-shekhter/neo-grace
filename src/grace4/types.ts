@@ -36,9 +36,9 @@ export type Grace4ChangeCompanionTag = (typeof GRACE4_CHANGE_COMPANION_TAGS)[num
  * Prefix for marketplace skill identifiers printed as next-action guidance.
  * Phase 1 centralizes the literal; Phase 2 renames the value.
  */
-export const SKILL_PREFIX = "grace" as const;
+export const SKILL_PREFIX = "ngrace" as const;
 
-/** Marketplace skill id without the `$` display convention (`grace-init`). */
+/** Marketplace skill id without the `$` display convention (`ngrace-init`). */
 export const skillName = (suffix: string): string => `${SKILL_PREFIX}-${suffix}`;
 
 /** Formats a skill reference as `$<prefix>-<suffix>` for CLI guidance strings. */

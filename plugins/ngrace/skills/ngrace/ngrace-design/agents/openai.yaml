@@ -1,0 +1,4 @@
+interface:
+  display_name: "GRACE Design"
+  short_description: "Author design-system.xml, UI states, and a11y/visual verification"
+  default_prompt: "Use $ngrace-design to set up design tokens, component states, and accessibility/visual checks."
