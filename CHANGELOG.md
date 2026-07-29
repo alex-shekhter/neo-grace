@@ -1,3 +1,39 @@
+## <small>5.0.1-rc.0 (2026-07-29)</small>
+
+### Summary
+
+This prerelease verifies trusted publishing over OIDC from GitHub Actions and removes the hard opencode dependency from the release path.
+
+* feat: fork as neo-grace with full upstream attribution ([99660e1](https://github.com/alex-shekhter/neo-grace/commit/99660e1))
+* feat(adoption): add golden-path example, ceremony tiers, design references ([326d457](https://github.com/alex-shekhter/neo-grace/commit/326d457))
+* feat(cli): add document size limits, graph split, doctor, multi-stack ([83bd685](https://github.com/alex-shekhter/neo-grace/commit/83bd685)), closes [#169](https://github.com/alex-shekhter/neo-grace/issues/169) [#169](https://github.com/alex-shekhter/neo-grace/issues/169)
+* feat(design): add enforced design-system layer with UI state coverage ([d6e666d](https://github.com/alex-shekhter/neo-grace/commit/d6e666d))
+* feat(grammar): add spec-plan traceability with AC-* criteria ([de90981](https://github.com/alex-shekhter/neo-grace/commit/de90981))
+* feat(graph): add interface contracts, ordered flows, invariants, budgets ([b971e16](https://github.com/alex-shekhter/neo-grace/commit/b971e16))
+* feat(lint): add Go export adapter ([9d7781d](https://github.com/alex-shekhter/neo-grace/commit/9d7781d))
+* feat(lint): add Rust export adapter ([757a941](https://github.com/alex-shekhter/neo-grace/commit/757a941)), closes [r#type](https://github.com/r/issues/type)
+* feat(lint): let projects govern languages GRACE does not ship ([eb242b0](https://github.com/alex-shekhter/neo-grace/commit/eb242b0))
+* feat(lint): restore polyglot health checks ([c9b118c](https://github.com/alex-shekhter/neo-grace/commit/c9b118c))
+* feat(release): make the AI changelog summary optional ([dc78b45](https://github.com/alex-shekhter/neo-grace/commit/dc78b45))
+* feat(skills): make the grace CLI a hard precondition of init ([08f27bb](https://github.com/alex-shekhter/neo-grace/commit/08f27bb))
+* chore: ignore .DS_Store and drop stray Finder metadata ([91e474b](https://github.com/alex-shekhter/neo-grace/commit/91e474b))
+* chore: use the correct GitHub handle and author identity ([22fb953](https://github.com/alex-shekhter/neo-grace/commit/22fb953))
+* chore(npm): publish as the scoped package @neograce/cli ([c67e227](https://github.com/alex-shekhter/neo-grace/commit/c67e227))
+* docs: ship the visual introduction as a standalone page ([800e715](https://github.com/alex-shekhter/neo-grace/commit/800e715)), closes [package.json#files](https://github.com/package.json/issues/files)
+* docs: state that the grace CLI is required, not optional ([53cbefe](https://github.com/alex-shekhter/neo-grace/commit/53cbefe))
+* docs(changelog): fold post-review work into the unreleased 5.0.0 entry ([61836cc](https://github.com/alex-shekhter/neo-grace/commit/61836cc))
+* docs(examples): add a twenty-minute walkthrough with CI-verified breakage ([24ff733](https://github.com/alex-shekhter/neo-grace/commit/24ff733))
+* docs(plans): archive RM-POLYGLOT-ENFORCEMENT as complete ([7f54c14](https://github.com/alex-shekhter/neo-grace/commit/7f54c14))
+* docs(plans): establish roadmap plan store and RM-POLYGLOT-ENFORCEMENT baseline ([c4db132](https://github.com/alex-shekhter/neo-grace/commit/c4db132))
+* docs(plans): mark Phase 3 Rust export adapter complete ([24e5217](https://github.com/alex-shekhter/neo-grace/commit/24e5217))
+* docs(plans): record agent-reliability exploration ([672cab6](https://github.com/alex-shekhter/neo-grace/commit/672cab6))
+* docs(plans): record language-extensibility exploration ([2a5a76b](https://github.com/alex-shekhter/neo-grace/commit/2a5a76b))
+* docs(plans): record the pre-Phase-0 path hotfix as a Phase 0 precondition ([b3b708d](https://github.com/alex-shekhter/neo-grace/commit/b3b708d))
+* docs(plans): require multi-line body cases for the Rust adapter ([257b681](https://github.com/alex-shekhter/neo-grace/commit/257b681))
+* fix(lint): make polyglot governance signals honest ([b32b975](https://github.com/alex-shekhter/neo-grace/commit/b32b975))
+* fix(paths): canonicalize mixed lexical and realpath project paths ([c258393](https://github.com/alex-shekhter/neo-grace/commit/c258393))
+* test(fixtures): add shared GRACE project fixtures for later phases ([74d016a](https://github.com/alex-shekhter/neo-grace/commit/74d016a)), closes [package.json#files](https://github.com/package.json/issues/files)
+
 ## <small>5.0.0 (2026-07-28)</small>
 
 ### Summary

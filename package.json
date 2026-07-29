@@ -1,6 +1,6 @@
 {
   "name": "@neograce/cli",
-  "version": "5.0.0",
+  "version": "5.0.1-rc.0",
   "description": "GRACE 4 CLI for .grace linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation with a Bun-powered grace binary.",
   "license": "MIT",
   "homepage": "https://github.com/alex-shekhter/neo-grace#readme",
