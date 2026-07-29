@@ -38,8 +38,11 @@ export type Grace4ChangeCompanionTag = (typeof GRACE4_CHANGE_COMPANION_TAGS)[num
  */
 export const SKILL_PREFIX = "grace" as const;
 
+/** Marketplace skill id without the `$` display convention (`grace-init`). */
+export const skillName = (suffix: string): string => `${SKILL_PREFIX}-${suffix}`;
+
 /** Formats a skill reference as `$<prefix>-<suffix>` for CLI guidance strings. */
-export const skillRef = (suffix: string): string => `$${SKILL_PREFIX}-${suffix}`;
+export const skillRef = (suffix: string): string => `$${skillName(suffix)}`;
 
 /** Lifecycle statuses allowed on GraceChangeSpec and GraceChangePlan roots. */
 export const CHANGE_STATUSES = ["draft", "approved", "applied", "rejected", "cancelled", "superseded"] as const;

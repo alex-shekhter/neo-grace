@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
+import { ARTIFACT_DIR } from "./grace4/paths";
 import { findModules, findVerifications, loadGraceArtifactIndex, resolveGovernedFile, resolveModule, resolveVerification } from "./query/core";
 import { GraceCommandError } from "./query/errors";
 import { buildModuleHealth } from "./query/health";
@@ -24,8 +25,8 @@ function writeProjectSkeleton(root: string) {
   writeProjectFile(root, ".grace/context/principles.xml", `<GracePrinciples graceVersion="4.0"><Principle>Safe.</Principle></GracePrinciples>`);
   writeProjectFile(root, ".grace/context/deployment.xml", `<GraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></GraceDeployment>`);
   writeProjectFile(root, ".grace/context/ux-guidelines.xml", `<GraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></GraceUXGuidelines>`);
-  mkdirSync(path.join(root, ".grace", "changes", "active"), { recursive: true });
-  mkdirSync(path.join(root, ".grace", "changes", "archive"), { recursive: true });
+  mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+  mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "archive"), { recursive: true });
 }
 
 function writeGrace4Artifacts(root: string) {

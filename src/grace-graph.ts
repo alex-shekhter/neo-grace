@@ -5,6 +5,7 @@ import path from "node:path";
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 
+import { ARTIFACT_DIR } from "./grace4/paths";
 import { detectGraceProjectKind, resolveGrace4Paths } from "./grace4/project";
 import { buildGraphProjection } from "./grace4/projections";
 import { ANCHOR_PATTERNS } from "./grace4/types";
@@ -102,7 +103,7 @@ export function planGraphSplit(
   const root = path.resolve(projectRoot);
   const kind = detectGraceProjectKind(root);
   if (kind !== "grace4") {
-    throw new GraceCommandError("invalid-project", "ngrace graph split requires a GRACE 4 .grace project.");
+    throw new GraceCommandError("invalid-project", `ngrace graph split requires a GRACE 4 ${ARTIFACT_DIR} project.`);
   }
 
   const pathPrefix = normalizeSplitPrefix(options.pathPrefix);

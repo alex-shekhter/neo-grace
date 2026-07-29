@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import {
+  ARTIFACT_DIR,
   canonicalizeExistingPath,
   normalizeProjectRelativePath,
   ProjectPathError,
@@ -96,7 +97,8 @@ describe("GRACE 4 contained project paths", () => {
 
   it("computes project-relative paths when root is lexical and absolute is realpathed", () => {
     const root = createDirectory("grace4-paths-relative");
-    const file = path.join(root, ".grace", "graph", "main.xml");
+    // Setup uses ARTIFACT_DIR; expects below keep the literal as the Phase 3 alarm.
+    const file = path.join(root, ARTIFACT_DIR, "graph", "main.xml");
     mkdirSync(path.dirname(file), { recursive: true });
     writeFileSync(file, "<x/>\n");
 
@@ -110,11 +112,12 @@ describe("GRACE 4 contained project paths", () => {
 
   it("canonicalizes paths that do not exist through their nearest existing ancestor", () => {
     const root = createDirectory("grace4-paths-missing");
-    mkdirSync(path.join(root, ".grace", "graph"), { recursive: true });
+    mkdirSync(path.join(root, ARTIFACT_DIR, "graph"), { recursive: true });
 
     // Regression: resolving only fully existing paths left the symlinked prefix
     // lexical, so a missing document produced an escaping ../../.. route key.
-    const missing = path.join(root, ".grace", "graph", "deleted.xml");
+    // Setup uses ARTIFACT_DIR; expects keep the literal as the Phase 3 alarm.
+    const missing = path.join(root, ARTIFACT_DIR, "graph", "deleted.xml");
     expect(toProjectRelativePath(root, missing)).toBe(".grace/graph/deleted.xml");
     expect(canonicalizeExistingPath(missing)).toBe(path.join(realpathSync(root), ".grace", "graph", "deleted.xml"));
 

@@ -5,8 +5,9 @@ import path from "node:path";
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 
-import { GRACE4_OPTIONAL_CONTEXT_ARTIFACTS } from "./grace4/types";
+import { ARTIFACT_DIR } from "./grace4/paths";
 import { detectGraceProjectKind, resolveGrace4Paths } from "./grace4/project";
+import { GRACE4_OPTIONAL_CONTEXT_ARTIFACTS, skillName } from "./grace4/types";
 import { buildGraphProjection, buildVerificationProjection } from "./grace4/projections";
 import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "./language-registry";
 import { loadGraceLintConfig } from "./lint/config";
@@ -59,8 +60,8 @@ export function collectDoctorReport(projectRoot: string): DoctorResult {
     throw new GraceCommandError(
       "invalid-project",
       kind === "grace3"
-        ? "Detected GRACE 3 docs. Run grace-migrate before ngrace doctor."
-        : "No GRACE 4 .grace project found.",
+        ? `Detected GRACE 3 docs. Run ${skillName("migrate")} before ngrace doctor.`
+        : `No GRACE 4 ${ARTIFACT_DIR} project found.`,
     );
   }
 

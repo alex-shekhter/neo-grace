@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
+import { ARTIFACT_DIR } from "./paths";
 import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "./project";
 import { ANCHOR_PATTERNS } from "./types";
 
@@ -34,7 +35,7 @@ describe("GRACE 4 project detection", () => {
 
   it("detects .grace projects before legacy docs", () => {
     const root = createProject();
-    mkdirSync(path.join(root, ".grace"));
+    mkdirSync(path.join(root, ARTIFACT_DIR));
     writeProjectFile(root, "docs/development-plan.xml");
 
     expect(detectGraceProjectKind(root)).toBe("grace4");

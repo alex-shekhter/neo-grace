@@ -1,11 +1,13 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { buildGraphProjection, buildVerificationProjection, type GraphAnchorRecord, type VerificationAnchorRecord } from "../grace4/projections";
-import { validateGrace4Project } from "../grace4/grammar";
-import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "../grace4/project";
 import { extractAssertionsWithIssues } from "../grace4/assertions";
+import { validateGrace4Project } from "../grace4/grammar";
+import { ARTIFACT_DIR } from "../grace4/paths";
+import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "../grace4/project";
+import { buildGraphProjection, buildVerificationProjection, type GraphAnchorRecord, type VerificationAnchorRecord } from "../grace4/projections";
 import { collectActiveChangeScopes } from "../grace4/scope";
+import { skillName } from "../grace4/types";
 import { loadGraceLintConfig } from "../lint/config";
 import { collectCodeFiles, hasGraceMarkers, parseGovernedFile, type FileMarkupRecord } from "../project-utils";
 import { GraceCommandError } from "./errors";
@@ -105,7 +107,7 @@ export function loadGraceArtifactIndex(projectRoot: string): GraceArtifactIndex 
     throw new GraceCommandError("invalid-project", formatGrace3MigrationGuidance(root), { issues: ["project.grace3-detected"] });
   }
   if (kind !== "grace4") {
-    throw new GraceCommandError("invalid-project", "No .grace directory found. Run the grace-init skill before querying this project.", { issues: ["project.missing-grace"] });
+    throw new GraceCommandError("invalid-project", `No ${ARTIFACT_DIR} directory found. Run the ${skillName("init")} skill before querying this project.`, { issues: ["project.missing-grace"] });
   }
 
   const paths = resolveGrace4Paths(root);

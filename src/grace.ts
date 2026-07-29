@@ -9,12 +9,13 @@ import { lintCommand } from "./grace-lint";
 import { moduleCommand } from "./grace-module";
 import { statusCommand } from "./grace-status";
 import { verificationCommand } from "./grace-verification";
+import { ARTIFACT_DIR } from "./grace4/paths";
 
 const main = defineCommand({
   meta: {
     name: "ngrace",
     version: "5.0.1",
-    description: "GRACE 4 CLI for .grace linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation.",
+    description: `GRACE 4 CLI for ${ARTIFACT_DIR} linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation.`,
   },
   subCommands: {
     doctor: doctorCommand,

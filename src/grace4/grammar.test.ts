@@ -3,7 +3,6 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
-import { resolveGrace4Paths } from "./project";
 import {
   validateArtifactRoot,
   validateChangeArtifact,
@@ -12,6 +11,8 @@ import {
   validateGrace4Project,
   validateSemanticAnchorDiscipline,
 } from "./grammar";
+import { ARTIFACT_DIR } from "./paths";
+import { resolveGrace4Paths } from "./project";
 import { writeChangeBundleFixture, writeLegacyGrace3Project, writeMinimalGrace4Project, writeSegmentedGrace4Project } from "./test-fixtures";
 import { parseGraceXmlArtifact } from "./xml";
 
@@ -203,8 +204,8 @@ describe("GRACE 4 Artifact Grammar", () => {
   it("requires canonical active and archive change directories", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
-    rmSync(path.join(root, ".grace", "changes", "active"), { recursive: true });
-    rmSync(path.join(root, ".grace", "changes", "archive"), { recursive: true });
+    rmSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+    rmSync(path.join(root, ARTIFACT_DIR, "changes", "archive"), { recursive: true });
 
     expect(codes(validateGrace4Project(root)).filter((code) => code === "project.missing-change-directory")).toHaveLength(2);
   });

@@ -3,8 +3,6 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
-import { resolveGrace4Paths } from "./project";
-import { buildGraphProjection, buildVerificationProjection } from "./projections";
 import {
   compileSafeAssertionPattern,
   evaluateAssertion,
@@ -12,6 +10,9 @@ import {
   type AssertionContext,
   type GraceAssertion,
 } from "./assertions";
+import { ARTIFACT_DIR } from "./paths";
+import { resolveGrace4Paths } from "./project";
+import { buildGraphProjection, buildVerificationProjection } from "./projections";
 
 function createProject() {
   const root = path.join(os.tmpdir(), `grace4-assertions-${crypto.randomUUID()}`);
@@ -149,7 +150,7 @@ describe("GRACE 4 assertions", () => {
     const outside = createProject();
     writeFileSync(path.join(outside, "secret.txt"), "secret\n");
     symlinkSync(path.join(outside, "secret.txt"), path.join(root, "escape.txt"));
-    const planFile = path.join(root, ".grace", "changes", "active", "C-PATHS", "plan.xml");
+    const planFile = path.join(root, ARTIFACT_DIR, "changes", "active", "C-PATHS", "plan.xml");
     mkdirSync(path.dirname(planFile), { recursive: true });
     writeFileSync(
       planFile,

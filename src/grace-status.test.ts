@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
+import { ARTIFACT_DIR } from "./grace4/paths";
 import { collectProjectStatus, formatStatusText } from "./grace-status";
 
 function createProject() {
@@ -41,8 +42,8 @@ function writeMinimalGrace4Project(root: string) {
     ".grace/verification/main.xml",
     `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test src/example.test.ts</Command><Scenario>example works</Scenario><Marker>[Example][run][BLOCK_RUN]</Marker></V-M-EXAMPLE></VD-MAIN></GraceVerificationDocument>`,
   );
-  mkdirSync(path.join(root, ".grace", "changes", "active"), { recursive: true });
-  mkdirSync(path.join(root, ".grace", "changes", "archive"), { recursive: true });
+  mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+  mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "archive"), { recursive: true });
   writeProjectFile(
     root,
     "src/example.ts",

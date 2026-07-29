@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
+import { ARTIFACT_DIR } from "./paths";
 import { resolveGrace4Paths } from "./project";
 import { buildGraphProjection, buildVerificationProjection } from "./projections";
 
@@ -189,8 +190,8 @@ describe("GRACE 4 graph and verification projections", () => {
     const root = createProject();
     const outside = createProject();
     writeProjectFile(outside, "outside.xml", `<not-valid`);
-    mkdirSync(path.join(root, ".grace", "graph"), { recursive: true });
-    symlinkSync(path.join(outside, "outside.xml"), path.join(root, ".grace", "graph", "escape.xml"));
+    mkdirSync(path.join(root, ARTIFACT_DIR, "graph"), { recursive: true });
+    symlinkSync(path.join(outside, "outside.xml"), path.join(root, ARTIFACT_DIR, "graph", "escape.xml"));
     writeProjectFile(
       root,
       ".grace/graph/index.xml",

@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { ARTIFACT_DIR } from "./paths";
-import type { Grace4ProjectPaths, GraceProjectKind } from "./types";
+import { skillName, type Grace4ProjectPaths, type GraceProjectKind } from "./types";
 
 const LEGACY_GRACE3_DOCUMENTS = [
   "docs/requirements.xml",
@@ -54,7 +54,7 @@ export function formatGrace3MigrationGuidance(root: string): string {
   return [
     `Legacy GRACE 3 artifacts were detected at ${path.resolve(root)}.`,
     `GRACE 4 tooling validates only the ${ARTIFACT_DIR} artifact model.`,
-    `Use the grace-migrate skill to review and agent-apply a migration to ${ARTIFACT_DIR} artifacts.`,
+    `Use the ${skillName("migrate")} skill to review and agent-apply a migration to ${ARTIFACT_DIR} artifacts.`,
     "The CLI does not migrate, convert, or validate GRACE 3 docs as GRACE 4 state.",
   ].join(" ");
 }

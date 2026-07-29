@@ -5,6 +5,7 @@ import { describe, expect, it } from "bun:test";
 
 import { evaluateAssertion, type AssertionContext, type GraceAssertion } from "./assertions";
 import { validateGrace4Project } from "./grammar";
+import { ARTIFACT_DIR } from "./paths";
 import { resolveGrace4Paths } from "./project";
 import { buildGraphProjection, buildVerificationProjection } from "./projections";
 import { collectActiveChangeScopes, createDurableOwnershipIndex } from "./scope";
@@ -50,8 +51,8 @@ function writeLegacyFlowProject(root: string) {
   writeProjectFile(root, ".grace/context/principles.xml", `<GracePrinciples graceVersion="4.0"><Principle>Evidence.</Principle></GracePrinciples>`);
   writeProjectFile(root, ".grace/context/deployment.xml", `<GraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></GraceDeployment>`);
   writeProjectFile(root, ".grace/context/ux-guidelines.xml", `<GraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></GraceUXGuidelines>`);
-  mkdirSync(path.join(root, ".grace/changes/active"), { recursive: true });
-  mkdirSync(path.join(root, ".grace/changes/archive"), { recursive: true });
+  mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+  mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "archive"), { recursive: true });
 
   writeProjectFile(
     root,
