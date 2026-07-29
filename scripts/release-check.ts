@@ -83,6 +83,8 @@ const PACK_ALLOWED_EXACT = new Set([
   "src/grace-file.ts",
   "src/project-utils.ts",
   "src/grace.ts",
+  "src/grace-doctor.ts",
+  "src/grace-graph.ts",
   "src/grace-lint.ts",
   "src/grace-module.ts",
   "src/grace-status.ts",
