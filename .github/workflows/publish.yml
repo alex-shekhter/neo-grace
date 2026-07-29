@@ -113,6 +113,11 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
 
+      - name: Ensure npm supports trusted publishing (OIDC)
+        run: |
+          npm install -g npm@latest
+          npm --version
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -164,6 +169,11 @@ jobs:
           node-version: 24
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
+
+      - name: Ensure npm supports trusted publishing (OIDC)
+        run: |
+          npm install -g npm@latest
+          npm --version
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
