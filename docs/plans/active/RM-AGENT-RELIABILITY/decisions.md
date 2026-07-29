@@ -5,7 +5,7 @@ status: draft
 supersededBy: null
 created: 2026-07-29
 updated: 2026-07-29
-baseline: 6.0.0
+baseline: 6.0.1
 targets: []
 normative: false
 plan: ./plan.md
@@ -19,10 +19,11 @@ context: ./review-consolidated.md
 > records what was decided and why, so the plan can be reviewed and executed without
 > re-litigating any of it.
 >
-> **Blocked on [RM-NAMESPACE-SEPARATION](../RM-NAMESPACE-SEPARATION/plan.md)**, which moves the
-> artifact namespace (`.grace/` → `.ngrace/`, `Grace*` → `Ngrace*`) and the skill namespace.
-> Several decisions here name artifacts in the namespace being retired — D1's run ledger most
-> directly. That plan's Phase 6 reconciles this document rather than leaving it to drift.
+> **Unblocked.** [RM-NAMESPACE-SEPARATION](../../archive/RM-NAMESPACE-SEPARATION/plan.md) is
+> `complete`, shipped 2026-07-29 as `@neograce/cli` 6.0.1. It moved the artifact namespace
+> (`.grace/` → `.ngrace/`, `Grace*` → `Ngrace*`) and the skill namespace. Several decisions here
+> name artifacts in the retired namespace — D1's run ledger most directly — and its Phase 6
+> reconciled this document rather than leaving it to drift. See the reconciliation note at the end.
 >
 > Companion to [review-consolidated.md](./review-consolidated.md), which frames the
 > questions. This file answers them, one at a time, as they are decided.
@@ -1061,7 +1062,8 @@ the reasoning did not change, only the spelling of some things it names. Where t
 body disagree about a name, this note is current and the body is the record of what was decided
 and when.
 
-`RM-NAMESPACE-SEPARATION` completed Phases 0–5 and shipped as `@neograce/cli` **6.0.0**. Four
+`RM-NAMESPACE-SEPARATION` is complete and shipped as `@neograce/cli` **6.0.1**. (`v6.0.0` was
+tagged but never published — a publish-workflow defect, recorded in that plan's §9 A10.) Four
 renames touch decisions in this document:
 
 | Was | Is | Affects |

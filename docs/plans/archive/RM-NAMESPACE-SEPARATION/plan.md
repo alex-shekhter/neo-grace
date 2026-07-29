@@ -1,12 +1,13 @@
 ---
 id: RM-NAMESPACE-SEPARATION
 kind: plan
-status: approved
+status: complete
 supersededBy: null
 created: 2026-07-29
 updated: 2026-07-29
+completed: 2026-07-29
 baseline: 5.0.1
-targets: [6.0.0]
+targets: [6.0.1]
 context: ./review.md
 ---
 
@@ -18,10 +19,14 @@ context: ./review.md
 disagree, **this plan wins**.
 **Plan version:** 1.0 · 2026-07-29
 
-> **Release assigned 2026-07-29: `@neograce/cli` 6.0.0.** Every phase ships into one major, because
-> Phases 2, 3 and 4 each break a published surface and there is no coherent state between them — a
-> release with skills renamed but artifacts not would be worse than either endpoint. The package name
-> is unchanged (review N4) and the version line continues from 5.0.1 rather than restarting.
+> **Complete. Shipped 2026-07-29 as `@neograce/cli` 6.0.1** — `latest` on npm, with SLSA provenance,
+> verified by installing the published package and running it. Every phase shipped into one major,
+> because Phases 2, 3 and 4 each break a published surface and there is no coherent state between
+> them — a release with skills renamed but artifacts not would be worse than either endpoint. The
+> package name is unchanged (review N4) and the version line continues from 5.0.1 rather than
+> restarting.
+>
+> **`v6.0.0` is a tag that never shipped.** See §9 A10.
 
 ---
 
@@ -174,13 +179,13 @@ flowchart TB
 
 | # | Phase | Layer | Release | Status |
 |---|---|---|---|---|
-| 0 | Command name: `grace` → `ngrace` | Command | 6.0.0 | `COMPLETE` |
-| 1 | Centralize the scattered literals | — (enabling) | 6.0.0 | `COMPLETE` |
-| 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | 6.0.0 | `COMPLETE` |
-| 3 | Artifact surface: `.ngrace/` and root tags | Artifact | 6.0.0 | `COMPLETE` |
-| 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | 6.0.0 | `COMPLETE` |
-| 5 | Prose sweep and documentation | — | 6.0.0 | `COMPLETE` |
-| 6 | Reconcile RM-AGENT-RELIABILITY; release | — | 6.0.0 | `IN PROGRESS` — 6.5.1–6.5.5 done; 6.5.6 (tag + publish) is the maintainer's |
+| 0 | Command name: `grace` → `ngrace` | Command | 6.0.1 | `COMPLETE` |
+| 1 | Centralize the scattered literals | — (enabling) | 6.0.1 | `COMPLETE` |
+| 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | 6.0.1 | `COMPLETE` |
+| 3 | Artifact surface: `.ngrace/` and root tags | Artifact | 6.0.1 | `COMPLETE` |
+| 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | 6.0.1 | `COMPLETE` |
+| 5 | Prose sweep and documentation | — | 6.0.1 | `COMPLETE` |
+| 6 | Reconcile RM-AGENT-RELIABILITY; release | — | 6.0.1 | `COMPLETE` |
 
 **Hard sequencing rules**, each with what breaks if violated:
 
@@ -199,7 +204,7 @@ question.** The board can be worked straight through.
 
 # PHASE 0 — Command name: `grace` → `ngrace`
 
-**Status:** `COMPLETE` · **Layer:** Command · **Release:** 6.0.0
+**Status:** `COMPLETE` · **Layer:** Command · **Release:** 6.0.1
 
 ## 0.1 Objective
 
@@ -280,7 +285,7 @@ Revert `package.json` and one line in `src/grace.ts`.
 
 # PHASE 1 — Centralize the scattered literals
 
-**Status:** `COMPLETE` · **Layer:** enabling · **Release:** 6.0.0
+**Status:** `COMPLETE` · **Layer:** enabling · **Release:** 6.0.1
 **Amended 2026-07-29 (A2, A3)** — see §9. All steps complete and verified at review. 284 setup
 literals centralized, 26 assertions deliberately left; the Phase 3 value flip costs 14 failing tests,
 down from 140.
@@ -536,7 +541,7 @@ Inline the constants. Behaviour-neutral in both directions.
 
 # PHASE 2 — Harness surface
 
-**Status:** `COMPLETE` · **Layer:** Harness · **Release:** 6.0.0
+**Status:** `COMPLETE` · **Layer:** Harness · **Release:** 6.0.1
 
 ## 2.1 Objective
 
@@ -630,7 +635,7 @@ Reverse the `git mv`s and revert the manifests and `SKILL_PREFIX`. Large but mec
 
 # PHASE 3 — Artifact surface: `.ngrace/` and root tags
 
-**Status:** `COMPLETE` · **Layer:** Artifact · **Release:** 6.0.0
+**Status:** `COMPLETE` · **Layer:** Artifact · **Release:** 6.0.1
 
 ## 3.1 Objective
 
@@ -806,7 +811,7 @@ Revert both constant values and the data edits; `git mv` the example back.
 
 # PHASE 4 — Grammar identity: retire the `Grace4` name in code
 
-**Status:** `COMPLETE` · **Layer:** Artifact · **Release:** 6.0.0
+**Status:** `COMPLETE` · **Layer:** Artifact · **Release:** 6.0.1
 **Amended 2026-07-29 (A1)** — see §9.
 
 ## 4.1 Objective
@@ -958,7 +963,7 @@ Revert the constant and the template edits.
 
 # PHASE 5 — Prose sweep and documentation
 
-**Status:** `COMPLETE` · **Release:** 6.0.0
+**Status:** `COMPLETE` · **Release:** 6.0.1
 **Amended 2026-07-29 (A1)** — see §9.
 
 ## 5.1 Objective
@@ -1059,7 +1064,7 @@ Revert the prose edits.
 
 # PHASE 6 — Reconcile RM-AGENT-RELIABILITY; release
 
-**Status:** `NOT STARTED` · **Release:** 6.0.0
+**Status:** `NOT STARTED` · **Release:** 6.0.1
 
 ## 6.1 Objective
 
@@ -1262,7 +1267,7 @@ open questions, and a sixth invented mid-phase will not be recorded anywhere.
 | A6 | Tag centralization was never real; `ARTIFACT_TAG_PREFIX` is bypassed by 26 literals | 1 (cause), 3 (surfaced), 4 (fix) |
 | A7 | Dated evidence records are history and are never swept; reconcile symbols with paths or neither | 4 (cause), 6 (fix) |
 | A8 | Renaming a title left 8 hardcoded underlines 4 chars short; derive, do not re-count | 5 |
-| N4 | Release assigned: `@neograce/cli` 6.0.0 (A9) | 6 |
+| N4 | Release assigned 6.0.0 (A9); shipped as 6.0.1 (A10) | 6 |
 
 ---
 
@@ -1423,6 +1428,54 @@ the plan assumed one. Neither can mask the other. Do not centralize the tag lite
 "finish the job"; that would merge the two alarms back into one.
 
 **Phase 1 is `COMPLETE`.**
+
+### A10 — 2026-07-29 · Closing: shipped as 6.0.1, because 6.0.0 could not publish
+
+**This plan is `complete`.** All seven phases done, shipped as `@neograce/cli` **6.0.1**, `latest` on
+npm with a SLSA provenance attestation. Verified by installing the published package into a clean
+project and running it — `ngrace v6.0.1` reports the `neo-grace` banner and asks for a `.ngrace`
+directory, so every layer of the rename is live for real users rather than merely green in CI.
+
+**`v6.0.0` is a tag that never shipped, and the reason belongs in this record.**
+
+Tagging `v6.0.0` produced a publish run that reported **Success while publishing nothing**. Both
+`publish-prerelease` and `publish-stable` were skipped. They are gated on
+`needs.verify.outputs.prerelease` being exactly `'true'` or `'false'`; the output was empty, matched
+neither, and **a run whose jobs all skipped reports success, because a skipped job is not a failed
+one.**
+
+Two compounding causes, both from commit `3a46cc2` — *"refuse to re-release an already-published
+version"* — which inserted a fail-fast step between the computation and the writes:
+
+- `prerelease=` and `tag=` were then written from a step with **no `id:`**, while the job declares them
+  as `steps.release.outputs.*`. The writes landed in an anonymous namespace; the declared outputs were
+  never set.
+- `PRERELEASE` and `TAG` are shell variables assigned in the `release` step. Each `run:` is a separate
+  process, so both read as empty in the later step regardless of namespace.
+
+`5.0.1` published before `3a46cc2`. `v6.0.0` was the first release attempted after it, and the first
+to hit it.
+
+**Why 6.0.0 was abandoned rather than recovered.** `verify` requires a stable tag's commit to equal
+`origin/main`. Merging the workflow fix moves `main`, so `v6.0.0` can never satisfy that check again.
+Deleting and re-tagging was the alternative and was rejected: the `v*` ruleset blocks tag deletion, and
+`RELEASING.md` forbids rewriting an existing tag. Keeping that rule intact cost one patch number;
+breaking it would have cost a protection setting and a precedent. Fixed forward instead (`ab400a7`).
+
+**The lesson, and it is the same one as A4.** A4 recorded a guard renamed away from the thing it
+guards — a check that passes identically whether or not it is looking at anything. This is that defect
+in the release pipeline: a green publish run was treated as evidence of a publish, and it was not
+evidence of anything. The fix therefore does two things rather than one:
+
+- `verify` asserts the routing output is decidable, failing at the source instead of skipping silently
+- a `confirm-published` job asserts **exactly one publish path succeeded**, so a green publish run now
+  *means* "shipped"
+
+On its first real use, for 6.0.1, it routed correctly and `confirm-published` passed. That is why the
+6.0.1 green is evidence and the 6.0.0 green was not.
+
+**The operational rule went into `RELEASING.md`**, not just here: *a green publish run is not evidence
+of a publish; `npm view dist-tags` is.*
 
 ### A9 — 2026-07-29 · Release assigned: `@neograce/cli` 6.0.0
 

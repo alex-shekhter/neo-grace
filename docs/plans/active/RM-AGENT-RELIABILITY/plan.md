@@ -5,7 +5,7 @@ status: draft
 supersededBy: null
 created: 2026-07-29
 updated: 2026-07-29
-baseline: 6.0.0
+baseline: 6.0.1
 targets: []
 context: ./decisions.md
 ---

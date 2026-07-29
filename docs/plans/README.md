@@ -6,16 +6,17 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 
 | ID | Title | Status | Baseline | Targets | Plan |
 |---|---|---|---|---|---|
-| `RM-NAMESPACE-SEPARATION` | Separate the `ngrace` namespace from upstream GRACE | `approved` | 5.0.1 | 6.0.0 | [plan.md](./active/RM-NAMESPACE-SEPARATION/plan.md) · [review.md](./active/RM-NAMESPACE-SEPARATION/review.md) |
-| `RM-AGENT-RELIABILITY` | Context discipline, scope drift, and self-verification | `draft` | 6.0.0 | — | [plan.md](./active/RM-AGENT-RELIABILITY/plan.md) · [decisions.md](./active/RM-AGENT-RELIABILITY/decisions.md) · [review-consolidated.md](./active/RM-AGENT-RELIABILITY/review-consolidated.md) · [review.md](./active/RM-AGENT-RELIABILITY/review.md) |
+| `RM-AGENT-RELIABILITY` | Context discipline, scope drift, and self-verification | `draft` | 6.0.1 | — | [plan.md](./active/RM-AGENT-RELIABILITY/plan.md) · [decisions.md](./active/RM-AGENT-RELIABILITY/decisions.md) · [review-consolidated.md](./active/RM-AGENT-RELIABILITY/review-consolidated.md) · [review.md](./active/RM-AGENT-RELIABILITY/review.md) |
 | `RM-LANGUAGE-EXTENSIBILITY` | Language bundles, conformance fixtures, and parser strategy | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-LANGUAGE-EXTENSIBILITY/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
 
-**Execution order.** `RM-NAMESPACE-SEPARATION` ran first and shipped Phases 0–5 as `6.0.0`; its
-Phase 6 reconciled the sibling track on 2026-07-29 and only the release cut remains. It was the
-only track approved for execution. It renames the skill and artifact namespaces, so every artifact the
+**Execution order.** `RM-NAMESPACE-SEPARATION` ran first and is complete — shipped 2026-07-29 as
+`@neograce/cli` 6.0.1. It renamed the skill and artifact namespaces, so running it first kept the
+other tracks from creating artifacts in a namespace that was being retired. Its Phase 6 reconciled
+`RM-AGENT-RELIABILITY` on the way out; that track's references, symbols and baseline are current as
+of 6.0.1. It renames the skill and artifact namespaces, so every artifact the
 other tracks would create lands in a namespace that is being retired — and constructs added
 after the rename decision but before the rename are the ones most likely to survive a sweep
 unnoticed. Its Phase 6 reconciles `RM-AGENT-RELIABILITY` on the way out.
@@ -35,6 +36,7 @@ specifies the work.
 
 | ID | Title | Status | Baseline | Targets | Completed | Plan |
 |---|---|---|---|---|---|---|
+| `RM-NAMESPACE-SEPARATION` | Separate the `ngrace` namespace from upstream GRACE | `complete` | 5.0.1 | 6.0.1 | 2026-07-29 | [plan.md](./archive/RM-NAMESPACE-SEPARATION/plan.md) · [review.md](./archive/RM-NAMESPACE-SEPARATION/review.md) |
 | `RM-POLYGLOT-ENFORCEMENT` | Polyglot enforcement, design layer, and systems modeling | `complete` | 4.0.4 | 4.1.0 · 4.2.0 · 5.0.0 | 2026-07-28 | [plan.md](./archive/RM-POLYGLOT-ENFORCEMENT/plan.md) |
 
 ---
