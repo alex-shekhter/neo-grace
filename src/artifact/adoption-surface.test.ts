@@ -12,8 +12,8 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
-import { validateChangeArtifact, validateGrace4Project } from "./grammar";
-import { writeMinimalGrace4Project } from "./test-fixtures";
+import { validateChangeArtifact, validateNgraceProject } from "./grammar";
+import { writeMinimalNgraceProject } from "./test-fixtures";
 import { parseGraceXmlArtifact } from "./xml";
 import { ARTIFACT_DIR } from "./paths";
 
@@ -35,7 +35,7 @@ function codes(result: { issues: { code: string }[] }) {
 
 function validSpecWithDesignRefs(designRefs: string): string {
   return (
-    `<NgraceChangeSpec graceVersion="4.0" status="approved">`
+    `<NgraceChangeSpec graceVersion="1.0" status="approved">`
     + `<C-EXAMPLE>`
     + `<Summary>Summary.</Summary>`
     + `<Goals><Goal>Goal.</Goal></Goals>`
@@ -52,7 +52,7 @@ function validSpecWithDesignRefs(designRefs: string): string {
 describe("Phase 9 DesignReferences (G-18)", () => {
   it("accepts well-formed Figma https URLs and contained UserResearch paths", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(root, "docs/research/auth.md", "# Auth research\n");
     const xml = validSpecWithDesignRefs(
       `<DesignReferences>`
@@ -62,15 +62,15 @@ describe("Phase 9 DesignReferences (G-18)", () => {
       + `</DesignReferences>`,
     );
     writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-EXAMPLE/spec.xml`, xml);
-    const result = validateGrace4Project(root);
+    const result = validateNgraceProject(root);
     expect(codes(result).filter((c) => c.startsWith("change."))).toEqual([]);
   });
 
   it("accepts absence of DesignReferences (purely optional)", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-EXAMPLE/spec.xml`, validSpecWithDesignRefs(""));
-    expect(codes(validateGrace4Project(root)).filter((c) => c.includes("design-reference") || c.includes("figma") || c.includes("user-research"))).toEqual([]);
+    expect(codes(validateNgraceProject(root)).filter((c) => c.includes("design-reference") || c.includes("figma") || c.includes("user-research"))).toEqual([]);
   });
 
   it("rejects non-Figma/UserResearch children (zero-or-more shape check)", () => {
@@ -119,7 +119,7 @@ describe("Phase 9 DesignReferences (G-18)", () => {
   it("rejects empty and escaping UserResearch paths against authored input", () => {
     // Fidelity: compare validation against authored path, not a re-derived path.
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(root, "docs/research/ok.md", "ok\n");
 
     writeProjectFile(
@@ -127,14 +127,14 @@ describe("Phase 9 DesignReferences (G-18)", () => {
       `${ARTIFACT_DIR}/changes/active/C-EXAMPLE/spec.xml`,
       validSpecWithDesignRefs(`<DesignReferences><UserResearch></UserResearch></DesignReferences>`),
     );
-    expect(codes(validateGrace4Project(root))).toContain("change.user-research-path-invalid");
+    expect(codes(validateNgraceProject(root))).toContain("change.user-research-path-invalid");
 
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-EXAMPLE/spec.xml`,
       validSpecWithDesignRefs(`<DesignReferences><UserResearch>../../etc/passwd</UserResearch></DesignReferences>`),
     );
-    expect(codes(validateGrace4Project(root))).toContain("change.user-research-path-invalid");
+    expect(codes(validateNgraceProject(root))).toContain("change.user-research-path-invalid");
 
     // Contained path is accepted even if the file does not exist yet (containment only).
     writeProjectFile(
@@ -142,7 +142,7 @@ describe("Phase 9 DesignReferences (G-18)", () => {
       `${ARTIFACT_DIR}/changes/active/C-EXAMPLE/spec.xml`,
       validSpecWithDesignRefs(`<DesignReferences><UserResearch>docs/research/planned.md</UserResearch></DesignReferences>`),
     );
-    expect(codes(validateGrace4Project(root))).not.toContain("change.user-research-path-invalid");
+    expect(codes(validateNgraceProject(root))).not.toContain("change.user-research-path-invalid");
   });
 });
 
@@ -151,7 +151,7 @@ describe("Phase 9 golden-path example (G-20)", () => {
     const exampleRoot = path.resolve(import.meta.dir, "../../examples/polyglot");
     expect(existsSync(exampleRoot)).toBe(true);
     expect(existsSync(path.join(exampleRoot, ".ngrace"))).toBe(true);
-    const result = validateGrace4Project(exampleRoot);
+    const result = validateNgraceProject(exampleRoot);
     const errors = result.issues.filter((i) => i.severity === "error");
     if (errors.length > 0) {
       // Surface codes for debugging when the golden path bitrots.

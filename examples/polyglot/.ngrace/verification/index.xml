@@ -1,4 +1,4 @@
-<NgraceVerificationIndex graceVersion="4.0">
+<NgraceVerificationIndex graceVersion="1.0">
   <VerificationDocuments>
     <VD-UI>
       <Path>verification/ui.xml</Path>

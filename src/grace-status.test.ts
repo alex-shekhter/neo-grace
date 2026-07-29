@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
-import { ARTIFACT_DIR } from "./grace4/paths";
+import { ARTIFACT_DIR } from "./artifact/paths";
 import { collectProjectStatus, formatStatusText } from "./grace-status";
 
 function createProject() {
@@ -16,31 +16,31 @@ function writeProjectFile(root: string, relativePath: string, contents: string) 
   writeFileSync(filePath, contents);
 }
 
-function writeMinimalGrace4Project(root: string) {
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/requirements.xml`, `<NgraceRequirements graceVersion="4.0"><Summary>Required.</Summary></NgraceRequirements>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/technology.xml`, `<NgraceTechnology graceVersion="4.0"><Runtime>Bun</Runtime></NgraceTechnology>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/principles.xml`, `<NgracePrinciples graceVersion="4.0"><Principle>Safe.</Principle></NgracePrinciples>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<NgraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></NgraceDeployment>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<NgraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></NgraceUXGuidelines>`);
+function writeMinimalNgraceProject(root: string) {
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/requirements.xml`, `<NgraceRequirements graceVersion="1.0"><Summary>Required.</Summary></NgraceRequirements>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/technology.xml`, `<NgraceTechnology graceVersion="1.0"><Runtime>Bun</Runtime></NgraceTechnology>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/principles.xml`, `<NgracePrinciples graceVersion="1.0"><Principle>Safe.</Principle></NgracePrinciples>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<NgraceDeployment graceVersion="1.0"><Applicability>applicable</Applicability></NgraceDeployment>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<NgraceUXGuidelines graceVersion="1.0"><Applicability>applicable</Applicability></NgraceUXGuidelines>`);
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/main.xml`,
-    `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary><Path>src/example.ts</Path></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
+    `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary><Path>src/example.ts</Path></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/index.xml`,
-    `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+    `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/main.xml`,
-    `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test src/example.test.ts</Command><Scenario>example works</Scenario><Marker>[Example][run][BLOCK_RUN]</Marker></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>`,
+    `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test src/example.test.ts</Command><Scenario>example works</Scenario><Marker>[Example][run][BLOCK_RUN]</Marker></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>`,
   );
   mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
   mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "archive"), { recursive: true });
@@ -72,11 +72,11 @@ export function run() {
 function writeChange(root: string, changeId: string, options: { location?: "active" | "archive"; specStatus: string; planStatus: string; file?: string; baselineAssertion?: string }) {
   const location = options.location ?? "active";
   const bundle = `${ARTIFACT_DIR}/changes/${location}/${changeId}`;
-  writeProjectFile(root, `${bundle}/spec.xml`, `<NgraceChangeSpec graceVersion="4.0" status="${options.specStatus}"><${changeId}><Summary>Change.</Summary><Goals><Goal>Apply the change.</Goal></Goals><Constraints><Constraint>Preserve project validity.</Constraint></Constraints><NonGoals><NonGoal>Unrelated work.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>The change is verified.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand><ExpectedEvidence>Passing tests.</ExpectedEvidence></VerificationIntent></${changeId}></NgraceChangeSpec>`);
+  writeProjectFile(root, `${bundle}/spec.xml`, `<NgraceChangeSpec graceVersion="1.0" status="${options.specStatus}"><${changeId}><Summary>Change.</Summary><Goals><Goal>Apply the change.</Goal></Goals><Constraints><Constraint>Preserve project validity.</Constraint></Constraints><NonGoals><NonGoal>Unrelated work.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>The change is verified.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand><ExpectedEvidence>Passing tests.</ExpectedEvidence></VerificationIntent></${changeId}></NgraceChangeSpec>`);
   writeProjectFile(
     root,
     `${bundle}/plan.xml`,
-    `<NgraceChangePlan graceVersion="4.0" status="${options.planStatus}"><${changeId}><IntentSummary>Apply the change.</IntentSummary><BaselineAssertions>${options.baselineAssertion ?? "<MustExist><Value>M-EXAMPLE</Value></MustExist>"}</BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>${options.file ?? "src/example.ts"}</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Apply change</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>The change is complete.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></${changeId}></NgraceChangePlan>`,
+    `<NgraceChangePlan graceVersion="1.0" status="${options.planStatus}"><${changeId}><IntentSummary>Apply the change.</IntentSummary><BaselineAssertions>${options.baselineAssertion ?? "<MustExist><Value>M-EXAMPLE</Value></MustExist>"}</BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>${options.file ?? "src/example.ts"}</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Apply change</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>The change is complete.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></${changeId}></NgraceChangePlan>`,
   );
 }
 
@@ -84,7 +84,7 @@ function writeSpecOnly(root: string, changeId: string, status: "draft" | "approv
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/changes/active/${changeId}/spec.xml`,
-    `<NgraceChangeSpec graceVersion="4.0" status="${status}"><${changeId}><Summary>Spec only.</Summary><Goals><Goal>Plan later.</Goal></Goals><Constraints><Constraint>Preserve validity.</Constraint></Constraints><NonGoals><NonGoal>Unrelated work.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>The spec is tracked.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></${changeId}></NgraceChangeSpec>`,
+    `<NgraceChangeSpec graceVersion="1.0" status="${status}"><${changeId}><Summary>Spec only.</Summary><Goals><Goal>Plan later.</Goal></Goals><Constraints><Constraint>Preserve validity.</Constraint></Constraints><NonGoals><NonGoal>Unrelated work.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>The spec is tracked.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></${changeId}></NgraceChangeSpec>`,
   );
 }
 
@@ -98,7 +98,7 @@ function runGit(root: string, args: string[]) {
 describe("ngrace status", () => {
   it("summarizes durable GRACE 4 health and next action", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
 
     const summaryOnly = collectProjectStatus(root);
     const result = collectProjectStatus(root, { includeModules: true });
@@ -119,7 +119,7 @@ describe("ngrace status", () => {
 
   it("lists active and archived change bundles with statuses in JSON shape", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeChange(root, "C-ACTIVE", { specStatus: "approved", planStatus: "approved" });
     writeChange(root, "C-ARCHIVED", { location: "archive", specStatus: "applied", planStatus: "applied" });
 
@@ -134,7 +134,7 @@ describe("ngrace status", () => {
 
   it("surfaces overlapping approved changes as derived state, not XML status", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeChange(root, "C-ONE", { specStatus: "approved", planStatus: "approved", file: "src/example.ts" });
     writeChange(root, "C-TWO", { specStatus: "approved", planStatus: "approved", file: "src/example.ts" });
 
@@ -148,7 +148,7 @@ describe("ngrace status", () => {
 
   it("reports invalid active/archive statuses from lint diagnostics", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeChange(root, "C-BAD-ACTIVE", { specStatus: "applied", planStatus: "applied" });
 
     const result = collectProjectStatus(root);
@@ -160,7 +160,7 @@ describe("ngrace status", () => {
 
   it("recommends review or replan when the spec is approved but the plan is still draft", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeChange(root, "C-NEEDS-PLAN", { specStatus: "approved", planStatus: "draft" });
 
     const result = collectProjectStatus(root);
@@ -171,7 +171,7 @@ describe("ngrace status", () => {
 
   it("marks approved changes with failed baseline assertions as stale plans", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeChange(root, "C-STALE", {
       specStatus: "approved",
       planStatus: "approved",
@@ -187,13 +187,13 @@ describe("ngrace status", () => {
 
   it("never marks an integrity-invalid approved plan ready to execute", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeChange(root, "C-INVALID", { specStatus: "approved", planStatus: "approved" });
     const planFile = `${ARTIFACT_DIR}/changes/active/C-INVALID/plan.xml`;
     writeProjectFile(
       root,
       planFile,
-      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-INVALID><IntentSummary>Invalid.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Invalid task</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Never ready.</Criterion></AcceptanceCriteria><Verification /></T-001></ImplementationPlan></C-INVALID></NgraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-INVALID><IntentSummary>Invalid.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Invalid task</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Never ready.</Criterion></AcceptanceCriteria><Verification /></T-001></ImplementationPlan></C-INVALID></NgraceChangePlan>`,
     );
 
     const change = collectProjectStatus(root).changes.find((entry) => entry.changeId === "C-INVALID")!;
@@ -203,12 +203,12 @@ describe("ngrace status", () => {
 
   it("never marks text-only assertion and scope contracts ready to execute", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeChange(root, "C-TEXT", { specStatus: "approved", planStatus: "approved" });
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-TEXT/plan.xml`,
-      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-TEXT><IntentSummary>Invalid text contracts.</IntentSummary><BaselineAssertions>assume state</BaselineAssertions><TargetAssertions>expect state</TargetAssertions><DurableScope>graph changes</DurableScope><ObservedWriteScope>source changes</ObservedWriteScope><ImplementationPlan><T-001><Title>Invalid task</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Never ready.</Criterion></AcceptanceCriteria><Verification><Command>true</Command></Verification></T-001></ImplementationPlan></C-TEXT></NgraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-TEXT><IntentSummary>Invalid text contracts.</IntentSummary><BaselineAssertions>assume state</BaselineAssertions><TargetAssertions>expect state</TargetAssertions><DurableScope>graph changes</DurableScope><ObservedWriteScope>source changes</ObservedWriteScope><ImplementationPlan><T-001><Title>Invalid task</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Never ready.</Criterion></AcceptanceCriteria><Verification><Command>true</Command></Verification></T-001></ImplementationPlan></C-TEXT></NgraceChangePlan>`,
     );
 
     const result = collectProjectStatus(root);
@@ -220,7 +220,7 @@ describe("ngrace status", () => {
 
   it("treats approved spec-only bundles as needing planning and draft spec-only bundles as normal drafts", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeSpecOnly(root, "C-APPROVED-SPEC", "approved");
     writeSpecOnly(root, "C-DRAFT-SPEC", "draft");
 
@@ -235,7 +235,7 @@ describe("ngrace status", () => {
 
   it("distinguishes observed writes explained by approved scopes from unexplained git drift", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeChange(root, "C-DRIFT", { specStatus: "approved", planStatus: "approved", file: "src/example.ts" });
     runGit(root, ["init"]);
     runGit(root, ["config", "user.email", "grace@example.test"]);
@@ -257,7 +257,7 @@ describe("ngrace status", () => {
 
   it("keeps both source and destination paths for git rename drift", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(root, "src/old.ts", "old\n");
     writeChange(root, "C-RENAME", { specStatus: "approved", planStatus: "approved", file: "src/new.ts" });
     runGit(root, ["init"]);
@@ -278,11 +278,11 @@ describe("ngrace status", () => {
 
   it("attributes graph drift only to the exact declared document or owning anchor route", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/index.xml`, `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN><GD-OTHER><Path>graph/other.xml</Path><Owns><M-OTHER /></Owns></GD-OTHER></GraphDocuments></NgraceGraphIndex>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/other.xml`, `<NgraceGraphDocument graceVersion="4.0"><GD-OTHER><M-OTHER><Summary>Other.</Summary></M-OTHER></GD-OTHER></NgraceGraphDocument>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/verification/index.xml`, `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN><VD-OTHER><Path>verification/other.xml</Path><Owns><V-M-OTHER /></Owns></VD-OTHER></VerificationDocuments></NgraceVerificationIndex>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/verification/other.xml`, `<NgraceVerificationDocument graceVersion="4.0"><VD-OTHER><V-M-OTHER><Scenario>Other works.</Scenario></V-M-OTHER></VD-OTHER></NgraceVerificationDocument>`);
+    writeMinimalNgraceProject(root);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/index.xml`, `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN><GD-OTHER><Path>graph/other.xml</Path><Owns><M-OTHER /></Owns></GD-OTHER></GraphDocuments></NgraceGraphIndex>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/other.xml`, `<NgraceGraphDocument graceVersion="1.0"><GD-OTHER><M-OTHER><Summary>Other.</Summary></M-OTHER></GD-OTHER></NgraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/verification/index.xml`, `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN><VD-OTHER><Path>verification/other.xml</Path><Owns><V-M-OTHER /></Owns></VD-OTHER></VerificationDocuments></NgraceVerificationIndex>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/verification/other.xml`, `<NgraceVerificationDocument graceVersion="1.0"><VD-OTHER><V-M-OTHER><Scenario>Other works.</Scenario></V-M-OTHER></VD-OTHER></NgraceVerificationDocument>`);
     writeChange(root, "C-ROUTED-DRIFT", { specStatus: "approved", planStatus: "approved" });
     runGit(root, ["init"]);
     runGit(root, ["config", "user.email", "grace@example.test"]);
@@ -291,8 +291,8 @@ describe("ngrace status", () => {
     runGit(root, ["config", "core.hooksPath", "disabled-hooks"]);
     runGit(root, ["add", "."]);
     runGit(root, ["commit", "-m", "test: baseline"]);
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Changed main.</Summary></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/other.xml`, `<NgraceGraphDocument graceVersion="4.0"><GD-OTHER><M-OTHER><Summary>Changed other.</Summary></M-OTHER></GD-OTHER></NgraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Changed main.</Summary></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/other.xml`, `<NgraceGraphDocument graceVersion="1.0"><GD-OTHER><M-OTHER><Summary>Changed other.</Summary></M-OTHER></GD-OTHER></NgraceGraphDocument>`);
 
     const drift = collectProjectStatus(root).observedDrift;
     expect(drift.explainedFiles).toContain(".ngrace/graph/main.xml");
@@ -301,7 +301,7 @@ describe("ngrace status", () => {
 
   it("attributes graph index drift to declared graph documents or anchors", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeChange(root, "C-INDEX-DRIFT", { specStatus: "approved", planStatus: "approved" });
     runGit(root, ["init"]);
     runGit(root, ["config", "user.email", "grace@example.test"]);
@@ -320,17 +320,17 @@ describe("ngrace status", () => {
 
   it("Phase 7: attributes graph drift to IC-* anchors in DurableScope (pins grace-status route index)", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(root, "proto/x.proto", "syntax = \"proto3\";\n");
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><IC-X /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><IC-X /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN>`
         + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
         + `<IC-X><Summary>Contract.</Summary><Schema>proto/x.proto</Schema><Version>1.0.0</Version>`
         + `<Provider><M-EXAMPLE /></Provider><Consumer><M-EXAMPLE /></Consumer>`
@@ -341,12 +341,12 @@ describe("ngrace status", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-IC-DRIFT/spec.xml`,
-      `<NgraceChangeSpec graceVersion="4.0" status="approved"><C-IC-DRIFT><Summary>Contract change.</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><AffectedAreas><IC-X /></AffectedAreas><VerificationIntent><ExpectedCommand>echo ok</ExpectedCommand></VerificationIntent></C-IC-DRIFT></NgraceChangeSpec>`,
+      `<NgraceChangeSpec graceVersion="1.0" status="approved"><C-IC-DRIFT><Summary>Contract change.</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><AffectedAreas><IC-X /></AffectedAreas><VerificationIntent><ExpectedCommand>echo ok</ExpectedCommand></VerificationIntent></C-IC-DRIFT></NgraceChangeSpec>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-IC-DRIFT/plan.xml`,
-      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-IC-DRIFT>`
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-IC-DRIFT>`
         + `<IntentSummary>Contract only.</IntentSummary>`
         + `<BaselineAssertions><MustExist><Value>IC-X</Value></MustExist></BaselineAssertions>`
         + `<TargetAssertions><MustExist><Value>IC-X</Value></MustExist></TargetAssertions>`
@@ -365,7 +365,7 @@ describe("ngrace status", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN>`
         + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
         + `<IC-X><Summary>Contract updated.</Summary><Schema>proto/x.proto</Schema><Version>1.1.0</Version>`
         + `<Provider><M-EXAMPLE /></Provider><Consumer><M-EXAMPLE /></Consumer>`
@@ -380,7 +380,7 @@ describe("ngrace status", () => {
 
   it("hard-stops approved contract drift instead of reporting the bundle ready", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeChange(root, "C-IMMUTABLE", { specStatus: "approved", planStatus: "approved" });
     runGit(root, ["init"]);
     runGit(root, ["config", "user.email", "grace@example.test"]);
@@ -402,7 +402,7 @@ describe("ngrace status", () => {
 
   it("does not confuse a newly created untracked approved bundle with post-approval contract drift", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     runGit(root, ["init"]);
     runGit(root, ["config", "user.email", "grace@example.test"]);
     runGit(root, ["config", "user.name", "GRACE Test"]);
@@ -421,8 +421,8 @@ describe("ngrace status", () => {
 
   it("reports invalid projections through integrity without crashing or producing healthy module counts", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<NgraceRequirements graceVersion="4.0"><GD-MAIN /></NgraceRequirements>`);
+    writeMinimalNgraceProject(root);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<NgraceRequirements graceVersion="1.0"><GD-MAIN /></NgraceRequirements>`);
 
     const result = collectProjectStatus(root, { includeModules: true });
     expect(result.integrity.errors).toBeGreaterThan(0);
@@ -445,7 +445,7 @@ describe("ngrace status", () => {
 
   it("wires the status command through the CLI", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     const repoRoot = path.resolve(import.meta.dir, "..");
 
     const statusResult = Bun.spawnSync({

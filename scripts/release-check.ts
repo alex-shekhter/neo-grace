@@ -91,7 +91,7 @@ const PACK_ALLOWED_EXACT = new Set([
   "src/grace-verification.ts",
   "src/language-registry.ts",
 ]);
-const PACK_ALLOWED_PREFIXES = ["src/grace4/", "src/lint/", "src/query/", "src/verification/"];
+const PACK_ALLOWED_PREFIXES = ["src/artifact/", "src/lint/", "src/query/", "src/verification/"];
 const PACK_FORBIDDEN = [
   /(^|\/)__tests__(\/|$)/i,
   /(^|\/)tests?(\/|$)/i,

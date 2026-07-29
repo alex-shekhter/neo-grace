@@ -7,8 +7,8 @@ import { collectDoctorReport } from "../grace-doctor";
 import { extractAnchorSerialization, planGraphSplit } from "../grace-graph";
 import { lintGraceProject } from "../grace-lint";
 import { getLintIssueGuide } from "../lint/catalog";
-import { validateGrace4Project } from "./grammar";
-import { writeMinimalGrace4Project } from "./test-fixtures";
+import { validateNgraceProject } from "./grammar";
+import { writeMinimalNgraceProject } from "./test-fixtures";
 import { parseGraceXmlArtifact } from "./xml";
 import { serializeGraceXmlNode } from "./xml-serialize";
 import { ARTIFACT_DIR } from "./paths";
@@ -30,18 +30,18 @@ function codes(issues: Array<{ code: string }>) {
 }
 
 function writeTwoModuleProject(root: string) {
-  writeMinimalGrace4Project(root);
+  writeMinimalNgraceProject(root);
   writeProjectFile(root, "services/api/router.go", "package router\n");
   writeProjectFile(root, "apps/web/App.tsx", "export const App = () => null;\n");
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-API-ROUTER /><M-WEB-APP /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-API-ROUTER /><M-WEB-APP /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/main.xml`,
-    `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+    `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN>`
       + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
       + `<M-API-ROUTER><Summary>API router.</Summary><Path>services/api/router.go</Path></M-API-ROUTER>`
       + `<M-WEB-APP><Summary>Web app.</Summary><Path>apps/web/App.tsx</Path></M-WEB-APP>`
@@ -50,12 +50,12 @@ function writeTwoModuleProject(root: string) {
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/index.xml`,
-    `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-API-ROUTER /><V-M-WEB-APP /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+    `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-API-ROUTER /><V-M-WEB-APP /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/main.xml`,
-    `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
+    `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN>`
       + `<V-M-EXAMPLE><Command>echo ok</Command><Scenario>ok</Scenario></V-M-EXAMPLE>`
       + `<V-M-API-ROUTER><Command>echo ok</Command><Scenario>ok</Scenario></V-M-API-ROUTER>`
       + `<V-M-WEB-APP><Command>echo ok</Command><Scenario>ok</Scenario></V-M-WEB-APP>`
@@ -82,19 +82,19 @@ function snapshotTree(root: string): Map<string, string> {
 describe("Phase 8 — document size warnings", () => {
   it("warns only when anchor or byte limit is exceeded; never as error", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(root, ".ngrace-lint.json", JSON.stringify({ documentAnchorLimit: 1, documentByteLimit: 1_000_000 }));
     // Minimal project has 1 module in GD-MAIN → at limit 1 is NOT over (> limit). Add second module.
     writeProjectFile(root, "src/second.ts", "export const s = 1;\n");
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-SECOND /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-SECOND /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN>`
         + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
         + `<M-SECOND><Summary>Second.</Summary><Path>src/second.ts</Path></M-SECOND>`
         + `</GD-MAIN></NgraceGraphDocument>`,
@@ -102,12 +102,12 @@ describe("Phase 8 — document size warnings", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/index.xml`,
-      `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-SECOND /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+      `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-SECOND /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
+      `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN>`
         + `<V-M-EXAMPLE><Command>echo</Command><Scenario>ok</Scenario></V-M-EXAMPLE>`
         + `<V-M-SECOND><Command>echo</Command><Scenario>ok</Scenario></V-M-SECOND>`
         + `</VD-MAIN></NgraceVerificationDocument>`,
@@ -125,7 +125,7 @@ describe("Phase 8 — document size warnings", () => {
 
   it("respects raised documentAnchorLimit (no warning)", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(root, ".ngrace-lint.json", JSON.stringify({ documentAnchorLimit: 500, documentByteLimit: 5_000_000 }));
     const result = lintGraceProject(root);
     expect(result.issues.filter((i) => i.code.endsWith("document-too-large"))).toHaveLength(0);
@@ -135,58 +135,58 @@ describe("Phase 8 — document size warnings", () => {
 describe("Phase 8 — multi-stack NgraceTechnology", () => {
   it("keeps flat Language/Runtime technology valid", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
-    expect(validateGrace4Project(root).issues.filter((i) => i.severity === "error")).toHaveLength(0);
+    writeMinimalNgraceProject(root);
+    expect(validateNgraceProject(root).issues.filter((i) => i.severity === "error")).toHaveLength(0);
   });
 
   it("accepts Stacks with contained existing roots", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     mkdirSync(path.join(root, "apps/web"), { recursive: true });
     mkdirSync(path.join(root, "services/api"), { recursive: true });
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/technology.xml`,
-      `<NgraceTechnology graceVersion="4.0"><Stacks>`
+      `<NgraceTechnology graceVersion="1.0"><Stacks>`
         + `<Stack-WEB><Language>TypeScript</Language><Root>apps/web</Root></Stack-WEB>`
         + `<Stack-API><Language>Go</Language><Root>services/api</Root></Stack-API>`
         + `</Stacks></NgraceTechnology>`,
     );
-    const resultCodes = codes(validateGrace4Project(root).issues);
+    const resultCodes = codes(validateNgraceProject(root).issues);
     expect(resultCodes.filter((c) => c.startsWith("context.technology."))).toEqual([]);
   });
 
   it("rejects non-anchor children of Stacks (zero-or-more shape check)", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/technology.xml`,
-      `<NgraceTechnology graceVersion="4.0"><Stacks><Module>WEB</Module></Stacks></NgraceTechnology>`,
+      `<NgraceTechnology graceVersion="1.0"><Stacks><Module>WEB</Module></Stacks></NgraceTechnology>`,
     );
-    expect(codes(validateGrace4Project(root).issues)).toContain("context.technology.invalid-stack");
+    expect(codes(validateNgraceProject(root).issues)).toContain("context.technology.invalid-stack");
   });
 
   it("rejects Stack Root that escapes the project", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/technology.xml`,
-      `<NgraceTechnology graceVersion="4.0"><Stacks><Stack-WEB><Root>../../etc</Root></Stack-WEB></Stacks></NgraceTechnology>`,
+      `<NgraceTechnology graceVersion="1.0"><Stacks><Stack-WEB><Root>../../etc</Root></Stack-WEB></Stacks></NgraceTechnology>`,
     );
-    expect(codes(validateGrace4Project(root).issues)).toContain("context.technology.invalid-stack-root");
+    expect(codes(validateNgraceProject(root).issues)).toContain("context.technology.invalid-stack-root");
   });
 
   it("rejects missing Stack Root on disk", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/technology.xml`,
-      `<NgraceTechnology graceVersion="4.0"><Stacks><Stack-WEB><Root>apps/missing</Root></Stack-WEB></Stacks></NgraceTechnology>`,
+      `<NgraceTechnology graceVersion="1.0"><Stacks><Stack-WEB><Root>apps/missing</Root></Stack-WEB></Stacks></NgraceTechnology>`,
     );
-    expect(codes(validateGrace4Project(root).issues)).toContain("context.technology.stack-root-missing");
+    expect(codes(validateNgraceProject(root).issues)).toContain("context.technology.stack-root-missing");
   });
 });
 
@@ -212,7 +212,7 @@ describe("Phase 8 — XML serializer fidelity", () => {
 describe("Phase 8 — ngrace doctor", () => {
   it("is strictly read-only (directory snapshot unchanged)", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     const before = snapshotTree(root);
     const report = collectDoctorReport(root);
     const after = snapshotTree(root);
@@ -298,7 +298,7 @@ describe("Phase 8 — ngrace graph split", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments>`
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments>`
         + `<GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-API-ROUTER /></Owns></GD-MAIN>`
         + `<GD-OTHER><Path>graph/services-api.xml</Path><Owns><M-WEB-APP /></Owns></GD-OTHER>`
         + `</GraphDocuments></NgraceGraphIndex>`,
@@ -306,7 +306,7 @@ describe("Phase 8 — ngrace graph split", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN>`
         + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
         + `<M-API-ROUTER><Summary>API router.</Summary><Path>services/api/router.go</Path></M-API-ROUTER>`
         + `</GD-MAIN></NgraceGraphDocument>`,
@@ -314,7 +314,7 @@ describe("Phase 8 — ngrace graph split", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/services-api.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-OTHER><M-WEB-APP><Summary>Web app.</Summary><Path>apps/web/App.tsx</Path></M-WEB-APP></GD-OTHER></NgraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-OTHER><M-WEB-APP><Summary>Web app.</Summary><Path>apps/web/App.tsx</Path></M-WEB-APP></GD-OTHER></NgraceGraphDocument>`,
     );
     const collidingBefore = readFileSync(path.join(root, `${ARTIFACT_DIR}/graph/services-api.xml`), "utf8");
 
@@ -375,7 +375,7 @@ describe("Phase 8 — packaging and catalog pins", () => {
 
   it("wires doctor and graph through the grace CLI", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     const repoRoot = path.resolve(import.meta.dir, "../..");
     const doctor = Bun.spawnSync({
       cmd: [process.execPath, "./src/grace.ts", "doctor", "--path", root, "--format", "json"],

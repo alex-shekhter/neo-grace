@@ -6,12 +6,12 @@ import { defineCommand, type CommandDef, runMain } from "citty";
 
 import { lintGraceProject } from "./lint/core";
 import type { AnalysisCoverage, LintIssue } from "./lint/types";
-import { ARTIFACT_DIR, toProjectRelativePath } from "./grace4/paths";
-import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "./grace4/project";
-import { skillRef } from "./grace4/types";
-import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./grace4/projections";
-import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope } from "./grace4/scope";
-import { readGraceXmlArtifact } from "./grace4/xml";
+import { ARTIFACT_DIR, toProjectRelativePath } from "./artifact/paths";
+import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "./artifact/project";
+import { skillRef } from "./artifact/types";
+import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./artifact/projections";
+import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope } from "./artifact/scope";
+import { readGraceXmlArtifact } from "./artifact/xml";
 import { collectModuleHealth } from "./query/health";
 import { loadGraceArtifactIndex } from "./query/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -221,7 +221,7 @@ export function collectProjectStatus(projectRoot: string, options: { includeModu
   if (kind === "grace3") return emptyStatus(root, "grace3", formatGrace3MigrationGuidance(root));
   if (kind === "none") return emptyStatus(root, "none");
 
-  const paths = resolveGrace4Paths(root);
+  const paths = resolveNgracePaths(root);
   const lint = lintGraceProject(root, { profile: "standard" });
   const integrityErrors = lint.issues.filter((issue) => issue.severity === "error");
   const integrityWarnings = lint.issues.filter((issue) => issue.severity === "warning");
@@ -283,7 +283,7 @@ export function collectProjectStatus(projectRoot: string, options: { includeModu
     root,
     projectKind: "grace4",
     summary: {
-      graceVersion: "4.0",
+      graceVersion: "1.0",
       contextArtifacts,
       graphModules: graph.modules.size,
       verificationEntries: verification.entries.size,
@@ -454,7 +454,7 @@ function activeScopeExplainsFile(root: string, scope: ActiveChangeScope, file: s
 
 function buildDriftRouteIndex(root: string, graph: GraphProjection, verification: VerificationProjection): DriftRouteIndex {
   const routes: DriftRouteIndex = { graphFiles: new Map(), verificationFiles: new Map() };
-  const paths = resolveGrace4Paths(root);
+  const paths = resolveNgracePaths(root);
   // Document absolute paths are realpathed; project root may be lexical (macOS /var vs /private/var).
   routes.graphFiles.set(toProjectRelativePath(root, paths.graphIndex), {
     documents: new Set(graph.documents.keys()),

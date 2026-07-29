@@ -1,4 +1,4 @@
-<NgraceInvariants graceVersion="4.0">
+<NgraceInvariants graceVersion="1.0">
   <INV-IDEMPOTENT-POST>
     <Statement>Replaying the same posting request must not create a second journal entry.</Statement>
     <Scope>M-LEDGER-CORE</Scope>

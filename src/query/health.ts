@@ -1,10 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { ARTIFACT_DIR } from "../grace4/paths";
-import { stateMatchesEvidence } from "../grace4/projections";
-import { skillRef } from "../grace4/types";
-import { readGraceXmlArtifact } from "../grace4/xml";
+import { ARTIFACT_DIR } from "../artifact/paths";
+import { stateMatchesEvidence } from "../artifact/projections";
+import { skillRef } from "../artifact/types";
+import { readGraceXmlArtifact } from "../artifact/xml";
 import { hasRuntimeMarkerEvidence, parseMarkerBlockName } from "../project-utils";
 import { checkModuleCheckReferences } from "../verification/check-references";
 import { getModuleImplementationFiles, getModuleName, getModulePath, getModuleType, resolveModule } from "./core";

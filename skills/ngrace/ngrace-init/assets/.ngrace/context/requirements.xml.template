@@ -1,4 +1,4 @@
-<NgraceRequirements graceVersion="4.0">
+<NgraceRequirements graceVersion="1.0">
   <ProjectName>$PROJECT_NAME</ProjectName>
   <Annotation>$ANNOTATION</Annotation>
   <Keywords>$KEYWORDS</Keywords>

@@ -1,14 +1,14 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { evaluateAssertion, extractAssertionsWithIssues } from "../grace4/assertions";
-import { validateGrace4Project } from "../grace4/grammar";
-import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "../grace4/project";
-import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "../grace4/projections";
-import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution } from "../grace4/scope";
-import { ARTIFACT_DIR } from "../grace4/paths";
-import { ANCHOR_PATTERNS, type Grace4Issue, type Grace4ProjectPaths } from "../grace4/types";
-import { readGraceXmlArtifact } from "../grace4/xml";
+import { evaluateAssertion, extractAssertionsWithIssues } from "../artifact/assertions";
+import { validateNgraceProject } from "../artifact/grammar";
+import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "../artifact/project";
+import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "../artifact/projections";
+import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution } from "../artifact/scope";
+import { ARTIFACT_DIR } from "../artifact/paths";
+import { ARTIFACT_TAG_PREFIX, ANCHOR_PATTERNS, type NgraceIssue, type NgraceProjectPaths } from "../artifact/types";
+import { readGraceXmlArtifact } from "../artifact/xml";
 import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "../language-registry";
 import { analyzeGovernedFile, collectCodeFiles, hasGraceMarkers, type FileMarkupRecord } from "../project-utils";
 import { withLintIssueGuide } from "./catalog";
@@ -45,7 +45,7 @@ function addIssue(result: LintResult, issue: LintIssue) {
   result.issues.push(issue);
 }
 
-function addGrace4Issue(result: LintResult, issue: Grace4Issue) {
+function addNgraceIssue(result: LintResult, issue: NgraceIssue) {
   addIssue(result, {
     severity: issue.severity,
     code: issue.code,
@@ -218,12 +218,12 @@ function listPlanFiles(directory: string): string[] {
 
 function readPlanStatus(planFile: string): string | null {
   const artifact = readGraceXmlArtifact(planFile);
-  return artifact.root?.tag === "NgraceChangePlan" ? artifact.root.attributes.status ?? null : null;
+  return artifact.root?.tag === `${ARTIFACT_TAG_PREFIX}ChangePlan` ? artifact.root.attributes.status ?? null : null;
 }
 
 function validateAssertions(
   result: LintResult,
-  paths: Grace4ProjectPaths,
+  paths: NgraceProjectPaths,
   planFilesActive: string[],
   planFilesArchived: string[],
   graph: GraphProjection,
@@ -283,7 +283,7 @@ function evaluateSection(
       if (skipActivePhaseIssues && issue.code === "assertion.phase-incompatible-command") {
         continue;
       }
-      addGrace4Issue(result, issue);
+      addNgraceIssue(result, issue);
     }
   }
   if (evaluateSemantically) {
@@ -296,7 +296,7 @@ function evaluateSection(
         continue;
       }
       for (const issue of evaluateAssertion(assertion, context)) {
-        addGrace4Issue(result, issue);
+        addNgraceIssue(result, issue);
       }
     }
   }
@@ -304,7 +304,7 @@ function evaluateSection(
 
 function resolveSelectedApprovedPlan(
   result: LintResult,
-  paths: Grace4ProjectPaths,
+  paths: NgraceProjectPaths,
   changeId: string | undefined,
 ): string | null {
   if (!changeId) {
@@ -333,11 +333,11 @@ function resolveSelectedApprovedPlan(
   const plan = readGraceXmlArtifact(planFile);
   const specWrapper = spec.root?.children.filter((child) => ANCHOR_PATTERNS.change.test(child.tag));
   const planWrapper = plan.root?.children.filter((child) => ANCHOR_PATTERNS.change.test(child.tag));
-  const approved = spec.root?.tag === "NgraceChangeSpec"
+  const approved = spec.root?.tag === `${ARTIFACT_TAG_PREFIX}ChangeSpec`
     && spec.root.attributes.status === "approved"
     && specWrapper?.length === 1
     && specWrapper[0]?.tag === changeId
-    && plan.root?.tag === "NgraceChangePlan"
+    && plan.root?.tag === `${ARTIFACT_TAG_PREFIX}ChangePlan`
     && plan.root.attributes.status === "approved"
     && planWrapper?.length === 1
     && planWrapper[0]?.tag === changeId;
@@ -384,17 +384,17 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
   // Config already validated (and issues emitted) inside validateGovernedFiles; re-read for size limits.
   const { config } = loadGraceLintConfig(root);
 
-  const paths = resolveGrace4Paths(root);
-  const validation = validateGrace4Project(root);
+  const paths = resolveNgracePaths(root);
+  const validation = validateNgraceProject(root);
   result.xmlFilesChecked = validation.artifacts.length;
   for (const issue of validation.issues) {
-    addGrace4Issue(result, issue);
+    addNgraceIssue(result, issue);
   }
 
   const graph = buildGraphProjection(paths);
   const verification = buildVerificationProjection(paths, graph);
   for (const issue of [...graph.issues, ...verification.issues]) {
-    addGrace4Issue(result, issue);
+    addNgraceIssue(result, issue);
   }
 
   for (const issue of documentSizeIssues(graph, verification, config)) {
@@ -409,7 +409,7 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
   const overlapIssues = detectScopeOverlaps(activeScopes, ownership);
   const parallelIssues = options.parallelPreflight ? detectUnsafeConcurrentExecution(activeScopes, ownership) : [];
   for (const issue of [...scopeIssues, ...overlapIssues, ...parallelIssues]) {
-    addGrace4Issue(result, issue);
+    addNgraceIssue(result, issue);
   }
 
   const planFilesActive = [...listPlanFiles(paths.changesActiveDir)];

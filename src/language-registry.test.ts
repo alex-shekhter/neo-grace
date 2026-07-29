@@ -10,11 +10,11 @@ import {
   LANGUAGE_ADAPTERS,
 } from "./language-registry";
 import { lintGraceProject } from "./grace-lint";
-import { writeMinimalGrace4Project } from "./grace4/test-fixtures";
+import { writeMinimalNgraceProject } from "./artifact/test-fixtures";
 
 function createProject() {
   const root = mkdtempSync(path.join(os.tmpdir(), "grace-lang-"));
-  writeMinimalGrace4Project(root);
+  writeMinimalNgraceProject(root);
   return root;
 }
 

@@ -20,7 +20,7 @@ Create the canonical GRACE 4 project layout from this skill's `assets/` template
 - `.ngrace/changes/active/`
 - `.ngrace/changes/archive/`
 
-Every XML artifact uses `graceVersion="4.0"`. Semantic anchors are XML tags, never attributes. Do not create dummy `C-*` change bundles. Do not overwrite existing `.ngrace` artifacts without explicit confirmation.
+Every XML artifact uses `graceVersion="1.0"`. Semantic anchors are XML tags, never attributes. Do not create dummy `C-*` change bundles. Do not overwrite existing `.ngrace` artifacts without explicit confirmation.
 </task>
 
 <template_sources>

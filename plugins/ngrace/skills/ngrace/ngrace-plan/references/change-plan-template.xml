@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="4.0" status="draft">
+<NgraceChangePlan graceVersion="1.0" status="draft">
   <C-CHANGE-ID>
     <IntentSummary>$INTENT_SUMMARY</IntentSummary>
     <BaselineAssertions>

@@ -23,7 +23,7 @@ const componentFields = ["skills", "agents", "commands"] as const;
 const pluginComponentFields = ["commands", "agents", "hooks", "mcpServers", "lspServers", "outputStyles"] as const;
 
 /** Required published GRACE 4 skill directory names. */
-const REQUIRED_GRACE4_SKILLS = new Set([
+const REQUIRED_NGRACE_SKILLS = new Set([
   "ngrace-init",
   "ngrace-spec",
   "ngrace-plan",
@@ -50,7 +50,7 @@ const REQUIRED_GRACE4_SKILLS = new Set([
  * the same mistake made under the current naming convention. A guard named only for the
  * new convention would not recognize the thing it was written to keep out.
  */
-const FORBIDDEN_GRACE4_SKILLS = new Set([
+const FORBIDDEN_NGRACE_SKILLS = new Set([
   "grace-multiagent-execute",
   "ngrace-multiagent-execute",
 ]);
@@ -291,19 +291,19 @@ function skillNamesFromEntry(entry: JsonObject): Set<string> {
 }
 
 /** Validates that the marketplace skills array matches the GRACE 4 release surface. */
-function validateGrace4SkillSurface(entry: JsonObject, errors: string[]): void {
+function validateNgraceSkillSurface(entry: JsonObject, errors: string[]): void {
   if (String(entry.name ?? "") !== "ngrace") {
     return;
   }
 
   const publishedSkills = skillNamesFromEntry(entry);
-  for (const requiredSkill of REQUIRED_GRACE4_SKILLS) {
+  for (const requiredSkill of REQUIRED_NGRACE_SKILLS) {
     if (!publishedSkills.has(requiredSkill)) {
       errors.push(`ngrace: missing required GRACE 4 skill in marketplace skills array (${requiredSkill})`);
     }
   }
 
-  for (const forbiddenSkill of FORBIDDEN_GRACE4_SKILLS) {
+  for (const forbiddenSkill of FORBIDDEN_NGRACE_SKILLS) {
     if (publishedSkills.has(forbiddenSkill)) {
       errors.push(`ngrace: forbidden GRACE 4 skill is still published (${forbiddenSkill})`);
     }
@@ -311,7 +311,7 @@ function validateGrace4SkillSurface(entry: JsonObject, errors: string[]): void {
 }
 
 /** Validates that package.json declares fast-xml-parser as a runtime dependency. */
-function validateGrace4Dependencies(errors: string[]): void {
+function validateNgraceDependencies(errors: string[]): void {
   const packageJson = readJson(packagePath);
   const dependencies = typeof packageJson.dependencies === "object" && packageJson.dependencies
     ? packageJson.dependencies as JsonObject
@@ -324,7 +324,7 @@ function validateGrace4Dependencies(errors: string[]): void {
   const publishedFiles = Array.isArray(packageJson.files)
     ? packageJson.files.filter((entry): entry is string => typeof entry === "string")
     : [];
-  for (const exclusion of ["!src/**/*.test.ts", "!src/grace4/test-fixtures.ts"]) {
+  for (const exclusion of ["!src/**/*.test.ts", "!src/artifact/test-fixtures.ts"]) {
     if (!publishedFiles.includes(exclusion)) {
       errors.push(`package.json: missing published-files exclusion ${exclusion}`);
     }
@@ -373,7 +373,7 @@ function validate(): ValidationResult {
     errors.push("package.json: missing version");
   }
 
-  validateGrace4Dependencies(errors);
+  validateNgraceDependencies(errors);
 
   const rootManifestFiles = readdirSync(marketplaceDir);
   const extraRootManifestFiles = rootManifestFiles.filter((fileName) => fileName !== "marketplace.json");
@@ -405,7 +405,7 @@ function validate(): ValidationResult {
     const pluginManifestPath = path.join(pluginManifestDir, "plugin.json");
 
     validateRequiredFields(pluginName, "marketplace.json", entry, ["name", "version", "description"], errors);
-    validateGrace4SkillSurface(entry, errors);
+    validateNgraceSkillSurface(entry, errors);
 
     if (!isDirectory(sourceDir)) {
       errors.push(`${pluginName}: source directory not found (${path.relative(repoRoot, sourceDir)})`);

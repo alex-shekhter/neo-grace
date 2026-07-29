@@ -1,4 +1,4 @@
-<NgraceVerificationDocument graceVersion="4.0">
+<NgraceVerificationDocument graceVersion="1.0">
   <VD-UI>
     <V-M-WEB-LEDGER-TABLE>
       <Cwd>apps/web</Cwd>

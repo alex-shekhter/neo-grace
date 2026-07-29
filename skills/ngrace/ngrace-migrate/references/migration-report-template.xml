@@ -1,4 +1,4 @@
-<NgraceMigrationReport graceVersion="4.0" status="draft">
+<NgraceMigrationReport graceVersion="1.0" status="draft">
   <SourceInventory complete="false">
     <Source path="$LEGACY_SOURCE_PATH" disposition="$GRACE4_DESTINATION_OR_REASON" />
   </SourceInventory>

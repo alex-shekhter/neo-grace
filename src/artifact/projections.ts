@@ -7,8 +7,8 @@ import {
   DATA_FLOW_STEP_PROPERTIES,
   INTERFACE_BREAKING_CHANGE_POLICIES,
   MODULE_TYPES,
-  type Grace4Issue,
-  type Grace4ProjectPaths,
+  type NgraceIssue,
+  type NgraceProjectPaths,
 } from "./types";
 import { childNodes, childText, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
@@ -63,7 +63,7 @@ export type GraphProjection = {
   modules: Map<string, GraphAnchorRecord>;
   dataFlows: Map<string, GraphAnchorRecord>;
   interfaceContracts: Map<string, GraphAnchorRecord>;
-  issues: Grace4Issue[];
+  issues: NgraceIssue[];
 };
 
 /** One aggregate V-M-* verification contract owned by a verification document. */
@@ -87,7 +87,7 @@ export type VerificationAnchorRecord = {
 export type VerificationProjection = {
   documents: Map<string, string>;
   entries: Map<string, VerificationAnchorRecord>;
-  issues: Grace4Issue[];
+  issues: NgraceIssue[];
 };
 
 type OwnerRoute = {
@@ -99,7 +99,7 @@ type OwnerRoute = {
 };
 
 /** Builds and validates the logical graph projection from .ngrace/graph. */
-export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection {
+export function buildGraphProjection(paths: NgraceProjectPaths): GraphProjection {
   const projection: GraphProjection = {
     documents: new Map(),
     modules: new Map(),
@@ -229,7 +229,7 @@ export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection
 }
 
 /** Builds and validates the logical verification projection from .ngrace/verification. */
-export function buildVerificationProjection(paths: Grace4ProjectPaths, graph: GraphProjection): VerificationProjection {
+export function buildVerificationProjection(paths: NgraceProjectPaths, graph: GraphProjection): VerificationProjection {
   const projection: VerificationProjection = {
     documents: new Map(),
     entries: new Map(),
@@ -337,7 +337,7 @@ export function buildVerificationProjection(paths: Grace4ProjectPaths, graph: Gr
   return projection;
 }
 
-function readGraphRoutes(paths: Grace4ProjectPaths, issues: Grace4Issue[]): OwnerRoute[] {
+function readGraphRoutes(paths: NgraceProjectPaths, issues: NgraceIssue[]): OwnerRoute[] {
   const artifact = readGraceXmlArtifact(paths.graphIndex);
   issues.push(...artifact.issues);
   if (!artifact.root) {
@@ -350,7 +350,7 @@ function readGraphRoutes(paths: Grace4ProjectPaths, issues: Grace4Issue[]): Owne
     .map((node) => routeFromOwnerNode(paths.graceDir, paths.graphDir, paths.graphIndex, node, (anchor) => isGraphAnchor(anchor), issues));
 }
 
-function readVerificationRoutes(paths: Grace4ProjectPaths, issues: Grace4Issue[]): OwnerRoute[] {
+function readVerificationRoutes(paths: NgraceProjectPaths, issues: NgraceIssue[]): OwnerRoute[] {
   const artifact = readGraceXmlArtifact(paths.verificationIndex);
   issues.push(...artifact.issues);
   if (!artifact.root) {
@@ -369,7 +369,7 @@ function routeFromOwnerNode(
   indexFile: string,
   node: GraceXmlNode,
   ownsPredicate: (anchor: string) => boolean,
-  issues: Grace4Issue[],
+  issues: NgraceIssue[],
 ): OwnerRoute {
   const pathNodes = childNodes(node, "Path");
   const rawPath = pathNodes[0]?.text.trim();
@@ -413,7 +413,7 @@ function registerOwnedAnchor(
   owner: string,
   indexFile: string,
   kind: "graph" | "verification",
-  issues: Grace4Issue[],
+  issues: NgraceIssue[],
 ): void {
   const previousOwner = expectedAnchors.get(anchor);
   if (previousOwner) {
@@ -486,7 +486,7 @@ function validateDanglingGraphLinks(projection: GraphProjection) {
 function collectDataFlowSteps(
   flowNode: GraceXmlNode,
   file: string,
-  issues: Grace4Issue[],
+  issues: NgraceIssue[],
 ): DataFlowStepRecord[] | undefined {
   const stepNodes = flowNode.children.filter((child) => child.tag === "Step");
   if (stepNodes.length === 0) {
@@ -626,7 +626,7 @@ function collectInterfaceContractFields(
   node: GraceXmlNode,
   projectRoot: string,
   file: string,
-  issues: Grace4Issue[],
+  issues: NgraceIssue[],
 ): Pick<GraphAnchorRecord, "schema" | "version" | "provider" | "consumers" | "breakingChangePolicy"> {
   const schemaRaw = childText(node, "Schema")?.trim() ?? "";
   let schema: string | undefined;
@@ -744,7 +744,7 @@ function collectAnchorChildren(
   sectionTag: string,
   pattern: RegExp,
   file?: string,
-  issues?: Grace4Issue[],
+  issues?: NgraceIssue[],
 ): string[] {
   const result: string[] = [];
   for (const section of node.children.filter((child) => child.tag === sectionTag)) {
@@ -880,7 +880,7 @@ function collectExactEvidence(
     .filter(Boolean);
 }
 
-function collectModuleStates(moduleNode: GraceXmlNode, file: string, issues: Grace4Issue[]): string[] {
+function collectModuleStates(moduleNode: GraceXmlNode, file: string, issues: NgraceIssue[]): string[] {
   const states: string[] = [];
   const seen = new Set<string>();
   for (const section of moduleNode.children.filter((child) => child.tag === "States")) {
@@ -968,7 +968,7 @@ function collectPriority(node: GraceXmlNode): string | undefined {
   return priority || undefined;
 }
 
-function collectCwd(node: GraceXmlNode, projectRoot: string, file: string, issues: Grace4Issue[]): string | undefined {
+function collectCwd(node: GraceXmlNode, projectRoot: string, file: string, issues: NgraceIssue[]): string | undefined {
   const cwdNodes = childNodes(node, "Cwd");
   if (cwdNodes.length > 1) {
     issues.push(issue("error", "projection.verification.duplicate-cwd", file, `${node.tag} must contain at most one direct Cwd.`));
@@ -991,7 +991,7 @@ function collectCwd(node: GraceXmlNode, projectRoot: string, file: string, issue
   }
 }
 
-function collectTestFiles(node: GraceXmlNode, projectRoot: string, file: string, issues: Grace4Issue[]): string[] {
+function collectTestFiles(node: GraceXmlNode, projectRoot: string, file: string, issues: NgraceIssue[]): string[] {
   const result: string[] = [];
   for (const tfNode of childNodes(node, "TestFiles")) {
     for (const child of tfNode.children) {
@@ -1017,7 +1017,7 @@ function reportUnindexedDocuments(
   indexFile: string,
   routes: OwnerRoute[],
   kind: "graph" | "verification",
-  issues: Grace4Issue[],
+  issues: NgraceIssue[],
 ): void {
   // Route files are resolved via realpath (resolveContainedProjectPath); readdir
   // paths are lexical. On macOS, /var/folders → /private/var/folders, so plain
@@ -1052,6 +1052,6 @@ function listXmlFiles(directory: string): string[] {
   }).sort();
 }
 
-function issue(severity: Grace4Issue["severity"], code: string, file: string, message: string): Grace4Issue {
+function issue(severity: NgraceIssue["severity"], code: string, file: string, message: string): NgraceIssue {
   return { severity, code, file, message };
 }

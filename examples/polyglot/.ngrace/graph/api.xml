@@ -1,4 +1,4 @@
-<NgraceGraphDocument graceVersion="4.0">
+<NgraceGraphDocument graceVersion="1.0">
   <GD-API>
     <M-API-ROUTER>
       <Summary>Go gateway router for ledger posting requests.</Summary>

@@ -9,7 +9,7 @@ import { lintCommand } from "./grace-lint";
 import { moduleCommand } from "./grace-module";
 import { statusCommand } from "./grace-status";
 import { verificationCommand } from "./grace-verification";
-import { ARTIFACT_DIR } from "./grace4/paths";
+import { ARTIFACT_DIR } from "./artifact/paths";
 
 const main = defineCommand({
   meta: {

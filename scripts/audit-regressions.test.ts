@@ -13,22 +13,22 @@ const repoRoot = path.resolve(import.meta.dir, "..");
 const allPlatforms = ["linux", "windows", "macos"] as const;
 
 const AUDIT_REGRESSION_CASES: readonly AuditRegressionCase[] = [
-  { id: "malformed-anchor", testFile: "src/grace4/grammar.test.ts", evidence: "artifact.malformed-semantic-anchor", platforms: allPlatforms },
-  { id: "anchor-attributes", testFile: "src/grace4/grammar.test.ts", evidence: "artifact.semantic-anchor-has-attributes", platforms: allPlatforms },
-  { id: "empty-change-contract", testFile: "src/grace4/grammar.test.ts", evidence: "change.empty-section", platforms: allPlatforms },
-  { id: "invalid-task-dag", testFile: "src/grace4/grammar.test.ts", evidence: "change.task-dependency-cycle", platforms: allPlatforms },
-  { id: "path-traversal", testFile: "src/grace4/paths.test.ts", evidence: "path.traversal", platforms: allPlatforms },
-  { id: "symlink-escape", testFile: "src/grace4/paths.test.ts", evidence: "path.symlink-escape", platforms: allPlatforms },
-  { id: "assertion-arity", testFile: "src/grace4/assertions.test.ts", evidence: "assertion.invalid-shape", platforms: allPlatforms },
-  { id: "command-not-evaluated", testFile: "src/grace4/assertions.test.ts", evidence: "assertion.command-not-evaluated", platforms: allPlatforms },
+  { id: "malformed-anchor", testFile: "src/artifact/grammar.test.ts", evidence: "artifact.malformed-semantic-anchor", platforms: allPlatforms },
+  { id: "anchor-attributes", testFile: "src/artifact/grammar.test.ts", evidence: "artifact.semantic-anchor-has-attributes", platforms: allPlatforms },
+  { id: "empty-change-contract", testFile: "src/artifact/grammar.test.ts", evidence: "change.empty-section", platforms: allPlatforms },
+  { id: "invalid-task-dag", testFile: "src/artifact/grammar.test.ts", evidence: "change.task-dependency-cycle", platforms: allPlatforms },
+  { id: "path-traversal", testFile: "src/artifact/paths.test.ts", evidence: "path.traversal", platforms: allPlatforms },
+  { id: "symlink-escape", testFile: "src/artifact/paths.test.ts", evidence: "path.symlink-escape", platforms: allPlatforms },
+  { id: "assertion-arity", testFile: "src/artifact/assertions.test.ts", evidence: "assertion.invalid-shape", platforms: allPlatforms },
+  { id: "command-not-evaluated", testFile: "src/artifact/assertions.test.ts", evidence: "assertion.command-not-evaluated", platforms: allPlatforms },
   { id: "final-lifecycle-validation", testFile: "src/grace-lint.test.ts", evidence: "final assertion mode", platforms: allPlatforms },
   { id: "single-quote-approved-status", testFile: "src/grace-lint.test.ts", evidence: "attribute quote style", platforms: allPlatforms },
-  { id: "duplicate-owns", testFile: "src/grace4/projections.test.ts", evidence: "projection.graph.duplicate-route", platforms: allPlatforms },
-  { id: "exact-evidence-tags", testFile: "src/grace4/projections.test.ts", evidence: "excludes naked <File> siblings", platforms: allPlatforms },
-  { id: "document-anchor-overlap", testFile: "src/grace4/scope.test.ts", evidence: "expands durable document ownership", platforms: allPlatforms },
-  { id: "known-disjoint-document-anchor", testFile: "src/grace4/scope.test.ts", evidence: "anchors owned by another known document", platforms: allPlatforms },
-  { id: "disjoint-extension-globs", testFile: "src/grace4/scope.test.ts", evidence: "differing extension globs disjoint", platforms: allPlatforms },
-  { id: "windows-case-collision", testFile: "src/grace4/scope.test.ts", evidence: "case-insensitive collision semantics on Windows", platforms: ["windows"] },
+  { id: "duplicate-owns", testFile: "src/artifact/projections.test.ts", evidence: "projection.graph.duplicate-route", platforms: allPlatforms },
+  { id: "exact-evidence-tags", testFile: "src/artifact/projections.test.ts", evidence: "excludes naked <File> siblings", platforms: allPlatforms },
+  { id: "document-anchor-overlap", testFile: "src/artifact/scope.test.ts", evidence: "expands durable document ownership", platforms: allPlatforms },
+  { id: "known-disjoint-document-anchor", testFile: "src/artifact/scope.test.ts", evidence: "anchors owned by another known document", platforms: allPlatforms },
+  { id: "disjoint-extension-globs", testFile: "src/artifact/scope.test.ts", evidence: "differing extension globs disjoint", platforms: allPlatforms },
+  { id: "windows-case-collision", testFile: "src/artifact/scope.test.ts", evidence: "case-insensitive collision semantics on Windows", platforms: ["windows"] },
   { id: "invalid-navigation-root", testFile: "src/grace-query.test.ts", evidence: "fails closed before returning records", platforms: allPlatforms },
   { id: "invalid-navigation-operational-contract", testFile: "src/grace-query.test.ts", evidence: "active assertion or scope contracts are invalid", platforms: allPlatforms },
   { id: "structured-json-error", testFile: "src/grace-query.test.ts", evidence: "ok: false", platforms: allPlatforms },
@@ -40,8 +40,8 @@ const AUDIT_REGRESSION_CASES: readonly AuditRegressionCase[] = [
   { id: "index-drift-attribution", testFile: "src/grace-status.test.ts", evidence: "graph index drift", platforms: allPlatforms },
   { id: "approved-contract-drift", testFile: "src/grace-status.test.ts", evidence: "approved contract drift", platforms: allPlatforms },
   { id: "untracked-approved-bundle", testFile: "src/grace-status.test.ts", evidence: "newly created untracked approved bundle", platforms: allPlatforms },
-  { id: "empty-context-artifact", testFile: "src/grace4/grammar.test.ts", evidence: "empty context artifacts", platforms: allPlatforms },
-  { id: "design-context-identity", testFile: "src/grace4/grammar.test.ts", evidence: "canonical design-context identity", platforms: allPlatforms },
+  { id: "empty-context-artifact", testFile: "src/artifact/grammar.test.ts", evidence: "empty context artifacts", platforms: allPlatforms },
+  { id: "design-context-identity", testFile: "src/artifact/grammar.test.ts", evidence: "canonical design-context identity", platforms: allPlatforms },
   { id: "python-unicode", testFile: "src/lint/adapters/python.test.ts", evidence: "UTF-8", platforms: allPlatforms },
   { id: "python-unicode-module-map", testFile: "src/project-utils.test.ts", evidence: "Unicode identifiers in exact Python MODULE_MAP parity", platforms: allPlatforms },
   { id: "typescript-namespace-export", testFile: "src/lint/adapters/typescript.test.ts", evidence: "namespace re-export names exactly", platforms: allPlatforms },
@@ -66,7 +66,7 @@ describe("Critical, High, and Medium audit regression matrix", () => {
   }
 
   it("keeps Windows-only coverage conditional while retaining portable case tests", () => {
-    const scopeTests = readFileSync(path.join(repoRoot, "src/grace4/scope.test.ts"), "utf8");
+    const scopeTests = readFileSync(path.join(repoRoot, "src/artifact/scope.test.ts"), "utf8");
     expect(scopeTests).toContain('process.platform === "win32" ? it : it.skip');
     expect(scopeTests).toContain("normalizes backslashes and follows explicit case semantics");
   });

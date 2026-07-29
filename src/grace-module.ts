@@ -7,7 +7,7 @@ import { formatModuleFindTable, formatModuleHealthText, formatModuleText } from 
 import type { GraceArtifactIndex } from "./query/types";
 
 /** Loads projection-backed index or throws a user-facing command error. */
-function loadGrace4IndexOrThrow(root: string): GraceArtifactIndex {
+function loadNgraceIndexOrThrow(root: string): GraceArtifactIndex {
   return loadGraceArtifactIndex(root);
 }
 
@@ -67,7 +67,7 @@ export const moduleCommand = defineCommand({
         const errorFormat = Boolean(context.args.json) || context.args.format === "json" ? "json" : "text";
         await runQueryCommand(errorFormat, () => {
           const format = resolveFormat(context.args.format, context.args.json, ["table", "json"], "table");
-          const index = loadGrace4IndexOrThrow(String(context.args.path ?? "."));
+          const index = loadNgraceIndexOrThrow(String(context.args.path ?? "."));
           const matches = findModules(index, {
             query: context.args.query ? String(context.args.query) : undefined,
             type: context.args.type ? String(context.args.type) : undefined,
@@ -115,7 +115,7 @@ export const moduleCommand = defineCommand({
         const errorFormat = Boolean(context.args.json) || context.args.format === "json" ? "json" : "text";
         await runQueryCommand(errorFormat, () => {
           const format = resolveFormat(context.args.format, context.args.json, ["text", "json"], "text");
-          const index = loadGrace4IndexOrThrow(String(context.args.path ?? "."));
+          const index = loadNgraceIndexOrThrow(String(context.args.path ?? "."));
           const moduleRecord = resolveModule(index, context.args.target == null ? "" : String(context.args.target));
           const withValues = String(context.args.with ?? "").split(",").map((value) => value.trim().toLowerCase()).filter(Boolean);
           const includeVerification = withValues.includes("verification");
@@ -160,7 +160,7 @@ export const moduleCommand = defineCommand({
         const errorFormat = Boolean(context.args.json) || context.args.format === "json" ? "json" : "text";
         await runQueryCommand(errorFormat, () => {
           const format = resolveFormat(context.args.format, context.args.json, ["text", "json"], "text");
-          const index = loadGrace4IndexOrThrow(String(context.args.path ?? "."));
+          const index = loadNgraceIndexOrThrow(String(context.args.path ?? "."));
           const health = resolveModuleHealth(index, context.args.target == null ? "" : String(context.args.target));
           process.stdout.write(format === "json" ? `${JSON.stringify(health, null, 2)}\n` : `${formatModuleHealthText(health)}\n`);
         });

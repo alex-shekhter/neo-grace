@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="4.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-ADD-KEYBOARD-NAV>
     <Summary>Add keyboard navigation to the ledger table (arrow keys, Home/End).</Summary>
     <Problem>Keyboard users cannot move focus between ledger rows without a mouse.</Problem>

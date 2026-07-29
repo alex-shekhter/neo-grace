@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import { ARTIFACT_DIR } from "./paths";
-import { resolveGrace4Paths } from "./project";
+import { resolveNgracePaths } from "./project";
 import {
   collectActiveChangeScopes,
   detectScopeOverlaps,
@@ -31,11 +31,11 @@ function writeProjectFile(root: string, relativePath: string, contents: string) 
 function writeChange(root: string, changeId: string, options: { graphAnchor: string; file: string; glob?: string; status?: string; contextArtifact?: string }) {
   const status = options.status ?? "approved";
   const bundle = `${ARTIFACT_DIR}/changes/active/${changeId}`;
-  writeProjectFile(root, `${bundle}/spec.xml`, `<NgraceChangeSpec graceVersion="4.0" status="${status}"><${changeId} /></NgraceChangeSpec>`);
+  writeProjectFile(root, `${bundle}/spec.xml`, `<NgraceChangeSpec graceVersion="1.0" status="${status}"><${changeId} /></NgraceChangeSpec>`);
   writeProjectFile(
     root,
     `${bundle}/plan.xml`,
-    `<NgraceChangePlan graceVersion="4.0" status="${status}"><${changeId}><DurableScope><GraphAnchors><${options.graphAnchor} /></GraphAnchors>${options.contextArtifact ? `<ContextArtifact>${options.contextArtifact}</ContextArtifact>` : ""}</DurableScope><ObservedWriteScope><File>${options.file}</File>${options.glob ? `<Glob>${options.glob}</Glob>` : ""}</ObservedWriteScope></${changeId}></NgraceChangePlan>`,
+    `<NgraceChangePlan graceVersion="1.0" status="${status}"><${changeId}><DurableScope><GraphAnchors><${options.graphAnchor} /></GraphAnchors>${options.contextArtifact ? `<ContextArtifact>${options.contextArtifact}</ContextArtifact>` : ""}</DurableScope><ObservedWriteScope><File>${options.file}</File>${options.glob ? `<Glob>${options.glob}</Glob>` : ""}</ObservedWriteScope></${changeId}></NgraceChangePlan>`,
   );
 }
 
@@ -45,7 +45,7 @@ describe("GRACE 4 scope detector", () => {
     writeChange(root, "C-ONE", { graphAnchor: "M-AUTH-SESSION", file: "src/auth.ts", contextArtifact: "requirements.xml" });
     writeChange(root, "C-TWO", { graphAnchor: "M-PROFILE", file: "src/profile.ts", status: "draft" });
 
-    const scopes = collectActiveChangeScopes(resolveGrace4Paths(root));
+    const scopes = collectActiveChangeScopes(resolveNgracePaths(root));
     const one = scopes.find((scope) => scope.changeId === "C-ONE");
 
     expect(scopes.map((scope) => scope.changeId).sort()).toEqual(["C-ONE", "C-TWO"]);
@@ -58,7 +58,7 @@ describe("GRACE 4 scope detector", () => {
     writeChange(root, "C-ONE", { graphAnchor: "M-AUTH-SESSION", file: "src/auth.ts", glob: "src/**/*.ts" });
     writeChange(root, "C-TWO", { graphAnchor: "M-AUTH-SESSION", file: "src/auth.ts", glob: "src/**/*.ts" });
 
-    const scopes = collectActiveChangeScopes(resolveGrace4Paths(root));
+    const scopes = collectActiveChangeScopes(resolveNgracePaths(root));
     const durableIssues = detectScopeOverlaps(scopes);
     const concurrentIssues = detectUnsafeConcurrentExecution(scopes);
 
@@ -135,12 +135,12 @@ describe("GRACE 4 scope detector", () => {
 
   it("rejects text-only scopes and accepts explicit None markers", () => {
     const root = createProject();
-    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEXT/spec.xml`, `<NgraceChangeSpec graceVersion="4.0" status="approved"><C-TEXT /></NgraceChangeSpec>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEXT/plan.xml`, `<NgraceChangePlan graceVersion="4.0" status="approved"><C-TEXT><DurableScope>graph changes</DurableScope><ObservedWriteScope>source changes</ObservedWriteScope></C-TEXT></NgraceChangePlan>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-NONE/spec.xml`, `<NgraceChangeSpec graceVersion="4.0" status="approved"><C-NONE /></NgraceChangeSpec>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-NONE/plan.xml`, `<NgraceChangePlan graceVersion="4.0" status="approved"><C-NONE><DurableScope><None /></DurableScope><ObservedWriteScope><None /></ObservedWriteScope></C-NONE></NgraceChangePlan>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEXT/spec.xml`, `<NgraceChangeSpec graceVersion="1.0" status="approved"><C-TEXT /></NgraceChangeSpec>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEXT/plan.xml`, `<NgraceChangePlan graceVersion="1.0" status="approved"><C-TEXT><DurableScope>graph changes</DurableScope><ObservedWriteScope>source changes</ObservedWriteScope></C-TEXT></NgraceChangePlan>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-NONE/spec.xml`, `<NgraceChangeSpec graceVersion="1.0" status="approved"><C-NONE /></NgraceChangeSpec>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-NONE/plan.xml`, `<NgraceChangePlan graceVersion="1.0" status="approved"><C-NONE><DurableScope><None /></DurableScope><ObservedWriteScope><None /></ObservedWriteScope></C-NONE></NgraceChangePlan>`);
 
-    const scopes = collectActiveChangeScopes(resolveGrace4Paths(root));
+    const scopes = collectActiveChangeScopes(resolveNgracePaths(root));
     const textScope = scopes.find((scope) => scope.changeId === "C-TEXT")!;
     const noneScope = scopes.find((scope) => scope.changeId === "C-NONE")!;
     expect(textScope.issues.map((entry) => entry.code)).toContain("scope.empty-durable-scope");
@@ -157,7 +157,7 @@ describe("GRACE 4 scope detector", () => {
   it("rejects unsupported, absolute, traversal, and malformed glob syntax as plan errors", () => {
     const root = createProject();
     writeChange(root, "C-BAD-GLOB", { graphAnchor: "M-BAD", file: "src/example.ts", glob: "src/{one,two}/**" });
-    const scopes = collectActiveChangeScopes(resolveGrace4Paths(root));
+    const scopes = collectActiveChangeScopes(resolveNgracePaths(root));
     expect(scopes[0]?.issues.map((issue) => issue.code)).toContain("scope.unsupported-glob");
 
     for (const invalid of ["/tmp/**", "../src/**", "C:\\src\\**", "src/**x/file.ts", "src/[ab].ts", "!src/**"]) {
@@ -183,7 +183,7 @@ describe("GRACE 4 scope detector", () => {
     writeChange(root, "C-NESTED", { graphAnchor: "M-NESTED", file: "nested.txt", glob: "src/auth/**" });
     writeChange(root, "C-DISJOINT", { graphAnchor: "M-DISJOINT", file: "docs/readme.md", glob: "tests/**" });
 
-    const scopes = collectActiveChangeScopes(resolveGrace4Paths(root));
+    const scopes = collectActiveChangeScopes(resolveNgracePaths(root));
     const issues = detectUnsafeConcurrentExecution(scopes);
     const messages = issues.map((entry) => entry.message);
 

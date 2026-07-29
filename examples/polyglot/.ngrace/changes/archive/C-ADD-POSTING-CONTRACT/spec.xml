@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="4.0" status="applied">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-ADD-POSTING-CONTRACT>
     <Summary>Introduce IC-POSTING-V1 and the ordered DF-POSTING flow across UI, API, and core.</Summary>
     <Problem>Posting behavior was implicit; no versioned schema linked gateway to core.</Problem>

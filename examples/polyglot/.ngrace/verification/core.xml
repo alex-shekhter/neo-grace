@@ -1,4 +1,4 @@
-<NgraceVerificationDocument graceVersion="4.0">
+<NgraceVerificationDocument graceVersion="1.0">
   <VD-CORE>
     <V-M-LEDGER-CORE>
       <Cwd>crates/core</Cwd>

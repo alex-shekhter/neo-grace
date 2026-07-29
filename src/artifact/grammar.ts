@@ -1,28 +1,29 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
-import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "./project";
+import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "./project";
 import {
+  ARTIFACT_TAG_PREFIX,
   ACTIVE_CHANGE_STATUSES,
   ANCHOR_PATTERNS,
   ARCHIVED_CHANGE_STATUSES,
   CHANGE_STATUSES,
-  GRACE4_CHANGE_COMPANION_TAGS,
-  GRACE4_CONTEXT_ARTIFACTS,
-  GRACE4_OPTIONAL_CONTEXT_ARTIFACTS,
-  GRACE4_ROOT_TAGS,
-  GRACE4_VERSION,
-  type Grace4Issue,
-  type Grace4ProjectPaths,
+  NGRACE_CHANGE_COMPANION_TAGS,
+  NGRACE_CONTEXT_ARTIFACTS,
+  NGRACE_OPTIONAL_CONTEXT_ARTIFACTS,
+  NGRACE_ROOT_TAGS,
+  NGRACE_ARTIFACT_VERSION,
+  type NgraceIssue,
+  type NgraceProjectPaths,
   type SemanticAnchorClassification,
   type SemanticAnchorFamily,
 } from "./types";
 import { ARTIFACT_DIR, ProjectPathError, resolveContainedProjectPath } from "./paths";
 import { childText, readGraceXmlArtifact, walkNodes, type GraceXmlNode, type ParsedGraceXmlArtifact } from "./xml";
 
-const STANDARD_ROOT_TAGS = new Set<string>(GRACE4_ROOT_TAGS);
-const CHANGE_ROOT_TAGS = new Set(["NgraceChangeSpec", "NgraceChangePlan"]);
-const COMPANION_ROOT_TAGS = new Set<string>(GRACE4_CHANGE_COMPANION_TAGS);
+const STANDARD_ROOT_TAGS = new Set<string>(NGRACE_ROOT_TAGS);
+const CHANGE_ROOT_TAGS = new Set([`${ARTIFACT_TAG_PREFIX}ChangeSpec`, `${ARTIFACT_TAG_PREFIX}ChangePlan`]);
+const COMPANION_ROOT_TAGS = new Set<string>(NGRACE_CHANGE_COMPANION_TAGS);
 const VALID_CHANGE_STATUSES = new Set<string>(CHANGE_STATUSES);
 const ROOT_METADATA_ATTRIBUTE = new Set(["graceVersion"]);
 const CHANGE_ROOT_METADATA_ATTRIBUTES = new Set(["graceVersion", "status"]);
@@ -99,11 +100,11 @@ const ANCHOR_FAMILIES: readonly {
 ];
 
 const CONTEXT_ARTIFACTS = [
-  { file: "requirements.xml", rootTag: "NgraceRequirements" },
-  { file: "technology.xml", rootTag: "NgraceTechnology" },
-  { file: "principles.xml", rootTag: "NgracePrinciples" },
-  { file: "deployment.xml", rootTag: "NgraceDeployment" },
-  { file: "ux-guidelines.xml", rootTag: "NgraceUXGuidelines" },
+  { file: "requirements.xml", rootTag: `${ARTIFACT_TAG_PREFIX}Requirements` },
+  { file: "technology.xml", rootTag: `${ARTIFACT_TAG_PREFIX}Technology` },
+  { file: "principles.xml", rootTag: `${ARTIFACT_TAG_PREFIX}Principles` },
+  { file: "deployment.xml", rootTag: `${ARTIFACT_TAG_PREFIX}Deployment` },
+  { file: "ux-guidelines.xml", rootTag: `${ARTIFACT_TAG_PREFIX}UXGuidelines` },
 ] as const;
 
 /** Result of validating a single GRACE 4 artifact. */
@@ -111,13 +112,13 @@ export type ArtifactValidationResult = {
   file: string;
   rootTag?: string;
   graceVersion?: string;
-  issues: Grace4Issue[];
+  issues: NgraceIssue[];
 };
 
 /** Result of validating all current .ngrace documents in one project. */
-export type Grace4ValidationResult = {
+export type NgraceValidationResult = {
   root: string;
-  issues: Grace4Issue[];
+  issues: NgraceIssue[];
   artifacts: ArtifactValidationResult[];
 };
 
@@ -142,15 +143,15 @@ export function validateArtifactRoot(artifact: ParsedGraceXmlArtifact): Artifact
 
   if (!root.attributes.graceVersion) {
     result.issues.push(
-      issue("error", "artifact.missing-grace-version", artifact.file, `${root.tag} must declare graceVersion="${GRACE4_VERSION}".`),
+      issue("error", "artifact.missing-grace-version", artifact.file, `${root.tag} must declare graceVersion="${NGRACE_ARTIFACT_VERSION}".`),
     );
-  } else if (root.attributes.graceVersion !== GRACE4_VERSION) {
+  } else if (root.attributes.graceVersion !== NGRACE_ARTIFACT_VERSION) {
     result.issues.push(
       issue(
         "error",
         "artifact.unsupported-grace-version",
         artifact.file,
-        `${root.tag} declares unsupported graceVersion '${root.attributes.graceVersion}'. Expected '${GRACE4_VERSION}'.`,
+        `${root.tag} declares unsupported graceVersion '${root.attributes.graceVersion}'. Expected '${NGRACE_ARTIFACT_VERSION}'.`,
       ),
     );
   }
@@ -192,8 +193,8 @@ export function classifySemanticAnchorTag(tag: string): SemanticAnchorClassifica
 }
 
 /** Validates that semantic anchors are canonical attribute-free tags and never attributes. */
-export function validateSemanticAnchorDiscipline(file: string, root: GraceXmlNode): Grace4Issue[] {
-  const issues: Grace4Issue[] = [];
+export function validateSemanticAnchorDiscipline(file: string, root: GraceXmlNode): NgraceIssue[] {
+  const issues: NgraceIssue[] = [];
 
   for (const node of walkNodes(root)) {
     const tagClassification = classifySemanticAnchorTag(node.tag);
@@ -240,8 +241,8 @@ export function validateSemanticAnchorDiscipline(file: string, root: GraceXmlNod
 }
 
 /** Validates canonical change directories before artifact enumeration. */
-export function validateGrace4ProjectLayout(paths: Grace4ProjectPaths): Grace4Issue[] {
-  const issues: Grace4Issue[] = [];
+export function validateNgraceProjectLayout(paths: NgraceProjectPaths): NgraceIssue[] {
+  const issues: NgraceIssue[] = [];
   for (const directory of [paths.changesActiveDir, paths.changesArchiveDir]) {
     if (!existsSync(directory) || !statSync(directory).isDirectory()) {
       issues.push(
@@ -258,7 +259,7 @@ export function validateGrace4ProjectLayout(paths: Grace4ProjectPaths): Grace4Is
 }
 
 /** Validates the five mandatory context artifacts and applicability semantics. */
-export function validateContextArtifacts(paths: Grace4ProjectPaths): ArtifactValidationResult[] {
+export function validateContextArtifacts(paths: NgraceProjectPaths): ArtifactValidationResult[] {
   return CONTEXT_ARTIFACTS.map(({ file, rootTag }) => {
     const artifact = readGraceXmlArtifact(path.join(paths.contextDir, file));
     const result = validateParsedArtifact(artifact);
@@ -269,10 +270,10 @@ export function validateContextArtifacts(paths: Grace4ProjectPaths): ArtifactVal
 
     if (artifact.root?.tag === rootTag) {
       result.issues.push(...validateContextContent(artifact.file, artifact.root));
-      if (artifact.root.tag === "NgraceDeployment" || artifact.root.tag === "NgraceUXGuidelines") {
+      if (artifact.root.tag === `${ARTIFACT_TAG_PREFIX}Deployment` || artifact.root.tag === `${ARTIFACT_TAG_PREFIX}UXGuidelines`) {
         result.issues.push(...validateOptionalContextApplicability(artifact.file, artifact.root));
       }
-      if (artifact.root.tag === "NgraceTechnology") {
+      if (artifact.root.tag === `${ARTIFACT_TAG_PREFIX}Technology`) {
         result.issues.push(...validateTechnologyStacks(artifact.file, artifact.root, paths.root));
       }
     }
@@ -285,9 +286,9 @@ export function validateContextArtifacts(paths: Grace4ProjectPaths): ArtifactVal
  * Validates optional context artifacts when present.
  * Absence is never an error — design-system.xml / invariants.xml must not become required by accident.
  */
-export function validateOptionalContextArtifacts(paths: Grace4ProjectPaths): ArtifactValidationResult[] {
+export function validateOptionalContextArtifacts(paths: NgraceProjectPaths): ArtifactValidationResult[] {
   const results: ArtifactValidationResult[] = [];
-  for (const file of GRACE4_OPTIONAL_CONTEXT_ARTIFACTS) {
+  for (const file of NGRACE_OPTIONAL_CONTEXT_ARTIFACTS) {
     const absolute = path.join(paths.contextDir, file);
     if (!existsSync(absolute)) {
       continue;
@@ -309,7 +310,7 @@ export function validateDesignSystemArtifact(file: string, projectRoot: string):
     return result;
   }
 
-  if (artifact.root.tag !== "NgraceDesignSystem") {
+  if (artifact.root.tag !== `${ARTIFACT_TAG_PREFIX}DesignSystem`) {
     result.issues.push(
       issue("error", "context.unexpected-root-tag", file, `design-system.xml must use root tag NgraceDesignSystem.`),
     );
@@ -322,8 +323,8 @@ export function validateDesignSystemArtifact(file: string, projectRoot: string):
   return result;
 }
 
-function validateDesignSystemBody(file: string, root: GraceXmlNode, projectRoot: string): Grace4Issue[] {
-  const issues: Grace4Issue[] = [];
+function validateDesignSystemBody(file: string, root: GraceXmlNode, projectRoot: string): NgraceIssue[] {
+  const issues: NgraceIssue[] = [];
 
   for (const tokenSource of root.children.filter((child) => child.tag === "TokenSource")) {
     const authored = tokenSource.text.trim();
@@ -407,7 +408,7 @@ export function validateInvariantsArtifact(file: string): ArtifactValidationResu
     return result;
   }
 
-  if (artifact.root.tag !== "NgraceInvariants") {
+  if (artifact.root.tag !== `${ARTIFACT_TAG_PREFIX}Invariants`) {
     result.issues.push(
       issue("error", "context.unexpected-root-tag", file, `invariants.xml must use root tag NgraceInvariants.`),
     );
@@ -419,8 +420,8 @@ export function validateInvariantsArtifact(file: string): ArtifactValidationResu
   return result;
 }
 
-function validateInvariantsBody(file: string, root: GraceXmlNode): Grace4Issue[] {
-  const issues: Grace4Issue[] = [];
+function validateInvariantsBody(file: string, root: GraceXmlNode): NgraceIssue[] {
+  const issues: NgraceIssue[] = [];
   const seen = new Set<string>();
 
   for (const node of root.children) {
@@ -520,7 +521,7 @@ export function validateChangeArtifact(
 
   if (wrappers.length === 1) {
     const wrapper = wrappers[0]!;
-    if (root.tag === "NgraceChangeSpec") {
+    if (root.tag === `${ARTIFACT_TAG_PREFIX}ChangeSpec`) {
       validateDirectSectionCardinality(
         artifact.file,
         wrapper,
@@ -575,7 +576,7 @@ export function validateChangeDesignContextArtifact(
   artifact: ParsedGraceXmlArtifact,
 ): ArtifactValidationResult {
   const root = artifact.root;
-  const issues: Grace4Issue[] = [...artifact.issues];
+  const issues: NgraceIssue[] = [...artifact.issues];
 
   if (!root) {
     return { file: artifact.file, issues };
@@ -588,16 +589,16 @@ export function validateChangeDesignContextArtifact(
 
   if (!root.attributes.graceVersion) {
     issues.push(
-      issue("error", "design-context.missing-grace-version", artifact.file, `NgraceChangeDesignContext must declare graceVersion="${GRACE4_VERSION}".`),
+      issue("error", "design-context.missing-grace-version", artifact.file, `NgraceChangeDesignContext must declare graceVersion="${NGRACE_ARTIFACT_VERSION}".`),
     );
-  } else if (root.attributes.graceVersion !== GRACE4_VERSION) {
+  } else if (root.attributes.graceVersion !== NGRACE_ARTIFACT_VERSION) {
     issues.push(
-      issue("error", "design-context.unsupported-grace-version", artifact.file, `NgraceChangeDesignContext declares unsupported graceVersion '${root.attributes.graceVersion}'. Expected '${GRACE4_VERSION}'.`),
+      issue("error", "design-context.unsupported-grace-version", artifact.file, `NgraceChangeDesignContext declares unsupported graceVersion '${root.attributes.graceVersion}'. Expected '${NGRACE_ARTIFACT_VERSION}'.`),
     );
   }
 
   if (root.attributes.status) {
-    issues.push(issue("error", "design-context.forbidden-status", artifact.file, "NgraceChangeDesignContext must not declare a status attribute."));
+    issues.push(issue("error", "design-context.forbidden-status", artifact.file, `${ARTIFACT_TAG_PREFIX}ChangeDesignContext must not declare a status attribute.`));
   }
 
   for (const attribute of Object.keys(root.attributes)) {
@@ -612,22 +613,22 @@ export function validateChangeDesignContextArtifact(
   const wrapperNodes = root.children.filter((child) => ANCHOR_PATTERNS.change.test(child.tag));
   const identityCount = changeTextNodes.length + wrapperNodes.length;
   if (identityCount === 0) {
-    issues.push(issue("error", "design-context.missing-change-id", artifact.file, "NgraceChangeDesignContext must identify its bundle through one direct <Change>C-*</Change> or C-* wrapper."));
+    issues.push(issue("error", "design-context.missing-change-id", artifact.file, `${ARTIFACT_TAG_PREFIX}ChangeDesignContext must identify its bundle through one direct <Change>C-*</Change> or C-* wrapper.`));
   } else if (identityCount > 1) {
-    issues.push(issue("error", "design-context.ambiguous-change-id", artifact.file, "NgraceChangeDesignContext must contain exactly one direct change identity declaration."));
+    issues.push(issue("error", "design-context.ambiguous-change-id", artifact.file, `${ARTIFACT_TAG_PREFIX}ChangeDesignContext must contain exactly one direct change identity declaration.`));
   } else if (changeTextNodes.length === 1 && !ANCHOR_PATTERNS.change.test(changeTextNodes[0]!.text.trim())) {
-    issues.push(issue("error", "design-context.invalid-change-id", artifact.file, "NgraceChangeDesignContext <Change> must contain a canonical C-* identifier."));
+    issues.push(issue("error", "design-context.invalid-change-id", artifact.file, `${ARTIFACT_TAG_PREFIX}ChangeDesignContext <Change> must contain a canonical C-* identifier.`));
   }
 
   return { file: artifact.file, rootTag: root.tag, graceVersion: root.attributes.graceVersion, issues };
 }
 
 /** Validates current-state .ngrace artifact grammar and lifecycle location invariants. */
-export function validateGrace4Project(root: string): Grace4ValidationResult {
+export function validateNgraceProject(root: string): NgraceValidationResult {
   const projectRoot = path.resolve(root);
   const projectKind = detectGraceProjectKind(projectRoot);
   const artifacts: ArtifactValidationResult[] = [];
-  const issues: Grace4Issue[] = [];
+  const issues: NgraceIssue[] = [];
 
   if (projectKind === "grace3") {
     issues.push(issue("error", "project.grace3-detected", projectRoot, formatGrace3MigrationGuidance(projectRoot)));
@@ -639,14 +640,14 @@ export function validateGrace4Project(root: string): Grace4ValidationResult {
     return { root: projectRoot, issues, artifacts };
   }
 
-  const paths = resolveGrace4Paths(projectRoot);
-  issues.push(...validateGrace4ProjectLayout(paths));
+  const paths = resolveNgracePaths(projectRoot);
+  issues.push(...validateNgraceProjectLayout(paths));
   artifacts.push(...validateContextArtifacts(paths));
   artifacts.push(...validateOptionalContextArtifacts(paths));
-  artifacts.push(...validateRequiredArtifact(paths.graphIndex, "NgraceGraphIndex"));
-  artifacts.push(...validateXmlFilesInDirectory(paths.graphDir, [paths.graphIndex], "NgraceGraphDocument"));
-  artifacts.push(...validateRequiredArtifact(paths.verificationIndex, "NgraceVerificationIndex"));
-  artifacts.push(...validateXmlFilesInDirectory(paths.verificationDir, [paths.verificationIndex], "NgraceVerificationDocument"));
+  artifacts.push(...validateRequiredArtifact(paths.graphIndex, `${ARTIFACT_TAG_PREFIX}GraphIndex`));
+  artifacts.push(...validateXmlFilesInDirectory(paths.graphDir, [paths.graphIndex], `${ARTIFACT_TAG_PREFIX}GraphDocument`));
+  artifacts.push(...validateRequiredArtifact(paths.verificationIndex, `${ARTIFACT_TAG_PREFIX}VerificationIndex`));
+  artifacts.push(...validateXmlFilesInDirectory(paths.verificationDir, [paths.verificationIndex], `${ARTIFACT_TAG_PREFIX}VerificationDocument`));
   const knownChangeIds = collectChangeBundleIds(paths);
   artifacts.push(...validateChangeBundlesInDirectory(paths.changesActiveDir, "active", knownChangeIds, projectRoot));
   artifacts.push(...validateChangeBundlesInDirectory(paths.changesArchiveDir, "archive", knownChangeIds, projectRoot));
@@ -676,17 +677,17 @@ function validateRequiredArtifact(file: string, expectedRootTag: string): Artifa
     );
   }
 
-  if (artifact.root?.tag === "NgraceGraphIndex" && artifact.root.children.filter((child) => child.tag === "GraphDocuments").length !== 1) {
-    result.issues.push(issue("error", "graph.index-invalid-documents-section", file, "NgraceGraphIndex must contain exactly one direct GraphDocuments section."));
+  if (artifact.root?.tag === `${ARTIFACT_TAG_PREFIX}GraphIndex` && artifact.root.children.filter((child) => child.tag === "GraphDocuments").length !== 1) {
+    result.issues.push(issue("error", "graph.index-invalid-documents-section", file, `${ARTIFACT_TAG_PREFIX}GraphIndex must contain exactly one direct GraphDocuments section.`));
   }
-  if (artifact.root?.tag === "NgraceVerificationIndex" && artifact.root.children.filter((child) => child.tag === "VerificationDocuments").length !== 1) {
-    result.issues.push(issue("error", "verification.index-invalid-documents-section", file, "NgraceVerificationIndex must contain exactly one direct VerificationDocuments section."));
+  if (artifact.root?.tag === `${ARTIFACT_TAG_PREFIX}VerificationIndex` && artifact.root.children.filter((child) => child.tag === "VerificationDocuments").length !== 1) {
+    result.issues.push(issue("error", "verification.index-invalid-documents-section", file, `${ARTIFACT_TAG_PREFIX}VerificationIndex must contain exactly one direct VerificationDocuments section.`));
   }
 
   return [result];
 }
 
-function validateXmlFilesInDirectory(directory: string, excludedFiles: string[], expectedRootTag: "NgraceGraphDocument" | "NgraceVerificationDocument"): ArtifactValidationResult[] {
+function validateXmlFilesInDirectory(directory: string, excludedFiles: string[], expectedRootTag: `${typeof ARTIFACT_TAG_PREFIX}GraphDocument` | `${typeof ARTIFACT_TAG_PREFIX}VerificationDocument`): ArtifactValidationResult[] {
   if (!existsSync(directory)) {
     return [];
   }
@@ -703,14 +704,14 @@ function validateXmlFilesInDirectory(directory: string, excludedFiles: string[],
       }
 
       if (artifact.root) {
-        const wrapperPattern = expectedRootTag === "NgraceGraphDocument" ? ANCHOR_PATTERNS.graphDocument : ANCHOR_PATTERNS.verificationDocument;
+        const wrapperPattern = expectedRootTag === `${ARTIFACT_TAG_PREFIX}GraphDocument` ? ANCHOR_PATTERNS.graphDocument : ANCHOR_PATTERNS.verificationDocument;
         const wrappers = artifact.root.children.filter((child) => wrapperPattern.test(child.tag));
         if (wrappers.length !== 1) {
           result.issues.push(issue(
             "error",
-            expectedRootTag === "NgraceGraphDocument" ? "graph.invalid-document-wrapper" : "verification.invalid-document-wrapper",
+            expectedRootTag === `${ARTIFACT_TAG_PREFIX}GraphDocument` ? "graph.invalid-document-wrapper" : "verification.invalid-document-wrapper",
             file,
-            `${expectedRootTag} must contain exactly one direct ${expectedRootTag === "NgraceGraphDocument" ? "GD-*" : "VD-*"} wrapper.`,
+            `${expectedRootTag} must contain exactly one direct ${expectedRootTag === `${ARTIFACT_TAG_PREFIX}GraphDocument` ? "GD-*" : "VD-*"} wrapper.`,
           ));
         }
       }
@@ -740,7 +741,7 @@ function validateChangeBundlesInDirectory(
     }
 
     const bundleId = entry.name;
-    const bundleIssues: Grace4Issue[] = [];
+    const bundleIssues: NgraceIssue[] = [];
     if (!ANCHOR_PATTERNS.change.test(bundleId)) {
       bundleIssues.push(issue("error", "change.invalid-bundle-id", entryPath, `Change bundle directory '${bundleId}' must use a C-* identifier.`));
     }
@@ -822,7 +823,7 @@ function directChangeWrapper(root: GraceXmlNode | null): GraceXmlNode | undefine
   return root?.children.find((child) => ANCHOR_PATTERNS.change.test(child.tag));
 }
 
-function collectChangeBundleIds(paths: Grace4ProjectPaths): Set<string> {
+function collectChangeBundleIds(paths: NgraceProjectPaths): Set<string> {
   const ids = new Set<string>();
   for (const directory of [paths.changesActiveDir, paths.changesArchiveDir]) {
     if (!existsSync(directory)) continue;
@@ -846,7 +847,7 @@ function replacementChangeIds(wrapper: GraceXmlNode): string[] {
 function validateReplacementTargetExists(
   artifact: ParsedGraceXmlArtifact,
   knownChangeIds: ReadonlySet<string>,
-  issues: Grace4Issue[],
+  issues: NgraceIssue[],
 ): void {
   if (artifact.root?.attributes.status !== "superseded") return;
   const wrapper = directChangeWrapper(artifact.root);
@@ -864,7 +865,7 @@ function validateDirectSectionCardinality(
   sections: readonly string[],
   missingCode: string,
   duplicateCode: string,
-  issues: Grace4Issue[],
+  issues: NgraceIssue[],
 ): void {
   for (const section of sections) {
     const matches = parent.children.filter((child) => child.tag === section);
@@ -876,7 +877,7 @@ function validateDirectSectionCardinality(
   }
 }
 
-function validateImplementationTasks(file: string, wrapper: GraceXmlNode, issues: Grace4Issue[]): void {
+function validateImplementationTasks(file: string, wrapper: GraceXmlNode, issues: NgraceIssue[]): void {
   const implementationPlan = wrapper.children.find((child) => child.tag === "ImplementationPlan");
   if (!implementationPlan) {
     return;
@@ -895,7 +896,7 @@ function validateMeaningfulRequiredSections(
   file: string,
   parent: GraceXmlNode,
   sections: readonly string[],
-  issues: Grace4Issue[],
+  issues: NgraceIssue[],
 ): void {
   for (const section of sections) {
     for (const node of parent.children.filter((child) => child.tag === section)) {
@@ -904,7 +905,7 @@ function validateMeaningfulRequiredSections(
   }
 }
 
-function validateStructuredPlanSections(file: string, wrapper: GraceXmlNode, issues: Grace4Issue[]): void {
+function validateStructuredPlanSections(file: string, wrapper: GraceXmlNode, issues: NgraceIssue[]): void {
   for (const sectionName of ["BaselineAssertions", "TargetAssertions"] as const) {
     for (const section of wrapper.children.filter((child) => child.tag === sectionName)) {
       if (section.text.trim() || Object.keys(section.attributes).length > 0) {
@@ -957,7 +958,7 @@ function validateStructuredPlanSections(file: string, wrapper: GraceXmlNode, iss
   }
 }
 
-function validateOutOfPlanScopeSection(file: string, section: GraceXmlNode, issues: Grace4Issue[]): void {
+function validateOutOfPlanScopeSection(file: string, section: GraceXmlNode, issues: NgraceIssue[]): void {
   for (const child of section.children) {
     const isModuleOrFlow = ANCHOR_PATTERNS.module.test(child.tag) || ANCHOR_PATTERNS.dataFlow.test(child.tag);
     if (!isModuleOrFlow) {
@@ -985,7 +986,7 @@ function validateOutOfPlanScopeSection(file: string, section: GraceXmlNode, issu
   }
 }
 
-function validateSpecAcceptanceCriteria(file: string, wrapper: GraceXmlNode, issues: Grace4Issue[]): void {
+function validateSpecAcceptanceCriteria(file: string, wrapper: GraceXmlNode, issues: NgraceIssue[]): void {
   for (const section of wrapper.children.filter((child) => child.tag === "AcceptanceCriteria")) {
     const seen = new Set<string>();
     for (const node of walkNodes(section)) {
@@ -1032,7 +1033,7 @@ function validateSpecDesignReferences(
   file: string,
   wrapper: GraceXmlNode,
   projectRoot: string | undefined,
-  issues: Grace4Issue[],
+  issues: NgraceIssue[],
 ): void {
   for (const section of wrapper.children.filter((child) => child.tag === "DesignReferences")) {
     for (const child of section.children) {
@@ -1141,8 +1142,8 @@ export function validateSpecPlanCoverage(
   planArtifact: ParsedGraceXmlArtifact,
   specFile: string,
   planFile: string,
-): Grace4Issue[] {
-  const issues: Grace4Issue[] = [];
+): NgraceIssue[] {
+  const issues: NgraceIssue[] = [];
   if (!specArtifact.root || !planArtifact.root) {
     return issues;
   }
@@ -1334,7 +1335,7 @@ function isSupportedDurableScopeChild(tag: string): boolean {
     || ANCHOR_PATTERNS.verificationDocument.test(tag);
 }
 
-function validateMeaningfulSection(file: string, section: GraceXmlNode, issues: Grace4Issue[]): void {
+function validateMeaningfulSection(file: string, section: GraceXmlNode, issues: NgraceIssue[]): void {
   const meaningful = [...walkNodes(section)].some((node) => {
     if ((section.tag === "DurableScope" || section.tag === "ObservedWriteScope") && node !== section && node.tag === "None") {
       return true;
@@ -1349,7 +1350,7 @@ function validateMeaningfulSection(file: string, section: GraceXmlNode, issues: 
   }
 }
 
-function validatePlanTask(file: string, task: GraceXmlNode, issues: Grace4Issue[]): string[] {
+function validatePlanTask(file: string, task: GraceXmlNode, issues: NgraceIssue[]): string[] {
   validateDirectSectionCardinality(
     file,
     task,
@@ -1425,7 +1426,7 @@ function validatePlanTask(file: string, task: GraceXmlNode, issues: Grace4Issue[
   return dependencies;
 }
 
-function validateTaskDependencyGraph(file: string, tasks: GraceXmlNode[], issues: Grace4Issue[]): void {
+function validateTaskDependencyGraph(file: string, tasks: GraceXmlNode[], issues: NgraceIssue[]): void {
   const taskIds = new Set<string>();
   const dependencies = new Map<string, string[]>();
 
@@ -1499,7 +1500,7 @@ function listXmlFiles(directory: string): string[] {
   return files.sort();
 }
 
-function validateChangeStatusAttribute(file: string, root: GraceXmlNode, issues: Grace4Issue[]) {
+function validateChangeStatusAttribute(file: string, root: GraceXmlNode, issues: NgraceIssue[]) {
   const status = root.attributes.status;
   if (!status) {
     issues.push(issue("error", "change.missing-status", file, `${root.tag} must declare a lifecycle status.`));
@@ -1511,8 +1512,8 @@ function validateChangeStatusAttribute(file: string, root: GraceXmlNode, issues:
   }
 }
 
-function validateOptionalContextApplicability(file: string, root: GraceXmlNode): Grace4Issue[] {
-  const issues: Grace4Issue[] = [];
+function validateOptionalContextApplicability(file: string, root: GraceXmlNode): NgraceIssue[] {
+  const issues: NgraceIssue[] = [];
   const applicabilityNodes = root.children.filter((child) => child.tag === "Applicability");
   if (applicabilityNodes.length === 0) {
     return [issue("error", "context.applicability-missing", file, `${root.tag} must declare exactly one direct <Applicability> value.`)];
@@ -1537,7 +1538,7 @@ function validateOptionalContextApplicability(file: string, root: GraceXmlNode):
   }
 
   if (
-    root.tag === "NgraceUXGuidelines"
+    root.tag === `${ARTIFACT_TAG_PREFIX}UXGuidelines`
     && /^(?:this project is\s+)?(?:not a web app|not web|no web ui|no ui|no frontend)[.!]?$/i.test(reason)
   ) {
     issues.push(issue("error", "context.ux-not-applicable-reason-insufficient", file, "UX applies to CLI, API, documentation, operator, and agent interactions; lack of a web UI alone is not a sufficient reason."));
@@ -1546,7 +1547,7 @@ function validateOptionalContextApplicability(file: string, root: GraceXmlNode):
   return issues;
 }
 
-function validateContextContent(file: string, root: GraceXmlNode): Grace4Issue[] {
+function validateContextContent(file: string, root: GraceXmlNode): NgraceIssue[] {
   const meaningful = [...walkNodes(root)].some((node) => node !== root && node.text.trim().length > 0);
   return meaningful
     ? []
@@ -1559,14 +1560,14 @@ function validateContextContent(file: string, root: GraceXmlNode): Grace4Issue[]
  * When Stacks is present, each Stack-* requires a contained existing <Root>.
  * Non-anchor children of Stacks are rejected (zero-or-more list — shape check explicit; defect 14).
  */
-function validateTechnologyStacks(file: string, root: GraceXmlNode, projectRoot: string): Grace4Issue[] {
-  const issues: Grace4Issue[] = [];
+function validateTechnologyStacks(file: string, root: GraceXmlNode, projectRoot: string): NgraceIssue[] {
+  const issues: NgraceIssue[] = [];
   const stacksSections = root.children.filter((child) => child.tag === "Stacks");
   if (stacksSections.length === 0) {
     return issues;
   }
   if (stacksSections.length > 1) {
-    issues.push(issue("error", "context.technology.duplicate-stacks", file, "NgraceTechnology may contain at most one <Stacks> section."));
+    issues.push(issue("error", "context.technology.duplicate-stacks", file, `${ARTIFACT_TAG_PREFIX}Technology may contain at most one <Stacks> section.`));
   }
 
   const seenStacks = new Set<string>();
@@ -1658,8 +1659,8 @@ function findSemanticAnchorInAttribute(value: string): string | null {
   return null;
 }
 
-function issue(severity: Grace4Issue["severity"], code: string, file: string, message: string): Grace4Issue {
+function issue(severity: NgraceIssue["severity"], code: string, file: string, message: string): NgraceIssue {
   return { severity, code, file, message };
 }
 
-export { GRACE4_CONTEXT_ARTIFACTS, GRACE4_OPTIONAL_CONTEXT_ARTIFACTS };
+export { NGRACE_CONTEXT_ARTIFACTS, NGRACE_OPTIONAL_CONTEXT_ARTIFACTS };

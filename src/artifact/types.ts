@@ -1,5 +1,5 @@
 /** Supported GRACE artifact grammar version for this release. */
-export const GRACE4_VERSION = "4.0" as const;
+export const NGRACE_ARTIFACT_VERSION = "1.0" as const;
 
 /**
  * Prefix for XML root tags on project artifacts.
@@ -8,7 +8,7 @@ export const GRACE4_VERSION = "4.0" as const;
 export const ARTIFACT_TAG_PREFIX = "Ngrace" as const;
 
 /** Standard GRACE 4 root tags accepted by Artifact Grammar. */
-export const GRACE4_ROOT_TAGS = [
+export const NGRACE_ROOT_TAGS = [
   `${ARTIFACT_TAG_PREFIX}Requirements`,
   `${ARTIFACT_TAG_PREFIX}Technology`,
   `${ARTIFACT_TAG_PREFIX}Principles`,
@@ -25,12 +25,12 @@ export const GRACE4_ROOT_TAGS = [
 ] as const;
 
 /** Change-bundle companion root tags (valid only inside change bundles). */
-export const GRACE4_CHANGE_COMPANION_TAGS = [
+export const NGRACE_CHANGE_COMPANION_TAGS = [
   `${ARTIFACT_TAG_PREFIX}ChangeDesignContext`,
 ] as const;
 
-export type Grace4RootTag = (typeof GRACE4_ROOT_TAGS)[number];
-export type Grace4ChangeCompanionTag = (typeof GRACE4_CHANGE_COMPANION_TAGS)[number];
+export type NgraceRootTag = (typeof NGRACE_ROOT_TAGS)[number];
+export type NgraceChangeCompanionTag = (typeof NGRACE_CHANGE_COMPANION_TAGS)[number];
 
 /**
  * Prefix for marketplace skill identifiers printed as next-action guidance.
@@ -56,7 +56,7 @@ export const ACTIVE_CHANGE_STATUSES = new Set<ChangeStatus>(["draft", "approved"
 export const ARCHIVED_CHANGE_STATUSES = new Set<ChangeStatus>(["applied", "rejected", "cancelled", "superseded"]);
 
 /** Mandatory GRACE 4 context artifact filenames. */
-export const GRACE4_CONTEXT_ARTIFACTS = [
+export const NGRACE_CONTEXT_ARTIFACTS = [
   "requirements.xml",
   "technology.xml",
   "principles.xml",
@@ -66,12 +66,12 @@ export const GRACE4_CONTEXT_ARTIFACTS = [
 
 /**
  * Optional context artifacts validated only when present.
- * Must never be merged into GRACE4_CONTEXT_ARTIFACTS — that would break every existing project.
+ * Must never be merged into NGRACE_CONTEXT_ARTIFACTS — that would break every existing project.
  */
-export const GRACE4_OPTIONAL_CONTEXT_ARTIFACTS = ["design-system.xml", "invariants.xml"] as const;
+export const NGRACE_OPTIONAL_CONTEXT_ARTIFACTS = ["design-system.xml", "invariants.xml"] as const;
 
-export type Grace4ContextArtifact = (typeof GRACE4_CONTEXT_ARTIFACTS)[number];
-export type Grace4OptionalContextArtifact = (typeof GRACE4_OPTIONAL_CONTEXT_ARTIFACTS)[number];
+export type NgraceContextArtifact = (typeof NGRACE_CONTEXT_ARTIFACTS)[number];
+export type NgraceOptionalContextArtifact = (typeof NGRACE_OPTIONAL_CONTEXT_ARTIFACTS)[number];
 
 /** Documented module <Type> values (knowledge-graph.md). Unknown values warn, never error. */
 export const MODULE_TYPES = [
@@ -147,7 +147,7 @@ export type SemanticAnchorClassification =
   | { kind: "ordinary" };
 
 /** Current-state validation issue emitted by GRACE 4 validators. */
-export type Grace4Issue = {
+export type NgraceIssue = {
   severity: "error" | "warning";
   code: string;
   file: string;
@@ -156,7 +156,7 @@ export type Grace4Issue = {
 };
 
 /** Resolved canonical .ngrace path set for one project root. */
-export type Grace4ProjectPaths = {
+export type NgraceProjectPaths = {
   root: string;
   graceDir: string;
   contextDir: string;

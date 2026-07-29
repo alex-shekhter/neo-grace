@@ -11,6 +11,13 @@ This repository ships the GRACE skills and the `ngrace` CLI they depend on. It i
 
 Current packaged version: `5.0.1`
 
+**Two version numbers, independent of each other:**
+
+1. **Product version** (`5.0.1` today; npm / marketplace) — the `neo-grace` release.
+2. **Artifact grammar version** (`1.0`, carried on every root as `graceVersion="1.0"`) — the shape of `.ngrace` XML this CLI validates.
+
+The grammar version is **not comparable** to upstream GRACE's numbering; this line is ours and starts at `1.0` because the grammar has diverged. It is **not** the product version either: a grammar bump means something became *required* (and ships with a migration path), not that the release is larger.
+
 ## New to GRACE? Start Here
 
 | Start | Time | What it is |
@@ -225,7 +232,7 @@ non-empty `<Reason>`).
 | `.claude-plugin/marketplace.json` | Marketplace entry and published skill set |
 | `plugins/ngrace/.claude-plugin/plugin.json` | Packaged plugin manifest |
 | `src/grace.ts` | CLI entrypoint |
-| `src/grace4/*` | GRACE 4 project detection, XML parsing, grammar, projections, assertions, and scopes |
+| `src/artifact/*` | GRACE 4 project detection, XML parsing, grammar, projections, assertions, and scopes |
 | `src/lint/*` | `ngrace lint` implementation |
 | `src/query/*` | Projection-backed query layer for CLI navigation |
 | `scripts/validate-marketplace.ts` | Packaging, version, path, and mirror validation |

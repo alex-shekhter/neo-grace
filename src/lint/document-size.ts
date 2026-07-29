@@ -1,7 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 
-import type { GraphProjection, VerificationProjection } from "../grace4/projections";
+import type { GraphProjection, VerificationProjection } from "../artifact/projections";
 import {
   DEFAULT_DOCUMENT_ANCHOR_LIMIT,
   DEFAULT_DOCUMENT_BYTE_LIMIT,

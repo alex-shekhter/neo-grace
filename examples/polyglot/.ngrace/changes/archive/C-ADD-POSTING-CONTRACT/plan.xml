@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="4.0" status="applied">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-ADD-POSTING-CONTRACT>
     <IntentSummary>Add OpenAPI schema, IC-POSTING-V1, ordered DF-POSTING, and segmented graph documents.</IntentSummary>
     <BaselineAssertions>

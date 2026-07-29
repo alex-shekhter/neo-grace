@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import { ARTIFACT_DIR } from "./paths";
-import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "./project";
+import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "./project";
 import { ANCHOR_PATTERNS } from "./types";
 
 function createProject() {
@@ -22,7 +22,7 @@ function writeProjectFile(root: string, relativePath: string, contents = "") {
 describe("GRACE 4 project detection", () => {
   it("resolves canonical .ngrace paths from a project root", () => {
     const root = createProject();
-    const paths = resolveGrace4Paths(root);
+    const paths = resolveNgracePaths(root);
 
     expect(paths.root).toBe(path.resolve(root));
     expect(paths.graceDir).toBe(path.join(root, ".ngrace"));

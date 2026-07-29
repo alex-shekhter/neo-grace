@@ -1,5 +1,5 @@
-import { ARTIFACT_DIR } from "../grace4/paths";
-import { skillRef } from "../grace4/types";
+import { ARTIFACT_DIR } from "../artifact/paths";
+import { ARTIFACT_TAG_PREFIX, skillRef } from "../artifact/types";
 import { CONFIG_FILE_NAME } from "./config";
 import type { LintIssue } from "./types";
 
@@ -350,7 +350,7 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
   },
   "context.technology.duplicate-stacks": {
     title: "Duplicate Stacks Section",
-    explanation: "NgraceTechnology may contain at most one <Stacks> element.",
+    explanation: `${ARTIFACT_TAG_PREFIX}Technology may contain at most one <Stacks> element.`,
     remediation: ["Merge stack declarations under a single <Stacks>."],
   },
 };
@@ -366,7 +366,7 @@ const PREFIX_GUIDES: Array<{ prefix: string; title: string; explanation: string;
     prefix: "artifact.",
     title: "GRACE 4 Artifact Grammar Issue",
     explanation: `A ${ARTIFACT_DIR} XML artifact violates the GRACE 4 root, metadata, version, or semantic-anchor grammar.`,
-    remediation: ["Use approved GRACE 4 root tags with graceVersion=\"4.0\".", "Keep semantic anchors as XML tags, never attributes."],
+    remediation: ["Use approved GRACE 4 root tags with graceVersion=\"1.0\".", "Keep semantic anchors as XML tags, never attributes."],
   },
   {
     prefix: "change.",

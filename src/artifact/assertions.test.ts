@@ -11,7 +11,7 @@ import {
   type GraceAssertion,
 } from "./assertions";
 import { ARTIFACT_DIR } from "./paths";
-import { resolveGrace4Paths } from "./project";
+import { resolveNgracePaths } from "./project";
 import { buildGraphProjection, buildVerificationProjection } from "./projections";
 
 function createProject() {
@@ -31,22 +31,22 @@ function writeProjectionFixture(root: string) {
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /><M-USER-PROFILE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /><M-USER-PROFILE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/main.xml`,
-    `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-AUTH-SESSION><M-USER-PROFILE /></M-AUTH-SESSION><M-USER-PROFILE /></GD-MAIN></NgraceGraphDocument>`,
+    `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-AUTH-SESSION><M-USER-PROFILE /></M-AUTH-SESSION><M-USER-PROFILE /></GD-MAIN></NgraceGraphDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/index.xml`,
-    `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-AUTH-SESSION /><V-M-USER-PROFILE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+    `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-AUTH-SESSION /><V-M-USER-PROFILE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/main.xml`,
-    `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-AUTH-SESSION><Command>bun test auth</Command></V-M-AUTH-SESSION><V-M-USER-PROFILE><Command>bun test profile</Command></V-M-USER-PROFILE></VD-MAIN></NgraceVerificationDocument>`,
+    `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-AUTH-SESSION><Command>bun test auth</Command></V-M-AUTH-SESSION><V-M-USER-PROFILE><Command>bun test profile</Command></V-M-USER-PROFILE></VD-MAIN></NgraceVerificationDocument>`,
   );
 }
 
@@ -55,7 +55,7 @@ function assertion(kind: GraceAssertion["kind"], values: string[]): GraceAsserti
 }
 
 function context(root: string): AssertionContext {
-  const paths = resolveGrace4Paths(root);
+  const paths = resolveNgracePaths(root);
   const graph = buildGraphProjection(paths);
   return { root, graph, verification: buildVerificationProjection(paths, graph) };
 }
@@ -66,7 +66,7 @@ describe("GRACE 4 assertions", () => {
     const planFile = path.join(root, "plan.xml");
     writeFileSync(
       planFile,
-      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-EXAMPLE><BaselineAssertions><MustExist><Value>M-AUTH-SESSION</Value></MustExist><MustNotExist><Value>tmp/missing</Value></MustNotExist><MustOwn><Owner>GD-MAIN</Owner><Anchor>M-AUTH-SESSION</Anchor></MustOwn><MustLink><From>M-AUTH-SESSION</From><To>M-USER-PROFILE</To></MustLink><MustVerify><Module>M-AUTH-SESSION</Module></MustVerify><MustPassCommand><Command>bun --version</Command></MustPassCommand><MustContain><File>src/example.ts</File><Text>fresh</Text></MustContain><MustNotContain><File>src/example.ts</File><Text>stale</Text></MustNotContain><UnknownAssertion /></BaselineAssertions></C-EXAMPLE></NgraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-EXAMPLE><BaselineAssertions><MustExist><Value>M-AUTH-SESSION</Value></MustExist><MustNotExist><Value>tmp/missing</Value></MustNotExist><MustOwn><Owner>GD-MAIN</Owner><Anchor>M-AUTH-SESSION</Anchor></MustOwn><MustLink><From>M-AUTH-SESSION</From><To>M-USER-PROFILE</To></MustLink><MustVerify><Module>M-AUTH-SESSION</Module></MustVerify><MustPassCommand><Command>bun --version</Command></MustPassCommand><MustContain><File>src/example.ts</File><Text>fresh</Text></MustContain><MustNotContain><File>src/example.ts</File><Text>stale</Text></MustNotContain><UnknownAssertion /></BaselineAssertions></C-EXAMPLE></NgraceChangePlan>`,
     );
 
     const result = extractAssertionsWithIssues(planFile, "BaselineAssertions");
@@ -112,7 +112,7 @@ describe("GRACE 4 assertions", () => {
     const planFile = path.join(root, "plan.xml");
     writeFileSync(
       planFile,
-      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-EXAMPLE><BaselineAssertions><MustOwn><Owner>GD-MAIN</Owner><Owner>GD-OTHER</Owner><Anchor /></MustOwn><MustLink><From>M-A</From><To>M-B</To><Extra>x</Extra></MustLink><MustVerify><Module><Nested /></Module></MustVerify><MustContain>text<File>src/example.ts</File></MustContain></BaselineAssertions></C-EXAMPLE></NgraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-EXAMPLE><BaselineAssertions><MustOwn><Owner>GD-MAIN</Owner><Owner>GD-OTHER</Owner><Anchor /></MustOwn><MustLink><From>M-A</From><To>M-B</To><Extra>x</Extra></MustLink><MustVerify><Module><Nested /></Module></MustVerify><MustContain>text<File>src/example.ts</File></MustContain></BaselineAssertions></C-EXAMPLE></NgraceChangePlan>`,
     );
 
     const result = extractAssertionsWithIssues(planFile, "BaselineAssertions");
@@ -123,7 +123,7 @@ describe("GRACE 4 assertions", () => {
   it("rejects text-only assertion sections with no machine-checkable assertions", () => {
     const root = createProject();
     const planFile = path.join(root, "plan.xml");
-    writeFileSync(planFile, `<NgraceChangePlan graceVersion="4.0" status="approved"><C-EXAMPLE><BaselineAssertions>assume it works</BaselineAssertions></C-EXAMPLE></NgraceChangePlan>`);
+    writeFileSync(planFile, `<NgraceChangePlan graceVersion="1.0" status="approved"><C-EXAMPLE><BaselineAssertions>assume it works</BaselineAssertions></C-EXAMPLE></NgraceChangePlan>`);
 
     const result = extractAssertionsWithIssues(planFile, "BaselineAssertions");
     expect(result.assertions).toHaveLength(0);
@@ -136,7 +136,7 @@ describe("GRACE 4 assertions", () => {
     const planFile = path.join(root, "plan.xml");
     writeFileSync(
       planFile,
-      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-EXAMPLE><TargetAssertions><MustPassCommand><Command>ngrace lint --path . --assertions current</Command><Command>bun run check</Command></MustPassCommand></TargetAssertions></C-EXAMPLE></NgraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-EXAMPLE><TargetAssertions><MustPassCommand><Command>ngrace lint --path . --assertions current</Command><Command>bun run check</Command></MustPassCommand></TargetAssertions></C-EXAMPLE></NgraceChangePlan>`,
     );
 
     const result = extractAssertionsWithIssues(planFile, "TargetAssertions");
@@ -154,7 +154,7 @@ describe("GRACE 4 assertions", () => {
     mkdirSync(path.dirname(planFile), { recursive: true });
     writeFileSync(
       planFile,
-      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-PATHS><TargetAssertions><MustContain><File>/tmp/absolute</File><Text>x</Text></MustContain><MustContain><File>../traversal</File><Text>x</Text></MustContain><MustContain><File>escape.txt</File><Text>secret</Text></MustContain></TargetAssertions></C-PATHS></NgraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-PATHS><TargetAssertions><MustContain><File>/tmp/absolute</File><Text>x</Text></MustContain><MustContain><File>../traversal</File><Text>x</Text></MustContain><MustContain><File>escape.txt</File><Text>secret</Text></MustContain></TargetAssertions></C-PATHS></NgraceChangePlan>`,
     );
 
     const result = extractAssertionsWithIssues(planFile, "TargetAssertions");
@@ -188,7 +188,7 @@ describe("GRACE 4 assertions", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-STALE/plan.xml`,
-      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-STALE><BaselineAssertions><MustOwn><Owner>GD-MAIN</Owner><Anchor>M-AUTH-SESSION</Anchor></MustOwn></BaselineAssertions></C-STALE></NgraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-STALE><BaselineAssertions><MustOwn><Owner>GD-MAIN</Owner><Anchor>M-AUTH-SESSION</Anchor></MustOwn></BaselineAssertions></C-STALE></NgraceChangePlan>`,
     );
     const assertionToCheck = extractAssertionsWithIssues(planFile, "BaselineAssertions").assertions[0]!;
     expect(evaluateAssertion(assertionToCheck, context(root))).toHaveLength(0);
@@ -196,7 +196,7 @@ describe("GRACE 4 assertions", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-USER-PROFILE /></GD-MAIN></NgraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-USER-PROFILE /></GD-MAIN></NgraceGraphDocument>`,
     );
 
     expect(evaluateAssertion(assertionToCheck, context(root))[0]?.code).toBe("assertion.MustOwn");
@@ -208,7 +208,7 @@ describe("GRACE 4 assertions", () => {
     const planFile = path.join(root, "target-plan.xml");
     writeFileSync(
       planFile,
-      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-EXAMPLE><TargetAssertions><MustVerify><Module>M-AUTH-SESSION</Module></MustVerify></TargetAssertions></C-EXAMPLE></NgraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-EXAMPLE><TargetAssertions><MustVerify><Module>M-AUTH-SESSION</Module></MustVerify></TargetAssertions></C-EXAMPLE></NgraceChangePlan>`,
     );
     const result = extractAssertionsWithIssues(planFile, "TargetAssertions");
     expect(result.assertions).toHaveLength(1);
@@ -222,7 +222,7 @@ describe("GRACE 4 assertions", () => {
     writeProjectionFixture(root);
     const ctx = context(root);
     const passFile = path.join(root, "pass-plan.xml");
-    writeFileSync(passFile, `<NgraceChangePlan graceVersion="4.0" status="approved"><C-EX><TargetAssertions><MustVerify><Module>M-AUTH-SESSION</Module></MustVerify></TargetAssertions></C-EX></NgraceChangePlan>`);
+    writeFileSync(passFile, `<NgraceChangePlan graceVersion="1.0" status="approved"><C-EX><TargetAssertions><MustVerify><Module>M-AUTH-SESSION</Module></MustVerify></TargetAssertions></C-EX></NgraceChangePlan>`);
     const pass = extractAssertionsWithIssues(passFile, "TargetAssertions").assertions;
     if (pass.length > 0) {
       expect(evaluateAssertion(pass[0]!, ctx)).toHaveLength(0);
@@ -233,7 +233,7 @@ describe("GRACE 4 assertions", () => {
     writeProjectionFixture(failRoot);
     const failCtx = context(failRoot);
     const failFile = path.join(failRoot, "fail-plan.xml");
-    writeFileSync(failFile, `<NgraceChangePlan graceVersion="4.0" status="approved"><C-EX><TargetAssertions><MustVerify><Module>M-MISSING</Module></MustVerify></TargetAssertions></C-EX></NgraceChangePlan>`);
+    writeFileSync(failFile, `<NgraceChangePlan graceVersion="1.0" status="approved"><C-EX><TargetAssertions><MustVerify><Module>M-MISSING</Module></MustVerify></TargetAssertions></C-EX></NgraceChangePlan>`);
     const failAssertions = extractAssertionsWithIssues(failFile, "TargetAssertions").assertions;
     if (failAssertions.length > 0) {
       expect(evaluateAssertion(failAssertions[0]!, failCtx)[0]?.code).toBe("assertion.MustVerify");
@@ -301,7 +301,7 @@ describe("GRACE 4 assertions", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/design-system.xml`,
-      `<NgraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-COLOR-ACCENT><Value>var(--accent)</Value></DT-COLOR-ACCENT></Tokens></NgraceDesignSystem>`,
+      `<NgraceDesignSystem graceVersion="1.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-COLOR-ACCENT><Value>var(--accent)</Value></DT-COLOR-ACCENT></Tokens></NgraceDesignSystem>`,
     );
     const ctx = context(root);
     expect(evaluateAssertion(assertion("MustUseToken", ["src/ui.ts", "DT-COLOR-ACCENT"]), ctx)).toHaveLength(0);
@@ -324,22 +324,22 @@ describe("GRACE 4 assertions", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-WEB /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-WEB /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-WEB><Summary>UI</Summary><Path>src/example.ts</Path><Type>UI_COMPONENT</Type><States><ST-DEFAULT /><ST-ERROR /></States></M-WEB></GD-MAIN></NgraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-WEB><Summary>UI</Summary><Path>src/example.ts</Path><Type>UI_COMPONENT</Type><States><ST-DEFAULT /><ST-ERROR /></States></M-WEB></GD-MAIN></NgraceGraphDocument>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/index.xml`,
-      `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-WEB /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+      `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-WEB /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-WEB><Command>bun test</Command><Scenario>default render works</Scenario></V-M-WEB></VD-MAIN></NgraceVerificationDocument>`,
+      `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-WEB><Command>bun test</Command><Scenario>default render works</Scenario></V-M-WEB></VD-MAIN></NgraceVerificationDocument>`,
     );
     const ctx = context(root);
     const issues = evaluateAssertion(assertion("MustCoverStates", ["M-WEB"]), ctx);
@@ -349,7 +349,7 @@ describe("GRACE 4 assertions", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-WEB><Command>bun test</Command><Scenario>default render works</Scenario><AccessibilityCheck><Tool>axe</Tool><Command>bun run a11y</Command><MaxSeverity>serious</MaxSeverity></AccessibilityCheck><Scenario>error state announced</Scenario></V-M-WEB></VD-MAIN></NgraceVerificationDocument>`,
+      `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-WEB><Command>bun test</Command><Scenario>default render works</Scenario><AccessibilityCheck><Tool>axe</Tool><Command>bun run a11y</Command><MaxSeverity>serious</MaxSeverity></AccessibilityCheck><Scenario>error state announced</Scenario></V-M-WEB></VD-MAIN></NgraceVerificationDocument>`,
     );
     expect(evaluateAssertion(assertion("MustCoverStates", ["M-WEB"]), context(root))).toHaveLength(0);
   });

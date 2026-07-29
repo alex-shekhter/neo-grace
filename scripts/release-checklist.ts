@@ -191,7 +191,7 @@ export function main(repoRoot = process.cwd()): number {
     },
     {
       label: "Published CLI excludes test sources and fixtures",
-      ok: Boolean(packageJson.files?.includes("!src/**/*.test.ts") && packageJson.files?.includes("!src/grace4/test-fixtures.ts")),
+      ok: Boolean(packageJson.files?.includes("!src/**/*.test.ts") && packageJson.files?.includes("!src/artifact/test-fixtures.ts")),
       detail: "Expected package.json files exclusions for test sources and GRACE fixture builders.",
     },
   ];

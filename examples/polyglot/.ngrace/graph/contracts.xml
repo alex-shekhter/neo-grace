@@ -1,4 +1,4 @@
-<NgraceGraphDocument graceVersion="4.0">
+<NgraceGraphDocument graceVersion="1.0">
   <GD-CONTRACTS>
     <DF-POSTING>
       <Summary>UI posts through the API into the ledger core.</Summary>

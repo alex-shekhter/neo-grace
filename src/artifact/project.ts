@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { ARTIFACT_DIR } from "./paths";
-import { skillName, type Grace4ProjectPaths, type GraceProjectKind } from "./types";
+import { skillName, type NgraceProjectPaths, type GraceProjectKind } from "./types";
 
 const LEGACY_GRACE3_DOCUMENTS = [
   "docs/requirements.xml",
@@ -14,7 +14,7 @@ const LEGACY_GRACE3_DOCUMENTS = [
 ] as const;
 
 /** Resolves canonical GRACE 4 project paths from a repository root. */
-export function resolveGrace4Paths(root: string): Grace4ProjectPaths {
+export function resolveNgracePaths(root: string): NgraceProjectPaths {
   const resolvedRoot = path.resolve(root);
   const graceDir = path.join(resolvedRoot, ARTIFACT_DIR);
   const graphDir = path.join(graceDir, "graph");

@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import { ARTIFACT_DIR } from "./paths";
-import { resolveGrace4Paths } from "./project";
+import { resolveNgracePaths } from "./project";
 import { buildGraphProjection, buildVerificationProjection } from "./projections";
 
 function createProject() {
@@ -23,22 +23,22 @@ function writeMonolithicProject(root: string) {
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /><M-USER-PROFILE /><DF-AUTH-TOKEN-FLOW /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /><M-USER-PROFILE /><DF-AUTH-TOKEN-FLOW /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/main.xml`,
-    `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-AUTH-SESSION><Summary>Authenticate users.</Summary><M-USER-PROFILE /></M-AUTH-SESSION><M-USER-PROFILE><Summary>Profiles.</Summary></M-USER-PROFILE><DF-AUTH-TOKEN-FLOW><Summary>Token flow.</Summary></DF-AUTH-TOKEN-FLOW></GD-MAIN></NgraceGraphDocument>`,
+    `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-AUTH-SESSION><Summary>Authenticate users.</Summary><M-USER-PROFILE /></M-AUTH-SESSION><M-USER-PROFILE><Summary>Profiles.</Summary></M-USER-PROFILE><DF-AUTH-TOKEN-FLOW><Summary>Token flow.</Summary></DF-AUTH-TOKEN-FLOW></GD-MAIN></NgraceGraphDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/index.xml`,
-    `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-AUTH-SESSION /><V-M-USER-PROFILE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+    `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-AUTH-SESSION /><V-M-USER-PROFILE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/main.xml`,
-    `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-AUTH-SESSION><Command>bun test auth</Command><Scenario>valid login</Scenario><Marker>[Auth]</Marker></V-M-AUTH-SESSION><V-M-USER-PROFILE><Command>bun test profile</Command><Scenario>profile view</Scenario><Marker>[Profile]</Marker></V-M-USER-PROFILE></VD-MAIN></NgraceVerificationDocument>`,
+    `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-AUTH-SESSION><Command>bun test auth</Command><Scenario>valid login</Scenario><Marker>[Auth]</Marker></V-M-AUTH-SESSION><V-M-USER-PROFILE><Command>bun test profile</Command><Scenario>profile view</Scenario><Marker>[Profile]</Marker></V-M-USER-PROFILE></VD-MAIN></NgraceVerificationDocument>`,
   );
 }
 
@@ -46,32 +46,32 @@ function writeSegmentedProject(root: string) {
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-AUTH><Path>graph/auth.xml</Path><Owns><M-AUTH-SESSION /><DF-AUTH-TOKEN-FLOW /></Owns></GD-AUTH><GD-PROFILE><Path>graph/profile.xml</Path><Owns><M-USER-PROFILE /></Owns></GD-PROFILE></GraphDocuments></NgraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-AUTH><Path>graph/auth.xml</Path><Owns><M-AUTH-SESSION /><DF-AUTH-TOKEN-FLOW /></Owns></GD-AUTH><GD-PROFILE><Path>graph/profile.xml</Path><Owns><M-USER-PROFILE /></Owns></GD-PROFILE></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/auth.xml`,
-    `<NgraceGraphDocument graceVersion="4.0"><GD-AUTH><M-AUTH-SESSION><Summary>Authenticate users.</Summary><M-USER-PROFILE /></M-AUTH-SESSION><DF-AUTH-TOKEN-FLOW><Summary>Token flow.</Summary></DF-AUTH-TOKEN-FLOW></GD-AUTH></NgraceGraphDocument>`,
+    `<NgraceGraphDocument graceVersion="1.0"><GD-AUTH><M-AUTH-SESSION><Summary>Authenticate users.</Summary><M-USER-PROFILE /></M-AUTH-SESSION><DF-AUTH-TOKEN-FLOW><Summary>Token flow.</Summary></DF-AUTH-TOKEN-FLOW></GD-AUTH></NgraceGraphDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/profile.xml`,
-    `<NgraceGraphDocument graceVersion="4.0"><GD-PROFILE><M-USER-PROFILE><Summary>Profiles.</Summary></M-USER-PROFILE></GD-PROFILE></NgraceGraphDocument>`,
+    `<NgraceGraphDocument graceVersion="1.0"><GD-PROFILE><M-USER-PROFILE><Summary>Profiles.</Summary></M-USER-PROFILE></GD-PROFILE></NgraceGraphDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/index.xml`,
-    `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-AUTH><Path>verification/auth.xml</Path><Owns><V-M-AUTH-SESSION /></Owns></VD-AUTH><VD-PROFILE><Path>verification/profile.xml</Path><Owns><V-M-USER-PROFILE /></Owns></VD-PROFILE></VerificationDocuments></NgraceVerificationIndex>`,
+    `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-AUTH><Path>verification/auth.xml</Path><Owns><V-M-AUTH-SESSION /></Owns></VD-AUTH><VD-PROFILE><Path>verification/profile.xml</Path><Owns><V-M-USER-PROFILE /></Owns></VD-PROFILE></VerificationDocuments></NgraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/auth.xml`,
-    `<NgraceVerificationDocument graceVersion="4.0"><VD-AUTH><V-M-AUTH-SESSION><Command>bun test auth</Command><Scenario>valid login</Scenario><Marker>[Auth]</Marker></V-M-AUTH-SESSION></VD-AUTH></NgraceVerificationDocument>`,
+    `<NgraceVerificationDocument graceVersion="1.0"><VD-AUTH><V-M-AUTH-SESSION><Command>bun test auth</Command><Scenario>valid login</Scenario><Marker>[Auth]</Marker></V-M-AUTH-SESSION></VD-AUTH></NgraceVerificationDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/profile.xml`,
-    `<NgraceVerificationDocument graceVersion="4.0"><VD-PROFILE><V-M-USER-PROFILE><Command>bun test profile</Command><Scenario>profile view</Scenario><Marker>[Profile]</Marker></V-M-USER-PROFILE></VD-PROFILE></NgraceVerificationDocument>`,
+    `<NgraceVerificationDocument graceVersion="1.0"><VD-PROFILE><V-M-USER-PROFILE><Command>bun test profile</Command><Scenario>profile view</Scenario><Marker>[Profile]</Marker></V-M-USER-PROFILE></VD-PROFILE></NgraceVerificationDocument>`,
   );
 }
 
@@ -83,7 +83,7 @@ describe("GRACE 4 graph and verification projections", () => {
   it("routes graph anchors and verification entries through their indexes", () => {
     const root = createProject();
     writeMonolithicProject(root);
-    const paths = resolveGrace4Paths(root);
+    const paths = resolveNgracePaths(root);
 
     const graph = buildGraphProjection(paths);
     const verification = buildVerificationProjection(paths, graph);
@@ -102,21 +102,21 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-AUTH-SESSION /><M-AUTH-SESSION /><M-UNLISTED /></GD-MAIN></NgraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-AUTH-SESSION /><M-AUTH-SESSION /><M-UNLISTED /></GD-MAIN></NgraceGraphDocument>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/index.xml`,
-      `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+      `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
     );
-    writeProjectFile(root, `${ARTIFACT_DIR}/verification/main.xml`, `<NgraceVerificationDocument graceVersion="4.0"><VD-OTHER /></NgraceVerificationDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/verification/main.xml`, `<NgraceVerificationDocument graceVersion="1.0"><VD-OTHER /></NgraceVerificationDocument>`);
 
-    const paths = resolveGrace4Paths(root);
+    const paths = resolveNgracePaths(root);
     const graph = buildGraphProjection(paths);
     const verification = buildVerificationProjection(paths, graph);
 
@@ -131,11 +131,11 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<NgraceGraphDocument graceVersion="4.0"><GD-OTHER><M-AUTH-SESSION /></GD-OTHER></NgraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<NgraceGraphDocument graceVersion="1.0"><GD-OTHER><M-AUTH-SESSION /></GD-OTHER></NgraceGraphDocument>`);
 
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
 
     expect(issueCodes(graph.issues)).toContain("projection.graph.wrapper-mismatch");
   });
@@ -145,15 +145,15 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MISSING-PATH><Owns><M-IGNORED /></Owns></GD-MISSING-PATH><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MISSING-PATH><Owns><M-IGNORED /></Owns></GD-MISSING-PATH><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-AUTH-SESSION><M-MISSING /></M-AUTH-SESSION></GD-MAIN></NgraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-AUTH-SESSION><M-MISSING /></M-AUTH-SESSION></GD-MAIN></NgraceGraphDocument>`,
     );
 
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
 
     expect(issueCodes(graph.issues)).toContain("projection.index.missing-path");
     expect(issueCodes(graph.issues)).toContain("projection.graph.dangling-link");
@@ -161,12 +161,12 @@ describe("GRACE 4 graph and verification projections", () => {
 
   it("reports graph and verification XML documents that are not routed by their indexes", () => {
     const root = createProject();
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/index.xml`, `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments /></NgraceGraphIndex>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE /></GD-MAIN></NgraceGraphDocument>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/verification/index.xml`, `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments /></NgraceVerificationIndex>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/verification/main.xml`, `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE /></VD-MAIN></NgraceVerificationDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/index.xml`, `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments /></NgraceGraphIndex>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE /></GD-MAIN></NgraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/verification/index.xml`, `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments /></NgraceVerificationIndex>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/verification/main.xml`, `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-EXAMPLE /></VD-MAIN></NgraceVerificationDocument>`);
 
-    const paths = resolveGrace4Paths(root);
+    const paths = resolveNgracePaths(root);
     const graph = buildGraphProjection(paths);
     const verification = buildVerificationProjection(paths, graph);
 
@@ -179,10 +179,10 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-ESCAPE><Path>../outside.xml</Path><Owns /></GD-ESCAPE><GD-ABS><Path>/tmp/outside.xml</Path><Owns /></GD-ABS><GD-WINDOWS><Path>C:\\outside.xml</Path><Owns /></GD-WINDOWS></GraphDocuments></NgraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-ESCAPE><Path>../outside.xml</Path><Owns /></GD-ESCAPE><GD-ABS><Path>/tmp/outside.xml</Path><Owns /></GD-ABS><GD-WINDOWS><Path>C:\\outside.xml</Path><Owns /></GD-WINDOWS></GraphDocuments></NgraceGraphIndex>`,
     );
 
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     expect(issueCodes(graph.issues).filter((code) => code === "projection.index.invalid-path")).toHaveLength(3);
   });
 
@@ -195,10 +195,10 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-ESCAPE><Path>graph/escape.xml</Path><Owns><M-ESCAPE /></Owns></GD-ESCAPE></GraphDocuments></NgraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-ESCAPE><Path>graph/escape.xml</Path><Owns><M-ESCAPE /></Owns></GD-ESCAPE></GraphDocuments></NgraceGraphIndex>`,
     );
 
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     expect(issueCodes(graph.issues)).toContain("projection.index.invalid-path");
     expect(issueCodes(graph.issues)).not.toContain("xml.parse");
     expect(graph.documents.has("GD-ESCAPE")).toBe(false);
@@ -209,12 +209,12 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-ONE><Path>graph/one.xml</Path><Owns><M-EXAMPLE /><M-EXAMPLE /></Owns></GD-ONE><GD-TWO><Path>graph/two.xml</Path><Owns><M-EXAMPLE /></Owns></GD-TWO></GraphDocuments></NgraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-ONE><Path>graph/one.xml</Path><Owns><M-EXAMPLE /><M-EXAMPLE /></Owns></GD-ONE><GD-TWO><Path>graph/two.xml</Path><Owns><M-EXAMPLE /></Owns></GD-TWO></GraphDocuments></NgraceGraphIndex>`,
     );
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/one.xml`, `<NgraceGraphDocument graceVersion="4.0"><GD-ONE><M-EXAMPLE /></GD-ONE></NgraceGraphDocument>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/two.xml`, `<NgraceGraphDocument graceVersion="4.0"><GD-TWO /></NgraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/one.xml`, `<NgraceGraphDocument graceVersion="1.0"><GD-ONE><M-EXAMPLE /></GD-ONE></NgraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/two.xml`, `<NgraceGraphDocument graceVersion="1.0"><GD-TWO /></NgraceGraphDocument>`);
 
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     expect(issueCodes(graph.issues).filter((code) => code === "projection.graph.duplicate-route")).toHaveLength(2);
   });
 
@@ -224,10 +224,10 @@ describe("GRACE 4 graph and verification projections", () => {
     writeMonolithicProject(monolithicRoot);
     writeSegmentedProject(segmentedRoot);
 
-    const monolithicGraph = buildGraphProjection(resolveGrace4Paths(monolithicRoot));
-    const segmentedGraph = buildGraphProjection(resolveGrace4Paths(segmentedRoot));
-    const monolithicVerification = buildVerificationProjection(resolveGrace4Paths(monolithicRoot), monolithicGraph);
-    const segmentedVerification = buildVerificationProjection(resolveGrace4Paths(segmentedRoot), segmentedGraph);
+    const monolithicGraph = buildGraphProjection(resolveNgracePaths(monolithicRoot));
+    const segmentedGraph = buildGraphProjection(resolveNgracePaths(segmentedRoot));
+    const monolithicVerification = buildVerificationProjection(resolveNgracePaths(monolithicRoot), monolithicGraph);
+    const segmentedVerification = buildVerificationProjection(resolveNgracePaths(segmentedRoot), segmentedGraph);
 
     expect(monolithicGraph.issues).toHaveLength(0);
     expect(segmentedGraph.issues).toHaveLength(0);
@@ -241,15 +241,15 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /><M-USER-PROFILE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /><M-USER-PROFILE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-AUTH-SESSION /><M-USER-PROFILE /><ModuleAnchors><M-AUTH-SESSION><Summary>Authenticate users.</Summary></M-AUTH-SESSION></ModuleAnchors></GD-MAIN></NgraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-AUTH-SESSION /><M-USER-PROFILE /><ModuleAnchors><M-AUTH-SESSION><Summary>Authenticate users.</Summary></M-AUTH-SESSION></ModuleAnchors></GD-MAIN></NgraceGraphDocument>`,
     );
 
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     expect(issueCodes(graph.issues)).toContain("projection.graph.nested-anchors");
     // Empty direct anchor is still found, but nested content is NOT projected
     expect(graph.modules.has("M-AUTH-SESSION")).toBe(true);
@@ -261,25 +261,25 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/index.xml`,
-      `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+      `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE /><ModuleVerification><V-M-EXAMPLE><Command>bun test example</Command></V-M-EXAMPLE></ModuleVerification></VD-MAIN></NgraceVerificationDocument>`,
+      `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-EXAMPLE /><ModuleVerification><V-M-EXAMPLE><Command>bun test example</Command></V-M-EXAMPLE></ModuleVerification></VD-MAIN></NgraceVerificationDocument>`,
     );
 
-    const paths = resolveGrace4Paths(root);
+    const paths = resolveNgracePaths(root);
     const graph = buildGraphProjection(paths);
     const verification = buildVerificationProjection(paths, graph);
     expect(issueCodes(verification.issues)).toContain("projection.verification.nested-anchors");
@@ -293,25 +293,25 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /><M-USER-PROFILE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /><M-USER-PROFILE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-AUTH-SESSION /><M-USER-PROFILE /><Modules><M-AUTH-SESSION><Summary>Nested auth session.</Summary></M-AUTH-SESSION></Modules></GD-MAIN></NgraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-AUTH-SESSION /><M-USER-PROFILE /><Modules><M-AUTH-SESSION><Summary>Nested auth session.</Summary></M-AUTH-SESSION></Modules></GD-MAIN></NgraceGraphDocument>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/index.xml`,
-      `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-AUTH-SESSION /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+      `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-AUTH-SESSION /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-AUTH-SESSION /><VerificationAnchors><V-M-AUTH-SESSION><Command>bun test auth</Command></V-M-AUTH-SESSION></VerificationAnchors></VD-MAIN></NgraceVerificationDocument>`,
+      `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-AUTH-SESSION /><VerificationAnchors><V-M-AUTH-SESSION><Command>bun test auth</Command></V-M-AUTH-SESSION></VerificationAnchors></VD-MAIN></NgraceVerificationDocument>`,
     );
 
-    const paths = resolveGrace4Paths(root);
+    const paths = resolveNgracePaths(root);
     const graph = buildGraphProjection(paths);
     const verification = buildVerificationProjection(paths, graph);
     expect(issueCodes(graph.issues)).toContain("projection.graph.nested-anchors");
@@ -329,25 +329,25 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/index.xml`,
-      `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`
+      `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Cwd>apps/web</Cwd><TestFiles><File>apps/web/src/example.test.ts</File></TestFiles><File>src/metadata.ts</File><Command>bun test example</Command><CommandNotes>ignored command</CommandNotes><ScenarioNotes>ignored scenario</ScenarioNotes><MarkerNotes>ignored marker</MarkerNotes><TraceAssertion>Pure output is deterministic.</TraceAssertion><TraceAssertionNotes>ignored trace</TraceAssertionNotes></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>`
+      `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-EXAMPLE><Cwd>apps/web</Cwd><TestFiles><File>apps/web/src/example.test.ts</File></TestFiles><File>src/metadata.ts</File><Command>bun test example</Command><CommandNotes>ignored command</CommandNotes><ScenarioNotes>ignored scenario</ScenarioNotes><MarkerNotes>ignored marker</MarkerNotes><TraceAssertion>Pure output is deterministic.</TraceAssertion><TraceAssertionNotes>ignored trace</TraceAssertionNotes></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>`
     );
 
-    const paths = resolveGrace4Paths(root);
+    const paths = resolveNgracePaths(root);
     const graph = buildGraphProjection(paths);
     const verification = buildVerificationProjection(paths, graph);
 
@@ -369,10 +369,10 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-AUTH-SESSION><Cwd>../../outside</Cwd></V-M-AUTH-SESSION><V-M-USER-PROFILE><Cwd>C:\\outside</Cwd></V-M-USER-PROFILE></VD-MAIN></NgraceVerificationDocument>`,
+      `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-AUTH-SESSION><Cwd>../../outside</Cwd></V-M-AUTH-SESSION><V-M-USER-PROFILE><Cwd>C:\\outside</Cwd></V-M-USER-PROFILE></VD-MAIN></NgraceVerificationDocument>`,
     );
 
-    const paths = resolveGrace4Paths(root);
+    const paths = resolveNgracePaths(root);
     const graph = buildGraphProjection(paths);
     const verification = buildVerificationProjection(paths, graph);
     expect(issueCodes(verification.issues).filter((code) => code === "projection.verification.invalid-cwd")).toHaveLength(2);
@@ -389,10 +389,10 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-AUTH-SESSION><Cwd>escaped-cwd</Cwd><TestFiles><File>../outside.test.ts</File></TestFiles></V-M-AUTH-SESSION><V-M-USER-PROFILE><TestFiles><File>escaped.test.ts</File></TestFiles></V-M-USER-PROFILE></VD-MAIN></NgraceVerificationDocument>`,
+      `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-AUTH-SESSION><Cwd>escaped-cwd</Cwd><TestFiles><File>../outside.test.ts</File></TestFiles></V-M-AUTH-SESSION><V-M-USER-PROFILE><TestFiles><File>escaped.test.ts</File></TestFiles></V-M-USER-PROFILE></VD-MAIN></NgraceVerificationDocument>`,
     );
 
-    const paths = resolveGrace4Paths(root);
+    const paths = resolveNgracePaths(root);
     const graph = buildGraphProjection(paths);
     const verification = buildVerificationProjection(paths, graph);
     expect(issueCodes(verification.issues)).toContain("projection.verification.invalid-cwd");

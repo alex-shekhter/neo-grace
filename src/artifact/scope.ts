@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { ARTIFACT_DIR, ProjectPathError, normalizeProjectRelativePath, resolveContainedProjectPath } from "./paths";
 import type { GraphProjection, VerificationProjection } from "./projections";
-import { ANCHOR_PATTERNS, GRACE4_CONTEXT_ARTIFACTS, type Grace4Issue, type Grace4ProjectPaths } from "./types";
+import { ANCHOR_PATTERNS, NGRACE_CONTEXT_ARTIFACTS, type NgraceIssue, type NgraceProjectPaths } from "./types";
 import { readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
 /** Durable semantic scope declared by a NgraceChangePlan. */
@@ -47,7 +47,7 @@ export type ActiveChangeScope = {
   planStatus?: string;
   durable: DurableScope;
   observedWrites: ObservedWriteScope;
-  issues: Grace4Issue[];
+  issues: NgraceIssue[];
 };
 
 const EMPTY_OWNERSHIP: DurableOwnershipIndex = {
@@ -55,7 +55,7 @@ const EMPTY_OWNERSHIP: DurableOwnershipIndex = {
   verificationDocuments: new Map(),
 };
 
-const CONTEXT_ARTIFACT_NAMES = new Set<string>(GRACE4_CONTEXT_ARTIFACTS);
+const CONTEXT_ARTIFACT_NAMES = new Set<string>(NGRACE_CONTEXT_ARTIFACTS);
 const CONTEXT_SCOPE_TAGS = new Set(["ContextArtifact", "Context", "Artifact"]);
 
 type DurableAnchorArray = "graphAnchors" | "verificationAnchors" | "graphDocuments" | "verificationDocuments";
@@ -196,7 +196,7 @@ export function createDurableOwnershipIndex(
 }
 
 /** Reads active change bundles and extracts declared scopes from approved or draft plans. */
-export function collectActiveChangeScopes(paths: Grace4ProjectPaths): ActiveChangeScope[] {
+export function collectActiveChangeScopes(paths: NgraceProjectPaths): ActiveChangeScope[] {
   if (!existsSync(paths.changesActiveDir)) {
     return [];
   }
@@ -211,8 +211,8 @@ export function collectActiveChangeScopes(paths: Grace4ProjectPaths): ActiveChan
 export function detectScopeOverlaps(
   changes: ActiveChangeScope[],
   ownership: DurableOwnershipIndex = EMPTY_OWNERSHIP,
-): Grace4Issue[] {
-  const issues: Grace4Issue[] = [];
+): NgraceIssue[] {
+  const issues: NgraceIssue[] = [];
   forEachApprovedPair(changes, (left, right) => {
     const overlaps = durableOverlaps(left.durable, right.durable, ownership);
     if (overlaps.length > 0) {
@@ -226,8 +226,8 @@ export function detectScopeOverlaps(
 export function detectUnsafeConcurrentExecution(
   changes: ActiveChangeScope[],
   ownership: DurableOwnershipIndex = EMPTY_OWNERSHIP,
-): Grace4Issue[] {
-  const issues: Grace4Issue[] = [];
+): NgraceIssue[] {
+  const issues: NgraceIssue[] = [];
   const caseSensitive = detectScopeCaseSensitivity(changes);
   forEachApprovedPair(changes, (left, right) => {
     const durable = durableOverlaps(left.durable, right.durable, ownership);
@@ -264,7 +264,7 @@ export function durableOverlaps(
   return [...overlaps].sort();
 }
 
-function readActiveChangeScope(paths: Grace4ProjectPaths, bundlePath: string, changeId: string): ActiveChangeScope | null {
+function readActiveChangeScope(paths: NgraceProjectPaths, bundlePath: string, changeId: string): ActiveChangeScope | null {
   const spec = readGraceXmlArtifact(path.join(bundlePath, "spec.xml"));
   const planFile = path.join(bundlePath, "plan.xml");
   const plan = readGraceXmlArtifact(planFile);
@@ -288,7 +288,7 @@ function readActiveChangeScope(paths: Grace4ProjectPaths, bundlePath: string, ch
   };
 }
 
-function extractDurableScope(root: GraceXmlNode, planFile: string): { scope: DurableScope; issues: Grace4Issue[] } {
+function extractDurableScope(root: GraceXmlNode, planFile: string): { scope: DurableScope; issues: NgraceIssue[] } {
   const scopeNode = [...walkNodes(root)].find((node) => node.tag === "DurableScope");
   const scope: DurableScope = {
     graphAnchors: [],
@@ -297,7 +297,7 @@ function extractDurableScope(root: GraceXmlNode, planFile: string): { scope: Dur
     graphDocuments: [],
     verificationDocuments: [],
   };
-  const issues: Grace4Issue[] = [];
+  const issues: NgraceIssue[] = [];
   if (!scopeNode) {
     return { scope, issues };
   }
@@ -406,10 +406,10 @@ function extractObservedWriteScope(
   root: GraceXmlNode,
   projectRoot: string,
   planFile: string,
-): { scope: ObservedWriteScope; issues: Grace4Issue[] } {
+): { scope: ObservedWriteScope; issues: NgraceIssue[] } {
   const scopeNode = [...walkNodes(root)].find((node) => node.tag === "ObservedWriteScope");
   const scope: ObservedWriteScope = { files: [], globs: [] };
-  const issues: Grace4Issue[] = [];
+  const issues: NgraceIssue[] = [];
   if (!scopeNode) {
     return { scope, issues };
   }
@@ -671,6 +671,6 @@ function dedupeDurableScope(scope: DurableScope): DurableScope {
   };
 }
 
-function issue(severity: Grace4Issue["severity"], code: string, file: string, message: string): Grace4Issue {
+function issue(severity: NgraceIssue["severity"], code: string, file: string, message: string): NgraceIssue {
   return { severity, code, file, message };
 }

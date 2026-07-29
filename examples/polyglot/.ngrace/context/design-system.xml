@@ -1,4 +1,4 @@
-<NgraceDesignSystem graceVersion="4.0">
+<NgraceDesignSystem graceVersion="1.0">
   <Applicability>applicable</Applicability>
   <TokenSource>apps/web/src/styles/tokens.css</TokenSource>
   <Tokens>

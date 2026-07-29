@@ -386,7 +386,7 @@ describe("release state and packed content", () => {
       head: "published-rc",
       originMain: "published-main",
       tagCommit: "published-rc",
-      packedFiles: ["package.json", "README.md", "LICENSE", "src/grace.ts", "src/grace4/paths.ts"],
+      packedFiles: ["package.json", "README.md", "LICENSE", "src/grace.ts", "src/artifact/paths.ts"],
       localPackShasum: "rc-shasum",
       npmPackageShasum: "rc-shasum",
       npmDistTags: { latest: "3.11.0", rc: "4.0.0-rc.2" },
@@ -435,7 +435,7 @@ describe("release state and packed content", () => {
       head: "head",
       originMain: "main",
       tagCommit: "tag",
-      packedFiles: ["scripts/release-bump.ts", "src/grace-lint.test.ts", "src/grace4/test-fixtures.ts"],
+      packedFiles: ["scripts/release-bump.ts", "src/grace-lint.test.ts", "src/artifact/test-fixtures.ts"],
       localPackShasum: "local",
       npmPackageShasum: "published",
       npmDistTags: { latest: "3.11.0" },
@@ -458,13 +458,13 @@ describe("release state and packed content", () => {
       { path: "README.md" },
       { path: "LICENSE" },
       { path: "src/grace.ts" },
-      { path: "src/grace4/paths.ts" },
+      { path: "src/artifact/paths.ts" },
     ] }]);
     expect(collectPackedContentErrors(valid)).toEqual([]);
 
     const invalid = JSON.stringify([{ files: [
       { path: "src/grace-lint.test.ts" },
-      { path: "src/grace4/test-fixtures.ts" },
+      { path: "src/artifact/test-fixtures.ts" },
       { path: "src/lint/temporary-analyzer.dart" },
       { path: "tmp-project/.ngrace/context.xml" },
       { path: "scripts/release-bump.ts" },

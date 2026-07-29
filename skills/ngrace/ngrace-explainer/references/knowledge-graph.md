@@ -5,7 +5,7 @@ The `.ngrace/graph/` directory is the single source of truth for the project's m
 ## Structure
 
 ```xml
-<NgraceGraphIndex graceVersion="4.0">
+<NgraceGraphIndex graceVersion="1.0">
   <GraphDocuments>
     <GD-MAIN>
       <Path>graph/main.xml</Path>
@@ -21,7 +21,7 @@ The `.ngrace/graph/` directory is the single source of truth for the project's m
 Each GD-* document contains the actual module and data-flow definitions:
 
 ```xml
-<NgraceGraphDocument graceVersion="4.0">
+<NgraceGraphDocument graceVersion="1.0">
   <GD-MAIN>
     <M-CONFIG>
       <Summary>Application configuration and environment management</Summary>
@@ -173,7 +173,7 @@ Ordered form (backward compatible — use when sequence matters):
 Optional context artifact (absence is not an error):
 
 ```xml
-<NgraceInvariants graceVersion="4.0">
+<NgraceInvariants graceVersion="1.0">
   <INV-IDEMPOTENT-WRITES>
     <Statement>Every ledger write is idempotent under posting id.</Statement>
     <AppliesTo><M-LEDGER-CORE /><M-GATEWAY-ROUTER /></AppliesTo>
@@ -204,7 +204,7 @@ optional context artifacts without writing anything.
 Optional form in `technology.xml` (flat `Language`/`Runtime` still valid):
 
 ```xml
-<NgraceTechnology graceVersion="4.0">
+<NgraceTechnology graceVersion="1.0">
   <Stacks>
     <Stack-WEB><Language>TypeScript</Language><Root>apps/web</Root></Stack-WEB>
     <Stack-API><Language>Go</Language><Root>services/api</Root></Stack-API>

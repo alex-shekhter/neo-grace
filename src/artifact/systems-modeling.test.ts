@@ -4,12 +4,12 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import { evaluateAssertion, type AssertionContext, type GraceAssertion } from "./assertions";
-import { validateGrace4Project } from "./grammar";
+import { validateNgraceProject } from "./grammar";
 import { ARTIFACT_DIR } from "./paths";
-import { resolveGrace4Paths } from "./project";
+import { resolveNgracePaths } from "./project";
 import { buildGraphProjection, buildVerificationProjection } from "./projections";
 import { collectActiveChangeScopes, createDurableOwnershipIndex } from "./scope";
-import { writeMinimalGrace4Project } from "./test-fixtures";
+import { writeMinimalNgraceProject } from "./test-fixtures";
 
 function createProject() {
   const root = path.join(os.tmpdir(), `grace4-systems-${crypto.randomUUID()}`);
@@ -32,7 +32,7 @@ function assertion(kind: GraceAssertion["kind"], values: string[]): GraceAsserti
 }
 
 function context(root: string): AssertionContext {
-  const paths = resolveGrace4Paths(root);
+  const paths = resolveNgracePaths(root);
   const graph = buildGraphProjection(paths);
   return { root, graph, verification: buildVerificationProjection(paths, graph) };
 }
@@ -45,24 +45,24 @@ function writeLegacyFlowProject(root: string) {
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/context/requirements.xml`,
-    `<NgraceRequirements graceVersion="4.0"><Summary>Required.</Summary></NgraceRequirements>`,
+    `<NgraceRequirements graceVersion="1.0"><Summary>Required.</Summary></NgraceRequirements>`,
   );
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/technology.xml`, `<NgraceTechnology graceVersion="4.0"><Runtime>Bun</Runtime></NgraceTechnology>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/principles.xml`, `<NgracePrinciples graceVersion="4.0"><Principle>Evidence.</Principle></NgracePrinciples>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<NgraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></NgraceDeployment>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<NgraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></NgraceUXGuidelines>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/technology.xml`, `<NgraceTechnology graceVersion="1.0"><Runtime>Bun</Runtime></NgraceTechnology>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/principles.xml`, `<NgracePrinciples graceVersion="1.0"><Principle>Evidence.</Principle></NgracePrinciples>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<NgraceDeployment graceVersion="1.0"><Applicability>applicable</Applicability></NgraceDeployment>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<NgraceUXGuidelines graceVersion="1.0"><Applicability>applicable</Applicability></NgraceUXGuidelines>`);
   mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
   mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "archive"), { recursive: true });
 
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-GATEWAY /><M-LEDGER /><DF-POSTING /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-GATEWAY /><M-LEDGER /><DF-POSTING /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/main.xml`,
-    `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+    `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN>`
       + `<M-GATEWAY><Summary>Gateway.</Summary><Path>src/a.ts</Path></M-GATEWAY>`
       + `<M-LEDGER><Summary>Ledger.</Summary><Path>src/b.ts</Path></M-LEDGER>`
       + `<DF-POSTING><Summary>Posting flow.</Summary><M-GATEWAY /><M-LEDGER /></DF-POSTING>`
@@ -71,12 +71,12 @@ function writeLegacyFlowProject(root: string) {
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/index.xml`,
-    `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-GATEWAY /><V-M-LEDGER /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+    `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-GATEWAY /><V-M-LEDGER /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/main.xml`,
-    `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
+    `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN>`
       + `<V-M-GATEWAY><Command>echo gateway</Command><Scenario>gateway works</Scenario></V-M-GATEWAY>`
       + `<V-M-LEDGER><Command>echo ledger</Command><Scenario>ledger works</Scenario></V-M-LEDGER>`
       + `</VD-MAIN></NgraceVerificationDocument>`,
@@ -109,12 +109,12 @@ function writeGraphWithContract(
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns>${owns}</Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns>${owns}</Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/main.xml`,
-    `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+    `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN>`
       + `<M-GATEWAY><Summary>Gateway.</Summary><Path>src/a.ts</Path></M-GATEWAY>`
       + `<M-LEDGER><Summary>Ledger.</Summary><Path>src/b.ts</Path></M-LEDGER>`
       + flow
@@ -134,13 +134,13 @@ describe("Phase 7 systems modeling — legacy DF compatibility (written first)",
   it("validates a flat DF-* participant set exactly as before", () => {
     const root = createProject();
     writeLegacyFlowProject(root);
-    const paths = resolveGrace4Paths(root);
+    const paths = resolveNgracePaths(root);
     const graph = buildGraphProjection(paths);
     expect(codes(graph.issues)).toEqual([]);
     expect(graph.dataFlows.has("DF-POSTING")).toBe(true);
     expect(graph.dataFlows.get("DF-POSTING")?.steps).toBeUndefined();
     expect(graph.dataFlows.get("DF-POSTING")?.links).toEqual(["M-GATEWAY", "M-LEDGER"]);
-    expect(validateGrace4Project(root).issues.filter((i) => i.severity === "error")).toHaveLength(0);
+    expect(validateNgraceProject(root).issues.filter((i) => i.severity === "error")).toHaveLength(0);
   });
 });
 
@@ -148,7 +148,7 @@ describe("Phase 7 systems modeling — IC-* interface contracts", () => {
   it("accepts a well-formed IC-* and exposes it for MustLink / dangling checks", () => {
     const root = createProject();
     writeGraphWithContract(root);
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     expect(codes(graph.issues).filter((c) => c.startsWith("projection.graph.invalid-interface"))).toEqual([]);
     const contract = graph.interfaceContracts.get("IC-POSTING-V1");
     expect(contract?.schema).toBe("proto/posting.proto");
@@ -163,7 +163,7 @@ describe("Phase 7 systems modeling — IC-* interface contracts", () => {
   it("rejects Schema that escapes the project root", () => {
     const root = createProject();
     writeGraphWithContract(root, { schema: "../../etc/passwd" });
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     expect(codes(graph.issues)).toContain("projection.graph.invalid-interface-contract");
     expect(graph.issues.some((i) => i.message.includes("contained project path"))).toBe(true);
   });
@@ -171,7 +171,7 @@ describe("Phase 7 systems modeling — IC-* interface contracts", () => {
   it("rejects Schema that is missing on disk", () => {
     const root = createProject();
     writeGraphWithContract(root, { schema: "proto/missing.proto" });
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     expect(codes(graph.issues)).toContain("projection.graph.invalid-interface-contract");
     expect(graph.issues.some((i) => i.message.includes("does not exist"))).toBe(true);
   });
@@ -179,7 +179,7 @@ describe("Phase 7 systems modeling — IC-* interface contracts", () => {
   it("rejects Provider naming a nonexistent module", () => {
     const root = createProject();
     writeGraphWithContract(root, { provider: "M-DOES-NOT-EXIST" });
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     // Provider M-* is also a dangling link from IC-*; both codes may fire.
     expect(codes(graph.issues)).toContain("projection.graph.invalid-interface-contract");
     expect(graph.issues.some((i) => i.message.includes("Provider") && i.message.includes("M-DOES-NOT-EXIST"))).toBe(true);
@@ -196,7 +196,7 @@ describe("Phase 7 systems modeling — IC-* interface contracts", () => {
       `${ARTIFACT_DIR}/graph/main.xml`,
       text.replace("<Consumer><M-GATEWAY /></Consumer>", "<Consumer><Module>M-GATEWAY</Module></Consumer>"),
     );
-    const consumerIssues = buildGraphProjection(resolveGrace4Paths(consumerRoot)).issues;
+    const consumerIssues = buildGraphProjection(resolveNgracePaths(consumerRoot)).issues;
     expect(codes(consumerIssues)).toContain("projection.graph.invalid-interface-contract");
     expect(consumerIssues.some((i) => i.message.includes("<Consumer> does not allow child <Module>"))).toBe(true);
 
@@ -208,14 +208,14 @@ describe("Phase 7 systems modeling — IC-* interface contracts", () => {
       `${ARTIFACT_DIR}/graph/main.xml`,
       text.replace("<Provider><M-LEDGER /></Provider>", "<Provider><Module>M-LEDGER</Module></Provider>"),
     );
-    const providerIssues = buildGraphProjection(resolveGrace4Paths(providerRoot)).issues;
+    const providerIssues = buildGraphProjection(resolveNgracePaths(providerRoot)).issues;
     expect(providerIssues.some((i) => i.message.includes("<Provider> does not allow child <Module>"))).toBe(true);
   });
 
   it("rejects non-semver Version and unknown BreakingChangePolicy", () => {
     const root = createProject();
     writeGraphWithContract(root, { version: "not-a-version", policy: "yolo" });
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     const messages = graph.issues.map((i) => i.message).join("\n");
     expect(codes(graph.issues)).toContain("projection.graph.invalid-interface-contract");
     expect(messages).toContain("semver");
@@ -233,7 +233,7 @@ describe("Phase 7 systems modeling — ordered DF-* steps", () => {
         + `<Step order="3"><M-LEDGER /></Step>`
         + `</DF-POSTING>`,
     });
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     expect(codes(graph.issues)).toContain("projection.graph.invalid-data-flow-step");
     expect(graph.issues.some((i) => i.message.includes("missing 2"))).toBe(true);
   });
@@ -247,7 +247,7 @@ describe("Phase 7 systems modeling — ordered DF-* steps", () => {
         + `<Step order="1"><M-LEDGER /></Step>`
         + `</DF-POSTING>`,
     });
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     expect(codes(graph.issues)).toContain("projection.graph.invalid-data-flow-step");
     expect(graph.issues.some((i) => i.message.includes("duplicate Step order 1"))).toBe(true);
   });
@@ -260,7 +260,7 @@ describe("Phase 7 systems modeling — ordered DF-* steps", () => {
         + `<Step order="1"><M-MISSING-MODULE /></Step>`
         + `</DF-POSTING>`,
     });
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     expect(codes(graph.issues)).toContain("projection.graph.invalid-data-flow-step");
     expect(graph.issues.some((i) => i.message.includes("M-MISSING-MODULE"))).toBe(true);
   });
@@ -274,7 +274,7 @@ describe("Phase 7 systems modeling — ordered DF-* steps", () => {
         + `<Step order="2"><M-LEDGER /><Contract><IC-POSTING-V1 /></Contract><Property>idempotent</Property><Property>transactional</Property></Step>`
         + `</DF-POSTING>`,
     });
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     expect(codes(graph.issues).filter((c) => c === "projection.graph.invalid-data-flow-step")).toEqual([]);
     const steps = graph.dataFlows.get("DF-POSTING")?.steps;
     expect(steps).toHaveLength(2);
@@ -295,7 +295,7 @@ describe("Phase 7 systems modeling — ordered DF-* steps", () => {
         + `<Step order="1"><M-GATEWAY /><Property>magic</Property></Step>`
         + `</DF-POSTING>`,
     });
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     expect(codes(graph.issues)).toContain("projection.graph.invalid-data-flow-step");
     expect(graph.issues.some((i) => i.message.includes("magic"))).toBe(true);
   });
@@ -304,36 +304,36 @@ describe("Phase 7 systems modeling — ordered DF-* steps", () => {
 describe("Phase 7 systems modeling — invariants.xml", () => {
   it("projects without invariants.xml remain unaffected", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     expect(existsSync(path.join(root, ".ngrace/context/invariants.xml"))).toBe(false);
-    const before = codes(validateGrace4Project(root).issues);
+    const before = codes(validateNgraceProject(root).issues);
     expect(before.filter((c) => c.startsWith("context.invariants."))).toEqual([]);
-    expect(validateGrace4Project(root).issues.filter((i) => i.severity === "error")).toHaveLength(0);
+    expect(validateNgraceProject(root).issues.filter((i) => i.severity === "error")).toHaveLength(0);
   });
 
   it("rejects empty Statement and invalid AppliesTo children", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/invariants.xml`,
-      `<NgraceInvariants graceVersion="4.0">`
+      `<NgraceInvariants graceVersion="1.0">`
         + `<INV-EMPTY><Statement></Statement></INV-EMPTY>`
         + `<INV-BAD-APPLIES><Statement>x</Statement><AppliesTo><NotAnAnchor /></AppliesTo></INV-BAD-APPLIES>`
         + `</NgraceInvariants>`,
     );
-    const resultCodes = codes(validateGrace4Project(root).issues);
+    const resultCodes = codes(validateNgraceProject(root).issues);
     expect(resultCodes).toContain("context.invariants.empty-statement");
     expect(resultCodes).toContain("context.invariants.invalid-applies-to");
   });
 
   it("accepts well-formed INV-* anchors", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/invariants.xml`,
-      `<NgraceInvariants graceVersion="4.0">`
+      `<NgraceInvariants graceVersion="1.0">`
         + `<INV-IDEMPOTENT-WRITES>`
         + `<Statement>Every ledger write is idempotent under posting id.</Statement>`
         + `<AppliesTo><M-EXAMPLE /></AppliesTo>`
@@ -341,7 +341,7 @@ describe("Phase 7 systems modeling — invariants.xml", () => {
         + `</INV-IDEMPOTENT-WRITES>`
         + `</NgraceInvariants>`,
     );
-    expect(codes(validateGrace4Project(root).issues).filter((c) => c.startsWith("context.invariants."))).toEqual([]);
+    expect(codes(validateNgraceProject(root).issues).filter((c) => c.startsWith("context.invariants."))).toEqual([]);
   });
 });
 
@@ -375,7 +375,7 @@ describe("Phase 7 systems modeling — assertions", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/invariants.xml`,
-      `<NgraceInvariants graceVersion="4.0">`
+      `<NgraceInvariants graceVersion="1.0">`
         + `<INV-IDEMPOTENT><Statement>Idempotent writes.</Statement><AppliesTo><M-LEDGER /></AppliesTo></INV-IDEMPOTENT>`
         + `</NgraceInvariants>`,
     );
@@ -470,7 +470,7 @@ describe("Phase 7 systems modeling — assertions", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/invariants.xml`,
-      `<NgraceInvariants graceVersion="4.0"><INV-X><Statement>x</Statement></INV-X></NgraceInvariants>`,
+      `<NgraceInvariants graceVersion="1.0"><INV-X><Statement>x</Statement></INV-X></NgraceInvariants>`,
     );
     const ctx = context(root);
     expect(evaluateAssertion(assertion("MustExist", ["IC-POSTING-V1"]), ctx)).toHaveLength(0);
@@ -482,7 +482,7 @@ describe("Phase 7 systems modeling — ownership and scope wiring", () => {
   it("includes IC-* in durable ownership index (pins scope.ts ownership change)", () => {
     const root = createProject();
     writeGraphWithContract(root);
-    const paths = resolveGrace4Paths(root);
+    const paths = resolveNgracePaths(root);
     const graph = buildGraphProjection(paths);
     const verification = buildVerificationProjection(paths, graph);
     const ownership = createDurableOwnershipIndex(graph, verification);
@@ -498,12 +498,12 @@ describe("Phase 7 systems modeling — ownership and scope wiring", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-CONTRACT/spec.xml`,
-      `<NgraceChangeSpec graceVersion="4.0" status="approved"><C-CONTRACT><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><AffectedAreas><IC-POSTING-V1 /><M-GATEWAY /></AffectedAreas><VerificationIntent><ExpectedCommand>echo ok</ExpectedCommand></VerificationIntent></C-CONTRACT></NgraceChangeSpec>`,
+      `<NgraceChangeSpec graceVersion="1.0" status="approved"><C-CONTRACT><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><AffectedAreas><IC-POSTING-V1 /><M-GATEWAY /></AffectedAreas><VerificationIntent><ExpectedCommand>echo ok</ExpectedCommand></VerificationIntent></C-CONTRACT></NgraceChangeSpec>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-CONTRACT/plan.xml`,
-      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-CONTRACT>`
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-CONTRACT>`
         + `<IntentSummary>Contract change.</IntentSummary>`
         + `<BaselineAssertions><MustExist><Value>IC-POSTING-V1</Value></MustExist></BaselineAssertions>`
         + `<TargetAssertions><MustConform><Contract>IC-POSTING-V1</Contract><Module>M-GATEWAY</Module><Command>exit 0</Command></MustConform></TargetAssertions>`
@@ -512,7 +512,7 @@ describe("Phase 7 systems modeling — ownership and scope wiring", () => {
         + `<ImplementationPlan><T-001><Title>t</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><Verification><Command>echo ok</Command></Verification></T-001></ImplementationPlan>`
         + `</C-CONTRACT></NgraceChangePlan>`,
     );
-    const scopes = collectActiveChangeScopes(resolveGrace4Paths(root));
+    const scopes = collectActiveChangeScopes(resolveNgracePaths(root));
     const contract = scopes.find((s) => s.changeId === "C-CONTRACT");
     expect(contract?.durable.graphAnchors).toContain("IC-POSTING-V1");
     expect(contract?.durable.graphAnchors).toContain("M-GATEWAY");
@@ -524,9 +524,9 @@ describe("Phase 7 systems modeling — ownership and scope wiring", () => {
     // and dangling-link checks. Exempting it from G-05 would leave the newest cross-service
     // family as the one place a plan may quietly ignore its authorizing spec.
     const specXml = (affected: string) =>
-      `<NgraceChangeSpec graceVersion="4.0" status="approved"><C-CONTRACT><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><AffectedAreas>${affected}</AffectedAreas><VerificationIntent><ExpectedCommand>echo ok</ExpectedCommand></VerificationIntent></C-CONTRACT></NgraceChangeSpec>`;
+      `<NgraceChangeSpec graceVersion="1.0" status="approved"><C-CONTRACT><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><AffectedAreas>${affected}</AffectedAreas><VerificationIntent><ExpectedCommand>echo ok</ExpectedCommand></VerificationIntent></C-CONTRACT></NgraceChangeSpec>`;
     const planXml = (durable: string) =>
-      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-CONTRACT>`
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-CONTRACT>`
       + `<IntentSummary>Contract change.</IntentSummary>`
       + `<BaselineAssertions><MustExist><Value>M-GATEWAY</Value></MustExist></BaselineAssertions>`
       + `<TargetAssertions><MustVerify><Module>M-GATEWAY</Module></MustVerify></TargetAssertions>`
@@ -540,7 +540,7 @@ describe("Phase 7 systems modeling — ownership and scope wiring", () => {
       writeGraphWithContract(root);
       writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-CONTRACT/spec.xml`, specXml(affected));
       writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-CONTRACT/plan.xml`, planXml(durable));
-      return codes(validateGrace4Project(root).issues);
+      return codes(validateNgraceProject(root).issues);
     };
 
     expect(bundleCodes("<M-GATEWAY /><IC-POSTING-V1 />", "<M-GATEWAY />")).toContain("change.scope-does-not-cover-spec");

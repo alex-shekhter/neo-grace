@@ -5,12 +5,12 @@ import path from "node:path";
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 
-import { ARTIFACT_DIR } from "./grace4/paths";
-import { detectGraceProjectKind, resolveGrace4Paths } from "./grace4/project";
-import { buildGraphProjection } from "./grace4/projections";
-import { ANCHOR_PATTERNS } from "./grace4/types";
-import { childNodes, readGraceXmlArtifact, type GraceXmlNode } from "./grace4/xml";
-import { serializeGraceXmlDocument, serializeGraceXmlNode } from "./grace4/xml-serialize";
+import { ARTIFACT_DIR } from "./artifact/paths";
+import { detectGraceProjectKind, resolveNgracePaths } from "./artifact/project";
+import { buildGraphProjection } from "./artifact/projections";
+import { ARTIFACT_TAG_PREFIX, ANCHOR_PATTERNS } from "./artifact/types";
+import { childNodes, readGraceXmlArtifact, type GraceXmlNode } from "./artifact/xml";
+import { serializeGraceXmlDocument, serializeGraceXmlNode } from "./artifact/xml-serialize";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
 
 export type GraphSplitMove = {
@@ -114,7 +114,7 @@ export function planGraphSplit(
     );
   }
 
-  const paths = resolveGrace4Paths(root);
+  const paths = resolveNgracePaths(root);
   const graph = buildGraphProjection(paths);
   if (graph.issues.some((issue) => issue.severity === "error")) {
     throw new GraceCommandError(
@@ -237,8 +237,8 @@ function applyGraphSplit(
   }
   const orderedAnchors = plan.moves.map((move) => movedNodes.get(move.anchorId)!);
   const newRoot: GraceXmlNode = {
-    tag: "NgraceGraphDocument",
-    attributes: { graceVersion: "4.0" },
+    tag: `${ARTIFACT_TAG_PREFIX}GraphDocument`,
+    attributes: { graceVersion: "1.0" },
     children: [
       {
         tag: plan.newDocumentId,

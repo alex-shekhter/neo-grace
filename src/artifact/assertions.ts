@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-import type { Grace4Issue } from "./types";
+import type { NgraceIssue } from "./types";
 import { ANCHOR_PATTERNS } from "./types";
 import { ARTIFACT_DIR, ProjectPathError, resolveContainedProjectPath } from "./paths";
 import type { GraphAnchorRecord, GraphProjection, VerificationProjection } from "./projections";
@@ -51,7 +51,7 @@ export type AssertionContext = {
 
 export type AssertionExtractionResult = {
   assertions: GraceAssertion[];
-  issues: Grace4Issue[];
+  issues: NgraceIssue[];
 };
 
 /** Exact child-field schema for one assertion kind. */
@@ -104,7 +104,7 @@ export const ASSERTION_KINDS = new Set<AssertionKind>([
 ]);
 
 /** Evaluates one assertion and returns current-state issues. */
-export function evaluateAssertion(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+export function evaluateAssertion(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {
   switch (assertion.kind) {
     case "MustExist":
       return assertion.values.flatMap((value) => evaluateExistence(assertion, value, context, true));
@@ -196,7 +196,7 @@ function validateAssertionPhase(
   planFile: string,
   section: "BaselineAssertions" | "TargetAssertions",
   assertion: Omit<GraceAssertion, "file">,
-): Grace4Issue[] {
+): NgraceIssue[] {
   if (section !== "TargetAssertions" || assertion.kind !== "MustPassCommand") {
     return [];
   }
@@ -211,7 +211,7 @@ function validateAssertionPhase(
     ));
 }
 
-function evaluateMustOwn(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+function evaluateMustOwn(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {
   const [owner, anchor] = assertion.values;
   if (!owner || !anchor) {
     return [assertionIssue(assertion, "MustOwn requires owner and anchor values.")];
@@ -230,7 +230,7 @@ function evaluateMustOwn(assertion: GraceAssertion, context: AssertionContext): 
   return [assertionIssue(assertion, `Unsupported owner '${owner}'.`)];
 }
 
-function evaluateMustLink(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+function evaluateMustLink(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {
   const [from, to] = assertion.values;
   if (!from || !to) {
     return [assertionIssue(assertion, "MustLink requires source and target values.")];
@@ -247,7 +247,7 @@ function evaluateMustLink(assertion: GraceAssertion, context: AssertionContext):
   return fromRecord.links.includes(to) ? [] : [assertionIssue(assertion, `Expected ${from} to link to ${to}.`)];
 }
 
-function evaluateMustVerify(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+function evaluateMustVerify(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {
   return assertion.values.flatMap((value) => {
     const verificationId = value.startsWith("V-") ? value : `V-${value}`;
     const record = context.verification.entries.get(verificationId);
@@ -258,7 +258,7 @@ function evaluateMustVerify(assertion: GraceAssertion, context: AssertionContext
   });
 }
 
-function evaluateMustPassCommand(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+function evaluateMustPassCommand(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {
   if (!context.runCommands) {
     return [issue("error", "assertion.command-not-evaluated", assertion.file, "MustPassCommand requires explicit command execution opt-in.")];
   }
@@ -275,7 +275,7 @@ function evaluateMustPassCommand(assertion: GraceAssertion, context: AssertionCo
   });
 }
 
-function evaluateTextContainment(assertion: GraceAssertion, context: AssertionContext, shouldContain: boolean): Grace4Issue[] {
+function evaluateTextContainment(assertion: GraceAssertion, context: AssertionContext, shouldContain: boolean): NgraceIssue[] {
   const [fileValue, expectedText] = assertion.values;
   if (!fileValue || expectedText == null) {
     return [assertionIssue(assertion, `${assertion.kind} requires file and text values.`)];
@@ -294,7 +294,7 @@ function evaluateTextContainment(assertion: GraceAssertion, context: AssertionCo
   return [assertionIssue(assertion, shouldContain ? `${fileValue} must contain requested text.` : `${fileValue} must not contain requested text.`)];
 }
 
-function evaluateMustMatchPattern(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+function evaluateMustMatchPattern(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {
   const [fileValue, patternSource] = assertion.values;
   if (!fileValue || patternSource == null) {
     return [assertionIssue(assertion, "MustMatchPattern requires File and Pattern values.")];
@@ -315,7 +315,7 @@ function evaluateMustMatchPattern(assertion: GraceAssertion, context: AssertionC
     : [assertionIssue(assertion, `${fileValue} does not match pattern ${JSON.stringify(patternSource)}.`)];
 }
 
-function evaluateMustNotUseLiteral(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+function evaluateMustNotUseLiteral(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {
   const [fileValue, patternSource] = assertion.values;
   if (!fileValue || patternSource == null) {
     return [assertionIssue(assertion, "MustNotUseLiteral requires File and Pattern values.")];
@@ -336,7 +336,7 @@ function evaluateMustNotUseLiteral(assertion: GraceAssertion, context: Assertion
     : [];
 }
 
-function evaluateMustUseToken(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+function evaluateMustUseToken(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {
   const [fileValue, tokenId] = assertion.values;
   if (!fileValue || !tokenId) {
     return [assertionIssue(assertion, "MustUseToken requires File and Token values.")];
@@ -361,7 +361,7 @@ function evaluateMustUseToken(assertion: GraceAssertion, context: AssertionConte
     : [assertionIssue(assertion, `${fileValue} does not reference token value ${JSON.stringify(tokenValue)} for ${tokenId}.`)];
 }
 
-function evaluateMustCoverStates(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+function evaluateMustCoverStates(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {
   const [moduleId] = assertion.values;
   if (!moduleId) {
     return [assertionIssue(assertion, "MustCoverStates requires a Module value.")];
@@ -404,7 +404,7 @@ function evaluateMustCoverStates(assertion: GraceAssertion, context: AssertionCo
  * Without --run-commands: validate that Contract (IC-*) and Module (M-*) exist and Command is non-empty.
  * With --run-commands: also execute Command (buf breaking, oasdiff, codegen-drift, …).
  */
-function evaluateMustConform(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+function evaluateMustConform(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {
   const [contractId, moduleId, command] = assertion.values;
   if (!contractId || !moduleId || !command) {
     return [assertionIssue(assertion, "MustConform requires Contract, Module, and Command values.")];
@@ -416,7 +416,7 @@ function evaluateMustConform(assertion: GraceAssertion, context: AssertionContex
     return [assertionIssue(assertion, `Module ${JSON.stringify(moduleId)} must be a canonical M-* id.`)];
   }
 
-  const issues: Grace4Issue[] = [];
+  const issues: NgraceIssue[] = [];
   if (!context.graph.interfaceContracts.has(contractId)) {
     issues.push(assertionIssue(assertion, `Interface contract ${contractId} does not exist in the graph projection.`));
   }
@@ -437,7 +437,7 @@ function evaluateMustConform(assertion: GraceAssertion, context: AssertionContex
   ]);
 }
 
-function evaluateMustUphold(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+function evaluateMustUphold(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {
   const [invariantId, moduleId] = assertion.values;
   if (!invariantId || !moduleId) {
     return [assertionIssue(assertion, "MustUphold requires Invariant and Module values.")];
@@ -489,7 +489,7 @@ function evaluateMustUphold(assertion: GraceAssertion, context: AssertionContext
  * 3. capture is not a number → assertion.budget-not-a-number
  * 4. comparison fails → assertion.MustPassBudget
  */
-function evaluateMustPassBudget(assertion: GraceAssertion, context: AssertionContext): Grace4Issue[] {
+function evaluateMustPassBudget(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {
   const [command, metric, operator, thresholdRaw, unit, extractSource] = assertion.values;
   if (!command || !metric || !operator || thresholdRaw == null || !unit) {
     return [assertionIssue(assertion, "MustPassBudget requires Command, Metric, Operator, Threshold, and Unit.")];
@@ -869,7 +869,7 @@ function readAssertionFile(
   assertion: GraceAssertion,
   context: AssertionContext,
   fileValue: string,
-): string | Grace4Issue[] {
+): string | NgraceIssue[] {
   let file: string;
   try {
     file = resolveAssertionPath(context.root, fileValue);
@@ -939,8 +939,8 @@ function extractAssertionNode(
   planFile: string,
   node: GraceXmlNode,
   kind: AssertionKind,
-): { assertion?: Omit<GraceAssertion, "file">; issues: Grace4Issue[] } {
-  const issues: Grace4Issue[] = [];
+): { assertion?: Omit<GraceAssertion, "file">; issues: NgraceIssue[] } {
+  const issues: NgraceIssue[] = [];
   const schema = ASSERTION_SCHEMAS[kind];
   const allowedFields = new Set([...schema.fields, ...(schema.optionalFields ?? [])]);
 
@@ -1046,7 +1046,7 @@ function evaluateExistence(
   value: string,
   context: AssertionContext,
   shouldExist: boolean,
-): Grace4Issue[] {
+): NgraceIssue[] {
   let exists: boolean;
   try {
     exists = existsInContext(value, context);
@@ -1075,15 +1075,15 @@ function resolveAssertionPath(root: string, value: string): string {
   return resolveContainedProjectPath(root, value, { mode: "output" }).absolutePath;
 }
 
-function invalidPathIssue(assertion: GraceAssertion, value: string, error: unknown): Grace4Issue {
+function invalidPathIssue(assertion: GraceAssertion, value: string, error: unknown): NgraceIssue {
   const detail = error instanceof ProjectPathError ? `${error.code}: ${error.message}` : String(error);
   return issue("error", "assertion.invalid-path", assertion.file, `Invalid assertion path ${JSON.stringify(value)}: ${detail}`);
 }
 
-function assertionIssue(assertion: GraceAssertion, message: string): Grace4Issue {
+function assertionIssue(assertion: GraceAssertion, message: string): NgraceIssue {
   return issue("error", `assertion.${assertion.kind}`, assertion.file, message);
 }
 
-function issue(severity: Grace4Issue["severity"], code: string, file: string, message: string): Grace4Issue {
+function issue(severity: NgraceIssue["severity"], code: string, file: string, message: string): NgraceIssue {
   return { severity, code, file, message };
 }

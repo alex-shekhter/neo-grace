@@ -1,19 +1,19 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { extractAssertionsWithIssues } from "../grace4/assertions";
-import { validateGrace4Project } from "../grace4/grammar";
-import { ARTIFACT_DIR } from "../grace4/paths";
-import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "../grace4/project";
-import { buildGraphProjection, buildVerificationProjection, type GraphAnchorRecord, type VerificationAnchorRecord } from "../grace4/projections";
-import { collectActiveChangeScopes } from "../grace4/scope";
-import { skillName } from "../grace4/types";
+import { extractAssertionsWithIssues } from "../artifact/assertions";
+import { validateNgraceProject } from "../artifact/grammar";
+import { ARTIFACT_DIR } from "../artifact/paths";
+import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "../artifact/project";
+import { buildGraphProjection, buildVerificationProjection, type GraphAnchorRecord, type VerificationAnchorRecord } from "../artifact/projections";
+import { collectActiveChangeScopes } from "../artifact/scope";
+import { skillName } from "../artifact/types";
 import { loadGraceLintConfig } from "../lint/config";
 import { collectCodeFiles, hasGraceMarkers, parseGovernedFile, type FileMarkupRecord } from "../project-utils";
 import { GraceCommandError } from "./errors";
 import type {
   GraceArtifactIndex,
-  Grace4ModuleRecord,
+  NgraceModuleRecord,
   ModuleFindOptions,
   ModuleGraphRecord,
   ModuleInterfaceItem,
@@ -66,7 +66,7 @@ function listPlanFiles(directory: string): string[] {
   });
 }
 
-function collectOperationalValidationErrors(paths: ReturnType<typeof resolveGrace4Paths>) {
+function collectOperationalValidationErrors(paths: ReturnType<typeof resolveNgracePaths>) {
   const assertionIssues = [paths.changesActiveDir, paths.changesArchiveDir]
     .flatMap(listPlanFiles)
     .flatMap((planFile) => (["BaselineAssertions", "TargetAssertions"] as const)
@@ -110,8 +110,8 @@ export function loadGraceArtifactIndex(projectRoot: string): GraceArtifactIndex 
     throw new GraceCommandError("invalid-project", `No ${ARTIFACT_DIR} directory found. Run the ${skillName("init")} skill before querying this project.`, { issues: ["project.missing-grace"] });
   }
 
-  const paths = resolveGrace4Paths(root);
-  const validation = validateGrace4Project(root);
+  const paths = resolveNgracePaths(root);
+  const validation = validateNgraceProject(root);
   const validationErrors = validation.issues.filter((issue) => issue.severity === "error");
   if (validationErrors.length > 0) {
     throw invalidProjectError(validationErrors.map((issue) => issue.code));
@@ -145,7 +145,7 @@ export function loadGraceArtifactIndex(projectRoot: string): GraceArtifactIndex 
         localFiles,
         plan: null,
         steps: [],
-      } satisfies Grace4ModuleRecord;
+      } satisfies NgraceModuleRecord;
     });
 
   return { root, graph, verification, modules, verifications, files: governedFiles, issues: [...validation.issues, ...graph.issues, ...verification.issues] };

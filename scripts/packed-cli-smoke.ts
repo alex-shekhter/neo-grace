@@ -3,7 +3,7 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove the npm tarball installs and executes the GRACE CLI against valid and adversarial temporary projects.
 //   SCOPE: Dry-run package creation, temporary Bun installation, CLI navigation, structured errors, and optional Python/Dart adapter behavior.
-//   DEPENDS: [node:fs, node:child_process, src/grace4/test-fixtures.ts]
+//   DEPENDS: [node:fs, node:child_process, src/artifact/test-fixtures.ts]
 //   LINKS: [M-RELEASE-AUTOMATION, VF-RELEASE-AUTOMATION]
 //   ROLE: SCRIPT
 //   MAP_MODE: EXPORTS
@@ -17,7 +17,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { writeMinimalGrace4Project } from "../src/grace4/test-fixtures.ts";
+import { writeMinimalNgraceProject } from "../src/artifact/test-fixtures.ts";
 
 type PackedSmokeCase = {
   name: string;
@@ -54,7 +54,7 @@ export function runtimeState(candidates: string[]): RuntimeState {
 }
 
 function writeBaseProject(root: string): void {
-  writeMinimalGrace4Project(root);
+  writeMinimalNgraceProject(root);
   write(root, "src/example.ts", `// START_MODULE_CONTRACT
 //   PURPOSE: Provide the packed smoke example module.
 //   SCOPE: Expose one deterministic example function.

@@ -1,4 +1,4 @@
-<NgraceVerificationDocument graceVersion="4.0">
+<NgraceVerificationDocument graceVersion="1.0">
   <VD-API>
     <V-M-API-ROUTER>
       <Cwd>services/api</Cwd>

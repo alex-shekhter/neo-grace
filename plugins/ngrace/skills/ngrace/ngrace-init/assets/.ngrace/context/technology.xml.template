@@ -1,4 +1,4 @@
-<NgraceTechnology graceVersion="4.0">
+<NgraceTechnology graceVersion="1.0">
   <Language>$LANGUAGE</Language>
   <Runtime>$RUNTIME</Runtime>
   <Framework>$FRAMEWORK</Framework>

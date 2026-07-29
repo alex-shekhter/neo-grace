@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { ANCHOR_PATTERNS } from "./grace4/types";
+import { ANCHOR_PATTERNS } from "./artifact/types";
 import { ADAPTER_BACKED_EXTENSIONS, isGovernedCodeExtension, LANGUAGE_ADAPTERS } from "./language-registry";
 import { emissionPatternsFor } from "./lint/emission-patterns";
 import { LanguageRuntimeMissingError, type LanguageAnalysis, type LintIssue, type MapMode, type ModuleRole } from "./lint/types";

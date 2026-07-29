@@ -84,7 +84,7 @@ You have freedom in HOW to implement, but not in WHAT. The contract and the know
 Modules in the NgraceChangeSpec carry their contract in XML:
 
 ```xml
-<NgraceChangeSpec graceVersion="4.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-ADD-AUTH>
     <Summary>Add authentication module</Summary>
     <Goals><Goal>Authenticate protected requests.</Goal></Goals>

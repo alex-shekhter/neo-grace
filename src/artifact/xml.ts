@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 
-import type { Grace4Issue } from "./types";
+import type { NgraceIssue } from "./types";
 
 const ATTRIBUTE_NODE = ":@";
 const ATTRIBUTE_PREFIX = "@_";
@@ -22,7 +22,7 @@ export type GraceXmlNode = {
 export type ParsedGraceXmlArtifact = {
   file: string;
   root: GraceXmlNode | null;
-  issues: Grace4Issue[];
+  issues: NgraceIssue[];
 };
 
 /** Parser configured for dynamic GRACE tag names and explicit attributes. */

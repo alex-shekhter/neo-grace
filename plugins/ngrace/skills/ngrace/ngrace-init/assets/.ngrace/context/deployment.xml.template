@@ -1,4 +1,4 @@
-<NgraceDeployment graceVersion="4.0">
+<NgraceDeployment graceVersion="1.0">
   <Applicability>applicable</Applicability>
   <Target>$DEPLOYMENT_TARGET</Target>
   <Notes>Replace with deployment environments, release gates, rollback expectations, or mark not-applicable with a Reason.</Notes>

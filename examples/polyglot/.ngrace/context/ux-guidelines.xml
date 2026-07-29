@@ -1,4 +1,4 @@
-<NgraceUXGuidelines graceVersion="4.0">
+<NgraceUXGuidelines graceVersion="1.0">
   <Applicability>applicable</Applicability>
   <Summary>UI modules declare ST-* states and cover them in verification scenarios.</Summary>
 </NgraceUXGuidelines>

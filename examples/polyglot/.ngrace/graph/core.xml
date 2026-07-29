@@ -1,4 +1,4 @@
-<NgraceGraphDocument graceVersion="4.0">
+<NgraceGraphDocument graceVersion="1.0">
   <GD-CORE>
     <M-LEDGER-CORE>
       <Summary>Rust ledger core posting and balance validation.</Summary>

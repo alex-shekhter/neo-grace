@@ -3,9 +3,9 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
-import { resolveGrace4Paths } from "./project";
+import { resolveNgracePaths } from "./project";
 import { buildGraphProjection, buildVerificationProjection, stateMatchesEvidence } from "./projections";
-import { writeMinimalGrace4Project } from "./test-fixtures";
+import { writeMinimalNgraceProject } from "./test-fixtures";
 import { ARTIFACT_DIR } from "./paths";
 
 function createProject() {
@@ -48,13 +48,13 @@ describe("stateMatchesEvidence", () => {
 describe("module Type and States projection", () => {
   it("warns on unknown module Type without erroring", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example</Summary><Path>src/example.ts</Path><Type>NONSENSE</Type></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Example</Summary><Path>src/example.ts</Path><Type>NONSENSE</Type></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
     );
-    const graph = buildGraphProjection(resolveGrace4Paths(root));
+    const graph = buildGraphProjection(resolveNgracePaths(root));
     const warning = graph.issues.find((i) => i.code === "graph.unknown-module-type");
     expect(warning?.severity).toBe("warning");
     expect(graph.modules.get("M-EXAMPLE")?.moduleType).toBe("NONSENSE");
@@ -62,18 +62,18 @@ describe("module Type and States projection", () => {
 
   it("collects ST-* states and AccessibilityCheck / VisualCheck evidence", () => {
     const root = createProject();
-    writeMinimalGrace4Project(root);
+    writeMinimalNgraceProject(root);
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>UI</Summary><Path>src/example.ts</Path><Type>UI_COMPONENT</Type><States><ST-DEFAULT /><ST-EMPTY /></States></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>UI</Summary><Path>src/example.ts</Path><Type>UI_COMPONENT</Type><States><ST-DEFAULT /><ST-EMPTY /></States></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test</Command><Scenario>default render</Scenario><AccessibilityCheck><Tool>axe</Tool><Command>bun run a11y</Command></AccessibilityCheck><VisualCheck><Tool>playwright</Tool><Command>bun run visual</Command><Baseline>baselines/ui.png</Baseline><Viewports><BP-MOBILE /></Viewports></VisualCheck></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>`,
+      `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test</Command><Scenario>default render</Scenario><AccessibilityCheck><Tool>axe</Tool><Command>bun run a11y</Command></AccessibilityCheck><VisualCheck><Tool>playwright</Tool><Command>bun run visual</Command><Baseline>baselines/ui.png</Baseline><Viewports><BP-MOBILE /></Viewports></VisualCheck></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>`,
     );
-    const paths = resolveGrace4Paths(root);
+    const paths = resolveNgracePaths(root);
     const graph = buildGraphProjection(paths);
     expect(graph.modules.get("M-EXAMPLE")?.states).toEqual(["ST-DEFAULT", "ST-EMPTY"]);
     expect(graph.modules.get("M-EXAMPLE")?.moduleType).toBe("UI_COMPONENT");

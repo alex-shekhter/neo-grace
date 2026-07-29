@@ -1,4 +1,4 @@
-<NgraceTechnology graceVersion="4.0">
+<NgraceTechnology graceVersion="1.0">
   <Summary>Multi-stack monorepo: web UI, Go API, Rust core.</Summary>
   <Stacks>
     <Stack-WEB>

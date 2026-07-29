@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="4.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="approved">
   <C-ADD-KEYBOARD-NAV>
     <IntentSummary>Implement keyboard navigation on M-WEB-LEDGER-TABLE and pin evidence in component tests.</IntentSummary>
     <BaselineAssertions>
