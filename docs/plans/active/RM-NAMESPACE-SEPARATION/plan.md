@@ -173,7 +173,7 @@ flowchart TB
 
 | # | Phase | Layer | Release | Status |
 |---|---|---|---|---|
-| 0 | Command name: `grace` → `ngrace` | Command | TBD | `NOT STARTED` |
+| 0 | Command name: `grace` → `ngrace` | Command | TBD | `COMPLETE` |
 | 1 | Centralize the scattered literals | — (enabling) | TBD | `NOT STARTED` |
 | 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | TBD | `NOT STARTED` |
 | 3 | Artifact surface: `.ngrace/` and root tags | Artifact | TBD | `NOT STARTED` |
@@ -198,7 +198,7 @@ question.** The board can be worked straight through.
 
 # PHASE 0 — Command name: `grace` → `ngrace`
 
-**Status:** `NOT STARTED` · **Layer:** Command · **Release:** TBD
+**Status:** `COMPLETE` · **Layer:** Command · **Release:** TBD
 
 ## 0.1 Objective
 
