@@ -174,7 +174,7 @@ flowchart TB
 | # | Phase | Layer | Release | Status |
 |---|---|---|---|---|
 | 0 | Command name: `grace` → `ngrace` | Command | TBD | `COMPLETE` |
-| 1 | Centralize the scattered literals | — (enabling) | TBD | `NOT STARTED` |
+| 1 | Centralize the scattered literals | — (enabling) | TBD | `IN PROGRESS` — reopened by A2, step 1.5.6 outstanding |
 | 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | TBD | `NOT STARTED` |
 | 3 | Artifact surface: `.ngrace/` and root tags | Artifact | TBD | `NOT STARTED` |
 | 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | TBD | `NOT STARTED` |
@@ -279,7 +279,9 @@ Revert `package.json` and one line in `src/grace.ts`.
 
 # PHASE 1 — Centralize the scattered literals
 
-**Status:** `NOT STARTED` · **Layer:** enabling · **Release:** TBD
+**Status:** `IN PROGRESS` · **Layer:** enabling · **Release:** TBD
+**Amended 2026-07-29 (A2)** — see §9. Steps 1.5.1–1.5.5 are reviewed and accepted; the phase was
+reopened for step 1.5.6 because the original verify greps were narrower than the objective.
 
 ## 1.1 Objective
 
@@ -304,6 +306,22 @@ line, and completeness is then a type error rather than a hope.
 | `src/lint/core.ts` | EDIT — one `.grace` literal |
 | `src/lint/catalog.ts` | EDIT — `.grace/` and `$grace-*` in remediation prose |
 | `src/test-support/fixtures.ts` | EDIT — one `.grace/` literal |
+
+**This list was incomplete (A2).** Six further files hold literals and were correctly picked up by
+the executor's own reading: `src/grace4/assertions.ts`, `src/grace4/grammar.ts`,
+`src/grace4/project.ts`, `src/grace4/scope.ts`, `src/grace4/test-fixtures.ts`, `src/query/health.ts`.
+
+Four more are added by step 1.5.6:
+
+| File | Action |
+|---|---|
+| `src/query/core.ts` | EDIT — `.grace` **and** a skill name in one user-facing error |
+| `src/grace-doctor.ts` | EDIT — `.grace` literal and a bare skill name |
+| `src/grace-graph.ts` | EDIT — `.grace` literal in a command error |
+| `src/grace.ts` | EDIT — `.grace` in the CLI description printed by `--help` |
+
+Treat *Files touched* as a floor, not a ceiling. When your reading finds a literal in a file this
+table omits, edit it and say so in the report — that is the principle-1 classification working.
 
 ## 1.4 Design
 
@@ -337,14 +355,51 @@ exhaustiveness checks silently stop working — check it explicitly rather than 
 ## 1.5 Steps
 
 **Step 1.5.1 — `ARTIFACT_DIR`, threaded through every `.grace` literal.**
-→ verify: `grep -rn '"\.grace"' src --include='*.ts' | grep -v paths.ts` is empty.
+
+→ ~~verify: `grep -rn '"\.grace"' src --include='*.ts' | grep -v paths.ts` is empty.~~
+**Superseded by A2 — this grep only matches the quoted-standalone form and returns empty while
+sentence-embedded literals survive.** Use instead:
+
+```bash
+grep -rnE '\.grace\b' src --include='*.ts' \
+  | grep -v '\.test\.ts' | grep -v ARTIFACT_DIR | grep -v '\.grace-lint'
+```
+
+→ verify: empty, **or** every remaining hit is a code comment and is listed in the report.
+Test-file literals are deliberately excluded — see step 1.5.5a.
+
+As run on 2026-07-29 this returns 15 hits: **11 doc comments** (`/** … .grace/graph … */`) and the
+**4 string literals** of step 1.5.6. Leave the comments alone — a comment is prose, it changes value
+with nothing, and rewriting eleven of them here buries four real edits in a diff nobody can read.
+Phase 5 owns them. Report the count and the split; do not report "empty".
 
 **Step 1.5.2 — `ARTIFACT_TAG_PREFIX`, with root tags derived.**
 → verify: `Grace4RootTag` is still a literal union, not `string`. Prove it — assign an invalid tag
 in a scratch file and confirm `typecheck` rejects it. Show the error.
 
 **Step 1.5.3 — `SKILL_PREFIX` and `skillRef`, threaded through all 11 guidance sites.**
-→ verify: `grep -rn '\$grace-' src --include='*.ts' | grep -v test` is empty.
+
+→ ~~verify: `grep -rn '\$grace-' src --include='*.ts' | grep -v test` is empty.~~
+**Superseded by A2 — the `$` prefix is a formatting convention, not the identifier.** Skill names
+also appear bare, in sentences. Use instead:
+
+```bash
+grep -rnE '\bgrace-(init|spec|plan|execute|refresh|migrate|verification|review|ask|explainer)\b' \
+  src scripts --include='*.ts' | grep -v '\.test\.ts'
+```
+
+→ verify: every hit is classified in the report as one of three kinds. This grep is **not** expected
+to come back empty; it is expected to come back *classified*. An unclassified hit is an incomplete
+step.
+
+| Kind | Example | This phase |
+|---|---|---|
+| **Marketplace skill name in a string** | `src/grace4/project.ts:57`, `src/query/core.ts:108`, `src/grace-doctor.ts:62` | Move behind `skillRef` — step 1.5.6 |
+| **Internal tool identifier** | `import … from "./grace-verification"`; `tool: "grace-doctor"`; `"src/grace-verification.ts"` in `scripts/release-check.ts:91` | **Leave.** Review §4.2 — the prefix means *GRACE's verification*, not *the ngrace binary's* |
+| **The skill registry itself** | the ten names in `scripts/validate-marketplace.ts:27–41` | **Leave — Phase 2 owns it.** Renaming the expected-skills list here, with the directories still named `grace-*`, breaks `validate:marketplace` and blocks every remaining phase |
+
+That third row is why the grep spans `scripts` and not just `src`: the registry must be *seen* now so
+that Phase 2 does not discover it, and must not be *touched* now.
 
 **Step 1.5.4 — Remediation prose in `src/lint/catalog.ts`.**
 These are user-facing strings containing both `.grace/` paths and `$grace-*` skill names.
@@ -355,12 +410,66 @@ to before. Diff it.
 → verify: `bun test` pass count identical to the Phase 0 baseline, and `bun run validate:examples`
 green. **Any** changed output means the centralization was not faithful.
 
+---
+
+*Steps 1.5.1–1.5.5 were executed and accepted on 2026-07-29. The three below were added by A2.*
+
+**Step 1.5.5a — Test-file literals: draw the line and record it.** *(added by A2)*
+
+Test files keep ~32 `.grace` literals. **This is correct and they must not all be centralized.**
+A test that builds its fixture from `ARTIFACT_DIR` and asserts against `ARTIFACT_DIR` passes for any
+value of `ARTIFACT_DIR`, including a wrong one — Phase 3 would then be self-verifying, which is
+§0.6 pattern 2 exactly. The literal in the assertion **is** the independent evidence.
+
+Split them, and do only the first half:
+
+| Kind | Example | Action |
+|---|---|---|
+| **Shared fixture builders** | `src/test-support/fixtures.ts`, `src/grace4/test-fixtures.ts` | Centralize — done in 1.5.1 |
+| **Inline fixture setup** | `mkdirSync(path.join(root, ".grace", "changes", "active"))` in `grace-lint.test.ts`, `grace-status.test.ts`, `grace-query.test.ts`, `grammar.test.ts` (~13 sites) | **Centralize.** Duplicated setup; failing on it in Phase 3 proves nothing a builder would not |
+| **Assertions** | `expect(paths.graceDir).toBe(path.join(root, ".grace"))`; `expect(...message).toContain("No .grace directory")` | **Leave literal.** This is the Phase 3 alarm and must not be silenced |
+
+→ verify: list in the report which files were centralized and which assertions were deliberately
+left, with the count. An assertion left literal by *decision* is evidence; one left by *oversight*
+is a miss, and only the report distinguishes them.
+
+**Step 1.5.6 — The sentence-embedded literals the original greps could not see.** *(added by A2)*
+
+Six sites in four files, each carrying `.grace`, a skill name, or both, inside running prose:
+
+```
+src/query/core.ts:108    "No .grace directory found. Run the grace-init skill before querying this project."
+src/grace-doctor.ts:62   "Detected GRACE 3 docs. Run grace-migrate before ngrace doctor."
+src/grace-doctor.ts:63   "No GRACE 4 .grace project found."
+src/grace-graph.ts:105   "ngrace graph split requires a GRACE 4 .grace project."
+src/grace.ts:17          "GRACE 4 CLI for .grace linting, …"          ← printed by ngrace --help
+src/grace4/project.ts:57 "Use the grace-migrate skill to review and agent-apply…"
+```
+
+`src/query/core.ts:108` is the one that matters most. It emits the same sentence as
+`grammar.ts:638` and `lint/core.ts:378`, both of which *were* centralized. Left as is, Phase 3
+makes `ngrace lint` say *"No .ngrace directory found"* and `ngrace query` say *"No .grace directory
+found"* — two answers to one condition, both authoritative, one wrong. That is review F2's failure
+mode arriving through a path F2 did not name.
+
+`src/grace4/project.ts:57` is the instructive one: `.grace` on that line was correctly replaced
+while `grace-migrate` beside it was not. The category was missed, not the location.
+
+Leave `"GRACE 4"` and `"GRACE 3"` prose alone here — that is Phase 5's job, and mixing the two makes
+both diffs unreadable.
+
+→ verify: both A2 greps above come back empty-or-classified, and the rendered-output check in
+step 1.5.4 is re-run and still byte-identical. Note that `src/grace-lint.test.ts:122`,
+`src/grace-query.test.ts:647`, and `src/grace4/project.test.ts:65` assert these exact strings.
+
 ## 1.6 Definition of done
 
 - Three constants exist; no residual literals outside their defining modules
 - `Grace4RootTag` remains a literal union, proven by a rejected assignment
 - Test pass count unchanged from baseline
 - Rendered remediation text byte-identical
+- Both A2 greps run and reported: the `.grace` one empty, the skill-name one classified
+- The test-literal split is recorded per step 1.5.5a
 - `bun run validate:ci` green
 
 ## 1.7 Review gate
@@ -368,6 +477,10 @@ green. **Any** changed output means the centralization was not faithful.
 1. Did **any** value change? None should have.
 2. Did the root-tag type degrade to `string`?
 3. Are there literals left outside the defining modules? Show the greps.
+4. *(A2)* For every skill-name hit: **marketplace name** or **internal tool identifier**? An
+   unclassified hit fails this gate.
+5. *(A2)* Which test assertions were left literal on purpose, and does the list read like a
+   decision rather than a remainder?
 
 ## 1.8 Rollback
 
@@ -479,7 +592,15 @@ Move the artifact namespace: `.grace/` → `.ngrace/`, and `Grace*` root tags �
 
 ## 3.2 Preconditions
 
-→ verify: Phase 1 `COMPLETE` — this phase is two value changes, or it is a sweep and must not proceed.
+→ verify: Phase 1 `COMPLETE` — this phase is two value changes **in `src/`**, or it is a sweep and
+must not proceed.
+
+**A2 clarifies the "two value changes" test.** It applies to production code only. Test assertions
+holding `.grace` literally are *deliberate* under step 1.5.5a and their Phase 3 failure is the
+alarm this phase is verified by — updating them is expected work, not evidence of a sweep. The
+question this gate asks is narrower than it used to read: *did any `src/` non-test file need editing
+to change the artifact directory?* If yes, Phase 1 was incomplete. Fixture and assertion updates in
+`*.test.ts` do not answer that question either way.
 
 **Review N1 was ratified on 2026-07-29:** `.grace/` → `.ngrace/`, `Grace*` → `Ngrace*`. This phase
 is no longer gated.
@@ -498,6 +619,9 @@ this phase changes the project-root directory only and no user-level state exist
 | `skills/ngrace/ngrace-init/assets/**` | EDIT — scaffolded skeleton |
 | `examples/polyglot/.grace/` → `.ngrace/` | `git mv` + tag edits |
 | `src/test-support/fixtures.ts` | EDIT — if any tag literal survived Phase 1 |
+| `src/lint/config.ts` | EDIT *(A2)* — `CONFIG_FILE_NAME` value; export it |
+| `src/lint/catalog.ts` | EDIT *(A2)* — 7 `.grace-lint.json` literals in remediation prose |
+| `*.test.ts` | EDIT — fixture setup and the assertions that fire; expected, see 3.2 |
 | `README.md`, `CLAUDE.md` | EDIT — `.grace` references |
 
 ## 3.4 Design
@@ -534,9 +658,31 @@ Phase 1 missed a literal — stop and report.
 → verify: `bun run validate:examples` green. State explicitly that this was edited by hand and not
 by the same mechanism that edited `src/`.
 
+**Step 3.5.4a — Rename the lint config file: `.grace-lint.json` → `.ngrace-lint.json`.** *(added by A2)*
+
+This was covered by no phase and would otherwise have survived the entire plan, leaving projects
+with `.ngrace/` sitting beside `.grace-lint.json`.
+
+It is arguably the **sharper** collision of the two. Two tools sharing a *directory* still read
+their own files inside it. Two tools sharing a project-root *config filename* read the same bytes
+through different schemas — and this one already rejects unknown keys with
+`config.unknown-key`, so upstream's config would not merely be misread, it would be reported as
+malformed by a tool the user never pointed at it.
+
+`CONFIG_FILE_NAME` (`src/lint/config.ts:6`) already exists but is **not exported**, which is why
+`src/lint/catalog.ts` repeats the literal seven times in prose while threading `ARTIFACT_DIR`
+through the same strings. Export it and thread it, then change the value.
+
+Also lands in `README.md` and `skills/ngrace/ngrace-explainer/references/knowledge-graph.md`.
+`docs/plans/archive/RM-POLYGLOT-ENFORCEMENT/**` also matches — that is history under §0.2 and
+invariant 3. **Do not touch it.**
+
+→ verify: `grep -rn '\.grace-lint' src scripts skills plugins README.md CLAUDE.md` is empty;
+`grep -rn '\.grace-lint' docs/plans/archive` still returns its original hits, unchanged.
+
 **Step 3.5.5 — Residual scan.**
 ```bash
-grep -rn '"\.grace"\|\.grace/\|"Grace[A-Z]' src skills plugins examples README.md CLAUDE.md \
+grep -rn '"\.grace"\|\.grace/\|\.grace-lint\|"Grace[A-Z]' src skills plugins examples README.md CLAUDE.md \
   | grep -v node_modules
 ```
 → verify: empty, or every remaining hit explained as methodology prose (§0.2).
@@ -544,6 +690,7 @@ grep -rn '"\.grace"\|\.grace/\|"Grace[A-Z]' src skills plugins examples README.m
 ## 3.6 Definition of done
 
 - `ARTIFACT_DIR` and `ARTIFACT_TAG_PREFIX` changed; no residual literals
+- `CONFIG_FILE_NAME` changed and exported; no `.grace-lint` outside `docs/plans/archive/`
 - Scaffolded project lints clean
 - `examples/polyglot` migrated by hand and green
 - No compatibility fallback for `.grace/` anywhere in the diff
@@ -555,6 +702,10 @@ grep -rn '"\.grace"\|\.grace/\|"Grace[A-Z]' src skills plugins examples README.m
    was destroyed.
 2. Is there a fallback path that still reads `.grace/`?
 3. Did step 3.5.1 fail loudly? A silent pass means Phase 1 was incomplete.
+4. *(A2)* Did **any** non-test file under `src/` need editing to change the artifact directory?
+   That, and not the test churn, is the measure of whether Phase 1 did its job.
+5. *(A2)* Did `docs/plans/archive/**` stay byte-identical? `git diff --stat docs/plans/archive` must
+   be empty.
 
 ## 3.8 Rollback
 
@@ -942,8 +1093,8 @@ open questions, and a sixth invented mid-phase will not be recorded anywhere.
 | Review item | Subject | Phase |
 |---|---|---|
 | F1 | Three layers | 0, 2, 3 |
-| F2 | CLI emits skill names | 1 (centralize), 2 (change) |
-| F3 | `.grace` not centralized | 1 |
+| F2 | CLI emits skill names | 1 (centralize), 2 (change) — **widened by A2**: names also appear bare in sentences, not only as `$grace-*` |
+| F3 | `.grace` not centralized | 1 — **widened by A2** to the sentence-embedded form and to `.grace-lint.json` (Phase 3) |
 | F4 | Grammar identity is a claim | 4 |
 | N1 | Does the artifact layer move? | 3 (gate) |
 | N2 | What replaces `GRACE4_VERSION`? | 4 (gate) |
@@ -953,6 +1104,7 @@ open questions, and a sixth invented mid-phase will not be recorded anywhere.
 | §6 | Sibling reconciliation | 6 |
 | backlog | Retire "GRACE 4" prose | 5, **widened by A1** to include 46 sites inside `src/`+`scripts/` |
 | A1 | `Grace4` code identifiers | 4 |
+| A2 | Sentence-embedded literals; test-literal policy; `.grace-lint.json` | 1, 3 |
 
 ---
 
@@ -984,6 +1136,58 @@ removed.
 **No phase already executed is affected.** Phase 0 is untouched by this amendment; Phases 1–3 are
 unchanged.
 
+### A2 — 2026-07-29 · Phase 1 reopened; Phase 3 given the test-literal rule and the config file
+
+**Raised by the Phase 1 review.** Steps 1.5.1–1.5.5 were executed correctly and their hard claims
+verified independently: the rendered lint catalog is byte-identical across all 65 codes and 768
+lines, `bun test` is unchanged at 589/586-pass/3-skip/0-fail with 1889 assertions on both sides, and
+`Grace4RootTag` survives as a full 13-member literal union, proven by a rejected assignment. The
+phase's objective was met.
+
+**What the phase's own verifications could not see.** Both were greps that came back empty:
+
+| Verify | Matched | Blind to |
+|---|---|---|
+| 1.5.1 | `"\.grace"` — the quoted-standalone form | `"No .grace directory found. Run the grace-init skill…"` |
+| 1.5.3 | `$grace-` | `"Run grace-migrate before ngrace doctor."` |
+
+Six production sites in four files survived, every one of them the *sentence-embedded* form of a
+literal the grep matched in its *standalone* form. The greps did not fail; they were narrower than
+the objective they were standing in for, and an empty result read as done.
+
+The clearest evidence is `src/grace4/project.ts:57`, where `.grace` was correctly replaced and
+`grace-migrate` on the same line was not. Location was not the problem. **Classification was** —
+which is principle 1, and which no grep performs. Step 1.5.3's replacement is therefore written to
+return *classified*, not *empty*: `grace-doctor` and `grace-status` are legitimate internal tool
+identifiers under §4.2 and an empty result there would be wrong.
+
+Three additions:
+
+1. **Step 1.5.6** — the six sites, with the reason `src/query/core.ts:108` is the urgent one: it
+   duplicates a sentence that *was* centralized, so Phase 3 would give `lint` and `query` two
+   different answers to one condition.
+2. **Step 1.5.5a** — a written rule for the ~32 test-file literals. The executor's line (shared
+   builders centralized, inline literals left) was right and is now ratified rather than implicit.
+   Assertions must stay literal: a test that builds *and* asserts from `ARTIFACT_DIR` passes for any
+   value including a wrong one, and Phase 3 would verify itself. Phase 3's precondition is narrowed
+   to match — it asks about `src/` non-test files, because test churn there is expected work, not a
+   symptom of a skipped Phase 1.
+3. **Step 3.5.4a** — `.grace-lint.json` → `.ngrace-lint.json`, which no phase covered. Sharper than
+   the directory collision: `config.unknown-key` means upstream's config is not just misread but
+   *reported as malformed* by a tool the user never aimed at it.
+
+**Method note, since this is the second amendment of its kind.** A1 and A2 are one family — a check
+that passes without being about the thing claimed. A1 was a file list narrower than its objective;
+A2 is a grep pattern narrower than its objective. Both produced green. The countermeasure now in the
+plan is not a better pattern but a different demand: **1.5.3 and the Phase-1 gate require hits to be
+classified rather than absent**, because "I found nothing" and "I found these and here is why each
+one stays" are different claims and only the second is checkable. *Files touched* is likewise
+declared a floor rather than a ceiling — the executor exceeded it in six files by its own reading,
+which was correct and should not have looked like a deviation.
+
+**Phase 1 returns to `IN PROGRESS`.** Steps 1.5.1–1.5.5 stand as accepted and must not be redone.
+Phases 0 and 2 are untouched.
+
 ---
 
 ## 10. Final instruction to the executor
@@ -997,3 +1201,11 @@ of a discovery.** Do not skip it, and do not start Phase 3 without it.
 
 When a `grep` comes back empty, put it in the report. An empty result you ran is evidence; an empty
 result you assumed is not.
+
+And — added after A2 — **an empty result is only evidence about the pattern, never about the goal.**
+Before you accept one, ask what the pattern cannot match. `"\.grace"` and `$grace-` both returned
+empty in Phase 1 while six literals sat in the codebase, because both matched the shape a literal
+has when it stands alone and neither matched the shape it has inside a sentence. If the answer to
+"what would this miss?" is anything at all, widen the pattern or say in the report that you checked
+by reading instead. A green check that is not about the claim is worse than no check, because it
+stops the search.
