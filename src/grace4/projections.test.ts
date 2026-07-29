@@ -22,22 +22,22 @@ function writeProjectFile(root: string, relativePath: string, contents: string) 
 function writeMonolithicProject(root: string) {
   writeProjectFile(
     root,
-    ".grace/graph/index.xml",
+    `${ARTIFACT_DIR}/graph/index.xml`,
     `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /><M-USER-PROFILE /><DF-AUTH-TOKEN-FLOW /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
   );
   writeProjectFile(
     root,
-    ".grace/graph/main.xml",
+    `${ARTIFACT_DIR}/graph/main.xml`,
     `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-AUTH-SESSION><Summary>Authenticate users.</Summary><M-USER-PROFILE /></M-AUTH-SESSION><M-USER-PROFILE><Summary>Profiles.</Summary></M-USER-PROFILE><DF-AUTH-TOKEN-FLOW><Summary>Token flow.</Summary></DF-AUTH-TOKEN-FLOW></GD-MAIN></GraceGraphDocument>`,
   );
   writeProjectFile(
     root,
-    ".grace/verification/index.xml",
+    `${ARTIFACT_DIR}/verification/index.xml`,
     `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-AUTH-SESSION /><V-M-USER-PROFILE /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
-    ".grace/verification/main.xml",
+    `${ARTIFACT_DIR}/verification/main.xml`,
     `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-AUTH-SESSION><Command>bun test auth</Command><Scenario>valid login</Scenario><Marker>[Auth]</Marker></V-M-AUTH-SESSION><V-M-USER-PROFILE><Command>bun test profile</Command><Scenario>profile view</Scenario><Marker>[Profile]</Marker></V-M-USER-PROFILE></VD-MAIN></GraceVerificationDocument>`,
   );
 }
@@ -45,32 +45,32 @@ function writeMonolithicProject(root: string) {
 function writeSegmentedProject(root: string) {
   writeProjectFile(
     root,
-    ".grace/graph/index.xml",
+    `${ARTIFACT_DIR}/graph/index.xml`,
     `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-AUTH><Path>graph/auth.xml</Path><Owns><M-AUTH-SESSION /><DF-AUTH-TOKEN-FLOW /></Owns></GD-AUTH><GD-PROFILE><Path>graph/profile.xml</Path><Owns><M-USER-PROFILE /></Owns></GD-PROFILE></GraphDocuments></GraceGraphIndex>`,
   );
   writeProjectFile(
     root,
-    ".grace/graph/auth.xml",
+    `${ARTIFACT_DIR}/graph/auth.xml`,
     `<GraceGraphDocument graceVersion="4.0"><GD-AUTH><M-AUTH-SESSION><Summary>Authenticate users.</Summary><M-USER-PROFILE /></M-AUTH-SESSION><DF-AUTH-TOKEN-FLOW><Summary>Token flow.</Summary></DF-AUTH-TOKEN-FLOW></GD-AUTH></GraceGraphDocument>`,
   );
   writeProjectFile(
     root,
-    ".grace/graph/profile.xml",
+    `${ARTIFACT_DIR}/graph/profile.xml`,
     `<GraceGraphDocument graceVersion="4.0"><GD-PROFILE><M-USER-PROFILE><Summary>Profiles.</Summary></M-USER-PROFILE></GD-PROFILE></GraceGraphDocument>`,
   );
   writeProjectFile(
     root,
-    ".grace/verification/index.xml",
+    `${ARTIFACT_DIR}/verification/index.xml`,
     `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-AUTH><Path>verification/auth.xml</Path><Owns><V-M-AUTH-SESSION /></Owns></VD-AUTH><VD-PROFILE><Path>verification/profile.xml</Path><Owns><V-M-USER-PROFILE /></Owns></VD-PROFILE></VerificationDocuments></GraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
-    ".grace/verification/auth.xml",
+    `${ARTIFACT_DIR}/verification/auth.xml`,
     `<GraceVerificationDocument graceVersion="4.0"><VD-AUTH><V-M-AUTH-SESSION><Command>bun test auth</Command><Scenario>valid login</Scenario><Marker>[Auth]</Marker></V-M-AUTH-SESSION></VD-AUTH></GraceVerificationDocument>`,
   );
   writeProjectFile(
     root,
-    ".grace/verification/profile.xml",
+    `${ARTIFACT_DIR}/verification/profile.xml`,
     `<GraceVerificationDocument graceVersion="4.0"><VD-PROFILE><V-M-USER-PROFILE><Command>bun test profile</Command><Scenario>profile view</Scenario><Marker>[Profile]</Marker></V-M-USER-PROFILE></VD-PROFILE></GraceVerificationDocument>`,
   );
 }
@@ -101,20 +101,20 @@ describe("GRACE 4 graph and verification projections", () => {
     const root = createProject();
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-AUTH-SESSION /><M-AUTH-SESSION /><M-UNLISTED /></GD-MAIN></GraceGraphDocument>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/index.xml",
+      `${ARTIFACT_DIR}/verification/index.xml`,
       `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
     );
-    writeProjectFile(root, ".grace/verification/main.xml", `<GraceVerificationDocument graceVersion="4.0"><VD-OTHER /></GraceVerificationDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/verification/main.xml`, `<GraceVerificationDocument graceVersion="4.0"><VD-OTHER /></GraceVerificationDocument>`);
 
     const paths = resolveGrace4Paths(root);
     const graph = buildGraphProjection(paths);
@@ -130,10 +130,10 @@ describe("GRACE 4 graph and verification projections", () => {
     const root = createProject();
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
-    writeProjectFile(root, ".grace/graph/main.xml", `<GraceGraphDocument graceVersion="4.0"><GD-OTHER><M-AUTH-SESSION /></GD-OTHER></GraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<GraceGraphDocument graceVersion="4.0"><GD-OTHER><M-AUTH-SESSION /></GD-OTHER></GraceGraphDocument>`);
 
     const graph = buildGraphProjection(resolveGrace4Paths(root));
 
@@ -144,12 +144,12 @@ describe("GRACE 4 graph and verification projections", () => {
     const root = createProject();
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MISSING-PATH><Owns><M-IGNORED /></Owns></GD-MISSING-PATH><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-AUTH-SESSION><M-MISSING /></M-AUTH-SESSION></GD-MAIN></GraceGraphDocument>`,
     );
 
@@ -161,10 +161,10 @@ describe("GRACE 4 graph and verification projections", () => {
 
   it("reports graph and verification XML documents that are not routed by their indexes", () => {
     const root = createProject();
-    writeProjectFile(root, ".grace/graph/index.xml", `<GraceGraphIndex graceVersion="4.0"><GraphDocuments /></GraceGraphIndex>`);
-    writeProjectFile(root, ".grace/graph/main.xml", `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE /></GD-MAIN></GraceGraphDocument>`);
-    writeProjectFile(root, ".grace/verification/index.xml", `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments /></GraceVerificationIndex>`);
-    writeProjectFile(root, ".grace/verification/main.xml", `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE /></VD-MAIN></GraceVerificationDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/index.xml`, `<GraceGraphIndex graceVersion="4.0"><GraphDocuments /></GraceGraphIndex>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE /></GD-MAIN></GraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/verification/index.xml`, `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments /></GraceVerificationIndex>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/verification/main.xml`, `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE /></VD-MAIN></GraceVerificationDocument>`);
 
     const paths = resolveGrace4Paths(root);
     const graph = buildGraphProjection(paths);
@@ -178,7 +178,7 @@ describe("GRACE 4 graph and verification projections", () => {
     const root = createProject();
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-ESCAPE><Path>../outside.xml</Path><Owns /></GD-ESCAPE><GD-ABS><Path>/tmp/outside.xml</Path><Owns /></GD-ABS><GD-WINDOWS><Path>C:\\outside.xml</Path><Owns /></GD-WINDOWS></GraphDocuments></GraceGraphIndex>`,
     );
 
@@ -194,7 +194,7 @@ describe("GRACE 4 graph and verification projections", () => {
     symlinkSync(path.join(outside, "outside.xml"), path.join(root, ARTIFACT_DIR, "graph", "escape.xml"));
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-ESCAPE><Path>graph/escape.xml</Path><Owns><M-ESCAPE /></Owns></GD-ESCAPE></GraphDocuments></GraceGraphIndex>`,
     );
 
@@ -208,11 +208,11 @@ describe("GRACE 4 graph and verification projections", () => {
     const root = createProject();
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-ONE><Path>graph/one.xml</Path><Owns><M-EXAMPLE /><M-EXAMPLE /></Owns></GD-ONE><GD-TWO><Path>graph/two.xml</Path><Owns><M-EXAMPLE /></Owns></GD-TWO></GraphDocuments></GraceGraphIndex>`,
     );
-    writeProjectFile(root, ".grace/graph/one.xml", `<GraceGraphDocument graceVersion="4.0"><GD-ONE><M-EXAMPLE /></GD-ONE></GraceGraphDocument>`);
-    writeProjectFile(root, ".grace/graph/two.xml", `<GraceGraphDocument graceVersion="4.0"><GD-TWO /></GraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/one.xml`, `<GraceGraphDocument graceVersion="4.0"><GD-ONE><M-EXAMPLE /></GD-ONE></GraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/two.xml`, `<GraceGraphDocument graceVersion="4.0"><GD-TWO /></GraceGraphDocument>`);
 
     const graph = buildGraphProjection(resolveGrace4Paths(root));
     expect(issueCodes(graph.issues).filter((code) => code === "projection.graph.duplicate-route")).toHaveLength(2);
@@ -240,12 +240,12 @@ describe("GRACE 4 graph and verification projections", () => {
     const root = createProject();
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /><M-USER-PROFILE /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-AUTH-SESSION /><M-USER-PROFILE /><ModuleAnchors><M-AUTH-SESSION><Summary>Authenticate users.</Summary></M-AUTH-SESSION></ModuleAnchors></GD-MAIN></GraceGraphDocument>`,
     );
 
@@ -260,22 +260,22 @@ describe("GRACE 4 graph and verification projections", () => {
     const root = createProject();
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary></M-EXAMPLE></GD-MAIN></GraceGraphDocument>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/index.xml",
+      `${ARTIFACT_DIR}/verification/index.xml`,
       `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE /><ModuleVerification><V-M-EXAMPLE><Command>bun test example</Command></V-M-EXAMPLE></ModuleVerification></VD-MAIN></GraceVerificationDocument>`,
     );
 
@@ -292,22 +292,22 @@ describe("GRACE 4 graph and verification projections", () => {
     const root = createProject();
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /><M-USER-PROFILE /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-AUTH-SESSION /><M-USER-PROFILE /><Modules><M-AUTH-SESSION><Summary>Nested auth session.</Summary></M-AUTH-SESSION></Modules></GD-MAIN></GraceGraphDocument>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/index.xml",
+      `${ARTIFACT_DIR}/verification/index.xml`,
       `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-AUTH-SESSION /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-AUTH-SESSION /><VerificationAnchors><V-M-AUTH-SESSION><Command>bun test auth</Command></V-M-AUTH-SESSION></VerificationAnchors></VD-MAIN></GraceVerificationDocument>`,
     );
 
@@ -328,22 +328,22 @@ describe("GRACE 4 graph and verification projections", () => {
     writeProjectFile(root, "apps/web/src/example.test.ts", "test\n");
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`
     );
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary></M-EXAMPLE></GD-MAIN></GraceGraphDocument>`
     );
     writeProjectFile(
       root,
-      ".grace/verification/index.xml",
+      `${ARTIFACT_DIR}/verification/index.xml`,
       `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`
     );
     writeProjectFile(
       root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Cwd>apps/web</Cwd><TestFiles><File>apps/web/src/example.test.ts</File></TestFiles><File>src/metadata.ts</File><Command>bun test example</Command><CommandNotes>ignored command</CommandNotes><ScenarioNotes>ignored scenario</ScenarioNotes><MarkerNotes>ignored marker</MarkerNotes><TraceAssertion>Pure output is deterministic.</TraceAssertion><TraceAssertionNotes>ignored trace</TraceAssertionNotes></V-M-EXAMPLE></VD-MAIN></GraceVerificationDocument>`
     );
 
@@ -368,7 +368,7 @@ describe("GRACE 4 graph and verification projections", () => {
     writeMonolithicProject(root);
     writeProjectFile(
       root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-AUTH-SESSION><Cwd>../../outside</Cwd></V-M-AUTH-SESSION><V-M-USER-PROFILE><Cwd>C:\\outside</Cwd></V-M-USER-PROFILE></VD-MAIN></GraceVerificationDocument>`,
     );
 
@@ -388,7 +388,7 @@ describe("GRACE 4 graph and verification projections", () => {
     symlinkSync(path.join(outside, "outside.test.ts"), path.join(root, "escaped.test.ts"));
     writeProjectFile(
       root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-AUTH-SESSION><Cwd>escaped-cwd</Cwd><TestFiles><File>../outside.test.ts</File></TestFiles></V-M-AUTH-SESSION><V-M-USER-PROFILE><TestFiles><File>escaped.test.ts</File></TestFiles></V-M-USER-PROFILE></VD-MAIN></GraceVerificationDocument>`,
     );
 

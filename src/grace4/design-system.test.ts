@@ -6,6 +6,7 @@ import { describe, expect, it } from "bun:test";
 import { resolveGrace4Paths } from "./project";
 import { buildGraphProjection, buildVerificationProjection, stateMatchesEvidence } from "./projections";
 import { writeMinimalGrace4Project } from "./test-fixtures";
+import { ARTIFACT_DIR } from "./paths";
 
 function createProject() {
   const root = path.join(os.tmpdir(), `grace4-design-${crypto.randomUUID()}`);
@@ -50,7 +51,7 @@ describe("module Type and States projection", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example</Summary><Path>src/example.ts</Path><Type>NONSENSE</Type></M-EXAMPLE></GD-MAIN></GraceGraphDocument>`,
     );
     const graph = buildGraphProjection(resolveGrace4Paths(root));
@@ -64,12 +65,12 @@ describe("module Type and States projection", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>UI</Summary><Path>src/example.ts</Path><Type>UI_COMPONENT</Type><States><ST-DEFAULT /><ST-EMPTY /></States></M-EXAMPLE></GD-MAIN></GraceGraphDocument>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test</Command><Scenario>default render</Scenario><AccessibilityCheck><Tool>axe</Tool><Command>bun run a11y</Command></AccessibilityCheck><VisualCheck><Tool>playwright</Tool><Command>bun run visual</Command><Baseline>baselines/ui.png</Baseline><Viewports><BP-MOBILE /></Viewports></VisualCheck></V-M-EXAMPLE></VD-MAIN></GraceVerificationDocument>`,
     );
     const paths = resolveGrace4Paths(root);

@@ -15,6 +15,7 @@ import { describe, expect, it } from "bun:test";
 import { validateChangeArtifact, validateGrace4Project } from "./grammar";
 import { writeMinimalGrace4Project } from "./test-fixtures";
 import { parseGraceXmlArtifact } from "./xml";
+import { ARTIFACT_DIR } from "./paths";
 
 function createProject() {
   const root = path.join(os.tmpdir(), `grace4-adoption-${crypto.randomUUID()}`);
@@ -60,7 +61,7 @@ describe("Phase 9 DesignReferences (G-18)", () => {
         + `<UserResearch>docs/research/auth.md</UserResearch>`
       + `</DesignReferences>`,
     );
-    writeProjectFile(root, ".grace/changes/active/C-EXAMPLE/spec.xml", xml);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-EXAMPLE/spec.xml`, xml);
     const result = validateGrace4Project(root);
     expect(codes(result).filter((c) => c.startsWith("change."))).toEqual([]);
   });
@@ -68,7 +69,7 @@ describe("Phase 9 DesignReferences (G-18)", () => {
   it("accepts absence of DesignReferences (purely optional)", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
-    writeProjectFile(root, ".grace/changes/active/C-EXAMPLE/spec.xml", validSpecWithDesignRefs(""));
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-EXAMPLE/spec.xml`, validSpecWithDesignRefs(""));
     expect(codes(validateGrace4Project(root)).filter((c) => c.includes("design-reference") || c.includes("figma") || c.includes("user-research"))).toEqual([]);
   });
 
@@ -123,14 +124,14 @@ describe("Phase 9 DesignReferences (G-18)", () => {
 
     writeProjectFile(
       root,
-      ".grace/changes/active/C-EXAMPLE/spec.xml",
+      `${ARTIFACT_DIR}/changes/active/C-EXAMPLE/spec.xml`,
       validSpecWithDesignRefs(`<DesignReferences><UserResearch></UserResearch></DesignReferences>`),
     );
     expect(codes(validateGrace4Project(root))).toContain("change.user-research-path-invalid");
 
     writeProjectFile(
       root,
-      ".grace/changes/active/C-EXAMPLE/spec.xml",
+      `${ARTIFACT_DIR}/changes/active/C-EXAMPLE/spec.xml`,
       validSpecWithDesignRefs(`<DesignReferences><UserResearch>../../etc/passwd</UserResearch></DesignReferences>`),
     );
     expect(codes(validateGrace4Project(root))).toContain("change.user-research-path-invalid");
@@ -138,7 +139,7 @@ describe("Phase 9 DesignReferences (G-18)", () => {
     // Contained path is accepted even if the file does not exist yet (containment only).
     writeProjectFile(
       root,
-      ".grace/changes/active/C-EXAMPLE/spec.xml",
+      `${ARTIFACT_DIR}/changes/active/C-EXAMPLE/spec.xml`,
       validSpecWithDesignRefs(`<DesignReferences><UserResearch>docs/research/planned.md</UserResearch></DesignReferences>`),
     );
     expect(codes(validateGrace4Project(root))).not.toContain("change.user-research-path-invalid");

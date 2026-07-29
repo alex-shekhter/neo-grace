@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
+import { ARTIFACT_DIR } from "./paths";
 import { resolveGrace4Paths } from "./project";
 import {
   collectActiveChangeScopes,
@@ -29,7 +30,7 @@ function writeProjectFile(root: string, relativePath: string, contents: string) 
 
 function writeChange(root: string, changeId: string, options: { graphAnchor: string; file: string; glob?: string; status?: string; contextArtifact?: string }) {
   const status = options.status ?? "approved";
-  const bundle = `.grace/changes/active/${changeId}`;
+  const bundle = `${ARTIFACT_DIR}/changes/active/${changeId}`;
   writeProjectFile(root, `${bundle}/spec.xml`, `<GraceChangeSpec graceVersion="4.0" status="${status}"><${changeId} /></GraceChangeSpec>`);
   writeProjectFile(
     root,
@@ -134,10 +135,10 @@ describe("GRACE 4 scope detector", () => {
 
   it("rejects text-only scopes and accepts explicit None markers", () => {
     const root = createProject();
-    writeProjectFile(root, ".grace/changes/active/C-TEXT/spec.xml", `<GraceChangeSpec graceVersion="4.0" status="approved"><C-TEXT /></GraceChangeSpec>`);
-    writeProjectFile(root, ".grace/changes/active/C-TEXT/plan.xml", `<GraceChangePlan graceVersion="4.0" status="approved"><C-TEXT><DurableScope>graph changes</DurableScope><ObservedWriteScope>source changes</ObservedWriteScope></C-TEXT></GraceChangePlan>`);
-    writeProjectFile(root, ".grace/changes/active/C-NONE/spec.xml", `<GraceChangeSpec graceVersion="4.0" status="approved"><C-NONE /></GraceChangeSpec>`);
-    writeProjectFile(root, ".grace/changes/active/C-NONE/plan.xml", `<GraceChangePlan graceVersion="4.0" status="approved"><C-NONE><DurableScope><None /></DurableScope><ObservedWriteScope><None /></ObservedWriteScope></C-NONE></GraceChangePlan>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEXT/spec.xml`, `<GraceChangeSpec graceVersion="4.0" status="approved"><C-TEXT /></GraceChangeSpec>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEXT/plan.xml`, `<GraceChangePlan graceVersion="4.0" status="approved"><C-TEXT><DurableScope>graph changes</DurableScope><ObservedWriteScope>source changes</ObservedWriteScope></C-TEXT></GraceChangePlan>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-NONE/spec.xml`, `<GraceChangeSpec graceVersion="4.0" status="approved"><C-NONE /></GraceChangeSpec>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-NONE/plan.xml`, `<GraceChangePlan graceVersion="4.0" status="approved"><C-NONE><DurableScope><None /></DurableScope><ObservedWriteScope><None /></ObservedWriteScope></C-NONE></GraceChangePlan>`);
 
     const scopes = collectActiveChangeScopes(resolveGrace4Paths(root));
     const textScope = scopes.find((scope) => scope.changeId === "C-TEXT")!;

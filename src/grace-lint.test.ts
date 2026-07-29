@@ -18,29 +18,29 @@ function writeProjectFile(root: string, relativePath: string, contents: string) 
 }
 
 function writeMinimalGrace4Project(root: string) {
-  writeProjectFile(root, ".grace/context/requirements.xml", `<GraceRequirements graceVersion="4.0"><Summary>Required.</Summary></GraceRequirements>`);
-  writeProjectFile(root, ".grace/context/technology.xml", `<GraceTechnology graceVersion="4.0"><Runtime>Bun</Runtime></GraceTechnology>`);
-  writeProjectFile(root, ".grace/context/principles.xml", `<GracePrinciples graceVersion="4.0"><Principle>Safe.</Principle></GracePrinciples>`);
-  writeProjectFile(root, ".grace/context/deployment.xml", `<GraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></GraceDeployment>`);
-  writeProjectFile(root, ".grace/context/ux-guidelines.xml", `<GraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></GraceUXGuidelines>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/requirements.xml`, `<GraceRequirements graceVersion="4.0"><Summary>Required.</Summary></GraceRequirements>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/technology.xml`, `<GraceTechnology graceVersion="4.0"><Runtime>Bun</Runtime></GraceTechnology>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/principles.xml`, `<GracePrinciples graceVersion="4.0"><Principle>Safe.</Principle></GracePrinciples>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<GraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></GraceDeployment>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<GraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></GraceUXGuidelines>`);
   writeProjectFile(
     root,
-    ".grace/graph/index.xml",
+    `${ARTIFACT_DIR}/graph/index.xml`,
     `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
   );
   writeProjectFile(
     root,
-    ".grace/graph/main.xml",
+    `${ARTIFACT_DIR}/graph/main.xml`,
     `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary><Path>src/example.ts</Path></M-EXAMPLE></GD-MAIN></GraceGraphDocument>`,
   );
   writeProjectFile(
     root,
-    ".grace/verification/index.xml",
+    `${ARTIFACT_DIR}/verification/index.xml`,
     `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
-    ".grace/verification/main.xml",
+    `${ARTIFACT_DIR}/verification/main.xml`,
     `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test src/example.test.ts</Command><Scenario>example works</Scenario><Marker>[Example][run][BLOCK_RUN]</Marker></V-M-EXAMPLE></VD-MAIN></GraceVerificationDocument>`,
   );
   mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
@@ -77,7 +77,7 @@ function writeApprovedChange(
   targetAssertions: string,
   status: "draft" | "approved" = "approved",
 ) {
-  const bundle = `.grace/changes/active/${changeId}`;
+  const bundle = `${ARTIFACT_DIR}/changes/active/${changeId}`;
   writeProjectFile(
     root,
     `${bundle}/spec.xml`,
@@ -126,7 +126,7 @@ describe("lintGraceProject", () => {
   it("returns JSON-compatible output shape with issue counts", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
-    writeProjectFile(root, ".grace/context/requirements.xml", `<GraceRequirements><Summary>Missing version.</Summary></GraceRequirements>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/context/requirements.xml`, `<GraceRequirements><Summary>Missing version.</Summary></GraceRequirements>`);
 
     const result = lintGraceProject(root);
 
@@ -138,10 +138,10 @@ describe("lintGraceProject", () => {
   it("rejects wrong document roots, unindexed documents, and mismatched executable bundles", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
-    writeProjectFile(root, ".grace/graph/main.xml", `<GraceRequirements graceVersion="4.0"><GD-MAIN><M-EXAMPLE /></GD-MAIN></GraceRequirements>`);
-    writeProjectFile(root, ".grace/graph/unindexed.xml", `<GraceGraphDocument graceVersion="4.0"><GD-EXTRA><M-EXTRA /></GD-EXTRA></GraceGraphDocument>`);
-    writeProjectFile(root, ".grace/changes/active/C-FOLDER/spec.xml", `<GraceChangeSpec graceVersion="4.0" status="approved"><C-SPEC /></GraceChangeSpec>`);
-    writeProjectFile(root, ".grace/changes/active/C-FOLDER/plan.xml", `<GraceChangePlan graceVersion="4.0" status="approved"><C-PLAN /></GraceChangePlan>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<GraceRequirements graceVersion="4.0"><GD-MAIN><M-EXAMPLE /></GD-MAIN></GraceRequirements>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/unindexed.xml`, `<GraceGraphDocument graceVersion="4.0"><GD-EXTRA><M-EXTRA /></GD-EXTRA></GraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-FOLDER/spec.xml`, `<GraceChangeSpec graceVersion="4.0" status="approved"><C-SPEC /></GraceChangeSpec>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-FOLDER/plan.xml`, `<GraceChangePlan graceVersion="4.0" status="approved"><C-PLAN /></GraceChangePlan>`);
 
     const issueCodes = lintGraceProject(root).issues.map((issue) => issue.code);
     expect(issueCodes).toContain("artifact.unexpected-root-tag");
@@ -156,12 +156,12 @@ describe("lintGraceProject", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/changes/active/C-MISMATCH/spec.xml",
+      `${ARTIFACT_DIR}/changes/active/C-MISMATCH/spec.xml`,
       `<GraceChangeSpec graceVersion="4.0" status="approved"><C-MISMATCH><Summary>Spec A.</Summary><Goals><Goal>Govern M-EXAMPLE.</Goal></Goals><Constraints><Constraint>Keep fixtures valid.</Constraint></Constraints><NonGoals><NonGoal>Unrelated work.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Scope matches.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></C-MISMATCH></GraceChangeSpec>`,
     );
     writeProjectFile(
       root,
-      ".grace/changes/active/C-MISMATCH/plan.xml",
+      `${ARTIFACT_DIR}/changes/active/C-MISMATCH/plan.xml`,
       `<GraceChangePlan graceVersion="4.0" status="approved"><C-MISMATCH><IntentSummary>Plan B for a different module.</IntentSummary><BaselineAssertions><MustExist><Value>M-OTHER</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-OTHER</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-OTHER /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/other.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Wrong scope</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Done.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-MISMATCH></GraceChangePlan>`,
     );
 
@@ -175,12 +175,12 @@ describe("lintGraceProject", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/changes/active/C-AC/spec.xml",
+      `${ARTIFACT_DIR}/changes/active/C-AC/spec.xml`,
       `<GraceChangeSpec graceVersion="4.0" status="approved"><C-AC><Summary>AC coverage.</Summary><Goals><Goal>Map criteria.</Goal></Goals><Constraints><Constraint>Keep fixtures valid.</Constraint></Constraints><NonGoals><NonGoal>Unrelated work.</NonGoal></NonGoals><AcceptanceCriteria><AC-KEYBOARD-NAV>Arrow keys move focus.</AC-KEYBOARD-NAV><AC-AXE-CLEAN>axe is clean.</AC-AXE-CLEAN></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></C-AC></GraceChangeSpec>`,
     );
     writeProjectFile(
       root,
-      ".grace/changes/active/C-AC/plan.xml",
+      `${ARTIFACT_DIR}/changes/active/C-AC/plan.xml`,
       `<GraceChangePlan graceVersion="4.0" status="approved"><C-AC><IntentSummary>Implement criteria.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Wire both criteria</Title><DependsOn></DependsOn><Satisfies><AC-KEYBOARD-NAV /><AC-AXE-CLEAN /></Satisfies><AcceptanceCriteria><Criterion>Both pass.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-AC></GraceChangePlan>`,
     );
 
@@ -204,7 +204,7 @@ describe("lintGraceProject", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example</Summary><Path>src/example.ts</Path><Type>NONSENSE</Type></M-EXAMPLE></GD-MAIN></GraceGraphDocument>`,
     );
     const result = lintGraceProject(root);
@@ -225,8 +225,8 @@ describe("lintGraceProject", () => {
 
     const root = createProject();
     writeMinimalGrace4Project(root);
-    writeProjectFile(root, ".grace/changes/active/C-TEMPLATE/spec.xml", fill("grace-spec/references/change-spec-template.xml"));
-    writeProjectFile(root, ".grace/changes/active/C-TEMPLATE/plan.xml", fill("grace-plan/references/change-plan-template.xml"));
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEMPLATE/spec.xml`, fill("grace-spec/references/change-spec-template.xml"));
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEMPLATE/plan.xml`, fill("grace-plan/references/change-plan-template.xml"));
 
     const codes = lintGraceProject(root).issues.map((issue) => issue.code);
     expect(codes).not.toContain("change.scope-does-not-cover-spec");
@@ -298,7 +298,7 @@ describe("lintGraceProject", () => {
     // Only create archived plan with BaselineAssertions
     writeProjectFile(
       root,
-      ".grace/changes/archive/C-DONE/plan.xml",
+      `${ARTIFACT_DIR}/changes/archive/C-DONE/plan.xml`,
       `<GraceChangePlan graceVersion="4.0" status="applied"><C-DONE><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions></C-DONE></GraceChangePlan>`,
     );
     expect(lintGraceProject(root).issues.filter((issue) => issue.code === "assertion.MustExist")).toHaveLength(0);
@@ -306,12 +306,12 @@ describe("lintGraceProject", () => {
     // Remove M-EXAMPLE from graph so the archived baseline would fail if evaluated
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns /></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN /></GraceGraphDocument>`,
     );
 
@@ -325,7 +325,7 @@ describe("lintGraceProject", () => {
     // Create an active plan with a MustExist reference to a module that does not exist
     writeProjectFile(
       root,
-      ".grace/changes/active/C-REFACTOR/plan.xml",
+      `${ARTIFACT_DIR}/changes/active/C-REFACTOR/plan.xml`,
       `<GraceChangePlan graceVersion="4.0" status="approved"><C-REFACTOR><BaselineAssertions><MustExist><Value>M-NONEXISTENT</Value></MustExist></BaselineAssertions></C-REFACTOR></GraceChangePlan>`,
     );
 
@@ -336,7 +336,7 @@ describe("lintGraceProject", () => {
     // Now also add an archived plan with the same stale baseline
     writeProjectFile(
       root,
-      ".grace/changes/archive/C-DONE/plan.xml",
+      `${ARTIFACT_DIR}/changes/archive/C-DONE/plan.xml`,
       `<GraceChangePlan graceVersion="4.0" status="applied"><C-DONE><BaselineAssertions><MustExist><Value>M-NONEXISTENT</Value></MustExist></BaselineAssertions></C-DONE></GraceChangePlan>`,
     );
 
@@ -352,7 +352,7 @@ describe("lintGraceProject", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/changes/active/C-TARGET/plan.xml",
+      `${ARTIFACT_DIR}/changes/active/C-TARGET/plan.xml`,
       `<GraceChangePlan graceVersion="4.0" status="approved"><C-TARGET><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-MISSING</Module></MustVerify></TargetAssertions></C-TARGET></GraceChangePlan>`,
     );
     const result = lintGraceProject(root);
@@ -453,12 +453,12 @@ describe("lintGraceProject", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/changes/archive/C-HISTORICAL/spec.xml",
+      `${ARTIFACT_DIR}/changes/archive/C-HISTORICAL/spec.xml`,
       `<GraceChangeSpec graceVersion="4.0" status="applied"><C-HISTORICAL><Summary>Historical change.</Summary><Goals><Goal>Preserve history.</Goal></Goals><Constraints><Constraint>Do not rewrite archives.</Constraint></Constraints><NonGoals><NonGoal>New behavior.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>History remains readable.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></C-HISTORICAL></GraceChangeSpec>`,
     );
     writeProjectFile(
       root,
-      ".grace/changes/archive/C-HISTORICAL/plan.xml",
+      `${ARTIFACT_DIR}/changes/archive/C-HISTORICAL/plan.xml`,
       `<GraceChangePlan graceVersion="4.0" status="applied"><C-HISTORICAL><IntentSummary>Historical plan.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustPassCommand><Command>ngrace lint --path . --assertions current</Command></MustPassCommand></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Historical task</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Done.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-HISTORICAL></GraceChangePlan>`,
     );
 
@@ -486,7 +486,7 @@ describe("lintGraceProject", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/changes/active/C-DRAFT/plan.xml",
+      `${ARTIFACT_DIR}/changes/active/C-DRAFT/plan.xml`,
       `<GraceChangePlan graceVersion="4.0" status="draft"><C-DRAFT><BaselineAssertions><MustExist><Value>M-NONEXISTENT</Value></MustExist></BaselineAssertions></C-DRAFT></GraceChangePlan>`,
     );
     // Draft active plan should NOT fire assertion.MustExist
@@ -499,7 +499,7 @@ describe("lintGraceProject", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/changes/active/C-STALE/plan.xml",
+      `${ARTIFACT_DIR}/changes/active/C-STALE/plan.xml`,
       `<GraceChangePlan graceVersion="4.0" status="approved"><C-STALE><BaselineAssertions><MustExist><Value>M-NONEXISTENT</Value></MustExist></BaselineAssertions></C-STALE></GraceChangePlan>`,
     );
     const result = lintGraceProject(root);
@@ -515,7 +515,7 @@ describe("lintGraceProject", () => {
       `<MustExist><Value>M-MISSING</Value></MustExist>`,
       `<MustVerify><Module>M-EXAMPLE</Module></MustVerify>`,
     );
-    const planFile = path.join(root, ".grace/changes/active/C-SINGLE-QUOTE/plan.xml");
+    const planFile = path.join(root, `${ARTIFACT_DIR}/changes/active/C-SINGLE-QUOTE/plan.xml`);
     writeFileSync(planFile, readFileSync(planFile, "utf8").replace('status="approved"', "status='approved'"));
 
     expect(lintGraceProject(root).issues.map((issue) => issue.code)).toContain("assertion.MustExist");
@@ -532,10 +532,10 @@ describe("lintGraceProject", () => {
     );
     expect(lintGraceProject(root).summary.errors).toBe(0);
 
-    writeProjectFile(root, ".grace/graph/index.xml", `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-NEW /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`);
-    writeProjectFile(root, ".grace/graph/main.xml", `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary></M-EXAMPLE><M-NEW><Summary>New module.</Summary></M-NEW></GD-MAIN></GraceGraphDocument>`);
-    writeProjectFile(root, ".grace/verification/index.xml", `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-NEW /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`);
-    writeProjectFile(root, ".grace/verification/main.xml", `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Scenario>Example works.</Scenario></V-M-EXAMPLE><V-M-NEW><Scenario>New module works.</Scenario></V-M-NEW></VD-MAIN></GraceVerificationDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/index.xml`, `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-NEW /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary></M-EXAMPLE><M-NEW><Summary>New module.</Summary></M-NEW></GD-MAIN></GraceGraphDocument>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/verification/index.xml`, `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-NEW /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/verification/main.xml`, `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Scenario>Example works.</Scenario></V-M-EXAMPLE><V-M-NEW><Scenario>New module works.</Scenario></V-M-NEW></VD-MAIN></GraceVerificationDocument>`);
 
     const current = lintGraceProject(root);
     expect(current.issues.map((issue) => issue.code)).toContain("assertion.MustNotExist");
@@ -560,17 +560,17 @@ describe("lintGraceProject", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/changes/active/C-DESIGN/design-context.xml",
+      `${ARTIFACT_DIR}/changes/active/C-DESIGN/design-context.xml`,
       `<GraceChangeDesignContext graceVersion="4.0"><Change>C-DESIGN</Change><Rationale>Test.</Rationale></GraceChangeDesignContext>`,
     );
     writeProjectFile(
       root,
-      ".grace/changes/active/C-DESIGN/spec.xml",
+      `${ARTIFACT_DIR}/changes/active/C-DESIGN/spec.xml`,
       `<GraceChangeSpec graceVersion="4.0" status="approved"><C-DESIGN><Summary>Change with design context.</Summary></C-DESIGN></GraceChangeSpec>`,
     );
     writeProjectFile(
       root,
-      ".grace/changes/active/C-DESIGN/plan.xml",
+      `${ARTIFACT_DIR}/changes/active/C-DESIGN/plan.xml`,
       `<GraceChangePlan graceVersion="4.0" status="approved"><C-DESIGN><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope></C-DESIGN></GraceChangePlan>`,
     );
     const result = lintGraceProject(root);
@@ -875,22 +875,22 @@ export function run() {
     writeMinimalGrace4Project(orphanRoot);
     writeProjectFile(
       orphanRoot,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-ORPHAN /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
     writeProjectFile(
       orphanRoot,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE><M-ORPHAN><Summary>Orphan.</Summary><Path>src/orphan.ts</Path></M-ORPHAN></GD-MAIN></GraceGraphDocument>`,
     );
     writeProjectFile(
       orphanRoot,
-      ".grace/verification/index.xml",
+      `${ARTIFACT_DIR}/verification/index.xml`,
       `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-ORPHAN /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
     );
     writeProjectFile(
       orphanRoot,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>echo ok</Command><Scenario>ok</Scenario></V-M-EXAMPLE><V-M-ORPHAN><Command>echo ok</Command><Scenario>ok</Scenario></V-M-ORPHAN></VD-MAIN></GraceVerificationDocument>`,
     );
     const orphan = lintGraceProject(orphanRoot);
@@ -908,22 +908,22 @@ export function run() {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-PROSE /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE><M-PROSE><Summary>Path resolution and File loading helpers.</Summary></M-PROSE></GD-MAIN></GraceGraphDocument>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/index.xml",
+      `${ARTIFACT_DIR}/verification/index.xml`,
       `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-PROSE /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>echo ok</Command><Scenario>ok</Scenario></V-M-EXAMPLE><V-M-PROSE><Command>echo ok</Command><Scenario>ok</Scenario></V-M-PROSE></VD-MAIN></GraceVerificationDocument>`,
     );
 
@@ -938,12 +938,12 @@ export function run() {
     writeProjectFile(root, "src/gateway.ts", "export const g = 1;\n");
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-GATEWAY /><IC-BAD /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
         + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
         + `<M-GATEWAY><Summary>Gateway.</Summary><Path>src/gateway.ts</Path></M-GATEWAY>`
@@ -954,12 +954,12 @@ export function run() {
     );
     writeProjectFile(
       root,
-      ".grace/verification/index.xml",
+      `${ARTIFACT_DIR}/verification/index.xml`,
       `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-GATEWAY /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
         + `<V-M-EXAMPLE><Command>echo ok</Command><Scenario>ok</Scenario></V-M-EXAMPLE>`
         + `<V-M-GATEWAY><Command>echo ok</Command><Scenario>ok</Scenario></V-M-GATEWAY>`
@@ -978,12 +978,12 @@ export function run() {
     writeProjectFile(root, "src/gateway.ts", "export const g = 1;\n");
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-GATEWAY /><DF-FLAT /><DF-GAP /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
         + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
         + `<M-GATEWAY><Summary>Gateway.</Summary><Path>src/gateway.ts</Path></M-GATEWAY>`
@@ -993,12 +993,12 @@ export function run() {
     );
     writeProjectFile(
       root,
-      ".grace/verification/index.xml",
+      `${ARTIFACT_DIR}/verification/index.xml`,
       `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-GATEWAY /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
         + `<V-M-EXAMPLE><Command>echo ok</Command><Scenario>ok</Scenario></V-M-EXAMPLE>`
         + `<V-M-GATEWAY><Command>echo ok</Command><Scenario>ok</Scenario></V-M-GATEWAY>`
@@ -1026,12 +1026,12 @@ export function run() {
     writeProjectFile(root, "proto/x.proto", "syntax = \"proto3\";\n");
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><IC-X /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
         + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
         + `<IC-X><Summary>Contract.</Summary><Schema>proto/x.proto</Schema><Version>1.0.0</Version>`

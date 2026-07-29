@@ -51,17 +51,17 @@ describe("GRACE 4 Artifact Grammar", () => {
     writeChangeBundleFixture(root, { changeId: "C-FIXTURE", location: "active", specStatus: "approved", planStatus: "approved" });
 
     for (const relativePath of [
-      ".grace/context/requirements.xml",
-      ".grace/context/technology.xml",
-      ".grace/context/principles.xml",
-      ".grace/context/deployment.xml",
-      ".grace/context/ux-guidelines.xml",
-      ".grace/graph/index.xml",
-      ".grace/graph/main.xml",
-      ".grace/verification/index.xml",
-      ".grace/verification/main.xml",
-      ".grace/changes/active/C-FIXTURE/spec.xml",
-      ".grace/changes/active/C-FIXTURE/plan.xml",
+      `${ARTIFACT_DIR}/context/requirements.xml`,
+      `${ARTIFACT_DIR}/context/technology.xml`,
+      `${ARTIFACT_DIR}/context/principles.xml`,
+      `${ARTIFACT_DIR}/context/deployment.xml`,
+      `${ARTIFACT_DIR}/context/ux-guidelines.xml`,
+      `${ARTIFACT_DIR}/graph/index.xml`,
+      `${ARTIFACT_DIR}/graph/main.xml`,
+      `${ARTIFACT_DIR}/verification/index.xml`,
+      `${ARTIFACT_DIR}/verification/main.xml`,
+      `${ARTIFACT_DIR}/changes/active/C-FIXTURE/spec.xml`,
+      `${ARTIFACT_DIR}/changes/active/C-FIXTURE/plan.xml`,
     ]) {
       expect(existsSync(path.join(root, relativePath))).toBe(true);
     }
@@ -103,12 +103,12 @@ describe("GRACE 4 Artifact Grammar", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceRequirements graceVersion="4.0"><GD-MAIN><M-EXAMPLE /></GD-MAIN></GraceRequirements>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GracePrinciples graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE /></VD-MAIN></GracePrinciples>`,
     );
 
@@ -121,12 +121,12 @@ describe("GRACE 4 Artifact Grammar", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/changes/active/C-FOLDER/spec.xml",
+      `${ARTIFACT_DIR}/changes/active/C-FOLDER/spec.xml`,
       `<GraceChangeSpec graceVersion="4.0" status="approved"><C-SPEC /></GraceChangeSpec>`,
     );
     writeProjectFile(
       root,
-      ".grace/changes/active/C-FOLDER/plan.xml",
+      `${ARTIFACT_DIR}/changes/active/C-FOLDER/plan.xml`,
       `<GraceChangePlan graceVersion="4.0" status="approved"><C-PLAN /></GraceChangePlan>`,
     );
 
@@ -301,12 +301,12 @@ describe("GRACE 4 Artifact Grammar", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/context/deployment.xml",
+      `${ARTIFACT_DIR}/context/deployment.xml`,
       `<GraceDeployment graceVersion="4.0"><Applicability>not-applicable</Applicability></GraceDeployment>`,
     );
     writeProjectFile(
       root,
-      ".grace/context/ux-guidelines.xml",
+      `${ARTIFACT_DIR}/context/ux-guidelines.xml`,
       `<GraceUXGuidelines graceVersion="4.0"><Applicability>not-applicable</Applicability></GraceUXGuidelines>`,
     );
 
@@ -319,9 +319,9 @@ describe("GRACE 4 Artifact Grammar", () => {
   it("rejects empty context artifacts and invalid optional applicability declarations", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
-    writeProjectFile(root, ".grace/context/requirements.xml", `<GraceRequirements graceVersion="4.0" />`);
-    writeProjectFile(root, ".grace/context/deployment.xml", `<GraceDeployment graceVersion="4.0"><Summary>Deployment applies.</Summary></GraceDeployment>`);
-    writeProjectFile(root, ".grace/context/ux-guidelines.xml", `<GraceUXGuidelines graceVersion="4.0"><Applicability>sometimes</Applicability></GraceUXGuidelines>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/context/requirements.xml`, `<GraceRequirements graceVersion="4.0" />`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<GraceDeployment graceVersion="4.0"><Summary>Deployment applies.</Summary></GraceDeployment>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<GraceUXGuidelines graceVersion="4.0"><Applicability>sometimes</Applicability></GraceUXGuidelines>`);
 
     const resultCodes = validateContextArtifacts(resolveGrace4Paths(root)).flatMap(codes);
     expect(resultCodes).toContain("context.empty-artifact");
@@ -334,7 +334,7 @@ describe("GRACE 4 Artifact Grammar", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/context/ux-guidelines.xml",
+      `${ARTIFACT_DIR}/context/ux-guidelines.xml`,
       `<GraceUXGuidelines graceVersion="4.0"><Applicability>not-applicable</Applicability><Reason>Not a web app</Reason></GraceUXGuidelines>`,
     );
 
@@ -409,7 +409,7 @@ describe("GRACE 4 Artifact Grammar", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/changes/archive/C-OLD/spec.xml",
+      `${ARTIFACT_DIR}/changes/archive/C-OLD/spec.xml`,
       validSpec("C-OLD", "<Replacement>C-MISSING</Replacement>").replace('status="approved"', 'status="superseded"'),
     );
     expect(codes(validateGrace4Project(root))).toContain("change.superseded-replacement-not-found");
@@ -484,9 +484,9 @@ describe("spec→plan coverage (G-05 / AC-*)", () => {
   function projectWithBundle(specXml: string, planXml: string | null, changeId = "C-EXAMPLE") {
     const root = createProject();
     writeMinimalGrace4Project(root);
-    writeProjectFile(root, `.grace/changes/active/${changeId}/spec.xml`, specXml);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/${changeId}/spec.xml`, specXml);
     if (planXml) {
-      writeProjectFile(root, `.grace/changes/active/${changeId}/plan.xml`, planXml);
+      writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/${changeId}/plan.xml`, planXml);
     }
     return root;
   }
@@ -685,7 +685,7 @@ describe("optional design-system.xml (Phase 6)", () => {
     writeProjectFile(root, "src/tokens.css", ":root { --accent: #f00; }\n");
     writeProjectFile(
       root,
-      ".grace/context/design-system.xml",
+      `${ARTIFACT_DIR}/context/design-system.xml`,
       `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-COLOR-ACCENT><Value>var(--accent)</Value></DT-COLOR-ACCENT><DT-COLOR-ACCENT><Value>var(--accent2)</Value></DT-COLOR-ACCENT></Tokens></GraceDesignSystem>`,
     );
     expect(codes(validateGrace4Project(root))).toContain("design-system.duplicate-token");
@@ -696,7 +696,7 @@ describe("optional design-system.xml (Phase 6)", () => {
     writeMinimalGrace4Project(root);
     writeProjectFile(
       root,
-      ".grace/context/design-system.xml",
+      `${ARTIFACT_DIR}/context/design-system.xml`,
       `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>../etc/passwd</TokenSource></GraceDesignSystem>`,
     );
     const resultCodes = codes(validateGrace4Project(root));
@@ -710,7 +710,7 @@ describe("optional design-system.xml (Phase 6)", () => {
     writeProjectFile(root, "src/tokens.css", ":root {}\n");
     writeProjectFile(
       root,
-      ".grace/context/design-system.xml",
+      `${ARTIFACT_DIR}/context/design-system.xml`,
       `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-EMPTY><Value></Value></DT-EMPTY></Tokens><Breakpoints><BP-BAD><Intent>broken</Intent></BP-BAD></Breakpoints></GraceDesignSystem>`,
     );
     const resultCodes = codes(validateGrace4Project(root));
@@ -724,7 +724,7 @@ describe("optional design-system.xml (Phase 6)", () => {
     writeProjectFile(root, "src/tokens.css", ":root { --accent: #0af; }\n");
     writeProjectFile(
       root,
-      ".grace/context/design-system.xml",
+      `${ARTIFACT_DIR}/context/design-system.xml`,
       `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-COLOR-ACCENT><Value>var(--accent)</Value><Usage>Accent</Usage></DT-COLOR-ACCENT></Tokens><Breakpoints><BP-MOBILE><MinWidth>0</MinWidth><MaxWidth>767px</MaxWidth><Intent>phone</Intent></BP-MOBILE></Breakpoints><Accessibility><Standard>WCAG 2.2 AA</Standard><ContrastMinimum>4.5</ContrastMinimum></Accessibility></GraceDesignSystem>`,
     );
     const resultCodes = codes(validateGrace4Project(root));

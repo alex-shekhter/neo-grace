@@ -30,22 +30,22 @@ function writeProjectionFixture(root: string) {
   writeProjectFile(root, "src/example.ts", "export const marker = 'fresh';\n");
   writeProjectFile(
     root,
-    ".grace/graph/index.xml",
+    `${ARTIFACT_DIR}/graph/index.xml`,
     `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-AUTH-SESSION /><M-USER-PROFILE /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
   );
   writeProjectFile(
     root,
-    ".grace/graph/main.xml",
+    `${ARTIFACT_DIR}/graph/main.xml`,
     `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-AUTH-SESSION><M-USER-PROFILE /></M-AUTH-SESSION><M-USER-PROFILE /></GD-MAIN></GraceGraphDocument>`,
   );
   writeProjectFile(
     root,
-    ".grace/verification/index.xml",
+    `${ARTIFACT_DIR}/verification/index.xml`,
     `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-AUTH-SESSION /><V-M-USER-PROFILE /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
-    ".grace/verification/main.xml",
+    `${ARTIFACT_DIR}/verification/main.xml`,
     `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-AUTH-SESSION><Command>bun test auth</Command></V-M-AUTH-SESSION><V-M-USER-PROFILE><Command>bun test profile</Command></V-M-USER-PROFILE></VD-MAIN></GraceVerificationDocument>`,
   );
 }
@@ -184,10 +184,10 @@ describe("GRACE 4 assertions", () => {
   it("fails stale BaselineAssertions after durable graph state changes", () => {
     const root = createProject();
     writeProjectionFixture(root);
-    const planFile = path.join(root, ".grace/changes/active/C-STALE/plan.xml");
+    const planFile = path.join(root, `${ARTIFACT_DIR}/changes/active/C-STALE/plan.xml`);
     writeProjectFile(
       root,
-      ".grace/changes/active/C-STALE/plan.xml",
+      `${ARTIFACT_DIR}/changes/active/C-STALE/plan.xml`,
       `<GraceChangePlan graceVersion="4.0" status="approved"><C-STALE><BaselineAssertions><MustOwn><Owner>GD-MAIN</Owner><Anchor>M-AUTH-SESSION</Anchor></MustOwn></BaselineAssertions></C-STALE></GraceChangePlan>`,
     );
     const assertionToCheck = extractAssertionsWithIssues(planFile, "BaselineAssertions").assertions[0]!;
@@ -195,7 +195,7 @@ describe("GRACE 4 assertions", () => {
 
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-USER-PROFILE /></GD-MAIN></GraceGraphDocument>`,
     );
 
@@ -300,7 +300,7 @@ describe("GRACE 4 assertions", () => {
     writeProjectFile(root, "src/raw.ts", "const c = '#ff0000';\n");
     writeProjectFile(
       root,
-      ".grace/context/design-system.xml",
+      `${ARTIFACT_DIR}/context/design-system.xml`,
       `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-COLOR-ACCENT><Value>var(--accent)</Value></DT-COLOR-ACCENT></Tokens></GraceDesignSystem>`,
     );
     const ctx = context(root);
@@ -323,22 +323,22 @@ describe("GRACE 4 assertions", () => {
     writeProjectFile(root, "src/example.ts", "export const marker = 'fresh';\n");
     writeProjectFile(
       root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-WEB /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-WEB><Summary>UI</Summary><Path>src/example.ts</Path><Type>UI_COMPONENT</Type><States><ST-DEFAULT /><ST-ERROR /></States></M-WEB></GD-MAIN></GraceGraphDocument>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/index.xml",
+      `${ARTIFACT_DIR}/verification/index.xml`,
       `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-WEB /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
     );
     writeProjectFile(
       root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-WEB><Command>bun test</Command><Scenario>default render works</Scenario></V-M-WEB></VD-MAIN></GraceVerificationDocument>`,
     );
     const ctx = context(root);
@@ -348,7 +348,7 @@ describe("GRACE 4 assertions", () => {
 
     writeProjectFile(
       root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-WEB><Command>bun test</Command><Scenario>default render works</Scenario><AccessibilityCheck><Tool>axe</Tool><Command>bun run a11y</Command><MaxSeverity>serious</MaxSeverity></AccessibilityCheck><Scenario>error state announced</Scenario></V-M-WEB></VD-MAIN></GraceVerificationDocument>`,
     );
     expect(evaluateAssertion(assertion("MustCoverStates", ["M-WEB"]), context(root))).toHaveLength(0);
