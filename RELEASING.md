@@ -24,7 +24,7 @@ bun run release:finalize X.Y.Z
 2. Run the full current `validate:release` suite before mutating release files.
 3. Resolve the target version and run `npm version --no-git-tag-version` with the given target.
 4. Generate a conventional-changelog entry from git history.
-5. Generate a mandatory AI release summary with OpenCode (requires `opencode` in PATH).
+5. Resolve the mandatory release summary: an author-supplied `RELEASE_SUMMARY` / `RELEASE_SUMMARY_FILE` wins, otherwise OpenCode is used when `opencode` is on PATH. A supplied summary is validated by the same envelope and prose checks as model output. `opencode` is optional.
 6. Prepend exactly one target-version changelog entry to `CHANGELOG.md`.
 7. Update all version surface files:
    - `README.md` — `Current packaged version: \`x.y.z\`` marker
@@ -42,7 +42,7 @@ The workflow fails closed at every boundary. A failed preflight creates no relea
 
 Every command uses argument arrays without shell interpolation. Release automation rejects detached HEAD, dirty worktrees, stale release branches, existing local or remote target tags, unexpected changed files, invalid version surfaces, missing changelog summaries, marketplace drift, and validation failures before publish-triggering tag push.
 
-`release:finalize` accepts exactly one stable semantic version. It fetches `origin/main` without broad tag mutation, requires clean checked-out `main` with `HEAD == origin/main`, verifies package/changelog version equality, rejects an existing remote tag, reruns `validate:release`, creates or recovers the exact local annotated tag, verifies the tag resolves to `HEAD`, and pushes only that tag.
+`release:finalize` accepts exactly one stable semantic version. It fetches `origin/main` without broad tag mutation, requires clean checked-out `main` with `HEAD == origin/main`, verifies package/changelog version equality, rejects an existing remote tag, rejects a version already published to npm (published versions are immutable, so a re-tag could only fail), reruns `validate:release`, creates or recovers the exact local annotated tag, verifies the tag resolves to `HEAD`, and pushes only that tag.
 
 > **Note:** Canonical skill mirror syncing (`skills/grace/*` → `plugins/grace/skills/grace/*`) is **not** done automatically. The `validate:marketplace` script catches drift. Sync skills separately when needed.
 
@@ -50,6 +50,8 @@ Every command uses argument arrays without shell interpolation. Release automati
 
 | Variable | Purpose | Default |
 |---|---|---|
+| `RELEASE_SUMMARY` | Author-supplied changelog summary; skips OpenCode entirely | _(unset)_ |
+| `RELEASE_SUMMARY_FILE` | Path to a file holding the summary. Keep it outside the repository — an unexpected worktree file fails the release | _(unset)_ |
 | `GRACE_RELEASE_SUMMARY_MODEL` | OpenCode model for AI release summary | `deepseek/deepseek-v4-flash` |
 | `GRACE_RELEASE_SUMMARY_TIMEOUT_MS` | Per-attempt timeout for OpenCode | `120000` (2 min) |
 
@@ -100,7 +102,7 @@ bun run release:check
 
 When a tag matching `v*` is pushed, the `publish.yml` GitHub Actions workflow:
 
-1. Verifies the tag matches `package.json` version.
+1. Verifies the tag matches `package.json` version, and that the version is not already published to npm.
 2. Runs `bun install --frozen-lockfile`.
 3. Runs `release:check`, `typecheck`, `test`, `validate:cli`, `validate:marketplace`, and the packed CLI smoke gate.
 4. Publishes stable versions to npm with the default dist-tag, and prerelease versions with the prerelease identifier as the dist-tag (for example, `4.0.0-rc.0` publishes with `--tag rc`).

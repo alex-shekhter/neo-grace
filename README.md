@@ -19,6 +19,8 @@ Current packaged version: `5.0.1`
 | [**Twenty-minute walkthrough**](./examples/polyglot/WALKTHROUGH.md) | 20 min | A guided tour of a real React + Go + Rust project. You break it on purpose four times and watch the tooling catch you. |
 | `ngrace doctor --path .` | 1 min | Run against your own repository first. Reports which of your languages have export verification before you commit to anything. |
 
+Contributing to this repository? See [CONTRIBUTING.md](./CONTRIBUTING.md) for the day-to-day and release workflow.
+
 You never hand-author the XML — the skills write it and you approve it. Both documents are written from that side of the screen.
 
 ## What This Repository Ships
