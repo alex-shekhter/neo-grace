@@ -6,15 +6,29 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 
 | ID | Title | Status | Baseline | Targets | Plan |
 |---|---|---|---|---|---|
-| `RM-AGENT-RELIABILITY` | Context discipline, scope drift, and self-verification | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-AGENT-RELIABILITY/review.md) |
+| `RM-NAMESPACE-SEPARATION` | Separate the `ngrace` namespace from upstream GRACE | `approved` | 5.0.1 | — | [plan.md](./active/RM-NAMESPACE-SEPARATION/plan.md) · [review.md](./active/RM-NAMESPACE-SEPARATION/review.md) |
+| `RM-AGENT-RELIABILITY` | Context discipline, scope drift, and self-verification | `draft` | 5.0.1 | — | [plan.md](./active/RM-AGENT-RELIABILITY/plan.md) · [decisions.md](./active/RM-AGENT-RELIABILITY/decisions.md) · [review-consolidated.md](./active/RM-AGENT-RELIABILITY/review-consolidated.md) · [review.md](./active/RM-AGENT-RELIABILITY/review.md) |
 | `RM-LANGUAGE-EXTENSIBILITY` | Language bundles, conformance fixtures, and parser strategy | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-LANGUAGE-EXTENSIBILITY/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
 
-These two are siblings and cross-reference each other, but are deliberately not merged:
-they argue from different evidence and will complete at different times. A plan bundle
-archives as a unit, so combining them would hold one hostage to the other.
+**Execution order.** `RM-NAMESPACE-SEPARATION` runs first and is the only track currently
+approved for execution. It renames the skill and artifact namespaces, so every artifact the
+other tracks would create lands in a namespace that is being retired — and constructs added
+after the rename decision but before the rename are the ones most likely to survive a sweep
+unnoticed. Its Phase 6 reconciles `RM-AGENT-RELIABILITY` on the way out.
+
+`RM-AGENT-RELIABILITY` and `RM-LANGUAGE-EXTENSIBILITY` are siblings that cross-reference each
+other but are deliberately not merged: they argue from different evidence and will complete at
+different times. A plan bundle archives as a unit, so combining them would hold one hostage to
+the other. The same reasoning keeps `RM-NAMESPACE-SEPARATION` separate — it is a release-surface
+rename, not reliability work.
+
+`RM-AGENT-RELIABILITY` carries a third document type: `decisions.md`, a running log of ratified
+design decisions with their reasoning and rejected alternatives. It sits between the review and
+the plan — the review frames the questions, `decisions.md` answers them, the plan orders and
+specifies the work.
 
 ## Archive
 
