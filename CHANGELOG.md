@@ -1,3 +1,9 @@
+## <small>5.0.1 (2026-07-29)</small>
+
+### Summary
+
+This patch release fixes the publish pipeline: CI now installs an npm that supports trusted publishing over OIDC, and the packed-CLI smoke test locates its tarball on disk instead of parsing npm output that changed shape between major versions.
+
 ## <small>5.0.1-rc.0 (2026-07-29)</small>
 
 ### Summary
