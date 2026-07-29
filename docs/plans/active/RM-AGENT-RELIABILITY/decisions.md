@@ -5,7 +5,7 @@ status: draft
 supersededBy: null
 created: 2026-07-29
 updated: 2026-07-29
-baseline: 5.0.1
+baseline: 6.0.0
 targets: []
 normative: false
 plan: ./plan.md
@@ -1051,3 +1051,45 @@ or reduced to work. What remains is listed here so `plan.md` does not have to re
 | Detached review and skill subsetting are **conditional guarantees** | Both depend on host capability (§5.2). Real where the host provides cold subagent contexts and scoped loading; advisory elsewhere. Selling them as unconditional would be the confidence-without-check failure this track exists to remove |
 | D10's resolution discriminator is a proxy, not a truth | A code-only fix can paper over a plan defect and will be scored as an implementation defect |
 | Stage-2 semantic narrowing is an optimization only | Correctness never depends on it; without it the caller gets a larger candidate set (D15) |
+
+---
+
+## Reconciliation note — 2026-07-29 · RM-NAMESPACE-SEPARATION landed
+
+**Appended, not merged into the decisions above.** Every D1–D15 entry stands exactly as ratified;
+the reasoning did not change, only the spelling of some things it names. Where this note and the
+body disagree about a name, this note is current and the body is the record of what was decided
+and when.
+
+`RM-NAMESPACE-SEPARATION` completed Phases 0–5 and shipped as `@neograce/cli` **6.0.0**. Four
+renames touch decisions in this document:
+
+| Was | Is | Affects |
+|---|---|---|
+| `.grace/` | `.ngrace/` | D1, D2, D3 — the ledger, cursor and event-file layout |
+| `Grace*` root tags | `Ngrace*` | D3 — `<NgraceRunLedger>`, `<NgraceRunCursor>` |
+| `GRACE4_VERSION = "4.0"` | `NGRACE_ARTIFACT_VERSION = "1.0"` | D13, and the grammar-version question in the packaging table |
+| `src/grace4/`, `skills/grace/grace-*` | `src/artifact/`, `skills/ngrace/ngrace-*` | every file citation |
+
+**Two things deliberately left as they were written.**
+
+The `(E2)` citations at `src/grace4/scale-ergonomics.test.ts:212` and `src/grace4/grammar.ts:167`
+keep their old paths. `(E2)` means *verified against this repository at 5.0.1 on 2026-07-29*, and
+those paths are what was read. Rewriting them would leave the provenance tag intact while making
+its content false — a claim asserting tool-verification of a file that did not exist at the stated
+time. The files are now `src/artifact/scale-ergonomics.test.ts` and `src/artifact/grammar.ts`; the
+line numbers still hold.
+
+The `.grace/changes/active/C-3/` layout diagram under D3 likewise stays. It illustrates the
+decision as taken. `plan.md` carries the current form, and `plan.md` is the normative document —
+this one is explicitly `normative: false`.
+
+**One decision to re-check at approval, not now.** D13 concluded that packaging needs no include
+mechanism, reasoning partly from the skill directory layout. That layout moved
+(`skills/grace/grace-cli/` → `skills/ngrace/ngrace-cli/`) but did not change *shape*, and
+`scripts/validate-marketplace.ts` still verifies the mirror by recursive `git diff --no-index` per
+skill directory. The conclusion appears unaffected; it is flagged rather than silently re-affirmed
+because the evidence under it was re-verified for path, not for substance.
+
+**Phase −1 is gone from `plan.md`.** It renamed the local `grace` script to `ngrace`; namespace
+Phase 0 did that work, and it is recorded in commit `69475b4`.

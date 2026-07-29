@@ -180,7 +180,7 @@ flowchart TB
 | 3 | Artifact surface: `.ngrace/` and root tags | Artifact | 6.0.0 | `COMPLETE` |
 | 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | 6.0.0 | `COMPLETE` |
 | 5 | Prose sweep and documentation | — | 6.0.0 | `COMPLETE` |
-| 6 | Reconcile RM-AGENT-RELIABILITY; release | — | 6.0.0 | `NOT STARTED` |
+| 6 | Reconcile RM-AGENT-RELIABILITY; release | — | 6.0.0 | `IN PROGRESS` — 6.5.1–6.5.5 done; 6.5.6 (tag + publish) is the maintainer's |
 
 **Hard sequencing rules**, each with what breaks if violated:
 

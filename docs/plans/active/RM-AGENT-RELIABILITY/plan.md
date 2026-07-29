@@ -5,7 +5,7 @@ status: draft
 supersededBy: null
 created: 2026-07-29
 updated: 2026-07-29
-baseline: 5.0.1
+baseline: 6.0.0
 targets: []
 context: ./decisions.md
 ---
@@ -77,17 +77,17 @@ Rules:
 
 ### 0.3 Repository invariants you must not break
 
-1. `skills/grace/*` is the source of truth; `plugins/grace/skills/grace/*` is a byte-identical
+1. `skills/ngrace/*` is the source of truth; `plugins/ngrace/skills/ngrace/*` is a byte-identical
    mirror. Any skill edit must be copied to the mirror in the same commit.
 2. Versions stay synchronized across `README.md`, `openpackage.yml`,
-   `.claude-plugin/marketplace.json`, `plugins/grace/.claude-plugin/plugin.json`, `package.json`.
+   `.claude-plugin/marketplace.json`, `plugins/ngrace/.claude-plugin/plugin.json`, `package.json`.
 3. Nothing may degrade silently. Every code path that cannot perform a check must emit the
    absence value with a reason (D5).
 4. New grammar arrives only with the validator that makes it load-bearing.
 5. Existing valid `.grace` trees must keep validating. Additive only, unless a phase explicitly
    says otherwise. **The run ledger and cursor are additive by construction** (D1): a project
    without them lints clean.
-6. `GRACE4_VERSION` (`"4.0"`) is the *artifact grammar* version, validated on every root tag.
+6. `NGRACE_ARTIFACT_VERSION` (`"1.0"`) is the *artifact grammar* version, validated on every root tag.
    Bump it only when something becomes **required**, and ship a migration path with it. It is
    not the product version.
 7. Test helpers must never be published. Put shared test helpers in `src/test-support/` and
@@ -285,13 +285,13 @@ Read this against the real code before Phase 0. If any of it is wrong at HEAD, r
 
 | Capability | Where | Why it matters here |
 |---|---|---|
-| Absence primitives, fail-closed | `src/grace4/assertions.ts:263`, `:506`; `src/grace-status.ts:127` | `assertion.command-not-evaluated` is already an error. D5 unifies these rather than inventing them |
+| Absence primitives, fail-closed | `src/artifact/assertions.ts:263`, `:506`; `src/grace-status.ts:127` | `assertion.command-not-evaluated` is already an error. D5 unifies these rather than inventing them |
 | Language confidence tiers | `src/language-registry.ts`, adapters | `exact \| heuristic \| no-adapter` — the *precision* axis of D5, already shipped |
 | Deterministic retrieval | `src/grace-module.ts`, `src/grace-file.ts` | `module show --with verification --json`, `module find --depends`, `file show --contracts --blocks --json`. D7: the packet's retrieval half already exists |
 | Structural writes behind `--apply` | `src/grace-graph.ts:285–290`, `:296`, `:347` | F1: the precedent the ledger follows. Dry-run default, explicit apply, refuses on a bad projection |
-| Read-only enforcement by snapshot test | `src/grace4/scale-ergonomics.test.ts:212` | The mechanism for proving a command does not write. Reusable per-command |
+| Read-only enforcement by snapshot test | `src/artifact/scale-ergonomics.test.ts:212` | The mechanism for proving a command does not write. Reusable per-command |
 | Recursive mirror validation | `scripts/validate-marketplace.ts:229–270` | `git diff --no-index` over each listed skill **directory**. D13 depends on this |
-| Grammar forbids nested status | `src/grace4/grammar.ts:167` | `artifact.forbidden-status-attribute` — why the cursor lives outside `plan.xml` (D1) |
+| Grammar forbids nested status | `src/artifact/grammar.ts:167` | `artifact.forbidden-status-attribute` — why the cursor lives outside `plan.xml` (D1) |
 
 ### 1.2 What does not exist and this track creates
 
@@ -329,7 +329,6 @@ Keep this table current. It is the single source of truth for progress.
 
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
-| −1 | Local CLI name: `grace` → `ngrace` | — (unblocking) | TBD | `NOT STARTED` |
 | 0 | Evidence harness & v3 capability audit | D4 (corpus), D7 (audit), D15 (measurement format) | TBD | `NOT STARTED` |
 | 1 | Thin `.grace` self-migration | §5.5 | TBD | `NOT STARTED` |
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `NOT STARTED` |
@@ -346,9 +345,6 @@ Keep this table current. It is the single source of truth for progress.
 **Hard sequencing rules** — these are dependencies, not preferences. Each is stated with what
 breaks if violated:
 
-0. **−1 → everything.** Every verify step in this plan is written as `bun run ngrace`, which does
-   not resolve until the script is renamed. Violating this does not break the product — it breaks
-   the plan's own instructions, silently, on the first command an executor types.
 1. **0 → everything.** The measurement format must be fixed before anything is measured, or
    numbers will not compare across phases. The v3 audit informs the schemas in 3, 4 and 8.
 2. **1 → 3, 4, 8, 9.** Those phases are designed against this repository's real change flow.
@@ -365,115 +361,6 @@ Phases **7** and **8** may float anywhere after 2 and 3 respectively. **4** may 
 
 ---
 
-# PHASE −1 — Local CLI name: `grace` → `ngrace`
-
-**Status:** `NOT STARTED`
-**Decisions:** none — this is unblocking work
-**Release:** TBD
-
-## -1.1 Objective
-
-Make the local invocation match the shipped binary name, so there is one command name in this
-project instead of two.
-
-Today `package.json#bin` publishes **`ngrace`** while `package.json#scripts` defines **`grace`**.
-Everything user-facing — `README.md`, all 16 skills, `CLAUDE.md` — already says `ngrace`. Only
-the local development surface disagrees, and it disagrees silently: `bun run ngrace --help` fails
-with *"Script not found"*, and `CLAUDE.md:48` documents exactly that failing form.
-
-**This phase exists because the plan tripped over it.** Every verify step in Phases 0–11 is
-written as `bun run ngrace`; without this rename each one would need a footnote.
-
-## -1.2 Preconditions
-
-→ verify: `bun run validate:ci` passes on a clean checkout.
-
-→ verify: `bun run ngrace --help` fails with *"Script not found"*. If it succeeds, this phase has
-already been done — report that and skip to Phase 0.
-
-## -1.3 Files touched
-
-| File | Action |
-|---|---|
-| `package.json` | EDIT — `scripts.grace` → `scripts.ngrace`, `scripts.grace:lint` → `scripts.ngrace:lint` |
-| `src/grace.ts` | EDIT — **one line**: `meta.name` at ≈`:15` |
-| `CLAUDE.md` | READ ONLY — verify it becomes correct; do not edit it |
-| `README.md` | READ ONLY — already says `ngrace` throughout; confirm, change nothing |
-| `CHANGELOG.md` | **DO NOT TOUCH** — see -1.4 |
-| `docs/plans/archive/**` | **DO NOT TOUCH** — README rule 1 |
-
-## -1.4 Design
-
-Four constraints, each of which is a way this phase can go wrong:
-
-**1 — `CHANGELOG.md` is history and must not be rewritten.** It contains ~15 references to
-`grace status`, `grace lint`, `grace module find` and similar. Those describe what *past releases
-actually shipped*, under the name they shipped with. Rewriting them would make the changelog lie
-about history — which, in a track about not lying about what happened, would be a poor way to
-start. A `grep` for `grace ` that includes `CHANGELOG.md` in its results has over-matched.
-
-**2 — `src/grace.ts` is not renamed.** The file name is internal; renaming it touches
-`package.json#bin`, every import, and the `M-*` anchor Phase 1 declares for it. It buys nothing a
-user can see. Explicit non-goal.
-
-**3 — No compatibility alias.** Keeping `scripts.grace` alongside `scripts.ngrace` would preserve
-exactly the two-names-for-one-command ambiguity this phase removes. Clean break. The generic
-`scripts.lint` alias is unrelated and stays.
-
-**4 — `scripts.validate:examples` invokes `./src/grace.ts` by path**, not through the script name,
-so it is unaffected. Leave it alone; normalizing it is a "while I'm here" refactor (§0.1
-principle 3).
-
-## -1.5 Steps
-
-**Step -1.5.1 — Rename the two scripts in `package.json`.**
-→ verify: `bun run ngrace --help` prints the seven subcommands, and `bun run grace --help` now
-fails with *"Script not found"*. Show both.
-
-**Step -1.5.2 — Update `meta.name` in `src/grace.ts`.**
-→ verify: `bun run ngrace --help` shows `USAGE ngrace doctor|file|graph|...` and the footer reads
-`Use ngrace <command> --help`. The help text is the user's model of what to type; leaving it as
-`grace` reintroduces the confusion in the one place people look to resolve it.
-
-**Step -1.5.3 — Confirm `CLAUDE.md` became correct without being edited.**
-→ verify: run the exact command `CLAUDE.md:48` documents — `bun run ngrace lint --path .` — and
-confirm it reports `project.missing-grace` as that line predicts. Show the output.
-
-This is the phase's real acceptance test: a documented command that did not run now runs, and the
-documentation was already right.
-
-**Step -1.5.4 — Confirm nothing else invoked the old script name.**
-→ verify: `grep -rn 'bun run grace' . --include='*.ts' --include='*.json' --include='*.yml' --include='*.md' | grep -v node_modules | grep -v CHANGELOG | grep -v 'docs/plans/archive'`
-returns nothing. Report the command and its empty output.
-
-## -1.6 Definition of done
-
-- `bun run ngrace <cmd>` works; `bun run grace` does not
-- Help output names `ngrace` in both the usage line and the footer
-- The command documented in `CLAUDE.md:48` runs and behaves as documented
-- `CHANGELOG.md` and `docs/plans/archive/**` unmodified — confirm with `git diff --name-only`
-- `bun run validate:ci` green
-
-## -1.7 Review gate
-
-1. Was `CHANGELOG.md` touched? It must not have been.
-2. Was `src/grace.ts` renamed as a file? It must not have been.
-3. Does a compatibility alias survive in `scripts`? It must not.
-4. Does the help footer still say `grace`? That is the half-done version of this phase.
-
-## -1.8 Rollback
-
-Revert `package.json` and the one line in `src/grace.ts`. No behaviour depends on either.
-
-## -1.9 Adjacent work, deliberately not folded in
-
-The repository also refers to **"GRACE 4"** in ~80 files, where the product is neo-grace 5.x.
-That is a second naming cleanup and is tracked separately, because it carries a trap this phase
-does not: `GRACE4_VERSION` (`"4.0"`) is the *artifact grammar* version, deliberately distinct from
-the product version (§0.3 invariant 6), and renaming it as part of a terminology sweep would
-conflate two things the codebase keeps apart on purpose.
-
-Fold the two only if you also carry that distinction. Otherwise keep them separate.
 
 ---
 
@@ -494,7 +381,7 @@ Three deliverables, none of which is a product feature:
    patterns. Ground truth by construction, which is what makes D4's gate and trend measurable
    without human adjudication.
 2. The **v3→v5 capability mapping table**, produced by reading `v3.11.0` (F2). Its natural home
-   is `grace-migrate`, which today has no mapping for `implementationOrder` at all.
+   is `ngrace-migrate`, which today has no mapping for `implementationOrder` at all.
 3. The **token measurement format** (D15) — fixed up front, so numbers compare across phases.
 
 ## 0.2 Preconditions
@@ -511,13 +398,13 @@ this phase's step 0.5.1 has no input — report the contradiction.
 | File | Action |
 |---|---|
 | `src/test-support/fixtures.ts` | READ ONLY — study the builder idiom first |
-| `src/grace4/test-fixtures.ts` | READ ONLY — study its idiom |
+| `src/artifact/test-fixtures.ts` | READ ONLY — study its idiom |
 | `src/test-support/defect-corpus.ts` | CREATE |
 | `src/test-support/defect-corpus.test.ts` | CREATE |
 | `src/test-support/token-accounting.ts` | CREATE |
 | `src/test-support/token-accounting.test.ts` | CREATE |
-| `skills/grace/grace-migrate/references/v3-capability-map.md` | CREATE |
-| `plugins/grace/skills/grace/grace-migrate/references/v3-capability-map.md` | CREATE (mirror) |
+| `skills/ngrace/ngrace-migrate/references/v3-capability-map.md` | CREATE |
+| `plugins/ngrace/skills/ngrace/ngrace-migrate/references/v3-capability-map.md` | CREATE (mirror) |
 
 ## 0.4 Design
 
@@ -622,7 +509,7 @@ Three measurements, fixed now (D15):
 PSEUDOCODE
 
 skillTextLines(): { total: number; perSkill: Record<string, number> }
-  // counts lines across skills/grace/*/SKILL.md and references/**
+  // counts lines across skills/ngrace/*/SKILL.md and references/**
   // baseline at 5.0.1 is 636 lines across 16 SKILL.md files (E2)
 
 commandOutputBytes(argv: string[], root: string): number
@@ -692,10 +579,10 @@ the skill-text delta for every later phase is measured against a moving baseline
 
 | File | Action |
 |---|---|
-| `.grace/context/*.xml` | CREATE |
-| `.grace/graph/index.xml` | CREATE |
-| `.grace/graph/GD-*.xml` | CREATE |
-| `.grace/verification/index.xml` | CREATE |
+| `.ngrace/context/*.xml` | CREATE |
+| `.ngrace/graph/index.xml` | CREATE |
+| `.ngrace/graph/GD-*.xml` | CREATE |
+| `.ngrace/verification/index.xml` | CREATE |
 | `CLAUDE.md` | EDIT — remove the "does not yet contain its own `.grace` state" note |
 | `docs/plans/README.md` | EDIT — the note at line 44 says the same thing |
 
@@ -710,14 +597,14 @@ Modules to declare, at minimum:
 | Module | Path | Why it must be in the thin slice |
 |---|---|---|
 | `M-LINT-CORE` | `src/lint/core.ts` | Phase 5 adds gate declarations near it |
-| `M-ASSERTIONS` | `src/grace4/assertions.ts` | Phase 2 unifies absence values here |
-| `M-GRAMMAR` | `src/grace4/grammar.ts` | Phase 3 adds ledger grammar |
+| `M-ASSERTIONS` | `src/artifact/assertions.ts` | Phase 2 unifies absence values here |
+| `M-GRAMMAR` | `src/artifact/grammar.ts` | Phase 3 adds ledger grammar |
 | `M-STATUS` | `src/grace-status.ts` | Phases 3 and 8 both extend it |
-| `M-SKILLS` | `skills/grace/` | Phase 2 and 8 both touch skill text; it needs an anchor |
+| `M-SKILLS` | `skills/ngrace/` | Phase 2 and 8 both touch skill text; it needs an anchor |
 
 ## 1.5 Steps
 
-**Step 1.5.1 — Run `grace-init` against this repository and stop before writing.**
+**Step 1.5.1 — Run `ngrace-init` against this repository and stop before writing.**
 → verify: report the proposed artifact list and confirm it does not include any construct from
 Phases 2–11.
 
@@ -777,7 +664,7 @@ The work is making them recognizable as a class, not inventing them.
 
 → verify: `bun run validate:ci` green, Phase 0 and Phase 1 `COMPLETE`.
 
-→ verify: `grep -n 'assertion.command-not-evaluated' src/grace4/assertions.ts` returns two sites
+→ verify: `grep -n 'assertion.command-not-evaluated' src/artifact/assertions.ts` returns two sites
 (≈`:263`, ≈`:506`) and `grep -n 'analysis.no-adapter' src/lint/catalog.ts` returns one. If the
 counts differ, F-series findings drifted — report before proceeding.
 
@@ -787,13 +674,13 @@ counts differ, F-series findings drifted — report before proceeding.
 |---|---|
 | `src/lint/types.ts` | EDIT — add the absence classification to the issue record |
 | `src/lint/catalog.ts` | EDIT — mark absence-class codes; add `derivedFrom` / `proposedBy` |
-| `src/grace4/assertions.ts` | EDIT — two call sites, classification only |
+| `src/artifact/assertions.ts` | EDIT — two call sites, classification only |
 | `src/grace-doctor.ts` | EDIT — report absence counts by reason |
-| `skills/grace/grace-cli/references/verdicts.md` | CREATE — the one shared fragment |
-| `plugins/grace/skills/grace/grace-cli/references/verdicts.md` | CREATE (mirror) |
-| `skills/grace/grace-execute/SKILL.md` | EDIT — one sentence |
-| `skills/grace/grace-reviewer/SKILL.md` | EDIT — one sentence |
-| `skills/grace/grace-verification/SKILL.md` | EDIT — one sentence |
+| `skills/ngrace/ngrace-cli/references/verdicts.md` | CREATE — the one shared fragment |
+| `plugins/ngrace/skills/ngrace/ngrace-cli/references/verdicts.md` | CREATE (mirror) |
+| `skills/ngrace/ngrace-execute/SKILL.md` | EDIT — one sentence |
+| `skills/ngrace/ngrace-reviewer/SKILL.md` | EDIT — one sentence |
+| `skills/ngrace/ngrace-verification/SKILL.md` | EDIT — one sentence |
 | (+ the three packaged mirrors) | EDIT |
 | `scripts/validate-marketplace.ts` | EDIT — single-source rule for the verdict tokens |
 
@@ -862,7 +749,7 @@ unjustified one is a design error.
 → verify: `ngrace doctor --path .` against the Phase 1 `.grace` prints an absence count per reason
 code, and prints zero when nothing is absent. Include both outputs in the report.
 
-**Step 2.5.5 — Create `skills/grace/grace-cli/references/verdicts.md`.**
+**Step 2.5.5 — Create `skills/ngrace/ngrace-cli/references/verdicts.md`.**
 Contains the three authored vocabularies above and nothing the binary already emits.
 → verify: the file is under 40 lines. If it is longer, it has started restating the catalog.
 
@@ -918,7 +805,7 @@ the code.
 
 → verify: Phase 1 `COMPLETE` — this phase is designed against the real bundle flow, not a fixture.
 
-→ verify: `grep -n 'GRACE4_CHANGE_COMPANION_TAGS' src/grace4/*.ts` shows the companion-tag
+→ verify: `grep -n 'NGRACE_CHANGE_COMPANION_TAGS' src/artifact/*.ts` shows the companion-tag
 mechanism that `design-context.xml` already uses. The ledger registers the same way; if that
 mechanism is gone, stop and report.
 
@@ -926,9 +813,9 @@ mechanism is gone, stop and report.
 
 | File | Action |
 |---|---|
-| `src/grace4/types.ts` | EDIT — companion tags, event and epoch types |
-| `src/grace4/grammar.ts` | EDIT — `validateRunLedgerArtifact`, `validateRunCursorArtifact` |
-| `src/grace4/paths.ts` | READ ONLY — every authored path goes through `resolveContainedProjectPath` |
+| `src/artifact/types.ts` | EDIT — companion tags, event and epoch types |
+| `src/artifact/grammar.ts` | EDIT — `validateRunLedgerArtifact`, `validateRunCursorArtifact` |
+| `src/artifact/paths.ts` | READ ONLY — every authored path goes through `resolveContainedProjectPath` |
 | `src/grace-cursor.ts` | CREATE — the sole write surface |
 | `src/grace-cursor.test.ts` | CREATE |
 | `src/grace.ts` | EDIT — register the `cursor` subcommand |
@@ -941,7 +828,7 @@ mechanism is gone, stop and report.
 ### Layout
 
 ```
-.grace/changes/active/C-3/
+.ngrace/changes/active/C-3/
   spec.xml            immutable once approved
   plan.xml            immutable once approved
   run-ledger.xml      grows by one <Epoch-N> per fold; the truth
@@ -951,9 +838,9 @@ mechanism is gone, stop and report.
 
 ### Grammar
 
-`<GraceRunLedger>` and `<GraceRunCursor>` register as **change companion tags**, exactly as
+`<NgraceRunLedger>` and `<NgraceRunCursor>` register as **change companion tags**, exactly as
 `design-context.xml` does. Model `validateRunLedgerArtifact` on
-`validateChangeDesignContextArtifact` (`src/grace4/grammar.ts:574`).
+`validateChangeDesignContextArtifact` (`src/artifact/grammar.ts:574`).
 
 **`Epoch-N` is not a semantic anchor.** Do not add it to `ANCHOR_PATTERNS`. §8 of the review is
 explicit that reliability is loop and evidence, not more anchors, and `ANCHOR_PATTERNS` is
@@ -1028,7 +915,7 @@ Subcommands: `show`, `advance`, `pause`, `resume`, `fold`. Only `advance`, `paus
 `fold` write; `show` must not.
 
 → verify: a directory-snapshot test proves `cursor show` leaves the tree byte-identical. Model it
-on `src/grace4/scale-ergonomics.test.ts:212`, which already does exactly this for `doctor`.
+on `src/artifact/scale-ergonomics.test.ts:212`, which already does exactly this for `doctor`.
 
 **Step 3.5.5 — Implement `fold` with write-verify-delete ordering.**
 → verify: a test that injects a failure between write and delete leaves **both** the ledger and
@@ -1091,11 +978,11 @@ Record every attempt, not only outcomes; bound churn at two; escalate to replan 
 
 | File | Action |
 |---|---|
-| `src/grace4/types.ts` | EDIT — attempt event, failure signature |
+| `src/artifact/types.ts` | EDIT — attempt event, failure signature |
 | `src/grace-cursor.ts` | EDIT — attempt recording, budget accounting |
 | `src/grace-cursor.test.ts` | EDIT |
-| `skills/grace/grace-execute/SKILL.md` | EDIT — budget and escalation rule |
-| `plugins/grace/skills/grace/grace-execute/SKILL.md` | EDIT (mirror) |
+| `skills/ngrace/ngrace-execute/SKILL.md` | EDIT — budget and escalation rule |
+| `plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md` | EDIT (mirror) |
 
 ## 4.4 Design
 
@@ -1197,9 +1084,9 @@ is a property of the gate, not of any mechanism.
 | `src/gates/core.test.ts` | CREATE |
 | `src/gates/catalog.ts` | CREATE — `gate.*` codes |
 | `src/lint/core.ts` | READ ONLY — must not learn about gates |
-| `src/lint/core.test.ts` | EDIT — add the boundary test |
+| `src/lint/core.test.ts` | CREATE — add the boundary test (no such file exists yet) |
 | `src/grace.ts` | EDIT — wire gates into the transition commands |
-| `skills/grace/grace-execute/SKILL.md`, `grace-reviewer/SKILL.md` | EDIT |
+| `skills/ngrace/ngrace-execute/SKILL.md`, `ngrace-reviewer/SKILL.md` | EDIT |
 | (+ mirrors) | EDIT |
 
 ## 5.4 Design
@@ -1330,8 +1217,8 @@ otherwise.
 | `src/review/scorer.ts` | CREATE — corpus scoring for D4 |
 | `src/review/scorer.test.ts` | CREATE |
 | `src/grace.ts` | EDIT — `review` subcommand |
-| `skills/grace/grace-reviewer/SKILL.md` | EDIT — detachment contract |
-| `skills/grace/grace-setup-subagents/references/roles/*.md` | EDIT — read-only reviewer preset |
+| `skills/ngrace/ngrace-reviewer/SKILL.md` | EDIT — detachment contract |
+| `skills/ngrace/ngrace-setup-subagents/references/roles/*.md` | EDIT — read-only reviewer preset |
 | (+ mirrors) | EDIT |
 | `README.md` | EDIT — host capability matrix |
 
@@ -1457,7 +1344,7 @@ When verification fails, say *where it started going wrong* — not only where i
 | `src/verification/localize.ts` | CREATE |
 | `src/verification/localize.test.ts` | CREATE |
 | `src/grace-verification.ts` | EDIT — surface the localization |
-| `skills/grace/grace-fix/SKILL.md` | EDIT — consume it |
+| `skills/ngrace/ngrace-fix/SKILL.md` | EDIT — consume it |
 | (+ mirror) | EDIT |
 
 ## 7.4 Design
@@ -1504,7 +1391,7 @@ fallback appears anywhere in the output.
 → verify: a test asserting that a judgment-class review finding does not appear in localization
 output.
 
-**Step 7.5.5 — Surface in `ngrace verification` and consume in `grace-fix`.**
+**Step 7.5.5 — Surface in `ngrace verification` and consume in `ngrace-fix`.**
 → verify: output shows module, first divergent block, and expected-vs-observed. Report it.
 
 ## 7.6 Definition of done
@@ -1550,7 +1437,7 @@ cannot produce otherwise.
 | `src/grace-context.test.ts` | CREATE |
 | `src/grace.ts` | EDIT — `context` subcommand |
 | `src/grace-module.ts`, `src/grace-file.ts` | READ ONLY — the retrieval primitives already exist |
-| `skills/grace/grace-execute/SKILL.md` | EDIT |
+| `skills/ngrace/ngrace-execute/SKILL.md` | EDIT |
 | (+ mirror) | EDIT |
 
 ## 8.4 Design
@@ -1578,8 +1465,8 @@ deterministic.
 
 ### Skill subsetting
 
-Derived from cursor state: an approved plan mid-execution needs `grace-execute` and `grace-cli`,
-not `grace-init` or `grace-migrate`.
+Derived from cursor state: an approved plan mid-execution needs `ngrace-execute` and `ngrace-cli`,
+not `ngrace-init` or `ngrace-migrate`.
 
 **The toolkit recommends; the host loads.** `ngrace` cannot unload a skill from a model's context.
 This is a §5.2 conditional guarantee.
@@ -1674,12 +1561,12 @@ adjudicate them.
 
 | File | Action |
 |---|---|
-| `src/grace4/types.ts` | EDIT — `claimedConfidence` |
+| `src/artifact/types.ts` | EDIT — `claimedConfidence` |
 | `src/calibration/report.ts` | CREATE |
 | `src/calibration/report.test.ts` | CREATE |
 | `src/grace-doctor.ts` | EDIT — surface the report |
 | `src/lint/core.ts` | EDIT — the separation rule |
-| `skills/grace/grace-execute/SKILL.md` | EDIT |
+| `skills/ngrace/ngrace-execute/SKILL.md` | EDIT |
 | (+ mirror) | EDIT |
 
 ## 9.4 Design
@@ -1766,7 +1653,7 @@ checks.
 | `src/review/outcomes.ts` | CREATE — scope and resolution classification |
 | `src/review/outcomes.test.ts` | CREATE |
 | `src/grace-doctor.ts` | EDIT — the §4.9 subset |
-| `src/grace-doctor.test.ts` | EDIT |
+| `src/grace-doctor.test.ts` | CREATE — no such file exists yet |
 
 ## 10.4 Design
 
@@ -1864,7 +1751,7 @@ walkthrough written against unshipped behaviour is fiction.
 | `examples/polyglot/README.md` | EDIT — extend to a full lifecycle |
 | `README.md` | EDIT — tier table |
 | `docs/` | CREATE — walkthrough |
-| `skills/grace/grace-explainer/references/*` | EDIT |
+| `skills/ngrace/ngrace-explainer/references/*` | EDIT |
 | (+ mirrors) | EDIT |
 
 ## 11.4 Design
@@ -1952,7 +1839,7 @@ transition gates, `review.*` for review findings. **A `gate.*` code may not be e
 
 ### 12.2 Skill mirroring
 
-Every edit under `skills/grace/` is copied to `plugins/grace/skills/grace/` in the same commit.
+Every edit under `skills/ngrace/` is copied to `plugins/ngrace/skills/ngrace/` in the same commit.
 `validate-marketplace.ts` compares each listed skill directory recursively; an unmirrored
 `references/` file fails the build.
 
