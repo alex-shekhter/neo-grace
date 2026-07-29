@@ -6,7 +6,7 @@ supersededBy: null
 created: 2026-07-29
 updated: 2026-07-29
 baseline: 5.0.1
-targets: []
+targets: [6.0.0]
 context: ./review.md
 ---
 
@@ -18,9 +18,10 @@ context: ./review.md
 disagree, **this plan wins**.
 **Plan version:** 1.0 · 2026-07-29
 
-> **Releases are not assigned.** `targets` is empty and every Release cell reads `TBD`. Renaming
-> published skill identifiers is breaking, so this almost certainly ships as a major (review N4) —
-> but the number is a separate decision from the work.
+> **Release assigned 2026-07-29: `@neograce/cli` 6.0.0.** Every phase ships into one major, because
+> Phases 2, 3 and 4 each break a published surface and there is no coherent state between them — a
+> release with skills renamed but artifacts not would be worse than either endpoint. The package name
+> is unchanged (review N4) and the version line continues from 5.0.1 rather than restarting.
 
 ---
 
@@ -173,13 +174,13 @@ flowchart TB
 
 | # | Phase | Layer | Release | Status |
 |---|---|---|---|---|
-| 0 | Command name: `grace` → `ngrace` | Command | TBD | `COMPLETE` |
-| 1 | Centralize the scattered literals | — (enabling) | TBD | `COMPLETE` |
-| 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | TBD | `COMPLETE` |
-| 3 | Artifact surface: `.ngrace/` and root tags | Artifact | TBD | `COMPLETE` |
-| 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | TBD | `COMPLETE` |
-| 5 | Prose sweep and documentation | — | TBD | `COMPLETE` |
-| 6 | Reconcile RM-AGENT-RELIABILITY; release | — | TBD | `NOT STARTED` |
+| 0 | Command name: `grace` → `ngrace` | Command | 6.0.0 | `COMPLETE` |
+| 1 | Centralize the scattered literals | — (enabling) | 6.0.0 | `COMPLETE` |
+| 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | 6.0.0 | `COMPLETE` |
+| 3 | Artifact surface: `.ngrace/` and root tags | Artifact | 6.0.0 | `COMPLETE` |
+| 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | 6.0.0 | `COMPLETE` |
+| 5 | Prose sweep and documentation | — | 6.0.0 | `COMPLETE` |
+| 6 | Reconcile RM-AGENT-RELIABILITY; release | — | 6.0.0 | `NOT STARTED` |
 
 **Hard sequencing rules**, each with what breaks if violated:
 
@@ -198,7 +199,7 @@ question.** The board can be worked straight through.
 
 # PHASE 0 — Command name: `grace` → `ngrace`
 
-**Status:** `COMPLETE` · **Layer:** Command · **Release:** TBD
+**Status:** `COMPLETE` · **Layer:** Command · **Release:** 6.0.0
 
 ## 0.1 Objective
 
@@ -279,7 +280,7 @@ Revert `package.json` and one line in `src/grace.ts`.
 
 # PHASE 1 — Centralize the scattered literals
 
-**Status:** `COMPLETE` · **Layer:** enabling · **Release:** TBD
+**Status:** `COMPLETE` · **Layer:** enabling · **Release:** 6.0.0
 **Amended 2026-07-29 (A2, A3)** — see §9. All steps complete and verified at review. 284 setup
 literals centralized, 26 assertions deliberately left; the Phase 3 value flip costs 14 failing tests,
 down from 140.
@@ -535,7 +536,7 @@ Inline the constants. Behaviour-neutral in both directions.
 
 # PHASE 2 — Harness surface
 
-**Status:** `COMPLETE` · **Layer:** Harness · **Release:** TBD
+**Status:** `COMPLETE` · **Layer:** Harness · **Release:** 6.0.0
 
 ## 2.1 Objective
 
@@ -629,7 +630,7 @@ Reverse the `git mv`s and revert the manifests and `SKILL_PREFIX`. Large but mec
 
 # PHASE 3 — Artifact surface: `.ngrace/` and root tags
 
-**Status:** `COMPLETE` · **Layer:** Artifact · **Release:** TBD
+**Status:** `COMPLETE` · **Layer:** Artifact · **Release:** 6.0.0
 
 ## 3.1 Objective
 
@@ -805,7 +806,7 @@ Revert both constant values and the data edits; `git mv` the example back.
 
 # PHASE 4 — Grammar identity: retire the `Grace4` name in code
 
-**Status:** `COMPLETE` · **Layer:** Artifact · **Release:** TBD
+**Status:** `COMPLETE` · **Layer:** Artifact · **Release:** 6.0.0
 **Amended 2026-07-29 (A1)** — see §9.
 
 ## 4.1 Objective
@@ -957,7 +958,7 @@ Revert the constant and the template edits.
 
 # PHASE 5 — Prose sweep and documentation
 
-**Status:** `COMPLETE` · **Release:** TBD
+**Status:** `COMPLETE` · **Release:** 6.0.0
 **Amended 2026-07-29 (A1)** — see §9.
 
 ## 5.1 Objective
@@ -1058,7 +1059,7 @@ Revert the prose edits.
 
 # PHASE 6 — Reconcile RM-AGENT-RELIABILITY; release
 
-**Status:** `NOT STARTED` · **Release:** TBD
+**Status:** `NOT STARTED` · **Release:** 6.0.0
 
 ## 6.1 Objective
 
@@ -1261,6 +1262,7 @@ open questions, and a sixth invented mid-phase will not be recorded anywhere.
 | A6 | Tag centralization was never real; `ARTIFACT_TAG_PREFIX` is bypassed by 26 literals | 1 (cause), 3 (surfaced), 4 (fix) |
 | A7 | Dated evidence records are history and are never swept; reconcile symbols with paths or neither | 4 (cause), 6 (fix) |
 | A8 | Renaming a title left 8 hardcoded underlines 4 chars short; derive, do not re-count | 5 |
+| N4 | Release assigned: `@neograce/cli` 6.0.0 (A9) | 6 |
 
 ---
 
@@ -1421,6 +1423,40 @@ the plan assumed one. Neither can mask the other. Do not centralize the tag lite
 "finish the job"; that would merge the two alarms back into one.
 
 **Phase 1 is `COMPLETE`.**
+
+### A9 — 2026-07-29 · Release assigned: `@neograce/cli` 6.0.0
+
+Maintainer decision, closing the `targets: []` / `Release: TBD` gap that this plan carried from the
+day it was approved. Every phase ships into **one** major release.
+
+**Why one release and not several.** Phases 2, 3 and 4 each break a published surface, and there is no
+coherent state between them. A release with skills renamed but artifacts not would leave
+`$ngrace-init` scaffolding `.grace/`; artifacts renamed without the grammar re-base would leave
+`.ngrace/` files declaring `graceVersion="4.0"`. Each intermediate point is worse than either
+endpoint, so they are not separable even though they were built separately.
+
+**Package name unchanged** — review N4, and `scripts/release-bump.ts:45` already hardcodes
+`@neograce/cli`. The npm layer never collided with upstream; the collision was in the harness and
+artifact layers, both now moved. Renaming the package would have solved a problem that does not exist,
+and a fresh `1.0.0` would have required a new name anyway, since npm versions are effectively
+monotonic under a name.
+
+**Version continues from 5.0.1 rather than restarting.** What is discontinuous is the skill namespace
+and the artifact grammar, not the product. Asserting a product discontinuity that did not happen would
+be the same unchecked claim this repository exists to remove, expressed as a version number.
+
+**Two numbers now move independently:** product `6.0.0`, artifact grammar `1.0`. Documented in
+`README.md` per step 4.5.4.
+
+**What was done, and what deliberately was not.** All six version surfaces were updated through the
+repository's own exported `updateVersionSurfaceFiles`, plus `package.json` via
+`npm version --no-git-tag-version`, plus a `6.0.0` CHANGELOG entry — which `validate-marketplace`
+requires, since it refuses a declared version with no changelog block. `validate:release` passes,
+including the packed-CLI smoke test.
+
+**No tag was created and nothing was published.** `release:bump` also tags, pushes, and can publish a
+prerelease; those are outward-facing and are the maintainer's to run. This amendment records the
+number and prepares the surfaces. Phase 6's release step now has a target.
 
 ### A8 — 2026-07-29 · Phase 5 review: the rename broke every banner it renamed
 

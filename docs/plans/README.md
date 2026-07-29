@@ -6,7 +6,7 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 
 | ID | Title | Status | Baseline | Targets | Plan |
 |---|---|---|---|---|---|
-| `RM-NAMESPACE-SEPARATION` | Separate the `ngrace` namespace from upstream GRACE | `approved` | 5.0.1 | — | [plan.md](./active/RM-NAMESPACE-SEPARATION/plan.md) · [review.md](./active/RM-NAMESPACE-SEPARATION/review.md) |
+| `RM-NAMESPACE-SEPARATION` | Separate the `ngrace` namespace from upstream GRACE | `approved` | 5.0.1 | 6.0.0 | [plan.md](./active/RM-NAMESPACE-SEPARATION/plan.md) · [review.md](./active/RM-NAMESPACE-SEPARATION/review.md) |
 | `RM-AGENT-RELIABILITY` | Context discipline, scope drift, and self-verification | `draft` | 5.0.1 | — | [plan.md](./active/RM-AGENT-RELIABILITY/plan.md) · [decisions.md](./active/RM-AGENT-RELIABILITY/decisions.md) · [review-consolidated.md](./active/RM-AGENT-RELIABILITY/review-consolidated.md) · [review.md](./active/RM-AGENT-RELIABILITY/review.md) |
 | `RM-LANGUAGE-EXTENSIBILITY` | Language bundles, conformance fixtures, and parser strategy | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-LANGUAGE-EXTENSIBILITY/review.md) |
 
