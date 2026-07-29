@@ -49,8 +49,39 @@ git push                                   # first push only: git push -u origin
 bumps break packaging and release tooling before they break tests, so a branch that touches the
 release surface needs `validate:release` even though CI will pass without it.
 
-Open the PR against **`alex-shekhter/neo-grace`** — GitHub defaults the base to
-`osovv/grace-marketplace` because this is a fork, and it gets this wrong every time.
+### Opening the PR
+
+Use `gh`, not the web UI. This repository is a fork of `osovv/grace-marketplace`, so **the UI
+preselects the upstream as the base and gets it wrong every time** — a PR opened that way proposes
+your commits to someone else's repository. `gh` takes the base explicitly, which removes the mistake
+instead of asking you to catch it.
+
+```bash
+gh pr create \
+  --repo alex-shekhter/neo-grace \
+  --base main \
+  --head "$(git rev-parse --abbrev-ref HEAD)" \
+  --title 'fix: describe the change' \
+  --body-file .git/PR_BODY.md
+```
+
+Three things in that command are load-bearing, and each has drawn blood:
+
+- **`--repo` and `--base` are both explicit.** `--repo` overrides the fork default; `--base main`
+  avoids inheriting whatever `gh` infers.
+- **Single quotes around `--title`.** In an interactive zsh, `!` inside *double* quotes is
+  history-expanded, so `"refactor!: …"` posts as `refactor…` — the title silently loses its
+  breaking-change marker. Single quotes prevent it. This is worth caring about beyond cosmetics: see
+  the squash note below.
+- **Write the body to a file first, and check it exists.** `--body-file` pointing at a missing path
+  does **not** fail — `gh` creates the PR with an empty body. `[ -s .git/PR_BODY.md ] || echo MISSING`
+  before you run it. `.git/` is a convenient home because it is never committed.
+
+Fixing either afterwards is cheap, and better than merging a bodyless PR:
+
+```bash
+gh pr edit --repo alex-shekhter/neo-grace --title 'refactor!: …' --body-file .git/PR_BODY.md
+```
 
 Wait for `validate`, `dart-adapter` and `windows-compatibility`, then merge. Approvals are
 set to 0 because GitHub does not let you approve your own pull request.
@@ -69,6 +100,10 @@ So when a branch is long, **the squash message is doing the work of every commit
 Write it deliberately, and if any commit on the branch was marked `!` or carried a
 `BREAKING CHANGE:` footer, carry that footer into the squash body — otherwise the breaking change
 exists in the diff and nowhere in the history.
+
+GitHub seeds the squash message from the **PR title and body**, which is why the two quoting traps
+above matter more than they look: a title that lost its `!` and a body that never uploaded produce a
+squash commit that reads like a routine change over a diff that renames every published skill.
 
 ## After the merge — checking a branch landed, then deleting it
 
