@@ -3,7 +3,7 @@ import path from "node:path";
 
 import type { Grace4Issue } from "./types";
 import { ANCHOR_PATTERNS } from "./types";
-import { ProjectPathError, resolveContainedProjectPath } from "./paths";
+import { ARTIFACT_DIR, ProjectPathError, resolveContainedProjectPath } from "./paths";
 import type { GraphAnchorRecord, GraphProjection, VerificationProjection } from "./projections";
 import { stateMatchesEvidence } from "./projections";
 import { childText, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
@@ -348,7 +348,7 @@ function evaluateMustUseToken(assertion: GraceAssertion, context: AssertionConte
   const tokens = loadDesignTokenValues(context.root);
   const tokenValue = tokens.get(tokenId);
   if (!tokenValue) {
-    return [assertionIssue(assertion, `Design token ${tokenId} is not defined in .grace/context/design-system.xml.`)];
+    return [assertionIssue(assertion, `Design token ${tokenId} is not defined in ${ARTIFACT_DIR}/context/design-system.xml.`)];
   }
 
   const contents = readAssertionFile(assertion, context, fileValue);
@@ -456,7 +456,7 @@ function evaluateMustUphold(assertion: GraceAssertion, context: AssertionContext
   const invariants = loadInvariants(context.root);
   const inv = invariants.get(invariantId);
   if (!inv) {
-    return [assertionIssue(assertion, `Invariant ${invariantId} is not defined in .grace/context/invariants.xml.`)];
+    return [assertionIssue(assertion, `Invariant ${invariantId} is not defined in ${ARTIFACT_DIR}/context/invariants.xml.`)];
   }
 
   if (inv.appliesTo.length > 0) {
@@ -642,7 +642,7 @@ type InvariantRecord = {
 
 function loadInvariants(projectRoot: string): Map<string, InvariantRecord> {
   const result = new Map<string, InvariantRecord>();
-  const file = path.join(projectRoot, ".grace", "context", "invariants.xml");
+  const file = path.join(projectRoot, ARTIFACT_DIR, "context", "invariants.xml");
   if (!existsSync(file)) {
     return result;
   }
@@ -897,7 +897,7 @@ function readAssertionFile(
 
 function loadDesignTokenValues(projectRoot: string): Map<string, string> {
   const tokens = new Map<string, string>();
-  const file = path.join(projectRoot, ".grace", "context", "design-system.xml");
+  const file = path.join(projectRoot, ARTIFACT_DIR, "context", "design-system.xml");
   if (!existsSync(file)) {
     return tokens;
   }
@@ -1063,7 +1063,7 @@ function inferProjectRoot(planFile: string): string {
   const resolvedPlan = path.resolve(planFile);
   let current = path.dirname(resolvedPlan);
   while (path.dirname(current) !== current) {
-    if (path.basename(current) === ".grace") {
+    if (path.basename(current) === ARTIFACT_DIR) {
       return path.dirname(current);
     }
     current = path.dirname(current);

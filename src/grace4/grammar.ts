@@ -17,7 +17,7 @@ import {
   type SemanticAnchorClassification,
   type SemanticAnchorFamily,
 } from "./types";
-import { ProjectPathError, resolveContainedProjectPath } from "./paths";
+import { ARTIFACT_DIR, ProjectPathError, resolveContainedProjectPath } from "./paths";
 import { childText, readGraceXmlArtifact, walkNodes, type GraceXmlNode, type ParsedGraceXmlArtifact } from "./xml";
 
 const STANDARD_ROOT_TAGS = new Set<string>(GRACE4_ROOT_TAGS);
@@ -635,7 +635,7 @@ export function validateGrace4Project(root: string): Grace4ValidationResult {
   }
 
   if (projectKind === "none") {
-    issues.push(issue("error", "project.missing-grace", projectRoot, "No .grace directory found."));
+    issues.push(issue("error", "project.missing-grace", projectRoot, `No ${ARTIFACT_DIR} directory found.`));
     return { root: projectRoot, issues, artifacts };
   }
 

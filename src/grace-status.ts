@@ -6,8 +6,9 @@ import { defineCommand, type CommandDef, runMain } from "citty";
 
 import { lintGraceProject } from "./lint/core";
 import type { AnalysisCoverage, LintIssue } from "./lint/types";
-import { toProjectRelativePath } from "./grace4/paths";
+import { ARTIFACT_DIR, toProjectRelativePath } from "./grace4/paths";
 import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "./grace4/project";
+import { skillRef } from "./grace4/types";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./grace4/projections";
 import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope } from "./grace4/scope";
 import { readGraceXmlArtifact } from "./grace4/xml";
@@ -168,17 +169,17 @@ function deriveChangeStates(facts: ChangeBundleFacts): string[] {
 }
 
 function chooseNextAction(result: Omit<StatusResult, "nextAction">) {
-  if (result.projectKind === "grace3") return "Use $grace-migrate to migrate legacy GRACE 3 docs to .grace artifacts.";
-  if (result.projectKind === "none") return "Run $grace-init to create a GRACE 4 .grace skeleton.";
+  if (result.projectKind === "grace3") return `Use ${skillRef("migrate")} to migrate legacy GRACE 3 docs to ${ARTIFACT_DIR} artifacts.`;
+  if (result.projectKind === "none") return `Run ${skillRef("init")} to create a GRACE 4 ${ARTIFACT_DIR} skeleton.`;
   if (result.derivedStates.includes("approved-contract-drift")) return "Hard stop: an approved spec.xml or plan.xml changed. Restore it or supersede and replan through a new C-* bundle.";
   if (result.derivedStates.includes("stale-plan")) return "Supersede and replan the stale approved change; do not edit the approved plan or continue execution.";
   if (result.integrity.errors > 0) return "Run ngrace lint --path <project-root> and fix GRACE 4 integrity errors.";
-  if (result.derivedStates.includes("unexplained-observed-drift")) return "Use $grace-refresh to reconcile unexplained repository changes through a new GraceChangeSpec and GraceChangePlan.";
+  if (result.derivedStates.includes("unexplained-observed-drift")) return `Use ${skillRef("refresh")} to reconcile unexplained repository changes through a new GraceChangeSpec and GraceChangePlan.`;
   if (result.derivedStates.includes("scope-overlap")) return "Review active change scope overlaps; replan or execute sequentially before parallel-safe work.";
-  if (result.changes.some((change) => change.derivedStates.includes("ready-to-execute"))) return "Run $grace-execute for approved active changes.";
-  if (result.changes.some((change) => change.derivedStates.includes("needs-plan"))) return "Run $grace-plan for the approved GraceChangeSpec.";
+  if (result.changes.some((change) => change.derivedStates.includes("ready-to-execute"))) return `Run ${skillRef("execute")} for approved active changes.`;
+  if (result.changes.some((change) => change.derivedStates.includes("needs-plan"))) return `Run ${skillRef("plan")} for the approved GraceChangeSpec.`;
   if (result.changes.some((change) => change.derivedStates.includes("needs-plan-approval"))) return "Review and approve the draft GraceChangePlan, or replan if stale.";
-  if (result.summary.activeChanges === 0) return "Create a change with $grace-spec, then plan it with $grace-plan.";
+  if (result.summary.activeChanges === 0) return `Create a change with ${skillRef("spec")}, then plan it with ${skillRef("plan")}.`;
   return "Project is healthy. Continue with the next approved GRACE 4 workflow step.";
 }
 
@@ -430,18 +431,18 @@ function activeScopeExplainsFile(root: string, scope: ActiveChangeScope, file: s
     return true;
   }
 
-  if (file.startsWith(".grace/context/")) {
+  if (file.startsWith(`${ARTIFACT_DIR}/context/`)) {
     const contextFile = path.basename(file);
     return scope.durable.contextArtifacts.some((artifact) => artifact === contextFile || artifact.endsWith(`/${contextFile}`));
   }
-  if (file.startsWith(".grace/graph/")) {
+  if (file.startsWith(`${ARTIFACT_DIR}/graph/`)) {
     const route = routes.graphFiles.get(file);
     return Boolean(route && (
       scope.durable.graphDocuments.some((document) => route.documents.has(document))
       || scope.durable.graphAnchors.some((anchor) => route.anchors.has(anchor))
     ));
   }
-  if (file.startsWith(".grace/verification/")) {
+  if (file.startsWith(`${ARTIFACT_DIR}/verification/`)) {
     const route = routes.verificationFiles.get(file);
     return Boolean(route && (
       scope.durable.verificationDocuments.some((document) => route.documents.has(document))

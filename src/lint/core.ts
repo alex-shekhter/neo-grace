@@ -6,6 +6,7 @@ import { validateGrace4Project } from "../grace4/grammar";
 import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "../grace4/project";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "../grace4/projections";
 import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution } from "../grace4/scope";
+import { ARTIFACT_DIR } from "../grace4/paths";
 import { ANCHOR_PATTERNS, type Grace4Issue, type Grace4ProjectPaths } from "../grace4/types";
 import { readGraceXmlArtifact } from "../grace4/xml";
 import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "../language-registry";
@@ -93,7 +94,7 @@ function validateGovernedFiles(result: LintResult, root: string): FileMarkupReco
     return records;
   }
 
-  const files = collectCodeFiles(root, [".grace", ...(config?.ignoredDirs ?? [])], root, config?.codeExtensions);
+  const files = collectCodeFiles(root, [ARTIFACT_DIR, ...(config?.ignoredDirs ?? [])], root, config?.codeExtensions);
   result.filesChecked = files.length;
   const adapterBackedCounts = new Map<string, number>();
   const unverifiedCounts = new Map<string, number>();
@@ -374,7 +375,7 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
       severity: "error",
       code: "project.missing-grace",
       file: root,
-      message: "No .grace directory found.",
+      message: `No ${ARTIFACT_DIR} directory found.`,
     });
     return finalizeResult(result);
   }

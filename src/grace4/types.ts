@@ -1,30 +1,45 @@
 /** Supported GRACE artifact grammar version for this release. */
 export const GRACE4_VERSION = "4.0" as const;
 
+/**
+ * Prefix for XML root tags on project artifacts.
+ * Phase 1 centralizes the literal; Phase 3 renames the value.
+ */
+export const ARTIFACT_TAG_PREFIX = "Grace" as const;
+
 /** Standard GRACE 4 root tags accepted by Artifact Grammar. */
 export const GRACE4_ROOT_TAGS = [
-  "GraceRequirements",
-  "GraceTechnology",
-  "GracePrinciples",
-  "GraceDeployment",
-  "GraceUXGuidelines",
-  "GraceDesignSystem",
-  "GraceInvariants",
-  "GraceGraphIndex",
-  "GraceGraphDocument",
-  "GraceVerificationIndex",
-  "GraceVerificationDocument",
-  "GraceChangeSpec",
-  "GraceChangePlan",
+  `${ARTIFACT_TAG_PREFIX}Requirements`,
+  `${ARTIFACT_TAG_PREFIX}Technology`,
+  `${ARTIFACT_TAG_PREFIX}Principles`,
+  `${ARTIFACT_TAG_PREFIX}Deployment`,
+  `${ARTIFACT_TAG_PREFIX}UXGuidelines`,
+  `${ARTIFACT_TAG_PREFIX}DesignSystem`,
+  `${ARTIFACT_TAG_PREFIX}Invariants`,
+  `${ARTIFACT_TAG_PREFIX}GraphIndex`,
+  `${ARTIFACT_TAG_PREFIX}GraphDocument`,
+  `${ARTIFACT_TAG_PREFIX}VerificationIndex`,
+  `${ARTIFACT_TAG_PREFIX}VerificationDocument`,
+  `${ARTIFACT_TAG_PREFIX}ChangeSpec`,
+  `${ARTIFACT_TAG_PREFIX}ChangePlan`,
 ] as const;
 
 /** Change-bundle companion root tags (valid only inside change bundles). */
 export const GRACE4_CHANGE_COMPANION_TAGS = [
-  "GraceChangeDesignContext",
+  `${ARTIFACT_TAG_PREFIX}ChangeDesignContext`,
 ] as const;
 
 export type Grace4RootTag = (typeof GRACE4_ROOT_TAGS)[number];
 export type Grace4ChangeCompanionTag = (typeof GRACE4_CHANGE_COMPANION_TAGS)[number];
+
+/**
+ * Prefix for marketplace skill identifiers printed as next-action guidance.
+ * Phase 1 centralizes the literal; Phase 2 renames the value.
+ */
+export const SKILL_PREFIX = "grace" as const;
+
+/** Formats a skill reference as `$<prefix>-<suffix>` for CLI guidance strings. */
+export const skillRef = (suffix: string): string => `$${SKILL_PREFIX}-${suffix}`;
 
 /** Lifecycle statuses allowed on GraceChangeSpec and GraceChangePlan roots. */
 export const CHANGE_STATUSES = ["draft", "approved", "applied", "rejected", "cancelled", "superseded"] as const;

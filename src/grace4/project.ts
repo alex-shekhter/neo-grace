@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
+import { ARTIFACT_DIR } from "./paths";
 import type { Grace4ProjectPaths, GraceProjectKind } from "./types";
 
 const LEGACY_GRACE3_DOCUMENTS = [
@@ -15,7 +16,7 @@ const LEGACY_GRACE3_DOCUMENTS = [
 /** Resolves canonical GRACE 4 project paths from a repository root. */
 export function resolveGrace4Paths(root: string): Grace4ProjectPaths {
   const resolvedRoot = path.resolve(root);
-  const graceDir = path.join(resolvedRoot, ".grace");
+  const graceDir = path.join(resolvedRoot, ARTIFACT_DIR);
   const graphDir = path.join(graceDir, "graph");
   const verificationDir = path.join(graceDir, "verification");
   const changesDir = path.join(graceDir, "changes");
@@ -37,7 +38,7 @@ export function resolveGrace4Paths(root: string): Grace4ProjectPaths {
 export function detectGraceProjectKind(root: string): GraceProjectKind {
   const resolvedRoot = path.resolve(root);
 
-  if (existsSync(path.join(resolvedRoot, ".grace"))) {
+  if (existsSync(path.join(resolvedRoot, ARTIFACT_DIR))) {
     return "grace4";
   }
 
@@ -52,8 +53,8 @@ export function detectGraceProjectKind(root: string): GraceProjectKind {
 export function formatGrace3MigrationGuidance(root: string): string {
   return [
     `Legacy GRACE 3 artifacts were detected at ${path.resolve(root)}.`,
-    "GRACE 4 tooling validates only the .grace artifact model.",
-    "Use the grace-migrate skill to review and agent-apply a migration to .grace artifacts.",
+    `GRACE 4 tooling validates only the ${ARTIFACT_DIR} artifact model.`,
+    `Use the grace-migrate skill to review and agent-apply a migration to ${ARTIFACT_DIR} artifacts.`,
     "The CLI does not migrate, convert, or validate GRACE 3 docs as GRACE 4 state.",
   ].join(" ");
 }

@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, realpathSync } from "node:fs";
 import path from "node:path";
 
-import { ProjectPathError, normalizeProjectRelativePath, resolveContainedProjectPath } from "./paths";
+import { ARTIFACT_DIR, ProjectPathError, normalizeProjectRelativePath, resolveContainedProjectPath } from "./paths";
 import type { GraphProjection, VerificationProjection } from "./projections";
 import { ANCHOR_PATTERNS, GRACE4_CONTEXT_ARTIFACTS, type Grace4Issue, type Grace4ProjectPaths } from "./types";
 import { readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
@@ -639,14 +639,14 @@ function detectScopeCaseSensitivity(changes: ActiveChangeScope[]): boolean {
   if (!bundle) {
     return defaultCaseSensitivity();
   }
-  const marker = `${path.sep}.grace${path.sep}`;
+  const marker = `${path.sep}${ARTIFACT_DIR}${path.sep}`;
   const markerIndex = bundle.indexOf(marker);
   if (markerIndex < 0) {
     return defaultCaseSensitivity();
   }
   const root = bundle.slice(0, markerIndex);
-  const graceDir = path.join(root, ".grace");
-  const alternateGraceDir = path.join(root, ".GRACE");
+  const graceDir = path.join(root, ARTIFACT_DIR);
+  const alternateGraceDir = path.join(root, ARTIFACT_DIR.toUpperCase());
   if (!existsSync(alternateGraceDir)) {
     return true;
   }

@@ -1,11 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { getModuleImplementationFiles, getModuleName, getModulePath, getModuleType, resolveModule } from "./core";
+import { ARTIFACT_DIR } from "../grace4/paths";
 import { stateMatchesEvidence } from "../grace4/projections";
+import { skillRef } from "../grace4/types";
 import { readGraceXmlArtifact } from "../grace4/xml";
 import { hasRuntimeMarkerEvidence, parseMarkerBlockName } from "../project-utils";
 import { checkModuleCheckReferences } from "../verification/check-references";
+import { getModuleImplementationFiles, getModuleName, getModulePath, getModuleType, resolveModule } from "./core";
 import type { GraceArtifactIndex, ModuleHealthIssue, ModuleHealthRecord, ModuleRecord } from "./types";
 
 function isLikelyTestPath(relativePath: string) {
@@ -32,13 +34,13 @@ function implementationTexts(index: GraceArtifactIndex, moduleRecord: ModuleReco
 
 function buildNextAction(moduleRecord: ModuleRecord, blockers: ModuleHealthIssue[], warnings: ModuleHealthIssue[]) {
   if (blockers.some((issue) => issue.code.startsWith("health.missing-verification"))) {
-    return `Run $grace-verification to add or repair ${moduleRecord.id}'s V-M-* entry in .grace/verification.`;
+    return `Run ${skillRef("verification")} to add or repair ${moduleRecord.id}'s V-M-* entry in ${ARTIFACT_DIR}/verification.`;
   }
   if (blockers.some((issue) => issue.code.startsWith("health.missing-implementation"))) {
-    return `Run $grace-execute for a planned change or link runtime files to ${moduleRecord.id}.`;
+    return `Run ${skillRef("execute")} for a planned change or link runtime files to ${moduleRecord.id}.`;
   }
   if (blockers.some((issue) => issue.code.startsWith("health.required-log-marker"))) {
-    return `Align runtime evidence and semantic blocks for ${moduleRecord.id} with .grace/verification.`;
+    return `Align runtime evidence and semantic blocks for ${moduleRecord.id} with ${ARTIFACT_DIR}/verification.`;
   }
   if (blockers.length > 0) {
     return `Fix the recorded blockers for ${moduleRecord.id} before calling it healthy.`;
@@ -58,7 +60,7 @@ export function buildModuleHealth(index: GraceArtifactIndex, moduleRecord: Modul
   const verificationTestFiles = Array.from(new Set(moduleRecord.verifications.flatMap((entry) => entry.testFiles))).sort();
 
   if (moduleRecord.verifications.length === 0) {
-    pushIssue(blockers, "error", "health.missing-verification", `Module ${moduleRecord.id} has no V-M-* verification entry.`, `Add V-${moduleRecord.id} under .grace/verification.`);
+    pushIssue(blockers, "error", "health.missing-verification", `Module ${moduleRecord.id} has no V-M-* verification entry.`, `Add V-${moduleRecord.id} under ${ARTIFACT_DIR}/verification.`);
   }
   if (implementationFiles.length === 0) {
     pushIssue(blockers, "error", "health.missing-implementation-files", `Module ${moduleRecord.id} has no linked non-test governed files.`, `Implement ${moduleRecord.id} or link runtime files with LINKS in START_MODULE_CONTRACT.`);
@@ -66,10 +68,10 @@ export function buildModuleHealth(index: GraceArtifactIndex, moduleRecord: Modul
 
   for (const entry of moduleRecord.verifications) {
     if (entry.moduleChecks.length === 0) {
-      pushIssue(blockers, "error", "health.verification-missing-commands", `${entry.id} has no command evidence.`, `Add Command entries to ${entry.id} in .grace/verification.`);
+      pushIssue(blockers, "error", "health.verification-missing-commands", `${entry.id} has no command evidence.`, `Add Command entries to ${entry.id} in ${ARTIFACT_DIR}/verification.`);
     }
     if (entry.scenarios.length === 0) {
-      pushIssue(blockers, "error", "health.verification-missing-scenarios", `${entry.id} has no scenarios.`, `Add Scenario entries to ${entry.id} in .grace/verification.`);
+      pushIssue(blockers, "error", "health.verification-missing-scenarios", `${entry.id} has no scenarios.`, `Add Scenario entries to ${entry.id} in ${ARTIFACT_DIR}/verification.`);
     }
     if (entry.requiredLogMarkers.length === 0 && entry.requiredTraceAssertions.length === 0) {
       pushIssue(warnings, "warning", "health.verification-missing-evidence", `${entry.id} has no markers or trace assertions.`, `Add Marker or TraceAssertion entries to ${entry.id}.`);
@@ -173,7 +175,7 @@ function evaluateUiStateHealth(
  * at any depth, so a nested one flips the answer for the whole project.
  */
 function isUxGuidelinesApplicable(projectRoot: string): boolean {
-  const file = path.join(projectRoot, ".grace", "context", "ux-guidelines.xml");
+  const file = path.join(projectRoot, ARTIFACT_DIR, "context", "ux-guidelines.xml");
   if (!existsSync(file)) {
     return false;
   }

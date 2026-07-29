@@ -1,3 +1,5 @@
+import { ARTIFACT_DIR } from "../grace4/paths";
+import { skillRef } from "../grace4/types";
 import type { LintIssue } from "./types";
 
 type LintIssueGuide = {
@@ -47,7 +49,7 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
       "DEPENDS lists an M-* module anchor that does not exist in the knowledge graph. "
       + "Non-anchor free-text dependency names are ignored; only M-* tokens are validated.",
     remediation: [
-      "Add the missing module to .grace/graph or correct the DEPENDS list.",
+      `Add the missing module to ${ARTIFACT_DIR}/graph or correct the DEPENDS list.`,
       "Use free-text names (e.g. postgres) for external libraries — only M-* anchors are checked.",
     ],
   },
@@ -56,7 +58,7 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
     explanation:
       "LINKS references an M-*, DF-*, or V-M-* anchor that does not exist in the graph or verification projection.",
     remediation: [
-      "Link only anchors that exist under .grace/graph and .grace/verification.",
+      `Link only anchors that exist under ${ARTIFACT_DIR}/graph and ${ARTIFACT_DIR}/verification.`,
       "Add the missing module, data flow, or verification entry, or remove the stale link.",
     ],
   },
@@ -356,31 +358,31 @@ const PREFIX_GUIDES: Array<{ prefix: string; title: string; explanation: string;
   {
     prefix: "project.",
     title: "GRACE 4 Project Detection Issue",
-    explanation: "The CLI could not identify a valid GRACE 4 .grace project state, or it detected legacy GRACE 3 artifacts instead.",
-    remediation: ["Run $grace-init for a new GRACE 4 project or $grace-migrate for legacy GRACE 3 projects.", "Do not rely on dual-mode docs/*.xml validation."],
+    explanation: `The CLI could not identify a valid GRACE 4 ${ARTIFACT_DIR} project state, or it detected legacy GRACE 3 artifacts instead.`,
+    remediation: [`Run ${skillRef("init")} for a new GRACE 4 project or ${skillRef("migrate")} for legacy GRACE 3 projects.`, "Do not rely on dual-mode docs/*.xml validation."],
   },
   {
     prefix: "artifact.",
     title: "GRACE 4 Artifact Grammar Issue",
-    explanation: "A .grace XML artifact violates the GRACE 4 root, metadata, version, or semantic-anchor grammar.",
+    explanation: `A ${ARTIFACT_DIR} XML artifact violates the GRACE 4 root, metadata, version, or semantic-anchor grammar.`,
     remediation: ["Use approved GRACE 4 root tags with graceVersion=\"4.0\".", "Keep semantic anchors as XML tags, never attributes."],
   },
   {
     prefix: "change.",
     title: "GRACE 4 Change Lifecycle Issue",
     explanation: "A change spec or plan has an invalid status, wrapper shape, or active/archive location for the GRACE 4 lifecycle.",
-    remediation: ["Keep draft and approved bundles under .grace/changes/active.", "Move applied, rejected, cancelled, or superseded bundles to archive with matching statuses."],
+    remediation: [`Keep draft and approved bundles under ${ARTIFACT_DIR}/changes/active.`, "Move applied, rejected, cancelled, or superseded bundles to archive with matching statuses."],
   },
   {
     prefix: "context.",
     title: "GRACE 4 Context Artifact Issue",
-    explanation: "A required .grace/context artifact is missing, has the wrong root, or has invalid applicability metadata.",
+    explanation: `A required ${ARTIFACT_DIR}/context artifact is missing, has the wrong root, or has invalid applicability metadata.`,
     remediation: ["Create all five context artifacts from the GRACE 4 init template.", "If deployment or UX is not applicable, include a concrete reason."],
   },
   {
     prefix: "projection.",
     title: "GRACE 4 Projection Integrity Issue",
-    explanation: "Graph or verification index routes do not match the logical projection built from .grace documents.",
+    explanation: `Graph or verification index routes do not match the logical projection built from ${ARTIFACT_DIR} documents.`,
     remediation: ["Synchronize GD-* and VD-* index ownership with document wrappers.", "Ensure every M-* has deterministic V-M-* coverage."],
   },
   {
@@ -410,14 +412,14 @@ const PREFIX_GUIDES: Array<{ prefix: string; title: string; explanation: string;
   {
     prefix: "graph.",
     title: "Knowledge Graph Drift",
-    explanation: "The .grace/graph index references modules or entries that do not align with the current verification or filesystem state.",
-    remediation: ["Synchronize GD-* index entries with the actual .grace/graph documents.", "Run $grace-refresh if the drift came from real code changes."],
+    explanation: `The ${ARTIFACT_DIR}/graph index references modules or entries that do not align with the current verification or filesystem state.`,
+    remediation: [`Synchronize GD-* index entries with the actual ${ARTIFACT_DIR}/graph documents.`, `Run ${skillRef("refresh")} if the drift came from real code changes.`],
   },
   {
     prefix: "plan.",
     title: "Change Plan Drift",
     explanation: "A GraceChangePlan is missing assertions, scopes, or verification refs needed for governed execution.",
-    remediation: ["Update the GraceChangeSpec and GraceChangePlan so modules, assertions, and verification refs match the current .grace state.", "Use $grace-spec or $grace-plan when the architecture changed."],
+    remediation: [`Update the GraceChangeSpec and GraceChangePlan so modules, assertions, and verification refs match the current ${ARTIFACT_DIR} state.`, `Use ${skillRef("spec")} or ${skillRef("plan")} when the architecture changed.`],
   },
   {
     prefix: "analysis.",

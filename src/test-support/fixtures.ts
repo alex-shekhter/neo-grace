@@ -10,6 +10,8 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileS
 import os from "node:os";
 import path from "node:path";
 
+import { ARTIFACT_DIR } from "../grace4/paths";
+
 // ---------------------------------------------------------------------------
 // Spec types
 // ---------------------------------------------------------------------------
@@ -262,7 +264,7 @@ export class GraceProjectBuilder {
     for (const name of Object.keys(DEFAULT_CONTEXT) as ContextFileName[]) {
       writeProjectFile(
         this.root,
-        `.grace/context/${name}.xml`,
+        `${ARTIFACT_DIR}/context/${name}.xml`,
         this.contextOverrides[name] ?? DEFAULT_CONTEXT[name],
       );
     }
@@ -275,7 +277,7 @@ export class GraceProjectBuilder {
     const ownsXml = ownedIds.map((id) => `<${id} />`).join("");
     writeProjectFile(
       this.root,
-      ".grace/graph/index.xml",
+      `${ARTIFACT_DIR}/graph/index.xml`,
       `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns>${ownsXml}</Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
     );
 
@@ -298,7 +300,7 @@ export class GraceProjectBuilder {
 
     writeProjectFile(
       this.root,
-      ".grace/graph/main.xml",
+      `${ARTIFACT_DIR}/graph/main.xml`,
       `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>${moduleElements}${dataFlowElements}</GD-MAIN></GraceGraphDocument>`,
     );
 
@@ -328,7 +330,7 @@ export class GraceProjectBuilder {
       .join("");
     writeProjectFile(
       this.root,
-      ".grace/verification/index.xml",
+      `${ARTIFACT_DIR}/verification/index.xml`,
       `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns>${verificationOwns}</Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
     );
 
@@ -357,13 +359,13 @@ export class GraceProjectBuilder {
 
     writeProjectFile(
       this.root,
-      ".grace/verification/main.xml",
+      `${ARTIFACT_DIR}/verification/main.xml`,
       `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>${verificationElements}</VD-MAIN></GraceVerificationDocument>`,
     );
 
     // 4. Change directories + optional bundles
-    mkdirSync(path.join(this.root, ".grace", "changes", "active"), { recursive: true });
-    mkdirSync(path.join(this.root, ".grace", "changes", "archive"), { recursive: true });
+    mkdirSync(path.join(this.root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+    mkdirSync(path.join(this.root, ARTIFACT_DIR, "changes", "archive"), { recursive: true });
 
     for (const change of this.changes) {
       writeChangeBundle(this.root, change);
@@ -381,7 +383,7 @@ export class GraceProjectBuilder {
 function writeChangeBundle(root: string, options: ChangeSpec): void {
   const location = options.location ?? "active";
   const changeId = options.changeId;
-  const bundleRoot = `.grace/changes/${location}/${changeId}`;
+  const bundleRoot = `${ARTIFACT_DIR}/changes/${location}/${changeId}`;
   const specStatus = options.specStatus ?? "draft";
 
   writeProjectFile(
