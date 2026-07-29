@@ -71,7 +71,31 @@ jobs:
               exit 1
             fi
           fi
+          # All three outputs are written here, in the step that computes them. PRERELEASE and
+          # TAG are shell variables local to this step: a later `run:` is a separate process and
+          # would read them as empty. They must not be moved out of this block.
           echo "version=${PKG_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "prerelease=${PRERELEASE}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+
+      - name: Assert the publish routing output is decidable
+        env:
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          # publish-prerelease and publish-stable are gated on `prerelease` being exactly
+          # 'true' or 'false'. Anything else matches neither, so BOTH jobs skip, and the run
+          # still reports success because a skipped job is not a failed one. Fail loudly here
+          # instead of shipping nothing quietly.
+          if [ "${PRERELEASE}" != "true" ] && [ "${PRERELEASE}" != "false" ]; then
+            echo "::error::verify.outputs.prerelease is '${PRERELEASE}', expected 'true' or 'false'. Both publish jobs would skip and this run would look green while publishing nothing."
+            exit 1
+          fi
+          if [ -z "${TAG}" ]; then
+            echo "::error::verify.outputs.tag is empty; the publish jobs cannot identify what to release."
+            exit 1
+          fi
+          echo "Routing to $([ "${PRERELEASE}" = "true" ] && echo publish-prerelease || echo publish-stable) for ${TAG}."
 
       - name: Fail fast when the version is already published
         run: |
@@ -82,8 +106,6 @@ jobs:
             exit 1
           fi
           echo "${PKG_NAME}@${PKG_VERSION} is not published yet."
-          echo "prerelease=${PRERELEASE}" >> "${GITHUB_OUTPUT}"
-          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -214,3 +236,40 @@ jobs:
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # A tag push must publish. Both publish jobs are gated on a `verify` output, so a mistake in
+  # that output makes both of them skip — and a run whose jobs all skipped reports success.
+  # This job exists to turn that silence into a failure: it asserts that exactly one publish
+  # path actually ran. It is the reason a green publish run can be trusted to mean "shipped".
+  #
+  # A declined `stable-release` deployment also lands here as a failure. That is intended: the
+  # deployment was declined, so nothing shipped, and the run should not read green.
+  confirm-published:
+    needs: [verify, publish-prerelease, publish-stable]
+    if: always() && needs.verify.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert exactly one publish path succeeded
+        env:
+          PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+          PRERELEASE_RESULT: ${{ needs.publish-prerelease.result }}
+          STABLE_RESULT: ${{ needs.publish-stable.result }}
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          echo "prerelease=${PRERELEASE} publish-prerelease=${PRERELEASE_RESULT} publish-stable=${STABLE_RESULT}"
+
+          if [ "${PRERELEASE}" = "true" ]; then
+            EXPECTED="publish-prerelease"; ACTUAL="${PRERELEASE_RESULT}"; OTHER="${STABLE_RESULT}"
+          else
+            EXPECTED="publish-stable";     ACTUAL="${STABLE_RESULT}";     OTHER="${PRERELEASE_RESULT}"
+          fi
+
+          if [ "${ACTUAL}" != "success" ]; then
+            echo "::error::${EXPECTED} did not succeed for ${VERSION} (result: ${ACTUAL:-none}). Nothing was published."
+            exit 1
+          fi
+          if [ "${OTHER}" = "success" ]; then
+            echo "::error::Both publish paths succeeded for ${VERSION}. Exactly one must run."
+            exit 1
+          fi
+          echo "Published ${VERSION} via ${EXPECTED}."
