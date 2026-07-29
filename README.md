@@ -9,7 +9,7 @@ This repository ships the GRACE skills and the `ngrace` CLI they depend on. It i
 > upstream's, and changelog entries at 4.0.4 and below describe work done there.
 > See **[LINEAGE.md](./LINEAGE.md)** for full credits.
 
-Current packaged version: `5.0.1`
+Current packaged version: `6.0.0`
 
 **Two version numbers, independent of each other:**
 
