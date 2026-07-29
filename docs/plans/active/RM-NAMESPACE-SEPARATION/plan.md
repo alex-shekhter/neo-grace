@@ -178,7 +178,7 @@ flowchart TB
 | 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | TBD | `COMPLETE` |
 | 3 | Artifact surface: `.ngrace/` and root tags | Artifact | TBD | `COMPLETE` |
 | 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | TBD | `COMPLETE` |
-| 5 | Prose sweep and documentation | — | TBD | `NOT STARTED` |
+| 5 | Prose sweep and documentation | — | TBD | `COMPLETE` |
 | 6 | Reconcile RM-AGENT-RELIABILITY; release | — | TBD | `NOT STARTED` |
 
 **Hard sequencing rules**, each with what breaks if violated:
@@ -957,7 +957,7 @@ Revert the constant and the template edits.
 
 # PHASE 5 — Prose sweep and documentation
 
-**Status:** `NOT STARTED` · **Release:** TBD
+**Status:** `COMPLETE` · **Release:** TBD
 **Amended 2026-07-29 (A1)** — see §9.
 
 ## 5.1 Objective
@@ -1260,6 +1260,7 @@ open questions, and a sixth invented mid-phase will not be recorded anywhere.
 | A5 | Phase 3's residual scan could not match XML markup | 3 |
 | A6 | Tag centralization was never real; `ARTIFACT_TAG_PREFIX` is bypassed by 26 literals | 1 (cause), 3 (surfaced), 4 (fix) |
 | A7 | Dated evidence records are history and are never swept; reconcile symbols with paths or neither | 4 (cause), 6 (fix) |
+| A8 | Renaming a title left 8 hardcoded underlines 4 chars short; derive, do not re-count | 5 |
 
 ---
 
@@ -1420,6 +1421,44 @@ the plan assumed one. Neither can mask the other. Do not centralize the tag lite
 "finish the job"; that would merge the two alarms back into one.
 
 **Phase 1 is `COMPLETE`.**
+
+### A8 — 2026-07-29 · Phase 5 review: the rename broke every banner it renamed
+
+**Phase 5 is accepted and `COMPLETE`.** Verified independently: `GRACE 4` and `GRACE4` are gone from
+`src` and `scripts` including tests, the `"grace4"` *values* (`GraceProjectKind`, `kind !== "grace4"`,
+`project.grace3-detected`) are untouched, the `grace3` count is unchanged at 13, the methodology
+sentence survives in `README.md:3` and `CLAUDE.md:5`, `docs/grace-explainer.html` moved by `git mv`
+(detected `R097`) with its README link, the mirror is byte-identical, `CHANGELOG.md` and
+`docs/plans/archive/**` are absent from the diff, and all six gates exit 0 with the suite unchanged.
+
+The classification was the right one and was done before editing: product identity rewritten, GRACE 3
+legacy references and methodology prose kept, and the migration destination correctly rendered as
+*"GRACE 3 to neo-grace"* — keeping the `3` and moving only the target.
+
+**The finding: renaming the report titles left every underline four characters short.**
+
+```
+neo-grace Lint Report        neo-grace Status        neo-grace Lint Issue Guide
+=================            ============            ======================
+```
+
+Eight sites — `grace-doctor.ts`, `grace-status.ts`, `lint/core.ts`, `lint/catalog.ts`, and four in
+`query/render.ts`. Every one is out by exactly 4, the number of characters `GRACE` → `neo-grace` adds.
+The sweep changed each title and could not change the thing *derived from* the title, because the
+derivation was done once by hand and frozen as a literal.
+
+**No check could have caught it.** No test asserts a banner rule, so all six gates were green and
+correct to be green. It is the plainest instance yet of the pattern this plan keeps producing: a value
+that was computed from another value, then stored, so the two can drift silently. Principle 2 covers
+it exactly — *never sweep a literal you could have first turned into a constant* — and a hardcoded
+underline is a literal standing in for `"=".repeat(title.length)`.
+
+Fixed at review by deriving all eight. Verified by rendering `lint`, `status`, `doctor`, and
+`lint --explain` and reading the alignment, since the suite cannot.
+
+**The general lesson, which is narrower than "add a test".** Adding an assertion per banner would
+work and would be eight more literals to keep in step. Deriving removes the class. When a rename
+breaks something no test covers, prefer making the breakage impossible over making it detectable.
 
 ### A7 — 2026-07-29 · Phase 4 review: a sweep cannot reconcile a record
 
@@ -1624,6 +1663,12 @@ has when it stands alone and neither matched the shape it has inside a sentence.
 "what would this miss?" is anything at all, widen the pattern or say in the report that you checked
 by reading instead. A green check that is not about the claim is worse than no check, because it
 stops the search.
+
+And — added after A8 — **when you rename a string, look for what was computed from it.** A title has
+a width; a banner has an underline; a padded column has a count. Those were derived once by hand and
+frozen, so a rename moves one and not the other, and no test will tell you because nobody asserts
+chrome. Prefer deriving (`"=".repeat(title.length)`) over re-counting — it removes the class instead
+of covering one case.
 
 And — added after A7 — **grep for the syntax, not the string.** A residual scan for `"Foo` finds the
 comparison you meant and the error message you did not, so it never comes back empty and you learn
