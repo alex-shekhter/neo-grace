@@ -175,7 +175,7 @@ flowchart TB
 |---|---|---|---|---|
 | 0 | Command name: `grace` → `ngrace` | Command | TBD | `COMPLETE` |
 | 1 | Centralize the scattered literals | — (enabling) | TBD | `COMPLETE` |
-| 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | TBD | `NOT STARTED` |
+| 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | TBD | `COMPLETE` |
 | 3 | Artifact surface: `.ngrace/` and root tags | Artifact | TBD | `NOT STARTED` |
 | 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | TBD | `NOT STARTED` |
 | 5 | Prose sweep and documentation | — | TBD | `NOT STARTED` |
@@ -535,7 +535,7 @@ Inline the constants. Behaviour-neutral in both directions.
 
 # PHASE 2 — Harness surface
 
-**Status:** `NOT STARTED` · **Layer:** Harness · **Release:** TBD
+**Status:** `COMPLETE` · **Layer:** Harness · **Release:** TBD
 
 ## 2.1 Objective
 
@@ -1068,6 +1068,27 @@ Four known drift points (review §6):
 Also re-check every command in the sibling plan's §0.4 and its verify steps: they were written as
 `bun run ngrace` in anticipation of this work and should now all resolve.
 
+**A4 — the trap in step 6.5.2.** The sibling plan holds roughly 30 `skills/grace/` references and
+they are **not all the same kind.** Several are `git show v3.11.0:…` commands:
+
+```
+git show v3.11.0:plugins/grace/skills/grace/grace-init/assets/docs/development-plan.xml.template
+git show v3.11.0:plugins/grace/skills/grace/grace-execute/SKILL.md
+git show v3.11.0:plugins/grace/skills/grace/grace-multiagent-execute/SKILL.md
+```
+
+At that tag the path **really was** `plugins/grace/skills/grace/`. These are §0.2 **History**, and
+renaming them turns working commands into commands that fail with "path does not exist" — the plan's
+entire v3 audit becomes unreproducible. 6.5.2's verify already says "only intentional historical
+references"; this is what that phrase means, and it is the largest concentration of them in either
+plan.
+
+Rule: **a path inside a `git show <ref>:` argument is dated by its ref and never renamed.**
+
+This is the same defect Phase 2 produced in `FORBIDDEN_GRACE4_SKILLS` (see §9, A4). Phase 6 has more
+instances of it than any other phase, and unlike Phase 2's, these fail loudly rather than silently —
+but only if someone runs them.
+
 ## 6.5 Steps
 
 **Step 6.5.1 — Remove Phase −1 from the sibling plan; renumber nothing else.**
@@ -1173,6 +1194,7 @@ open questions, and a sixth invented mid-phase will not be recorded anywhere.
 | A1 | `Grace4` code identifiers | 4 |
 | A2 | Sentence-embedded literals; test-literal policy; `.grace-lint.json` | 1, 3 |
 | A3 | A2's test-literal count corrected: 201 setup sites, not ~13 | 1, 3 |
+| A4 | Forbidden-skill guard renamed away from the name it guards; `git show <ref>:` paths are history | 2, 6 |
 
 ---
 
@@ -1334,6 +1356,52 @@ the plan assumed one. Neither can mask the other. Do not centralize the tag lite
 
 **Phase 1 is `COMPLETE`.**
 
+### A4 — 2026-07-29 · Phase 2 review: a guard renamed away from what it guards
+
+**Phase 2 is accepted and `COMPLETE`.** Verified at review, independently of the executor's report:
+117 renames with no adds or deletes, both skill trees byte-identical under a direct `diff -r`
+(not merely via the validator that also checks it), 16/16 `name:` fields on `ngrace-*`, both
+manifests consistent, `SKILL_PREFIX = "ngrace"`, and all eight validation gates exiting 0 with the
+suite unchanged at 589 / 586 pass / 3 skip / 0 fail / 1889 expects. Review F2 is closed concretely:
+`ngrace status` on a bare directory now prints *"Run `$ngrace-init`…"* and on a GRACE 3 tree
+*"Use `$ngrace-migrate`…"*. The validator-red probe reproduces — a wrong path yields three distinct
+errors and restores to green.
+
+**One defect, in `scripts/validate-marketplace.ts`:**
+
+```ts
+const FORBIDDEN_GRACE4_SKILLS = new Set(["ngrace-multiagent-execute"]);   // was grace-…
+```
+
+`grace-multiagent-execute` is not a name this project uses — it is the name of a skill that
+**shipped and was deliberately removed** (`git show v3.11.0`, removal in `0ea62e3` *"remove
+multiagent surface"*). The set exists to keep it out. Renaming it to the new convention pointed the
+guard at a string that has never existed, so a resurrection under the original name would now
+validate clean.
+
+This is §0.2 **History** misfiled as **Identifier** — principle 1, the one the operating contract
+names as *"how this plan fails."* It is also the first defect in this plan that a green check could
+never have caught: every gate passed, because a guard that checks for the wrong thing passes exactly
+like a guard that has nothing to catch. Contrast A2 and A3, where the checks were too narrow but
+still measured something real.
+
+**Fixed at review** by holding both spellings, with the reasoning in the code rather than only here.
+Verified red for each spelling independently and green on the real manifest.
+
+**Nothing else in the phase shares the defect.** The other kept names were classified correctly:
+internal modules (`src/grace-status.ts`), `tool:` field values, the `grace` keyword in
+`openpackage.yml` (a methodology term, not a plugin name), and `.grace/`/`Grace*` (Phases 3 and 5).
+
+**Two notes forward, not defects:**
+
+1. `docs/grace-explainer.html` was reported as deliberately kept, but **Phase 5's file list already
+   claims it** as `docs/ngrace-explainer.html`. No conflict in the work — just do not read Phase 2's
+   note as a decision that overrides Phase 5. `README.md:18` links to it and must move with it;
+   `CHANGELOG.md:66` also names it and **must not** be touched, so that entry becomes a dead link
+   and is correct anyway (invariant 4).
+2. The `git show v3.11.0:` trap now recorded in §6.4, which is where the same misclassification will
+   next be available to make.
+
 ---
 
 ## 10. Final instruction to the executor
@@ -1355,6 +1423,14 @@ has when it stands alone and neither matched the shape it has inside a sentence.
 "what would this miss?" is anything at all, widen the pattern or say in the report that you checked
 by reading instead. A green check that is not about the claim is worse than no check, because it
 stops the search.
+
+And — added after A4 — **before renaming any identifier, ask what would happen if it were already
+wrong.** A guard, an expected-value list, or a "must not appear" set is named after the thing it is
+looking *for*, which is often a name this project no longer uses. Renaming it makes every check pass
+and none of them mean anything, and no gate can tell you: a guard pointed at the wrong string is
+indistinguishable from a guard with nothing to catch. Anything in a `git show <ref>:` path, an
+expected-failure fixture, or a forbidden/deprecated list is **history** under §0.2 — leave it, and
+say in the report that you left it and why.
 
 And — added after A3 — **the counts in this plan are claims, not measurements.** Where a step says
 "11 sites" or "58 literals", run the grep and report what you actually find before you scope work
