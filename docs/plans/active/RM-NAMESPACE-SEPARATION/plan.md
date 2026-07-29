@@ -174,7 +174,7 @@ flowchart TB
 | # | Phase | Layer | Release | Status |
 |---|---|---|---|---|
 | 0 | Command name: `grace` → `ngrace` | Command | TBD | `COMPLETE` |
-| 1 | Centralize the scattered literals | — (enabling) | TBD | `IN PROGRESS` — reopened by A3, step 1.5.5b outstanding |
+| 1 | Centralize the scattered literals | — (enabling) | TBD | `COMPLETE` |
 | 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | TBD | `NOT STARTED` |
 | 3 | Artifact surface: `.ngrace/` and root tags | Artifact | TBD | `NOT STARTED` |
 | 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | TBD | `NOT STARTED` |
@@ -279,10 +279,10 @@ Revert `package.json` and one line in `src/grace.ts`.
 
 # PHASE 1 — Centralize the scattered literals
 
-**Status:** `IN PROGRESS` · **Layer:** enabling · **Release:** TBD
-**Amended 2026-07-29 (A2, A3)** — see §9. Steps 1.5.1–1.5.5 accepted; 1.5.5a and 1.5.6 executed
-correctly and accepted. Reopened once more for step 1.5.5b, because A2 stated the wrong population
-for 1.5.5a — the rule was right, the count was not.
+**Status:** `COMPLETE` · **Layer:** enabling · **Release:** TBD
+**Amended 2026-07-29 (A2, A3)** — see §9. All steps complete and verified at review. 284 setup
+literals centralized, 26 assertions deliberately left; the Phase 3 value flip costs 14 failing tests,
+down from 140.
 
 ## 1.1 Objective
 
@@ -693,10 +693,27 @@ untouched. Note it for that skill's owner; do not build it here.
 → verify: `bun test` fails loudly, in fixtures rather than in logic. A silent pass here means
 Phase 1 missed a literal — stop and report.
 
-*(A3)* **Expect roughly 26 failures, all in assertions.** Phase 1 step 1.5.5b measured this
-deliberately so the number is known before you see it. A count in the hundreds means 1.5.5b was
-undone or incomplete — stop, because at that volume you cannot tell a fixture failure from a logic
-one, and this step's verify is the only thing standing between you and a silent regression.
+*(A3, corrected on completion)* **Expect exactly 14 failing tests across 8 suites, and 26 fewer
+`expect()` calls.** Measured twice — by the executor and at review — after step 1.5.5b:
+
+```
+572 pass · 3 skip · 14 fail · 1863 expect()      (baseline: 586 / 3 / 0 / 1889)
+```
+
+The 26-vs-14 gap is not a discrepancy: **26 is the count of assertion *lines*, 14 the count of
+*tests* containing them.** A3 originally said "~26 failures" by conflating the two. The `1889 → 1863`
+drop is the tighter signal — exactly 26 assertions stopped executing, which is the whole population
+and nothing else.
+
+The eight suites are: Artifact Grammar · contained project paths · project detection · query core ·
+lintGraceProject · ngrace status · graph split · golden-path example (G-20).
+
+A count in the hundreds means 1.5.5b was undone. A count *below* 14 is the more dangerous reading —
+it means an assertion was silenced, and the alarm you are relying on has been partly disconnected.
+
+**The tag alarm is separate and still armed.** Test fixtures keep their `<Grace*>` XML literals;
+`ARTIFACT_TAG_PREFIX` appears in no test file. So step 3.5.1 (directory) and step 3.5.2 (tags) fail
+independently, and neither can mask the other.
 
 **Step 3.5.2 — Change `ARTIFACT_TAG_PREFIX` to `Ngrace`.**
 → verify: `typecheck` clean and the root-tag union now reads `Ngrace*`.
@@ -1279,6 +1296,43 @@ Step 3.5.1 now carries the expected number, so Phase 3 can recognize a wrong one
 
 **Phase 1 returns to `IN PROGRESS` a second time.** Steps 1.5.1–1.5.6 all stand as accepted and must
 not be redone. Phases 0 and 2 untouched.
+
+#### A3 — closing note, 2026-07-29 · two of A3's own numbers were also wrong
+
+Step 1.5.5b is complete and verified at review. Both corrections came from the executor, and both
+came from it re-measuring rather than accepting a figure in this document:
+
+**A3's population was still short by 56.** The plan's own grep filtered with `grep -v graceVersion`
+— intended to drop the `graceVersion="4.0"` *attribute*, which is a different literal. But the
+attribute and the path share a line:
+
+```ts
+writeProjectFile(root, ".grace/context/requirements.xml", `<GraceRequirements graceVersion="4.0">…`)
+```
+
+so the filter dropped 56 real setup sites along with it. **A line filter used to exclude a token.**
+The true population was 284, not 227. Residual is now 26, all assertions, zero setup — verified
+independently at review.
+
+**"~26 failures" conflated lines with tests.** 26 assertion *lines* live in 14 *tests*. The measured
+flip is 14 failures and `1889 → 1863` expects — exactly 26 assertions stopped running. Step 3.5.1
+now carries the corrected figure and both readings of a wrong one.
+
+**This is the fourth instance of one defect and the first caught before it shipped.** Step 1.5.1's
+grep matched the standalone shape and missed the embedded one; A2 measured its own remediation the
+same way; A3 filtered by line to exclude a token. Each time the check was narrower than the claim it
+stood for, and each time it came back clean. The §10 rule added by A3 — *plan counts are claims;
+re-measure before scoping against them* — caught the third one on its first outing, in the same pass
+it was written for. That is the only evidence so far that this class of defect is being detected
+rather than just described, and it is the reason the rule stays in §10 rather than being folded away
+as amendment history.
+
+**Unplanned dividend.** Because fixtures keep their `<Grace*>` XML literals while their *paths* are
+now centralized, Phase 3 gains two independent alarms — directory (3.5.1) and tags (3.5.2) — where
+the plan assumed one. Neither can mask the other. Do not centralize the tag literals in tests to
+"finish the job"; that would merge the two alarms back into one.
+
+**Phase 1 is `COMPLETE`.**
 
 ---
 
