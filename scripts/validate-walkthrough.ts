@@ -43,14 +43,14 @@ const BREAKS: Break[] = [
   },
   {
     section: "2.2 plan drifts from spec",
-    file: ".grace/changes/active/C-ADD-KEYBOARD-NAV/spec.xml",
+    file: ".ngrace/changes/active/C-ADD-KEYBOARD-NAV/spec.xml",
     find: "<AffectedAreas>",
     replace: "<AffectedAreas>\n      <M-API-ROUTER />",
     expect: "change.scope-does-not-cover-spec",
   },
   {
     section: "2.3 UI state with no evidence",
-    file: ".grace/graph/ui.xml",
+    file: ".ngrace/graph/ui.xml",
     find: "<ST-EMPTY />",
     replace: "<ST-EMPTY />\n        <ST-ERROR />",
     expect: "health.ui-state-unverified",
@@ -58,7 +58,7 @@ const BREAKS: Break[] = [
   },
   {
     section: "2.4 break a cross-service contract",
-    file: ".grace/graph/contracts.xml",
+    file: ".ngrace/graph/contracts.xml",
     find: "<Version>1.2.0</Version>",
     replace: "<Version>v1.2</Version>",
     expect: "projection.graph.invalid-interface-contract",

@@ -143,7 +143,7 @@ Undo it.
 
 ### 2.2 — Let a plan drift from its spec
 
-Open `.grace/changes/active/C-ADD-KEYBOARD-NAV/spec.xml` and add a second module to the
+Open `.ngrace/changes/active/C-ADD-KEYBOARD-NAV/spec.xml` and add a second module to the
 approved scope:
 
 ```diff
@@ -169,7 +169,7 @@ Undo it.
 
 ### 2.3 — Claim a UI state you never test
 
-Open `.grace/graph/ui.xml` and declare a third state on the table component:
+Open `.ngrace/graph/ui.xml` and declare a third state on the table component:
 
 ```diff
        <States>
@@ -202,7 +202,7 @@ Undo it.
 
 ### 2.4 — Break a cross-service contract
 
-Open `.grace/graph/contracts.xml` and loosen the interface version:
+Open `.ngrace/graph/contracts.xml` and loosen the interface version:
 
 ```diff
 -      <Version>1.2.0</Version>
@@ -227,7 +227,7 @@ Undo it. `ngrace lint --path examples/polyglot` should be green again.
 
 ## 3 · Read one change end to end (5 min)
 
-Open `.grace/changes/active/C-ADD-KEYBOARD-NAV/`. Every governed change is exactly two
+Open `.ngrace/changes/active/C-ADD-KEYBOARD-NAV/`. Every governed change is exactly two
 files.
 
 ### `spec.xml` — what and why, approved by a human
@@ -279,7 +279,7 @@ Read those three blocks again, because they are the whole methodology:
 | `ObservedWriteScope` | **A blast radius you agreed to.** Two files. Writes outside it are visible. |
 | `Satisfies` | **Traceability.** Task T-001 exists to satisfy `AC-KEYBOARD-NAV`. An acceptance criterion no task claims is reported. |
 
-Now look at `.grace/changes/archive/C-ADD-POSTING-CONTRACT/` — the same two files for a
+Now look at `.ngrace/changes/archive/C-ADD-POSTING-CONTRACT/` — the same two files for a
 change that already shipped. The record of what was approved and what was actually done
 survives the work, permanently.
 
@@ -292,7 +292,7 @@ what comes back.
 
 | You say | What happens |
 |---|---|
-| `$grace-init` | Interviews you about the project, writes the initial `.grace` model |
+| `$grace-init` | Interviews you about the project, writes the initial `.ngrace` model |
 | `$grace-spec` | Interviews you about one change, writes `spec.xml` as **draft** |
 | — | **You approve.** Nothing becomes `approved` without you saying so |
 | `$grace-plan` | Reads the approved spec, writes `plan.xml` with assertions and tasks |
@@ -322,8 +322,8 @@ emergency.
 
 | If you want to… | Read |
 |---|---|
-| Understand the knowledge graph model | `skills/grace/grace-explainer/references/knowledge-graph.md` |
-| See the file-level markup rules | `skills/grace/grace-explainer/references/semantic-markup.md` |
+| Understand the knowledge graph model | `skills/ngrace/ngrace-explainer/references/knowledge-graph.md` |
+| See the file-level markup rules | `skills/ngrace/ngrace-explainer/references/semantic-markup.md` |
 | Adopt GRACE in your own repo | Run `$grace-init` and let it interview you |
 | Check what GRACE can verify in your stack | `ngrace doctor --path .` |
 
@@ -337,12 +337,12 @@ you are missing — before you commit to anything.
 
 | Path | What it demonstrates |
 |---|---|
-| `.grace/graph/{ui,api,core,contracts}.xml` | Segmented graph — documents split by domain, unified by an index |
-| `.grace/graph/contracts.xml` | `DF-POSTING` ordered data flow + `IC-POSTING-V1` interface contract |
-| `.grace/verification/{ui,api,core}.xml` | Per-module commands, scenarios, log markers, accessibility checks |
-| `.grace/context/design-system.xml` | Design tokens, breakpoints, accessibility policy |
-| `.grace/context/invariants.xml` | Cross-cutting rules that outlive any single change |
-| `.grace/context/technology.xml` | Three `Stack-*` roots — one per language, no forced global stack |
+| `.ngrace/graph/{ui,api,core,contracts}.xml` | Segmented graph — documents split by domain, unified by an index |
+| `.ngrace/graph/contracts.xml` | `DF-POSTING` ordered data flow + `IC-POSTING-V1` interface contract |
+| `.ngrace/verification/{ui,api,core}.xml` | Per-module commands, scenarios, log markers, accessibility checks |
+| `.ngrace/context/design-system.xml` | Design tokens, breakpoints, accessibility policy |
+| `.ngrace/context/invariants.xml` | Cross-cutting rules that outlive any single change |
+| `.ngrace/context/technology.xml` | Three `Stack-*` roots — one per language, no forced global stack |
 | `apps/web/.../LedgerTable.tsx` | File-local module contract and semantic blocks |
 
 The breaks in §2 are exercised by `bun run validate:walkthrough`, so the issue codes

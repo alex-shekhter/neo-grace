@@ -1,0 +1,53 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-CHANGE-ID>
+    <IntentSummary>$INTENT_SUMMARY</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-EXISTING-MODULE</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-AFFECTED-MODULE</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command>bun run check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <!-- Must cover every M-* / DF-* named in the authorizing spec AffectedAreas (or justify under OutOfPlanScope). -->
+      <GraphAnchors>
+        <M-AFFECTED-MODULE />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-AFFECTED-MODULE />
+      </VerificationAnchors>
+      <ContextArtifact>requirements.xml</ContextArtifact>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/path/to/file.ts</File>
+      <Glob>tests/**/*.test.ts</Glob>
+    </ObservedWriteScope>
+    <!-- Optional: justify deliberate omission of a spec AffectedAreas anchor. Each entry requires a non-empty Reason. -->
+    <!--
+    <OutOfPlanScope>
+      <M-LEGACY-EXPORT><Reason>Deprecated; removal tracked in C-DROP-LEGACY.</Reason></M-LEGACY-EXPORT>
+    </OutOfPlanScope>
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>$TASK_TITLE</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-EXAMPLE-CRITERION />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>$TASK_ACCEPTANCE</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>$TASK_VERIFICATION_COMMAND</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-CHANGE-ID>
+</NgraceChangePlan>

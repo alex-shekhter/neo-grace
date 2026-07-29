@@ -52,7 +52,7 @@ export const ADAPTER_BACKED_EXTENSIONS: ReadonlySet<string> = new Set(
 
 /**
  * True when GRACE governs files with this extension. Projects extend the built-in set
- * through `codeExtensions` in `.grace-lint.json`; extension is additive, so a project
+ * through `codeExtensions` in `.ngrace-lint.json`; extension is additive, so a project
  * can add a language but never silently drop governance for one.
  */
 export function isGovernedCodeExtension(extension: string, projectExtensions?: Iterable<string>): boolean {

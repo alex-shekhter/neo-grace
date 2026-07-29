@@ -1,0 +1,10 @@
+<NgraceVerificationDocument graceVersion="1.0">
+  <VD-CORE>
+    <V-M-LEDGER-CORE>
+      <Cwd>crates/core</Cwd>
+      <Command>cargo test --lib</Command>
+      <Scenario>Ledger posts balanced entries and rejects zero amounts.</Scenario>
+      <Marker>[LedgerCore][post][BLOCK_VALIDATE_BALANCE]</Marker>
+    </V-M-LEDGER-CORE>
+  </VD-CORE>
+</NgraceVerificationDocument>

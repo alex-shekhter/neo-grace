@@ -1,4 +1,0 @@
-<GraceDeployment graceVersion="4.0">
-  <Applicability>applicable</Applicability>
-  <Summary>Example monorepo; packages deploy independently under their Stack roots.</Summary>
-</GraceDeployment>

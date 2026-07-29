@@ -1,0 +1,31 @@
+<NgraceDesignSystem graceVersion="1.0">
+  <Applicability>applicable</Applicability>
+  <TokenSource>src/styles/tokens.css</TokenSource>
+  <Tokens>
+    <DT-COLOR-ACCENT>
+      <Value>var(--color-accent)</Value>
+      <Usage>Primary accent color for interactive controls</Usage>
+    </DT-COLOR-ACCENT>
+    <DT-SPACE-MD>
+      <Value>var(--space-md)</Value>
+      <Usage>Default medium spacing</Usage>
+    </DT-SPACE-MD>
+  </Tokens>
+  <Breakpoints>
+    <BP-MOBILE>
+      <MinWidth>0</MinWidth>
+      <MaxWidth>767px</MaxWidth>
+      <Intent>phone</Intent>
+    </BP-MOBILE>
+    <BP-DESKTOP>
+      <MinWidth>768px</MinWidth>
+      <Intent>tablet and up</Intent>
+    </BP-DESKTOP>
+  </Breakpoints>
+  <Accessibility>
+    <Standard>WCAG 2.2 AA</Standard>
+    <ContrastMinimum>4.5</ContrastMinimum>
+    <TargetSizeMinimum>24px</TargetSizeMinimum>
+    <ReducedMotion>honor</ReducedMotion>
+  </Accessibility>
+</NgraceDesignSystem>

@@ -165,7 +165,7 @@ export function main(repoRoot = process.cwd()): number {
       detail: `Duplicate versions: ${[...new Set(duplicateVersions)].join(", ") || "none"}.`,
     },
     {
-      label: "GRACE 4 rc.0 historical publication failure is documented",
+      label: "neo-grace rc.0 historical publication failure is documented",
       ok: changelog.includes("v4.0.0-rc.0 was not published to npm") && changelog.includes("tag is retained"),
       detail: "Expected the retained rc.0 tag and failed/unpublished candidate note.",
     },
@@ -191,7 +191,7 @@ export function main(repoRoot = process.cwd()): number {
     },
     {
       label: "Published CLI excludes test sources and fixtures",
-      ok: Boolean(packageJson.files?.includes("!src/**/*.test.ts") && packageJson.files?.includes("!src/grace4/test-fixtures.ts")),
+      ok: Boolean(packageJson.files?.includes("!src/**/*.test.ts") && packageJson.files?.includes("!src/artifact/test-fixtures.ts")),
       detail: "Expected package.json files exclusions for test sources and GRACE fixture builders.",
     },
   ];

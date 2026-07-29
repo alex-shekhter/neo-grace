@@ -3,7 +3,7 @@ import path from "node:path";
 
 import type { GraceLintConfig, LintIssue } from "./types";
 
-const CONFIG_FILE_NAME = ".grace-lint.json";
+export const CONFIG_FILE_NAME = ".ngrace-lint.json";
 const SUPPORTED_KEYS = new Set([
   "ignoredDirs",
   "unverifiedLanguages",

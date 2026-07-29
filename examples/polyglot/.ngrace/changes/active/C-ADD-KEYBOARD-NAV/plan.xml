@@ -1,0 +1,64 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-ADD-KEYBOARD-NAV>
+    <IntentSummary>Implement keyboard navigation on M-WEB-LEDGER-TABLE and pin evidence in component tests.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-WEB-LEDGER-TABLE</Value></MustExist>
+      <MustVerify><Module>M-WEB-LEDGER-TABLE</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify><Module>M-WEB-LEDGER-TABLE</Module></MustVerify>
+      <MustUseToken>
+        <Token>DT-COLOR-ACCENT</Token>
+        <File>apps/web/src/components/LedgerTable.tsx</File>
+      </MustUseToken>
+      <MustCoverStates>
+        <Module>M-WEB-LEDGER-TABLE</Module>
+      </MustCoverStates>
+      <MustPassCommand>
+        <Command>bun test apps/web/src/components/LedgerTable.example-test.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-WEB-LEDGER-TABLE />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-WEB-LEDGER-TABLE />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>apps/web/src/components/LedgerTable.tsx</File>
+      <File>apps/web/src/components/LedgerTable.example-test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Wire keyboard handlers and focus ring token usage</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Arrow/Home/End move focus; accent token used for focus ring.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-KEYBOARD-NAV />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/components/LedgerTable.example-test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Confirm a11y check stays clean for keyboard path</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>AccessibilityCheck evidence still references axe-clean route.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-AXE-CLEAN />
+        </Satisfies>
+        <Verification>
+          <Command>echo "axe placeholder for golden-path example"</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-ADD-KEYBOARD-NAV>
+</NgraceChangePlan>

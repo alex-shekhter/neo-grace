@@ -1,0 +1,13 @@
+<NgraceGraphDocument graceVersion="1.0">
+  <GD-UI>
+    <M-WEB-LEDGER-TABLE>
+      <Summary>Web ledger table component with keyboard navigation.</Summary>
+      <Path>apps/web/src/components/LedgerTable.tsx</Path>
+      <Type>UI_COMPONENT</Type>
+      <States>
+        <ST-DEFAULT />
+        <ST-EMPTY />
+      </States>
+    </M-WEB-LEDGER-TABLE>
+  </GD-UI>
+</NgraceGraphDocument>

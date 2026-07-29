@@ -1,7 +1,7 @@
 {
   "name": "@neograce/cli",
-  "version": "5.0.1",
-  "description": "GRACE 4 CLI for .grace linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation with a Bun-powered grace binary.",
+  "version": "6.0.0",
+  "description": "neo-grace CLI for .ngrace linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation with a Bun-powered ngrace binary.",
   "license": "MIT",
   "homepage": "https://github.com/alex-shekhter/neo-grace#readme",
   "repository": {
@@ -34,13 +34,13 @@
     "src/grace-module.ts",
     "src/grace-status.ts",
     "src/grace-verification.ts",
-    "src/grace4",
+    "src/artifact",
     "src/language-registry.ts",
     "src/lint",
     "src/query",
     "src/verification",
     "!src/**/*.test.ts",
-    "!src/grace4/test-fixtures.ts",
+    "!src/artifact/test-fixtures.ts",
     "README.md",
     "LICENSE"
   ],
@@ -50,8 +50,8 @@
     "bun": ">=1.3.14"
   },
   "scripts": {
-    "grace": "bun run ./src/grace.ts",
-    "grace:lint": "bun run ./src/grace.ts lint",
+    "ngrace": "bun run ./src/grace.ts",
+    "ngrace:lint": "bun run ./src/grace.ts lint",
     "lint": "bun run ./src/grace.ts lint",
     "test": "bun test --timeout=30000",
     "typecheck": "bunx tsc --noEmit",

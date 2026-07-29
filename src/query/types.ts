@@ -1,5 +1,5 @@
-import type { Grace4Issue } from "../grace4/types";
-import type { GraphAnchorRecord, GraphProjection, VerificationProjection } from "../grace4/projections";
+import type { NgraceIssue } from "../artifact/types";
+import type { GraphAnchorRecord, GraphProjection, VerificationProjection } from "../artifact/projections";
 import type { FileMarkupRecord } from "../project-utils";
 
 export type { FileBlockRecord, FileContractRecord, FileFieldSection, FileListItem, FileMarkupRecord } from "../project-utils";
@@ -44,7 +44,7 @@ export type ModuleGraphRecord = GraphAnchorRecord & {
   states: string[];
 };
 
-export type Grace4ModuleRecord = {
+export type NgraceModuleRecord = {
   id: string;
   name?: string;
   type?: string;
@@ -52,21 +52,21 @@ export type Grace4ModuleRecord = {
   verification: ModuleVerificationRecord | null;
   verifications: ModuleVerificationRecord[];
   localFiles: FileMarkupRecord[];
-  /** GRACE 4 query layer is projection-backed; development-plan records are intentionally absent. */
+  /** neo-grace query layer is projection-backed; development-plan records are intentionally absent. */
   plan: null;
   steps: [];
 };
 
-export type ModuleRecord = Grace4ModuleRecord;
+export type ModuleRecord = NgraceModuleRecord;
 
 export type GraceArtifactIndex = {
   root: string;
   graph: GraphProjection;
   verification: VerificationProjection;
-  modules: Grace4ModuleRecord[];
+  modules: NgraceModuleRecord[];
   verifications: ModuleVerificationRecord[];
   files: FileMarkupRecord[];
-  issues: Grace4Issue[];
+  issues: NgraceIssue[];
 };
 
 export type ModuleFindOptions = {
@@ -76,7 +76,7 @@ export type ModuleFindOptions = {
 };
 
 export type ModuleMatch = {
-  module: Grace4ModuleRecord;
+  module: NgraceModuleRecord;
   score: number;
   matchedBy: string[];
 };
@@ -89,7 +89,7 @@ export type VerificationFindOptions = {
 
 export type VerificationMatch = {
   verification: ModuleVerificationRecord;
-  module: Grace4ModuleRecord | null;
+  module: NgraceModuleRecord | null;
   score: number;
   matchedBy: string[];
 };

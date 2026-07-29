@@ -6,7 +6,7 @@ import { formatVerificationFindTable, formatVerificationText } from "./query/ren
 import type { GraceArtifactIndex } from "./query/types";
 
 /** Loads projection-backed index or throws a user-facing command error. */
-function loadGrace4IndexOrThrow(root: string): GraceArtifactIndex {
+function loadNgraceIndexOrThrow(root: string): GraceArtifactIndex {
   return loadGraceArtifactIndex(root);
 }
 
@@ -22,7 +22,7 @@ function resolveFormat(format: unknown, json: unknown, allowed: string[], defaul
 export const verificationCommand = defineCommand({
   meta: {
     name: "verification",
-    description: "Query GRACE verification entries, scenarios, and evidence requirements.",
+    description: "Query neo-grace verification entries, scenarios, and evidence requirements.",
   },
   subCommands: {
     find: defineCommand({
@@ -66,7 +66,7 @@ export const verificationCommand = defineCommand({
         const errorFormat = Boolean(context.args.json) || context.args.format === "json" ? "json" : "text";
         await runQueryCommand(errorFormat, () => {
           const format = resolveFormat(context.args.format, context.args.json, ["table", "json"], "table");
-          const index = loadGrace4IndexOrThrow(String(context.args.path ?? "."));
+          const index = loadNgraceIndexOrThrow(String(context.args.path ?? "."));
           const matches = findVerifications(index, {
             query: context.args.query ? String(context.args.query) : undefined,
             module: context.args.module ? String(context.args.module) : undefined,
@@ -109,7 +109,7 @@ export const verificationCommand = defineCommand({
         const errorFormat = Boolean(context.args.json) || context.args.format === "json" ? "json" : "text";
         await runQueryCommand(errorFormat, () => {
           const format = resolveFormat(context.args.format, context.args.json, ["text", "json"], "text");
-          const index = loadGrace4IndexOrThrow(String(context.args.path ?? "."));
+          const index = loadNgraceIndexOrThrow(String(context.args.path ?? "."));
           const match = resolveVerification(index, context.args.target == null ? "" : String(context.args.target));
           process.stdout.write(format === "json" ? `${JSON.stringify(match, null, 2)}\n` : `${formatVerificationText(match)}\n`);
         });

@@ -1,3 +1,38 @@
+## <small>6.0.0 (2026-07-29)</small>
+
+### Summary
+
+This major release separates `neo-grace` from upstream GRACE across every surface a user can see. All
+16 published skills move from `grace-*` to `ngrace-*`, the plugin is renamed `grace` → `ngrace`, the
+project artifact directory moves from `.grace/` to `.ngrace/`, all 14 XML root tags move from `Grace*`
+to `Ngrace*`, and the lint config becomes `.ngrace-lint.json`. The reason is concrete: with both this
+package and `@osovv/grace-cli` installed, nothing told an operator which implementation had answered,
+and the two behave differently.
+
+### BREAKING CHANGES
+
+* **Skills.** All 16 skill identifiers are renamed `grace-*` → `ngrace-*`. Update any saved prompt,
+  script, or subagent preset that names one.
+* **Artifact directory.** Projects use `.ngrace/` instead of `.grace/`. There is deliberately no
+  compatibility fallback: a fallback would silently read upstream GRACE artifacts through a diverged
+  grammar and report them as invalid.
+* **Root tags.** `GraceRequirements` → `NgraceRequirements`, and so on for all 14.
+* **Lint config.** `.grace-lint.json` → `.ngrace-lint.json`.
+* **Artifact grammar version.** Artifacts now declare `graceVersion="1.0"`. This is re-based, not
+  bumped: `"4.0"` asserted kinship with upstream GRACE 4, which this grammar has diverged from, so
+  raising it to `"5.0"` would have kept the false claim and only changed the number.
+
+### Notes
+
+* Two version numbers now move independently — the product at `6.0.0`, the artifact grammar at `1.0`.
+  A grammar bump means something became *required* and ships with a migration path; it is not a
+  statement about release size. `README.md` documents both.
+* The package name is unchanged at `@neograce/cli`, and the version line continues from 5.0.1 rather
+  than restarting. The npm layer never collided with upstream, and claiming a discontinuity in the
+  product that did not happen would be its own false assertion.
+* GRACE remains the name of the methodology. `ngrace` is this implementation's executable; the `n` is
+  a disambiguator, not a rebrand.
+
 ## <small>5.0.1 (2026-07-29)</small>
 
 ### Summary

@@ -73,7 +73,7 @@ function shouldFail(result: LintResult, failOn: string) {
 export const lintCommand = defineCommand({
   meta: {
     name: "lint",
-    description: "Lint GRACE artifacts, XML tag conventions, semantic markup, and role-aware module maps.",
+    description: "Lint neo-grace artifacts, XML tag conventions, semantic markup, and role-aware module maps.",
   },
   args: {
     path: {

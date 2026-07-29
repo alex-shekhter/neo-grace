@@ -1,17 +1,19 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { buildGraphProjection, buildVerificationProjection, type GraphAnchorRecord, type VerificationAnchorRecord } from "../grace4/projections";
-import { validateGrace4Project } from "../grace4/grammar";
-import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveGrace4Paths } from "../grace4/project";
-import { extractAssertionsWithIssues } from "../grace4/assertions";
-import { collectActiveChangeScopes } from "../grace4/scope";
+import { extractAssertionsWithIssues } from "../artifact/assertions";
+import { validateNgraceProject } from "../artifact/grammar";
+import { ARTIFACT_DIR } from "../artifact/paths";
+import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "../artifact/project";
+import { buildGraphProjection, buildVerificationProjection, type GraphAnchorRecord, type VerificationAnchorRecord } from "../artifact/projections";
+import { collectActiveChangeScopes } from "../artifact/scope";
+import { skillName } from "../artifact/types";
 import { loadGraceLintConfig } from "../lint/config";
 import { collectCodeFiles, hasGraceMarkers, parseGovernedFile, type FileMarkupRecord } from "../project-utils";
 import { GraceCommandError } from "./errors";
 import type {
   GraceArtifactIndex,
-  Grace4ModuleRecord,
+  NgraceModuleRecord,
   ModuleFindOptions,
   ModuleGraphRecord,
   ModuleInterfaceItem,
@@ -40,7 +42,7 @@ function loadGovernedFiles(root: string) {
   const { config, issues } = loadGraceLintConfig(root);
   const configErrors = issues.filter((issue) => issue.severity === "error");
   if (configErrors.length > 0) {
-    throw new GraceCommandError("invalid-project", "GRACE query configuration is invalid. Run `ngrace lint --path PROJECT` for details.", {
+    throw new GraceCommandError("invalid-project", "neo-grace query configuration is invalid. Run `ngrace lint --path PROJECT` for details.", {
       issues: configErrors.map((issue) => issue.code),
     });
   }
@@ -64,7 +66,7 @@ function listPlanFiles(directory: string): string[] {
   });
 }
 
-function collectOperationalValidationErrors(paths: ReturnType<typeof resolveGrace4Paths>) {
+function collectOperationalValidationErrors(paths: ReturnType<typeof resolveNgracePaths>) {
   const assertionIssues = [paths.changesActiveDir, paths.changesArchiveDir]
     .flatMap(listPlanFiles)
     .flatMap((planFile) => (["BaselineAssertions", "TargetAssertions"] as const)
@@ -105,11 +107,11 @@ export function loadGraceArtifactIndex(projectRoot: string): GraceArtifactIndex 
     throw new GraceCommandError("invalid-project", formatGrace3MigrationGuidance(root), { issues: ["project.grace3-detected"] });
   }
   if (kind !== "grace4") {
-    throw new GraceCommandError("invalid-project", "No .grace directory found. Run the grace-init skill before querying this project.", { issues: ["project.missing-grace"] });
+    throw new GraceCommandError("invalid-project", `No ${ARTIFACT_DIR} directory found. Run the ${skillName("init")} skill before querying this project.`, { issues: ["project.missing-grace"] });
   }
 
-  const paths = resolveGrace4Paths(root);
-  const validation = validateGrace4Project(root);
+  const paths = resolveNgracePaths(root);
+  const validation = validateNgraceProject(root);
   const validationErrors = validation.issues.filter((issue) => issue.severity === "error");
   if (validationErrors.length > 0) {
     throw invalidProjectError(validationErrors.map((issue) => issue.code));
@@ -143,7 +145,7 @@ export function loadGraceArtifactIndex(projectRoot: string): GraceArtifactIndex 
         localFiles,
         plan: null,
         steps: [],
-      } satisfies Grace4ModuleRecord;
+      } satisfies NgraceModuleRecord;
     });
 
   return { root, graph, verification, modules, verifications, files: governedFiles, issues: [...validation.issues, ...graph.issues, ...verification.issues] };
@@ -152,7 +154,7 @@ export function loadGraceArtifactIndex(projectRoot: string): GraceArtifactIndex 
 function invalidProjectError(issueCodes: string[]): GraceCommandError {
   return new GraceCommandError(
     "invalid-project",
-    "GRACE artifacts are invalid; no navigation records were returned. Run `ngrace lint --path PROJECT` for details.",
+    "neo-grace artifacts are invalid; no navigation records were returned. Run `ngrace lint --path PROJECT` for details.",
     { issues: [...new Set(issueCodes)].sort() },
   );
 }

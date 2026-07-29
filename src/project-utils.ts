@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { ANCHOR_PATTERNS } from "./grace4/types";
+import { ANCHOR_PATTERNS } from "./artifact/types";
 import { ADAPTER_BACKED_EXTENSIONS, isGovernedCodeExtension, LANGUAGE_ADAPTERS } from "./language-registry";
 import { emissionPatternsFor } from "./lint/emission-patterns";
 import { LanguageRuntimeMissingError, type LanguageAnalysis, type LintIssue, type MapMode, type ModuleRole } from "./lint/types";
@@ -199,7 +199,7 @@ export function collectCodeFiles(
   root: string,
   ignoredDirs: string[],
   currentDir = root,
-  /** Project-declared extra extensions from `.grace-lint.json` `codeExtensions`. */
+  /** Project-declared extra extensions from `.ngrace-lint.json` `codeExtensions`. */
   projectExtensions?: readonly string[],
 ): string[] {
   const files: string[] = [];
@@ -275,7 +275,7 @@ export function parseGovernedFile(root: string, filePath: string, text: string):
 /** Options for analyzeGovernedFile; optional so existing 3-arg callers stay valid. */
 export type GovernedFileAnalysisOptions = {
   unverifiedLanguages?: readonly string[];
-  /** Project-declared extra extensions from `.grace-lint.json` `codeExtensions`. */
+  /** Project-declared extra extensions from `.ngrace-lint.json` `codeExtensions`. */
   codeExtensions?: readonly string[];
 };
 
@@ -346,7 +346,7 @@ export function analyzeGovernedFile(
         contract?.startLine ?? 1,
         `MODULE_MAP ${effectiveMapMode} parity is not verified for ${extension} files. `
           + `GRACE has no export adapter for this language; treat MODULE_MAP as unverified `
-          + `documentation. Acknowledge per repo with .grace-lint.json `
+          + `documentation. Acknowledge per repo with .ngrace-lint.json `
           + `{ "unverifiedLanguages": ["${extension}"] }.`,
       ));
     }

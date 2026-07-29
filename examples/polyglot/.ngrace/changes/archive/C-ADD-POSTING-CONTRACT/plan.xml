@@ -1,0 +1,70 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-ADD-POSTING-CONTRACT>
+    <IntentSummary>Add OpenAPI schema, IC-POSTING-V1, ordered DF-POSTING, and segmented graph documents.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-WEB-LEDGER-TABLE</Value></MustExist>
+      <MustExist><Value>M-API-ROUTER</Value></MustExist>
+      <MustExist><Value>M-LEDGER-CORE</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>IC-POSTING-V1</Value></MustExist>
+      <MustExist><Value>DF-POSTING</Value></MustExist>
+      <MustLink>
+        <From>IC-POSTING-V1</From>
+        <To>M-LEDGER-CORE</To>
+      </MustLink>
+      <MustConform>
+        <Contract>IC-POSTING-V1</Contract>
+        <Module>M-API-ROUTER</Module>
+        <Command>echo "schema check placeholder"</Command>
+      </MustConform>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-WEB-LEDGER-TABLE />
+        <M-API-ROUTER />
+        <M-LEDGER-CORE />
+        <DF-POSTING />
+        <IC-POSTING-V1 />
+      </GraphAnchors>
+      <GraphDocuments>
+        <GD-CONTRACTS />
+      </GraphDocuments>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>openapi/posting.yaml</File>
+      <File>.ngrace/graph/contracts.xml</File>
+      <File>.ngrace/graph/index.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Author OpenAPI posting schema</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>openapi/posting.yaml defines Posting amount as int64.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-CONTRACT-WIRED />
+        </Satisfies>
+        <Verification>
+          <Command>test -f openapi/posting.yaml</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Wire IC-POSTING-V1 and ordered DF-POSTING</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Graph projects IC and DF without invalid-interface or invalid-data-flow-step errors.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-FLOW-ORDERED />
+        </Satisfies>
+        <Verification>
+          <Command>echo "graph projection validated by grace lint"</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-ADD-POSTING-CONTRACT>
+</NgraceChangePlan>

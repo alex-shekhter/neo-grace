@@ -23,10 +23,10 @@ function collectFiles(root: string, current = root): string[] {
 
 describe("GRACE lifecycle skill contracts", () => {
   it("documents strict specs and immutable approved plans", () => {
-    const spec = read("skills/grace/grace-spec/SKILL.md");
-    const specTemplate = read("skills/grace/grace-spec/references/change-spec-template.xml");
-    const plan = read("skills/grace/grace-plan/SKILL.md");
-    const reviewer = read("skills/grace/grace-reviewer/SKILL.md");
+    const spec = read("skills/ngrace/ngrace-spec/SKILL.md");
+    const specTemplate = read("skills/ngrace/ngrace-spec/references/change-spec-template.xml");
+    const plan = read("skills/ngrace/ngrace-plan/SKILL.md");
+    const reviewer = read("skills/ngrace/ngrace-reviewer/SKILL.md");
 
     for (const section of ["Summary", "Goals", "Constraints", "NonGoals", "AcceptanceCriteria", "AffectedAreas", "VerificationIntent"]) {
       expect(spec).toContain(section);
@@ -66,14 +66,14 @@ describe("GRACE lifecycle skill contracts", () => {
     expect(reviewer).toContain("<ceremony_tier_review>");
     expect(reviewer).toContain("T0 misuse on architectural change");
     expect(reviewer).toContain("tiers never bypass `--assertions final`");
-    const planTemplate = read("skills/grace/grace-plan/references/change-plan-template.xml");
+    const planTemplate = read("skills/ngrace/ngrace-plan/references/change-plan-template.xml");
     expect(planTemplate).toContain("<Satisfies>");
     expect(planTemplate).toContain("AC-EXAMPLE-CRITERION");
     expect(planTemplate).toContain("OutOfPlanScope");
   });
 
   it("defines one recovery table and explicit selected assertion commands", () => {
-    const execute = read("skills/grace/grace-execute/SKILL.md");
+    const execute = read("skills/ngrace/ngrace-execute/SKILL.md");
 
     expect(execute.match(/<recovery_decision_table>/g)).toHaveLength(1);
     expect(execute.match(/<\/recovery_decision_table>/g)).toHaveLength(1);
@@ -87,13 +87,13 @@ describe("GRACE lifecycle skill contracts", () => {
   });
 
   it("documents fail-closed CLI and derived readiness behavior", () => {
-    const cli = read("skills/grace/grace-cli/SKILL.md");
-    const status = read("skills/grace/grace-status/SKILL.md");
+    const cli = read("skills/ngrace/ngrace-cli/SKILL.md");
+    const status = read("skills/ngrace/ngrace-status/SKILL.md");
 
     expect(cli).toContain('"schemaVersion": "1.0.0"');
     expect(cli).toContain('"ok": false');
     expect(cli).toContain("analysis.runtime-missing");
-    expect(read("skills/grace/grace-explainer/references/semantic-markup.md")).toContain("analysis.heuristic-confidence");
+    expect(read("skills/ngrace/ngrace-explainer/references/semantic-markup.md")).toContain("analysis.heuristic-confidence");
     expect(status).toContain("needs-plan-approval");
     expect(status).toContain("stale-plan");
     expect(status).toContain("integrity-issues");
@@ -102,10 +102,10 @@ describe("GRACE lifecycle skill contracts", () => {
   });
 
   it("makes the grace CLI a hard precondition of init, not a recommendation", () => {
-    // Skills without the CLI can author .grace artifacts that nothing validates — the
+    // Skills without the CLI can author .ngrace artifacts that nothing validates — the
     // GRACE 3 failure this refusal exists to close. The wording is pinned so it cannot
     // be softened back into "when the CLI is available" without a test failing.
-    const init = read("skills/grace/grace-init/SKILL.md");
+    const init = read("skills/ngrace/ngrace-init/SKILL.md");
 
     expect(init).toContain("<cli_precondition>");
     expect(init).toContain("ngrace --version");
@@ -123,7 +123,7 @@ describe("GRACE lifecycle skill contracts", () => {
     expect(init).toContain("Do not report init complete while lint is failing");
 
     // The hedge this replaced must not come back, in either skill tree.
-    for (const path of ["skills/grace/grace-init/SKILL.md", "plugins/grace/skills/grace/grace-init/SKILL.md"]) {
+    for (const path of ["skills/ngrace/ngrace-init/SKILL.md", "plugins/ngrace/skills/ngrace/ngrace-init/SKILL.md"]) {
       expect(read(path)).not.toContain("when the CLI is available");
     }
   });
@@ -131,9 +131,9 @@ describe("GRACE lifecycle skill contracts", () => {
 
 describe("GRACE migration cleanup contract", () => {
   it("requires backup, validation, coverage, and separate cleanup approval", () => {
-    const skill = read("skills/grace/grace-migrate/SKILL.md");
-    const checklist = read("skills/grace/grace-migrate/references/migration-checklist.md");
-    const report = read("skills/grace/grace-migrate/references/migration-report-template.xml");
+    const skill = read("skills/ngrace/ngrace-migrate/SKILL.md");
+    const checklist = read("skills/ngrace/ngrace-migrate/references/migration-checklist.md");
+    const report = read("skills/ngrace/ngrace-migrate/references/migration-report-template.xml");
 
     for (const requirement of ["complete inventory", "restorable backup", "successful current lint", "verified generated coverage", "git availability/worktree inspection", "separate explicit cleanup approval", "dirty or non-git risk acknowledgement"]) {
       expect(skill).toContain(requirement);
@@ -161,7 +161,7 @@ describe("published skill mirrors", () => {
     for (const componentPath of marketplace.plugins[0]!.skills) {
       const relativePath = componentPath.replace(/^\.\//, "");
       const canonicalRoot = path.join(repoRoot, relativePath);
-      const packagedRoot = path.join(repoRoot, "plugins/grace", relativePath);
+      const packagedRoot = path.join(repoRoot, "plugins/ngrace", relativePath);
       const canonicalFiles = collectFiles(canonicalRoot);
       const packagedFiles = collectFiles(packagedRoot);
 

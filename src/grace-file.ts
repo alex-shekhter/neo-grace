@@ -6,7 +6,7 @@ import { formatFileText } from "./query/render";
 import type { GraceArtifactIndex } from "./query/types";
 
 /** Loads projection-backed index or throws a user-facing command error. */
-function loadGrace4IndexOrThrow(root: string): GraceArtifactIndex {
+function loadNgraceIndexOrThrow(root: string): GraceArtifactIndex {
   return loadGraceArtifactIndex(root);
 }
 
@@ -22,7 +22,7 @@ function resolveFormat(format: unknown, json: unknown) {
 export const fileCommand = defineCommand({
   meta: {
     name: "file",
-    description: "Query file-local GRACE markup and private implementation context.",
+    description: "Query file-local neo-grace markup and private implementation context.",
   },
   subCommands: {
     show: defineCommand({
@@ -68,7 +68,7 @@ export const fileCommand = defineCommand({
         const errorFormat = Boolean(context.args.json) || context.args.format === "json" ? "json" : "text";
         await runQueryCommand(errorFormat, () => {
           const format = resolveFormat(context.args.format, context.args.json);
-          const index = loadGrace4IndexOrThrow(String(context.args.path ?? "."));
+          const index = loadNgraceIndexOrThrow(String(context.args.path ?? "."));
           const fileRecord = resolveGovernedFile(index, context.args.target == null ? "" : String(context.args.target));
           process.stdout.write(format === "json"
             ? `${JSON.stringify(fileRecord, null, 2)}\n`

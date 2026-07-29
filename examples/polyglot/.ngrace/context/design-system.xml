@@ -1,0 +1,33 @@
+<NgraceDesignSystem graceVersion="1.0">
+  <Applicability>applicable</Applicability>
+  <TokenSource>apps/web/src/styles/tokens.css</TokenSource>
+  <Tokens>
+    <DT-COLOR-ACCENT>
+      <Value>var(--color-accent)</Value>
+      <Usage>Primary accent for interactive ledger controls.</Usage>
+    </DT-COLOR-ACCENT>
+    <DT-COLOR-SURFACE>
+      <Value>var(--color-surface)</Value>
+      <Usage>Default page background.</Usage>
+    </DT-COLOR-SURFACE>
+    <DT-SPACE-MD>
+      <Value>var(--space-md)</Value>
+      <Usage>Standard vertical rhythm between table rows.</Usage>
+    </DT-SPACE-MD>
+  </Tokens>
+  <Breakpoints>
+    <BP-MOBILE>
+      <MinWidth>0</MinWidth>
+      <MaxWidth>767px</MaxWidth>
+      <Intent>Phone layout; single-column table.</Intent>
+    </BP-MOBILE>
+    <BP-DESKTOP>
+      <MinWidth>768px</MinWidth>
+      <Intent>Desktop layout; multi-column table.</Intent>
+    </BP-DESKTOP>
+  </Breakpoints>
+  <Accessibility>
+    <Standard>WCAG 2.2 AA</Standard>
+    <ContrastMinimum>4.5</ContrastMinimum>
+  </Accessibility>
+</NgraceDesignSystem>

@@ -8,16 +8,46 @@ up to date before merging. `git push origin main` will be rejected — that is d
 
 ## Ordinary change
 
+**These are two separate flows. Starting a branch happens once; committing and pushing happen
+many times.** They are written apart because reading them as one block is how you end up running
+branch-creation commands on a branch that already exists — see the warning below.
+
+### Flow 1 — starting a branch (once)
+
 ```bash
 git switch main && git pull
 git switch -c fix/short-description        # or feat/, docs/, chore/, test/
-
-# … work …
-
-bun run validate:ci                        # everything CI runs, locally
-git commit -m "fix: describe the change"   # Conventional Commits, enforced by commitlint
-git push -u origin fix/short-description
 ```
+
+### Flow 2 — while working on that branch (repeat as often as you like)
+
+```bash
+git status                                 # confirm where you are and what is staged
+bun run validate:ci                        # or validate:release — see below
+git add -A
+git commit -m "fix: describe the change"   # Conventional Commits, enforced by commitlint
+git push                                   # first push only: git push -u origin <branch>
+```
+
+> **Do not re-run Flow 1 to resume work.** `git switch -c <existing-branch>` fails with
+> *"a branch named … already exists"*, and forcing past it (`-B`, or deleting the branch first)
+> gives you a branch at `main` with **none of your commits**. To resume, just `git switch` to the
+> branch — or check `git rev-parse --abbrev-ref HEAD` and discover you were already on it.
+>
+> Before assuming you have something to commit, run `git status`. A clean tree plus
+> `git rev-list --count main..HEAD` greater than zero means the work is already committed and
+> only needs pushing.
+
+### Which validate script before pushing
+
+| Situation | Command | Why |
+|---|---|---|
+| Ordinary change | `bun run validate:ci` | typecheck, tests, `validate:cli`, marketplace, examples |
+| You touched `package.json`, either manifest, `openpackage.yml`, `README.md`'s version line, or the published file list | `bun run validate:release` | adds **`release:check`** and **`validate:packed`**, which `validate:ci` does not run |
+
+`validate:ci` is named for what *CI* runs, not for everything worth running. Renames and version
+bumps break packaging and release tooling before they break tests, so a branch that touches the
+release surface needs `validate:release` even though CI will pass without it.
 
 Open the PR against **`alex-shekhter/neo-grace`** — GitHub defaults the base to
 `osovv/grace-marketplace` because this is a fork, and it gets this wrong every time.
@@ -28,6 +58,62 @@ set to 0 because GitHub does not let you approve your own pull request.
 **If `main` moved while your PR was open**, GitHub will ask you to update the branch before
 merging. Do it — the alternative is merging a branch whose checks ran against a stale base,
 which is how a fix once got left out of a release here.
+
+### Squash merging and long branches
+
+Squash is the norm here and stays the norm. It costs the most on a branch carrying many
+well-formed commits, because `scripts/release-summary.ts` builds changelog prose from commit
+metadata and a squash gives it one message instead of many.
+
+So when a branch is long, **the squash message is doing the work of every commit it replaces.**
+Write it deliberately, and if any commit on the branch was marked `!` or carried a
+`BREAKING CHANGE:` footer, carry that footer into the squash body — otherwise the breaking change
+exists in the diff and nowhere in the history.
+
+## After the merge — checking a branch landed, then deleting it
+
+**Do not trust `git branch --merged main`.** PRs here are squash-merged, so the merge
+writes a *new* commit and the original branch is never an ancestor of `main`. A fully
+landed branch is reported as unmerged forever, which is how four stale branches once
+accumulated here — every one of them already in `main`.
+
+Ask instead whether the branch's **content** differs from `main`:
+
+```bash
+git fetch origin && git switch main && git pull
+
+git diff --stat main..<branch>       # empty output → tree identical to main, landed
+git log --oneline main..<branch>     # commits main does not have, by SHA
+```
+
+`git diff` is the answer that matters; `git log` almost always lists something after a
+squash merge and on its own proves nothing. When the diff is not empty, read its direction
+before assuming work is stranded — a landed branch that `main` has since moved past shows
+the *old* lines as additions:
+
+```bash
+git diff main..<branch> | grep -E '^\+' | grep -v '^\+\+\+'
+```
+
+If everything there is a superseded version of something `main` already has, the branch is
+spent. Then delete it in both places:
+
+```bash
+git branch -d <branch>                  # -D if squash-merged; -d will refuse
+git push origin --delete <branch>       # skip if the remote is already [gone]
+git fetch --prune                       # drop tracking refs for deleted remote branches
+```
+
+`git branch -vv` marks a branch whose remote is gone with `[origin/<name>: gone]` — that is
+usually the fastest signal that a PR merged and GitHub deleted the head branch for you.
+
+`git fetch --prune` only removes refs whose **remote branch no longer exists**. It will
+never clear the `upstream/*` refs, because those branches are alive in the fork parent —
+see [Upstream](#upstream).
+
+Optional: GitHub's **Settings → General → Pull Requests → Automatically delete head
+branches** removes the remote branch on merge, so the `[gone]` marker appears without you
+doing anything. It never touches local branches, so the cleanup above is still manual.
 
 ## Release
 
@@ -163,7 +249,7 @@ If you upgrade local npm, bump the pin in both publish jobs to match.
 
 ## Keeping the skill mirror in sync
 
-`skills/grace/*` is canonical; `plugins/grace/skills/grace/*` is the packaged mirror.
+`skills/ngrace/*` is canonical; `plugins/ngrace/skills/ngrace/*` is the packaged mirror.
 Syncing is **not** automatic. Edit the canonical copy, mirror it, and let
 `bun run validate:marketplace` confirm they match — it is part of `validate:ci` and of
 every pre-commit hook.
@@ -179,3 +265,19 @@ git log --oneline main..upstream/main    # what upstream has that we do not
 ```
 
 Changelog entries at `4.0.4` and below describe work done upstream and are never edited here.
+
+`git branch -a` lists several `upstream/*` branches. They are not ours and `git fetch
+--prune` will never clear them — they are an accurate mirror of a repository someone else
+owns, and the lines have diverged (upstream is on `4.0.x`). To track only `upstream/main`:
+
+```bash
+git config remote.upstream.fetch '+refs/heads/main:refs/remotes/upstream/main'
+git for-each-ref --format='%(refname)' refs/remotes/upstream \
+  | grep -v 'refs/remotes/upstream/main$' \
+  | xargs -n1 git update-ref -d
+```
+
+Both steps are needed. Narrowing the refspec alone changes nothing, and neither does
+adding `--prune` to the fetch: prune only removes refs inside the refspec's destination
+namespace, and the old refs now fall outside it. The second command deletes them directly;
+after that, `git fetch upstream` brings back only `main`.

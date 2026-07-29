@@ -1,0 +1,10 @@
+<NgraceTechnology graceVersion="1.0">
+  <Language>$LANGUAGE</Language>
+  <Runtime>$RUNTIME</Runtime>
+  <Framework>$FRAMEWORK</Framework>
+  <TestingStack>$TESTING_STACK</TestingStack>
+  <Observability>$OBSERVABILITY_STACK</Observability>
+  <OperationalConstraints>
+    <Constraint>Prefer existing project libraries and established repository patterns.</Constraint>
+  </OperationalConstraints>
+</NgraceTechnology>

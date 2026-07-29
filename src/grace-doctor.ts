@@ -5,9 +5,10 @@ import path from "node:path";
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 
-import { GRACE4_OPTIONAL_CONTEXT_ARTIFACTS } from "./grace4/types";
-import { detectGraceProjectKind, resolveGrace4Paths } from "./grace4/project";
-import { buildGraphProjection, buildVerificationProjection } from "./grace4/projections";
+import { ARTIFACT_DIR } from "./artifact/paths";
+import { detectGraceProjectKind, resolveNgracePaths } from "./artifact/project";
+import { NGRACE_OPTIONAL_CONTEXT_ARTIFACTS, skillName } from "./artifact/types";
+import { buildGraphProjection, buildVerificationProjection } from "./artifact/projections";
 import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "./language-registry";
 import { loadGraceLintConfig } from "./lint/config";
 import { lintGraceProject } from "./lint/core";
@@ -59,15 +60,15 @@ export function collectDoctorReport(projectRoot: string): DoctorResult {
     throw new GraceCommandError(
       "invalid-project",
       kind === "grace3"
-        ? "Detected GRACE 3 docs. Run grace-migrate before ngrace doctor."
-        : "No GRACE 4 .grace project found.",
+        ? `Detected GRACE 3 docs. Run ${skillName("migrate")} before ngrace doctor.`
+        : `No neo-grace ${ARTIFACT_DIR} project found.`,
     );
   }
 
   const lint = lintGraceProject(root);
   const { config } = loadGraceLintConfig(root);
   const limits = resolveDocumentSizeLimits(config);
-  const paths = resolveGrace4Paths(root);
+  const paths = resolveNgracePaths(root);
   const graph = buildGraphProjection(paths);
   const verification = buildVerificationProjection(paths, graph);
   const pressure = collectDocumentSizePressure(graph, verification, limits);
@@ -97,7 +98,7 @@ export function collectDoctorReport(projectRoot: string): DoctorResult {
         overLimit: item.overAnchorLimit || item.overByteLimit,
       })),
     },
-    optionalContextArtifacts: GRACE4_OPTIONAL_CONTEXT_ARTIFACTS.map((file) => ({
+    optionalContextArtifacts: NGRACE_OPTIONAL_CONTEXT_ARTIFACTS.map((file) => ({
       file,
       present: existsSync(path.join(paths.contextDir, file)),
     })),
@@ -114,8 +115,8 @@ export function collectDoctorReport(projectRoot: string): DoctorResult {
 
 export function formatDoctorText(report: DoctorResult): string {
   const lines = [
-    "GRACE Doctor",
-    "============",
+    "neo-grace Doctor",
+    "=".repeat(16),
     `Root: ${report.root}`,
     "",
     "Adapters",

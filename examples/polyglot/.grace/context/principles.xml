@@ -1,5 +1,0 @@
-<GracePrinciples graceVersion="4.0">
-  <Principle>Evidence over assertion: every module health claim is backed by a command, marker, or TraceAssertion.</Principle>
-  <Principle>Contracts are versioned; breaking changes are additive-only unless a plan freezes a migration window.</Principle>
-  <Principle>Ceremony tiers change required sections, never whether gates run.</Principle>
-</GracePrinciples>
