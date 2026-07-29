@@ -177,7 +177,7 @@ flowchart TB
 | 1 | Centralize the scattered literals | — (enabling) | TBD | `COMPLETE` |
 | 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | TBD | `COMPLETE` |
 | 3 | Artifact surface: `.ngrace/` and root tags | Artifact | TBD | `COMPLETE` |
-| 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | TBD | `NOT STARTED` |
+| 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | TBD | `COMPLETE` |
 | 5 | Prose sweep and documentation | — | TBD | `NOT STARTED` |
 | 6 | Reconcile RM-AGENT-RELIABILITY; release | — | TBD | `NOT STARTED` |
 
@@ -301,16 +301,16 @@ line, and completeness is then a type error rather than a hope.
 
 | File | Action |
 |---|---|
-| `src/grace4/paths.ts` | EDIT — export the artifact-directory constant |
-| `src/grace4/types.ts` | EDIT — derive root tags from a prefix constant |
+| `src/artifact/paths.ts` | EDIT — export the artifact-directory constant |
+| `src/artifact/types.ts` | EDIT — derive root tags from a prefix constant |
 | `src/grace-status.ts` | EDIT — three `.grace/` literals; 11 `$grace-*` guidance strings |
 | `src/lint/core.ts` | EDIT — one `.grace` literal |
 | `src/lint/catalog.ts` | EDIT — `.grace/` and `$grace-*` in remediation prose |
 | `src/test-support/fixtures.ts` | EDIT — one `.grace/` literal |
 
 **This list was incomplete (A2).** Six further files hold literals and were correctly picked up by
-the executor's own reading: `src/grace4/assertions.ts`, `src/grace4/grammar.ts`,
-`src/grace4/project.ts`, `src/grace4/scope.ts`, `src/grace4/test-fixtures.ts`, `src/query/health.ts`.
+the executor's own reading: `src/artifact/assertions.ts`, `src/artifact/grammar.ts`,
+`src/artifact/project.ts`, `src/artifact/scope.ts`, `src/artifact/test-fixtures.ts`, `src/query/health.ts`.
 
 Four more are added by step 1.5.6:
 
@@ -329,10 +329,10 @@ table omits, edit it and say so in the report — that is the principle-1 classi
 ```
 PSEUDOCODE — values unchanged in this phase
 
-// src/grace4/paths.ts
+// src/artifact/paths.ts
 export const ARTIFACT_DIR = ".grace";                  // Phase 3 changes this value
 
-// src/grace4/types.ts
+// src/artifact/types.ts
 export const ARTIFACT_TAG_PREFIX = "Grace";            // Phase 3 changes this value
 export const GRACE4_ROOT_TAGS = [
   `${ARTIFACT_TAG_PREFIX}Requirements`,
@@ -395,7 +395,7 @@ step.
 
 | Kind | Example | This phase |
 |---|---|---|
-| **Marketplace skill name in a string** | `src/grace4/project.ts:57`, `src/query/core.ts:108`, `src/grace-doctor.ts:62` | Move behind `skillRef` — step 1.5.6 |
+| **Marketplace skill name in a string** | `src/artifact/project.ts:57`, `src/query/core.ts:108`, `src/grace-doctor.ts:62` | Move behind `skillRef` — step 1.5.6 |
 | **Internal tool identifier** | `import … from "./grace-verification"`; `tool: "grace-doctor"`; `"src/grace-verification.ts"` in `scripts/release-check.ts:91` | **Leave.** Review §4.2 — the prefix means *GRACE's verification*, not *the ngrace binary's* |
 | **The skill registry itself** | the ten names in `scripts/validate-marketplace.ts:27–41` | **Leave — Phase 2 owns it.** Renaming the expected-skills list here, with the directories still named `grace-*`, breaks `validate:marketplace` and blocks every remaining phase |
 
@@ -431,7 +431,7 @@ Split them, and do only the first half:
 
 | Kind | Example | Action |
 |---|---|---|
-| **Shared fixture builders** | `src/test-support/fixtures.ts`, `src/grace4/test-fixtures.ts` | Centralize — done in 1.5.1 |
+| **Shared fixture builders** | `src/test-support/fixtures.ts`, `src/artifact/test-fixtures.ts` | Centralize — done in 1.5.1 |
 | **Inline fixture setup** | `mkdirSync(path.join(root, ".grace", "changes", "active"))` in `grace-lint.test.ts`, `grace-status.test.ts`, `grace-query.test.ts`, `grammar.test.ts` (~13 sites) | **Centralize.** Duplicated setup; failing on it in Phase 3 proves nothing a builder would not |
 | **Assertions** | `expect(paths.graceDir).toBe(path.join(root, ".grace"))`; `expect(...message).toContain("No .grace directory")` | **Leave literal.** This is the Phase 3 alarm and must not be silenced |
 
@@ -469,7 +469,7 @@ grep -rn '\.grace[/"]' src --include='*.test.ts' | grep -vE 'graceVersion|grace3
 counts are the whole proof — a centralization that alters any of them was not faithful.
 
 → verify, and put the number in the report: temporarily set `ARTIFACT_DIR = ".ngrace"`, run
-`bun test`, record the failure count, then `git checkout -- src/grace4/paths.ts`. It must drop from
+`bun test`, record the failure count, then `git checkout -- src/artifact/paths.ts`. It must drop from
 140 to roughly the assertion count. **Restore the value before reporting** — leaving it flipped
 starts Phase 3 by accident.
 
@@ -483,7 +483,7 @@ src/grace-doctor.ts:62   "Detected GRACE 3 docs. Run grace-migrate before ngrace
 src/grace-doctor.ts:63   "No GRACE 4 .grace project found."
 src/grace-graph.ts:105   "ngrace graph split requires a GRACE 4 .grace project."
 src/grace.ts:17          "GRACE 4 CLI for .grace linting, …"          ← printed by ngrace --help
-src/grace4/project.ts:57 "Use the grace-migrate skill to review and agent-apply…"
+src/artifact/project.ts:57 "Use the grace-migrate skill to review and agent-apply…"
 ```
 
 `src/query/core.ts:108` is the one that matters most. It emits the same sentence as
@@ -492,7 +492,7 @@ makes `ngrace lint` say *"No .ngrace directory found"* and `ngrace query` say *"
 found"* — two answers to one condition, both authoritative, one wrong. That is review F2's failure
 mode arriving through a path F2 did not name.
 
-`src/grace4/project.ts:57` is the instructive one: `.grace` on that line was correctly replaced
+`src/artifact/project.ts:57` is the instructive one: `.grace` on that line was correctly replaced
 while `grace-migrate` beside it was not. The category was missed, not the location.
 
 Leave `"GRACE 4"` and `"GRACE 3"` prose alone here — that is Phase 5's job, and mixing the two makes
@@ -500,7 +500,7 @@ both diffs unreadable.
 
 → verify: both A2 greps above come back empty-or-classified, and the rendered-output check in
 step 1.5.4 is re-run and still byte-identical. Note that `src/grace-lint.test.ts:122`,
-`src/grace-query.test.ts:647`, and `src/grace4/project.test.ts:65` assert these exact strings.
+`src/grace-query.test.ts:647`, and `src/artifact/project.test.ts:65` assert these exact strings.
 
 ## 1.6 Definition of done
 
@@ -559,7 +559,7 @@ manifests, and the CLI's guidance strings move from `grace` to `ngrace` **togeth
 | `.claude-plugin/marketplace.json` | EDIT — plugin name, 16 skill paths |
 | `plugins/ngrace/.claude-plugin/plugin.json` | EDIT — plugin name |
 | `openpackage.yml` | EDIT — if it names the plugin |
-| `src/grace4/types.ts` | EDIT — **one line**, `SKILL_PREFIX` value |
+| `src/artifact/types.ts` | EDIT — **one line**, `SKILL_PREFIX` value |
 | `scripts/validate-marketplace.ts` | EDIT — `REQUIRED_GRACE4_SKILLS`, `FORBIDDEN_GRACE4_SKILLS` |
 | `README.md` | EDIT — skill names in the workflow section |
 
@@ -658,8 +658,8 @@ this phase changes the project-root directory only and no user-level state exist
 
 | File | Action |
 |---|---|
-| `src/grace4/paths.ts` | EDIT — `ARTIFACT_DIR` value |
-| `src/grace4/types.ts` | EDIT — `ARTIFACT_TAG_PREFIX` value |
+| `src/artifact/paths.ts` | EDIT — `ARTIFACT_DIR` value |
+| `src/artifact/types.ts` | EDIT — `ARTIFACT_TAG_PREFIX` value |
 | `skills/ngrace/*/references/*.xml` | EDIT — template root tags |
 | `skills/ngrace/ngrace-init/assets/**` | EDIT — scaffolded skeleton |
 | `examples/polyglot/.grace/` → `.ngrace/` | `git mv` + tag edits |
@@ -805,7 +805,7 @@ Revert both constant values and the data edits; `git mv` the example back.
 
 # PHASE 4 — Grammar identity: retire the `Grace4` name in code
 
-**Status:** `NOT STARTED` · **Layer:** Artifact · **Release:** TBD
+**Status:** `COMPLETE` · **Layer:** Artifact · **Release:** TBD
 **Amended 2026-07-29 (A1)** — see §9.
 
 ## 4.1 Objective
@@ -847,14 +847,14 @@ version number asserts a lineage that no longer holds.
 
 | File | Action |
 |---|---|
-| `src/grace4/types.ts` | EDIT — constant and type names, and the version value |
-| `src/grace4/grammar.ts` | EDIT — `validateGrace4Project`, `validateGrace4ProjectLayout`, re-exports |
-| `src/grace4/grammar.ts` | EDIT *(A6)* — 22 hardcoded `"Ngrace*"` tag literals behind `ARTIFACT_TAG_PREFIX` |
+| `src/artifact/types.ts` | EDIT — constant and type names, and the version value |
+| `src/artifact/grammar.ts` | EDIT — `validateGrace4Project`, `validateGrace4ProjectLayout`, re-exports |
+| `src/artifact/grammar.ts` | EDIT *(A6)* — 22 hardcoded `"Ngrace*"` tag literals behind `ARTIFACT_TAG_PREFIX` |
 | `src/lint/core.ts` | EDIT *(A6)* — 3 hardcoded tag literals |
 | `src/grace-graph.ts` | EDIT *(A6)* — 1 hardcoded tag literal |
 | `scripts/validate-marketplace.ts` | EDIT — `REQUIRED_/FORBIDDEN_GRACE4_SKILLS`, `validateGrace4SkillSurface`, `validateGrace4Dependencies` |
 | (all remaining reference sites across `src/`) | EDIT — follow the compiler |
-| `src/grace4/` → `src/artifact/` | `git mv` — **optional, see 4.4** |
+| `src/artifact/` → `src/artifact/` | `git mv` — **optional, see 4.4** |
 | `skills/ngrace/*/references/*.xml` | EDIT — VERSION attributes |
 | `README.md` | EDIT — grammar version documentation |
 
@@ -881,12 +881,12 @@ follow `typecheck` to every use. That is the Phase 1 principle applied to symbol
 literals — and it is why this can be done safely in one pass.
 
 **Two of these are exported and re-exported** (`GRACE4_CONTEXT_ARTIFACTS`,
-`GRACE4_OPTIONAL_CONTEXT_ARTIFACTS`, at `src/grace4/grammar.ts:1665`). `package.json#files`
+`GRACE4_OPTIONAL_CONTEXT_ARTIFACTS`, at `src/artifact/grammar.ts:1665`). `package.json#files`
 publishes `src/`, so a determined consumer could import them — but the package's supported surface
 is the `ngrace` binary, not its TypeScript internals. Rename them; do not add compatibility
 aliases.
 
-**Directory rename is optional and should be decided, not defaulted.** `src/grace4/` encodes the
+**Directory rename is optional and should be decided, not defaulted.** `src/artifact/` encodes the
 old grammar version in a path. Renaming to `src/artifact/` removes a stale claim; leaving it costs
 one confusing directory name. Either is defensible — but say which you chose and why, because a
 silent default here is how a stale name survives a rename plan.
@@ -1110,6 +1110,42 @@ references"; this is what that phrase means, and it is the largest concentration
 plan.
 
 Rule: **a path inside a `git show <ref>:` argument is dated by its ref and never renamed.**
+This rule held: Phase 4 swept `src/grace4/` → `src/artifact/` across the sibling plan and left every
+`git show v3.11.0:` path alone. Recorded because it is the first time a §0.2 rule written after one
+failure prevented the next one.
+
+**A7 — two further rules for 6.5.2, both learned from Phase 4 doing this work early.**
+
+**Reconcile symbols with paths, or reconcile neither.** Phase 4's sweep updated
+`src/grace4/*.ts` → `src/artifact/*.ts` in the sibling plan but left the symbol names beside them, so
+line 921 became:
+
+```
+→ verify: `grep -n 'GRACE4_CHANGE_COMPANION_TAGS' src/artifact/*.ts`
+```
+
+A current path and a deleted symbol. Before the sweep both were stale and the line was *consistently*
+stale — obviously in need of updating. After, it reads as maintained and returns nothing. **A
+half-reconciled reference is worse than an unreconciled one**, because staleness is what makes a
+reader check. Lines 90 and 472 still assert `GRACE4_VERSION ("4.0")` as fact and were untouched
+because they contain no path — that is the tell: a path sweep cannot reconcile a document, because
+what went stale was the claim, not the path.
+
+**`review.md` and `decisions.md` are dated records. Never sweep them.** Both carry `(E2)` provenance
+tags meaning *verified against this repository at 5.0.1 on 2026-07-29*. The sweep rewrote
+`review.md` §7 to read "Verified against (E2): … `src/artifact/types.ts`, `src/artifact/paths.ts`" —
+paths that **did not exist on that date**. The evidence record now claimed files that were not there
+when the evidence was gathered. §4 F4 became self-contradicting: `GRACE4_VERSION = "4.0"` cited at
+`src/artifact/types.ts:2`, a symbol deleted by the same commit that created that path.
+
+This is the sibling track's own subject arriving here as a formatting change: **D5 is about the
+authority of a claim, and a rename silently converted `tool-verified` provenance into a false one.**
+Nothing was lying; a sweep simply does not know that some strings are testimony about a moment.
+
+Phase 6 reconciles `plan.md` — normative and forward-looking, so its references *should* end current,
+symbols and paths together. It appends a dated note to `decisions.md` (§6.4 point 2 already says so)
+and **leaves `review.md` and `review-consolidated.md` alone.** If a path in a dated record is
+confusing, the fix is a footnote saying where it moved, never an edit to the record.
 
 This is the same defect Phase 2 produced in `FORBIDDEN_GRACE4_SKILLS` (see §9, A4). Phase 6 has more
 instances of it than any other phase, and unlike Phase 2's, these fail loudly rather than silently —
@@ -1223,6 +1259,7 @@ open questions, and a sixth invented mid-phase will not be recorded anywhere.
 | A4 | Forbidden-skill guard renamed away from the name it guards; `git show <ref>:` paths are history | 2, 6 |
 | A5 | Phase 3's residual scan could not match XML markup | 3 |
 | A6 | Tag centralization was never real; `ARTIFACT_TAG_PREFIX` is bypassed by 26 literals | 1 (cause), 3 (surfaced), 4 (fix) |
+| A7 | Dated evidence records are history and are never swept; reconcile symbols with paths or neither | 4 (cause), 6 (fix) |
 
 ---
 
@@ -1273,7 +1310,7 @@ Six production sites in four files survived, every one of them the *sentence-emb
 literal the grep matched in its *standalone* form. The greps did not fail; they were narrower than
 the objective they were standing in for, and an empty result read as done.
 
-The clearest evidence is `src/grace4/project.ts:57`, where `.grace` was correctly replaced and
+The clearest evidence is `src/artifact/project.ts:57`, where `.grace` was correctly replaced and
 `grace-migrate` on the same line was not. Location was not the problem. **Classification was** —
 which is principle 1, and which no grep performs. Step 1.5.3's replacement is therefore written to
 return *classified*, not *empty*: `grace-doctor` and `grace-status` are legitimate internal tool
@@ -1384,6 +1421,58 @@ the plan assumed one. Neither can mask the other. Do not centralize the tag lite
 
 **Phase 1 is `COMPLETE`.**
 
+### A7 — 2026-07-29 · Phase 4 review: a sweep cannot reconcile a record
+
+**Phase 4 is accepted and `COMPLETE`.** Verified independently: the A1 residual grep is empty across
+`src` and `scripts` including tests, `NGRACE_ARTIFACT_VERSION = "1.0"` is re-based rather than bumped,
+`README.md` documents both numbers and the discontinuity, no new identifier embeds a version except
+that one, and all six gates exit 0 with the suite unchanged at 589 / 586 pass / 3 skip / 0 fail /
+1889 expects.
+
+**A6 is discharged, and measurably.** Zero tag comparisons bypass the constant — checked with a
+comparison-shaped grep (`===`, `!==`, `Set([`, `rootTag:`) rather than the broader one A6 specified.
+Flipping `ARTIFACT_TAG_PREFIX` now costs **100 failures**, up from 63, and that increase is the
+correct signature: production moved wholesale to the new prefix while fixtures kept their literals, so
+the two disagree everywhere instead of in the few places production had been hardcoded to agree.
+Fixtures must stay literal — §0.6 pattern 2 — so a high number here is health, not noise.
+
+**Step 4.5.3's directory decision is right and was argued rather than defaulted.** `src/grace4/` →
+`src/artifact/` removes the last versioned claim from the tree after every `Grace4` symbol was
+retired; leaving it would have left a path asserting what the identifiers no longer do.
+
+**The finding: Phase 4 reconciled the sibling documents early, by sweeping paths.** It rewrote
+`src/grace4/` → `src/artifact/` in `RM-AGENT-RELIABILITY/{plan,decisions,review-consolidated}.md` and
+in this plan's own `review.md` — 52 lines across four files, all of it Phase 6's work, and all of it
+purely a path substitution.
+
+Two distinct defects came out of it, and the second is the one worth remembering. Both are now rules
+in §6.4:
+
+1. **A half-reconciled reference is worse than a stale one.** Paths were updated; the symbol names
+   beside them were not. `GRACE4_CHANGE_COMPANION_TAGS` at `src/artifact/*.ts` is a deleted symbol at
+   a current path — it looks maintained and returns nothing, where before it looked stale and invited
+   a check.
+2. **Dated evidence records are testimony, and a sweep does not know that.** `review.md` §7 came to
+   read *"Verified against (E2): … `src/artifact/types.ts` … at 5.0.1 on 2026-07-29"* — a path that
+   did not exist on that date. The `(E2)` tag means *tool-verified at a moment*; the rename left the
+   tag intact and made its content false. This is the sibling track's D5 — the authority of a claim —
+   arriving as a side effect of find-and-replace.
+
+All four documents were reverted to `HEAD`, which restores them to *consistently* stale. Phase 6 will
+reconcile `plan.md` properly (symbols with paths), append to `decisions.md`, and leave the two review
+documents untouched.
+
+**Also fixed at review:** eight tag names remained inside error and explanation strings — the last of
+A6's family, not comparisons, so A6's substance was already met. Threaded through
+`ARTIFACT_TAG_PREFIX`; rendered output verified identical.
+
+**A note on my own verify.** A6's grep was `"Ngrace[A-Z]`, which matches a quote followed by the tag
+name. That catches comparison literals *and* messages that happen to begin with a tag name, so it was
+never going to come back empty while any error message named a root tag. It is the third verify I have
+written in this plan whose pattern did not match its intent. The durable form is the one used above:
+**grep for the syntax of the thing you care about** — `=== "Ngrace`, `Set(["Ngrace` — not for the
+string, which appears in both the code you mean and the prose you do not.
+
 ### A6 — 2026-07-29 · Phase 3 review: the tag half of Phase 1 was never centralized
 
 **Phase 3 is accepted and `COMPLETE`.** Its objective is met and verified independently: constants
@@ -1433,7 +1522,7 @@ assertions, and `grep -n '"Ngrace[A-Z]' src --include='*.ts' | grep -v test | gr
 be empty.
 
 **Reviewer error, recorded because it is the same class.** While measuring the 63 failures I ran
-`git checkout -- src/grace4/types.ts` to undo the probe, on a file holding uncommitted Phase 3 work,
+`git checkout -- src/artifact/types.ts` to undo the probe, on a file holding uncommitted Phase 3 work,
 and destroyed six edits. They were reconstructed from the diff stat and the treatment the rest of the
 tree had received, and the restored file matches the original 6-insertion/6-deletion shape with all
 gates green. **The lesson is the plan's own:** I had flagged exactly this hazard two reviews earlier
@@ -1535,6 +1624,12 @@ has when it stands alone and neither matched the shape it has inside a sentence.
 "what would this miss?" is anything at all, widen the pattern or say in the report that you checked
 by reading instead. A green check that is not about the claim is worse than no check, because it
 stops the search.
+
+And — added after A7 — **grep for the syntax, not the string.** A residual scan for `"Foo` finds the
+comparison you meant and the error message you did not, so it never comes back empty and you learn
+nothing. Search for `=== "Foo`, `Set(["Foo`, `rootTag: "Foo` — the shapes that carry meaning. And
+never sweep a document that carries a date or an evidence tag: `review.md`, `decisions.md`, and
+`CHANGELOG.md` are testimony about a moment, and a find-and-replace cannot tell testimony from state.
 
 And — added after A4 — **before renaming any identifier, ask what would happen if it were already
 wrong.** A guard, an expected-value list, or a "must not appear" set is named after the thing it is
