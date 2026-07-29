@@ -176,7 +176,7 @@ flowchart TB
 | 0 | Command name: `grace` → `ngrace` | Command | TBD | `COMPLETE` |
 | 1 | Centralize the scattered literals | — (enabling) | TBD | `COMPLETE` |
 | 2 | Harness surface: skills, plugin, manifests, CLI guidance | Harness | TBD | `COMPLETE` |
-| 3 | Artifact surface: `.ngrace/` and root tags | Artifact | TBD | `NOT STARTED` |
+| 3 | Artifact surface: `.ngrace/` and root tags | Artifact | TBD | `COMPLETE` |
 | 4 | Grammar identity: retire `GRACE4_VERSION` | Artifact | TBD | `NOT STARTED` |
 | 5 | Prose sweep and documentation | — | TBD | `NOT STARTED` |
 | 6 | Reconcile RM-AGENT-RELIABILITY; release | — | TBD | `NOT STARTED` |
@@ -629,7 +629,7 @@ Reverse the `git mv`s and revert the manifests and `SKILL_PREFIX`. Large but mec
 
 # PHASE 3 — Artifact surface: `.ngrace/` and root tags
 
-**Status:** `NOT STARTED` · **Layer:** Artifact · **Release:** TBD
+**Status:** `COMPLETE` · **Layer:** Artifact · **Release:** TBD
 
 ## 3.1 Objective
 
@@ -849,6 +849,9 @@ version number asserts a lineage that no longer holds.
 |---|---|
 | `src/grace4/types.ts` | EDIT — constant and type names, and the version value |
 | `src/grace4/grammar.ts` | EDIT — `validateGrace4Project`, `validateGrace4ProjectLayout`, re-exports |
+| `src/grace4/grammar.ts` | EDIT *(A6)* — 22 hardcoded `"Ngrace*"` tag literals behind `ARTIFACT_TAG_PREFIX` |
+| `src/lint/core.ts` | EDIT *(A6)* — 3 hardcoded tag literals |
+| `src/grace-graph.ts` | EDIT *(A6)* — 1 hardcoded tag literal |
 | `scripts/validate-marketplace.ts` | EDIT — `REQUIRED_/FORBIDDEN_GRACE4_SKILLS`, `validateGrace4SkillSurface`, `validateGrace4Dependencies` |
 | (all remaining reference sites across `src/`) | EDIT — follow the compiler |
 | `src/grace4/` → `src/artifact/` | `git mv` — **optional, see 4.4** |
@@ -1219,6 +1222,7 @@ open questions, and a sixth invented mid-phase will not be recorded anywhere.
 | A3 | A2's test-literal count corrected: 201 setup sites, not ~13 | 1, 3 |
 | A4 | Forbidden-skill guard renamed away from the name it guards; `git show <ref>:` paths are history | 2, 6 |
 | A5 | Phase 3's residual scan could not match XML markup | 3 |
+| A6 | Tag centralization was never real; `ARTIFACT_TAG_PREFIX` is bypassed by 26 literals | 1 (cause), 3 (surfaced), 4 (fix) |
 
 ---
 
@@ -1379,6 +1383,62 @@ the plan assumed one. Neither can mask the other. Do not centralize the tag lite
 "finish the job"; that would merge the two alarms back into one.
 
 **Phase 1 is `COMPLETE`.**
+
+### A6 — 2026-07-29 · Phase 3 review: the tag half of Phase 1 was never centralized
+
+**Phase 3 is accepted and `COMPLETE`.** Its objective is met and verified independently: constants
+at `.ngrace` / `Ngrace` / `.ngrace-lint.json`, both artifact directories renamed with no `.grace`
+directory anywhere, mirror byte-identical under `diff -r`, `CHANGELOG.md` and `docs/plans/archive/**`
+absent from the diff with their `.grace-lint` references preserved, no compatibility fallback, and
+all six gates exiting 0 with the suite unchanged at 589 / 586 pass / 3 skip / 0 fail / 1889 expects.
+The executor's two count corrections were both right — 58 tags, not 39 (dual trees plus polyglot),
+and `NgraceMigrationReport`, a fourteenth root tag missing from the plan's list.
+
+**The finding is in Phase 1, and Phase 3's own gate could not see it.**
+
+Step 1.5.2 created `ARTIFACT_TAG_PREFIX` and derived `GRACE4_ROOT_TAGS` from it, and that was taken
+as the tag surface being centralized. It was not. **26 production tag literals never went through
+the constant** and were compared directly:
+
+```ts
+const CHANGE_ROOT_TAGS = new Set(["GraceChangeSpec", "GraceChangePlan"]);
+{ file: "requirements.xml", rootTag: "GraceRequirements" },
+if (artifact.root.tag === "GraceDeployment" || artifact.root.tag === "GraceUXGuidelines") {
+```
+
+22 in `grammar.ts`, 3 in `lint/core.ts`, 1 in `grace-graph.ts`. Phase 3 had to rewrite every one by
+hand — **the tag half of Phase 3 was a sweep**, which is the one thing Phase 3's precondition forbids.
+
+It passed that precondition because **A2 narrowed the gate to the directory**: *"did any `src/`
+non-test file need editing to change the artifact directory?"* Answer, correctly, no — `ARTIFACT_DIR`
+carried it. Nobody asked the same question about tags. The narrowing was right about test churn and
+accidentally exempted half the phase from its own gate.
+
+**Why this is still live and not just history.** `ARTIFACT_TAG_PREFIX` now *looks* like the single
+source of truth and is not. Measured: set it to a third value and the suite produces **63 failures**
+— not a clean rename needing assertion updates, but a grammar that contradicts itself.
+`GRACE4_ROOT_TAGS` accepts the new prefix while `CHANGE_ROOT_TAGS` and the context-artifact mapping
+still demand `Ngrace*`, so lint would admit a root tag it then refuses to validate.
+
+That is worse than a visibly scattered literal. A scattered literal tells the truth about itself; a
+constant that governs one of twenty-seven call sites invites a maintainer to change it, watch the
+derived array update, and ship a broken grammar believing the work is done.
+
+**Not urgent, and not a defect in today's state** — everything currently says `Ngrace` and agrees.
+It is a latent trap, so it is scheduled rather than hot-fixed: **Phase 4 picks it up**, which already
+edits all three files and already owns making grammar identity explicit. Same theme, no extra churn.
+
+→ Phase 4 verify: after centralizing, flipping `ARTIFACT_TAG_PREFIX` must fail *only* in test
+assertions, and `grep -n '"Ngrace[A-Z]' src --include='*.ts' | grep -v test | grep -v types.ts` must
+be empty.
+
+**Reviewer error, recorded because it is the same class.** While measuring the 63 failures I ran
+`git checkout -- src/grace4/types.ts` to undo the probe, on a file holding uncommitted Phase 3 work,
+and destroyed six edits. They were reconstructed from the diff stat and the treatment the rest of the
+tree had received, and the restored file matches the original 6-insertion/6-deletion shape with all
+gates green. **The lesson is the plan's own:** I had flagged exactly this hazard two reviews earlier
+and then did it, because I reached for `git checkout` as an undo rather than as the destructive
+operation it is. Probes belong on a copy, or behind a commit.
 
 ### A5 — 2026-07-29 · Phase 3's residual scan could not see the data it verifies
 
