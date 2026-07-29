@@ -721,6 +721,17 @@ independently, and neither can mask the other.
 **Step 3.5.3 — Update XML templates and the init skeleton, mirrored.**
 → verify: `bun run ngrace lint` on a freshly scaffolded project is clean.
 
+*(A5)* The population is **39 bare `<Grace*` tags**, measured before this phase began:
+
+| Location | Tags |
+|---|---|
+| `examples/polyglot/.grace/**` | 18 — step 3.5.4, by hand |
+| `skills/ngrace/ngrace-init/assets/.grace/**` | 9 — the scaffolded skeleton |
+| `skills/ngrace/{ngrace-spec,ngrace-explainer,…}/references/**` | the remainder |
+
+Each lands twice — canonical and packaged mirror (invariant 1). Per §10, re-measure before scoping:
+this count is a claim.
+
 **Step 3.5.4 — Migrate `examples/polyglot` by hand.**
 → verify: `bun run validate:examples` green. State explicitly that this was edited by hand and not
 by the same mechanism that edited `src/`.
@@ -748,11 +759,23 @@ invariant 3. **Do not touch it.**
 `grep -rn '\.grace-lint' docs/plans/archive` still returns its original hits, unchanged.
 
 **Step 3.5.5 — Residual scan.**
+
+> ~~`grep -rn '"\.grace"\|\.grace/\|\.grace-lint\|"Grace[A-Z]' src skills plugins examples …`~~
+> **Superseded by A5 — `"Grace[A-Z]` requires a quote and so matches only TypeScript string
+> literals.** XML markup is written `<GraceRequirements`, never `"GraceRequirements`. Measured
+> before this phase began: that pattern finds **0** hits in `skills` and `examples`, where **39**
+> bare tags actually need renaming — including `ngrace-init/assets/.grace/**`, the skeleton this
+> phase scaffolds from, and `examples/polyglot`, its independent check.
+
 ```bash
-grep -rn '"\.grace"\|\.grace/\|\.grace-lint\|"Grace[A-Z]' src skills plugins examples README.md CLAUDE.md \
+grep -rn '\.grace\b\|\.grace-lint\|\bGrace[A-Z]' src skills plugins examples README.md CLAUDE.md \
   | grep -v node_modules
 ```
-→ verify: empty, or every remaining hit explained as methodology prose (§0.2).
+
+→ verify: empty, or every remaining hit explained as methodology prose (§0.2). `\bGrace[A-Z]` catches
+opening tags, closing tags, and quoted identifiers alike — run it in `skills` and `examples`
+specifically before declaring the phase done, because those are the two trees where a wrong pattern
+returns clean and looks finished.
 
 ## 3.6 Definition of done
 
@@ -1195,6 +1218,7 @@ open questions, and a sixth invented mid-phase will not be recorded anywhere.
 | A2 | Sentence-embedded literals; test-literal policy; `.grace-lint.json` | 1, 3 |
 | A3 | A2's test-literal count corrected: 201 setup sites, not ~13 | 1, 3 |
 | A4 | Forbidden-skill guard renamed away from the name it guards; `git show <ref>:` paths are history | 2, 6 |
+| A5 | Phase 3's residual scan could not match XML markup | 3 |
 
 ---
 
@@ -1355,6 +1379,34 @@ the plan assumed one. Neither can mask the other. Do not centralize the tag lite
 "finish the job"; that would merge the two alarms back into one.
 
 **Phase 1 is `COMPLETE`.**
+
+### A5 — 2026-07-29 · Phase 3's residual scan could not see the data it verifies
+
+**Raised at the Phase 2 review, before Phase 3 began** — a readiness check on Phase 3's declared
+files and commands rather than a finding about executed work.
+
+Step 3.5.5's pattern was `"Grace[A-Z]` — a quote, then the tag name. That matches a TypeScript
+string literal (`"GraceRequirements"`) and can never match XML markup (`<GraceRequirements`).
+Measured: **0** hits in `skills` and `examples`, against **39** bare tags that Phase 3 must rename.
+
+The two trees it is blind to are the two that matter most:
+
+- `skills/ngrace/ngrace-init/assets/.grace/**` — the skeleton `ngrace init` scaffolds from. Missed
+  here, every project created afterwards is born in the retired namespace.
+- `examples/polyglot` — the phase's *independent* check under §0.6. A residual scan that cannot see
+  the independent evidence is not a check on it.
+
+An executor running the phase exactly would have edited `src/`, run 3.5.5, got a clean result, and
+shipped an init skeleton still emitting `<GraceRequirements>`.
+
+Pattern widened to `\bGrace[A-Z]`, which catches opening tags, closing tags, and quoted identifiers
+alike. Step 3.5.3 now carries the 39-tag population broken out by location.
+
+**Fifth instance of the same defect, and the second caught before execution.** Where A4 was a check
+that measured nothing, this is a check that measured the wrong medium — the pattern was written for
+`src/`, then pointed at data. The §10 rule from A3 ("re-measure before scoping") is what turned it
+up: verifying the population before Phase 3 started is what made the zero visible as *wrong* rather
+than as *done*.
 
 ### A4 — 2026-07-29 · Phase 2 review: a guard renamed away from what it guards
 
