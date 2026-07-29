@@ -36,6 +36,8 @@ import {
   resolveReleaseSummaryOptions,
   type OpencodeRunRequest,
   type OpencodeRunResult,
+  extractSummaryEnvelope,
+  validateReleaseSummary,
 } from "./release-summary.ts";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -45,7 +47,13 @@ const CAPTURE_MAX_BUFFER = 128 * 1024 * 1024;
 const RELEASE_TYPES = new Set(["major", "minor", "patch", "premajor", "preminor", "prepatch", "prerelease"]);
 const SEMVER_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
 const PREID_PATTERN = /^[0-9A-Za-z-]+$/;
-const REQUIRED_RELEASE_TOOLS = ["git", "npm", "bun", "opencode"] as const;
+/**
+ * Tools a release genuinely cannot proceed without. `opencode` is deliberately absent:
+ * it writes one paragraph of changelog prose, and making a third-party AI CLI plus an
+ * API key a hard precondition means releases fail for reasons unrelated to the code.
+ * See resolveChangelogSummary.
+ */
+const REQUIRED_RELEASE_TOOLS = ["git", "npm", "bun"] as const;
 const RELEASE_FILES = [
   "package.json",
   "CHANGELOG.md",
@@ -340,6 +348,48 @@ function generateChangelog(repoRoot: string): string {
   ).trim();
 }
 
+/** True when a command is invocable. Shared by preflight and the summary resolver. */
+function commandAvailable(tool: string, cwd?: string): boolean {
+  return spawnSync(tool, ["--version"], { cwd, stdio: "ignore" }).status === 0;
+}
+
+/** Reads an author-supplied summary from RELEASE_SUMMARY or RELEASE_SUMMARY_FILE. */
+function readSuppliedSummary(env: NodeJS.ProcessEnv): string | undefined {
+  const inline = env.RELEASE_SUMMARY?.trim();
+  if (inline) return inline;
+  const file = env.RELEASE_SUMMARY_FILE?.trim();
+  if (!file) return undefined;
+  const contents = readFileSync(file, "utf8").trim();
+  if (!contents) throw new Error(`RELEASE_SUMMARY_FILE ${file} is empty.`);
+  return contents;
+}
+
+/**
+ * Resolves the changelog summary. An author-supplied summary wins, then opencode when it
+ * is installed. Supplied text is validated by the same envelope and prose checks applied
+ * to model output, so bypassing the AI never bypasses the contract.
+ */
+function resolveChangelogSummary(input: ReleaseSummaryPromptInput, options: ReleaseSummaryOptions): string {
+  const supplied = readSuppliedSummary(process.env);
+  if (supplied !== undefined) {
+    const enveloped = supplied.startsWith("<summary>") ? supplied : `<summary>${supplied}</summary>`;
+    const extracted = extractSummaryEnvelope(enveloped);
+    if (!extracted.ok) throw new Error(`Supplied release summary rejected: ${extracted.reason}`);
+    const prose = validateReleaseSummary(extracted.summary);
+    if (!prose.ok) throw new Error(`Supplied release summary rejected: ${prose.reason}`);
+    return extracted.summary;
+  }
+
+  if (commandAvailable("opencode")) {
+    return generateReleaseSummaryWithRetries(runOpencodeSummary, input, options, sleepMs);
+  }
+
+  throw new Error(
+    "No release summary available. Either set RELEASE_SUMMARY (or RELEASE_SUMMARY_FILE) "
+    + "to a paragraph describing this release, or install opencode to generate one.",
+  );
+}
+
 function runOpencodeSummary(request: OpencodeRunRequest): OpencodeRunResult {
   const result = spawnSync(
     "opencode",
@@ -477,7 +527,7 @@ function productionPreflightDependencies(repoRoot: string): ReleasePreflightDepe
     getStatus: () => runCapture("git", ["status", "--porcelain"], "Failed to inspect git status.", repoRoot),
     getBranch: () => runCapture("git", ["rev-parse", "--abbrev-ref", "HEAD"], "Failed to detect current branch.", repoRoot),
     tagExists: (tagName) => tagExists(repoRoot, tagName),
-    toolExists: (tool) => spawnSync(tool, ["--version"], { cwd: repoRoot, stdio: "ignore" }).status === 0,
+    toolExists: (tool) => commandAvailable(tool, repoRoot),
     fetchOriginMain: () => run("git", ["fetch", "--no-tags", "origin", "main:refs/remotes/origin/main"], "Failed to fetch origin/main before stable release preparation.", repoRoot),
     isOriginMainAncestor: () => {
       const result = spawnSync("git", ["merge-base", "--is-ancestor", "origin/main", "HEAD"], { cwd: repoRoot, stdio: "ignore" });
@@ -514,15 +564,13 @@ export function main(
       changelogEntry = normalizeChangelogHeader(changelogEntry, newVersion);
     }
 
-    const summary = generateReleaseSummaryWithRetries(
-      runOpencodeSummary,
+    const summary = resolveChangelogSummary(
       {
         version: newVersion,
         changelogEntry,
         commits: collectReleaseCommitMetadata((command, args, failureMessage) => runCapture(command, args, failureMessage, repoRoot)),
       },
       resolveReleaseSummaryOptions(process.env),
-      sleepMs,
     );
     changelogEntry = injectSummaryIntoChangelogEntry(changelogEntry, summary);
     const changelogPath = path.join(repoRoot, "CHANGELOG.md");

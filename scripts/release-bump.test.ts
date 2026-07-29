@@ -97,9 +97,19 @@ describe("release preflight", () => {
   });
 
   it("rejects a missing release tool", () => {
+    for (const required of ["git", "npm", "bun"]) {
+      const deps = dependencies({ toolExists: (tool) => tool !== required });
+      expect(() => runReleasePreflight(["4.0.0"], deps)).toThrow(required);
+      expect(main(["4.0.0"], tempRoot(), deps)).toBe(1);
+    }
+  });
+
+  it("does not require opencode: a summary may be supplied instead", () => {
+    // opencode writes one paragraph of changelog prose. Making a third-party AI CLI and
+    // an API key a hard precondition means releases fail for reasons unrelated to the
+    // code, so preflight must pass without it.
     const deps = dependencies({ toolExists: (tool) => tool !== "opencode" });
-    expect(() => runReleasePreflight(["4.0.0"], deps)).toThrow("opencode");
-    expect(main(["4.0.0"], tempRoot(), deps)).toBe(1);
+    expect(() => runReleasePreflight(["4.0.0"], deps)).not.toThrow();
   });
 
   it("requires gh only for stable PR preparation", () => {
