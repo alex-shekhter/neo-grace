@@ -29,6 +29,51 @@ set to 0 because GitHub does not let you approve your own pull request.
 merging. Do it — the alternative is merging a branch whose checks ran against a stale base,
 which is how a fix once got left out of a release here.
 
+## After the merge — checking a branch landed, then deleting it
+
+**Do not trust `git branch --merged main`.** PRs here are squash-merged, so the merge
+writes a *new* commit and the original branch is never an ancestor of `main`. A fully
+landed branch is reported as unmerged forever, which is how four stale branches once
+accumulated here — every one of them already in `main`.
+
+Ask instead whether the branch's **content** differs from `main`:
+
+```bash
+git fetch origin && git switch main && git pull
+
+git diff --stat main..<branch>       # empty output → tree identical to main, landed
+git log --oneline main..<branch>     # commits main does not have, by SHA
+```
+
+`git diff` is the answer that matters; `git log` almost always lists something after a
+squash merge and on its own proves nothing. When the diff is not empty, read its direction
+before assuming work is stranded — a landed branch that `main` has since moved past shows
+the *old* lines as additions:
+
+```bash
+git diff main..<branch> | grep -E '^\+' | grep -v '^\+\+\+'
+```
+
+If everything there is a superseded version of something `main` already has, the branch is
+spent. Then delete it in both places:
+
+```bash
+git branch -d <branch>                  # -D if squash-merged; -d will refuse
+git push origin --delete <branch>       # skip if the remote is already [gone]
+git fetch --prune                       # drop tracking refs for deleted remote branches
+```
+
+`git branch -vv` marks a branch whose remote is gone with `[origin/<name>: gone]` — that is
+usually the fastest signal that a PR merged and GitHub deleted the head branch for you.
+
+`git fetch --prune` only removes refs whose **remote branch no longer exists**. It will
+never clear the `upstream/*` refs, because those branches are alive in the fork parent —
+see [Upstream](#upstream).
+
+Optional: GitHub's **Settings → General → Pull Requests → Automatically delete head
+branches** removes the remote branch on merge, so the `[gone]` marker appears without you
+doing anything. It never touches local branches, so the cleanup above is still manual.
+
 ## Release
 
 Two shapes, and they are not interchangeable.
@@ -179,3 +224,19 @@ git log --oneline main..upstream/main    # what upstream has that we do not
 ```
 
 Changelog entries at `4.0.4` and below describe work done upstream and are never edited here.
+
+`git branch -a` lists several `upstream/*` branches. They are not ours and `git fetch
+--prune` will never clear them — they are an accurate mirror of a repository someone else
+owns, and the lines have diverged (upstream is on `4.0.x`). To track only `upstream/main`:
+
+```bash
+git config remote.upstream.fetch '+refs/heads/main:refs/remotes/upstream/main'
+git for-each-ref --format='%(refname)' refs/remotes/upstream \
+  | grep -v 'refs/remotes/upstream/main$' \
+  | xargs -n1 git update-ref -d
+```
+
+Both steps are needed. Narrowing the refspec alone changes nothing, and neither does
+adding `--prune` to the fetch: prune only removes refs inside the refspec's destination
+namespace, and the old refs now fall outside it. The second command deletes them directly;
+after that, `git fetch upstream` brings back only `main`.
