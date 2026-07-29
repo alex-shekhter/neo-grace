@@ -1,13 +1,13 @@
 ---
 name: ngrace-status
-description: Show GRACE 4 project health across .ngrace context, graph, verification, active changes, scopes, and migration boundaries.
+description: Show neo-grace project health across .ngrace context, graph, verification, active changes, scopes, and migration boundaries.
 ---
 
 <skill>
-<task>Run `ngrace status --path PROJECT --json` and report current GRACE 4 state without mutating artifacts. Module-health summary counts are always evaluated; add `--with modules` only when detailed module records are needed.</task>
+<task>Run `ngrace status --path PROJECT --json` and report current neo-grace state without mutating artifacts. Module-health summary counts are always evaluated; add `--with modules` only when detailed module records are needed.</task>
 
 <must_report>
-- Project kind: GRACE 4, legacy GRACE 3 migration candidate, or missing GRACE; plus context completeness.
+- Project kind: neo-grace, legacy GRACE 3 migration candidate, or missing GRACE; plus context completeness.
 - Graph/verification projection integrity, routed coverage, and module counts.
 - Active/archive bundle statuses and derived states.
 - `needs-plan`, `needs-plan-approval`, `stale-plan`, `integrity-issues`, and `ready-to-execute` with readiness mutually exclusive from stale/integrity states.

@@ -61,7 +61,7 @@ export function collectDoctorReport(projectRoot: string): DoctorResult {
       "invalid-project",
       kind === "grace3"
         ? `Detected GRACE 3 docs. Run ${skillName("migrate")} before ngrace doctor.`
-        : `No GRACE 4 ${ARTIFACT_DIR} project found.`,
+        : `No neo-grace ${ARTIFACT_DIR} project found.`,
     );
   }
 
@@ -115,8 +115,8 @@ export function collectDoctorReport(projectRoot: string): DoctorResult {
 
 export function formatDoctorText(report: DoctorResult): string {
   const lines = [
-    "GRACE Doctor",
-    "============",
+    "neo-grace Doctor",
+    "=".repeat(16),
     `Root: ${report.root}`,
     "",
     "Adapters",

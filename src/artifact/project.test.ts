@@ -19,7 +19,7 @@ function writeProjectFile(root: string, relativePath: string, contents = "") {
   writeFileSync(filePath, contents);
 }
 
-describe("GRACE 4 project detection", () => {
+describe("neo-grace project detection", () => {
   it("resolves canonical .ngrace paths from a project root", () => {
     const root = createProject();
     const paths = resolveNgracePaths(root);
@@ -69,7 +69,7 @@ describe("GRACE 4 project detection", () => {
   });
 });
 
-describe("GRACE 4 semantic anchor patterns", () => {
+describe("neo-grace semantic anchor patterns", () => {
   it("accepts canonical uppercase semantic anchors", () => {
     expect(ANCHOR_PATTERNS.graphDocument.test("GD-MAIN")).toBe(true);
     expect(ANCHOR_PATTERNS.verificationDocument.test("VD-MAIN")).toBe(true);

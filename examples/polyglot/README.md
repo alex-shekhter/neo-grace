@@ -1,6 +1,6 @@
 # Golden-path polyglot example
 
-A worked GRACE 4 project for a React UI + Go API + Rust core monorepo. Use this as the pattern-match source for module granularity, segmented graph/verification documents, design-system tokens, invariants, interface contracts, and change-bundle lifecycle.
+A worked neo-grace project for a React UI + Go API + Rust core monorepo. Use this as the pattern-match source for module granularity, segmented graph/verification documents, design-system tokens, invariants, interface contracts, and change-bundle lifecycle.
 
 ## Layout
 

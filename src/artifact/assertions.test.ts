@@ -60,7 +60,7 @@ function context(root: string): AssertionContext {
   return { root, graph, verification: buildVerificationProjection(paths, graph) };
 }
 
-describe("GRACE 4 assertions", () => {
+describe("neo-grace assertions", () => {
   it("extracts all approved assertion kinds and reports unknown assertion tags", () => {
     const root = createProject();
     const planFile = path.join(root, "plan.xml");

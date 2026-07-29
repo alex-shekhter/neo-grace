@@ -1,6 +1,6 @@
 ---
 name: ngrace-fix
-description: Debug and fix issues in a GRACE 4 project using .ngrace semantic navigation, assertions, and verification evidence.
+description: Debug and fix issues in a neo-grace project using .ngrace semantic navigation, assertions, and verification evidence.
 ---
 
 <skill>
@@ -13,6 +13,6 @@ description: Debug and fix issues in a GRACE 4 project using .ngrace semantic na
 </investigation_path>
 
 <verification>
-Run the specific `V-M-*` commands or closest deterministic tests. If verification expectations are stale, update or propose changes through the GRACE 4 change lifecycle.
+Run the specific `V-M-*` commands or closest deterministic tests. If verification expectations are stale, update or propose changes through the neo-grace change lifecycle.
 </verification>
 </skill>

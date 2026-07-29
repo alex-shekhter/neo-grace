@@ -353,7 +353,7 @@ function resolveSelectedApprovedPlan(
   }
   return planFile;
 }
-/** Lints the current GRACE 4 .ngrace document state and file-local semantic markup. */
+/** Lints the current neo-grace .ngrace document state and file-local semantic markup. */
 export function lintGraceProject(projectRoot: string, options: LintOptions = {}): LintResult {
   const root = path.resolve(projectRoot);
   const profile = options.profile ?? "standard";
@@ -425,8 +425,8 @@ export function isValidTextFormat(format: string) {
 
 export function formatTextReport(result: LintResult, options: { remediate?: boolean } = {}) {
   const lines = [
-    "GRACE Lint Report",
-    "=================",
+    "neo-grace Lint Report",
+    "=".repeat(21),
     `Root: ${result.root}`,
     `Profile: ${result.profile}`,
     `Files checked: ${result.filesChecked}`,

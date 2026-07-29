@@ -18,7 +18,7 @@ function createDirectory(prefix: string): string {
   return root;
 }
 
-describe("GRACE 4 contained project paths", () => {
+describe("neo-grace contained project paths", () => {
   it("rejects portable absolute and traversal forms before filesystem resolution", () => {
     const cases = ["/tmp/x", "C:\\x", "C:x", "\\\\server\\share", "../x", "a/../../x", "a\\..\\x"] as const;
     for (const authoredPath of cases) {

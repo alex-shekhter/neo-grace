@@ -1,6 +1,6 @@
 ---
 name: ngrace-ask
-description: Answer questions about a GRACE 4 project by navigating .ngrace current-state artifacts and file-local semantic markup.
+description: Answer questions about a neo-grace project by navigating .ngrace current-state artifacts and file-local semantic markup.
 ---
 
 <skill>
@@ -15,7 +15,7 @@ description: Answer questions about a GRACE 4 project by navigating .ngrace curr
 <answer_rules>
 - Cite the artifact or anchor that supports each important claim.
 - Distinguish durable current state from active change intent.
-- If legacy GRACE 3 docs are present, explain that they require `ngrace-migrate` and are not GRACE 4 truth.
+- If legacy GRACE 3 docs are present, explain that they require `ngrace-migrate` and are not neo-grace truth.
 - Do not invent missing graph or verification facts; report uncertainty and the safest next lookup.
 </answer_rules>
 </skill>

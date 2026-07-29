@@ -1,6 +1,6 @@
 ---
 name: ngrace-cli
-description: Operate the GRACE 4 CLI for .ngrace linting, status, module navigation, verification navigation, and file-local semantic markup.
+description: Operate the neo-grace CLI for .ngrace linting, status, module navigation, verification navigation, and file-local semantic markup.
 ---
 
 <skill>
@@ -27,5 +27,5 @@ TypeScript/JavaScript analysis is bundled. Python and Dart governed files requir
 MODULE_MAP parity is enforced only for adapter-backed languages. For languages reported under `analysis.no-adapter`, treat MODULE_MAP as agent-maintained documentation and require `MustPassCommand` evidence as the source of structural truth.
 </runtime_contract>
 
-<migration_boundary>GRACE 4 commands do not dual-validate legacy GRACE 3 docs. Use `ngrace-migrate`.</migration_boundary>
+<migration_boundary>neo-grace commands do not dual-validate legacy GRACE 3 docs. Use `ngrace-migrate`.</migration_boundary>
 </skill>

@@ -42,7 +42,7 @@ function loadGovernedFiles(root: string) {
   const { config, issues } = loadGraceLintConfig(root);
   const configErrors = issues.filter((issue) => issue.severity === "error");
   if (configErrors.length > 0) {
-    throw new GraceCommandError("invalid-project", "GRACE query configuration is invalid. Run `ngrace lint --path PROJECT` for details.", {
+    throw new GraceCommandError("invalid-project", "neo-grace query configuration is invalid. Run `ngrace lint --path PROJECT` for details.", {
       issues: configErrors.map((issue) => issue.code),
     });
   }
@@ -154,7 +154,7 @@ export function loadGraceArtifactIndex(projectRoot: string): GraceArtifactIndex 
 function invalidProjectError(issueCodes: string[]): GraceCommandError {
   return new GraceCommandError(
     "invalid-project",
-    "GRACE artifacts are invalid; no navigation records were returned. Run `ngrace lint --path PROJECT` for details.",
+    "neo-grace artifacts are invalid; no navigation records were returned. Run `ngrace lint --path PROJECT` for details.",
     { issues: [...new Set(issueCodes)].sort() },
   );
 }

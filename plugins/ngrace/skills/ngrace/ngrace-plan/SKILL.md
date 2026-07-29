@@ -1,6 +1,6 @@
 ---
 name: ngrace-plan
-description: Read an approved GRACE 4 NgraceChangeSpec and optional design context, then create a NgraceChangePlan with assertions, scopes, tasks, and verification gates.
+description: Read an approved neo-grace NgraceChangeSpec and optional design context, then create a NgraceChangePlan with assertions, scopes, tasks, and verification gates.
 ---
 
 <skill>

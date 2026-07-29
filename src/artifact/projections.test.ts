@@ -79,7 +79,7 @@ function issueCodes(issues: { code: string }[]) {
   return issues.map((issue) => issue.code);
 }
 
-describe("GRACE 4 graph and verification projections", () => {
+describe("neo-grace graph and verification projections", () => {
   it("routes graph anchors and verification entries through their indexes", () => {
     const root = createProject();
     writeMonolithicProject(root);

@@ -1,6 +1,6 @@
 ---
 name: ngrace-reviewer
-description: Review GRACE 4 integrity across .ngrace artifacts, active changes, scopes, assertions, code anchors, and verification evidence.
+description: Review neo-grace integrity across .ngrace artifacts, active changes, scopes, assertions, code anchors, and verification evidence.
 ---
 
 <skill>

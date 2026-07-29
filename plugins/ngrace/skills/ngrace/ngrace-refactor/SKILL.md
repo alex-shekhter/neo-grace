@@ -1,6 +1,6 @@
 ---
 name: ngrace-refactor
-description: Refactor GRACE 4 governed code while keeping .ngrace graph, verification, change scopes, and file-local anchors synchronized.
+description: Refactor neo-grace governed code while keeping .ngrace graph, verification, change scopes, and file-local anchors synchronized.
 ---
 
 <skill>

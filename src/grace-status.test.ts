@@ -96,7 +96,7 @@ function runGit(root: string, args: string[]) {
 }
 
 describe("ngrace status", () => {
-  it("summarizes durable GRACE 4 health and next action", () => {
+  it("summarizes durable neo-grace health and next action", () => {
     const root = createProject();
     writeMinimalNgraceProject(root);
 
@@ -428,7 +428,7 @@ describe("ngrace status", () => {
     expect(result.integrity.errors).toBeGreaterThan(0);
     expect(result.integrity.topIssues.some((entry) => entry.includes("artifact.unexpected-root-tag"))).toBe(true);
     expect(result.summary.readyModules).toBe(0);
-    expect(result.moduleHealthLoadError).toContain("GRACE artifacts are invalid");
+    expect(result.moduleHealthLoadError).toContain("neo-grace artifacts are invalid");
   });
 
   it("reports GRACE 3 projects as migration candidates without loading docs as healthy", () => {

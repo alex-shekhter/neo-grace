@@ -7,7 +7,7 @@ export const NGRACE_ARTIFACT_VERSION = "1.0" as const;
  */
 export const ARTIFACT_TAG_PREFIX = "Ngrace" as const;
 
-/** Standard GRACE 4 root tags accepted by Artifact Grammar. */
+/** Standard neo-grace root tags accepted by Artifact Grammar. */
 export const NGRACE_ROOT_TAGS = [
   `${ARTIFACT_TAG_PREFIX}Requirements`,
   `${ARTIFACT_TAG_PREFIX}Technology`,
@@ -55,7 +55,7 @@ export const ACTIVE_CHANGE_STATUSES = new Set<ChangeStatus>(["draft", "approved"
 /** Statuses valid for bundles under .ngrace/changes/archive. */
 export const ARCHIVED_CHANGE_STATUSES = new Set<ChangeStatus>(["applied", "rejected", "cancelled", "superseded"]);
 
-/** Mandatory GRACE 4 context artifact filenames. */
+/** Mandatory neo-grace context artifact filenames. */
 export const NGRACE_CONTEXT_ARTIFACTS = [
   "requirements.xml",
   "technology.xml",
@@ -146,7 +146,7 @@ export type SemanticAnchorClassification =
   | { kind: "malformed"; family: SemanticAnchorFamily }
   | { kind: "ordinary" };
 
-/** Current-state validation issue emitted by GRACE 4 validators. */
+/** Current-state validation issue emitted by neo-grace validators. */
 export type NgraceIssue = {
   severity: "error" | "warning";
   code: string;

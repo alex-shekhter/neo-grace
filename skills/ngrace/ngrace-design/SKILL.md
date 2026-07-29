@@ -5,7 +5,7 @@ description: Interview for design-system intent and populate optional design-sys
 
 <skill>
 <purpose>
-Make UI/UX load-bearing in GRACE 4. Author optional `.ngrace/context/design-system.xml`, declare component `ST-*` states on graph modules, and wire `AccessibilityCheck` / `VisualCheck` evidence into `V-M-*` entries so module health can prove UI states.
+Make UI/UX load-bearing in neo-grace. Author optional `.ngrace/context/design-system.xml`, declare component `ST-*` states on graph modules, and wire `AccessibilityCheck` / `VisualCheck` evidence into `V-M-*` entries so module health can prove UI states.
 </purpose>
 
 <optional_artifact>

@@ -57,7 +57,7 @@ export function formatModuleHealthTable(records: ModuleHealthRecord[]) {
 }
 
 export function formatVerificationText(match: VerificationMatch) {
-  const lines = ["GRACE Verification", "==================", `ID: ${match.verification.id}`, `Module: ${match.verification.moduleId ?? "unknown"}`, `Module Name: ${match.module ? getModuleName(match.module) : "unknown"}`];
+  const lines = ["neo-grace Verification", "=".repeat(22), `ID: ${match.verification.id}`, `Module: ${match.verification.moduleId ?? "unknown"}`, `Module Name: ${match.module ? getModuleName(match.module) : "unknown"}`];
   if (match.module) {
     lines.push(`Module Path: ${getModulePath(match.module) ?? "n/a"}`);
   }
@@ -67,8 +67,8 @@ export function formatVerificationText(match: VerificationMatch) {
 
 export function formatModuleHealthText(record: ModuleHealthRecord) {
   const lines = [
-    "GRACE Module Health",
-    "===================",
+    "neo-grace Module Health",
+    "=".repeat(23),
     `ID: ${record.moduleId}`,
     `Name: ${record.name}`,
     `Type: ${record.type ?? "unknown"}`,
@@ -92,7 +92,7 @@ export function formatModuleHealthText(record: ModuleHealthRecord) {
 }
 
 export function formatModuleText(moduleRecord: ModuleRecord, options: { withVerification: boolean; health?: ModuleHealthRecord | null }) {
-  const lines = ["GRACE Module", "============", `ID: ${moduleRecord.id}`, `Name: ${getModuleName(moduleRecord)}`, `Type: ${getModuleType(moduleRecord) ?? "unknown"}`, `Graph Path: ${getModulePath(moduleRecord) ?? "n/a"}`, `Verification: ${getModuleVerificationIds(moduleRecord).join(", ") || "none"}`, `Dependencies: ${getModuleDepends(moduleRecord).join(", ") || "none"}`, "", "Graph Projection", `- Owner: ${moduleRecord.graph.owner}`, `- Text: ${moduleRecord.graph.text || "n/a"}`];
+  const lines = ["neo-grace Module", "=".repeat(16), `ID: ${moduleRecord.id}`, `Name: ${getModuleName(moduleRecord)}`, `Type: ${getModuleType(moduleRecord) ?? "unknown"}`, `Graph Path: ${getModulePath(moduleRecord) ?? "n/a"}`, `Verification: ${getModuleVerificationIds(moduleRecord).join(", ") || "none"}`, `Dependencies: ${getModuleDepends(moduleRecord).join(", ") || "none"}`, "", "Graph Projection", `- Owner: ${moduleRecord.graph.owner}`, `- Text: ${moduleRecord.graph.text || "n/a"}`];
   lines.push("", "Linked Files", ...(moduleRecord.localFiles.length > 0 ? moduleRecord.localFiles.map((file) => `- ${file.path}`) : ["- none"]));
   if (options.withVerification) {
     lines.push("", "Verification");
@@ -112,7 +112,7 @@ export function formatModuleText(moduleRecord: ModuleRecord, options: { withVeri
 }
 
 export function formatFileText(fileRecord: FileMarkupRecord, options: { includeContracts: boolean; includeBlocks: boolean }) {
-  const lines = ["GRACE File", "==========", `Path: ${fileRecord.path}`, `Linked Modules: ${fileRecord.linkedModuleIds.join(", ") || "none"}`, `Contracts: ${fileRecord.contracts.length}`, `Blocks: ${fileRecord.blocks.length}`, "", "MODULE_CONTRACT", ...formatFieldMap(fileRecord.moduleContract?.fields ?? {}), "", "MODULE_MAP", ...(fileRecord.moduleMap.length > 0 ? fileRecord.moduleMap.map((item) => `- ${item.label}`) : ["- none"]), "", "CHANGE_SUMMARY", ...formatFieldMap(fileRecord.changeSummary?.fields ?? {})];
+  const lines = ["neo-grace File", "=".repeat(14), `Path: ${fileRecord.path}`, `Linked Modules: ${fileRecord.linkedModuleIds.join(", ") || "none"}`, `Contracts: ${fileRecord.contracts.length}`, `Blocks: ${fileRecord.blocks.length}`, "", "MODULE_CONTRACT", ...formatFieldMap(fileRecord.moduleContract?.fields ?? {}), "", "MODULE_MAP", ...(fileRecord.moduleMap.length > 0 ? fileRecord.moduleMap.map((item) => `- ${item.label}`) : ["- none"]), "", "CHANGE_SUMMARY", ...formatFieldMap(fileRecord.changeSummary?.fields ?? {})];
   if (options.includeContracts) {
     lines.push("", "Contracts");
     if (fileRecord.contracts.length === 0) lines.push("- none");

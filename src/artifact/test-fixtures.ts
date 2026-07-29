@@ -22,7 +22,7 @@ function writeContextArtifacts(root: string) {
   writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<NgraceUXGuidelines graceVersion="1.0"><Applicability>applicable</Applicability></NgraceUXGuidelines>`);
 }
 
-/** Writes a minimal valid GRACE 4 project to a temporary directory. */
+/** Writes a minimal valid neo-grace project to a temporary directory. */
 export function writeMinimalNgraceProject(root: string): void {
   writeContextArtifacts(root);
   writeProjectFile(
@@ -48,7 +48,7 @@ export function writeMinimalNgraceProject(root: string): void {
   ensureChangeDirectories(root);
 }
 
-/** Writes a GRACE 4 project with segmented graph and verification documents. */
+/** Writes a neo-grace project with segmented graph and verification documents. */
 export function writeSegmentedNgraceProject(root: string): void {
   writeContextArtifacts(root);
   writeProjectFile(

@@ -18,7 +18,7 @@ import { GraceCommandError, runGraceCommand } from "./query/errors";
 import { formatModuleHealthTable } from "./query/render";
 import type { ModuleHealthRecord } from "./query/types";
 
-/** Current state of one GRACE 4 change bundle. */
+/** Current state of one neo-grace change bundle. */
 export type ChangeBundleStatus = {
   changeId: string;
   location: "active" | "archive";
@@ -28,7 +28,7 @@ export type ChangeBundleStatus = {
   path: string;
 };
 
-/** GRACE 4 status result for text or JSON output. */
+/** neo-grace status result for text or JSON output. */
 export type StatusResult = {
   schemaVersion: string;
   tool: "grace-status";
@@ -170,17 +170,17 @@ function deriveChangeStates(facts: ChangeBundleFacts): string[] {
 
 function chooseNextAction(result: Omit<StatusResult, "nextAction">) {
   if (result.projectKind === "grace3") return `Use ${skillRef("migrate")} to migrate legacy GRACE 3 docs to ${ARTIFACT_DIR} artifacts.`;
-  if (result.projectKind === "none") return `Run ${skillRef("init")} to create a GRACE 4 ${ARTIFACT_DIR} skeleton.`;
+  if (result.projectKind === "none") return `Run ${skillRef("init")} to create a neo-grace ${ARTIFACT_DIR} skeleton.`;
   if (result.derivedStates.includes("approved-contract-drift")) return "Hard stop: an approved spec.xml or plan.xml changed. Restore it or supersede and replan through a new C-* bundle.";
   if (result.derivedStates.includes("stale-plan")) return "Supersede and replan the stale approved change; do not edit the approved plan or continue execution.";
-  if (result.integrity.errors > 0) return "Run ngrace lint --path <project-root> and fix GRACE 4 integrity errors.";
+  if (result.integrity.errors > 0) return "Run ngrace lint --path <project-root> and fix neo-grace integrity errors.";
   if (result.derivedStates.includes("unexplained-observed-drift")) return `Use ${skillRef("refresh")} to reconcile unexplained repository changes through a new NgraceChangeSpec and NgraceChangePlan.`;
   if (result.derivedStates.includes("scope-overlap")) return "Review active change scope overlaps; replan or execute sequentially before parallel-safe work.";
   if (result.changes.some((change) => change.derivedStates.includes("ready-to-execute"))) return `Run ${skillRef("execute")} for approved active changes.`;
   if (result.changes.some((change) => change.derivedStates.includes("needs-plan"))) return `Run ${skillRef("plan")} for the approved NgraceChangeSpec.`;
   if (result.changes.some((change) => change.derivedStates.includes("needs-plan-approval"))) return "Review and approve the draft NgraceChangePlan, or replan if stale.";
   if (result.summary.activeChanges === 0) return `Create a change with ${skillRef("spec")}, then plan it with ${skillRef("plan")}.`;
-  return "Project is healthy. Continue with the next approved GRACE 4 workflow step.";
+  return "Project is healthy. Continue with the next approved neo-grace workflow step.";
 }
 
 function emptyStatus(root: string, projectKind: StatusResult["projectKind"], migrationGuidance?: string): StatusResult {
@@ -308,8 +308,8 @@ export function collectProjectStatus(projectRoot: string, options: { includeModu
 
 export function formatStatusText(result: StatusResult) {
   const lines = [
-    "GRACE Status",
-    "============",
+    "neo-grace Status",
+    "=".repeat(16),
     `Root: ${result.root}`,
     `Project Kind: ${result.projectKind}`,
     "",
@@ -518,7 +518,7 @@ function shouldFail(result: StatusResult, failOn: string) {
 export const statusCommand = defineCommand({
   meta: {
     name: "status",
-    description: "Show GRACE 4 durable health, active/archive changes, derived states, and next action.",
+    description: "Show neo-grace durable health, active/archive changes, derived states, and next action.",
   },
   args: {
     path: { type: "string", alias: "p", description: "Project root to inspect", default: "." },

@@ -52,7 +52,7 @@ export type NgraceModuleRecord = {
   verification: ModuleVerificationRecord | null;
   verifications: ModuleVerificationRecord[];
   localFiles: FileMarkupRecord[];
-  /** GRACE 4 query layer is projection-backed; development-plan records are intentionally absent. */
+  /** neo-grace query layer is projection-backed; development-plan records are intentionally absent. */
   plan: null;
   steps: [];
 };

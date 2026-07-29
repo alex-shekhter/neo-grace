@@ -358,50 +358,50 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
 const PREFIX_GUIDES: Array<{ prefix: string; title: string; explanation: string; remediation: string[] }> = [
   {
     prefix: "project.",
-    title: "GRACE 4 Project Detection Issue",
-    explanation: `The CLI could not identify a valid GRACE 4 ${ARTIFACT_DIR} project state, or it detected legacy GRACE 3 artifacts instead.`,
-    remediation: [`Run ${skillRef("init")} for a new GRACE 4 project or ${skillRef("migrate")} for legacy GRACE 3 projects.`, "Do not rely on dual-mode docs/*.xml validation."],
+    title: "neo-grace Project Detection Issue",
+    explanation: `The CLI could not identify a valid neo-grace ${ARTIFACT_DIR} project state, or it detected legacy GRACE 3 artifacts instead.`,
+    remediation: [`Run ${skillRef("init")} for a new neo-grace project or ${skillRef("migrate")} for legacy GRACE 3 projects.`, "Do not rely on dual-mode docs/*.xml validation."],
   },
   {
     prefix: "artifact.",
-    title: "GRACE 4 Artifact Grammar Issue",
-    explanation: `A ${ARTIFACT_DIR} XML artifact violates the GRACE 4 root, metadata, version, or semantic-anchor grammar.`,
-    remediation: ["Use approved GRACE 4 root tags with graceVersion=\"1.0\".", "Keep semantic anchors as XML tags, never attributes."],
+    title: "neo-grace Artifact Grammar Issue",
+    explanation: `A ${ARTIFACT_DIR} XML artifact violates the neo-grace root, metadata, version, or semantic-anchor grammar.`,
+    remediation: ["Use approved neo-grace root tags with graceVersion=\"1.0\".", "Keep semantic anchors as XML tags, never attributes."],
   },
   {
     prefix: "change.",
-    title: "GRACE 4 Change Lifecycle Issue",
-    explanation: "A change spec or plan has an invalid status, wrapper shape, or active/archive location for the GRACE 4 lifecycle.",
+    title: "neo-grace Change Lifecycle Issue",
+    explanation: "A change spec or plan has an invalid status, wrapper shape, or active/archive location for the neo-grace lifecycle.",
     remediation: [`Keep draft and approved bundles under ${ARTIFACT_DIR}/changes/active.`, "Move applied, rejected, cancelled, or superseded bundles to archive with matching statuses."],
   },
   {
     prefix: "context.",
-    title: "GRACE 4 Context Artifact Issue",
+    title: "neo-grace Context Artifact Issue",
     explanation: `A required ${ARTIFACT_DIR}/context artifact is missing, has the wrong root, or has invalid applicability metadata.`,
-    remediation: ["Create all five context artifacts from the GRACE 4 init template.", "If deployment or UX is not applicable, include a concrete reason."],
+    remediation: ["Create all five context artifacts from the neo-grace init template.", "If deployment or UX is not applicable, include a concrete reason."],
   },
   {
     prefix: "projection.",
-    title: "GRACE 4 Projection Integrity Issue",
+    title: "neo-grace Projection Integrity Issue",
     explanation: `Graph or verification index routes do not match the logical projection built from ${ARTIFACT_DIR} documents.`,
     remediation: ["Synchronize GD-* and VD-* index ownership with document wrappers.", "Ensure every M-* has deterministic V-M-* coverage."],
   },
   {
     prefix: "assertion.",
-    title: "GRACE 4 Assertion Failure",
+    title: "neo-grace Assertion Failure",
     explanation: "A BaselineAssertions or TargetAssertions entry failed against current graph, verification, or filesystem state.",
     remediation: ["Reconcile the current state with the approved plan assertions.", "If the approved plan is stale, supersede and replan rather than editing it silently."],
   },
   {
     prefix: "scope.",
-    title: "GRACE 4 Scope Conflict",
+    title: "neo-grace Scope Conflict",
     explanation: "Active change scopes overlap in durable or observed write surfaces.",
     remediation: ["Treat durable overlap as a planning warning.", "Do not run overlapping observed writes in parallel-safe mode."],
   },
   {
     prefix: "xml.generic-",
     title: "Generic XML Tag Used Instead Of Unique GRACE Tag",
-    explanation: "GRACE shared artifacts rely on unique ID-based XML tags such as M-*, Phase-*, and step-* so agents can reference them deterministically.",
+    explanation: "neo-grace shared artifacts rely on unique ID-based XML tags such as M-*, Phase-*, and step-* so agents can reference them deterministically.",
     remediation: ["Replace the generic XML tag with the corresponding unique GRACE tag.", "Keep the unique tag and any verification-ref/module references synchronized across shared artifacts."],
   },
   {
@@ -469,8 +469,8 @@ export function withLintIssueGuide(issue: LintIssue): LintIssue {
 export function formatLintExplanation(code: string) {
   const guide = getLintIssueGuide(code);
   return [
-    "GRACE Lint Issue Guide",
-    "======================",
+    "neo-grace Lint Issue Guide",
+    "=".repeat(26),
     `Code: ${guide.code}`,
     `Title: ${guide.title}`,
     "",

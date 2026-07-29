@@ -22,7 +22,7 @@ function resolveFormat(format: unknown, json: unknown, allowed: string[], defaul
 export const verificationCommand = defineCommand({
   meta: {
     name: "verification",
-    description: "Query GRACE verification entries, scenarios, and evidence requirements.",
+    description: "Query neo-grace verification entries, scenarios, and evidence requirements.",
   },
   subCommands: {
     find: defineCommand({

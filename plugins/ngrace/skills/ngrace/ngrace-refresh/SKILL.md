@@ -1,6 +1,6 @@
 ---
 name: ngrace-refresh
-description: Detect drift between observed repository state and durable GRACE 4 .ngrace current state, then help create reconciliation changes.
+description: Detect drift between observed repository state and durable neo-grace .ngrace current state, then help create reconciliation changes.
 ---
 
 <skill>

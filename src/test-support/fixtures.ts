@@ -1,5 +1,5 @@
 /**
- * Shared GRACE 4 temp-project fixtures for unit and integration tests.
+ * Shared neo-grace temp-project fixtures for unit and integration tests.
  *
  * Not published: package.json#files does not enumerate this directory.
  * Matches the mkdtempSync temp-dir idiom used by grace-lint.test.ts

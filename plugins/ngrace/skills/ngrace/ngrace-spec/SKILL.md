@@ -1,6 +1,6 @@
 ---
 name: ngrace-spec
-description: Interview the user and create an approved GRACE 4 NgraceChangeSpec plus optional design-context.xml inside .ngrace/changes/active/C-*/.
+description: Interview the user and create an approved neo-grace NgraceChangeSpec plus optional design-context.xml inside .ngrace/changes/active/C-*/.
 ---
 
 <skill>

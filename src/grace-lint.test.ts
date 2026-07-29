@@ -91,7 +91,7 @@ function writeApprovedChange(
 }
 
 describe("lintGraceProject", () => {
-  it("passes a valid GRACE 4 .ngrace project", () => {
+  it("passes a valid neo-grace .ngrace project", () => {
     const root = createProject();
     writeMinimalNgraceProject(root);
 
@@ -116,7 +116,7 @@ describe("lintGraceProject", () => {
     expect(result.issues.map((issue) => issue.code)).toEqual(["project.grace3-detected"]);
   });
 
-  it("fails with missing .ngrace guidance when no GRACE artifacts exist", () => {
+  it("fails with missing .ngrace guidance when no neo-grace artifacts exist", () => {
     const result = lintGraceProject(createProject());
 
     expect(result.issues[0]?.code).toBe("project.missing-grace");
@@ -235,7 +235,7 @@ describe("lintGraceProject", () => {
     expect(codes).not.toContain("change.acceptance-criterion-unmapped");
   });
 
-  it("documents GRACE 4 diagnostic prefixes and removes allow-missing-docs CLI exposure", () => {
+  it("documents neo-grace diagnostic prefixes and removes allow-missing-docs CLI exposure", () => {
     expect(getLintIssueGuide("projection.graph.wrapper-mismatch").title).toContain("Projection");
     expect(getLintIssueGuide("assertion.MustExist").title).toContain("Assertion");
     expect(getLintIssueGuide("scope.durable-overlap").title).toContain("Scope");

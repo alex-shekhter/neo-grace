@@ -1,6 +1,6 @@
 ---
 name: ngrace-setup-subagents
-description: Create GRACE 4 worker and reviewer subagent presets that understand .ngrace artifacts, scopes, assertions, and verification evidence.
+description: Create neo-grace worker and reviewer subagent presets that understand .ngrace artifacts, scopes, assertions, and verification evidence.
 ---
 
 <skill>

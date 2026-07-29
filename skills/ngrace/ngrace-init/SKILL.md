@@ -1,11 +1,11 @@
 ---
 name: ngrace-init
-description: Bootstrap a Full GRACE 4 project by creating the canonical .ngrace context, graph, verification, and changes skeleton.
+description: Bootstrap a Full neo-grace project by creating the canonical .ngrace context, graph, verification, and changes skeleton.
 ---
 
 <skill>
 <task>
-Create the canonical GRACE 4 project layout from this skill's `assets/` templates:
+Create the canonical neo-grace project layout from this skill's `assets/` templates:
 
 - `AGENTS.md`
 - `.ngrace/context/requirements.xml`
@@ -75,7 +75,7 @@ precondition that fires after the work has begun is not a precondition.
 </steps>
 
 <hard_rules>
-- GRACE 4 state lives under `.ngrace`; do not create legacy `docs/*.xml` as the bootstrap surface.
+- neo-grace state lives under `.ngrace`; do not create legacy `docs/*.xml` as the bootstrap surface.
 - `NgraceChangeSpec` and `NgraceChangePlan` are created by later change workflows, not by init.
 - If legacy GRACE 3 docs are present, explain that migration is handled only by `ngrace-migrate`; init must not convert or delete them.
 - The `grace` CLI is a precondition, not a recommendation. Verify it before writing, and refuse to initialize when it cannot be obtained — see `<cli_precondition>`.

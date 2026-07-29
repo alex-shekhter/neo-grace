@@ -5,7 +5,7 @@ import { describe, expect, it } from "bun:test";
 
 import { childText, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes } from "./xml";
 
-describe("GRACE 4 XML parser adapter", () => {
+describe("neo-grace XML parser adapter", () => {
   it("returns xml.parse diagnostics for malformed XML instead of throwing", () => {
     const result = parseGraceXmlArtifact("broken.xml", `<NgraceRequirements graceVersion="1.0"><Open></NgraceRequirements>`);
 

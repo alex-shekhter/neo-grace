@@ -39,7 +39,7 @@ function writeChange(root: string, changeId: string, options: { graphAnchor: str
   );
 }
 
-describe("GRACE 4 scope detector", () => {
+describe("neo-grace scope detector", () => {
   it("collects active change scopes from approved and draft plans", () => {
     const root = createProject();
     writeChange(root, "C-ONE", { graphAnchor: "M-AUTH-SESSION", file: "src/auth.ts", contextArtifact: "requirements.xml" });

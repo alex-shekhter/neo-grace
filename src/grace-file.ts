@@ -22,7 +22,7 @@ function resolveFormat(format: unknown, json: unknown) {
 export const fileCommand = defineCommand({
   meta: {
     name: "file",
-    description: "Query file-local GRACE markup and private implementation context.",
+    description: "Query file-local neo-grace markup and private implementation context.",
   },
   subCommands: {
     show: defineCommand({

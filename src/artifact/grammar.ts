@@ -107,7 +107,7 @@ const CONTEXT_ARTIFACTS = [
   { file: "ux-guidelines.xml", rootTag: `${ARTIFACT_TAG_PREFIX}UXGuidelines` },
 ] as const;
 
-/** Result of validating a single GRACE 4 artifact. */
+/** Result of validating a single neo-grace artifact. */
 export type ArtifactValidationResult = {
   file: string;
   rootTag?: string;
@@ -137,7 +137,7 @@ export function validateArtifactRoot(artifact: ParsedGraceXmlArtifact): Artifact
 
   const root = artifact.root;
   if (!STANDARD_ROOT_TAGS.has(root.tag)) {
-    result.issues.push(issue("error", "artifact.invalid-root-tag", artifact.file, `Unsupported GRACE 4 root tag '${root.tag}'.`));
+    result.issues.push(issue("error", "artifact.invalid-root-tag", artifact.file, `Unsupported neo-grace root tag '${root.tag}'.`));
     return result;
   }
 
@@ -250,7 +250,7 @@ export function validateNgraceProjectLayout(paths: NgraceProjectPaths): NgraceIs
           "error",
           "project.missing-change-directory",
           directory,
-          `Required GRACE 4 change directory is missing: ${directory}`,
+          `Required neo-grace change directory is missing: ${directory}`,
         ),
       );
     }

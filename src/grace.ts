@@ -15,7 +15,7 @@ const main = defineCommand({
   meta: {
     name: "ngrace",
     version: "5.0.1",
-    description: `GRACE 4 CLI for ${ARTIFACT_DIR} linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation.`,
+    description: `neo-grace CLI for ${ARTIFACT_DIR} linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation.`,
   },
   subCommands: {
     doctor: doctorCommand,

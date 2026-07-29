@@ -1,8 +1,8 @@
-# GRACE 4 Migration Checklist
+# neo-grace Migration Checklist
 
 ## Before Writing `.ngrace`
 
-- [ ] Every legacy source path is inventoried with its intended GRACE 4 destination or an explicit unsupported/omitted reason.
+- [ ] Every legacy source path is inventoried with its intended neo-grace destination or an explicit unsupported/omitted reason.
 - [ ] A restorable backup exists at a recorded path outside the cleanup set.
 - [ ] Backup verification evidence and timestamp are recorded.
 - [ ] Ambiguities and unsupported legacy structures are listed.

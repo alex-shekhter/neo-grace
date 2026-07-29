@@ -103,7 +103,7 @@ export function planGraphSplit(
   const root = path.resolve(projectRoot);
   const kind = detectGraceProjectKind(root);
   if (kind !== "grace4") {
-    throw new GraceCommandError("invalid-project", `ngrace graph split requires a GRACE 4 ${ARTIFACT_DIR} project.`);
+    throw new GraceCommandError("invalid-project", `ngrace graph split requires a neo-grace ${ARTIFACT_DIR} project.`);
   }
 
   const pathPrefix = normalizeSplitPrefix(options.pathPrefix);

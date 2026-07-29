@@ -1,4 +1,4 @@
-# GRACE 4 Project Engineering Protocol
+# neo-grace Project Engineering Protocol
 
 ## Keywords
 $KEYWORDS
@@ -6,9 +6,9 @@ $KEYWORDS
 ## Annotation
 $ANNOTATION
 
-## GRACE 4 Source of Truth
+## neo-grace Source of Truth
 
-This project uses the GRACE 4 `.ngrace` artifact model.
+This project uses the neo-grace `.ngrace` artifact model.
 
 - Product and technical context: `.ngrace/context/*.xml`
 - Current graph projection source: `.ngrace/graph/index.xml` plus routed graph documents such as `.ngrace/graph/main.xml`
@@ -16,7 +16,7 @@ This project uses the GRACE 4 `.ngrace` artifact model.
 - Active work: `.ngrace/changes/active/C-*/spec.xml` and `.ngrace/changes/active/C-*/plan.xml`
 - Completed or terminal work: `.ngrace/changes/archive/C-*/*`
 
-Legacy `docs/*.xml` files are not GRACE 4 state. If legacy GRACE 3 docs appear, use `ngrace-migrate`; do not silently validate, convert, or delete them.
+Legacy `docs/*.xml` files are not neo-grace state. If legacy GRACE 3 docs appear, use `ngrace-migrate`; do not silently validate, convert, or delete them.
 
 ## Workflow Rules
 
@@ -41,8 +41,8 @@ Legacy `docs/*.xml` files are not GRACE 4 state. If legacy GRACE 3 docs appear, 
 
 ## CLI Checks
 
-- `grace lint --path .` validates `.ngrace` grammar, projections, assertions, lifecycle locations, and scope overlaps.
-- `grace status --path .` summarizes durable and operational GRACE 4 health.
+- `ngrace lint --path .` validates `.ngrace` grammar, projections, assertions, lifecycle locations, and scope overlaps.
+- `ngrace status --path .` summarizes durable and operational neo-grace health.
 - `grace module`, `grace verification`, and `grace file` navigate graph, verification, and file-local anchors.
 
 ## File-Local Markup Reference

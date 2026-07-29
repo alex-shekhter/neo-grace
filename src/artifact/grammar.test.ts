@@ -44,8 +44,8 @@ function task(id: string, dependencies = ""): string {
   return `<${id}><Title>${id} title</Title><DependsOn>${dependencies}</DependsOn><AcceptanceCriteria><Criterion>${id} accepted.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></${id}>`;
 }
 
-describe("GRACE 4 Artifact Grammar", () => {
-  it("fixture builders create required GRACE 4 and legacy project shapes", () => {
+describe("neo-grace Artifact Grammar", () => {
+  it("fixture builders create required neo-grace and legacy project shapes", () => {
     const root = createProject();
     writeMinimalNgraceProject(root);
     writeChangeBundleFixture(root, { changeId: "C-FIXTURE", location: "active", specStatus: "approved", planStatus: "approved" });

@@ -575,7 +575,7 @@
         </div>
         <div class="side-checked">
           <span class="duel-label">Checked against the source</span>
-          <pre>$ grace lint
+          <pre>$ ngrace lint
 
 [error] markup.module-map-mismatch
   services/api/…/router.go:10
@@ -606,7 +606,7 @@
       <span class="clause">02</span>
       <h2>Four stores, one directory</h2>
       <p>
-        Everything GRACE knows lives in <code>.grace/</code>, versioned beside your code
+        Everything GRACE knows lives in <code>.ngrace/</code>, versioned beside your code
         and validated on every run. Four stores, each answering a different question.
       </p>
     </div>
@@ -755,7 +755,7 @@
 
     <div class="indent">
       <div class="plate">
-        <div class="plate-cap"><span>grace doctor</span><span>honesty surface</span></div>
+        <div class="plate-cap"><span>ngrace doctor</span><span>honesty surface</span></div>
         <div class="plate-body">
 <pre>Analysis coverage
   Governed files: 3
@@ -830,7 +830,7 @@ Optional context artifacts
     <div class="indent">
       <div class="next">
         <div>
-          <span class="next-cmd">grace doctor --path .</span>
+          <span class="next-cmd">ngrace doctor --path .</span>
           <p>Run this first on your own repository. It reports which of your languages have export verification before you commit to anything.</p>
         </div>
         <div>
@@ -838,15 +838,15 @@ Optional context artifacts
           <p>A React + Go + Rust project under full governance. Every command is real and every diagnostic is CI-verified against the tool.</p>
         </div>
         <div>
-          <span class="next-cmd">$grace-init</span>
+          <span class="next-cmd">$ngrace-init</span>
           <p>When you're ready, this interviews you about your project and writes the initial model. You approve what it proposes.</p>
         </div>
       </div>
     </div>
 
     <div class="colophon">
-      <span>GRACE 5.0.0</span>
-      <span>@osovv/grace-cli</span>
+      <span>neo-grace 5.0.1</span>
+      <span>@neograce/cli</span>
       <span>Artifact grammar 4.0 — additive, no migration required</span>
     </div>
   </section>
@@ -868,13 +868,13 @@ Optional context artifacts
     }
 
     var stored = null;
-    try { stored = localStorage.getItem("grace-explainer-theme"); } catch (error) { stored = null; }
+    try { stored = localStorage.getItem("ngrace-explainer-theme"); } catch (error) { stored = null; }
     apply(stored === "dark" || stored === "light" ? stored : systemTheme());
 
     button.addEventListener("click", function () {
       var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
       apply(next);
-      try { localStorage.setItem("grace-explainer-theme", next); } catch (error) { /* private mode */ }
+      try { localStorage.setItem("ngrace-explainer-theme", next); } catch (error) { /* private mode */ }
     });
   })();
 </script>

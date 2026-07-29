@@ -1,6 +1,6 @@
 ---
 name: ngrace-verification
-description: Design and maintain GRACE 4 verification entries, commands, scenarios, markers, and assertion evidence under .ngrace/verification.
+description: Design and maintain neo-grace verification entries, commands, scenarios, markers, and assertion evidence under .ngrace/verification.
 ---
 
 <skill>

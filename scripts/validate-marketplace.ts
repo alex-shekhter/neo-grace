@@ -22,7 +22,7 @@ const changelogPath = path.join(repoRoot, "CHANGELOG.md");
 const componentFields = ["skills", "agents", "commands"] as const;
 const pluginComponentFields = ["commands", "agents", "hooks", "mcpServers", "lspServers", "outputStyles"] as const;
 
-/** Required published GRACE 4 skill directory names. */
+/** Required published neo-grace skill directory names. */
 const REQUIRED_NGRACE_SKILLS = new Set([
   "ngrace-init",
   "ngrace-spec",
@@ -290,7 +290,7 @@ function skillNamesFromEntry(entry: JsonObject): Set<string> {
   );
 }
 
-/** Validates that the marketplace skills array matches the GRACE 4 release surface. */
+/** Validates that the marketplace skills array matches the neo-grace release surface. */
 function validateNgraceSkillSurface(entry: JsonObject, errors: string[]): void {
   if (String(entry.name ?? "") !== "ngrace") {
     return;
@@ -299,13 +299,13 @@ function validateNgraceSkillSurface(entry: JsonObject, errors: string[]): void {
   const publishedSkills = skillNamesFromEntry(entry);
   for (const requiredSkill of REQUIRED_NGRACE_SKILLS) {
     if (!publishedSkills.has(requiredSkill)) {
-      errors.push(`ngrace: missing required GRACE 4 skill in marketplace skills array (${requiredSkill})`);
+      errors.push(`ngrace: missing required neo-grace skill in marketplace skills array (${requiredSkill})`);
     }
   }
 
   for (const forbiddenSkill of FORBIDDEN_NGRACE_SKILLS) {
     if (publishedSkills.has(forbiddenSkill)) {
-      errors.push(`ngrace: forbidden GRACE 4 skill is still published (${forbiddenSkill})`);
+      errors.push(`ngrace: forbidden neo-grace skill is still published (${forbiddenSkill})`);
     }
   }
 }
@@ -318,7 +318,7 @@ function validateNgraceDependencies(errors: string[]): void {
     : {};
 
   if (typeof dependencies["fast-xml-parser"] !== "string") {
-    errors.push("package.json: missing runtime dependency fast-xml-parser required by GRACE 4 XML parsing");
+    errors.push("package.json: missing runtime dependency fast-xml-parser required by neo-grace XML parsing");
   }
 
   const publishedFiles = Array.isArray(packageJson.files)

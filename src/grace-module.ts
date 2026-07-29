@@ -23,13 +23,13 @@ function resolveFormat(format: unknown, json: unknown, allowed: string[], defaul
 export const moduleCommand = defineCommand({
   meta: {
     name: "module",
-    description: "Query shared GRACE module artifacts.",
+    description: "Query shared neo-grace module artifacts.",
   },
   subCommands: {
     find: defineCommand({
       meta: {
         name: "find",
-        description: "Find GRACE modules by id, name, path, purpose, annotations, verification, or dependencies.",
+        description: "Find neo-grace modules by id, name, path, purpose, annotations, verification, or dependencies.",
       },
       args: {
         query: {

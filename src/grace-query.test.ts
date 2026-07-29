@@ -472,7 +472,7 @@ const marker$Other = "[ProviderConfigPersistence][getProviderConfig][other]";`,
     });
     expect(textResult.exitCode).not.toBe(0);
     const textError = Buffer.from(textResult.stderr).toString("utf8").trim();
-    expect(textError).toContain("GRACE artifacts are invalid");
+    expect(textError).toContain("neo-grace artifacts are invalid");
     expect(textError).not.toContain("GraceCommandError");
     expect(textError).not.toMatch(/\n\s+at\s/);
   });
@@ -608,7 +608,7 @@ const marker$Other = "[ProviderConfigPersistence][getProviderConfig][other]";`,
       stderr: "pipe",
     });
     expect(verificationResult.exitCode).toBe(0);
-    expect(Buffer.from(verificationResult.stdout).toString("utf8")).toContain("GRACE Verification");
+    expect(Buffer.from(verificationResult.stdout).toString("utf8")).toContain("neo-grace Verification");
 
     const verificationShowByModuleResult = Bun.spawnSync({
       cmd: [process.execPath, "./src/grace.ts", "verification", "show", "M-PROVIDER-PERSIST", "--path", root, "--json"],

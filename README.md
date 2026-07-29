@@ -22,7 +22,7 @@ The grammar version is **not comparable** to upstream GRACE's numbering; this li
 
 | Start | Time | What it is |
 |---|---|---|
-| [**Visual introduction**](./docs/grace-explainer.html) | 5 min | Why GRACE exists and how the pieces relate. Open the file in a browser — it is self-contained. |
+| [**Visual introduction**](./docs/ngrace-explainer.html) | 5 min | Why GRACE exists and how the pieces relate. Open the file in a browser — it is self-contained. |
 | [**Twenty-minute walkthrough**](./examples/polyglot/WALKTHROUGH.md) | 20 min | A guided tour of a real React + Go + Rust project. You break it on purpose four times and watch the tooling catch you. |
 | `ngrace doctor --path .` | 1 min | Run against your own repository first. Reports which of your languages have export verification before you commit to anything. |
 
@@ -39,9 +39,9 @@ You never hand-author the XML — the skills write it and you approve it. Both d
 - OpenPackage metadata in `openpackage.yml`
 - Required Bun-powered CLI package `neo-grace`
 
-## GRACE 4 Model
+## neo-grace Project Model
 
-GRACE 4 uses `.ngrace` as the durable project model:
+neo-grace uses `.ngrace` as the durable project model:
 
 | Area | Purpose |
 | --- | --- |
@@ -55,7 +55,7 @@ GRACE 4 uses `.ngrace` as the durable project model:
 | Source/test files with GRACE markup | File-local contracts, links, and semantic block anchors |
 | `examples/polyglot/` | Golden-path React + Go + Rust monorepo (CI-linted; see its [walkthrough](./examples/polyglot/WALKTHROUGH.md)) |
 
-GRACE 4 does not dual-validate legacy GRACE 3 project docs as current state. Existing GRACE 3 projects use `$ngrace-migrate`; the CLI validates the generated `.ngrace` result but does not convert legacy docs itself.
+neo-grace does not dual-validate legacy GRACE 3 project docs as current state. Existing GRACE 3 projects use `$ngrace-migrate`; the CLI validates the generated `.ngrace` result but does not convert legacy docs itself.
 
 Verification commands run from the project root by default. A `V-M-*` entry may declare one contained project-relative `<Cwd>packages/example</Cwd>` while keeping `<TestFiles><File>...</File></TestFiles>` paths project-root-relative. Absolute paths, `..` escapes, and symlink escapes fail closed.
 
@@ -119,9 +119,9 @@ ngrace --version
 ngrace lint --path /path/to/grace4-project
 ```
 
-## GRACE 4 Quick Start
+## neo-grace Quick Start
 
-For a new GRACE 4 project:
+For a new neo-grace project:
 
 1. Run `$ngrace-init` to create `.ngrace`.
 2. Fill `.ngrace/context` artifacts with your agent.
@@ -135,14 +135,14 @@ For a new GRACE 4 project:
 
 Existing GRACE 3 projects should run `$ngrace-migrate` and review the migration report before writing `.ngrace` artifacts.
 
-Migration cleanup is separately gated: successful current lint, fresh status proving GRACE 4 with no integrity errors, git/worktree inspection, exact cleanup paths, and explicit cleanup confirmation are mandatory. Dirty or non-git cleanup requires an additional acknowledgement naming that risk; any cleanup failure stops without automatic destructive retry.
+Migration cleanup is separately gated: successful current lint, fresh status proving neo-grace with no integrity errors, git/worktree inspection, exact cleanup paths, and explicit cleanup confirmation are mandatory. Dirty or non-git cleanup requires an additional acknowledgement naming that risk; any cleanup failure stops without automatic destructive retry.
 
 ## Skills Overview
 
 | Skill | Purpose |
 | --- | --- |
 | `ngrace-init` | Bootstrap the `.ngrace` skeleton, templates, and agent guidance |
-| `ngrace-spec` | Create an approved GRACE 4 change spec and optional design context |
+| `ngrace-spec` | Create an approved neo-grace change spec and optional design context |
 | `ngrace-plan` | Design assertions, scopes, tasks, and verification gates from an approved spec |
 | `ngrace-execute` | Execute the approved plan in sequential or parallel-safe mode |
 | `ngrace-refactor` | Rename, move, split, merge, and extract modules without artifact drift |
@@ -155,7 +155,7 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | `ngrace-explainer` | Explain the GRACE methodology itself |
 | `ngrace-verification` | Build and maintain `.ngrace/verification` entries and evidence |
 | `ngrace-reviewer` | Review semantic integrity, projections, scopes, and verification quality |
-| `ngrace-migrate` | Agent-applied GRACE 3 to GRACE 4 migration with CLI validation |
+| `ngrace-migrate` | Agent-applied GRACE 3 to neo-grace migration with CLI validation |
 
 ## CLI Overview
 
@@ -232,7 +232,7 @@ non-empty `<Reason>`).
 | `.claude-plugin/marketplace.json` | Marketplace entry and published skill set |
 | `plugins/ngrace/.claude-plugin/plugin.json` | Packaged plugin manifest |
 | `src/grace.ts` | CLI entrypoint |
-| `src/artifact/*` | GRACE 4 project detection, XML parsing, grammar, projections, assertions, and scopes |
+| `src/artifact/*` | neo-grace project detection, XML parsing, grammar, projections, assertions, and scopes |
 | `src/lint/*` | `ngrace lint` implementation |
 | `src/query/*` | Projection-backed query layer for CLI navigation |
 | `scripts/validate-marketplace.ts` | Packaging, version, path, and mirror validation |
@@ -247,6 +247,6 @@ bun run validate:packed
 bun run validate:release
 ```
 
-For CLI changes, keep tests in `src/grace-lint.test.ts`, `src/grace-status.test.ts`, and `src/grace-query.test.ts` aligned with the GRACE 4 `.ngrace` fixture model.
+For CLI changes, keep tests in `src/grace-lint.test.ts`, `src/grace-status.test.ts`, and `src/grace-query.test.ts` aligned with the neo-grace `.ngrace` fixture model.
 
 Stable releases use a protected-main two-stage flow. `release:bump` runs on a clean release branch that contains current `origin/main`, updates and validates the version surfaces, commits them, pushes the branch, and finds or creates the release PR without creating a tag. After its required checks pass and the PR is merged, `release:finalize X.Y.Z` runs from clean synchronized `main`, revalidates the exact stable state, creates the annotated tag, and pushes only that tag. CI independently requires the stable tag commit to equal fetched `origin/main` and gates npm `latest` publication through the reviewer-protected `stable-release` environment, whose explicit deployment policies allow only branch `main` and tags `v*`. Protected `main` requires Linux, Windows, and real-Dart checks without requiring a separate PR approval, while an active ruleset keeps `v*` tags immutable. `bun run release:checklist` verifies those controls and, after publication from the exact release tag commit, verifies `HEAD == tag`, npm/GitHub channel metadata, and that the local `npm pack` shasum matches the immutable published tarball.

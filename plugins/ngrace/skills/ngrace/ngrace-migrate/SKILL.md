@@ -1,6 +1,6 @@
 ---
 name: ngrace-migrate
-description: Agent-applied GRACE 3 to GRACE 4 migration workflow. CLI validates the result but does not convert or delete files.
+description: Agent-applied GRACE 3 to neo-grace migration workflow. CLI validates the result but does not convert or delete files.
 ---
 
 <skill>
@@ -11,7 +11,7 @@ Migration is copy-and-validate, not destructive conversion. Before writing `.ngr
 <workflow>
 1. Detect legacy docs and current `.ngrace` state. If `.ngrace` already exists, stop and ask whether migration should merge, replace, or abort.
 2. Inventory legacy source paths and create or verify a restorable backup. Record source coverage and backup evidence in the report.
-3. Map legacy requirements, technology, graph, verification, and operational content into the GRACE 4 layout. List ambiguities and unsupported structures rather than guessing.
+3. Map legacy requirements, technology, graph, verification, and operational content into the neo-grace layout. List ambiguities and unsupported structures rather than guessing.
 4. Produce `references/migration-report-template.xml`, review `references/migration-checklist.md`, and ask for explicit approval before writing `.ngrace`.
 5. Write `.ngrace`, then run `ngrace lint --path <project-root> --assertions current` and `ngrace status --path <project-root> --json`. Require status `projectKind` `grace4` with no integrity errors, and record commands, exit states, and findings.
 6. If validation is not successful or generated coverage is incomplete, retain all legacy sources and stop.
@@ -21,7 +21,7 @@ Migration is copy-and-validate, not destructive conversion. Before writing `.ngr
 </workflow>
 
 <cleanup_preconditions>
-Cleanup requires all of: complete inventory, restorable backup, explicit write approval, successful current lint, fresh status proving GRACE 4 with no integrity errors, verified generated coverage, git availability/worktree inspection, recorded porcelain output when applicable, exact proposed paths, separate explicit cleanup approval, and separate dirty or non-git risk acknowledgement when applicable. A missing gate means no cleanup.
+Cleanup requires all of: complete inventory, restorable backup, explicit write approval, successful current lint, fresh status proving neo-grace with no integrity errors, verified generated coverage, git availability/worktree inspection, recorded porcelain output when applicable, exact proposed paths, separate explicit cleanup approval, and separate dirty or non-git risk acknowledgement when applicable. A missing gate means no cleanup.
 </cleanup_preconditions>
 
 <cleanup_failure_rule>

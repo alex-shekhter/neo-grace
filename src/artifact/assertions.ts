@@ -8,7 +8,7 @@ import type { GraphAnchorRecord, GraphProjection, VerificationProjection } from 
 import { stateMatchesEvidence } from "./projections";
 import { childText, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
-/** Supported machine-checkable GRACE 4 assertion kinds. */
+/** Supported machine-checkable neo-grace assertion kinds. */
 export type AssertionKind =
   | "MustExist"
   | "MustNotExist"
@@ -40,7 +40,7 @@ export type GraceAssertion = {
   values: string[];
 };
 
-/** Context required to evaluate a GRACE 4 assertion. */
+/** Context required to evaluate a neo-grace assertion. */
 export type AssertionContext = {
   root: string;
   graph: GraphProjection;
@@ -164,7 +164,7 @@ export function extractAssertionsWithIssues(
     }
     for (const node of sectionNode.children) {
       if (!ASSERTION_KINDS.has(node.tag as AssertionKind)) {
-        issues.push(issue("error", "assertion.unknown-kind", planFile, `${node.tag} is not an approved GRACE 4 assertion kind.`));
+        issues.push(issue("error", "assertion.unknown-kind", planFile, `${node.tag} is not an approved neo-grace assertion kind.`));
         continue;
       }
       const extraction = extractAssertionNode(planFile, node, node.tag as AssertionKind);

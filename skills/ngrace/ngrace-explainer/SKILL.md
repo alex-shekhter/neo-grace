@@ -1,11 +1,11 @@
 ---
 name: ngrace-explainer
-description: Explain GRACE 4 methodology, .ngrace artifacts, semantic anchors, change lifecycle, verification, and migration boundaries.
+description: Explain GRACE methodology, .ngrace artifacts, semantic anchors, change lifecycle, verification, and migration boundaries.
 ---
 
 <skill>
 <core_model>
-GRACE 4 uses `.ngrace` as the durable project model:
+neo-grace uses `.ngrace` as the durable project model:
 
 - `.ngrace/context` stores requirements, technology, principles, deployment, and UX constraints.
 - `.ngrace/graph` stores graph indexes and routed graph documents with `GD-*`, `M-*`, and `DF-*` tags.

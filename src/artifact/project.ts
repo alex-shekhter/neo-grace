@@ -13,7 +13,7 @@ const LEGACY_GRACE3_DOCUMENTS = [
   "docs/operational-packets.xml",
 ] as const;
 
-/** Resolves canonical GRACE 4 project paths from a repository root. */
+/** Resolves canonical neo-grace project paths from a repository root. */
 export function resolveNgracePaths(root: string): NgraceProjectPaths {
   const resolvedRoot = path.resolve(root);
   const graceDir = path.join(resolvedRoot, ARTIFACT_DIR);
@@ -53,8 +53,8 @@ export function detectGraceProjectKind(root: string): GraceProjectKind {
 export function formatGrace3MigrationGuidance(root: string): string {
   return [
     `Legacy GRACE 3 artifacts were detected at ${path.resolve(root)}.`,
-    `GRACE 4 tooling validates only the ${ARTIFACT_DIR} artifact model.`,
+    `neo-grace tooling validates only the ${ARTIFACT_DIR} artifact model.`,
     `Use the ${skillName("migrate")} skill to review and agent-apply a migration to ${ARTIFACT_DIR} artifacts.`,
-    "The CLI does not migrate, convert, or validate GRACE 3 docs as GRACE 4 state.",
+    "The CLI does not migrate, convert, or validate GRACE 3 docs as neo-grace state.",
   ].join(" ");
 }

@@ -1,6 +1,6 @@
 ---
 name: ngrace-execute
-description: Execute an approved GRACE 4 NgraceChangePlan in sequential or parallel-safe mode with recovery-aware preflight and centralized durable apply.
+description: Execute an approved neo-grace NgraceChangePlan in sequential or parallel-safe mode with recovery-aware preflight and centralized durable apply.
 ---
 
 <skill>
