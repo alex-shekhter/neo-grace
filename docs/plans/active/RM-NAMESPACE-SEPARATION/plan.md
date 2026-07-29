@@ -562,14 +562,37 @@ Revert both constant values and the data edits; `git mv` the example back.
 
 ---
 
-# PHASE 4 — Grammar identity: retire `GRACE4_VERSION`
+# PHASE 4 — Grammar identity: retire the `Grace4` name in code
 
 **Status:** `NOT STARTED` · **Layer:** Artifact · **Release:** TBD
+**Amended 2026-07-29 (A1)** — see §9.
 
 ## 4.1 Objective
 
-Stop claiming kinship with upstream GRACE 4. `GRACE4_VERSION = "4.0"` is validated on every
-artifact root and asserts compatibility with a grammar this codebase has diverged from.
+Stop claiming kinship with upstream GRACE 4 anywhere in the source. `GRACE4_VERSION = "4.0"` is
+validated on every artifact root and asserts compatibility with a grammar this codebase has
+diverged from — but it is one of **17** identifiers carrying that claim, and the original phase
+covered only it.
+
+The full set **(E2, enumerated 2026-07-29)**:
+
+```
+GRACE4_VERSION                     Grace4RootTag
+GRACE4_ROOT_TAGS                   Grace4ChangeCompanionTag
+GRACE4_CHANGE_COMPANION_TAGS       Grace4ContextArtifact
+GRACE4_CONTEXT_ARTIFACTS           Grace4OptionalContextArtifact
+GRACE4_OPTIONAL_CONTEXT_ARTIFACTS  Grace4Issue
+REQUIRED_GRACE4_SKILLS             Grace4ModuleRecord
+FORBIDDEN_GRACE4_SKILLS            Grace4ProjectPaths
+validateGrace4Project              Grace4ValidationResult
+validateGrace4ProjectLayout
+validateGrace4SkillSurface
+validateGrace4Dependencies
+```
+
+Phase 2 edits the **values** of the two `*_SKILLS` constants; it does not rename them. Nothing
+else in the plan touched the remaining 16, so a plan-following executor would leave every one in
+place and correctly report each phase complete.
 
 ## 4.2 Preconditions
 
@@ -583,8 +606,10 @@ version number asserts a lineage that no longer holds.
 
 | File | Action |
 |---|---|
-| `src/grace4/types.ts` | EDIT — constant name and value |
-| (8 reference sites) | EDIT |
+| `src/grace4/types.ts` | EDIT — constant and type names, and the version value |
+| `src/grace4/grammar.ts` | EDIT — `validateGrace4Project`, `validateGrace4ProjectLayout`, re-exports |
+| `scripts/validate-marketplace.ts` | EDIT — `REQUIRED_/FORBIDDEN_GRACE4_SKILLS`, `validateGrace4SkillSurface`, `validateGrace4Dependencies` |
+| (all remaining reference sites across `src/`) | EDIT — follow the compiler |
 | `src/grace4/` → `src/artifact/` | `git mv` — **optional, see 4.4** |
 | `skills/ngrace/*/references/*.xml` | EDIT — VERSION attributes |
 | `README.md` | EDIT — grammar version documentation |
@@ -593,6 +618,29 @@ version number asserts a lineage that no longer holds.
 
 **The constant is renamed and re-based, not bumped.** Bumping `"4.0"` → `"5.0"` would keep the
 claim and change the number. The claim is the problem.
+
+**New names carry no version number.** `Grace4RootTag` became stale precisely because it embedded
+a version in an identifier, so the replacement must not repeat the mistake:
+
+| Old | New |
+|---|---|
+| `GRACE4_ROOT_TAGS` | `NGRACE_ROOT_TAGS` |
+| `Grace4RootTag` | `NgraceRootTag` |
+| `validateGrace4Project` | `validateNgraceProject` |
+| `Grace4Issue`, `Grace4ProjectPaths`, … | `NgraceIssue`, `NgraceProjectPaths`, … |
+
+> **An identifier names the system, not its version.** `NGRACE_ARTIFACT_VERSION` is the sole
+> exception, because the version *is* what it names.
+
+Renaming these is a compiler-guided refactor, not a text sweep: change the declaration, then
+follow `typecheck` to every use. That is the Phase 1 principle applied to symbols instead of
+literals — and it is why this can be done safely in one pass.
+
+**Two of these are exported and re-exported** (`GRACE4_CONTEXT_ARTIFACTS`,
+`GRACE4_OPTIONAL_CONTEXT_ARTIFACTS`, at `src/grace4/grammar.ts:1665`). `package.json#files`
+publishes `src/`, so a determined consumer could import them — but the package's supported surface
+is the `ngrace` binary, not its TypeScript internals. Rename them; do not add compatibility
+aliases.
 
 **Directory rename is optional and should be decided, not defaulted.** `src/grace4/` encodes the
 old grammar version in a path. Renaming to `src/artifact/` removes a stale claim; leaving it costs
@@ -614,8 +662,16 @@ other direction:
 
 ## 4.5 Steps
 
-**Step 4.5.1 — Rename and re-base the constant.**
+**Step 4.5.1 — Rename and re-base the version constant.**
 → verify: no `GRACE4_VERSION` reference remains; `typecheck` clean.
+
+**Step 4.5.1a — Rename the remaining 16 identifiers, compiler-guided.**
+Change each declaration and let `typecheck` find every use. Do not text-sweep.
+→ verify: `grep -rnE '\b(GRACE4_[A-Z_]+|Grace4[A-Za-z]+|validateGrace4[A-Za-z]*)\b' src scripts --include='*.ts'`
+returns **nothing**, including test files. Report the command and its empty output.
+
+→ verify: `bun test` pass count matches the pre-phase baseline exactly. A rename that changes a
+test count changed behaviour, which this step must not.
 
 **Step 4.5.2 — Update template VERSION attributes, mirrored.**
 → verify: a scaffolded project lints clean and carries the new version.
@@ -630,6 +686,10 @@ other direction:
 ## 4.6 Definition of done
 
 - No `GRACE4_VERSION` anywhere
+- **No `Grace4`/`GRACE4` identifier anywhere in `src/` or `scripts/`, tests included** — grep
+  output reported and empty
+- **No new identifier embeds a version number**, `NGRACE_ARTIFACT_VERSION` excepted
+- Test pass count unchanged from the pre-phase baseline
 - Templates carry the new version; scaffolded project clean
 - Directory decision made and recorded
 - Discontinuity documented
@@ -640,6 +700,10 @@ other direction:
 1. Was the version bumped rather than re-based? That keeps the claim.
 2. Was the directory question answered, or silently defaulted?
 3. Does `README.md` explain the numbering discontinuity?
+4. Did any identifier acquire a version number in its new name? That reproduces the defect being
+   removed.
+5. Was the rename compiler-guided, or text-swept? A text sweep over symbols will silently miss a
+   re-export and silently hit a string.
 
 ## 4.8 Rollback
 
@@ -650,11 +714,21 @@ Revert the constant and the template edits.
 # PHASE 5 — Prose sweep and documentation
 
 **Status:** `NOT STARTED` · **Release:** TBD
+**Amended 2026-07-29 (A1)** — see §9.
 
 ## 5.1 Objective
 
-Retire the "GRACE 4" notion from product-facing prose. The product is `neo-grace` 5.x; roughly 80
+Retire the "GRACE 4" notion from product-facing prose. The product is `neo-grace` 6.x; roughly 80
 files still say otherwise.
+
+**Prose is prose wherever it lives.** The original phase listed documentation files only, which
+would have left **46 "GRACE 4" strings inside `src/` and `scripts/`** **(E2, counted 2026-07-29)** —
+CLI command descriptions, error messages, lint-catalog titles, explanations and remediations, and
+JSDoc. `ngrace --help` would still have announced itself as *"GRACE 4 CLI for .grace linting…"*
+after the entire plan completed.
+
+§0.2's three categories apply to strings in code exactly as they apply to Markdown. Where a string
+is *displayed to a user*, its file extension is irrelevant.
 
 **This phase absorbs the standing backlog item** for that cleanup.
 
@@ -665,8 +739,17 @@ shipped, and with N1 and N2 ratified there is no partial-state branch to handle.
 
 ## 5.3 Files touched
 
-`README.md`, `CLAUDE.md`, `examples/polyglot/README.md`, all 16 `SKILL.md` files and their mirrors,
-`skills/ngrace/*/references/**`, `docs/ngrace-explainer.html`.
+**Documentation:** `README.md`, `CLAUDE.md`, `examples/polyglot/README.md`, all 16 `SKILL.md` files
+and their mirrors, `skills/ngrace/*/references/**`, `docs/ngrace-explainer.html`.
+
+**Prose inside code** — 46 sites, concentrated in:
+
+| File | Character |
+|---|---|
+| `src/lint/catalog.ts` | issue titles, explanations, remediations — the highest-visibility prose in the product |
+| `src/grace-status.ts` | next-action guidance, JSDoc, command description |
+| `src/grace.ts` | the root command `description` — what `ngrace --help` announces |
+| `src/grace-doctor.ts`, `src/grace-graph.ts`, `src/lint/core.ts` | error messages and JSDoc |
 
 **Not touched:** `CHANGELOG.md`, `docs/plans/archive/**`.
 
@@ -685,8 +768,21 @@ migration text refer to genuine legacy artifacts.
 → verify: report counts per §0.2 category. A phase that edits before classifying will convert
 methodology prose into nonsense.
 
-**Step 5.5.2 — Edit product-facing prose; mirror all skill edits.**
+**Step 5.5.2 — Edit product-facing prose in documentation; mirror all skill edits.**
 → verify: `bun run validate:marketplace` green.
+
+**Step 5.5.2a — Edit product-facing prose inside code.**
+Start with `src/grace.ts`'s root `description` and `src/lint/catalog.ts`, which together account
+for most of what a user actually reads.
+
+→ verify: `bun run ngrace --help` no longer announces "GRACE 4"; quote the new description line.
+→ verify: `bun run ngrace lint --explain <a project.* code>` shows a title and explanation free of
+the stale product name; quote one before and after.
+→ verify: `grep -rn 'GRACE 4' src scripts --include='*.ts'` returns only deliberate keeps, each
+explained per §0.2. Legitimate keeps exist — text about *migrating from* GRACE 4, and the
+`grace3`/legacy detection messages, are describing real other things.
+→ verify: `bun test` pass count unchanged. Several catalog strings are asserted in tests; if a
+count moves, a test was asserting on prose and needs looking at rather than silently updating.
 
 **Step 5.5.3 — Confirm `grace3` identifiers survived.**
 → verify: `grep -rn 'grace3' src --include='*.ts' | grep -v test` unchanged from HEAD.
@@ -696,9 +792,11 @@ methodology prose into nonsense.
 
 ## 5.6 Definition of done
 
-- Product-facing prose says `neo-grace` 5.x
+- Product-facing prose says `neo-grace` 6.x, **in documentation and in code**
+- `ngrace --help` and `ngrace lint --explain` free of the stale product name
 - Methodology prose intact, with the classification reported
 - `grace3` identifiers unchanged
+- Test pass count unchanged
 - History untouched
 - `bun run validate:ci` green
 
@@ -851,13 +949,44 @@ open questions, and a sixth invented mid-phase will not be recorded anywhere.
 | N2 | What replaces `GRACE4_VERSION`? | 4 (gate) |
 | N3 | Skill names `ngrace-*` | 2 |
 | N4 | Major version | 6 |
-| N5 | Repo-level coexistence | unresolved; does not gate any phase |
+| N5 | Repo-level coexistence | **Partially answered by Phase 0's execution:** upstream `@osovv/grace-cli` v4.0.4 was found installed on PATH as `grace`, so `bun run grace` silently ran upstream's linter against this repository. The collision is live, not hypothetical |
 | §6 | Sibling reconciliation | 6 |
-| backlog | Retire "GRACE 4" prose | 5 |
+| backlog | Retire "GRACE 4" prose | 5, **widened by A1** to include 46 sites inside `src/`+`scripts/` |
+| A1 | `Grace4` code identifiers | 4 |
 
 ---
 
-## 9. Final instruction to the executor
+## 9. Amendments
+
+This plan is `approved` and under execution, so changes are recorded here rather than made
+silently. Append only; never renumber or rewrite an earlier entry.
+
+### A1 — 2026-07-29 · Phases 4 and 5 widened
+
+**Raised during a backlog reconciliation**, after Phase 0 completed and before Phase 1 began.
+
+Two gaps, same family — the plan treated "GRACE 4" as a *documentation* problem when much of it
+lives in *code*:
+
+| Gap | Scale | Phase |
+|---|---|---|
+| `Grace4`/`GRACE4` code identifiers — types, validators, constant names | 16 of 17 uncovered; only `GRACE4_VERSION` was in scope | 4 |
+| "GRACE 4" prose inside `src/`+`scripts/` — CLI descriptions, error messages, lint-catalog text | 46 sites, all outside the phase's file list | 5 |
+
+Both were invisible to the original phase gates: an executor following the plan exactly would have
+completed every phase correctly and left `ngrace --help` announcing *"GRACE 4 CLI"* over a codebase
+still full of `Grace4RootTag`.
+
+Phase 4 also gained the rule that **new identifiers carry no version number** — `Grace4RootTag`
+went stale precisely because it embedded one, and repeating that would rebuild the defect being
+removed.
+
+**No phase already executed is affected.** Phase 0 is untouched by this amendment; Phases 1–3 are
+unchanged.
+
+---
+
+## 10. Final instruction to the executor
 
 Work one phase at a time. Report in the §0.5 format. Stop after each phase and wait for review.
 
