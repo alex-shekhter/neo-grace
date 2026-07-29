@@ -6,7 +6,7 @@ import type { GraphProjection, VerificationProjection } from "./projections";
 import { ANCHOR_PATTERNS, GRACE4_CONTEXT_ARTIFACTS, type Grace4Issue, type Grace4ProjectPaths } from "./types";
 import { readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
-/** Durable semantic scope declared by a GraceChangePlan. */
+/** Durable semantic scope declared by a NgraceChangePlan. */
 export type DurableScope = {
   graphAnchors: string[];
   verificationAnchors: string[];
@@ -15,7 +15,7 @@ export type DurableScope = {
   verificationDocuments: string[];
 };
 
-/** Observed repository write scope declared by a GraceChangePlan. */
+/** Observed repository write scope declared by a NgraceChangePlan. */
 export type ObservedWriteScope = {
   files: string[];
   globs: string[];

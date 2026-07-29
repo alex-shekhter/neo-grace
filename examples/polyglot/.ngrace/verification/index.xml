@@ -1,0 +1,22 @@
+<NgraceVerificationIndex graceVersion="4.0">
+  <VerificationDocuments>
+    <VD-UI>
+      <Path>verification/ui.xml</Path>
+      <Owns>
+        <V-M-WEB-LEDGER-TABLE />
+      </Owns>
+    </VD-UI>
+    <VD-API>
+      <Path>verification/api.xml</Path>
+      <Owns>
+        <V-M-API-ROUTER />
+      </Owns>
+    </VD-API>
+    <VD-CORE>
+      <Path>verification/core.xml</Path>
+      <Owns>
+        <V-M-LEDGER-CORE />
+      </Owns>
+    </VD-CORE>
+  </VerificationDocuments>
+</NgraceVerificationIndex>

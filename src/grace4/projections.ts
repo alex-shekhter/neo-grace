@@ -98,7 +98,7 @@ type OwnerRoute = {
   valid: boolean;
 };
 
-/** Builds and validates the logical graph projection from .grace/graph. */
+/** Builds and validates the logical graph projection from .ngrace/graph. */
 export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection {
   const projection: GraphProjection = {
     documents: new Map(),
@@ -228,7 +228,7 @@ export function buildGraphProjection(paths: Grace4ProjectPaths): GraphProjection
   return projection;
 }
 
-/** Builds and validates the logical verification projection from .grace/verification. */
+/** Builds and validates the logical verification projection from .ngrace/verification. */
 export function buildVerificationProjection(paths: Grace4ProjectPaths, graph: GraphProjection): VerificationProjection {
   const projection: VerificationProjection = {
     documents: new Map(),

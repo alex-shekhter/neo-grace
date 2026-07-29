@@ -6,7 +6,7 @@ import { describe, expect, it } from "bun:test";
 import { loadGraceLintConfig } from "./config";
 
 function writeConfig(root: string, contents: string) {
-  writeFileSync(path.join(root, ".grace-lint.json"), contents);
+  writeFileSync(path.join(root, ".ngrace-lint.json"), contents);
 }
 
 describe("loadGraceLintConfig", () => {

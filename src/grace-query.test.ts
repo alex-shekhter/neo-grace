@@ -20,11 +20,11 @@ function writeProjectFile(root: string, relativePath: string, contents: string) 
 }
 
 function writeProjectSkeleton(root: string) {
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/requirements.xml`, `<GraceRequirements graceVersion="4.0"><Summary>Required.</Summary></GraceRequirements>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/technology.xml`, `<GraceTechnology graceVersion="4.0"><Runtime>Bun</Runtime></GraceTechnology>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/principles.xml`, `<GracePrinciples graceVersion="4.0"><Principle>Safe.</Principle></GracePrinciples>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<GraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></GraceDeployment>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<GraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></GraceUXGuidelines>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/requirements.xml`, `<NgraceRequirements graceVersion="4.0"><Summary>Required.</Summary></NgraceRequirements>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/technology.xml`, `<NgraceTechnology graceVersion="4.0"><Runtime>Bun</Runtime></NgraceTechnology>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/principles.xml`, `<NgracePrinciples graceVersion="4.0"><Principle>Safe.</Principle></NgracePrinciples>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<NgraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></NgraceDeployment>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<NgraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></NgraceUXGuidelines>`);
   mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
   mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "archive"), { recursive: true });
 }
@@ -34,22 +34,22 @@ function writeGrace4Artifacts(root: string) {
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-DB /><M-PROVIDER-PERSIST /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-DB /><M-PROVIDER-PERSIST /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/main.xml`,
-    `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-DB><Summary>Provide a shared database client.</Summary><Path>src/db</Path></M-DB><M-PROVIDER-PERSIST><Summary>Persist provider configuration records.</Summary><Path>src/provider</Path><M-DB /></M-PROVIDER-PERSIST></GD-MAIN></GraceGraphDocument>`,
+    `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-DB><Summary>Provide a shared database client.</Summary><Path>src/db</Path></M-DB><M-PROVIDER-PERSIST><Summary>Persist provider configuration records.</Summary><Path>src/provider</Path><M-DB /></M-PROVIDER-PERSIST></GD-MAIN></NgraceGraphDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/index.xml`,
-    `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-DB /><V-M-PROVIDER-PERSIST /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+    `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-DB /><V-M-PROVIDER-PERSIST /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/main.xml`,
-    `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-DB><Scenario>Database client is available.</Scenario></V-M-DB><V-M-PROVIDER-PERSIST><Priority>high</Priority><Command>bun test src/provider/config-repo.test.ts</Command><Scenario>Reads and writes provider config records.</Scenario><Marker>[ProviderConfigPersistence][getProviderConfig][BLOCK_GET_PROVIDER_CONFIG]</Marker></V-M-PROVIDER-PERSIST></VD-MAIN></GraceVerificationDocument>`,
+    `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-DB><Scenario>Database client is available.</Scenario></V-M-DB><V-M-PROVIDER-PERSIST><Priority>high</Priority><Command>bun test src/provider/config-repo.test.ts</Command><Scenario>Reads and writes provider config records.</Scenario><Marker>[ProviderConfigPersistence][getProviderConfig][BLOCK_GET_PROVIDER_CONFIG]</Marker></V-M-PROVIDER-PERSIST></VD-MAIN></NgraceVerificationDocument>`,
   );
 }
 
@@ -145,7 +145,7 @@ function createQueryProject() {
 }
 
 describe("grace query core", () => {
-  it("loads .grace projections and file-local module context into one index", () => {
+  it("loads .ngrace projections and file-local module context into one index", () => {
     const root = createQueryProject();
     const index = loadGraceArtifactIndex(root);
 
@@ -214,17 +214,17 @@ describe("grace query core", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      '<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>',
+      '<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>',
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      '<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary></M-EXAMPLE></GD-MAIN></GraceGraphDocument>',
+      '<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>',
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/index.xml`,
-      '<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>',
+      '<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>',
     );
     // Explicit TestFiles are authoritative even when the command mentions another test path.
     writeProjectFile(root, "apps/web/src/module-explicit.test.ts", "test\n");
@@ -232,7 +232,7 @@ describe("grace query core", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      '<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Cwd>apps/web</Cwd><Command>bun test src/module.test.ts</Command><TestFiles><File>apps/web/src/module-explicit.test.ts</File><File>apps/web/src/module-additional.test.ts</File></TestFiles><Scenario>example works</Scenario><Marker>[Example]</Marker></V-M-EXAMPLE></VD-MAIN></GraceVerificationDocument>',
+      '<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Cwd>apps/web</Cwd><Command>bun test src/module.test.ts</Command><TestFiles><File>apps/web/src/module-explicit.test.ts</File><File>apps/web/src/module-additional.test.ts</File></TestFiles><Scenario>example works</Scenario><Marker>[Example]</Marker></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>',
     );
 
     const index = loadGraceArtifactIndex(root);
@@ -248,7 +248,7 @@ describe("grace query core", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-DB><Scenario>Database client is available.</Scenario></V-M-DB><V-M-PROVIDER-PERSIST><Command>bun test src/provider/config-repo*.test.ts</Command><Scenario>Reads provider config.</Scenario><Marker>[ProviderConfigPersistence][getProviderConfig][BLOCK_GET_PROVIDER_CONFIG]</Marker></V-M-PROVIDER-PERSIST></VD-MAIN></GraceVerificationDocument>`,
+      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-DB><Scenario>Database client is available.</Scenario></V-M-DB><V-M-PROVIDER-PERSIST><Command>bun test src/provider/config-repo*.test.ts</Command><Scenario>Reads provider config.</Scenario><Marker>[ProviderConfigPersistence][getProviderConfig][BLOCK_GET_PROVIDER_CONFIG]</Marker></V-M-PROVIDER-PERSIST></VD-MAIN></NgraceVerificationDocument>`,
     );
 
     const index = loadGraceArtifactIndex(root);
@@ -261,10 +261,10 @@ describe("grace query core", () => {
   it("uses verification Cwd when checking monorepo test command references", () => {
     const root = createProject();
     writeProjectSkeleton(root);
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/index.xml`, '<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-WEB /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>');
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, '<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-WEB><Summary>Web workspace.</Summary></M-WEB></GD-MAIN></GraceGraphDocument>');
-    writeProjectFile(root, `${ARTIFACT_DIR}/verification/index.xml`, '<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-WEB /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>');
-    writeProjectFile(root, `${ARTIFACT_DIR}/verification/main.xml`, '<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-WEB><Cwd>apps/web</Cwd><TestFiles><File>apps/web/src/web.test.ts</File></TestFiles><Command>bun test src/web.test.ts</Command><Scenario>web works</Scenario></V-M-WEB></VD-MAIN></GraceVerificationDocument>');
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/index.xml`, '<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-WEB /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>');
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, '<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-WEB><Summary>Web workspace.</Summary></M-WEB></GD-MAIN></NgraceGraphDocument>');
+    writeProjectFile(root, `${ARTIFACT_DIR}/verification/index.xml`, '<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-WEB /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>');
+    writeProjectFile(root, `${ARTIFACT_DIR}/verification/main.xml`, '<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-WEB><Cwd>apps/web</Cwd><TestFiles><File>apps/web/src/web.test.ts</File></TestFiles><Command>bun test src/web.test.ts</Command><Scenario>web works</Scenario></V-M-WEB></VD-MAIN></NgraceVerificationDocument>');
     writeProjectFile(root, "apps/web/src/web.ts", '// START_MODULE_CONTRACT\n// PURPOSE: Web runtime.\n// LINKS: M-WEB\n// END_MODULE_CONTRACT\nexport const web = true;\n');
     writeProjectFile(root, "apps/web/src/web.test.ts", '// START_MODULE_CONTRACT\n// PURPOSE: Web tests.\n// LINKS: M-WEB\n// END_MODULE_CONTRACT\n');
 
@@ -280,32 +280,32 @@ describe("grace query core", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-UI-COVERED /><M-UI-BARE /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-UI-COVERED /><M-UI-BARE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>
+      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>
         <M-UI-COVERED><Summary>Covered UI</Summary><Path>src/covered.tsx</Path><Type>UI_COMPONENT</Type><States><ST-DEFAULT /><ST-ERROR /></States></M-UI-COVERED>
         <M-UI-BARE><Summary>Bare UI</Summary><Path>src/bare.tsx</Path><Type>UI_COMPONENT</Type></M-UI-BARE>
-      </GD-MAIN></GraceGraphDocument>`,
+      </GD-MAIN></NgraceGraphDocument>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/index.xml`,
-      `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-UI-COVERED /><V-M-UI-BARE /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+      `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-UI-COVERED /><V-M-UI-BARE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>
+      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN>
         <V-M-UI-COVERED><Command>bun test</Command><Scenario>default render</Scenario><TraceAssertion>render ok</TraceAssertion></V-M-UI-COVERED>
         <V-M-UI-BARE><Command>bun test</Command><Scenario>renders</Scenario><TraceAssertion>ok</TraceAssertion></V-M-UI-BARE>
-      </VD-MAIN></GraceVerificationDocument>`,
+      </VD-MAIN></NgraceVerificationDocument>`,
     );
     writeProjectFile(root, "src/covered.tsx", `// START_MODULE_CONTRACT\n// PURPOSE: UI.\n// LINKS: M-UI-COVERED\n// END_MODULE_CONTRACT\nexport const Covered = () => null;\n`);
     writeProjectFile(root, "src/bare.tsx", `// START_MODULE_CONTRACT\n// PURPOSE: UI.\n// LINKS: M-UI-BARE\n// END_MODULE_CONTRACT\nexport const Bare = () => null;\n`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<GraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></GraceUXGuidelines>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<NgraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></NgraceUXGuidelines>`);
 
     const index = loadGraceArtifactIndex(root);
     const uncovered = buildModuleHealth(index, resolveModule(index, "M-UI-COVERED"));
@@ -318,10 +318,10 @@ describe("grace query core", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>
+      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN>
         <V-M-UI-COVERED><Command>bun test</Command><Scenario>default render</Scenario><Scenario>error banner</Scenario><AccessibilityCheck><Tool>axe</Tool><Command>bun run a11y</Command></AccessibilityCheck><TraceAssertion>ok</TraceAssertion></V-M-UI-COVERED>
         <V-M-UI-BARE><Command>bun test</Command><Scenario>renders</Scenario><TraceAssertion>ok</TraceAssertion></V-M-UI-BARE>
-      </VD-MAIN></GraceVerificationDocument>`,
+      </VD-MAIN></NgraceVerificationDocument>`,
     );
     const fixed = buildModuleHealth(loadGraceArtifactIndex(root), resolveModule(loadGraceArtifactIndex(root), "M-UI-COVERED"));
     expect(fixed.blockers.map((b) => b.code)).not.toContain("health.ui-state-unverified");
@@ -331,7 +331,7 @@ describe("grace query core", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/ux-guidelines.xml`,
-      `<GraceUXGuidelines graceVersion="4.0"><Notes><Applicability>applicable</Applicability></Notes><Applicability>not-applicable</Applicability><Reason>Headless service with no user interface surface.</Reason></GraceUXGuidelines>`,
+      `<NgraceUXGuidelines graceVersion="4.0"><Notes><Applicability>applicable</Applicability></Notes><Applicability>not-applicable</Applicability><Reason>Headless service with no user interface surface.</Reason></NgraceUXGuidelines>`,
     );
     const notApplicable = loadGraceArtifactIndex(root);
     expect(buildModuleHealth(notApplicable, resolveModule(notApplicable, "M-UI-BARE")).warnings.map((w) => w.code)).not.toContain(
@@ -359,7 +359,7 @@ describe("grace query core", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-DB><Scenario>Database client is available.</Scenario></V-M-DB><V-M-PROVIDER-PERSIST><Command>bun test src/provider/config-repo.test.ts</Command><Scenario>Pure output is deterministic.</Scenario><TraceAssertion>The test proves deterministic output without runtime logging.</TraceAssertion></V-M-PROVIDER-PERSIST></VD-MAIN></GraceVerificationDocument>`,
+      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-DB><Scenario>Database client is available.</Scenario></V-M-DB><V-M-PROVIDER-PERSIST><Command>bun test src/provider/config-repo.test.ts</Command><Scenario>Pure output is deterministic.</Scenario><TraceAssertion>The test proves deterministic output without runtime logging.</TraceAssertion></V-M-PROVIDER-PERSIST></VD-MAIN></NgraceVerificationDocument>`,
     );
 
     const index = loadGraceArtifactIndex(root);
@@ -407,7 +407,7 @@ const marker$Other = "[ProviderConfigPersistence][getProviderConfig][other]";`,
 
   it("fails closed before returning records from invalid grammar or projections", () => {
     const wrongRoot = createQueryProject();
-    writeProjectFile(wrongRoot, `${ARTIFACT_DIR}/graph/main.xml`, `<GraceRequirements graceVersion="4.0"><GD-MAIN /></GraceRequirements>`);
+    writeProjectFile(wrongRoot, `${ARTIFACT_DIR}/graph/main.xml`, `<NgraceRequirements graceVersion="4.0"><GD-MAIN /></NgraceRequirements>`);
     expect(() => loadGraceArtifactIndex(wrongRoot)).toThrow(GraceCommandError);
     try {
       loadGraceArtifactIndex(wrongRoot);
@@ -420,7 +420,7 @@ const marker$Other = "[ProviderConfigPersistence][getProviderConfig][other]";`,
     writeProjectFile(
       duplicateOwns,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-DB /><M-DB /><M-PROVIDER-PERSIST /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-DB /><M-DB /><M-PROVIDER-PERSIST /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
     expect(() => loadGraceArtifactIndex(duplicateOwns)).toThrow(
       expect.objectContaining({ code: "invalid-project", issues: expect.arrayContaining(["projection.graph.duplicate-route"]) }),
@@ -432,12 +432,12 @@ const marker$Other = "[ProviderConfigPersistence][getProviderConfig][other]";`,
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-INVALID/spec.xml`,
-      `<GraceChangeSpec graceVersion="4.0" status="approved"><C-INVALID><Summary>Invalid operational contract.</Summary><Goals><Goal>Fail closed.</Goal></Goals><Constraints><Constraint>Do not navigate invalid state.</Constraint></Constraints><NonGoals><NonGoal>Unrelated work.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Query fails.</Criterion></AcceptanceCriteria><AffectedAreas><M-DB /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></C-INVALID></GraceChangeSpec>`,
+      `<NgraceChangeSpec graceVersion="4.0" status="approved"><C-INVALID><Summary>Invalid operational contract.</Summary><Goals><Goal>Fail closed.</Goal></Goals><Constraints><Constraint>Do not navigate invalid state.</Constraint></Constraints><NonGoals><NonGoal>Unrelated work.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Query fails.</Criterion></AcceptanceCriteria><AffectedAreas><M-DB /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></C-INVALID></NgraceChangeSpec>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-INVALID/plan.xml`,
-      `<GraceChangePlan graceVersion="4.0" status="approved"><C-INVALID><IntentSummary>Invalid operational contract.</IntentSummary><BaselineAssertions><MustOwn><Owner>GD-MAIN</Owner></MustOwn></BaselineAssertions><TargetAssertions><MustVerify><Module>M-DB</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-DB /></GraphAnchors></DurableScope><ObservedWriteScope><File>../escape.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Invalid task</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Query fails.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-INVALID></GraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-INVALID><IntentSummary>Invalid operational contract.</IntentSummary><BaselineAssertions><MustOwn><Owner>GD-MAIN</Owner></MustOwn></BaselineAssertions><TargetAssertions><MustVerify><Module>M-DB</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-DB /></GraphAnchors></DurableScope><ObservedWriteScope><File>../escape.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Invalid task</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Query fails.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-INVALID></NgraceChangePlan>`,
     );
 
     expect(() => loadGraceArtifactIndex(root)).toThrow(expect.objectContaining({
@@ -448,7 +448,7 @@ const marker$Other = "[ProviderConfigPersistence][getProviderConfig][other]";`,
 
   it("returns one structured JSON error and one concise text error without stack traces", () => {
     const root = createQueryProject();
-    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<GraceRequirements graceVersion="4.0"><GD-MAIN /></GraceRequirements>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/graph/main.xml`, `<NgraceRequirements graceVersion="4.0"><GD-MAIN /></NgraceRequirements>`);
     const repoRoot = path.resolve(import.meta.dir, "..");
 
     const jsonResult = Bun.spawnSync({
@@ -645,7 +645,7 @@ const marker$Other = "[ProviderConfigPersistence][getProviderConfig][other]";`,
     expect(result.exitCode).not.toBe(0);
     const combinedOutput = `${Buffer.from(result.stdout).toString("utf8")}\n${Buffer.from(result.stderr).toString("utf8")}`;
     expect(combinedOutput).toContain("Legacy GRACE 3 artifacts");
-    expect(combinedOutput).toContain(".grace artifact model");
+    expect(combinedOutput).toContain(".ngrace artifact model");
   });
 
   it("selects emission patterns by linked file language, not the union", async () => {

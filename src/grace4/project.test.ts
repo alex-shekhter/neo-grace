@@ -20,20 +20,20 @@ function writeProjectFile(root: string, relativePath: string, contents = "") {
 }
 
 describe("GRACE 4 project detection", () => {
-  it("resolves canonical .grace paths from a project root", () => {
+  it("resolves canonical .ngrace paths from a project root", () => {
     const root = createProject();
     const paths = resolveGrace4Paths(root);
 
     expect(paths.root).toBe(path.resolve(root));
-    expect(paths.graceDir).toBe(path.join(root, ".grace"));
-    expect(paths.contextDir).toBe(path.join(root, ".grace", "context"));
-    expect(paths.graphIndex).toBe(path.join(root, ".grace", "graph", "index.xml"));
-    expect(paths.verificationIndex).toBe(path.join(root, ".grace", "verification", "index.xml"));
-    expect(paths.changesActiveDir).toBe(path.join(root, ".grace", "changes", "active"));
-    expect(paths.changesArchiveDir).toBe(path.join(root, ".grace", "changes", "archive"));
+    expect(paths.graceDir).toBe(path.join(root, ".ngrace"));
+    expect(paths.contextDir).toBe(path.join(root, ".ngrace", "context"));
+    expect(paths.graphIndex).toBe(path.join(root, ".ngrace", "graph", "index.xml"));
+    expect(paths.verificationIndex).toBe(path.join(root, ".ngrace", "verification", "index.xml"));
+    expect(paths.changesActiveDir).toBe(path.join(root, ".ngrace", "changes", "active"));
+    expect(paths.changesArchiveDir).toBe(path.join(root, ".ngrace", "changes", "archive"));
   });
 
-  it("detects .grace projects before legacy docs", () => {
+  it("detects .ngrace projects before legacy docs", () => {
     const root = createProject();
     mkdirSync(path.join(root, ARTIFACT_DIR));
     writeProjectFile(root, "docs/development-plan.xml");
@@ -41,7 +41,7 @@ describe("GRACE 4 project detection", () => {
     expect(detectGraceProjectKind(root)).toBe("grace4");
   });
 
-  it("detects legacy GRACE 3 docs when .grace is absent", () => {
+  it("detects legacy GRACE 3 docs when .ngrace is absent", () => {
     for (const legacyDocument of [
       "docs/requirements.xml",
       "docs/technology.xml",

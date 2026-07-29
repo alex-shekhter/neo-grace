@@ -5,11 +5,11 @@ description: Interview for design-system intent and populate optional design-sys
 
 <skill>
 <purpose>
-Make UI/UX load-bearing in GRACE 4. Author optional `.grace/context/design-system.xml`, declare component `ST-*` states on graph modules, and wire `AccessibilityCheck` / `VisualCheck` evidence into `V-M-*` entries so module health can prove UI states.
+Make UI/UX load-bearing in GRACE 4. Author optional `.ngrace/context/design-system.xml`, declare component `ST-*` states on graph modules, and wire `AccessibilityCheck` / `VisualCheck` evidence into `V-M-*` entries so module health can prove UI states.
 </purpose>
 
 <optional_artifact>
-`design-system.xml` is **optional**. Projects without it must keep linting. Never make it required. When UX is in scope, create it from `references/design-system-template.xml` with root `GraceDesignSystem`.
+`design-system.xml` is **optional**. Projects without it must keep linting. Never make it required. When UX is in scope, create it from `references/design-system-template.xml` with root `NgraceDesignSystem`.
 </optional_artifact>
 
 <anchors>
@@ -28,7 +28,7 @@ A declared `ST-*` state is covered when any `Scenario`, `AccessibilityCheck`, or
 
 <workflow>
 1. Ask whether the project has a design system / token source, breakpoints, and accessibility standard.
-2. If applicable, write `.grace/context/design-system.xml` from the template. Resolve `TokenSource` as a **project-relative** path only (no `..`, no absolute paths).
+2. If applicable, write `.ngrace/context/design-system.xml` from the template. Resolve `TokenSource` as a **project-relative** path only (no `..`, no absolute paths).
 3. For each `UI_COMPONENT` module, declare `<Type>UI_COMPONENT</Type>` and `<States>` with the relevant `ST-*` anchors.
 4. Extend `V-M-*` entries with `Scenario`s that name those states, plus optional:
    ```xml

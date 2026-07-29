@@ -56,7 +56,7 @@ Recommended defaults:
 
 Shared-docs boundary rule:
 
-- `.grace/graph/*` and `.grace/verification/*` should describe only the module's public contract and public interface
+- `.ngrace/graph/*` and `.ngrace/verification/*` should describe only the module's public contract and public interface
 - internal helpers, private types, and implementation-only orchestration belong in the file header markup and local function contracts instead of shared XML artifacts
 
 Canonical grep-stable naming rule:

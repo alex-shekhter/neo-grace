@@ -1,9 +1,0 @@
-<GraceGraphDocument graceVersion="4.0">
-  <GD-API>
-    <M-API-ROUTER>
-      <Summary>Go gateway router for ledger posting requests.</Summary>
-      <Path>services/api/internal/router/router.go</Path>
-      <Type>INTEGRATION</Type>
-    </M-API-ROUTER>
-  </GD-API>
-</GraceGraphDocument>

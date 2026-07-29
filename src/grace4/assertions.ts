@@ -139,7 +139,7 @@ export function evaluateAssertion(assertion: GraceAssertion, context: AssertionC
   }
 }
 
-/** Extracts assertions from BaselineAssertions or TargetAssertions under a GraceChangePlan. */
+/** Extracts assertions from BaselineAssertions or TargetAssertions under a NgraceChangePlan. */
 export function extractAssertions(planFile: string, section: "BaselineAssertions" | "TargetAssertions"): GraceAssertion[] {
   return extractAssertionsWithIssues(planFile, section).assertions;
 }

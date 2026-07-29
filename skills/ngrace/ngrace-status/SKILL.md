@@ -1,6 +1,6 @@
 ---
 name: ngrace-status
-description: Show GRACE 4 project health across .grace context, graph, verification, active changes, scopes, and migration boundaries.
+description: Show GRACE 4 project health across .ngrace context, graph, verification, active changes, scopes, and migration boundaries.
 ---
 
 <skill>

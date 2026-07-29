@@ -1,4 +1,4 @@
-<GraceMigrationReport graceVersion="4.0" status="draft">
+<NgraceMigrationReport graceVersion="4.0" status="draft">
   <SourceInventory complete="false">
     <Source path="$LEGACY_SOURCE_PATH" disposition="$GRACE4_DESTINATION_OR_REASON" />
   </SourceInventory>
@@ -12,10 +12,10 @@
     <ConfirmedAt>$ISO_8601_TIMESTAMP</ConfirmedAt>
   </WriteApproval>
   <GeneratedGrace4Layout coverageVerified="false">
-    <Context>.grace/context</Context>
-    <Graph>.grace/graph</Graph>
-    <Verification>.grace/verification</Verification>
-    <Changes>.grace/changes</Changes>
+    <Context>.ngrace/context</Context>
+    <Graph>.ngrace/graph</Graph>
+    <Verification>.ngrace/verification</Verification>
+    <Changes>.ngrace/changes</Changes>
   </GeneratedGrace4Layout>
   <Ambiguities>
     <Ambiguity>$AMBIGUITY</Ambiguity>
@@ -46,4 +46,4 @@
     <Item path="$EXACT_INVENTORIED_LEGACY_PATH" action="$ARCHIVE_OR_DELETE" result="$RESULT" />
     <FailurePreservationStatement>Legacy GRACE 3 artifacts remain untouched unless the failure output explicitly lists a completed move.</FailurePreservationStatement>
   </CleanupResults>
-</GraceMigrationReport>
+</NgraceMigrationReport>

@@ -4,7 +4,7 @@ In GRACE, verification is not an afterthought. It is a maintained architectural 
 
 ## Core Idea
 
-`.grace/verification/` answers the question:
+`.ngrace/verification/` answers the question:
 
 "How will another agent prove that this module or flow is still correct?"
 
@@ -18,7 +18,7 @@ For longer autonomous runs, verification is also an autonomy gate. It must prove
 
 ## Verification Plan Structure
 
-The `.grace/verification/` directory holds one or more VD-* verification documents. Each VD-* document wraps V-M-* entries. The `index.xml` maps VD-* routes to their document paths.
+The `.ngrace/verification/` directory holds one or more VD-* verification documents. Each VD-* document wraps V-M-* entries. The `index.xml` maps VD-* routes to their document paths.
 
 Each `V-M-*` entry may contain:
 
@@ -93,7 +93,7 @@ Before sending a module to a longer autonomous run, check:
 3. success and failure scenarios are named
 4. required log markers or trace assertions make divergence observable
 5. wave-level or phase-level follow-up is named when module-local checks are not enough
-6. the GraceChangePlan scope defines DurableScope and ObservedWriteScope
+6. the NgraceChangePlan scope defines DurableScope and ObservedWriteScope
 
 ## Failure Packets
 

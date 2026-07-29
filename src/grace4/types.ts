@@ -5,7 +5,7 @@ export const GRACE4_VERSION = "4.0" as const;
  * Prefix for XML root tags on project artifacts.
  * Phase 1 centralizes the literal; Phase 3 renames the value.
  */
-export const ARTIFACT_TAG_PREFIX = "Grace" as const;
+export const ARTIFACT_TAG_PREFIX = "Ngrace" as const;
 
 /** Standard GRACE 4 root tags accepted by Artifact Grammar. */
 export const GRACE4_ROOT_TAGS = [
@@ -44,15 +44,15 @@ export const skillName = (suffix: string): string => `${SKILL_PREFIX}-${suffix}`
 /** Formats a skill reference as `$<prefix>-<suffix>` for CLI guidance strings. */
 export const skillRef = (suffix: string): string => `$${skillName(suffix)}`;
 
-/** Lifecycle statuses allowed on GraceChangeSpec and GraceChangePlan roots. */
+/** Lifecycle statuses allowed on NgraceChangeSpec and NgraceChangePlan roots. */
 export const CHANGE_STATUSES = ["draft", "approved", "applied", "rejected", "cancelled", "superseded"] as const;
 
 export type ChangeStatus = (typeof CHANGE_STATUSES)[number];
 
-/** Statuses valid for bundles under .grace/changes/active. */
+/** Statuses valid for bundles under .ngrace/changes/active. */
 export const ACTIVE_CHANGE_STATUSES = new Set<ChangeStatus>(["draft", "approved"]);
 
-/** Statuses valid for bundles under .grace/changes/archive. */
+/** Statuses valid for bundles under .ngrace/changes/archive. */
 export const ARCHIVED_CHANGE_STATUSES = new Set<ChangeStatus>(["applied", "rejected", "cancelled", "superseded"]);
 
 /** Mandatory GRACE 4 context artifact filenames. */
@@ -100,7 +100,7 @@ export const ANCHOR_PATTERNS = {
   designToken: /^DT-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   breakpoint: /^BP-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   uiState: /^ST-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
-  /** Technology stack ids under GraceTechnology/Stacks (e.g. Stack-WEB). */
+  /** Technology stack ids under NgraceTechnology/Stacks (e.g. Stack-WEB). */
   technologyStack: /^Stack-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
 } as const;
 
@@ -155,7 +155,7 @@ export type Grace4Issue = {
   message: string;
 };
 
-/** Resolved canonical .grace path set for one project root. */
+/** Resolved canonical .ngrace path set for one project root. */
 export type Grace4ProjectPaths = {
   root: string;
   graceDir: string;

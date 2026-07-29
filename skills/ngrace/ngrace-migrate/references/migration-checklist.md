@@ -1,17 +1,17 @@
 # GRACE 4 Migration Checklist
 
-## Before Writing `.grace`
+## Before Writing `.ngrace`
 
 - [ ] Every legacy source path is inventoried with its intended GRACE 4 destination or an explicit unsupported/omitted reason.
 - [ ] A restorable backup exists at a recorded path outside the cleanup set.
 - [ ] Backup verification evidence and timestamp are recorded.
 - [ ] Ambiguities and unsupported legacy structures are listed.
 - [ ] No retroactive `C-*` bundles are proposed.
-- [ ] The user explicitly approved writing the reviewed `.grace` artifacts.
+- [ ] The user explicitly approved writing the reviewed `.ngrace` artifacts.
 
-## After Writing `.grace`
+## After Writing `.ngrace`
 
-- [ ] Generated `.grace/context` artifacts and source coverage were reviewed.
+- [ ] Generated `.ngrace/context` artifacts and source coverage were reviewed.
 - [ ] Generated graph index, routed graph documents, and projection coverage were reviewed.
 - [ ] Generated verification index, routed verification documents, and projection coverage were reviewed.
 - [ ] `ngrace lint --path <project-root> --assertions current` passed and the exit state is recorded.

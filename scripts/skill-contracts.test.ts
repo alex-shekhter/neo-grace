@@ -102,7 +102,7 @@ describe("GRACE lifecycle skill contracts", () => {
   });
 
   it("makes the grace CLI a hard precondition of init, not a recommendation", () => {
-    // Skills without the CLI can author .grace artifacts that nothing validates — the
+    // Skills without the CLI can author .ngrace artifacts that nothing validates — the
     // GRACE 3 failure this refusal exists to close. The wording is pinned so it cannot
     // be softened back into "when the CLI is available" without a test failing.
     const init = read("skills/ngrace/ngrace-init/SKILL.md");

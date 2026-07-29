@@ -1,20 +1,20 @@
 ---
 name: ngrace-explainer
-description: Explain GRACE 4 methodology, .grace artifacts, semantic anchors, change lifecycle, verification, and migration boundaries.
+description: Explain GRACE 4 methodology, .ngrace artifacts, semantic anchors, change lifecycle, verification, and migration boundaries.
 ---
 
 <skill>
 <core_model>
-GRACE 4 uses `.grace` as the durable project model:
+GRACE 4 uses `.ngrace` as the durable project model:
 
-- `.grace/context` stores requirements, technology, principles, deployment, and UX constraints.
-- `.grace/graph` stores graph indexes and routed graph documents with `GD-*`, `M-*`, and `DF-*` tags.
-- `.grace/verification` stores verification indexes and routed `V-M-*` entries.
-- `.grace/changes` stores active and archived `C-*` change bundles with `GraceChangeSpec`, optional non-normative design context, and `GraceChangePlan`.
+- `.ngrace/context` stores requirements, technology, principles, deployment, and UX constraints.
+- `.ngrace/graph` stores graph indexes and routed graph documents with `GD-*`, `M-*`, and `DF-*` tags.
+- `.ngrace/verification` stores verification indexes and routed `V-M-*` entries.
+- `.ngrace/changes` stores active and archived `C-*` change bundles with `NgraceChangeSpec`, optional non-normative design context, and `NgraceChangePlan`.
 </core_model>
 
 <workflow>
-1. `ngrace-init` creates the `.grace` skeleton.
+1. `ngrace-init` creates the `.ngrace` skeleton.
 2. `ngrace-spec` creates an active change spec and waits for approval.
 3. `ngrace-plan` creates assertions, scopes, and `T-*` implementation tasks.
 4. `ngrace-execute` runs sequential or parallel-safe mode from the approved plan.

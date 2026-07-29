@@ -5,7 +5,7 @@ import path from "node:path";
  * Project-root directory that holds ngrace/GRACE artifacts.
  * Phase 1 centralizes the literal; Phase 3 renames the value.
  */
-export const ARTIFACT_DIR = ".grace" as const;
+export const ARTIFACT_DIR = ".ngrace" as const;
 
 /** Whether the authored path must already exist or may name a future output. */
 export type ContainedPathMode = "existing" | "output";

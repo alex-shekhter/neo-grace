@@ -1,5 +1,6 @@
 import { ARTIFACT_DIR } from "../grace4/paths";
 import { skillRef } from "../grace4/types";
+import { CONFIG_FILE_NAME } from "./config";
 import type { LintIssue } from "./types";
 
 type LintIssueGuide = {
@@ -12,22 +13,22 @@ type LintIssueGuide = {
 const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
   "config.invalid-json": {
     title: "Invalid Lint Config JSON",
-    explanation: "The repository-level .grace-lint.json file could not be parsed as JSON.",
-    remediation: ["Fix the JSON syntax in .grace-lint.json.", "If the file is accidental, remove it."],
+    explanation: `The repository-level ${CONFIG_FILE_NAME} file could not be parsed as JSON.`,
+    remediation: [`Fix the JSON syntax in ${CONFIG_FILE_NAME}.`, "If the file is accidental, remove it."],
   },
   "config.invalid-shape": {
     title: "Invalid Lint Config Shape",
-    explanation: ".grace-lint.json must be a JSON object.",
+    explanation: `${CONFIG_FILE_NAME} must be a JSON object.`,
     remediation: ["Replace the file contents with a JSON object.", "Keep only supported keys like ignoredDirs."],
   },
   "config.unknown-key": {
     title: "Unknown Lint Config Key",
-    explanation: ".grace-lint.json contains a key the CLI does not understand.",
-    remediation: ["Remove unsupported keys from .grace-lint.json.", "Use only documented keys such as ignoredDirs and unverifiedLanguages."],
+    explanation: `${CONFIG_FILE_NAME} contains a key the CLI does not understand.`,
+    remediation: [`Remove unsupported keys from ${CONFIG_FILE_NAME}.`, "Use only documented keys such as ignoredDirs and unverifiedLanguages."],
   },
   "config.invalid-unverified-languages": {
     title: "Invalid unverifiedLanguages Config",
-    explanation: "`unverifiedLanguages` in .grace-lint.json must be an array of dot-prefixed file extensions.",
+    explanation: `\`unverifiedLanguages\` in ${CONFIG_FILE_NAME} must be an array of dot-prefixed file extensions.`,
     remediation: ["Use the form [\".rs\", \".go\"].", "Remove the key to restore default reporting."],
   },
   "analysis.no-adapter": {
@@ -39,7 +40,7 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
     remediation: [
       "Prefer MAP_MODE: SUMMARY for files whose exports GRACE cannot verify.",
       "Back the module with MustPassCommand evidence such as the language's own test and lint commands.",
-      "Acknowledge the limitation deliberately with .grace-lint.json { \"unverifiedLanguages\": [\".ext\"] } "
+      `Acknowledge the limitation deliberately with ${CONFIG_FILE_NAME} { \"unverifiedLanguages\": [\".ext\"] } `
         + "so the silence is a recorded decision rather than an accident.",
     ],
   },
@@ -94,12 +95,12 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
   },
   "change.superseded-missing-replacement": {
     title: "Superseded Change Missing Replacement Reference",
-    explanation: "A GraceChangeSpec or GraceChangePlan with status='superseded' should name the replacement C-* anchor via a <Replacement> or <ReplacementChange> child tag.",
+    explanation: "A NgraceChangeSpec or NgraceChangePlan with status='superseded' should name the replacement C-* anchor via a <Replacement> or <ReplacementChange> child tag.",
     remediation: ["Add a <Replacement>C-REPLACEMENT-ID</Replacement> child to the superseded wrapper.", "Or add a direct <C-REPLACEMENT-ID /> child tag as the replacement reference."],
   },
   "change.scope-does-not-cover-spec": {
     title: "Plan Scope Does Not Cover Spec AffectedAreas",
-    explanation: "The plan's DurableScope omits a module or data-flow anchor that the authorizing GraceChangeSpec lists under AffectedAreas, and the omission is not justified under OutOfPlanScope.",
+    explanation: "The plan's DurableScope omits a module or data-flow anchor that the authorizing NgraceChangeSpec lists under AffectedAreas, and the omission is not justified under OutOfPlanScope.",
     remediation: [
       "Add the missing M-* or DF-* under DurableScope/GraphAnchors (or the matching V-M-* under DurableScope/VerificationAnchors).",
       "Or justify the exclusion with <OutOfPlanScope><M-ID><Reason>why this plan deliberately omits it</Reason></M-ID></OutOfPlanScope>.",
@@ -107,7 +108,7 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
   },
   "change.plan-scope-exceeds-spec": {
     title: "Plan Scope Exceeds Spec AffectedAreas",
-    explanation: "The plan's DurableScope includes a module or data-flow the approved GraceChangeSpec never named in AffectedAreas.",
+    explanation: "The plan's DurableScope includes a module or data-flow the approved NgraceChangeSpec never named in AffectedAreas.",
     remediation: [
       "Add the anchor to the spec's AffectedAreas if the plan is correct, then re-approve.",
       "Or remove the extra anchor from DurableScope so the plan stays within the authorized surface.",
@@ -123,7 +124,7 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
   },
   "change.unknown-acceptance-criterion": {
     title: "Plan References Unknown Acceptance Criterion",
-    explanation: "A task Satisfies element references an AC-* id that the approved GraceChangeSpec does not define.",
+    explanation: "A task Satisfies element references an AC-* id that the approved NgraceChangeSpec does not define.",
     remediation: [
       "Define the criterion under the spec as <AcceptanceCriteria><AC-ID>text</AC-ID></AcceptanceCriteria>.",
       "Or remove the unknown AC-* from the task's <Satisfies> list.",
@@ -131,7 +132,7 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
   },
   "change.duplicate-acceptance-criterion": {
     title: "Duplicate Acceptance Criterion Id",
-    explanation: "The same AC-* tag appears more than once under AcceptanceCriteria in a single GraceChangeSpec.",
+    explanation: "The same AC-* tag appears more than once under AcceptanceCriteria in a single NgraceChangeSpec.",
     remediation: ["Keep each AC-* id unique within the spec.", "Merge or rename the duplicate criterion."],
   },
   "change.empty-acceptance-criterion": {
@@ -149,7 +150,7 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
   },
   "change.invalid-design-reference-child": {
     title: "Invalid DesignReferences Child",
-    explanation: "Optional DesignReferences under a GraceChangeSpec only accepts <Figma url=\"...\"> and <UserResearch>path</UserResearch>. Other children are dropped silently by free-form XML unless rejected here.",
+    explanation: "Optional DesignReferences under a NgraceChangeSpec only accepts <Figma url=\"...\"> and <UserResearch>path</UserResearch>. Other children are dropped silently by free-form XML unless rejected here.",
     remediation: [
       "Use <Figma url=\"https://...\">optional label</Figma> for design-file links.",
       "Use <UserResearch>docs/research/...</UserResearch> for project-relative research paths.",
@@ -306,7 +307,7 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
       "A GD-* graph document exceeds the configured anchor or byte limit. Large documents burn context when agents open them for one module question.",
     remediation: [
       "Split by service or package path with `ngrace graph split --by <path-prefix> --apply`.",
-      "Raise limits only deliberately via .grace-lint.json documentAnchorLimit / documentByteLimit.",
+      `Raise limits only deliberately via ${CONFIG_FILE_NAME} documentAnchorLimit / documentByteLimit.`,
     ],
   },
   "verification.document-too-large": {
@@ -349,7 +350,7 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
   },
   "context.technology.duplicate-stacks": {
     title: "Duplicate Stacks Section",
-    explanation: "GraceTechnology may contain at most one <Stacks> element.",
+    explanation: "NgraceTechnology may contain at most one <Stacks> element.",
     remediation: ["Merge stack declarations under a single <Stacks>."],
   },
 };
@@ -418,8 +419,8 @@ const PREFIX_GUIDES: Array<{ prefix: string; title: string; explanation: string;
   {
     prefix: "plan.",
     title: "Change Plan Drift",
-    explanation: "A GraceChangePlan is missing assertions, scopes, or verification refs needed for governed execution.",
-    remediation: [`Update the GraceChangeSpec and GraceChangePlan so modules, assertions, and verification refs match the current ${ARTIFACT_DIR} state.`, `Use ${skillRef("spec")} or ${skillRef("plan")} when the architecture changed.`],
+    explanation: "A NgraceChangePlan is missing assertions, scopes, or verification refs needed for governed execution.",
+    remediation: [`Update the NgraceChangeSpec and NgraceChangePlan so modules, assertions, and verification refs match the current ${ARTIFACT_DIR} state.`, `Use ${skillRef("spec")} or ${skillRef("plan")} when the architecture changed.`],
   },
   {
     prefix: "analysis.",

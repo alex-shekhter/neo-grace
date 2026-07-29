@@ -21,7 +21,7 @@ GRACE means Graph-RAG Anchored Code Engineering: a contract-first AI engineering
 - Index of every plan and its status: `docs/plans/README.md` — **read this before starting work.**
 - Active plans: `docs/plans/active/<RM-SLUG>/plan.md` (normative) plus `review.md` (explanatory).
 - Completed, superseded, or cancelled: `docs/plans/archive/`. **Never edit anything under `archive/`.**
-- Per-change execution artifacts are GRACE change bundles under `.grace/changes/`, not markdown. Do not put plans there.
+- Per-change execution artifacts are GRACE change bundles under `.ngrace/changes/`, not markdown. Do not put plans there.
 
 A plan's `status` appears in its YAML frontmatter and must agree with its directory
 (`active/` vs `archive/`). Superseding a plan means setting `status: superseded`, filling
@@ -45,7 +45,7 @@ This repo is mainly about methodology content, skill instructions, and marketpla
 - Keep `plugins/ngrace/skills/ngrace/*` synchronized with the canonical `skills/ngrace/*` copies when published skills change.
 - Keep versions synchronized across `README.md`, `openpackage.yml`, `.claude-plugin/marketplace.json`, and `plugins/ngrace/.claude-plugin/plugin.json`.
 - Validate repo integrity with `bun run ./scripts/validate-marketplace.ts` after packaging or metadata changes.
-- For CLI changes, run `bun run validate:cli` and exercise `ngrace lint` against a complete temporary or fixture GRACE 4 project. This packaging repository does not yet contain its own `.grace` state, so `bun run ngrace lint --path .` is expected to report `project.missing-grace` until a separate self-migration is approved.
+- For CLI changes, run `bun run validate:cli` and exercise `ngrace lint` against a complete temporary or fixture GRACE 4 project. This packaging repository does not yet contain its own `.ngrace` state, so `bun run ngrace lint --path .` is expected to report `project.missing-grace` until a separate self-migration is approved.
 - Do not assume every directory under `skills/ngrace/` is published; the actual shipped set is declared in `.claude-plugin/marketplace.json`.
 
 ## How To Think About Changes

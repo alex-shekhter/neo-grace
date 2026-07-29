@@ -34,7 +34,7 @@ export function resolveGrace4Paths(root: string): Grace4ProjectPaths {
   };
 }
 
-/** Detects whether a root contains .grace, legacy docs, or no GRACE artifacts. */
+/** Detects whether a root contains .ngrace, legacy docs, or no GRACE artifacts. */
 export function detectGraceProjectKind(root: string): GraceProjectKind {
   const resolvedRoot = path.resolve(root);
 

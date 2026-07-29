@@ -31,11 +31,11 @@ function writeProjectFile(root: string, relativePath: string, contents: string) 
 function writeChange(root: string, changeId: string, options: { graphAnchor: string; file: string; glob?: string; status?: string; contextArtifact?: string }) {
   const status = options.status ?? "approved";
   const bundle = `${ARTIFACT_DIR}/changes/active/${changeId}`;
-  writeProjectFile(root, `${bundle}/spec.xml`, `<GraceChangeSpec graceVersion="4.0" status="${status}"><${changeId} /></GraceChangeSpec>`);
+  writeProjectFile(root, `${bundle}/spec.xml`, `<NgraceChangeSpec graceVersion="4.0" status="${status}"><${changeId} /></NgraceChangeSpec>`);
   writeProjectFile(
     root,
     `${bundle}/plan.xml`,
-    `<GraceChangePlan graceVersion="4.0" status="${status}"><${changeId}><DurableScope><GraphAnchors><${options.graphAnchor} /></GraphAnchors>${options.contextArtifact ? `<ContextArtifact>${options.contextArtifact}</ContextArtifact>` : ""}</DurableScope><ObservedWriteScope><File>${options.file}</File>${options.glob ? `<Glob>${options.glob}</Glob>` : ""}</ObservedWriteScope></${changeId}></GraceChangePlan>`,
+    `<NgraceChangePlan graceVersion="4.0" status="${status}"><${changeId}><DurableScope><GraphAnchors><${options.graphAnchor} /></GraphAnchors>${options.contextArtifact ? `<ContextArtifact>${options.contextArtifact}</ContextArtifact>` : ""}</DurableScope><ObservedWriteScope><File>${options.file}</File>${options.glob ? `<Glob>${options.glob}</Glob>` : ""}</ObservedWriteScope></${changeId}></NgraceChangePlan>`,
   );
 }
 
@@ -135,10 +135,10 @@ describe("GRACE 4 scope detector", () => {
 
   it("rejects text-only scopes and accepts explicit None markers", () => {
     const root = createProject();
-    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEXT/spec.xml`, `<GraceChangeSpec graceVersion="4.0" status="approved"><C-TEXT /></GraceChangeSpec>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEXT/plan.xml`, `<GraceChangePlan graceVersion="4.0" status="approved"><C-TEXT><DurableScope>graph changes</DurableScope><ObservedWriteScope>source changes</ObservedWriteScope></C-TEXT></GraceChangePlan>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-NONE/spec.xml`, `<GraceChangeSpec graceVersion="4.0" status="approved"><C-NONE /></GraceChangeSpec>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-NONE/plan.xml`, `<GraceChangePlan graceVersion="4.0" status="approved"><C-NONE><DurableScope><None /></DurableScope><ObservedWriteScope><None /></ObservedWriteScope></C-NONE></GraceChangePlan>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEXT/spec.xml`, `<NgraceChangeSpec graceVersion="4.0" status="approved"><C-TEXT /></NgraceChangeSpec>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-TEXT/plan.xml`, `<NgraceChangePlan graceVersion="4.0" status="approved"><C-TEXT><DurableScope>graph changes</DurableScope><ObservedWriteScope>source changes</ObservedWriteScope></C-TEXT></NgraceChangePlan>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-NONE/spec.xml`, `<NgraceChangeSpec graceVersion="4.0" status="approved"><C-NONE /></NgraceChangeSpec>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-NONE/plan.xml`, `<NgraceChangePlan graceVersion="4.0" status="approved"><C-NONE><DurableScope><None /></DurableScope><ObservedWriteScope><None /></ObservedWriteScope></C-NONE></NgraceChangePlan>`);
 
     const scopes = collectActiveChangeScopes(resolveGrace4Paths(root));
     const textScope = scopes.find((scope) => scope.changeId === "C-TEXT")!;

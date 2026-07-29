@@ -1,4 +1,4 @@
-<GraceDesignSystem graceVersion="4.0">
+<NgraceDesignSystem graceVersion="4.0">
   <Applicability>applicable</Applicability>
   <TokenSource>src/styles/tokens.css</TokenSource>
   <Tokens>
@@ -28,4 +28,4 @@
     <TargetSizeMinimum>24px</TargetSizeMinimum>
     <ReducedMotion>honor</ReducedMotion>
   </Accessibility>
-</GraceDesignSystem>
+</NgraceDesignSystem>

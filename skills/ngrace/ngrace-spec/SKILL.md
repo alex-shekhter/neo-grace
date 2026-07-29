@@ -1,13 +1,13 @@
 ---
 name: ngrace-spec
-description: Interview the user and create an approved GRACE 4 GraceChangeSpec plus optional design-context.xml inside .grace/changes/active/C-*/.
+description: Interview the user and create an approved GRACE 4 NgraceChangeSpec plus optional design-context.xml inside .ngrace/changes/active/C-*/.
 ---
 
 <skill>
 <change_bundle_contract>
-`.grace/changes/active/C-CHANGE-ID/`
+`.ngrace/changes/active/C-CHANGE-ID/`
 
-- `spec.xml` — normative `GraceChangeSpec`
+- `spec.xml` — normative `NgraceChangeSpec`
 - `design-context.xml` — optional, explanatory only
 - `plan.xml` — created later by `ngrace-plan`
 </change_bundle_contract>
@@ -41,7 +41,7 @@ Ask the user which risk tier applies (default **T1**). Record the tier in `Const
 | **T3** | Architectural | Full sections + design freeze notes, multi-phase verification intent, explicit non-goals for migration windows | New subsystem, redesign, contract major bump |
 
 Hard rules for tiers:
-- T0 is **not** an ungoverned edit. A `GraceChangeSpec` still exists; only section depth shrinks.
+- T0 is **not** an ungoverned edit. A `NgraceChangeSpec` still exists; only section depth shrinks.
 - Tiers never skip baseline, target, or final assertion gates and never skip user approval of the spec.
 - Mis-classifying an architectural change as T0 is a review failure — see `ngrace-reviewer`.
 </ceremony_tiers>

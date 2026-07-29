@@ -1,11 +1,11 @@
 # Knowledge Graph Maintenance
 
-The `.grace/graph/` directory is the single source of truth for the project's module structure. It maps every module, its public interface, its dependencies, and how modules connect to each other. The `index.xml` file lists GD-* document routes and the modules each document owns.
+The `.ngrace/graph/` directory is the single source of truth for the project's module structure. It maps every module, its public interface, its dependencies, and how modules connect to each other. The `index.xml` file lists GD-* document routes and the modules each document owns.
 
 ## Structure
 
 ```xml
-<GraceGraphIndex graceVersion="4.0">
+<NgraceGraphIndex graceVersion="4.0">
   <GraphDocuments>
     <GD-MAIN>
       <Path>graph/main.xml</Path>
@@ -15,13 +15,13 @@ The `.grace/graph/` directory is the single source of truth for the project's mo
       </Owns>
     </GD-MAIN>
   </GraphDocuments>
-</GraceGraphIndex>
+</NgraceGraphIndex>
 ```
 
 Each GD-* document contains the actual module and data-flow definitions:
 
 ```xml
-<GraceGraphDocument graceVersion="4.0">
+<NgraceGraphDocument graceVersion="4.0">
   <GD-MAIN>
     <M-CONFIG>
       <Summary>Application configuration and environment management</Summary>
@@ -33,7 +33,7 @@ Each GD-* document contains the actual module and data-flow definitions:
       <Path>src/db/index.ts</Path>
     </M-DB>
   </GD-MAIN>
-</GraceGraphDocument>
+</NgraceGraphDocument>
 ```
 
 ## Module Tag Convention
@@ -173,13 +173,13 @@ Ordered form (backward compatible — use when sequence matters):
 Optional context artifact (absence is not an error):
 
 ```xml
-<GraceInvariants graceVersion="4.0">
+<NgraceInvariants graceVersion="4.0">
   <INV-IDEMPOTENT-WRITES>
     <Statement>Every ledger write is idempotent under posting id.</Statement>
     <AppliesTo><M-LEDGER-CORE /><M-GATEWAY-ROUTER /></AppliesTo>
     <Verification><V-M-LEDGER-CORE /></Verification>
   </INV-IDEMPOTENT-WRITES>
-</GraceInvariants>
+</NgraceInvariants>
 ```
 
 Assert with `MustUphold` (`Invariant`, `Module`). Performance thresholds use `MustPassBudget` (`Command`, `Metric`, `Operator` lt|lte|gt|gte, `Threshold`, `Unit`, optional `Extract` regex with one capture group). Budget checks require `--run-commands`.
@@ -188,7 +188,7 @@ Assert with `MustUphold` (`Invariant`, `Module`). Performance thresholds use `Mu
 
 When a `GD-*` or `VD-*` document grows past ~50 anchors or ~30 KB, `ngrace lint`
 emits `graph.document-too-large` / `verification.document-too-large` **warnings**
-(limits configurable in `.grace-lint.json` as `documentAnchorLimit` /
+(limits configurable in `.ngrace-lint.json` as `documentAnchorLimit` /
 `documentByteLimit`). Split graph modules by path prefix:
 
 ```bash
@@ -204,19 +204,19 @@ optional context artifacts without writing anything.
 Optional form in `technology.xml` (flat `Language`/`Runtime` still valid):
 
 ```xml
-<GraceTechnology graceVersion="4.0">
+<NgraceTechnology graceVersion="4.0">
   <Stacks>
     <Stack-WEB><Language>TypeScript</Language><Root>apps/web</Root></Stack-WEB>
     <Stack-API><Language>Go</Language><Root>services/api</Root></Stack-API>
   </Stacks>
-</GraceTechnology>
+</NgraceTechnology>
 ```
 
 Each `Stack-*` requires a project-contained existing `<Root>`.
 
 ## Verification References
 
-The `.grace/verification/` directory provides matching V-M-* entries. The verification reference is mechanically derivable from the module ID by replacing the leading `M-` with `V-M-`.
+The `.ngrace/verification/` directory provides matching V-M-* entries. The verification reference is mechanically derivable from the module ID by replacing the leading `M-` with `V-M-`.
 
 This keeps navigation and proof linked:
 - the graph answers where the module lives and what it depends on

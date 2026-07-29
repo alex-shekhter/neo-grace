@@ -1,14 +1,14 @@
 ---
 name: ngrace-ask
-description: Answer questions about a GRACE 4 project by navigating .grace current-state artifacts and file-local semantic markup.
+description: Answer questions about a GRACE 4 project by navigating .ngrace current-state artifacts and file-local semantic markup.
 ---
 
 <skill>
 <context_order>
-1. `.grace/context/*.xml` for requirements, technology, principles, deployment, and UX constraints.
-2. `.grace/graph/index.xml` then routed graph documents for `M-*` and `DF-*` ownership.
-3. `.grace/verification/index.xml` then routed verification documents for `V-M-*` coverage.
-4. `.grace/changes/active/C-*` for in-flight approved or draft work.
+1. `.ngrace/context/*.xml` for requirements, technology, principles, deployment, and UX constraints.
+2. `.ngrace/graph/index.xml` then routed graph documents for `M-*` and `DF-*` ownership.
+3. `.ngrace/verification/index.xml` then routed verification documents for `V-M-*` coverage.
+4. `.ngrace/changes/active/C-*` for in-flight approved or draft work.
 5. File-local `MODULE_CONTRACT`, `MODULE_MAP`, `LINKS:`, `START_CONTRACT`, and `START_BLOCK_` anchors.
 </context_order>
 

@@ -174,11 +174,11 @@ function chooseNextAction(result: Omit<StatusResult, "nextAction">) {
   if (result.derivedStates.includes("approved-contract-drift")) return "Hard stop: an approved spec.xml or plan.xml changed. Restore it or supersede and replan through a new C-* bundle.";
   if (result.derivedStates.includes("stale-plan")) return "Supersede and replan the stale approved change; do not edit the approved plan or continue execution.";
   if (result.integrity.errors > 0) return "Run ngrace lint --path <project-root> and fix GRACE 4 integrity errors.";
-  if (result.derivedStates.includes("unexplained-observed-drift")) return `Use ${skillRef("refresh")} to reconcile unexplained repository changes through a new GraceChangeSpec and GraceChangePlan.`;
+  if (result.derivedStates.includes("unexplained-observed-drift")) return `Use ${skillRef("refresh")} to reconcile unexplained repository changes through a new NgraceChangeSpec and NgraceChangePlan.`;
   if (result.derivedStates.includes("scope-overlap")) return "Review active change scope overlaps; replan or execute sequentially before parallel-safe work.";
   if (result.changes.some((change) => change.derivedStates.includes("ready-to-execute"))) return `Run ${skillRef("execute")} for approved active changes.`;
-  if (result.changes.some((change) => change.derivedStates.includes("needs-plan"))) return `Run ${skillRef("plan")} for the approved GraceChangeSpec.`;
-  if (result.changes.some((change) => change.derivedStates.includes("needs-plan-approval"))) return "Review and approve the draft GraceChangePlan, or replan if stale.";
+  if (result.changes.some((change) => change.derivedStates.includes("needs-plan"))) return `Run ${skillRef("plan")} for the approved NgraceChangeSpec.`;
+  if (result.changes.some((change) => change.derivedStates.includes("needs-plan-approval"))) return "Review and approve the draft NgraceChangePlan, or replan if stale.";
   if (result.summary.activeChanges === 0) return `Create a change with ${skillRef("spec")}, then plan it with ${skillRef("plan")}.`;
   return "Project is healthy. Continue with the next approved GRACE 4 workflow step.";
 }
@@ -214,7 +214,7 @@ function emptyStatus(root: string, projectKind: StatusResult["projectKind"], mig
   return { ...partial, nextAction: chooseNextAction(partial) };
 }
 
-/** Collects status without mutating any .grace artifact. */
+/** Collects status without mutating any .ngrace artifact. */
 export function collectProjectStatus(projectRoot: string, options: { includeModules?: boolean } = {}): StatusResult {
   const root = path.resolve(projectRoot);
   const kind = detectGraceProjectKind(root);

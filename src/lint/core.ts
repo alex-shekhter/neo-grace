@@ -218,7 +218,7 @@ function listPlanFiles(directory: string): string[] {
 
 function readPlanStatus(planFile: string): string | null {
   const artifact = readGraceXmlArtifact(planFile);
-  return artifact.root?.tag === "GraceChangePlan" ? artifact.root.attributes.status ?? null : null;
+  return artifact.root?.tag === "NgraceChangePlan" ? artifact.root.attributes.status ?? null : null;
 }
 
 function validateAssertions(
@@ -333,11 +333,11 @@ function resolveSelectedApprovedPlan(
   const plan = readGraceXmlArtifact(planFile);
   const specWrapper = spec.root?.children.filter((child) => ANCHOR_PATTERNS.change.test(child.tag));
   const planWrapper = plan.root?.children.filter((child) => ANCHOR_PATTERNS.change.test(child.tag));
-  const approved = spec.root?.tag === "GraceChangeSpec"
+  const approved = spec.root?.tag === "NgraceChangeSpec"
     && spec.root.attributes.status === "approved"
     && specWrapper?.length === 1
     && specWrapper[0]?.tag === changeId
-    && plan.root?.tag === "GraceChangePlan"
+    && plan.root?.tag === "NgraceChangePlan"
     && plan.root.attributes.status === "approved"
     && planWrapper?.length === 1
     && planWrapper[0]?.tag === changeId;
@@ -353,7 +353,7 @@ function resolveSelectedApprovedPlan(
   }
   return planFile;
 }
-/** Lints the current GRACE 4 .grace document state and file-local semantic markup. */
+/** Lints the current GRACE 4 .ngrace document state and file-local semantic markup. */
 export function lintGraceProject(projectRoot: string, options: LintOptions = {}): LintResult {
   const root = path.resolve(projectRoot);
   const profile = options.profile ?? "standard";

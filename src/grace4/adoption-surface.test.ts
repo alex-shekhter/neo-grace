@@ -35,7 +35,7 @@ function codes(result: { issues: { code: string }[] }) {
 
 function validSpecWithDesignRefs(designRefs: string): string {
   return (
-    `<GraceChangeSpec graceVersion="4.0" status="approved">`
+    `<NgraceChangeSpec graceVersion="4.0" status="approved">`
     + `<C-EXAMPLE>`
     + `<Summary>Summary.</Summary>`
     + `<Goals><Goal>Goal.</Goal></Goals>`
@@ -45,7 +45,7 @@ function validSpecWithDesignRefs(designRefs: string): string {
     + `<AffectedAreas><M-EXAMPLE /></AffectedAreas>`
     + `<VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent>`
     + designRefs
-    + `</C-EXAMPLE></GraceChangeSpec>`
+    + `</C-EXAMPLE></NgraceChangeSpec>`
   );
 }
 
@@ -150,7 +150,7 @@ describe("Phase 9 golden-path example (G-20)", () => {
   it("examples/polyglot exists and lints with zero errors", () => {
     const exampleRoot = path.resolve(import.meta.dir, "../../examples/polyglot");
     expect(existsSync(exampleRoot)).toBe(true);
-    expect(existsSync(path.join(exampleRoot, ".grace"))).toBe(true);
+    expect(existsSync(path.join(exampleRoot, ".ngrace"))).toBe(true);
     const result = validateGrace4Project(exampleRoot);
     const errors = result.issues.filter((i) => i.severity === "error");
     if (errors.length > 0) {

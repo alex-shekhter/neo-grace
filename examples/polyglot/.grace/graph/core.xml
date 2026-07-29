@@ -1,9 +1,0 @@
-<GraceGraphDocument graceVersion="4.0">
-  <GD-CORE>
-    <M-LEDGER-CORE>
-      <Summary>Rust ledger core posting and balance validation.</Summary>
-      <Path>crates/core/src/lib.rs</Path>
-      <Type>CORE_LOGIC</Type>
-    </M-LEDGER-CORE>
-  </GD-CORE>
-</GraceGraphDocument>

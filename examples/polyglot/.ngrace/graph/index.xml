@@ -1,0 +1,29 @@
+<NgraceGraphIndex graceVersion="4.0">
+  <GraphDocuments>
+    <GD-UI>
+      <Path>graph/ui.xml</Path>
+      <Owns>
+        <M-WEB-LEDGER-TABLE />
+      </Owns>
+    </GD-UI>
+    <GD-API>
+      <Path>graph/api.xml</Path>
+      <Owns>
+        <M-API-ROUTER />
+      </Owns>
+    </GD-API>
+    <GD-CORE>
+      <Path>graph/core.xml</Path>
+      <Owns>
+        <M-LEDGER-CORE />
+      </Owns>
+    </GD-CORE>
+    <GD-CONTRACTS>
+      <Path>graph/contracts.xml</Path>
+      <Owns>
+        <DF-POSTING />
+        <IC-POSTING-V1 />
+      </Owns>
+    </GD-CONTRACTS>
+  </GraphDocuments>
+</NgraceGraphIndex>

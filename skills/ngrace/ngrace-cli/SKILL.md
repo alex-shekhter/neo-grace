@@ -1,6 +1,6 @@
 ---
 name: ngrace-cli
-description: Operate the GRACE 4 CLI for .grace linting, status, module navigation, verification navigation, and file-local semantic markup.
+description: Operate the GRACE 4 CLI for .ngrace linting, status, module navigation, verification navigation, and file-local semantic markup.
 ---
 
 <skill>

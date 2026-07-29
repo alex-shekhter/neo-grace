@@ -1,19 +1,19 @@
 ---
 name: ngrace-plan
-description: Read an approved GRACE 4 GraceChangeSpec and optional design context, then create a GraceChangePlan with assertions, scopes, tasks, and verification gates.
+description: Read an approved GRACE 4 NgraceChangeSpec and optional design context, then create a NgraceChangePlan with assertions, scopes, tasks, and verification gates.
 ---
 
 <skill>
-<purpose>Convert one approved active `GraceChangeSpec` into the executable `GraceChangePlan`; do not implement source code.</purpose>
+<purpose>Convert one approved active `NgraceChangeSpec` into the executable `NgraceChangePlan`; do not implement source code.</purpose>
 
 <inputs>
-- Required: `.grace/changes/active/C-CHANGE-ID/spec.xml`
+- Required: `.ngrace/changes/active/C-CHANGE-ID/spec.xml`
 - Optional: sibling `design-context.xml`
-- Current state: `.grace/context`, graph and verification indexes, and their routed documents
+- Current state: `.ngrace/context`, graph and verification indexes, and their routed documents
 </inputs>
 
 <preflight>
-- Require `.grace/changes/active/C-CHANGE-ID/spec.xml` with `GraceChangeSpec`, status `approved`, and exactly one matching direct `C-*` wrapper.
+- Require `.ngrace/changes/active/C-CHANGE-ID/spec.xml` with `NgraceChangeSpec`, status `approved`, and exactly one matching direct `C-*` wrapper.
 - Refuse draft, rejected, cancelled, applied, or superseded specs.
 - Treat optional `design-context.xml` as explanatory; `spec.xml` wins on conflict.
 - Run `ngrace lint --path PROJECT --assertions current` before planning and surface stale or invalid active baselines.

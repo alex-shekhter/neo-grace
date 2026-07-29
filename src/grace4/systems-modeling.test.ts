@@ -45,41 +45,41 @@ function writeLegacyFlowProject(root: string) {
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/context/requirements.xml`,
-    `<GraceRequirements graceVersion="4.0"><Summary>Required.</Summary></GraceRequirements>`,
+    `<NgraceRequirements graceVersion="4.0"><Summary>Required.</Summary></NgraceRequirements>`,
   );
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/technology.xml`, `<GraceTechnology graceVersion="4.0"><Runtime>Bun</Runtime></GraceTechnology>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/principles.xml`, `<GracePrinciples graceVersion="4.0"><Principle>Evidence.</Principle></GracePrinciples>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<GraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></GraceDeployment>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<GraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></GraceUXGuidelines>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/technology.xml`, `<NgraceTechnology graceVersion="4.0"><Runtime>Bun</Runtime></NgraceTechnology>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/principles.xml`, `<NgracePrinciples graceVersion="4.0"><Principle>Evidence.</Principle></NgracePrinciples>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<NgraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></NgraceDeployment>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<NgraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></NgraceUXGuidelines>`);
   mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
   mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "archive"), { recursive: true });
 
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-GATEWAY /><M-LEDGER /><DF-POSTING /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-GATEWAY /><M-LEDGER /><DF-POSTING /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/main.xml`,
-    `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+    `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>`
       + `<M-GATEWAY><Summary>Gateway.</Summary><Path>src/a.ts</Path></M-GATEWAY>`
       + `<M-LEDGER><Summary>Ledger.</Summary><Path>src/b.ts</Path></M-LEDGER>`
       + `<DF-POSTING><Summary>Posting flow.</Summary><M-GATEWAY /><M-LEDGER /></DF-POSTING>`
-      + `</GD-MAIN></GraceGraphDocument>`,
+      + `</GD-MAIN></NgraceGraphDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/index.xml`,
-    `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-GATEWAY /><V-M-LEDGER /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+    `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-GATEWAY /><V-M-LEDGER /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/main.xml`,
-    `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
+    `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
       + `<V-M-GATEWAY><Command>echo gateway</Command><Scenario>gateway works</Scenario></V-M-GATEWAY>`
       + `<V-M-LEDGER><Command>echo ledger</Command><Scenario>ledger works</Scenario></V-M-LEDGER>`
-      + `</VD-MAIN></GraceVerificationDocument>`,
+      + `</VD-MAIN></NgraceVerificationDocument>`,
   );
 }
 
@@ -109,12 +109,12 @@ function writeGraphWithContract(
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns>${owns}</Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns>${owns}</Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/main.xml`,
-    `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+    `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>`
       + `<M-GATEWAY><Summary>Gateway.</Summary><Path>src/a.ts</Path></M-GATEWAY>`
       + `<M-LEDGER><Summary>Ledger.</Summary><Path>src/b.ts</Path></M-LEDGER>`
       + flow
@@ -126,7 +126,7 @@ function writeGraphWithContract(
       + `<Consumer><${consumer} /></Consumer>`
       + `<BreakingChangePolicy>${policy}</BreakingChangePolicy>`
       + `</IC-POSTING-V1>`
-      + `</GD-MAIN></GraceGraphDocument>`,
+      + `</GD-MAIN></NgraceGraphDocument>`,
   );
 }
 
@@ -305,7 +305,7 @@ describe("Phase 7 systems modeling — invariants.xml", () => {
   it("projects without invariants.xml remain unaffected", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
-    expect(existsSync(path.join(root, ".grace/context/invariants.xml"))).toBe(false);
+    expect(existsSync(path.join(root, ".ngrace/context/invariants.xml"))).toBe(false);
     const before = codes(validateGrace4Project(root).issues);
     expect(before.filter((c) => c.startsWith("context.invariants."))).toEqual([]);
     expect(validateGrace4Project(root).issues.filter((i) => i.severity === "error")).toHaveLength(0);
@@ -317,10 +317,10 @@ describe("Phase 7 systems modeling — invariants.xml", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/invariants.xml`,
-      `<GraceInvariants graceVersion="4.0">`
+      `<NgraceInvariants graceVersion="4.0">`
         + `<INV-EMPTY><Statement></Statement></INV-EMPTY>`
         + `<INV-BAD-APPLIES><Statement>x</Statement><AppliesTo><NotAnAnchor /></AppliesTo></INV-BAD-APPLIES>`
-        + `</GraceInvariants>`,
+        + `</NgraceInvariants>`,
     );
     const resultCodes = codes(validateGrace4Project(root).issues);
     expect(resultCodes).toContain("context.invariants.empty-statement");
@@ -333,13 +333,13 @@ describe("Phase 7 systems modeling — invariants.xml", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/invariants.xml`,
-      `<GraceInvariants graceVersion="4.0">`
+      `<NgraceInvariants graceVersion="4.0">`
         + `<INV-IDEMPOTENT-WRITES>`
         + `<Statement>Every ledger write is idempotent under posting id.</Statement>`
         + `<AppliesTo><M-EXAMPLE /></AppliesTo>`
         + `<Verification><V-M-EXAMPLE /></Verification>`
         + `</INV-IDEMPOTENT-WRITES>`
-        + `</GraceInvariants>`,
+        + `</NgraceInvariants>`,
     );
     expect(codes(validateGrace4Project(root).issues).filter((c) => c.startsWith("context.invariants."))).toEqual([]);
   });
@@ -375,9 +375,9 @@ describe("Phase 7 systems modeling — assertions", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/invariants.xml`,
-      `<GraceInvariants graceVersion="4.0">`
+      `<NgraceInvariants graceVersion="4.0">`
         + `<INV-IDEMPOTENT><Statement>Idempotent writes.</Statement><AppliesTo><M-LEDGER /></AppliesTo></INV-IDEMPOTENT>`
-        + `</GraceInvariants>`,
+        + `</NgraceInvariants>`,
     );
     const ctx = context(root);
     expect(evaluateAssertion(assertion("MustUphold", ["INV-IDEMPOTENT", "M-LEDGER"]), ctx)).toHaveLength(0);
@@ -470,7 +470,7 @@ describe("Phase 7 systems modeling — assertions", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/invariants.xml`,
-      `<GraceInvariants graceVersion="4.0"><INV-X><Statement>x</Statement></INV-X></GraceInvariants>`,
+      `<NgraceInvariants graceVersion="4.0"><INV-X><Statement>x</Statement></INV-X></NgraceInvariants>`,
     );
     const ctx = context(root);
     expect(evaluateAssertion(assertion("MustExist", ["IC-POSTING-V1"]), ctx)).toHaveLength(0);
@@ -498,19 +498,19 @@ describe("Phase 7 systems modeling — ownership and scope wiring", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-CONTRACT/spec.xml`,
-      `<GraceChangeSpec graceVersion="4.0" status="approved"><C-CONTRACT><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><AffectedAreas><IC-POSTING-V1 /><M-GATEWAY /></AffectedAreas><VerificationIntent><ExpectedCommand>echo ok</ExpectedCommand></VerificationIntent></C-CONTRACT></GraceChangeSpec>`,
+      `<NgraceChangeSpec graceVersion="4.0" status="approved"><C-CONTRACT><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><AffectedAreas><IC-POSTING-V1 /><M-GATEWAY /></AffectedAreas><VerificationIntent><ExpectedCommand>echo ok</ExpectedCommand></VerificationIntent></C-CONTRACT></NgraceChangeSpec>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-CONTRACT/plan.xml`,
-      `<GraceChangePlan graceVersion="4.0" status="approved"><C-CONTRACT>`
+      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-CONTRACT>`
         + `<IntentSummary>Contract change.</IntentSummary>`
         + `<BaselineAssertions><MustExist><Value>IC-POSTING-V1</Value></MustExist></BaselineAssertions>`
         + `<TargetAssertions><MustConform><Contract>IC-POSTING-V1</Contract><Module>M-GATEWAY</Module><Command>exit 0</Command></MustConform></TargetAssertions>`
         + `<DurableScope><GraphAnchors><IC-POSTING-V1 /><M-GATEWAY /></GraphAnchors></DurableScope>`
         + `<ObservedWriteScope><File>proto/posting.proto</File></ObservedWriteScope>`
         + `<ImplementationPlan><T-001><Title>t</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><Verification><Command>echo ok</Command></Verification></T-001></ImplementationPlan>`
-        + `</C-CONTRACT></GraceChangePlan>`,
+        + `</C-CONTRACT></NgraceChangePlan>`,
     );
     const scopes = collectActiveChangeScopes(resolveGrace4Paths(root));
     const contract = scopes.find((s) => s.changeId === "C-CONTRACT");
@@ -524,16 +524,16 @@ describe("Phase 7 systems modeling — ownership and scope wiring", () => {
     // and dangling-link checks. Exempting it from G-05 would leave the newest cross-service
     // family as the one place a plan may quietly ignore its authorizing spec.
     const specXml = (affected: string) =>
-      `<GraceChangeSpec graceVersion="4.0" status="approved"><C-CONTRACT><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><AffectedAreas>${affected}</AffectedAreas><VerificationIntent><ExpectedCommand>echo ok</ExpectedCommand></VerificationIntent></C-CONTRACT></GraceChangeSpec>`;
+      `<NgraceChangeSpec graceVersion="4.0" status="approved"><C-CONTRACT><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><AffectedAreas>${affected}</AffectedAreas><VerificationIntent><ExpectedCommand>echo ok</ExpectedCommand></VerificationIntent></C-CONTRACT></NgraceChangeSpec>`;
     const planXml = (durable: string) =>
-      `<GraceChangePlan graceVersion="4.0" status="approved"><C-CONTRACT>`
+      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-CONTRACT>`
       + `<IntentSummary>Contract change.</IntentSummary>`
       + `<BaselineAssertions><MustExist><Value>M-GATEWAY</Value></MustExist></BaselineAssertions>`
       + `<TargetAssertions><MustVerify><Module>M-GATEWAY</Module></MustVerify></TargetAssertions>`
       + `<DurableScope><GraphAnchors>${durable}</GraphAnchors></DurableScope>`
       + `<ObservedWriteScope><File>proto/posting.proto</File></ObservedWriteScope>`
       + `<ImplementationPlan><T-001><Title>t</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><Verification><Command>echo ok</Command></Verification></T-001></ImplementationPlan>`
-      + `</C-CONTRACT></GraceChangePlan>`;
+      + `</C-CONTRACT></NgraceChangePlan>`;
 
     const bundleCodes = (affected: string, durable: string) => {
       const root = createProject();

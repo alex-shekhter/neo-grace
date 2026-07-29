@@ -199,7 +199,7 @@ export function collectCodeFiles(
   root: string,
   ignoredDirs: string[],
   currentDir = root,
-  /** Project-declared extra extensions from `.grace-lint.json` `codeExtensions`. */
+  /** Project-declared extra extensions from `.ngrace-lint.json` `codeExtensions`. */
   projectExtensions?: readonly string[],
 ): string[] {
   const files: string[] = [];
@@ -275,7 +275,7 @@ export function parseGovernedFile(root: string, filePath: string, text: string):
 /** Options for analyzeGovernedFile; optional so existing 3-arg callers stay valid. */
 export type GovernedFileAnalysisOptions = {
   unverifiedLanguages?: readonly string[];
-  /** Project-declared extra extensions from `.grace-lint.json` `codeExtensions`. */
+  /** Project-declared extra extensions from `.ngrace-lint.json` `codeExtensions`. */
   codeExtensions?: readonly string[];
 };
 
@@ -346,7 +346,7 @@ export function analyzeGovernedFile(
         contract?.startLine ?? 1,
         `MODULE_MAP ${effectiveMapMode} parity is not verified for ${extension} files. `
           + `GRACE has no export adapter for this language; treat MODULE_MAP as unverified `
-          + `documentation. Acknowledge per repo with .grace-lint.json `
+          + `documentation. Acknowledge per repo with .ngrace-lint.json `
           + `{ "unverifiedLanguages": ["${extension}"] }.`,
       ));
     }

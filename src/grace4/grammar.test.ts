@@ -33,11 +33,11 @@ function codes(result: { issues: { code: string }[] }) {
 }
 
 function validSpec(changeId = "C-EXAMPLE", overrides = ""): string {
-  return `<GraceChangeSpec graceVersion="4.0" status="approved"><${changeId}><Summary>Summary.</Summary><Goals><Goal>Goal.</Goal></Goals><Constraints><Constraint>Constraint.</Constraint></Constraints><NonGoals><NonGoal>Non-goal.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent>${overrides}</${changeId}></GraceChangeSpec>`;
+  return `<NgraceChangeSpec graceVersion="4.0" status="approved"><${changeId}><Summary>Summary.</Summary><Goals><Goal>Goal.</Goal></Goals><Constraints><Constraint>Constraint.</Constraint></Constraints><NonGoals><NonGoal>Non-goal.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent>${overrides}</${changeId}></NgraceChangeSpec>`;
 }
 
 function validPlan(tasks: string, overrides = "", changeId = "C-EXAMPLE"): string {
-  return `<GraceChangePlan graceVersion="4.0" status="approved"><${changeId}><IntentSummary>Intent.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>${overrides}<ImplementationPlan>${tasks}</ImplementationPlan></${changeId}></GraceChangePlan>`;
+  return `<NgraceChangePlan graceVersion="4.0" status="approved"><${changeId}><IntentSummary>Intent.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>${overrides}<ImplementationPlan>${tasks}</ImplementationPlan></${changeId}></NgraceChangePlan>`;
 }
 
 function task(id: string, dependencies = ""): string {
@@ -70,15 +70,15 @@ describe("GRACE 4 Artifact Grammar", () => {
     const segmentedRoot = createProject();
     writeSegmentedGrace4Project(segmentedRoot);
     expect(validateGrace4Project(segmentedRoot).issues).toHaveLength(0);
-    expect(existsSync(path.join(segmentedRoot, ".grace/graph/core.xml"))).toBe(true);
-    expect(existsSync(path.join(segmentedRoot, ".grace/verification/second.xml"))).toBe(true);
+    expect(existsSync(path.join(segmentedRoot, ".ngrace/graph/core.xml"))).toBe(true);
+    expect(existsSync(path.join(segmentedRoot, ".ngrace/verification/second.xml"))).toBe(true);
 
     const legacyRoot = createProject();
     writeLegacyGrace3Project(legacyRoot);
     expect(codes(validateGrace4Project(legacyRoot))).toContain("project.grace3-detected");
   });
 
-  it("validates a minimal current .grace project", () => {
+  it("validates a minimal current .ngrace project", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
 
@@ -86,15 +86,15 @@ describe("GRACE 4 Artifact Grammar", () => {
 
     expect(result.issues).toHaveLength(0);
     expect(result.artifacts.map((artifact) => artifact.rootTag).sort()).toEqual([
-      "GraceDeployment",
-      "GraceGraphDocument",
-      "GraceGraphIndex",
-      "GracePrinciples",
-      "GraceRequirements",
-      "GraceTechnology",
-      "GraceUXGuidelines",
-      "GraceVerificationDocument",
-      "GraceVerificationIndex",
+      "NgraceDeployment",
+      "NgraceGraphDocument",
+      "NgraceGraphIndex",
+      "NgracePrinciples",
+      "NgraceRequirements",
+      "NgraceTechnology",
+      "NgraceUXGuidelines",
+      "NgraceVerificationDocument",
+      "NgraceVerificationIndex",
     ]);
   });
 
@@ -104,12 +104,12 @@ describe("GRACE 4 Artifact Grammar", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<GraceRequirements graceVersion="4.0"><GD-MAIN><M-EXAMPLE /></GD-MAIN></GraceRequirements>`,
+      `<NgraceRequirements graceVersion="4.0"><GD-MAIN><M-EXAMPLE /></GD-MAIN></NgraceRequirements>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<GracePrinciples graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE /></VD-MAIN></GracePrinciples>`,
+      `<NgracePrinciples graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE /></VD-MAIN></NgracePrinciples>`,
     );
 
     const resultCodes = codes(validateGrace4Project(root));
@@ -122,12 +122,12 @@ describe("GRACE 4 Artifact Grammar", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-FOLDER/spec.xml`,
-      `<GraceChangeSpec graceVersion="4.0" status="approved"><C-SPEC /></GraceChangeSpec>`,
+      `<NgraceChangeSpec graceVersion="4.0" status="approved"><C-SPEC /></NgraceChangeSpec>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/changes/active/C-FOLDER/plan.xml`,
-      `<GraceChangePlan graceVersion="4.0" status="approved"><C-PLAN /></GraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="4.0" status="approved"><C-PLAN /></NgraceChangePlan>`,
     );
 
     const resultCodes = codes(validateGrace4Project(root));
@@ -146,10 +146,10 @@ describe("GRACE 4 Artifact Grammar", () => {
   });
 
   it("reports missing graceVersion, unsupported versions, invalid roots, and malformed XML", () => {
-    const missing = validateArtifactRoot(parseGraceXmlArtifact("requirements.xml", `<GraceRequirements />`));
-    const unsupported = validateArtifactRoot(parseGraceXmlArtifact("requirements.xml", `<GraceRequirements graceVersion="3.11" />`));
+    const missing = validateArtifactRoot(parseGraceXmlArtifact("requirements.xml", `<NgraceRequirements />`));
+    const unsupported = validateArtifactRoot(parseGraceXmlArtifact("requirements.xml", `<NgraceRequirements graceVersion="3.11" />`));
     const invalidRoot = validateArtifactRoot(parseGraceXmlArtifact("unknown.xml", `<NotGrace graceVersion="4.0" />`));
-    const malformed = validateArtifactRoot(parseGraceXmlArtifact("broken.xml", `<GraceRequirements graceVersion="4.0"><Open></GraceRequirements>`));
+    const malformed = validateArtifactRoot(parseGraceXmlArtifact("broken.xml", `<NgraceRequirements graceVersion="4.0"><Open></NgraceRequirements>`));
 
     expect(codes(missing)).toContain("artifact.missing-grace-version");
     expect(codes(unsupported)).toContain("artifact.unsupported-grace-version");
@@ -159,7 +159,7 @@ describe("GRACE 4 Artifact Grammar", () => {
 
   it("allows status only on change artifact roots", () => {
     const context = validateArtifactRoot(
-      parseGraceXmlArtifact("requirements.xml", `<GraceRequirements graceVersion="4.0" status="approved" />`),
+      parseGraceXmlArtifact("requirements.xml", `<NgraceRequirements graceVersion="4.0" status="approved" />`),
     );
     const change = validateArtifactRoot(
       parseGraceXmlArtifact("spec.xml", validSpec()),
@@ -172,7 +172,7 @@ describe("GRACE 4 Artifact Grammar", () => {
   it("rejects semantic anchors used as attribute values", () => {
     const artifact = parseGraceXmlArtifact(
       "graph.xml",
-      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><Module ref="M-EXAMPLE" /></GD-MAIN></GraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><Module ref="M-EXAMPLE" /></GD-MAIN></NgraceGraphDocument>`,
     );
 
     expect(codes({ issues: validateSemanticAnchorDiscipline("graph.xml", artifact.root!) })).toContain(
@@ -183,7 +183,7 @@ describe("GRACE 4 Artifact Grammar", () => {
   it("rejects malformed semantic-anchor tags across every anchor family", () => {
     const artifact = parseGraceXmlArtifact(
       "anchors.xml",
-      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-bad /><GD-bad /><VD-bad /><C-bad /><V-M-bad /><DF-bad /><IC-bad /><INV-bad /><T-bad /><AC-bad /><DT-bad /><BP-bad /><ST-bad /><Stack-bad /></GD-MAIN></GraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-bad /><GD-bad /><VD-bad /><C-bad /><V-M-bad /><DF-bad /><IC-bad /><INV-bad /><T-bad /><AC-bad /><DT-bad /><BP-bad /><ST-bad /><Stack-bad /></GD-MAIN></NgraceGraphDocument>`,
     );
 
     const resultCodes = codes({ issues: validateSemanticAnchorDiscipline("anchors.xml", artifact.root!) });
@@ -193,7 +193,7 @@ describe("GRACE 4 Artifact Grammar", () => {
   it("rejects attributes on canonical anchors and anchor-like attribute names or values", () => {
     const artifact = parseGraceXmlArtifact(
       "anchors.xml",
-      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN role="owner"><Node M-bad="yes" ref="VD-bad" /></GD-MAIN></GraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN role="owner"><Node M-bad="yes" ref="VD-bad" /></GD-MAIN></NgraceGraphDocument>`,
     );
 
     const resultCodes = codes({ issues: validateSemanticAnchorDiscipline("anchors.xml", artifact.root!) });
@@ -284,11 +284,11 @@ describe("GRACE 4 Artifact Grammar", () => {
 
   it("rejects invalid active and archive change statuses", () => {
     const active = validateChangeArtifact(
-      parseGraceXmlArtifact("active/plan.xml", `<GraceChangePlan graceVersion="4.0" status="applied"><C-EXAMPLE /></GraceChangePlan>`),
+      parseGraceXmlArtifact("active/plan.xml", `<NgraceChangePlan graceVersion="4.0" status="applied"><C-EXAMPLE /></NgraceChangePlan>`),
       "active",
     );
     const archive = validateChangeArtifact(
-      parseGraceXmlArtifact("archive/spec.xml", `<GraceChangeSpec graceVersion="4.0" status="draft"><C-EXAMPLE /></GraceChangeSpec>`),
+      parseGraceXmlArtifact("archive/spec.xml", `<NgraceChangeSpec graceVersion="4.0" status="draft"><C-EXAMPLE /></NgraceChangeSpec>`),
       "archive",
     );
 
@@ -302,12 +302,12 @@ describe("GRACE 4 Artifact Grammar", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/deployment.xml`,
-      `<GraceDeployment graceVersion="4.0"><Applicability>not-applicable</Applicability></GraceDeployment>`,
+      `<NgraceDeployment graceVersion="4.0"><Applicability>not-applicable</Applicability></NgraceDeployment>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/ux-guidelines.xml`,
-      `<GraceUXGuidelines graceVersion="4.0"><Applicability>not-applicable</Applicability></GraceUXGuidelines>`,
+      `<NgraceUXGuidelines graceVersion="4.0"><Applicability>not-applicable</Applicability></NgraceUXGuidelines>`,
     );
 
     const results = validateContextArtifacts(resolveGrace4Paths(root));
@@ -319,9 +319,9 @@ describe("GRACE 4 Artifact Grammar", () => {
   it("rejects empty context artifacts and invalid optional applicability declarations", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
-    writeProjectFile(root, `${ARTIFACT_DIR}/context/requirements.xml`, `<GraceRequirements graceVersion="4.0" />`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<GraceDeployment graceVersion="4.0"><Summary>Deployment applies.</Summary></GraceDeployment>`);
-    writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<GraceUXGuidelines graceVersion="4.0"><Applicability>sometimes</Applicability></GraceUXGuidelines>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/context/requirements.xml`, `<NgraceRequirements graceVersion="4.0" />`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<NgraceDeployment graceVersion="4.0"><Summary>Deployment applies.</Summary></NgraceDeployment>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<NgraceUXGuidelines graceVersion="4.0"><Applicability>sometimes</Applicability></NgraceUXGuidelines>`);
 
     const resultCodes = validateContextArtifacts(resolveGrace4Paths(root)).flatMap(codes);
     expect(resultCodes).toContain("context.empty-artifact");
@@ -335,7 +335,7 @@ describe("GRACE 4 Artifact Grammar", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/ux-guidelines.xml`,
-      `<GraceUXGuidelines graceVersion="4.0"><Applicability>not-applicable</Applicability><Reason>Not a web app</Reason></GraceUXGuidelines>`,
+      `<NgraceUXGuidelines graceVersion="4.0"><Applicability>not-applicable</Applicability><Reason>Not a web app</Reason></NgraceUXGuidelines>`,
     );
 
     const allCodes = validateContextArtifacts(resolveGrace4Paths(root)).flatMap(codes);
@@ -346,7 +346,7 @@ describe("GRACE 4 Artifact Grammar", () => {
     const noReplacement = validateChangeArtifact(
       parseGraceXmlArtifact(
         "archive/spec.xml",
-        `<GraceChangeSpec graceVersion="4.0" status="superseded"><C-SUPERSEDED><Summary>Old change.</Summary></C-SUPERSEDED></GraceChangeSpec>`),
+        `<NgraceChangeSpec graceVersion="4.0" status="superseded"><C-SUPERSEDED><Summary>Old change.</Summary></C-SUPERSEDED></NgraceChangeSpec>`),
       "archive",
     );
     expect(codes(noReplacement)).toContain("change.superseded-missing-replacement");
@@ -355,7 +355,7 @@ describe("GRACE 4 Artifact Grammar", () => {
     const withChildTag = validateChangeArtifact(
       parseGraceXmlArtifact(
         "archive/spec.xml",
-        `<GraceChangeSpec graceVersion="4.0" status="superseded"><C-SUPERSEDED><C-REPLACEMENT /><Summary>Old change.</Summary></C-SUPERSEDED></GraceChangeSpec>`),
+        `<NgraceChangeSpec graceVersion="4.0" status="superseded"><C-SUPERSEDED><C-REPLACEMENT /><Summary>Old change.</Summary></C-SUPERSEDED></NgraceChangeSpec>`),
       "archive",
     );
     expect(codes(withChildTag)).not.toContain("change.superseded-missing-replacement");
@@ -363,7 +363,7 @@ describe("GRACE 4 Artifact Grammar", () => {
     const withReplacementTag = validateChangeArtifact(
       parseGraceXmlArtifact(
         "archive/spec.xml",
-        `<GraceChangeSpec graceVersion="4.0" status="superseded"><C-SUPERSEDED><Replacement>C-REPLACEMENT</Replacement><Summary>Old change.</Summary></C-SUPERSEDED></GraceChangeSpec>`),
+        `<NgraceChangeSpec graceVersion="4.0" status="superseded"><C-SUPERSEDED><Replacement>C-REPLACEMENT</Replacement><Summary>Old change.</Summary></C-SUPERSEDED></NgraceChangeSpec>`),
       "archive",
     );
     expect(codes(withReplacementTag)).not.toContain("change.superseded-missing-replacement");
@@ -373,7 +373,7 @@ describe("GRACE 4 Artifact Grammar", () => {
     const emptyReplacement = validateChangeArtifact(
       parseGraceXmlArtifact(
         "archive/spec.xml",
-        `<GraceChangeSpec graceVersion="4.0" status="superseded"><C-SUPERSEDED><Replacement></Replacement><Summary>Old change.</Summary></C-SUPERSEDED></GraceChangeSpec>`),
+        `<NgraceChangeSpec graceVersion="4.0" status="superseded"><C-SUPERSEDED><Replacement></Replacement><Summary>Old change.</Summary></C-SUPERSEDED></NgraceChangeSpec>`),
       "archive",
     );
     expect(codes(emptyReplacement)).toContain("change.superseded-missing-replacement");
@@ -381,7 +381,7 @@ describe("GRACE 4 Artifact Grammar", () => {
     const arbitraryReplacement = validateChangeArtifact(
       parseGraceXmlArtifact(
         "archive/spec.xml",
-        `<GraceChangeSpec graceVersion="4.0" status="superseded"><C-SUPERSEDED><Replacement>not-a-change</Replacement><Summary>Old change.</Summary></C-SUPERSEDED></GraceChangeSpec>`),
+        `<NgraceChangeSpec graceVersion="4.0" status="superseded"><C-SUPERSEDED><Replacement>not-a-change</Replacement><Summary>Old change.</Summary></C-SUPERSEDED></NgraceChangeSpec>`),
       "archive",
     );
     expect(codes(arbitraryReplacement)).toContain("change.superseded-missing-replacement");
@@ -389,7 +389,7 @@ describe("GRACE 4 Artifact Grammar", () => {
     const replacementChange = validateChangeArtifact(
       parseGraceXmlArtifact(
         "archive/spec.xml",
-        `<GraceChangeSpec graceVersion="4.0" status="superseded"><C-SUPERSEDED><ReplacementChange>C-REPLACEMENT</ReplacementChange><Summary>Old change.</Summary></C-SUPERSEDED></GraceChangeSpec>`),
+        `<NgraceChangeSpec graceVersion="4.0" status="superseded"><C-SUPERSEDED><ReplacementChange>C-REPLACEMENT</ReplacementChange><Summary>Old change.</Summary></C-SUPERSEDED></NgraceChangeSpec>`),
       "archive",
     );
     expect(codes(replacementChange)).not.toContain("change.superseded-missing-replacement");
@@ -415,16 +415,16 @@ describe("GRACE 4 Artifact Grammar", () => {
     expect(codes(validateGrace4Project(root))).toContain("change.superseded-replacement-not-found");
   });
 
-  it("validates GraceChangeDesignContext inside change bundles", () => {
+  it("validates NgraceChangeDesignContext inside change bundles", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
-    writeChangeBundleFixture(root, { changeId: "C-DESIGN", location: "active", specStatus: "approved", planStatus: "approved", designContext: "<GraceChangeDesignContext graceVersion=\"4.0\"><Change>C-DESIGN</Change><Rationale>Test.</Rationale></GraceChangeDesignContext>" });
+    writeChangeBundleFixture(root, { changeId: "C-DESIGN", location: "active", specStatus: "approved", planStatus: "approved", designContext: "<NgraceChangeDesignContext graceVersion=\"4.0\"><Change>C-DESIGN</Change><Rationale>Test.</Rationale></NgraceChangeDesignContext>" });
     expect(validateGrace4Project(root).issues).toHaveLength(0);
   });
 
-  it("rejects invalid GraceChangeDesignContext root, missing graceVersion, status attribute", () => {
+  it("rejects invalid NgraceChangeDesignContext root, missing graceVersion, status attribute", () => {
     const valid = validateChangeDesignContextArtifact(
-      parseGraceXmlArtifact("design-context.xml", `<GraceChangeDesignContext graceVersion="4.0"><Change>C-DESIGN</Change></GraceChangeDesignContext>`),
+      parseGraceXmlArtifact("design-context.xml", `<NgraceChangeDesignContext graceVersion="4.0"><Change>C-DESIGN</Change></NgraceChangeDesignContext>`),
     );
     expect(valid.issues).toHaveLength(0);
 
@@ -434,36 +434,36 @@ describe("GRACE 4 Artifact Grammar", () => {
     expect(codes(wrongRoot)).toContain("design-context.invalid-root-tag");
 
     const noVersion = validateChangeDesignContextArtifact(
-      parseGraceXmlArtifact("design-context.xml", `<GraceChangeDesignContext />`),
+      parseGraceXmlArtifact("design-context.xml", `<NgraceChangeDesignContext />`),
     );
     expect(codes(noVersion)).toContain("design-context.missing-grace-version");
 
     const withStatus = validateChangeDesignContextArtifact(
-      parseGraceXmlArtifact("design-context.xml", `<GraceChangeDesignContext graceVersion="4.0" status="approved" />`),
+      parseGraceXmlArtifact("design-context.xml", `<NgraceChangeDesignContext graceVersion="4.0" status="approved" />`),
     );
     expect(codes(withStatus)).toContain("design-context.forbidden-status");
   });
 
-  it("accepts GraceChangeDesignContext with semantic anchor in child tag", () => {
+  it("accepts NgraceChangeDesignContext with semantic anchor in child tag", () => {
     const result = validateChangeDesignContextArtifact(
-      parseGraceXmlArtifact("design-context.xml", `<GraceChangeDesignContext graceVersion="4.0"><C-DESIGN><Rationale>Test.</Rationale></C-DESIGN></GraceChangeDesignContext>`),
+      parseGraceXmlArtifact("design-context.xml", `<NgraceChangeDesignContext graceVersion="4.0"><C-DESIGN><Rationale>Test.</Rationale></C-DESIGN></NgraceChangeDesignContext>`),
     );
     expect(result.issues).toHaveLength(0);
   });
 
   it("requires exactly one canonical design-context identity and matches it to the bundle", () => {
     const missing = validateChangeDesignContextArtifact(
-      parseGraceXmlArtifact("design-context.xml", `<GraceChangeDesignContext graceVersion="4.0"><Rationale>Missing identity.</Rationale></GraceChangeDesignContext>`),
+      parseGraceXmlArtifact("design-context.xml", `<NgraceChangeDesignContext graceVersion="4.0"><Rationale>Missing identity.</Rationale></NgraceChangeDesignContext>`),
     );
     expect(codes(missing)).toContain("design-context.missing-change-id");
 
     const invalid = validateChangeDesignContextArtifact(
-      parseGraceXmlArtifact("design-context.xml", `<GraceChangeDesignContext graceVersion="4.0"><Change>not-a-change</Change></GraceChangeDesignContext>`),
+      parseGraceXmlArtifact("design-context.xml", `<NgraceChangeDesignContext graceVersion="4.0"><Change>not-a-change</Change></NgraceChangeDesignContext>`),
     );
     expect(codes(invalid)).toContain("design-context.invalid-change-id");
 
     const ambiguous = validateChangeDesignContextArtifact(
-      parseGraceXmlArtifact("design-context.xml", `<GraceChangeDesignContext graceVersion="4.0"><Change>C-DESIGN</Change><C-DESIGN /></GraceChangeDesignContext>`),
+      parseGraceXmlArtifact("design-context.xml", `<NgraceChangeDesignContext graceVersion="4.0"><Change>C-DESIGN</Change><C-DESIGN /></NgraceChangeDesignContext>`),
     );
     expect(codes(ambiguous)).toContain("design-context.ambiguous-change-id");
 
@@ -474,7 +474,7 @@ describe("GRACE 4 Artifact Grammar", () => {
       location: "active",
       specStatus: "approved",
       planStatus: "approved",
-      designContext: `<GraceChangeDesignContext graceVersion="4.0"><C-WRONG><Rationale>Wrong bundle.</Rationale></C-WRONG></GraceChangeDesignContext>`,
+      designContext: `<NgraceChangeDesignContext graceVersion="4.0"><C-WRONG><Rationale>Wrong bundle.</Rationale></C-WRONG></NgraceChangeDesignContext>`,
     });
     expect(codes(validateGrace4Project(root))).toContain("design-context.bundle-id-mismatch");
   });
@@ -663,7 +663,7 @@ describe("spec→plan coverage (G-05 / AC-*)", () => {
   it("classifies AC-lowercase as a malformed acceptance-criterion anchor", () => {
     const root = parseGraceXmlArtifact(
       "spec.xml",
-      `<GraceChangeSpec graceVersion="4.0"><C-X><AcceptanceCriteria><AC-lowercase>bad</AC-lowercase></AcceptanceCriteria></C-X></GraceChangeSpec>`,
+      `<NgraceChangeSpec graceVersion="4.0"><C-X><AcceptanceCriteria><AC-lowercase>bad</AC-lowercase></AcceptanceCriteria></C-X></NgraceChangeSpec>`,
     ).root!;
     const issues = validateSemanticAnchorDiscipline("spec.xml", root);
     const malformed = issues.filter((i) => i.code === "artifact.malformed-semantic-anchor");
@@ -676,7 +676,7 @@ describe("optional design-system.xml (Phase 6)", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
     expect(validateGrace4Project(root).issues.filter((i) => i.severity === "error")).toHaveLength(0);
-    expect(existsSync(path.join(root, ".grace/context/design-system.xml"))).toBe(false);
+    expect(existsSync(path.join(root, ".ngrace/context/design-system.xml"))).toBe(false);
   });
 
   it("rejects duplicate DT-* tokens", () => {
@@ -686,7 +686,7 @@ describe("optional design-system.xml (Phase 6)", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/design-system.xml`,
-      `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-COLOR-ACCENT><Value>var(--accent)</Value></DT-COLOR-ACCENT><DT-COLOR-ACCENT><Value>var(--accent2)</Value></DT-COLOR-ACCENT></Tokens></GraceDesignSystem>`,
+      `<NgraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-COLOR-ACCENT><Value>var(--accent)</Value></DT-COLOR-ACCENT><DT-COLOR-ACCENT><Value>var(--accent2)</Value></DT-COLOR-ACCENT></Tokens></NgraceDesignSystem>`,
     );
     expect(codes(validateGrace4Project(root))).toContain("design-system.duplicate-token");
   });
@@ -697,7 +697,7 @@ describe("optional design-system.xml (Phase 6)", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/design-system.xml`,
-      `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>../etc/passwd</TokenSource></GraceDesignSystem>`,
+      `<NgraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>../etc/passwd</TokenSource></NgraceDesignSystem>`,
     );
     const resultCodes = codes(validateGrace4Project(root));
     expect(resultCodes).toContain("design-system.invalid-token-source");
@@ -711,7 +711,7 @@ describe("optional design-system.xml (Phase 6)", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/design-system.xml`,
-      `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-EMPTY><Value></Value></DT-EMPTY></Tokens><Breakpoints><BP-BAD><Intent>broken</Intent></BP-BAD></Breakpoints></GraceDesignSystem>`,
+      `<NgraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-EMPTY><Value></Value></DT-EMPTY></Tokens><Breakpoints><BP-BAD><Intent>broken</Intent></BP-BAD></Breakpoints></NgraceDesignSystem>`,
     );
     const resultCodes = codes(validateGrace4Project(root));
     expect(resultCodes).toContain("design-system.empty-token-value");
@@ -725,7 +725,7 @@ describe("optional design-system.xml (Phase 6)", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/design-system.xml`,
-      `<GraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-COLOR-ACCENT><Value>var(--accent)</Value><Usage>Accent</Usage></DT-COLOR-ACCENT></Tokens><Breakpoints><BP-MOBILE><MinWidth>0</MinWidth><MaxWidth>767px</MaxWidth><Intent>phone</Intent></BP-MOBILE></Breakpoints><Accessibility><Standard>WCAG 2.2 AA</Standard><ContrastMinimum>4.5</ContrastMinimum></Accessibility></GraceDesignSystem>`,
+      `<NgraceDesignSystem graceVersion="4.0"><Applicability>applicable</Applicability><TokenSource>src/tokens.css</TokenSource><Tokens><DT-COLOR-ACCENT><Value>var(--accent)</Value><Usage>Accent</Usage></DT-COLOR-ACCENT></Tokens><Breakpoints><BP-MOBILE><MinWidth>0</MinWidth><MaxWidth>767px</MaxWidth><Intent>phone</Intent></BP-MOBILE></Breakpoints><Accessibility><Standard>WCAG 2.2 AA</Standard><ContrastMinimum>4.5</ContrastMinimum></Accessibility></NgraceDesignSystem>`,
     );
     const resultCodes = codes(validateGrace4Project(root));
     expect(resultCodes.filter((c) => c.startsWith("design-system."))).toEqual([]);

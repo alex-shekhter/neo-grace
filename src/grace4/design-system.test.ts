@@ -52,7 +52,7 @@ describe("module Type and States projection", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example</Summary><Path>src/example.ts</Path><Type>NONSENSE</Type></M-EXAMPLE></GD-MAIN></GraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example</Summary><Path>src/example.ts</Path><Type>NONSENSE</Type></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
     );
     const graph = buildGraphProjection(resolveGrace4Paths(root));
     const warning = graph.issues.find((i) => i.code === "graph.unknown-module-type");
@@ -66,12 +66,12 @@ describe("module Type and States projection", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>UI</Summary><Path>src/example.ts</Path><Type>UI_COMPONENT</Type><States><ST-DEFAULT /><ST-EMPTY /></States></M-EXAMPLE></GD-MAIN></GraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>UI</Summary><Path>src/example.ts</Path><Type>UI_COMPONENT</Type><States><ST-DEFAULT /><ST-EMPTY /></States></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test</Command><Scenario>default render</Scenario><AccessibilityCheck><Tool>axe</Tool><Command>bun run a11y</Command></AccessibilityCheck><VisualCheck><Tool>playwright</Tool><Command>bun run visual</Command><Baseline>baselines/ui.png</Baseline><Viewports><BP-MOBILE /></Viewports></VisualCheck></V-M-EXAMPLE></VD-MAIN></GraceVerificationDocument>`,
+      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test</Command><Scenario>default render</Scenario><AccessibilityCheck><Tool>axe</Tool><Command>bun run a11y</Command></AccessibilityCheck><VisualCheck><Tool>playwright</Tool><Command>bun run visual</Command><Baseline>baselines/ui.png</Baseline><Viewports><BP-MOBILE /></Viewports></VisualCheck></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>`,
     );
     const paths = resolveGrace4Paths(root);
     const graph = buildGraphProjection(paths);

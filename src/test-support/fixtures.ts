@@ -79,11 +79,11 @@ export type ContextFileName =
 // ---------------------------------------------------------------------------
 
 const DEFAULT_CONTEXT: Record<ContextFileName, string> = {
-  requirements: `<GraceRequirements graceVersion="4.0"><Summary>Required behavior.</Summary></GraceRequirements>`,
-  technology: `<GraceTechnology graceVersion="4.0"><Runtime>Bun</Runtime></GraceTechnology>`,
-  principles: `<GracePrinciples graceVersion="4.0"><Principle>Prefer evidence.</Principle></GracePrinciples>`,
-  deployment: `<GraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></GraceDeployment>`,
-  "ux-guidelines": `<GraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></GraceUXGuidelines>`,
+  requirements: `<NgraceRequirements graceVersion="4.0"><Summary>Required behavior.</Summary></NgraceRequirements>`,
+  technology: `<NgraceTechnology graceVersion="4.0"><Runtime>Bun</Runtime></NgraceTechnology>`,
+  principles: `<NgracePrinciples graceVersion="4.0"><Principle>Prefer evidence.</Principle></NgracePrinciples>`,
+  deployment: `<NgraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></NgraceDeployment>`,
+  "ux-guidelines": `<NgraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></NgraceUXGuidelines>`,
 };
 
 // ---------------------------------------------------------------------------
@@ -278,7 +278,7 @@ export class GraceProjectBuilder {
     writeProjectFile(
       this.root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns>${ownsXml}</Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns>${ownsXml}</Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
 
     const moduleElements = this.modules.map((m) => {
@@ -301,7 +301,7 @@ export class GraceProjectBuilder {
     writeProjectFile(
       this.root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>${moduleElements}${dataFlowElements}</GD-MAIN></GraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>${moduleElements}${dataFlowElements}</GD-MAIN></NgraceGraphDocument>`,
     );
 
     // 3. Verification: auto-synthesize missing coverage so unrelated tests
@@ -331,7 +331,7 @@ export class GraceProjectBuilder {
     writeProjectFile(
       this.root,
       `${ARTIFACT_DIR}/verification/index.xml`,
-      `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns>${verificationOwns}</Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+      `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns>${verificationOwns}</Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
     );
 
     const verificationElements = effectiveVerifications.map((v) => {
@@ -360,7 +360,7 @@ export class GraceProjectBuilder {
     writeProjectFile(
       this.root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>${verificationElements}</VD-MAIN></GraceVerificationDocument>`,
+      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN>${verificationElements}</VD-MAIN></NgraceVerificationDocument>`,
     );
 
     // 4. Change directories + optional bundles
@@ -389,7 +389,7 @@ function writeChangeBundle(root: string, options: ChangeSpec): void {
   writeProjectFile(
     root,
     `${bundleRoot}/spec.xml`,
-    `<GraceChangeSpec graceVersion="4.0" status="${specStatus}"><${changeId}><Summary>Fixture change.</Summary><Problem>Fixture problem.</Problem><Goals><Goal>Exercise the change lifecycle.</Goal></Goals><Constraints><Constraint>Preserve fixture validity.</Constraint></Constraints><NonGoals><NonGoal>Unrelated behavior.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>The fixture remains valid.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand><ExpectedEvidence>Passing tests.</ExpectedEvidence></VerificationIntent><Assumptions><Assumption>The fixture project exists.</Assumption></Assumptions></${changeId}></GraceChangeSpec>`,
+    `<NgraceChangeSpec graceVersion="4.0" status="${specStatus}"><${changeId}><Summary>Fixture change.</Summary><Problem>Fixture problem.</Problem><Goals><Goal>Exercise the change lifecycle.</Goal></Goals><Constraints><Constraint>Preserve fixture validity.</Constraint></Constraints><NonGoals><NonGoal>Unrelated behavior.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>The fixture remains valid.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand><ExpectedEvidence>Passing tests.</ExpectedEvidence></VerificationIntent><Assumptions><Assumption>The fixture project exists.</Assumption></Assumptions></${changeId}></NgraceChangeSpec>`,
   );
 
   if (options.planStatus) {
@@ -397,7 +397,7 @@ function writeChangeBundle(root: string, options: ChangeSpec): void {
     writeProjectFile(
       root,
       `${bundleRoot}/plan.xml`,
-      `<GraceChangePlan graceVersion="4.0" status="${options.planStatus}"><${changeId}>${planBody}</${changeId}></GraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="4.0" status="${options.planStatus}"><${changeId}>${planBody}</${changeId}></NgraceChangePlan>`,
     );
   }
 

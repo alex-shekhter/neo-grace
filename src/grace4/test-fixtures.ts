@@ -15,11 +15,11 @@ function ensureChangeDirectories(root: string) {
 }
 
 function writeContextArtifacts(root: string) {
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/requirements.xml`, `<GraceRequirements graceVersion="4.0"><Summary>Required behavior.</Summary></GraceRequirements>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/technology.xml`, `<GraceTechnology graceVersion="4.0"><Runtime>Bun</Runtime></GraceTechnology>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/principles.xml`, `<GracePrinciples graceVersion="4.0"><Principle>Prefer evidence.</Principle></GracePrinciples>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<GraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></GraceDeployment>`);
-  writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<GraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></GraceUXGuidelines>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/requirements.xml`, `<NgraceRequirements graceVersion="4.0"><Summary>Required behavior.</Summary></NgraceRequirements>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/technology.xml`, `<NgraceTechnology graceVersion="4.0"><Runtime>Bun</Runtime></NgraceTechnology>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/principles.xml`, `<NgracePrinciples graceVersion="4.0"><Principle>Prefer evidence.</Principle></NgracePrinciples>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/deployment.xml`, `<NgraceDeployment graceVersion="4.0"><Applicability>applicable</Applicability></NgraceDeployment>`);
+  writeProjectFile(root, `${ARTIFACT_DIR}/context/ux-guidelines.xml`, `<NgraceUXGuidelines graceVersion="4.0"><Applicability>applicable</Applicability></NgraceUXGuidelines>`);
 }
 
 /** Writes a minimal valid GRACE 4 project to a temporary directory. */
@@ -28,22 +28,22 @@ export function writeMinimalGrace4Project(root: string): void {
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/main.xml`,
-    `<GraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary><Path>src/example.ts</Path></M-EXAMPLE></GD-MAIN></GraceGraphDocument>`,
+    `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary><Path>src/example.ts</Path></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/index.xml`,
-    `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+    `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/main.xml`,
-    `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test src/example.test.ts</Command><Scenario>Example works.</Scenario><Marker>[Example][run][BLOCK_RUN]</Marker></V-M-EXAMPLE></VD-MAIN></GraceVerificationDocument>`,
+    `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test src/example.test.ts</Command><Scenario>Example works.</Scenario><Marker>[Example][run][BLOCK_RUN]</Marker></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>`,
   );
   ensureChangeDirectories(root);
 }
@@ -54,32 +54,32 @@ export function writeSegmentedGrace4Project(root: string): void {
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-CORE><Path>graph/core.xml</Path><Owns><M-EXAMPLE /><M-SECOND /></Owns></GD-CORE><GD-FLOWS><Path>graph/flows.xml</Path><Owns><DF-EXAMPLE-FLOW /></Owns></GD-FLOWS></GraphDocuments></GraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-CORE><Path>graph/core.xml</Path><Owns><M-EXAMPLE /><M-SECOND /></Owns></GD-CORE><GD-FLOWS><Path>graph/flows.xml</Path><Owns><DF-EXAMPLE-FLOW /></Owns></GD-FLOWS></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/core.xml`,
-    `<GraceGraphDocument graceVersion="4.0"><GD-CORE><M-EXAMPLE><Summary>Example module.</Summary><Path>src/example.ts</Path><M-SECOND /></M-EXAMPLE><M-SECOND><Summary>Second module.</Summary><Path>src/second.ts</Path></M-SECOND></GD-CORE></GraceGraphDocument>`,
+    `<NgraceGraphDocument graceVersion="4.0"><GD-CORE><M-EXAMPLE><Summary>Example module.</Summary><Path>src/example.ts</Path><M-SECOND /></M-EXAMPLE><M-SECOND><Summary>Second module.</Summary><Path>src/second.ts</Path></M-SECOND></GD-CORE></NgraceGraphDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/flows.xml`,
-    `<GraceGraphDocument graceVersion="4.0"><GD-FLOWS><DF-EXAMPLE-FLOW><Summary>Example flow.</Summary><M-EXAMPLE /><M-SECOND /></DF-EXAMPLE-FLOW></GD-FLOWS></GraceGraphDocument>`,
+    `<NgraceGraphDocument graceVersion="4.0"><GD-FLOWS><DF-EXAMPLE-FLOW><Summary>Example flow.</Summary><M-EXAMPLE /><M-SECOND /></DF-EXAMPLE-FLOW></GD-FLOWS></NgraceGraphDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/index.xml`,
-    `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-CORE><Path>verification/core.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-CORE><VD-SECOND><Path>verification/second.xml</Path><Owns><V-M-SECOND /></Owns></VD-SECOND></VerificationDocuments></GraceVerificationIndex>`,
+    `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-CORE><Path>verification/core.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-CORE><VD-SECOND><Path>verification/second.xml</Path><Owns><V-M-SECOND /></Owns></VD-SECOND></VerificationDocuments></NgraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/core.xml`,
-    `<GraceVerificationDocument graceVersion="4.0"><VD-CORE><V-M-EXAMPLE><Command>bun test src/example.test.ts</Command><Scenario>Example works.</Scenario><Marker>[Example][run][BLOCK_RUN]</Marker></V-M-EXAMPLE></VD-CORE></GraceVerificationDocument>`,
+    `<NgraceVerificationDocument graceVersion="4.0"><VD-CORE><V-M-EXAMPLE><Command>bun test src/example.test.ts</Command><Scenario>Example works.</Scenario><Marker>[Example][run][BLOCK_RUN]</Marker></V-M-EXAMPLE></VD-CORE></NgraceVerificationDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/second.xml`,
-    `<GraceVerificationDocument graceVersion="4.0"><VD-SECOND><V-M-SECOND><Command>bun test src/second.test.ts</Command><Scenario>Second module works.</Scenario><Marker>[Second][run][BLOCK_RUN]</Marker></V-M-SECOND></VD-SECOND></GraceVerificationDocument>`,
+    `<NgraceVerificationDocument graceVersion="4.0"><VD-SECOND><V-M-SECOND><Command>bun test src/second.test.ts</Command><Scenario>Second module works.</Scenario><Marker>[Second][run][BLOCK_RUN]</Marker></V-M-SECOND></VD-SECOND></NgraceVerificationDocument>`,
   );
   ensureChangeDirectories(root);
 }
@@ -99,7 +99,7 @@ export function writeChangeBundleFixture(root: string, options: {
   writeProjectFile(
     root,
     `${bundleRoot}/spec.xml`,
-    `<GraceChangeSpec graceVersion="4.0" status="${options.specStatus}"><${options.changeId}><Summary>Fixture change.</Summary><Problem>Fixture problem.</Problem><Goals><Goal>Exercise the change lifecycle.</Goal></Goals><Constraints><Constraint>Preserve fixture validity.</Constraint></Constraints><NonGoals><NonGoal>Unrelated behavior.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>The fixture remains valid.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand><ExpectedEvidence>Passing tests.</ExpectedEvidence></VerificationIntent><Assumptions><Assumption>The fixture project exists.</Assumption></Assumptions></${options.changeId}></GraceChangeSpec>`,
+    `<NgraceChangeSpec graceVersion="4.0" status="${options.specStatus}"><${options.changeId}><Summary>Fixture change.</Summary><Problem>Fixture problem.</Problem><Goals><Goal>Exercise the change lifecycle.</Goal></Goals><Constraints><Constraint>Preserve fixture validity.</Constraint></Constraints><NonGoals><NonGoal>Unrelated behavior.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>The fixture remains valid.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand><ExpectedEvidence>Passing tests.</ExpectedEvidence></VerificationIntent><Assumptions><Assumption>The fixture project exists.</Assumption></Assumptions></${options.changeId}></NgraceChangeSpec>`,
   );
 
   if (options.planStatus) {
@@ -107,7 +107,7 @@ export function writeChangeBundleFixture(root: string, options: {
     writeProjectFile(
       root,
       `${bundleRoot}/plan.xml`,
-      `<GraceChangePlan graceVersion="4.0" status="${options.planStatus}"><${options.changeId}>${planBody}</${options.changeId}></GraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="4.0" status="${options.planStatus}"><${options.changeId}>${planBody}</${options.changeId}></NgraceChangePlan>`,
     );
   }
 

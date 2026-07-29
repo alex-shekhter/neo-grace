@@ -1,0 +1,10 @@
+<NgraceVerificationDocument graceVersion="4.0">
+  <VD-API>
+    <V-M-API-ROUTER>
+      <Cwd>services/api</Cwd>
+      <Command>go test ./internal/router/...</Command>
+      <Scenario>Gateway dispatches routes to the posting contract.</Scenario>
+      <Marker>[ApiRouter][Route][BLOCK_DISPATCH]</Marker>
+    </V-M-API-ROUTER>
+  </VD-API>
+</NgraceVerificationDocument>

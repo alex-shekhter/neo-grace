@@ -1,6 +1,6 @@
 ---
 name: ngrace-execute
-description: Execute an approved GRACE 4 GraceChangePlan in sequential or parallel-safe mode with recovery-aware preflight and centralized durable apply.
+description: Execute an approved GRACE 4 NgraceChangePlan in sequential or parallel-safe mode with recovery-aware preflight and centralized durable apply.
 ---
 
 <skill>
@@ -18,7 +18,7 @@ Require one active bundle with approved, identity-matched `spec.xml` and `plan.x
 </assertion_commands>
 
 <mode_selection>
-Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires the explicit preflight to pass. Workers never mutate approved plans; durable `.grace` changes are applied centrally after observed work verifies.
+Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires the explicit preflight to pass. Workers never mutate approved plans; durable `.ngrace` changes are applied centrally after observed work verifies.
 </mode_selection>
 
 <recovery_decision_table>

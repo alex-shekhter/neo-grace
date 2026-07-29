@@ -10,12 +10,12 @@ A worked GRACE 4 project for a React UI + Go API + Rust core monorepo. Use this 
 | `services/api` | Go gateway router (`M-API-ROUTER`) |
 | `crates/core` | Rust ledger core (`M-LEDGER-CORE`) |
 | `openapi/posting.yaml` | Schema for `IC-POSTING-V1` |
-| `.grace/graph/{ui,api,core,contracts}.xml` | Segmented knowledge graph |
-| `.grace/verification/{ui,api,core}.xml` | Segmented verification |
-| `.grace/context/design-system.xml` | Tokens + breakpoints |
-| `.grace/context/invariants.xml` | Cross-cutting invariants |
-| `.grace/changes/active/C-ADD-KEYBOARD-NAV` | Mid-lifecycle approved change |
-| `.grace/changes/archive/C-ADD-POSTING-CONTRACT` | Applied happy-path archive |
+| `.ngrace/graph/{ui,api,core,contracts}.xml` | Segmented knowledge graph |
+| `.ngrace/verification/{ui,api,core}.xml` | Segmented verification |
+| `.ngrace/context/design-system.xml` | Tokens + breakpoints |
+| `.ngrace/context/invariants.xml` | Cross-cutting invariants |
+| `.ngrace/changes/active/C-ADD-KEYBOARD-NAV` | Mid-lifecycle approved change |
+| `.ngrace/changes/archive/C-ADD-POSTING-CONTRACT` | Applied happy-path archive |
 
 ## Multi-stack technology
 

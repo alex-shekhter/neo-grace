@@ -1,4 +1,4 @@
-<GraceChangeDesignContext graceVersion="4.0">
+<NgraceChangeDesignContext graceVersion="4.0">
   <Change>C-CHANGE-ID</Change>
   <NormativeStatus>non-normative</NormativeStatus>
   <Rationale>$RATIONALE</Rationale>
@@ -11,4 +11,4 @@
   <Scenarios>
     <Scenario>$SCENARIO</Scenario>
   </Scenarios>
-</GraceChangeDesignContext>
+</NgraceChangeDesignContext>

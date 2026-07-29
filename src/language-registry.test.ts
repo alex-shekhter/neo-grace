@@ -89,7 +89,7 @@ describe("codeExtensions config", () => {
   it("governs a project-declared language and reports it as unverified", () => {
     const root = createProject();
     writeProjectFile(root, "lib/ledger.ex", ELIXIR_MODULE);
-    writeProjectFile(root, ".grace-lint.json", JSON.stringify({ codeExtensions: [".ex", ".exs"] }));
+    writeProjectFile(root, ".ngrace-lint.json", JSON.stringify({ codeExtensions: [".ex", ".exs"] }));
 
     const result = lintGraceProject(root);
     expect(result.governedFiles).toBe(1);
@@ -102,7 +102,7 @@ describe("codeExtensions config", () => {
     writeProjectFile(root, "lib/ledger.ex", ELIXIR_MODULE);
     writeProjectFile(
       root,
-      ".grace-lint.json",
+      ".ngrace-lint.json",
       JSON.stringify({ codeExtensions: [".ex", ".exs"], unverifiedLanguages: [".ex", ".exs"] }),
     );
 
@@ -115,7 +115,7 @@ describe("codeExtensions config", () => {
   it("rejects malformed codeExtensions values", () => {
     for (const value of [".EX", "ex", "/etc/passwd", ".", "", 42, { ex: true }]) {
       const root = createProject();
-      writeProjectFile(root, ".grace-lint.json", JSON.stringify({ codeExtensions: [value] }));
+      writeProjectFile(root, ".ngrace-lint.json", JSON.stringify({ codeExtensions: [value] }));
       expect(lintGraceProject(root).issues.map((issue) => issue.code)).toContain("config.invalid-code-extensions");
     }
   });

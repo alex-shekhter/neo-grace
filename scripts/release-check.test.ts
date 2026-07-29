@@ -466,7 +466,7 @@ describe("release state and packed content", () => {
       { path: "src/grace-lint.test.ts" },
       { path: "src/grace4/test-fixtures.ts" },
       { path: "src/lint/temporary-analyzer.dart" },
-      { path: "tmp-project/.grace/context.xml" },
+      { path: "tmp-project/.ngrace/context.xml" },
       { path: "scripts/release-bump.ts" },
     ] }]);
     const errors = collectPackedContentErrors(invalid);

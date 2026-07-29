@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="draft">
+<NgraceChangeSpec graceVersion="4.0" status="draft">
   <C-CHANGE-ID>
     <Summary>$SUMMARY</Summary>
     <Problem>$PROBLEM</Problem>
@@ -31,4 +31,4 @@
       <Assumption>$ASSUMPTION</Assumption>
     </Assumptions>
   </C-CHANGE-ID>
-</GraceChangeSpec>
+</NgraceChangeSpec>

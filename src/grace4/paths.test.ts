@@ -104,8 +104,8 @@ describe("GRACE 4 contained project paths", () => {
 
     const realFile = realpathSync(file);
     // Regression: path.relative(lexicalRoot, realFile) escapes on macOS (/var → /private/var).
-    expect(toProjectRelativePath(root, realFile)).toBe(".grace/graph/main.xml");
-    expect(toProjectRelativePath(root, file)).toBe(".grace/graph/main.xml");
+    expect(toProjectRelativePath(root, realFile)).toBe(".ngrace/graph/main.xml");
+    expect(toProjectRelativePath(root, file)).toBe(".ngrace/graph/main.xml");
     expect(canonicalizeExistingPath(root)).toBe(realpathSync(root));
     expect(canonicalizeExistingPath(file)).toBe(realFile);
   });
@@ -118,8 +118,8 @@ describe("GRACE 4 contained project paths", () => {
     // lexical, so a missing document produced an escaping ../../.. route key.
     // Setup uses ARTIFACT_DIR; expects keep the literal as the Phase 3 alarm.
     const missing = path.join(root, ARTIFACT_DIR, "graph", "deleted.xml");
-    expect(toProjectRelativePath(root, missing)).toBe(".grace/graph/deleted.xml");
-    expect(canonicalizeExistingPath(missing)).toBe(path.join(realpathSync(root), ".grace", "graph", "deleted.xml"));
+    expect(toProjectRelativePath(root, missing)).toBe(".ngrace/graph/deleted.xml");
+    expect(canonicalizeExistingPath(missing)).toBe(path.join(realpathSync(root), ".ngrace", "graph", "deleted.xml"));
 
     // Nonexistent intermediate directories resolve too.
     const deep = path.join(root, "never", "created", "file.xml");

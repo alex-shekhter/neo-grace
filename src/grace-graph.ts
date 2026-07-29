@@ -185,7 +185,7 @@ function applyGraphSplit(
   const movedNodes = new Map<string, GraceXmlNode>();
 
   // Every write is staged here and flushed only after all validation succeeds. This command
-  // is the only one that writes to .grace/; writing source documents as they are processed
+  // is the only one that writes to .ngrace/; writing source documents as they are processed
   // meant a later failure — including the checks below — left anchors removed from disk with
   // no new document to hold them.
   const pendingWrites: Array<{ file: string; contents: string }> = [];
@@ -237,7 +237,7 @@ function applyGraphSplit(
   }
   const orderedAnchors = plan.moves.map((move) => movedNodes.get(move.anchorId)!);
   const newRoot: GraceXmlNode = {
-    tag: "GraceGraphDocument",
+    tag: "NgraceGraphDocument",
     attributes: { graceVersion: "4.0" },
     children: [
       {

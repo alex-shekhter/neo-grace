@@ -8,22 +8,22 @@ $ANNOTATION
 
 ## GRACE 4 Source of Truth
 
-This project uses the GRACE 4 `.grace` artifact model.
+This project uses the GRACE 4 `.ngrace` artifact model.
 
-- Product and technical context: `.grace/context/*.xml`
-- Current graph projection source: `.grace/graph/index.xml` plus routed graph documents such as `.grace/graph/main.xml`
-- Current verification projection source: `.grace/verification/index.xml` plus routed verification documents such as `.grace/verification/main.xml`
-- Active work: `.grace/changes/active/C-*/spec.xml` and `.grace/changes/active/C-*/plan.xml`
-- Completed or terminal work: `.grace/changes/archive/C-*/*`
+- Product and technical context: `.ngrace/context/*.xml`
+- Current graph projection source: `.ngrace/graph/index.xml` plus routed graph documents such as `.ngrace/graph/main.xml`
+- Current verification projection source: `.ngrace/verification/index.xml` plus routed verification documents such as `.ngrace/verification/main.xml`
+- Active work: `.ngrace/changes/active/C-*/spec.xml` and `.ngrace/changes/active/C-*/plan.xml`
+- Completed or terminal work: `.ngrace/changes/archive/C-*/*`
 
 Legacy `docs/*.xml` files are not GRACE 4 state. If legacy GRACE 3 docs appear, use `ngrace-migrate`; do not silently validate, convert, or delete them.
 
 ## Workflow Rules
 
-1. Do not implement source behavior before an approved active `GraceChangeSpec` and `GraceChangePlan` exist, unless the user explicitly requests a small direct fix.
+1. Do not implement source behavior before an approved active `NgraceChangeSpec` and `NgraceChangePlan` exist, unless the user explicitly requests a small direct fix.
 2. Treat `spec.xml` as normative. Treat `design-context.xml` as explanatory memory only.
 3. Before execution, check `BaselineAssertions`, `TargetAssertions`, `DurableScope`, and `ObservedWriteScope` in the plan.
-4. Update durable `.grace` graph and verification state only as part of the approved change lifecycle.
+4. Update durable `.ngrace` graph and verification state only as part of the approved change lifecycle.
 5. Never store transient run state by mutating approved XML statuses. Runtime states are derived from current files, assertions, and scopes.
 
 ## Semantic Anchor Rules
@@ -34,14 +34,14 @@ Legacy `docs/*.xml` files are not GRACE 4 state. If legacy GRACE 3 docs appear, 
 
 ## Grep-First Navigation
 
-1. Locate module ownership through `.grace/graph/index.xml`, then open the routed graph document.
-2. Locate verification through `.grace/verification/index.xml`, then open the routed verification document.
-3. Locate active work through `.grace/changes/active/C-*`.
+1. Locate module ownership through `.ngrace/graph/index.xml`, then open the routed graph document.
+2. Locate verification through `.ngrace/verification/index.xml`, then open the routed verification document.
+3. Locate active work through `.ngrace/changes/active/C-*`.
 4. Use file-local `LINKS:` fields and `START_BLOCK_` anchors to narrow code reads before loading whole files.
 
 ## CLI Checks
 
-- `grace lint --path .` validates `.grace` grammar, projections, assertions, lifecycle locations, and scope overlaps.
+- `grace lint --path .` validates `.ngrace` grammar, projections, assertions, lifecycle locations, and scope overlaps.
 - `grace status --path .` summarizes durable and operational GRACE 4 health.
 - `grace module`, `grace verification`, and `grace file` navigate graph, verification, and file-local anchors.
 

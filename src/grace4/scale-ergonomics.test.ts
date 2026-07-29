@@ -36,30 +36,30 @@ function writeTwoModuleProject(root: string) {
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/index.xml`,
-    `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-API-ROUTER /><M-WEB-APP /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+    `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-API-ROUTER /><M-WEB-APP /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/graph/main.xml`,
-    `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+    `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>`
       + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
       + `<M-API-ROUTER><Summary>API router.</Summary><Path>services/api/router.go</Path></M-API-ROUTER>`
       + `<M-WEB-APP><Summary>Web app.</Summary><Path>apps/web/App.tsx</Path></M-WEB-APP>`
-      + `</GD-MAIN></GraceGraphDocument>`,
+      + `</GD-MAIN></NgraceGraphDocument>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/index.xml`,
-    `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-API-ROUTER /><V-M-WEB-APP /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+    `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-API-ROUTER /><V-M-WEB-APP /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
   );
   writeProjectFile(
     root,
     `${ARTIFACT_DIR}/verification/main.xml`,
-    `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
+    `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
       + `<V-M-EXAMPLE><Command>echo ok</Command><Scenario>ok</Scenario></V-M-EXAMPLE>`
       + `<V-M-API-ROUTER><Command>echo ok</Command><Scenario>ok</Scenario></V-M-API-ROUTER>`
       + `<V-M-WEB-APP><Command>echo ok</Command><Scenario>ok</Scenario></V-M-WEB-APP>`
-      + `</VD-MAIN></GraceVerificationDocument>`,
+      + `</VD-MAIN></NgraceVerificationDocument>`,
   );
 }
 
@@ -83,34 +83,34 @@ describe("Phase 8 — document size warnings", () => {
   it("warns only when anchor or byte limit is exceeded; never as error", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
-    writeProjectFile(root, ".grace-lint.json", JSON.stringify({ documentAnchorLimit: 1, documentByteLimit: 1_000_000 }));
+    writeProjectFile(root, ".ngrace-lint.json", JSON.stringify({ documentAnchorLimit: 1, documentByteLimit: 1_000_000 }));
     // Minimal project has 1 module in GD-MAIN → at limit 1 is NOT over (> limit). Add second module.
     writeProjectFile(root, "src/second.ts", "export const s = 1;\n");
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-SECOND /></Owns></GD-MAIN></GraphDocuments></GraceGraphIndex>`,
+      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-SECOND /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>`
         + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
         + `<M-SECOND><Summary>Second.</Summary><Path>src/second.ts</Path></M-SECOND>`
-        + `</GD-MAIN></GraceGraphDocument>`,
+        + `</GD-MAIN></NgraceGraphDocument>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/index.xml`,
-      `<GraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-SECOND /></Owns></VD-MAIN></VerificationDocuments></GraceVerificationIndex>`,
+      `<NgraceVerificationIndex graceVersion="4.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /><V-M-SECOND /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/verification/main.xml`,
-      `<GraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
+      `<NgraceVerificationDocument graceVersion="4.0"><VD-MAIN>`
         + `<V-M-EXAMPLE><Command>echo</Command><Scenario>ok</Scenario></V-M-EXAMPLE>`
         + `<V-M-SECOND><Command>echo</Command><Scenario>ok</Scenario></V-M-SECOND>`
-        + `</VD-MAIN></GraceVerificationDocument>`,
+        + `</VD-MAIN></NgraceVerificationDocument>`,
     );
 
     const result = lintGraceProject(root);
@@ -126,13 +126,13 @@ describe("Phase 8 — document size warnings", () => {
   it("respects raised documentAnchorLimit (no warning)", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
-    writeProjectFile(root, ".grace-lint.json", JSON.stringify({ documentAnchorLimit: 500, documentByteLimit: 5_000_000 }));
+    writeProjectFile(root, ".ngrace-lint.json", JSON.stringify({ documentAnchorLimit: 500, documentByteLimit: 5_000_000 }));
     const result = lintGraceProject(root);
     expect(result.issues.filter((i) => i.code.endsWith("document-too-large"))).toHaveLength(0);
   });
 });
 
-describe("Phase 8 — multi-stack GraceTechnology", () => {
+describe("Phase 8 — multi-stack NgraceTechnology", () => {
   it("keeps flat Language/Runtime technology valid", () => {
     const root = createProject();
     writeMinimalGrace4Project(root);
@@ -147,10 +147,10 @@ describe("Phase 8 — multi-stack GraceTechnology", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/technology.xml`,
-      `<GraceTechnology graceVersion="4.0"><Stacks>`
+      `<NgraceTechnology graceVersion="4.0"><Stacks>`
         + `<Stack-WEB><Language>TypeScript</Language><Root>apps/web</Root></Stack-WEB>`
         + `<Stack-API><Language>Go</Language><Root>services/api</Root></Stack-API>`
-        + `</Stacks></GraceTechnology>`,
+        + `</Stacks></NgraceTechnology>`,
     );
     const resultCodes = codes(validateGrace4Project(root).issues);
     expect(resultCodes.filter((c) => c.startsWith("context.technology."))).toEqual([]);
@@ -162,7 +162,7 @@ describe("Phase 8 — multi-stack GraceTechnology", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/technology.xml`,
-      `<GraceTechnology graceVersion="4.0"><Stacks><Module>WEB</Module></Stacks></GraceTechnology>`,
+      `<NgraceTechnology graceVersion="4.0"><Stacks><Module>WEB</Module></Stacks></NgraceTechnology>`,
     );
     expect(codes(validateGrace4Project(root).issues)).toContain("context.technology.invalid-stack");
   });
@@ -173,7 +173,7 @@ describe("Phase 8 — multi-stack GraceTechnology", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/technology.xml`,
-      `<GraceTechnology graceVersion="4.0"><Stacks><Stack-WEB><Root>../../etc</Root></Stack-WEB></Stacks></GraceTechnology>`,
+      `<NgraceTechnology graceVersion="4.0"><Stacks><Stack-WEB><Root>../../etc</Root></Stack-WEB></Stacks></NgraceTechnology>`,
     );
     expect(codes(validateGrace4Project(root).issues)).toContain("context.technology.invalid-stack-root");
   });
@@ -184,7 +184,7 @@ describe("Phase 8 — multi-stack GraceTechnology", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/context/technology.xml`,
-      `<GraceTechnology graceVersion="4.0"><Stacks><Stack-WEB><Root>apps/missing</Root></Stack-WEB></Stacks></GraceTechnology>`,
+      `<NgraceTechnology graceVersion="4.0"><Stacks><Stack-WEB><Root>apps/missing</Root></Stack-WEB></Stacks></NgraceTechnology>`,
     );
     expect(codes(validateGrace4Project(root).issues)).toContain("context.technology.stack-root-missing");
   });
@@ -256,7 +256,7 @@ describe("Phase 8 — ngrace graph split", () => {
       allowDirty: true,
     });
     expect(plan.applied).toBe(true);
-    expect(existsSync(path.join(root, ".grace", plan.newDocumentRelativePath))).toBe(true);
+    expect(existsSync(path.join(root, ".ngrace", plan.newDocumentRelativePath))).toBe(true);
 
     const newFile = path.join(root, `${ARTIFACT_DIR}`, plan.newDocumentRelativePath);
     const serializedAfter = extractAnchorSerialization(newFile, "M-API-ROUTER");
@@ -298,30 +298,30 @@ describe("Phase 8 — ngrace graph split", () => {
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/index.xml`,
-      `<GraceGraphIndex graceVersion="4.0"><GraphDocuments>`
+      `<NgraceGraphIndex graceVersion="4.0"><GraphDocuments>`
         + `<GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-API-ROUTER /></Owns></GD-MAIN>`
         + `<GD-OTHER><Path>graph/services-api.xml</Path><Owns><M-WEB-APP /></Owns></GD-OTHER>`
-        + `</GraphDocuments></GraceGraphIndex>`,
+        + `</GraphDocuments></NgraceGraphIndex>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/main.xml`,
-      `<GraceGraphDocument graceVersion="4.0"><GD-MAIN>`
+      `<NgraceGraphDocument graceVersion="4.0"><GD-MAIN>`
         + `<M-EXAMPLE><Summary>Example.</Summary><Path>src/example.ts</Path></M-EXAMPLE>`
         + `<M-API-ROUTER><Summary>API router.</Summary><Path>services/api/router.go</Path></M-API-ROUTER>`
-        + `</GD-MAIN></GraceGraphDocument>`,
+        + `</GD-MAIN></NgraceGraphDocument>`,
     );
     writeProjectFile(
       root,
       `${ARTIFACT_DIR}/graph/services-api.xml`,
-      `<GraceGraphDocument graceVersion="4.0"><GD-OTHER><M-WEB-APP><Summary>Web app.</Summary><Path>apps/web/App.tsx</Path></M-WEB-APP></GD-OTHER></GraceGraphDocument>`,
+      `<NgraceGraphDocument graceVersion="4.0"><GD-OTHER><M-WEB-APP><Summary>Web app.</Summary><Path>apps/web/App.tsx</Path></M-WEB-APP></GD-OTHER></NgraceGraphDocument>`,
     );
     const collidingBefore = readFileSync(path.join(root, `${ARTIFACT_DIR}/graph/services-api.xml`), "utf8");
 
     expect(() => planGraphSplit(root, { pathPrefix: "services/api", apply: true, allowDirty: true })).toThrow(/already exists/);
-    expect(readFileSync(path.join(root, ".grace/graph/services-api.xml"), "utf8")).toBe(collidingBefore);
+    expect(readFileSync(path.join(root, ".ngrace/graph/services-api.xml"), "utf8")).toBe(collidingBefore);
     // Staged writes mean the refusal left the source document untouched too.
-    expect(extractAnchorSerialization(path.join(root, ".grace/graph/main.xml"), "M-API-ROUTER")).toBeTruthy();
+    expect(extractAnchorSerialization(path.join(root, ".ngrace/graph/main.xml"), "M-API-ROUTER")).toBeTruthy();
   });
 
   it("refuses --apply on a dirty git worktree without --allow-dirty", () => {
