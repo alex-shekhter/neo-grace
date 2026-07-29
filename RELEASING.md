@@ -110,6 +110,45 @@ When a tag matching `v*` is pushed, the `publish.yml` GitHub Actions workflow:
 
 After both publication steps succeed, check out the exact release tag and run `bun run release:checklist` to verify the tag commit, npm dist-tag, published tarball shasum, and GitHub prerelease flag as one consistent state.
 
+### A green publish run is not evidence of a publish
+
+**Always confirm the release on npm, not in Actions:**
+
+```bash
+npm view @neograce/cli dist-tags        # `latest` must read the version you just released
+npm view @neograce/cli versions        # the version must appear
+```
+
+`publish-prerelease` and `publish-stable` are mutually exclusive — each is gated on the `prerelease`
+output of `verify`. **A skipped job is not a failed job**, so if that output is ever wrong, *both*
+publish jobs skip and the workflow still reports **Success** over an npm registry that received
+nothing.
+
+This is not hypothetical. `v6.0.0` was tagged, its run reported Success, and nothing was published;
+the routing output was empty because two `$GITHUB_OUTPUT` writes had been moved into a step with no
+`id:`, where the shell variables they referenced were also out of scope. The release shipped as
+`6.0.1` instead, because a stable tag's commit must equal `origin/main` and merging the fix moved
+`main` — so `v6.0.0` could never publish. See `docs/plans/archive/RM-NAMESPACE-SEPARATION/plan.md`
+§9 A10.
+
+Two guards now exist, and neither replaces the check above:
+
+- `verify` fails when the routing output is not exactly `true` or `false`.
+- `confirm-published` fails the run unless **exactly one** publish path succeeded — including when a
+  `stable-release` deployment is declined, since nothing shipped and the run should not read green.
+
+**Verify the artifact, not only the registry metadata.** The strongest check is to install what was
+published and run it:
+
+```bash
+cd "$(mktemp -d)" && npm init -y >/dev/null
+npm install @neograce/cli@<version>
+./node_modules/.bin/ngrace --help      # must report the version you released
+```
+
+`npm view <pkg> --json` does **not** include the published file list, so it cannot tell you whether
+the tarball contains what you intended. An install can.
+
 ## Partial Publication Recovery
 
 - **npm publish succeeded, GitHub Release creation failed:** do not rerun `release:bump` or republish the immutable npm version. Verify the existing tag and npm dist-tag, then create the missing release with `gh release create <tag> --verify-tag --notes-file <release-body>` (add `--prerelease` only for prerelease tags).
