@@ -128,7 +128,13 @@ describe("GRACE 4 contained project paths", () => {
 
     // Documents the trap: toProjectRelativePath is an identity helper for paths
     // GRACE derived itself. resolveContainedProjectPath is the security boundary.
-    expect(toProjectRelativePath(root, "/etc/passwd").startsWith("../")).toBe(true);
+    // The *shape* of the escape is platform-dependent: POSIX yields a ../-prefixed
+    // relative path, while on Windows the target can resolve onto another drive, where
+    // no relative path exists and path.relative returns an absolute one. Assert the
+    // invariant that actually matters — the result points outside the project — rather
+    // than the POSIX spelling of it.
+    const escaped = toProjectRelativePath(root, "/etc/passwd");
+    expect(path.resolve(root, escaped).startsWith(path.resolve(root) + path.sep)).toBe(false);
     expect(() => resolveContainedProjectPath(root, "../etc/passwd")).toThrow(
       expect.objectContaining({ code: "path.traversal" }),
     );
