@@ -340,7 +340,7 @@ Keep this table current. It is the single source of truth for progress.
 
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
-| 0 | Evidence harness & v3 capability audit | D4 (corpus), D7 (audit), D15 (measurement format) | TBD | `NOT STARTED` |
+| 0 | Evidence harness & v3 capability audit | D4 (corpus), D7 (audit), D15 (measurement format) | TBD | `COMPLETE` |
 | 1 | Thin `.ngrace` self-migration | §5.5 | TBD | `NOT STARTED` |
 
 **Hard sequencing rules** — these are dependencies, not preferences.
@@ -362,7 +362,7 @@ the split exists — see the banner above.
 
 # PHASE 0 — Evidence harness & v3 capability audit
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Decisions:** D4 (seeded corpus), D7 (audit), D15 (measurement format)
 **Release:** TBD
 
