@@ -8,6 +8,12 @@ export type LintAssertionMode = "current" | "baseline" | "target" | "final";
 export type ModuleRole = "RUNTIME" | "TEST" | "BARREL" | "CONFIG" | "TYPES" | "SCRIPT";
 export type MapMode = "EXPORTS" | "LOCALS" | "SUMMARY" | "NONE";
 
+/**
+ * Classification of a lint issue. Absent field means defect (additive default).
+ * Absence codes are those for which no answer was produced, with the reason in `code`.
+ */
+export type IssueClass = "defect" | "absence";
+
 export type LintIssue = {
   severity: LintSeverity;
   code: string;
@@ -17,6 +23,8 @@ export type LintIssue = {
   title?: string;
   explanation?: string;
   remediation?: string[];
+  /** Optional; absent means defect. Attached from exact catalog entries (route 2). */
+  issueClass?: IssueClass;
 };
 
 export type AnalysisCoverageEntry = {

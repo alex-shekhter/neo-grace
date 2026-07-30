@@ -40,4 +40,8 @@ Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires
 7. Only then set spec and plan to `applied` and archive the complete bundle.
 8. Never edit approved assertions/scopes/tasks in place, bypass stale evidence, or continue through unknown drift.
 </execution_rules>
+
+<verdicts>
+Report the value the CLI emitted. Never summarize an absence into a pass. Shared vocabulary: `references/verdicts.md` under ngrace-cli (do not restate tokens here).
+</verdicts>
 </skill>

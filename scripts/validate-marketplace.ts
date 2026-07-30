@@ -480,6 +480,7 @@ function validate(): ValidationResult {
   }
 
   collectHardcodedPathWarnings(repoRoot, hardcodedPathWarnings);
+  validateVerdictSingleSource(errors);
 
   return {
     scopeLabel: scopedEntries.length === pluginEntries.length
@@ -490,6 +491,61 @@ function validate(): ValidationResult {
     warnings,
     hardcodedPathWarnings,
   };
+}
+
+/**
+ * D13 single-source rule for authored verdict tokens (A3.2 §3).
+ * - Scan repository-root `skills/` only (packaged mirror excluded).
+ * - At most one file may carry the token set.
+ * - That file must be ngrace-cli/references/verdicts.md and hold all three tokens.
+ */
+const VERDICT_TOKENS = ["unable-to-determine", "satisfied-unverified", "not-run"] as const;
+const VERDICTS_REL = path.join("skills", "ngrace", "ngrace-cli", "references", "verdicts.md");
+
+function collectFilesRecursive(dir: string, out: string[]) {
+  if (!isDirectory(dir)) {
+    return;
+  }
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      collectFilesRecursive(full, out);
+    } else if (entry.isFile()) {
+      out.push(full);
+    }
+  }
+}
+
+function validateVerdictSingleSource(errors: string[]) {
+  const verdictsPath = path.join(repoRoot, VERDICTS_REL);
+  if (!pathExists(verdictsPath)) {
+    errors.push(
+      `verdicts fragment missing: ${VERDICTS_REL} must exist and carry tokens ${VERDICT_TOKENS.join(", ")}`,
+    );
+  } else {
+    const text = readFileSync(verdictsPath, "utf8");
+    for (const token of VERDICT_TOKENS) {
+      if (!text.includes(token)) {
+        errors.push(`verdicts fragment missing token '${token}' in ${VERDICTS_REL}`);
+      }
+    }
+  }
+
+  const skillRoot = path.join(repoRoot, "skills");
+  const skillFiles: string[] = [];
+  collectFilesRecursive(skillRoot, skillFiles);
+  const carriers = skillFiles.filter((filePath) => {
+    const text = readFileSync(filePath, "utf8");
+    return VERDICT_TOKENS.some((token) => text.includes(token));
+  });
+
+  if (carriers.length > 1) {
+    errors.push(
+      `verdict tokens appear in more than one file under skills/ (at most one; A3.2 §3): ${
+        carriers.map((filePath) => path.relative(repoRoot, filePath)).sort().join(", ")
+      }`,
+    );
+  }
 }
 
 function printResult(result: ValidationResult) {

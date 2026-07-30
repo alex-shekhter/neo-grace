@@ -344,7 +344,7 @@ Keep this table current. It is the single source of truth for progress.
 
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
-| 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `NOT STARTED` |
+| 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
 | 3 | Run ledger & cursor | D1, D2, D3 | TBD | `NOT STARTED` |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
@@ -378,13 +378,17 @@ Phases **7** and **8** may float anywhere after 2 and 3 respectively. **4** may 
 
 # PHASE 2 — Absence value & honest verdicts
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Decisions:** D5 (vocabulary half), D13
 **Release:** TBD
 
-> **Amended by §14 A3 — read it before §2.5.** The steps below were written before the evidence existed.
-> A3 re-derives them against HEAD (eight corrections), adds the scope A3.1's quality bar pulls in, and
-> carries two decisions that must be answered before this phase is applied.
+> **Amended by §14 A3–A6 — read all four before §2.5.** The steps below were written before the evidence
+> existed. A3 re-derives them against HEAD (eight corrections), adds the scope A3.1's quality bar pulls in,
+> and carries two decisions; A4 answers both and adds a ninth correction; A5 adds a tenth and an eleventh,
+> **withdraws A4.3's consequence 2**, and sets three standing rules; A6 adds corrections 12–14, **corrects
+> A5.2's flag name**, sets a fourth standing rule, and approves the spec; A7 is the review gate — one
+> undisclosed behaviour change, four defects to fix before merge, and a fifth standing rule; A8 answers
+> A7.1 with a warning-level near-miss code.
 
 ## 2.1 Objective
 
@@ -1997,6 +2001,321 @@ Two consequences to carry into the report:
    live absence to demonstrate against. It does **not** replace A3.5's fixture requirement: the fixture
    covers `analysis.no-adapter`, which needs a governed file with no adapter, and this repository has
    `Governed files: 0`. Report both.
+
+> **Consequence 2 is withdrawn by A5.2.** Its premise is right and its inference is wrong: default lint
+> *skips* unevaluated command assertions rather than reporting them, so the bundle yields no live absence.
+
+### A5 — 2026-07-30 · Two more corrections, and three standing rules against the class that produced them
+
+Phase 2's draft `spec.xml` was reviewed before approval. Two further corrections came out of it — but the
+more useful finding is that corrections 2, 9 and 10 are **the same defect three times**, so this entry also
+sets rules that bind every remaining phase, not only this one.
+
+#### A5.1 Correction 10 — `issueClass` cannot reach lint from `assertions.ts`
+
+Measured at `0085f32`:
+
+- `assertion.command-not-evaluated` is emitted as an `NgraceIssue` (`src/artifact/types.ts:150-156`).
+  That type carries `severity`, `code`, `file`, `line`, `message` — and nothing else.
+- `addNgraceIssue` (`src/lint/core.ts:48-56`) re-lists exactly those five fields into the `LintResult`.
+  Anything the artifact layer attaches beyond them is dropped on the way in.
+
+So §2.5.2's "set `issueClass` at the emission sites" works for the two `analysis.*` codes —
+`src/project-utils.ts` builds a `LintIssue` directly via `markupIssue` (`:607`) — and **cannot** work for
+the third. Choose a route and state which:
+
+1. **Widen `NgraceIssue` and `addNgraceIssue`.** Keeps §2.5.2's emission-site model, at the cost of a field
+   on the artifact-layer record that only lint reads.
+2. **Derive the class from the catalog** in `withLintIssueGuide` (`src/lint/catalog.ts:459`).
+   `finalizeResult` already maps every issue through it (`core.ts:65`) and it already spreads `...issue`, so
+   the class arrives on every issue regardless of which layer emitted it, and a new absence code cannot
+   forget to classify itself.
+
+**Recommendation: route 2** — it makes `AC-CATALOG-JUSTIFY`'s catalog the single source of the
+classification instead of a second one running beside the emission sites. Either route pulls a file into the
+change that the draft spec does not name: `src/lint/core.ts` (`M-LINT-CORE`) or `src/artifact/types.ts`.
+
+#### A5.2 Correction 11 — `doctor` cannot observe `assertion.command-not-evaluated` at all
+
+A4.3's consequence 2 claimed the `C-*` bundle's `MustPassCommand` gives Phase 2 a live absence in this
+repository with no fixture. The premise is right — command assertions are not executed under default lint —
+and the inference is wrong: default lint **skips** them rather than reporting the absence.
+
+Measured at `0085f32`:
+
+- `doctor` calls `lintGraceProject(root)` with no options (`src/grace-doctor.ts:68`) → `assertionMode:
+  "current"`, and `doctorCommand` accepts only `--path` and `--format` (`:173-186`). There is no way to ask
+  it for another mode.
+- In `current` mode an active approved plan gets `BaselineAssertions` with `skipUnevaluatedCommands=true`
+  and `TargetAssertions` with `evaluateSemantically=false` (`src/lint/core.ts:238-244`); the skip covers
+  exactly `MustPassCommand` and `MustPassBudget` (`:290-297`). Archived plans are never evaluated
+  semantically (`:247-250`).
+- Two existing tests already pin this: `src/grace-lint.test.ts:410` and `:1080`.
+
+The skip is deliberate, and the code's severity is why: it is an **error** (`assertions.ts:263`). If current
+mode emitted it, every repository holding an active approved plan with a command gate would fail its own
+lint. Three consequences:
+
+1. **Writing `plan.xml` produces no absence in this repository.** A3.5's zero case survives — for *this*
+   reason. Say so in the report, or a reader takes "zero" as evidence nothing was wired up.
+2. **Step 2.5.4's `doctor` can report at most the two `analysis.*` codes.** Do not add flags to `doctor` to
+   manufacture the third; that is Phase 2 growing scope to satisfy a sentence. Instead make the absence
+   partition a pure function over `LintIssue[]`, unit-test it across all three codes, and add one lint-level
+   test asserting the third code carries `issueClass` under `--assertion-mode target --change
+   C-ABSENCE-VALUE`. Report it as *classified, unreachable from `doctor` today*, citing this amendment.
+3. **Phase 10 baselines `doctor`.** It must not read "two of three" as an incomplete Phase 2.
+
+#### A5.3 The shape three of these corrections share
+
+| # | Record | The allowlist that drops it |
+|---|---|---|
+| 2 (A3.2) | `DoctorResult.analysisIssues` | `Pick<LintIssue, …>` — `grace-doctor.ts:52` |
+| 9 (A4.3) | the issue itself | `code.startsWith("analysis.")` — `grace-doctor.ts:105-106` |
+| 10 (A5.1) | `NgraceIssue` → `LintIssue` | five-field re-copy — `lint/core.ts:48` |
+
+One defect, three times: a value is added at one end, an explicit list of fields or values on the path drops
+it, **nothing errors**, and the surface reports a confident, smaller truth. That is §15's failure in
+miniature — a report about work that was not checked. None of the three was found by the executor; each was
+found by a different reader, after the step depending on it had been written.
+
+Correction 11 is a second shape: a claim about runtime behaviour that nobody traced to the code. And the
+draft `spec.xml` re-loosened two things a correction had already tightened (A5.6). One rule each.
+
+#### A5.4 Standing rule 1 — inventory the drop sites before widening a record
+
+**Normative for Phases 2–11.** Before a phase adds a field to a record that crosses a module boundary, it
+produces a **drop-site inventory** for that record and puts it in the phase report: every point between
+emission and each consumer surface that re-lists fields instead of carrying the record whole.
+
+Shapes that qualify: `Pick<>` / `Omit<>`, an object literal that re-copies fields, a destructure-and-rebuild,
+a projection inside `.map()`, a serializer with an explicit field list, and any filter that enumerates
+*values* of the new field rather than reading it.
+
+Each site is named `file:line` and marked **widened**, **deliberately not widened** (with the reason), or
+**not on the path**. A phase that widens a record and reports no inventory has not finished the step.
+
+#### A5.5 Standing rule 2 — an amendment is a claim measured at a commit, not a fact
+
+Every amendment states what it measured and where. A phase that **depends** on a claim from an earlier
+amendment re-measures it and reports agreement or contradiction. It does not transcribe it.
+
+A4.3's consequence 2 was wrong on the day it was written, and the draft `spec.xml` carried it into an
+acceptance criterion unexamined — `assertion.command-not-evaluated countable when present`, beside `zero case
+on this repo`, two clauses that cannot both be demonstrated. Presence in an approved plan is not evidence.
+
+When a claim contradicts the code: **report it and amend the plan before the work proceeds.** Silently
+adopting it and silently working around it fail the same way — both leave the plan lying to the next reader.
+
+#### A5.6 Standing rule 3 — a criterion that descends from a correction cites it
+
+Corrections lose their teeth on transcription. Both instances in the draft spec come from corrections
+already recorded in this section:
+
+- **A3.2 correction 3** scoped the token scan to `skills/` and named the packaged mirror as the reason.
+  `AC-SINGLE-SOURCE` says "at most one under `skills/`" — which a naive glob reads as matching
+  `plugins/ngrace/skills/` too: precisely the failure the correction exists to prevent.
+- **A3.2 correction 1** added `src/project-utils.ts` to §2.3 because the file table had been derived from
+  prose rather than from the emission path. The draft's `AffectedAreas` repeats that error one layer up,
+  omitting whichever file correction 10 pulls in.
+
+So: an acceptance criterion descending from a correction **cites it inline** — `AC-SINGLE-SOURCE (A3.2 §3)` —
+and carries the correction's discriminating detail: the excluded path, the defect branch, the mode. A
+reviewer can then diff the criterion against its source in one read. And `AffectedAreas` is derived from the
+traced code path, never from §x.3's file table — that table is a floor, exactly like the steps (A3.1).
+
+#### A5.7 A finding for whichever phase owns scope checking — recorded, not scheduled
+
+`src/artifact/scope.ts` validates `ObservedWriteScope`'s shape and computes overlaps between concurrent
+active changes. **Nothing cross-checks its files against the graph's module `Path`s.** So a plan may write a
+file whose owning module appears in neither `DurableScope` nor `AffectedAreas`, and lint stays quiet — the
+same invisibility A3.3 fixed by hand for Phase 2, unenforced for the next change.
+`change.scope-does-not-cover-spec` covers spec→plan (`grammar.ts:1176`) and `change.plan-scope-exceeds-spec`
+the reverse as a warning (`:1199`); the file→module direction has no check at all. Do not build it in
+Phase 2.
+
+#### A5.8 Revisions required before `spec.xml` is approved
+
+1. **`AC-DOCTOR-ABSENCE`** — rewrite per A5.2. Two codes reachable from `doctor`; the third classified and
+   tested where it is reachable; the zero case attributed to the skip, not to absence of wiring.
+2. **`AffectedAreas`** — add the file A5.1's chosen route pulls in, and state the route.
+3. **`AC-SINGLE-SOURCE`** — "the repository-root `skills/` tree only; the packaged mirror is excluded",
+   citing A3.2 §3.
+4. **`AC-ISSUE-CLASS`** — name `analysis.adapter-failed` as the defect branch of the `:330` ternary
+   (A3.2 §1). The trap is the branch, so the criterion must name it.
+5. **`VerificationIntent`** — add `bun run ngrace lint --path .`. `validate:ci` lints only
+   `examples/polyglot` (`package.json:60`), never this repository's own tree, and this change lands its
+   first real bundle plus four new modules.
+6. **Assumption 1** — the §2.2 preconditions were re-measured at HEAD, not assumed. Record them as verified.
+
+#### A5.9 Additions to §2.6 definition of done
+
+- The drop-site inventory for `LintIssue` / `NgraceIssue` reported per A5.4
+- The reachability of each absence code recorded per surface — `lint --format json`, `doctor`,
+  `--assertion-mode target` — rather than a single "absences are reported"
+
+### A6 — 2026-07-30 · Route 2's unstated precondition, and evidence that outlives its bundle
+
+The revised `spec.xml` adopts A5.1 route 2 and applies every A5.8 item. Three corrections remain, two of
+them created *by* the route change and one of them inherited from an error in A5 itself.
+
+#### A6.1 Correction 12 — the third absence code is not in the catalog, and the prefix guide is a trap
+
+Route 2 derives the class from the catalog, so it depends on the catalog knowing the code. Measured at
+`0085f32`: `getLintIssueGuide` (`src/lint/catalog.ts:440-457`) resolves **exact entry → prefix guide →
+synthesized fallback**, and `assertion.command-not-evaluated` has **no exact entry**. It falls through to the
+`assertion.` prefix guide (`:390`). Three things follow, none of them stated in the spec:
+
+1. **The code must gain an exact catalog entry**, or `AC-ISSUE-CLASS`'s "carries `absence` after
+   `withLintIssueGuide`" cannot hold. This is also what lets `AC-CATALOG-JUSTIFY` attach its
+   `derivedFrom` / `proposedBy` to it.
+2. **The class may be set on exact entries only — never on a prefix guide.** Setting `issueClass:
+   "absence"` on the `assertion.` prefix guide classifies *every* `assertion.*` code as an absence:
+   `assertion.MustExist`, `assertion.MustVerify`, `assertion.invalid-pattern`, `assertion.budget-no-match`,
+   `assertion.change-required`. Those are failures and defects. None of them has an exact entry either, so
+   they all resolve through that same prefix — the misclassification would be silent and wholesale. Pin it:
+   a test asserting a non-absence `assertion.*` code carries no `absence` class.
+3. **The synthesized fallback yields no class**, so an uncatalogued code is a defect by default. That is the
+   right default; state it as chosen rather than leaving it to be inferred.
+
+`AC-CATALOG-JUSTIFY` currently carries the hole in its own trailing conditional — "a new absence code cannot
+forget to classify itself **if it is catalogued**" — and today the uncatalogued one is exactly the third
+absence code. Rewrite it so being catalogued is a requirement, not a hypothesis.
+
+#### A6.2 Correction 13 — evidence pinned to `C-ABSENCE-VALUE` dies when the bundle is archived
+
+`AC-DOCTOR-ABSENCE` specifies a lint-level test run with `--change C-ABSENCE-VALUE`. Archived plans are
+**never** evaluated semantically (`src/lint/core.ts:247-250`), so the moment this phase's own bundle moves to
+`.ngrace/changes/archive/` as `applied`, that test stops seeing the code and fails. It would go green for the
+length of the phase and break on the commit that completes it.
+
+Use a **fixture** bundle. `src/grace-lint.test.ts:399-417` already builds exactly the right one —
+`writeApprovedChange(root, "C-COMMAND", …)`, target mode, no `--run-commands` — and asserts the code at
+`:414`. Extend that assertion to `issueClass`; the fixture is durable because nothing archives it.
+
+#### A6.3 Correction 14 — the flag is `--assertions`, not `--assertion-mode`
+
+`assertionMode` is the programmatic `LintOptions` key; the CLI flag is `--assertions`
+(`src/grace-lint.ts:114-118`). **A5.2 wrote it wrong and the spec inherited it verbatim** — `AC-DOCTOR-ABSENCE`
+and `VerificationIntent` both cite a flag that does not exist. This entry supersedes the flag name wherever
+A5.2 and A5.9 use it; per this section's append-only rule those entries stay as written. This is A5.5
+catching an amendment of its own: a claim in an approved plan is not evidence, including when the plan is
+this one.
+
+#### A6.4 Standing rule 4 — evidence must not depend on transient artifact state
+
+**Normative for Phases 2–11.** A test or recorded measurement may not depend on a project artifact whose
+lifecycle moves: an active change bundle, a plan at a particular status, a cursor position, a ledger entry, a
+file that a later phase archives. Evidence is built on fixtures the phase owns outright.
+
+This track is about to build run ledgers, cursors, attempt logs and gates — all of them transient by design.
+A test that reads live project state passes during the phase that wrote it and fails for whoever moves the
+state next, which reads as an unrelated regression. When a phase genuinely needs live state, it records the
+reading in the report and tests the mechanism against a fixture.
+
+#### A6.5 One tree note, then approval
+
+`V-M-DOCTOR` now points at `src/artifact/scale-ergonomics.test.ts`, and the `Scenario` says the coverage is
+incidental until the real file lands. That is honest and acceptable as an interim, but A3.3 requires
+`src/grace-doctor.test.ts` **in this phase**, and `VerificationIntent` still names it — so the anchor must be
+repointed in the commit that creates the file. Added to §2.6: `V-M-DOCTOR` names the real test file at phase
+end, and the interim pointer does not survive the phase.
+
+**With A6.1–A6.3 applied, the spec is approved.** No third stop for review: apply them, set
+`status="approved"`, write `plan.xml`, and proceed to §2.5 as corrected by A3–A6.
+
+### A7 — 2026-07-30 · Phase 2 review gate: one undisclosed behaviour change, four small defects
+
+Phase 2's implementation was reviewed against the diff at `READY FOR REVIEW`. §2.7's three gates pass:
+no code was renamed or removed; `verdicts.md` restates nothing the binary emits; and the single-source
+rule was reproduced **failing** on deliberate duplication during review, not merely asserted. Every
+verify-table row reproduces. What follows does not undo any of that.
+
+#### A7.1 Correction 15 — the near-miss marker guard trades three errors for silence, undisclosed
+
+The adversarial probe found that `hasGraceMarkers` over-matched `START_MODULE_CONTRACTX`, and the fix
+added `(?![A-Za-z0-9_])` guards plus `START_BLOCK_[A-Z0-9_]+`. Measured on the branch:
+
+| Input | Before | After |
+|---|---|---|
+| `// START_MODULE_CONTRACTX` | governed → `markup.missing-module-contract`, `markup.module-map-missing`, `markup.module-map-mismatch` | **not governed → no issues** |
+| `// START_BLOCK_foo` | governed → the same three | **not governed → no issues** |
+
+`hasGraceMarkers` is the governance gate (`src/lint/core.ts:104`), so a file that fails it is not linted
+at all. **The direction is defensible** — §0.7.3 ranks a confident false error above a silent gap, and
+`START_BLOCK_[A-Z0-9_]+` now matches the real block grammar at `project-utils.ts:478`. But the ranking
+covers the file that never opted in (`// START_MODULE_MAPPER`), not the file that opted in and *typed the
+marker wrong*: there the author wanted governance and now gets nothing. One regex cannot tell the two
+apart, and the fix answers both the same way.
+
+What is missing is the disclosure. The report says "over-match found and fixed"; that three errors became
+silence appears nowhere, and §0.7.4's compat sweep cannot surface it because no fixture carries a
+near-miss marker. §0.7.6 requires the probe output **and** the fix.
+
+Required: state the trade in the phase report with the table above. Then either accept it explicitly as a
+recorded decision, or raise a warning-level near-miss code (`START_MODULE_CONTRACT[A-Za-z0-9_]+` in a
+comment, file not governed) so both cases stay loud — that is a new issue code under §12.1, so it is a
+decision to raise, never a unilateral add.
+
+#### A7.2 Standing rule 5 — a change to a detection boundary reports both directions
+
+**Normative for Phases 2–11.** When a phase changes what a detector matches — a regex, a gate, a filter,
+a governance predicate — the report gives a table of inputs whose outcome changed, in **both**
+directions: what newly fires, and what newly stays quiet. "Fixed an over-match" is half a sentence; the
+half that matters is what went silent.
+
+This is the sibling of A5.4. A5.4 catches a value dropped between modules; this catches a *case* dropped
+at a boundary. Both are invisible in a green test run, and both read as improvements in a report.
+
+#### A7.3 Four defects to fix before the phase merges
+
+1. **`DefectPatternId` is duplicated with nothing keeping it honest.** A3.2 §4 allowed the duplicate into
+   `catalog.ts:10-16` and the phase stated the choice — but nothing pins it against `PATTERNS` in
+   `src/test-support/defect-corpus.ts:26`. A sixth D4 pattern, or a rename, diverges silently and
+   `proposedBy` types against a stale vocabulary. `catalog.test.ts` is a test file, so it may import
+   test-support without touching invariant 7: one assertion that the two sets are equal.
+2. **Two assertions are vacuous by construction.** `grace-lint.test.ts` (`if (defect) { … }`) and
+   `language-registry.test.ts` (`if (ordinary) { … }`) skip their check when `find` returns `undefined`.
+   Assert the discriminating issue exists, then assert its class.
+3. **A skipped test reports as a pass.** `grace-doctor.test.ts`'s python-gated case does `if (!hasPython)
+   return;`. On a host without `python3` it is green having checked nothing. Use `it.skipIf(...)` so the
+   absence is reported as a skip — `verdicts.md`, shipped by this same phase, defines `not-run` as
+   "evidence was not produced," and this test converts exactly that into a pass.
+4. **Dead defensive default in `formatDoctorText`.** Every row of `report.analysisIssues` comes from
+   `toDoctorAbsenceIssues`, so `issue.issueClass ?? "absence"` can never fire; if a non-absence row ever
+   leaked in, the `??` would launder it instead of surfacing it. Count by `code` directly.
+
+#### A7.4 Phase 10 inherits the `analysisIssues` naming debt
+
+`doctor`'s JSON key `analysisIssues` and its "Analysis issues" heading now carry absence-class rows, kept
+for A2 baseline continuity. That is the right call for Phase 2 and the wrong name to keep forever: it is
+accurate only while every reachable absence happens to be an `analysis.*` code. **Phase 10 owns the
+rename**, together with whatever baseline note the change needs. Recorded here so it is a named debt with
+an owner rather than an open question in a report.
+
+### A8 — 2026-07-30 · A7.1 answered: the near-miss marker gets a warning
+
+**Decided by the maintainer:** Phase 2 closes the silence it introduced rather than recording it. The file
+still does not become governed — that part of A7.1's fix stands, and no false errors return — but a comment
+that *resembles* a marker is reported instead of ignored. Both the "never opted in" and the "opted in and
+typo'd" cases are loud again, which is what invariant 3 asks for.
+
+Scope, so this does not sprawl at a review gate:
+
+- **One code, warning severity.** A warning cannot turn a previously-green project red (§0.7.4 makes that
+  test about *errors*), so the blast radius is bounded.
+- **Registered per §12.1** with `derivedFrom` and `proposedBy` — it is an exact catalog entry like the three
+  absence codes, and `proposedBy` is a `DefectPatternId`. It is a **defect**, not an absence: do not give it
+  `issueClass: "absence"`. The file's markup is malformed, not missing.
+- **Detection is the near-miss, not the near-match.** A comment line whose marker token starts with a known
+  marker name and continues with `[A-Za-z0-9_]` — the inputs A7.1 tabulated. `START_BLOCK_` with a
+  lowercase name belongs here too, since `project-utils.ts:478` will never parse it.
+- **§0.7.4's sweep runs for it**, and the phase report's "New issue codes: none" line becomes one warning
+  with the per-fixture table.
+- **A7.2 applies to the code itself:** report what newly fires *and* what stays quiet, including the fact
+  that a near-miss file is still not governed.
+
+The rest of A7 is unchanged: A7.1's disclosure table is still required — it is what makes this decision
+legible to the next reader — and A7.3's four fixes still land before merge.
 
 ---
 

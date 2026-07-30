@@ -10,7 +10,13 @@ import { ARTIFACT_DIR } from "../artifact/paths";
 import { ARTIFACT_TAG_PREFIX, ANCHOR_PATTERNS, type NgraceIssue, type NgraceProjectPaths } from "../artifact/types";
 import { readGraceXmlArtifact } from "../artifact/xml";
 import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "../language-registry";
-import { analyzeGovernedFile, collectCodeFiles, hasGraceMarkers, type FileMarkupRecord } from "../project-utils";
+import {
+  analyzeGovernedFile,
+  collectCodeFiles,
+  collectNearMissMarkerIssues,
+  hasGraceMarkers,
+  type FileMarkupRecord,
+} from "../project-utils";
 import { withLintIssueGuide } from "./catalog";
 import { loadGraceLintConfig } from "./config";
 import { documentSizeIssues } from "./document-size";
@@ -101,6 +107,10 @@ function validateGovernedFiles(result: LintResult, root: string): FileMarkupReco
 
   for (const file of files) {
     const text = readText(file);
+    // A8: near-miss markers warn without governing the file.
+    for (const issue of collectNearMissMarkerIssues(file, text)) {
+      addIssue(result, issue);
+    }
     if (!hasGraceMarkers(text)) {
       continue;
     }

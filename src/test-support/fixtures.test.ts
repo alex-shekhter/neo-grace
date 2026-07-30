@@ -72,6 +72,27 @@ describe("test-support fixtures", () => {
     expect(result.summary.errors).toBe(0);
   });
 
+  it("§0.7.4: markup.near-miss-marker is not an error on clean fixtures (A8)", () => {
+    // Warning-only code; errors must stay empty. Report codes per fixture for the phase table.
+    const table: Array<{ name: string; nearMiss: string[] }> = [];
+    for (const [name, root] of [
+      ["polyglotFixture()", polyglotFixture()],
+      ["minimalTsFixture()", minimalTsFixture()],
+      ["scaleFixture(20)", scaleFixture(20)],
+    ] as const) {
+      const result = lintGraceProject(root);
+      expect(result.summary.errors, name).toBe(0);
+      table.push({
+        name,
+        nearMiss: result.issues.filter((i) => i.code === "markup.near-miss-marker").map((i) => i.code),
+      });
+    }
+    // Clean fixtures must not invent near-miss warnings.
+    for (const row of table) {
+      expect(row.nearMiss, row.name).toEqual([]);
+    }
+  });
+
   it("builder is deterministic", () => {
     const left = new GraceProjectBuilder(createTempProject("grace-det-a-"))
       .module({ id: "M-A", path: "src/a.ts", summary: "A" })

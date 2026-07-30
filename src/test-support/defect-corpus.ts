@@ -353,6 +353,62 @@ export function planIsApproved(xml: string): boolean {
   ],
 };
 
+const re03: SeededDefect = {
+  id: "corpus-re-03-nested-template-markers",
+  pattern: "regex-over-structure",
+  rationale:
+    "hasGraceMarkers used a line-oriented marker regex after a stripper that mishandled nested template backticks inside ${}, so fixture markers in nested templates were treated as real markup.",
+  build: () => baseCleanProject("corpus-re-03-"),
+  apply: (root) => {
+    // The defective shape: a helper whose nested templates leave START_* visible
+    // when stripQuotedStrings does not handle ${...}. Detector for review surface;
+    // the fixed stripper is proven in project-utils.test.ts. This entry records the
+    // historical defect shape for D4 scoring.
+    writeRelative(
+      root,
+      "src/scan-markers.ts",
+      `/** Defective: line-oriented marker scan without template-interpolation awareness. */
+export function fileLooksGoverned(source: string): boolean {
+  return source.split("\\n").some((line) =>
+    /^(\\s*)(\\/\\/|#)\\s*START_MODULE_CONTRACT/.test(line),
+  );
+}
+`,
+    );
+    writeRelative(
+      root,
+      "src/fixture-helper.ts",
+      `export function contract(mapMode: string, moduleMap = "") {
+  return \`// START_MODULE_CONTRACT
+// PURPOSE: Fixture.
+// MAP_MODE: \${mapMode}
+// END_MODULE_CONTRACT
+\${moduleMap ? \`// START_MODULE_MAP
+\${moduleMap}
+// END_MODULE_MAP\` : ""}\`;
+}
+`,
+    );
+  },
+  expected: [
+    {
+      code: "review.regex-over-structure",
+      file: "src/scan-markers.ts",
+      mustFire: true,
+      surface: "review",
+    },
+    // After apply the helper's nested templates must not make the project emit
+    // markup errors under current lint (fixed stripper / hasGraceMarkers).
+    {
+      code: "markup.missing-module-contract",
+      file: "src/fixture-helper.ts",
+      mustFire: false,
+      surface: "lint",
+      lintMode: "current",
+    },
+  ],
+};
+
 const re02: SeededDefect = {
   id: "corpus-re-02-export-regex-in-string",
   pattern: "regex-over-structure",
@@ -413,9 +469,10 @@ export function run() {
 // ---------------------------------------------------------------------------
 
 // Pattern 4 note: zo-01 is a positive control (existing cardinality check fires).
-// zo-02 is the only genuine silent swallow at HEAD. If the D4 ratchet later needs
-// two true swallows per pattern, corpus-zo-03 is the known gap — do not invent it
-// without a shape that still lints clean after apply.
+// zo-02 is the only genuine silent swallow at HEAD.
+// corpus-zo-03 (A3.3 attempt): shapes tried and refused — see comment on the
+// omitted entry below. Do not invent a third swallow without a shape that still
+// lints clean after apply.
 
 const zo01: SeededDefect = {
   id: "corpus-zo-01-empty-acceptance",
@@ -606,6 +663,26 @@ const ut02: SeededDefect = {
   ],
 };
 
+/*
+ * corpus-zo-03 attempt (A3.3) — refused, not landed.
+ *
+ * Shapes tried (each failed the "still lints clean after apply" bar, or was not a
+ * true silent swallow of malformed children):
+ * 1. Empty <Satisfies></Satisfies> on a task — grammar already requires at least
+ *    one AC reference or rejects empty sections in several paths; not silent.
+ * 2. Empty <GraphAnchors></GraphAnchors> under DurableScope — scope extraction
+ *    and change.scope / coverage checks surface missing anchors; not silent.
+ * 3. Empty <OutOfPlanScope></OutOfPlanScope> — optional section; empty is valid
+ *    silence without a malformed child to swallow, so not pattern 4.
+ * 4. Bare text child inside <DependsOn>garbage</DependsOn> — either rejected as
+ *    invalid anchor shape or ignored without a stable defect code at HEAD.
+ * 5. Duplicate empty <AcceptanceCriteria> siblings — first empty already fires
+ *    change.task-empty-acceptance (zo-01 territory).
+ *
+ * No shape found that (a) lints clean after apply and (b) silently swallows a
+ * malformed child. Gap remains recorded; do not invent a false positive entry.
+ */
+
 const ALL: SeededDefect[] = [
   cw01,
   cw02,
@@ -613,6 +690,7 @@ const ALL: SeededDefect[] = [
   sr02,
   re01,
   re02,
+  re03,
   zo01,
   zo02,
   ut01,

@@ -95,6 +95,15 @@ describe("codeExtensions config", () => {
     expect(result.governedFiles).toBe(1);
     // Governed, and honest about what it cannot verify.
     expect(issuesForElixir(result)).toContain("analysis.no-adapter");
+    // Phase 2: catalog route 2 attaches issueClass on finalize (A7.3 §2: assert exists first).
+    const noAdapter = result.issues.find((issue) => issue.code === "analysis.no-adapter");
+    expect(noAdapter).toBeDefined();
+    expect(noAdapter!.issueClass).toBe("absence");
+    for (const issue of result.issues) {
+      if (issue.code !== "analysis.no-adapter") {
+        expect(issue.issueClass).not.toBe("absence");
+      }
+    }
   });
 
   it("lets a project acknowledge the missing adapter to reach a clean lint", () => {

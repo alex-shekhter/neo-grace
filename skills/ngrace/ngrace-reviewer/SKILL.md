@@ -32,4 +32,8 @@ T0 is valid only for true production hotfixes with tight `ObservedWriteScope` an
 <output>
 Return findings with severity, location, why it matters, expected fix direction, and verification target. Do not fix unless explicitly asked.
 </output>
+
+<verdicts>
+Report the value the CLI emitted. Never summarize an absence into a pass. Shared vocabulary: `references/verdicts.md` under ngrace-cli (do not restate tokens here).
+</verdicts>
 </skill>

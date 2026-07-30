@@ -4,9 +4,13 @@
       <Path>verification/main.xml</Path>
       <Owns>
         <V-M-LINT-CORE />
+        <V-M-LINT-TYPES />
+        <V-M-LINT-CATALOG />
         <V-M-ASSERTIONS />
+        <V-M-PROJECT-UTILS />
         <V-M-GRAMMAR />
         <V-M-STATUS />
+        <V-M-DOCTOR />
         <V-M-SKILLS />
       </Owns>
     </VD-MAIN>

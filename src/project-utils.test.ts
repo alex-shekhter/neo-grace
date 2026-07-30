@@ -4,32 +4,79 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, test } from "bun:test";
 
-import { analyzeGovernedFile, hasRuntimeMarkerEvidence, parseGovernedFile } from "./project-utils";
+import {
+  analyzeGovernedFile,
+  collectNearMissMarkerIssues,
+  hasGraceMarkers,
+  hasRuntimeMarkerEvidence,
+  parseGovernedFile,
+  stripQuotedStrings,
+} from "./project-utils";
 
 function contract(mapMode: "EXPORTS" | "LOCALS" | "SUMMARY" | "NONE", moduleMap = ""): string {
-  // Built with concatenation (not nested template literals) so this test helper
-  // does not leave bare START_* markers outside strings after quote-stripping.
-  // Nested backticks previously made hasGraceMarkers treat this file as governed.
-  const role =
-    mapMode === "LOCALS" ? "SCRIPT"
-    : mapMode === "SUMMARY" ? "BARREL"
-    : mapMode === "NONE" ? "CONFIG"
-    : "RUNTIME";
-  const header = [
-    "// START_MODULE_CONTRACT",
-    "// PURPOSE: Exercise semantic markup.",
-    "// SCOPE: Test-only fixture.",
-    "// DEPENDS: none",
-    "// LINKS: M-EXAMPLE",
-    `// ROLE: ${role}`,
-    `// MAP_MODE: ${mapMode}`,
-    "// END_MODULE_CONTRACT",
-  ].join("\n");
-  if (!moduleMap) {
-    return header;
-  }
-  return `${header}\n// START_MODULE_MAP\n${moduleMap}\n// END_MODULE_MAP\n`;
+  // Nested templates are safe again after stripQuotedStrings handles `${...}`
+  // (A3.3 / corpus-re-03). Phase 1's concatenation workaround is no longer required.
+  return `// START_MODULE_CONTRACT
+// PURPOSE: Exercise semantic markup.
+// SCOPE: Test-only fixture.
+// DEPENDS: none
+// LINKS: M-EXAMPLE
+// ROLE: ${mapMode === "LOCALS" ? "SCRIPT" : mapMode === "SUMMARY" ? "BARREL" : mapMode === "NONE" ? "CONFIG" : "RUNTIME"}
+// MAP_MODE: ${mapMode}
+// END_MODULE_CONTRACT
+${moduleMap ? `// START_MODULE_MAP\n${moduleMap}\n// END_MODULE_MAP\n` : ""}`;
 }
+
+describe("stripQuotedStrings / hasGraceMarkers (nested templates)", () => {
+  it("does not treat nested-template fixture markers as real markup (corpus-re-03 shape)", () => {
+    // Pre-Phase-1 contract() shape that defeated the stripper before ${} handling.
+    const source = `function contract(mapMode: string, moduleMap = "") {
+  return \`// START_MODULE_CONTRACT
+// PURPOSE: Exercise semantic markup.
+// SCOPE: Test-only fixture.
+// DEPENDS: none
+// LINKS: M-EXAMPLE
+// ROLE: RUNTIME
+// MAP_MODE: \${mapMode}
+// END_MODULE_CONTRACT
+\${moduleMap ? \`// START_MODULE_MAP
+\${moduleMap}
+// END_MODULE_MAP\` : ""}\`;
+}
+`;
+    expect(hasGraceMarkers(source)).toBe(false);
+    const stripped = stripQuotedStrings(source);
+    expect(stripped).not.toMatch(/START_MODULE_CONTRACT/);
+    expect(stripped).not.toMatch(/START_MODULE_MAP/);
+  });
+
+  it("still detects real comment markers outside strings", () => {
+    expect(hasGraceMarkers("// START_MODULE_CONTRACT\n// END_MODULE_CONTRACT\n")).toBe(true);
+  });
+
+  it("does not treat near-miss marker names as real markup", () => {
+    expect(hasGraceMarkers("// START_MODULE_CONTRACTX\n")).toBe(false);
+    expect(hasGraceMarkers("// START_MODULE_MAPPER\n")).toBe(false);
+    expect(hasGraceMarkers("// START_BLOCK_RUN\n// END_BLOCK_RUN\n")).toBe(true);
+    expect(hasGraceMarkers("// START_BLOCK_foo\n")).toBe(false);
+  });
+
+  it("reports markup.near-miss-marker without governing the file (A8)", () => {
+    const contractX = collectNearMissMarkerIssues("src/a.ts", "// START_MODULE_CONTRACTX\nexport const x = 1;\n");
+    expect(hasGraceMarkers("// START_MODULE_CONTRACTX\nexport const x = 1;\n")).toBe(false);
+    expect(contractX).toHaveLength(1);
+    expect(contractX[0]!.code).toBe("markup.near-miss-marker");
+    expect(contractX[0]!.severity).toBe("warning");
+
+    const blockFoo = collectNearMissMarkerIssues("src/b.ts", "// START_BLOCK_foo\n");
+    expect(hasGraceMarkers("// START_BLOCK_foo\n")).toBe(false);
+    expect(blockFoo.some((i) => i.code === "markup.near-miss-marker")).toBe(true);
+
+    // Exact markers are not near-misses.
+    expect(collectNearMissMarkerIssues("src/c.ts", "// START_MODULE_CONTRACT\n// END_MODULE_CONTRACT\n")).toEqual([]);
+    expect(collectNearMissMarkerIssues("src/d.ts", "// START_BLOCK_RUN\n// END_BLOCK_RUN\n")).toEqual([]);
+  });
+});
 
 describe("governed file analysis", () => {
   it("parses the shared markup record and enforces exact TypeScript value/type export parity", () => {

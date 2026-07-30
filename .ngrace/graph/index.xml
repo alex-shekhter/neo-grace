@@ -4,9 +4,13 @@
       <Path>graph/main.xml</Path>
       <Owns>
         <M-LINT-CORE />
+        <M-LINT-TYPES />
+        <M-LINT-CATALOG />
         <M-ASSERTIONS />
+        <M-PROJECT-UTILS />
         <M-GRAMMAR />
         <M-STATUS />
+        <M-DOCTOR />
         <M-SKILLS />
       </Owns>
     </GD-MAIN>

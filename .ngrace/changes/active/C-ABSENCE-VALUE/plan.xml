@@ -1,0 +1,154 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-ABSENCE-VALUE>
+    <IntentSummary>Land issueClass via catalog route 2, doctor absence-by-reason, scanner fix, corpus entries, and shared verdict vocabulary per A3–A6.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-LINT-TYPES</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-PROJECT-UTILS</Value></MustExist>
+      <MustExist><Value>M-DOCTOR</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustVerify><Module>M-LINT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-PROJECT-UTILS</Module></MustVerify>
+      <MustVerify><Module>M-DOCTOR</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-doctor.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-cli/references/verdicts.md</Value></MustExist>
+      <MustVerify><Module>M-LINT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-PROJECT-UTILS</Module></MustVerify>
+      <MustVerify><Module>M-DOCTOR</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:packed</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-LINT-TYPES />
+        <M-LINT-CATALOG />
+        <M-PROJECT-UTILS />
+        <M-DOCTOR />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-LINT-TYPES />
+        <V-M-LINT-CATALOG />
+        <V-M-PROJECT-UTILS />
+        <V-M-DOCTOR />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/lint/types.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/grace-doctor.ts</File>
+      <File>src/grace-doctor.test.ts</File>
+      <File>src/project-utils.ts</File>
+      <File>src/project-utils.test.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>src/test-support/defect-corpus.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>scripts/validate-marketplace.ts</File>
+      <File>skills/ngrace/ngrace-cli/references/verdicts.md</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>skills/ngrace/ngrace-verification/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-cli/references/verdicts.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-verification/SKILL.md</File>
+      <File>.ngrace/graph/main.xml</File>
+      <File>.ngrace/graph/index.xml</File>
+      <File>.ngrace/verification/main.xml</File>
+      <File>.ngrace/verification/index.xml</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Add issueClass to LintIssue and exact catalog absence classification (route 2)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>issueClass optional on LintIssue; three absence codes exact-catalogued with issueClass absence; adapter-failed not absence; prefix guides never set class; withLintIssueGuide attaches class.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-ISSUE-CLASS />
+          <AC-CATALOG-JUSTIFY />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/lint/catalog.test.ts src/grace-lint.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Doctor absence-by-reason and grace-doctor.test.ts</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Doctor filters by issueClass; Pick includes issueClass; pure partition unit-tested for three codes; zero and non-zero cases; V-M-DOCTOR points at grace-doctor.test.ts.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-DOCTOR-ABSENCE />
+          <AC-DROP-SITE-INVENTORY />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-doctor.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Scanner string-literal awareness and corpus entries</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Nested-template markers not treated as markup; corpus-re-03 lands; contract workaround reverted if redundant; corpus-zo-03 attempted.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-SCANNER-CORPUS />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/project-utils.test.ts src/test-support/defect-corpus.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Verdicts fragment, skill sentences, single-source rule, token baseline</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>verdicts.md under 40 lines; three skills one sentence; mirrors match; at-most-one under skills/ only; deliberate duplication fails; token baseline updated.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-VERDICTS-FRAGMENT />
+          <AC-SINGLE-SOURCE />
+        </Satisfies>
+        <Verification>
+          <Command>bun run validate:marketplace</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Full validation and graph coverage settled</Title>
+        <DependsOn>
+          <T-001 />
+          <T-002 />
+          <T-003 />
+          <T-004 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>validate:ci, validate:packed, ngrace lint --path . green; graph/verification cover edited src files.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-GRAPH-COVERAGE />
+        </Satisfies>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-ABSENCE-VALUE>
+</NgraceChangePlan>

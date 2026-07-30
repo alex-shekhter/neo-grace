@@ -49,8 +49,25 @@ export type DoctorResult = {
     file: string;
     present: boolean;
   }>;
-  analysisIssues: Array<Pick<LintIssue, "code" | "severity" | "file" | "message">>;
+  analysisIssues: Array<Pick<LintIssue, "code" | "severity" | "file" | "message" | "issueClass">>;
 };
+
+/**
+ * Pure absence partition over lint issues (A5.2). Unit-testable for all three
+ * absence codes regardless of which surface can emit them under current mode.
+ */
+export function partitionAbsenceIssues(issues: readonly LintIssue[]): LintIssue[] {
+  return issues.filter((issue) => issue.issueClass === "absence");
+}
+
+/** Count absence issues grouped by reason code (stable key order). */
+export function absenceCountsByReason(issues: readonly LintIssue[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const issue of partitionAbsenceIssues(issues)) {
+    counts[issue.code] = (counts[issue.code] ?? 0) + 1;
+  }
+  return counts;
+}
 
 /** Builds a read-only doctor report. Must not write to the filesystem. */
 export function collectDoctorReport(projectRoot: string): DoctorResult {
@@ -102,15 +119,24 @@ export function collectDoctorReport(projectRoot: string): DoctorResult {
       file,
       present: existsSync(path.join(paths.contextDir, file)),
     })),
-    analysisIssues: lint.issues
-      .filter((issue) => issue.code.startsWith("analysis."))
-      .map((issue) => ({
-        code: issue.code,
-        severity: issue.severity,
-        file: issue.file,
-        message: issue.message,
-      })),
+    // A4.3 / A5.1: classify via issueClass, not an analysis. prefix allowlist.
+    // assertion.command-not-evaluated is absence but unreachable from doctor under
+    // current mode (A5.2) — partition still includes it when present on the issue list.
+    analysisIssues: toDoctorAbsenceIssues(lint.issues),
   };
+}
+
+/** Maps lint issues to doctor's absence rows (issueClass filter, not analysis. prefix). */
+export function toDoctorAbsenceIssues(
+  issues: readonly LintIssue[],
+): Array<Pick<LintIssue, "code" | "severity" | "file" | "message" | "issueClass">> {
+  return partitionAbsenceIssues(issues).map((issue) => ({
+    code: issue.code,
+    severity: issue.severity,
+    file: issue.file,
+    message: issue.message,
+    issueClass: issue.issueClass,
+  }));
 }
 
 export function formatDoctorText(report: DoctorResult): string {
@@ -153,10 +179,20 @@ export function formatDoctorText(report: DoctorResult): string {
     lines.push(`  - ${artifact.file}: ${artifact.present ? "present" : "missing (optional)"}`);
   }
 
+  // Heading kept as "Analysis issues" for Phase 10 baseline continuity (A2); content is
+  // absence-class issues only (A4.3 filter replacement).
   lines.push("", "Analysis issues");
   if (report.analysisIssues.length === 0) {
     lines.push("  None.");
   } else {
+    // Count by code only — rows already come from toDoctorAbsenceIssues (A7.3 §4).
+    const counts: Record<string, number> = {};
+    for (const issue of report.analysisIssues) {
+      counts[issue.code] = (counts[issue.code] ?? 0) + 1;
+    }
+    for (const code of Object.keys(counts).sort()) {
+      lines.push(`  ${code}: ${counts[code]}`);
+    }
     for (const issue of report.analysisIssues) {
       lines.push(`  - [${issue.severity}] ${issue.code} ${issue.file} — ${issue.message}`);
     }
