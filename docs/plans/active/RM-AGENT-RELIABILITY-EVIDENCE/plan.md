@@ -713,7 +713,7 @@ and report it rather than inventing the missing piece.
 
 ---
 
-## 3. Final instruction to the executor
+## 4. Final instruction to the executor
 
 Two phases. Work one at a time, report in the §0.5 format, stop after each and wait for review.
 
