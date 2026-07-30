@@ -9,7 +9,6 @@ baseline: 6.0.1
 targets: []
 context: ./decisions.md
 ---
-
 # Agent Reliability Implementation Plan
 
 **Target repository:** `neo-grace` (`@neograce/cli`, 6.0.1)
@@ -19,11 +18,23 @@ design decisions (D1–D15) and four verified findings (F1–F4). Where this pla
 document disagree, **this plan wins** — the conflicts were adjudicated in `decisions.md`.
 `review-consolidated.md` frames the questions; `decisions.md` answers them; this plan orders
 and specifies the work.
-**Plan version:** 1.0 · 2026-07-29
+**Plan version:** 2.0 · 2026-07-29 (split; see below)
 
-> **Releases are not yet assigned.** `targets` is empty and the Release column in §2 reads
-> `TBD` deliberately. Release mapping is a separate decision from phase ordering and is filled
-> in when the board is ratified.
+> **Blocked on [RM-AGENT-RELIABILITY-EVIDENCE](../RM-AGENT-RELIABILITY-EVIDENCE/plan.md).** Phases 0
+> and 1 were moved into that bundle on 2026-07-29. It fixes the measurement format and produces this
+> repository's real `.ngrace` tree; nothing here may start until it is `complete`.
+
+> **The step detail below is provisional, and that is why the split happened.** Phases 2–11 were
+> written in full before the evidence existed — before the measurement format was fixed, before there
+> was a real `.ngrace` tree to design against, and before the v3 audit had run. The **objectives,
+> decisions delivered, and review gates are ratified**; the **numbered steps and their verify commands
+> are drafts against an imagined dataset.**
+>
+> At each phase's approval, re-derive its steps from what the evidence bundle actually produced, and
+> record the difference. Treating these steps as specified is the mistake this structure exists to
+> prevent. Every count in them is a claim — §14.
+
+> **Releases are not yet assigned.** `targets` is empty and the Release column in §2 reads `TBD`.
 
 ---
 
@@ -279,7 +290,7 @@ omitting it.
 
 ## 1. Orientation — the system as it exists today
 
-Read this against the real code before Phase 0. If any of it is wrong at HEAD, report it.
+Read this against the real code before you start. If any of it is wrong at HEAD, report it.
 
 ### 1.1 What already exists that this track builds on
 
@@ -329,8 +340,6 @@ Keep this table current. It is the single source of truth for progress.
 
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
-| 0 | Evidence harness & v3 capability audit | D4 (corpus), D7 (audit), D15 (measurement format) | TBD | `NOT STARTED` |
-| 1 | Thin `.ngrace` self-migration | §5.5 | TBD | `NOT STARTED` |
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `NOT STARTED` |
 | 3 | Run ledger & cursor | D1, D2, D3 | TBD | `NOT STARTED` |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
@@ -345,308 +354,21 @@ Keep this table current. It is the single source of truth for progress.
 **Hard sequencing rules** — these are dependencies, not preferences. Each is stated with what
 breaks if violated:
 
-1. **0 → everything.** The measurement format must be fixed before anything is measured, or
-   numbers will not compare across phases. The v3 audit informs the schemas in 3, 4 and 8.
-2. **1 → 3, 4, 8, 9.** Those phases are designed against this repository's real change flow.
-   Building them against fixtures inherits the dataset's central lesson in the wrong direction.
-3. **2 → 5.** Gates declare required evidence; the absence value is what "evidence is missing"
+0. **The evidence bundle → everything here.**
+   [RM-AGENT-RELIABILITY-EVIDENCE](../RM-AGENT-RELIABILITY-EVIDENCE/plan.md) must be `complete`.
+   Its Phase 0 fixes the measurement format that every number below is reported in; its Phase 1
+   produces the real `.ngrace` tree that Phases 3, 4, 8 and 9 are designed against. Starting here
+   first does not merely risk rework — it means measuring with an unfixed instrument and designing
+   against fixtures, which is this track's own central lesson applied backwards.
+1. **2 → 5.** Gates declare required evidence; the absence value is what "evidence is missing"
    means. Without it, gates have no vocabulary to fail on.
-4. **3 → 4, 5, 9, 10.** The ledger is where attempts, overrides, degradations and verdicts land.
-5. **5 → 6.** The reviewer's verdict requirement is a gate; the gate surface must exist first.
-6. **6 → 10.** The plan-quality signal is computed from review outcomes.
-7. **11 last.** §5.1 is a blocking constraint on user-visible surfaces: the full-lifecycle
+2. **3 → 4, 5, 9, 10.** The ledger is where attempts, overrides, degradations and verdicts land.
+3. **5 → 6.** The reviewer's verdict requirement is a gate; the gate surface must exist first.
+4. **6 → 10.** The plan-quality signal is computed from review outcomes.
+5. **11 last.** §5.1 is a blocking constraint on user-visible surfaces: the full-lifecycle
    walkthrough lands with or before the last user-facing capability, not after it.
 
 Phases **7** and **8** may float anywhere after 2 and 3 respectively. **4** may float after 3.
-
----
-
-
----
-
-# PHASE 0 — Evidence harness & v3 capability audit
-
-**Status:** `NOT STARTED`
-**Decisions:** D4 (seeded corpus), D7 (audit), D15 (measurement format)
-**Release:** TBD
-
-## 0.1 Objective
-
-Build the means to tell whether any later phase worked, and finish the audit whose output shapes
-three of them. **Zero behaviour change to shipped code.**
-
-Three deliverables, none of which is a product feature:
-
-1. A **seeded-defect corpus** — fixture projects paired with defective diffs, drawn from the five
-   patterns. Ground truth by construction, which is what makes D4's gate and trend measurable
-   without human adjudication.
-2. The **v3→v5 capability mapping table**, produced by reading `v3.11.0` (F2). Its natural home
-   is `ngrace-migrate`, which today has no mapping for `implementationOrder` at all.
-3. The **token measurement format** (D15) — fixed up front, so numbers compare across phases.
-
-## 0.2 Preconditions
-
-→ verify: `bun run validate:ci` passes on a clean checkout. If it does not, **stop** — you must
-not build on a red baseline.
-
-→ verify: `git show v3.11.0:plugins/grace/skills/grace/grace-init/assets/docs/development-plan.xml.template`
-prints a template containing `<ImplementationOrder>`. If it does not, F2 is wrong at HEAD and
-this phase's step 0.5.1 has no input — report the contradiction.
-
-## 0.3 Files touched
-
-| File | Action |
-|---|---|
-| `src/test-support/fixtures.ts` | READ ONLY — study the builder idiom first |
-| `src/artifact/test-fixtures.ts` | READ ONLY — study its idiom |
-| `src/test-support/defect-corpus.ts` | CREATE |
-| `src/test-support/defect-corpus.test.ts` | CREATE |
-| `src/test-support/token-accounting.ts` | CREATE |
-| `src/test-support/token-accounting.test.ts` | CREATE |
-| `skills/ngrace/ngrace-migrate/references/v3-capability-map.md` | CREATE |
-| `plugins/ngrace/skills/ngrace/ngrace-migrate/references/v3-capability-map.md` | CREATE (mirror) |
-
-## 0.4 Design
-
-The corpus is **not** a test suite. It is a set of (project, defective diff, expected finding)
-triples that later phases score against. It must be usable by a scorer that does not yet exist,
-so its shape is fixed here and not revisited.
-
-```mermaid
-classDiagram
-    class SeededDefect {
-        +id string
-        +pattern PatternId
-        +project GraceProjectBuilder
-        +diff string
-        +expectedFindings List~ExpectedFinding~
-        +rationale string
-    }
-    class ExpectedFinding {
-        +code string
-        +file string
-        +mustFire boolean
-    }
-    class PatternId {
-        <<enumeration>>
-        CONFIDENTLY_WRONG
-        SELF_REFERENTIAL_COMPARISON
-        REGEX_OVER_STRUCTURE
-        ZERO_OR_MORE_SWALLOW
-        UNTHREADED_CONSTRUCT
-    }
-    SeededDefect --> ExpectedFinding
-    SeededDefect --> PatternId
-```
-
-**Why `mustFire` is a field rather than an assumption:** D4's ratchet compares detection across
-versions. A corpus entry that only records what *should* fire cannot express "this must stay
-silent," and the silent direction is half of §0.7.3's probe discipline.
-
-## 0.5 Steps
-
-**Step 0.5.1 — Read the v3 sources and produce the capability map.**
-
-Read, in full:
-
-```bash
-git show v3.11.0:plugins/grace/skills/grace/grace-init/assets/docs/development-plan.xml.template
-git show v3.11.0:plugins/grace/skills/grace/grace-init/assets/docs/operational-packets.xml.template
-git show v3.11.0:plugins/grace/skills/grace/grace-execute/SKILL.md
-git show v3.11.0:plugins/grace/skills/grace/grace-multiagent-execute/SKILL.md
-```
-
-Produce `v3-capability-map.md` as a table with one row per v3 construct and exactly one verdict
-from: `superseded` (name the v5 replacement), `collateral-loss` (name the decision restoring it),
-`genuinely-missing` (name the phase), `deliberately-dropped` (name why).
-
-D7's first-pass sort is your starting hypothesis, **not** your conclusion. It covers eleven
-constructs; the v3 templates contain more. Every row needs a verdict and every verdict needs a
-basis.
-
-→ verify: every construct appearing in the four sources above has a row. State the row count and
-name any construct you found that D7's table does not list.
-
-**Step 0.5.2 — Create `src/test-support/defect-corpus.ts`.**
-
-```
-PSEUDOCODE
-
-export const PATTERNS = [
-  "confidently-wrong",            // asserting a fact never checked
-  "self-referential-comparison",  // one side derives from the thing under test
-  "regex-over-structure",         // guard written as regex over structured text
-  "zero-or-more-swallow",         // list allowed empty swallows malformed children
-  "unthreaded-construct",         // new construct not threaded through older guarantees
-] as const;
-
-export interface SeededDefect {
-  id: string;                     // stable; never renumbered (D4's ratchet keys on it)
-  pattern: (typeof PATTERNS)[number];
-  build(): string;                // writes a temp project, returns its root
-  apply(root: string): void;      // applies the defective change
-  expected: ExpectedFinding[];    // including mustFire: false entries
-  rationale: string;              // why this is a defect, in one sentence
-}
-
-export function corpus(): SeededDefect[];
-export function byPattern(p): SeededDefect[];
-```
-
-Seed **at least two defects per pattern**, ten total. One per pattern is not a corpus — it cannot
-distinguish "the check works" from "the check happens to match this one input."
-
-→ verify: `bun test src/test-support/defect-corpus.test.ts` passes, and the test asserts (a)
-every `id` is unique, (b) every pattern has ≥2 entries, (c) every `build()` produces a project
-that lints **clean before** `apply()` — a corpus entry whose baseline is already dirty measures
-nothing.
-
-**Step 0.5.3 — Create `src/test-support/token-accounting.ts`.**
-
-Three measurements, fixed now (D15):
-
-```
-PSEUDOCODE
-
-skillTextLines(): { total: number; perSkill: Record<string, number> }
-  // counts lines across skills/ngrace/*/SKILL.md and references/**
-  // baseline at 5.0.1 is 636 lines across 16 SKILL.md files (E2; re-measured 6.0.1, unchanged)
-
-commandOutputBytes(argv: string[], root: string): number
-  // runs a CLI command against a fixture, returns stdout size
-
-selectionRatio(full: number, selected: number): number
-  // what a slice saved, as a fraction — the number §4.1 currently lacks
-```
-
-→ verify: `skillTextLines().total` reports 636 for `SKILL.md` files at HEAD. If it does not, state
-the actual number — the baseline in D15 and §0.5's report format both reference it, and a wrong
-baseline silently corrupts every later token delta.
-
-**Step 0.5.4 — Mirror the new reference file.**
-
-→ verify: `bun run validate:marketplace` passes. It compares each listed skill directory
-recursively, so an unmirrored `references/` file fails here.
-
-## 0.6 Definition of done
-
-- `v3-capability-map.md` exists, mirrored, with a verdict and basis on every row
-- Corpus has ≥10 entries, ≥2 per pattern, all baselines lint clean
-- Token accounting reports the three measurements and its baseline matches HEAD
-- `bun run validate:ci` green
-- **No file under `src/` outside `src/test-support/` was modified**
-
-## 0.7 Review gate
-
-Reviewer checks:
-
-1. Does every corpus entry lint clean *before* its defect is applied? A dirty baseline is the
-   §2.1 pattern-2 failure — a comparison where one side derives from the thing under test.
-2. Does the capability map contain at least one construct D7's table missed? If not, say so
-   explicitly — it is possible, but it is also what a shallow read looks like.
-3. Are corpus IDs stable and documented as never-renumbered?
-
-## 0.8 Rollback
-
-Delete `src/test-support/defect-corpus*`, `src/test-support/token-accounting*`, and the two
-`v3-capability-map.md` copies. Nothing under `src/` proper was touched, so rollback is complete.
-
----
-
-# PHASE 1 — Thin `.ngrace` self-migration
-
-**Status:** `NOT STARTED`
-**Decisions:** §5.5
-**Release:** TBD
-
-## 1.1 Objective
-
-Give this repository a real `.ngrace` state, using **6.0.1 tooling only**, so every later phase is
-designed against a real project rather than a fixture.
-
-**Thin means thin:** context and graph for the CLI and skills packages, plus one active change for
-the next phase. Not a heroic full markup of every adapter.
-
-## 1.2 Preconditions
-
-→ verify: `bun run ngrace lint --path .` reports `project.missing-grace`. That is the documented
-expected state at 6.0.1 (`CLAUDE.md`), and it is this phase's starting point.
-
-→ verify: Phase 0 is `COMPLETE`. The token baseline must be captured *before* `.ngrace` exists, or
-the skill-text delta for every later phase is measured against a moving baseline.
-
-## 1.3 Files touched
-
-| File | Action |
-|---|---|
-| `.ngrace/context/*.xml` | CREATE |
-| `.ngrace/graph/index.xml` | CREATE |
-| `.ngrace/graph/GD-*.xml` | CREATE |
-| `.ngrace/verification/index.xml` | CREATE |
-| `CLAUDE.md` | EDIT — remove the "does not yet contain its own `.ngrace` state" note |
-| `docs/plans/README.md` | EDIT — the note at line 44 says the same thing |
-
-## 1.4 Design
-
-Migrate with the tooling that exists and is enforced today. **Do not attempt to use constructs
-this plan has not yet built** — no `run-ledger.xml`, no cursor, no provenance attributes. Those
-arrive as ordinary `C-*` bundles in later phases, each eating its own dog food as it lands.
-
-Modules to declare, at minimum:
-
-| Module | Path | Why it must be in the thin slice |
-|---|---|---|
-| `M-LINT-CORE` | `src/lint/core.ts` | Phase 5 adds gate declarations near it |
-| `M-ASSERTIONS` | `src/artifact/assertions.ts` | Phase 2 unifies absence values here |
-| `M-GRAMMAR` | `src/artifact/grammar.ts` | Phase 3 adds ledger grammar |
-| `M-STATUS` | `src/grace-status.ts` | Phases 3 and 8 both extend it |
-| `M-SKILLS` | `skills/ngrace/` | Phase 2 and 8 both touch skill text; it needs an anchor |
-
-## 1.5 Steps
-
-**Step 1.5.1 — Run `ngrace-init` against this repository and stop before writing.**
-→ verify: report the proposed artifact list and confirm it does not include any construct from
-Phases 2–11.
-
-**Step 1.5.2 — Author context and graph for the five modules above.**
-→ verify: `bun run ngrace lint --path .` no longer reports `project.missing-grace`, and reports
-zero errors. Warnings are acceptable and must be listed in the report.
-
-**Step 1.5.3 — Author verification entries for the five modules.**
-→ verify: `bun run ngrace lint --path .` reports no verification routing issue, **and**
-`bun run ngrace verification find --path . --json` returns one entry per declared module.
-
-There is no `verification index` subcommand — the surface is `find` and `show`, and index routing
-is validated by `lint`. If you find yourself reaching for a subcommand this plan names but
-`--help` does not list, stop and report it rather than inventing an equivalent.
-
-**Step 1.5.4 — Update the two notes that say `.ngrace` does not exist.**
-→ verify: `grep -rln 'does not yet contain its own' . --include='*.md' | grep -v docs/plans` returns
-nothing. **Match on the prose, not on the path** — the sentence reads *"does not yet contain its own
-`.ngrace` state"*, with backticks, so any pattern that spans the directory name silently matches
-nothing and passes. This verify was written that way twice; run it before and after the edit and put
-both results in the report.
-outside `docs/plans/archive/`.
-
-## 1.6 Definition of done
-
-- `ngrace lint --path .` exits zero
-- `ngrace doctor --path .` runs and its output is included in the phase report **verbatim** —
-  this is the first real doctor reading on this repository and it is the baseline for Phase 10
-- `bun run validate:ci` green
-- No file under `docs/plans/archive/` modified
-
-## 1.7 Review gate
-
-1. Is the slice actually thin? A migration that marks up every adapter has missed the point and
-   will slow every later phase's lint run.
-2. Does any authored artifact reference a construct from a later phase? That is a bootstrapping
-   violation — the migration must be honest at 6.0.1.
-3. Is the `doctor` baseline recorded verbatim rather than summarized?
-
-## 1.8 Rollback
-
-`rm -rf .ngrace` and revert the two note edits. No source changes.
 
 ---
 
@@ -666,7 +388,8 @@ The work is making them recognizable as a class, not inventing them.
 
 ## 2.2 Preconditions
 
-→ verify: `bun run validate:ci` green, Phase 0 and Phase 1 `COMPLETE`.
+→ verify: `bun run validate:ci` green, and the **evidence bundle** `complete` — both its Phase 0 and
+its Phase 1. See [RM-AGENT-RELIABILITY-EVIDENCE](../RM-AGENT-RELIABILITY-EVIDENCE/plan.md).
 
 → verify: `grep -n 'assertion.command-not-evaluated' src/artifact/assertions.ts` returns two sites
 (≈`:263`, ≈`:506`) and `grep -n 'analysis.no-adapter' src/lint/catalog.ts` returns one. If the
@@ -750,7 +473,7 @@ one of `derivedFrom` / `proposedBy`. Absence codes are the ones this track is bu
 unjustified one is a design error.
 
 **Step 2.5.4 — Teach `doctor` to report absences by reason.**
-→ verify: `ngrace doctor --path .` against the Phase 1 `.ngrace` prints an absence count per reason
+→ verify: `ngrace doctor --path .` against the **evidence bundle's** Phase 1 `.ngrace` prints an absence count per reason
 code, and prints zero when nothing is absent. Include both outputs in the report.
 
 **Step 2.5.5 — Create `skills/ngrace/ngrace-cli/references/verdicts.md`.**
@@ -807,7 +530,8 @@ the code.
 
 ## 3.2 Preconditions
 
-→ verify: Phase 1 `COMPLETE` — this phase is designed against the real bundle flow, not a fixture.
+→ verify: the **evidence bundle's** Phase 1 is `COMPLETE` — this phase is designed against the real
+bundle flow, not a fixture.
 
 → verify: `grep -n 'NGRACE_CHANGE_COMPANION_TAGS' src/artifact/*.ts` shows the companion-tag
 mechanism that `design-context.xml` already uses. The ledger registers the same way; if that
@@ -1208,7 +932,7 @@ stability testable.
 ## 6.2 Preconditions
 
 → verify: Phase 5 `COMPLETE` — the verdict requirement is a gate and the gate surface must exist.
-→ verify: Phase 0's corpus has ≥10 entries. The determinism gate has nothing to run against
+→ verify: the **evidence bundle's** Phase 0 corpus has ≥10 entries. The determinism gate has nothing to run against
 otherwise.
 
 ## 6.3 Files touched
@@ -1277,7 +1001,7 @@ assert the ID is unchanged. The second check is what proves IDs are not line-der
 **Step 6.5.3 — Hunk coverage attribution.**
 → verify: a changed hunk with no covering test is reported; one with a covering test is not.
 
-**Step 6.5.4 — The scorer, over Phase 0's corpus.**
+**Step 6.5.4 — The scorer, over the evidence bundle's Phase 0 corpus.**
 → verify: prints detection rate per pattern and lists every `mustFire: false` entry that
 incorrectly fired. Both directions, or the score is half a measurement.
 
@@ -1430,7 +1154,7 @@ it saves.
 ## 8.2 Preconditions
 
 → verify: Phase 3 `COMPLETE` — skill subsetting derives from cursor state.
-→ verify: Phase 0's token accounting exists. This phase's entire justification is a number it
+→ verify: the **evidence bundle's** Phase 0 token accounting exists. This phase's entire justification is a number it
 cannot produce otherwise.
 
 ## 8.3 Files touched
@@ -1519,7 +1243,7 @@ produces the full set rather than an empty one. Stage 1 errs toward inclusion.
 
 **Step 8.5.7 — Measure.**
 → verify: report `selectionRatio` for at least three real tasks from this repository's own `.ngrace`
-(Phase 1). **This is the number §4.1 has never had.** If the saving is small, say so — the
+(the evidence bundle's Phase 1). **This is the number §4.1 has never had.** If the saving is small, say so — the
 measurement is the deliverable, not a favourable result.
 
 ## 8.6 Definition of done
@@ -1705,7 +1429,8 @@ classifies as implementation. Both asserted against real ledger contents, not mo
 a decomposition failure.
 
 **Step 10.5.4 — The four doctor checks.**
-→ verify: each fires on a fixture designed for it and stays silent on the Phase 1 `.ngrace`. Report
+→ verify: each fires on a fixture designed for it and stays silent on the evidence bundle's Phase 1
+`.ngrace`. Report
 both.
 
 **Step 10.5.5 — Document the proxy caveat.**
@@ -1790,8 +1515,8 @@ Tiers change **depth, never whether gates run**.
 → verify: the example's CI check exercises every step above and fails if any is removed.
 
 **Step 11.5.2 — Publish the tier table with measured token costs.**
-→ verify: every cell that says "Full" or "Default" has a token figure behind it from Phase 0's
-accounting. Adjectives without numbers are what §5.3 flagged as the gap.
+→ verify: every cell that says "Full" or "Default" has a token figure behind it from the evidence
+bundle's Phase 0 token accounting. Adjectives without numbers are what §5.3 flagged as the gap.
 
 **Step 11.5.3 — Recovery documentation.**
 How to recover when `ngrace lint` fails with an unfamiliar code; how to rebuild a lost cursor from
@@ -1819,6 +1544,8 @@ commit (rule 4).
 ## 11.8 Rollback
 
 Documentation only. Revert the edits.
+
+---
 
 ---
 
@@ -1899,11 +1626,23 @@ anywhere.
 | D13 | Packaging: no includes, no manifest metadata | 2 |
 | D14 | Three check surfaces | 5 (surface), 10.1 (convention) |
 | D15 | Token accountability; selection not compression | 0 (format), 8 (selection) |
+| D16 | A check that has never failed is not a check | **E**0 (audit what checks exist); enforcement deferred |
 | F1 | Binary already writes; invariant restated | 0.3 invariant 8 |
 | F4 | v3 execution layer dropped | 0 |
 
+**Phases prefixed `E` are in the evidence bundle** — `E0` and `E1` are
+[RM-AGENT-RELIABILITY-EVIDENCE](../RM-AGENT-RELIABILITY-EVIDENCE/plan.md)'s Phases 0 and 1. Bare
+numbers are phases in this document. The unprefixed `0` and `1` in the rows above predate the
+2026-07-29 split and mean the evidence bundle in every case: D4's corpus, D7's audit and D15's
+measurement format are all its Phase 0, and F1's invariant is its §0.3.
+
 Every decision appears in at least one phase. A decision with no phase is either deferred in
 `decisions.md` § Outstanding, or this table is wrong.
+
+**D16 is deliberately half-placed.** Its measurement lands in `E0` — auditing which checks exist and
+which have ever been observed to fail. Its *enforcement* has no phase because whether `lint` should
+require a falsification witness is priced against that audit, not decided ahead of it. That is a
+deferral with a named trigger, not an omission.
 
 ---
 
