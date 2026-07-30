@@ -345,7 +345,7 @@ Keep this table current. It is the single source of truth for progress.
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
-| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `NOT STARTED` — re-derived (A10), decisions closed (A11) |
+| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `READY FOR REVIEW` |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
@@ -527,7 +527,7 @@ the validator rule. All additive, so rollback is clean.
 
 # PHASE 3 — Run ledger & cursor
 
-**Status:** `NOT STARTED`
+**Status:** `READY FOR REVIEW`
 **Decisions:** D1, D2, D3
 **Release:** TBD
 
