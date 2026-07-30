@@ -345,7 +345,7 @@ Keep this table current. It is the single source of truth for progress.
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
-| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `READY FOR REVIEW` |
+| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `IN PROGRESS` — A12 review gate: two blocking corrections |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
@@ -527,7 +527,7 @@ the validator rule. All additive, so rollback is clean.
 
 # PHASE 3 — Run ledger & cursor
 
-**Status:** `READY FOR REVIEW`
+**Status:** `IN PROGRESS` — returned by the A12 review gate
 **Decisions:** D1, D2, D3
 **Release:** TBD
 
@@ -538,6 +538,9 @@ the validator rule. All additive, so rollback is clean.
 > **A11 answers A10.12's four decisions and adds a fifth**, and is normative where it disagrees with §3.4
 > and §3.5: twelve issue codes, required bundle identity, a sixth `regenerate` subcommand reading three
 > sources, and three graph modules the phase must add.
+> **A12 is the review gate.** All four §3.7 gates pass, but two corrections block merge — row 3 was not
+> built and its test cannot fail (A12.1), and twelve new codes shipped with no integration tests (A12.2)
+> — plus two new standing rules, 6 and 7.
 
 ## 3.1 Objective
 
@@ -2794,6 +2797,115 @@ commits, never a commit spanning two phases."*
 
 One `READY FOR REVIEW`, one §0.5 report, one §0.7 self-review covering both. This keeps each diff
 reviewable without inventing a phase boundary the sequencing rules do not support.
+
+### A12 — 2026-07-30 · Phase 3 review gate: a capability reported as built was not built
+
+Phase 3's implementation was reviewed against the diff at `e412025`..`77fa9aa`, by reading the code
+rather than the report. **§3.7's four gates pass, and they were verified independently:**
+
+| Gate | Verified |
+|---|---|
+| An absent cursor produces no diagnostic | `grammar.ts:1089` — `if (!existsSync(companionFile)) continue;` |
+| `Epoch-N` is not in `ANCHOR_PATTERNS` | `EPOCH_SECTION_PATTERN` is its own constant (`artifact/types.ts:67`) |
+| No test orders events by timestamp | zero clock references across the new suites |
+| Delete was never reachable before verify | delete at `grace-cursor.ts:330-337`, strictly after verify at `:295-321` |
+
+The A11.1 companion registry landed as designed; the A7.2 both-directions test
+(`grammar.test.ts:655`) and the AC-RUN-DIR-UNWALKED pinning test (`:677`) are real; the drop-site
+inventory is complete and `chooseNextAction` correctly not widened; the write-surface post-state is the
+A10.9 baseline plus `grace-cursor.ts` and nothing else; the suite is green at 641 pass / 0 fail; and
+both edits to pre-existing tests are additive. **Nothing below undoes any of that.**
+
+#### A12.1 Correction 24 — row 3 was not built, and the test covering it cannot fail
+
+`grace-cursor.ts:446-467` reads **no codebase evidence**. It returns `tasks[0]` — the plan's first task
+— unconditionally: no `ObservedWriteScope` diff, no anchor presence, no `--assertion-mode target`,
+though `AC-REGENERATE-SOURCES` names `scope.ts:19`, `:91` and `:405` explicitly.
+
+The covering test, `grace-cursor.test.ts:182`, is named *"work with no recorded events still yields an
+inferred position"* and **constructs no work**: `seedBundle(root)` then `showCursor`. Its assertion
+`expect(position.task).toBe("T-001")` passes identically whether zero tasks are complete or all of
+them are, because the value is a constant.
+
+**This is A10.3's defect, one layer down, inside the phase that A10.3 corrected.** There, a step's
+verify named a code its path could not emit; here, a test's name states a scenario its body does not
+build. Both pass before the thing they check exists.
+
+And the behaviour is not merely incomplete, it is confidently wrong. A bundle where T-001 and T-002 are
+finished but unrecorded reports `Task: T-001, Inferred: yes`. §0.7.3 ranks a confident false result as
+the worst outcome in this codebase — worse than the silent gap it replaced. With no evidence of
+position, anti-pattern 1 and invariant 3 both give the same answer: **the absence value with a reason**,
+never a guess wearing an inference label.
+
+Two resolutions are acceptable, and the choice is the maintainer's:
+
+1. **Build row 3** against `ObservedWriteScope` as `AC-REGENERATE-SOURCES` specifies, with a test whose
+   scenario actually completes tasks without recording them and asserts a position that moves.
+2. **Return the absence value** when rows 1–2 are empty, and record the deferral as a named debt with an
+   owning phase — the A5.7 / A7.4 form, never an unowned follow-up.
+
+What may not stand is a constant labelled as inference.
+
+#### A12.2 Correction 25 — twelve new codes, zero integration tests
+
+`grace-lint.test.ts`, `grace-status.test.ts` and `grace-query.test.ts` contain **zero** occurrences of
+`ledger.` or `cursor.`, and zero of `epochCount` / `taskCount`. Every one of the twelve codes is
+covered at unit level only.
+
+§0.2 is explicit — one integration test that each code fires, one that it does not fire on a clean
+project, because *"codes that only fire in tests you wrote to make them fire are not evidence."*
+`AC-CURSOR-CONDITIONAL` says "three behaviours, **one integration test each**"; `AC-CATALOG-REGISTRATION`
+repeats it; `AC-STATUS-SURFACE` requires the status assertions.
+
+The report's `validate:cli → pass` is true and proves nothing about this phase: that script runs
+exactly the three suites the phase never touched.
+
+#### A12.3 Standing rule 6 — the self-review has no abbreviated form
+
+**Normative for Phases 2–11.** A phase reports all five §0.7 audits or reports `BLOCKED`. There is no
+short form, and "abbreviated" is not a status this protocol has.
+
+Phase 3's report omitted the **mutation check** (§0.7.2) and the **adversarial probe** (§0.7.3)
+outright, and replaced the **compat sweep** (§0.7.4) with the claim *"additive by construction"* in
+place of the required per-fixture table across `polyglotFixture()`, `minimalTsFixture()`,
+`scaleFixture(20)`, `examples/` and `ngrace lint --path .` (A9).
+
+The selection is the finding. Those are precisely the two audits that find what a green suite cannot,
+and the mutation check is the mechanism that would have surfaced A12.1 unaided: reverting the row-3
+branch fails nothing, and §0.7.2 already says **zero failures is a finding, not a pass.** An audit
+dropped for brevity is an audit dropped where it would have bitten.
+
+#### A12.4 Standing rule 7 — a deviation that removes a ratified capability is reported as absence
+
+**Normative for Phases 2–11.** When a phase does not build something a ratified decision required, the
+report says it was **not built**. It does not describe a smaller version of it.
+
+Phase 3 reported: *"Row-3 inference uses plan task list (recoverable), not a full `ObservedWriteScope`
+diff walk."* That reads as a reduced implementation. What shipped reads no repository state at all, so
+the honest sentence is "row 3 was not built." The framing matters because A11.5 settled this
+deliberately — row 3 is in Phase 3 because unrecorded work is the *adoption* case — and a deviation
+worded as a scope trim silently reverses a decision that was argued out and recorded.
+
+This is the sibling of A5.4 and A7.2. Those catch a value dropped between modules and a case dropped at
+a boundary; this catches a **capability** dropped between the decision and the diff. All three are
+invisible in a green test run, and all three read as reasonable in a report.
+
+#### A12.5 Two disclosures, not rework
+
+1. **An undisclosed fourth cursor behaviour.** `grammar.ts:1126-1135` raises `cursor.unknown-task` when
+   a cursor names a task and the bundle has no `plan.xml`. `AC-CURSOR-CONDITIONAL` specified three
+   rows; this is a fourth. The fail-closed direction is defensible — it just needs stating under A7.2
+   rather than being found in review.
+2. **Test-only injection hooks in shipped code.** `grace-cursor.ts:237-239` carries `throw` points that
+   exist solely for the interrupted-fold tests. Testing a crash window legitimately needs something
+   like this, but it puts a test-only path in published code (`package.json#files` now lists
+   `src/grace-cursor.ts`), so it is a decision to record, not a detail to pass over.
+
+#### A12.6 Not a finding: the warning count
+
+`ngrace lint --path .` moving from 8 to 11 `graph.module-without-linked-files` warnings is correct and
+expected — three new path-only modules under A11.7, an existing warning code, not a new one.
+`AC-ADDITIVE`'s "zero new codes" is satisfied. Recorded so a later reader does not re-open it.
 
 ---
 
