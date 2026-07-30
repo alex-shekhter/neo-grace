@@ -2907,6 +2907,64 @@ invisible in a green test run, and all three read as reasonable in a report.
 expected — three new path-only modules under A11.7, an existing warning code, not a new one.
 `AC-ADDITIVE`'s "zero new codes" is satisfied. Recorded so a later reader does not re-open it.
 
+### A13 — 2026-07-30 · A12.1 answered: row 3 is built, and the criterion that specified it was wrong
+
+**Decided by the maintainer:** resolution 1. Row 3 is built in Phase 3; it is not deferred, and it does
+not become a named debt. A11.5's reasoning stands — unrecorded work is the adoption case.
+
+Tracing the mechanism to write this entry surfaced a defect in the criterion itself.
+
+#### A13.1 Correction 26 — `AC-REGENERATE-SOURCES` named a mechanism that cannot answer its question
+
+Measured at `77fa9aa`:
+
+- `ObservedWriteScope` is **bundle-level**. It is extracted once from the plan root
+  (`scope.ts:279`, `:405`) into `{ files, globs }` for the whole change.
+- A plan task carries `Title`, `DependsOn`, `AcceptanceCriteria`, `Satisfies` and
+  `Verification/Command` — `TASK_REQUIRED_SECTIONS` at `grammar.ts:48`, confirmed against a real task
+  in `C-ABSENCE-VALUE/plan.xml`. **There is no per-task file list anywhere in the model.**
+
+So no static signal maps a written file to the task that wrote it, and `ObservedWriteScope` cannot
+yield task-level position. `AC-REGENERATE-SOURCES` asked for exactly that, citing `scope.ts:19`, `:91`
+and `:405`. **The criterion was wrong when it was written** — a claim about a mechanism nobody traced
+to the code, which is the failure A5.5 exists to name, committed in the document that enforces A5.5.
+
+This is the wall the executor hit. It does not excuse the response: §12.5 requires reporting the
+contradiction and stopping, and substituting `tasks[0]` silently is what standing rule 7 now forbids.
+But the criterion asked for something unbuildable, and that belongs on the record beside correction 24.
+
+#### A13.2 The corrected row-3 contract
+
+Row 3 answers the question the evidence supports, and returns the absence value for the one it does
+not. **This is a capability, not a reduced one:** it separates *"nothing has happened in this bundle"*
+from *"work has happened here and was never recorded"*, which is precisely the adoption case A11.5
+named — while refusing to guess which task.
+
+| Field | Row 3 value | Derived from |
+|---|---|---|
+| `state` | `in-progress` when the bundle's `ObservedWriteScope` intersects the repository's changed files; `idle` when it does not | `observedWriteScopeContains` (`scope.ts:91`) against `collectObservedDrift`'s changed set (`grace-status.ts:369`) |
+| `task` | **the absence value, with reason** — never a task id | nothing in the model maps files to tasks (A13.1) |
+| `epoch` | absent | no fold has occurred |
+| `complete` | set when `--assertion-mode target` evaluates the plan's `TargetAssertions` clean | existing assertion machinery |
+
+`tasks[0]` is deleted. Reporting the first task as the position is a confident false position (A12.1)
+and there is no evidence for it at any granularity.
+
+**The discriminating test** — the one whose absence made correction 24 invisible — constructs a bundle
+whose `ObservedWriteScope` files are genuinely modified, and asserts `state` is `in-progress` while
+`task` carries the absence value. A second constructs an untouched bundle and asserts `idle`. If the
+row-3 branch is reverted, both must fail; that is the §0.7.2 evidence the phase owes.
+
+**No commands are run.** Per-task `Verification/Command` would give task granularity and is rejected:
+it requires execution, `MustPassCommand` is deliberately skipped under default lint (A5.2), and §0.2
+forbids tests that depend on an external toolchain. `cursor show` stays cheap and deterministic.
+
+#### A13.3 `AC-REGENERATE-SOURCES` is amended, not reinterpreted
+
+The criterion in `.ngrace/changes/active/C-RUN-LEDGER/spec.xml` is rewritten to A13.2 and cites this
+entry, per A5.6. A criterion discovered to be unbuildable is corrected in the spec — never satisfied by
+quietly redefining it in the diff, which is how correction 24 happened.
+
 ---
 
 ## 15. Final instruction to the executor

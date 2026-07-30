@@ -142,12 +142,29 @@
         ordering assertion anywhere refers to a clock (§0.2, §3.7 gate 3).
       </AC-FOLD-ORDERING>
       <AC-REGENERATE-SOURCES>
-        Regeneration reads ledger, then loose run/ events, then codebase evidence
-        (ObservedWriteScope diff via scope.ts:19/:91/:405, anchors present, --assertion-mode target),
-        and labels row 3 output inferred. One test proves an inferred row is distinguishable from a
-        ledger-derived row in both text and JSON output; one proves a project with a ledger and no
-        loose events regenerates identically from rows 1-2 alone; one proves work done with no
-        recorded events at all still yields a position, marked inferred (A11.5). Row 3 must never
+        Amended by A13.2 — the original text named ObservedWriteScope for a task-level answer it
+        cannot give: the scope is bundle-level (scope.ts:279, :405) and no plan task carries a file
+        list (TASK_REQUIRED_SECTIONS, grammar.ts:48). Correction 26.
+
+        Regeneration reads ledger, then loose run/ events, then repository evidence, and labels row 3
+        output inferred. Row 3 sets state to in-progress when the bundle's ObservedWriteScope
+        intersects the repository's changed files (observedWriteScopeContains, scope.ts:91, against
+        the changed set collectObservedDrift already computes) and idle when it does not; sets task to
+        the absence value with a reason, never a task id; leaves epoch absent; and marks the change
+        complete only when --assertion-mode target evaluates the plan's TargetAssertions clean. It
+        runs no commands: per-task Verification/Command is rejected because it requires execution,
+        MustPassCommand is deliberately skipped under default lint (A5.2), and §0.2 forbids tests
+        depending on an external toolchain.
+
+        Returning the plan's first task as the position is deleted — it is a confident false position
+        (A12.1) with no evidence at any granularity.
+
+        Tests: one proves an inferred row is distinguishable from a ledger-derived row in both text
+        and JSON output; one proves a project with a ledger and no loose events regenerates
+        identically from rows 1-2 alone; one constructs a bundle whose ObservedWriteScope files are
+        genuinely modified and asserts state in-progress with task carrying the absence value; one
+        constructs an untouched bundle and asserts idle. Reverting the row-3 branch must fail the last
+        two — that is the §0.7.2 evidence whose absence made correction 24 invisible. Row 3 must never
         populate the fields D1 lists as unrecoverable.
       </AC-REGENERATE-SOURCES>
       <AC-RECOVER-NOT-BLOCK>
