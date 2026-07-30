@@ -78,4 +78,29 @@ describe("catalog issueClass (A5.1 route 2, A6.1)", () => {
     expect(exact!.proposedBy).toBe("regex-over-structure");
     expect(withLintIssueGuide(bare("markup.near-miss-marker")).issueClass).toBeUndefined();
   });
+
+  it("registers all twelve ledger.* and cursor.* codes as defects with justification (A11.3)", () => {
+    const codes = [
+      "ledger.invalid-root-tag",
+      "ledger.invalid-change-id",
+      "ledger.bundle-id-mismatch",
+      "ledger.non-monotonic-epoch",
+      "ledger.reordered-epoch",
+      "ledger.event-outside-allocation",
+      "ledger.range-hole",
+      "ledger.range-unterminated",
+      "cursor.invalid-root-tag",
+      "cursor.invalid-change-id",
+      "cursor.bundle-id-mismatch",
+      "cursor.unknown-task",
+    ];
+    for (const code of codes) {
+      const exact = getExactLintIssueGuide(code);
+      expect(exact).toBeDefined();
+      expect(exact!.issueClass).toBeUndefined();
+      expect(exact!.derivedFrom).toBeTruthy();
+      expect(exact!.proposedBy).toBeTruthy();
+      expect(withLintIssueGuide(bare(code)).issueClass).toBeUndefined();
+    }
+  });
 });

@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-RUN-LEDGER>
     <Summary>Give a change bundle durable position and a durable record of what cannot be re-derived: an append-only run ledger, a regenerable cursor, and a cursor subcommand that recovers rather than blocks.</Summary>
     <Problem>

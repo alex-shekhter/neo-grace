@@ -24,13 +24,47 @@ export const NGRACE_ROOT_TAGS = [
   `${ARTIFACT_TAG_PREFIX}ChangePlan`,
 ] as const;
 
+/**
+ * Change-bundle companion files: one entry admits the file, its root tag, and
+ * (via grammar.ts) the validator that makes the grammar load-bearing (A11.1).
+ * Filename allowlist sites in grammar.ts all read this constant — half-registration
+ * is structurally impossible.
+ */
+export const NGRACE_CHANGE_BUNDLE_COMPANIONS = [
+  {
+    filename: "design-context.xml",
+    rootTag: `${ARTIFACT_TAG_PREFIX}ChangeDesignContext`,
+  },
+  {
+    filename: "run-ledger.xml",
+    rootTag: `${ARTIFACT_TAG_PREFIX}RunLedger`,
+  },
+  {
+    filename: "run.xml",
+    rootTag: `${ARTIFACT_TAG_PREFIX}RunCursor`,
+  },
+] as const;
+
 /** Change-bundle companion root tags (valid only inside change bundles). */
 export const NGRACE_CHANGE_COMPANION_TAGS = [
   `${ARTIFACT_TAG_PREFIX}ChangeDesignContext`,
+  `${ARTIFACT_TAG_PREFIX}RunLedger`,
+  `${ARTIFACT_TAG_PREFIX}RunCursor`,
 ] as const;
+
+/** XML filenames admitted inside a C-* change bundle directory. */
+export const NGRACE_CHANGE_BUNDLE_XML_FILES = new Set<string>([
+  "spec.xml",
+  "plan.xml",
+  ...NGRACE_CHANGE_BUNDLE_COMPANIONS.map((companion) => companion.filename),
+]);
 
 export type NgraceRootTag = (typeof NGRACE_ROOT_TAGS)[number];
 export type NgraceChangeCompanionTag = (typeof NGRACE_CHANGE_COMPANION_TAGS)[number];
+export type NgraceChangeBundleCompanion = (typeof NGRACE_CHANGE_BUNDLE_COMPANIONS)[number];
+
+/** Epoch section tags are structural sequencing, not a semantic anchor family (§3.4). */
+export const EPOCH_SECTION_PATTERN = /^Epoch-([1-9][0-9]*)$/;
 
 /**
  * Prefix for marketplace skill identifiers printed as next-action guidance.

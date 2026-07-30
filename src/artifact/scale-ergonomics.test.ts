@@ -365,12 +365,13 @@ describe("Phase 8 — packaging and catalog pins", () => {
     expect(getLintIssueGuide("graph.document-too-large").remediation.some((r) => r.includes("graph split"))).toBe(true);
   });
 
-  it("publishes grace-doctor and grace-graph in package.json#files", () => {
+  it("publishes grace-doctor, grace-graph, and grace-cursor in package.json#files", () => {
     const pkg = JSON.parse(readFileSync(path.join(import.meta.dir, "../../package.json"), "utf8")) as {
       files: string[];
     };
     expect(pkg.files).toContain("src/grace-doctor.ts");
     expect(pkg.files).toContain("src/grace-graph.ts");
+    expect(pkg.files).toContain("src/grace-cursor.ts");
   });
 
   it("wires doctor and graph through the grace CLI", () => {

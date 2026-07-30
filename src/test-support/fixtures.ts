@@ -593,3 +593,78 @@ export function scaleFixture(moduleCount: number): string {
   }
   return builder.write();
 }
+
+// ---------------------------------------------------------------------------
+// Run ledger / cursor builders (Phase 3 — live under test-support per invariant 7)
+// ---------------------------------------------------------------------------
+
+export type LedgerAllocation = { worker: string; from: number; to: number };
+export type LedgerEventSpec = { id: number; task: string; kind: string };
+export type LedgerEpochSpec = {
+  epoch: number;
+  wave?: string;
+  allocations: LedgerAllocation[];
+  events: LedgerEventSpec[];
+};
+
+/** Serialize a valid NgraceRunLedger document for fixture use. */
+export function buildRunLedgerXml(changeId: string, epochs: LedgerEpochSpec[]): string {
+  const epochXml = epochs
+    .map((epoch) => {
+      const waveAttr = epoch.wave ? ` wave="${epoch.wave}"` : "";
+      const allocations = epoch.allocations
+        .map((a) => `<Allocation worker="${a.worker}" from="${a.from}" to="${a.to}"/>`)
+        .join("");
+      const events = epoch.events
+        .map((e) => `<Event id="${e.id}" task="${e.task}" kind="${e.kind}"/>`)
+        .join("");
+      return `<Epoch-${epoch.epoch}${waveAttr}>${allocations}${events}</Epoch-${epoch.epoch}>`;
+    })
+    .join("");
+  return `<NgraceRunLedger graceVersion="1.0"><${changeId}>${epochXml}</${changeId}></NgraceRunLedger>`;
+}
+
+/** Serialize a NgraceRunCursor document. */
+export function buildRunCursorXml(
+  changeId: string,
+  options: { task?: string; epoch?: number; state?: string } = {},
+): string {
+  const parts: string[] = [];
+  if (options.epoch !== undefined) parts.push(`<Epoch>${options.epoch}</Epoch>`);
+  if (options.task) parts.push(`<Task>${options.task}</Task>`);
+  parts.push(`<State>${options.state ?? "idle"}</State>`);
+  return `<NgraceRunCursor graceVersion="1.0"><${changeId}>${parts.join("")}</${changeId}></NgraceRunCursor>`;
+}
+
+/** Write ledger and/or cursor into an existing change bundle directory. */
+export function writeLedgerFixtures(
+  root: string,
+  changeId: string,
+  options: {
+    location?: "active" | "archive";
+    ledger?: LedgerEpochSpec[];
+    cursor?: { task?: string; epoch?: number; state?: string };
+    runEvents?: Array<{ id: number; task: string; kind: string; allocations?: LedgerAllocation[] }>;
+  },
+): void {
+  const location = options.location ?? "active";
+  const bundleRoot = `${ARTIFACT_DIR}/changes/${location}/${changeId}`;
+  if (options.ledger) {
+    writeProjectFile(root, `${bundleRoot}/run-ledger.xml`, buildRunLedgerXml(changeId, options.ledger));
+  }
+  if (options.cursor) {
+    writeProjectFile(root, `${bundleRoot}/run.xml`, buildRunCursorXml(changeId, options.cursor));
+  }
+  if (options.runEvents) {
+    for (const event of options.runEvents) {
+      const allocations = (event.allocations ?? [])
+        .map((a) => `<Allocation worker="${a.worker}" from="${a.from}" to="${a.to}"/>`)
+        .join("");
+      writeProjectFile(
+        root,
+        `${bundleRoot}/run/${event.id}-${event.task}-${event.kind}.xml`,
+        `<NgraceRunEvent graceVersion="1.0" id="${event.id}" task="${event.task}" kind="${event.kind}">${allocations}</NgraceRunEvent>`,
+      );
+    }
+  }
+}

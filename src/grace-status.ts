@@ -26,6 +26,10 @@ export type ChangeBundleStatus = {
   planStatus?: string;
   derivedStates: string[];
   path: string;
+  /** Closed epochs in run-ledger.xml, when present (Phase 3). */
+  epochCount?: number;
+  /** Tasks named in plan.xml ImplementationPlan, when present. */
+  taskCount?: number;
 };
 
 /** neo-grace status result for text or JSON output. */
@@ -113,6 +117,7 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
     const changeId = path.basename(bundlePath);
     const specFile = path.join(bundlePath, "spec.xml");
     const planFile = path.join(bundlePath, "plan.xml");
+    const ledgerFile = path.join(bundlePath, "run-ledger.xml");
     const specStatus = existsSync(specFile) ? readRootStatus(specFile) : undefined;
     const planStatus = existsSync(planFile) ? readRootStatus(planFile) : undefined;
     const relativeBundlePath = path.relative(root, bundlePath) || ".";
@@ -128,8 +133,46 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       baselineFailures: bundleLintIssues.filter((issue) => /^assertion\.(?:Must|command-not-evaluated)/.test(issue.code)).length,
     });
 
-    return { changeId, location, specStatus, planStatus, derivedStates: [...new Set(derivedStates)], path: relativeBundlePath } satisfies ChangeBundleStatus;
+    const epochCount = existsSync(ledgerFile) ? countLedgerEpochs(ledgerFile) : undefined;
+    const taskCount = existsSync(planFile) ? countPlanTasks(planFile) : undefined;
+
+    return {
+      changeId,
+      location,
+      specStatus,
+      planStatus,
+      derivedStates: [...new Set(derivedStates)],
+      path: relativeBundlePath,
+      epochCount,
+      taskCount,
+    } satisfies ChangeBundleStatus;
   });
+}
+
+function countLedgerEpochs(ledgerFile: string): number {
+  const artifact = readGraceXmlArtifact(ledgerFile);
+  if (!artifact.root) return 0;
+  let count = 0;
+  for (const wrapper of artifact.root.children) {
+    for (const child of wrapper.children) {
+      if (/^Epoch-[1-9][0-9]*$/.test(child.tag)) count += 1;
+    }
+  }
+  return count;
+}
+
+function countPlanTasks(planFile: string): number {
+  const artifact = readGraceXmlArtifact(planFile);
+  if (!artifact.root) return 0;
+  let count = 0;
+  for (const wrapper of artifact.root.children) {
+    const plan = wrapper.children.find((child) => child.tag === "ImplementationPlan");
+    if (!plan) continue;
+    for (const child of plan.children) {
+      if (/^T-[0-9]{3}$/.test(child.tag)) count += 1;
+    }
+  }
+  return count;
 }
 
 /** Derives bundle states with readiness last so stale or invalid plans are never ready. */
@@ -330,7 +373,11 @@ export function formatStatusText(result: StatusResult) {
     lines.push("- none");
   } else {
     for (const change of result.changes) {
-      lines.push(`- ${change.changeId} [${change.location}] spec=${change.specStatus ?? "missing"} plan=${change.planStatus ?? "missing"} states=${change.derivedStates.join(",") || "none"}`);
+      const epochPart = change.epochCount !== undefined ? ` epochs=${change.epochCount}` : "";
+      const taskPart = change.taskCount !== undefined ? ` tasks=${change.taskCount}` : "";
+      lines.push(
+        `- ${change.changeId} [${change.location}] spec=${change.specStatus ?? "missing"} plan=${change.planStatus ?? "missing"}${epochPart}${taskPart} states=${change.derivedStates.join(",") || "none"}`,
+      );
     }
   }
 
