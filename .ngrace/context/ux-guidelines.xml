@@ -1,0 +1,7 @@
+<NgraceUXGuidelines graceVersion="1.0">
+  <Applicability>applicable</Applicability>
+  <Audience>CLI operators, coding agents, and maintainers reading doctor/lint/status reports</Audience>
+  <Guideline>Prefer stable issue codes, exit statuses, and JSON shapes over prose-only diagnostics.</Guideline>
+  <Guideline>Human-readable reports must still name the machine code so agents can act without re-parsing free text.</Guideline>
+  <Guideline>Do not invent subcommands or flags that `--help` does not list; report gaps instead of improvising equivalents.</Guideline>
+</NgraceUXGuidelines>

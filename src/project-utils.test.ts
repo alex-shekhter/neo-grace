@@ -7,15 +7,28 @@ import { describe, expect, it, test } from "bun:test";
 import { analyzeGovernedFile, hasRuntimeMarkerEvidence, parseGovernedFile } from "./project-utils";
 
 function contract(mapMode: "EXPORTS" | "LOCALS" | "SUMMARY" | "NONE", moduleMap = ""): string {
-  return `// START_MODULE_CONTRACT
-// PURPOSE: Exercise semantic markup.
-// SCOPE: Test-only fixture.
-// DEPENDS: none
-// LINKS: M-EXAMPLE
-// ROLE: ${mapMode === "LOCALS" ? "SCRIPT" : mapMode === "SUMMARY" ? "BARREL" : mapMode === "NONE" ? "CONFIG" : "RUNTIME"}
-// MAP_MODE: ${mapMode}
-// END_MODULE_CONTRACT
-${moduleMap ? `// START_MODULE_MAP\n${moduleMap}\n// END_MODULE_MAP\n` : ""}`;
+  // Built with concatenation (not nested template literals) so this test helper
+  // does not leave bare START_* markers outside strings after quote-stripping.
+  // Nested backticks previously made hasGraceMarkers treat this file as governed.
+  const role =
+    mapMode === "LOCALS" ? "SCRIPT"
+    : mapMode === "SUMMARY" ? "BARREL"
+    : mapMode === "NONE" ? "CONFIG"
+    : "RUNTIME";
+  const header = [
+    "// START_MODULE_CONTRACT",
+    "// PURPOSE: Exercise semantic markup.",
+    "// SCOPE: Test-only fixture.",
+    "// DEPENDS: none",
+    "// LINKS: M-EXAMPLE",
+    `// ROLE: ${role}`,
+    `// MAP_MODE: ${mapMode}`,
+    "// END_MODULE_CONTRACT",
+  ].join("\n");
+  if (!moduleMap) {
+    return header;
+  }
+  return `${header}\n// START_MODULE_MAP\n${moduleMap}\n// END_MODULE_MAP\n`;
 }
 
 describe("governed file analysis", () => {

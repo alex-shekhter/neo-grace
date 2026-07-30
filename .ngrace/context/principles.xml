@@ -1,0 +1,7 @@
+<NgracePrinciples graceVersion="1.0">
+  <Principle>Contract-first changes: clarify scope and verification before implementation.</Principle>
+  <Principle>Keep semantic anchors stable and grep-friendly.</Principle>
+  <Principle>Use assertions, scopes, and tests as fresh completion evidence.</Principle>
+  <Principle>Nothing may degrade silently — every path that cannot check must emit absence with a reason.</Principle>
+  <Principle>Thin graph and verification first; widen markup only when a later phase needs the anchor.</Principle>
+</NgracePrinciples>

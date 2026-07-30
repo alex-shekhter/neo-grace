@@ -79,8 +79,9 @@ Roadmap plan  →  why, and in what order        (docs/plans/, human-approved)
 A `C-*` spec should name the roadmap plan and phase it implements, so the rationale
 survives the bundle being archived.
 
-> **Note.** This repository does not yet contain its own `.grace` state — see `CLAUDE.md`.
-> Until a self-migration is approved, roadmap plans are the only planning artifacts here.
+> **Note.** This repository hosts a thin `.ngrace` tree for dogfooding (see `CLAUDE.md`).
+> Roadmap plans under `docs/plans/` remain the human-approved long-range surface; per-change
+> execution artifacts live under `.ngrace/changes/` when active.
 
 ## Layout
 

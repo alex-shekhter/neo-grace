@@ -1,0 +1,12 @@
+<NgraceTechnology graceVersion="1.0">
+  <Language>TypeScript</Language>
+  <Runtime>Bun</Runtime>
+  <Framework>none (CLI package; citty for argument parsing)</Framework>
+  <TestingStack>bun:test</TestingStack>
+  <Observability>CLI stdout/stderr reports and structured JSON query surfaces; no hosted telemetry.</Observability>
+  <OperationalConstraints>
+    <Constraint>Prefer existing project libraries and established repository patterns.</Constraint>
+    <Constraint>Published surface is controlled by package.json#files; test helpers stay under src/test-support/.</Constraint>
+    <Constraint>Validate packaging with bun run validate:marketplace and CLI integration with bun run validate:cli.</Constraint>
+  </OperationalConstraints>
+</NgraceTechnology>
