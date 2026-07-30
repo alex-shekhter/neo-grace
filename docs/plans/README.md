@@ -6,12 +6,17 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 
 | ID | Title | Status | Baseline | Targets | Plan |
 |---|---|---|---|---|---|
-| `RM-AGENT-RELIABILITY-EVIDENCE` | Evidence harness and thin `.ngrace` self-migration | `draft` | 6.0.1 | — | [plan.md](./active/RM-AGENT-RELIABILITY-EVIDENCE/plan.md) |
+| `RM-AGENT-RELIABILITY-EVIDENCE` | Evidence harness and thin `.ngrace` self-migration | `approved` | 6.0.1 | — | [plan.md](./active/RM-AGENT-RELIABILITY-EVIDENCE/plan.md) |
 | `RM-AGENT-RELIABILITY` | Context discipline, scope drift, and self-verification | `draft` | 6.0.1 | — | [plan.md](./active/RM-AGENT-RELIABILITY/plan.md) · [decisions.md](./active/RM-AGENT-RELIABILITY/decisions.md) · [review-consolidated.md](./active/RM-AGENT-RELIABILITY/review-consolidated.md) · [review.md](./active/RM-AGENT-RELIABILITY/review.md) |
 | `RM-LANGUAGE-EXTENSIBILITY` | Language bundles, conformance fixtures, and parser strategy | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-LANGUAGE-EXTENSIBILITY/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
+
+**Approved for execution: `RM-AGENT-RELIABILITY-EVIDENCE`** (2026-07-29), and it is the only track
+approved. Its `targets` is empty deliberately — it changes no published npm surface, so it rides in
+whatever ships next rather than earning a release; see its §3 A1. Its Phase 1 is the `.ngrace`
+self-migration that `CLAUDE.md` asked to have approved separately, and that approval is recorded there.
 
 **Execution order.** `RM-NAMESPACE-SEPARATION` ran first and is complete — shipped 2026-07-29 as
 `@neograce/cli` 6.0.1. It renamed the skill and artifact namespaces, so running it first kept the

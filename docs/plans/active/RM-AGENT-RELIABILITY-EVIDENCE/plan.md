@@ -1,7 +1,7 @@
 ---
 id: RM-AGENT-RELIABILITY-EVIDENCE
 kind: plan
-status: draft
+status: approved
 supersededBy: null
 created: 2026-07-29
 updated: 2026-07-29
@@ -670,6 +670,46 @@ outside `docs/plans/archive/`.
 `rm -rf .ngrace` and revert the two note edits. No source changes.
 
 ---
+
+---
+
+## 3. Amendments
+
+This plan is `approved` and about to be executed, so changes are recorded here rather than made
+silently. Append only; never renumber or rewrite an earlier entry.
+
+### A1 — 2026-07-29 · Approved for execution
+
+**Approved by the maintainer on 2026-07-29.** Both phases are cleared to run.
+
+**`targets` is empty on purpose, not undecided.** This bundle changes nothing on the published npm
+surface. Its outputs are `src/test-support/*` (excluded from `package.json#files`), a repository-local
+`.ngrace/` tree, `CLAUDE.md`, and `docs/`. The single distributed artifact is
+`ngrace-migrate/references/v3-capability-map.md` and its mirror, which ship through the marketplace
+plugin rather than npm, and a reference file does not warrant a release of its own. **It rides in
+whatever ships next.** Do not cut a release for this bundle, and do not touch a version surface — if a
+step seems to need one, stop and report.
+
+**Phase 1 is the self-migration `CLAUDE.md` asks to have approved separately, and that approval is
+given here.** `CLAUDE.md:48` said `bun run ngrace lint --path .` is expected to report
+`project.missing-grace` *"until a separate self-migration is approved."* This is that approval, made as
+a two-phase decision rather than as a side effect of approving a twelve-phase plan — which is why the
+track was split on 2026-07-29.
+
+Two consequences the executor should hold in view:
+
+1. **After Phase 1, this repository is its own dogfood.** `ngrace lint --path .` is expected to pass,
+   and every later change to `src/` or `skills/` has graph and verification consequences. That is the
+   intent, and it is also a standing maintenance cost — Phase 1's *thinness* is what keeps that cost
+   proportionate. Resist widening it.
+2. **Phase 1 removes a caveat from `CLAUDE.md` and `docs/plans/README.md`.** Both notes become false
+   the moment `.ngrace/` exists, so step 1.5.4 is not cosmetic — leaving them is a contradiction
+   between the repository and its own instructions.
+
+**The step detail in this bundle is specified, not provisional** — unlike the sibling bundle. Nothing
+here depends on evidence that does not yet exist, which is the reason these two phases were separated
+out. If you find a step that *does* depend on something unbuilt, that is a defect in the split: stop
+and report it rather than inventing the missing piece.
 
 ---
 
