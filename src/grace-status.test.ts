@@ -489,6 +489,42 @@ describe("ngrace status", () => {
     expect(JSON.parse(Buffer.from(missing.stdout).toString("utf8")).projectKind).toBe("none");
   });
 
+  it("AC-STATUS-SURFACE: prints epoch and task counts; nextAction ignores cursor", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-EPOCH", { specStatus: "approved", planStatus: "approved" });
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-EPOCH/run-ledger.xml`,
+      `<NgraceRunLedger graceVersion="1.0"><C-EPOCH><Epoch-1><Allocation worker="w" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="terminal"/></Epoch-1></C-EPOCH></NgraceRunLedger>`,
+    );
+    // Cursor claims a contradictory pause — nextAction must stay plan-derived
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-EPOCH/run.xml`,
+      `<NgraceRunCursor graceVersion="1.0"><C-EPOCH><Task>T-001</Task><Epoch>99</Epoch><State>paused</State></C-EPOCH></NgraceRunCursor>`,
+    );
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-EPOCH");
+    expect(change?.epochCount).toBe(1);
+    expect(change?.taskCount).toBe(1);
+    const text = formatStatusText(result);
+    expect(text).toContain("epochs=1");
+    expect(text).toContain("tasks=1");
+    expect(result.nextAction).toContain("ngrace-execute");
+  });
+
+  it("AC-STATUS-SURFACE: prints normally when no cursor exists", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-NOCUR", { specStatus: "approved", planStatus: "approved" });
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-NOCUR");
+    expect(change?.epochCount).toBeUndefined();
+    expect(change?.taskCount).toBe(1);
+    expect(formatStatusText(result)).toContain("C-NOCUR");
+  });
+
   it("renders analysis coverage for polyglot and omits Unverified for TS-only projects", async () => {
     const { polyglotFixture, minimalTsFixture } = await import("./test-support/fixtures");
 

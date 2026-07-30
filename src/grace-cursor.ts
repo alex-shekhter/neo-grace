@@ -21,13 +21,14 @@ import {
 } from "./artifact/types";
 import {
   cursorNamedTask,
-  planTaskIds,
   validateRunCursorArtifact,
   validateRunLedgerArtifact,
 } from "./artifact/grammar";
+import { collectActiveChangeScopes, observedWriteScopeContains } from "./artifact/scope";
 import { childText, readGraceXmlArtifact, type GraceXmlNode } from "./artifact/xml";
 import { serializeGraceXmlDocument } from "./artifact/xml-serialize";
 import { isGitWorktreeDirty } from "./grace-graph";
+import { lintGraceProject } from "./lint/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
 
 /** Cursor / position state for one change bundle. */
@@ -36,12 +37,34 @@ export type CursorState = "absent" | "idle" | "in-progress" | "paused" | "comple
 /** Authority of a regenerated or shown position field (A11.5). */
 export type PositionSource = "ledger" | "events" | "inferred" | "cursor" | "none";
 
+/**
+ * Authored absence vocabulary reused from skills/ngrace/ngrace-cli/references/verdicts.md
+ * (Phase 2). Never invent a second vocabulary (A13.2, anti-pattern 5).
+ */
+export type AbsenceVerdict = "not-run" | "unable-to-determine";
+
+export type AbsenceValue = {
+  verdict: AbsenceVerdict;
+  reason: string;
+};
+
 export type CursorPosition = {
   changeId: string;
   bundlePath: string;
   epoch?: number;
+  /** Known task id only — never a guessed id (A13.2). */
   task?: string;
+  /**
+   * When no file→task map exists (row 3), task is the absence value with reason.
+   * Never a fabricated T-* id.
+   */
+  taskAbsence?: AbsenceValue;
   state: CursorState;
+  /**
+   * True only when `--assertion-mode target` finds the plan's TargetAssertions clean
+   * (no command execution — A13.2).
+   */
+  complete?: boolean;
   /** How each recoverable field was obtained. */
   sources: {
     epoch: PositionSource;
@@ -50,11 +73,7 @@ export type CursorPosition = {
   };
   /** Non-recoverable ledger facts are never invented from inference (D1). */
   inferred: boolean;
-  degradation?: {
-    /** Reuses Phase 2 verdict vocabulary — not-run / unable-to-determine. */
-    verdict: "not-run" | "unable-to-determine";
-    reason: string;
-  };
+  degradation?: AbsenceValue;
 };
 
 export type FoldResult = {
@@ -119,8 +138,9 @@ export function listLooseEvents(bundlePath: string): LooseEvent[] {
 
 /** Show position: never writes; recovers rather than blocks (A11.5). */
 export function showCursor(projectRoot: string, changeId: string): CursorPosition {
-  const bundlePath = resolveChangeBundle(projectRoot, changeId);
-  return derivePosition(bundlePath, changeId, { preferWrittenCursor: true });
+  const root = path.resolve(projectRoot);
+  const bundlePath = resolveChangeBundle(root, changeId);
+  return derivePosition(bundlePath, changeId, { preferWrittenCursor: true, projectRoot: root });
 }
 
 /**
@@ -140,7 +160,7 @@ export function regenerateCursor(
     );
   }
   const bundlePath = resolveChangeBundle(root, changeId);
-  const position = derivePosition(bundlePath, changeId, { preferWrittenCursor: false });
+  const position = derivePosition(bundlePath, changeId, { preferWrittenCursor: false, projectRoot: root });
   const dryRun = !options.apply;
   if (dryRun) {
     return { position, dryRun: true, applied: false };
@@ -228,6 +248,11 @@ export function resumeCursor(projectRoot: string, changeId: string, task: string
 /**
  * Fold open-epoch loose events into run-ledger.xml.
  * Ordering: write → verify → delete (D3). Never delete first.
+ *
+ * injectFailure* hooks exist solely to test the D3 crash window (interrupted fold).
+ * They ship in package.json#files with this module because the write surface is one
+ * file; they are unreachable from the CLI. Trade recorded under A12.5 — kept deliberately
+ * so the fold ordering gate stays mechanically testable without a second test-only package.
  */
 export function foldEpoch(
   projectRoot: string,
@@ -359,14 +384,14 @@ export function foldEpoch(
   };
 }
 
-/** Derive position from ledger → events → optional written cursor → inference. */
+/** Derive position from ledger → events → optional written cursor → row-3 repository evidence (A13.2). */
 export function derivePosition(
   bundlePath: string,
   changeId: string,
-  options: { preferWrittenCursor?: boolean } = {},
+  options: { preferWrittenCursor?: boolean; projectRoot?: string } = {},
 ): CursorPosition {
+  const projectRoot = path.resolve(options.projectRoot ?? path.join(bundlePath, "..", "..", ".."));
   const cursorPath = path.join(bundlePath, "run.xml");
-  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
   const events = listLooseEvents(bundlePath);
   const ledgerEpochs = readLedgerEpochNumbers(bundlePath);
 
@@ -443,36 +468,123 @@ export function derivePosition(
     };
   }
 
-  // Row 3: codebase inference — only recoverable fields (A11.5). Never invent approvals.
-  const planPath = path.join(bundlePath, "plan.xml");
-  const plan = existsSync(planPath) ? readGraceXmlArtifact(planPath) : null;
-  const tasks = [...planTaskIds(plan)];
-  const inferredTask = tasks[0];
+  // Row 3 (A13.2): repository evidence only — never invent a task id.
+  return deriveRow3Position(projectRoot, bundlePath, changeId, degradation);
+}
+
+/**
+ * Row 3 contract (A13.2 / AC-REGENERATE-SOURCES amended):
+ * - state: in-progress iff ObservedWriteScope intersects git changed files; else idle
+ * - task: absence value with reason (never a task id — no file→task map in the model)
+ * - epoch: absent
+ * - complete: only when assertion-mode target finds TargetAssertions clean (no commands)
+ */
+function deriveRow3Position(
+  projectRoot: string,
+  bundlePath: string,
+  changeId: string,
+  degradation: CursorPosition["degradation"],
+): CursorPosition {
+  const paths = resolveNgracePaths(projectRoot);
+  const scopes = collectActiveChangeScopes(paths);
+  const scope = scopes.find((entry) => entry.changeId === changeId);
+  const { available, changedFiles } = listRepositoryChangedFiles(projectRoot);
+
+  let state: CursorState = "idle";
+  if (available && scope) {
+    const intersects = changedFiles.some((file) => observedWriteScopeContains(scope.observedWrites, file));
+    state = intersects ? "in-progress" : "idle";
+  }
+
+  const taskAbsence: AbsenceValue = {
+    verdict: "unable-to-determine",
+    reason:
+      "no ledger or loose events; ObservedWriteScope is bundle-level and no plan task carries a file list, so task identity cannot be recovered",
+  };
+
+  const complete = targetAssertionsClean(projectRoot, changeId);
+
   return {
     changeId,
     bundlePath,
     epoch: undefined,
-    task: inferredTask,
-    state: inferredTask ? "idle" : "absent",
+    task: undefined,
+    taskAbsence,
+    state,
+    complete,
     sources: {
       epoch: "none",
-      task: inferredTask ? "inferred" : "none",
+      task: "inferred",
       state: "inferred",
     },
     inferred: true,
     degradation: degradation ?? {
       verdict: "unable-to-determine",
-      reason: "no ledger or loose events; position inferred from plan only",
+      reason: "no ledger or loose events; position inferred from ObservedWriteScope and target assertions only",
     },
   };
 }
 
+/**
+ * Changed-file set matching collectObservedDrift's git porcelain parse
+ * (grace-status.ts). No network; deterministic against the worktree.
+ */
+export function listRepositoryChangedFiles(projectRoot: string): { available: boolean; changedFiles: string[] } {
+  const statusResult = Bun.spawnSync({
+    cmd: ["git", "-c", "status.relativePaths=true", "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", "."],
+    cwd: projectRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (statusResult.exitCode !== 0) {
+    return { available: false, changedFiles: [] };
+  }
+  const output = new TextDecoder().decode(statusResult.stdout);
+  const records = output.split("\0");
+  const paths: string[] = [];
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index];
+    if (!record || record.length < 4) continue;
+    const status = record.slice(0, 2);
+    paths.push(record.slice(3));
+    if (status.includes("R") || status.includes("C")) {
+      const sourcePath = records[index + 1];
+      if (sourcePath) paths.push(sourcePath);
+      index += 1;
+    }
+  }
+  const changedFiles = [
+    ...new Set(
+      paths
+        .map((entry) => entry.replaceAll("\\", "/").replace(/^\.\//, ""))
+        .filter((entry) => entry !== "" && !entry.startsWith("../") && entry !== ".." && !path.posix.isAbsolute(entry)),
+    ),
+  ].sort();
+  return { available: true, changedFiles };
+}
+
+/** TargetAssertions clean under assertion-mode target, without running commands (A13.2). */
+export function targetAssertionsClean(projectRoot: string, changeId: string): boolean {
+  const result = lintGraceProject(projectRoot, {
+    assertionMode: "target",
+    changeId,
+    runCommands: false,
+  });
+  return !result.issues.some((issue) => issue.severity === "error" && issue.code.startsWith("assertion."));
+}
+
 export function formatCursorPosition(position: CursorPosition): string {
+  const taskLine = position.task
+    ? `Task: ${position.task}`
+    : position.taskAbsence
+      ? `Task: ${position.taskAbsence.verdict} — ${position.taskAbsence.reason}`
+      : "Task: none";
   const lines = [
     `Change: ${position.changeId}`,
     `State: ${position.state}`,
     `Epoch: ${position.epoch ?? "none"}`,
-    `Task: ${position.task ?? "none"}`,
+    taskLine,
+    `Complete: ${position.complete === undefined ? "n/a" : position.complete ? "yes" : "no"}`,
     `Inferred: ${position.inferred ? "yes" : "no"}`,
     `Sources: epoch=${position.sources.epoch} task=${position.sources.task} state=${position.sources.state}`,
   ];

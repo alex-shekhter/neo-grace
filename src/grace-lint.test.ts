@@ -1122,3 +1122,248 @@ export const y = 2;
     expect(nearMiss.every((issue) => issue.issueClass !== "absence")).toBe(true);
   });
 });
+
+describe("Phase 3 run ledger / cursor integration (§0.2, A12.2)", () => {
+  const LEDGER_CURSOR_CODES = [
+    "ledger.invalid-root-tag",
+    "ledger.invalid-change-id",
+    "ledger.bundle-id-mismatch",
+    "ledger.non-monotonic-epoch",
+    "ledger.reordered-epoch",
+    "ledger.event-outside-allocation",
+    "ledger.range-hole",
+    "ledger.range-unterminated",
+    "cursor.invalid-root-tag",
+    "cursor.invalid-change-id",
+    "cursor.bundle-id-mismatch",
+    "cursor.unknown-task",
+  ] as const;
+
+  function writeApprovedBundle(root: string, changeId: string) {
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/${changeId}/spec.xml`,
+      `<NgraceChangeSpec graceVersion="1.0" status="approved"><${changeId}><Summary>S.</Summary><Goals><Goal>G.</Goal></Goals><Constraints><Constraint>C.</Constraint></Constraints><NonGoals><NonGoal>N.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>A.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></${changeId}></NgraceChangeSpec>`,
+    );
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/${changeId}/plan.xml`,
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><${changeId}><IntentSummary>I.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></${changeId}></NgraceChangePlan>`,
+    );
+  }
+
+  function denseLedger(changeId: string, epochs: string) {
+    return `<NgraceRunLedger graceVersion="1.0"><${changeId}>${epochs}</${changeId}></NgraceRunLedger>`;
+  }
+
+  it("clean project emits none of the twelve ledger.* / cursor.* codes", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-CLEAN");
+    const codes = lintGraceProject(root).issues.map((i) => i.code);
+    for (const code of LEDGER_CURSOR_CODES) {
+      expect(codes).not.toContain(code);
+    }
+  });
+
+  it("AC-CURSOR-CONDITIONAL: absent cursor is silent (integration)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-NOCURSOR");
+    const codes = lintGraceProject(root).issues.map((i) => i.code).filter((c) => c.startsWith("cursor."));
+    expect(codes).toEqual([]);
+  });
+
+  it("AC-CURSOR-CONDITIONAL: unknown task errors (integration)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-BADTASK");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-BADTASK/run.xml`,
+      `<NgraceRunCursor graceVersion="1.0"><C-BADTASK><Task>T-999</Task><State>idle</State></C-BADTASK></NgraceRunCursor>`,
+    );
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("cursor.unknown-task");
+  });
+
+  it("AC-CURSOR-CONDITIONAL: consistent cursor is clean (integration)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-OKCURSOR");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-OKCURSOR/run.xml`,
+      `<NgraceRunCursor graceVersion="1.0"><C-OKCURSOR><Task>T-001</Task><State>idle</State></C-OKCURSOR></NgraceRunCursor>`,
+    );
+    const codes = lintGraceProject(root).issues.map((i) => i.code).filter((c) => c.startsWith("cursor."));
+    expect(codes).toEqual([]);
+  });
+
+  it("fires ledger.invalid-root-tag through ngrace lint", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-LROOT");
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-LROOT/run-ledger.xml`, `<NotLedger graceVersion="1.0"><C-LROOT/></NotLedger>`);
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("ledger.invalid-root-tag");
+  });
+
+  it("fires ledger.invalid-change-id through ngrace lint", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-LID");
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-LID/run-ledger.xml`, `<NgraceRunLedger graceVersion="1.0"></NgraceRunLedger>`);
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("ledger.invalid-change-id");
+  });
+
+  it("fires ledger.bundle-id-mismatch through ngrace lint", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-LMIS");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-LMIS/run-ledger.xml`,
+      denseLedger("C-OTHER", `<Epoch-1><Allocation worker="w" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="terminal"/></Epoch-1>`),
+    );
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("ledger.bundle-id-mismatch");
+  });
+
+  it("fires ledger.non-monotonic-epoch through ngrace lint", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-LMONO");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-LMONO/run-ledger.xml`,
+      denseLedger(
+        "C-LMONO",
+        `<Epoch-1><Allocation worker="w" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="terminal"/></Epoch-1>`
+          + `<Epoch-1><Allocation worker="w" from="11" to="20"/><Event id="11" task="T-001" kind="opened"/><Event id="12" task="T-001" kind="terminal"/></Epoch-1>`,
+      ),
+    );
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("ledger.non-monotonic-epoch");
+  });
+
+  it("fires ledger.reordered-epoch through ngrace lint", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-LORD");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-LORD/run-ledger.xml`,
+      denseLedger(
+        "C-LORD",
+        `<Epoch-2><Allocation worker="w" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="terminal"/></Epoch-2>`
+          + `<Epoch-1><Allocation worker="w" from="11" to="20"/><Event id="11" task="T-001" kind="opened"/><Event id="12" task="T-001" kind="terminal"/></Epoch-1>`,
+      ),
+    );
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("ledger.reordered-epoch");
+  });
+
+  it("fires ledger.event-outside-allocation through ngrace lint", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-LOUT");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-LOUT/run-ledger.xml`,
+      denseLedger(
+        "C-LOUT",
+        `<Epoch-1><Allocation worker="w" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="50" task="T-001" kind="terminal"/></Epoch-1>`,
+      ),
+    );
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("ledger.event-outside-allocation");
+  });
+
+  it("fires ledger.range-hole through ngrace lint", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-LHOLE");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-LHOLE/run-ledger.xml`,
+      denseLedger(
+        "C-LHOLE",
+        `<Epoch-1><Allocation worker="w" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="3" task="T-001" kind="terminal"/></Epoch-1>`,
+      ),
+    );
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("ledger.range-hole");
+  });
+
+  it("fires ledger.range-unterminated through ngrace lint", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-LUNTERM");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-LUNTERM/run-ledger.xml`,
+      denseLedger(
+        "C-LUNTERM",
+        `<Epoch-1><Allocation worker="w" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="progress"/></Epoch-1>`,
+      ),
+    );
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("ledger.range-unterminated");
+  });
+
+  it("fires cursor.invalid-root-tag through ngrace lint", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-CROOT");
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-CROOT/run.xml`, `<Nope graceVersion="1.0"/>`);
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("cursor.invalid-root-tag");
+  });
+
+  it("fires cursor.invalid-change-id through ngrace lint", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-CID");
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-CID/run.xml`, `<NgraceRunCursor graceVersion="1.0"></NgraceRunCursor>`);
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("cursor.invalid-change-id");
+  });
+
+  it("fires cursor.bundle-id-mismatch through ngrace lint (not unknown-task when task collides)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-A");
+    writeApprovedBundle(root, "C-B");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-B/run.xml`,
+      `<NgraceRunCursor graceVersion="1.0"><C-A><Task>T-001</Task><State>idle</State></C-A></NgraceRunCursor>`,
+    );
+    const codes = lintGraceProject(root).issues.filter((i) => i.file.includes("C-B")).map((i) => i.code);
+    expect(codes).toContain("cursor.bundle-id-mismatch");
+    expect(codes).not.toContain("cursor.unknown-task");
+  });
+
+  it("fourth cursor behaviour: unknown-task when cursor names a task and plan.xml is absent (A12.5)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-NOPLAN/spec.xml`,
+      `<NgraceChangeSpec graceVersion="1.0" status="approved"><C-NOPLAN><Summary>S.</Summary><Goals><Goal>G.</Goal></Goals><Constraints><Constraint>C.</Constraint></Constraints><NonGoals><NonGoal>N.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>A.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></C-NOPLAN></NgraceChangeSpec>`,
+    );
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-NOPLAN/run.xml`,
+      `<NgraceRunCursor graceVersion="1.0"><C-NOPLAN><Task>T-001</Task><State>idle</State></C-NOPLAN></NgraceRunCursor>`,
+    );
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("cursor.unknown-task");
+  });
+
+  it("dense terminated ledger admitted by public lint with no ledger.* codes", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-DENSE");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-DENSE/run-ledger.xml`,
+      denseLedger(
+        "C-DENSE",
+        `<Epoch-1><Allocation worker="w" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="terminal"/></Epoch-1>`,
+      ),
+    );
+    const codes = lintGraceProject(root).issues.map((i) => i.code).filter((c) => c.startsWith("ledger."));
+    expect(codes).toEqual([]);
+  });
+});

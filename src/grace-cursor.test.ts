@@ -32,7 +32,30 @@ function seedBundle(root: string, changeId = "C-RUN") {
     specStatus: "approved",
     planStatus: "approved",
   });
+  // Governed source referenced by ObservedWriteScope in the fixture plan
+  mkdirSync(path.join(root, "src"), { recursive: true });
+  writeFileSync(
+    path.join(root, "src/example.ts"),
+    `export function run() { return "ok"; }\n`,
+  );
   return path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
+}
+
+function runGit(root: string, args: string[]) {
+  const result = Bun.spawnSync({ cmd: ["git", ...args], cwd: root, stdout: "pipe", stderr: "pipe" });
+  if (result.exitCode !== 0) {
+    throw new Error(Buffer.from(result.stderr).toString("utf8") || `git ${args.join(" ")} failed`);
+  }
+}
+
+function initGitBaseline(root: string) {
+  runGit(root, ["init"]);
+  runGit(root, ["config", "user.email", "grace@example.test"]);
+  runGit(root, ["config", "user.name", "GRACE Test"]);
+  runGit(root, ["config", "commit.gpgsign", "false"]);
+  runGit(root, ["config", "core.hooksPath", "disabled-hooks"]);
+  runGit(root, ["add", "."]);
+  runGit(root, ["commit", "-m", "test: baseline"]);
 }
 
 describe("cursor show / regenerate write surface (AC-WRITE-SURFACE)", () => {
@@ -179,13 +202,45 @@ describe("regenerate three sources (AC-REGENERATE-SOURCES)", () => {
     expect(first.position.inferred).toBe(false);
   });
 
-  it("work with no recorded events still yields an inferred position", () => {
+  it("ObservedWriteScope intersect changed files → in-progress with task absence (A13.2)", () => {
     const root = createProject();
     seedBundle(root);
+    initGitBaseline(root);
+    // Genuinely modify a file inside ObservedWriteScope (src/example.ts)
+    writeFileSync(path.join(root, "src/example.ts"), `export function run() { return "modified"; }\n`);
+
     const position = showCursor(root, "C-RUN");
     expect(position.inferred).toBe(true);
-    expect(position.task).toBe("T-001");
-    expect(position.degradation?.verdict).toBeTruthy();
+    expect(position.state).toBe("in-progress");
+    expect(position.task).toBeUndefined();
+    expect(position.taskAbsence?.verdict).toBe("unable-to-determine");
+    expect(position.taskAbsence?.reason).toBeTruthy();
+    expect(position.epoch).toBeUndefined();
+    expect(formatCursorPosition(position)).toContain("unable-to-determine");
+    // Must not invent the plan's first task id
+    expect(position.task).not.toBe("T-001");
+    expect(formatCursorPosition(position)).not.toMatch(/Task: T-001\b/);
+  });
+
+  it("untouched bundle with no events → idle with task absence (A13.2)", () => {
+    const root = createProject();
+    seedBundle(root);
+    initGitBaseline(root);
+    // No further writes — worktree clean relative to ObservedWriteScope
+    const position = showCursor(root, "C-RUN");
+    expect(position.inferred).toBe(true);
+    expect(position.state).toBe("idle");
+    expect(position.task).toBeUndefined();
+    expect(position.taskAbsence?.verdict).toBe("unable-to-determine");
+    expect(position.epoch).toBeUndefined();
+  });
+
+  it("target assertions clean sets complete under row 3 (A13.2)", () => {
+    const root = createProject();
+    seedBundle(root);
+    initGitBaseline(root);
+    const position = showCursor(root, "C-RUN");
+    expect(position.complete).toBe(true);
   });
 });
 
