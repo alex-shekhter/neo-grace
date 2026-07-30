@@ -6,15 +6,22 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 
 | ID | Title | Status | Baseline | Targets | Plan |
 |---|---|---|---|---|---|
-| `RM-AGENT-RELIABILITY` | Context discipline, scope drift, and self-verification | `draft` | 6.0.1 | — | [plan.md](./active/RM-AGENT-RELIABILITY/plan.md) · [decisions.md](./active/RM-AGENT-RELIABILITY/decisions.md) · [review-consolidated.md](./active/RM-AGENT-RELIABILITY/review-consolidated.md) · [review.md](./active/RM-AGENT-RELIABILITY/review.md) |
+| `RM-AGENT-RELIABILITY` | Context discipline, scope drift, and self-verification | `approved` | 6.0.1 | — | [plan.md](./active/RM-AGENT-RELIABILITY/plan.md) · [decisions.md](./active/RM-AGENT-RELIABILITY/decisions.md) · [review-consolidated.md](./active/RM-AGENT-RELIABILITY/review-consolidated.md) · [review.md](./active/RM-AGENT-RELIABILITY/review.md) |
 | `RM-LANGUAGE-EXTENSIBILITY` | Language bundles, conformance fixtures, and parser strategy | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-LANGUAGE-EXTENSIBILITY/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
 
-**Nothing is currently approved for execution.** `RM-AGENT-RELIABILITY-EVIDENCE` completed on
-2026-07-30 and has moved to the archive; `RM-AGENT-RELIABILITY` is `draft` and needs maintainer
-approval before an executor may start it, even though its blocking dependency is now satisfied.
+**Approved for execution: `RM-AGENT-RELIABILITY`** (2026-07-30), and it is the only track approved.
+`RM-AGENT-RELIABILITY-EVIDENCE` completed on 2026-07-30 and moved to the archive, which satisfied this
+track's one blocking dependency. Its `targets` is empty and its Release column reads `TBD`: releases are
+assigned per phase, not by the approval.
+
+**Approval here does not promote the step detail.** Phases 2–11 were written before the evidence
+existed, so their objectives, decisions and review gates are ratified while their numbered steps remain
+drafts — each phase re-derives its steps against what the evidence bundle actually produced before it
+runs, and records the difference in the plan's §14. See rule 7, and §14 A1 for what the approval
+covers.
 
 **Execution order.** `RM-NAMESPACE-SEPARATION` ran first and is complete — shipped 2026-07-29 as
 `@neograce/cli` 6.0.1. It renamed the skill and artifact namespaces, so running it first kept the
