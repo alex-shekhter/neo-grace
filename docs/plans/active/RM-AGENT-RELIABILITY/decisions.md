@@ -9,6 +9,7 @@ baseline: 6.0.1
 targets: []
 normative: false
 plan: ./plan.md
+alsoServes: ../RM-AGENT-RELIABILITY-EVIDENCE/plan.md
 context: ./review-consolidated.md
 ---
 
@@ -18,6 +19,11 @@ context: ./review-consolidated.md
 > what makes them binding is `plan.md`, which encodes them and is still `draft`. This file
 > records what was decided and why, so the plan can be reviewed and executed without
 > re-litigating any of it.
+>
+> **This document serves two plan bundles.** D1–D15 span both
+> [RM-AGENT-RELIABILITY-EVIDENCE](../RM-AGENT-RELIABILITY-EVIDENCE/plan.md) (former Phases 0–1) and
+> [RM-AGENT-RELIABILITY](./plan.md) (Phases 2–11), split 2026-07-29. It is not duplicated, because two
+> copies of a decision record drift.
 >
 > **Unblocked.** [RM-NAMESPACE-SEPARATION](../../archive/RM-NAMESPACE-SEPARATION/plan.md) is
 > `complete`, shipped 2026-07-29 as `@neograce/cli` 6.0.1. It moved the artifact namespace

@@ -6,6 +6,7 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 
 | ID | Title | Status | Baseline | Targets | Plan |
 |---|---|---|---|---|---|
+| `RM-AGENT-RELIABILITY-EVIDENCE` | Evidence harness and thin `.ngrace` self-migration | `draft` | 6.0.1 | — | [plan.md](./active/RM-AGENT-RELIABILITY-EVIDENCE/plan.md) |
 | `RM-AGENT-RELIABILITY` | Context discipline, scope drift, and self-verification | `draft` | 6.0.1 | — | [plan.md](./active/RM-AGENT-RELIABILITY/plan.md) · [decisions.md](./active/RM-AGENT-RELIABILITY/decisions.md) · [review-consolidated.md](./active/RM-AGENT-RELIABILITY/review-consolidated.md) · [review.md](./active/RM-AGENT-RELIABILITY/review.md) |
 | `RM-LANGUAGE-EXTENSIBILITY` | Language bundles, conformance fixtures, and parser strategy | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-LANGUAGE-EXTENSIBILITY/review.md) |
 
@@ -31,6 +32,21 @@ rename, not reliability work.
 design decisions with their reasoning and rejected alternatives. It sits between the review and
 the plan — the review frames the questions, `decisions.md` answers them, the plan orders and
 specifies the work.
+
+**`RM-AGENT-RELIABILITY-EVIDENCE` and `RM-AGENT-RELIABILITY` are one track in two bundles**, split on
+2026-07-29. The first holds the former Phases 0–1; the second holds 2–11 and cannot start until the
+first is `complete`. They were split because the later phases had been specified in step-level detail
+against a measurement format and a `.ngrace` tree that the first bundle produces — so their steps were
+drafts against an imagined dataset, and the plan said so nowhere. The second bundle now says so in its
+banner.
+
+The split is also the approval seam: Phase 1 is the self-migration `CLAUDE.md` asks to have approved
+separately, and it now sits in a two-phase bundle that can be approved on its own terms.
+
+**The shared context lives in `RM-AGENT-RELIABILITY/`** — one `decisions.md`, one
+`review-consolidated.md`, one `review.md` serving both bundles. This deliberately breaks the
+one-bundle-one-context pattern: D1–D15 span both, and duplicating them would create two records that
+drift. The evidence bundle's frontmatter points across with a relative path.
 
 ## Archive
 
