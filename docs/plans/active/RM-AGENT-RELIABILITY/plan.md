@@ -35,7 +35,8 @@ and specifies the work.
 >
 > At each phase's approval, re-derive its steps from what the evidence bundle actually produced, and
 > record the difference. Treating these steps as specified is the mistake this structure exists to
-> prevent. Every count in them is a claim — §15.
+> prevent. Every count in them is a claim — §15. **§14 A3.1 sets the quality bar every phase is held
+> to:** a step list is a floor, not a budget.
 
 > **Releases are not yet assigned.** `targets` is empty and the Release column in §2 reads `TBD`.
 
@@ -380,6 +381,10 @@ Phases **7** and **8** may float anywhere after 2 and 3 respectively. **4** may 
 **Status:** `NOT STARTED`
 **Decisions:** D5 (vocabulary half), D13
 **Release:** TBD
+
+> **Amended by §14 A3 — read it before §2.5.** The steps below were written before the evidence existed.
+> A3 re-derives them against HEAD (eight corrections), adds the scope A3.1's quality bar pulls in, and
+> carries two decisions that must be answered before this phase is applied.
 
 ## 2.1 Objective
 
@@ -1759,6 +1764,164 @@ Analysis issues
 **`Governed files: 0` is the honest reading of `src/`**, which has never carried semantic markup — not
 a measurement failure. It is zero *because* of the configuration above, and Phase 10 compares against
 both together or against neither.
+
+### A3 — 2026-07-30 · The standing quality bar, and Phase 2 re-derived against HEAD
+
+A1 required each phase to re-derive its steps from what the evidence bundle actually produced before it
+runs, and to record the difference here. This is that record for Phase 2, done before execution rather
+than during it. It also sets a bar that applies to **every remaining phase**, not only this one.
+
+#### A3.1 The quality bar — normative for Phases 2–11
+
+**A phase's step list is a floor, not a budget.** A phase is done when its objective is genuinely met —
+tested, recorded, no workaround left standing — not when its numbered steps are ticked off. The steps
+were written before the code existed, so they are routinely thinner than the work; where they are, do the
+work and record the difference in this section.
+
+Three consequences, binding on every phase:
+
+1. **Test what you change.** A surface this plan modifies must have a test that covers the modification.
+   "No test file exists yet" is a reason to create one, not a reason to skip it.
+2. **Fix defects in the files you are already editing.** A known defect in a file a phase touches belongs
+   to that phase. Deferring it to a later phase that may never arrive is how the debt in A1 accumulated
+   in the first place.
+3. **Keep the `.ngrace` tree honest.** Work on files no module governs is work this repository's own
+   tooling cannot see. Either bring them under the graph or state per file why they stay out.
+
+**The bar is depth, not breadth.** Depth on the phase's own surface is required; reaching into a later
+phase's design is still refused — no `run-ledger.xml`, cursor, attempt log or provenance attribute
+before the phase that owns it. If a phase appears to *need* a later construct, that is a finding to
+report, not a licence to build it. Deferral stays legitimate when folding work in would swamp the review
+gate that has to judge the phase — but it is then a decision to raise, never an omission to leave
+implied.
+
+#### A3.2 Eight corrections to Phase 2, measured at `009a3e8`
+
+**1 — §2.3 omits the file that raises two of the three absence codes.** The table names
+`src/artifact/assertions.ts` but not `src/project-utils.ts`:
+
+| Code | Emission site |
+|---|---|
+| `assertion.command-not-evaluated` | `src/artifact/assertions.ts:263`, `:506` |
+| `analysis.no-adapter` | `src/project-utils.ts:344` |
+| `analysis.runtime-missing` | `src/project-utils.ts:330` |
+
+`:330` is a ternary — `LanguageRuntimeMissingError ? "analysis.runtime-missing" : "analysis.adapter-failed"`.
+One branch is an absence, the other a defect; they may not be classified together.
+
+**2 — step 2.5.4 cannot work until a `Pick` is widened.** `src/grace-doctor.ts:52` declares
+`analysisIssues: Array<Pick<LintIssue, "code" | "severity" | "file" | "message">>`, which structurally
+drops any field 2.5.1 adds. Widen it to include `issueClass`. The failure mode is silent: the
+classification appears in `lint --format json`, is absent from `doctor`, and nothing errors.
+
+**3 — step 2.5.6's rule may not be written as "exactly one file."** Measured across `skills/`:
+`unable-to-determine` **0 files**, `satisfied-unverified` **0**, `not-run` **0**. As *exactly one* the
+rule fails on any tree without `verdicts.md` — including one where 2.5.6 lands before 2.5.5, and any tree
+a bisect visits. Write it as **at most one**, with a separate assertion that `verdicts.md` exists and
+carries all three tokens: two checks that each fail for one reason. **Scope the scan to `skills/`** —
+`plugins/ngrace/skills/` is a byte-identical mirror, so a repo-wide scan fails on correct work.
+
+**4 — §12.1's `proposedBy` cites a section that no longer holds patterns.** It defines the field as "the
+pattern in §2.1 it defends against"; after the 2026-07-29 split, §2.1 is Phase 2's *Objective*. The
+vocabulary is the D4 corpus's `PatternId` (`src/test-support/defect-corpus.ts:18,26`) — five values:
+`confidently-wrong`, `self-referential-comparison`, `regex-over-structure`, `zero-or-more-swallow`,
+`unthreaded-construct`. Type `proposedBy` against that union, **without importing `src/test-support/`
+into `src/lint/`** — invariant 7 keeps test support off the published surface. Duplicate the union in
+`catalog.ts` or lift it to a shared non-test module, and state which.
+
+**5 — `skills/ngrace/ngrace-cli/references/` does not exist.** Step 2.5.5 assumes it does. The directory
+is part of the create, in both trees.
+
+**6 — step 2.5.7 will fail `src/test-support/token-accounting.test.ts`, correctly.** The test asserts
+`expect(measured.total).toBe(636)` exactly; one sentence in three SKILL.md files makes it 639. Update the
+expected value in the same commit and report both numbers and the delta. This is the instrument working,
+not a regression — the baseline is meant to move while the instrument holds still. Do not modify
+`token-accounting.ts`. Two figures that do **not** move: `perSkill` length stays **16** (a reference file
+is not a skill), and `referencesTotal` is asserted only `> 0` — which also means **1285 is pinned by
+nothing**, so any references figure must be measured before it is cited.
+
+**7 — §2.4's pseudocode says `interface LintIssue`; it is a `type`** (`src/lint/types.ts:11`). Add the
+optional field; do not convert the declaration.
+
+**8 — the phase changes two surfaces that nothing tests and nothing governs.**
+
+| Gap | Measured |
+|---|---|
+| `src/grace-doctor.test.ts` | **does not exist**; doctor is exercised once, incidentally, at `src/artifact/scale-ergonomics.test.ts:381` |
+| Graph ownership of the files §2.3 edits | `assertions.ts` → `M-ASSERTIONS`; `src/lint/types.ts`, `src/lint/catalog.ts`, `src/grace-doctor.ts` → **no module** |
+
+Also confirmed: **§2.2's preconditions hold exactly as written** — two `command-not-evaluated` sites at
+`:263` and `:506`, one `analysis.no-adapter` in `catalog.ts` at `:34`. F-series findings have not
+drifted. And **no test asserts an exact issue-object or guide shape** (`grace-lint.test.ts` uses
+`objectContaining` or code projections at `:102`, `:116`, `:199`, `:276`, `:239`–`:241`, `:972`), so
+2.5.1's additive-field bar is achievable. `schemaVersion` stays `"1.0.0"`: an optional additive field is
+not a breaking schema change, and bumping it would ripple into `grace-status` and `grace-query` for
+nothing.
+
+#### A3.3 Scope added to Phase 2 by A3.1
+
+- **`src/grace-doctor.test.ts` is created in this phase**, covering absence-by-reason output, the zero
+  case, and `--format json` shape. Phase 10's §10.3 lists this file as `CREATE — no such file exists
+  yet`; that assumed doctor stayed untested until Phase 10, which step 2.5.4 invalidates. **Phase 10
+  inherits the file rather than creating it.**
+- **Candidate `corpus-re-03` is reassigned to Phase 2, and the scanner defect is fixed here.** A1 owed it
+  to "whichever later phase touches markup scanning"; step 2.5.2 edits `src/project-utils.ts`, and the
+  defect is at `:130` in that same file — a line-oriented regex over
+  `START_MODULE_CONTRACT|START_MODULE_MAP|…` with no string-literal awareness. Give the scanner
+  string-literal awareness, land `corpus-re-03` with the shape that used to defeat it, and revert Phase
+  1's `contract()` workaround in `src/project-utils.test.ts` if the fix makes it redundant. Leaving a
+  `regex-over-structure` defect in the parser while building reliability tooling is the contradiction A1
+  named when it said the rewritten helper is not evidence the scanner is correct.
+- **`corpus-zo-03` gets a real attempt.** It is a recorded gap because no shape was found that still
+  linted clean after apply — not because the gap is acceptable. If it still cannot be written honestly,
+  report the shapes tried and why each failed. A gap with an attempt behind it is evidence; one with
+  nothing behind it is a placeholder.
+- **Graph and verification cover the files the phase edits**, or each exception carries a stated reason.
+  `M-LINT-CORE` covers `src/lint/core.ts` only — `types.ts` and `catalog.ts` are separately unowned.
+  Stay thin; "thin" was never "the files we edit are invisible to lint."
+
+#### A3.4 Two decisions pending, to be answered before Phase 2 is applied
+
+1. **A `C-*` change bundle for this phase.** This repository dogfoods its own tooling, `CLAUDE.md` says
+   per-change execution artifacts are bundles under `.ngrace/changes/`, and Phase 2 is a real change to
+   `src/`. **Recommendation: open one.** Phase 1 shipping with no active change was right *for Phase 1* —
+   `ngrace-init`'s SKILL.md forbids dummy bundles and there was nothing to gate (A2 item 4 of the
+   evidence bundle). Phase 2 is not a dummy, and doing it here means Phase 5's transition gates land on a
+   repository that already has a real bundle to gate.
+2. **Whether Phase 2 also adopts `scripts/`.** The 20 suppressed errors are the last standing silent
+   degradation in this repository (invariant 3), and Phase 2 edits a file inside the ignored directory.
+   **Recommendation: keep the guard and give adoption its own `C-*`** — folding six unrelated files in
+   would swamp the review gate that must judge the absence-value work. Raised rather than left implied.
+   If it is folded in, it lands as a separate commit on the same branch.
+
+   Either way, Phase 2 must report the un-ignored error count before and after its changes. The reference
+   reading at `009a3e8` with `ignoredDirs: ["examples"]` alone is **6 governed files, 20 errors**:
+   6 `markup.unknown-link`, 5 `markup.role-map-mode-mismatch`, 5 `markup.module-map-mismatch`,
+   3 `markup.reversed-marker`, 1 `markup.duplicate-marker`. `scripts/` is lint-invisible at the default
+   config, so drift introduced there is silent unless measured.
+
+#### A3.5 Additions to §2.6 definition of done
+
+- A3's corrections applied, with each measurement reproduced in the phase report
+- `issueClass` visible in **both** `lint --format json` and `doctor`
+- `src/grace-doctor.test.ts` exists and covers the three cases above
+- Both doctor readings reported — the zero case from this repository, the non-zero case from a fixture,
+  each labelled. The non-zero case **cannot** come from this repository: root reports
+  `Governed files: 0`, so build a fixture governing an extension no adapter supports (the five adapters
+  are js-ts, python, dart, go, rust; use `codeExtensions: [".ex"]`). Do not weaken the root config to
+  manufacture an absence.
+- Scanner string-literal aware; `corpus-re-03` in the corpus and firing; Phase 1's workaround reverted if
+  redundant
+- `corpus-zo-03` landed, or refused with the attempted shapes shown
+- Graph and verification coverage settled for every file edited
+- Single-source rule shown **failing** on deliberate duplication, not only passing — §2.7 gate 3, and
+  §0.7.2: zero failures is a finding, not a pass
+- Token delta reported, new expected value committed
+- `bun run validate:ci` **and** `bun run validate:packed` green — invariant 7, since this phase touches
+  both `src/test-support/` and the catalog
+
+A pointer to this amendment was added under the `# PHASE 2` header, so a phase-by-phase reader reaches it
+without reading to the end of the plan. Nothing in §2.1–§2.8 was rewritten.
 
 ---
 
