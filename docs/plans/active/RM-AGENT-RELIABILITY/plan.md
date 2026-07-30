@@ -1923,6 +1923,81 @@ nothing.
 A pointer to this amendment was added under the `# PHASE 2` header, so a phase-by-phase reader reaches it
 without reading to the end of the plan. Nothing in §2.1–§2.8 was rewritten.
 
+### A4 — 2026-07-30 · A3.4 answered, and a ninth Phase 2 correction
+
+Both decisions A3.4 left open are answered by the maintainer, and settling the first one surfaced a
+correction A3.2 missed.
+
+#### A4.1 Phase 2 opens a `C-*` change bundle — decided yes
+
+This repository dogfoods its own tooling, so Phase 2's work flows through a bundle rather than landing as
+a bare commit. Phase 5's transition gates then arrive at a repository that already has a real bundle to
+gate, instead of gating a hypothetical.
+
+Mechanics verified against `src/artifact/grammar.ts` and `src/artifact/types.ts` at `3f943b4`, not
+assumed:
+
+- **Location and files.** `.ngrace/changes/active/C-<ID>/` holding `spec.xml` and `plan.xml`. Only
+  `spec.xml`, `plan.xml` and `design-context.xml` may be `.xml` files in that directory
+  (`grammar.ts:809`) — anything else is an error, so working notes go elsewhere.
+- **Statuses are closed sets.** Active bundles accept `draft` or `approved` only; archive accepts
+  `applied`, `rejected`, `cancelled`, `superseded` (`types.ts:53,56`). A `plan.xml` present in an active
+  bundle requires its `spec.xml` to be `approved` (`grammar.ts:788`) — so `spec.xml` at `draft` means
+  `plan.xml` does not exist yet, and writing both at once means the spec is being approved in the same
+  breath. Author the spec, stop for review, then the plan.
+- **The wrapper tag must equal the directory name**, in both files, or `change.bundle-id-mismatch` /
+  `change.spec-plan-id-mismatch` fire (`grammar.ts:757,768,771`).
+- **Shape reference:** `examples/polyglot/.ngrace/changes/active/C-ADD-KEYBOARD-NAV/`. Read it rather
+  than inventing a shape. Its `DurableScope` names `GraphAnchors` and `VerificationAnchors`.
+
+**That last point couples the bundle to A3.3.** A bundle's `DurableScope` names graph and verification
+anchors, and three of the four `src/` files Phase 2 edits are owned by no module. So the graph coverage
+A3.3 requires is not optional bookkeeping — without it the bundle has no anchors to declare, and the
+dogfooding is decorative. Do the graph work before writing `plan.xml`.
+
+#### A4.2 `scripts/` keeps its guard — adoption stays its own `C-*`
+
+Phase 2 does not adopt `scripts/`. It measures the un-ignored error count before and after its changes
+and reports both (reference at `009a3e8`: **6 governed files, 20 errors**, broken down in A3.4). Adoption
+needs an `M-RELEASE-AUTOMATION` module plus ROLE/MAP_MODE parity fixes across six files unrelated to
+absence values; folding that in would swamp the review gate that has to judge the absence-value work.
+
+**This is a deferral with a named owner, not an omission:** its own `C-*`, and it remains the last
+standing instance of the silent degradation invariant 3 forbids. Do not let the guard's presence imply
+the debt is settled.
+
+#### A4.3 Correction 9 — `doctor` sees only two of the three absence codes
+
+`src/grace-doctor.ts:105–106` builds `analysisIssues` by string prefix:
+
+```ts
+analysisIssues: lint.issues.filter((issue) => issue.code.startsWith("analysis."))
+```
+
+`analysis.no-adapter` and `analysis.runtime-missing` match. **`assertion.command-not-evaluated` does
+not** — so step 2.5.4's "report absences by reason" can only ever report two thirds of the class while
+that filter stands. A3.2 correction 2 found the `Pick` that drops the field; this is the filter that drops
+the *issue*, and widening the `Pick` alone leaves the third code invisible.
+
+**Replace the prefix filter with the classification** — `issue.issueClass === "absence"` — rather than
+adding `assertion.` to the prefix list. §2.4's stated purpose for `issueClass` is that "a consumer can ask
+*is this an absence?* without enumerating seven names," and this filter is that consumer. A prefix test
+extended by hand is the same enumeration in a different shape, and it silently under-reports the moment a
+fourth absence code lands in a fourth namespace.
+
+Two consequences to carry into the report:
+
+1. **`doctor`'s absence count will move from 2 possible codes to 3.** That is a behaviour change on a
+   surface Phase 10 baselines. A2 recorded the baseline with `Analysis issues: None`, so the zero case is
+   unaffected — but say explicitly that the widening happened, so Phase 10 does not read the new shape as
+   drift.
+2. **A `C-*` bundle with a `MustPassCommand` makes this observable in this repository.** Command
+   assertions are not executed under default lint, so they emit `assertion.command-not-evaluated` — an
+   absence, in this repo's own output, with no fixture required. A4.1's bundle therefore gives Phase 2 a
+   live absence to demonstrate against. It does **not** replace A3.5's fixture requirement: the fixture
+   covers `analysis.no-adapter`, which needs a governed file with no adapter, and this repository has
+   `Governed files: 0`. Report both.
+
 ---
 
 ## 15. Final instruction to the executor
