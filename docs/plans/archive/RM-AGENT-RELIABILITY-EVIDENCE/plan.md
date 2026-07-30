@@ -1,20 +1,20 @@
 ---
 id: RM-AGENT-RELIABILITY-EVIDENCE
 kind: plan
-status: approved
+status: complete
 supersededBy: null
 created: 2026-07-29
-updated: 2026-07-29
+updated: 2026-07-30
 baseline: 6.0.1
 targets: []
-context: ../RM-AGENT-RELIABILITY/decisions.md
+context: ../../active/RM-AGENT-RELIABILITY/decisions.md
 ---
 
 # Agent Reliability — Evidence Harness & Self-Migration
 
 **Target repository:** `neo-grace` (`@neograce/cli`, 6.0.1)
 **Audience:** an executor coding agent
-**Authority:** derived from `../RM-AGENT-RELIABILITY/decisions.md`, which records fifteen ratified
+**Authority:** derived from `../../active/RM-AGENT-RELIABILITY/decisions.md`, which records fifteen ratified
 design decisions (D1–D15) and four verified findings (F1–F4). Where this plan and a source document
 disagree, **this plan wins** — the conflicts were adjudicated in `decisions.md`.
 **Plan version:** 1.0 · 2026-07-29
@@ -22,7 +22,7 @@ disagree, **this plan wins** — the conflicts were adjudicated in `decisions.md
 > **This bundle exists so that the rest of the track can be specified against measurements instead of
 > guesses.** Phase 0 fixes the measurement format and audits what GRACE 3 actually shipped; Phase 1
 > gives this repository a real `.ngrace` tree. Every later phase in
-> [RM-AGENT-RELIABILITY](../RM-AGENT-RELIABILITY/plan.md) is designed against those two outputs, and
+> [RM-AGENT-RELIABILITY](../../active/RM-AGENT-RELIABILITY/plan.md) is designed against those two outputs, and
 > was originally written before either existed.
 >
 > **Phase 1 is the self-migration `CLAUDE.md` asks to be approved separately.** Approving this bundle

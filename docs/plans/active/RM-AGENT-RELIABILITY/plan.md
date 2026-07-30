@@ -20,7 +20,7 @@ document disagree, **this plan wins** — the conflicts were adjudicated in `dec
 and specifies the work.
 **Plan version:** 2.0 · 2026-07-29 (split; see below)
 
-> **Blocked on [RM-AGENT-RELIABILITY-EVIDENCE](../RM-AGENT-RELIABILITY-EVIDENCE/plan.md).** Phases 0
+> **Blocked on [RM-AGENT-RELIABILITY-EVIDENCE](../../archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md).** Phases 0
 > and 1 were moved into that bundle on 2026-07-29. It fixes the measurement format and produces this
 > repository's real `.ngrace` tree; nothing here may start until it is `complete`.
 
@@ -355,7 +355,7 @@ Keep this table current. It is the single source of truth for progress.
 breaks if violated:
 
 0. **The evidence bundle → everything here.**
-   [RM-AGENT-RELIABILITY-EVIDENCE](../RM-AGENT-RELIABILITY-EVIDENCE/plan.md) must be `complete`.
+   [RM-AGENT-RELIABILITY-EVIDENCE](../../archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md) must be `complete`.
    Its Phase 0 fixes the measurement format that every number below is reported in; its Phase 1
    produces the real `.ngrace` tree that Phases 3, 4, 8 and 9 are designed against. Starting here
    first does not merely risk rework — it means measuring with an unfixed instrument and designing
@@ -389,7 +389,7 @@ The work is making them recognizable as a class, not inventing them.
 ## 2.2 Preconditions
 
 → verify: `bun run validate:ci` green, and the **evidence bundle** `complete` — both its Phase 0 and
-its Phase 1. See [RM-AGENT-RELIABILITY-EVIDENCE](../RM-AGENT-RELIABILITY-EVIDENCE/plan.md).
+its Phase 1. See [RM-AGENT-RELIABILITY-EVIDENCE](../../archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md).
 
 → verify: `grep -n 'assertion.command-not-evaluated' src/artifact/assertions.ts` returns two sites
 (≈`:263`, ≈`:506`) and `grep -n 'analysis.no-adapter' src/lint/catalog.ts` returns one. If the
@@ -1631,7 +1631,7 @@ anywhere.
 | F4 | v3 execution layer dropped | 0 |
 
 **Phases prefixed `E` are in the evidence bundle** — `E0` and `E1` are
-[RM-AGENT-RELIABILITY-EVIDENCE](../RM-AGENT-RELIABILITY-EVIDENCE/plan.md)'s Phases 0 and 1. Bare
+[RM-AGENT-RELIABILITY-EVIDENCE](../../archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md)'s Phases 0 and 1. Bare
 numbers are phases in this document. The unprefixed `0` and `1` in the rows above predate the
 2026-07-29 split and mean the evidence bundle in every case: D4's corpus, D7's audit and D15's
 measurement format are all its Phase 0, and F1's invariant is its §0.3.
