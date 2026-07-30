@@ -345,7 +345,7 @@ Keep this table current. It is the single source of truth for progress.
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
-| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `NOT STARTED` — re-derived (A10); four decisions open |
+| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `NOT STARTED` — re-derived (A10), decisions closed (A11) |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
@@ -531,11 +531,13 @@ the validator rule. All additive, so rollback is clean.
 **Decisions:** D1, D2, D3
 **Release:** TBD
 
-> **Amended by §14 A10 — read it before §3.5.** The steps below were written before the evidence existed.
-> A10 re-derives them against HEAD: §3.1, §3.4, §3.6 and §3.7 stand; **§3.5 does not**. Eight corrections
+> **Amended by §14 A10 and A11 — read both before §3.5.** The steps below were written before the evidence
+> existed. A10 re-derives them against HEAD: §3.1, §3.6 and §3.7 stand; **§3.5 does not**. Eight corrections
 > (16–23), of which correction 16 invalidates §3.4's "registers exactly as `design-context.xml` does"
-> premise and correction 17 shows step 3.5.1's verify check passes today with no code written. A10.12
-> lists four decisions that must be settled before `spec.xml` is drafted.
+> premise and correction 17 shows step 3.5.1's verify check passes today with no code written.
+> **A11 answers A10.12's four decisions and adds a fifth**, and is normative where it disagrees with §3.4
+> and §3.5: twelve issue codes, required bundle identity, a sixth `regenerate` subcommand reading three
+> sources, and three graph modules the phase must add.
 
 ## 3.1 Objective
 
@@ -2602,6 +2604,196 @@ Four, none of which the executor may take alone (§12.5):
 - `nextAction` proven independent of the cursor (A10.8)
 - The archive-precondition decision from A10.10 §1, implemented or explicitly deferred with a reason
 - Invariant 5 demonstrated across all five sweep targets, not asserted
+
+### A11 — 2026-07-30 · A10's four decisions answered, and the cursor's recovery contract
+
+**Decided by the maintainer.** A10.12's four questions are closed, and answering the fourth opened a
+fifth that is closed here too. This entry is normative for Phase 3 and supersedes §3.4 and §3.5
+wherever they disagree.
+
+#### A11.1 Decision 1 — derive the bundle's filename allowlist (A10.2)
+
+`grammar.ts`'s three literal mentions of `"design-context.xml"` (`:751`, `:798`, `:809`) collapse into
+one exported constant beside `NGRACE_CHANGE_COMPANION_TAGS`, mapping bundle filename → root tag →
+validator. All three sites read it.
+
+This is the correction's own argument applied: a companion registered in the tag list but absent from
+the filename allowlist is *half-registered*, and nothing today detects that state. After this change a
+companion is one entry or it does not exist. Invariant 4 — grammar arrives with the validator that
+makes it load-bearing — becomes structurally true rather than a convention.
+
+It touches a line Phase 3 would not otherwise touch. That is ratified here, not improvised (§12.5).
+
+#### A11.2 Decision 2 — lint does not walk `run/` (A10.4 route a)
+
+Event validation is the fold's job (D3 step 2: range membership and density). Lint stays out.
+
+**The pinning test is not optional.** A garbage file under `run/` must be shown to produce no lint
+issue, in a test that says so. Without it, "no issue" is indistinguishable from "not implemented" —
+which is the confusion D5 exists to remove, and the next reader will "fix" the gap.
+
+#### A11.3 Decision 3 — twelve issue codes, `ledger.*` and `cursor.*` (A10.5, extended by A11.4)
+
+Ratified. The namespaces follow `design-context.*`: a change-bundle companion artifact owns its own
+namespace. All twelve are **defects**, never `issueClass: "absence"` — a malformed ledger is malformed,
+not missing (A8's distinction). An *absent* ledger or cursor emits nothing (D1, invariant 5).
+
+| Code | Fires when |
+|---|---|
+| `ledger.invalid-root-tag` | root is not `NgraceRunLedger` |
+| `ledger.invalid-change-id` | identity is not exactly one canonical `C-*` |
+| `ledger.bundle-id-mismatch` | identity disagrees with the bundle directory |
+| `ledger.non-monotonic-epoch` | epoch numbers not strictly increasing |
+| `ledger.reordered-epoch` | an epoch renumbered or moved relative to its predecessor |
+| `ledger.event-outside-allocation` | an event ID in no `RangeAllocation` — D2's rogue writer |
+| `ledger.range-hole` | a used range not dense from its start |
+| `ledger.range-unterminated` | a used range with no terminal event |
+| `cursor.invalid-root-tag` | root is not `NgraceRunCursor` |
+| `cursor.invalid-change-id` | identity is not exactly one canonical `C-*` |
+| `cursor.bundle-id-mismatch` | identity disagrees with the bundle directory |
+| `cursor.unknown-task` | cursor names a task absent from `plan.xml` |
+
+Each registers per §12.1 with `derivedFrom` and `proposedBy` (`catalog.ts:22-26`).
+
+**Why the identity trio collapses to one code per artifact.** `design-context` splits missing /
+ambiguous / invalid into three (`grammar.ts:616-620`) because it is hand-authored and the diagnostics
+guide the author. Ledger and cursor are machine-written by `grace-cursor.ts`; the granular distinction
+buys nothing and costs four codes.
+
+#### A11.4 Decision 4 — identity is required on both artifacts, and `cursor.unknown-task` does not cover it
+
+**Identity is required, not optional.** Both `run-ledger.xml` and `run.xml` declare their bundle and
+are cross-checked against the directory they sit in.
+
+The check `cursor.unknown-task` was expected to subsume this and does not. `ANCHOR_PATTERNS.task` is
+`/^T-[0-9]{3}$/` (`types.ts:98`), so every plan starts at T-001. Measured at `7388d5e`:
+`.ngrace/changes/archive/C-ABSENCE-VALUE/plan.xml` carries T-001…T-005 and the `examples/` bundle
+carries T-001…T-002. **Task IDs collide across bundles by construction.** Copy a bundle directory to
+template a new change — a normal thing to do — and the stale `run.xml` pointing at T-002 validates
+clean against the new plan while reporting a position that was never true.
+
+A ledger under the wrong bundle is worse still: it attributes one change's approvals, overrides and
+degradations — D1's non-recoverable column — to another change. It is the single worst corruption this
+phase can produce.
+
+This also restores the house convention. Spec and plan cross-check via `change.bundle-id-mismatch`
+(`grammar.ts:757`, `:768`), design-context via `design-context.bundle-id-mismatch` (`:803`), all
+errors. Ledger and cursor would have been the first bundle artifacts to opt out.
+
+#### A11.5 Decision 5 — lint reports, the mechanism recovers
+
+Required identity and dynamic recovery are not in tension; they live on different surfaces.
+
+| Surface | Behaviour on a missing, identity-less, or mismatched cursor |
+|---|---|
+| `ngrace lint` | **Error**, per the codes in A11.3 — the written file is wrong |
+| `ngrace cursor show` | **Never blocks.** Distrusts the cursor, re-derives position, and announces the degradation |
+
+This is §12.4 anti-pattern 9 — *"Blocking policy inside a mechanism. Gates declare what they require;
+mechanisms report."* It also means an untrustworthy cursor and an absent cursor take the **same** code
+path, which is the property that makes it testable.
+
+The degradation is announced, never silent (invariant 3). It reports through Phase 2's absence
+vocabulary in `skills/ngrace/ngrace-cli/references/verdicts.md` — Phase 3 does not invent a second one
+(anti-pattern 5, and D13's one-fragment rule).
+
+##### Regeneration reads three sources, in order of authority
+
+| # | Source | Covers | Authority |
+|---|---|---|---|
+| 1 | `run-ledger.xml` | every closed epoch | **the truth** (D1) |
+| 2 | `run/*` loose events | the open epoch, unfolded | authoritative, unfolded |
+| 3 | Codebase evidence — `ObservedWriteScope` diff (`scope.ts:19`, `:91`, `:405`), anchors present, `--assertion-mode target` | work done but never recorded | **inference** |
+
+**Row 3 output is labelled inferred and never merged flat into rows 1–2.** Regenerating from code alone
+would silently manufacture D1's non-recoverable column: a cursor that looks complete having lost every
+approval record. That is §15's failure with a fresh coat of paint.
+
+**All three rows land in Phase 3.** Row 3 is not an edge case — it is the *adoption* case. Where the
+ledger is intact, rows 1–2 make regeneration trivial; the case that actually hurts is work done with no
+events recorded at all, which is the normal early state of any project adopting this. A regeneration
+that handles the easy case and reports absence on the common one is a mechanism that fails where it is
+needed. Both objections to building it now are already dissolved: the scope-diffing pieces exist, and
+Phase 2 shipped the vocabulary for labelling inference.
+
+Nothing downstream forced this. Phases 4, 5 and 9 each name the **ledger** in their preconditions, not
+the cursor, and Phase 10 depends on Phase 6. Row 3 is in Phase 3 because it belongs to the capability,
+not because a later phase blocks on it — and because a deferral with no phase number and no owner is
+how a real gap becomes permanent debt (contrast A5.7 and A7.4, which both name an owner).
+
+##### `regenerate` writes, so it takes `--apply`
+
+Invariant 8 / F1. `ngrace graph split` is the complete template: dirty-worktree guard
+(`grace-graph.ts:110`), `dryRun: !options.apply` (`:165`), early return (`:169`), and the
+*"dry-run; pass --apply to write"* line (`:297`). Bare `regenerate` prints the position it would write
+and stays read-only, preserving §3.4's rule that only `advance`, `pause`, `resume` and `fold` write.
+
+Subcommands become six: `show`, `regenerate`, `advance`, `pause`, `resume`, `fold`.
+
+#### A11.6 Three tiers of desync, each with an existing owner
+
+`doctor` **diagnoses and never repairs.** It is pinned strictly read-only by a directory-snapshot test
+(`src/artifact/scale-ergonomics.test.ts:213`, *"is strictly read-only (directory snapshot unchanged)"*),
+and repairing would break both that test and invariant 8.
+
+| Condition | Surface | Action |
+|---|---|---|
+| Cursor missing, identity-less, or mismatched | `cursor show` | Re-derive, announce the degradation; lint errors on the file |
+| Cursor recoverable but stale | `cursor regenerate --apply` | Rewrite from rows 1–3 |
+| Code diverged from the artifacts themselves | `status` → `$ngrace-refresh` | **Replan through a new spec** |
+
+The third tier already ships and is not Phase 3's to rebuild: `collectObservedDrift` →
+`unexplained-observed-drift` → the `nextAction` at `grace-status.ts:177`, *"Use $ngrace-refresh to
+reconcile unexplained repository changes through a new NgraceChangeSpec and NgraceChangePlan."*
+Regenerating a cursor against a plan the code no longer matches would produce a confident position over
+stale tasks.
+
+`doctor`'s contribution is **one report line** — cursor present / absent / stale / unrecoverable — and
+it belongs to Phase 10 ("doctor consumers"; A2 already baselines doctor). Do not add doctor flags in
+Phase 3; that is the scope growth A5.2 §2 refused.
+
+#### A11.7 Consequences for §3.3 — the graph does not cover this phase's files
+
+Measured at `7388d5e`, `.ngrace/graph/main.xml` declares nine modules, eight carrying a `Path`:
+`src/lint/{core,types,catalog}.ts`, `src/artifact/{assertions,grammar}.ts`, `src/project-utils.ts`,
+`src/grace-status.ts`, `src/grace-doctor.ts`.
+
+**`src/artifact/types.ts` and `src/grace.ts` are in no module, and `src/grace-cursor.ts` will not be.**
+This is A5.7's recorded finding arriving in practice: a plan may write a file whose owning module
+appears in neither `DurableScope` nor `AffectedAreas`, and lint stays quiet.
+
+Phase 3 adds, with matching `V-M-*` entries:
+
+- **`M-CURSOR`** → `src/grace-cursor.ts`. Required, not optional: it is a new module and the phase's
+  sole write surface, which is exactly what invariant 8 governs.
+- **`M-ARTIFACT-TYPES`** → `src/artifact/types.ts`. Phases 4 and 9 both edit it per their file tables;
+  it has earned a module.
+- **`M-CLI`** → `src/grace.ts`. Phase 5 also edits it.
+
+Together with A10.6's documentation surface (README, `ngrace-cli`, `ngrace-execute`, and the two
+mirrors), this is the set §3.3 omits. `AffectedAreas` derives from here, not from §3.3 (A5.6).
+
+**And nothing will catch it if the executor forgets.** `AffectedAreas` anchors are compared only
+against the *plan's* `DurableScope` — `validateSpecPlanCoverage` (`grammar.ts:1140`, `:1163`), yielding
+`change.scope-does-not-cover-spec` and `change.plan-scope-exceeds-spec`. **Nothing cross-checks them
+against the graph.** Verified: the `C-RUN-LEDGER` draft spec names `M-CURSOR`, `M-ARTIFACT-TYPES` and
+`M-CLI`, none of which exist, and `ngrace lint --path .` reports zero errors.
+
+This is A5.7's family one direction over — that finding covers file→module, this covers
+anchor→existence — and it is why `AC-GRAPH-COVERAGE` has to be an acceptance criterion checked by a
+human rather than a lint code the executor can lean on. Recorded, not scheduled: do not build the
+check in Phase 3.
+
+#### A11.8 Two commits, one review gate
+
+Phase 3 is the largest phase in the track and §12.3 already permits the shape: *"One phase, one or more
+commits, never a commit spanning two phases."*
+
+1. Grammar, filename allowlist, both validators, the twelve codes, `fold`, and the graph modules
+2. `regenerate`, the three-source re-derivation, `status` surfacing, and the skill and README edits
+
+One `READY FOR REVIEW`, one §0.5 report, one §0.7 self-review covering both. This keeps each diff
+reviewable without inventing a phase boundary the sequencing rules do not support.
 
 ---
 
