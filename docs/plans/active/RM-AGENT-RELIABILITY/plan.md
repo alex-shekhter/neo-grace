@@ -1626,11 +1626,23 @@ anywhere.
 | D13 | Packaging: no includes, no manifest metadata | 2 |
 | D14 | Three check surfaces | 5 (surface), 10.1 (convention) |
 | D15 | Token accountability; selection not compression | 0 (format), 8 (selection) |
+| D16 | A check that has never failed is not a check | **E**0 (audit what checks exist); enforcement deferred |
 | F1 | Binary already writes; invariant restated | 0.3 invariant 8 |
 | F4 | v3 execution layer dropped | 0 |
 
+**Phases prefixed `E` are in the evidence bundle** — `E0` and `E1` are
+[RM-AGENT-RELIABILITY-EVIDENCE](../RM-AGENT-RELIABILITY-EVIDENCE/plan.md)'s Phases 0 and 1. Bare
+numbers are phases in this document. The unprefixed `0` and `1` in the rows above predate the
+2026-07-29 split and mean the evidence bundle in every case: D4's corpus, D7's audit and D15's
+measurement format are all its Phase 0, and F1's invariant is its §0.3.
+
 Every decision appears in at least one phase. A decision with no phase is either deferred in
 `decisions.md` § Outstanding, or this table is wrong.
+
+**D16 is deliberately half-placed.** Its measurement lands in `E0` — auditing which checks exist and
+which have ever been observed to fail. Its *enforcement* has no phase because whether `lint` should
+require a falsification witness is priced against that audit, not decided ahead of it. That is a
+deferral with a named trigger, not an omission.
 
 ---
 

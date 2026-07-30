@@ -1061,6 +1061,86 @@ or reduced to work. What remains is listed here so `plan.md` does not have to re
 
 ---
 
+## D16 — A check that has never failed is not a check
+
+**Decided 2026-07-29**, from the `RM-NAMESPACE-SEPARATION` execution rather than from the review.
+That track logged ten amendments; **five were the same defect**, and it is not in D1–D15:
+
+| # | The check | It returned | What was actually true |
+|---|---|---|---|
+| A2 | `grep '"\.grace"'` — quoted literals | empty | six literals lived inside sentences |
+| A3 | the same pattern, used to *count* the population | "~32 sites" | 227, then 284 |
+| A5 | `grep '"Grace[A-Z]'` over XML data | 0 hits | 39 bare `<Grace*` tags, including the init skeleton |
+| A4 | `FORBIDDEN_SKILLS` renamed to the new convention | passed | it now guarded a string that has never existed |
+| A10 | the publish workflow reporting **Success** | green | both publish jobs skipped; npm received nothing |
+
+Every one was deterministic, runnable, and clean. **GRACE 4 would have accepted all five**, because
+its verification contract asks whether a command *runs deterministically*, never whether a pass is
+*about* the thing claimed.
+
+### Why this is not covered by D5 or D14
+
+D5 governs what a claim asserts and what evidence a gate requires. D14 governs which surface a check
+belongs to. Both assume that **a check which passes has checked something.** This decision is the
+missing premise underneath them:
+
+> A verify step whose failure has never been observed is not evidence. It is an unfalsified
+> assertion wearing the shape of a check.
+
+The distinction is not "the check is wrong". A wrong check is a bug and shows up as a red run. These
+were all *correct* — each answered its own question truthfully. The pattern was narrower than the
+claim it stood in for, so the honest answer to the narrow question read as a green answer to the
+broad one. **That is the failure: not a false negative, but a true answer to the wrong question.**
+
+### Mechanism: the falsification witness
+
+A judgment ("is this check meaningful?") becomes a procedure ("show it failing"):
+
+> A `V-M-*` entry may declare a **falsification witness** — the mutation or input under which its
+> command is known to fail — and the run that recorded it.
+
+This was used three times during the namespace track without being named. Flipping `ARTIFACT_DIR`
+cost **140** test failures, then **14** after centralization, then **100** after the tags were folded
+in. Each number was interpreted rather than merely observed, and the third one — a *rise* — was the
+evidence that the centralization had actually taken.
+
+**Why a witness rather than "write better checks".** A witness is binary and cheap to re-run. It also
+survives an author who could not have predicted the shape they missed, which is the whole difficulty:
+every one of the five patterns above was generalized from the single instance in front of its author,
+so no amount of care about *that* instance would have found the others.
+
+### The companion procedure, for searches specifically
+
+Where a check is a search over a corpus, one pattern cannot establish its own completeness. Derive
+the population twice, by different means, and reconcile:
+
+```
+grep -rc 'grace'      <scope>   # deliberately over-broad: high recall, low precision
+grep -rc '\.grace/'   <scope>   # the targeted pattern
+# the difference is classification work, not a rounding error
+```
+
+Every catch in that track came from two independently-derived numbers disagreeing. Every miss came
+from trusting one.
+
+### Scope, and what is deliberately *not* decided
+
+**Recorded, not yet enforced.** No CLI surface consumes a witness today, and nothing in `skills/` says
+any of this. That is on purpose: D7 records that GRACE 3 specified the right surfaces and enforced
+none of them, and shipping this as skill guidance ahead of enforcement would repeat that defect in the
+fix for it.
+
+**Whether `lint` should *require* a witness is not decided here.** It is a real cost — every existing
+`V-M-*` entry would need one — and it should be priced against the evidence bundle's Phase 0 audit of
+what checks already exist, not guessed at now.
+
+**This decision does not apply to roadmap-plan specification depth.** That lesson — that late phases
+should not be specified in step detail before the evidence they assume exists — is a
+`docs/plans/README.md` convention, not a methodology rule. Change bundles are short-lived and do not
+suffer it; adding the ceremony to them would tax every bundle for a disease only roadmap plans have.
+
+---
+
 ## Reconciliation note — 2026-07-29 · RM-NAMESPACE-SEPARATION landed
 
 **Appended, not merged into the decisions above.** Every D1–D15 entry stands exactly as ratified;

@@ -519,6 +519,30 @@ selectionRatio(full: number, selected: number): number
 the actual number — the baseline in D15 and §0.5's report format both reference it, and a wrong
 baseline silently corrupts every later token delta.
 
+**Step 0.5.4a — Audit the existing checks against D16.** *(added with D16, 2026-07-29)*
+
+D16 says a check whose failure has never been observed is not evidence. Nobody knows how much of this
+repository's verification is in that state, and the enforcement decision is explicitly priced against
+this number rather than guessed.
+
+Enumerate every `V-M-*` command and every `→ verify:` step reachable from the current artifacts, and
+classify each:
+
+| Class | Meaning |
+|---|---|
+| **witnessed** | a run exists in which this check failed, and the mutation that caused it is known |
+| **plausible** | it would clearly fail on an obvious mutation, but nobody has run that |
+| **unfalsified** | no mutation is known under which it fails — including "it greps for a string and the string might simply never occur" |
+
+→ verify: report the three counts and the total. Derive the total **twice, by different means** — once
+from the verification projection (`ngrace verification find`) and once by grepping the artifacts — and
+reconcile them. Two independently-derived counts that agree is the standard D16 asks for; one count is
+the thing D16 is about.
+
+→ verify: name the **three** checks most likely to be unfalsified, with the mutation that would settle
+each. Do not fix them. This step measures; a later, unscheduled phase decides whether `lint` should
+require witnesses, and that decision needs the number first.
+
 **Step 0.5.4 — Mirror the new reference file.**
 
 → verify: `bun run validate:marketplace` passes. It compares each listed skill directory
@@ -531,6 +555,7 @@ recursively, so an unmirrored `references/` file fails here.
 - Token accounting reports the three measurements and its baseline matches HEAD
 - `bun run validate:ci` green
 - **No file under `src/` outside `src/test-support/` was modified**
+- *(D16)* The check audit is reported with its three counts, reconciled across two derivations
 
 ## 0.7 Review gate
 

@@ -109,6 +109,17 @@ in a GRACE change bundle — one normative, one explanatory, archived together a
    the reasoning is recorded, nothing is approved, and no work is scheduled. Such a
    document is non-normative and must say so. Writing the `plan.md` is the act that
    turns it into a commitment.
+7. **Do not specify a phase in step detail before the evidence it assumes exists.** A roadmap plan
+   spans releases, so its later phases are written against a codebase and measurements that do not
+   exist yet — and step-level detail written that far ahead reads as specified when it is speculative.
+   State those phases as objectives, decisions delivered, and review gates; write their steps when
+   their preconditions land, and record what changed. Mark provisional detail as provisional in the
+   plan itself, so nobody has to infer it.
+
+   **This is a roadmap-plan rule only.** Change bundles under `.ngrace/changes/` are short-lived and
+   do not suffer this, so the same ceremony there would be cost without benefit. `RM-AGENT-RELIABILITY`
+   was split in two on 2026-07-29 for exactly this reason: ten of its phases had been specified against
+   a measurement format and a `.ngrace` tree that its first two phases produce.
 
 ## Frontmatter
 
