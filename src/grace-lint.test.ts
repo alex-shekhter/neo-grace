@@ -412,6 +412,18 @@ describe("lintGraceProject", () => {
 
     const skipped = lintGraceProject(root, { assertionMode: "target", changeId: "C-COMMAND" });
     expect(skipped.issues.map((issue) => issue.code)).toContain("assertion.command-not-evaluated");
+    // A6.2: durable fixture — issueClass via catalog route 2; not pinned to live C-ABSENCE-VALUE.
+    const notEvaluated = skipped.issues.find((issue) => issue.code === "assertion.command-not-evaluated");
+    expect(notEvaluated).toBeDefined();
+    expect(notEvaluated!.issueClass).toBe("absence");
+    // A7.3 §2: assert the discriminating non-absence issue exists, then its class.
+    // Finalized issues always carry guides; inject a non-absence assertion.* through the same finalize path
+    // by re-linting a fixture that fails MustExist (below). Here pin that no other issue is "absence".
+    for (const issue of skipped.issues) {
+      if (issue.code !== "assertion.command-not-evaluated") {
+        expect(issue.issueClass).not.toBe("absence");
+      }
+    }
 
     const executed = lintGraceProject(root, { assertionMode: "target", changeId: "C-COMMAND", runCommands: true });
     expect(executed.issues.map((issue) => issue.code)).not.toContain("assertion.command-not-evaluated");
@@ -1079,5 +1091,34 @@ export function run() {
     // emit assertion.command-not-evaluated for every active plan that uses a budget gate.
     expect(current.issues.map((i) => i.code)).not.toContain("assertion.command-not-evaluated");
     expect(current.issues.map((i) => i.code)).not.toContain("assertion.budget-command-failed");
+  });
+
+  it("A8: near-miss markers warn without governing the file", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeProjectFile(
+      root,
+      "src/typo.ts",
+      `// START_MODULE_CONTRACTX
+export const x = 1;
+`,
+    );
+    writeProjectFile(
+      root,
+      "src/block-typo.ts",
+      `// START_BLOCK_foo
+export const y = 2;
+`,
+    );
+
+    const result = lintGraceProject(root);
+    const nearMiss = result.issues.filter((issue) => issue.code === "markup.near-miss-marker");
+    expect(nearMiss.length).toBeGreaterThanOrEqual(2);
+    expect(nearMiss.every((issue) => issue.severity === "warning")).toBe(true);
+    // File stays ungoverned — only the real example.ts from writeMinimalNgraceProject counts.
+    expect(result.governedFiles).toBe(1);
+    // No false markup errors from treating near-miss as governed (A7.1 table after-column).
+    expect(result.issues.map((i) => i.code)).not.toContain("markup.missing-module-contract");
+    expect(nearMiss.every((issue) => issue.issueClass !== "absence")).toBe(true);
   });
 });

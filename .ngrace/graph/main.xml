@@ -5,11 +5,26 @@
       <Path>src/lint/core.ts</Path>
       <Type>CORE_LOGIC</Type>
     </M-LINT-CORE>
+    <M-LINT-TYPES>
+      <Summary>Shared lint result and issue record types, including absence classification.</Summary>
+      <Path>src/lint/types.ts</Path>
+      <Type>CORE_LOGIC</Type>
+    </M-LINT-TYPES>
+    <M-LINT-CATALOG>
+      <Summary>Lint issue catalog: titles, remediations, and absence-code justification fields.</Summary>
+      <Path>src/lint/catalog.ts</Path>
+      <Type>CORE_LOGIC</Type>
+    </M-LINT-CATALOG>
     <M-ASSERTIONS>
       <Summary>Plan assertion evaluation and absence primitives used by status and gates.</Summary>
       <Path>src/artifact/assertions.ts</Path>
       <Type>CORE_LOGIC</Type>
     </M-ASSERTIONS>
+    <M-PROJECT-UTILS>
+      <Summary>Governed-file discovery, markup scanning, and language-analysis routing for absence codes.</Summary>
+      <Path>src/project-utils.ts</Path>
+      <Type>CORE_LOGIC</Type>
+    </M-PROJECT-UTILS>
     <M-GRAMMAR>
       <Summary>XML artifact grammar validation for context, graph, verification, and change bundles.</Summary>
       <Path>src/artifact/grammar.ts</Path>
@@ -20,6 +35,11 @@
       <Path>src/grace-status.ts</Path>
       <Type>ENTRY_POINT</Type>
     </M-STATUS>
+    <M-DOCTOR>
+      <Summary>CLI doctor surface: adapters, coverage, optional context gaps, and absence-by-reason report.</Summary>
+      <Path>src/grace-doctor.ts</Path>
+      <Type>ENTRY_POINT</Type>
+    </M-DOCTOR>
     <M-SKILLS>
       <Summary>Canonical GRACE skill sources under skills/ngrace/ (packaged mirror is separate).</Summary>
       <Type>UTILITY</Type>

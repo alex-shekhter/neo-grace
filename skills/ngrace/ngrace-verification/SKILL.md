@@ -21,4 +21,8 @@ When verification commands run from a workspace or package directory, add one di
 <evidence_contract>
 Use `<Marker>` when module health must prove a runtime log or trace emission from linked implementation code. Use `<TraceAssertion>` for deterministic test or trace evidence that does not require runtime logging, such as pure functions, type-level modules, and core libraries. A non-empty marker or trace assertion satisfies the module-health evidence requirement; only authored markers require matching runtime emission and `BLOCK_*` evidence.
 </evidence_contract>
+
+<verdicts>
+Report the value the CLI emitted. Never summarize an absence into a pass. Shared vocabulary: `references/verdicts.md` under ngrace-cli (do not restate tokens here).
+</verdicts>
 </skill>

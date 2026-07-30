@@ -4,32 +4,106 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, test } from "bun:test";
 
-import { analyzeGovernedFile, hasRuntimeMarkerEvidence, parseGovernedFile } from "./project-utils";
+import {
+  analyzeGovernedFile,
+  collectNearMissMarkerIssues,
+  hasGraceMarkers,
+  hasRuntimeMarkerEvidence,
+  parseGovernedFile,
+  stripQuotedStrings,
+} from "./project-utils";
 
 function contract(mapMode: "EXPORTS" | "LOCALS" | "SUMMARY" | "NONE", moduleMap = ""): string {
-  // Built with concatenation (not nested template literals) so this test helper
-  // does not leave bare START_* markers outside strings after quote-stripping.
-  // Nested backticks previously made hasGraceMarkers treat this file as governed.
-  const role =
-    mapMode === "LOCALS" ? "SCRIPT"
-    : mapMode === "SUMMARY" ? "BARREL"
-    : mapMode === "NONE" ? "CONFIG"
-    : "RUNTIME";
-  const header = [
-    "// START_MODULE_CONTRACT",
-    "// PURPOSE: Exercise semantic markup.",
-    "// SCOPE: Test-only fixture.",
-    "// DEPENDS: none",
-    "// LINKS: M-EXAMPLE",
-    `// ROLE: ${role}`,
-    `// MAP_MODE: ${mapMode}`,
-    "// END_MODULE_CONTRACT",
-  ].join("\n");
-  if (!moduleMap) {
-    return header;
-  }
-  return `${header}\n// START_MODULE_MAP\n${moduleMap}\n// END_MODULE_MAP\n`;
+  // Nested templates are safe again after stripQuotedStrings handles `${...}`
+  // (A3.3 / corpus-re-03). Phase 1's concatenation workaround is no longer required.
+  return `// START_MODULE_CONTRACT
+// PURPOSE: Exercise semantic markup.
+// SCOPE: Test-only fixture.
+// DEPENDS: none
+// LINKS: M-EXAMPLE
+// ROLE: ${mapMode === "LOCALS" ? "SCRIPT" : mapMode === "SUMMARY" ? "BARREL" : mapMode === "NONE" ? "CONFIG" : "RUNTIME"}
+// MAP_MODE: ${mapMode}
+// END_MODULE_CONTRACT
+${moduleMap ? `// START_MODULE_MAP\n${moduleMap}\n// END_MODULE_MAP\n` : ""}`;
 }
+
+describe("stripQuotedStrings / hasGraceMarkers (nested templates)", () => {
+  it("does not treat nested-template fixture markers as real markup (corpus-re-03 shape)", () => {
+    // Pre-Phase-1 contract() shape that defeated the stripper before ${} handling.
+    const source = `function contract(mapMode: string, moduleMap = "") {
+  return \`// START_MODULE_CONTRACT
+// PURPOSE: Exercise semantic markup.
+// SCOPE: Test-only fixture.
+// DEPENDS: none
+// LINKS: M-EXAMPLE
+// ROLE: RUNTIME
+// MAP_MODE: \${mapMode}
+// END_MODULE_CONTRACT
+\${moduleMap ? \`// START_MODULE_MAP
+\${moduleMap}
+// END_MODULE_MAP\` : ""}\`;
+}
+`;
+    expect(hasGraceMarkers(source)).toBe(false);
+    const stripped = stripQuotedStrings(source);
+    expect(stripped).not.toMatch(/START_MODULE_CONTRACT/);
+    expect(stripped).not.toMatch(/START_MODULE_MAP/);
+  });
+
+  it("still detects real comment markers outside strings", () => {
+    expect(hasGraceMarkers("// START_MODULE_CONTRACT\n// END_MODULE_CONTRACT\n")).toBe(true);
+  });
+
+  it("does not treat near-miss marker names as real markup", () => {
+    expect(hasGraceMarkers("// START_MODULE_CONTRACTX\n")).toBe(false);
+    expect(hasGraceMarkers("// START_MODULE_MAPPER\n")).toBe(false);
+    expect(hasGraceMarkers("// START_BLOCK_RUN\n// END_BLOCK_RUN\n")).toBe(true);
+    expect(hasGraceMarkers("// START_BLOCK_foo\n")).toBe(false);
+  });
+
+  it("reports markup.near-miss-marker without governing the file (A8)", () => {
+    // Controls that must warn (marker-shaped: token, or token + one name).
+    for (const src of [
+      "// START_MODULE_CONTRACTX\n",
+      "// START_CONTRACTX\n",
+      "// START_CONTRACT IC-X\n",
+      "// START_BLOCK_foo\n",
+    ]) {
+      expect(hasGraceMarkers(src), src).toBe(false);
+      const issues = collectNearMissMarkerIssues("src/control.ts", src);
+      expect(issues, src).toHaveLength(1);
+      expect(issues[0]!.code).toBe("markup.near-miss-marker");
+      expect(issues[0]!.severity).toBe("warning");
+    }
+
+    // Exact markers are not near-misses.
+    expect(collectNearMissMarkerIssues("src/c.ts", "// START_MODULE_CONTRACT\n// END_MODULE_CONTRACT\n")).toEqual([]);
+    expect(collectNearMissMarkerIssues("src/d.ts", "// START_BLOCK_RUN\n// END_BLOCK_RUN\n")).toEqual([]);
+
+    // Contract-block family: exact colon form quiet.
+    const validScoped = "// START_CONTRACT: IC-X\n// END_CONTRACT: IC-X\n";
+    expect(hasGraceMarkers(validScoped)).toBe(true);
+    expect(collectNearMissMarkerIssues("src/e.ts", validScoped)).toEqual([]);
+
+    // String contents are not comments after stripQuotedStrings — no false positive.
+    const inString = 'const doc = "// START_CONTRACTX";\nconst other = `// END_CONTRACTX`;\n';
+    expect(hasGraceMarkers(inString)).toBe(false);
+    expect(collectNearMissMarkerIssues("src/h.ts", inString)).toEqual([]);
+
+    // §0.7.3 syntax-inside-prose: multi-token comments that mention each marker family stay quiet.
+    const prose = [
+      "// Authors who mistype START_MODULE_CONTRACT often glue a suffix like X.",
+      "// The MAP is closed by START_MODULE_MAP when exports are listed.",
+      "// START_BLOCK names must be uppercase; START_BLOCK_foo is wrong in prose too.",
+      "// START_CONTRACT / END_CONTRACT stay out of EXACT_MARKER_PREFIXES: that list",
+      "* START_CONTRACT / END_CONTRACT stay out of EXACT_MARKER_PREFIXES: that list's",
+      "// See also START_CHANGE_SUMMARY when documenting a change.",
+    ];
+    for (const line of prose) {
+      expect(collectNearMissMarkerIssues("src/prose.ts", `${line}\n`), line).toEqual([]);
+    }
+  });
+});
 
 describe("governed file analysis", () => {
   it("parses the shared markup record and enforces exact TypeScript value/type export parity", () => {

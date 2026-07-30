@@ -9,9 +9,10 @@ import {
 } from "./token-accounting";
 
 describe("token-accounting (D15)", () => {
-  it("skillTextLines().total reports 636 for SKILL.md files at HEAD", () => {
+  it("skillTextLines().total reports 648 for SKILL.md files at HEAD", () => {
+    // Phase 2: three skills each gained a four-line <verdicts> block (636 → 648).
     const measured = skillTextLines();
-    expect(measured.total).toBe(636);
+    expect(measured.total).toBe(648);
     expect(Object.keys(measured.perSkill).length).toBe(16);
     // Sanity: known skills present
     expect(measured.perSkill["ngrace-init"]).toBeGreaterThan(0);

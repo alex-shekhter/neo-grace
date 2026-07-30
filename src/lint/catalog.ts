@@ -1,16 +1,34 @@
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { ARTIFACT_TAG_PREFIX, skillRef } from "../artifact/types";
 import { CONFIG_FILE_NAME } from "./config";
-import type { LintIssue } from "./types";
+import type { IssueClass, LintIssue } from "./types";
 
-type LintIssueGuide = {
-  code: string;
+/**
+ * D4 defect-pattern ids (duplicated from test-support/defect-corpus so the
+ * published lint surface never imports src/test-support — invariant 7 / A3.2 §4).
+ */
+export type DefectPatternId =
+  | "confidently-wrong"
+  | "self-referential-comparison"
+  | "regex-over-structure"
+  | "zero-or-more-swallow"
+  | "unthreaded-construct";
+
+type LintIssueGuideFields = {
   title: string;
   explanation: string;
   remediation: string[];
+  /** Exact entries only; never on prefix guides (A6.1 §2). */
+  issueClass?: IssueClass;
+  /** Defect that motivated this code; required for absence entries (A3.2 / §12.1). */
+  derivedFrom?: string;
+  /** D4 pattern this code defends against. */
+  proposedBy?: DefectPatternId;
 };
 
-const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
+type LintIssueGuide = LintIssueGuideFields & { code: string };
+
+const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
   "config.invalid-json": {
     title: "Invalid Lint Config JSON",
     explanation: `The repository-level ${CONFIG_FILE_NAME} file could not be parsed as JSON.`,
@@ -43,6 +61,26 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
       `Acknowledge the limitation deliberately with ${CONFIG_FILE_NAME} { \"unverifiedLanguages\": [\".ext\"] } `
         + "so the silence is a recorded decision rather than an accident.",
     ],
+    issueClass: "absence",
+    derivedFrom: "Governed file claims EXPORTS/LOCALS parity with no language adapter; previously silent or misread as a defect.",
+    proposedBy: "confidently-wrong",
+  },
+  "markup.near-miss-marker": {
+    title: "Near-Miss Semantic Marker",
+    explanation:
+      "A comment line looks like a GRACE semantic marker but is not an exact marker name "
+      + "(for example START_MODULE_CONTRACTX, or START_BLOCK_foo with a lowercase name). "
+      + "The file is not governed by that line; reporting the near-miss keeps a typo loud "
+      + "instead of silent after the hasGraceMarkers boundary was tightened.",
+    remediation: [
+      "Use an exact marker: START_MODULE_CONTRACT, START_MODULE_MAP, START_CHANGE_SUMMARY, or START_BLOCK_NAME with NAME matching [A-Z0-9_]+.",
+      "If the line is ordinary prose or an identifier, reword it so it does not prefix a marker name.",
+    ],
+    derivedFrom:
+      "Tightening hasGraceMarkers to reject identifier continuations (START_MODULE_CONTRACTX) "
+      + "and lowercase START_BLOCK_ names made those files ungoverned with no issues; authors who "
+      + "mistyped a marker got silence instead of feedback (A7.1 / A8).",
+    proposedBy: "regex-over-structure",
   },
   "markup.unknown-dependency": {
     title: "Unknown MODULE_CONTRACT DEPENDS Anchor",
@@ -82,6 +120,22 @@ const EXACT_GUIDES: Record<string, Omit<LintIssueGuide, "code">> = {
     title: "Language Runtime Missing",
     explanation: "The governed file uses a language adapter that requires its language runtime on PATH. GRACE fails closed instead of silently dropping export/local parity checks.",
     remediation: ["Install the runtime named in the issue message and ensure it is available on PATH.", "If the file should not be governed in this environment, exclude it explicitly rather than relying on incomplete analysis."],
+    issueClass: "absence",
+    derivedFrom: "Adapter requires a runtime that is not on PATH; parity cannot be evaluated rather than failed.",
+    proposedBy: "confidently-wrong",
+  },
+  "assertion.command-not-evaluated": {
+    title: "Command Assertion Not Evaluated",
+    explanation:
+      "A MustPassCommand or MustPassBudget assertion was not run because command execution was not "
+      + "opted in. This is an absence of evidence, not a command failure.",
+    remediation: [
+      "Pass --run-commands when the selected assertion mode should execute declared commands.",
+      "Do not treat a skipped command as a pass; the absence reason is this code.",
+    ],
+    issueClass: "absence",
+    derivedFrom: "MustPassCommand/MustPassBudget without --run-commands produced no evaluation; silence would look like success.",
+    proposedBy: "confidently-wrong",
   },
   "scope.durable-overlap": {
     title: "Durable Scope Overlap",
@@ -456,14 +510,40 @@ export function getLintIssueGuide(code: string): LintIssueGuide {
   };
 }
 
+/**
+ * Attaches guide fields. issueClass comes only from exact catalog entries
+ * (A5.1 route 2, A6.1) — never from prefix guides or the synthesized fallback.
+ */
 export function withLintIssueGuide(issue: LintIssue): LintIssue {
+  const exact = EXACT_GUIDES[issue.code];
   const guide = getLintIssueGuide(issue.code);
-  return {
+  const next: LintIssue = {
     ...issue,
     title: guide.title,
     explanation: guide.explanation,
     remediation: guide.remediation,
   };
+  if (exact?.issueClass !== undefined) {
+    next.issueClass = exact.issueClass;
+  } else {
+    // Uncatalogued / prefix-only codes: defect by default (A6.1 §3). Do not
+    // preserve a spurious class if a caller attached one.
+    delete next.issueClass;
+  }
+  return next;
+}
+
+/** Exact catalog fields for a code, or undefined when only prefix/fallback apply. */
+export function getExactLintIssueGuide(code: string): LintIssueGuideFields | undefined {
+  return EXACT_GUIDES[code];
+}
+
+/** Codes whose exact catalog entry carries issueClass "absence". */
+export function listAbsenceCatalogCodes(): string[] {
+  return Object.entries(EXACT_GUIDES)
+    .filter(([, guide]) => guide.issueClass === "absence")
+    .map(([code]) => code)
+    .sort();
 }
 
 export function formatLintExplanation(code: string) {

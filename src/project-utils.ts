@@ -82,42 +82,87 @@ export function readTextIfExists(filePath: string) {
   return existsSync(filePath) ? readFileSync(filePath, "utf8") : null;
 }
 
+/**
+ * Blank string and template-literal contents while preserving newlines and
+ * non-string source structure. Handles template interpolations `${...}` so a
+ * nested backtick inside `${}` does not terminate the outer template early
+ * (corpus-re-03 / A3.3).
+ */
 export function stripQuotedStrings(text: string) {
   let result = "";
-  let quote: '"' | "'" | "`" | null = null;
-  let escaped = false;
+  let i = 0;
 
-  for (const char of text) {
-    if (!quote) {
-      if (char === '"' || char === "'" || char === "`") {
-        quote = char;
-        result += " ";
+  const blankChar = (char: string) => {
+    result += char === "\n" ? "\n" : " ";
+  };
+
+  /** Strip one quoted span starting at `i` where text[i] is the opening quote. */
+  const stripQuoted = (openQuote: '"' | "'" | "`") => {
+    blankChar(text[i]!);
+    i += 1;
+    let escaped = false;
+    while (i < text.length) {
+      const char = text[i]!;
+      if (escaped) {
+        escaped = false;
+        blankChar(char);
+        i += 1;
         continue;
       }
+      if (char === "\\") {
+        escaped = true;
+        blankChar(char);
+        i += 1;
+        continue;
+      }
+      // Template interpolation: blank ${...} without treating nested quotes as
+      // the end of the outer template.
+      if (openQuote === "`" && char === "$" && text[i + 1] === "{") {
+        blankChar("$");
+        blankChar("{");
+        i += 2;
+        let depth = 1;
+        while (i < text.length && depth > 0) {
+          const c = text[i]!;
+          if (c === '"' || c === "'" || c === "`") {
+            stripQuoted(c);
+            continue;
+          }
+          if (c === "{") {
+            depth += 1;
+            blankChar(c);
+            i += 1;
+            continue;
+          }
+          if (c === "}") {
+            depth -= 1;
+            blankChar(c);
+            i += 1;
+            continue;
+          }
+          blankChar(c);
+          i += 1;
+        }
+        continue;
+      }
+      if (char === openQuote) {
+        blankChar(char);
+        i += 1;
+        return;
+      }
+      blankChar(char);
+      i += 1;
+    }
+  };
 
-      result += char;
+  while (i < text.length) {
+    const char = text[i]!;
+    if (char === '"' || char === "'" || char === "`") {
+      stripQuoted(char);
       continue;
     }
-
-    if (escaped) {
-      escaped = false;
-      result += char === "\n" ? "\n" : " ";
-      continue;
-    }
-
-    if (char === "\\") {
-      escaped = true;
-      result += " ";
-      continue;
-    }
-
-    if (char === quote) {
-      quote = null;
-      result += " ";
-      continue;
-    }
-
-    result += char === "\n" ? "\n" : " ";
+    result += char;
+    i += 1;
   }
 
   return result;
@@ -125,9 +170,119 @@ export function stripQuotedStrings(text: string) {
 
 export function hasGraceMarkers(text: string) {
   const searchable = stripQuotedStrings(text);
+  // Negative lookbehind-free: reject near-misses like START_MODULE_CONTRACTX
+  // (adversarial probe during Phase 2) while still matching START_BLOCK_* names.
+  // Near-misses are still reported as markup.near-miss-marker (A8) without
+  // making the file governed.
   return searchable
     .split("\n")
-    .some((line) => /^(\s*)(\/\/|#|--|;+|\*)\s*(START_MODULE_CONTRACT|START_MODULE_MAP|START_CONTRACT:|START_BLOCK_|START_CHANGE_SUMMARY)/.test(line));
+    .some((line) =>
+      /^(\s*)(\/\/|#|--|;+|\*)\s*(?:START_MODULE_CONTRACT(?![A-Za-z0-9_])|START_MODULE_MAP(?![A-Za-z0-9_])|START_CONTRACT:|START_BLOCK_[A-Z0-9_]+|START_CHANGE_SUMMARY(?![A-Za-z0-9_]))/
+        .test(line),
+    );
+}
+
+/** Fixed marker names that must match exactly (or with non-identifier trailing text). */
+const EXACT_MARKER_PREFIXES = [
+  "START_MODULE_CONTRACT",
+  "END_MODULE_CONTRACT",
+  "START_MODULE_MAP",
+  "END_MODULE_MAP",
+  "START_CHANGE_SUMMARY",
+  "END_CHANGE_SUMMARY",
+] as const;
+
+/**
+ * Near-miss marker comments (A8): a comment body that is *marker-shaped* — the
+ * marker token plus at most one following name token — but not a parseable
+ * marker. Multi-token prose that merely mentions a marker name stays quiet
+ * (false-positive fix on JSDoc/prose lines).
+ *
+ * Families: exact-prefix glued suffixes (START_MODULE_CONTRACTX), unparseable
+ * START/END_BLOCK_ names, unparseable START/END_CONTRACT shapes. File stays
+ * ungoverned; the warning keeps typo'd markers loud without re-governing.
+ *
+ * START_CONTRACT / END_CONTRACT stay out of EXACT_MARKER_PREFIXES so the
+ * legitimate colon form is never an identifier-continuation hit.
+ */
+export function collectNearMissMarkerIssues(filePath: string, text: string): LintIssue[] {
+  const searchable = stripQuotedStrings(text);
+  const issues: LintIssue[] = [];
+  const lines = searchable.split("\n");
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]!;
+    const match = line.match(/^(\s*)(\/\/|#|--|;+|\*)\s*(\S.*)$/);
+    if (!match) {
+      continue;
+    }
+    const body = match[3]!.trim();
+    // Marker-shaped only: one token (glued marker) or marker + one name. Prose
+    // with more tokens is not a near-miss attempt.
+    const tokens = body.split(/\s+/).filter(Boolean);
+    if (tokens.length === 0 || tokens.length > 2) {
+      continue;
+    }
+    const first = tokens[0]!;
+    const lineNumber = index + 1;
+    let reported = false;
+
+    for (const prefix of EXACT_MARKER_PREFIXES) {
+      if (
+        first.length > prefix.length
+        && first.startsWith(prefix)
+        && /^[A-Za-z0-9_]+$/.test(first.slice(prefix.length))
+      ) {
+        issues.push(markupIssue(
+          "warning",
+          "markup.near-miss-marker",
+          filePath,
+          lineNumber,
+          `Comment looks like a semantic marker but is not exact: '${first}'. `
+            + `Did you mean ${prefix}? This file is not governed by this line.`,
+        ));
+        reported = true;
+        break;
+      }
+    }
+
+    // Contract-block family (parseMarkerEvent): exact shape is START|END_CONTRACT: <name>.
+    // Keep out of EXACT_MARKER_PREFIXES so "// START_CONTRACT: IC-X" is never a prefix hit.
+    // Bare "// START_CONTRACT:" is governed by hasGraceMarkers; leave those to markup errors.
+    if (!reported && /^(START|END)_CONTRACT/.test(first)) {
+      const validContract = /^(START|END)_CONTRACT:\s*[A-Za-z0-9_$.-]+$/.test(body);
+      if (!validContract) {
+        issues.push(markupIssue(
+          "warning",
+          "markup.near-miss-marker",
+          filePath,
+          lineNumber,
+          `Contract marker is not parseable: '${body}'. `
+            + `Use START_CONTRACT: Name or END_CONTRACT: Name with Name matching [A-Za-z0-9_$.-]+. `
+            + `This line does not govern the file.`,
+        ));
+        reported = true;
+      }
+    }
+
+    if (!reported) {
+      const block = first.match(/^(START|END)_BLOCK_(.*)$/);
+      if (block && tokens.length === 1) {
+        const blockName = block[2]!;
+        // Parser requires [A-Z0-9_]+ (project-utils parseMarkerEvent); lowercase never parses.
+        if (blockName.length === 0 || !/^[A-Z0-9_]+$/.test(blockName)) {
+          issues.push(markupIssue(
+            "warning",
+            "markup.near-miss-marker",
+            filePath,
+            lineNumber,
+            `Block marker name is not parseable: '${first}'. `
+              + `Use ${block[1]}_BLOCK_NAME with NAME matching [A-Z0-9_]+. This line does not govern the file.`,
+          ));
+        }
+      }
+    }
+  }
+  return issues;
 }
 
 function escapeRegExp(value: string) {

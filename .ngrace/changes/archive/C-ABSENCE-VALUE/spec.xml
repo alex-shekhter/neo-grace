@@ -1,0 +1,156 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-ABSENCE-VALUE>
+    <Summary>Unify absence values with issueClass (catalog-derived), teach doctor to report the two codes it can see by reason, and land one shared verdict vocabulary under skills.</Summary>
+    <Problem>
+      Three absence codes already ship (analysis.no-adapter, analysis.runtime-missing,
+      assertion.command-not-evaluated), but consumers must enumerate them by name. Doctor filters
+      analysisIssues with an analysis. prefix and a Pick that would drop issueClass (A3.2 §2, A4.3).
+      Skills have no shared vocabulary for review / AC / verification outcomes the binary does not
+      own. Nested-template fixture markers still defeat the quote stripper (corpus-re-03). Setting
+      issueClass only at NgraceIssue emission sites cannot reach lint: addNgraceIssue re-copies five
+      fields (A5.1). Default current-mode lint skips unevaluated command assertions rather than
+      reporting assertion.command-not-evaluated, so doctor never sees that code (A5.2; A4.3
+      consequence 2 withdrawn). Route 2 requires an exact catalog entry for the third code; the
+      assertion. prefix guide must never carry issueClass (A6.1).
+    </Problem>
+    <Goals>
+      <Goal>Additive optional issueClass on LintIssue so absence is one recognizable class without renaming codes (schemaVersion stays 1.0.0).</Goal>
+      <Goal>
+        Route 2 (A5.1): derive issueClass from exact catalog entries only inside withLintIssueGuide.
+        Catalog is the single classification source. assertion.command-not-evaluated gains an exact
+        catalog entry (A6.1). Prefix guides and the synthesized fallback never set issueClass —
+        uncatalogued codes are defects by default (A6.1 §2–3). analysis.adapter-failed (defect
+        branch of project-utils.ts:330 ternary) is not absence (A3.2 §1).
+      </Goal>
+      <Goal>
+        Doctor reports absences by reason via issueClass for the two analysis.* codes it can reach;
+        pure partition over LintIssue[] unit-tested for all three codes; third code classified under
+        lint --assertions target against a durable fixture (not C-ABSENCE-VALUE) (A5.2, A6.2, A6.3).
+        No new doctor flags.
+      </Goal>
+      <Goal>One shared verdicts.md fragment; single-source rule scoped to repository-root skills/ only (A3.2 §3); fails on deliberate duplication.</Goal>
+      <Goal>Scanner treats nested-template markers as non-markup; corpus-re-03 lands; corpus-zo-03 attempted honestly.</Goal>
+      <Goal>Drop-site inventory for LintIssue/NgraceIssue and per-surface reachability of each absence code reported (A5.4, A5.9).</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>No rename or removal of existing issue codes; issueClass is optional and additive.</Constraint>
+      <Constraint>Classification route is A5.1 route 2 (exact catalog entry + withLintIssueGuide), not route 1 (widen NgraceIssue / addNgraceIssue).</Constraint>
+      <Constraint>issueClass may be set on exact catalog entries only — never on a prefix guide (A6.1 §2).</Constraint>
+      <Constraint>Do not add assertion-mode or run-commands flags to doctor (A5.2).</Constraint>
+      <Constraint>No new runtime dependencies; no Phase 3+ constructs (run-ledger, cursor, gates, provenance attributes).</Constraint>
+      <Constraint>scripts/ stays ignored; adoption is its own C-*. Measure un-ignored error count before and after (A4.2).</Constraint>
+      <Constraint>skills/ngrace/* is source of truth; packaged plugins/ngrace/skills/ngrace/* must stay byte-identical and is excluded from the single-source token scan (A3.2 §3).</Constraint>
+      <Constraint>proposedBy is typed against the D4 PatternId union without importing src/test-support into src/lint/ (A3.2 §4).</Constraint>
+      <Constraint>AffectedAreas derived from the traced code path, not only from §2.3's provisional file table (A5.6).</Constraint>
+      <Constraint>Tests and measurements must not depend on transient artifact state (A6.4); fixture bundles only.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Transition gates, run ledger, cursor, attempt log, or review automation (Phases 3–6).</NonGoal>
+      <NonGoal>Adopting scripts/ or creating M-RELEASE-AUTOMATION (separate C-*).</NonGoal>
+      <NonGoal>Renaming absence codes or inventing a second reason field parallel to the code string.</NonGoal>
+      <NonGoal>Adding START_MODULE_CONTRACT markup to src/ files (Path-only graph ownership remains deliberate and thin).</NonGoal>
+      <NonGoal>Widening NgraceIssue or changing addNgraceIssue for issueClass (route 1 rejected in favor of route 2).</NonGoal>
+      <NonGoal>Making doctor observe assertion.command-not-evaluated under current mode (A5.2; skip is deliberate).</NonGoal>
+      <NonGoal>File→module ObservedWriteScope cross-check (A5.7; recorded for a later phase).</NonGoal>
+      <NonGoal>Pinning third-code evidence to live C-ABSENCE-VALUE (A6.2; use fixtures).</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-ISSUE-CLASS>
+        issueClass exists on LintIssue as optional additive field. The three absence codes
+        (analysis.no-adapter, analysis.runtime-missing, assertion.command-not-evaluated) each have
+        an exact catalog entry with issueClass "absence" and carry it after withLintIssueGuide (A6.1).
+        The defect branch of the project-utils.ts:330 ternary, analysis.adapter-failed, is not
+        "absence" (A3.2 §1). A non-absence assertion.* code (e.g. assertion.MustExist) carries no
+        absence class — prefix guide must not classify (A6.1 §2). Uncatalogued codes default to no
+        class / defect (A6.1 §3). Visible in lint --format json for codes that lint actually emits.
+      </AC-ISSUE-CLASS>
+      <AC-DOCTOR-ABSENCE>
+        Doctor reports absences by reason via issueClass (not code.startsWith("analysis.")) for the
+        two codes reachable under current mode: analysis.no-adapter and analysis.runtime-missing
+        (A5.2). Zero case on this repository is attributed to current-mode skip of unevaluated
+        MustPassCommand/MustPassBudget (lint/core.ts:238-244, :290-297; pinned grace-lint.test.ts:410
+        and :1080) — not to missing wiring (A5.2 §1). Non-zero doctor case from a fixture governing
+        an extension no adapter supports (codeExtensions: [".ex"]). assertion.command-not-evaluated
+        is classified and tested where reachable: unit partition over LintIssue[] for all three codes,
+        plus one lint-level test under --assertions target against a durable fixture bundle
+        (extend grace-lint.test.ts C-COMMAND fixture at :399-417; A6.2, A6.3) — not against live
+        C-ABSENCE-VALUE. Reported as classified, unreachable from doctor today (A5.2 §2). No doctor
+        flags added.
+      </AC-DOCTOR-ABSENCE>
+      <AC-CATALOG-JUSTIFY>
+        Catalog is the single source of issueClass (A5.1 route 2). Every absence code must have an
+        exact catalog entry (A6.1) carrying derivedFrom and/or proposedBy; proposedBy is a D4
+        PatternId without test-support imports into lint. Being catalogued is a requirement for
+        absence classification, not a hypothesis.
+      </AC-CATALOG-JUSTIFY>
+      <AC-VERDICTS-FRAGMENT>
+        skills/ngrace/ngrace-cli/references/verdicts.md holds the three authored vocabularies (under
+        40 lines); three verdict-emitting skills gain one sentence each; packaged mirrors match;
+        token baseline updated (A3.2 §6).
+      </AC-VERDICTS-FRAGMENT>
+      <AC-SINGLE-SOURCE>
+        validate-marketplace single-source rule is at most one under the repository-root skills/
+        tree only; the packaged mirror (plugins/ngrace/skills/) is excluded (A3.2 §3). Separate
+        assertion that verdicts.md exists and carries all three tokens. Deliberate duplication fails
+        with shown output (§2.7 gate 3).
+      </AC-SINGLE-SOURCE>
+      <AC-SCANNER-CORPUS>
+        stripQuotedStrings / hasGraceMarkers treat nested-template markers as non-markup;
+        corpus-re-03 in the corpus and firing; Phase 1 contract() workaround reverted if redundant;
+        corpus-zo-03 landed or refused with shapes tried (A3.3).
+      </AC-SCANNER-CORPUS>
+      <AC-GRAPH-COVERAGE>
+        Graph and verification cover every src file this change edits; exceptions for scripts/
+        (A4.2) and test-support (invariant 7) stated; bun run validate:ci, bun run validate:packed,
+        and bun run ngrace lint --path . green (A5.8 §5). V-M-DOCTOR names
+        src/grace-doctor.test.ts at phase end (A6.5).
+      </AC-GRAPH-COVERAGE>
+      <AC-DROP-SITE-INVENTORY>
+        Phase report includes the A5.4 drop-site inventory for LintIssue/NgraceIssue (each site
+        file:line marked widened, deliberately not widened with reason, or not on the path) and
+        per-surface reachability of each absence code across lint --format json, doctor, and
+        --assertions target (A5.9; flag name per A6.3).
+      </AC-DROP-SITE-INVENTORY>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-LINT-TYPES />
+      <M-LINT-CATALOG />
+      <M-PROJECT-UTILS />
+      <M-DOCTOR />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run validate:packed</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-doctor.test.ts src/project-utils.test.ts src/test-support/defect-corpus.test.ts src/grace-lint.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        issueClass from exact catalog entries on absence emissions in lint JSON; doctor
+        absence-by-reason for the two reachable analysis.* codes; zero case attributed to
+        current-mode skip (A5.2); third code classified under --assertions target on a fixture
+        (A6.2, A6.3); non-absence assertion.* has no absence class (A6.1); single-source rule
+        failing output on deliberate duplication; drop-site inventory and per-surface reachability
+        table; mutation check table; token baseline 636 to new total; un-ignored scripts error
+        count before and after.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        §2.2 preconditions re-measured on branch base (main @ 0085f32), not assumed: assertion.command-not-evaluated
+        at assertions.ts:263 and :506; analysis.no-adapter catalog guide at catalog.ts:34;
+        analysis.runtime-missing / analysis.adapter-failed ternary at project-utils.ts:330;
+        analysis.no-adapter emission at project-utils.ts:344; bun run validate:ci green; ngrace lint
+        --path . exit 0 with graph module-without-linked-files warnings only; un-ignored scripts/
+        count 6 governed files, 20 errors. assertion.command-not-evaluated has no exact catalog
+        entry at HEAD (A6.1).
+      </Assumption>
+      <Assumption>A3–A6 corrections govern where they disagree with provisional §2.5 steps; A4.3 consequence 2 is withdrawn by A5.2.</Assumption>
+      <Assumption>Path-only modules without LINKS remain warning-level and deliberate (A1 thin tree).</Assumption>
+      <Assumption>
+        Route 2 does not edit assertions.ts or widen NgraceIssue: classification attaches in
+        withLintIssueGuide from exact catalog entries. M-ASSERTIONS stays out of AffectedAreas
+        unless a later step is forced to edit that file.
+      </Assumption>
+    </Assumptions>
+  </C-ABSENCE-VALUE>
+</NgraceChangeSpec>
