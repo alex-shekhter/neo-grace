@@ -1,10 +1,10 @@
 ---
 id: RM-AGENT-RELIABILITY
 kind: plan
-status: draft
+status: approved
 supersededBy: null
 created: 2026-07-29
-updated: 2026-07-29
+updated: 2026-07-30
 baseline: 6.0.1
 targets: []
 context: ./decisions.md
@@ -20,9 +20,12 @@ document disagree, **this plan wins** — the conflicts were adjudicated in `dec
 and specifies the work.
 **Plan version:** 2.0 · 2026-07-29 (split; see below)
 
-> **Blocked on [RM-AGENT-RELIABILITY-EVIDENCE](../../archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md).** Phases 0
-> and 1 were moved into that bundle on 2026-07-29. It fixes the measurement format and produces this
-> repository's real `.ngrace` tree; nothing here may start until it is `complete`.
+> **Approved for execution on 2026-07-30 — see §14 A1 for what that approval does and does not
+> clear.** The blocking dependency is satisfied:
+> [RM-AGENT-RELIABILITY-EVIDENCE](../../archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md) is `complete`
+> and archived. Phases 0 and 1 were moved into that bundle on 2026-07-29; it fixed the measurement
+> format and produced this repository's real `.ngrace` tree. §2 sequencing rule 0 stands as the record
+> of why it had to run first.
 
 > **The step detail below is provisional, and that is why the split happened.** Phases 2–11 were
 > written in full before the evidence existed — before the measurement format was fixed, before there
@@ -32,7 +35,7 @@ and specifies the work.
 >
 > At each phase's approval, re-derive its steps from what the evidence bundle actually produced, and
 > record the difference. Treating these steps as specified is the mistake this structure exists to
-> prevent. Every count in them is a claim — §14.
+> prevent. Every count in them is a claim — §15.
 
 > **Releases are not yet assigned.** `targets` is empty and the Release column in §2 reads `TBD`.
 
@@ -1646,7 +1649,120 @@ deferral with a named trigger, not an omission.
 
 ---
 
-## 14. Final instruction to the executor
+## 14. Amendments
+
+Append-only. Each entry records a decision or a correction made after the plan was written, with the
+date it was made. Never edit an existing entry; add a new one that supersedes it.
+
+### A1 — 2026-07-30 · Approved for execution
+
+**Approved by the maintainer on 2026-07-30.** §2 sequencing rule 0 is satisfied:
+[RM-AGENT-RELIABILITY-EVIDENCE](../../archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md) is `complete` and
+archived, both its phases landed (`583a327`, `e33d048`), and `ngrace lint --path .` exits zero on this
+repository.
+
+**What this approval clears, and what it does not.** The objectives, decisions delivered, and review
+gates for Phases 2–11 are ratified. **The numbered steps are not.** The banner above says they are
+drafts against an imagined dataset, and approving the bundle does not promote them: before each phase
+runs, re-derive its steps from what the evidence bundle actually produced and record the difference in
+this section. Treating a step as specified because the plan is `approved` is the exact failure this
+split was made to prevent.
+
+**`targets` stays empty and the Release column stays `TBD`.** Releases are assigned per phase, not by
+this approval.
+
+**The evidence to re-derive against, as it exists at `e33d048`:**
+
+- **D15 token accounting** — `src/test-support/token-accounting.ts` with `skillTextLines()`,
+  `commandOutputBytes()`, `selectionRatio()`. The baseline is **636 SKILL.md lines across 16 skills**,
+  captured pre-`.ngrace` and asserted exactly in `token-accounting.test.ts`. `referencesTotal` is
+  asserted only `> 0`, so Phase 8 must pin its own reference figure rather than cite 1285 as
+  instrumented. The baseline is not repeatable — do not edit the expected values; the design is that
+  the baseline moves while the instrument holds still.
+- **D4 defect corpus** — `src/test-support/defect-corpus.ts`, **ten entries** across the five
+  patterns, with finding reachability declared per expected finding (`surface`, `lintMode`,
+  `changeId`, `moduleId`). Phase 6's mechanized audits consume this. Ids are stable and never
+  renumbered. `corpus-zo-03` is a recorded known gap, not an oversight.
+- **A real `.ngrace` tree** — five modules (`M-LINT-CORE`, `M-ASSERTIONS`, `M-GRAMMAR`, `M-STATUS`,
+  `M-SKILLS`), five verification entries, `GD-MAIN` / `VD-MAIN`, empty change dirs. Thin on purpose;
+  Phases 3, 4, 8 and 9 design against it. Four `graph.module-without-linked-files` warnings are
+  expected and deliberate: `src/project-utils.ts:568` forces ROLE→MAP_MODE, so adding
+  `START_MODULE_CONTRACT` to those four files would mean enumerating 38 exports that must then stay in
+  sync forever.
+
+**Two debts this track inherits, both owed by named phases:**
+
+1. **The `scripts/` lint suppression.** `.ngrace-lint.json` ignores `examples` (a nested project,
+   covered by `validate:examples`) and `scripts` — the second hides **20 pre-existing errors** in this
+   repository's own code: six `markup.unknown-link` to `M-RELEASE-AUTOMATION`, five
+   `role-map-mode-mismatch`, five `module-map-mismatch`, three `reversed-marker`, one
+   `duplicate-marker`. Adoption is deferred to a later `C-*`. Phase 10 must not read a rising
+   `Governed files` count as progress it caused.
+2. **Candidate `corpus-re-03`.** `src/project-utils.ts:130` matches marker names with a line-oriented
+   regex and no string-literal awareness, so fixture markers inside template literals parse as real
+   markup. Phase 1 worked around it in `src/project-utils.test.ts`; the defect is open. It belongs to
+   whichever phase touches markup scanning. The rewritten helper is not evidence the scanner is
+   correct.
+
+### A2 — 2026-07-30 · Phase 10's doctor baseline, recorded here
+
+The evidence bundle's A2 item 5 required the first `ngrace doctor` reading on this repository to be
+recorded **with the `.ngrace-lint.json` contents inline**, as Phase 10's baseline. It was reported at
+Phase 1 review but never committed to a file, and that bundle is archived and may not be edited — so
+the baseline is recorded here, in the plan that owns Phase 10. Re-captured at `e33d048`, whose tree is
+byte-identical to the tree Phase 1 landed.
+
+Configuration in force (`.ngrace-lint.json`):
+
+```json
+{
+  "ignoredDirs": [
+    "examples",
+    "scripts"
+  ]
+}
+```
+
+`bun run ngrace doctor --path .` → exit 0:
+
+```
+neo-grace Doctor
+================
+Root: /Users/sas/Projects/neo-grace
+
+Adapters
+  - js-ts: .cjs, .cts, .js, .jsx, .mjs, .mts, .ts, .tsx
+  - python: .py, .pyi
+  - dart: .dart
+  - go: .go
+  - rust: .rs
+
+Analysis coverage
+  Governed files: 0
+  Adapter-backed: (none)
+  Unverified: (none)
+
+Document size (limits: 50 anchors / 30720 bytes)
+  No documents over limit.
+
+Optional context artifacts
+  - design-system.xml: missing (optional)
+  - invariants.xml: missing (optional)
+
+Analysis issues
+  None.
+```
+
+`bun run ngrace lint --path .` → exit 0, 72 files checked, **0 governed files**, 9 XML artifacts,
+0 errors, 4 warnings (the four `graph.module-without-linked-files` named in A1).
+
+**`Governed files: 0` is the honest reading of `src/`**, which has never carried semantic markup — not
+a measurement failure. It is zero *because* of the configuration above, and Phase 10 compares against
+both together or against neither.
+
+---
+
+## 15. Final instruction to the executor
 
 Work one phase at a time. Report in the §0.5 format. Stop after each phase and wait for review.
 
