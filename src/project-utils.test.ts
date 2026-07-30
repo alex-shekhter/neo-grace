@@ -75,6 +75,26 @@ describe("stripQuotedStrings / hasGraceMarkers (nested templates)", () => {
     // Exact markers are not near-misses.
     expect(collectNearMissMarkerIssues("src/c.ts", "// START_MODULE_CONTRACT\n// END_MODULE_CONTRACT\n")).toEqual([]);
     expect(collectNearMissMarkerIssues("src/d.ts", "// START_BLOCK_RUN\n// END_BLOCK_RUN\n")).toEqual([]);
+
+    // Contract-block family (A8 completeness): exact colon form quiet; unparseable shapes fire once.
+    const validScoped = "// START_CONTRACT: IC-X\n// END_CONTRACT: IC-X\n";
+    expect(hasGraceMarkers(validScoped)).toBe(true);
+    expect(collectNearMissMarkerIssues("src/e.ts", validScoped)).toEqual([]);
+
+    const noColon = collectNearMissMarkerIssues("src/f.ts", "// START_CONTRACT IC-X\n");
+    expect(hasGraceMarkers("// START_CONTRACT IC-X\n")).toBe(false);
+    expect(noColon).toHaveLength(1);
+    expect(noColon[0]!.code).toBe("markup.near-miss-marker");
+
+    const glued = collectNearMissMarkerIssues("src/g.ts", "// START_CONTRACTX\n// END_CONTRACTX\n");
+    expect(hasGraceMarkers("// START_CONTRACTX\n// END_CONTRACTX\n")).toBe(false);
+    expect(glued).toHaveLength(2);
+    expect(glued.every((i) => i.code === "markup.near-miss-marker")).toBe(true);
+
+    // String contents are not comments after stripQuotedStrings — no false positive.
+    const inString = 'const doc = "// START_CONTRACTX";\nconst other = `// END_CONTRACTX`;\n';
+    expect(hasGraceMarkers(inString)).toBe(false);
+    expect(collectNearMissMarkerIssues("src/h.ts", inString)).toEqual([]);
   });
 });
 

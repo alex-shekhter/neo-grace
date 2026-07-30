@@ -194,9 +194,13 @@ const EXACT_MARKER_PREFIXES = [
 
 /**
  * Near-miss marker comments (A8): token starts with a known marker name and
- * continues with [A-Za-z0-9_], or START/END_BLOCK_ with a name the parser will
- * never accept (e.g. lowercase). File stays ungoverned when these are the only
+ * continues with [A-Za-z0-9_], START/END_BLOCK_ with a name the parser will
+ * never accept (e.g. lowercase), or START/END_CONTRACT that is not the exact
+ * `<MARKER>: <name>` shape. File stays ungoverned when these are the only
  * "markers"; the warning keeps both "never opted in" and "typo'd" cases loud.
+ *
+ * START_CONTRACT / END_CONTRACT stay out of EXACT_MARKER_PREFIXES: that list's
+ * identifier-continuation rule would false-positive on the legitimate colon form.
  */
 export function collectNearMissMarkerIssues(filePath: string, text: string): LintIssue[] {
   const searchable = stripQuotedStrings(text);
@@ -210,6 +214,7 @@ export function collectNearMissMarkerIssues(filePath: string, text: string): Lin
     }
     const body = match[3]!.trim();
     const lineNumber = index + 1;
+    let reported = false;
 
     for (const prefix of EXACT_MARKER_PREFIXES) {
       if (body.length > prefix.length && body.startsWith(prefix) && /^[A-Za-z0-9_]/.test(body.slice(prefix.length))) {
@@ -221,23 +226,44 @@ export function collectNearMissMarkerIssues(filePath: string, text: string): Lin
           `Comment looks like a semantic marker but is not exact: '${body}'. `
             + `Did you mean ${prefix}? This file is not governed by this line.`,
         ));
+        reported = true;
         break;
       }
     }
 
-    const block = body.match(/^(START|END)_BLOCK_(.*)$/);
-    if (block) {
-      const blockName = block[2]!;
-      // Parser requires [A-Z0-9_]+ (project-utils parseMarkerEvent); lowercase never parses.
-      if (blockName.length === 0 || !/^[A-Z0-9_]+$/.test(blockName)) {
+    // Contract-block family (parseMarkerEvent): exact shape is START|END_CONTRACT: <name>.
+    // Keep out of EXACT_MARKER_PREFIXES so "// START_CONTRACT: IC-X" is never a prefix hit.
+    if (!reported && /^(START|END)_CONTRACT/.test(body)) {
+      const validContract = /^(START|END)_CONTRACT:\s*[A-Za-z0-9_$.-]+$/.test(body);
+      if (!validContract) {
         issues.push(markupIssue(
           "warning",
           "markup.near-miss-marker",
           filePath,
           lineNumber,
-          `Block marker name is not parseable: '${body}'. `
-            + `Use ${block[1]}_BLOCK_NAME with NAME matching [A-Z0-9_]+. This line does not govern the file.`,
+          `Contract marker is not parseable: '${body}'. `
+            + `Use START_CONTRACT: Name or END_CONTRACT: Name with Name matching [A-Za-z0-9_$.-]+. `
+            + `This line does not govern the file.`,
         ));
+        reported = true;
+      }
+    }
+
+    if (!reported) {
+      const block = body.match(/^(START|END)_BLOCK_(.*)$/);
+      if (block) {
+        const blockName = block[2]!;
+        // Parser requires [A-Z0-9_]+ (project-utils parseMarkerEvent); lowercase never parses.
+        if (blockName.length === 0 || !/^[A-Z0-9_]+$/.test(blockName)) {
+          issues.push(markupIssue(
+            "warning",
+            "markup.near-miss-marker",
+            filePath,
+            lineNumber,
+            `Block marker name is not parseable: '${body}'. `
+              + `Use ${block[1]}_BLOCK_NAME with NAME matching [A-Z0-9_]+. This line does not govern the file.`,
+          ));
+        }
       }
     }
   }
