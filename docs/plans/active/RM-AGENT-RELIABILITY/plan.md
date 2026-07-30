@@ -345,7 +345,7 @@ Keep this table current. It is the single source of truth for progress.
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
-| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `NOT STARTED` |
+| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `NOT STARTED` — re-derived (A10); four decisions open |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
@@ -530,6 +530,12 @@ the validator rule. All additive, so rollback is clean.
 **Status:** `NOT STARTED`
 **Decisions:** D1, D2, D3
 **Release:** TBD
+
+> **Amended by §14 A10 — read it before §3.5.** The steps below were written before the evidence existed.
+> A10 re-derives them against HEAD: §3.1, §3.4, §3.6 and §3.7 stand; **§3.5 does not**. Eight corrections
+> (16–23), of which correction 16 invalidates §3.4's "registers exactly as `design-context.xml` does"
+> premise and correction 17 shows step 3.5.1's verify check passes today with no code written. A10.12
+> lists four decisions that must be settled before `spec.xml` is drafted.
 
 ## 3.1 Objective
 
@@ -2328,6 +2334,274 @@ exercise* markers; only the dogfood tree contains prose that *discusses* them, w
 swept against a tree with real comments in it.
 
 Not added to the `# PHASE 2` banner: this binds every phase, not that one.
+
+### A10 — 2026-07-30 · Phase 3 re-derived against HEAD
+
+**Everything below was measured at `7388d5e`** (Phase 2 merged, tree clean), per A5.5: this entry is a
+set of claims tied to a commit, and the executor re-measures the ones it depends on rather than
+transcribing them.
+
+§3.1, §3.4's design, §3.6's definition of done and §3.7's four gates survive the re-derivation
+unchanged. §3.2's preconditions hold. **§3.5's step list does not survive intact**: eight corrections
+follow, one of which (16) invalidates a step's central premise and one of which (17) makes a verify
+check vacuous — it passes today, before any code is written.
+
+#### A10.1 §3.2's preconditions, re-measured
+
+Both hold:
+
+| Precondition | Measured | Result |
+|---|---|---|
+| Evidence bundle Phase 1 `COMPLETE` | `docs/plans/archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md` frontmatter `status: complete`; `.ngrace/` tree present at repository root | ✅ |
+| `NGRACE_CHANGE_COMPANION_TAGS` mechanism live | `src/artifact/types.ts:28`; consumed at `src/artifact/grammar.ts:11,26` | ✅ |
+
+One line of drift, recorded so §3.4's cross-reference stays usable: `validateChangeDesignContextArtifact`
+is at `src/artifact/grammar.ts:575`, not `:574`.
+
+#### A10.2 Correction 16 — companion-tag registration does not admit the *file*, and the plan assumes it does
+
+§3.4 says the two new roots "register as **change companion tags**, exactly as `design-context.xml`
+does." That is true of the **root tag** and false of the **file**, and the file is the half Phase 3 needs.
+
+Measured at `7388d5e`, `design-context.xml` is admitted by **three separate hardcoded mentions of its
+filename**, none of which consults `NGRACE_CHANGE_COMPANION_TAGS`:
+
+| Site | What it does |
+|---|---|
+| `grammar.ts:751` | `const designFile = path.join(entryPath, "design-context.xml")` — the file is found by literal name |
+| `grammar.ts:798-806` | `if (existsSync(designFile))` — validation runs only for that name |
+| `grammar.ts:809` | `!["spec.xml", "plan.xml", "design-context.xml"].includes(fileEntry.name)` — a literal allowlist; everything else in the bundle is `change.unexpected-file`, **error** |
+
+`NGRACE_CHANGE_COMPANION_TAGS` is read at `grammar.ts:26` into `COMPANION_ROOT_TAGS`, whose only use is
+the root-tag check inside `validateChangeDesignContextArtifact` (`:585`). Adding two entries to that
+constant therefore changes **nothing** about whether `run-ledger.xml` and `run.xml` are accepted.
+
+Reproduced, not inferred — a bundle carrying both a `run-ledger.xml` and a `run/` directory, linted
+through the real CLI:
+
+```
+- [error] change.unexpected-file …/C-RUN-LEDGER-PROBE/run-ledger.xml
+          — Unsupported XML artifact 'run-ledger.xml' in change bundle C-RUN-LEDGER-PROBE.
+```
+
+**Consequence:** Step 3.5.1 as written produces a bundle that fails lint with an error. `grammar.ts`'s
+filename allowlist is load-bearing for this phase and §3.3 must say so — it currently lists `grammar.ts`
+only for the two new validators.
+
+**Recommended shape, to avoid a fourth literal:** derive the bundle's known filenames from one exported
+constant beside `NGRACE_CHANGE_COMPANION_TAGS` — filename → validator — and have `:751`, `:798` and
+`:809` all read it. That keeps invariant 4 honest (grammar arrives with the validator that makes it
+load-bearing) and means a fifth companion cannot be half-registered the way this correction describes.
+It is a small refactor of an existing literal, not a new abstraction, so it stays inside working
+principle 2 — but it touches a line the phase would otherwise not touch, so it is a decision to
+ratify, not to improvise (§12.5).
+
+#### A10.3 Correction 17 — step 3.5.1's verify check cannot fail
+
+Step 3.5.1 reads: *"a fixture bundle carrying an empty `run-ledger.xml` lints without
+`change.invalid-root-tag`."*
+
+`change.invalid-root-tag` is emitted at `grammar.ts:499`, inside `validateChangeArtifact`, which runs
+only against `spec.xml` and `plan.xml` (`:753`, `:764`). **No input to `run-ledger.xml` can produce it.**
+The check passes at `7388d5e` with no Phase 3 code written at all — while the real behaviour, the
+`change.unexpected-file` error above, goes unobserved.
+
+This is A5.3's shape at the verify layer rather than the data layer: a check that reports a confident,
+smaller truth. Replace it with the assertion that actually discriminates:
+
+> → verify: a fixture bundle carrying an empty `run-ledger.xml` and a `run/` directory lints with **no
+> `change.unexpected-file`** for either path, and the near-neighbour case — an unregistered
+> `notes.xml` in the same bundle — still errors. Show both.
+
+The second clause is the one that must not be dropped: widening an allowlist is a detection-boundary
+change, and A7.2 requires the silent direction be reported alongside the new-pass direction.
+
+#### A10.4 Correction 18 — `run/` is invisible to lint, and the plan never decides whether it should be
+
+The sweep at `grammar.ts:808` iterates `readdirSync(entryPath, { withFileTypes: true })` and filters
+`fileEntry.isFile()`. A `run/` **subdirectory** is therefore skipped entirely: in the probe above, the
+event file `run/1-T-001-start.xml` produced **no issue of any kind** — no error, and no validation.
+
+So loose event files are unreachable from `validateNgraceProject` today, and §3.5 contains no step that
+changes this. That is a defensible design (D2's events are validated at fold time, by the fold, against
+range membership and density) but it is currently an accident of a `isFile()` filter rather than a
+decision, and it means **a malformed event file is silent until someone folds**.
+
+Decide explicitly and record it in the phase report:
+
+- **(a) Lint stays out of `run/`.** Validation of events is the fold's job (D3 step 2). Then say so in
+  §3.4, and add one test pinning that a garbage file under `run/` produces no lint issue — otherwise the
+  next reader "fixes" the gap.
+- **(b) Lint validates `run/*` shallowly** — root tag and ID-inside-an-allocation only. Costs a
+  directory walk on every lint of every bundle.
+
+**Recommendation: (a).** It matches D3, keeps lint cheap, and the fold already owns the invariants. But
+(a) is only safe *with* its pinning test, because "no issue" is indistinguishable from "not implemented"
+— which is the exact confusion D5 exists to remove.
+
+#### A10.5 Correction 19 — Phase 3 names no issue codes, and §12.1's namespace guidance does not match HEAD
+
+Step 3.5.2 requires "one unit test per rejection, each asserting the specific code — six tests minimum"
+and then names **zero codes**. Step 3.5.3's table says "Error" without a code. §3.6 repeats the count.
+
+§12.1 says codes are "namespaced by surface: `artifact.*` and `projection.*` for lint". Measured against
+`src/lint/catalog.ts` at `7388d5e`, lint's actual namespaces are `config.*`, `project.*`, `markup.*`,
+`analysis.*`, `assertion.*`, `graph.*`, `change.*`, `design-context.*`, `artifact.*` and `path.*`. The
+governing precedent is not §12.1's list — it is `design-context.*`: **a change-bundle companion artifact
+gets its own namespace**, registered as exact catalog entries.
+
+Following that precedent, and requiring registration per §12.1 with `derivedFrom` and `proposedBy`
+(`catalog.ts:22-26`):
+
+| Code | Severity | Fires when | `proposedBy` |
+|---|---|---|---|
+| `ledger.invalid-root-tag` | error | root is not `NgraceRunLedger` | `unthreaded-construct` |
+| `ledger.non-monotonic-epoch` | error | epoch numbers not strictly increasing | `zero-or-more-swallow` |
+| `ledger.reordered-epoch` | error | an epoch renumbered or moved vs. its predecessor | `zero-or-more-swallow` |
+| `ledger.event-outside-allocation` | error | an event ID in no `RangeAllocation` — D2's rogue writer | `zero-or-more-swallow` |
+| `ledger.range-hole` | error | a used range not dense from its start | `zero-or-more-swallow` |
+| `ledger.range-unterminated` | error | a used range with no terminal event | `confidently-wrong` |
+| `cursor.invalid-root-tag` | error | root is not `NgraceRunCursor` | `unthreaded-construct` |
+| `cursor.unknown-task` | error | cursor names a task absent from `plan.xml` — D1 | `unthreaded-construct` |
+
+Eight codes, which satisfies "six minimum" for the ledger with the two cursor codes beside it. These are
+**defects, not absences** — a malformed ledger is malformed, not missing; do not set `issueClass:
+"absence"` (A8's distinction, applied again). An *absent* ledger or cursor emits nothing at all (D1,
+invariant 5).
+
+The names above are a proposal, not a ratification. §12.5 forbids the executor inventing them mid-phase,
+so they are settled here or in the `spec.xml` review — not in the diff.
+
+#### A10.6 Correction 20 — §3.3's file table omits every surface a new subcommand touches
+
+`src/grace.ts:20-28` registers seven subcommands. Phase 3 makes it eight. Each of the following names
+that set and is absent from §3.3:
+
+| File | Why it is pulled in |
+|---|---|
+| `README.md:170-186` | The CLI command table and the per-command output-format list |
+| `skills/ngrace/ngrace-cli/SKILL.md:16` | Enumerates the CLI surfaces an agent may call |
+| `plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md` | Byte-identical mirror — invariant 1, §12.2 |
+| `skills/ngrace/ngrace-execute/SKILL.md` + mirror | D1: *"It ships, and `grace-execute` maintains it by default."* A `cursor` subcommand no skill invokes is a mechanism with no caller |
+
+The `ngrace-execute` row is the substantive one. Without it Phase 3 delivers a write surface that
+nothing in the methodology drives, and D1's "optional to build: **No**" is unmet. Keep the skill edit to
+one or two sentences — §12.4 anti-pattern 10 forbids skill text restating a vocabulary the binary emits,
+so the skill says *when* to advance and fold, never *what the codes are*.
+
+Per A5.6, `AffectedAreas` in the `spec.xml` is derived from this traced set, never from §3.3.
+
+#### A10.7 Correction 21 — step 3.5.4's model reference points at a private helper
+
+Step 3.5.4 says to model the directory-snapshot test on `src/artifact/scale-ergonomics.test.ts:212`.
+Measured: the `describe` is at `:212`, the `it` at `:213`, and the snapshot helper it calls,
+`snapshotTree`, is a **file-local function at `:66`** — not exported.
+
+Meanwhile `src/test-support/fixtures.ts:194` exports `snapshotProjectTree(root)`, which is the shared
+helper and the one invariant 7 wants used. The reference stands as a *model*; the dependency is
+`snapshotProjectTree`. Do not copy the private helper into a third location.
+
+Related, and worth stating because §3.3 names only one of them: there are **two** fixture modules that
+build change bundles — `src/test-support/fixtures.ts:391` and `src/artifact/test-fixtures.ts:26,101`
+(`writeMinimalNgraceProject`, used by the grammar and ergonomics suites). Step 3.5.1's "fixture bundle"
+must name which, and if ledger builders are needed by both, invariant 7 says the shared home is
+`src/test-support/`.
+
+#### A10.8 Correction 22 — step 3.5.7 overstates the work, and hides the decision inside it
+
+Step 3.5.7: *"`ngrace status --path .` prints the change, epoch, task counts and next skill."* Measured
+at `7388d5e`, two of those four already ship:
+
+- **the change** — `formatStatusText:333` already prints `changeId`, location, spec/plan status and
+  derived states, from `ChangeBundleStatus` (`grace-status.ts:22-29`)
+- **the next skill** — `chooseNextAction` (`:171-184`) already returns `$ngrace-execute` and friends,
+  printed at `:364` under "Suggested Next Action"
+
+The new content is **epoch and task counts**. Phase 2's §2.1 made the same kind of note honestly
+("three of the seven absence values already ship"); this step should too, so the phase is not credited
+with work that shipped in an earlier release.
+
+The decision the step conceals: **must `chooseNextAction` consult the cursor?** It must not. §12.4
+anti-pattern 7 — *making the cursor authoritative* — is exactly this, and D1 makes the cursor a
+regenerable cache. `nextAction` stays derived from spec/plan status and integrity. The cursor is
+*displayed*, never *consulted*. State this in the report and add a test: a project whose cursor names a
+different position than the plan state implies still gets the plan-derived `nextAction`.
+
+**A5.4 applies here, and this is its most likely victim in Phase 3.** `ChangeBundleStatus` is a record
+crossing a module boundary, and `formatStatusText:333` is a textbook drop site — an object literal that
+re-lists five fields by name. Add `epoch` to the type, forget `:333`, and JSON carries it while text
+silently does not: corrections 2, 9 and 10 for a fourth time. The drop-site inventory for
+`ChangeBundleStatus` and `StatusResult` is required in the phase report.
+
+#### A10.9 Correction 23 — step 3.5.8's baseline reproduces exactly, and this is its pre-state
+
+Recorded now so the executor compares against a measurement rather than re-deriving expectations after
+writing the code. At `7388d5e`, `grep -rn 'writeFileSync\|mkdirSync' src --include='*.ts' | grep -v test`
+returns exactly:
+
+```
+src/grace-graph.ts:3:import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+src/grace-graph.ts:289:  mkdirSync(path.dirname(newAbsolute), { recursive: true });
+src/grace-graph.ts:291:    writeFileSync(write.file, write.contents);
+src/lint/adapters/dart.ts:2:import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+src/lint/adapters/dart.ts:178:  writeFileSync(analyzerFile, DART_ANALYZER_SCRIPT, "utf8");
+```
+
+Step 3.5.8's expected post-state is this set **plus `src/grace-cursor.ts` and nothing else**. Note the
+dart adapter's two lines are its `mkdtempSync` temp-dir use, which §3.5.8 already anticipates.
+
+Invariant 8 binds the new module: the cursor writes only structural state, and `fold` — which deletes
+files — is the phase's one destructive operation. It needs an explicit trigger, not an implicit one.
+
+#### A10.10 The step list's floor — three things D1–D3 require that §3.5 does not cover
+
+Per A3.1, §3.5 is a floor. Three obligations fall inside Phase 3's objective and have no step:
+
+1. **D3's archive precondition.** *"The archive precondition becomes 'no open epoch'"* (`decisions.md`
+   §D3). Nothing in §3.5 implements or tests it, and `grammar.ts:786-796` — where archive-bundle rules
+   already live — is where it belongs. A bundle archiving with work in flight loses the open epoch.
+2. **Invariant 5, demonstrated rather than asserted.** §3.6 says nothing about it. The additive claim is
+   testable in one line: every existing fixture plus `bun run ngrace lint --path .` yields zero new
+   codes (A9 folds the dogfood tree into that sweep, and A9's own finding is why it matters).
+3. **The `run.xml` → `plan.xml` reference direction.** Step 3.5.3 covers *cursor names an unknown task*.
+   The reverse — a cursor whose named change bundle does not exist, or names a different bundle than
+   its own directory — has a direct precedent in `design-context.bundle-id-mismatch` (`grammar.ts:803`)
+   and no step. Add `cursor.bundle-id-mismatch` to A10.5's table or state why the case cannot arise.
+
+#### A10.11 Standing rules that bind this phase, named so they are not rediscovered at the gate
+
+- **A5.4** — drop-site inventory required for `ChangeBundleStatus` / `StatusResult` (A10.8), and for
+  any field added to `LintIssue`. Note that `addNgraceIssue` (`lint/core.ts:54-62`) still re-lists five
+  fields: anything the ledger validators attach beyond `severity/code/file/line/message` is dropped on
+  the way into `LintResult`. Phase 2 chose route 2 (catalog-derived) to sidestep this; Phase 3 must not
+  reintroduce it.
+- **A5.5** — every claim in this entry is measured at `7388d5e`. Re-measure what you depend on.
+- **A5.6** — acceptance criteria descending from these corrections cite them inline, e.g.
+  `AC-BUNDLE-FILE-ALLOWLIST (A10.2)`, and carry the discriminating detail.
+- **A7.2** — `grammar.ts:809` is a detection boundary. Widening it requires the both-directions table:
+  what newly passes (`run-ledger.xml`, `run.xml`) **and** what still errors (`notes.xml`, a stray
+  `spec.old.xml`, a `.xml` file directly under `changes/active/` — `grammar.ts:737-739`).
+- **§0.2** — no test may order ledger events by clock. This is also §3.7 gate 3 and §12.4 anti-pattern 6;
+  it is stated three times because it is the one the house's instincts will reintroduce.
+
+#### A10.12 Decisions required before `spec.xml` is drafted
+
+Four, none of which the executor may take alone (§12.5):
+
+1. **A10.2** — refactor `grammar.ts`'s filename allowlist to one derived constant, or add two more
+   literals? *(recommend: derive)*
+2. **A10.4** — does lint walk `run/`? *(recommend: no, with a pinning test)*
+3. **A10.5** — ratify the eight code names and the `ledger.*` / `cursor.*` namespaces.
+4. **A10.10 §3** — `cursor.bundle-id-mismatch`: in or out?
+
+#### A10.13 Additions to §3.6 definition of done
+
+- The `grammar.ts:809` both-directions table per A7.2, including the still-erroring near neighbours
+- The drop-site inventory for `ChangeBundleStatus` / `StatusResult` per A5.4
+- Whichever A10.4 route was taken, named, with its pinning test
+- `nextAction` proven independent of the cursor (A10.8)
+- The archive-precondition decision from A10.10 §1, implemented or explicitly deferred with a reason
+- Invariant 5 demonstrated across all five sweep targets, not asserted
 
 ---
 
