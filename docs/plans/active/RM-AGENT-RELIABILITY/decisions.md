@@ -9,7 +9,7 @@ baseline: 6.0.1
 targets: []
 normative: false
 plan: ./plan.md
-alsoServes: ../RM-AGENT-RELIABILITY-EVIDENCE/plan.md
+alsoServes: ../../archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md
 context: ./review-consolidated.md
 ---
 
@@ -21,7 +21,7 @@ context: ./review-consolidated.md
 > re-litigating any of it.
 >
 > **This document serves two plan bundles.** D1–D15 span both
-> [RM-AGENT-RELIABILITY-EVIDENCE](../RM-AGENT-RELIABILITY-EVIDENCE/plan.md) (former Phases 0–1) and
+> [RM-AGENT-RELIABILITY-EVIDENCE](../../archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md) (former Phases 0–1) and
 > [RM-AGENT-RELIABILITY](./plan.md) (Phases 2–11), split 2026-07-29. It is not duplicated, because two
 > copies of a decision record drift.
 >

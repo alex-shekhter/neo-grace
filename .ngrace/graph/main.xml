@@ -1,0 +1,28 @@
+<NgraceGraphDocument graceVersion="1.0">
+  <GD-MAIN>
+    <M-LINT-CORE>
+      <Summary>Core lint orchestration: project load, graph/verification cross-checks, markup link validation.</Summary>
+      <Path>src/lint/core.ts</Path>
+      <Type>CORE_LOGIC</Type>
+    </M-LINT-CORE>
+    <M-ASSERTIONS>
+      <Summary>Plan assertion evaluation and absence primitives used by status and gates.</Summary>
+      <Path>src/artifact/assertions.ts</Path>
+      <Type>CORE_LOGIC</Type>
+    </M-ASSERTIONS>
+    <M-GRAMMAR>
+      <Summary>XML artifact grammar validation for context, graph, verification, and change bundles.</Summary>
+      <Path>src/artifact/grammar.ts</Path>
+      <Type>CORE_LOGIC</Type>
+    </M-GRAMMAR>
+    <M-STATUS>
+      <Summary>CLI status surface: durable health, change lifecycle, and next-action derivation.</Summary>
+      <Path>src/grace-status.ts</Path>
+      <Type>ENTRY_POINT</Type>
+    </M-STATUS>
+    <M-SKILLS>
+      <Summary>Canonical GRACE skill sources under skills/ngrace/ (packaged mirror is separate).</Summary>
+      <Type>UTILITY</Type>
+    </M-SKILLS>
+  </GD-MAIN>
+</NgraceGraphDocument>

@@ -6,17 +6,15 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 
 | ID | Title | Status | Baseline | Targets | Plan |
 |---|---|---|---|---|---|
-| `RM-AGENT-RELIABILITY-EVIDENCE` | Evidence harness and thin `.ngrace` self-migration | `approved` | 6.0.1 | — | [plan.md](./active/RM-AGENT-RELIABILITY-EVIDENCE/plan.md) |
 | `RM-AGENT-RELIABILITY` | Context discipline, scope drift, and self-verification | `draft` | 6.0.1 | — | [plan.md](./active/RM-AGENT-RELIABILITY/plan.md) · [decisions.md](./active/RM-AGENT-RELIABILITY/decisions.md) · [review-consolidated.md](./active/RM-AGENT-RELIABILITY/review-consolidated.md) · [review.md](./active/RM-AGENT-RELIABILITY/review.md) |
 | `RM-LANGUAGE-EXTENSIBILITY` | Language bundles, conformance fixtures, and parser strategy | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-LANGUAGE-EXTENSIBILITY/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
 
-**Approved for execution: `RM-AGENT-RELIABILITY-EVIDENCE`** (2026-07-29), and it is the only track
-approved. Its `targets` is empty deliberately — it changes no published npm surface, so it rides in
-whatever ships next rather than earning a release; see its §3 A1. Its Phase 1 is the `.ngrace`
-self-migration that `CLAUDE.md` asked to have approved separately, and that approval is recorded there.
+**Nothing is currently approved for execution.** `RM-AGENT-RELIABILITY-EVIDENCE` completed on
+2026-07-30 and has moved to the archive; `RM-AGENT-RELIABILITY` is `draft` and needs maintainer
+approval before an executor may start it, even though its blocking dependency is now satisfied.
 
 **Execution order.** `RM-NAMESPACE-SEPARATION` ran first and is complete — shipped 2026-07-29 as
 `@neograce/cli` 6.0.1. It renamed the skill and artifact namespaces, so running it first kept the
@@ -39,8 +37,8 @@ the plan — the review frames the questions, `decisions.md` answers them, the p
 specifies the work.
 
 **`RM-AGENT-RELIABILITY-EVIDENCE` and `RM-AGENT-RELIABILITY` are one track in two bundles**, split on
-2026-07-29. The first holds the former Phases 0–1; the second holds 2–11 and cannot start until the
-first is `complete`. They were split because the later phases had been specified in step-level detail
+2026-07-29. The first held the former Phases 0–1 and is `complete`; the second holds 2–11 and was
+blocked until that happened. They were split because the later phases had been specified in step-level detail
 against a measurement format and a `.ngrace` tree that the first bundle produces — so their steps were
 drafts against an imagined dataset, and the plan said so nowhere. The second bundle now says so in its
 banner.
@@ -57,6 +55,7 @@ drift. The evidence bundle's frontmatter points across with a relative path.
 
 | ID | Title | Status | Baseline | Targets | Completed | Plan |
 |---|---|---|---|---|---|---|
+| `RM-AGENT-RELIABILITY-EVIDENCE` | Evidence harness and thin `.ngrace` self-migration | `complete` | 6.0.1 | — | 2026-07-30 | [plan.md](./archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md) |
 | `RM-NAMESPACE-SEPARATION` | Separate the `ngrace` namespace from upstream GRACE | `complete` | 5.0.1 | 6.0.1 | 2026-07-29 | [plan.md](./archive/RM-NAMESPACE-SEPARATION/plan.md) · [review.md](./archive/RM-NAMESPACE-SEPARATION/review.md) |
 | `RM-POLYGLOT-ENFORCEMENT` | Polyglot enforcement, design layer, and systems modeling | `complete` | 4.0.4 | 4.1.0 · 4.2.0 · 5.0.0 | 2026-07-28 | [plan.md](./archive/RM-POLYGLOT-ENFORCEMENT/plan.md) |
 
@@ -68,19 +67,20 @@ This directory holds **roadmap plans**: multi-release, narrative, human-approved
 that explain what is being built and in what order.
 
 It does **not** hold per-change execution artifacts. Those are GRACE change bundles
-(`spec.xml` + `plan.xml`) under `.grace/changes/`, are machine-validated by `ngrace lint`,
+(`spec.xml` + `plan.xml`) under `.ngrace/changes/`, are machine-validated by `ngrace lint`,
 and must never be duplicated as markdown here.
 
 ```
 Roadmap plan  →  why, and in what order        (docs/plans/, human-approved)
-  └─ C-*      →  one unit of work, gated       (.grace/changes/, machine-checkable)
+  └─ C-*      →  one unit of work, gated       (.ngrace/changes/, machine-checkable)
 ```
 
 A `C-*` spec should name the roadmap plan and phase it implements, so the rationale
 survives the bundle being archived.
 
-> **Note.** This repository does not yet contain its own `.grace` state — see `CLAUDE.md`.
-> Until a self-migration is approved, roadmap plans are the only planning artifacts here.
+> **Note.** This repository hosts a thin `.ngrace` tree for dogfooding (see `CLAUDE.md`).
+> Roadmap plans under `docs/plans/` remain the human-approved long-range surface; per-change
+> execution artifacts live under `.ngrace/changes/` when active.
 
 ## Layout
 

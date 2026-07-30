@@ -1,0 +1,8 @@
+<NgraceDeployment graceVersion="1.0">
+  <Applicability>applicable</Applicability>
+  <Target>npm package @neograce/cli (bin: ngrace) and Claude marketplace plugin under plugins/ngrace/</Target>
+  <Notes>
+    Releases require version sync across README.md, openpackage.yml, marketplace.json, plugin.json, and package.json.
+    This repository self-hosts a thin `.ngrace` tree for dogfooding; packaging validation is separate from product lint of consumer projects.
+  </Notes>
+</NgraceDeployment>

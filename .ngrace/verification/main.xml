@@ -1,0 +1,29 @@
+<NgraceVerificationDocument graceVersion="1.0">
+  <VD-MAIN>
+    <V-M-LINT-CORE>
+      <Command>bun test src/grace-lint.test.ts</Command>
+      <Scenario>Lint CLI integration covers project load, issue codes, and clean fixtures for core lint paths.</Scenario>
+      <TraceAssertion>grace-lint integration tests exercise lint entry points that depend on src/lint/core.ts.</TraceAssertion>
+    </V-M-LINT-CORE>
+    <V-M-ASSERTIONS>
+      <Command>bun test src/artifact/assertions.test.ts</Command>
+      <Scenario>Assertion evaluation reports pass, fail, and absence cases without silent success.</Scenario>
+      <TraceAssertion>assertions unit tests cover Must* shapes and invalid-path handling.</TraceAssertion>
+    </V-M-ASSERTIONS>
+    <V-M-GRAMMAR>
+      <Command>bun test src/artifact/grammar.test.ts</Command>
+      <Scenario>Grammar rejects malformed context, graph, verification, and change artifacts.</Scenario>
+      <TraceAssertion>grammar tests assert required sections and applicability rules.</TraceAssertion>
+    </V-M-GRAMMAR>
+    <V-M-STATUS>
+      <Command>bun test src/grace-status.test.ts</Command>
+      <Scenario>Status CLI reports durable health and next action for active and archive changes.</Scenario>
+      <TraceAssertion>status integration tests pin JSON and table shapes for the status entry point.</TraceAssertion>
+    </V-M-STATUS>
+    <V-M-SKILLS>
+      <Command>bun run validate:marketplace</Command>
+      <Scenario>Canonical skills/ngrace tree stays path-safe and byte-synced with the packaged plugin mirror.</Scenario>
+      <TraceAssertion>validate-marketplace compares each listed skill directory recursively.</TraceAssertion>
+    </V-M-SKILLS>
+  </VD-MAIN>
+</NgraceVerificationDocument>

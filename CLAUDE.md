@@ -45,7 +45,7 @@ This repo is mainly about methodology content, skill instructions, and marketpla
 - Keep `plugins/ngrace/skills/ngrace/*` synchronized with the canonical `skills/ngrace/*` copies when published skills change.
 - Keep versions synchronized across `README.md`, `openpackage.yml`, `.claude-plugin/marketplace.json`, and `plugins/ngrace/.claude-plugin/plugin.json`.
 - Validate repo integrity with `bun run ./scripts/validate-marketplace.ts` after packaging or metadata changes.
-- For CLI changes, run `bun run validate:cli` and exercise `ngrace lint` against a complete temporary or fixture neo-grace project. This packaging repository does not yet contain its own `.ngrace` state, so `bun run ngrace lint --path .` is expected to report `project.missing-grace` until a separate self-migration is approved.
+- For CLI changes, run `bun run validate:cli` and exercise `ngrace lint` against a complete temporary or fixture neo-grace project. This packaging repository hosts a thin `.ngrace` tree for dogfooding; `bun run ngrace lint --path .` is expected to pass. That green result depends on `.ngrace-lint.json` (`ignoredDirs: ["examples", "scripts"]`): `examples/` is a nested project covered by `validate:examples`, and `scripts/` adoption (including `M-RELEASE-AUTOMATION`) is deferred to a later `C-*` — without that config, root lint reports twenty real errors under `scripts/`.
 - Do not assume every directory under `skills/ngrace/` is published; the actual shipped set is declared in `.claude-plugin/marketplace.json`.
 
 ## How To Think About Changes

@@ -1,0 +1,19 @@
+<NgraceRequirements graceVersion="1.0">
+  <ProjectName>neo-grace</ProjectName>
+  <Annotation>Marketplace package and Bun CLI for Graph-RAG Anchored Code Engineering (GRACE / neo-grace).</Annotation>
+  <Keywords>grace, ngrace, lint, knowledge-graph, semantic-markup, marketplace, bun</Keywords>
+  <Goals>
+    <Goal>Ship a validated CLI that lints and queries `.ngrace` artifacts without silent degradation.</Goal>
+    <Goal>Distribute GRACE skills so coding agents can init, plan, verify, and execute contract-first changes.</Goal>
+    <Goal>Keep canonical skills, packaged plugins, and published versions synchronized and path-safe.</Goal>
+  </Goals>
+  <Users>
+    <User>Maintainers of neo-grace packaging and the `@neograce/cli` binary.</User>
+    <User>Coding agents and humans who install the marketplace plugin and run `ngrace` against a project.</User>
+  </Users>
+  <Constraints>
+    <Constraint>No new runtime dependencies without an explicit track decision.</Constraint>
+    <Constraint>`skills/ngrace/*` is source of truth; packaged mirror must stay byte-identical.</Constraint>
+    <Constraint>Existing valid `.ngrace` trees must keep validating; grammar changes are additive unless a plan says otherwise.</Constraint>
+  </Constraints>
+</NgraceRequirements>

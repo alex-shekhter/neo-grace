@@ -1,0 +1,14 @@
+<NgraceVerificationIndex graceVersion="1.0">
+  <VerificationDocuments>
+    <VD-MAIN>
+      <Path>verification/main.xml</Path>
+      <Owns>
+        <V-M-LINT-CORE />
+        <V-M-ASSERTIONS />
+        <V-M-GRAMMAR />
+        <V-M-STATUS />
+        <V-M-SKILLS />
+      </Owns>
+    </VD-MAIN>
+  </VerificationDocuments>
+</NgraceVerificationIndex>

@@ -1,0 +1,14 @@
+<NgraceGraphIndex graceVersion="1.0">
+  <GraphDocuments>
+    <GD-MAIN>
+      <Path>graph/main.xml</Path>
+      <Owns>
+        <M-LINT-CORE />
+        <M-ASSERTIONS />
+        <M-GRAMMAR />
+        <M-STATUS />
+        <M-SKILLS />
+      </Owns>
+    </GD-MAIN>
+  </GraphDocuments>
+</NgraceGraphIndex>
