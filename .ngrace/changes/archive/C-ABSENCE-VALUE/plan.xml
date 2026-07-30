@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-ABSENCE-VALUE>
     <IntentSummary>Land issueClass via catalog route 2, doctor absence-by-reason, scanner fix, corpus entries, and shared verdict vocabulary per A3–A6.</IntentSummary>
     <BaselineAssertions>

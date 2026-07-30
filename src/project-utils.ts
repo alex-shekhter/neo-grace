@@ -193,14 +193,17 @@ const EXACT_MARKER_PREFIXES = [
 ] as const;
 
 /**
- * Near-miss marker comments (A8): token starts with a known marker name and
- * continues with [A-Za-z0-9_], START/END_BLOCK_ with a name the parser will
- * never accept (e.g. lowercase), or START/END_CONTRACT that is not the exact
- * `<MARKER>: <name>` shape. File stays ungoverned when these are the only
- * "markers"; the warning keeps both "never opted in" and "typo'd" cases loud.
+ * Near-miss marker comments (A8): a comment body that is *marker-shaped* — the
+ * marker token plus at most one following name token — but not a parseable
+ * marker. Multi-token prose that merely mentions a marker name stays quiet
+ * (false-positive fix on JSDoc/prose lines).
  *
- * START_CONTRACT / END_CONTRACT stay out of EXACT_MARKER_PREFIXES: that list's
- * identifier-continuation rule would false-positive on the legitimate colon form.
+ * Families: exact-prefix glued suffixes (START_MODULE_CONTRACTX), unparseable
+ * START/END_BLOCK_ names, unparseable START/END_CONTRACT shapes. File stays
+ * ungoverned; the warning keeps typo'd markers loud without re-governing.
+ *
+ * START_CONTRACT / END_CONTRACT stay out of EXACT_MARKER_PREFIXES so the
+ * legitimate colon form is never an identifier-continuation hit.
  */
 export function collectNearMissMarkerIssues(filePath: string, text: string): LintIssue[] {
   const searchable = stripQuotedStrings(text);
@@ -213,17 +216,28 @@ export function collectNearMissMarkerIssues(filePath: string, text: string): Lin
       continue;
     }
     const body = match[3]!.trim();
+    // Marker-shaped only: one token (glued marker) or marker + one name. Prose
+    // with more tokens is not a near-miss attempt.
+    const tokens = body.split(/\s+/).filter(Boolean);
+    if (tokens.length === 0 || tokens.length > 2) {
+      continue;
+    }
+    const first = tokens[0]!;
     const lineNumber = index + 1;
     let reported = false;
 
     for (const prefix of EXACT_MARKER_PREFIXES) {
-      if (body.length > prefix.length && body.startsWith(prefix) && /^[A-Za-z0-9_]/.test(body.slice(prefix.length))) {
+      if (
+        first.length > prefix.length
+        && first.startsWith(prefix)
+        && /^[A-Za-z0-9_]+$/.test(first.slice(prefix.length))
+      ) {
         issues.push(markupIssue(
           "warning",
           "markup.near-miss-marker",
           filePath,
           lineNumber,
-          `Comment looks like a semantic marker but is not exact: '${body}'. `
+          `Comment looks like a semantic marker but is not exact: '${first}'. `
             + `Did you mean ${prefix}? This file is not governed by this line.`,
         ));
         reported = true;
@@ -233,7 +247,8 @@ export function collectNearMissMarkerIssues(filePath: string, text: string): Lin
 
     // Contract-block family (parseMarkerEvent): exact shape is START|END_CONTRACT: <name>.
     // Keep out of EXACT_MARKER_PREFIXES so "// START_CONTRACT: IC-X" is never a prefix hit.
-    if (!reported && /^(START|END)_CONTRACT/.test(body)) {
+    // Bare "// START_CONTRACT:" is governed by hasGraceMarkers; leave those to markup errors.
+    if (!reported && /^(START|END)_CONTRACT/.test(first)) {
       const validContract = /^(START|END)_CONTRACT:\s*[A-Za-z0-9_$.-]+$/.test(body);
       if (!validContract) {
         issues.push(markupIssue(
@@ -250,8 +265,8 @@ export function collectNearMissMarkerIssues(filePath: string, text: string): Lin
     }
 
     if (!reported) {
-      const block = body.match(/^(START|END)_BLOCK_(.*)$/);
-      if (block) {
+      const block = first.match(/^(START|END)_BLOCK_(.*)$/);
+      if (block && tokens.length === 1) {
         const blockName = block[2]!;
         // Parser requires [A-Z0-9_]+ (project-utils parseMarkerEvent); lowercase never parses.
         if (blockName.length === 0 || !/^[A-Z0-9_]+$/.test(blockName)) {
@@ -260,7 +275,7 @@ export function collectNearMissMarkerIssues(filePath: string, text: string): Lin
             "markup.near-miss-marker",
             filePath,
             lineNumber,
-            `Block marker name is not parseable: '${body}'. `
+            `Block marker name is not parseable: '${first}'. `
               + `Use ${block[1]}_BLOCK_NAME with NAME matching [A-Z0-9_]+. This line does not govern the file.`,
           ));
         }

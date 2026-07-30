@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-ABSENCE-VALUE>
     <Summary>Unify absence values with issueClass (catalog-derived), teach doctor to report the two codes it can see by reason, and land one shared verdict vocabulary under skills.</Summary>
     <Problem>

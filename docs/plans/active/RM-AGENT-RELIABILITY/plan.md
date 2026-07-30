@@ -2317,6 +2317,18 @@ Scope, so this does not sprawl at a review gate:
 The rest of A7 is unchanged: A7.1's disclosure table is still required — it is what makes this decision
 legible to the next reader — and A7.3's four fixes still land before merge.
 
+### A9 — 2026-07-30 · §0.7.4's sweep gains this repository's own tree
+
+**Add `bun run ngrace lint --path .` to §0.7.4's fixture list**, expecting `[]` like the rest.
+
+A8's near-miss code passed the sweep against `polyglotFixture()`, `minimalTsFixture()`, `scaleFixture(20)`
+and `examples/` — then warned on its own JSDoc at `src/project-utils.ts:202`. Every fixture is *built to
+exercise* markers; only the dogfood tree contains prose that *discusses* them, which is the input class
+§0.7.3 names and the synthetic fixtures structurally cannot contain. A check that reads comments must be
+swept against a tree with real comments in it.
+
+Not added to the `# PHASE 2` banner: this binds every phase, not that one.
+
 ---
 
 ## 15. Final instruction to the executor
