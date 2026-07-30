@@ -62,7 +62,7 @@ gh pr create \
   --base main \
   --head "$(git rev-parse --abbrev-ref HEAD)" \
   --title 'fix: describe the change' \
-  --body-file .git/PR_BODY.md
+  --body-file "$BODY"
 ```
 
 Three things in that command are load-bearing, and each has drawn blood:
@@ -73,14 +73,23 @@ Three things in that command are load-bearing, and each has drawn blood:
   history-expanded, so `"refactor!: …"` posts as `refactor…` — the title silently loses its
   breaking-change marker. Single quotes prevent it. This is worth caring about beyond cosmetics: see
   the squash note below.
-- **Write the body to a file first, and check it exists.** `--body-file` pointing at a missing path
-  does **not** fail — `gh` creates the PR with an empty body. `[ -s .git/PR_BODY.md ] || echo MISSING`
-  before you run it. `.git/` is a convenient home because it is never committed.
+- **Write the body to a file first, and check it is the *right* body.** `--body-file` pointing at a
+  missing path does **not** fail — `gh` creates the PR with an empty body. But `[ -s file ]` only
+  proves non-empty, which is narrower than what you need: a **stale** body from the previous PR passes
+  that check and posts silently. Name the file per branch and read the first line back:
+
+  ```bash
+  BODY=".git/PR_BODY-$(git rev-parse --abbrev-ref HEAD | tr / -).md"
+  [ -s "$BODY" ] && head -3 "$BODY" || echo "MISSING: $BODY"
+  ```
+
+  `.git/` is a convenient home because it is never committed. A per-branch filename means the failure
+  mode is "missing", which you see, rather than "last PR's body", which you do not.
 
 Fixing either afterwards is cheap, and better than merging a bodyless PR:
 
 ```bash
-gh pr edit --repo alex-shekhter/neo-grace --title 'refactor!: …' --body-file .git/PR_BODY.md
+gh pr edit --repo alex-shekhter/neo-grace --title 'refactor!: …' --body-file "$BODY"
 ```
 
 Wait for `validate`, `dart-adapter` and `windows-compatibility`, then merge. Approvals are
