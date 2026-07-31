@@ -1,0 +1,338 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-ATTEMPT-LOG>
+    <Summary>
+      Record every attempt (not only outcomes) on the run ledger, keep a dumb fix budget of 2,
+      escalate to paused-pending-approval rather than abort, and make attempt fields survive fold —
+      with a kind vocabulary, an incomplete-epoch mark, and a report-only cursor attempt surface.
+    </Summary>
+    <Problem>
+      Phase 3 shipped the ledger and cursor; Phase 4 is where the track's subject — the record that
+      makes a confident report about unchecked work detectable — is supposed to land. Measured at
+      235f0f8 and re-verified at 471f06b (A5.5), three facts make the phase as written unbuildable:
+
+      1. The fold destroys the attempt payload (A18.2 / correction 31). LooseEvent is
+         { id, task, kind, file, allocations? } (grace-cursor.ts:102-108); listLooseEvents reads no
+         attempt attributes (listLooseEvents:127); buildEpochNode emits a three-attribute Event
+         literal (grace-cursor.ts:752-761). An outcome and a FailureSignature written on a loose
+         event are gone at epoch close. D9's "same failure twice vs two different failures" and
+         D6's calibration join depend on exactly those fields.
+
+      2. Escalation cannot fold (A18.3 / correction 32). validateEventsAgainstAllocations:727-730
+         and foldEpoch:308-311 refuse a used range with no terminal event. §4.4 routes exhaustion
+         to paused-pending-approval via pause, which is not range-terminating. Attempt events for
+         the runs that went worst stay loose while clean runs land in the ledger — correlated loss
+         of the kind D6 On loss names. Separately, §3.4's complete/incomplete mark was never built:
+         no complete attribute exists on any Epoch node.
+
+      3. Event kinds are free strings (A18.4 / correction 33). advance --kind atempt folds clean;
+         budget accounting keys on the string, so a typo resets the counter silently (anti-pattern 8).
+
+      Step 4.5.1 says "record on every verification cycle," but nothing in the binary runs one
+      (A18.6 / correction 35): ngrace verification is find/show only. The only actor that knows an
+      attempt happened is the executing agent; the surface it calls is a design decision, answered
+      by A18.11 as ngrace cursor attempt (report-only; never blocks — anti-pattern 9).
+
+      §4.3 names src/artifact/types.ts as the home of run-state types; they live in
+      grace-cursor.ts:35-108. The field registry of A18.7 is the one thing that belongs in
+      artifact/types.ts, beside the companion registry it copies (A18.5 / correction 34).
+    </Problem>
+    <Goals>
+      <Goal>
+        Typed attempt fields (outcome, ordinal, optional failure signature, write-evidence digest)
+        behind one exported field registry read by listLooseEvents, buildEpochNode, and
+        validateLedgerEpoch — so a field added once survives a fold without re-listing at three
+        sites (A18.7, A19.1).
+      </Goal>
+      <Goal>
+        Attempt outcome and failure signature present in run-ledger.xml after a fold, asserted on
+        the folded ledger and not only on the loose event (A18.2).
+      </Goal>
+      <Goal>
+        Escalation emits a range-terminating event so the exhausted task's epoch folds; the task
+        is paused-pending-approval in the cursor (task state, not epoch state). fold gains
+        Epoch-N complete="false" for the genuinely incomplete case as an explicit act; default
+        remains refuse (A18.8, A7.2 both-directions).
+      </Goal>
+      <Goal>
+        Known event-kind vocabulary; ledger.unknown-event-kind fires as a warning on unregistered
+        kinds; no new error on previously-green projects (A18.9, invariant 5).
+      </Goal>
+      <Goal>
+        Dumb fix budget of 2 (FIX_BUDGET named constant with D9 judgment note). Every attempt
+        counts regardless of signature. Budget spans folds: two failures split by an epoch close
+        still exhaust it (A18.12 §2). Exhaustion is a normal state, not a failure (D9).
+      </Goal>
+      <Goal>
+        ngrace cursor attempt --change C-* --task T-* --outcome pass|fail
+        [--signature-kind K --signature-key S]: allocates ordinal, records the attempt, accounts
+        the budget, transitions on exhaustion, prints both signatures. Reports; never refuses the
+        next attempt (A18.11, anti-pattern 9). Gates that refuse are Phase 5.
+      </Goal>
+      <Goal>
+        Flake classification as a pure read over the log comparing write-evidence digests
+        recorded on consecutive attempts (A19.1 / correction 36). fail→pass with identical
+        recorded digests is flaky; different digests is normal-retry; absent or unrecordable
+        evidence is unable-to-determine with a reason from verdicts.md — never "normal retry"
+        (A18.10). Evidence is content-sensitive (digest over path+content-hash pairs of
+        scope-intersecting files at record time), not a file list. No commands are run.
+      </Goal>
+      <Goal>
+        Exhaustion visible on a human surface (status prints paused/exhausted tasks) so a correct
+        continuous signal is not functionally equivalent to no signal (A18.12 §3, A17.2).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        A18.7–A18.11 are ratified. Do not re-open them and do not invent a sixth decision. On
+        contradiction, report and stop (§12.5; Correction 26 / A13.1 is the precedent).
+      </Constraint>
+      <Constraint>
+        The counter stays dumb (D9). No logic may decide an attempt "was progress" and should not
+        count. The signature is for the escalation message and analysis only.
+      </Constraint>
+      <Constraint>
+        FIX_BUDGET = 2 is a named constant with the "judgment, not derived" note from D9 beside it.
+        Churn is recorded; calibration later may revise the number.
+      </Constraint>
+      <Constraint>
+        Mechanisms report; they do not block (anti-pattern 9, A18.11). cursor attempt never refuses
+        a further attempt. Refusing is a gate (Phase 5, D11, D14).
+      </Constraint>
+      <Constraint>
+        Additive only. A project with no attempts, no exhaustion, and no incomplete epochs lints
+        clean. ledger.unknown-event-kind is warning severity so invariant 5 holds (A18.9, §0.7.4).
+      </Constraint>
+      <Constraint>
+        No timestamps in attempt identity or ordering. Ordering is by allocated event id range (D2,
+        §0.2, anti-pattern 6). Ordinal is 1-based within the task, allocated as max existing
+        attempt-ordinal for that task across ledger and loose + 1 at write time (same span as
+        nextEventId:903-907). Concurrent attempt recording on the same task is unsupported;
+        attempt is sequential per task under D9's write-plus-verification definition. The
+        statement has a witness: ledger.duplicate-attempt-ordinal (error) fires when two attempt
+        events share (task, ordinal) (A19.2 / correction 37). Safe under invariant 5 because only
+        this phase's attempt kind can trigger it.
+      </Constraint>
+      <Constraint>
+        Field registry lives in src/artifact/types.ts beside NGRACE_CHANGE_BUNDLE_COMPANIONS.
+        Run-state types (CursorState, LooseEvent, …) stay in grace-cursor.ts; do not relocate them
+        into artifact/types.ts (A18.5).
+      </Constraint>
+      <Constraint>
+        complete="false" is an explicit fold act (e.g. --allow-incomplete). Default fold still
+        refuses holes and unterminated ranges. ledger.range-unterminated and ledger.range-hole keep
+        firing on epochs not marked incomplete, and must not fire on ones that are (A18.8, A7.2).
+      </Constraint>
+      <Constraint>
+        Escalation's range-terminating event is a registered kind (exhausted) recognized as
+        terminal for density/membership checks; pause alone remains non-terminating.
+      </Constraint>
+      <Constraint>
+        Skill text: when to record an attempt and when to escalate — one or two sentences. Never
+        restate codes the binary emits (anti-pattern 10, D13).
+      </Constraint>
+      <Constraint>
+        Every new issue code registers with derivedFrom and proposedBy (§12.1) and has integration
+        tests both directions (§0.2, A12.2). Do not add to Phase 3's unit-only debt.
+      </Constraint>
+      <Constraint>
+        skills/ngrace/* is source of truth; plugins/ngrace/skills/ngrace/* stays byte-identical in
+        the same commit (invariant 1, §12.2).
+      </Constraint>
+      <Constraint>
+        No new runtime dependencies. No Phase 5+ constructs: no gate surface, no reviewer, no
+        claimed-confidence field (Phase 9), no doctor repair.
+      </Constraint>
+      <Constraint>
+        AffectedAreas is derived by tracing real surfaces (A18.5 table plus findings), never
+        transcribed from §4.3 (A5.6, A11.7).
+      </Constraint>
+      <Constraint>
+        Shared test helpers live in src/test-support/; production modules must not import them
+        (invariant 7).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Transition gates and the third check surface (Phase 5; D11, D12, D14).</NonGoal>
+      <NonGoal>Detached reviewer and mechanized audits (Phase 6).</NonGoal>
+      <NonGoal>Marker-divergence failure localization beyond the flake read (Phase 7 / D8 remainder).</NonGoal>
+      <NonGoal>claimed-confidence and the calibration report (Phase 9; D6 calibration half).</NonGoal>
+      <NonGoal>Plan-quality signal and doctor consumers (Phase 10).</NonGoal>
+      <NonGoal>Blocking further attempts after budget exhaustion (that is a gate; Phase 5).</NonGoal>
+      <NonGoal>Making the ledger a free-form attribute bag; typed fields only (A18.7 rejected alt).</NonGoal>
+      <NonGoal>Overloading advance --kind attempt as the attempt surface (A18.11 rejected alt).</NonGoal>
+      <NonGoal>Storing flake classification as a ledger verdict; it is a derived read (A18.10).</NonGoal>
+      <NonGoal>Relocating CursorState / LooseEvent into artifact/types.ts.</NonGoal>
+      <NonGoal>Lint validation of loose run/ event files (A11.2; fold and attempt own it).</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-ATTEMPT-SURVIVES-FOLD>
+        An attempt recorded with outcome and (on fail) signature-kind and signature-key is present
+        with those fields intact in run-ledger.xml after foldEpoch (A18.2). Assertion is on the
+        folded Event node attributes, not on the loose file. Reproduced pre-fix shape at HEAD:
+        only id, task, kind survive today (grace-cursor.ts:752-761). Discriminating negative: a
+        test that writes outcome="fail" signature-kind="test-failure" signature-key="x" and fails
+        if the folded Event lacks any of those attributes.
+      </AC-ATTEMPT-SURVIVES-FOLD>
+      <AC-EVENT-FIELD-REGISTRY>
+        One exported constant in src/artifact/types.ts maps typed event fields (kind → attribute
+        name → validator) and is the sole source listLooseEvents, buildEpochNode, and
+        validateLedgerEpoch read for those fields (A18.7). Discriminating negative: a unit test
+        that adds a field to the registry only and asserts it survives a fold without editing the
+        three consumer sites. Without that test the registry is three literals wearing a
+        constant's name.
+      </AC-EVENT-FIELD-REGISTRY>
+      <AC-EPOCH-COMPLETENESS>
+        (a) Escalation via cursor attempt on the second failure emits a range-terminating
+        exhausted event; the epoch folds; cursor task state is paused (paused-pending-approval
+        semantics) (A18.8 half 1). (b) fold with an explicit incomplete act writes
+        Epoch-N complete="false" and succeeds for a used range with a hole or no terminal event;
+        default fold still refuses those cases (A18.8 half 2). (c) Both-directions table for
+        complete="false" (A7.2): ledger.range-unterminated and ledger.range-hole fire on epochs
+        not marked complete="false" and do not fire on ones that are; existing refuse-before-write
+        negatives still fail closed. (d) Range-terminating set membership table (A19.3 /
+        correction 38): an epoch closed by exhausted folds; an epoch whose only closing event is
+        pause still refuses; an epoch closed by an unregistered kind still refuses and emits
+        ledger.unknown-event-kind when that kind is present on a written ledger. A15's
+        refuse-before-write negatives must still fail closed — a widened set must not disarm them.
+      </AC-EPOCH-COMPLETENESS>
+      <AC-UNKNOWN-KIND-WARNING>
+        Known kinds are registered (opened, progress, pause, resume, terminal, attempt, exhausted
+        at minimum). An Event with an unregistered kind produces ledger.unknown-event-kind at
+        warning severity, with derivedFrom and proposedBy: "confidently-wrong" (A18.9). Compat
+        sweep (§0.7.4, A9) across polyglotFixture, minimalTsFixture, scaleFixture(20), examples/,
+        and bun run ngrace lint --path . shows no new error code anywhere; the warning does not
+        appear on clean fixtures that never author ad-hoc kinds.
+      </AC-UNKNOWN-KIND-WARNING>
+      <AC-FLAKE-THREE-OUTCOMES>
+        Amended by A19.1 / correction 36, A20.1 / correction 39, and A21.1 / correction 44
+        (A13.3 — criterion corrected in the artifact, not redefined in the diff). At record
+        time, cursor attempt stamps a write-evidence attribute (registry field, A18.7): a
+        content-sensitive digest that folds (1) git rev-parse HEAD and (2) sorted (path,
+        content-hash) pairs for ObservedWriteScope ∩ currently-changed files — or omits the
+        field when evidence is unrecordable. Unavailable paths (each → unable-to-determine):
+        no active scope; git status non-zero; git HEAD unresolvable including unborn HEAD
+        after git init with no commit (A21.1 — a failed measurement must not become
+        HEAD:""). Committed movement between attempts moves the digest; an empty worktree
+        intersection is not "nothing happened" when HEAD is resolvable (A20.1).
+        Classification is a pure read comparing consecutive recorded digests on the most
+        recent fail→pass pair (A20.3) — never re-queries the live worktree for the
+        between-attempts answer. Discriminating tests: different recorded evidence →
+        normal-retry after worktree clean; fix committed between attempts → normal-retry
+        (A20.1); identical evidence (same HEAD, same uncommitted digests) → flaky; absent
+        or unrecordable write-evidence including unborn HEAD → unable-to-determine with a
+        reason from verdicts.md — never normal-retry or flaky. Two fail→pass pairs: most
+        recent wins (A20.3). Boundary (A21.2, not a defect): an uncommitted fix outside
+        ObservedWriteScope does not move the digest, so fail→pass around it reads as flaky
+        — the scope defines what this change may write; Phase 7 must know what the signal
+        does not cover. Classification is never a stored verdict field. No commands run.
+      </AC-FLAKE-THREE-OUTCOMES>
+      <AC-BUDGET-SPANS-FOLD>
+        Two failed attempts on the same task, with a successful fold between them, still exhaust
+        FIX_BUDGET on the second failure (A18.12 §2). Counter reads attempt events across
+        run-ledger.xml and run/ (same shape as nextEventId / maxLedgerEventId). A counter that
+        reads only run/ is a defect. Discriminating negative for "stays dumb": two failures with
+        different signatures still exhaust (step 4.5.2 / D9).
+      </AC-BUDGET-SPANS-FOLD>
+      <AC-ATTEMPT-SURFACE>
+        ngrace cursor attempt is registered beside show/regenerate/advance/pause/resume/fold
+        (A18.11). It allocates ordinal, writes the attempt event with registry fields, updates
+        budget accounting, on exhaustion writes the range-terminating exhausted event and paused
+        cursor state, and prints both failure signatures. Exit is success (non-blocking) even on
+        exhaustion. A third attempt after exhaustion still records; it does not refuse. advance
+        --kind attempt is not the attempt surface and does not perform budget policy.
+      </AC-ATTEMPT-SURFACE>
+      <AC-EXHAUSTION-SURFACE>
+        ngrace status surfaces paused/exhausted tasks so a human can see budget exhaustion without
+        reading the ledger by hand (A18.12 §3). formatStatusText and JSON both carry it (A5.4).
+        The signal survives fold: listPausedTasks reads ledger exhausted/pause events not later
+        cleared by resume/terminal, and foldEpoch must not overwrite paused with idle (A20.2).
+        Integration test in grace-status.test.ts asserts formatStatusText contains paused= after
+        an exhausted fold — not only a unit assertion against collectProjectStatus (A20.5).
+        chooseNextAction does not consult the cursor (anti-pattern 7, A10.8).
+      </AC-EXHAUSTION-SURFACE>
+      <AC-DROP-SITE-INVENTORY>
+        A5.4 inventory in the phase report for LooseEvent, buildEpochNode, validateLedgerEpoch /
+        parseLedgerEvent, writeEventFile, and ChangeBundleStatus / formatStatusText: each site
+        marked widened, deliberately not widened with reason, or not on the path. No new field
+        may be introduced by re-listing field names at a fourth site outside the registry.
+      </AC-DROP-SITE-INVENTORY>
+      <AC-CATALOG-AND-INTEGRATION>
+        Every new issue code is an exact catalog entry with derivedFrom and proposedBy (§12.1):
+        ledger.unknown-event-kind (warning, A18.9) and ledger.duplicate-attempt-ordinal (error,
+        A19.2). Each has one integration test that it fires and one that it does not fire on a
+        clean project (§0.2, A12.2). Unit-only coverage is not sufficient.
+      </AC-CATALOG-AND-INTEGRATION>
+      <AC-ADDITIVE>
+        Invariant 5 demonstrated, not asserted: polyglotFixture(), minimalTsFixture(),
+        scaleFixture(20), examples/, and bun run ngrace lint --path . each yield zero new error
+        codes (§0.7.4, A9). A new error on a previously-green project is release-breaking.
+      </AC-ADDITIVE>
+      <AC-DOCS-AND-SKILLS>
+        The attempt subcommand reaches its callers: README.md command table and output-format
+        list; skills/ngrace/ngrace-cli/SKILL.md surface list; skills/ngrace/ngrace-execute/SKILL.md
+        states when to record attempts and when to escalate (budget of 2 → replan) in one or two
+        sentences, never restating codes (D13, anti-pattern 10). Both packaged mirrors
+        byte-identical in the same commit (§12.2). Token delta reported (§0.5, D15). M-CURSOR
+        summary updated for the seventh subcommand.
+      </AC-DOCS-AND-SKILLS>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CURSOR />
+      <M-ARTIFACT-TYPES />
+      <M-GRAMMAR />
+      <M-LINT-CATALOG />
+      <M-STATUS />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-cursor.test.ts src/artifact/grammar.test.ts src/grace-lint.test.ts src/grace-status.test.ts src/lint/catalog.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        Folded-ledger assertion that attempt outcome and signature attributes survive fold
+        (AC-ATTEMPT-SURVIVES-FOLD). Registry add-a-field test touching only the constant
+        (AC-EVENT-FIELD-REGISTRY). Both-directions table for complete="false" vs refuse
+        (AC-EPOCH-COMPLETENESS, A7.2). Warning-only unknown-kind on a typo kind and clean
+        compat sweep including bun run ngrace lint --path . (AC-UNKNOWN-KIND-WARNING, A9).
+        Three flake outcomes each tested against recorded digests, including worktree-clean
+        normal-retry and both unable-to-determine paths (AC-FLAKE-THREE-OUTCOMES, A19.1).
+        Two failures split by fold still exhaust; two different signatures still exhaust
+        (AC-BUDGET-SPANS-FOLD). cursor attempt non-blocking after exhaustion (AC-ATTEMPT-SURFACE).
+        Status surfaces exhaustion (AC-EXHAUSTION-SURFACE). A5.4 drop-site inventory
+        (AC-DROP-SITE-INVENTORY). Integration both-directions per new code including
+        ledger.duplicate-attempt-ordinal (AC-CATALOG-AND-INTEGRATION, A19.2). Range-terminating
+        set membership table: exhausted folds, pause-only refuses, unregistered closing kind
+        refuses and warns (A19.3). Full §0.7 self-review with all five audits; mutation check
+        covers each production change not a sample (A14.4); adversarial probe ≥15 new inputs
+        tagged new vs case-table (A14.6); each audit names its artifact path. Token delta (D15).
+        Verbatim command output (A15.3). Amended criteria shown verbatim with evidence (A19.5).
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Phase 3 COMPLETE; ledger, fold, and cursor exist at HEAD 471f06b. A18 measurements at
+        235f0f8 re-verified by direct inspection at 471f06b: LooseEvent three fields, buildEpochNode
+        three-attribute Event, terminal-only range termination, no Epoch complete attribute, no
+        kind vocabulary, verification find/show only, run-state types in grace-cursor.ts not
+        artifact/types.ts. bun run validate:ci exits 0 at authoring time.
+      </Assumption>
+      <Assumption>
+        A18 supersedes §4.3 and §4.5 wherever they disagree. A18.7–A18.11 are closed decisions.
+        Standing rules A5.4, A5.5, A5.6, A7.2, A12.2, A12.3, A12.4, A14.6, A17.3 bind this phase.
+      </Assumption>
+      <Assumption>
+        Range-terminating kinds for membership checks are terminal and exhausted. pause remains
+        non-terminating. If implementation finds a cleaner single-kind design that still satisfies
+        A18.8's both-directions table, report it before substituting.
+      </Assumption>
+      <Assumption>
+        Exhaustion status surface is an extension of the existing epochs=/tasks= line on
+        ChangeBundleStatus (grace-status.ts:376-379), not a new subcommand.
+      </Assumption>
+      <Assumption>
+        Path-only modules without LINKS remain warning-level and deliberate; existing
+        graph.module-without-linked-files warnings are the expected clean state.
+      </Assumption>
+    </Assumptions>
+  </C-ATTEMPT-LOG>
+</NgraceChangeSpec>

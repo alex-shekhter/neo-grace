@@ -67,6 +67,93 @@ export type NgraceChangeBundleCompanion = (typeof NGRACE_CHANGE_BUNDLE_COMPANION
 export const EPOCH_SECTION_PATTERN = /^Epoch-([1-9][0-9]*)$/;
 
 /**
+ * Known run-event kinds (Phase 4). Free strings are reported as ledger.unknown-event-kind
+ * (warning) rather than silently accepted (A18.4 / A18.9).
+ */
+export const KNOWN_RUN_EVENT_KINDS = [
+  "opened",
+  "progress",
+  "pause",
+  "resume",
+  "terminal",
+  "attempt",
+  "exhausted",
+] as const;
+
+export type KnownRunEventKind = (typeof KNOWN_RUN_EVENT_KINDS)[number];
+
+export const KNOWN_RUN_EVENT_KIND_SET: ReadonlySet<string> = new Set(KNOWN_RUN_EVENT_KINDS);
+
+/**
+ * Kinds that terminate a used allocation range for fold membership and ledger density
+ * (A18.8, A19.3). Widening this set is a detection-boundary change — both directions required.
+ */
+export const RANGE_TERMINATING_EVENT_KINDS: ReadonlySet<string> = new Set(["terminal", "exhausted"]);
+
+/**
+ * Fix attempts per task before escalation to paused-pending-approval.
+ * Judgment, not derived (D9). Churn is recorded; calibration may revise later.
+ */
+export const FIX_BUDGET = 2;
+
+/**
+ * Typed field beyond id/task/kind on a run event. Single source for listLooseEvents,
+ * buildEpochNode, and validateLedgerEpoch — add a field here only and it must survive a fold
+ * (A18.7). write-evidence is content-sensitive digest recorded at attempt time (A19.1).
+ */
+export type RunEventFieldSpec = {
+  /** XML attribute name on Event / NgraceRunEvent. */
+  attribute: string;
+  /** Event kinds that carry this field. */
+  kinds: readonly string[];
+  /** Required when the event kind matches (signature fields use contextual checks). */
+  required?: boolean;
+  /** Return an error message when invalid, or null when ok. */
+  validate?: (value: string) => string | null;
+};
+
+/**
+ * Registry of typed attempt (and future) event fields. Consumers must iterate this constant
+ * rather than re-listing attribute names (A18.7, A5.4).
+ */
+export const RUN_EVENT_FIELD_REGISTRY: readonly RunEventFieldSpec[] = [
+  {
+    attribute: "outcome",
+    kinds: ["attempt"],
+    required: true,
+    validate: (value) => (value === "pass" || value === "fail" ? null : `outcome must be pass|fail, got ${JSON.stringify(value)}`),
+  },
+  {
+    attribute: "ordinal",
+    kinds: ["attempt"],
+    required: true,
+    validate: (value) => {
+      const n = Number(value);
+      return Number.isInteger(n) && n >= 1 ? null : `ordinal must be an integer >= 1, got ${JSON.stringify(value)}`;
+    },
+  },
+  {
+    attribute: "signature-kind",
+    kinds: ["attempt"],
+  },
+  {
+    attribute: "signature-key",
+    kinds: ["attempt"],
+  },
+  {
+    // Content-sensitive digest over (path, content-hash) pairs at record time (A19.1).
+    // Absent when unrecordable → flake classification unable-to-determine.
+    attribute: "write-evidence",
+    kinds: ["attempt"],
+  },
+];
+
+/** Fields from the registry that apply to a given event kind. */
+export function runEventFieldsForKind(kind: string): readonly RunEventFieldSpec[] {
+  return RUN_EVENT_FIELD_REGISTRY.filter((field) => field.kinds.includes(kind));
+}
+
+/**
  * Prefix for marketplace skill identifiers printed as next-action guidance.
  * Phase 1 centralizes the literal; Phase 2 renames the value.
  */

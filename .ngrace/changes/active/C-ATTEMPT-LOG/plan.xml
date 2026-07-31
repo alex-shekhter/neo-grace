@@ -1,0 +1,172 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <!--
+    SCOPE WIDENING (A20.4 / correction 42, recorded per A17.1 — not a silent edit):
+    After approval, execution also wrote src/test-support/fixtures.ts (ledger fixture
+    attrs for attempt fields / complete=false) and src/test-support/token-accounting.test.ts
+    (D15 skill-line pin 650→651). Neither was in the approved ObservedWriteScope. The two
+    <File> entries below were added post-approval with this disclosure; the writes were
+    defensible, their omission from the scope audit was not.
+  -->
+  <C-ATTEMPT-LOG>
+    <IntentSummary>
+      Land the attempt log, dumb fix budget of 2, escalation to paused-pending-approval, field
+      registry so attempt payloads survive fold (including write-evidence digests that fold git
+      HEAD so committed fixes classify normal-retry — A19.1, A20.1), incomplete-epoch mark,
+      unknown-kind warning, duplicate-ordinal witness (A19.2), flake three-outcome read over
+      recorded digests (most-recent pair, A20.3), range-terminating set membership (A19.3),
+      exhaustion surface that survives fold via ledger (A20.2), and the report-only ngrace
+      cursor attempt surface — per D6 (attempt half), D9, §14 A18–A20. Authored before
+      execution (A17.3). Approved at A19.5.
+
+      SCOPE WIDENING (A20.4): after approval this plan's ObservedWriteScope was extended to
+      include src/test-support/fixtures.ts and src/test-support/token-accounting.test.ts —
+      written during execution for attempt-field fixture attrs and the D15 skill-line pin,
+      omitted from the approved scope and from the Stop 2 scope audit. Recorded here rather
+      than repaired silently (A17.1).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-ARTIFACT-TYPES</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/types.ts</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-ARTIFACT-TYPES</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-ARTIFACT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+        <M-ARTIFACT-TYPES />
+        <M-GRAMMAR />
+        <M-LINT-CATALOG />
+        <M-STATUS />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+        <V-M-ARTIFACT-TYPES />
+        <V-M-GRAMMAR />
+        <V-M-LINT-CATALOG />
+        <V-M-STATUS />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/types.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>src/grace-status.ts</File>
+      <File>src/grace-status.test.ts</File>
+      <!-- A20.4: added post-approval; see IntentSummary SCOPE WIDENING -->
+      <File>src/test-support/fixtures.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+      <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>.ngrace/graph/main.xml</File>
+      <File>.ngrace/verification/main.xml</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Field registry, known kinds, attempt fields survive fold, and unknown-kind warning</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            RUN_EVENT_FIELD_REGISTRY (name exact at implementation) in artifact/types.ts; known
+            kind set; listLooseEvents / buildEpochNode / validateLedgerEpoch / writeEventFile read
+            the registry; folded Event retains outcome and signature attributes; ledger.unknown-event-kind
+            warning registered with derivedFrom/proposedBy; add-a-field registry-only test present.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-ATTEMPT-SURVIVES-FOLD />
+          <AC-EVENT-FIELD-REGISTRY />
+          <AC-UNKNOWN-KIND-WARNING />
+          <AC-CATALOG-AND-INTEGRATION />
+          <AC-DROP-SITE-INVENTORY />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts src/artifact/grammar.test.ts src/lint/catalog.test.ts src/grace-lint.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>cursor attempt, dumb budget spanning folds, escalation terminates range, incomplete epoch mark</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            ngrace cursor attempt records attempts with allocated ordinal; FIX_BUDGET=2 with D9
+            note; different-signature failures exhaust; budget counts across ledger+loose after
+            fold; second failure emits exhausted (range-terminating) and paused cursor state;
+            non-blocking; fold --allow-incomplete (or equivalent) writes complete="false" with
+            A7.2 both-directions table for range-unterminated/range-hole.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-ATTEMPT-SURFACE />
+          <AC-BUDGET-SPANS-FOLD />
+          <AC-EPOCH-COMPLETENESS />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts src/artifact/grammar.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Flake three-outcome read, exhaustion on status, docs and skills</Title>
+        <DependsOn>
+          <T-002 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Flake classification compares recorded write-evidence digests (A19.1): different
+            digests → normal-retry after worktree clean; identical → flaky; absent →
+            unable-to-determine; status surfaces exhaustion; README and both skills updated with
+            byte-identical mirrors; M-CURSOR summary names attempt; validate:ci and ngrace lint
+            --path . green; token delta recorded.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-FLAKE-THREE-OUTCOMES />
+          <AC-EXHAUSTION-SURFACE />
+          <AC-DOCS-AND-SKILLS />
+          <AC-ADDITIVE />
+        </Satisfies>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-ATTEMPT-LOG>
+</NgraceChangePlan>

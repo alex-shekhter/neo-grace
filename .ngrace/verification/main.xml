@@ -48,7 +48,7 @@
     <V-M-CURSOR>
       <Command>bun test src/grace-cursor.test.ts</Command>
       <Scenario>Cursor show is non-writing; fold is write-verify-delete; regenerate is dry-run by default.</Scenario>
-      <TraceAssertion>grace-cursor unit tests cover fold ordering, concurrent ranges, and recovery.</TraceAssertion>
+      <TraceAssertion>grace-cursor unit tests cover fold ordering, attempt budget, flake digests, and recovery.</TraceAssertion>
     </V-M-CURSOR>
     <V-M-ARTIFACT-TYPES>
       <Command>bun test src/artifact/grammar.test.ts</Command>

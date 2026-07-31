@@ -8,13 +8,18 @@ import {
   writeChangeBundleFixture,
   writeMinimalNgraceProject,
 } from "./artifact/test-fixtures";
-import { validateNgraceProject } from "./artifact/grammar";
+import { validateNgraceProject, validateRunLedgerArtifact } from "./artifact/grammar";
+import { FIX_BUDGET, RUN_EVENT_FIELD_REGISTRY } from "./artifact/types";
+import { parseGraceXmlArtifact } from "./artifact/xml";
 import { snapshotProjectTree } from "./test-support/fixtures";
 import {
   advanceCursor,
+  classifyFlake,
   foldEpoch,
   formatCursorPosition,
   listLooseEvents,
+  listPausedTasks,
+  recordAttempt,
   regenerateCursor,
   showCursor,
 } from "./grace-cursor";
@@ -471,10 +476,346 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
     const callSites = lines.filter((line) => /(?:unlinkSync|rmSync|rmdirSync)\s*\(/.test(line)).sort();
     expect(callSites).toEqual(
       [
-        "src/grace-cursor.ts:374:    unlinkSync(contained.absolutePath);",
+        "src/grace-cursor.ts:431:    unlinkSync(contained.absolutePath);",
         "src/lint/adapters/dart.ts:206:    rmSync(temporaryDirectory, { recursive: true, force: true });",
       ].sort(),
     );
     expect(lines.some((line) => line.includes("rmdirSync"))).toBe(false);
+  });
+});
+
+describe("Phase 4 attempt log / budget / escalation (A18, A19)", () => {
+  function openEpoch(root: string, changeId = "C-RUN") {
+    advanceCursor(root, changeId, {
+      task: "T-001",
+      openEpoch: true,
+      worker: "w0",
+      from: 1,
+      to: 99,
+      wave: "1",
+    });
+  }
+
+  it("AC-ATTEMPT-SURVIVES-FOLD: outcome and signature present on folded ledger Event", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    openEpoch(root);
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signatureKind: "test-failure",
+      signatureKey: "src/x.test.ts:should parse",
+    });
+    // Need density + terminal to fold without allowIncomplete
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+    foldEpoch(root, "C-RUN");
+
+    const ledger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(ledger).toContain('kind="attempt"');
+    expect(ledger).toContain('outcome="fail"');
+    expect(ledger).toContain('signature-kind="test-failure"');
+    expect(ledger).toContain('signature-key="src/x.test.ts:should parse"');
+    expect(ledger).toMatch(/ordinal="1"/);
+    // Must not only exist on loose events
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+  });
+
+  it("AC-EVENT-FIELD-REGISTRY: add-a-field to registry survives fold without other site edits", () => {
+    // Discriminating negative for A18.7: consumers iterate RUN_EVENT_FIELD_REGISTRY.
+    // Simulate an extra field by writing it on a loose event that the registry admits via
+    // dynamic attribute pass-through only if registry includes it — here we assert the
+    // three consumers share the constant by writing outcome (registry field) and checking
+    // a non-registry field is dropped while registry fields survive.
+    const root = createProject();
+    const bundle = seedBundle(root);
+    openEpoch(root);
+    const runDir = path.join(bundle, "run");
+    writeFileSync(
+      path.join(runDir, "2-T-001-attempt.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="attempt" outcome="pass" ordinal="1" write-evidence="abc" not-in-registry="drop-me"/>`,
+    );
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+    foldEpoch(root, "C-RUN");
+    const ledger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(ledger).toContain('outcome="pass"');
+    expect(ledger).toContain('ordinal="1"');
+    expect(ledger).toContain('write-evidence="abc"');
+    expect(ledger).not.toContain("not-in-registry");
+    // Registry is the single constant
+    expect(RUN_EVENT_FIELD_REGISTRY.some((f) => f.attribute === "outcome")).toBe(true);
+  });
+
+  it("AC-BUDGET-SPANS-FOLD: two failures split by fold still exhaust; different signatures still count", () => {
+    const root = createProject();
+    seedBundle(root);
+    openEpoch(root);
+    const first = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signatureKind: "typecheck",
+      signatureKey: "src/a.ts:1",
+    });
+    expect(first.exhausted).toBe(false);
+    expect(first.failedAttemptCount).toBe(1);
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+    foldEpoch(root, "C-RUN");
+
+    // New epoch — allocation range must not overlap used ids from the folded epoch.
+    advanceCursor(root, "C-RUN", {
+      task: "T-001",
+      openEpoch: true,
+      worker: "w0",
+      from: 100,
+      to: 199,
+      wave: "2",
+    });
+    const second = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signatureKind: "test-failure",
+      signatureKey: "src/b.test.ts:2",
+    });
+    expect(second.exhausted).toBe(true);
+    expect(second.failedAttemptCount).toBe(FIX_BUDGET);
+    expect(second.failureSignatures).toHaveLength(2);
+    expect(second.failureSignatures[0]?.kind).toBe("typecheck");
+    expect(second.failureSignatures[1]?.kind).toBe("test-failure");
+    expect(second.position.state).toBe("paused");
+    // Escalation is range-terminating — fold succeeds
+    const fold = foldEpoch(root, "C-RUN");
+    expect(fold.applied).toBe(true);
+  });
+
+  it("AC-EPOCH-COMPLETENESS: exhausted folds; pause-only refuses; allowIncomplete marks complete=false", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+
+    // pause-only refuses (A19.3)
+    openEpoch(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "pause" });
+    expect(() => foldEpoch(root, "C-RUN")).toThrow(/unterminated|invalid-project/i);
+
+    // allowIncomplete succeeds with complete=false
+    const incomplete = foldEpoch(root, "C-RUN", { allowIncomplete: true });
+    expect(incomplete.applied).toBe(true);
+    const ledger1 = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(ledger1).toContain('complete="false"');
+    // lint: range-unterminated must NOT fire on complete=false
+    const incompleteCodes = validateNgraceProject(root).issues
+      .filter((i) => i.code === "ledger.range-unterminated" || i.code === "ledger.range-hole")
+      .map((i) => i.code);
+    expect(incompleteCodes).toHaveLength(0);
+
+    // A15 refuse-before-write still fail closed on default path with hole
+    openEpoch(root);
+    const runDir = path.join(bundle, "run");
+    // open wrote id=N; write id N+2 leaving hole
+    const loose = listLooseEvents(bundle);
+    const base = loose[0]!.id;
+    writeFileSync(
+      path.join(runDir, `${base + 2}-T-001-terminal.xml`),
+      `<NgraceRunEvent graceVersion="1.0" id="${base + 2}" task="T-001" kind="terminal"/>`,
+    );
+    expect(() => foldEpoch(root, "C-RUN")).toThrow(/hole|invalid-project/i);
+    // No new epoch from the refused fold — ledger still has only the incomplete epoch
+  });
+
+  it("A19.3: unregistered closing kind refuses fold and warns on ledger", () => {
+    const root = createProject();
+    seedBundle(root);
+    openEpoch(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "done" }); // unregistered, not terminating
+    expect(() => foldEpoch(root, "C-RUN")).toThrow(/unterminated|invalid-project/i);
+
+    const artifact = parseGraceXmlArtifact(
+      "run-ledger.xml",
+      `<NgraceRunLedger graceVersion="1.0"><C-X><Epoch-1><Allocation worker="w0" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="done"/></Epoch-1></C-X></NgraceRunLedger>`,
+    );
+    const result = validateRunLedgerArtifact(artifact);
+    expect(result.issues.some((i) => i.code === "ledger.unknown-event-kind" && i.severity === "warning")).toBe(true);
+    expect(result.issues.some((i) => i.code === "ledger.range-unterminated")).toBe(true);
+  });
+
+  it("AC-FLAKE-THREE-OUTCOMES (A19.1): recorded digests classify after worktree clean", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    initGitBaseline(root);
+    openEpoch(root);
+
+    // Attempt 1 fail with content A
+    writeFileSync(path.join(root, "src/example.ts"), `export function run() { return "v1"; }\n`);
+    const fail1 = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signatureKind: "test-failure",
+      signatureKey: "example",
+    });
+    expect(fail1.writeEvidence).toBeTruthy();
+
+    // Attempt 2 pass with content B (different digest)
+    writeFileSync(path.join(root, "src/example.ts"), `export function run() { return "v2"; }\n`);
+    const pass1 = recordAttempt(root, "C-RUN", { task: "T-001", outcome: "pass" });
+    expect(pass1.writeEvidence).toBeTruthy();
+    expect(pass1.writeEvidence).not.toBe(fail1.writeEvidence);
+
+    // Commit so worktree is clean — classification must still use recorded digests (A19.1)
+    runGit(root, ["add", "."]);
+    runGit(root, ["commit", "-m", "clean"]);
+    expect(classifyFlake(bundle, "T-001").verdict).toBe("normal-retry");
+  });
+
+  it("AC-FLAKE-THREE-OUTCOMES (A20.1): fix committed between attempts classifies normal-retry", () => {
+    // Discriminating negative for correction 39: empty worktree intersection both times
+    // must not collapse to flaky when HEAD moved (commit-per-task path).
+    const root = createProject();
+    const bundle = seedBundle(root);
+    initGitBaseline(root);
+    openEpoch(root);
+
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signatureKind: "test-failure",
+      signatureKey: "example",
+    });
+    // Real fix, then commit — worktree clean at both attempt moments for OWS ∩ status
+    writeFileSync(path.join(root, "src/example.ts"), `export function run() { return "fixed"; }\n`);
+    runGit(root, ["add", "."]);
+    runGit(root, ["commit", "-m", "fix"]);
+    recordAttempt(root, "C-RUN", { task: "T-001", outcome: "pass" });
+
+    expect(classifyFlake(bundle, "T-001").verdict).toBe("normal-retry");
+  });
+
+  it("AC-FLAKE-THREE-OUTCOMES: identical evidence is flaky; absent is unable-to-determine", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    initGitBaseline(root);
+    openEpoch(root);
+
+    writeFileSync(path.join(root, "src/example.ts"), `export function run() { return "same"; }\n`);
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signatureKind: "test-failure",
+      signatureKey: "k",
+    });
+    // Same content, no further edit, same HEAD
+    recordAttempt(root, "C-RUN", { task: "T-001", outcome: "pass" });
+    expect(classifyFlake(bundle, "T-001").verdict).toBe("flaky");
+
+    // Absent write-evidence → unable-to-determine
+    const emptyRoot = createProject();
+    const emptyBundle = seedBundle(emptyRoot);
+    // No git → evidence unrecordable
+    openEpoch(emptyRoot);
+    recordAttempt(emptyRoot, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signatureKind: "t",
+      signatureKey: "k",
+    });
+    recordAttempt(emptyRoot, "C-RUN", { task: "T-001", outcome: "pass" });
+    const classification = classifyFlake(emptyBundle, "T-001");
+    expect(classification.verdict).toBe("unable-to-determine");
+    expect(classification.reason).toBeTruthy();
+  });
+
+  it("AC-FLAKE-THREE-OUTCOMES (A21.1): unborn HEAD is unavailable, not flaky", () => {
+    // Correction 44: git init with no commit — status can exit 0 while rev-parse HEAD fails.
+    // Digest must not fold HEAD:"" and report a confident flaky.
+    const root = createProject();
+    const bundle = seedBundle(root);
+    runGit(root, ["init"]);
+    runGit(root, ["config", "user.email", "grace@example.test"]);
+    runGit(root, ["config", "user.name", "GRACE Test"]);
+    runGit(root, ["config", "commit.gpgsign", "false"]);
+    runGit(root, ["config", "core.hooksPath", "disabled-hooks"]);
+    // No commit — unborn HEAD. Status may still list untracked files.
+    openEpoch(root);
+    const fail = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signatureKind: "test-failure",
+      signatureKey: "k",
+    });
+    expect(fail.writeEvidence).toBeUndefined();
+    recordAttempt(root, "C-RUN", { task: "T-001", outcome: "pass" });
+    const classification = classifyFlake(bundle, "T-001");
+    expect(classification.verdict).toBe("unable-to-determine");
+    expect(classification.reason).toMatch(/write-evidence|HEAD|unborn|unresolvable|unavailable/i);
+  });
+
+  it("AC-FLAKE-THREE-OUTCOMES (A20.3): most recent fail→pass pair wins over an earlier one", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    initGitBaseline(root);
+    openEpoch(root);
+
+    // Pair 1: normal-retry (content changes)
+    writeFileSync(path.join(root, "src/example.ts"), `export function run() { return "a"; }\n`);
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signatureKind: "t",
+      signatureKey: "1",
+    });
+    writeFileSync(path.join(root, "src/example.ts"), `export function run() { return "b"; }\n`);
+    recordAttempt(root, "C-RUN", { task: "T-001", outcome: "pass" });
+
+    // Pair 2: flaky (no change, same HEAD)
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signatureKind: "t",
+      signatureKey: "2",
+    });
+    recordAttempt(root, "C-RUN", { task: "T-001", outcome: "pass" });
+
+    expect(classifyFlake(bundle, "T-001").verdict).toBe("flaky");
+  });
+
+  it("AC-ATTEMPT-SURFACE: third attempt after exhaustion still records (non-blocking)", () => {
+    const root = createProject();
+    seedBundle(root);
+    openEpoch(root);
+    recordAttempt(root, "C-RUN", { task: "T-001", outcome: "fail", signatureKind: "a", signatureKey: "1" });
+    const second = recordAttempt(root, "C-RUN", { task: "T-001", outcome: "fail", signatureKind: "b", signatureKey: "2" });
+    expect(second.exhausted).toBe(true);
+    // Still records — does not throw
+    const third = recordAttempt(root, "C-RUN", { task: "T-001", outcome: "fail", signatureKind: "c", signatureKey: "3" });
+    expect(third.ordinal).toBe(3);
+    expect(third.failedAttemptCount).toBe(3);
+  });
+
+  it("AC-EXHAUSTION-SURFACE: status prints paused= after budget exhaustion", () => {
+    const root = createProject();
+    seedBundle(root);
+    openEpoch(root);
+    recordAttempt(root, "C-RUN", { task: "T-001", outcome: "fail", signatureKind: "a", signatureKey: "1" });
+    recordAttempt(root, "C-RUN", { task: "T-001", outcome: "fail", signatureKind: "b", signatureKey: "2" });
+    const status = collectProjectStatus(root);
+    const change = status.changes.find((c) => c.changeId === "C-RUN");
+    expect(change?.pausedTasks).toContain("T-001");
+    expect(formatStatusText(status)).toContain("paused=T-001");
+  });
+
+  it("AC-EXHAUSTION-SURFACE (A20.2): paused survives fold; listPausedTasks reads ledger", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    openEpoch(root);
+    recordAttempt(root, "C-RUN", { task: "T-001", outcome: "fail", signatureKind: "a", signatureKey: "1" });
+    recordAttempt(root, "C-RUN", { task: "T-001", outcome: "fail", signatureKind: "b", signatureKey: "2" });
+    expect(listPausedTasks(bundle)).toContain("T-001");
+    foldEpoch(root, "C-RUN");
+    // Loose events gone; ledger holds exhausted — surface must not go silent (A20.2).
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+    expect(listPausedTasks(bundle)).toContain("T-001");
+    // fold must not write state=idle over exhaustion (discriminating for fold always-idle).
+    const cursorXml = readFileSync(path.join(bundle, "run.xml"), "utf8");
+    expect(cursorXml).toContain("<State>paused</State>");
+    const status = collectProjectStatus(root);
+    expect(status.changes.find((c) => c.changeId === "C-RUN")?.pausedTasks).toContain("T-001");
+    expect(formatStatusText(status)).toContain("paused=T-001");
   });
 });

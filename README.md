@@ -176,6 +176,7 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | `ngrace cursor show --change C-ID --path <root>` | Show durable run position (never writes; recovers rather than blocks) |
 | `ngrace cursor regenerate --change C-ID [--apply] --path <root>` | Re-derive `run.xml` from ledger, loose events, and codebase evidence (dry-run by default) |
 | `ngrace cursor advance\|pause\|resume\|fold --change C-ID --path <root>` | Append run events or fold an epoch into `run-ledger.xml` |
+| `ngrace cursor attempt --change C-ID --task T-ID --outcome pass\|fail --path <root>` | Record a verification attempt (budget, escalation); reports, never blocks |
 
 `MustPassCommand` entries are leaf project evidence such as tests, typecheck, build, format, or package checks. Do not nest `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside plan assertions; selected target/final lint is the external orchestration gate.
 
@@ -183,7 +184,7 @@ Output modes:
 
 - `ngrace lint`: `text`, `json`
 - `ngrace status`: `text`, `json`
-- `ngrace cursor show|regenerate|advance|pause|resume|fold`: `text`, `json`
+- `ngrace cursor show|regenerate|advance|pause|resume|fold|attempt`: `text`, `json`
 - `ngrace module find`: `table`, `json`
 - `ngrace module show`: `text`, `json`
 - `ngrace verification find`: `table`, `json`

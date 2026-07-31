@@ -610,6 +610,105 @@ describe("run ledger and cursor grammar (Phase 3 / A11)", () => {
     expect(result.issues.filter((i) => i.severity === "error")).toHaveLength(0);
   });
 
+  it("Phase 4: complete=false skips hole/unterminated; unknown-kind warns; exhausted terminates; duplicate ordinal errors", () => {
+    // complete=false: hole does not fire range-hole (A18.8 both-directions)
+    const incompleteHole = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        buildRunLedgerXml("C-X", [{
+          epoch: 1,
+          complete: false,
+          allocations: [{ worker: "w0", from: 1, to: 10 }],
+          events: [
+            { id: 1, task: "T-001", kind: "opened" },
+            { id: 3, task: "T-001", kind: "progress" },
+          ],
+        }]),
+      ),
+    );
+    expect(codes(incompleteHole)).not.toContain("ledger.range-hole");
+    expect(codes(incompleteHole)).not.toContain("ledger.range-unterminated");
+
+    // complete absent: hole still fires
+    const completeHole = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        buildRunLedgerXml("C-X", [{
+          epoch: 1,
+          allocations: [{ worker: "w0", from: 1, to: 10 }],
+          events: [
+            { id: 1, task: "T-001", kind: "opened" },
+            { id: 3, task: "T-001", kind: "terminal" },
+          ],
+        }]),
+      ),
+    );
+    expect(codes(completeHole)).toContain("ledger.range-hole");
+
+    // exhausted is range-terminating (A19.3)
+    const exhausted = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        buildRunLedgerXml("C-X", [{
+          epoch: 1,
+          allocations: [{ worker: "w0", from: 1, to: 10 }],
+          events: [
+            { id: 1, task: "T-001", kind: "opened" },
+            { id: 2, task: "T-001", kind: "exhausted" },
+          ],
+        }]),
+      ),
+    );
+    expect(codes(exhausted)).not.toContain("ledger.range-unterminated");
+    expect(exhausted.issues.filter((i) => i.severity === "error")).toHaveLength(0);
+
+    // unknown kind warns
+    const unknown = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        buildRunLedgerXml("C-X", [{
+          epoch: 1,
+          allocations: [{ worker: "w0", from: 1, to: 10 }],
+          events: [
+            { id: 1, task: "T-001", kind: "opened" },
+            { id: 2, task: "T-001", kind: "atempt" },
+            { id: 3, task: "T-001", kind: "terminal" },
+          ],
+        }]),
+      ),
+    );
+    const warning = unknown.issues.find((i) => i.code === "ledger.unknown-event-kind");
+    expect(warning?.severity).toBe("warning");
+
+    // duplicate attempt ordinal (A19.2)
+    const dup = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        buildRunLedgerXml("C-X", [{
+          epoch: 1,
+          allocations: [{ worker: "w0", from: 1, to: 10 }],
+          events: [
+            { id: 1, task: "T-001", kind: "opened" },
+            {
+              id: 2,
+              task: "T-001",
+              kind: "attempt",
+              fields: { outcome: "fail", ordinal: "1", "signature-kind": "t", "signature-key": "a" },
+            },
+            {
+              id: 3,
+              task: "T-001",
+              kind: "attempt",
+              fields: { outcome: "fail", ordinal: "1", "signature-kind": "t", "signature-key": "b" },
+            },
+            { id: 4, task: "T-001", kind: "exhausted" },
+          ],
+        }]),
+      ),
+    );
+    expect(codes(dup)).toContain("ledger.duplicate-attempt-ordinal");
+  });
+
   it("rejects unknown cursor root and invalid change id", () => {
     expect(codes(validateRunCursorArtifact(parseGraceXmlArtifact("run.xml", `<Nope/>`)))).toContain(
       "cursor.invalid-root-tag",

@@ -45,12 +45,12 @@
       <Type>UTILITY</Type>
     </M-SKILLS>
     <M-CURSOR>
-      <Summary>Run ledger and cursor write surface: show, regenerate, advance, pause, resume, fold.</Summary>
+      <Summary>Run ledger and cursor write surface: show, regenerate, advance, pause, resume, fold, attempt.</Summary>
       <Path>src/grace-cursor.ts</Path>
       <Type>ENTRY_POINT</Type>
     </M-CURSOR>
     <M-ARTIFACT-TYPES>
-      <Summary>Shared artifact grammar constants: root tags, companion registry, anchor patterns.</Summary>
+      <Summary>Shared artifact grammar constants: root tags, companion registry, run-event field registry, anchor patterns.</Summary>
       <Path>src/artifact/types.ts</Path>
       <Type>CORE_LOGIC</Type>
     </M-ARTIFACT-TYPES>

@@ -1,8 +1,10 @@
 #!/usr/bin/env bun
 
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
+  readFileSync,
   readdirSync,
   unlinkSync,
   writeFileSync,
@@ -17,7 +19,11 @@ import {
   ANCHOR_PATTERNS,
   ARTIFACT_TAG_PREFIX,
   EPOCH_SECTION_PATTERN,
+  FIX_BUDGET,
   NGRACE_ARTIFACT_VERSION,
+  RANGE_TERMINATING_EVENT_KINDS,
+  RUN_EVENT_FIELD_REGISTRY,
+  runEventFieldsForKind,
 } from "./artifact/types";
 import {
   cursorNamedTask,
@@ -99,12 +105,45 @@ export type FoldResult = {
 };
 
 export type RangeAllocation = { worker: string; from: number; to: number };
+
+/**
+ * Loose run/ event. Typed fields beyond id/task/kind come from RUN_EVENT_FIELD_REGISTRY
+ * (A18.7) so listLooseEvents and buildEpochNode share one source — never re-list by name.
+ */
 export type LooseEvent = {
   id: number;
   task: string;
   kind: string;
   file: string;
   allocations?: RangeAllocation[];
+  /** Registry attributes (outcome, ordinal, signature-*, write-evidence, …). */
+  fields: Record<string, string>;
+};
+
+export type AttemptOutcome = "pass" | "fail";
+
+export type AttemptRecordResult = {
+  changeId: string;
+  bundlePath: string;
+  task: string;
+  ordinal: number;
+  outcome: AttemptOutcome;
+  signatureKind?: string;
+  signatureKey?: string;
+  writeEvidence?: string;
+  failedAttemptCount: number;
+  budget: number;
+  exhausted: boolean;
+  /** Failure signatures of failed attempts for this task (for escalation message). */
+  failureSignatures: Array<{ ordinal: number; kind?: string; key?: string }>;
+  position: CursorPosition;
+};
+
+export type FlakeVerdict = "flaky" | "normal-retry" | "unable-to-determine";
+
+export type FlakeClassification = {
+  verdict: FlakeVerdict;
+  reason?: string;
 };
 
 const EVENT_FILENAME = /^(\d+)-([A-Za-z0-9_-]+)-([A-Za-z0-9_-]+)\.xml$/;
@@ -143,7 +182,15 @@ export function listLooseEvents(bundlePath: string): LooseEvent[] {
             .map(parseAllocationNode)
             .filter((entry): entry is RangeAllocation => entry !== null)
         : undefined;
-    events.push({ id, task, kind, file, allocations });
+    // Read every registry field for this kind — do not re-list attribute names (A18.7, A5.4).
+    const fields: Record<string, string> = {};
+    if (parsed.root) {
+      for (const field of runEventFieldsForKind(kind)) {
+        const value = parsed.root.attributes[field.attribute];
+        if (value !== undefined && value !== "") fields[field.attribute] = value;
+      }
+    }
+    events.push({ id, task, kind, file, allocations, fields });
   }
   return events.sort((a, b) => a.id - b.id);
 }
@@ -271,6 +318,11 @@ export function foldEpoch(
   changeId: string,
   options: {
     wave?: string;
+    /**
+     * Explicit incomplete fold (A18.8): write Epoch-N complete="false" and skip
+     * hole/unterminated refusal. Default remains refuse.
+     */
+    allowIncomplete?: boolean;
     /** Test-only: throw after ledger write and verify, before delete. */
     injectFailureAfterWrite?: boolean;
     /** Test-only: throw after write, before verify (still leaves both forms). */
@@ -305,14 +357,19 @@ export function foldEpoch(
   }
 
   // Membership + density before write (fold owns validation — A11.2).
-  const membershipIssues = validateEventsAgainstAllocations(events, allocations);
+  // allowIncomplete skips hole/unterminated only; outside-allocation still refuses (A18.8).
+  const membershipIssues = validateEventsAgainstAllocations(events, allocations, {
+    allowIncomplete: Boolean(options.allowIncomplete),
+  });
   if (membershipIssues.length > 0) {
     throw new GraceCommandError("invalid-project", membershipIssues.join(" "));
   }
 
   const epochNumber = nextEpochNumber(bundlePath);
   const wave = options.wave ?? readWaveFromOpened(events);
-  const epochNode = buildEpochNode(epochNumber, wave, allocations, events);
+  const epochNode = buildEpochNode(epochNumber, wave, allocations, events, {
+    complete: options.allowIncomplete ? false : undefined,
+  });
   const ledgerPath = path.join(bundlePath, "run-ledger.xml");
 
   // --- write ---
@@ -374,12 +431,30 @@ export function foldEpoch(
     unlinkSync(contained.absolutePath);
   }
 
+  // Preserve pause/exhaustion across fold (A20.2): do not overwrite paused with idle.
+  // After delete, derive from the events just folded (ledger is now the record).
+  const lastEvent = events[events.length - 1];
+  const foldedPaused = events.some(
+    (event) =>
+      (event.kind === "exhausted" || event.kind === "pause") &&
+      !events.some(
+        (later) =>
+          later.id > event.id &&
+          later.task === event.task &&
+          (later.kind === "resume" || later.kind === "terminal"),
+      ),
+  );
+  const state: CursorState = foldedPaused
+    ? "paused"
+    : lastEvent?.kind === "terminal"
+      ? "complete"
+      : "idle";
   const position: CursorPosition = {
     changeId,
     bundlePath,
     epoch: epochNumber,
-    task: events[events.length - 1]?.task,
-    state: "idle",
+    task: lastEvent?.task,
+    state,
     sources: { epoch: "ledger", task: "ledger", state: "ledger" },
     inferred: false,
   };
@@ -462,7 +537,13 @@ export function derivePosition(
     const task = lastEvent?.task ?? lastTaskFromLedger(bundlePath);
     let state: CursorState = "idle";
     if (events.length > 0) {
-      state = lastEvent?.kind === "pause" ? "paused" : lastEvent?.kind === "terminal" ? "complete" : "in-progress";
+      // exhausted is range-terminating but task-paused (A18.8); terminal closes complete.
+      state =
+        lastEvent?.kind === "pause" || lastEvent?.kind === "exhausted"
+          ? "paused"
+          : lastEvent?.kind === "terminal"
+            ? "complete"
+            : "in-progress";
     }
     return {
       changeId,
@@ -704,12 +785,17 @@ function collectAllocations(events: LooseEvent[]): RangeAllocation[] {
   return fromOpened;
 }
 
-function validateEventsAgainstAllocations(events: LooseEvent[], allocations: RangeAllocation[]): string[] {
+function validateEventsAgainstAllocations(
+  events: LooseEvent[],
+  allocations: RangeAllocation[],
+  options: { allowIncomplete?: boolean } = {},
+): string[] {
   const issues: string[] = [];
   for (const event of events) {
     const ok = allocations.some((a) => event.id >= a.from && event.id <= a.to);
     if (!ok) issues.push(`event ${event.id} outside every allocation`);
   }
+  if (options.allowIncomplete) return issues;
   for (const allocation of allocations) {
     const inRange = events
       .filter((e) => e.id >= allocation.from && e.id <= allocation.to)
@@ -724,8 +810,10 @@ function validateEventsAgainstAllocations(events: LooseEvent[], allocations: Ran
         break;
       }
     }
+    // Range-terminating set: terminal | exhausted (A18.8, A19.3). Pause alone does not close.
     const hasTerminal = events.some(
-      (e) => e.id >= allocation.from && e.id <= allocation.to && e.kind === "terminal",
+      (e) =>
+        e.id >= allocation.from && e.id <= allocation.to && RANGE_TERMINATING_EVENT_KINDS.has(e.kind),
     );
     if (!hasTerminal) issues.push(`unterminated range for ${allocation.worker}`);
   }
@@ -737,6 +825,7 @@ function buildEpochNode(
   wave: string | undefined,
   allocations: RangeAllocation[],
   events: LooseEvent[],
+  options: { complete?: boolean } = {},
 ): GraceXmlNode {
   const children: GraceXmlNode[] = [
     ...allocations.map((allocation) => ({
@@ -749,20 +838,32 @@ function buildEpochNode(
       children: [] as GraceXmlNode[],
       text: "",
     })),
-    ...events.map((event) => ({
-      tag: "Event",
-      attributes: {
+    ...events.map((event) => {
+      // Emit id/task/kind plus every registry field present — iterate the registry (A18.7).
+      const attributes: Record<string, string> = {
         id: String(event.id),
         task: event.task,
         kind: event.kind,
-      },
-      children: [] as GraceXmlNode[],
-      text: "",
-    })),
+      };
+      for (const field of runEventFieldsForKind(event.kind)) {
+        const value = event.fields[field.attribute];
+        if (value !== undefined && value !== "") attributes[field.attribute] = value;
+      }
+      return {
+        tag: "Event",
+        attributes,
+        children: [] as GraceXmlNode[],
+        text: "",
+      };
+    }),
   ];
+  const attributes: Record<string, string> = {};
+  if (wave) attributes.wave = wave;
+  // complete="false" only; omit attribute when complete (default) so older ledgers stay quiet.
+  if (options.complete === false) attributes.complete = "false";
   return {
     tag: `Epoch-${epochNumber}`,
-    attributes: wave ? { wave } : {},
+    attributes,
     children,
     text: "",
   };
@@ -863,6 +964,8 @@ function writeEventFile(
     kind: string;
     allocations?: RangeAllocation[];
     wave?: string;
+    /** Registry fields (A18.7) — attribute names come from RUN_EVENT_FIELD_REGISTRY. */
+    fields?: Record<string, string>;
   },
 ): void {
   const runDirRel = "run";
@@ -881,14 +984,21 @@ function writeEventFile(
   if (event.wave) {
     children.push({ tag: "Wave", attributes: {}, children: [], text: event.wave });
   }
+  const attributes: Record<string, string> = {
+    graceVersion: NGRACE_ARTIFACT_VERSION,
+    id: String(event.id),
+    task: event.task,
+    kind: event.kind,
+  };
+  // Only emit fields that the registry admits for this kind (A18.7).
+  const fields = event.fields ?? {};
+  for (const field of runEventFieldsForKind(event.kind)) {
+    const value = fields[field.attribute];
+    if (value !== undefined && value !== "") attributes[field.attribute] = value;
+  }
   const node: GraceXmlNode = {
     tag: `${ARTIFACT_TAG_PREFIX}RunEvent`,
-    attributes: {
-      graceVersion: NGRACE_ARTIFACT_VERSION,
-      id: String(event.id),
-      task: event.task,
-      kind: event.kind,
-    },
+    attributes,
     children,
     text: "",
   };
@@ -946,6 +1056,316 @@ function nextEpochNumber(bundlePath: string): number {
   return (existing[existing.length - 1] ?? 0) + 1;
 }
 
+/**
+ * Content-sensitive write evidence at attempt-record time (A19.1, A20.1, A21.1).
+ * Digest folds:
+ *   1. `git rev-parse HEAD` — committed movement between attempts moves the digest (A20.1)
+ *   2. sorted (path, content-hash) pairs for ObservedWriteScope ∩ currently-changed files
+ * An empty worktree intersection is not "nothing happened"; HEAD distinguishes committed
+ * fixes from a true no-movement pair. An unresolvable HEAD is not folded as "" (A21.1) —
+ * it is unavailable, same as git status failure or missing active scope.
+ * Returns available:false when evidence cannot be recorded (flake → unable-to-determine).
+ */
+export function computeWriteEvidence(
+  projectRoot: string,
+  changeId: string,
+): { available: boolean; digest?: string; reason?: string } {
+  const paths = resolveNgracePaths(path.resolve(projectRoot));
+  const scopes = collectActiveChangeScopes(paths);
+  const scope = scopes.find((entry) => entry.changeId === changeId);
+  if (!scope) {
+    return { available: false, reason: "no active approved change scope for write-evidence capture" };
+  }
+  const { available, changedFiles } = listRepositoryChangedFiles(projectRoot);
+  if (!available) {
+    return { available: false, reason: "git status unavailable; write-evidence cannot be recorded" };
+  }
+  const head = resolveGitHead(projectRoot);
+  // A21.1: failed measurement must not become a value (unborn HEAD / rev-parse failure).
+  if (head === null) {
+    return {
+      available: false,
+      reason: "git HEAD unresolvable (unborn or unreadable); write-evidence cannot be recorded",
+    };
+  }
+  const intersecting = changedFiles
+    .filter((file) => observedWriteScopeContains(scope.observedWrites, file))
+    .sort((a, b) => a.localeCompare(b));
+  const pairs: string[] = [];
+  for (const relative of intersecting) {
+    const absolute = path.join(projectRoot, relative);
+    if (!existsSync(absolute)) continue;
+    try {
+      const content = readFileSync(absolute);
+      const hash = createHash("sha256").update(content).digest("hex");
+      pairs.push(`${relative}:${hash}`);
+    } catch {
+      // Unreadable file — skip; digest still reflects other paths.
+    }
+  }
+  const digest = createHash("sha256")
+    .update(`HEAD:${head}\n`)
+    .update(pairs.join("\n"))
+    .digest("hex");
+  return { available: true, digest };
+}
+
+/** Current commit id, or null when HEAD is unavailable (no commits / not a git repo). */
+function resolveGitHead(projectRoot: string): string | null {
+  const result = Bun.spawnSync({
+    cmd: ["git", "rev-parse", "HEAD"],
+    cwd: projectRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (result.exitCode !== 0) return null;
+  const head = new TextDecoder().decode(result.stdout).trim();
+  return head.length > 0 ? head : null;
+}
+
+/** Attempt events for a task across ledger + loose, ordered by event id (never clock). */
+export function listAttemptEvents(
+  bundlePath: string,
+  task?: string,
+): Array<{ id: number; task: string; fields: Record<string, string> }> {
+  const attempts: Array<{ id: number; task: string; fields: Record<string, string> }> = [];
+  for (const event of listLooseEvents(bundlePath)) {
+    if (event.kind !== "attempt") continue;
+    if (task && event.task !== task) continue;
+    attempts.push({ id: event.id, task: event.task, fields: { ...event.fields } });
+  }
+  for (const event of listLedgerEvents(bundlePath)) {
+    if (event.kind !== "attempt") continue;
+    if (task && event.task !== task) continue;
+    attempts.push({ id: event.id, task: event.task, fields: { ...event.fields } });
+  }
+  return attempts.sort((a, b) => a.id - b.id);
+}
+
+function listLedgerEvents(bundlePath: string): Array<{ id: number; task: string; kind: string; fields: Record<string, string> }> {
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (!existsSync(ledgerPath)) return [];
+  const artifact = readGraceXmlArtifact(ledgerPath);
+  if (!artifact.root) return [];
+  const events: Array<{ id: number; task: string; kind: string; fields: Record<string, string> }> = [];
+  for (const wrapper of artifact.root.children) {
+    for (const epoch of wrapper.children) {
+      if (!EPOCH_SECTION_PATTERN.test(epoch.tag)) continue;
+      for (const child of epoch.children) {
+        if (child.tag !== "Event") continue;
+        const id = Number(child.attributes.id);
+        const task = (child.attributes.task ?? "").trim();
+        const kind = (child.attributes.kind ?? "").trim();
+        if (!Number.isInteger(id) || !task || !kind) continue;
+        const fields: Record<string, string> = {};
+        for (const field of RUN_EVENT_FIELD_REGISTRY) {
+          const value = child.attributes[field.attribute];
+          if (value !== undefined && value !== "") fields[field.attribute] = value;
+        }
+        events.push({ id, task, kind, fields });
+      }
+    }
+  }
+  return events;
+}
+
+function nextAttemptOrdinal(bundlePath: string, task: string): number {
+  const existing = listAttemptEvents(bundlePath, task);
+  let max = 0;
+  for (const attempt of existing) {
+    const ordinal = Number(attempt.fields.ordinal);
+    if (Number.isInteger(ordinal) && ordinal > max) max = ordinal;
+  }
+  return max + 1;
+}
+
+function countFailedAttempts(bundlePath: string, task: string): number {
+  return listAttemptEvents(bundlePath, task).filter((a) => a.fields.outcome === "fail").length;
+}
+
+/**
+ * Record one verification attempt (A18.11). Reports; never blocks.
+ * On the second failed attempt: emit range-terminating exhausted event and pause the cursor (D9).
+ */
+export function recordAttempt(
+  projectRoot: string,
+  changeId: string,
+  options: {
+    task: string;
+    outcome: AttemptOutcome;
+    signatureKind?: string;
+    signatureKey?: string;
+  },
+): AttemptRecordResult {
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const task = options.task;
+  if (!ANCHOR_PATTERNS.task.test(task)) {
+    throw new GraceCommandError("invalid-arguments", `Task ${JSON.stringify(task)} must be a canonical T-* id.`);
+  }
+  if (options.outcome !== "pass" && options.outcome !== "fail") {
+    throw new GraceCommandError("invalid-arguments", `outcome must be pass|fail, got ${JSON.stringify(options.outcome)}`);
+  }
+  if (options.outcome === "fail" && (!options.signatureKind || !options.signatureKey)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      "outcome=fail requires --signature-kind and --signature-key.",
+    );
+  }
+
+  const allocations = collectAllocations(listLooseEvents(bundlePath));
+  if (allocations.length === 0) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `No open epoch allocation for ${changeId}; run ngrace cursor advance --open-epoch first.`,
+    );
+  }
+
+  const ordinal = nextAttemptOrdinal(bundlePath, task);
+  const evidence = computeWriteEvidence(projectRoot, changeId);
+  const fields: Record<string, string> = {
+    outcome: options.outcome,
+    ordinal: String(ordinal),
+  };
+  if (options.signatureKind) fields["signature-kind"] = options.signatureKind;
+  if (options.signatureKey) fields["signature-key"] = options.signatureKey;
+  if (evidence.available && evidence.digest) fields["write-evidence"] = evidence.digest;
+
+  const id = nextEventId(bundlePath);
+  writeEventFile(bundlePath, { id, task, kind: "attempt", fields });
+
+  const failedAttemptCount =
+    countFailedAttempts(bundlePath, task); // includes the attempt just written
+  const exhausted = options.outcome === "fail" && failedAttemptCount >= FIX_BUDGET;
+
+  let position: CursorPosition;
+  if (exhausted) {
+    // Range-terminating exhausted event so the epoch can fold (A18.8); task is paused.
+    const exhaustedId = nextEventId(bundlePath);
+    writeEventFile(bundlePath, { id: exhaustedId, task, kind: "exhausted" });
+    position = {
+      changeId,
+      bundlePath,
+      epoch: currentOpenEpochHint(bundlePath),
+      task,
+      state: "paused",
+      sources: { epoch: "events", task: "events", state: "events" },
+      inferred: false,
+    };
+    writeCursorFile(bundlePath, position);
+  } else {
+    position = {
+      changeId,
+      bundlePath,
+      epoch: currentOpenEpochHint(bundlePath),
+      task,
+      state: "in-progress",
+      sources: { epoch: "events", task: "events", state: "events" },
+      inferred: false,
+    };
+    writeCursorFile(bundlePath, position);
+  }
+
+  const failureSignatures = listAttemptEvents(bundlePath, task)
+    .filter((a) => a.fields.outcome === "fail")
+    .map((a) => ({
+      ordinal: Number(a.fields.ordinal),
+      kind: a.fields["signature-kind"],
+      key: a.fields["signature-key"],
+    }));
+
+  return {
+    changeId,
+    bundlePath,
+    task,
+    ordinal,
+    outcome: options.outcome,
+    signatureKind: options.signatureKind,
+    signatureKey: options.signatureKey,
+    writeEvidence: fields["write-evidence"],
+    failedAttemptCount,
+    budget: FIX_BUDGET,
+    exhausted,
+    failureSignatures,
+    position,
+  };
+}
+
+/**
+ * Flake classification as a pure read over recorded attempt digests (A18.10, A19.1, A20.1).
+ * Compares consecutive fail→pass write-evidence fields — never re-queries the live worktree
+ * for the between-attempts answer. Reports the **most recent** fail→pass pair (A20.3).
+ */
+export function classifyFlake(bundlePath: string, task: string): FlakeClassification {
+  const attempts = listAttemptEvents(bundlePath, task);
+  // Walk from the end so the most recent fail→pass pair wins (A20.3).
+  for (let i = attempts.length - 2; i >= 0; i -= 1) {
+    const current = attempts[i]!;
+    const next = attempts[i + 1]!;
+    if (current.fields.outcome !== "fail" || next.fields.outcome !== "pass") continue;
+    const a = current.fields["write-evidence"];
+    const b = next.fields["write-evidence"];
+    if (!a || !b) {
+      return {
+        verdict: "unable-to-determine",
+        reason:
+          "write-evidence was not recorded on one or both attempts (git unavailable or no active scope at record time)",
+      };
+    }
+    if (a === b) return { verdict: "flaky" };
+    return { verdict: "normal-retry" };
+  }
+  return {
+    verdict: "unable-to-determine",
+    reason: "no fail→pass attempt pair present for this task",
+  };
+}
+
+/**
+ * Tasks currently paused-pending-approval for the status surface (A18.12 §3, A20.2).
+ * Ledger is the truth: exhausted/pause events not later cleared by resume or terminal.
+ * Reads loose ∪ ledger so the signal survives fold (D1).
+ */
+export function listPausedTasks(bundlePath: string): string[] {
+  const events = [
+    ...listLooseEvents(bundlePath).map((event) => ({ id: event.id, task: event.task, kind: event.kind })),
+    ...listLedgerEvents(bundlePath).map((event) => ({ id: event.id, task: event.task, kind: event.kind })),
+  ].sort((a, b) => a.id - b.id);
+
+  const paused = new Set<string>();
+  for (const event of events) {
+    if (event.kind === "exhausted" || event.kind === "pause") {
+      paused.add(event.task);
+    } else if (event.kind === "resume" || event.kind === "terminal") {
+      paused.delete(event.task);
+    }
+  }
+  return [...paused].sort();
+}
+
+export function formatAttemptResult(result: AttemptRecordResult): string {
+  const lines = [
+    `Attempt: task=${result.task} ordinal=${result.ordinal} outcome=${result.outcome}`,
+    `Budget: ${result.failedAttemptCount}/${result.budget} failed attempts`,
+  ];
+  if (result.signatureKind && result.signatureKey) {
+    lines.push(`Signature: ${result.signatureKind} / ${result.signatureKey}`);
+  }
+  if (result.writeEvidence) lines.push(`Write-evidence: ${result.writeEvidence.slice(0, 16)}…`);
+  if (result.exhausted) {
+    lines.push("Exhausted: yes — task paused-pending-approval (escalation; not a failure)");
+    lines.push("Failure signatures:");
+    for (const signature of result.failureSignatures) {
+      lines.push(
+        `  - ordinal=${signature.ordinal} ${signature.kind ?? "?"} / ${signature.key ?? "?"}`,
+      );
+    }
+  } else {
+    lines.push("Exhausted: no");
+  }
+  lines.push(formatCursorPosition(result.position).trimEnd());
+  return `${lines.join("\n")}\n`;
+}
+
 function currentOpenEpochHint(bundlePath: string): number {
   return nextEpochNumber(bundlePath);
 }
@@ -987,7 +1407,7 @@ function requireChangeId(args: { change?: unknown }): string {
 export const cursorCommand = defineCommand({
   meta: {
     name: "cursor",
-    description: "Run ledger and cursor: show, regenerate, advance, pause, resume, fold.",
+    description: "Run ledger and cursor: show, regenerate, advance, pause, resume, fold, attempt.",
   },
   subCommands: {
     show: defineCommand({
@@ -1115,6 +1535,11 @@ export const cursorCommand = defineCommand({
         path: { type: "string", alias: "p", default: "." },
         change: { type: "string", required: true },
         wave: { type: "string", description: "Plan-side wave attribute on Epoch-N" },
+        allowIncomplete: {
+          type: "boolean",
+          description: "Fold an incomplete epoch as complete=false (explicit; default refuses holes/unterminated)",
+          default: false,
+        },
         format: { type: "string", alias: "f", default: "text" },
       },
       async run(context) {
@@ -1122,10 +1547,44 @@ export const cursorCommand = defineCommand({
         await runGraceCommand(format, () => {
           const result = foldEpoch(String(context.args.path ?? "."), requireChangeId(context.args), {
             wave: context.args.wave ? String(context.args.wave) : undefined,
+            allowIncomplete: Boolean(context.args.allowIncomplete),
           });
           if (format === "json") process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
           else process.stdout.write(formatFoldResult(result));
         }, "Unable to complete ngrace cursor fold.");
+      },
+    }),
+    attempt: defineCommand({
+      meta: {
+        name: "attempt",
+        description:
+          "Record a verification attempt (ordinal, outcome, signature, write-evidence). Reports; never blocks.",
+      },
+      args: {
+        path: { type: "string", alias: "p", default: "." },
+        change: { type: "string", required: true },
+        task: { type: "string", required: true },
+        outcome: { type: "string", required: true, description: "pass or fail" },
+        signatureKind: { type: "string", description: "Failure signature kind (required when outcome=fail)" },
+        signatureKey: { type: "string", description: "Failure signature key (required when outcome=fail)" },
+        format: { type: "string", alias: "f", default: "text" },
+      },
+      async run(context) {
+        const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
+        await runGraceCommand(format, () => {
+          const outcomeRaw = String(context.args.outcome);
+          if (outcomeRaw !== "pass" && outcomeRaw !== "fail") {
+            throw new GraceCommandError("invalid-arguments", `outcome must be pass|fail, got ${JSON.stringify(outcomeRaw)}`);
+          }
+          const result = recordAttempt(String(context.args.path ?? "."), requireChangeId(context.args), {
+            task: String(context.args.task),
+            outcome: outcomeRaw,
+            signatureKind: context.args.signatureKind ? String(context.args.signatureKind) : undefined,
+            signatureKey: context.args.signatureKey ? String(context.args.signatureKey) : undefined,
+          });
+          if (format === "json") process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+          else process.stdout.write(formatAttemptResult(result));
+        }, "Unable to complete ngrace cursor attempt.");
       },
     }),
   },

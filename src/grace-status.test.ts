@@ -525,6 +525,47 @@ describe("ngrace status", () => {
     expect(formatStatusText(result)).toContain("C-NOCUR");
   });
 
+  it("AC-EXHAUSTION-SURFACE (A20.2/A20.5): formatStatusText prints paused= after exhausted fold", async () => {
+    // Integration surface named by AC-EXHAUSTION-SURFACE — lives here, not only in grace-cursor.test.
+    // Discriminating for correction 40: after fold the ledger holds exhausted and the status line
+    // must still show paused= (cursor-only or loose-only readers go silent).
+    const { advanceCursor, foldEpoch, recordAttempt } = await import("./grace-cursor");
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-EXH", { specStatus: "approved", planStatus: "approved" });
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeProjectFile(root, "src/example.ts", `export function run() { return "ok"; }\n`);
+
+    advanceCursor(root, "C-EXH", {
+      task: "T-001",
+      openEpoch: true,
+      worker: "w0",
+      from: 1,
+      to: 99,
+    });
+    recordAttempt(root, "C-EXH", {
+      task: "T-001",
+      outcome: "fail",
+      signatureKind: "test-failure",
+      signatureKey: "a",
+    });
+    recordAttempt(root, "C-EXH", {
+      task: "T-001",
+      outcome: "fail",
+      signatureKind: "test-failure",
+      signatureKey: "b",
+    });
+    foldEpoch(root, "C-EXH");
+
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-EXH");
+    expect(change?.pausedTasks).toEqual(["T-001"]);
+    const text = formatStatusText(result);
+    expect(text).toContain("paused=T-001");
+    // JSON path carries the same field (A5.4 drop-site).
+    expect(JSON.stringify(result)).toContain("pausedTasks");
+  });
+
   it("renders analysis coverage for polyglot and omits Unverified for TS-only projects", async () => {
     const { polyglotFixture, minimalTsFixture } = await import("./test-support/fixtures");
 

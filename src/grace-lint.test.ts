@@ -1133,6 +1133,9 @@ describe("Phase 3 run ledger / cursor integration (§0.2, A12.2)", () => {
     "ledger.event-outside-allocation",
     "ledger.range-hole",
     "ledger.range-unterminated",
+    "ledger.unknown-event-kind",
+    "ledger.duplicate-attempt-ordinal",
+    "ledger.invalid-attempt-field",
     "cursor.invalid-root-tag",
     "cursor.invalid-change-id",
     "cursor.bundle-id-mismatch",
@@ -1365,5 +1368,47 @@ describe("Phase 3 run ledger / cursor integration (§0.2, A12.2)", () => {
     );
     const codes = lintGraceProject(root).issues.map((i) => i.code).filter((c) => c.startsWith("ledger."));
     expect(codes).toEqual([]);
+  });
+
+  it("fires ledger.unknown-event-kind as warning through ngrace lint (A18.9)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-UKIND");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-UKIND/run-ledger.xml`,
+      denseLedger(
+        "C-UKIND",
+        `<Epoch-1><Allocation worker="w" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="atempt"/><Event id="3" task="T-001" kind="terminal"/></Epoch-1>`,
+      ),
+    );
+    const issues = lintGraceProject(root).issues.filter((i) => i.code === "ledger.unknown-event-kind");
+    expect(issues.length).toBeGreaterThan(0);
+    expect(issues.every((i) => i.severity === "warning")).toBe(true);
+  });
+
+  it("fires ledger.duplicate-attempt-ordinal through ngrace lint (A19.2)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-DUPORD");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-DUPORD/run-ledger.xml`,
+      denseLedger(
+        "C-DUPORD",
+        `<Epoch-1><Allocation worker="w" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="attempt" outcome="fail" ordinal="1" signature-kind="t" signature-key="a"/><Event id="3" task="T-001" kind="attempt" outcome="fail" ordinal="1" signature-kind="t" signature-key="b"/><Event id="4" task="T-001" kind="exhausted"/></Epoch-1>`,
+      ),
+    );
+    expect(lintGraceProject(root).issues.map((i) => i.code)).toContain("ledger.duplicate-attempt-ordinal");
+  });
+
+  it("clean project does not emit Phase 4 ledger codes (§0.2 both directions)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedBundle(root, "C-P4CLEAN");
+    const codes = lintGraceProject(root).issues.map((i) => i.code);
+    expect(codes).not.toContain("ledger.unknown-event-kind");
+    expect(codes).not.toContain("ledger.duplicate-attempt-ordinal");
+    expect(codes).not.toContain("ledger.invalid-attempt-field");
   });
 });

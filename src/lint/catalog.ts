@@ -464,6 +464,38 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     derivedFrom: "A used range with no terminal event is a mid-flight death; silent success would be confidently wrong (D2).",
     proposedBy: "confidently-wrong",
   },
+  "ledger.unknown-event-kind": {
+    title: "Unknown Run Event Kind",
+    explanation:
+      "A run-ledger Event uses a kind outside the registered vocabulary. Budget accounting keys on kind strings; a silent typo resets the counter and reports a confident wrong number.",
+    remediation: [
+      "Use a registered kind (opened, progress, pause, resume, terminal, attempt, exhausted).",
+      "Record attempts via ngrace cursor attempt rather than free-form advance --kind.",
+    ],
+    derivedFrom: "Event kinds were free strings; advance --kind atempt folded clean and defeated budget accounting (A18.4 / A18.9).",
+    proposedBy: "confidently-wrong",
+  },
+  "ledger.duplicate-attempt-ordinal": {
+    title: "Duplicate Attempt Ordinal",
+    explanation:
+      "Two attempt events share the same (task, ordinal). Concurrent attempt recording on one task is unsupported; without this check a D6 calibration join on (task, ordinal) silently merges two attempts.",
+    remediation: [
+      "Record attempts sequentially per task via ngrace cursor attempt.",
+      "Do not hand-author attempt ordinals; let the CLI allocate them.",
+    ],
+    derivedFrom: "Unsupported concurrent attempt recording had no witness; two racing writers both emit ordinal N (A19.2).",
+    proposedBy: "zero-or-more-swallow",
+  },
+  "ledger.invalid-attempt-field": {
+    title: "Invalid Attempt Event Field",
+    explanation: "An attempt event is missing a required typed field or carries an invalid value (outcome, ordinal, or failure signature).",
+    remediation: [
+      "Record attempts via ngrace cursor attempt so fields are allocated correctly.",
+      "On outcome=fail, include signature-kind and signature-key.",
+    ],
+    derivedFrom: "Typed attempt fields behind the A18.7 registry must be load-bearing (invariant 4).",
+    proposedBy: "unthreaded-construct",
+  },
   "cursor.invalid-root-tag": {
     title: "Invalid Run Cursor Root Tag",
     explanation: `run.xml must use root tag ${ARTIFACT_TAG_PREFIX}RunCursor with graceVersion="1.0".`,

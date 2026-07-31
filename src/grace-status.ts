@@ -12,6 +12,7 @@ import { skillRef } from "./artifact/types";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./artifact/projections";
 import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope } from "./artifact/scope";
 import { readGraceXmlArtifact } from "./artifact/xml";
+import { listPausedTasks } from "./grace-cursor";
 import { collectModuleHealth } from "./query/health";
 import { loadGraceArtifactIndex } from "./query/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -30,6 +31,8 @@ export type ChangeBundleStatus = {
   epochCount?: number;
   /** Tasks named in plan.xml ImplementationPlan, when present. */
   taskCount?: number;
+  /** Tasks paused-pending-approval (budget exhaustion or pause) — Phase 4 / A18.12 §3. */
+  pausedTasks?: string[];
 };
 
 /** neo-grace status result for text or JSON output. */
@@ -135,6 +138,8 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
 
     const epochCount = existsSync(ledgerFile) ? countLedgerEpochs(ledgerFile) : undefined;
     const taskCount = existsSync(planFile) ? countPlanTasks(planFile) : undefined;
+    const paused = listPausedTasks(bundlePath);
+    const pausedTasks = paused.length > 0 ? paused : undefined;
 
     return {
       changeId,
@@ -145,6 +150,7 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       path: relativeBundlePath,
       epochCount,
       taskCount,
+      pausedTasks,
     } satisfies ChangeBundleStatus;
   });
 }
@@ -375,8 +381,12 @@ export function formatStatusText(result: StatusResult) {
     for (const change of result.changes) {
       const epochPart = change.epochCount !== undefined ? ` epochs=${change.epochCount}` : "";
       const taskPart = change.taskCount !== undefined ? ` tasks=${change.taskCount}` : "";
+      const pausedPart =
+        change.pausedTasks && change.pausedTasks.length > 0
+          ? ` paused=${change.pausedTasks.join(",")}`
+          : "";
       lines.push(
-        `- ${change.changeId} [${change.location}] spec=${change.specStatus ?? "missing"} plan=${change.planStatus ?? "missing"}${epochPart}${taskPart} states=${change.derivedStates.join(",") || "none"}`,
+        `- ${change.changeId} [${change.location}] spec=${change.specStatus ?? "missing"} plan=${change.planStatus ?? "missing"}${epochPart}${taskPart}${pausedPart} states=${change.derivedStates.join(",") || "none"}`,
       );
     }
   }

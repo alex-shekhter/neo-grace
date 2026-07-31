@@ -599,10 +599,18 @@ export function scaleFixture(moduleCount: number): string {
 // ---------------------------------------------------------------------------
 
 export type LedgerAllocation = { worker: string; from: number; to: number };
-export type LedgerEventSpec = { id: number; task: string; kind: string };
+export type LedgerEventSpec = {
+  id: number;
+  task: string;
+  kind: string;
+  /** Optional registry attributes (outcome, ordinal, write-evidence, …). */
+  fields?: Record<string, string>;
+};
 export type LedgerEpochSpec = {
   epoch: number;
   wave?: string;
+  /** complete="false" for incomplete epochs (A18.8). */
+  complete?: boolean;
   allocations: LedgerAllocation[];
   events: LedgerEventSpec[];
 };
@@ -612,13 +620,21 @@ export function buildRunLedgerXml(changeId: string, epochs: LedgerEpochSpec[]): 
   const epochXml = epochs
     .map((epoch) => {
       const waveAttr = epoch.wave ? ` wave="${epoch.wave}"` : "";
+      const completeAttr = epoch.complete === false ? ` complete="false"` : "";
       const allocations = epoch.allocations
         .map((a) => `<Allocation worker="${a.worker}" from="${a.from}" to="${a.to}"/>`)
         .join("");
       const events = epoch.events
-        .map((e) => `<Event id="${e.id}" task="${e.task}" kind="${e.kind}"/>`)
+        .map((e) => {
+          const extra = e.fields
+            ? Object.entries(e.fields)
+                .map(([key, value]) => ` ${key}="${value}"`)
+                .join("")
+            : "";
+          return `<Event id="${e.id}" task="${e.task}" kind="${e.kind}"${extra}/>`;
+        })
         .join("");
-      return `<Epoch-${epoch.epoch}${waveAttr}>${allocations}${events}</Epoch-${epoch.epoch}>`;
+      return `<Epoch-${epoch.epoch}${waveAttr}${completeAttr}>${allocations}${events}</Epoch-${epoch.epoch}>`;
     })
     .join("");
   return `<NgraceRunLedger graceVersion="1.0"><${changeId}>${epochXml}</${changeId}></NgraceRunLedger>`;

@@ -9,12 +9,16 @@ import {
   ARCHIVED_CHANGE_STATUSES,
   CHANGE_STATUSES,
   EPOCH_SECTION_PATTERN,
+  KNOWN_RUN_EVENT_KIND_SET,
   NGRACE_CHANGE_BUNDLE_COMPANIONS,
   NGRACE_CHANGE_BUNDLE_XML_FILES,
   NGRACE_CONTEXT_ARTIFACTS,
   NGRACE_OPTIONAL_CONTEXT_ARTIFACTS,
   NGRACE_ROOT_TAGS,
   NGRACE_ARTIFACT_VERSION,
+  RANGE_TERMINATING_EVENT_KINDS,
+  RUN_EVENT_FIELD_REGISTRY,
+  runEventFieldsForKind,
   type NgraceIssue,
   type NgraceProjectPaths,
   type SemanticAnchorClassification,
@@ -826,6 +830,8 @@ function companionChangeIdentity(root: GraceXmlNode): CompanionIdentity {
 
 function validateLedgerEpoch(file: string, epoch: GraceXmlNode): NgraceIssue[] {
   const issues: NgraceIssue[] = [];
+  // complete="false" is the incomplete-epoch mark (A18.8); density checks skip when set.
+  const incomplete = epoch.attributes.complete === "false";
   const allocations = epoch.children
     .filter((child) => child.tag === "Allocation")
     .map((node) => parseAllocation(node))
@@ -835,6 +841,75 @@ function validateLedgerEpoch(file: string, epoch: GraceXmlNode): NgraceIssue[] {
     .filter((child) => child.tag === "Event")
     .map((node) => parseLedgerEvent(node))
     .filter((entry): entry is LedgerEventRecord => entry !== null);
+
+  // Kind vocabulary + typed registry fields (A18.7, A18.9).
+  const attemptOrdinals = new Map<string, number>();
+  for (const event of events) {
+    if (!KNOWN_RUN_EVENT_KIND_SET.has(event.kind)) {
+      issues.push(
+        issue(
+          "warning",
+          "ledger.unknown-event-kind",
+          file,
+          `Event id ${event.id} uses unregistered kind ${JSON.stringify(event.kind)}; budget and fold policy key on the kind vocabulary.`,
+        ),
+      );
+    }
+
+    for (const field of runEventFieldsForKind(event.kind)) {
+      const value = event.fields[field.attribute];
+      if (value === undefined || value === "") {
+        if (field.required) {
+          issues.push(
+            issue(
+              "error",
+              "ledger.invalid-attempt-field",
+              file,
+              `Event id ${event.id} kind=${event.kind} is missing required attribute ${field.attribute}.`,
+            ),
+          );
+        }
+        continue;
+      }
+      if (field.validate) {
+        const message = field.validate(value);
+        if (message) {
+          issues.push(issue("error", "ledger.invalid-attempt-field", file, `Event id ${event.id}: ${message}`));
+        }
+      }
+    }
+
+    // Signature required when outcome=fail (contextual; not expressible as field.required alone).
+    if (event.kind === "attempt" && event.fields.outcome === "fail") {
+      if (!event.fields["signature-kind"] || !event.fields["signature-key"]) {
+        issues.push(
+          issue(
+            "error",
+            "ledger.invalid-attempt-field",
+            file,
+            `Event id ${event.id} outcome=fail requires signature-kind and signature-key.`,
+          ),
+        );
+      }
+    }
+
+    // Duplicate (task, ordinal) witness for concurrent attempt recording (A19.2).
+    if (event.kind === "attempt" && event.fields.ordinal) {
+      const key = `${event.task}\0${event.fields.ordinal}`;
+      if (attemptOrdinals.has(key)) {
+        issues.push(
+          issue(
+            "error",
+            "ledger.duplicate-attempt-ordinal",
+            file,
+            `Attempt ordinal ${event.fields.ordinal} for task ${event.task} appears more than once (ids ${attemptOrdinals.get(key)} and ${event.id}).`,
+          ),
+        );
+      } else {
+        attemptOrdinals.set(key, event.id);
+      }
+    }
+  }
 
   for (const event of events) {
     const inAllocation = allocations.some((allocation) => event.id >= allocation.from && event.id <= allocation.to);
@@ -857,34 +932,40 @@ function validateLedgerEpoch(file: string, epoch: GraceXmlNode): NgraceIssue[] {
       .sort((a, b) => a - b);
     if (inRange.length === 0) continue;
 
-    const maxUsed = inRange[inRange.length - 1]!;
-    const usedSet = new Set(inRange);
-    for (let id = allocation.from; id <= maxUsed; id += 1) {
-      if (!usedSet.has(id)) {
+    // Density and terminal checks fire only on epochs not marked incomplete (A18.8 both-directions).
+    if (!incomplete) {
+      const maxUsed = inRange[inRange.length - 1]!;
+      const usedSet = new Set(inRange);
+      for (let id = allocation.from; id <= maxUsed; id += 1) {
+        if (!usedSet.has(id)) {
+          issues.push(
+            issue(
+              "error",
+              "ledger.range-hole",
+              file,
+              `Allocation ${allocation.worker} [${allocation.from},${allocation.to}] has a hole at id ${id}.`,
+            ),
+          );
+          break;
+        }
+      }
+
+      const hasTerminal = events.some(
+        (event) =>
+          event.id >= allocation.from &&
+          event.id <= allocation.to &&
+          RANGE_TERMINATING_EVENT_KINDS.has(event.kind),
+      );
+      if (!hasTerminal) {
         issues.push(
           issue(
             "error",
-            "ledger.range-hole",
+            "ledger.range-unterminated",
             file,
-            `Allocation ${allocation.worker} [${allocation.from},${allocation.to}] has a hole at id ${id}.`,
+            `Allocation ${allocation.worker} [${allocation.from},${allocation.to}] has no terminal event.`,
           ),
         );
-        break;
       }
-    }
-
-    const hasTerminal = events.some(
-      (event) => event.id >= allocation.from && event.id <= allocation.to && event.kind === "terminal",
-    );
-    if (!hasTerminal) {
-      issues.push(
-        issue(
-          "error",
-          "ledger.range-unterminated",
-          file,
-          `Allocation ${allocation.worker} [${allocation.from},${allocation.to}] has no terminal event.`,
-        ),
-      );
     }
   }
 
@@ -892,7 +973,13 @@ function validateLedgerEpoch(file: string, epoch: GraceXmlNode): NgraceIssue[] {
 }
 
 type RangeAllocation = { worker: string; from: number; to: number };
-type LedgerEventRecord = { id: number; task: string; kind: string };
+type LedgerEventRecord = {
+  id: number;
+  task: string;
+  kind: string;
+  /** Typed attributes from RUN_EVENT_FIELD_REGISTRY (A18.7). */
+  fields: Record<string, string>;
+};
 
 function parseAllocation(node: GraceXmlNode): RangeAllocation | null {
   const worker = node.attributes.worker?.trim() || childText(node, "Worker")?.trim();
@@ -909,7 +996,13 @@ function parseLedgerEvent(node: GraceXmlNode): LedgerEventRecord | null {
   const task = (node.attributes.task ?? childText(node, "Task") ?? "").trim();
   const kind = (node.attributes.kind ?? childText(node, "Kind") ?? "").trim();
   if (!Number.isInteger(id) || id <= 0 || !task || !kind) return null;
-  return { id, task, kind };
+  // Iterate the full registry so add-a-field tests need only the constant (A18.7).
+  const fields: Record<string, string> = {};
+  for (const field of RUN_EVENT_FIELD_REGISTRY) {
+    const value = node.attributes[field.attribute];
+    if (value !== undefined && value !== "") fields[field.attribute] = value;
+  }
+  return { id, task, kind, fields };
 }
 
 /** Validates current-state .ngrace artifact grammar and lifecycle location invariants. */
