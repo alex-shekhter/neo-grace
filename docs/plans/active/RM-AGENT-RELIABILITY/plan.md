@@ -720,6 +720,13 @@ rollback must also remove the companion-tag registration, or state why not.
 **Decisions:** D6 (attempt half), D9
 **Release:** TBD
 
+> **Amended by §14 A18 — read it before §4.4 and §4.5.** §4.4's pseudocode was written before Phases 2
+> and 3 existed and does not survive contact with what they shipped: six corrections (31–36) follow,
+> one of which (31) means the phase's central payload is **silently destroyed by the existing fold**
+> before any Phase 4 code is written. A18 is normative where it disagrees with §4.4 and §4.5. Three of
+> its decisions (A18.8) are the maintainer's, not the executor's. **A17.3 binds this phase: the bundle
+> carries a `plan.xml` authored before execution, together with the spec.**
+
 ## 4.1 Objective
 
 Record every attempt, not only outcomes; bound churn at two; escalate to replan rather than abort.
@@ -3307,6 +3314,269 @@ mechanized reviewer that reports without gating would reproduce exactly this.
 one may reach `READY FOR REVIEW` with a spec-only bundle. The archive precondition from A10.10 §1 — "no
 open epoch" — should be settled in the same Phase 5 work, since both govern what a bundle must look
 like to leave `active/`.
+
+### A18 — 2026-07-31 · Phase 4 re-derived against HEAD
+
+**Everything below was measured at `235f0f8`** (Phase 3 merged, tree clean), per A5.5. Claims are tied
+to that commit; the executor re-measures the ones it depends on rather than transcribing them.
+
+§4.1's objective, §4.7's three gates and §4.8's rollback survive unchanged. **§4.4's design and §4.5's
+step list do not.** Both were written before Phases 2 and 3 existed, and six corrections follow. One of
+them (31) is not a drafting defect at all: it is a live data-loss defect in shipped Phase 3 code that
+Phase 4 is the first phase to stand on.
+
+Read them in order — 31 changes what the phase must build first, and 32–34 all describe fields that
+correction 31 would destroy anyway.
+
+#### A18.1 §4.2's precondition, re-measured
+
+| Precondition | Measured | Result |
+|---|---|---|
+| Phase 3 `COMPLETE` | §2 status board; `src/grace-cursor.ts` present (1136 lines), `C-RUN-LEDGER` archived `spec=applied plan=applied` | ✅ |
+
+Holds. The ledger exists and attempts have somewhere to go — but see correction 31 for *what* it can
+hold, which is much less than §4.4 assumes.
+
+#### A18.2 Correction 31 — the fold discards every event field except `id/task/kind`, and its verify step counts rather than compares
+
+This is the phase's blocking finding.
+
+`buildEpochNode` (`src/grace-cursor.ts:735-769`) folds each loose event into the ledger as exactly three
+attributes and no children:
+
+```js
+...events.map((event) => ({
+  tag: "Event",
+  attributes: { id: String(event.id), task: event.task, kind: event.kind },
+  children: [] as GraceXmlNode[],
+  text: "",
+})),
+```
+
+The fold's verify step (`:343-353`) then compares `writtenEvents.length` against `events.length` — **a
+count, not a comparison**. Payload loss is invisible to it. The delete step (`:367-375`) runs on that
+verdict and `unlinkSync`s every loose file (`:374`).
+
+So the sequence is: write a signature → drop it → verify passes on count → delete the only copy.
+**Permanent, silent, and unrecoverable**, because D3's delete is what makes the loose file the only
+other copy.
+
+Reproduced at `235f0f8`, not inferred. A loose event carrying an outcome, an ordinal and a signature
+child:
+
+```xml
+<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="attempt" outcome="fail" ordinal="1">
+  <FailureSignature kind="test-failure" key="grace-cursor.test.ts:fold"/>
+</NgraceRunEvent>
+```
+
+after `ngrace cursor fold`:
+
+```xml
+<Event id="2" task="T-001" kind="attempt" />
+```
+
+`run/` is empty, and the command printed:
+
+```
+Fold applied
+Change: C-PROBE
+Epoch: 1
+Events: 3
+```
+
+**A confident success report about data it had just destroyed** — this plan's own thesis (§15),
+reproduced inside the mechanism built to prevent it. It is also the exact shape of A17.2's family: the
+loss is not merely undetected, it is *reported as success*.
+
+Note where the defect is **not**: `validateRunLedgerArtifact` (`src/artifact/grammar.ts:628-732`) never
+enumerates `Event` attributes, so the grammar accepts a richer event happily. A reader of the validator
+would reasonably conclude the ledger supports payload. The drop is in the fold's serializer alone,
+which is why reading either file on its own does not reveal it.
+
+**Consequence for §4.5:** step 4.5.1 as written produces attempt events whose `outcome` and `signature`
+survive until the first fold and then vanish, and every test asserting on them passes if it reads loose
+events rather than the folded ledger. **The first step of this phase is widening the fold**, not adding
+event types. §4.3's files-touched table must say so — it currently lists `grace-cursor.ts` for "attempt
+recording, budget accounting" only.
+
+**Required with the fix, and not optional:** verify must compare payload, not count. A fold that keeps
+`id/task/kind` and drops a new field must **fail** its own verify and leave the loose files on disk.
+Without that, the next field added after Phase 4 walks into this again — and D3's delete makes every
+such walk unrecoverable.
+
+Minor, on the same path: `:344` reads
+`events.filter((e) => e.kind !== "opened" || true)` — `|| true` makes the predicate constant, so the
+filter is a no-op and the enclosing `if` re-does the same comparison inside itself. Harmless today, and
+sitting exactly on the verify line this correction rewrites. Clean it up while there.
+
+#### A18.3 Correction 32 — `AttemptEvent` drops the event id and invents a second ordering beside D2's
+
+§4.4 declares:
+
+```
+interface AttemptEvent { task; ordinal; outcome; signature? }
+```
+
+The shipped `LooseEvent` (`grace-cursor.ts:102-108`) is `{ id, task, kind, file, allocations? }`, where
+`id` comes from a pre-allocated range and is the identity D2 exists to provide. §4.4's shape **has no
+`id`** and adds `ordinal: 1-based within the task` — a second ordering scheme running alongside the one
+the previous phase built specifically so ordering never depends on anything else.
+
+An ordinal is derivable by counting a task's attempts in id order. Storing it creates two sources that
+can disagree, and nothing reconciles them. That is anti-pattern 5 (unthreaded construct) and it is the
+same instinct §0.2, §3.7 gate 3 and anti-pattern 6 already forbid for clocks.
+
+**Attempts are ordinary run events**: `id` from the allocation, `task`, `kind`. Ordinal is a read.
+
+#### A18.4 Correction 33 — `outcome: "pass" | "fail"` is two-valued, and this is correction 28 again
+
+§4.4's outcome admits two values. Phase 2 shipped the vocabulary for the third
+(`AbsenceVerdict = "not-run" | "unable-to-determine"`, `grace-cursor.ts:44-49`) and Phase 3's
+correction 28 already forced exactly this widening on `complete`, whose shipped shape is the precedent
+to copy (`:78-79`, returned as a pair at `:574`): `complete?: boolean` plus
+`completeAbsence?: AbsenceValue`.
+
+An attempt whose verification could not run — harness unavailable, commands skipped, the change not
+approved — has no honest outcome. Forcing it to `fail` inflates the churn count and burns the two-attempt
+budget on something that never ran; forcing it to `pass` is the confident-report failure directly.
+
+Reuse `AbsenceValue`. **Do not invent a second absence vocabulary** (A13.2, anti-pattern 5). The budget
+question this raises — does a non-outcome count against the two? — is A18.8's decision 1, not the
+executor's.
+
+#### A18.5 Correction 34 — `paused-pending-approval` does not exist, and unknown kinds silently read as `in-progress`
+
+Two halves, both measured.
+
+**The state is not in the union.** `CursorState` is
+`"absent" | "idle" | "in-progress" | "paused" | "complete"` (`grace-cursor.ts:35`), and
+`paused-pending-approval` appears nowhere in `src/` or `skills/`.
+
+**Worse, the kind→state map is a closed ternary with a silent default, and it exists twice.**
+
+`advanceCursor` (`:235-236`), on the write path:
+
+```js
+const state: CursorState =
+  kind === "terminal" ? "complete" : kind === "pause" ? "paused" : "in-progress";
+```
+
+and `derivePosition` (`:465`), on the read path, with the branches in the opposite order:
+
+```js
+state = lastEvent?.kind === "pause" ? "paused" : lastEvent?.kind === "terminal" ? "complete" : "in-progress";
+```
+
+`kind` is unvalidated free-form input (`advance --kind`, default `progress`). So an `attempt-fail` event
+and a budget-exhaustion event both fall through to **`in-progress`** — the cursor reports normal forward
+progress for a task that has just escalated. Nothing errors. This is A5.3's family a fourth time.
+
+**Two independent sites is the correction's real content.** Fixing only the writer leaves the reader
+re-deriving `in-progress` from the ledger the moment the cursor is regenerated, which is precisely the
+recovery path D1 promises — so a half-fix would look correct until the cache is dropped. The
+inventory required by A5.4 is what finds the second site; this entry found it only because the
+first citation was checked against the file rather than transcribed.
+
+Whichever route A18.8 decision 2 takes, both sites must become one shared exhaustive map over known
+kinds with an explicit unknown-kind branch. An unrecognized kind must not silently mean "still working."
+
+Two further interactions this correction pulls in, both consequences of escalation rather than new
+design:
+
+1. **A paused-pending-approval task cannot fold.** `validateEventsAgainstAllocations` (`:727-730`)
+   requires a `terminal` event inside every allocation, or the fold refuses with
+   `unterminated range for <worker>` — observed directly while building the correction 31 probe. An
+   escalated task has no terminal event by definition, so its epoch stays open indefinitely. This is
+   the concrete case behind A10.10 §1's archive precondition, and it now has a caller.
+2. **`foldEpoch` writes `state: "idle"` unconditionally** (`:382`). The cursor is a cache (D1) and will
+   re-derive, but it re-derives *from the ledger* — so escalation must be recoverable from folded
+   events, which is only true if correction 31 is fixed first.
+
+#### A18.6 Correction 35 — step 4.5.4's "no intervening write" is not readable at HEAD
+
+Step 4.5.4 requires distinguishing `fail → (no fix) → pass` from `fail → fix → pass`. The distinguishing
+input is whether a write landed between two attempts, and **HEAD cannot answer that per attempt**.
+
+What exists is `listRepositoryChangedFiles` (`:620-652`), which returns
+`{ available: boolean; changedFiles: string[] }` for the whole repository at the moment it is called.
+It is the function whose `available: false` branch forced `stateAbsence` into existence in Phase 3
+(correction 27) — the same branch applies here.
+
+So the flake classifier needs a decided source for "a write happened between attempt *n* and *n+1*", and
+it needs a third verdict from the start for the case where that source is unavailable. Writing it as a
+two-way classifier and asserting on an unchecked value is anti-pattern 1, and this step is currently
+specified as a two-way classifier.
+
+Step 4.5.4's verify clause must gain its absence case: a fixture where the write evidence is unavailable
+is reported as **`unable-to-determine`**, not as flaky and not as a retry.
+
+#### A18.7 Correction 36 — the write surface is unnamed, and the two precedents disagree
+
+Attempt recording is a write, and §4.5 never says which surface it lands on. HEAD offers two shapes that
+answer invariant 8 differently:
+
+| Surface | Behaviour |
+|---|---|
+| `cursor advance` (`:1039`) | writes an event file immediately, no `--apply` |
+| `cursor regenerate` (`:1009`) | dry-run by default; writes only under `--apply`, plus `--allowDirty` |
+
+Both are correct for what they do — `advance` is the executor recording a fact it just produced,
+`regenerate` is a derivation that could overwrite a durable record. Attempt recording is the former, so
+`advance` is the precedent to follow. **Say so in the phase report rather than leaving it implicit**,
+because the escalation path is the former shape wrapped around the latter's risk: it changes a task's
+disposition, not just its position.
+
+#### A18.8 Decisions required before `spec.xml` is drafted
+
+Three. None may be taken by the executor alone (§12.5).
+
+1. **A18.4** — does an attempt with an absence outcome count against D9's budget of two? *(recommend:
+   no — it never ran, so counting it burns the budget on the harness rather than on churn. But D9 says
+   the counter stays dumb, and "dumb except here" is how clever counters begin. If it does not count,
+   the exemption is on the **recording** side — an unran verification produces no attempt event —
+   never a condition inside the counter.)*
+2. **A18.5** — widen `CursorState` with `paused-pending-approval`, or map escalation onto the existing
+   `paused` plus a reason field? *(recommend: widen. `paused` already means "a human paused this";
+   conflating it with "the budget is exhausted and this needs a decision" loses the distinction Phase 5's
+   gate will need to read. Widening triggers A5.4's drop-site inventory — that is a cost, not an
+   objection.)*
+3. **A18.6** — what is the source of truth for "a write landed between two attempts"? *(recommend: a
+   write-scope snapshot recorded on the attempt event itself, so the classification is a read over the
+   ledger like every other Phase 4 query, rather than a live `git` call at report time whose answer
+   depends on when it is asked.)*
+
+#### A18.9 Standing rules that bind this phase, named so they are not rediscovered at the gate
+
+- **A5.4** — drop-site inventory required for `LooseEvent`, `writeEventFile`, `buildEpochNode`,
+  `listLooseEvents` and `CursorState`. Correction 31 **is** an uninventoried drop site that shipped;
+  treat the inventory as the thing that would have caught it, not as paperwork.
+- **A5.5** — every claim here is measured at `235f0f8`. Re-measure what you depend on.
+- **A5.6** — acceptance criteria descending from these corrections cite them inline, e.g.
+  `AC-FOLD-PRESERVES-PAYLOAD (A18.2)`, and carry the discriminating detail.
+- **A7.2** — the fold's verify step is a detection boundary. Strengthening it requires the
+  both-directions table: what newly fails (an event whose payload was dropped) **and** what still
+  passes (an unchanged three-attribute event, a re-fold with nothing loose — `:282-297`).
+- **§0.2 / anti-pattern 6** — no test may order attempts by clock. Attempts are ordered by allocated id,
+  and correction 32 exists because §4.4 proposed a second ordering.
+- **A12.3 (rule 6)** — the §0.7 self-review has no abbreviated form.
+- **A12.4 (rule 7)** — a deviation that removes a ratified capability is reported as an absence value,
+  not silently substituted.
+- **A14.6 (rule 8)** — every audit names the artifact it read; enumerated inputs declare their ground.
+- **A17.3** — the bundle carries a `plan.xml` authored **before** execution, together with the spec.
+  Phase 5's gate does not exist yet, so this is manual and is checked first at the review gate.
+
+#### A18.10 Additions to §4.6 definition of done
+
+- The fold preserves event payload, with the both-directions table per A7.2 (correction 31)
+- A fold whose verify detects payload loss **fails and leaves the loose files on disk** — demonstrated,
+  not asserted
+- No `ordinal` field on any persisted event; ordinal shown in output is derived (correction 32)
+- The attempt outcome is three-valued and reuses Phase 2's `AbsenceValue` (correction 33)
+- The kind→state map is exhaustive with an explicit unknown-kind branch (correction 34)
+- Flake classification has an `unable-to-determine` case with a fixture (correction 35)
+- Whichever A18.8 routes were taken, named, each with the test that pins it
+- The bundle carries a pre-execution `plan.xml` (A17.3)
 
 ---
 
