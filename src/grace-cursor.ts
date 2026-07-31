@@ -1,8 +1,10 @@
 #!/usr/bin/env bun
 
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
+  readFileSync,
   readdirSync,
   unlinkSync,
   writeFileSync,
@@ -71,9 +73,19 @@ export type AbsenceValue = {
   reason: string;
 };
 
-/** Write-scope snapshot recorded on an attempt event (A19.3). */
+/**
+ * Write-scope snapshot recorded on an attempt event (A19.3 / A20.3).
+ * Per-file content digests distinguish "same path set, content changed" (retry)
+ * from "identical snapshot" (flaky) — path-set equality alone misclassifies ordinary fixes.
+ */
+export type ChangedFileEvidence = {
+  path: string;
+  /** sha256 hex of file bytes at snapshot time, or a sentinel when unreadable/absent. */
+  digest: string;
+};
+
 export type WriteEvidenceSnapshot =
-  | { available: true; changedFiles: string[] }
+  | { available: true; files: ChangedFileEvidence[] }
   | { available: false; absence: AbsenceValue };
 
 /** Flake classifier verdicts (D8 / A18.6). */
@@ -335,6 +347,18 @@ export function advanceCursor(
   if (!ANCHOR_PATTERNS.task.test(task)) {
     throw new GraceCommandError("invalid-arguments", `Task ${JSON.stringify(task)} must be a canonical T-* id.`);
   }
+  // Correction 40: attempt / verification-unavailable / escalation are reserved —
+  // advance would write a bare kind=attempt that still counts against the budget.
+  if (kind === "attempt" || kind === "verification-unavailable" || kind === "escalation") {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      kind === "attempt"
+        ? `kind "attempt" is reserved; use ngrace cursor attempt --outcome … (and --signature-kind/--signature-key on fail).`
+        : kind === "verification-unavailable"
+          ? `kind "verification-unavailable" is reserved; use ngrace cursor verification-unavailable --reason ….`
+          : `kind "escalation" is reserved; it is written by the fix budget on the second failed attempt.`,
+    );
+  }
   const id = nextEventId(bundlePath);
   writeEventFile(bundlePath, { id, task, kind });
   const mapped = cursorStateForEventKind(kind);
@@ -467,7 +491,10 @@ export function foldEpoch(
         `Fold verify failed: event id ${event.id} missing from written ledger.`,
       );
     }
-    const expected = payloadFingerprint(eventAttributesForLedger(event), event.children);
+    // Correction 38 (A20.2): expected is derived from the loose event as parsed from disk,
+    // via expectedLedgerEventAttributes — NOT through eventAttributesForLedger (the writer).
+    // A drop inside the writer transform must not redefine the expectation.
+    const expected = payloadFingerprint(expectedLedgerEventAttributes(event), event.children);
     const actual = payloadFingerprint(writtenEvent.attributes, writtenEvent.children);
     if (expected !== actual) {
       throw new GraceCommandError(
@@ -814,7 +841,7 @@ export function deriveAttemptOrdinal(
   ).length;
 }
 
-/** Snapshot repository write evidence for recording onto an attempt (A19.3). */
+/** Snapshot repository write evidence for recording onto an attempt (A19.3 / A20.3). */
 export function snapshotWriteEvidence(projectRoot: string): WriteEvidenceSnapshot {
   const { available, changedFiles } = listRepositoryChangedFiles(projectRoot);
   if (!available) {
@@ -827,7 +854,38 @@ export function snapshotWriteEvidence(projectRoot: string): WriteEvidenceSnapsho
       },
     };
   }
-  return { available: true, changedFiles: [...changedFiles] };
+  const root = path.resolve(projectRoot);
+  const files: ChangedFileEvidence[] = changedFiles.map((relative) => ({
+    path: relative,
+    digest: digestProjectFile(root, relative),
+  }));
+  return { available: true, files };
+}
+
+/** Content digest for one project-relative path (sha256 hex, or a sentinel). */
+export function digestProjectFile(projectRoot: string, relativePath: string): string {
+  const absolute = path.join(projectRoot, relativePath);
+  if (!existsSync(absolute)) return "absent";
+  try {
+    return createHash("sha256").update(readFileSync(absolute)).digest("hex");
+  } catch {
+    return "unreadable";
+  }
+}
+
+/**
+ * Durable+ephemeral event set for policy accounting (A20.1 / standing rule 9).
+ * Merges ledger and loose by id (loose wins on collision during interrupted fold).
+ */
+export function listAccountingEvents(bundlePath: string): LooseEvent[] {
+  const byId = new Map<number, LooseEvent>();
+  for (const event of listLedgerEvents(bundlePath)) {
+    byId.set(event.id, event);
+  }
+  for (const event of listLooseEvents(bundlePath)) {
+    byId.set(event.id, event);
+  }
+  return [...byId.values()].sort((a, b) => a.id - b.id);
 }
 
 export type RecordAttemptResult = {
@@ -884,9 +942,10 @@ export function recordAttempt(
     children,
   });
 
-  const loose = listLooseEvents(bundlePath);
-  const attemptCount = countTaskAttemptEvents(loose, task);
-  const signatures = collectFailureSignatures(loose, task);
+  // Standing rule 9 / A20.1: count from durable ledger + loose, never loose alone.
+  const accounting = listAccountingEvents(bundlePath);
+  const attemptCount = countTaskAttemptEvents(accounting, task);
+  const signatures = collectFailureSignatures(accounting, task);
 
   // Escalation only on the fail path when the dumb attempt count hits the budget.
   // Counter itself has no outcome/signature condition (A19.1).
@@ -1001,20 +1060,27 @@ export function classifyFlakeFromEvidence(
         "write evidence unavailable on one or both attempts; cannot distinguish flaky from retry",
     };
   }
-  const earlierSet = new Set(earlier.writeEvidence.changedFiles);
-  const laterSet = new Set(later.writeEvidence.changedFiles);
-  const same =
-    earlierSet.size === laterSet.size && [...earlierSet].every((file) => laterSet.has(file));
-  if (same) {
+  // A20.3: compare path+digest pairs, not path sets alone.
+  const earlierKey = writeEvidenceFingerprint(earlier.writeEvidence.files);
+  const laterKey = writeEvidenceFingerprint(later.writeEvidence.files);
+  if (earlierKey === laterKey) {
     return {
       verdict: "flaky",
-      reason: "fail then pass with identical write evidence (no intervening write)",
+      reason: "fail then pass with identical write evidence (paths and content digests match)",
     };
   }
   return {
     verdict: "retry",
-    reason: "fail then pass with changed write evidence (intervening write)",
+    reason: "fail then pass with changed write evidence (path set or content digest differs)",
   };
+}
+
+/** Stable fingerprint of path+digest pairs for flake classification. */
+function writeEvidenceFingerprint(files: ChangedFileEvidence[]): string {
+  return files
+    .map((file) => `${file.path}\0${file.digest}`)
+    .sort()
+    .join("\n");
 }
 
 /** Read write evidence and outcome from a loose (or folded-equivalent) event. */
@@ -1083,11 +1149,11 @@ function writeEvidenceNode(evidence: WriteEvidenceSnapshot): GraceXmlNode {
     return {
       tag: "WriteEvidence",
       attributes: { available: "true" },
-      children: evidence.changedFiles.map((file) => ({
+      children: evidence.files.map((file) => ({
         tag: "File",
-        attributes: {},
+        attributes: { digest: file.digest },
         children: [] as GraceXmlNode[],
-        text: file,
+        text: file.path,
       })),
       text: "",
     };
@@ -1114,12 +1180,15 @@ function parseWriteEvidenceNode(node: GraceXmlNode): WriteEvidenceSnapshot {
       },
     };
   }
-  const changedFiles = node.children
+  const files: ChangedFileEvidence[] = node.children
     .filter((child) => child.tag === "File")
-    .map((child) => child.text.trim())
-    .filter(Boolean)
-    .sort();
-  return { available: true, changedFiles };
+    .map((child) => ({
+      path: child.text.trim(),
+      digest: (child.attributes.digest ?? "").trim() || "unknown",
+    }))
+    .filter((file) => file.path !== "")
+    .sort((a, b) => a.path.localeCompare(b.path));
+  return { available: true, files };
 }
 
 function collectFailureSignatures(events: LooseEvent[], task: string): FailureSignature[] {
@@ -1271,10 +1340,31 @@ function buildEpochNode(
   };
 }
 
-/** Ledger Event attributes: all loose root attrs except graceVersion (A18.2). */
+/**
+ * Writer-side transform when building ledger Event nodes (A18.2).
+ * Intentionally separate from expectedLedgerEventAttributes so a defect inside the
+ * writer cannot redefine verify's expectation (A20.2 / correction 38).
+ */
 function eventAttributesForLedger(event: LooseEvent): Record<string, string> {
   const attributes: Record<string, string> = { ...event.attributes };
   delete attributes.graceVersion;
+  attributes.id = String(event.id);
+  attributes.task = event.task;
+  attributes.kind = event.kind;
+  return attributes;
+}
+
+/**
+ * Legitimate fold transform applied to a disk-parsed loose event for verify's
+ * expected side (A20.2). Strips graceVersion; normalizes id/task/kind.
+ * Covered by its own unit assertion — not shared with the writer function.
+ */
+export function expectedLedgerEventAttributes(event: LooseEvent): Record<string, string> {
+  const attributes: Record<string, string> = {};
+  for (const [key, value] of Object.entries(event.attributes)) {
+    if (key === "graceVersion") continue;
+    attributes[key] = value;
+  }
   attributes.id = String(event.id);
   attributes.task = event.task;
   attributes.kind = event.kind;
@@ -1526,7 +1616,8 @@ function requireChangeId(args: { change?: unknown }): string {
 export const cursorCommand = defineCommand({
   meta: {
     name: "cursor",
-    description: "Run ledger and cursor: show, regenerate, advance, pause, resume, fold.",
+    description:
+      "Run ledger and cursor: show, regenerate, advance, attempt, verification-unavailable, pause, resume, fold.",
   },
   subCommands: {
     show: defineCommand({
@@ -1576,7 +1667,11 @@ export const cursorCommand = defineCommand({
       },
     }),
     advance: defineCommand({
-      meta: { name: "advance", description: "Append a run event and update the cursor." },
+      meta: {
+        name: "advance",
+        description:
+          "Append a structural run event (opened/progress/pause/resume/terminal). Use `cursor attempt` for verification cycles.",
+      },
       args: {
         path: { type: "string", alias: "p", description: "Project root", default: "." },
         change: { type: "string", description: "C-* change id", required: true },
@@ -1604,6 +1699,91 @@ export const cursorCommand = defineCommand({
           if (format === "json") process.stdout.write(`${JSON.stringify(position, null, 2)}\n`);
           else process.stdout.write(formatCursorPosition(position));
         }, "Unable to complete ngrace cursor advance.");
+      },
+    }),
+    attempt: defineCommand({
+      meta: {
+        name: "attempt",
+        description: "Record a verification-cycle attempt (outcome pass|fail; signature required on fail).",
+      },
+      args: {
+        path: { type: "string", alias: "p", description: "Project root", default: "." },
+        change: { type: "string", description: "C-* change id", required: true },
+        task: { type: "string", description: "T-* task id", required: true },
+        outcome: { type: "string", description: "pass or fail", required: true },
+        signatureKind: { type: "string", description: "Failure signature kind (required when outcome=fail)" },
+        signatureKey: { type: "string", description: "Failure signature key (required when outcome=fail)" },
+        format: { type: "string", alias: "f", description: "text or json", default: "text" },
+      },
+      async run(context) {
+        const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
+        await runGraceCommand(format, () => {
+          const outcomeRaw = String(context.args.outcome ?? "").trim();
+          if (outcomeRaw !== "pass" && outcomeRaw !== "fail") {
+            throw new GraceCommandError(
+              "invalid-arguments",
+              `outcome must be "pass" or "fail" (got ${JSON.stringify(outcomeRaw)}).`,
+            );
+          }
+          const signatureKind = context.args.signatureKind ? String(context.args.signatureKind) : undefined;
+          const signatureKey = context.args.signatureKey ? String(context.args.signatureKey) : undefined;
+          const result = recordAttempt(String(context.args.path ?? "."), requireChangeId(context.args), {
+            task: String(context.args.task),
+            outcome: outcomeRaw,
+            signature:
+              outcomeRaw === "fail" && signatureKind && signatureKey
+                ? { kind: signatureKind, key: signatureKey }
+                : undefined,
+          });
+          if (format === "json") process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+          else {
+            process.stdout.write(result.message);
+            process.stdout.write(formatCursorPosition(result.position));
+          }
+        }, "Unable to complete ngrace cursor attempt.");
+      },
+    }),
+    "verification-unavailable": defineCommand({
+      meta: {
+        name: "verification-unavailable",
+        description: "Record that verification could not run (not an attempt; does not count against the budget).",
+      },
+      args: {
+        path: { type: "string", alias: "p", description: "Project root", default: "." },
+        change: { type: "string", description: "C-* change id", required: true },
+        task: { type: "string", description: "T-* task id", required: true },
+        reason: { type: "string", description: "Why verification could not run", required: true },
+        verdict: {
+          type: "string",
+          description: "not-run or unable-to-determine (default unable-to-determine)",
+          default: "unable-to-determine",
+        },
+        format: { type: "string", alias: "f", description: "text or json", default: "text" },
+      },
+      async run(context) {
+        const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
+        await runGraceCommand(format, () => {
+          const verdictRaw = String(context.args.verdict ?? "unable-to-determine").trim();
+          if (verdictRaw !== "not-run" && verdictRaw !== "unable-to-determine") {
+            throw new GraceCommandError(
+              "invalid-arguments",
+              `verdict must be "not-run" or "unable-to-determine" (got ${JSON.stringify(verdictRaw)}).`,
+            );
+          }
+          const position = recordVerificationUnavailable(
+            String(context.args.path ?? "."),
+            requireChangeId(context.args),
+            {
+              task: String(context.args.task),
+              absence: {
+                verdict: verdictRaw,
+                reason: String(context.args.reason ?? ""),
+              },
+            },
+          );
+          if (format === "json") process.stdout.write(`${JSON.stringify(position, null, 2)}\n`);
+          else process.stdout.write(formatCursorPosition(position));
+        }, "Unable to complete ngrace cursor verification-unavailable.");
       },
     }),
     pause: defineCommand({

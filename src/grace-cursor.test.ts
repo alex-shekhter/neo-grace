@@ -16,9 +16,11 @@ import {
   countTaskAttemptEvents,
   cursorStateForEventKind,
   deriveAttemptOrdinal,
+  expectedLedgerEventAttributes,
   FIX_ATTEMPT_BUDGET,
   foldEpoch,
   formatCursorPosition,
+  listAccountingEvents,
   listLedgerEvents,
   listLooseEvents,
   parseCursorState,
@@ -27,10 +29,20 @@ import {
   recordVerificationUnavailable,
   regenerateCursor,
   showCursor,
+  type ChangedFileEvidence,
   type WriteEvidenceSnapshot,
 } from "./grace-cursor";
 import { collectProjectStatus, formatStatusText } from "./grace-status";
 import { lintGraceProject } from "./lint/core";
+
+/** Test helper: path list → write evidence with stable synthetic digests. */
+function evidencePaths(paths: string[], digests?: Record<string, string>): WriteEvidenceSnapshot {
+  const files: ChangedFileEvidence[] = paths.map((path) => ({
+    path,
+    digest: digests?.[path] ?? `digest:${path}`,
+  }));
+  return { available: true, files };
+}
 
 function createProject() {
   const root = path.join(os.tmpdir(), `grace-cursor-${crypto.randomUUID()}`);
@@ -502,7 +514,7 @@ describe("fold preserves payload (AC-FOLD-PRESERVES-PAYLOAD / A18.2)", () => {
       task: "T-001",
       outcome: "fail",
       signature: { kind: "test-failure", key: "grace-cursor.test.ts:fold" },
-      writeEvidence: { available: true, changedFiles: ["src/example.ts"] },
+      writeEvidence: evidencePaths(["src/example.ts"]),
     });
     advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
 
@@ -518,7 +530,7 @@ describe("fold preserves payload (AC-FOLD-PRESERVES-PAYLOAD / A18.2)", () => {
     expect(attempt!.attributes.ordinal).toBeUndefined();
     const payload = readAttemptPayload(attempt!);
     expect(payload.signature).toEqual({ kind: "test-failure", key: "grace-cursor.test.ts:fold" });
-    expect(payload.writeEvidence).toEqual({ available: true, changedFiles: ["src/example.ts"] });
+    expect(payload.writeEvidence).toEqual(evidencePaths(["src/example.ts"]));
 
     const text = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
     expect(text).toContain('outcome="fail"');
@@ -534,7 +546,7 @@ describe("fold preserves payload (AC-FOLD-PRESERVES-PAYLOAD / A18.2)", () => {
       task: "T-001",
       outcome: "fail",
       signature: { kind: "test-failure", key: "drop-probe" },
-      writeEvidence: { available: true, changedFiles: [] },
+      writeEvidence: evidencePaths([]),
     });
     advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
 
@@ -572,7 +584,7 @@ describe("attempt events (AC-ATTEMPT-EVENTS / AC-THREE-VALUED-OUTCOME)", () => {
     recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "pass",
-      writeEvidence: { available: true, changedFiles: [] },
+      writeEvidence: evidencePaths([]),
     });
     advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
     foldEpoch(root, "C-RUN");
@@ -587,12 +599,12 @@ describe("attempt events (AC-ATTEMPT-EVENTS / AC-THREE-VALUED-OUTCOME)", () => {
       task: "T-001",
       outcome: "fail",
       signature: { kind: "lint", key: "x" },
-      writeEvidence: { available: true, changedFiles: ["a.ts"] },
+      writeEvidence: evidencePaths(["a.ts"]),
     });
     recordAttempt(root2, "C-RUN", {
       task: "T-001",
       outcome: "pass",
-      writeEvidence: { available: true, changedFiles: ["a.ts", "b.ts"] },
+      writeEvidence: evidencePaths(["a.ts", "b.ts"]),
     });
     // fail+pass hits budget on fail path only for second fail; pass does not escalate.
     // attempt count is 2; if first was fail and second pass, no escalation (escalation only on fail path).
@@ -612,14 +624,14 @@ describe("attempt events (AC-ATTEMPT-EVENTS / AC-THREE-VALUED-OUTCOME)", () => {
       task: "T-001",
       outcome: "fail",
       signature: { kind: "a", key: "1" },
-      writeEvidence: { available: true, changedFiles: [] },
+      writeEvidence: evidencePaths([]),
     });
     // Second fail escalates — still has attempt events.
     recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
       signature: { kind: "b", key: "2" },
-      writeEvidence: { available: true, changedFiles: [] },
+      writeEvidence: evidencePaths([]),
     });
     const loose = listLooseEvents(bundle);
     const attempts = loose.filter((event) => event.kind === "attempt");
@@ -665,7 +677,7 @@ describe("dumb counter and escalation (AC-DUMB-COUNTER / AC-ESCALATION / AC-KIND
       task: "T-001",
       outcome: "fail",
       signature: { kind: "test-failure", key: "suite-a" },
-      writeEvidence: { available: true, changedFiles: [] },
+      writeEvidence: evidencePaths([]),
     });
     expect(first.escalated).toBe(false);
     expect(first.attemptCount).toBe(1);
@@ -674,7 +686,7 @@ describe("dumb counter and escalation (AC-DUMB-COUNTER / AC-ESCALATION / AC-KIND
       task: "T-001",
       outcome: "fail",
       signature: { kind: "typecheck", key: "suite-b" },
-      writeEvidence: { available: true, changedFiles: ["src/x.ts"] },
+      writeEvidence: evidencePaths(["src/x.ts"]),
     });
     expect(second.escalated).toBe(true);
     expect(second.attemptCount).toBe(2);
@@ -720,13 +732,13 @@ describe("dumb counter and escalation (AC-DUMB-COUNTER / AC-ESCALATION / AC-KIND
       task: "T-001",
       outcome: "fail",
       signature: { kind: "a", key: "1" },
-      writeEvidence: { available: true, changedFiles: [] },
+      writeEvidence: evidencePaths([]),
     });
     recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
       signature: { kind: "b", key: "2" },
-      writeEvidence: { available: true, changedFiles: [] },
+      writeEvidence: evidencePaths([]),
     });
     expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
 
@@ -786,13 +798,13 @@ describe("cursor state parsed (AC-CURSOR-STATE-PARSED)", () => {
       task: "T-001",
       outcome: "fail",
       signature: { kind: "a", key: "1" },
-      writeEvidence: { available: true, changedFiles: [] },
+      writeEvidence: evidencePaths([]),
     });
     recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
       signature: { kind: "b", key: "2" },
-      writeEvidence: { available: true, changedFiles: [] },
+      writeEvidence: evidencePaths([]),
     });
     const written = readFileSync(path.join(bundle, "run.xml"), "utf8");
     expect(written).toContain("paused-pending-approval");
@@ -812,15 +824,15 @@ describe("flake classification (AC-FLAKE-CLASSIFICATION / A19.3)", () => {
   });
 
   it("fail then pass with identical write evidence is flaky", () => {
-    const evidence: WriteEvidenceSnapshot = { available: true, changedFiles: ["src/a.ts"] };
+    const evidence: WriteEvidenceSnapshot = evidencePaths(["src/a.ts"]);
     const result = classifyFlakeFromEvidence(failEv(evidence), passEv(evidence));
     expect(result.verdict).toBe("flaky");
   });
 
   it("fail then pass with intervening write is retry", () => {
     const result = classifyFlakeFromEvidence(
-      failEv({ available: true, changedFiles: ["src/a.ts"] }),
-      passEv({ available: true, changedFiles: ["src/a.ts", "src/b.ts"] }),
+      failEv(evidencePaths(["src/a.ts"])),
+      passEv(evidencePaths(["src/a.ts", "src/b.ts"])),
     );
     expect(result.verdict).toBe("retry");
   });
@@ -831,7 +843,7 @@ describe("flake classification (AC-FLAKE-CLASSIFICATION / A19.3)", () => {
         available: false,
         absence: { verdict: "unable-to-determine", reason: "git unavailable" },
       }),
-      passEv({ available: true, changedFiles: [] }),
+      passEv(evidencePaths([])),
     );
     expect(result.verdict).toBe("unable-to-determine");
     expect(result.verdict).not.toBe("flaky");
@@ -842,9 +854,159 @@ describe("flake classification (AC-FLAKE-CLASSIFICATION / A19.3)", () => {
     // Evidence is fully synthetic; if classifyFlakeFromEvidence called git it would
     // need a project root. The API accepts only snapshots.
     const result = classifyFlakeFromEvidence(
-      failEv({ available: true, changedFiles: [] }),
-      passEv({ available: true, changedFiles: [] }),
+      failEv(evidencePaths([])),
+      passEv(evidencePaths([])),
     );
     expect(result.verdict).toBe("flaky");
+  });
+
+  it("same path set with different content digests is retry, not flaky (A20.3 / correction 39)", () => {
+    const earlier = evidencePaths(["src/foo.ts"], { "src/foo.ts": "digest-before" });
+    const later = evidencePaths(["src/foo.ts"], { "src/foo.ts": "digest-after-fix" });
+    const result = classifyFlakeFromEvidence(failEv(earlier), passEv(later));
+    expect(result.verdict).toBe("retry");
+    expect(result.verdict).not.toBe("flaky");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A20 corrections 37–40
+// ---------------------------------------------------------------------------
+
+describe("budget survives fold (A20.1 / correction 37 / standing rule 9)", () => {
+  it("post-fold second fail escalates — budget does not reset (folded twin)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    // Epoch 1: fail T-001, terminal on a *different* task so the range can fold
+    // while T-001's attempt remains in the ledger (A20.1 multi-task wave).
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99, wave: "1" });
+    const first = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "suite-a" },
+      writeEvidence: evidencePaths([]),
+    });
+    expect(first.escalated).toBe(false);
+    expect(first.attemptCount).toBe(1);
+    // T-002 terminal densifies and closes the allocation (per-range, not per-task).
+    advanceCursor(root, "C-RUN", { task: "T-002", kind: "terminal" });
+    const fold = foldEpoch(root, "C-RUN", { wave: "1" });
+    expect(fold.applied).toBe(true);
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+    expect(listLedgerEvents(bundle).filter((e) => e.kind === "attempt" && e.task === "T-001")).toHaveLength(1);
+
+    // Epoch 2: open and fail T-001 again — must count the ledger attempt.
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 100, to: 199, wave: "2" });
+    const second = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "typecheck", key: "suite-b" },
+      writeEvidence: evidencePaths(["src/x.ts"]),
+    });
+    expect(second.attemptCount).toBe(2);
+    expect(second.escalated).toBe(true);
+    expect(second.position.state).toBe("paused-pending-approval");
+  });
+
+  it("post-fold escalation still surfaces BOTH signatures (folded twin)", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "suite-a" },
+      writeEvidence: evidencePaths([]),
+    });
+    advanceCursor(root, "C-RUN", { task: "T-002", kind: "terminal" });
+    foldEpoch(root, "C-RUN");
+
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 100, to: 199 });
+    const second = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "typecheck", key: "suite-b" },
+      writeEvidence: evidencePaths([]),
+    });
+    expect(second.escalated).toBe(true);
+    expect(second.signatures).toEqual([
+      { kind: "test-failure", key: "suite-a" },
+      { kind: "typecheck", key: "suite-b" },
+    ]);
+    expect(second.message).toContain("suite-a");
+    expect(second.message).toContain("suite-b");
+    // Accounting events merge ledger + loose
+    const accounting = listAccountingEvents(
+      path.join(root, ARTIFACT_DIR, "changes", "active", "C-RUN"),
+    );
+    expect(countTaskAttemptEvents(accounting, "T-001")).toBe(2);
+  });
+});
+
+describe("fold verify expected side independent of writer (A20.2 / correction 38)", () => {
+  it("expectedLedgerEventAttributes strips graceVersion and keeps outcome (own assertion)", () => {
+    const attrs = expectedLedgerEventAttributes({
+      id: 2,
+      task: "T-001",
+      kind: "attempt",
+      file: "/tmp/x",
+      attributes: {
+        graceVersion: "1.0",
+        id: "2",
+        task: "T-001",
+        kind: "attempt",
+        outcome: "fail",
+      },
+      children: [],
+    });
+    expect(attrs.graceVersion).toBeUndefined();
+    expect(attrs.outcome).toBe("fail");
+    expect(attrs.id).toBe("2");
+    expect(attrs.task).toBe("T-001");
+    expect(attrs.kind).toBe("attempt");
+  });
+
+  it("injectDropPayload still fails verify and leaves loose files (A7.2)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "k" },
+      writeEvidence: evidencePaths([]),
+    });
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+    const before = listLooseEvents(bundle).length;
+    expect(() => foldEpoch(root, "C-RUN", { injectDropPayload: true })).toThrow(/payload mismatch/i);
+    expect(listLooseEvents(bundle).length).toBe(before);
+  });
+});
+
+describe("CLI attempt surface (A20.4 / correction 40)", () => {
+  it("advance --kind attempt is reserved and errors", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    expect(() => advanceCursor(root, "C-RUN", { task: "T-001", kind: "attempt" })).toThrow(
+      /reserved|cursor attempt/i,
+    );
+    expect(() =>
+      advanceCursor(root, "C-RUN", { task: "T-001", kind: "verification-unavailable" }),
+    ).toThrow(/reserved|verification-unavailable/i);
+    expect(() => advanceCursor(root, "C-RUN", { task: "T-001", kind: "escalation" })).toThrow(
+      /reserved|escalation/i,
+    );
+  });
+
+  it("cursor attempt and verification-unavailable subcommands are registered", () => {
+    // Import the command definition and assert subcommand keys.
+    // Dynamic import keeps the test co-located without starting the CLI main.
+    const { cursorCommand } = require("./grace-cursor") as typeof import("./grace-cursor");
+    const keys = Object.keys(cursorCommand.subCommands ?? {});
+    expect(keys).toContain("attempt");
+    expect(keys).toContain("verification-unavailable");
+    expect(keys).toContain("advance");
+    expect(keys).toContain("fold");
   });
 });
