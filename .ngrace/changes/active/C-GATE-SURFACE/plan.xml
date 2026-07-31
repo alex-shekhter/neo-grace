@@ -1,0 +1,286 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-GATE-SURFACE>
+    <IntentSummary>
+      Create the third check surface: invocable gates that declare required evidence, record
+      decisions and review verdicts in run-ledger.xml outside Epoch-N (A30), and refuse
+      approve/apply/archive (and further attempts on escalated tasks) without re-deriving what
+      status and the cursor already know.
+
+      Authored before production code, per A17.3. A29 is normative over §5.3–§5.5; A30 is
+      normative over A29 where they disagree — especially the recording home (correction 61).
+      Build order is dependency, not style: ledger sections validate before anything records into them.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/config.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/gates/core.ts</Value></MustExist>
+      <MustExist><Value>src/gates/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.test.ts</Value></MustExist>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-LINT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-ARTIFACT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace gate --help</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-CURSOR />
+        <M-STATUS />
+        <M-GRAMMAR />
+        <M-LINT-CORE />
+        <M-LINT-TYPES />
+        <M-LINT-CATALOG />
+        <M-ARTIFACT-TYPES />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-CURSOR />
+        <V-M-STATUS />
+        <V-M-GRAMMAR />
+        <V-M-LINT-CORE />
+        <V-M-LINT-TYPES />
+        <V-M-LINT-CATALOG />
+        <V-M-ARTIFACT-TYPES />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/gates/core.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/gates/catalog.ts</File>
+      <File>src/gates/command.ts</File>
+      <File>src/grace.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/artifact/types.ts</File>
+      <File>src/lint/config.ts</File>
+      <File>src/lint/types.ts</File>
+      <File>src/lint/core.ts</File>
+      <File>src/lint/core.test.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/grace-status.ts</File>
+      <File>src/grace-status.test.ts</File>
+      <File>src/grace-lint.ts</File>
+      <File>src/test-support/fixtures.ts</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
+      <File>skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+      <File>skills/ngrace/ngrace-cli/references/verdicts.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-cli/references/verdicts.md</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Ledger Verdicts and Decisions sections with validator</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            run-ledger.xml admits optional Verdicts and Decisions sections under the C-* wrapper,
+            siblings to Epoch-N. validateRunLedgerArtifact validates them (invariant 4). Write path
+            is write, re-read, verify; Epoch-N append stays fold-only. Existing ledgers without the
+            sections keep validating (invariant 5). Recording leaves run/ untouched (A30.1, A30.2).
+            KNOWN_KIND_STATE is not widened (A30.4).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-VERDICT-RECORD />
+          <AC-GATE-DECISION-RECORDED />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/artifact/grammar.test.ts src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Gate surface core, catalog, and requirement evaluation</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            src/gates/core.ts and catalog.ts exist. gate.* codes live only in the gates catalog.
+            Required evidence absent fails closed; optional absent is reported; present is consulted.
+            Blocking is a property of the gate (anti-pattern 9, D5).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-GATE-OWN-SURFACE />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/gates</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>ngrace gate CLI and grace.ts registration</Title>
+        <DependsOn>
+          <T-002 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Ninth subcommand ngrace gate approve|apply|archive --change C-X evaluates and records
+            into Decisions; never authors status and never moves a bundle directory (A29.2, A29.13,
+            invariant 8). Report is machine-actionable without prose parse.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-GATE-OWN-SURFACE />
+          <AC-GATE-DECISION-RECORDED />
+        </Satisfies>
+        <Verification>
+          <Command>bun run ngrace gate --help</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>D14 boundary test — lint never emits gate.*</Title>
+        <DependsOn>
+          <T-002 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            src/lint/core.test.ts (or equivalent integration) runs ngrace lint over a project with
+            open epoch and absent review verdict and asserts zero gate.* codes. Both directions:
+            gate evaluation still emits gate.* on its own surface (A29.7, D14).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-GATE-D14-BOUNDARY />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/lint/core.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Typed Clarification grammar, validator, and templates</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Clarifications/Clarification with target= under change-spec and change-plan; invalid
+            targets error; unresolved on IC-* or INV-* refuse approve. Prose markers are not a
+            detection path (anti-pattern 3). Templates updated (A29.4, conclusion 3).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-TYPED-CLARIFICATION />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Project gateFailOn declaration</Title>
+        <DependsOn>
+          <T-002 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            .ngrace-lint.json accepts gateFailOn; SUPPORTED_KEYS updated; unknown keys still error.
+            Apply consults the project value for missing-verdict severity. A per-invocation flag
+            alone does not satisfy AC-PROJECT-GATE-FAIL-ON (A29.5, conclusion 4).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-PROJECT-GATE-FAIL-ON />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/gates src/lint</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Three gate declarations and escalated-task attempt refusal</Title>
+        <DependsOn>
+          <T-003 />
+          <T-005 />
+          <T-006 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            approve: clarification on IC/INV refuses; ASSUMPTION does not; non-satisfied AC does not
+            block. apply: refuse no plan (consume needs-plan inputs), refuse no verdict, permit
+            unable-to-determine, host-capability-missing under permissive vs strict gateFailOn.
+            archive: refuse open epoch (listLooseEvents); permit after fold; recorded decisions and
+            verdicts never read as open epoch (A30.1 deadlock both directions). cursor attempt on
+            escalatedTasks refuses via gate evaluation (anti-pattern 9).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-APPROVE-GATE />
+          <AC-APPLY-VERDICT />
+          <AC-APPLY-NEEDS-PLAN />
+          <AC-ARCHIVE-OPEN-EPOCH />
+          <AC-ESCALATED-ATTEMPT />
+          <AC-ASSUMPTION-NEVER-BLOCKS />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/gates src/grace-cursor.test.ts src/grace-status.test.ts</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Skill text, templates note, and packaged mirrors</Title>
+        <DependsOn>
+          <T-007 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            ngrace-execute places gate apply/archive before rules 8–9; ngrace-plan places gate
+            approve before approving; ngrace-spec/plan templates carry Clarification; ngrace-reviewer
+            notes verdict record shape in Verdicts section; verdicts.md documents
+            host-capability-missing. Packaged mirrors byte-identical; validate:marketplace green;
+            line delta reported (A29.8).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-SKILL-GATE-CALL />
+        </Satisfies>
+        <Verification>
+          <Command>bun run validate:marketplace</Command>
+        </Verification>
+      </T-008>
+    </ImplementationPlan>
+  </C-GATE-SURFACE>
+</NgraceChangePlan>
