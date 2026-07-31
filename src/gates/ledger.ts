@@ -3,6 +3,7 @@
  * Siblings to Epoch-N; never loose run/ events (correction 61).
  * Write path: validate constructed tree, write, re-read, verify, restore on failure (A31.5).
  * Read path: newest entry governs; unreadable is absence with reason, never skip (A31.2).
+ * Section boundary: duplicate or validator-rejected section is invalid, not first-wins (A32.1 / 68).
  */
 
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
@@ -48,9 +49,15 @@ export type LatestReviewVerdict =
   | { state: "invalid"; code: "ledger.invalid-verdict"; detail: string }
   | { state: "present"; verdict: ReviewVerdictRecord };
 
-/** Newest-governs scan of Decisions; any unreadable entry is invalid, never skipped (A31.2). */
+/** Newest-governs scan of Decisions; any unreadable entry is invalid, never skipped (A31.2 / A32.1). */
 export type DecisionListResult =
   | { state: "ok"; decisions: GateDecisionRecord[] }
+  | { state: "invalid"; code: "ledger.invalid-decision"; detail: string };
+
+/** Permit lookup with reason — invalid never collapses to a bare false (A32.1). */
+export type PermittingDecisionStatus =
+  | { state: "permit" }
+  | { state: "absent" }
   | { state: "invalid"; code: "ledger.invalid-decision"; detail: string };
 
 const LEDGER_BUNDLE_SECTIONS = new Set(["Verdicts", "Decisions"]);
@@ -262,48 +269,91 @@ function parseDecisionNode(child: GraceXmlNode): GateDecisionRecord | { invalid:
 }
 
 /**
- * Newest Verdict entry governs (A31.2). An unreadable newest entry is
- * `{ state: "invalid" }` — never a silent fallthrough to an older valid entry.
+ * Select the unique named section under the change wrapper (A32.1 / correction 68).
+ * Duplicate sections make "newest" undefined → invalid, never first-wins.
+ */
+function selectUniqueSection(
+  wrapper: GraceXmlNode,
+  tag: "Verdicts" | "Decisions",
+):
+  | { state: "absent" }
+  | { state: "invalid"; detail: string }
+  | { state: "ok"; section: GraceXmlNode } {
+  const matches = wrapper.children.filter((child) => child.tag === tag);
+  if (matches.length === 0) return { state: "absent" };
+  if (matches.length > 1) {
+    return {
+      state: "invalid",
+      detail: `duplicate ${tag} sections (${matches.length}); newest is undefined`,
+    };
+  }
+  return { state: "ok", section: matches[0]! };
+}
+
+/**
+ * Newest Verdict entry governs (A31.2). Section must be unique and every child
+ * validator-clean (A32.1) — filter is not a read strategy.
  */
 export function readLatestReviewVerdict(projectRoot: string, changeId: string): LatestReviewVerdict {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const wrapper = wrapperFromLedger(bundlePath, changeId);
   if (!wrapper) return { state: "absent" };
-  const section = wrapper.children.find((child) => child.tag === "Verdicts");
-  if (!section) return { state: "absent" };
-  const verdictNodes = section.children.filter((child) => child.tag === "Verdict");
-  if (verdictNodes.length === 0) return { state: "absent" };
-  const newest = verdictNodes[verdictNodes.length - 1]!;
-  const parsed = parseVerdictNode(newest);
-  if ("invalid" in parsed) {
+  const selected = selectUniqueSection(wrapper, "Verdicts");
+  if (selected.state === "absent") return { state: "absent" };
+  if (selected.state === "invalid") {
     return {
       state: "invalid",
       code: "ledger.invalid-verdict",
-      detail: parsed.invalid,
+      detail: selected.detail,
     };
   }
-  return { state: "present", verdict: parsed };
+  const { section } = selected;
+  if (section.children.length === 0) return { state: "absent" };
+
+  // Every child must be a valid Verdict — no filter, no skip (A32.1 second facet).
+  const parsedEntries: ReviewVerdictRecord[] = [];
+  for (const child of section.children) {
+    if (child.tag !== "Verdict") {
+      return {
+        state: "invalid",
+        code: "ledger.invalid-verdict",
+        detail: `unexpected <${child.tag}> under Verdicts`,
+      };
+    }
+    const parsed = parseVerdictNode(child);
+    if ("invalid" in parsed) {
+      return {
+        state: "invalid",
+        code: "ledger.invalid-verdict",
+        detail: parsed.invalid,
+      };
+    }
+    parsedEntries.push(parsed);
+  }
+  return { state: "present", verdict: parsedEntries[parsedEntries.length - 1]! };
 }
 
 /**
- * All recorded review verdicts (oldest first). Throws when any entry is unreadable
- * so callers cannot convert an absence into a shorter valid list (A31.2).
+ * All recorded review verdicts (oldest first). Throws when the section is duplicated
+ * or any child is unreadable so callers cannot convert an absence into a shorter list.
  */
 export function listReviewVerdicts(projectRoot: string, changeId: string): ReviewVerdictRecord[] {
+  const read = readLatestReviewVerdict(projectRoot, changeId);
+  if (read.state === "invalid") {
+    throw new GraceCommandError(
+      "invalid-project",
+      `${read.code}: ${read.detail}`,
+      { issues: [read.code] },
+    );
+  }
+  if (read.state === "absent") return [];
+  // Re-walk for the full list (section already known clean via readLatest).
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const wrapper = wrapperFromLedger(bundlePath, changeId);
   if (!wrapper) return [];
-  const section = wrapper.children.find((child) => child.tag === "Verdicts");
-  if (!section) return [];
-  const out: ReviewVerdictRecord[] = [];
-  for (const child of section.children) {
-    if (child.tag !== "Verdict") {
-      throw new GraceCommandError(
-        "invalid-project",
-        `ledger.invalid-verdict: unexpected <${child.tag}> under Verdicts`,
-        { issues: ["ledger.invalid-verdict"] },
-      );
-    }
+  const selected = selectUniqueSection(wrapper, "Verdicts");
+  if (selected.state !== "ok") return [];
+  return selected.section.children.map((child) => {
     const parsed = parseVerdictNode(child);
     if ("invalid" in parsed) {
       throw new GraceCommandError(
@@ -312,9 +362,8 @@ export function listReviewVerdicts(projectRoot: string, changeId: string): Revie
         { issues: ["ledger.invalid-verdict"] },
       );
     }
-    out.push(parsed);
-  }
-  return out;
+    return parsed;
+  });
 }
 
 /** @deprecated Prefer readLatestReviewVerdict — this collapses invalid to undefined. */
@@ -326,15 +375,22 @@ export function latestReviewVerdict(
   return read.state === "present" ? read.verdict : undefined;
 }
 
-/** All recorded gate decisions with no silent skip of unreadable entries (A31.2). */
+/** All recorded gate decisions with no silent skip of unreadable entries (A31.2 / A32.1). */
 export function readGateDecisions(projectRoot: string, changeId: string): DecisionListResult {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const wrapper = wrapperFromLedger(bundlePath, changeId);
   if (!wrapper) return { state: "ok", decisions: [] };
-  const section = wrapper.children.find((child) => child.tag === "Decisions");
-  if (!section) return { state: "ok", decisions: [] };
+  const selected = selectUniqueSection(wrapper, "Decisions");
+  if (selected.state === "absent") return { state: "ok", decisions: [] };
+  if (selected.state === "invalid") {
+    return {
+      state: "invalid",
+      code: "ledger.invalid-decision",
+      detail: selected.detail,
+    };
+  }
   const out: GateDecisionRecord[] = [];
-  for (const child of section.children) {
+  for (const child of selected.section.children) {
     if (child.tag !== "Decision") {
       return {
         state: "invalid",
@@ -372,19 +428,38 @@ export function listGateDecisions(projectRoot: string, changeId: string): GateDe
 }
 
 /**
- * True when a permitting decision for `gate` exists. An unreadable Decisions
- * section is not a permit (absence with reason, never a promoted older value).
+ * Permit lookup that keeps the reason when the Decisions section is unreadable (A32.1).
+ * Invalid is not a permit; callers that need the reason must not collapse this to boolean alone.
+ */
+export function readPermittingDecision(
+  projectRoot: string,
+  changeId: string,
+  gate: GateId,
+): PermittingDecisionStatus {
+  const result = readGateDecisions(projectRoot, changeId);
+  if (result.state === "invalid") {
+    return {
+      state: "invalid",
+      code: result.code,
+      detail: result.detail,
+    };
+  }
+  if (result.decisions.some((entry) => entry.gate === gate && entry.decision === "permit")) {
+    return { state: "permit" };
+  }
+  return { state: "absent" };
+}
+
+/**
+ * True when a permitting decision for `gate` exists. Prefer `readPermittingDecision`
+ * when the absence reason must reach a report (A32.1).
  */
 export function hasPermittingDecision(
   projectRoot: string,
   changeId: string,
   gate: GateId,
 ): boolean {
-  const result = readGateDecisions(projectRoot, changeId);
-  if (result.state === "invalid") return false;
-  return result.decisions.some(
-    (entry) => entry.gate === gate && entry.decision === "permit",
-  );
+  return readPermittingDecision(projectRoot, changeId, gate).state === "permit";
 }
 
 /** Exported for tests — tags admitted as non-epoch ledger sections. */

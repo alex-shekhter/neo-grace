@@ -18,7 +18,7 @@ import { loadGraceLintConfig } from "../lint/config";
 import type { GateFailOn } from "../lint/types";
 import { GATE_CATALOG, type GateIssueGuide } from "./catalog";
 import {
-  hasPermittingDecision,
+  readPermittingDecision,
   readLatestReviewVerdict,
   type GateDecisionRecord,
   type GateId,
@@ -388,9 +388,9 @@ export function evaluateAttemptOnBundle(
   return evaluateAttemptGate(changeId, task, escalated);
 }
 
-/** Status helper: applied archive without a permitting apply decision (A29.9). */
+/** Status helper: applied archive without a permitting apply decision (A29.9 / A32.1). */
 export function missingApplyGateRecord(projectRoot: string, changeId: string): boolean {
-  return !hasPermittingDecision(projectRoot, changeId, "apply");
+  return readPermittingDecision(projectRoot, changeId, "apply").state !== "permit";
 }
 
 /** Re-export clarification target check for grammar tests. */

@@ -19,7 +19,9 @@ import {
 import {
   listGateDecisions,
   listReviewVerdicts,
+  readGateDecisions,
   readLatestReviewVerdict,
+  readPermittingDecision,
   recordGateDecision,
   recordReviewVerdict,
 } from "./ledger";
@@ -198,6 +200,104 @@ describe("correction 63 — malformed newest verdict does not promote older", ()
     xml = xml.replace("</Verdicts>", `<Verdict outcome="failed" /></Verdicts>`);
     writeFileSync(ledgerPath, xml);
     expect(() => listReviewVerdicts(root, "C-GATE")).toThrow(/ledger\.invalid-verdict/);
+  });
+});
+
+describe("correction 68 — newest-governs at the section boundary (A32.1)", () => {
+  it("duplicate Verdicts sections: refuse; do not permit on first section's pass", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    // A32 fixture: first section pass, second fail — first-wins would permit.
+    writeFileSync(
+      path.join(bundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-GATE>`
+        + `<Verdicts><Verdict outcome="pass" /></Verdicts>`
+        + `<Verdicts><Verdict outcome="fail" /></Verdicts>`
+        + `</C-GATE></NgraceRunLedger>`,
+    );
+    const latest = readLatestReviewVerdict(root, "C-GATE");
+    expect(latest.state).toBe("invalid");
+    if (latest.state === "invalid") {
+      expect(latest.code).toBe("ledger.invalid-verdict");
+      expect(latest.detail).toMatch(/duplicate/i);
+    }
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(result.issues.some((i) => i.code === "gate.apply.invalid-verdict")).toBe(true);
+    expect(result.verdict).toBeUndefined();
+    const reviewReq = result.requirements.find((r) => r.id === "review-verdict");
+    expect(reviewReq?.present).toBe(false);
+  });
+
+  it("stray non-Verdict child under Verdicts: refuse; do not filter to pass", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    writeFileSync(
+      path.join(bundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-GATE>`
+        + `<Verdicts><Verdict outcome="pass" /><Bogus /></Verdicts>`
+        + `</C-GATE></NgraceRunLedger>`,
+    );
+    const latest = readLatestReviewVerdict(root, "C-GATE");
+    expect(latest.state).toBe("invalid");
+    if (latest.state === "invalid") {
+      expect(latest.code).toBe("ledger.invalid-verdict");
+      expect(latest.detail).toMatch(/Bogus/);
+    }
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(result.issues.some((i) => i.code === "gate.apply.invalid-verdict")).toBe(true);
+    expect(result.verdict).toBeUndefined();
+  });
+
+  it("silent direction: one well-formed section, newest of several entries governs", () => {
+    const root = tempProject();
+    activeBundle(root);
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", { outcome: "fail" });
+    const latest = readLatestReviewVerdict(root, "C-GATE");
+    expect(latest.state).toBe("present");
+    if (latest.state === "present") {
+      expect(latest.verdict.outcome).toBe("fail");
+    }
+    // fail is a recorded verdict — apply permits under D11 (any recorded outcome).
+    expect(evaluateApplyGate(root, "C-GATE").decision).toBe("permit");
+    expect(evaluateApplyGate(root, "C-GATE").verdict?.outcome).toBe("fail");
+  });
+
+  it("silent direction: no Verdicts section is absence, not invalid", () => {
+    const root = tempProject();
+    activeBundle(root);
+    const latest = readLatestReviewVerdict(root, "C-GATE");
+    expect(latest.state).toBe("absent");
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(result.issues.some((i) => i.code === "gate.apply.no-verdict")).toBe(true);
+    expect(result.issues.some((i) => i.code === "gate.apply.invalid-verdict")).toBe(false);
+  });
+
+  it("duplicate Decisions sections: not a permit; reason reaches readPermittingDecision", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    writeFileSync(
+      path.join(bundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-GATE>`
+        + `<Decisions><Decision gate="apply" decision="permit" /></Decisions>`
+        + `<Decisions><Decision gate="apply" decision="refuse" /></Decisions>`
+        + `</C-GATE></NgraceRunLedger>`,
+    );
+    const decisions = readGateDecisions(root, "C-GATE");
+    expect(decisions.state).toBe("invalid");
+    if (decisions.state === "invalid") {
+      expect(decisions.code).toBe("ledger.invalid-decision");
+      expect(decisions.detail).toMatch(/duplicate/i);
+    }
+    const permit = readPermittingDecision(root, "C-GATE", "apply");
+    expect(permit.state).toBe("invalid");
+    if (permit.state === "invalid") {
+      expect(permit.code).toBe("ledger.invalid-decision");
+      expect(permit.detail).toMatch(/duplicate/i);
+    }
   });
 });
 

@@ -12,7 +12,7 @@ import { skillRef } from "./artifact/types";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./artifact/projections";
 import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope } from "./artifact/scope";
 import { readGraceXmlArtifact } from "./artifact/xml";
-import { hasPermittingDecision } from "./gates/ledger";
+import { readPermittingDecision } from "./gates/ledger";
 import { collectModuleHealth } from "./query/health";
 import { loadGraceArtifactIndex } from "./query/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -31,6 +31,15 @@ export type ChangeBundleStatus = {
   epochCount?: number;
   /** Tasks named in plan.xml ImplementationPlan, when present. */
   taskCount?: number;
+  /**
+   * A29.9 / A32.1: apply Decision read for archived applied bundles.
+   * Invalid sections surface code/detail rather than collapsing to a bare false.
+   */
+  applyGateRecord?: {
+    status: "permit" | "absent" | "invalid";
+    code?: string;
+    detail?: string;
+  };
 };
 
 /** neo-grace status result for text or JSON output. */
@@ -134,13 +143,25 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       baselineFailures: bundleLintIssues.filter((issue) => /^assertion\.(?:Must|command-not-evaluated)/.test(issue.code)).length,
     });
 
-    // A29.9: applied without a permitting apply Decision is a status finding, never gate.* from lint (D14).
-    if (
-      location === "archive"
-      && (specStatus === "applied" || planStatus === "applied")
-      && !hasPermittingDecision(root, changeId, "apply")
-    ) {
-      derivedStates.push("applied-without-gate-record");
+    // A29.9 / A32.1: applied without a permitting apply Decision is a status finding (never gate.* from lint).
+    // Invalid Decisions section is not a permit — reason reaches the report, not a bare false.
+    let applyGateRecord: ChangeBundleStatus["applyGateRecord"];
+    if (location === "archive" && (specStatus === "applied" || planStatus === "applied")) {
+      const permit = readPermittingDecision(root, changeId, "apply");
+      if (permit.state === "permit") {
+        applyGateRecord = { status: "permit" };
+      } else if (permit.state === "invalid") {
+        applyGateRecord = {
+          status: "invalid",
+          code: permit.code,
+          detail: permit.detail,
+        };
+        derivedStates.push("applied-without-gate-record");
+        derivedStates.push(`gate-record-invalid:${permit.code}`);
+      } else {
+        applyGateRecord = { status: "absent" };
+        derivedStates.push("applied-without-gate-record");
+      }
     }
 
     const epochCount = existsSync(ledgerFile) ? countLedgerEpochs(ledgerFile) : undefined;
@@ -155,6 +176,7 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       path: relativeBundlePath,
       epochCount,
       taskCount,
+      applyGateRecord,
     } satisfies ChangeBundleStatus;
   });
 }
