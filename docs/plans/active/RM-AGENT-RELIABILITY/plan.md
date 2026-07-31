@@ -4048,6 +4048,118 @@ the highest-value item on Phase 6's list, and it needs a second axis.** Not only
 restart, regenerate — but *plurality*: two tasks, two workers, two epochs. Every defect in this phase
 lived in one of those two axes, and the entire 115-test suite lives at the origin of both.
 
+### A23 — 2026-07-31 · Fourth Phase 4 gate: the state is right and the attribution is not
+
+Measured at `1216e00`. **Corrections 43 and 44 are fixed**, re-verified by driving the CLI: an unrelated
+`resume --task T-002` leaves `State: paused-pending-approval`, and after `T-002`'s terminal closes the
+range and the epoch folds, both `run.xml` and `cursor show` still report it.
+
+The room fix is the right one. `deriveStateFromEvents` (`:215`) now keys unresolved escalations by task,
+`resume` deletes only its own key, and non-resolvers update `lastNonSticky` again — so the swallow the
+previous shape introduced is gone as a consequence of the design rather than as another patch. The
+mutation table's two zero rows (M4, M5) were reported **as findings rather than presented as passes**,
+which is the honest form and the first time on this track a zero row has been argued rather than
+avoided.
+
+Two corrections follow, and one decision that is not the executor's.
+
+#### A23.1 Correction 45 — the position pairs the right state with the wrong task
+
+`cursor show`, on a bundle where `T-001` is escalated and `T-002` has just terminated successfully:
+
+```
+State: paused-pending-approval
+Task: T-002
+```
+
+State is now aggregated across tasks (correction 43's fix). `task` is not — it is still last-event-wins
+(`:694`, `lastEvent?.task ?? lastTaskFromLedger(bundlePath)`). So the pair asserts that **`T-002` is
+awaiting a replan decision**, which is false: `T-002` is finished, and the task that owes a decision is
+not named anywhere in the position.
+
+This is worse than what it replaced, and the direction matters. Before correction 43 the state was
+wrongly cleared — obviously wrong, and cheap to disbelieve. Now the state is right, which makes the
+whole line credible, and the credible line names the wrong task. A confident false statement about a
+*named* task is precisely §15's failure.
+
+It is also the half of A22.3's room that aggregation cannot close. A single `task` slot cannot represent
+"`T-001` blocked, `T-002` done"; there is no value that makes the pair true.
+
+**Fix, and it should be the field rather than a heuristic.** `CursorPosition` gains the escalated task
+set — `escalatedTasks: string[]`, empty when none — and `task` is drawn from it when it is non-empty so
+the pair stops lying. Phase 5's gate is the known consumer and it needs *which* tasks are blocked, not
+merely that some are; deriving it there from the ledger a second time would duplicate the rule this
+phase owns. This is a `CursorPosition` widening, so it carries A5.4's drop-site inventory —
+`formatCursorPosition`, `writeCursorFile`, the JSON output, and the parse side of `derivePosition` at
+minimum.
+
+#### A23.2 Correction 46 — approval grants zero attempts, and the escalation message contradicts itself
+
+`resume` clears the escalation state and leaves the attempt count untouched. `countTaskAttemptEvents`
+(`:899`) counts every `attempt` event for the task over all history, so the first failure after an
+approval re-escalates immediately:
+
+```
+--- approval: resume T-001 ---
+State: in-progress
+--- one more failure after approval ---
+Budget exhausted for T-001 after 2 attempts — paused-pending-approval (replan decision owed; …)
+Signatures (3):
+  1. test: a
+  2. test: b
+  3. test: c
+State: paused-pending-approval
+```
+
+Two defects in that output.
+
+**The message contradicts itself.** It says *"after 2 attempts"* — `formatEscalationMessage` (`:1372`)
+interpolates the constant `FIX_ATTEMPT_BUDGET` rather than the count that actually triggered — and then
+lists three signatures immediately below. One of those numbers is wrong on its face, and this is the
+output AC-ESCALATION requires be shown verbatim to a human deciding what to do. Report the measured
+`attemptCount`; the constant is what the budget *is*, not what happened.
+
+**Approval is worth nothing.** Resolving an escalation returns the task to `in-progress` with its budget
+already spent, so the human's decision buys exactly zero further attempts and the next failure escalates
+again. The resolver exists to unblock, and it does not.
+
+#### A23.3 Decision required — what a resolved escalation does to the count
+
+Not the executor's to take (§12.5), because it touches D9 directly.
+
+The counter must stay dumb: no condition on signature, outcome or content. But *which events it counts*
+is a separate question from whether it inspects them, and A19.1 already established that this phase
+answers budget questions on the **recording** side rather than inside the counter.
+
+**Recommend: count attempts since the task's last resolution event.** A `resume` that clears an
+escalation is a marker; the counter counts `attempt` events for that task with a higher id. That keeps
+the counter a count — it still inspects nothing — while making approval mean "two more attempts", which
+is the only reading under which escalation is a pause rather than a slower abort.
+
+It also fixes the message for free: the count reported is the count in the current window, and
+`collectFailureSignatures` (`:1361`) windows the same way, so the escalation surfaces the two signatures
+from *this* round rather than the full history. That is what "both signatures" in AC-ESCALATION always
+meant.
+
+The alternative — approval resets nothing, and a re-escalation is the correct signal that the task needs
+replanning rather than another attempt — is defensible, but then `resume` is not a resolver and the plan
+should say the resolution is a replan, not a resume. Do not leave it as it is: the current behaviour is
+the first reading's mechanism with the second reading's effect, and nothing records which was intended.
+
+#### A23.4 Four rounds, and what is actually left
+
+Every correction in this phase after the first round has been found by leaving the origin of A22.3's two
+axes, and each round's fix has been correct for the case reported and silent about its neighbour: 41
+closed "any event", 43 closed "any task's resume", 44 closed "the fold", 45 is "the task field", 46 is
+"the count". Five doors, and the room was named at 43.
+
+The pattern to carry into Phase 6 is not that the executor missed them — the fixes have been clean and
+the audits honest. It is that **a review that reports one door at a time produces one fix at a time.**
+A22.3 named the room and the next round still fixed only the two doors it was handed, because those were
+the two with reproductions attached. The mechanized reviewer should be built to enumerate the room:
+given a fact stored per task, list every read of it that is not per task. That is a query over the code,
+it is deterministic, and it would have produced 43, 44 and 45 in one pass from the same starting point.
+
 ---
 
 ## 15. Final instruction to the executor
