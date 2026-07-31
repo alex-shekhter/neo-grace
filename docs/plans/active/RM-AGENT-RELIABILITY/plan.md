@@ -857,6 +857,11 @@ kinds being absent, so older bundles are unaffected.
 > inheritances into concrete steps, and records four ratified conclusions that stage 2 builds to.
 > **A29 is normative where it disagrees with §5.3, §5.4 and §5.5.** A17.3 still binds: the bundle
 > carries a `spec.xml` (draft, awaiting approval) before plan and execution.
+>
+> **A30 accepts A29 and corrects one thing in it — read it after A29 and before building.** Correction
+> 61: gate decisions and review verdicts are bundle-scoped, and the run event stream is task- and
+> epoch-scoped, so they live in a non-`Epoch-N` section of `run-ledger.xml`. A30 also sets standing
+> rule 10 and retires `NON_POSITION_KINDS` from this phase's scope.
 
 ## 5.1 Objective
 
@@ -4955,6 +4960,127 @@ Proposed change id: **`C-GATE-SURFACE`** (precedents: `C-ABSENCE-VALUE`, `C-RUN-
 `C-ATTEMPT-LOG`). Stage 1 authors `.ngrace/changes/active/C-GATE-SURFACE/spec.xml` with
 `status="draft"`. Maintainer approves the spec; then `plan.xml` is authored before any production
 code (A17.3, `grammar.ts:1090–1091`).
+
+### A30 — 2026-07-31 · A29 accepted, and the one place its recording home does not survive contact
+
+**Measured at `ea8d6af`** — branch `feat/phase-5-rederive`, one commit on `6389e3a`. Verified here
+rather than transcribed from the stage-1 report: `validate:ci` green, `ngrace lint --path .` 0 errors
+with the draft bundle admitted, the `plan.md` diff append-only with exactly two modifications (§2's
+board row, the Phase 5 banner) and A1–A28 untouched.
+
+**A29 is accepted, and corrections 49–60 stand.** Spot-checked and holding: `KNOWN_KIND_STATE`
+(`grace-cursor.ts:178–187`), `SUPPORTED_KEYS` (`lint/config.ts:7–13`), the `needs-plan` derivation
+(`grace-status.ts:199`), the approved-spec precondition (`grammar.ts:1090–1091`),
+`SPEC_REQUIRED_SECTIONS` carrying no Assumptions row (`grammar.ts:31–39`), and the absence of
+`src/gates/` and `src/lint/core.test.ts`. A27.3's three inheritances arrived as steps 5.5.9–5.5.11
+rather than as acknowledgements, which is what A27.3 asked for.
+
+**One correction, and it lands on the part both the re-derivation and the review that commissioned it
+signed off on.** Conclusions 1 and 2 chose a home for two new records without asking what scope the
+existing record has.
+
+#### A30.1 Correction 61 — gate decisions and review verdicts are bundle-scoped; the run event stream is not
+
+Conclusions 1 and 2 record `gate-decision` and `review-verdict` as loose run events folded into an
+epoch. Approve, apply, archive and a review verdict are facts about **the bundle**. Loose events are
+task-scoped and epoch-scoped by construction:
+
+| Site | What it requires |
+|---|---|
+| `EVENT_FILENAME = /^(\d+)-(T-[0-9]{3})-(.+)\.xml$/` (`grace-cursor.ts:359`) | The filename's middle segment is literally `T-NNN`. `listLooseEvents`' loop `continue`s on a non-match, so a bundle-scoped file is **not rejected — it is invisible** |
+| `advanceCursor` (`:490`) | Throws unless `task` matches `ANCHOR_PATTERNS.task` |
+| `collectAllocations` (`:1622`) | Reads allocations from **loose** events only; a folded epoch's allocations are gone from that set |
+| `foldEpoch` (`:580`) | Throws `Cannot fold …: no Allocation found` when the loose set has no `opened` event |
+| `validateEventsAgainstAllocations` (`:1627`) | Every event id must fall inside a live allocation |
+
+A verdict is written at apply time — after the wave folded, when `run/` is empty. It therefore lands
+in a bundle with no open epoch, and the chain closes on itself:
+
+> apply gate records its decision → `run/` is non-empty → **the archive gate this phase adds
+> (`AC-ARCHIVE-OPEN-EPOCH`) refuses** → the only way to clear `run/` is a fold → the fold refuses,
+> no allocation → the bundle cannot archive.
+
+The apply gate's own permit is what blocks archive. That is a confident false error blocking correct
+work, which §0.7.3 ranks as the worst outcome available in this codebase, and the phase would have
+shipped it as a feature interaction between two of its own new requirements.
+
+The escape an implementer would reach for — naming a synthetic `T-000` so the filename matches — is
+worse than the deadlock. It feeds a task that does not exist into `derivePosition`'s preferred-task
+selection and into every task-keyed read, and it is silent.
+
+**A29.3's inventory reached the right table and stopped one column short.** It checked that a verdict
+is not `terminal` and would not satisfy a range's terminal requirement. It did not ask whether an
+allocation exists at all, or whether the discovery path admits the filename. Standing rule 1 says
+inventory the drop sites before widening a record; this adds that the **discovery** path is a drop
+site.
+
+#### A30.2 The decision — bundle-scoped records live in `run-ledger.xml`, outside `Epoch-N`
+
+A `<Verdicts>` / `<Decisions>` section under the change wrapper, sibling to `Epoch-N`, written
+directly by the gate and verdict surfaces with the fold's write-then-verify ordering (D3: write,
+re-read, verify; never delete first — there is nothing to delete here, and the ordering still binds
+the write). `validateRunLedgerArtifact` learns the section in the same phase (invariant 4).
+
+Why this and not the event stream: it needs no task, no allocation and no fold, `run/` keeps meaning
+exactly what the archive gate says it means — the open-epoch working set — and D1 already names the
+ledger as the record of what cannot be re-derived. A gate decision is the definition of that.
+
+#### A30.3 Rejected — a separate companion artifact
+
+`gate-log.xml` or `review.xml` registered as a change companion tag is cleaner in isolation and was
+rejected: it splits the durable run record across two files, which is A25's *"one position, two
+authorities"* rebuilt deliberately. One record, two sections.
+
+#### A30.4 What this simplifies, which is the tell that it is the right shape
+
+`NON_POSITION_KINDS` is **no longer required**. A29.3 introduced it to stop a verdict from overwriting
+`complete` with `in-progress` through `deriveStateFromEvents`. A record that is not an event in the
+stream cannot move the position at all, so the guard has nothing to guard. `KNOWN_KIND_STATE` stays
+exhaustive and untouched, and correction 34's *"an unrecognized kind does not silently mean
+in-progress"* keeps its current meaning.
+
+Stage 2 does not add the widening and then defend it. It does not add it.
+
+#### A30.5 What changes in A29, precisely
+
+| A29 item | Change |
+|---|---|
+| Conclusion 1 | Decision recorded in the ledger's `Decisions` section, not as a `gate-decision` loose event |
+| Conclusion 2 | Verdict recorded in the ledger's `Verdicts` section; drop `NON_POSITION_KINDS` and the verdict-after-terminal negative with it |
+| Step 5.5.5 | Verify becomes: a verdict recorded after the epoch folded leaves cursor state `complete`, leaves `run/` empty, and does not block archive |
+| Step 5.5.6 | Same home; the machine-readable report and the missing-record finding are unchanged |
+| Step 5.5.10 | Add the discriminating negative: a bundle with a recorded apply decision and an empty `run/` archives cleanly. Gate records must not read as an open epoch |
+| §5.5's ordering | The ledger section and its validator land before any gate records into it |
+| `AC-VERDICT-RECORD`, `AC-GATE-DECISION-RECORDED`, `AC-ARCHIVE-OPEN-EPOCH` | Restated in the bundle spec against this home |
+| Spec `Assumption` 3 | Retired — it deferred this question to build time; it is answered here |
+
+Everything else in A29 stands, including all four conclusions' substance. Only the home moves.
+
+#### A30.6 Standing rule 10 — a new record states its scope before it is given a home
+
+**Before choosing where a record lives, state what it is scoped to — task, epoch, bundle, or project —
+and check that the chosen home's discovery path, identity rules and lifecycle admit that scope.** A
+home is not a storage decision; it inherits every invariant the existing record enforces.
+
+The failure this rule catches is not a wrong answer, it is an unasked question. Both A29 and the
+review that commissioned it reasoned about the ledger as *the durable record* and never as *a
+task-keyed, epoch-partitioned, fold-gated stream* — which is what it is at the level where records
+enter it.
+
+Pairs with standing rule 1: rule 1 inventories the sites that read a record, rule 10 inventories the
+constraints that admit it.
+
+#### A30.7 How this was found, as input to Phase 6's build order
+
+This is A27.2's **counterpart query** at record scope: two enumerable lists — what the discovery and
+fold paths require of an entry, and what the two new entries provide — joined for the first time. No
+execution, no fixture, no probe; the mismatch is visible in five citations. It reinforces A27.1's
+corrected reading that the static half of a mechanized reviewer is worth more than A20.6 implied, and
+it extends the query's shape: **the strongest form joins a thing this phase adds against a constraint
+this phase also adds**, which no pre-existing test can cover by construction.
+
+Phase 6's counterpart query should therefore enumerate, for every new persisted element: its scope,
+its discovery path, and every gate or validator introduced in the same change that will read it.
 
 ---
 

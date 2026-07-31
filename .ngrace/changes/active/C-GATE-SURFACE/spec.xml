@@ -36,6 +36,13 @@
       A27.3 hands three concrete obligations: refuse applied without a plan (A17.2), refuse archive
       with an open epoch (A10.10 §1), refuse further attempts on an escalated task (A21.1 / A22.3)
       reading escalatedTasks (grace-cursor.ts:137).
+
+      Correction 61 (A30.1): gate decisions and review verdicts are bundle-scoped, and the run event
+      stream is task- and epoch-scoped. EVENT_FILENAME (grace-cursor.ts:359) admits only T-NNN in the
+      task segment and listLooseEvents skips non-matches silently; collectAllocations reads
+      allocations from loose events only, so a verdict written after the wave folded cannot fold
+      (grace-cursor.ts:580) — and while it sits in run/, this change's own archive gate refuses. The
+      records therefore live in a non-Epoch-N section of run-ledger.xml (A30.2).
     </Problem>
     <Goals>
       <Goal>
@@ -49,14 +56,16 @@
         a property of a mechanism (anti-pattern 9).
       </Goal>
       <Goal>
-        Gate decisions are recorded as durable ledger events (gate-decision). A bundle that reached
-        applied or archive without a matching record is a status/gate finding, never a gate.* code
-        from runLint (D14, A29.9, A17.2 family).
+        Gate decisions are recorded durably in a non-Epoch-N Decisions section of run-ledger.xml,
+        written directly with write-then-verify ordering (A30.2, D3). A bundle that reached applied
+        or archive without a matching record is a status/gate finding, never a gate.* code from
+        runLint (D14, A29.9, A17.2 family).
       </Goal>
       <Goal>
-        Review-verdict ledger event and validator ship in this change; Phase 6 produces content.
-        NON_POSITION_KINDS (or equivalent) so a verdict does not move cursor state — discriminating
-        negative: verdict after terminal leaves state complete (A29.3, conclusion 2, invariant 4).
+        Review-verdict record and validator ship in this change, in a non-Epoch-N Verdicts section of
+        run-ledger.xml; Phase 6 produces content (A30.2, conclusion 2, invariant 4). Because these
+        records are not run events, they cannot move cursor position: KNOWN_KIND_STATE is untouched
+        and NON_POSITION_KINDS is not built (A30.4).
       </Goal>
       <Goal>
         Typed Clarification element with target anchor under change-spec and change-plan grammar,
@@ -91,7 +100,9 @@
       <Constraint>Consume needs-plan (grace-status.ts:199) and escalatedTasks / listUnresolvedEscalatedTasks; do not fork second derivations (standing rules 1 and 9, A29.10).</Constraint>
       <Constraint>No second absence vocabulary. Reuse AbsenceValue; host-capability-missing is a named reason, not a parallel enum (A29.6, anti-pattern 5).</Constraint>
       <Constraint>Clarifications are schema elements with validators in the same change (invariant 4). No regex over prose (anti-pattern 3).</Constraint>
-      <Constraint>Drop-site inventory before widening KNOWN_KIND_STATE or adding NON_POSITION_KINDS (A5.4, A29.3).</Constraint>
+      <Constraint>Every new record states its scope (task / epoch / bundle / project) and is checked against the discovery, identity and lifecycle rules of the home it is given, before it is given one (standing rule 10, A30.6). Drop-site inventory still precedes any widening of an existing record (A5.4).</Constraint>
+      <Constraint>Bundle-scoped records never enter run/. run/ stays the open-epoch working set the archive gate reads (A30.1, A30.2).</Constraint>
+      <Constraint>run-ledger.xml gains a second writer for the new sections; Epoch-N append stays fold's alone, and the write-then-verify ordering binds both (D3, A30.2).</Constraint>
       <Constraint>Additive only. Projects without gates, verdicts, or clarifications keep validating where those constructs are absent (invariant 5) — except transitions that this change newly refuses.</Constraint>
       <Constraint>No new runtime dependencies. No Phase 6+ constructs: no detached reviewer automation, no confidence field, no plan-quality signal.</Constraint>
       <Constraint>skills/ngrace/* is source of truth; plugins/ngrace/skills/ngrace/* stays byte-identical in the same commit (invariant 1, §12.2).</Constraint>
@@ -122,16 +133,19 @@
         directions per A7.2: gate evaluation still emits gate.* on its own surface.
       </AC-GATE-D14-BOUNDARY>
       <AC-GATE-DECISION-RECORDED>
-        Correction 56 (A29.9). Every evaluation appends a durable gate-decision event (ledger∪loose).
+        Corrections 56 and 61 (A29.9, A30.2). Every evaluation appends a durable decision to the
+        Decisions section of run-ledger.xml, outside every Epoch-N, written then re-read and verified.
         Report shape exposes gate, decision, and per-requirement results without requiring prose
         parse. Status (or gate) surfaces applied/archive without a matching record; lint does not.
+        Discriminating negative: recording a decision leaves run/ untouched.
       </AC-GATE-DECISION-RECORDED>
       <AC-VERDICT-RECORD>
-        Correction 50 (A29.3, conclusion 2). review-verdict event can be written with outcomes
-        including unable-to-determine and host-capability-missing; fold preserves payload; validator
-        makes the grammar load-bearing (invariant 4). Discriminating negative: a review-verdict
-        after terminal leaves cursor state complete (NON_POSITION_KINDS inventory, A5.4). Phase 6
-        content production is out of scope.
+        Corrections 50 and 61 (A29.3, A30.1, A30.2, conclusion 2). A review verdict can be recorded
+        in the Verdicts section of run-ledger.xml with outcomes including unable-to-determine and
+        host-capability-missing; validateRunLedgerArtifact makes the grammar load-bearing
+        (invariant 4). Discriminating negative: a verdict recorded after the epoch folded leaves
+        cursor state complete, leaves run/ empty, and does not block archive. KNOWN_KIND_STATE is
+        unchanged by this AC (A30.4). Phase 6 content production is out of scope.
       </AC-VERDICT-RECORD>
       <AC-TYPED-CLARIFICATION>
         Correction 51 (A29.4, conclusion 3). Clarification is a schema element with target= anchor
@@ -154,8 +168,11 @@
         A17.3's manual discipline once this gate ships.
       </AC-APPLY-NEEDS-PLAN>
       <AC-ARCHIVE-OPEN-EPOCH>
-        A10.10 §1 / A29.10. Archive refuses when listLooseEvents is non-empty; permits after fold
-        empties run/. Escalated unfoldable epoch remains refused (A18.5 §1 caller).
+        A10.10 §1 / A29.10 / A30.5. Archive refuses when listLooseEvents is non-empty; permits after
+        fold empties run/. Escalated unfoldable epoch remains refused (A18.5 §1 caller).
+        Discriminating negative: a bundle carrying a recorded apply decision and a recorded verdict,
+        with run/ empty, archives cleanly — this change's own records must never read as an open
+        epoch (A30.1's deadlock).
       </AC-ARCHIVE-OPEN-EPOCH>
       <AC-ESCALATED-ATTEMPT>
         A21.1 / A22.3 / A29.10. cursor attempt on a task in escalatedTasks refuses via gate
@@ -210,8 +227,10 @@
         stops under §12.5 rather than silently redesigning.
       </Assumption>
       <Assumption>
-        Ledger remains the home for verdict and gate-decision events unless the A5.4 inventory at
-        build time contradicts it — in which case stage 2 reports and stops (A29.3).
+        The ledger's non-Epoch-N sections are the home for verdicts and gate decisions, settled at
+        review time by A30.2 rather than deferred to the build. The earlier assumption — that the
+        event stream would hold them unless a build-time inventory objected — was contradicted before
+        stage 2 began (A30.1).
       </Assumption>
     </Assumptions>
   </C-GATE-SURFACE>
