@@ -3661,6 +3661,189 @@ dropped payload, then build everything else. Any other order writes evidence int
 With A18's six corrections and these three answers, Phase 4's bundle may be written:
 `C-ATTEMPT-LOG`, carrying `spec.xml` **and** a `plan.xml` authored before execution per A17.3.
 
+### A20 — 2026-07-31 · Phase 4 review gate: the budget does not survive a fold
+
+Measured at `c4199b1`. The report is accurate about what it built, the five audits are present in full,
+and standing rules 6 and 8 held again — every audit named its artifact. **Four corrections follow, and
+the first two mean the phase's two headline mechanisms do not work.** Both were found by running the
+code, not by reading it; neither is visible in the 685-test suite.
+
+#### A20.1 Correction 37 — the fix budget resets to zero on every fold
+
+`recordAttempt` counts attempts from **loose events only** (`src/grace-cursor.ts:887-889`):
+
+```js
+const loose = listLooseEvents(bundlePath);
+const attemptCount = countTaskAttemptEvents(loose, task);
+const signatures = collectFailureSignatures(loose, task);
+```
+
+D3's fold deletes every loose file. So the count — and the signature list — go to zero at each epoch
+boundary, and the escalation the phase exists to produce never fires across one.
+
+Proven, not argued. A worker records a failed attempt on `T-001`, the wave quiesces with a **different**
+task's `terminal` event satisfying the allocation (`validateEventsAgainstAllocations` checks the range,
+not the task), the epoch folds, and `T-001` fails again:
+
+```
+attempt 1 -> count=1 escalated=false
+folded epoch 1, events=3, loose now=0
+ledger still holds T-001 attempts: 1
+attempt 2 -> count=1 escalated=false
+BUDGET RESET BY FOLD
+```
+
+Note line 3: **the ledger has the attempt.** Correction 31's fix worked — the payload is durable. The
+counter simply never reads it. D9's budget of two is unbounded in practice, and the churn bound this
+phase delivers is decorative.
+
+This is anti-pattern 7 in a new place. D1 says the cursor is a cache and the ledger is truth; here a
+*policy decision* is computed from the ephemeral half. Phase 3 already established the fix precedent and
+it is four lines away: `nextEventId` (`:1442`) takes `max(looseMax + 1, ledgerMax + 1)` via
+`maxLedgerEventId` (`:1449`) for exactly this reason. `listLedgerEvents` (`:1043`) already exists and is
+already used by the tests. The counter must read both, and so must `collectFailureSignatures` (`:1125`)
+— otherwise a post-fold escalation surfaces one signature and silently omits the other, which is the
+"both signatures" criterion failing quietly.
+
+**Why the suite missed it:** every budget test lives inside a single open epoch. The mutation table's
+three budget rows (`FIX_ATTEMPT_BUDGET=3`, clever counter, escalation kind) all mutate code that only
+ever runs pre-fold, so all three score non-zero while the defect sits untouched. A mutation table with
+no zero rows is necessary and not sufficient — §0.7.2 measures whether a test notices a change, not
+whether the tests reach the state where the change matters.
+
+#### A20.2 Correction 38 — the fold's verify compares the writer's output against the writer's own transform
+
+`AC-FOLD-PRESERVES-PAYLOAD` requires that a fold whose serializer drops a field **fails its own verify
+and leaves the loose files on disk**. What shipped satisfies that for an injected switch and not for a
+real defect.
+
+Verify computes both sides through the same function (`:470-471`):
+
+```js
+const expected = payloadFingerprint(eventAttributesForLedger(event), event.children);
+const actual   = payloadFingerprint(writtenEvent.attributes, writtenEvent.children);
+```
+
+`eventAttributesForLedger` (`:1275`) is also what `buildEpochNode` writes with. So a drop introduced
+*inside that function* appears identically on both sides, the fingerprints match, verify passes, and the
+delete proceeds.
+
+Demonstrated by mutation — one line added to `eventAttributesForLedger`:
+
+```js
+delete attributes.outcome;
+```
+
+Result: **2 tests fail, and neither is the verify.** Both failures are content assertions reading
+`attributes.outcome` off the folded ledger (`grace-cursor.test.ts:516`, `:581`) — `expect(received).toBe("pass")`,
+`Received: undefined`. The fold reported success and deleted the loose files exactly as it did at
+`235f0f8`.
+
+The `dropPayload` option (`buildEpochNode`'s `options.dropPayload`) bypasses `eventAttributesForLedger`
+entirely, which is why the injected test passes while the real path is unguarded.
+
+The general form is worth stating because it will recur: **a self-check that derives its expectation
+from the producer verifies only that the producer is deterministic.** The expected side must come from
+the loose event as parsed from disk, with the one legitimate transform (`graceVersion` removal, `id`/
+`task`/`kind` normalization) applied explicitly and *tested in its own right*, so a change to the
+transform is a change to something with its own assertion rather than a silent redefinition of correct.
+
+Today the content tests happen to cover it because `outcome` is this phase's field. **A field added in
+Phase 5 gets no such test, and verify is the only thing standing between it and the delete.**
+
+#### A20.3 Correction 39 — flake classification calls the common fix sequence a flake
+
+`classifyFlakeFromEvidence` (`:987`) decides "no intervening write" by comparing changed-file **path
+sets** (`:1007`):
+
+```js
+earlierSet.size === laterSet.size && [...earlierSet].every((file) => laterSet.has(file))
+```
+
+`listRepositoryChangedFiles` runs `git status --porcelain=v1` and collects paths. Editing a file that is
+**already in the changed set** — the normal case during a task, since the task has been editing that
+file all along — leaves the set byte-identical. Fail, fix `src/foo.ts`, pass, and the verdict is
+`flaky` (`:1010`).
+
+That inverts D8: a flake is "classified rather than pooled into the churn trend", so a misclassified
+retry is *removed* from the churn measurement. The most common real repair sequence would be
+systematically deleted from the number this track exists to measure. Correcting one signal by corrupting
+another is worse than not classifying at all.
+
+Path-set equality cannot answer the question. Either record content-sensitive evidence (a digest per
+changed file), or return `unable-to-determine` when the sets match — because identical paths genuinely
+do not distinguish "nothing was written" from "the same file was written again", and §0.7's whole
+posture is that an honest absence beats a confident guess. Recommend the digest: it is the same
+snapshot, one field wider, and it makes the flaky verdict mean what it says.
+
+#### A20.4 Correction 40 — the skill instructs a recording with no way to perform it
+
+`skills/ngrace/ngrace-execute/SKILL.md` step 5 now tells the executing agent to *"record every
+verification cycle as an attempt event"* and to *"record verification-unavailable"*. There is no
+command that does either. `recordAttempt` and `recordVerificationUnavailable` are library exports;
+`cursorCommand.subCommands` still holds the same six from Phase 3 — `show`, `regenerate`, `advance`,
+`pause`, `resume`, `fold`.
+
+Step 4 directly above names `ngrace cursor advance` and `ngrace cursor fold`. Step 5 names nothing,
+because nothing exists.
+
+Worse, the surface that *is* reachable produces a malformed attempt. `ngrace cursor advance --kind
+attempt` writes:
+
+```xml
+<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="attempt" />
+```
+
+No `outcome`, no `WriteEvidence`, no signature — and `countTaskAttemptEvents` filters on
+`kind === "attempt"` alone, so **it counts against the budget** while `recordAttempt` would have
+rejected it (a failed attempt without a signature throws at `:864-869`). The one path an agent can
+actually take is the one that corrupts the record.
+
+The executor disclosed the gap as an open question and shipped the instruction anyway. That is the
+decision to revisit: on this track, **instruction without mechanism is the failure mode, not the
+fallback.** A15.4 measured that mechanized checks changed behaviour where prose did not, and A17.2
+found that even a correct signal does nothing until it blocks. A skill step with no command is the
+weakest member of that family.
+
+Either add `ngrace cursor attempt` (`--outcome`, `--signature-kind`, `--signature-key`) and
+`ngrace cursor verification-unavailable --reason`, following the `advance` precedent A18.7 already
+ratified, or remove step 5 until the surface exists. **Do not ship the text without the command.**
+Recommend adding the subcommands — the library functions are written and tested; this is wiring, and
+leaving it undone strands the whole phase behind an API no agent can call.
+
+#### A20.5 Standing rule 9 — accounting that governs a decision reads the durable record
+
+Corrections 37 and its signature half are one rule, not two incidents:
+
+> **Any count, budget, or accumulation that a policy decision depends on is computed from the durable
+> record — the ledger — and not from the ephemeral working set, even when the ephemeral set is more
+> convenient and currently complete.**
+
+The cache-versus-truth boundary (D1) is usually discussed for *reporting*. Correction 37 is the same
+boundary for *deciding*, where being wrong does not merely misreport — it changes what the system does.
+Anti-pattern 7 says the cursor is never authoritative; rule 9 says the same of anything derived only
+from loose events.
+
+The test obligation that comes with it: **every accounting test must have a folded twin.** A budget
+test inside one epoch measures nothing about a budget, since epochs close.
+
+#### A20.6 What this round measured
+
+Four rounds on Phase 3 produced a 9-of-12 split toward process compliance (A15.4). This round is the
+opposite and worth recording: **all four findings are behavioural, none was machine-detectable, and two
+required executing code that no test executes.** The process compliance was clean on the first pass —
+the audits were complete, the artifacts were named, the inventory was re-measured, the drop-site table
+was honest, and the one weakened pin (the delete-surface line number) was disclosed and still asserts
+`toHaveLength(2)`.
+
+That is what the standing rules bought, and it is the second controlled data point after rule 8: the
+mechanized-and-enumerable half of review is now reliably clean, and the remaining defects are exactly
+the ones a schema cannot catch. **A15.4's recommendation for Phase 6 stands but its ceiling is now
+visible** — a report schema and a re-execution harness would have caught none of corrections 37–40.
+What would have caught 37 and 38 is a *differential* harness: run the mechanism across the state
+transition it is specified to survive (fold, restart, regenerate) rather than within one state. Phase 6
+should treat that as the first-class capability and the schema as scaffolding for it.
+
 ---
 
 ## 15. Final instruction to the executor
