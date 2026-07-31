@@ -12,11 +12,22 @@ import { validateNgraceProject } from "./artifact/grammar";
 import { snapshotProjectTree } from "./test-support/fixtures";
 import {
   advanceCursor,
+  classifyFlakeFromEvidence,
+  countTaskAttemptEvents,
+  cursorStateForEventKind,
+  deriveAttemptOrdinal,
+  FIX_ATTEMPT_BUDGET,
   foldEpoch,
   formatCursorPosition,
+  listLedgerEvents,
   listLooseEvents,
+  parseCursorState,
+  readAttemptPayload,
+  recordAttempt,
+  recordVerificationUnavailable,
   regenerateCursor,
   showCursor,
+  type WriteEvidenceSnapshot,
 } from "./grace-cursor";
 import { collectProjectStatus, formatStatusText } from "./grace-status";
 import { lintGraceProject } from "./lint/core";
@@ -467,14 +478,373 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
     for (const line of lines) {
       expect(line.startsWith("src/grace-cursor.ts:") || line.startsWith("src/lint/adapters/dart.ts:")).toBe(true);
     }
-    // Call sites (not imports) — A15.1 post-state is exactly these two lines.
+    // Call sites (not imports) — A15.1 post-state is exactly these two lines (line numbers re-pinned after Phase 4).
     const callSites = lines.filter((line) => /(?:unlinkSync|rmSync|rmdirSync)\s*\(/.test(line)).sort();
-    expect(callSites).toEqual(
-      [
-        "src/grace-cursor.ts:374:    unlinkSync(contained.absolutePath);",
-        "src/lint/adapters/dart.ts:206:    rmSync(temporaryDirectory, { recursive: true, force: true });",
-      ].sort(),
-    );
+    const cursorUnlink = callSites.find((line) => line.startsWith("src/grace-cursor.ts:"));
+    const dartRm = callSites.find((line) => line.startsWith("src/lint/adapters/dart.ts:"));
+    expect(cursorUnlink).toMatch(/^src\/grace-cursor\.ts:\d+:\s*unlinkSync\(contained\.absolutePath\);$/);
+    expect(dartRm).toBe("src/lint/adapters/dart.ts:206:    rmSync(temporaryDirectory, { recursive: true, force: true });");
+    expect(callSites).toHaveLength(2);
     expect(lines.some((line) => line.includes("rmdirSync"))).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 4 — attempt log, fix budget, escalation (C-ATTEMPT-LOG)
+// ---------------------------------------------------------------------------
+
+describe("fold preserves payload (AC-FOLD-PRESERVES-PAYLOAD / A18.2)", () => {
+  it("preserves outcome, FailureSignature, and WriteEvidence in the FOLDED ledger", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99, wave: "1" });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "grace-cursor.test.ts:fold" },
+      writeEvidence: { available: true, changedFiles: ["src/example.ts"] },
+    });
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+
+    const result = foldEpoch(root, "C-RUN", { wave: "1" });
+    expect(result.applied).toBe(true);
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+
+    const ledger = listLedgerEvents(bundle);
+    const attempt = ledger.find((event) => event.kind === "attempt");
+    expect(attempt).toBeDefined();
+    expect(attempt!.attributes.outcome).toBe("fail");
+    // No ordinal persisted (A18.3)
+    expect(attempt!.attributes.ordinal).toBeUndefined();
+    const payload = readAttemptPayload(attempt!);
+    expect(payload.signature).toEqual({ kind: "test-failure", key: "grace-cursor.test.ts:fold" });
+    expect(payload.writeEvidence).toEqual({ available: true, changedFiles: ["src/example.ts"] });
+
+    const text = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(text).toContain('outcome="fail"');
+    expect(text).toContain("FailureSignature");
+    expect(text).toContain("WriteEvidence");
+  });
+
+  it("injected payload drop fails verify and leaves every loose file on disk", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "drop-probe" },
+      writeEvidence: { available: true, changedFiles: [] },
+    });
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+
+    const beforeLoose = listLooseEvents(bundle).map((event) => event.file).sort();
+    expect(beforeLoose.length).toBeGreaterThan(0);
+
+    expect(() => foldEpoch(root, "C-RUN", { injectDropPayload: true })).toThrow(/payload mismatch/i);
+
+    const afterLoose = listLooseEvents(bundle).map((event) => event.file).sort();
+    expect(afterLoose).toEqual(beforeLoose);
+    // Ledger may exist from the write step, but delete must not have run.
+    expect(afterLoose.length).toBe(beforeLoose.length);
+  });
+
+  it("three-attribute events and re-fold with nothing loose still pass (A7.2 both directions)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 10 });
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "progress" });
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+    const first = foldEpoch(root, "C-RUN");
+    expect(first.applied).toBe(true);
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+    const second = foldEpoch(root, "C-RUN");
+    expect(second.eventCount).toBe(0);
+    expect(second.epoch).toBe(first.epoch);
+  });
+});
+
+describe("attempt events (AC-ATTEMPT-EVENTS / AC-THREE-VALUED-OUTCOME)", () => {
+  it("pass-first produces one attempt in the FOLDED ledger; fail-then-pass produces two", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "pass",
+      writeEvidence: { available: true, changedFiles: [] },
+    });
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+    foldEpoch(root, "C-RUN");
+    const passOnly = listLedgerEvents(bundle).filter((event) => event.kind === "attempt");
+    expect(passOnly).toHaveLength(1);
+    expect(passOnly[0]!.attributes.outcome).toBe("pass");
+
+    const root2 = createProject();
+    const bundle2 = seedBundle(root2);
+    advanceCursor(root2, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root2, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "lint", key: "x" },
+      writeEvidence: { available: true, changedFiles: ["a.ts"] },
+    });
+    recordAttempt(root2, "C-RUN", {
+      task: "T-001",
+      outcome: "pass",
+      writeEvidence: { available: true, changedFiles: ["a.ts", "b.ts"] },
+    });
+    // fail+pass hits budget on fail path only for second fail; pass does not escalate.
+    // attempt count is 2; if first was fail and second pass, no escalation (escalation only on fail path).
+    // Wait: first fail count=1, second pass count=2 but pass branch — no escalate. Need terminal for fold.
+    advanceCursor(root2, "C-RUN", { task: "T-001", kind: "terminal" });
+    foldEpoch(root2, "C-RUN");
+    const both = listLedgerEvents(bundle2).filter((event) => event.kind === "attempt");
+    expect(both).toHaveLength(2);
+    expect(both.map((event) => event.attributes.outcome).sort()).toEqual(["fail", "pass"]);
+  });
+
+  it("derived ordinal survives fold; no ordinal attribute on any event (A18.3)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    const first = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "a", key: "1" },
+      writeEvidence: { available: true, changedFiles: [] },
+    });
+    // Second fail escalates — still has attempt events.
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "b", key: "2" },
+      writeEvidence: { available: true, changedFiles: [] },
+    });
+    const loose = listLooseEvents(bundle);
+    const attempts = loose.filter((event) => event.kind === "attempt");
+    expect(deriveAttemptOrdinal(attempts, "T-001", first.eventId)).toBe(1);
+    expect(deriveAttemptOrdinal(attempts, "T-001", attempts[1]!.id)).toBe(2);
+    for (const event of loose) {
+      expect(event.attributes.ordinal).toBeUndefined();
+      expect(event.attributes.sequence).toBeUndefined();
+      expect(event.attributes.index).toBeUndefined();
+    }
+  });
+
+  it("verification-unavailable appears in FOLDED ledger and is not an attempt (A19.1)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordVerificationUnavailable(root, "C-RUN", {
+      task: "T-001",
+      absence: { verdict: "not-run", reason: "harness absent" },
+    });
+    recordVerificationUnavailable(root, "C-RUN", {
+      task: "T-001",
+      absence: { verdict: "unable-to-determine", reason: "commands skipped" },
+    });
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+    foldEpoch(root, "C-RUN");
+    const ledger = listLedgerEvents(bundle);
+    const unavailable = ledger.filter((event) => event.kind === "verification-unavailable");
+    expect(unavailable).toHaveLength(2);
+    expect(countTaskAttemptEvents(ledger, "T-001")).toBe(0);
+    expect(unavailable[0]!.attributes.verdict).toBe("not-run");
+    expect(unavailable[0]!.attributes.reason).toBe("harness absent");
+  });
+});
+
+describe("dumb counter and escalation (AC-DUMB-COUNTER / AC-ESCALATION / AC-KIND-STATE-MAP)", () => {
+  it("two failures with DIFFERENT signatures still exhaust the budget (§4.5.2 verbatim)", () => {
+    expect(FIX_ATTEMPT_BUDGET).toBe(2);
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    const first = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "suite-a" },
+      writeEvidence: { available: true, changedFiles: [] },
+    });
+    expect(first.escalated).toBe(false);
+    expect(first.attemptCount).toBe(1);
+
+    const second = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "typecheck", key: "suite-b" },
+      writeEvidence: { available: true, changedFiles: ["src/x.ts"] },
+    });
+    expect(second.escalated).toBe(true);
+    expect(second.attemptCount).toBe(2);
+    expect(second.signatures).toEqual([
+      { kind: "test-failure", key: "suite-a" },
+      { kind: "typecheck", key: "suite-b" },
+    ]);
+    expect(second.position.state).toBe("paused-pending-approval");
+    // Escalation output names both signatures and does not claim the task failed.
+    expect(second.message).toContain("suite-a");
+    expect(second.message).toContain("suite-b");
+    expect(second.message).toContain("paused-pending-approval");
+    expect(second.message).toMatch(/has not failed|decision owed/i);
+    expect(second.message).not.toMatch(/task failed/i);
+  });
+
+  it("two verification-unavailable events do NOT exhaust the budget and both survive fold", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordVerificationUnavailable(root, "C-RUN", {
+      task: "T-001",
+      absence: { verdict: "not-run", reason: "first skip" },
+    });
+    recordVerificationUnavailable(root, "C-RUN", {
+      task: "T-001",
+      absence: { verdict: "not-run", reason: "second skip" },
+    });
+    const loose = listLooseEvents(bundle);
+    expect(countTaskAttemptEvents(loose, "T-001")).toBe(0);
+    expect(showCursor(root, "C-RUN").state).not.toBe("paused-pending-approval");
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+    foldEpoch(root, "C-RUN");
+    const vu = listLedgerEvents(bundle).filter((event) => event.kind === "verification-unavailable");
+    expect(vu).toHaveLength(2);
+  });
+
+  it("dropping the cursor and re-deriving still reports paused-pending-approval (both sites)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "a", key: "1" },
+      writeEvidence: { available: true, changedFiles: [] },
+    });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "b", key: "2" },
+      writeEvidence: { available: true, changedFiles: [] },
+    });
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
+
+    // Drop the cursor cache (D1 recovery path).
+    const cursorPath = path.join(bundle, "run.xml");
+    expect(existsSync(cursorPath)).toBe(true);
+    writeFileSync(cursorPath, ""); // destroy written cursor
+    // Prefer re-derive without written cursor
+    const rederived = regenerateCursor(root, "C-RUN");
+    expect(rederived.position.state).toBe("paused-pending-approval");
+    // show without preferWrittenCursor also reads events
+    const shown = showCursor(root, "C-RUN");
+    // show uses preferWrittenCursor:true — empty/broken cursor should degrade and re-derive
+    expect(shown.state).toBe("paused-pending-approval");
+  });
+
+  it("unrecognized kind does not resolve to in-progress (correction 34)", () => {
+    expect(cursorStateForEventKind("attempt-fail")).toMatchObject({ unknown: true });
+    expect(cursorStateForEventKind("garbage")).toMatchObject({ unknown: true });
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    const position = advanceCursor(root, "C-RUN", { task: "T-001", kind: "mystery-kind" });
+    expect(position.state).not.toBe("in-progress");
+    expect(position.degradation?.verdict).toBe("unable-to-determine");
+  });
+});
+
+describe("cursor state parsed (AC-CURSOR-STATE-PARSED)", () => {
+  it("unrecognized written state degrades; show still answers; lint still reports", () => {
+    expect(parseCursorState("paused-pending-approval")).toEqual({ state: "paused-pending-approval" });
+    expect(parseCursorState("shipped")).toEqual({ invalid: "shipped" });
+
+    const root = createProject();
+    const bundle = seedBundle(root);
+    writeFileSync(
+      path.join(bundle, "run.xml"),
+      `<NgraceRunCursor graceVersion="1.0"><C-RUN><Task>T-001</Task><State>shipped</State></C-RUN></NgraceRunCursor>`,
+    );
+    const position = showCursor(root, "C-RUN");
+    expect(position.changeId).toBe("C-RUN");
+    expect(position.degradation?.verdict).toBe("unable-to-determine");
+    expect(position.degradation?.reason).toMatch(/shipped/);
+    // Does not throw; still answers.
+    expect(formatCursorPosition(position)).toContain("Degradation:");
+    // lint still reports the written file (identity ok, state is free text in grammar today —
+    // at minimum show recovered; structural lint should not throw).
+    const lint = lintGraceProject(root);
+    expect(lint.issues.every((issue) => issue.severity !== "error" || !issue.code.startsWith("cursor.invalid-root"))).toBe(true);
+  });
+
+  it("writeCursorFile round-trips paused-pending-approval (A19.2)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "a", key: "1" },
+      writeEvidence: { available: true, changedFiles: [] },
+    });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "b", key: "2" },
+      writeEvidence: { available: true, changedFiles: [] },
+    });
+    const written = readFileSync(path.join(bundle, "run.xml"), "utf8");
+    expect(written).toContain("paused-pending-approval");
+    const shown = showCursor(root, "C-RUN");
+    expect(shown.state).toBe("paused-pending-approval");
+  });
+});
+
+describe("flake classification (AC-FLAKE-CLASSIFICATION / A19.3)", () => {
+  const failEv = (evidence: WriteEvidenceSnapshot) => ({
+    outcome: "fail",
+    writeEvidence: evidence,
+  });
+  const passEv = (evidence: WriteEvidenceSnapshot) => ({
+    outcome: "pass",
+    writeEvidence: evidence,
+  });
+
+  it("fail then pass with identical write evidence is flaky", () => {
+    const evidence: WriteEvidenceSnapshot = { available: true, changedFiles: ["src/a.ts"] };
+    const result = classifyFlakeFromEvidence(failEv(evidence), passEv(evidence));
+    expect(result.verdict).toBe("flaky");
+  });
+
+  it("fail then pass with intervening write is retry", () => {
+    const result = classifyFlakeFromEvidence(
+      failEv({ available: true, changedFiles: ["src/a.ts"] }),
+      passEv({ available: true, changedFiles: ["src/a.ts", "src/b.ts"] }),
+    );
+    expect(result.verdict).toBe("retry");
+  });
+
+  it("unavailable write evidence is unable-to-determine, not flaky or retry", () => {
+    const result = classifyFlakeFromEvidence(
+      failEv({
+        available: false,
+        absence: { verdict: "unable-to-determine", reason: "git unavailable" },
+      }),
+      passEv({ available: true, changedFiles: [] }),
+    );
+    expect(result.verdict).toBe("unable-to-determine");
+    expect(result.verdict).not.toBe("flaky");
+    expect(result.reason).toMatch(/unavailable/i);
+  });
+
+  it("classifier issues no git call — reads only recorded snapshots", () => {
+    // Evidence is fully synthetic; if classifyFlakeFromEvidence called git it would
+    // need a project root. The API accepts only snapshots.
+    const result = classifyFlakeFromEvidence(
+      failEv({ available: true, changedFiles: [] }),
+      passEv({ available: true, changedFiles: [] }),
+    );
+    expect(result.verdict).toBe("flaky");
   });
 });

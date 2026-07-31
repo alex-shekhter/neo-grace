@@ -26,13 +26,36 @@ import {
 } from "./artifact/grammar";
 import { collectActiveChangeScopes, observedWriteScopeContains } from "./artifact/scope";
 import { childText, readGraceXmlArtifact, type GraceXmlNode } from "./artifact/xml";
-import { serializeGraceXmlDocument } from "./artifact/xml-serialize";
+import { serializeGraceXmlDocument, serializeGraceXmlNode } from "./artifact/xml-serialize";
 import { isGitWorktreeDirty } from "./grace-graph";
 import { lintGraceProject } from "./lint/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
+import type { FailureSignature } from "./artifact/types";
 
 /** Cursor / position state for one change bundle. */
-export type CursorState = "absent" | "idle" | "in-progress" | "paused" | "complete";
+export type CursorState =
+  | "absent"
+  | "idle"
+  | "in-progress"
+  | "paused"
+  | "paused-pending-approval"
+  | "complete";
+
+/** Closed set for parsing written cursor state (A19.2). */
+export const CURSOR_STATES: readonly CursorState[] = [
+  "absent",
+  "idle",
+  "in-progress",
+  "paused",
+  "paused-pending-approval",
+  "complete",
+] as const;
+
+/**
+ * D9: judgment, not derived. Two fix attempts per task before escalation to replan.
+ * The counter counts attempt events and inspects nothing (A19.1).
+ */
+export const FIX_ATTEMPT_BUDGET = 2;
 
 /** Authority of a regenerated or shown position field (A11.5). */
 export type PositionSource = "ledger" | "events" | "inferred" | "cursor" | "none";
@@ -47,6 +70,16 @@ export type AbsenceValue = {
   verdict: AbsenceVerdict;
   reason: string;
 };
+
+/** Write-scope snapshot recorded on an attempt event (A19.3). */
+export type WriteEvidenceSnapshot =
+  | { available: true; changedFiles: string[] }
+  | { available: false; absence: AbsenceValue };
+
+/** Flake classifier verdicts (D8 / A18.6). */
+export type FlakeVerdict = "flaky" | "retry" | "unable-to-determine";
+
+export type { FailureSignature };
 
 export type CursorPosition = {
   changeId: string;
@@ -99,15 +132,75 @@ export type FoldResult = {
 };
 
 export type RangeAllocation = { worker: string; from: number; to: number };
+
+/**
+ * Loose run/ event. Payload (attributes beyond id/task/kind, and children) must
+ * survive fold (A18.2 / correction 31). listLooseEvents is the A5.4 inventory site.
+ */
 export type LooseEvent = {
   id: number;
   task: string;
   kind: string;
   file: string;
   allocations?: RangeAllocation[];
+  /** Root attributes from the loose file (includes id/task/kind; may include outcome, …). */
+  attributes: Record<string, string>;
+  /** Root children (Allocation, FailureSignature, WriteEvidence, Wave, …). */
+  children: GraceXmlNode[];
 };
 
-const EVENT_FILENAME = /^(\d+)-([A-Za-z0-9_-]+)-([A-Za-z0-9_-]+)\.xml$/;
+/** Known event kinds with exhaustive kind→state mapping (A18.5 / A19.2). */
+const KNOWN_KIND_STATE = {
+  opened: "in-progress",
+  progress: "in-progress",
+  resume: "in-progress",
+  attempt: "in-progress",
+  "verification-unavailable": "in-progress",
+  pause: "paused",
+  terminal: "complete",
+  escalation: "paused-pending-approval",
+} as const satisfies Record<string, CursorState>;
+
+export type KnownEventKind = keyof typeof KNOWN_KIND_STATE;
+
+/**
+ * One shared exhaustive kind→state map for write and read paths (correction 34).
+ * Unrecognized kinds do not resolve to in-progress.
+ */
+export function cursorStateForEventKind(
+  kind: string,
+): { state: CursorState } | { unknown: true; degradation: AbsenceValue } {
+  if (Object.prototype.hasOwnProperty.call(KNOWN_KIND_STATE, kind)) {
+    return { state: KNOWN_KIND_STATE[kind as KnownEventKind] };
+  }
+  return {
+    unknown: true,
+    degradation: {
+      verdict: "unable-to-determine",
+      reason: `unrecognized event kind ${JSON.stringify(kind)}; not mapped to a cursor state`,
+    },
+  };
+}
+
+/** Parse a written State element against the widened CursorState union (A19.2). */
+export function parseCursorState(
+  text: string | undefined,
+): { state: CursorState } | { invalid: string } {
+  const value = (text ?? "").trim();
+  if (!value) return { state: "idle" };
+  if ((CURSOR_STATES as readonly string[]).includes(value)) {
+    return { state: value as CursorState };
+  }
+  return { invalid: value };
+}
+
+/**
+ * Loose event filenames: `{id}-{task}-{kind}.xml`.
+ * Task is always T-NNN (no internal hyphens after the T-digits form); kind may contain
+ * hyphens (`verification-unavailable`). Do not use a fully free-form middle group — it
+ * steals the kind's hyphens (A19.1).
+ */
+const EVENT_FILENAME = /^(\d+)-(T-[0-9]{3})-(.+)\.xml$/;
 
 /** Resolve a C-* bundle under active or archive. */
 export function resolveChangeBundle(projectRoot: string, changeId: string): string {
@@ -132,18 +225,30 @@ export function listLooseEvents(bundlePath: string): LooseEvent[] {
     const match = EVENT_FILENAME.exec(name);
     if (!match) continue;
     const file = path.join(runDir, name);
-    const id = Number(match[1]);
-    const task = match[2]!;
-    const kind = match[3]!;
+    const idFromName = Number(match[1]);
+    const taskFromName = match[2]!;
+    const kindFromName = match[3]!;
     const parsed = readGraceXmlArtifact(file);
+    // Prefer XML attributes when present (authoritative payload); filename is discovery.
+    const id = parsed.root?.attributes.id ? Number(parsed.root.attributes.id) : idFromName;
+    const task = (parsed.root?.attributes.task ?? taskFromName).trim() || taskFromName;
+    const kind = (parsed.root?.attributes.kind ?? kindFromName).trim() || kindFromName;
+    if (!Number.isInteger(id) || id <= 0) continue;
+    const attributes: Record<string, string> = parsed.root
+      ? { ...parsed.root.attributes }
+      : { id: String(id), task, kind };
+    attributes.id = String(id);
+    attributes.task = task;
+    attributes.kind = kind;
+    const children = parsed.root ? parsed.root.children.map(cloneXmlNode) : [];
     const allocations =
-      kind === "opened" && parsed.root
-        ? parsed.root.children
+      kind === "opened"
+        ? children
             .filter((child) => child.tag === "Allocation")
             .map(parseAllocationNode)
             .filter((entry): entry is RangeAllocation => entry !== null)
         : undefined;
-    events.push({ id, task, kind, file, allocations });
+    events.push({ id, task, kind, file, allocations, attributes, children });
   }
   return events.sort((a, b) => a.id - b.id);
 }
@@ -232,16 +337,16 @@ export function advanceCursor(
   }
   const id = nextEventId(bundlePath);
   writeEventFile(bundlePath, { id, task, kind });
-  const state: CursorState =
-    kind === "terminal" ? "complete" : kind === "pause" ? "paused" : "in-progress";
+  const mapped = cursorStateForEventKind(kind);
   const position: CursorPosition = {
     changeId,
     bundlePath,
     epoch: currentOpenEpochHint(bundlePath),
     task,
-    state,
+    state: "state" in mapped ? mapped.state : undefined,
     sources: { epoch: "events", task: "events", state: "events" },
     inferred: false,
+    degradation: "unknown" in mapped ? mapped.degradation : undefined,
   };
   writeCursorFile(bundlePath, position);
   return position;
@@ -275,6 +380,11 @@ export function foldEpoch(
     injectFailureAfterWrite?: boolean;
     /** Test-only: throw after write, before verify (still leaves both forms). */
     injectFailureBeforeVerify?: boolean;
+    /**
+     * Test-only: serialize Event nodes as id/task/kind only (correction 31 shape).
+     * Verify must fail and leave every loose file on disk (AC-FOLD-PRESERVES-PAYLOAD).
+     */
+    injectDropPayload?: boolean;
   } = {},
 ): FoldResult {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
@@ -312,7 +422,9 @@ export function foldEpoch(
 
   const epochNumber = nextEpochNumber(bundlePath);
   const wave = options.wave ?? readWaveFromOpened(events);
-  const epochNode = buildEpochNode(epochNumber, wave, allocations, events);
+  const epochNode = buildEpochNode(epochNumber, wave, allocations, events, {
+    dropPayload: options.injectDropPayload === true,
+  });
   const ledgerPath = path.join(bundlePath, "run-ledger.xml");
 
   // --- write ---
@@ -329,7 +441,7 @@ export function foldEpoch(
     throw new Error("injected failure before verify");
   }
 
-  // --- verify ---
+  // --- verify (payload compare, not count — A18.2) ---
   const written = readGraceXmlArtifact(ledgerPath);
   const validation = validateRunLedgerArtifact(written);
   const identity = written.root?.children.find((c) => c.tag === changeId);
@@ -341,13 +453,26 @@ export function foldEpoch(
     );
   }
   const writtenEvents = writtenEpoch.children.filter((c) => c.tag === "Event");
-  if (writtenEvents.length !== events.filter((e) => e.kind !== "opened" || true).length) {
-    // Count Event children vs loose events (opened is also an Event in the ledger).
-    const expected = events.length;
-    if (writtenEvents.length !== expected) {
+  if (writtenEvents.length !== events.length) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `Fold verify failed: expected ${events.length} events, ledger has ${writtenEvents.length}.`,
+    );
+  }
+  for (const event of events) {
+    const writtenEvent = writtenEvents.find((node) => Number(node.attributes.id) === event.id);
+    if (!writtenEvent) {
       throw new GraceCommandError(
         "invalid-project",
-        `Fold verify failed: expected ${expected} events, ledger has ${writtenEvents.length}.`,
+        `Fold verify failed: event id ${event.id} missing from written ledger.`,
+      );
+    }
+    const expected = payloadFingerprint(eventAttributesForLedger(event), event.children);
+    const actual = payloadFingerprint(writtenEvent.attributes, writtenEvent.children);
+    if (expected !== actual) {
+      throw new GraceCommandError(
+        "invalid-project",
+        `Fold verify failed: event ${event.id} payload mismatch (attributes or children dropped or altered).`,
       );
     }
   }
@@ -430,15 +555,24 @@ export function derivePosition(
       const wrapper = artifact.root.children.find((c) => c.tag === changeId);
       const epochText = wrapper ? childText(wrapper, "Epoch") : undefined;
       const stateText = wrapper ? childText(wrapper, "State") : undefined;
-      written = {
-        changeId,
-        bundlePath,
-        epoch: epochText ? Number(epochText) : undefined,
-        task,
-        state: (stateText as CursorState) || "idle",
-        sources: { epoch: "cursor", task: "cursor", state: "cursor" },
-        inferred: false,
-      };
+      const parsedState = parseCursorState(stateText);
+      if ("invalid" in parsedState) {
+        // Unchecked cast hole (A19.2): unrecognized value takes degradation, then re-derive.
+        degradation = {
+          verdict: "unable-to-determine",
+          reason: `cursor state ${JSON.stringify(parsedState.invalid)} is not a known CursorState; re-derived`,
+        };
+      } else {
+        written = {
+          changeId,
+          bundlePath,
+          epoch: epochText ? Number(epochText) : undefined,
+          task,
+          state: parsedState.state,
+          sources: { epoch: "cursor", task: "cursor", state: "cursor" },
+          inferred: false,
+        };
+      }
     }
   } else if (options.preferWrittenCursor && !existsSync(cursorPath)) {
     // Missing cursor: silent for lint; show still re-derives (A11.5).
@@ -460,9 +594,16 @@ export function derivePosition(
         ? nextEpochNumber(bundlePath)
         : ledgerEpochs[ledgerEpochs.length - 1];
     const task = lastEvent?.task ?? lastTaskFromLedger(bundlePath);
-    let state: CursorState = "idle";
-    if (events.length > 0) {
-      state = lastEvent?.kind === "pause" ? "paused" : lastEvent?.kind === "terminal" ? "complete" : "in-progress";
+    let state: CursorState | undefined = "idle";
+    let kindDegradation: AbsenceValue | undefined;
+    if (events.length > 0 && lastEvent) {
+      const mapped = cursorStateForEventKind(lastEvent.kind);
+      if ("state" in mapped) {
+        state = mapped.state;
+      } else {
+        state = undefined;
+        kindDegradation = mapped.degradation;
+      }
     }
     return {
       changeId,
@@ -476,7 +617,7 @@ export function derivePosition(
         state: events.length > 0 ? "events" : "ledger",
       },
       inferred: false,
-      degradation,
+      degradation: degradation ?? kindDegradation,
     };
   }
 
@@ -651,6 +792,356 @@ export function listRepositoryChangedFiles(projectRoot: string): { available: bo
   return { available: true, changedFiles };
 }
 
+/**
+ * Dumb counter (D9 / A19.1): counts attempt events for a task. Inspects nothing —
+ * no signature, no outcome, no content condition.
+ */
+export function countTaskAttemptEvents(
+  events: ReadonlyArray<{ task: string; kind: string }>,
+  task: string,
+): number {
+  return events.filter((event) => event.task === task && event.kind === "attempt").length;
+}
+
+/** Derived ordinal: 1-based count of this task's attempts with id <= eventId (A18.3). */
+export function deriveAttemptOrdinal(
+  events: ReadonlyArray<{ id: number; task: string; kind: string }>,
+  task: string,
+  eventId: number,
+): number {
+  return events.filter(
+    (event) => event.task === task && event.kind === "attempt" && event.id <= eventId,
+  ).length;
+}
+
+/** Snapshot repository write evidence for recording onto an attempt (A19.3). */
+export function snapshotWriteEvidence(projectRoot: string): WriteEvidenceSnapshot {
+  const { available, changedFiles } = listRepositoryChangedFiles(projectRoot);
+  if (!available) {
+    return {
+      available: false,
+      absence: {
+        verdict: "unable-to-determine",
+        reason:
+          "repository changed-file set unavailable (git status exited non-zero); write evidence was not recorded",
+      },
+    };
+  }
+  return { available: true, changedFiles: [...changedFiles] };
+}
+
+export type RecordAttemptResult = {
+  position: CursorPosition;
+  eventId: number;
+  attemptCount: number;
+  escalated: boolean;
+  signatures: FailureSignature[];
+  /** Human-readable escalation or progress message (shown verbatim on exhaustion). */
+  message: string;
+};
+
+/**
+ * Record one verification-cycle attempt (D6). Immediate write — advance precedent (A18.7).
+ * On the second failed attempt (attempt count >= FIX_ATTEMPT_BUDGET after a fail),
+ * writes an escalation event and transitions to paused-pending-approval (A19.2).
+ */
+export function recordAttempt(
+  projectRoot: string,
+  changeId: string,
+  options: {
+    task: string;
+    outcome: "pass" | "fail";
+    signature?: FailureSignature;
+    /** Override snapshotted write evidence (tests). Default: snapshotWriteEvidence. */
+    writeEvidence?: WriteEvidenceSnapshot;
+  },
+): RecordAttemptResult {
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const task = options.task;
+  if (!ANCHOR_PATTERNS.task.test(task)) {
+    throw new GraceCommandError("invalid-arguments", `Task ${JSON.stringify(task)} must be a canonical T-* id.`);
+  }
+  if (options.outcome === "fail" && !options.signature) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      "Failed attempts require a FailureSignature (kind + key).",
+    );
+  }
+
+  const writeEvidence = options.writeEvidence ?? snapshotWriteEvidence(projectRoot);
+  const children: GraceXmlNode[] = [];
+  if (options.outcome === "fail" && options.signature) {
+    children.push(failureSignatureNode(options.signature));
+  }
+  children.push(writeEvidenceNode(writeEvidence));
+
+  const id = nextEventId(bundlePath);
+  writeEventFile(bundlePath, {
+    id,
+    task,
+    kind: "attempt",
+    attributes: { outcome: options.outcome },
+    children,
+  });
+
+  const loose = listLooseEvents(bundlePath);
+  const attemptCount = countTaskAttemptEvents(loose, task);
+  const signatures = collectFailureSignatures(loose, task);
+
+  // Escalation only on the fail path when the dumb attempt count hits the budget.
+  // Counter itself has no outcome/signature condition (A19.1).
+  if (options.outcome === "fail" && attemptCount >= FIX_ATTEMPT_BUDGET) {
+    const escalationId = nextEventId(bundlePath);
+    writeEventFile(bundlePath, {
+      id: escalationId,
+      task,
+      kind: "escalation",
+      children: signatures.map(failureSignatureNode),
+    });
+    const position: CursorPosition = {
+      changeId,
+      bundlePath,
+      epoch: currentOpenEpochHint(bundlePath),
+      task,
+      state: "paused-pending-approval",
+      sources: { epoch: "events", task: "events", state: "events" },
+      inferred: false,
+    };
+    writeCursorFile(bundlePath, position);
+    const message = formatEscalationMessage(task, signatures);
+    return {
+      position,
+      eventId: id,
+      attemptCount,
+      escalated: true,
+      signatures,
+      message,
+    };
+  }
+
+  const mapped = cursorStateForEventKind("attempt");
+  const position: CursorPosition = {
+    changeId,
+    bundlePath,
+    epoch: currentOpenEpochHint(bundlePath),
+    task,
+    state: "state" in mapped ? mapped.state : "in-progress",
+    sources: { epoch: "events", task: "events", state: "events" },
+    inferred: false,
+  };
+  writeCursorFile(bundlePath, position);
+  return {
+    position,
+    eventId: id,
+    attemptCount,
+    escalated: false,
+    signatures,
+    message:
+      options.outcome === "pass"
+        ? `Attempt ${attemptCount} for ${task}: pass`
+        : `Attempt ${attemptCount} for ${task}: fail (${options.signature?.kind}:${options.signature?.key})`,
+  };
+}
+
+/**
+ * Verification could not run — record verification-unavailable, never an attempt (A19.1).
+ * Does not count against FIX_ATTEMPT_BUDGET.
+ */
+export function recordVerificationUnavailable(
+  projectRoot: string,
+  changeId: string,
+  options: { task: string; absence: AbsenceValue },
+): CursorPosition {
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const task = options.task;
+  if (!ANCHOR_PATTERNS.task.test(task)) {
+    throw new GraceCommandError("invalid-arguments", `Task ${JSON.stringify(task)} must be a canonical T-* id.`);
+  }
+  const id = nextEventId(bundlePath);
+  writeEventFile(bundlePath, {
+    id,
+    task,
+    kind: "verification-unavailable",
+    attributes: {
+      verdict: options.absence.verdict,
+      reason: options.absence.reason,
+    },
+  });
+  const mapped = cursorStateForEventKind("verification-unavailable");
+  const position: CursorPosition = {
+    changeId,
+    bundlePath,
+    epoch: currentOpenEpochHint(bundlePath),
+    task,
+    state: "state" in mapped ? mapped.state : "in-progress",
+    sources: { epoch: "events", task: "events", state: "events" },
+    inferred: false,
+  };
+  writeCursorFile(bundlePath, position);
+  return position;
+}
+
+/**
+ * Classify fail→pass pair from recorded write evidence (A19.3). Issues no git call.
+ */
+export function classifyFlakeFromEvidence(
+  earlier: { outcome: string; writeEvidence: WriteEvidenceSnapshot },
+  later: { outcome: string; writeEvidence: WriteEvidenceSnapshot },
+): { verdict: FlakeVerdict; reason: string } {
+  if (earlier.outcome !== "fail" || later.outcome !== "pass") {
+    return {
+      verdict: "unable-to-determine",
+      reason: "flake classification requires a fail then pass attempt pair",
+    };
+  }
+  if (!earlier.writeEvidence.available || !later.writeEvidence.available) {
+    return {
+      verdict: "unable-to-determine",
+      reason:
+        "write evidence unavailable on one or both attempts; cannot distinguish flaky from retry",
+    };
+  }
+  const earlierSet = new Set(earlier.writeEvidence.changedFiles);
+  const laterSet = new Set(later.writeEvidence.changedFiles);
+  const same =
+    earlierSet.size === laterSet.size && [...earlierSet].every((file) => laterSet.has(file));
+  if (same) {
+    return {
+      verdict: "flaky",
+      reason: "fail then pass with identical write evidence (no intervening write)",
+    };
+  }
+  return {
+    verdict: "retry",
+    reason: "fail then pass with changed write evidence (intervening write)",
+  };
+}
+
+/** Read write evidence and outcome from a loose (or folded-equivalent) event. */
+export function readAttemptPayload(event: LooseEvent): {
+  outcome?: string;
+  signature?: FailureSignature;
+  writeEvidence?: WriteEvidenceSnapshot;
+} {
+  const outcome = event.attributes.outcome;
+  let signature: FailureSignature | undefined;
+  let writeEvidence: WriteEvidenceSnapshot | undefined;
+  for (const child of event.children) {
+    if (child.tag === "FailureSignature") {
+      const kind = child.attributes.kind?.trim();
+      const key = child.attributes.key?.trim();
+      if (kind && key) signature = { kind, key };
+    }
+    if (child.tag === "WriteEvidence") {
+      writeEvidence = parseWriteEvidenceNode(child);
+    }
+  }
+  return { outcome, signature, writeEvidence };
+}
+
+/** Events from the folded ledger (Event children), ordered by id. Payload preserved (A18.2). */
+export function listLedgerEvents(bundlePath: string): LooseEvent[] {
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (!existsSync(ledgerPath)) return [];
+  const artifact = readGraceXmlArtifact(ledgerPath);
+  if (!artifact.root) return [];
+  const events: LooseEvent[] = [];
+  for (const wrapper of artifact.root.children) {
+    for (const epoch of wrapper.children) {
+      if (!EPOCH_SECTION_PATTERN.test(epoch.tag)) continue;
+      for (const child of epoch.children) {
+        if (child.tag !== "Event") continue;
+        const id = Number(child.attributes.id);
+        const task = (child.attributes.task ?? "").trim();
+        const kind = (child.attributes.kind ?? "").trim();
+        if (!Number.isInteger(id) || !task || !kind) continue;
+        events.push({
+          id,
+          task,
+          kind,
+          file: ledgerPath,
+          attributes: { ...child.attributes },
+          children: child.children.map(cloneXmlNode),
+        });
+      }
+    }
+  }
+  return events.sort((a, b) => a.id - b.id);
+}
+
+function failureSignatureNode(signature: FailureSignature): GraceXmlNode {
+  return {
+    tag: "FailureSignature",
+    attributes: { kind: signature.kind, key: signature.key },
+    children: [],
+    text: "",
+  };
+}
+
+function writeEvidenceNode(evidence: WriteEvidenceSnapshot): GraceXmlNode {
+  if (evidence.available) {
+    return {
+      tag: "WriteEvidence",
+      attributes: { available: "true" },
+      children: evidence.changedFiles.map((file) => ({
+        tag: "File",
+        attributes: {},
+        children: [] as GraceXmlNode[],
+        text: file,
+      })),
+      text: "",
+    };
+  }
+  return {
+    tag: "WriteEvidence",
+    attributes: {
+      available: "false",
+      verdict: evidence.absence.verdict,
+      reason: evidence.absence.reason,
+    },
+    children: [],
+    text: "",
+  };
+}
+
+function parseWriteEvidenceNode(node: GraceXmlNode): WriteEvidenceSnapshot {
+  if (node.attributes.available === "false") {
+    return {
+      available: false,
+      absence: {
+        verdict: (node.attributes.verdict === "not-run" ? "not-run" : "unable-to-determine") as AbsenceVerdict,
+        reason: node.attributes.reason ?? "write evidence unavailable",
+      },
+    };
+  }
+  const changedFiles = node.children
+    .filter((child) => child.tag === "File")
+    .map((child) => child.text.trim())
+    .filter(Boolean)
+    .sort();
+  return { available: true, changedFiles };
+}
+
+function collectFailureSignatures(events: LooseEvent[], task: string): FailureSignature[] {
+  const signatures: FailureSignature[] = [];
+  for (const event of events) {
+    if (event.task !== task || event.kind !== "attempt") continue;
+    if (event.attributes.outcome !== "fail") continue;
+    const payload = readAttemptPayload(event);
+    if (payload.signature) signatures.push(payload.signature);
+  }
+  return signatures;
+}
+
+function formatEscalationMessage(task: string, signatures: FailureSignature[]): string {
+  const lines = [
+    `Budget exhausted for ${task} after ${FIX_ATTEMPT_BUDGET} attempts — paused-pending-approval (replan decision owed; task has not failed).`,
+    `Signatures (${signatures.length}):`,
+    ...signatures.map((signature, index) => `  ${index + 1}. ${signature.kind}: ${signature.key}`),
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
 export function formatCursorPosition(position: CursorPosition): string {
   const taskLine = position.task
     ? `Task: ${position.task}`
@@ -737,6 +1228,7 @@ function buildEpochNode(
   wave: string | undefined,
   allocations: RangeAllocation[],
   events: LooseEvent[],
+  options: { dropPayload?: boolean } = {},
 ): GraceXmlNode {
   const children: GraceXmlNode[] = [
     ...allocations.map((allocation) => ({
@@ -749,22 +1241,60 @@ function buildEpochNode(
       children: [] as GraceXmlNode[],
       text: "",
     })),
-    ...events.map((event) => ({
-      tag: "Event",
-      attributes: {
-        id: String(event.id),
-        task: event.task,
-        kind: event.kind,
-      },
-      children: [] as GraceXmlNode[],
-      text: "",
-    })),
+    ...events.map((event) => {
+      // injectDropPayload reproduces correction 31: id/task/kind only, no children.
+      if (options.dropPayload) {
+        return {
+          tag: "Event",
+          attributes: {
+            id: String(event.id),
+            task: event.task,
+            kind: event.kind,
+          },
+          children: [] as GraceXmlNode[],
+          text: "",
+        };
+      }
+      return {
+        tag: "Event",
+        attributes: eventAttributesForLedger(event),
+        children: event.children.map(cloneXmlNode),
+        text: "",
+      };
+    }),
   ];
   return {
     tag: `Epoch-${epochNumber}`,
     attributes: wave ? { wave } : {},
     children,
     text: "",
+  };
+}
+
+/** Ledger Event attributes: all loose root attrs except graceVersion (A18.2). */
+function eventAttributesForLedger(event: LooseEvent): Record<string, string> {
+  const attributes: Record<string, string> = { ...event.attributes };
+  delete attributes.graceVersion;
+  attributes.id = String(event.id);
+  attributes.task = event.task;
+  attributes.kind = event.kind;
+  return attributes;
+}
+
+/** Stable payload fingerprint for fold verify (order-independent attrs). */
+function payloadFingerprint(attributes: Record<string, string>, children: GraceXmlNode[]): string {
+  const keys = Object.keys(attributes).sort();
+  const attrPart = keys.map((key) => `${key}=${attributes[key] ?? ""}`).join("\0");
+  const childPart = children.map((child) => serializeGraceXmlNode(child)).join("");
+  return `${attrPart}\n${childPart}`;
+}
+
+function cloneXmlNode(node: GraceXmlNode): GraceXmlNode {
+  return {
+    tag: node.tag,
+    attributes: { ...node.attributes },
+    children: node.children.map(cloneXmlNode),
+    text: node.text,
   };
 }
 
@@ -863,6 +1393,10 @@ function writeEventFile(
     kind: string;
     allocations?: RangeAllocation[];
     wave?: string;
+    /** Extra root attributes (e.g. outcome). id/task/kind/graceVersion are forced. */
+    attributes?: Record<string, string>;
+    /** Extra root children (FailureSignature, WriteEvidence, …). */
+    children?: GraceXmlNode[];
   },
 ): void {
   const runDirRel = "run";
@@ -881,14 +1415,19 @@ function writeEventFile(
   if (event.wave) {
     children.push({ tag: "Wave", attributes: {}, children: [], text: event.wave });
   }
+  for (const child of event.children ?? []) {
+    children.push(cloneXmlNode(child));
+  }
+  const attributes: Record<string, string> = {
+    ...(event.attributes ?? {}),
+    graceVersion: NGRACE_ARTIFACT_VERSION,
+    id: String(event.id),
+    task: event.task,
+    kind: event.kind,
+  };
   const node: GraceXmlNode = {
     tag: `${ARTIFACT_TAG_PREFIX}RunEvent`,
-    attributes: {
-      graceVersion: NGRACE_ARTIFACT_VERSION,
-      id: String(event.id),
-      task: event.task,
-      kind: event.kind,
-    },
+    attributes,
     children,
     text: "",
   };

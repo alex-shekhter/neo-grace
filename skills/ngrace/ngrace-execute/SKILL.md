@@ -35,11 +35,12 @@ Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires
 2. Execute one dependency-ready task or one verified parallel-safe batch at a time.
 3. Run each task's acceptance and verification immediately.
 4. Advance the run cursor when a task starts or completes (`ngrace cursor advance`); pause/resume around interruptions; fold the open epoch when the wave is quiescent (`ngrace cursor fold`).
-5. Apply approved durable context, graph, and verification changes centrally.
-6. Reconcile durable state, run leaf plan gates, then run selected `--assertions final` as the outermost lifecycle gate, including `--run-commands` when `MustPassCommand` is declared. Final mode performs full project lint, evaluates the selected target, keeps unrelated approved baselines active, and does not re-evaluate the selected plan's superseded baseline.
-7. Ask for explicit apply confirmation after fresh end-state evidence passes.
-8. Only then set spec and plan to `applied` and archive the complete bundle.
-9. Never edit approved assertions/scopes/tasks in place, bypass stale evidence, or continue through unknown drift.
+5. Record every verification cycle as an attempt event (outcome pass or fail with a failure signature). When verification cannot run, record verification-unavailable — never an attempt and never silence. Two failed attempts exhaust the fix budget and escalate to paused-pending-approval: a pause awaiting a replan decision, not a task failure.
+6. Apply approved durable context, graph, and verification changes centrally.
+7. Reconcile durable state, run leaf plan gates, then run selected `--assertions final` as the outermost lifecycle gate, including `--run-commands` when `MustPassCommand` is declared. Final mode performs full project lint, evaluates the selected target, keeps unrelated approved baselines active, and does not re-evaluate the selected plan's superseded baseline.
+8. Ask for explicit apply confirmation after fresh end-state evidence passes.
+9. Only then set spec and plan to `applied` and archive the complete bundle.
+10. Never edit approved assertions/scopes/tasks in place, bypass stale evidence, or continue through unknown drift.
 </execution_rules>
 
 <verdicts>

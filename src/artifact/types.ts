@@ -204,3 +204,12 @@ export type NgraceProjectPaths = {
 
 /** Kind of GRACE project detected at a filesystem root. */
 export type GraceProjectKind = "grace4" | "grace3" | "none";
+
+/**
+ * Failure signature recorded on a failed attempt event (D6 / D9).
+ * kind = category (test-failure, typecheck, lint); key = stable identity of what failed.
+ */
+export type FailureSignature = {
+  kind: string;
+  key: string;
+};
