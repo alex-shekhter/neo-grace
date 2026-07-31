@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -633,6 +633,70 @@ describe("run ledger and cursor grammar (Phase 3 / A11)", () => {
     writeLedgerFixtures(root, "C-CUR", { cursor: { task: "T-001", state: "idle" } });
     const clean = codes(validateNgraceProject(root)).filter((c) => c.startsWith("cursor."));
     expect(clean).toEqual([]);
+  });
+
+  it("EscalatedTask is validated like Task (A26.1 / correction 48 / both directions)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-ESC",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+    });
+
+    // Row 1: real Task + bogus EscalatedTask → cursor.unknown-task (was silent before 48).
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-ESC/run.xml`,
+      `<NgraceRunCursor graceVersion="1.0"><C-ESC><Task>T-001</Task><EscalatedTask>T-999</EscalatedTask><State>paused-pending-approval</State></C-ESC></NgraceRunCursor>`,
+    );
+    const escalatedUnknown = validateNgraceProject(root).issues.filter((i) => i.code === "cursor.unknown-task");
+    expect(escalatedUnknown.length).toBeGreaterThanOrEqual(1);
+    expect(escalatedUnknown.some((i) => i.message.includes("EscalatedTask") && i.message.includes("T-999"))).toBe(
+      true,
+    );
+
+    // Row 2: bogus Task alone still errors (unchanged half of the pairing).
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-ESC/run.xml`,
+      `<NgraceRunCursor graceVersion="1.0"><C-ESC><Task>T-999</Task><State>idle</State></C-ESC></NgraceRunCursor>`,
+    );
+    expect(codes(validateNgraceProject(root))).toContain("cursor.unknown-task");
+
+    // Clean: real Task + real EscalatedTask → no cursor.* issues.
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-ESC/run.xml`,
+      `<NgraceRunCursor graceVersion="1.0"><C-ESC><Task>T-001</Task><EscalatedTask>T-001</EscalatedTask><State>paused-pending-approval</State></C-ESC></NgraceRunCursor>`,
+    );
+    const clean = codes(validateNgraceProject(root)).filter((c) => c.startsWith("cursor."));
+    expect(clean).toEqual([]);
+  });
+
+  it("EscalatedTask unknown-task when plan.xml is absent (A26.1 no-plan branch)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-NOPLAN",
+      location: "active",
+      specStatus: "approved",
+      // Fixture still writes a plan by default — remove it for this branch.
+      planStatus: "approved",
+    });
+    const planPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-NOPLAN", "plan.xml");
+    if (existsSync(planPath)) unlinkSync(planPath);
+
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-NOPLAN/run.xml`,
+      `<NgraceRunCursor graceVersion="1.0"><C-NOPLAN><Task>T-001</Task><EscalatedTask>T-001</EscalatedTask><State>paused-pending-approval</State></C-NOPLAN></NgraceRunCursor>`,
+    );
+    const unknown = validateNgraceProject(root).issues.filter((i) => i.code === "cursor.unknown-task");
+    expect(unknown.length).toBeGreaterThanOrEqual(1);
+    expect(unknown.some((i) => /no plan\.xml/i.test(i.message))).toBe(true);
+    expect(unknown.some((i) => i.message.includes("EscalatedTask"))).toBe(true);
   });
 
   it("cursor copied between bundles is caught by bundle-id-mismatch, not unknown-task (A11.4)", () => {

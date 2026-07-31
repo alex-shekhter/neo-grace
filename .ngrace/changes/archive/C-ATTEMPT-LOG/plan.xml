@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-ATTEMPT-LOG>
     <IntentSummary>
       Record every attempt rather than only outcomes, bound churn at two, and escalate to replan

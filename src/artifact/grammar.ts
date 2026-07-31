@@ -801,6 +801,20 @@ export function cursorNamedTask(root: GraceXmlNode | null): string | undefined {
   return text || undefined;
 }
 
+/**
+ * Tasks named by EscalatedTask children on a run cursor (A26.1 / correction 48).
+ * Same referential surface as Task — recovery alone is not enough (invariant 4).
+ */
+export function cursorEscalatedTasks(root: GraceXmlNode | null): string[] {
+  if (!root) return [];
+  const identity = companionChangeIdentity(root);
+  if (identity.kind !== "ok") return [];
+  return identity.wrapper.children
+    .filter((child) => child.tag === "EscalatedTask")
+    .map((child) => child.text.trim())
+    .filter((text) => text.length > 0);
+}
+
 type CompanionIdentity =
   | { kind: "ok"; changeId: string; wrapper: GraceXmlNode }
   | { kind: "invalid" };
@@ -1109,29 +1123,44 @@ function validateChangeBundlesInDirectory(
         );
       }
       // D1: cursor present-but-naming-unknown-task is an error; absent is silent.
+      // Correction 48: EscalatedTask has the same referential check as Task (invariant 4).
       if (companion.filename === "run.xml" && companionArtifact.root) {
         const namedTask = cursorNamedTask(companionArtifact.root);
-        if (namedTask && planArtifact) {
+        const escalatedTasks = cursorEscalatedTasks(companionArtifact.root);
+        const named: Array<{ task: string; element: "Task" | "EscalatedTask" }> = [];
+        if (namedTask) named.push({ task: namedTask, element: "Task" });
+        for (const task of escalatedTasks) {
+          named.push({ task, element: "EscalatedTask" });
+        }
+        if (named.length > 0 && planArtifact) {
           const tasks = planTaskIds(planArtifact);
-          if (!tasks.has(namedTask)) {
+          for (const entry of named) {
+            if (!tasks.has(entry.task)) {
+              companionResult.issues.push(
+                issue(
+                  "error",
+                  "cursor.unknown-task",
+                  companionFile,
+                  entry.element === "Task"
+                    ? `run.xml names task ${entry.task}, which is absent from plan.xml.`
+                    : `run.xml EscalatedTask names task ${entry.task}, which is absent from plan.xml.`,
+                ),
+              );
+            }
+          }
+        } else if (named.length > 0 && !planArtifact) {
+          for (const entry of named) {
             companionResult.issues.push(
               issue(
                 "error",
                 "cursor.unknown-task",
                 companionFile,
-                `run.xml names task ${namedTask}, which is absent from plan.xml.`,
+                entry.element === "Task"
+                  ? `run.xml names task ${entry.task}, but this bundle has no plan.xml to resolve it against.`
+                  : `run.xml EscalatedTask names task ${entry.task}, but this bundle has no plan.xml to resolve it against.`,
               ),
             );
           }
-        } else if (namedTask && !planArtifact) {
-          companionResult.issues.push(
-            issue(
-              "error",
-              "cursor.unknown-task",
-              companionFile,
-              `run.xml names task ${namedTask}, but this bundle has no plan.xml to resolve it against.`,
-            ),
-          );
         }
       }
       results.push(companionResult);

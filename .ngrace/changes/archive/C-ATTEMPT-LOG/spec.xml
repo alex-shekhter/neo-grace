@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-ATTEMPT-LOG>
     <Summary>Record every attempt rather than only outcomes, bound churn at two, and escalate to replan rather than abort — on a fold that no longer destroys the evidence.</Summary>
     <Problem>
