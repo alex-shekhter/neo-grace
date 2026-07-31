@@ -10,6 +10,7 @@ const SUPPORTED_KEYS = new Set([
   "codeExtensions",
   "documentAnchorLimit",
   "documentByteLimit",
+  "gateFailOn",
 ]);
 
 export function loadGraceLintConfig(projectRoot: string): { config: GraceLintConfig | null; issues: LintIssue[] } {
@@ -41,7 +42,7 @@ export function loadGraceLintConfig(projectRoot: string): { config: GraceLintCon
         severity: "error",
         code: "config.unknown-key",
         file: CONFIG_FILE_NAME,
-        message: `Unsupported key \`${key}\` in ${CONFIG_FILE_NAME}. Supported keys: ignoredDirs, unverifiedLanguages, codeExtensions, documentAnchorLimit, documentByteLimit.`,
+        message: `Unsupported key \`${key}\` in ${CONFIG_FILE_NAME}. Supported keys: ignoredDirs, unverifiedLanguages, codeExtensions, documentAnchorLimit, documentByteLimit, gateFailOn.`,
       });
     }
 
@@ -93,6 +94,17 @@ export function loadGraceLintConfig(projectRoot: string): { config: GraceLintCon
           code: "config.invalid-document-limit",
           file: CONFIG_FILE_NAME,
           message: `\`${key}\` must be a positive integer.`,
+        });
+      }
+    }
+
+    if (parsed.gateFailOn !== undefined) {
+      if (parsed.gateFailOn !== "errors" && parsed.gateFailOn !== "warnings" && parsed.gateFailOn !== "never") {
+        issues.push({
+          severity: "error",
+          code: "config.invalid-gate-fail-on",
+          file: CONFIG_FILE_NAME,
+          message: "`gateFailOn` must be one of: errors, warnings, never.",
         });
       }
     }

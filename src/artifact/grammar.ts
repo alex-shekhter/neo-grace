@@ -534,6 +534,7 @@ export function validateChangeArtifact(
       validateMeaningfulRequiredSections(artifact.file, wrapper, SPEC_REQUIRED_SECTIONS, result.issues);
       validateSpecAcceptanceCriteria(artifact.file, wrapper, result.issues);
       validateSpecDesignReferences(artifact.file, wrapper, projectRoot, result.issues);
+      validateClarificationsSection(artifact.file, wrapper, result.issues);
     } else {
       validateDirectSectionCardinality(
         artifact.file,
@@ -546,6 +547,7 @@ export function validateChangeArtifact(
       validateMeaningfulRequiredSections(artifact.file, wrapper, PLAN_REQUIRED_SECTIONS, result.issues);
       validateStructuredPlanSections(artifact.file, wrapper, result.issues);
       validateImplementationTasks(artifact.file, wrapper, result.issues);
+      validateClarificationsSection(artifact.file, wrapper, result.issues);
     }
   }
 
@@ -729,7 +731,121 @@ export function validateRunLedgerArtifact(artifact: ParsedGraceXmlArtifact): Art
     }
   }
 
+  // Bundle-scoped sections (A30.2): optional Verdicts / Decisions, siblings to Epoch-N.
+  // Absent is valid (invariant 5); present-but-malformed is an error (invariant 4).
+  issues.push(...validateLedgerVerdictsSection(artifact.file, wrapper));
+  issues.push(...validateLedgerDecisionsSection(artifact.file, wrapper));
+
   return { file: artifact.file, rootTag: root.tag, graceVersion: root.attributes.graceVersion, issues };
+}
+
+const REVIEW_VERDICT_OUTCOMES = new Set(["pass", "fail", "unable-to-determine"]);
+const GATE_DECISION_GATES = new Set(["approve", "apply", "archive"]);
+const GATE_DECISION_VALUES = new Set(["permit", "refuse"]);
+
+function validateLedgerVerdictsSection(file: string, wrapper: GraceXmlNode): NgraceIssue[] {
+  const issues: NgraceIssue[] = [];
+  const sections = wrapper.children.filter((child) => child.tag === "Verdicts");
+  if (sections.length === 0) return issues;
+  if (sections.length > 1) {
+    issues.push(
+      issue("error", "ledger.duplicate-verdicts-section", file, "run-ledger.xml may contain at most one <Verdicts> section."),
+    );
+  }
+  for (const section of sections) {
+    for (const child of section.children) {
+      if (child.tag !== "Verdict") {
+        issues.push(
+          issue(
+            "error",
+            "ledger.invalid-verdict",
+            file,
+            `<Verdicts> does not allow child <${child.tag}>; use <Verdict outcome="…">.`,
+          ),
+        );
+        continue;
+      }
+      const outcome = (child.attributes.outcome ?? "").trim();
+      if (!REVIEW_VERDICT_OUTCOMES.has(outcome)) {
+        issues.push(
+          issue(
+            "error",
+            "ledger.invalid-verdict",
+            file,
+            `Verdict outcome must be pass, fail, or unable-to-determine; found '${outcome || "(empty)"}'.`,
+          ),
+        );
+      }
+    }
+  }
+  return issues;
+}
+
+function validateLedgerDecisionsSection(file: string, wrapper: GraceXmlNode): NgraceIssue[] {
+  const issues: NgraceIssue[] = [];
+  const sections = wrapper.children.filter((child) => child.tag === "Decisions");
+  if (sections.length === 0) return issues;
+  if (sections.length > 1) {
+    issues.push(
+      issue("error", "ledger.duplicate-decisions-section", file, "run-ledger.xml may contain at most one <Decisions> section."),
+    );
+  }
+  for (const section of sections) {
+    for (const child of section.children) {
+      if (child.tag !== "Decision") {
+        issues.push(
+          issue(
+            "error",
+            "ledger.invalid-decision",
+            file,
+            `<Decisions> does not allow child <${child.tag}>; use <Decision gate="…" decision="…">.`,
+          ),
+        );
+        continue;
+      }
+      const gate = (child.attributes.gate ?? "").trim();
+      const decision = (child.attributes.decision ?? "").trim();
+      if (!GATE_DECISION_GATES.has(gate)) {
+        issues.push(
+          issue(
+            "error",
+            "ledger.invalid-decision",
+            file,
+            `Decision gate must be approve, apply, or archive; found '${gate || "(empty)"}'.`,
+          ),
+        );
+      }
+      if (!GATE_DECISION_VALUES.has(decision)) {
+        issues.push(
+          issue(
+            "error",
+            "ledger.invalid-decision",
+            file,
+            `Decision decision must be permit or refuse; found '${decision || "(empty)"}'.`,
+          ),
+        );
+      }
+      for (const req of child.children) {
+        if (req.tag !== "Requirement") {
+          issues.push(
+            issue(
+              "error",
+              "ledger.invalid-decision",
+              file,
+              `<Decision> does not allow child <${req.tag}>; use <Requirement id="…">.`,
+            ),
+          );
+          continue;
+        }
+        if (!(req.attributes.id ?? "").trim()) {
+          issues.push(
+            issue("error", "ledger.invalid-decision", file, `<Requirement> requires a non-empty id attribute.`),
+          );
+        }
+      }
+    }
+  }
+  return issues;
 }
 
 /** Validates a NgraceRunCursor artifact structure (referential checks are separate). */
@@ -1348,6 +1464,60 @@ function validateOutOfPlanScopeSection(file: string, section: GraceXmlNode, issu
           `<OutOfPlanScope> entry <${child.tag}> requires a non-empty <Reason>.`,
         ),
       );
+    }
+  }
+}
+
+/**
+ * Optional Clarifications section (D12 / A29.4): schema-bound holes with target anchors.
+ * Unresolved means present without resolved="true" (or status="resolved") — gate consults that.
+ */
+function validateClarificationsSection(file: string, wrapper: GraceXmlNode, issues: NgraceIssue[]): void {
+  const sections = wrapper.children.filter((child) => child.tag === "Clarifications");
+  if (sections.length > 1) {
+    issues.push(
+      issue(
+        "error",
+        "change.duplicate-clarifications-section",
+        file,
+        `${wrapper.tag} may contain at most one <Clarifications> section.`,
+      ),
+    );
+  }
+  for (const section of sections) {
+    for (const child of section.children) {
+      if (child.tag !== "Clarification") {
+        issues.push(
+          issue(
+            "error",
+            "change.invalid-clarification",
+            file,
+            `<Clarifications> does not allow child <${child.tag}>; use <Clarification target="IC-*|INV-*|AC-*">.`,
+          ),
+        );
+        continue;
+      }
+      const target = (child.attributes.target ?? "").trim();
+      if (!target) {
+        issues.push(
+          issue("error", "change.invalid-clarification", file, `<Clarification> requires a non-empty target attribute.`),
+        );
+        continue;
+      }
+      const ok =
+        ANCHOR_PATTERNS.interfaceContract.test(target)
+        || ANCHOR_PATTERNS.invariant.test(target)
+        || ANCHOR_PATTERNS.acceptanceCriterion.test(target);
+      if (!ok) {
+        issues.push(
+          issue(
+            "error",
+            "change.invalid-clarification-target",
+            file,
+            `Clarification target '${target}' must be a canonical IC-*, INV-*, or AC-* anchor.`,
+          ),
+        );
+      }
     }
   }
 }

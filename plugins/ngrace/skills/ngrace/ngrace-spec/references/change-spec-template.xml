@@ -30,5 +30,11 @@
     <Assumptions>
       <Assumption>$ASSUMPTION</Assumption>
     </Assumptions>
+    <!-- Optional typed holes (D12). target must be IC-*, INV-*, or AC-*. Never use prose [NEEDS CLARIFICATION]. -->
+    <!--
+    <Clarifications>
+      <Clarification target="IC-EXAMPLE">$CLARIFICATION</Clarification>
+    </Clarifications>
+    -->
   </C-CHANGE-ID>
 </NgraceChangeSpec>

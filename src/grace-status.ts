@@ -12,6 +12,7 @@ import { skillRef } from "./artifact/types";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./artifact/projections";
 import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope } from "./artifact/scope";
 import { readGraceXmlArtifact } from "./artifact/xml";
+import { hasPermittingDecision } from "./gates/ledger";
 import { collectModuleHealth } from "./query/health";
 import { loadGraceArtifactIndex } from "./query/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -132,6 +133,15 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       integrityErrors: bundleLintIssues.filter((issue) => issue.severity === "error").length,
       baselineFailures: bundleLintIssues.filter((issue) => /^assertion\.(?:Must|command-not-evaluated)/.test(issue.code)).length,
     });
+
+    // A29.9: applied without a permitting apply Decision is a status finding, never gate.* from lint (D14).
+    if (
+      location === "archive"
+      && (specStatus === "applied" || planStatus === "applied")
+      && !hasPermittingDecision(root, changeId, "apply")
+    ) {
+      derivedStates.push("applied-without-gate-record");
+    }
 
     const epochCount = existsSync(ledgerFile) ? countLedgerEpochs(ledgerFile) : undefined;
     const taskCount = existsSync(planFile) ? countPlanTasks(planFile) : undefined;

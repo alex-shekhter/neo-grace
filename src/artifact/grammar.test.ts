@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -602,6 +602,52 @@ describe("run ledger and cursor grammar (Phase 3 / A11)", () => {
     );
     expect(codes(unterminated)).toContain("ledger.range-unterminated");
   });
+
+  it("admits well-formed Verdicts and Decisions; rejects bad outcomes (A30.2)", () => {
+    const sectionsOnly = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        `<NgraceRunLedger graceVersion="1.0"><C-X><Verdicts><Verdict outcome="unable-to-determine" reason="host-capability-missing"/></Verdicts><Decisions><Decision gate="apply" decision="permit"><Requirement id="review-verdict" required="true" present="true" blocking="false"/></Decision></Decisions></C-X></NgraceRunLedger>`,
+      ),
+    );
+    expect(codes(sectionsOnly).filter((c) => c.startsWith("ledger."))).toEqual([]);
+
+    const badOutcome = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        `<NgraceRunLedger graceVersion="1.0"><C-X><Verdicts><Verdict outcome="maybe"/></Verdicts></C-X></NgraceRunLedger>`,
+      ),
+    );
+    expect(codes(badOutcome)).toContain("ledger.invalid-verdict");
+
+    const badGate = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        `<NgraceRunLedger graceVersion="1.0"><C-X><Decisions><Decision gate="ship" decision="permit"/></Decisions></C-X></NgraceRunLedger>`,
+      ),
+    );
+    expect(codes(badGate)).toContain("ledger.invalid-decision");
+  });
+
+  it("validates Clarification targets on change specs (A29.4)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, { changeId: "C-CLAR", location: "active", specStatus: "approved", planStatus: "approved" });
+    const good = path.join(root, `${ARTIFACT_DIR}/changes/active/C-CLAR/spec.xml`);
+    let xml = readFileSync(good, "utf8");
+    xml = xml.replace(
+      `</C-CLAR>`,
+      `<Clarifications><Clarification target="IC-FOO">need shape</Clarification></Clarifications></C-CLAR>`,
+    );
+    writeFileSync(good, xml);
+    expect(codes(validateNgraceProject(root))).not.toContain("change.invalid-clarification-target");
+
+    xml = readFileSync(good, "utf8");
+    xml = xml.replace(`target="IC-FOO"`, `target="NOT-AN-ANCHOR"`);
+    writeFileSync(good, xml);
+    expect(codes(validateNgraceProject(root))).toContain("change.invalid-clarification-target");
+  });
+
 
   it("accepts a dense terminated ledger", () => {
     const result = validateRunLedgerArtifact(

@@ -35,5 +35,7 @@ Return findings with severity, location, why it matters, expected fix direction,
 
 <verdicts>
 Report the value the CLI emitted. Never summarize an absence into a pass. Shared vocabulary: `references/verdicts.md` under ngrace-cli (do not restate tokens here).
+
+Review outcomes that gates consume are recorded in the change bundle's `run-ledger.xml` under a bundle-scoped section named in that vocabulary file (sibling to `Epoch-N`, not a loose run/ event). Phase 6 produces the content; Phase 5 ships the record shape and the apply gate that requires a recorded outcome. Do not invent a second home for those records.
 </verdicts>
 </skill>

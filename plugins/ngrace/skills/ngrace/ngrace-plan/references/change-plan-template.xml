@@ -49,5 +49,11 @@
         </Verification>
       </T-001>
     </ImplementationPlan>
+    <!-- Optional typed holes (D12). Unresolved AC-* that Satisfies blocks apply. Never prose markers. -->
+    <!--
+    <Clarifications>
+      <Clarification target="AC-EXAMPLE-CRITERION">$CLARIFICATION</Clarification>
+    </Clarifications>
+    -->
   </C-CHANGE-ID>
 </NgraceChangePlan>
