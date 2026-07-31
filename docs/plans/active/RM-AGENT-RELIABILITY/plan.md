@@ -4365,6 +4365,74 @@ round. That is the number Phase 6 exists to change, and A25.2's query plus A22.3
 one's — *does every persisted element have a validator?* — are the three checks that would have produced
 this phase's entire finding list mechanically.
 
+### A27 — 2026-07-31 · Phase 4 closed, and A26.2's count corrected
+
+Measured at `104388b`. **Phase 4 is `COMPLETE`.** Correction 48 verified independently in both
+directions — `<Task>T-001</Task>` beside `<EscalatedTask>T-999</EscalatedTask>` now emits
+`cursor.unknown-task` naming the element, and an all-real pair stays silent. Close-out is real, not
+reported: status board and banner `COMPLETE`, `C-ATTEMPT-LOG [archive] spec=applied plan=applied`, root
+lint 0 errors, `bun test` 720 pass / 3 skip / 0 fail, `validate:ci` green, working tree clean.
+
+Corrections 31–48 are recorded and fixed. The bundle carried a `plan.xml` authored before execution, so
+A17.3's manual discipline held through six review rounds and no retrospective exception was needed —
+the first phase on this track to close without one.
+
+#### A27.1 The findings-source count, corrected
+
+A26.2 said *one from reading the diff, one from a mutation, six from driving the CLI*. The executor
+pushed on it rather than inheriting it, which was the right instinct, and re-deriving it honestly moves
+the number further than their nuance did:
+
+| Source | Corrections | Count |
+|---|---|---|
+| Reading the code | 39 (path-set equality), 42 (digest sentinels), 40 and 48 (a surface named in text or written to disk with no counterpart) | 4 |
+| Mutation harness | 38 | 1 |
+| Driving into a state the suite does not reach | 37, 41, 43, 44, 45, 46, 47 | 7 |
+
+**A26.2 undercounted the reading class by three**, because I attributed 40 and 48 to the probes that
+confirmed them rather than to the inspection that found them — the probe was the evidence, not the
+discovery. That distinction matters here precisely because it is the input to Phase 6's build order.
+
+**The corrected reading: a third of this phase's findings were statically visible.** 39 and 42 are
+"this comparison treats an unknown as data" and are pure inspection; 40 and 48 are "a surface exists on
+one side and not the other" and are a join over two lists. None needed execution. So the static half of
+a mechanized reviewer is worth more than A20.6 and A26.2 implied, and A15.4's original recommendation
+survives better than my own later hedging about its ceiling.
+
+What does not survive is the idea that a *report schema* is the static half. None of the four static
+findings is about report shape; all four are queries over code and artifacts.
+
+#### A27.2 What Phase 6 inherits, in build order
+
+Three checks, each of which would have produced part of this phase's list mechanically, ordered by
+findings per unit of work:
+
+1. **The unknown-value query** (A21.3, and 39 + 42). Enumerate every value a function can return, mark
+   which mean "unknown", flag any comparison that treats those as data. Static, deterministic, and it
+   caught two corrections in a phase whose stated purpose was honest absence.
+2. **The counterpart query** (A26.1, and 40 + 48). For every persisted element, does a validator resolve
+   it? For every instruction in skill text, does an invocable surface exist? Both are joins between two
+   enumerable lists.
+3. **The differential harness** (A20.6 + A22.3, and the seven). Run each mechanism across the states it
+   must survive — **transition** (fold, restart, regenerate) and **plurality** (two tasks, two workers,
+   two epochs) — and now **authority** (cache versus record), which A25 added. This is the expensive one
+   and it found the most, but it is also the one the executor can partly build for itself as fixtures,
+   which is what the late twins in this phase already are.
+
+#### A27.3 What Phase 5 inherits
+
+Unchanged, and now all with concrete callers:
+
+- **A17.2** — gate `applied` on plan presence, which retires A17.3's manual discipline.
+- **A10.10 §1** — the "no open epoch" archive precondition. A18.5 §1 gave it its caller: an escalated
+  task has no `terminal` event, so `paused-pending-approval` bundles cannot fold.
+- **A21.1 / A22.3's scope line** — refusing further attempts on an escalated task is a gate, deliberately
+  left out of Phase 4 (anti-pattern 9). Phase 5 is where it belongs, and `escalatedTasks` on the position
+  is the field it reads.
+
+Phase 5's §5.5 needs the same re-derivation this phase got, numbered from correction 49. Its step list
+predates the ledger, the cursor and everything above.
+
 ---
 
 ## 15. Final instruction to the executor
