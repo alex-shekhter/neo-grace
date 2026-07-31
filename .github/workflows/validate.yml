@@ -49,7 +49,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Run Windows path, shell, scope, and Unicode adapter regressions
-        run: bun test src/artifact/paths.test.ts src/artifact/scope.test.ts src/artifact/assertions.test.ts src/lint/adapters/python.test.ts src/grace-cursor.test.ts src/artifact/grammar.test.ts
+        run: bun run test src/artifact/paths.test.ts src/artifact/scope.test.ts src/artifact/assertions.test.ts src/lint/adapters/python.test.ts src/grace-cursor.test.ts src/artifact/grammar.test.ts
 
       - name: Run Windows CLI integration regressions
         run: bun run validate:cli
@@ -73,4 +73,4 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Run the real Dart adapter regression
-        run: bun test src/lint/adapters/dart.test.ts
+        run: bun run test src/lint/adapters/dart.test.ts
