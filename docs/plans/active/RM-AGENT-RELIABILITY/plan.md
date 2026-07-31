@@ -346,7 +346,7 @@ Keep this table current. It is the single source of truth for progress.
 |---|---|---|---|---|
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
 | 3 | Run ledger & cursor | D1, D2, D3 | TBD | `COMPLETE` |
-| 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `IN PROGRESS` |
+| 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `READY FOR REVIEW` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
 | 7 | Deterministic failure localization | D8 | TBD | `NOT STARTED` |
@@ -716,7 +716,7 @@ rollback must also remove the companion-tag registration, or state why not.
 
 # PHASE 4 — Attempt log, fix budget, escalation
 
-**Status:** `IN PROGRESS`
+**Status:** `READY FOR REVIEW`
 **Decisions:** D6 (attempt half), D9
 **Release:** TBD
 
@@ -3687,6 +3687,148 @@ is most likely to quietly disarm.
 A19), promote both artifacts to `approved`, and implement — there is no second authoring stop. The
 Stop 2 report shows the amended criteria verbatim alongside their evidence, and A18.13's standing rules
 bind unchanged: all five §0.7 audits or `BLOCKED`, each naming its artifact path.
+
+### A20 — 2026-07-31 · Phase 4 review gate: the flake read is confidently wrong on the common path
+
+Reviewed the working tree at Stop 2, against the code. Suite 682 pass / 3 skip / 0 fail, reproduced
+independently (685 across 40 files). **Much of this phase is correctly built**, verified by reading:
+
+- `RUN_EVENT_FIELD_REGISTRY` is genuinely one constant. `listLooseEvents`, `buildEpochNode`,
+  `writeEventFile` and `listLedgerEvents` all iterate it (`grace-cursor.ts:1114`), and the mutation
+  table's two drop-site reverts fail 6 and 16 tests — the registry holds
+- the budget spans folds as `AC-BUDGET-SPANS-FOLD` requires: `listAttemptEvents:1080-1096` unions
+  loose and ledger events, and `countFailedAttempts` reads that union
+- `computeWriteEvidence:1046-1077` is content-sensitive — sha256 over sorted `(path, content-hash)`
+  pairs, not a file list. A19.1's capture requirement is met **at the capture layer**
+- corrections 37 and 38 are built: `ledger.duplicate-attempt-ordinal`, the widened
+  range-terminating set, and the refuse-before-write negatives all still fail closed
+- **standing rule 8 satisfied on its second outing.** All three cited artifacts exist on disk
+  (`phase4-mutation.md`, `phase4-adversarial-probe.ts`, `phase4-adversarial-results.md`), the mutation
+  table spans ten changes with **no zero-failure rows**, and deviations 1 and 2 are honest, correct,
+  and disclosed rather than found
+
+Five findings. Three needed a reader; two did not.
+
+#### A20.1 Correction 39 — the write evidence cannot see a committed fix, so an ordinary retry reports `flaky`
+
+`computeWriteEvidence` digests only files that are **currently modified** — the intersection of
+`ObservedWriteScope` with `listRepositoryChangedFiles`, which is `git status` against the worktree.
+A fix that is *committed* between two attempts leaves that intersection empty at both moments, and the
+digest is then `sha256("")` — a constant — on both sides.
+
+Reproduced (`scratchpad/a20-review-probe.ts`), with a real fix committed between the attempts:
+
+```
+digest before fix : e3b0c44298fc1c14   available: true
+digest after  fix : e3b0c44298fc1c14   available: true
+classifyFlake     : {"verdict":"flaky"}
+```
+
+**`flaky` is the wrong answer, stated confidently, on the path this repository itself uses** — commit
+per task. D8 wants the classification to keep flakes out of the trend; this puts every committed retry
+*into* the flake bucket.
+
+The shape is correction 27's, one layer in: an empty intersection means *"no scope file is modified
+right now"*, which is not evidence about what happened between two past moments — and it is being
+compared as though it were. A19.1 asked for evidence that changes when the work changes; what shipped
+changes only when *uncommitted* work changes, and the criterion does not say so.
+
+**The fix is small: fold `git rev-parse HEAD` into the digest.** Committed movement then moves the
+evidence, uncommitted movement still moves it, and an empty-and-unchanged pair becomes a true
+no-movement observation rather than a blind one. `AC-FLAKE-THREE-OUTCOMES` gains the discriminating
+test this round lacked: **a fix committed between two attempts classifies `normal-retry`.**
+
+#### A20.2 Correction 40 — the fold erases the paused state, so the exhaustion surface goes silent
+
+`AC-EXHAUSTION-SURFACE` exists so a human sees budget exhaustion without reading the ledger by hand.
+Reproduced:
+
+```
+exhausted: true   paused before fold: ["T-001"]   status pausedTasks before fold: ["T-001"]
+                  paused after  fold: []          status pausedTasks after  fold: undefined
+```
+
+Two causes, both in this phase's own code. `foldEpoch:377-386` rewrites the cursor with
+`state: "idle"` unconditionally — including when the task it just folded was paused by exhaustion. And
+`listPausedTasks:1277-1292` consults the cursor and then falls back to **loose events**, which the fold
+has just deleted; it never reads the ledger, where the `exhausted` event now lives.
+
+So the signal disappears at exactly the moment the ledger becomes the record. That inverts D1: the
+cursor is the disposable cache and the ledger is the truth, yet the only surface reporting exhaustion
+reads the cache and the about-to-be-deleted events. A17.2 named a correct, continuous, non-blocking
+signal as functionally equivalent to no signal; this one is not even continuous.
+
+`listPausedTasks` must read the ledger's `exhausted` events — unterminated by a later `resume` — and
+the fold must not overwrite a paused state with `idle`.
+
+#### A20.3 Correction 41 — `classifyFlake` returns the first fail→pass pair while its comment claims the most recent
+
+`grace-cursor.ts:1253` reads *"Find the last fail→pass pair (or any); report on the most recent such
+pattern"*, and the loop below it returns on the **first** match (`:1254-1269`). Reproduced with two
+pairs — an earlier real retry and a current flake:
+
+```
+classifyFlake: {"verdict":"normal-retry"}      (the most recent pair is flaky)
+```
+
+The current state is what a classification is for, and a comment stating the opposite of the code is
+the documentation half of correction 24. Iterate from the end, and add the two-pair test.
+
+#### A20.4 Correction 42 — two files were written outside the approved `ObservedWriteScope`, and the scope audit reported clean
+
+`src/test-support/fixtures.ts` and `src/test-support/token-accounting.test.ts` are modified. Neither is
+in `C-ATTEMPT-LOG/plan.xml`'s `ObservedWriteScope`, and that plan is `approved` — its scope is
+immutable, and the execute skill's own rule is *"never edit approved assertions/scopes/tasks in
+place."*
+
+The report's scope audit reads *"All **production** paths match `ObservedWriteScope` / A18.5 table."*
+Both files are test-support, so the sentence is literally true and reads as a clean audit. That is
+A12.4's family at the audit layer: a narrowed claim wearing a broad one's clothes. §0.7.1 asks for
+files touched outside the declared list **with justification** — the writes themselves are defensible;
+their omission from the audit is not.
+
+Resolution, per A17.1's precedent rather than a silent edit: record the widening **in the artifact** —
+an XML comment *and* the `IntentSummary`, because the parser discards comments — stating that the
+scope was extended after the writes, and why. Do not quietly add two `<File>` lines to an approved
+plan and move on.
+
+#### A20.5 Correction 43 — `AC-EXHAUSTION-SURFACE` has no integration test, and it is the audit that would have caught 40
+
+`src/grace-status.test.ts` is **unmodified**. The only `pausedTasks` assertion in the tree is
+`grace-cursor.test.ts:723`, against the `collectProjectStatus` object — not the CLI, and not
+`formatStatusText`, both of which the criterion names. §0.2 puts the status integration surface in
+`grace-status.test.ts`; `validate:cli → pass` runs it and proves nothing about this phase, which is
+verbatim what A12.2 said one round ago about a different surface.
+
+This is not bookkeeping. The mutation row `pausedTasks undefined → 2 failures` passes because two unit
+tests cover the pre-fold path; an integration test exercising status *after a fold* is precisely what
+correction 40 would have failed.
+
+#### A20.6 A15.4's split replicates, and Phase 6 should read this round as a second data point
+
+| Finding | Machine-detectable? |
+|---|---|
+| 39 — committed fix invisible to the digest | **no — needed a reader** |
+| 40 — fold erases the paused state | **no** |
+| 41 — first pair returned, comment says last | **no** |
+| 42 — files outside `ObservedWriteScope` | yes — compare git's changed set to the declared scope |
+| 43 — declared AC with no integration test | yes — grep the CLI suites per declared criterion |
+
+Three of five reader-required, and the split falls exactly where A15.4 predicted: **every
+machine-detectable finding is process compliance, every reader-required one is a semantic defect.**
+Two rounds, seventeen findings, same partition. That is now evidence rather than an observation, and it
+sharpens A15.4's instruction to Phase 6 — the report schema and re-execution harness retire the
+compliance half, and no schema retires the other half. Note also that correction 42 is detectable by a
+check that does not exist yet and would have been trivial: git's changed set against the plan's
+declared scope. A5.7 and A11.7 both recorded neighbours of it.
+
+#### A20.7 Verdict
+
+**Not `COMPLETE`.** Corrections 39, 40 and 41 are code fixes; 42 and 43 are a disclosure and a missing
+test. Fix all five, keep the §0.7 audits at full length (standing rule 6), and re-report.
+
+`scratchpad/` at the repository root is audit litter — the artifacts are the right thing to keep, but
+they must not land in a commit.
 
 ---
 
