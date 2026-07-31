@@ -4160,6 +4160,44 @@ the two with reproductions attached. The mechanized reviewer should be built to 
 given a fact stored per task, list every read of it that is not per task. That is a query over the code,
 it is deterministic, and it would have produced 43, 44 and 45 in one pass from the same starting point.
 
+### A24 — 2026-07-31 · A23.3 answered: the counter windows from the resolution
+
+**Decided by the maintainer**, as recommended. Normative where it disagrees with §4.4.
+
+The budget counts `attempt` events for a task with an id **greater than that task's last resolution
+event**. Escalation is a pause, and approval buys two more attempts.
+
+The counter still inspects nothing — no condition on outcome, signature or content — so D9 survives
+literally. What changed is the window, not the predicate, which is the same recording-side/counting-side
+split A19.1 established.
+
+#### A24.1 The marker is a resume that resolved something, not any resume
+
+Stated because the loose reading is a hole with no floor: if *every* `resume` opened a new window, then
+`ngrace cursor resume` would be an unlimited budget reset available to the executing agent at any time,
+with no approval anywhere in the loop. The budget would be advisory and D9 would be decorative.
+
+So the window opens only on a `resume` that **removed an unresolved escalation for that task** — the
+same condition `deriveStateFromEvents` already computes. A `resume` on a task with nothing to resolve is
+an ordinary event: it updates state and opens no window.
+
+This is worth a discriminating negative of its own, in §4.5.2's form: **two `resume` calls on a task
+that never escalated do not extend its budget.** Without that test the hole reopens the first time
+someone simplifies the condition to "last resume wins".
+
+#### A24.2 What windows with it
+
+`collectFailureSignatures` uses the same window, so an escalation surfaces the signatures from the
+current round rather than the full history — which is what AC-ESCALATION's "both signatures" always
+meant, and what correction 46's three-signatures-under-a-two-attempt-headline exposed.
+
+`formatEscalationMessage` reports the **measured** count, not `FIX_ATTEMPT_BUDGET`. The constant is what
+the budget is; the message says what happened.
+
+The ledger keeps everything. Windowing is a read over a complete record — no event is dropped, nothing is
+rewritten, and the full attempt history for a task stays recoverable. That is the property that makes
+this safe to do at all (D1).
+
 ---
 
 ## 15. Final instruction to the executor
