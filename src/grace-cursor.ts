@@ -208,39 +208,43 @@ export function cursorStateForEventKind(
 }
 
 /**
- * Derive cursor state from the full event stream (A21.1).
- * An escalation is sticky until an explicit resolver (`resume`); last-event-wins alone
- * lets verification-unavailable / progress / attempt clear a decision that is still owed.
+ * Derive cursor state from the full event stream (A21.1 / A22.1).
+ * Escalation is a **per-task** fact: sticky until that task's explicit resolver (`resume`).
+ * Bundle-level CursorPosition stays single-valued — paused-pending-approval while any
+ * task remains unresolved, otherwise the last non-escalation mapping (correction 43).
+ * last-event-wins alone also cleared a still-owed decision (correction 41).
  */
 export function deriveStateFromEvents(
-  events: ReadonlyArray<{ id: number; kind: string }>,
+  events: ReadonlyArray<{ id: number; kind: string; task?: string }>,
 ): { state: CursorState } | { unknown: true; degradation: AbsenceValue } {
   const ordered = [...events].sort((a, b) => a.id - b.id);
   if (ordered.length === 0) return { state: "idle" };
 
-  let unresolvedEscalation = false;
+  /** Tasks with an unresolved escalation (per-task set — not a bundle-wide flag). */
+  const unresolvedEscalations = new Set<string>();
   let lastNonSticky:
     | { state: CursorState }
     | { unknown: true; degradation: AbsenceValue }
     | undefined;
 
   for (const event of ordered) {
+    const taskKey = event.task ?? "";
     if (event.kind === "escalation") {
-      unresolvedEscalation = true;
+      unresolvedEscalations.add(taskKey);
       continue;
     }
-    if (unresolvedEscalation) {
-      if (ESCALATION_RESOLVER_KINDS.has(event.kind)) {
-        unresolvedEscalation = false;
-        lastNonSticky = cursorStateForEventKind(event.kind);
-      }
-      // Non-resolvers leave the escalation sticky; do not apply their kind map.
+    if (ESCALATION_RESOLVER_KINDS.has(event.kind)) {
+      // resume --task X removes only X; other tasks stay escalated (correction 43).
+      unresolvedEscalations.delete(taskKey);
+      lastNonSticky = cursorStateForEventKind(event.kind);
       continue;
     }
+    // Non-resolvers never clear escalations. Still update lastNonSticky so another
+    // task's progress is not swallowed when the set later becomes empty (A22.1).
     lastNonSticky = cursorStateForEventKind(event.kind);
   }
 
-  if (unresolvedEscalation) {
+  if (unresolvedEscalations.size > 0) {
     return { state: "paused-pending-approval" };
   }
   return lastNonSticky ?? { state: "idle" };
@@ -589,14 +593,18 @@ export function foldEpoch(
     unlinkSync(contained.absolutePath);
   }
 
+  // A22.2 / correction 44: derive like every other write path. A literal idle erased
+  // unresolved escalations once any other task's terminal closed the range for fold.
+  const derived = positionStateFromBundle(bundlePath);
   const position: CursorPosition = {
     changeId,
     bundlePath,
     epoch: epochNumber,
     task: events[events.length - 1]?.task,
-    state: "idle",
+    state: derived.state,
     sources: { epoch: "ledger", task: "ledger", state: "ledger" },
     inferred: false,
+    degradation: derived.degradation,
   };
   writeCursorFile(bundlePath, position);
 
@@ -1037,14 +1045,17 @@ export function recordAttempt(
       kind: "escalation",
       children: signatures.map(failureSignatureNode),
     });
+    // A22.3: every write path derives — no literal CursorPosition once shared derivation exists.
+    const derived = positionStateFromBundle(bundlePath);
     const position: CursorPosition = {
       changeId,
       bundlePath,
       epoch: currentOpenEpochHint(bundlePath),
       task,
-      state: "paused-pending-approval",
+      state: derived.state ?? "paused-pending-approval",
       sources: { epoch: "events", task: "events", state: "events" },
       inferred: false,
+      degradation: derived.degradation,
     };
     writeCursorFile(bundlePath, position);
     const message = formatEscalationMessage(task, signatures);

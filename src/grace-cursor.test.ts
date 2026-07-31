@@ -1102,20 +1102,149 @@ describe("escalation is sticky until resume (A21.1 / correction 41)", () => {
 
   it("deriveStateFromEvents: sticky until resume, unit-level", () => {
     const sticky = deriveStateFromEvents([
-      { id: 1, kind: "opened" },
-      { id: 2, kind: "attempt" },
-      { id: 3, kind: "attempt" },
-      { id: 4, kind: "escalation" },
-      { id: 5, kind: "verification-unavailable" },
-      { id: 6, kind: "progress" },
+      { id: 1, kind: "opened", task: "T-001" },
+      { id: 2, kind: "attempt", task: "T-001" },
+      { id: 3, kind: "attempt", task: "T-001" },
+      { id: 4, kind: "escalation", task: "T-001" },
+      { id: 5, kind: "verification-unavailable", task: "T-001" },
+      { id: 6, kind: "progress", task: "T-001" },
     ]);
     expect(sticky).toEqual({ state: "paused-pending-approval" });
     const resolved = deriveStateFromEvents([
-      { id: 1, kind: "opened" },
-      { id: 4, kind: "escalation" },
-      { id: 5, kind: "resume" },
+      { id: 1, kind: "opened", task: "T-001" },
+      { id: 4, kind: "escalation", task: "T-001" },
+      { id: 5, kind: "resume", task: "T-001" },
     ]);
     expect(resolved).toEqual({ state: "in-progress" });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A22 corrections 43–44 — plurality and fold axes (leave the one-task / one-epoch origin)
+// ---------------------------------------------------------------------------
+
+describe("per-task escalation set (A22.1 / correction 43)", () => {
+  function escalateTask(root: string, task: string, open = false) {
+    if (open) {
+      advanceCursor(root, "C-RUN", { task, openEpoch: true, from: 1, to: 99 });
+    }
+    recordAttempt(root, "C-RUN", {
+      task,
+      outcome: "fail",
+      signature: { kind: "test-failure", key: `${task}-a` },
+      writeEvidence: evidencePaths([]),
+    });
+    const second = recordAttempt(root, "C-RUN", {
+      task,
+      outcome: "fail",
+      signature: { kind: "typecheck", key: `${task}-b` },
+      writeEvidence: evidencePaths([]),
+    });
+    expect(second.escalated).toBe(true);
+    expect(second.position.state).toBe("paused-pending-approval");
+    return second;
+  }
+
+  it("resume --task T-002 leaves T-001 escalated (plurality twin)", () => {
+    // Fixture leaves plurality origin: two tasks; T-001 escalated, T-002 resume must not clear it.
+    const root = createProject();
+    seedBundle(root);
+    escalateTask(root, "T-001", true);
+    // T-002 becomes active without escalating
+    advanceCursor(root, "C-RUN", { task: "T-002", kind: "progress" });
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
+
+    const resumed = resumeCursor(root, "C-RUN", "T-002");
+    // Unrelated task's resume must not resolve T-001's owed decision.
+    expect(resumed.state).toBe("paused-pending-approval");
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
+
+    // Only T-001's own resume clears the set.
+    const cleared = resumeCursor(root, "C-RUN", "T-001");
+    expect(cleared.state).toBe("in-progress");
+    expect(showCursor(root, "C-RUN").state).toBe("in-progress");
+  });
+
+  it("T-002 progress is recorded and not swallowed while T-001 is escalated (plurality twin)", () => {
+    // While set non-empty, bundle stays ppa; T-002's events still land and feed lastNonSticky.
+    const root = createProject();
+    const bundle = seedBundle(root);
+    escalateTask(root, "T-001", true);
+    const afterProgress = advanceCursor(root, "C-RUN", { task: "T-002", kind: "progress" });
+    expect(afterProgress.state).toBe("paused-pending-approval");
+    expect(afterProgress.task).toBe("T-002");
+    const loose = listLooseEvents(bundle);
+    expect(loose.some((e) => e.task === "T-002" && e.kind === "progress")).toBe(true);
+
+    // After T-001 resolves, derivation reflects recent activity (progress was not skipped).
+    resumeCursor(root, "C-RUN", "T-001");
+    expect(showCursor(root, "C-RUN").state).toBe("in-progress");
+  });
+
+  it("deriveStateFromEvents: resume of unrelated task leaves other escalation (unit)", () => {
+    const stillOwed = deriveStateFromEvents([
+      { id: 1, kind: "opened", task: "T-001" },
+      { id: 2, kind: "escalation", task: "T-001" },
+      { id: 3, kind: "progress", task: "T-002" },
+      { id: 4, kind: "resume", task: "T-002" },
+    ]);
+    expect(stillOwed).toEqual({ state: "paused-pending-approval" });
+
+    const bothClear = deriveStateFromEvents([
+      { id: 1, kind: "escalation", task: "T-001" },
+      { id: 2, kind: "escalation", task: "T-002" },
+      { id: 3, kind: "resume", task: "T-001" },
+      { id: 4, kind: "resume", task: "T-002" },
+    ]);
+    expect(bothClear).toEqual({ state: "in-progress" });
+
+    const oneRemains = deriveStateFromEvents([
+      { id: 1, kind: "escalation", task: "T-001" },
+      { id: 2, kind: "escalation", task: "T-002" },
+      { id: 3, kind: "resume", task: "T-002" },
+    ]);
+    expect(oneRemains).toEqual({ state: "paused-pending-approval" });
+  });
+});
+
+describe("fold derives unresolved escalation (A22.2 / correction 44)", () => {
+  it("fold twin: escalate T-001, T-002 terminal closes range, fold keeps paused-pending-approval", () => {
+    // Fixture leaves transition origin (fold) AND plurality origin (two tasks).
+    // A19.2 claimed escalated epochs do not fold — false: terminal is per-range, not per-task.
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "suite-a" },
+      writeEvidence: evidencePaths([]),
+    });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "typecheck", key: "suite-b" },
+      writeEvidence: evidencePaths([]),
+    });
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
+
+    // Different task's terminal satisfies the allocation and allows fold.
+    advanceCursor(root, "C-RUN", { task: "T-002", kind: "terminal" });
+    const fold = foldEpoch(root, "C-RUN");
+    expect(fold.applied).toBe(true);
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+
+    // Written run.xml must not claim idle over an unresolved escalation.
+    const runXml = readFileSync(path.join(bundle, "run.xml"), "utf8");
+    expect(runXml).toContain("paused-pending-approval");
+    expect(runXml).not.toMatch(/<State>idle<\/State>/);
+
+    // show prefers written cursor — must still report the owed decision.
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
+
+    // Re-derive without written cursor also recovers from ledger.
+    writeFileSync(path.join(bundle, "run.xml"), "");
+    expect(regenerateCursor(root, "C-RUN").position.state).toBe("paused-pending-approval");
   });
 });
 
