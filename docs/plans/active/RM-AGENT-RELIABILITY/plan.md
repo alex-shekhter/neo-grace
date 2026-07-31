@@ -4198,6 +4198,96 @@ The ledger keeps everything. Windowing is a read over a complete record — no e
 rewritten, and the full attempt history for a task stays recoverable. That is the property that makes
 this safe to do at all (D1).
 
+### A25 — 2026-07-31 · Fifth Phase 4 gate: one position, two authorities
+
+Measured at `4abc775`. **Corrections 45 and 46 are fixed**, verified by driving the CLI:
+
+```
+State: paused-pending-approval
+Task: T-001
+EscalatedTasks: T-001
+```
+
+and after a resolving `resume`, two further failures escalate at **2** with signatures `c` and `d` only.
+The window works, the negative for ordinary resumes is present, and the per-task/aggregate table in
+A23.4's form is the right artifact — the split it lands on (aggregate state, per-task list, `task`
+constrained to the list) is correct and worth keeping as the phase's stated model.
+
+One correction, and it is the last unexamined seam in this phase: the **read** path.
+
+#### A25.1 Correction 47 — the written cursor overrides the ledger on escalation, in both directions
+
+`derivePosition`'s prefer-written branch composes a position from two authorities without reconciling
+them (`:738-770`):
+
+```js
+const fromStream = listUnresolvedEscalatedTasks(listAccountingEvents(bundlePath));
+const escalatedTasks = fromFile.length > 0 ? fromFile : fromStream;
+…
+state: parsedState.state,
+sources: { epoch: "cursor", task: "cursor", state: "cursor" },
+```
+
+`state` always comes from the file. `escalatedTasks` comes from the file when present and from the
+ledger otherwise. Nothing checks that the two agree, and they need not.
+
+**Direction 1 — the upgrade path, and it produces a self-contradictory position.** A `run.xml` with no
+`<EscalatedTask>` children takes `state` from the file and the set from the stream:
+
+```
+State: in-progress
+Task: T-001
+EscalatedTasks: T-001
+```
+
+One line says nothing is blocked; the next names the blocked task. This is not a hypothetical fixture —
+**every `run.xml` written before `4abc775` has exactly that shape**, so any bundle in flight across this
+commit lands here. `sources` compounds it by reporting `state=cursor` for a position whose set came from
+the ledger.
+
+**Direction 2 — a stale cursor keeps a resolved escalation alive.** With the ledger showing the
+escalation resolved by a `resume`, a `run.xml` still carrying the entry wins:
+
+```
+State: paused-pending-approval
+Task: T-001
+EscalatedTasks: T-001
+```
+
+No degradation, no announcement. A task that is free reads as owing a decision, indefinitely, until
+something rewrites the cursor.
+
+**This is anti-pattern 7 meeting standing rule 9.** Rule 9 says accounting a policy decision depends on
+reads the durable record; the write paths were all corrected to do that, and the read path was never
+examined because every previous round arrived through a write. Escalation is not the kind of fact a
+cache may answer for: `epoch` and `task` are cheap to recover and harmless to lag, but "is a decision
+owed" governs whether work may proceed.
+
+The comment on the line above the defect says *"Absent → recover from stream (D1)"*. The instinct was
+right and was applied to one of the two fields.
+
+**Fix:** escalation is always derived from the ledger∪loose stream, never read from the written cursor —
+both the set and the `paused-pending-approval` state that follows from it. The written cursor stays a
+cache for `epoch` and `task`. When the file disagrees with the derivation, announce it through the
+existing `degradation` channel, which is already wired for exactly this by the A19.2 parse path four
+lines below, and set `sources.state` to `ledger`/`events` so the attribution stops lying.
+
+That also deletes the `fromFile.length > 0` precedence question rather than answering it, which is the
+better outcome: there is no correct precedence between a cache and the record it caches.
+
+#### A25.2 Five rounds, and the shape of the last one
+
+37 and 44 were write paths reading the wrong set. 41, 43 and 45 were reads of a per-task fact at bundle
+granularity. 47 is the same per-task fact read from the cache instead of the record. **Every correction
+in this phase after 38 is one sentence: escalation is a durable, per-task fact, and the code kept
+treating it as an ephemeral, bundle-level one.**
+
+That sentence is now true of exactly one remaining surface, and it is named. Worth stating plainly for
+Phase 6's benefit: the enumeration A23.4 proposed — *given a fact stored per task, list every read of it
+that is not per task* — would have produced 43, 44, 45 **and 47** together, because the query does not
+care whether the read arrives through a write path or a read path. That is the argument for building it
+as a query over the code rather than as a checklist a reviewer applies while following reproductions.
+
 ---
 
 ## 15. Final instruction to the executor
