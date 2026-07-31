@@ -3830,6 +3830,80 @@ test. Fix all five, keep the §0.7 audits at full length (standing rule 6), and 
 `scratchpad/` at the repository root is audit litter — the artifacts are the right thing to keep, but
 they must not land in a commit.
 
+### A21 — 2026-07-31 · Fourth gate: corrections 39–43 built; one null treated as a value
+
+Reviewed the working tree, against the code. **All five A20 corrections are correctly built**, and the
+evidence is the A20 probe re-run **unchanged** against the fixed tree:
+
+```
+SUSPICION 1 — digest before fix : 878d99b0f8bc82bc   after fix : b9781c7e2471c326
+              classifyFlake     : {"verdict":"normal-retry"}
+SUSPICION 2 — paused after fold : ["T-001"]          status pausedTasks after fold: ["T-001"]
+SUSPICION 3 — classifyFlake     : {"verdict":"flaky"}   (most recent pair)
+```
+
+Independently measured: `bun run validate:ci` exit 0; `ngrace lint --path .` 0 errors / 11 warnings.
+`listPausedTasks:1316-1334` now unions ledger and loose events ordered by id, with `resume`/`terminal`
+clearing — so it is correct for several tasks at once, not only the probe's one. `foldEpoch:434-451`
+preserves paused without overwriting `complete`. The `grace-status.test.ts` integration test is
+discriminating: it folds first, then asserts `paused=T-001` in `formatStatusText` **and** the field in
+JSON. Correction 42's disclosure is in the artifact in both required places, and its closing sentence —
+*"the writes were defensible, their omission from the scope audit was not"* — is the right record.
+
+#### A21.1 Correction 44 — an unresolvable HEAD is folded in as the empty string
+
+`resolveGitHead` returns `null` when `git rev-parse HEAD` fails, and `computeWriteEvidence` folds it as
+`HEAD:${head ?? ""}`. A failed measurement becomes a value, and two attempts then share a digest they
+were never entitled to. Reproduced on a repository with an unborn HEAD — `git init`, no commit yet:
+
+```
+git status exit : 0        git rev-parse HEAD : 128
+digest 1: ccfe753fbc60ec24        digest 2: ccfe753fbc60ec24
+classifyFlake: {"verdict":"flaky"}
+```
+
+`git status` succeeds, so the existing unavailable path does not fire; only HEAD is missing, and the
+`?? ""` swallows it. **This is corrections 24, 27, 28 and 39's family — found inside the fix for 39.**
+That recurrence is the finding as much as the line is: the rule was being applied to the field under
+discussion while the neighbouring null went in unexamined, which is exactly what A14.3 said about
+Phase 3 and is worth stating once more rather than quietly patching.
+
+A freshly-initialized repository is not a corner case here — it is the adoption case A11.5 named.
+
+**Fix:** `computeWriteEvidence` returns `{ available: false, reason: "git HEAD unresolvable (unborn or
+unreadable); write-evidence cannot be recorded" }`, joining the two existing unavailable paths, so the
+classification reports `unable-to-determine`. One line, plus the unborn-HEAD test.
+
+#### A21.2 A boundary the criterion should state, not a defect
+
+An **uncommitted** fix landing **outside** the bundle's `ObservedWriteScope` does not move the digest,
+so a `fail → pass` around it reads as `flaky`. That is the criterion working as written — the scope
+defines what this change may write — but it is a real blind spot in a mechanism whose whole job is to
+say whether something changed. Write the boundary into `AC-FLAKE-THREE-OUTCOMES` so the next reader
+does not have to rediscover it, and so Phase 7 knows what the signal does and does not cover.
+
+#### A21.3 Phase 5 inherits one named obligation from this phase
+
+Deviation 2 — *after exhaustion, a further attempt still records* — is correct under A18.11: mechanisms
+report, gates refuse. **The gate that refuses an attempt past an exhausted budget is Phase 5's**, beside
+A17.2's *"applied requires a plan"* and A10.10 §1's archive precondition. Recorded in the A7.4 form so
+it has an owner rather than a good intention.
+
+#### A21.4 Close-out conditions
+
+**Content-approved.** After correction 44 lands, this phase has no outstanding findings against the
+code. It does **not** become `COMPLETE` on that alone:
+
+1. **CI must actually run.** A16.2's rule, and A16.3's outcome: the check was worth holding the status
+   for, and what it caught was not what it was watching for. All four touched suites reach
+   `windows-latest` — `grace-cursor.test.ts` and `grammar.test.ts` directly (`validate.yml:52`),
+   `grace-status.test.ts` and `grace-lint.test.ts` through `validate:cli` — and this round adds a `git`
+   subprocess to the status suite's path, which is new on that runner. Status stays
+   `READY FOR REVIEW` until the job is green.
+2. **Then the bundle closes as A17 requires:** spec and plan to `applied`, `C-ATTEMPT-LOG` moved to
+   `archive/`, with `ngrace status` reporting it there. No open epoch exists in this repository's own
+   tree, so A10.10 §1's precondition is trivially met.
+
 ---
 
 ## 15. Final instruction to the executor
