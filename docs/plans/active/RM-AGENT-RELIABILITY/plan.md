@@ -4,7 +4,7 @@ kind: plan
 status: approved
 supersededBy: null
 created: 2026-07-29
-updated: 2026-07-30
+updated: 2026-07-31
 baseline: 6.0.1
 targets: []
 context: ./decisions.md
@@ -719,6 +719,11 @@ rollback must also remove the companion-tag registration, or state why not.
 **Status:** `NOT STARTED`
 **Decisions:** D6 (attempt half), D9
 **Release:** TBD
+
+> **Amended by §14 A18 — read it before §4.3.** The steps below were written before the evidence
+> existed. A18 re-derives them against HEAD (`235f0f8`): five corrections, three of them reproduced by
+> probe, and five decisions ratified. Corrections 31 and 32 are load-bearing — as written, this phase
+> produces an attempt log that does not survive its first epoch close. A18.14 extends §4.6.
 
 ## 4.1 Objective
 
@@ -3307,6 +3312,281 @@ mechanized reviewer that reports without gating would reproduce exactly this.
 one may reach `READY FOR REVIEW` with a spec-only bundle. The archive precondition from A10.10 §1 — "no
 open epoch" — should be settled in the same Phase 5 work, since both govern what a bundle must look
 like to leave `active/`.
+
+### A18 — 2026-07-31 · Phase 4 re-derived against HEAD, and five decisions answered
+
+**Everything below was measured at `235f0f8`** (Phase 3 merged, tree clean, `bun run validate:ci` exit
+0), per A5.5: these are claims tied to a commit, and the executor re-measures what it depends on rather
+than transcribing it. Corrections 31–33 were **reproduced by probe**, not read off the source — the
+script is `scratchpad/a18-probe.ts` and its output is quoted below (standing rule 8: an audit names its
+artifact).
+
+§4.1's objective survives. §4.4's two ratified rules survive and are the phase's spine: **the counter
+stays dumb** (D9) and **budget exhaustion is a normal state** (D9, §4.10). §4.7's three review gates
+survive. **§4.3's file table and §4.5's step list do not survive intact:** five corrections follow, two
+of which (31, 32) describe a record that is destroyed at fold time — which is to say, the phase as
+written produces an attempt log that does not survive the first epoch close.
+
+#### A18.1 §4.2's precondition, re-measured
+
+| Precondition | Measured | Result |
+|---|---|---|
+| Phase 3 `COMPLETE` | §2 status board; A16.3 records the `windows-latest` observation that closed it | ✅ |
+| Ledger exists to hold attempt events | `run-ledger.xml` written by `foldEpoch` (`grace-cursor.ts:269`), validated at `grammar.ts:628` | ✅ |
+| Baseline green | `bun run validate:ci` at `235f0f8` → exit 0 | ✅ |
+
+#### A18.2 Correction 31 — the fold destroys the attempt payload
+
+§4.4's `AttemptEvent` and `FailureSignature` have nowhere to live. Two sites drop them, and neither is
+named in §4.3:
+
+| Site | What it does |
+|---|---|
+| `grace-cursor.ts:102-108` / `:127` | `LooseEvent` is `{ id, task, kind, file, allocations? }`; `listLooseEvents` parses `Allocation` children **only when `kind === "opened"`**, and reads no attributes beyond the filename's three |
+| `grace-cursor.ts:752-761` | `buildEpochNode` emits `<Event id task kind />` — a three-attribute literal. Everything else on the loose event is discarded |
+
+Reproduced. A loose event written as
+`<NgraceRunEvent … kind="attempt" outcome="fail" ordinal="1"><FailureSignature kind="test-failure"
+key="src/x.test.ts:should parse" /></NgraceRunEvent>` parsed as
+`{ id: 2, task: "T-001", kind: "attempt" }` and folded to:
+
+```
+<Epoch-1><Allocation worker="w0" from="1" to="99" /><Event id="1" task="T-001" kind="opened" />
+<Event id="2" task="T-001" kind="attempt" /><Event id="3" task="T-001" kind="terminal" /></Epoch-1>
+```
+
+**Every outcome and every failure signature is gone at epoch close.** D9's *"same failure twice (stuck)
+distinguishable from two different failures (converging)"* and D6's entire calibration join depend on
+exactly the fields that vanish. This is A5.4's shape — a value dropped by a record that re-lists its
+fields by name — for the fifth time on this track, and this time inside the phase whose subject *is* the
+record.
+
+#### A18.3 Correction 32 — an escalated task's epoch cannot fold, and §3.4's completeness mark was never built
+
+Two findings that compound.
+
+**a. `pause` does not terminate a range.** `validateEventsAgainstAllocations:727-730` requires an event
+with `kind === "terminal"` inside every used allocation, and `foldEpoch:308-311` throws before writing
+when it is absent. Reproduced — an epoch of `opened` then `pause`:
+
+```
+PROBE 2 — fold THREW: unterminated range for w0
+```
+
+§4.4 routes exhaustion to `paused-pending-approval`. **So the phase's own escalation path leaves an
+epoch that can never fold**, and the attempt events for the runs that went worst stay loose while every
+clean run's events land in the ledger. That is precisely the failure D6 § *On loss* names: *"if events
+are likelier to go missing when a run dies badly, and bad runs are where confidence was most wrong, the
+worst samples drop out and the agent appears better calibrated than it is."* Correlated loss, arriving
+by construction, in the phase that feeds the calibration study.
+
+**b. Nothing marks an epoch complete.** §3.4's *Completeness* — *"Mark each folded epoch complete or
+incomplete (D6's bias safeguard)"* — has no implementation: no `complete` attribute exists on any Epoch
+node, in `buildEpochNode` or in `validateLedgerEpoch`. It was a ratified Phase 3 design item that did
+not ship and was not reported as absence; recorded here under standing rule 7 rather than left to be
+rediscovered by Phase 9, whose §9.5.4 requires *"excludes incomplete epochs as a class"* and today has
+no field to exclude on.
+
+The two are one problem: the fold currently has exactly one answer for an incomplete epoch — refuse —
+and refusal is what strands the events.
+
+#### A18.4 Correction 33 — event kinds are unvalidated, and a typo folds clean
+
+`kind` is a free string. The filename regex `EVENT_FILENAME` (`grace-cursor.ts:110`) accepts
+`[A-Za-z0-9_-]+`; no validator anywhere constrains the value; `advanceCursor:235-236` maps it to state
+with a two-arm conditional that treats every unknown kind as `in-progress`. Reproduced —
+`advance --kind atempt` folded without a single diagnostic:
+
+```
+<Event id="2" task="T-001" kind="atempt" />
+```
+
+Budget accounting keys on this string. A typo therefore resets the counter silently, which is
+anti-pattern 8 — a mechanism whose failure is silent — sitting under the phase's central invariant.
+
+#### A18.5 Correction 34 — §4.3's file table names the wrong module and omits eight surfaces
+
+**`src/artifact/types.ts` is the wrong home.** The run-state types live in `src/grace-cursor.ts:35-108`
+(`CursorState`, `PositionSource`, `AbsenceValue`, `CursorPosition`, `FoldResult`, `RangeAllocation`,
+`LooseEvent`). `artifact/types.ts` carries tag and anchor constants — `NGRACE_CHANGE_COMPANION_TAGS`
+(`:40-52`), `EPOCH_SECTION_PATTERN` (`:67`) — and nothing shaped like an event record. A18.7's field
+registry is the one thing that plausibly belongs there, beside the companion registry it copies.
+
+Missing from the table entirely, derived by tracing rather than from §4.3 (A5.6):
+
+| File | Why it is pulled in |
+|---|---|
+| `src/artifact/grammar.ts` | `validateLedgerEpoch` is where attempt fields and the kind vocabulary are validated |
+| `src/lint/catalog.ts` | every new code registers with `derivedFrom` / `proposedBy` (§12.1); prefix guides already exist at `:571`, `:577` |
+| `src/artifact/grammar.test.ts` | the validator's unit surface |
+| `src/grace-lint.test.ts` | **A12.2 is a standing debt on this track**: twelve codes shipped last phase with zero integration tests. §0.2 requires one fires / one does-not-fire per code |
+| `src/grace-status.test.ts` | if exhaustion surfaces in `status` (A18.12 §3) |
+| `README.md:176-186` | the CLI command table and the per-command output-format list |
+| `skills/ngrace/ngrace-cli/SKILL.md:16` + mirror | enumerates the cursor subcommands an agent may call |
+| `.ngrace/graph/main.xml`, `.ngrace/verification/main.xml` | `M-CURSOR` / `V-M-CURSOR` already exist (`main.xml:49`, `verification/main.xml:48`); A11.7's finding stands — nothing cross-checks `AffectedAreas` anchors against the graph |
+
+`skills/ngrace/ngrace-execute/SKILL.md:37` is correctly named by §4.3 and is the line the budget rule
+extends. Keep it to one or two sentences: §12.4 anti-pattern 10 forbids skill text restating a
+vocabulary the binary emits, so the skill says *when* to escalate, never *what the codes are*.
+
+#### A18.6 Correction 35 — "record on every verification cycle" names no mechanism
+
+Step 4.5.1 says attempts are recorded *"on every verification cycle."* **Nothing in the binary runs a
+verification cycle.** `ngrace verification` is `find` and `show` — read-only queries over
+`.ngrace/verification/*` (`grace-verification.ts:22,28,79`). `--run-commands` executes `MustPassCommand`
+inside a lint run and records nothing durable. The only actor that knows an attempt happened is the
+executing agent.
+
+So the step conceals a design decision, in A10.8's shape: **what surface does the agent call?** Answered
+in A18.11. Until it is answered, step 4.5.1 has no verify check that can fail — A10.3's defect, which
+this track has now produced three times.
+
+#### A18.7 Decision 1 — typed attempt fields, behind one derived registry
+
+**Decided by the maintainer.** The ledger carries a fixed, validated set of attempt fields. It does not
+become a verbatim container for whatever an agent attaches.
+
+Rejected alternative — passing loose-event attributes and children through the fold unchanged — is
+grammar with no validator, which invariant 4 forbids, and it puts the Phase 9 calibration join at the
+mercy of names nobody fixed (D6 condition 5's argument for an ordinal scale, one level up).
+
+**The registry is the condition of the decision, not a refinement of it.** Typed fields alone reopen the
+drop site A18.2 describes: three sites re-listing field names, and a fourth field added in Phase 9
+(`claimedConfidence`) half-registered exactly as `design-context.xml` was in correction 16. So one
+exported constant — field → attribute name → validator — read by `listLooseEvents`, by `buildEpochNode`,
+and by `validateLedgerEpoch`. A11.1's companion registry is the precedent and the model; place this one
+beside it in `artifact/types.ts`.
+
+`AC-EVENT-FIELD-REGISTRY (A18.7)` is an acceptance criterion, and its discriminating negative is a test
+that adds a field to the registry and asserts it survives a fold **without touching the other two
+sites**. Without that test the registry is three literals wearing a constant's name.
+
+#### A18.8 Decision 2 — escalation terminates the range, and fold learns the completeness mark
+
+**Decided by the maintainer.** Both halves of correction 32 are fixed in Phase 4:
+
+1. **Escalation emits a range-terminating event.** The exhausted task's epoch closes and folds like any
+   other; the *task* is `paused-pending-approval` in the cursor, which is a task state, not an epoch
+   state. Conflating the two is what stranded the events.
+2. **`fold` gains `<Epoch-N complete="false">`** for the genuinely incomplete case — a hole, or a used
+   range with no terminal event after a crash. §3.4 specified this mark and Phase 3 did not build it;
+   it is built here, and it is what lets D6's bias safeguard and §9.5.4 have a field to read.
+
+**This changes a shipped refusal, so A7.2 binds it.** The both-directions table is required: what now
+folds (an incomplete epoch, explicitly, marked `complete="false"`) **and** what still refuses — the
+existing refuse-before-write negatives A15 added must still fire, because a fold that silently accepts
+any garbage is a worse mechanism than one that strands events. The default stays refuse; folding an
+incomplete epoch is an explicit act, not a fallback.
+
+`ledger.range-unterminated` and `ledger.range-hole` keep firing on a ledger whose epoch is *not* marked
+incomplete, and must not fire on one that is. That pair is the discriminating negative.
+
+#### A18.9 Decision 3 — `ledger.unknown-event-kind`, warning severity
+
+**Decided by the maintainer.** Register the known kinds; report an unknown one as a **warning**.
+
+Error severity was rejected on invariant 5: a project carrying ad-hoc kinds today lints clean, and a new
+**error** on a previously-green project is release-breaking (§0.7.4). A8's near-miss marker is the
+precedent — the same trade, decided the same way. Warning is not a soft option here: the kind vocabulary
+is what budget accounting keys on, so a silent typo is the failure, and a visible one is the fix.
+
+The code registers in `catalog.ts` with `derivedFrom` and `proposedBy: "confidently-wrong"` — a
+miscounted budget reports a confident number over an unrecognized record.
+
+#### A18.10 Decision 4 — flake classification lands in Phase 4, as a read, with three outcomes
+
+**Decided by the maintainer.** §4.5.4 stays in this phase. D8's own text places the detection in the
+attempt log — *"`fail → (no fix) → pass` is a detectable signature in the shape D6 already records"* —
+and §13's D8→Phase 7 row governs marker-divergence localization, which is a different mechanism.
+Splitting the recorder from its consumer is how A13.1 happened: a field captured in one phase, found
+unable to answer the question in the next.
+
+Two conditions:
+
+1. **Classification is a read over the log, never a stored verdict** (§4.4 already says so). It is
+   derived on demand from the ledger plus loose events, so Phase 7 consumes a function it can change
+   rather than a frozen field it must migrate.
+2. **Three outcomes, not two.** Where the write evidence for an attempt is unavailable —
+   `listRepositoryChangedFiles` returns `{ available: false }` whenever git exits non-zero
+   (`grace-cursor.ts:620`), and `collectActiveChangeScopes` reads only `changesActiveDir`, so every
+   archived bundle has no scope — the classification is `unable-to-determine` with a reason, from
+   `skills/ngrace/ngrace-cli/references/verdicts.md`. Never "normal retry." This is corrections 27 and
+   28 answered one phase before they would otherwise recur; the fact that both slipped through Phase 3
+   is the reason it is written down here rather than trusted to instinct.
+
+The evidence the classification reads is *"did the bundle's `ObservedWriteScope` intersection with the
+repository's changed files move between attempt N and N+1"* — the A13.2 mechanism, already built and
+already tested. No commands are run (§0.2, A13.2).
+
+#### A18.11 Decision 5 — the recording surface is `ngrace cursor attempt`
+
+Answering correction 35. A seventh subcommand: `ngrace cursor attempt --change C-* --task T-* --outcome
+pass|fail [--signature-kind K --signature-key S]`.
+
+Rejected: overloading `advance --kind attempt`. `advance` is a raw append with a two-arm state map; the
+attempt surface owns ordinal allocation, budget accounting, the exhaustion transition, and the
+escalation message. Putting policy behind a `--kind` string that nothing validates is correction 33 with
+a larger blast radius.
+
+**The mechanism reports; it does not block.** §12.4 anti-pattern 9. `cursor attempt` records the
+exhaustion event, writes the paused state, and prints both signatures with a non-zero-free exit — it
+never refuses the next attempt. Refusing is a gate, and gates are Phase 5 (D11, D14). A Phase 4 that
+blocks is a Phase 4 that has to be unwound.
+
+This is the one decision in A18 taken on recommendation rather than put to the maintainer as a question.
+It is the smallest choice consistent with the five surrounding decisions, and it is open to objection at
+`spec.xml` review — but it is recorded here, per §12.5, rather than improvised in the diff.
+
+#### A18.12 The step list's floor — four things D6/D9 require that §4.5 does not cover
+
+Per A3.1, §4.5 is a floor, not a budget.
+
+1. **The ordinal must be allocated, not counted at read time.** `AttemptEvent.ordinal` is "1-based
+   within the task" (§4.4). Two concurrent workers on the same task both reading "last ordinal was 1"
+   is D2's whole premise, one field over. Either derive the ordinal from the allocated event id range
+   or state why the collision cannot arise.
+2. **Attempts must survive the fold, and be counted across it.** The budget spans epochs: two failures
+   split by a fold must still exhaust it. A counter that reads only `run/` resets at every epoch close —
+   and `nextEventId:903-907` already shows the shape of the fix (max over ledger and loose).
+3. **Exhaustion needs a surface a human sees.** `status` prints `epochs=` and `tasks=`
+   (`grace-status.ts:376-379`) and nothing about a paused task. A17.2's lesson applies directly: *"a
+   correct, continuous, non-blocking signal is functionally equivalent to no signal"* — and a signal
+   with no surface at all is worse. Decide where exhaustion appears, and say so.
+4. **Invariant 5, demonstrated rather than asserted.** All five sweep targets per A9, including
+   `bun run ngrace lint --path .` on this repository's own tree.
+
+#### A18.13 Standing rules that bind this phase
+
+- **A5.4** — drop-site inventory before widening a record. A18.2 *is* this rule's finding; the inventory
+  for `LooseEvent`, `buildEpochNode` and `validateLedgerEpoch` is required in the report.
+- **A5.5 / A5.6** — every claim above is measured at `235f0f8`; acceptance criteria descending from
+  these corrections cite them inline, e.g. `AC-ATTEMPT-SURVIVES-FOLD (A18.2)`.
+- **A7.2** — the fold's completeness change is a detection-boundary change: both directions, tabled.
+- **A12.2 / §0.2** — every new code gets one integration test that it fires and one that it does not
+  fire on a clean project. This phase inherits the debt; it does not add to it.
+- **A12.3** — all five §0.7 audits, or `BLOCKED`. There is no short form.
+- **A12.4** — a ratified capability not built is reported as **not built**, never as a smaller version.
+- **A14.6** — every audit names its artifact and path; enumerated probe rows are tagged `new` or
+  `case-table`, and the fifteen-input floor counts only `new`.
+- **A17.3** — **this phase authors `spec.xml` and `plan.xml` before execution.** Phase 3's spec-only
+  bundle was a recorded exception and is not a precedent.
+- **§0.2** — no test orders attempt events by clock. Ordering is by allocated range (D2).
+
+#### A18.14 Additions to §4.6 definition of done
+
+- An attempt's outcome and failure signature are present in `run-ledger.xml` **after a fold**, asserted
+  on the folded ledger and not on the loose event (A18.2)
+- The field registry is one constant, with the add-a-field test that touches only it (A18.7)
+- An exhausted task's epoch folds; an incomplete epoch folds only when explicitly marked, with the
+  both-directions table (A18.8)
+- `ledger.unknown-event-kind` fires as a warning, and the compat sweep shows no new **error** anywhere
+  (A18.9)
+- Flake classification returns `unable-to-determine` on both unavailable-evidence paths, each tested
+  (A18.10)
+- The budget survives a fold: two failures split by an epoch close still exhaust it (A18.12 §2)
+- Drop-site inventory for `LooseEvent` / `buildEpochNode` / `validateLedgerEpoch` (A5.4)
+- Integration tests for every new code, both directions (A12.2)
+- `bun run validate:ci` green
 
 ---
 
