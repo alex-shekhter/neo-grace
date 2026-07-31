@@ -1,8 +1,10 @@
 #!/usr/bin/env bun
 
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
+  readFileSync,
   readdirSync,
   unlinkSync,
   writeFileSync,
@@ -26,13 +28,36 @@ import {
 } from "./artifact/grammar";
 import { collectActiveChangeScopes, observedWriteScopeContains } from "./artifact/scope";
 import { childText, readGraceXmlArtifact, type GraceXmlNode } from "./artifact/xml";
-import { serializeGraceXmlDocument } from "./artifact/xml-serialize";
+import { serializeGraceXmlDocument, serializeGraceXmlNode } from "./artifact/xml-serialize";
 import { isGitWorktreeDirty } from "./grace-graph";
 import { lintGraceProject } from "./lint/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
+import type { FailureSignature } from "./artifact/types";
 
 /** Cursor / position state for one change bundle. */
-export type CursorState = "absent" | "idle" | "in-progress" | "paused" | "complete";
+export type CursorState =
+  | "absent"
+  | "idle"
+  | "in-progress"
+  | "paused"
+  | "paused-pending-approval"
+  | "complete";
+
+/** Closed set for parsing written cursor state (A19.2). */
+export const CURSOR_STATES: readonly CursorState[] = [
+  "absent",
+  "idle",
+  "in-progress",
+  "paused",
+  "paused-pending-approval",
+  "complete",
+] as const;
+
+/**
+ * D9: judgment, not derived. Two fix attempts per task before escalation to replan.
+ * The counter counts attempt events and inspects nothing (A19.1).
+ */
+export const FIX_ATTEMPT_BUDGET = 2;
 
 /** Authority of a regenerated or shown position field (A11.5). */
 export type PositionSource = "ledger" | "events" | "inferred" | "cursor" | "none";
@@ -47,6 +72,32 @@ export type AbsenceValue = {
   verdict: AbsenceVerdict;
   reason: string;
 };
+
+/**
+ * Write-scope snapshot recorded on an attempt event (A19.3 / A20.3 / A21.2).
+ * Per-file content digests distinguish "same path set, content changed" (retry)
+ * from "identical snapshot" (flaky). Undetermined digests are AbsenceValue, never
+ * magic strings compared as content (correction 42).
+ */
+export type FileContentEvidence =
+  | { kind: "content"; digest: string }
+  /** File did not exist — genuine comparable evidence (both-absent ⇒ no change). */
+  | { kind: "absent" }
+  /** Digest could not be taken — not evidence; classifier returns unable-to-determine. */
+  | { kind: "undetermined"; absence: AbsenceValue };
+
+export type ChangedFileEvidence = {
+  path: string;
+} & FileContentEvidence;
+
+export type WriteEvidenceSnapshot =
+  | { available: true; files: ChangedFileEvidence[] }
+  | { available: false; absence: AbsenceValue };
+
+/** Flake classifier verdicts (D8 / A18.6). */
+export type FlakeVerdict = "flaky" | "retry" | "unable-to-determine";
+
+export type { FailureSignature };
 
 export type CursorPosition = {
   changeId: string;
@@ -77,6 +128,13 @@ export type CursorPosition = {
    */
   complete?: boolean;
   completeAbsence?: AbsenceValue;
+  /**
+   * Tasks with an unresolved escalation (A23.1 / correction 45).
+   * Empty when none. When non-empty, `task` is drawn from this set so the
+   * state/task pair does not attribute the owed decision to an unrelated task.
+   * Phase 5 gates need *which* tasks are blocked, not only that some are.
+   */
+  escalatedTasks: string[];
   /** How each recoverable field was obtained. */
   sources: {
     epoch: PositionSource;
@@ -99,15 +157,206 @@ export type FoldResult = {
 };
 
 export type RangeAllocation = { worker: string; from: number; to: number };
+
+/**
+ * Loose run/ event. Payload (attributes beyond id/task/kind, and children) must
+ * survive fold (A18.2 / correction 31). listLooseEvents is the A5.4 inventory site.
+ */
 export type LooseEvent = {
   id: number;
   task: string;
   kind: string;
   file: string;
   allocations?: RangeAllocation[];
+  /** Root attributes from the loose file (includes id/task/kind; may include outcome, …). */
+  attributes: Record<string, string>;
+  /** Root children (Allocation, FailureSignature, WriteEvidence, Wave, …). */
+  children: GraceXmlNode[];
 };
 
-const EVENT_FILENAME = /^(\d+)-([A-Za-z0-9_-]+)-([A-Za-z0-9_-]+)\.xml$/;
+/** Known event kinds with exhaustive kind→state mapping (A18.5 / A19.2). */
+const KNOWN_KIND_STATE = {
+  opened: "in-progress",
+  progress: "in-progress",
+  resume: "in-progress",
+  attempt: "in-progress",
+  "verification-unavailable": "in-progress",
+  pause: "paused",
+  terminal: "complete",
+  escalation: "paused-pending-approval",
+} as const satisfies Record<string, CursorState>;
+
+export type KnownEventKind = keyof typeof KNOWN_KIND_STATE;
+
+/**
+ * Deliberate resolvers for paused-pending-approval (A21.1 / correction 41).
+ * Execution by-products (attempt, progress, verification-unavailable) do NOT clear escalation.
+ * Refusing further work is a Phase 5 gate — this phase only keeps the position honest.
+ */
+const ESCALATION_RESOLVER_KINDS = new Set<string>(["resume"]);
+
+/**
+ * One shared exhaustive kind→state map for write and read paths (correction 34).
+ * Unrecognized kinds do not resolve to in-progress.
+ */
+export function cursorStateForEventKind(
+  kind: string,
+): { state: CursorState } | { unknown: true; degradation: AbsenceValue } {
+  if (Object.prototype.hasOwnProperty.call(KNOWN_KIND_STATE, kind)) {
+    return { state: KNOWN_KIND_STATE[kind as KnownEventKind] };
+  }
+  return {
+    unknown: true,
+    degradation: {
+      verdict: "unable-to-determine",
+      reason: `unrecognized event kind ${JSON.stringify(kind)}; not mapped to a cursor state`,
+    },
+  };
+}
+
+/**
+ * Tasks with an unresolved escalation (A22.1 / A23.1).
+ * Per-task set: escalation adds, resolving resume removes only that task.
+ * Sorted for stable CursorPosition / XML output.
+ */
+export function listUnresolvedEscalatedTasks(
+  events: ReadonlyArray<{ id: number; kind: string; task?: string }>,
+): string[] {
+  const ordered = [...events].sort((a, b) => a.id - b.id);
+  const unresolved = new Set<string>();
+  for (const event of ordered) {
+    const taskKey = (event.task ?? "").trim();
+    if (!taskKey) continue;
+    if (event.kind === "escalation") {
+      unresolved.add(taskKey);
+      continue;
+    }
+    if (ESCALATION_RESOLVER_KINDS.has(event.kind)) {
+      unresolved.delete(taskKey);
+    }
+  }
+  return [...unresolved].sort();
+}
+
+/**
+ * Id of the last `resume` that **removed an unresolved escalation** for `task` (A24).
+ * Ordinary resumes (nothing to resolve) do not open a budget window.
+ * Returns 0 when the task has never had a resolving resume — counter then counts all attempts.
+ */
+export function lastResolvingResumeId(
+  events: ReadonlyArray<{ id: number; kind: string; task?: string }>,
+  task: string,
+): number {
+  const ordered = [...events].sort((a, b) => a.id - b.id);
+  const unresolved = new Set<string>();
+  let last = 0;
+  for (const event of ordered) {
+    const taskKey = (event.task ?? "").trim();
+    if (!taskKey) continue;
+    if (event.kind === "escalation") {
+      unresolved.add(taskKey);
+      continue;
+    }
+    if (ESCALATION_RESOLVER_KINDS.has(event.kind)) {
+      if (unresolved.has(taskKey)) {
+        unresolved.delete(taskKey);
+        if (taskKey === task) last = event.id;
+      }
+    }
+  }
+  return last;
+}
+
+/**
+ * Derive cursor state from the full event stream (A21.1 / A22.1).
+ * Escalation is a **per-task** fact: sticky until that task's explicit resolver (`resume`).
+ * Bundle-level CursorPosition stays single-valued — paused-pending-approval while any
+ * task remains unresolved, otherwise the last non-escalation mapping (correction 43).
+ * last-event-wins alone also cleared a still-owed decision (correction 41).
+ */
+export function deriveStateFromEvents(
+  events: ReadonlyArray<{ id: number; kind: string; task?: string }>,
+): { state: CursorState } | { unknown: true; degradation: AbsenceValue } {
+  const ordered = [...events].sort((a, b) => a.id - b.id);
+  if (ordered.length === 0) return { state: "idle" };
+
+  const unresolvedEscalations = new Set<string>();
+  let lastNonSticky:
+    | { state: CursorState }
+    | { unknown: true; degradation: AbsenceValue }
+    | undefined;
+
+  for (const event of ordered) {
+    const taskKey = (event.task ?? "").trim();
+    if (event.kind === "escalation") {
+      if (taskKey) unresolvedEscalations.add(taskKey);
+      continue;
+    }
+    if (ESCALATION_RESOLVER_KINDS.has(event.kind)) {
+      // resume --task X removes only X; other tasks stay escalated (correction 43).
+      if (taskKey) unresolvedEscalations.delete(taskKey);
+      lastNonSticky = cursorStateForEventKind(event.kind);
+      continue;
+    }
+    // Non-resolvers never clear escalations. Still update lastNonSticky so another
+    // task's progress is not swallowed when the set later becomes empty (A22.1).
+    lastNonSticky = cursorStateForEventKind(event.kind);
+  }
+
+  if (unresolvedEscalations.size > 0) {
+    return { state: "paused-pending-approval" };
+  }
+  return lastNonSticky ?? { state: "idle" };
+}
+
+/**
+ * Shared projection for every write/read path (A22.3 / A23.1).
+ * When escalatedTasks is non-empty, task is drawn from that set so the pair does not lie.
+ */
+function positionProjectionFromBundle(
+  bundlePath: string,
+  options: { preferredTask?: string; lastEventTask?: string } = {},
+): {
+  state?: CursorState;
+  degradation?: AbsenceValue;
+  escalatedTasks: string[];
+  task?: string;
+} {
+  const stream = listAccountingEvents(bundlePath);
+  const escalatedTasks = listUnresolvedEscalatedTasks(stream);
+  const mapped = deriveStateFromEvents(stream);
+  const fallback = options.preferredTask ?? options.lastEventTask;
+  const task =
+    escalatedTasks.length > 0
+      ? fallback && escalatedTasks.includes(fallback)
+        ? fallback
+        : escalatedTasks[0]
+      : fallback;
+  if ("state" in mapped) {
+    return { state: mapped.state, escalatedTasks, task };
+  }
+  return { state: undefined, degradation: mapped.degradation, escalatedTasks, task };
+}
+
+/** Parse a written State element against the widened CursorState union (A19.2). */
+export function parseCursorState(
+  text: string | undefined,
+): { state: CursorState } | { invalid: string } {
+  const value = (text ?? "").trim();
+  if (!value) return { state: "idle" };
+  if ((CURSOR_STATES as readonly string[]).includes(value)) {
+    return { state: value as CursorState };
+  }
+  return { invalid: value };
+}
+
+/**
+ * Loose event filenames: `{id}-{task}-{kind}.xml`.
+ * Task is always T-NNN (no internal hyphens after the T-digits form); kind may contain
+ * hyphens (`verification-unavailable`). Do not use a fully free-form middle group — it
+ * steals the kind's hyphens (A19.1).
+ */
+const EVENT_FILENAME = /^(\d+)-(T-[0-9]{3})-(.+)\.xml$/;
 
 /** Resolve a C-* bundle under active or archive. */
 export function resolveChangeBundle(projectRoot: string, changeId: string): string {
@@ -132,18 +381,30 @@ export function listLooseEvents(bundlePath: string): LooseEvent[] {
     const match = EVENT_FILENAME.exec(name);
     if (!match) continue;
     const file = path.join(runDir, name);
-    const id = Number(match[1]);
-    const task = match[2]!;
-    const kind = match[3]!;
+    const idFromName = Number(match[1]);
+    const taskFromName = match[2]!;
+    const kindFromName = match[3]!;
     const parsed = readGraceXmlArtifact(file);
+    // Prefer XML attributes when present (authoritative payload); filename is discovery.
+    const id = parsed.root?.attributes.id ? Number(parsed.root.attributes.id) : idFromName;
+    const task = (parsed.root?.attributes.task ?? taskFromName).trim() || taskFromName;
+    const kind = (parsed.root?.attributes.kind ?? kindFromName).trim() || kindFromName;
+    if (!Number.isInteger(id) || id <= 0) continue;
+    const attributes: Record<string, string> = parsed.root
+      ? { ...parsed.root.attributes }
+      : { id: String(id), task, kind };
+    attributes.id = String(id);
+    attributes.task = task;
+    attributes.kind = kind;
+    const children = parsed.root ? parsed.root.children.map(cloneXmlNode) : [];
     const allocations =
-      kind === "opened" && parsed.root
-        ? parsed.root.children
+      kind === "opened"
+        ? children
             .filter((child) => child.tag === "Allocation")
             .map(parseAllocationNode)
             .filter((entry): entry is RangeAllocation => entry !== null)
         : undefined;
-    events.push({ id, task, kind, file, allocations });
+    events.push({ id, task, kind, file, allocations, attributes, children });
   }
   return events.sort((a, b) => a.id - b.id);
 }
@@ -218,6 +479,7 @@ export function advanceCursor(
       epoch: nextEpochNumber(bundlePath),
       task,
       state: "in-progress",
+      escalatedTasks: [],
       sources: { epoch: "events", task: "events", state: "events" },
       inferred: false,
     };
@@ -230,18 +492,32 @@ export function advanceCursor(
   if (!ANCHOR_PATTERNS.task.test(task)) {
     throw new GraceCommandError("invalid-arguments", `Task ${JSON.stringify(task)} must be a canonical T-* id.`);
   }
+  // Correction 40: attempt / verification-unavailable / escalation are reserved —
+  // advance would write a bare kind=attempt that still counts against the budget.
+  if (kind === "attempt" || kind === "verification-unavailable" || kind === "escalation") {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      kind === "attempt"
+        ? `kind "attempt" is reserved; use ngrace cursor attempt --outcome … (and --signature-kind/--signature-key on fail).`
+        : kind === "verification-unavailable"
+          ? `kind "verification-unavailable" is reserved; use ngrace cursor verification-unavailable --reason ….`
+          : `kind "escalation" is reserved; it is written by the fix budget on the second failed attempt.`,
+    );
+  }
   const id = nextEventId(bundlePath);
   writeEventFile(bundlePath, { id, task, kind });
-  const state: CursorState =
-    kind === "terminal" ? "complete" : kind === "pause" ? "paused" : "in-progress";
+  // A21.1 / A23.1: derive state + escalatedTasks; task drawn from set when non-empty.
+  const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
   const position: CursorPosition = {
     changeId,
     bundlePath,
     epoch: currentOpenEpochHint(bundlePath),
-    task,
-    state,
+    task: derived.task,
+    state: derived.state,
+    escalatedTasks: derived.escalatedTasks,
     sources: { epoch: "events", task: "events", state: "events" },
     inferred: false,
+    degradation: derived.degradation,
   };
   writeCursorFile(bundlePath, position);
   return position;
@@ -275,6 +551,11 @@ export function foldEpoch(
     injectFailureAfterWrite?: boolean;
     /** Test-only: throw after write, before verify (still leaves both forms). */
     injectFailureBeforeVerify?: boolean;
+    /**
+     * Test-only: serialize Event nodes as id/task/kind only (correction 31 shape).
+     * Verify must fail and leave every loose file on disk (AC-FOLD-PRESERVES-PAYLOAD).
+     */
+    injectDropPayload?: boolean;
   } = {},
 ): FoldResult {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
@@ -312,7 +593,9 @@ export function foldEpoch(
 
   const epochNumber = nextEpochNumber(bundlePath);
   const wave = options.wave ?? readWaveFromOpened(events);
-  const epochNode = buildEpochNode(epochNumber, wave, allocations, events);
+  const epochNode = buildEpochNode(epochNumber, wave, allocations, events, {
+    dropPayload: options.injectDropPayload === true,
+  });
   const ledgerPath = path.join(bundlePath, "run-ledger.xml");
 
   // --- write ---
@@ -329,7 +612,7 @@ export function foldEpoch(
     throw new Error("injected failure before verify");
   }
 
-  // --- verify ---
+  // --- verify (payload compare, not count — A18.2) ---
   const written = readGraceXmlArtifact(ledgerPath);
   const validation = validateRunLedgerArtifact(written);
   const identity = written.root?.children.find((c) => c.tag === changeId);
@@ -341,13 +624,29 @@ export function foldEpoch(
     );
   }
   const writtenEvents = writtenEpoch.children.filter((c) => c.tag === "Event");
-  if (writtenEvents.length !== events.filter((e) => e.kind !== "opened" || true).length) {
-    // Count Event children vs loose events (opened is also an Event in the ledger).
-    const expected = events.length;
-    if (writtenEvents.length !== expected) {
+  if (writtenEvents.length !== events.length) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `Fold verify failed: expected ${events.length} events, ledger has ${writtenEvents.length}.`,
+    );
+  }
+  for (const event of events) {
+    const writtenEvent = writtenEvents.find((node) => Number(node.attributes.id) === event.id);
+    if (!writtenEvent) {
       throw new GraceCommandError(
         "invalid-project",
-        `Fold verify failed: expected ${expected} events, ledger has ${writtenEvents.length}.`,
+        `Fold verify failed: event id ${event.id} missing from written ledger.`,
+      );
+    }
+    // Correction 38 (A20.2): expected is derived from the loose event as parsed from disk,
+    // via expectedLedgerEventAttributes — NOT through eventAttributesForLedger (the writer).
+    // A drop inside the writer transform must not redefine the expectation.
+    const expected = payloadFingerprint(expectedLedgerEventAttributes(event), event.children);
+    const actual = payloadFingerprint(writtenEvent.attributes, writtenEvent.children);
+    if (expected !== actual) {
+      throw new GraceCommandError(
+        "invalid-project",
+        `Fold verify failed: event ${event.id} payload mismatch (attributes or children dropped or altered).`,
       );
     }
   }
@@ -374,14 +673,20 @@ export function foldEpoch(
     unlinkSync(contained.absolutePath);
   }
 
+  // A22.2 / A23.1: derive like every other write path (no literal idle; task from escalated set).
+  const derived = positionProjectionFromBundle(bundlePath, {
+    lastEventTask: events[events.length - 1]?.task,
+  });
   const position: CursorPosition = {
     changeId,
     bundlePath,
     epoch: epochNumber,
-    task: events[events.length - 1]?.task,
-    state: "idle",
+    task: derived.task,
+    state: derived.state,
+    escalatedTasks: derived.escalatedTasks,
     sources: { epoch: "ledger", task: "ledger", state: "ledger" },
     inferred: false,
+    degradation: derived.degradation,
   };
   writeCursorFile(bundlePath, position);
 
@@ -430,15 +735,87 @@ export function derivePosition(
       const wrapper = artifact.root.children.find((c) => c.tag === changeId);
       const epochText = wrapper ? childText(wrapper, "Epoch") : undefined;
       const stateText = wrapper ? childText(wrapper, "State") : undefined;
-      written = {
-        changeId,
-        bundlePath,
-        epoch: epochText ? Number(epochText) : undefined,
-        task,
-        state: (stateText as CursorState) || "idle",
-        sources: { epoch: "cursor", task: "cursor", state: "cursor" },
-        inferred: false,
-      };
+      const parsedState = parseCursorState(stateText);
+      if ("invalid" in parsedState) {
+        // Unchecked cast hole (A19.2): unrecognized value takes degradation, then re-derive.
+        degradation = {
+          verdict: "unable-to-determine",
+          reason: `cursor state ${JSON.stringify(parsedState.invalid)} is not a known CursorState; re-derived`,
+        };
+      } else {
+        // A25.1 / correction 47: escalation is durable — always from ledger∪loose, never from
+        // the written cursor. epoch/task stay cached; "is a decision owed" does not.
+        // File EscalatedTask / file ppa are compared only to announce disagreement (D1).
+        const stream = listAccountingEvents(bundlePath);
+        const escalatedTasks = listUnresolvedEscalatedTasks(stream);
+        const mapped = deriveStateFromEvents(stream);
+        const streamState = "state" in mapped ? mapped.state : undefined;
+        const streamStateSource: PositionSource =
+          stream.length > 0 ? (events.length > 0 ? "events" : "ledger") : "ledger";
+        const fromFile = wrapper
+          ? wrapper.children
+              .filter((c) => c.tag === "EscalatedTask")
+              .map((c) => c.text.trim())
+              .filter((t) => ANCHOR_PATTERNS.task.test(t))
+              .sort()
+          : [];
+        const fileState = parsedState.state;
+        const setsEqual =
+          fromFile.length === escalatedTasks.length &&
+          fromFile.every((t, i) => t === escalatedTasks[i]);
+        const fileClaimsPpa = fileState === "paused-pending-approval";
+        const streamClaimsPpa = escalatedTasks.length > 0;
+        const escalationDisagrees = !setsEqual || fileClaimsPpa !== streamClaimsPpa;
+
+        let escalationDegradation: AbsenceValue | undefined;
+        if (escalationDisagrees) {
+          escalationDegradation = {
+            verdict: "unable-to-determine",
+            reason:
+              "written cursor escalation disagrees with durable event stream; escalation derived from ledger and events",
+          };
+        }
+
+        // State: ppa (and its clearance) always from the stream; other states may lag on the cache.
+        let state: CursorState | undefined;
+        let stateSource: PositionSource;
+        if (streamClaimsPpa) {
+          state = "paused-pending-approval";
+          stateSource = streamStateSource;
+        } else if (fileClaimsPpa || fromFile.length > 0) {
+          // Stale cursor claimed escalation the stream has resolved.
+          state = streamState ?? "in-progress";
+          stateSource = streamStateSource;
+        } else if (streamState === undefined && "degradation" in mapped) {
+          state = undefined;
+          stateSource = streamStateSource;
+        } else {
+          state = fileState;
+          stateSource = "cursor";
+        }
+
+        // When set non-empty, task from set (correction 45); otherwise cached Task.
+        const pairedTask =
+          escalatedTasks.length > 0
+            ? task && escalatedTasks.includes(task)
+              ? task
+              : escalatedTasks[0]
+            : task;
+
+        written = {
+          changeId,
+          bundlePath,
+          epoch: epochText ? Number(epochText) : undefined,
+          task: pairedTask,
+          state,
+          escalatedTasks,
+          sources: { epoch: "cursor", task: "cursor", state: stateSource },
+          inferred: false,
+          degradation:
+            escalationDegradation ??
+            ("degradation" in mapped ? mapped.degradation : undefined),
+        };
+      }
     }
   } else if (options.preferWrittenCursor && !existsSync(cursorPath)) {
     // Missing cursor: silent for lint; show still re-derives (A11.5).
@@ -448,7 +825,9 @@ export function derivePosition(
     };
   }
 
-  if (written && !degradation) {
+  // Prefer-written hybrid may carry escalation degradation and still answer (correction 47).
+  // Identity / invalid-state degradations leave `written` unset and fall through to re-derive.
+  if (written) {
     return written;
   }
 
@@ -459,10 +838,26 @@ export function derivePosition(
       events.length > 0
         ? nextEpochNumber(bundlePath)
         : ledgerEpochs[ledgerEpochs.length - 1];
-    const task = lastEvent?.task ?? lastTaskFromLedger(bundlePath);
-    let state: CursorState = "idle";
-    if (events.length > 0) {
-      state = lastEvent?.kind === "pause" ? "paused" : lastEvent?.kind === "terminal" ? "complete" : "in-progress";
+    // A21.1 / A23.1: full stream; task from escalated set when non-empty (not last-event-wins alone).
+    const stream = listAccountingEvents(bundlePath);
+    const escalatedTasks = listUnresolvedEscalatedTasks(stream);
+    const lastTask = lastEvent?.task ?? lastTaskFromLedger(bundlePath);
+    const task =
+      escalatedTasks.length > 0
+        ? lastTask && escalatedTasks.includes(lastTask)
+          ? lastTask
+          : escalatedTasks[0]
+        : lastTask;
+    let state: CursorState | undefined = "idle";
+    let kindDegradation: AbsenceValue | undefined;
+    if (stream.length > 0) {
+      const mapped = deriveStateFromEvents(stream);
+      if ("state" in mapped) {
+        state = mapped.state;
+      } else {
+        state = undefined;
+        kindDegradation = mapped.degradation;
+      }
     }
     return {
       changeId,
@@ -470,13 +865,25 @@ export function derivePosition(
       epoch,
       task,
       state,
+      escalatedTasks,
       sources: {
         epoch: events.length > 0 ? "events" : "ledger",
-        task: lastEvent ? "events" : task ? "ledger" : "none",
-        state: events.length > 0 ? "events" : "ledger",
+        task:
+          escalatedTasks.length > 0
+            ? stream.length > 0
+              ? events.length > 0
+                ? "events"
+                : "ledger"
+              : "none"
+            : lastEvent
+              ? "events"
+              : task
+                ? "ledger"
+                : "none",
+        state: stream.length > 0 ? (events.length > 0 ? "events" : "ledger") : "ledger",
       },
       inferred: false,
-      degradation,
+      degradation: degradation ?? kindDegradation,
     };
   }
 
@@ -543,6 +950,7 @@ function deriveRow3Position(
     stateAbsence,
     complete,
     completeAbsence,
+    escalatedTasks: [],
     sources: {
       epoch: "none",
       task: "inferred",
@@ -651,6 +1059,512 @@ export function listRepositoryChangedFiles(projectRoot: string): { available: bo
   return { available: true, changedFiles };
 }
 
+/**
+ * Dumb counter (D9 / A19.1 / A24): counts attempt events for a task **inside the
+ * current budget window**. Window start is the last resume that resolved an
+ * escalation for that task (not every resume). Inspects nothing on each attempt —
+ * no signature, no outcome, no content condition. The ledger keeps full history;
+ * windowing is a read, never a rewrite (D1).
+ */
+export function countTaskAttemptEvents(
+  events: ReadonlyArray<{ id: number; task: string; kind: string }>,
+  task: string,
+): number {
+  const windowStart = lastResolvingResumeId(events, task);
+  return events.filter(
+    (event) => event.task === task && event.kind === "attempt" && event.id > windowStart,
+  ).length;
+}
+
+/** Derived ordinal: 1-based count of this task's attempts with id <= eventId (A18.3). */
+export function deriveAttemptOrdinal(
+  events: ReadonlyArray<{ id: number; task: string; kind: string }>,
+  task: string,
+  eventId: number,
+): number {
+  return events.filter(
+    (event) => event.task === task && event.kind === "attempt" && event.id <= eventId,
+  ).length;
+}
+
+/** Snapshot repository write evidence for recording onto an attempt (A19.3 / A20.3). */
+export function snapshotWriteEvidence(projectRoot: string): WriteEvidenceSnapshot {
+  const { available, changedFiles } = listRepositoryChangedFiles(projectRoot);
+  if (!available) {
+    return {
+      available: false,
+      absence: {
+        verdict: "unable-to-determine",
+        reason:
+          "repository changed-file set unavailable (git status exited non-zero); write evidence was not recorded",
+      },
+    };
+  }
+  const root = path.resolve(projectRoot);
+  const files: ChangedFileEvidence[] = changedFiles.map((relative) => ({
+    path: relative,
+    ...digestProjectFile(root, relative),
+  }));
+  return { available: true, files };
+}
+
+/**
+ * Content evidence for one project-relative path (A21.2).
+ * Returns structured evidence — never magic strings in a digest field.
+ * Values: content (sha256), absent (comparable), undetermined (not comparable).
+ */
+export function digestProjectFile(projectRoot: string, relativePath: string): FileContentEvidence {
+  const absolute = path.join(projectRoot, relativePath);
+  if (!existsSync(absolute)) {
+    return { kind: "absent" };
+  }
+  try {
+    return {
+      kind: "content",
+      digest: createHash("sha256").update(readFileSync(absolute)).digest("hex"),
+    };
+  } catch {
+    return {
+      kind: "undetermined",
+      absence: {
+        verdict: "unable-to-determine",
+        reason: `file content unreadable at ${relativePath}; digest was not taken`,
+      },
+    };
+  }
+}
+
+/**
+ * Durable+ephemeral event set for policy accounting (A20.1 / standing rule 9).
+ * Merges ledger and loose by id (loose wins on collision during interrupted fold).
+ */
+export function listAccountingEvents(bundlePath: string): LooseEvent[] {
+  const byId = new Map<number, LooseEvent>();
+  for (const event of listLedgerEvents(bundlePath)) {
+    byId.set(event.id, event);
+  }
+  for (const event of listLooseEvents(bundlePath)) {
+    byId.set(event.id, event);
+  }
+  return [...byId.values()].sort((a, b) => a.id - b.id);
+}
+
+export type RecordAttemptResult = {
+  position: CursorPosition;
+  eventId: number;
+  attemptCount: number;
+  escalated: boolean;
+  signatures: FailureSignature[];
+  /** Human-readable escalation or progress message (shown verbatim on exhaustion). */
+  message: string;
+};
+
+/**
+ * Record one verification-cycle attempt (D6). Immediate write — advance precedent (A18.7).
+ * On the second failed attempt (attempt count >= FIX_ATTEMPT_BUDGET after a fail),
+ * writes an escalation event and transitions to paused-pending-approval (A19.2).
+ */
+export function recordAttempt(
+  projectRoot: string,
+  changeId: string,
+  options: {
+    task: string;
+    outcome: "pass" | "fail";
+    signature?: FailureSignature;
+    /** Override snapshotted write evidence (tests). Default: snapshotWriteEvidence. */
+    writeEvidence?: WriteEvidenceSnapshot;
+  },
+): RecordAttemptResult {
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const task = options.task;
+  if (!ANCHOR_PATTERNS.task.test(task)) {
+    throw new GraceCommandError("invalid-arguments", `Task ${JSON.stringify(task)} must be a canonical T-* id.`);
+  }
+  if (options.outcome === "fail" && !options.signature) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      "Failed attempts require a FailureSignature (kind + key).",
+    );
+  }
+
+  const writeEvidence = options.writeEvidence ?? snapshotWriteEvidence(projectRoot);
+  const children: GraceXmlNode[] = [];
+  if (options.outcome === "fail" && options.signature) {
+    children.push(failureSignatureNode(options.signature));
+  }
+  children.push(writeEvidenceNode(writeEvidence));
+
+  const id = nextEventId(bundlePath);
+  writeEventFile(bundlePath, {
+    id,
+    task,
+    kind: "attempt",
+    attributes: { outcome: options.outcome },
+    children,
+  });
+
+  // Standing rule 9 / A20.1 / A24: count from durable+loose inside the resolution window.
+  const accounting = listAccountingEvents(bundlePath);
+  const attemptCount = countTaskAttemptEvents(accounting, task);
+  const signatures = collectFailureSignatures(accounting, task);
+
+  // Escalation only on the fail path when the dumb attempt count hits the budget.
+  // Counter itself has no outcome/signature condition (A19.1); window is recording-side (A24).
+  if (options.outcome === "fail" && attemptCount >= FIX_ATTEMPT_BUDGET) {
+    const escalationId = nextEventId(bundlePath);
+    writeEventFile(bundlePath, {
+      id: escalationId,
+      task,
+      kind: "escalation",
+      children: signatures.map(failureSignatureNode),
+    });
+    // A22.3 / A23.1: every write path derives — escalatedTasks + task from set.
+    const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
+    const position: CursorPosition = {
+      changeId,
+      bundlePath,
+      epoch: currentOpenEpochHint(bundlePath),
+      task: derived.task ?? task,
+      state: derived.state ?? "paused-pending-approval",
+      escalatedTasks: derived.escalatedTasks,
+      sources: { epoch: "events", task: "events", state: "events" },
+      inferred: false,
+      degradation: derived.degradation,
+    };
+    writeCursorFile(bundlePath, position);
+    const message = formatEscalationMessage(task, attemptCount, signatures);
+    return {
+      position,
+      eventId: id,
+      attemptCount,
+      escalated: true,
+      signatures,
+      message,
+    };
+  }
+
+  const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
+  const position: CursorPosition = {
+    changeId,
+    bundlePath,
+    epoch: currentOpenEpochHint(bundlePath),
+    task: derived.task ?? task,
+    state: derived.state ?? "in-progress",
+    escalatedTasks: derived.escalatedTasks,
+    sources: { epoch: "events", task: "events", state: "events" },
+    inferred: false,
+    degradation: derived.degradation,
+  };
+  writeCursorFile(bundlePath, position);
+  return {
+    position,
+    eventId: id,
+    attemptCount,
+    escalated: false,
+    signatures,
+    message:
+      options.outcome === "pass"
+        ? `Attempt ${attemptCount} for ${task}: pass`
+        : `Attempt ${attemptCount} for ${task}: fail (${options.signature?.kind}:${options.signature?.key})`,
+  };
+}
+
+/**
+ * Verification could not run — record verification-unavailable, never an attempt (A19.1).
+ * Does not count against FIX_ATTEMPT_BUDGET.
+ */
+export function recordVerificationUnavailable(
+  projectRoot: string,
+  changeId: string,
+  options: { task: string; absence: AbsenceValue },
+): CursorPosition {
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const task = options.task;
+  if (!ANCHOR_PATTERNS.task.test(task)) {
+    throw new GraceCommandError("invalid-arguments", `Task ${JSON.stringify(task)} must be a canonical T-* id.`);
+  }
+  const id = nextEventId(bundlePath);
+  writeEventFile(bundlePath, {
+    id,
+    task,
+    kind: "verification-unavailable",
+    attributes: {
+      verdict: options.absence.verdict,
+      reason: options.absence.reason,
+    },
+  });
+  // A21.1 / A23.1: VU must not clear an unresolved escalation; task from escalated set.
+  const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
+  const position: CursorPosition = {
+    changeId,
+    bundlePath,
+    epoch: currentOpenEpochHint(bundlePath),
+    task: derived.task ?? task,
+    state: derived.state ?? "in-progress",
+    escalatedTasks: derived.escalatedTasks,
+    sources: { epoch: "events", task: "events", state: "events" },
+    inferred: false,
+    degradation: derived.degradation,
+  };
+  writeCursorFile(bundlePath, position);
+  return position;
+}
+
+/**
+ * Classify fail→pass pair from recorded write evidence (A19.3). Issues no git call.
+ */
+export function classifyFlakeFromEvidence(
+  earlier: { outcome: string; writeEvidence: WriteEvidenceSnapshot },
+  later: { outcome: string; writeEvidence: WriteEvidenceSnapshot },
+): { verdict: FlakeVerdict; reason: string } {
+  if (earlier.outcome !== "fail" || later.outcome !== "pass") {
+    return {
+      verdict: "unable-to-determine",
+      reason: "flake classification requires a fail then pass attempt pair",
+    };
+  }
+  if (!earlier.writeEvidence.available || !later.writeEvidence.available) {
+    return {
+      verdict: "unable-to-determine",
+      reason:
+        "write evidence unavailable on one or both attempts; cannot distinguish flaky from retry",
+    };
+  }
+  // A21.2: undetermined digests are absence, not comparable content.
+  const undetermined = [...earlier.writeEvidence.files, ...later.writeEvidence.files].find(
+    (file) => file.kind === "undetermined",
+  );
+  if (undetermined && undetermined.kind === "undetermined") {
+    return {
+      verdict: "unable-to-determine",
+      reason: `write evidence digest undetermined (${undetermined.absence.reason}); cannot distinguish flaky from retry`,
+    };
+  }
+  // A20.3: compare path + content/absent pairs (not path sets alone).
+  const earlierKey = writeEvidenceFingerprint(earlier.writeEvidence.files);
+  const laterKey = writeEvidenceFingerprint(later.writeEvidence.files);
+  if (earlierKey === laterKey) {
+    return {
+      verdict: "flaky",
+      reason: "fail then pass with identical write evidence (paths and content digests match)",
+    };
+  }
+  return {
+    verdict: "retry",
+    reason: "fail then pass with changed write evidence (path set or content digest differs)",
+  };
+}
+
+/**
+ * Stable fingerprint of path + determined evidence only.
+ * Caller must reject undetermined files first (A21.2).
+ */
+function writeEvidenceFingerprint(files: ChangedFileEvidence[]): string {
+  return files
+    .map((file) => {
+      if (file.kind === "content") return `${file.path}\0content\0${file.digest}`;
+      if (file.kind === "absent") return `${file.path}\0absent`;
+      // undetermined should not reach here
+      return `${file.path}\0undetermined`;
+    })
+    .sort()
+    .join("\n");
+}
+
+/** Read write evidence and outcome from a loose (or folded-equivalent) event. */
+export function readAttemptPayload(event: LooseEvent): {
+  outcome?: string;
+  signature?: FailureSignature;
+  writeEvidence?: WriteEvidenceSnapshot;
+} {
+  const outcome = event.attributes.outcome;
+  let signature: FailureSignature | undefined;
+  let writeEvidence: WriteEvidenceSnapshot | undefined;
+  for (const child of event.children) {
+    if (child.tag === "FailureSignature") {
+      const kind = child.attributes.kind?.trim();
+      const key = child.attributes.key?.trim();
+      if (kind && key) signature = { kind, key };
+    }
+    if (child.tag === "WriteEvidence") {
+      writeEvidence = parseWriteEvidenceNode(child);
+    }
+  }
+  return { outcome, signature, writeEvidence };
+}
+
+/** Events from the folded ledger (Event children), ordered by id. Payload preserved (A18.2). */
+export function listLedgerEvents(bundlePath: string): LooseEvent[] {
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (!existsSync(ledgerPath)) return [];
+  const artifact = readGraceXmlArtifact(ledgerPath);
+  if (!artifact.root) return [];
+  const events: LooseEvent[] = [];
+  for (const wrapper of artifact.root.children) {
+    for (const epoch of wrapper.children) {
+      if (!EPOCH_SECTION_PATTERN.test(epoch.tag)) continue;
+      for (const child of epoch.children) {
+        if (child.tag !== "Event") continue;
+        const id = Number(child.attributes.id);
+        const task = (child.attributes.task ?? "").trim();
+        const kind = (child.attributes.kind ?? "").trim();
+        if (!Number.isInteger(id) || !task || !kind) continue;
+        events.push({
+          id,
+          task,
+          kind,
+          file: ledgerPath,
+          attributes: { ...child.attributes },
+          children: child.children.map(cloneXmlNode),
+        });
+      }
+    }
+  }
+  return events.sort((a, b) => a.id - b.id);
+}
+
+function failureSignatureNode(signature: FailureSignature): GraceXmlNode {
+  return {
+    tag: "FailureSignature",
+    attributes: { kind: signature.kind, key: signature.key },
+    children: [],
+    text: "",
+  };
+}
+
+function writeEvidenceNode(evidence: WriteEvidenceSnapshot): GraceXmlNode {
+  if (evidence.available) {
+    return {
+      tag: "WriteEvidence",
+      attributes: { available: "true" },
+      children: evidence.files.map((file): GraceXmlNode => {
+        if (file.kind === "content") {
+          return {
+            tag: "File",
+            attributes: { digest: file.digest },
+            children: [],
+            text: file.path,
+          };
+        }
+        if (file.kind === "absent") {
+          return {
+            tag: "File",
+            attributes: { status: "absent" },
+            children: [],
+            text: file.path,
+          };
+        }
+        return {
+          tag: "File",
+          attributes: {
+            status: "undetermined",
+            verdict: file.absence.verdict,
+            reason: file.absence.reason,
+          },
+          children: [],
+          text: file.path,
+        };
+      }),
+      text: "",
+    };
+  }
+  return {
+    tag: "WriteEvidence",
+    attributes: {
+      available: "false",
+      verdict: evidence.absence.verdict,
+      reason: evidence.absence.reason,
+    },
+    children: [],
+    text: "",
+  };
+}
+
+function parseWriteEvidenceNode(node: GraceXmlNode): WriteEvidenceSnapshot {
+  if (node.attributes.available === "false") {
+    return {
+      available: false,
+      absence: {
+        verdict: (node.attributes.verdict === "not-run" ? "not-run" : "unable-to-determine") as AbsenceVerdict,
+        reason: node.attributes.reason ?? "write evidence unavailable",
+      },
+    };
+  }
+  const files: ChangedFileEvidence[] = node.children
+    .filter((child) => child.tag === "File")
+    .map((child): ChangedFileEvidence | null => {
+      const filePath = child.text.trim();
+      if (!filePath) return null;
+      const status = (child.attributes.status ?? "").trim();
+      const digestAttr = (child.attributes.digest ?? "").trim();
+      if (status === "absent") {
+        return { path: filePath, kind: "absent" };
+      }
+      if (status === "undetermined") {
+        return {
+          path: filePath,
+          kind: "undetermined",
+          absence: {
+            verdict: child.attributes.verdict === "not-run" ? "not-run" : "unable-to-determine",
+            reason: child.attributes.reason ?? "digest undetermined",
+          },
+        };
+      }
+      if (digestAttr && digestAttr !== "unknown" && digestAttr !== "unreadable" && digestAttr !== "absent") {
+        return { path: filePath, kind: "content", digest: digestAttr };
+      }
+      // Legacy sentinel strings or missing digest → undetermined (A21.2), never comparable content.
+      if (digestAttr === "absent") {
+        return { path: filePath, kind: "absent" };
+      }
+      return {
+        path: filePath,
+        kind: "undetermined",
+        absence: {
+          verdict: "unable-to-determine",
+          reason:
+            digestAttr === "unreadable" || digestAttr === "unknown" || digestAttr === ""
+              ? `legacy or missing digest attribute (${digestAttr || "empty"}); not treated as content`
+              : `unrecognized digest sentinel ${JSON.stringify(digestAttr)}`,
+        },
+      };
+    })
+    .filter((file): file is ChangedFileEvidence => file !== null)
+    .sort((a, b) => a.path.localeCompare(b.path));
+  return { available: true, files };
+}
+
+/**
+ * Failure signatures on fail-attempts in the current budget window (A24).
+ * Same window as countTaskAttemptEvents — current round only, full history stays in the ledger.
+ */
+function collectFailureSignatures(events: LooseEvent[], task: string): FailureSignature[] {
+  const windowStart = lastResolvingResumeId(events, task);
+  const signatures: FailureSignature[] = [];
+  for (const event of events) {
+    if (event.task !== task || event.kind !== "attempt") continue;
+    if (event.id <= windowStart) continue;
+    if (event.attributes.outcome !== "fail") continue;
+    const payload = readAttemptPayload(event);
+    if (payload.signature) signatures.push(payload.signature);
+  }
+  return signatures;
+}
+
+/** Measured attemptCount, not FIX_ATTEMPT_BUDGET (correction 46). */
+function formatEscalationMessage(
+  task: string,
+  attemptCount: number,
+  signatures: FailureSignature[],
+): string {
+  const lines = [
+    `Budget exhausted for ${task} after ${attemptCount} attempts — paused-pending-approval (replan decision owed; task has not failed).`,
+    `Signatures (${signatures.length}):`,
+    ...signatures.map((signature, index) => `  ${index + 1}. ${signature.kind}: ${signature.key}`),
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
 export function formatCursorPosition(position: CursorPosition): string {
   const taskLine = position.task
     ? `Task: ${position.task}`
@@ -668,10 +1582,16 @@ export function formatCursorPosition(position: CursorPosition): string {
     stateLine,
     `Epoch: ${position.epoch ?? "none"}`,
     taskLine,
+  ];
+  // A5.4 drop site for escalatedTasks (correction 45).
+  if (position.escalatedTasks.length > 0) {
+    lines.push(`EscalatedTasks: ${position.escalatedTasks.join(", ")}`);
+  }
+  lines.push(
     completeLine,
     `Inferred: ${position.inferred ? "yes" : "no"}`,
     `Sources: epoch=${position.sources.epoch} task=${position.sources.task} state=${position.sources.state}`,
-  ];
+  );
   if (position.degradation) {
     lines.push(`Degradation: ${position.degradation.verdict} — ${position.degradation.reason}`);
   }
@@ -737,6 +1657,7 @@ function buildEpochNode(
   wave: string | undefined,
   allocations: RangeAllocation[],
   events: LooseEvent[],
+  options: { dropPayload?: boolean } = {},
 ): GraceXmlNode {
   const children: GraceXmlNode[] = [
     ...allocations.map((allocation) => ({
@@ -749,22 +1670,81 @@ function buildEpochNode(
       children: [] as GraceXmlNode[],
       text: "",
     })),
-    ...events.map((event) => ({
-      tag: "Event",
-      attributes: {
-        id: String(event.id),
-        task: event.task,
-        kind: event.kind,
-      },
-      children: [] as GraceXmlNode[],
-      text: "",
-    })),
+    ...events.map((event) => {
+      // injectDropPayload reproduces correction 31: id/task/kind only, no children.
+      if (options.dropPayload) {
+        return {
+          tag: "Event",
+          attributes: {
+            id: String(event.id),
+            task: event.task,
+            kind: event.kind,
+          },
+          children: [] as GraceXmlNode[],
+          text: "",
+        };
+      }
+      return {
+        tag: "Event",
+        attributes: eventAttributesForLedger(event),
+        children: event.children.map(cloneXmlNode),
+        text: "",
+      };
+    }),
   ];
   return {
     tag: `Epoch-${epochNumber}`,
     attributes: wave ? { wave } : {},
     children,
     text: "",
+  };
+}
+
+/**
+ * Writer-side transform when building ledger Event nodes (A18.2).
+ * Intentionally separate from expectedLedgerEventAttributes so a defect inside the
+ * writer cannot redefine verify's expectation (A20.2 / correction 38).
+ */
+function eventAttributesForLedger(event: LooseEvent): Record<string, string> {
+  const attributes: Record<string, string> = { ...event.attributes };
+  delete attributes.graceVersion;
+  attributes.id = String(event.id);
+  attributes.task = event.task;
+  attributes.kind = event.kind;
+  return attributes;
+}
+
+/**
+ * Legitimate fold transform applied to a disk-parsed loose event for verify's
+ * expected side (A20.2). Strips graceVersion; normalizes id/task/kind.
+ * Covered by its own unit assertion — not shared with the writer function.
+ */
+export function expectedLedgerEventAttributes(event: LooseEvent): Record<string, string> {
+  const attributes: Record<string, string> = {};
+  for (const [key, value] of Object.entries(event.attributes)) {
+    if (key === "graceVersion") continue;
+    attributes[key] = value;
+  }
+  attributes.id = String(event.id);
+  attributes.task = event.task;
+  attributes.kind = event.kind;
+  return attributes;
+}
+
+/** Stable payload fingerprint for fold verify (order-independent attrs). */
+function payloadFingerprint(attributes: Record<string, string>, children: GraceXmlNode[]): string {
+  const keys = Object.keys(attributes).sort();
+  const attrPart = keys.map((key) => `${key}=${attributes[key] ?? ""}`).join("\0");
+  const childPart = children.map((child) => serializeGraceXmlNode(child)).join("");
+  return `${attrPart}\n${childPart}`;
+}
+
+function cloneXmlNode(node: GraceXmlNode): GraceXmlNode {
+  return {
+    tag: node.tag,
+    attributes: { ...node.attributes },
+    children: node.children.map(cloneXmlNode),
+    text: node.text,
   };
 }
 
@@ -831,6 +1811,13 @@ function writeCursorFile(bundlePath: string, position: CursorPosition): void {
           ...(position.task
             ? [{ tag: "Task", attributes: {}, children: [] as GraceXmlNode[], text: position.task }]
             : []),
+          // A5.4: EscalatedTask children (correction 45) — empty set omits elements.
+          ...position.escalatedTasks.map((escalatedTask) => ({
+            tag: "EscalatedTask",
+            attributes: {},
+            children: [] as GraceXmlNode[],
+            text: escalatedTask,
+          })),
           // Never write a confident State when only stateAbsence is known (A14.1).
           ...(position.state !== undefined
             ? [
@@ -863,6 +1850,10 @@ function writeEventFile(
     kind: string;
     allocations?: RangeAllocation[];
     wave?: string;
+    /** Extra root attributes (e.g. outcome). id/task/kind/graceVersion are forced. */
+    attributes?: Record<string, string>;
+    /** Extra root children (FailureSignature, WriteEvidence, …). */
+    children?: GraceXmlNode[];
   },
 ): void {
   const runDirRel = "run";
@@ -881,14 +1872,19 @@ function writeEventFile(
   if (event.wave) {
     children.push({ tag: "Wave", attributes: {}, children: [], text: event.wave });
   }
+  for (const child of event.children ?? []) {
+    children.push(cloneXmlNode(child));
+  }
+  const attributes: Record<string, string> = {
+    ...(event.attributes ?? {}),
+    graceVersion: NGRACE_ARTIFACT_VERSION,
+    id: String(event.id),
+    task: event.task,
+    kind: event.kind,
+  };
   const node: GraceXmlNode = {
     tag: `${ARTIFACT_TAG_PREFIX}RunEvent`,
-    attributes: {
-      graceVersion: NGRACE_ARTIFACT_VERSION,
-      id: String(event.id),
-      task: event.task,
-      kind: event.kind,
-    },
+    attributes,
     children,
     text: "",
   };
@@ -987,7 +1983,8 @@ function requireChangeId(args: { change?: unknown }): string {
 export const cursorCommand = defineCommand({
   meta: {
     name: "cursor",
-    description: "Run ledger and cursor: show, regenerate, advance, pause, resume, fold.",
+    description:
+      "Run ledger and cursor: show, regenerate, advance, attempt, verification-unavailable, pause, resume, fold.",
   },
   subCommands: {
     show: defineCommand({
@@ -1037,7 +2034,11 @@ export const cursorCommand = defineCommand({
       },
     }),
     advance: defineCommand({
-      meta: { name: "advance", description: "Append a run event and update the cursor." },
+      meta: {
+        name: "advance",
+        description:
+          "Append a structural run event (opened/progress/pause/resume/terminal). Use `cursor attempt` for verification cycles.",
+      },
       args: {
         path: { type: "string", alias: "p", description: "Project root", default: "." },
         change: { type: "string", description: "C-* change id", required: true },
@@ -1065,6 +2066,91 @@ export const cursorCommand = defineCommand({
           if (format === "json") process.stdout.write(`${JSON.stringify(position, null, 2)}\n`);
           else process.stdout.write(formatCursorPosition(position));
         }, "Unable to complete ngrace cursor advance.");
+      },
+    }),
+    attempt: defineCommand({
+      meta: {
+        name: "attempt",
+        description: "Record a verification-cycle attempt (outcome pass|fail; signature required on fail).",
+      },
+      args: {
+        path: { type: "string", alias: "p", description: "Project root", default: "." },
+        change: { type: "string", description: "C-* change id", required: true },
+        task: { type: "string", description: "T-* task id", required: true },
+        outcome: { type: "string", description: "pass or fail", required: true },
+        signatureKind: { type: "string", description: "Failure signature kind (required when outcome=fail)" },
+        signatureKey: { type: "string", description: "Failure signature key (required when outcome=fail)" },
+        format: { type: "string", alias: "f", description: "text or json", default: "text" },
+      },
+      async run(context) {
+        const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
+        await runGraceCommand(format, () => {
+          const outcomeRaw = String(context.args.outcome ?? "").trim();
+          if (outcomeRaw !== "pass" && outcomeRaw !== "fail") {
+            throw new GraceCommandError(
+              "invalid-arguments",
+              `outcome must be "pass" or "fail" (got ${JSON.stringify(outcomeRaw)}).`,
+            );
+          }
+          const signatureKind = context.args.signatureKind ? String(context.args.signatureKind) : undefined;
+          const signatureKey = context.args.signatureKey ? String(context.args.signatureKey) : undefined;
+          const result = recordAttempt(String(context.args.path ?? "."), requireChangeId(context.args), {
+            task: String(context.args.task),
+            outcome: outcomeRaw,
+            signature:
+              outcomeRaw === "fail" && signatureKind && signatureKey
+                ? { kind: signatureKind, key: signatureKey }
+                : undefined,
+          });
+          if (format === "json") process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+          else {
+            process.stdout.write(result.message);
+            process.stdout.write(formatCursorPosition(result.position));
+          }
+        }, "Unable to complete ngrace cursor attempt.");
+      },
+    }),
+    "verification-unavailable": defineCommand({
+      meta: {
+        name: "verification-unavailable",
+        description: "Record that verification could not run (not an attempt; does not count against the budget).",
+      },
+      args: {
+        path: { type: "string", alias: "p", description: "Project root", default: "." },
+        change: { type: "string", description: "C-* change id", required: true },
+        task: { type: "string", description: "T-* task id", required: true },
+        reason: { type: "string", description: "Why verification could not run", required: true },
+        verdict: {
+          type: "string",
+          description: "not-run or unable-to-determine (default unable-to-determine)",
+          default: "unable-to-determine",
+        },
+        format: { type: "string", alias: "f", description: "text or json", default: "text" },
+      },
+      async run(context) {
+        const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
+        await runGraceCommand(format, () => {
+          const verdictRaw = String(context.args.verdict ?? "unable-to-determine").trim();
+          if (verdictRaw !== "not-run" && verdictRaw !== "unable-to-determine") {
+            throw new GraceCommandError(
+              "invalid-arguments",
+              `verdict must be "not-run" or "unable-to-determine" (got ${JSON.stringify(verdictRaw)}).`,
+            );
+          }
+          const position = recordVerificationUnavailable(
+            String(context.args.path ?? "."),
+            requireChangeId(context.args),
+            {
+              task: String(context.args.task),
+              absence: {
+                verdict: verdictRaw,
+                reason: String(context.args.reason ?? ""),
+              },
+            },
+          );
+          if (format === "json") process.stdout.write(`${JSON.stringify(position, null, 2)}\n`);
+          else process.stdout.write(formatCursorPosition(position));
+        }, "Unable to complete ngrace cursor verification-unavailable.");
       },
     }),
     pause: defineCommand({

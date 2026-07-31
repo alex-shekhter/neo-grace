@@ -1,0 +1,259 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-ATTEMPT-LOG>
+    <Summary>Record every attempt rather than only outcomes, bound churn at two, and escalate to replan rather than abort — on a fold that no longer destroys the evidence.</Summary>
+    <Problem>
+      The ledger cannot hold an attempt. buildEpochNode (grace-cursor.ts:735-769) folds each loose
+      event into the ledger as exactly id, task and kind, with no children; the fold's verify step
+      (:343-353) compares writtenEvents.length against events.length — a count, not a comparison — and
+      the delete step (:367-375) unlinks every loose file on that verdict. Reproduced through the real
+      CLI at 235f0f8: an event carrying outcome="fail", ordinal="1" and a FailureSignature child folds
+      to &lt;Event id="2" task="T-001" kind="attempt" /&gt;, run/ is emptied, and the command prints
+      "Fold applied ... Events: 3". A confident success report about data it destroyed (A18.2,
+      correction 31). Every field this change exists to record would be lost before the first review.
+
+      The grammar is not the defect and must not be blamed for it: validateRunLedgerArtifact
+      (artifact/grammar.ts:628-732) never enumerates Event attributes and accepts a richer event
+      happily. Reading either file alone hides the loss.
+
+      Unknown event kinds silently mean "still working". The kind-to-state map is a closed ternary
+      with a fall-through default at two independent sites — advanceCursor (:235-236) on the write
+      path and derivePosition (:465) on the read path, with the branches in opposite order. kind is
+      unvalidated free-form input (advance --kind). An escalation event therefore reports in-progress,
+      and fixing only the writer leaves the reader re-deriving in-progress the moment the cursor is
+      regenerated (A18.5, correction 34).
+
+      A written cursor's state is an unchecked cast: state: (stateText as CursorState) || "idle"
+      (:438). Any string in run.xml becomes a CursorState. That is nearly harmless while state is
+      advisory and becomes load-bearing the moment a gate refuses to move past
+      paused-pending-approval (A19.2).
+
+      Nothing can answer "did a write land between two attempts". listRepositoryChangedFiles
+      (:620-652) is repository-wide, answers only for the moment it is called, and returns
+      available: false when git cannot be reached — the branch that forced stateAbsence into existence
+      in Phase 3 (A18.6, correction 35).
+    </Problem>
+    <Goals>
+      <Goal>
+        The fold preserves event payload, and its verify step compares rather than counts. A fold that
+        would drop a field fails and leaves the loose files on disk (A18.2). This is built first;
+        everything else in this change is payload.
+      </Goal>
+      <Goal>
+        Attempts are ordinary run events carrying D2's allocated id. No ordinal is persisted — it is
+        derived by counting a task's attempts in id order (A18.3).
+      </Goal>
+      <Goal>
+        The attempt outcome is three-valued, reusing Phase 2's AbsenceValue. A verification that could
+        not run produces a verification-unavailable event, never an attempt (A18.4, A19.1).
+      </Goal>
+      <Goal>
+        A dumb counter (D9): the budget counts attempt events and inspects nothing. The exemption for
+        an unran verification lives on the recording side, so no condition enters the counter (A19.1).
+      </Goal>
+      <Goal>
+        Budget exhaustion transitions to paused-pending-approval, a new CursorState value, surfacing
+        both failure signatures and never claiming the task failed (A19.2).
+      </Goal>
+      <Goal>
+        One shared exhaustive kind-to-state map replacing both ternaries, with an explicit
+        unknown-kind branch. An unrecognized kind must not mean "still working" (A18.5).
+      </Goal>
+      <Goal>
+        The written cursor's state is parsed against the union, not cast. An unrecognized value takes
+        the existing degradation path rather than throwing — the mechanism recovers, lint reports
+        (A19.2, invariant 3, anti-pattern 9).
+      </Goal>
+      <Goal>
+        Flake classification is a read over the ledger using write evidence snapshotted onto each
+        attempt event, never a live git call at report time (A19.3, D8).
+      </Goal>
+      <Goal>
+        The execute skill states the budget and the escalation rule, mirrored byte-identically into
+        the packaged tree.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>The fold fix lands before any attempt type exists. Writing evidence into a shredder is not a sequencing preference (A19.3).</Constraint>
+      <Constraint>No ordinal, no timestamp and no second identity on any persisted event. Ordering is by allocated id (D2, §0.2, anti-pattern 6).</Constraint>
+      <Constraint>The counter contains no condition. "Dumb except here" is how clever counters begin (D9).</Constraint>
+      <Constraint>No second absence vocabulary. Reuse AbsenceValue and skills/ngrace/ngrace-cli/references/verdicts.md (D13, anti-pattern 5 and 10).</Constraint>
+      <Constraint>2 is a named constant carrying D9's "judgment, not derived" note beside it (§4.7 gate 3).</Constraint>
+      <Constraint>Attempt recording follows the cursor advance precedent — it writes what the executor just produced. It is not gated behind --apply (A18.7, invariant 8).</Constraint>
+      <Constraint>No event is overwritten. Every attempt appends (D6, §4.7 gate 2).</Constraint>
+      <Constraint>Additive only. A .ngrace tree with no attempt events lints clean — no issue, no migration (invariant 5).</Constraint>
+      <Constraint>Every authored path resolves through resolveContainedProjectPath (artifact/paths.ts:92).</Constraint>
+      <Constraint>skills/ngrace/* is source of truth; plugins/ngrace/skills/ngrace/* stays byte-identical in the same commit (invariant 1, §12.2).</Constraint>
+      <Constraint>No new runtime dependencies. No Phase 5+ constructs: no gate declarations, no transition surface, no reviewer automation, no confidence field.</Constraint>
+      <Constraint>AffectedAreas derives from the traced code path, never from §4.3's provisional file table (A5.6).</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Gate declarations and the transition surface (Phase 5), including the gate that will refuse `applied` without a plan (A17.2) and the "no open epoch" archive precondition (A10.10 §1).</NonGoal>
+      <NonGoal>Reviewer automation and mechanized audits (Phase 6), including A15.4's report schema.</NonGoal>
+      <NonGoal>Deterministic failure localization (Phase 7) — this change records signatures, it does not localize with them.</NonGoal>
+      <NonGoal>Confidence recording and the calibration report (Phase 9).</NonGoal>
+      <NonGoal>Validating loose run/ event files through lint. The fold owns event validation (A11.2).</NonGoal>
+      <NonGoal>Making an escalated, unfoldable epoch foldable. The interaction is recorded in A18.5 §1 and belongs to Phase 5's precondition work.</NonGoal>
+      <NonGoal>The file-to-module ObservedWriteScope cross-check (A5.7; still unowned).</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-FOLD-PRESERVES-PAYLOAD>
+        Correction 31 (A18.2), and the phase's first task. buildEpochNode carries event attributes and
+        children into the ledger rather than the three-attribute literal at grace-cursor.ts:735-769,
+        and the fold's verify step compares written payload against the loose events rather than
+        comparing lengths at :343-353.
+
+        The discriminating negative, which is the criterion and not an extra: a fold whose serializer
+        drops a field must FAIL its own verify and leave every loose file on disk. Prove it by
+        injection, the way AC-FOLD-ORDERING proved the write-verify-delete order in C-RUN-LEDGER —
+        a test that only asserts payload survives a correct fold would have passed at 235f0f8, before
+        this change existed.
+
+        Both directions per A7.2, since verify is a detection boundary: what newly fails (an event
+        whose payload was dropped) and what still passes (an unchanged three-attribute event; a
+        re-fold with nothing loose, :282-297; the concurrent-append case from C-RUN-LEDGER).
+
+        Report the probe from A18.2 re-run against the fix: the same loose event, the resulting
+        ledger, and the state of run/. Verbatim.
+
+        While on this line, :344 reads events.filter((e) =&gt; e.kind !== "opened" || true) — a
+        constant predicate making the filter a no-op inside an if that repeats the comparison. Remove
+        it.
+      </AC-FOLD-PRESERVES-PAYLOAD>
+      <AC-ATTEMPT-EVENTS>
+        Correction 32 (A18.3). Attempts are run events with D2's allocated id, task and kind. A task
+        that passes first time produces one attempt event; a task that fails then passes produces two,
+        both present in the ledger AFTER fold — asserted against the folded ledger, not against loose
+        files, because loose-file assertions are what correction 31 made vacuous.
+
+        No ordinal is persisted. grep the diff: no ordinal, sequence or index field on any event type.
+        Ordinal shown in output is derived by counting a task's attempts in id order, and one test
+        proves the derived ordinal survives a fold unchanged.
+      </AC-ATTEMPT-EVENTS>
+      <AC-THREE-VALUED-OUTCOME>
+        Correction 33 (A18.4) and A19.1. The attempt outcome is pass, fail, or absent — the third
+        modelled on the shipped complete/completeAbsence pair (grace-cursor.ts:78-79, returned
+        together at :574). No new absence vocabulary: AbsenceVerdict and AbsenceValue (:44-49) are
+        reused as-is.
+
+        A verification that could not run produces a verification-unavailable event carrying the
+        absence value and its reason — an event, never a silence. One test proves it appears in the
+        folded ledger; that test fails if correction 31 regresses.
+      </AC-THREE-VALUED-OUTCOME>
+      <AC-DUMB-COUNTER>
+        D9 and A19.1. Two tests, and the first is §4.5.2's discriminating negative kept verbatim from
+        the plan: two failures with DIFFERENT signatures still exhaust the budget. Without it a later
+        optimization makes the counter clever and nothing notices.
+
+        Its sibling: two verification-unavailable events in a row do NOT exhaust the budget, and both
+        appear in the folded ledger. A test asserting only the count would pass while the events
+        vanished.
+
+        The counter body contains no condition on signature, kind or content — it counts attempt
+        events. The exemption is on the recording side (A19.1). 2 is a named constant with D9's
+        "judgment, not derived" note beside it (§4.7 gate 3).
+      </AC-DUMB-COUNTER>
+      <AC-ESCALATION>
+        A19.2. CursorState gains paused-pending-approval (grace-cursor.ts:35). On the second failed
+        attempt: record the exhaustion event, transition to paused-pending-approval, and surface both
+        failure signatures. The output names both signatures and does not claim the task failed —
+        shown verbatim.
+
+        The A5.4 drop-site inventory for CursorState in the phase report, each site file:line marked
+        widened, deliberately unchanged with reason, or not on the path. The inventory in A19.2 is the
+        starting point measured at 235f0f8, not the answer: re-measure. writeCursorFile's round-trip
+        (:835-841) is verified by test rather than by reading, since it special-cases one existing
+        value already.
+      </AC-ESCALATION>
+      <AC-KIND-STATE-MAP>
+        Correction 34 (A18.5). One shared exhaustive kind-to-state map replaces BOTH ternaries —
+        advanceCursor :235-236 and derivePosition :465 — with an explicit unknown-kind branch. An
+        unrecognized kind must not resolve to in-progress.
+
+        Two sites is the criterion, not one: a test proves that after recording an escalation, DROPPING
+        the cursor and re-deriving from the ledger still reports paused-pending-approval. A
+        writer-only fix passes every other test here and fails this one.
+      </AC-KIND-STATE-MAP>
+      <AC-CURSOR-STATE-PARSED>
+        A19.2. The cast at :438, state: (stateText as CursorState) || "idle", is replaced by a parse
+        against the widened union. A run.xml carrying an unrecognized state value takes the existing
+        degradation path (CursorPosition.degradation, :88, set at :422 and :445, reported at :675) and
+        cursor show still answers — it does not throw and does not block (invariant 3, anti-pattern 9).
+        lint still reports the written file. One test asserts exactly that pairing, matching
+        AC-RECOVER-NOT-BLOCK's shape in C-RUN-LEDGER.
+      </AC-CURSOR-STATE-PARSED>
+      <AC-FLAKE-CLASSIFICATION>
+        Correction 35 (A18.6) and A19.3. Each attempt event carries the write evidence observed when it
+        was recorded. Classification compares two recorded snapshots and issues no git call at report
+        time — a live call would classify the same ledger differently on different days, which is
+        non-determinism in a record whose purpose is durability (D1).
+
+        Three fixtures, three verdicts: fail then pass with no intervening write is flaky; fail then
+        pass with a write between them is a normal retry; and — the case the step as written omits —
+        fail then pass where the write evidence was unavailable (listRepositoryChangedFiles returning
+        available: false, :620-652) is unable-to-determine, neither flaky nor retry. Asserting flaky on
+        unchecked evidence is anti-pattern 1.
+      </AC-FLAKE-CLASSIFICATION>
+      <AC-ADDITIVE>
+        Invariant 5 demonstrated, not asserted: polyglotFixture(), minimalTsFixture(), scaleFixture(20),
+        examples/ and bun run ngrace lint --path . each yield zero new codes (§0.7.4). A ledger written
+        before this change folds and reads identically after it. A new error on a previously-green
+        project is release-breaking; do not edit a fixture to suit a check.
+      </AC-ADDITIVE>
+      <AC-SKILL-TEXT>
+        The budget and escalation rule reach the executor: skills/ngrace/ngrace-execute/SKILL.md states
+        when an attempt is recorded, what exhaustion does, and that escalation is a pause awaiting a
+        decision rather than a failure. One or two sentences; never restate codes the binary emits
+        (D13, anti-pattern 10). plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md byte-identical in
+        the same commit. bun run validate:marketplace passes; line and token delta reported (§0.5, D15).
+      </AC-SKILL-TEXT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CURSOR />
+      <M-ARTIFACT-TYPES />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run validate:packed</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-cursor.test.ts src/artifact/grammar.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        The A18.2 probe re-run against the fix — loose event, resulting ledger, state of run/ —
+        verbatim. The injected payload-drop fold showing verify failing and the loose files surviving.
+        The A7.2 both-directions table for the fold's verify boundary. The drop-the-cursor,
+        re-derive-from-ledger test output proving both kind-to-state sites were fixed. The A5.4
+        drop-site inventory for CursorState, re-measured. The escalation output naming both failure
+        signatures. The three flake fixtures with their three verdicts. The §0.7.4 sweep across all
+        five targets. The mutation-check table with no zero rows, or the discriminating negative added
+        for each. The adversarial probe covering the five track-specific categories in §0.7.3.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        §4.2's precondition re-measured at 235f0f8 (A18.1): Phase 3 is COMPLETE, src/grace-cursor.ts is
+        present at 1136 lines, and C-RUN-LEDGER is archived with spec and plan both applied.
+      </Assumption>
+      <Assumption>
+        A18's corrections 31-36 and A19's three answers govern where they disagree with §4.4 and §4.5.
+        §4.4's AttemptEvent pseudocode is superseded: it predates Phases 2 and 3, has no event id, and
+        its two-valued outcome is correction 28 repeated.
+      </Assumption>
+      <Assumption>
+        Every line citation here was measured at 235f0f8 and verified against the file rather than
+        transcribed (A5.5). Re-measure before depending on one. A18.5's second kind-to-state site at
+        :465 was found only because a citation was checked — expect the same of this document.
+      </Assumption>
+      <Assumption>
+        The write-surface baseline includes src/grace-cursor.ts as of Phase 3 (AC-WRITE-SURFACE in
+        C-RUN-LEDGER). This change adds no new write surface and no new destructive operation; the
+        greps must show exactly that.
+      </Assumption>
+      <Assumption>
+        An escalated task's epoch cannot fold, because validateEventsAgainstAllocations (:727-730)
+        requires a terminal event in every allocation. That is recorded (A18.5 §1) and out of scope
+        here; this change must not work around it by emitting a terminal event on escalation.
+      </Assumption>
+      <Assumption>Path-only modules without LINKS remain warning-level and deliberate; the existing graph.module-without-linked-files warnings are the expected clean state.</Assumption>
+    </Assumptions>
+  </C-ATTEMPT-LOG>
+</NgraceChangeSpec>

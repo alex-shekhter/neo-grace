@@ -346,7 +346,7 @@ Keep this table current. It is the single source of truth for progress.
 |---|---|---|---|---|
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
 | 3 | Run ledger & cursor | D1, D2, D3 | TBD | `COMPLETE` |
-| 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
+| 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `COMPLETE` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
 | 7 | Deterministic failure localization | D8 | TBD | `NOT STARTED` |
@@ -716,9 +716,16 @@ rollback must also remove the companion-tag registration, or state why not.
 
 # PHASE 4 — Attempt log, fix budget, escalation
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Decisions:** D6 (attempt half), D9
 **Release:** TBD
+
+> **Amended by §14 A18 — read it before §4.4 and §4.5.** §4.4's pseudocode was written before Phases 2
+> and 3 existed and does not survive contact with what they shipped: six corrections (31–36) follow,
+> one of which (31) means the phase's central payload is **silently destroyed by the existing fold**
+> before any Phase 4 code is written. A18 is normative where it disagrees with §4.4 and §4.5. Three of
+> its decisions (A18.8) are the maintainer's, not the executor's. **A17.3 binds this phase: the bundle
+> carries a `plan.xml` authored before execution, together with the spec.**
 
 ## 4.1 Objective
 
@@ -3307,6 +3314,1124 @@ mechanized reviewer that reports without gating would reproduce exactly this.
 one may reach `READY FOR REVIEW` with a spec-only bundle. The archive precondition from A10.10 §1 — "no
 open epoch" — should be settled in the same Phase 5 work, since both govern what a bundle must look
 like to leave `active/`.
+
+### A18 — 2026-07-31 · Phase 4 re-derived against HEAD
+
+**Everything below was measured at `235f0f8`** (Phase 3 merged, tree clean), per A5.5. Claims are tied
+to that commit; the executor re-measures the ones it depends on rather than transcribing them.
+
+§4.1's objective, §4.7's three gates and §4.8's rollback survive unchanged. **§4.4's design and §4.5's
+step list do not.** Both were written before Phases 2 and 3 existed, and six corrections follow. One of
+them (31) is not a drafting defect at all: it is a live data-loss defect in shipped Phase 3 code that
+Phase 4 is the first phase to stand on.
+
+Read them in order — 31 changes what the phase must build first, and 32–34 all describe fields that
+correction 31 would destroy anyway.
+
+#### A18.1 §4.2's precondition, re-measured
+
+| Precondition | Measured | Result |
+|---|---|---|
+| Phase 3 `COMPLETE` | §2 status board; `src/grace-cursor.ts` present (1136 lines), `C-RUN-LEDGER` archived `spec=applied plan=applied` | ✅ |
+
+Holds. The ledger exists and attempts have somewhere to go — but see correction 31 for *what* it can
+hold, which is much less than §4.4 assumes.
+
+#### A18.2 Correction 31 — the fold discards every event field except `id/task/kind`, and its verify step counts rather than compares
+
+This is the phase's blocking finding.
+
+`buildEpochNode` (`src/grace-cursor.ts:735-769`) folds each loose event into the ledger as exactly three
+attributes and no children:
+
+```js
+...events.map((event) => ({
+  tag: "Event",
+  attributes: { id: String(event.id), task: event.task, kind: event.kind },
+  children: [] as GraceXmlNode[],
+  text: "",
+})),
+```
+
+The fold's verify step (`:343-353`) then compares `writtenEvents.length` against `events.length` — **a
+count, not a comparison**. Payload loss is invisible to it. The delete step (`:367-375`) runs on that
+verdict and `unlinkSync`s every loose file (`:374`).
+
+So the sequence is: write a signature → drop it → verify passes on count → delete the only copy.
+**Permanent, silent, and unrecoverable**, because D3's delete is what makes the loose file the only
+other copy.
+
+Reproduced at `235f0f8`, not inferred. A loose event carrying an outcome, an ordinal and a signature
+child:
+
+```xml
+<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="attempt" outcome="fail" ordinal="1">
+  <FailureSignature kind="test-failure" key="grace-cursor.test.ts:fold"/>
+</NgraceRunEvent>
+```
+
+after `ngrace cursor fold`:
+
+```xml
+<Event id="2" task="T-001" kind="attempt" />
+```
+
+`run/` is empty, and the command printed:
+
+```
+Fold applied
+Change: C-PROBE
+Epoch: 1
+Events: 3
+```
+
+**A confident success report about data it had just destroyed** — this plan's own thesis (§15),
+reproduced inside the mechanism built to prevent it. It is also the exact shape of A17.2's family: the
+loss is not merely undetected, it is *reported as success*.
+
+Note where the defect is **not**: `validateRunLedgerArtifact` (`src/artifact/grammar.ts:628-732`) never
+enumerates `Event` attributes, so the grammar accepts a richer event happily. A reader of the validator
+would reasonably conclude the ledger supports payload. The drop is in the fold's serializer alone,
+which is why reading either file on its own does not reveal it.
+
+**Consequence for §4.5:** step 4.5.1 as written produces attempt events whose `outcome` and `signature`
+survive until the first fold and then vanish, and every test asserting on them passes if it reads loose
+events rather than the folded ledger. **The first step of this phase is widening the fold**, not adding
+event types. §4.3's files-touched table must say so — it currently lists `grace-cursor.ts` for "attempt
+recording, budget accounting" only.
+
+**Required with the fix, and not optional:** verify must compare payload, not count. A fold that keeps
+`id/task/kind` and drops a new field must **fail** its own verify and leave the loose files on disk.
+Without that, the next field added after Phase 4 walks into this again — and D3's delete makes every
+such walk unrecoverable.
+
+Minor, on the same path: `:344` reads
+`events.filter((e) => e.kind !== "opened" || true)` — `|| true` makes the predicate constant, so the
+filter is a no-op and the enclosing `if` re-does the same comparison inside itself. Harmless today, and
+sitting exactly on the verify line this correction rewrites. Clean it up while there.
+
+#### A18.3 Correction 32 — `AttemptEvent` drops the event id and invents a second ordering beside D2's
+
+§4.4 declares:
+
+```
+interface AttemptEvent { task; ordinal; outcome; signature? }
+```
+
+The shipped `LooseEvent` (`grace-cursor.ts:102-108`) is `{ id, task, kind, file, allocations? }`, where
+`id` comes from a pre-allocated range and is the identity D2 exists to provide. §4.4's shape **has no
+`id`** and adds `ordinal: 1-based within the task` — a second ordering scheme running alongside the one
+the previous phase built specifically so ordering never depends on anything else.
+
+An ordinal is derivable by counting a task's attempts in id order. Storing it creates two sources that
+can disagree, and nothing reconciles them. That is anti-pattern 5 (unthreaded construct) and it is the
+same instinct §0.2, §3.7 gate 3 and anti-pattern 6 already forbid for clocks.
+
+**Attempts are ordinary run events**: `id` from the allocation, `task`, `kind`. Ordinal is a read.
+
+#### A18.4 Correction 33 — `outcome: "pass" | "fail"` is two-valued, and this is correction 28 again
+
+§4.4's outcome admits two values. Phase 2 shipped the vocabulary for the third
+(`AbsenceVerdict = "not-run" | "unable-to-determine"`, `grace-cursor.ts:44-49`) and Phase 3's
+correction 28 already forced exactly this widening on `complete`, whose shipped shape is the precedent
+to copy (`:78-79`, returned as a pair at `:574`): `complete?: boolean` plus
+`completeAbsence?: AbsenceValue`.
+
+An attempt whose verification could not run — harness unavailable, commands skipped, the change not
+approved — has no honest outcome. Forcing it to `fail` inflates the churn count and burns the two-attempt
+budget on something that never ran; forcing it to `pass` is the confident-report failure directly.
+
+Reuse `AbsenceValue`. **Do not invent a second absence vocabulary** (A13.2, anti-pattern 5). The budget
+question this raises — does a non-outcome count against the two? — is A18.8's decision 1, not the
+executor's.
+
+#### A18.5 Correction 34 — `paused-pending-approval` does not exist, and unknown kinds silently read as `in-progress`
+
+Two halves, both measured.
+
+**The state is not in the union.** `CursorState` is
+`"absent" | "idle" | "in-progress" | "paused" | "complete"` (`grace-cursor.ts:35`), and
+`paused-pending-approval` appears nowhere in `src/` or `skills/`.
+
+**Worse, the kind→state map is a closed ternary with a silent default, and it exists twice.**
+
+`advanceCursor` (`:235-236`), on the write path:
+
+```js
+const state: CursorState =
+  kind === "terminal" ? "complete" : kind === "pause" ? "paused" : "in-progress";
+```
+
+and `derivePosition` (`:465`), on the read path, with the branches in the opposite order:
+
+```js
+state = lastEvent?.kind === "pause" ? "paused" : lastEvent?.kind === "terminal" ? "complete" : "in-progress";
+```
+
+`kind` is unvalidated free-form input (`advance --kind`, default `progress`). So an `attempt-fail` event
+and a budget-exhaustion event both fall through to **`in-progress`** — the cursor reports normal forward
+progress for a task that has just escalated. Nothing errors. This is A5.3's family a fourth time.
+
+**Two independent sites is the correction's real content.** Fixing only the writer leaves the reader
+re-deriving `in-progress` from the ledger the moment the cursor is regenerated, which is precisely the
+recovery path D1 promises — so a half-fix would look correct until the cache is dropped. The
+inventory required by A5.4 is what finds the second site; this entry found it only because the
+first citation was checked against the file rather than transcribed.
+
+Whichever route A18.8 decision 2 takes, both sites must become one shared exhaustive map over known
+kinds with an explicit unknown-kind branch. An unrecognized kind must not silently mean "still working."
+
+Two further interactions this correction pulls in, both consequences of escalation rather than new
+design:
+
+1. **A paused-pending-approval task cannot fold.** `validateEventsAgainstAllocations` (`:727-730`)
+   requires a `terminal` event inside every allocation, or the fold refuses with
+   `unterminated range for <worker>` — observed directly while building the correction 31 probe. An
+   escalated task has no terminal event by definition, so its epoch stays open indefinitely. This is
+   the concrete case behind A10.10 §1's archive precondition, and it now has a caller.
+2. **`foldEpoch` writes `state: "idle"` unconditionally** (`:382`). The cursor is a cache (D1) and will
+   re-derive, but it re-derives *from the ledger* — so escalation must be recoverable from folded
+   events, which is only true if correction 31 is fixed first.
+
+#### A18.6 Correction 35 — step 4.5.4's "no intervening write" is not readable at HEAD
+
+Step 4.5.4 requires distinguishing `fail → (no fix) → pass` from `fail → fix → pass`. The distinguishing
+input is whether a write landed between two attempts, and **HEAD cannot answer that per attempt**.
+
+What exists is `listRepositoryChangedFiles` (`:620-652`), which returns
+`{ available: boolean; changedFiles: string[] }` for the whole repository at the moment it is called.
+It is the function whose `available: false` branch forced `stateAbsence` into existence in Phase 3
+(correction 27) — the same branch applies here.
+
+So the flake classifier needs a decided source for "a write happened between attempt *n* and *n+1*", and
+it needs a third verdict from the start for the case where that source is unavailable. Writing it as a
+two-way classifier and asserting on an unchecked value is anti-pattern 1, and this step is currently
+specified as a two-way classifier.
+
+Step 4.5.4's verify clause must gain its absence case: a fixture where the write evidence is unavailable
+is reported as **`unable-to-determine`**, not as flaky and not as a retry.
+
+#### A18.7 Correction 36 — the write surface is unnamed, and the two precedents disagree
+
+Attempt recording is a write, and §4.5 never says which surface it lands on. HEAD offers two shapes that
+answer invariant 8 differently:
+
+| Surface | Behaviour |
+|---|---|
+| `cursor advance` (`:1039`) | writes an event file immediately, no `--apply` |
+| `cursor regenerate` (`:1009`) | dry-run by default; writes only under `--apply`, plus `--allowDirty` |
+
+Both are correct for what they do — `advance` is the executor recording a fact it just produced,
+`regenerate` is a derivation that could overwrite a durable record. Attempt recording is the former, so
+`advance` is the precedent to follow. **Say so in the phase report rather than leaving it implicit**,
+because the escalation path is the former shape wrapped around the latter's risk: it changes a task's
+disposition, not just its position.
+
+#### A18.8 Decisions required before `spec.xml` is drafted
+
+Three. None may be taken by the executor alone (§12.5).
+
+1. **A18.4** — does an attempt with an absence outcome count against D9's budget of two? *(recommend:
+   no — it never ran, so counting it burns the budget on the harness rather than on churn. But D9 says
+   the counter stays dumb, and "dumb except here" is how clever counters begin. If it does not count,
+   the exemption is on the **recording** side — an unran verification produces no attempt event —
+   never a condition inside the counter.)*
+2. **A18.5** — widen `CursorState` with `paused-pending-approval`, or map escalation onto the existing
+   `paused` plus a reason field? *(recommend: widen. `paused` already means "a human paused this";
+   conflating it with "the budget is exhausted and this needs a decision" loses the distinction Phase 5's
+   gate will need to read. Widening triggers A5.4's drop-site inventory — that is a cost, not an
+   objection.)*
+3. **A18.6** — what is the source of truth for "a write landed between two attempts"? *(recommend: a
+   write-scope snapshot recorded on the attempt event itself, so the classification is a read over the
+   ledger like every other Phase 4 query, rather than a live `git` call at report time whose answer
+   depends on when it is asked.)*
+
+#### A18.9 Standing rules that bind this phase, named so they are not rediscovered at the gate
+
+- **A5.4** — drop-site inventory required for `LooseEvent`, `writeEventFile`, `buildEpochNode`,
+  `listLooseEvents` and `CursorState`. Correction 31 **is** an uninventoried drop site that shipped;
+  treat the inventory as the thing that would have caught it, not as paperwork.
+- **A5.5** — every claim here is measured at `235f0f8`. Re-measure what you depend on.
+- **A5.6** — acceptance criteria descending from these corrections cite them inline, e.g.
+  `AC-FOLD-PRESERVES-PAYLOAD (A18.2)`, and carry the discriminating detail.
+- **A7.2** — the fold's verify step is a detection boundary. Strengthening it requires the
+  both-directions table: what newly fails (an event whose payload was dropped) **and** what still
+  passes (an unchanged three-attribute event, a re-fold with nothing loose — `:282-297`).
+- **§0.2 / anti-pattern 6** — no test may order attempts by clock. Attempts are ordered by allocated id,
+  and correction 32 exists because §4.4 proposed a second ordering.
+- **A12.3 (rule 6)** — the §0.7 self-review has no abbreviated form.
+- **A12.4 (rule 7)** — a deviation that removes a ratified capability is reported as an absence value,
+  not silently substituted.
+- **A14.6 (rule 8)** — every audit names the artifact it read; enumerated inputs declare their ground.
+- **A17.3** — the bundle carries a `plan.xml` authored **before** execution, together with the spec.
+  Phase 5's gate does not exist yet, so this is manual and is checked first at the review gate.
+
+#### A18.10 Additions to §4.6 definition of done
+
+- The fold preserves event payload, with the both-directions table per A7.2 (correction 31)
+- A fold whose verify detects payload loss **fails and leaves the loose files on disk** — demonstrated,
+  not asserted
+- No `ordinal` field on any persisted event; ordinal shown in output is derived (correction 32)
+- The attempt outcome is three-valued and reuses Phase 2's `AbsenceValue` (correction 33)
+- The kind→state map is exhaustive with an explicit unknown-kind branch (correction 34)
+- Flake classification has an `unable-to-determine` case with a fixture (correction 35)
+- Whichever A18.8 routes were taken, named, each with the test that pins it
+- The bundle carries a pre-execution `plan.xml` (A17.3)
+
+### A19 — 2026-07-31 · A18.8's three decisions answered, and one hole the inventory found
+
+**Decided by the maintainer**, all three as recommended. Normative where they disagree with §4.4 and
+§4.5. Measured at `235f0f8`.
+
+#### A19.1 Decision 1 — an unran verification produces no attempt event at all
+
+The budget counts attempt events. It does not inspect them. D9's "dumb counter" survives literally
+because **the exemption lives on the recording side**: a verification that could not run does not
+produce an attempt, so there is nothing for the counter to skip and no condition inside it.
+
+That requires a second event kind, because "no attempt event" must not mean "nothing happened":
+
+| Kind | Written when | Counts against the budget |
+|---|---|---|
+| `attempt` | verification ran and produced a verdict | yes, always |
+| `verification-unavailable` | verification could not run — harness absent, commands skipped, change not approved | no |
+
+The `verification-unavailable` event carries an `AbsenceValue` with its reason. **It is a recorded
+event, not a silence** — that is the whole point, and it is the difference between this and the
+"non-blocking signal ≈ no signal" failure of A17.2.
+
+The discriminating negative in step 4.5.2 stays exactly as written (two *different* signatures still
+exhaust the budget). Add its sibling: **two `verification-unavailable` events in a row do not exhaust
+the budget, and both appear in the folded ledger.** A test that only checks the counter would pass
+while the events vanished into correction 31.
+
+#### A19.2 Decision 2 — `CursorState` gains `paused-pending-approval`
+
+`paused` already means "a human paused this". Budget exhaustion means "a decision is owed before this
+can move", which is what Phase 5's gate will need to read. Collapsing them loses the distinction at
+exactly the surface built to consume it.
+
+The A5.4 inventory, taken before writing rather than at the gate. Every site touching `CursorState` at
+`235f0f8`:
+
+| Site | Disposition |
+|---|---|
+| `grace-cursor.ts:35` | the union — widened |
+| `:66`, `:507` | `CursorPosition.state`, row-3 local — type-driven, no change |
+| `:235-236` (write), `:465` (read) | the two ternaries of correction 34 — **both** replaced by one shared exhaustive map |
+| `:220`, `:382` | literal `in-progress` / `idle` at epoch-open and post-fold — reviewed, unchanged, but `:382` is the interaction in A18.5 §2 |
+| `:662` | `formatCursorPosition` state line — passes any value through; no change needed |
+| `:835-841` | `writeCursorFile`, which maps `absent` → `idle` on serialize and passes everything else through — new state round-trips, **verify with a test rather than by reading** |
+| `:438` | **hole — see below** |
+| `grace-status.ts:337-339`, `query/types.ts:109` | a different `state` (module readiness) — not on this path, listed so the next reader does not re-check |
+
+**The hole at `:438`:** reading a written cursor does
+`state: (stateText as CursorState) || "idle"` — an unchecked cast. Any string in `run.xml` becomes a
+`CursorState`, so a stale or hand-edited cursor claiming `state="shipped"` is accepted silently and
+flows into every consumer above. Today that is nearly harmless because state is advisory. **Phase 4
+makes it load-bearing**: `paused-pending-approval` is the value a gate will refuse to move past, and an
+unvalidated cast is exactly how a task escapes an escalation it never resolved.
+
+Phase 4 replaces the cast with a parse against the widened union, with an unrecognized value producing
+the **degradation** path `cursor show` already owns (`CursorPosition.degradation` at `:88`, set at
+`:422` and `:445`, reported at `:675`) rather than a throw — invariant 3 and anti-pattern 9: the
+mechanism recovers, `lint` reports. This is scope A18 did not name, admitted here rather than
+discovered mid-execution.
+
+#### A19.3 Decision 3 — write evidence is snapshotted onto the attempt event
+
+The flake classifier reads the ledger. It does not call `git`.
+
+Each `attempt` event carries the write evidence observed when it was recorded, so
+`fail → (no fix) → pass` is answered by comparing two recorded snapshots rather than by asking the
+repository a question whose answer depends on when it is asked. A live call would make the same ledger
+classify differently on Tuesday than on Monday — non-determinism in a record whose entire purpose is to
+be durable (D1).
+
+When `listRepositoryChangedFiles` returns `available: false` (`:620-652`), the event records the
+absence value, and the classifier reports **`unable-to-determine`** — not flaky, not a retry. Same
+branch that forced `stateAbsence` into existence in Phase 3 (correction 27); same answer.
+
+**This decision makes correction 31 blocking rather than merely first.** The snapshot is event payload,
+and payload is what the fold currently destroys. Ordered plainly: fix the fold, prove the fix fails on
+dropped payload, then build everything else. Any other order writes evidence into a shredder.
+
+#### A19.4 The spec is approved for drafting
+
+With A18's six corrections and these three answers, Phase 4's bundle may be written:
+`C-ATTEMPT-LOG`, carrying `spec.xml` **and** a `plan.xml` authored before execution per A17.3.
+
+### A20 — 2026-07-31 · Phase 4 review gate: the budget does not survive a fold
+
+Measured at `c4199b1`. The report is accurate about what it built, the five audits are present in full,
+and standing rules 6 and 8 held again — every audit named its artifact. **Four corrections follow, and
+the first two mean the phase's two headline mechanisms do not work.** Both were found by running the
+code, not by reading it; neither is visible in the 685-test suite.
+
+#### A20.1 Correction 37 — the fix budget resets to zero on every fold
+
+`recordAttempt` counts attempts from **loose events only** (`src/grace-cursor.ts:887-889`):
+
+```js
+const loose = listLooseEvents(bundlePath);
+const attemptCount = countTaskAttemptEvents(loose, task);
+const signatures = collectFailureSignatures(loose, task);
+```
+
+D3's fold deletes every loose file. So the count — and the signature list — go to zero at each epoch
+boundary, and the escalation the phase exists to produce never fires across one.
+
+Proven, not argued. A worker records a failed attempt on `T-001`, the wave quiesces with a **different**
+task's `terminal` event satisfying the allocation (`validateEventsAgainstAllocations` checks the range,
+not the task), the epoch folds, and `T-001` fails again:
+
+```
+attempt 1 -> count=1 escalated=false
+folded epoch 1, events=3, loose now=0
+ledger still holds T-001 attempts: 1
+attempt 2 -> count=1 escalated=false
+BUDGET RESET BY FOLD
+```
+
+Note line 3: **the ledger has the attempt.** Correction 31's fix worked — the payload is durable. The
+counter simply never reads it. D9's budget of two is unbounded in practice, and the churn bound this
+phase delivers is decorative.
+
+This is anti-pattern 7 in a new place. D1 says the cursor is a cache and the ledger is truth; here a
+*policy decision* is computed from the ephemeral half. Phase 3 already established the fix precedent and
+it is four lines away: `nextEventId` (`:1442`) takes `max(looseMax + 1, ledgerMax + 1)` via
+`maxLedgerEventId` (`:1449`) for exactly this reason. `listLedgerEvents` (`:1043`) already exists and is
+already used by the tests. The counter must read both, and so must `collectFailureSignatures` (`:1125`)
+— otherwise a post-fold escalation surfaces one signature and silently omits the other, which is the
+"both signatures" criterion failing quietly.
+
+**Why the suite missed it:** every budget test lives inside a single open epoch. The mutation table's
+three budget rows (`FIX_ATTEMPT_BUDGET=3`, clever counter, escalation kind) all mutate code that only
+ever runs pre-fold, so all three score non-zero while the defect sits untouched. A mutation table with
+no zero rows is necessary and not sufficient — §0.7.2 measures whether a test notices a change, not
+whether the tests reach the state where the change matters.
+
+#### A20.2 Correction 38 — the fold's verify compares the writer's output against the writer's own transform
+
+`AC-FOLD-PRESERVES-PAYLOAD` requires that a fold whose serializer drops a field **fails its own verify
+and leaves the loose files on disk**. What shipped satisfies that for an injected switch and not for a
+real defect.
+
+Verify computes both sides through the same function (`:470-471`):
+
+```js
+const expected = payloadFingerprint(eventAttributesForLedger(event), event.children);
+const actual   = payloadFingerprint(writtenEvent.attributes, writtenEvent.children);
+```
+
+`eventAttributesForLedger` (`:1275`) is also what `buildEpochNode` writes with. So a drop introduced
+*inside that function* appears identically on both sides, the fingerprints match, verify passes, and the
+delete proceeds.
+
+Demonstrated by mutation — one line added to `eventAttributesForLedger`:
+
+```js
+delete attributes.outcome;
+```
+
+Result: **2 tests fail, and neither is the verify.** Both failures are content assertions reading
+`attributes.outcome` off the folded ledger (`grace-cursor.test.ts:516`, `:581`) — `expect(received).toBe("pass")`,
+`Received: undefined`. The fold reported success and deleted the loose files exactly as it did at
+`235f0f8`.
+
+The `dropPayload` option (`buildEpochNode`'s `options.dropPayload`) bypasses `eventAttributesForLedger`
+entirely, which is why the injected test passes while the real path is unguarded.
+
+The general form is worth stating because it will recur: **a self-check that derives its expectation
+from the producer verifies only that the producer is deterministic.** The expected side must come from
+the loose event as parsed from disk, with the one legitimate transform (`graceVersion` removal, `id`/
+`task`/`kind` normalization) applied explicitly and *tested in its own right*, so a change to the
+transform is a change to something with its own assertion rather than a silent redefinition of correct.
+
+Today the content tests happen to cover it because `outcome` is this phase's field. **A field added in
+Phase 5 gets no such test, and verify is the only thing standing between it and the delete.**
+
+#### A20.3 Correction 39 — flake classification calls the common fix sequence a flake
+
+`classifyFlakeFromEvidence` (`:987`) decides "no intervening write" by comparing changed-file **path
+sets** (`:1007`):
+
+```js
+earlierSet.size === laterSet.size && [...earlierSet].every((file) => laterSet.has(file))
+```
+
+`listRepositoryChangedFiles` runs `git status --porcelain=v1` and collects paths. Editing a file that is
+**already in the changed set** — the normal case during a task, since the task has been editing that
+file all along — leaves the set byte-identical. Fail, fix `src/foo.ts`, pass, and the verdict is
+`flaky` (`:1010`).
+
+That inverts D8: a flake is "classified rather than pooled into the churn trend", so a misclassified
+retry is *removed* from the churn measurement. The most common real repair sequence would be
+systematically deleted from the number this track exists to measure. Correcting one signal by corrupting
+another is worse than not classifying at all.
+
+Path-set equality cannot answer the question. Either record content-sensitive evidence (a digest per
+changed file), or return `unable-to-determine` when the sets match — because identical paths genuinely
+do not distinguish "nothing was written" from "the same file was written again", and §0.7's whole
+posture is that an honest absence beats a confident guess. Recommend the digest: it is the same
+snapshot, one field wider, and it makes the flaky verdict mean what it says.
+
+#### A20.4 Correction 40 — the skill instructs a recording with no way to perform it
+
+`skills/ngrace/ngrace-execute/SKILL.md` step 5 now tells the executing agent to *"record every
+verification cycle as an attempt event"* and to *"record verification-unavailable"*. There is no
+command that does either. `recordAttempt` and `recordVerificationUnavailable` are library exports;
+`cursorCommand.subCommands` still holds the same six from Phase 3 — `show`, `regenerate`, `advance`,
+`pause`, `resume`, `fold`.
+
+Step 4 directly above names `ngrace cursor advance` and `ngrace cursor fold`. Step 5 names nothing,
+because nothing exists.
+
+Worse, the surface that *is* reachable produces a malformed attempt. `ngrace cursor advance --kind
+attempt` writes:
+
+```xml
+<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="attempt" />
+```
+
+No `outcome`, no `WriteEvidence`, no signature — and `countTaskAttemptEvents` filters on
+`kind === "attempt"` alone, so **it counts against the budget** while `recordAttempt` would have
+rejected it (a failed attempt without a signature throws at `:864-869`). The one path an agent can
+actually take is the one that corrupts the record.
+
+The executor disclosed the gap as an open question and shipped the instruction anyway. That is the
+decision to revisit: on this track, **instruction without mechanism is the failure mode, not the
+fallback.** A15.4 measured that mechanized checks changed behaviour where prose did not, and A17.2
+found that even a correct signal does nothing until it blocks. A skill step with no command is the
+weakest member of that family.
+
+Either add `ngrace cursor attempt` (`--outcome`, `--signature-kind`, `--signature-key`) and
+`ngrace cursor verification-unavailable --reason`, following the `advance` precedent A18.7 already
+ratified, or remove step 5 until the surface exists. **Do not ship the text without the command.**
+Recommend adding the subcommands — the library functions are written and tested; this is wiring, and
+leaving it undone strands the whole phase behind an API no agent can call.
+
+#### A20.5 Standing rule 9 — accounting that governs a decision reads the durable record
+
+Corrections 37 and its signature half are one rule, not two incidents:
+
+> **Any count, budget, or accumulation that a policy decision depends on is computed from the durable
+> record — the ledger — and not from the ephemeral working set, even when the ephemeral set is more
+> convenient and currently complete.**
+
+The cache-versus-truth boundary (D1) is usually discussed for *reporting*. Correction 37 is the same
+boundary for *deciding*, where being wrong does not merely misreport — it changes what the system does.
+Anti-pattern 7 says the cursor is never authoritative; rule 9 says the same of anything derived only
+from loose events.
+
+The test obligation that comes with it: **every accounting test must have a folded twin.** A budget
+test inside one epoch measures nothing about a budget, since epochs close.
+
+#### A20.6 What this round measured
+
+Four rounds on Phase 3 produced a 9-of-12 split toward process compliance (A15.4). This round is the
+opposite and worth recording: **all four findings are behavioural, none was machine-detectable, and two
+required executing code that no test executes.** The process compliance was clean on the first pass —
+the audits were complete, the artifacts were named, the inventory was re-measured, the drop-site table
+was honest, and the one weakened pin (the delete-surface line number) was disclosed and still asserts
+`toHaveLength(2)`.
+
+That is what the standing rules bought, and it is the second controlled data point after rule 8: the
+mechanized-and-enumerable half of review is now reliably clean, and the remaining defects are exactly
+the ones a schema cannot catch. **A15.4's recommendation for Phase 6 stands but its ceiling is now
+visible** — a report schema and a re-execution harness would have caught none of corrections 37–40.
+What would have caught 37 and 38 is a *differential* harness: run the mechanism across the state
+transition it is specified to survive (fold, restart, regenerate) rather than within one state. Phase 6
+should treat that as the first-class capability and the schema as scaffolding for it.
+
+### A21 — 2026-07-31 · Second Phase 4 gate: corrections 37–40 clear, two more behind them
+
+Measured at `d48a713`. **All four A20 corrections are fixed and independently re-verified** — not
+accepted from the report:
+
+- **37.** My own probe from A20.1, re-run unchanged against the fix: `attempt 2 -> count=2
+  escalated=true`, `BUDGET DURABLE`. `listAccountingEvents` (`:880`) merges ledger and loose by id with
+  loose winning, which also answers the interrupted-fold double-count.
+- **38.** `expectedLedgerEventAttributes` (`:1362`) is a genuinely separate function from the writer's
+  `eventAttributesForLedger`. The duplication is deliberate and documented, and it is the right shape:
+  a self-check must not import its expectation from the thing it checks. Re-running my mutation now
+  makes the fold **throw** and leaves all three loose files on disk.
+- **39.** Per-file sha256 digests, the recommended route.
+- **40.** The CLI exists and works end to end. `advance --kind attempt` now refuses with a message that
+  names the right command. The escalating attempt prints both signatures above the position, satisfying
+  AC-ESCALATION's "does not claim the task failed".
+
+Two corrections follow. Both were found by driving the new CLI rather than by reading it, and both are
+the same defect this phase has now produced three times: **a value that means "we do not know" being
+compared as though it meant something.**
+
+#### A21.1 Correction 41 — escalation is cleared by the next event, whatever it is
+
+`paused-pending-approval` is written at escalation and then silently overwritten by the next event on
+that task. Both paths take last-event-wins through the shared map — the write path at `:364` and the
+read path at `:627` — and `KNOWN_KIND_STATE` (`:165-173`) maps `attempt`, `progress` and
+`verification-unavailable` all to `in-progress`.
+
+Reproduced through the shipped CLI. Two failing attempts escalate correctly:
+
+```
+Budget exhausted for T-001 after 2 attempts — paused-pending-approval (replan decision owed; task has not failed).
+Signatures (2):
+  1. test-failure: suite-a
+  2. typecheck: suite-b
+State: paused-pending-approval
+```
+
+then one ordinary `ngrace cursor verification-unavailable`:
+
+```
+Change: C-X
+State: in-progress
+```
+
+The decision that was owed is no longer owed by anybody. The ledger still holds the escalation event —
+correction 37's fix means the *count* stays exhausted, so a third failure escalates again — but between
+escalations the task reports as normally progressing, which is the state every consumer reads and the
+state Phase 5's gate is being built to read.
+
+A19.2's rationale for widening the union was that an unvalidated cast "is exactly how a task escapes an
+escalation it never resolved". The cast was fixed; the same escape exists through the front door.
+
+**Why the phase's own test missed it:** the drop-cursor-and-re-derive test asserts
+`paused-pending-approval` survives regeneration, and it does — because in that fixture the escalation
+happens to be the last event. Last-event-wins is invisible to any fixture where the interesting event is
+last. The twin that catches it is one more event after the escalation.
+
+**Scope line, and it matters here.** *Refusing* further attempts on an escalated task is a gate, and
+gates are Phase 5 (anti-pattern 9 — no blocking policy inside a mechanism). Phase 4 owes only that the
+position stay honest: an escalation is sticky until an event that explicitly resolves it. `resume` is
+the natural resolver, since it is already a deliberate act rather than a by-product of executing. So
+the read path derives state from the last *unresolved* escalation rather than the last event, and the
+write path stops overwriting it. That is a state-derivation rule, not a policy, and it stays inside
+this phase's remit.
+
+#### A21.2 Correction 42 — digest sentinels are absence values compared for equality
+
+`digestProjectFile` (`:866`) returns three magic strings where a hash is expected: `"absent"` when the
+file is gone (`:868`), `"unreadable"` on any read error (`:872`), and `parseWriteEvidenceNode` supplies
+`"unknown"` when the attribute is missing (`:1187`).
+
+`writeEvidenceFingerprint` (`:1079`) then joins `path\0digest` and `classifyFlakeFromEvidence` compares
+the strings (`:1066`). So two attempts whose digests are both `"unreadable"`, or both `"unknown"`, are
+**identical evidence** and the verdict is a confident `flaky` — computed from content that was never
+read.
+
+This is A20.3 one level down. That correction removed a confident `flaky` derived from path sets that
+could not answer the question; this one is a confident `flaky` derived from a digest that was never
+taken. `"absent"` on both sides is genuine evidence and should keep comparing equal — a file that did
+not exist either time did not change. `"unreadable"` and `"unknown"` are not evidence, and the honest
+verdict is `unable-to-determine`, which the classifier already returns for the `available: false` case
+four lines above.
+
+It is also anti-pattern 5. Phase 2 shipped `AbsenceValue` and this phase already uses it correctly for
+`verification-unavailable`; encoding a second absence vocabulary as reserved strings inside a digest
+field is the unthreaded construct the anti-pattern names, and it is what allowed the comparison to look
+total when it is partial.
+
+#### A21.3 What the two rounds together say about this phase
+
+Every Phase 4 defect found at review — 37, 38, 39, 41, 42 — is one shape: **a mechanism treating an
+unknown as a known.** The budget read an incomplete set as complete; verify read the writer's intent as
+independent truth; the classifier read path sets, then sentinel digests, as content; and the position
+reads the last event as the current state. Five instances, one root, in a phase whose *stated* purpose
+is to record honestly when something did not happen.
+
+That is worth carrying to Phase 6 alongside A20.6. A differential harness catches the state-transition
+half (37, 41). The other half needs something narrower and more mechanical: **an audit that enumerates
+every value a function can return and asks which of them mean "unknown", then checks whether any
+comparison treats those as data.** For `digestProjectFile` that is a three-line inspection with an
+unambiguous answer, and it would have caught 42 before the tests were written.
+
+### A22 — 2026-07-31 · Third Phase 4 gate: the sticky escalation is bundle-wide, and the fold still erases it
+
+Measured at `e53e914`. **Corrections 41 and 42 are fixed for the case they were reported in**, verified
+by re-driving the CLI rather than by reading the report: after escalation a `verification-unavailable`
+now leaves `State: paused-pending-approval`, and `resume` clears it. The unknown-value audit was
+delivered in the form A21.3 asked for, `FileContentEvidence` replaces the magic strings with a modelled
+`undetermined` carrying an `AbsenceValue`, and the fixture-position column on the mutation table is
+exactly the right addition — it makes the "necessary but not sufficient" property visible per row
+instead of as a footnote.
+
+Two corrections follow. Both are the escalation escaping again, and both were found by driving the CLI
+with **two tasks** and with a **fold** — the two states the fixtures still do not reach.
+
+#### A22.1 Correction 43 — an unrelated task's `resume` clears another task's escalation
+
+`deriveStateFromEvents` (`:215-247`) walks the event stream and tracks **one** `unresolvedEscalation`
+flag for the whole bundle. It is not task-scoped. Escalation is per task — the budget counts
+`countTaskAttemptEvents(accounting, task)` — so a per-task fact is being held in a bundle-level
+variable.
+
+Reproduced through the shipped CLI:
+
+```
+--- T-001 escalates ---
+Budget exhausted for T-001 after 2 attempts — paused-pending-approval (replan decision owed; …)
+State: paused-pending-approval
+--- sanity: VU on T-001 keeps it sticky ---
+State: paused-pending-approval
+--- now an UNRELATED task T-002 resumes ---
+State: in-progress
+```
+
+`resume --task T-002` resolved an escalation owed on `T-001`. Correction 41 closed the door where any
+event cleared the escalation; this is the same escape through the door marked *resolver*, and in a
+parallel wave — the thing epochs, allocations and waves exist for — it is the ordinary case rather than
+an edge one.
+
+The converse is wrong too, and follows from the same line: while the flag is set, every other task's
+events are skipped (`// Non-resolvers leave the escalation sticky; do not apply their kind map`), so a
+bundle where `T-002` is progressing normally reports `paused-pending-approval` for work that is not
+blocked.
+
+**Fix:** track unresolved escalations as a **set keyed by task**. `resume --task X` removes only `X`.
+The bundle-level state is `paused-pending-approval` while that set is non-empty, and otherwise derives
+from the last non-sticky event as it does now. That keeps `CursorPosition` single-valued — no widening,
+no A5.4 inventory — while making the aggregate honest about what it is aggregating.
+
+#### A22.2 Correction 44 — the fold writes `state: "idle"` over an unresolved escalation, and `show` believes it
+
+`foldEpoch` still writes a literal (`:597`):
+
+```js
+state: "idle",
+sources: { epoch: "ledger", task: "ledger", state: "ledger" },
+```
+
+Every other write path in the phase now derives (`:433`, `:1067`, `:1117` all call
+`positionStateFromBundle`). The fold does not. And because `showCursor` prefers the written cursor and
+takes its `State` verbatim once it parses (`:648`, `:661-662`), the erasure is what every reader sees:
+
+```
+--- escalated; now T-002 terminal closes the range, then fold ---
+Fold applied / Events: 5
+--- written run.xml State ---
+<State>idle</State>
+--- cursor show after fold ---
+State: idle
+Task: T-002
+```
+
+An unresolved escalation, gone from the position entirely. The ledger still holds the escalation event,
+so `regenerate` would recover it — but nothing on the default read path looks, and `sources` claims
+`state=ledger` for a value the ledger does not support.
+
+**The reason this survived two rounds is a justification I accepted.** A19.2's inventory marked
+post-fold idle *"deliberately unchanged (A18.5 §2); escalated epochs do not fold"*, and I passed it in
+A20 — while writing, in A20.1 of the same round, that the allocation's terminal requirement "is
+per-range, not per-task, so this is an ordinary multi-task wave". Those two statements contradict, and I
+held both. **Escalated epochs fold whenever any other task in the range terminates.** Recording it
+plainly because the inventory did its job and the review did not: A5.4 surfaced the row, and I read the
+row and did not connect it to a fact I had just written three paragraphs earlier.
+
+**Fix:** the fold derives like every other write path. It is one line, and the general rule is worth
+keeping — *no write path composes a `CursorPosition` from literals once a shared derivation exists*,
+because the literal silently stops tracking the derivation the moment either changes.
+
+#### A22.3 Both are the same root, and it is now named
+
+Corrections 41, 43 and 44 are three doors into one room: **escalation is a per-task fact that this
+phase stores and reads at bundle granularity.** 41 was "any event clears it", 43 is "any task's resume
+clears it", 44 is "the fold overwrites it". Each fix closed a door rather than the room.
+
+The room is the mismatch. Once escalations are a per-task set and every write path derives, all three
+doors close together, and the next one — whatever it is — has nowhere to open onto.
+
+This is the fourth Phase 4 defect class found only by reaching a state no fixture reaches: post-fold
+(37), post-fold again (44), second-event (41), second-task (43). **A20.6's differential harness is now
+the highest-value item on Phase 6's list, and it needs a second axis.** Not only *transitions* — fold,
+restart, regenerate — but *plurality*: two tasks, two workers, two epochs. Every defect in this phase
+lived in one of those two axes, and the entire 115-test suite lives at the origin of both.
+
+### A23 — 2026-07-31 · Fourth Phase 4 gate: the state is right and the attribution is not
+
+Measured at `1216e00`. **Corrections 43 and 44 are fixed**, re-verified by driving the CLI: an unrelated
+`resume --task T-002` leaves `State: paused-pending-approval`, and after `T-002`'s terminal closes the
+range and the epoch folds, both `run.xml` and `cursor show` still report it.
+
+The room fix is the right one. `deriveStateFromEvents` (`:217`) now keys unresolved escalations by task,
+`resume` deletes only its own key, and non-resolvers update `lastNonSticky` again — so the swallow the
+previous shape introduced is gone as a consequence of the design rather than as another patch. The
+mutation table's two zero rows (M4, M5) were reported **as findings rather than presented as passes**,
+which is the honest form and the first time on this track a zero row has been argued rather than
+avoided.
+
+Two corrections follow, and one decision that is not the executor's.
+
+#### A23.1 Correction 45 — the position pairs the right state with the wrong task
+
+`cursor show`, on a bundle where `T-001` is escalated and `T-002` has just terminated successfully:
+
+```
+State: paused-pending-approval
+Task: T-002
+```
+
+State is now aggregated across tasks (correction 43's fix). `task` is not — it is still last-event-wins
+(`:694`, `lastEvent?.task ?? lastTaskFromLedger(bundlePath)`). So the pair asserts that **`T-002` is
+awaiting a replan decision**, which is false: `T-002` is finished, and the task that owes a decision is
+not named anywhere in the position.
+
+This is worse than what it replaced, and the direction matters. Before correction 43 the state was
+wrongly cleared — obviously wrong, and cheap to disbelieve. Now the state is right, which makes the
+whole line credible, and the credible line names the wrong task. A confident false statement about a
+*named* task is precisely §15's failure.
+
+It is also the half of A22.3's room that aggregation cannot close. A single `task` slot cannot represent
+"`T-001` blocked, `T-002` done"; there is no value that makes the pair true.
+
+**Fix, and it should be the field rather than a heuristic.** `CursorPosition` gains the escalated task
+set — `escalatedTasks: string[]`, empty when none — and `task` is drawn from it when it is non-empty so
+the pair stops lying. Phase 5's gate is the known consumer and it needs *which* tasks are blocked, not
+merely that some are; deriving it there from the ledger a second time would duplicate the rule this
+phase owns. This is a `CursorPosition` widening, so it carries A5.4's drop-site inventory —
+`formatCursorPosition`, `writeCursorFile`, the JSON output, and the parse side of `derivePosition` at
+minimum.
+
+#### A23.2 Correction 46 — approval grants zero attempts, and the escalation message contradicts itself
+
+`resume` clears the escalation state and leaves the attempt count untouched. `countTaskAttemptEvents`
+(`:899`) counts every `attempt` event for the task over all history, so the first failure after an
+approval re-escalates immediately:
+
+```
+--- approval: resume T-001 ---
+State: in-progress
+--- one more failure after approval ---
+Budget exhausted for T-001 after 2 attempts — paused-pending-approval (replan decision owed; …)
+Signatures (3):
+  1. test: a
+  2. test: b
+  3. test: c
+State: paused-pending-approval
+```
+
+Two defects in that output.
+
+**The message contradicts itself.** It says *"after 2 attempts"* — `formatEscalationMessage` (`:1372`)
+interpolates the constant `FIX_ATTEMPT_BUDGET` rather than the count that actually triggered — and then
+lists three signatures immediately below. One of those numbers is wrong on its face, and this is the
+output AC-ESCALATION requires be shown verbatim to a human deciding what to do. Report the measured
+`attemptCount`; the constant is what the budget *is*, not what happened.
+
+**Approval is worth nothing.** Resolving an escalation returns the task to `in-progress` with its budget
+already spent, so the human's decision buys exactly zero further attempts and the next failure escalates
+again. The resolver exists to unblock, and it does not.
+
+#### A23.3 Decision required — what a resolved escalation does to the count
+
+Not the executor's to take (§12.5), because it touches D9 directly.
+
+The counter must stay dumb: no condition on signature, outcome or content. But *which events it counts*
+is a separate question from whether it inspects them, and A19.1 already established that this phase
+answers budget questions on the **recording** side rather than inside the counter.
+
+**Recommend: count attempts since the task's last resolution event.** A `resume` that clears an
+escalation is a marker; the counter counts `attempt` events for that task with a higher id. That keeps
+the counter a count — it still inspects nothing — while making approval mean "two more attempts", which
+is the only reading under which escalation is a pause rather than a slower abort.
+
+It also fixes the message for free: the count reported is the count in the current window, and
+`collectFailureSignatures` (`:1361`) windows the same way, so the escalation surfaces the two signatures
+from *this* round rather than the full history. That is what "both signatures" in AC-ESCALATION always
+meant.
+
+The alternative — approval resets nothing, and a re-escalation is the correct signal that the task needs
+replanning rather than another attempt — is defensible, but then `resume` is not a resolver and the plan
+should say the resolution is a replan, not a resume. Do not leave it as it is: the current behaviour is
+the first reading's mechanism with the second reading's effect, and nothing records which was intended.
+
+#### A23.4 Four rounds, and what is actually left
+
+Every correction in this phase after the first round has been found by leaving the origin of A22.3's two
+axes, and each round's fix has been correct for the case reported and silent about its neighbour: 41
+closed "any event", 43 closed "any task's resume", 44 closed "the fold", 45 is "the task field", 46 is
+"the count". Five doors, and the room was named at 43.
+
+The pattern to carry into Phase 6 is not that the executor missed them — the fixes have been clean and
+the audits honest. It is that **a review that reports one door at a time produces one fix at a time.**
+A22.3 named the room and the next round still fixed only the two doors it was handed, because those were
+the two with reproductions attached. The mechanized reviewer should be built to enumerate the room:
+given a fact stored per task, list every read of it that is not per task. That is a query over the code,
+it is deterministic, and it would have produced 43, 44 and 45 in one pass from the same starting point.
+
+### A24 — 2026-07-31 · A23.3 answered: the counter windows from the resolution
+
+**Decided by the maintainer**, as recommended. Normative where it disagrees with §4.4.
+
+The budget counts `attempt` events for a task with an id **greater than that task's last resolution
+event**. Escalation is a pause, and approval buys two more attempts.
+
+The counter still inspects nothing — no condition on outcome, signature or content — so D9 survives
+literally. What changed is the window, not the predicate, which is the same recording-side/counting-side
+split A19.1 established.
+
+#### A24.1 The marker is a resume that resolved something, not any resume
+
+Stated because the loose reading is a hole with no floor: if *every* `resume` opened a new window, then
+`ngrace cursor resume` would be an unlimited budget reset available to the executing agent at any time,
+with no approval anywhere in the loop. The budget would be advisory and D9 would be decorative.
+
+So the window opens only on a `resume` that **removed an unresolved escalation for that task** — the
+same condition `deriveStateFromEvents` already computes. A `resume` on a task with nothing to resolve is
+an ordinary event: it updates state and opens no window.
+
+This is worth a discriminating negative of its own, in §4.5.2's form: **two `resume` calls on a task
+that never escalated do not extend its budget.** Without that test the hole reopens the first time
+someone simplifies the condition to "last resume wins".
+
+#### A24.2 What windows with it
+
+`collectFailureSignatures` uses the same window, so an escalation surfaces the signatures from the
+current round rather than the full history — which is what AC-ESCALATION's "both signatures" always
+meant, and what correction 46's three-signatures-under-a-two-attempt-headline exposed.
+
+`formatEscalationMessage` reports the **measured** count, not `FIX_ATTEMPT_BUDGET`. The constant is what
+the budget is; the message says what happened.
+
+The ledger keeps everything. Windowing is a read over a complete record — no event is dropped, nothing is
+rewritten, and the full attempt history for a task stays recoverable. That is the property that makes
+this safe to do at all (D1).
+
+### A25 — 2026-07-31 · Fifth Phase 4 gate: one position, two authorities
+
+Measured at `4abc775`. **Corrections 45 and 46 are fixed**, verified by driving the CLI:
+
+```
+State: paused-pending-approval
+Task: T-001
+EscalatedTasks: T-001
+```
+
+and after a resolving `resume`, two further failures escalate at **2** with signatures `c` and `d` only.
+The window works, the negative for ordinary resumes is present, and the per-task/aggregate table in
+A23.4's form is the right artifact — the split it lands on (aggregate state, per-task list, `task`
+constrained to the list) is correct and worth keeping as the phase's stated model.
+
+One correction, and it is the last unexamined seam in this phase: the **read** path.
+
+#### A25.1 Correction 47 — the written cursor overrides the ledger on escalation, in both directions
+
+`derivePosition`'s prefer-written branch composes a position from two authorities without reconciling
+them (`:738-770`):
+
+```js
+const fromStream = listUnresolvedEscalatedTasks(listAccountingEvents(bundlePath));
+const escalatedTasks = fromFile.length > 0 ? fromFile : fromStream;
+…
+state: parsedState.state,
+sources: { epoch: "cursor", task: "cursor", state: "cursor" },
+```
+
+`state` always comes from the file. `escalatedTasks` comes from the file when present and from the
+ledger otherwise. Nothing checks that the two agree, and they need not.
+
+**Direction 1 — the upgrade path, and it produces a self-contradictory position.** A `run.xml` with no
+`<EscalatedTask>` children takes `state` from the file and the set from the stream:
+
+```
+State: in-progress
+Task: T-001
+EscalatedTasks: T-001
+```
+
+One line says nothing is blocked; the next names the blocked task. This is not a hypothetical fixture —
+**every `run.xml` written before `4abc775` has exactly that shape**, so any bundle in flight across this
+commit lands here. `sources` compounds it by reporting `state=cursor` for a position whose set came from
+the ledger.
+
+**Direction 2 — a stale cursor keeps a resolved escalation alive.** With the ledger showing the
+escalation resolved by a `resume`, a `run.xml` still carrying the entry wins:
+
+```
+State: paused-pending-approval
+Task: T-001
+EscalatedTasks: T-001
+```
+
+No degradation, no announcement. A task that is free reads as owing a decision, indefinitely, until
+something rewrites the cursor.
+
+**This is anti-pattern 7 meeting standing rule 9.** Rule 9 says accounting a policy decision depends on
+reads the durable record; the write paths were all corrected to do that, and the read path was never
+examined because every previous round arrived through a write. Escalation is not the kind of fact a
+cache may answer for: `epoch` and `task` are cheap to recover and harmless to lag, but "is a decision
+owed" governs whether work may proceed.
+
+The comment on the line above the defect says *"Absent → recover from stream (D1)"*. The instinct was
+right and was applied to one of the two fields.
+
+**Fix:** escalation is always derived from the ledger∪loose stream, never read from the written cursor —
+both the set and the `paused-pending-approval` state that follows from it. The written cursor stays a
+cache for `epoch` and `task`. When the file disagrees with the derivation, announce it through the
+existing `degradation` channel, which is already wired for exactly this by the A19.2 parse path four
+lines below, and set `sources.state` to `ledger`/`events` so the attribution stops lying.
+
+That also deletes the `fromFile.length > 0` precedence question rather than answering it, which is the
+better outcome: there is no correct precedence between a cache and the record it caches.
+
+#### A25.2 Five rounds, and the shape of the last one
+
+37 and 44 were write paths reading the wrong set. 41, 43 and 45 were reads of a per-task fact at bundle
+granularity. 47 is the same per-task fact read from the cache instead of the record. **Every correction
+in this phase after 38 is one sentence: escalation is a durable, per-task fact, and the code kept
+treating it as an ephemeral, bundle-level one.**
+
+That sentence is now true of exactly one remaining surface, and it is named. Worth stating plainly for
+Phase 6's benefit: the enumeration A23.4 proposed — *given a fact stored per task, list every read of it
+that is not per task* — would have produced 43, 44, 45 **and 47** together, because the query does not
+care whether the read arrives through a write path or a read path. That is the argument for building it
+as a query over the code rather than as a checklist a reviewer applies while following reproductions.
+
+### A26 — 2026-07-31 · Sixth Phase 4 gate: the new element recovers but is never reported
+
+Measured at `c2223f3`. **Correction 47 is fixed in both directions**, verified by driving the CLI.
+
+Upgrade fixture — a `run.xml` with no `<EscalatedTask>` children over a ledger holding an unresolved
+escalation:
+
+```
+State: paused-pending-approval
+EscalatedTasks: T-001
+Sources: epoch=cursor task=cursor state=events
+Degradation: unable-to-determine — written cursor escalation disagrees with durable event stream; …
+```
+
+Stale fixture — the ledger shows the escalation resolved, the file still carries it:
+
+```
+State: in-progress
+Sources: epoch=cursor task=cursor state=events
+Degradation: unable-to-determine — …
+```
+
+The hybrid shape is right: `epoch` and `task` stay cached, escalation comes from the stream, `sources`
+reports the real origin per field, and the disagreement is announced rather than silently won.
+
+**The remaining-surface claim in A25.2 was checked independently and holds.** No module outside
+`grace-cursor.ts` reads escalation: `grammar.ts` touches `run.xml` only for root tag, identity and the
+`cursorNamedTask` referential check, and `catalog.ts`'s mentions are entry text. That is the first
+executor claim on this track that asserted an absence across the codebase, and it is correct.
+
+One correction, and it is narrow.
+
+#### A26.1 Correction 48 — `<EscalatedTask>` is written and recovered from, and never validated
+
+Correction 45 added a new persisted element to `run.xml` (`grace-cursor.ts:1816`). The referential check
+that exists for exactly this purpose was not extended to it. `grammar.ts:1112` resolves the cursor's
+task against `plan.xml` through `cursorNamedTask` (`:795`), which reads `<Task>` alone.
+
+Reproduced against the real CLI, holding everything else constant:
+
+| Cursor | `cursor.unknown-task` |
+|---|---|
+| `<Task>T-001</Task>` + `<EscalatedTask>T-999</EscalatedTask>` | **not emitted** |
+| `<Task>T-999</Task>` | emitted |
+
+So a cursor naming an escalated task that does not exist in the plan passes lint silently.
+
+The consequence is bounded — correction 47 made the mechanism derive escalation from the stream, so a
+bogus entry now only triggers the degradation path rather than misleading a consumer. But bounded is not
+the same as absent, and the pairing this phase inherited is explicit. C-RUN-LEDGER's
+`AC-RECOVER-NOT-BLOCK` states it: *"lint still errors on the written file — the two surfaces disagree by
+design, and one test asserts exactly that pairing."* `<Task>` has both halves. `<EscalatedTask>` has the
+recovery half only.
+
+It is also invariant 4 — grammar arrives with the validator that makes it load-bearing — and the same
+family as correction 16 (A10.2), where a companion was registered as a tag and not as a file. A new
+element that a reader can hand-author needs the check that tells them they got it wrong.
+
+**Fix:** resolve every `<EscalatedTask>` against `plan.xml` in the same block, reusing
+`cursor.unknown-task` (`catalog.ts:488`) rather than minting a code — the diagnosis is identical and the
+message can name the element. The no-plan branch already present four lines below applies unchanged.
+
+#### A26.2 Phase 4 after this
+
+Nothing else is outstanding. Corrections 31–48 are recorded, 31–47 are fixed and independently verified,
+and the phase's own sentence — *escalation is a durable, per-task fact* — is now true of every surface I
+can reach. With 48 closed, Phase 4 is ready for close-out: status board to `COMPLETE`, `C-ATTEMPT-LOG`
+to `applied`, and `git mv` to `archive/`. The bundle already carries the pre-execution `plan.xml`, so
+A17.3's manual discipline holds and no retrospective exception is needed.
+
+Six rounds is the most this track has spent on one phase, and the shape of the spend is worth recording:
+one correction from reading the diff (38), one from a mutation (37), and **six from driving the CLI into
+states the suite does not reach** (41, 43, 44, 45, 47, 48). The suite is now 129 tests and green at every
+round. That is the number Phase 6 exists to change, and A25.2's query plus A22.3's two axes plus this
+one's — *does every persisted element have a validator?* — are the three checks that would have produced
+this phase's entire finding list mechanically.
+
+### A27 — 2026-07-31 · Phase 4 closed, and A26.2's count corrected
+
+Measured at `104388b`. **Phase 4 is `COMPLETE`.** Correction 48 verified independently in both
+directions — `<Task>T-001</Task>` beside `<EscalatedTask>T-999</EscalatedTask>` now emits
+`cursor.unknown-task` naming the element, and an all-real pair stays silent. Close-out is real, not
+reported: status board and banner `COMPLETE`, `C-ATTEMPT-LOG [archive] spec=applied plan=applied`, root
+lint 0 errors, `bun test` 720 pass / 3 skip / 0 fail, `validate:ci` green, working tree clean.
+
+Corrections 31–48 are recorded and fixed. The bundle carried a `plan.xml` authored before execution, so
+A17.3's manual discipline held through six review rounds and no retrospective exception was needed —
+the first phase on this track to close without one.
+
+#### A27.1 The findings-source count, corrected
+
+A26.2 said *one from reading the diff, one from a mutation, six from driving the CLI*. The executor
+pushed on it rather than inheriting it, which was the right instinct, and re-deriving it honestly moves
+the number further than their nuance did:
+
+| Source | Corrections | Count |
+|---|---|---|
+| Reading the code | 39 (path-set equality), 42 (digest sentinels), 40 and 48 (a surface named in text or written to disk with no counterpart) | 4 |
+| Mutation harness | 38 | 1 |
+| Driving into a state the suite does not reach | 37, 41, 43, 44, 45, 46, 47 | 7 |
+
+**A26.2 undercounted the reading class by three**, because I attributed 40 and 48 to the probes that
+confirmed them rather than to the inspection that found them — the probe was the evidence, not the
+discovery. That distinction matters here precisely because it is the input to Phase 6's build order.
+
+**The corrected reading: a third of this phase's findings were statically visible.** 39 and 42 are
+"this comparison treats an unknown as data" and are pure inspection; 40 and 48 are "a surface exists on
+one side and not the other" and are a join over two lists. None needed execution. So the static half of
+a mechanized reviewer is worth more than A20.6 and A26.2 implied, and A15.4's original recommendation
+survives better than my own later hedging about its ceiling.
+
+What does not survive is the idea that a *report schema* is the static half. None of the four static
+findings is about report shape; all four are queries over code and artifacts.
+
+#### A27.2 What Phase 6 inherits, in build order
+
+Three checks, each of which would have produced part of this phase's list mechanically, ordered by
+findings per unit of work:
+
+1. **The unknown-value query** (A21.3, and 39 + 42). Enumerate every value a function can return, mark
+   which mean "unknown", flag any comparison that treats those as data. Static, deterministic, and it
+   caught two corrections in a phase whose stated purpose was honest absence.
+2. **The counterpart query** (A26.1, and 40 + 48). For every persisted element, does a validator resolve
+   it? For every instruction in skill text, does an invocable surface exist? Both are joins between two
+   enumerable lists.
+3. **The differential harness** (A20.6 + A22.3, and the seven). Run each mechanism across the states it
+   must survive — **transition** (fold, restart, regenerate) and **plurality** (two tasks, two workers,
+   two epochs) — and now **authority** (cache versus record), which A25 added. This is the expensive one
+   and it found the most, but it is also the one the executor can partly build for itself as fixtures,
+   which is what the late twins in this phase already are.
+
+#### A27.3 What Phase 5 inherits
+
+Unchanged, and now all with concrete callers:
+
+- **A17.2** — gate `applied` on plan presence, which retires A17.3's manual discipline.
+- **A10.10 §1** — the "no open epoch" archive precondition. A18.5 §1 gave it its caller: an escalated
+  task has no `terminal` event, so `paused-pending-approval` bundles cannot fold.
+- **A21.1 / A22.3's scope line** — refusing further attempts on an escalated task is a gate, deliberately
+  left out of Phase 4 (anti-pattern 9). Phase 5 is where it belongs, and `escalatedTasks` on the position
+  is the field it reads.
+
+Phase 5's §5.5 needs the same re-derivation this phase got, numbered from correction 49. Its step list
+predates the ledger, the cursor and everything above.
 
 ---
 

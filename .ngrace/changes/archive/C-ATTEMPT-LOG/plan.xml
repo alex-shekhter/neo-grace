@@ -1,0 +1,173 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-ATTEMPT-LOG>
+    <IntentSummary>
+      Record every attempt rather than only outcomes, bound churn at two, and escalate to replan
+      rather than abort — per D6's attempt half and D9.
+
+      Authored before execution, per A17.3. Phase 3's bundle carried a spec alone and its plan was
+      written retrospectively as a recorded exception; this one is not an exception.
+
+      Task order is not a preference. T-001 fixes the fold, because at 235f0f8 the fold destroys event
+      payload and reports success while doing it (A18.2, correction 31). Every later task writes
+      payload. Building them first would write evidence into a shredder and every test asserting on
+      loose files would pass while the ledger kept nothing.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-ARTIFACT-TYPES</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-ARTIFACT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-ARTIFACT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:packed</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+        <M-ARTIFACT-TYPES />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+        <V-M-ARTIFACT-TYPES />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/types.ts</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Fold preserves payload, and verify compares instead of counting</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            buildEpochNode carries event attributes and children into the ledger; the fold's verify
+            step compares written payload against the loose events; a fold that drops a field fails
+            its own verify and leaves every loose file on disk, proven by injection rather than by a
+            passing happy path. The A18.2 probe re-run verbatim. The A7.2 both-directions table for
+            the verify boundary. The no-op filter at :344 removed.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-FOLD-PRESERVES-PAYLOAD />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Attempt events with allocated ids, three-valued outcome, and derived ordinal</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Attempts are run events carrying D2's allocated id — no persisted ordinal, no timestamp,
+            no second identity. The outcome is pass, fail, or absent, reusing AbsenceValue; a
+            verification that could not run produces a verification-unavailable event rather than an
+            attempt. Presence is asserted against the FOLDED ledger, never against loose files.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-ATTEMPT-EVENTS />
+          <AC-THREE-VALUED-OUTCOME />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Dumb counter, escalation to paused-pending-approval, and one exhaustive kind-to-state map</Title>
+        <DependsOn>
+          <T-002 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The budget counts attempt events and inspects nothing; 2 is a named constant with D9's
+            "judgment, not derived" note. Two different signatures still exhaust it; two
+            verification-unavailable events do not, and both survive the fold. Exhaustion transitions
+            to paused-pending-approval and surfaces both signatures without claiming failure. Both
+            kind-to-state ternaries (:235-236 and :465) become one exhaustive map with an explicit
+            unknown-kind branch, proven by dropping the cursor and re-deriving from the ledger. The
+            A5.4 drop-site inventory for CursorState, re-measured.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-DUMB-COUNTER />
+          <AC-ESCALATION />
+          <AC-KIND-STATE-MAP />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Parse the written cursor state, and classify flakes from recorded evidence</Title>
+        <DependsOn>
+          <T-003 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The unchecked cast at :438 becomes a parse against the widened union; an unrecognized
+            value takes the existing degradation path and cursor show still answers while lint still
+            reports. Flake classification reads write evidence snapshotted onto each attempt event and
+            issues no git call at report time, with three fixtures giving three verdicts: flaky,
+            normal retry, and unable-to-determine when the evidence was unavailable.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-CURSOR-STATE-PARSED />
+          <AC-FLAKE-CLASSIFICATION />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Execute skill states the budget and escalation rule, mirrored</Title>
+        <DependsOn>
+          <T-004 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            ngrace-execute/SKILL.md states when an attempt is recorded, what exhaustion does, and that
+            escalation is a pause awaiting a decision rather than a failure — one or two sentences,
+            restating no codes the binary emits. The packaged mirror is byte-identical in the same
+            commit. Line and token delta reported. Invariant 5 demonstrated across all five sweep
+            targets.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-SKILL-TEXT />
+          <AC-ADDITIVE />
+        </Satisfies>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-ATTEMPT-LOG>
+</NgraceChangePlan>
