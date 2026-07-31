@@ -5082,6 +5082,150 @@ this phase also adds**, which no pre-existing test can cover by construction.
 Phase 6's counterpart query should therefore enumerate, for every new persisted element: its scope,
 its discovery path, and every gate or validator introduced in the same change that will read it.
 
+### A31 — 2026-07-31 · Phase 5 review gate: the record ships with no way to write it
+
+**Measured at `babde3e`.** Verified independently, not transcribed: `validate:ci` green, `ngrace lint
+--path .` 0 errors, `ngrace gate --help` lists the three gates, and the two pre-existing tests the
+phase touched were **strengthened, not weakened** — the write-surface pin gained a positive assertion
+that `src/gates/ledger.ts` appears, and the token count moved 651 → 674 with the reason recorded.
+
+**What the build got right**, confirmed by probe rather than by reading: fold preserves `Verdicts` and
+`Decisions` and appends `Epoch-N` after them (`order: ['Decisions', 'Epoch-1']` on a real bundle); the
+epoch validator ignores non-epoch siblings, so interleaving is clean; A30.1's deadlock is gone in both
+directions — archive permits with recorded Decisions and an empty `run/`, refuses with two loose events;
+and a controlled before/after comparison shows a gate call adds **zero** lint issues to a project.
+
+Six corrections follow, 62–67. Two are blocking. Five were found by driving the CLI into states the
+suite does not reach, which is the same source that produced seven of Phase 4's eighteen.
+
+#### A31.1 Correction 62 (blocking) — the verdict record has no writer
+
+`recordReviewVerdict` (`src/gates/ledger.ts:110`) is exported and called from exactly one place:
+`src/gates/core.test.ts`. No CLI surface writes a verdict — not `ngrace gate`, not `ngrace cursor`.
+
+Consequences, in the order a user meets them:
+
+1. `ngrace gate apply` refuses on **every** real bundle with `gate.apply.no-verdict`, and nothing can
+   satisfy it. Verified against this repository's own `C-GATE-SURFACE`.
+2. `skills/ngrace/ngrace-cli/references/verdicts.md` now ships a paragraph telling agents the verdict
+   *is recorded* in `run-ledger.xml` under `<Verdicts>`, naming a surface that does not exist.
+3. `ngrace-execute` now places `ngrace gate apply` before rules 8–9, so the instruction the phase adds
+   is one no bundle can clear.
+
+**This is A27.2's counterpart query #2** — *for every instruction in skill text, does an invocable
+surface exist?* — failing on the phase that was told to run it. A30.7's table was run honestly and has
+a **Readers** column and no **Writers** column, so the query as executed could not surface this. A7.2's
+both-directions rule applies to the query itself: every persisted element needs both its readers and
+its writers enumerated, and a column with one entry that says "tests" is the finding.
+
+Fix: an invocable verdict surface — `ngrace gate verdict --change C-X --outcome pass|fail|unable-to-determine
+[--reason …] [--note …]` is the smallest thing that works and keeps the vocabulary in one place. Phase
+6 still owns *forming* the judgment; Phase 5 owes the write path, because "ships the record" without a
+writer is a record only the test suite can produce.
+
+#### A31.2 Correction 63 (blocking) — a malformed newest verdict silently promotes an older one
+
+Demonstrated on a real bundle. Ledger holding, in order:
+
+```xml
+<Verdicts><Verdict outcome="pass" /><Verdict outcome="failed" /></Verdicts>
+```
+
+`listReviewVerdicts` (`ledger.ts:184`) `continue`s past any entry whose outcome is not in the closed
+set, so `latestReviewVerdict` returns the **older `pass`**, and the gate answers:
+
+```
+Decision: permit
+Verdict: pass
+  - review-verdict: required=true present=true blocking=false — outcome=pass
+```
+
+`ngrace lint` does report `ledger.invalid-verdict` on the same file. That is not a defence: lint is
+advisory here and the gate is the blocking surface, so the surface that decides is the one that got it
+wrong — and it did not merely miss the newest record, it **substituted an older one and reported
+`present=true`**. Anti-pattern 1, and the unknown-as-data family A27.2 put first in Phase 6's build
+order.
+
+Fix: an unparseable or unknown entry is an absence with a reason, never a skip. The newest entry
+governs; if the newest cannot be read, apply refuses and names `ledger.invalid-verdict`. Same rule for
+`listGateDecisions`, which has the identical `continue` at `:219`.
+
+#### A31.3 Correction 64 — apply permits a plan that was never approved
+
+`hasPlan` (`core.ts:131`) is `existsSync(plan.xml)`. Demonstrated: set `plan.xml` to `status="draft"`
+and apply still reports `plan-present: required=true present=true blocking=false`.
+
+`AC-APPLY-NEEDS-PLAN` required consuming the inputs status uses for `needs-plan`
+(`grace-status.ts:198–199`) *rather than a forked rule*, and standing rule 1 says the same. The fork is
+not just a style violation — it lands **weaker than the prose it was meant to mechanize**:
+`ngrace-execute`'s preflight already requires "approved, identity-matched `spec.xml` and `plan.xml`".
+A17.2's finding was a bundle reaching `applied` without a proper plan; the gate built to prevent it
+accepts a draft.
+
+Fix: read `planStatus` from the artifact the way status does, and require `approved`.
+
+#### A31.4 Correction 65 — `--format json` emits JSON followed by prose
+
+The parent `gate` command defines both `subCommands` and a `run()` that prints usage, so citty runs the
+parent after the subcommand. Every invocation appends the usage banner to the output, including
+`--format json`:
+
+```
+$ ngrace gate archive --change C-… --format json | jq -r .decision
+jq: parse error: Invalid numeric literal at line 18, column 6
+```
+
+`AC-GATE-DECISION-RECORDED` requires a report a caller can act on "without requiring prose parse", and
+conclusion 1 requires the same. Fix: the parent prints usage only when no subcommand ran.
+
+#### A31.5 Correction 66 — the recorder writes before it verifies, keeps no rollback, and eats the answer
+
+`writeAndVerifyLedger` (`ledger.ts:94`) serializes, writes, re-reads, validates, and throws on error —
+with the invalid file already on disk and no prior content retained. Demonstrated: with one unrelated
+pre-existing `ledger.invalid-verdict` anywhere in the file, `ngrace gate apply` printed
+
+```
+run-ledger.xml failed verification after write: ledger.invalid-verdict
+```
+
+and **no decision at all**, while the Decision it had just appended stayed on disk (`3 → 4` decisions
+across repeated attempts, each one failing the same way). So a single foreign invalidity makes the gate
+unable to answer, while it keeps writing to the record on every attempt.
+
+Fold's write-verify-delete is safe because the loose files survive a failed verify (D3). This path has
+no such second copy, so the ordering has to change rather than be imitated:
+
+1. Validate the constructed tree **before** writing, and refuse without touching the file.
+2. If a post-write re-read still fails, restore the prior bytes.
+3. A recording failure must not suppress the evaluation the caller asked for — report the decision,
+   then report that recording failed. Losing the answer to a bookkeeping error is the confident-silence
+   shape D5 exists to forbid.
+
+#### A31.6 Correction 67 (minor) — dead `parseGate`, retained by a `void` statement
+
+`command.ts:12` defines `parseGate`, nothing calls it, and `:137` carries `void parseGate;` to silence
+the unused warning. Delete both; the subcommand map already constrains the gate name. A compiler
+complaint answered with a suppression is a note that the code was left half-done.
+
+#### A31.7 What this round measured
+
+Findings by source, in A27.1's classes:
+
+| Source | Corrections | Count |
+|---|---|---|
+| Reading the code | 62 (writer counterpart), 67 | 2 |
+| Driving into a state the suite does not reach | 63, 64, 65, 66 | 4 |
+
+The reading class again found the one that matters most, and again it was a **join between two lists**
+— exported writers against invocable surfaces — rather than anything about report shape. Third
+consecutive phase where that query would have paid for itself, and the second where it was named in
+advance and still not run in the direction that mattered (A30.7 ran readers only).
+
+`unable-to-determine`, `no-adapter` and the other absence values were all reported honestly by this
+build; the two blocking findings are both cases where an **absence was converted into a value** — a
+missing writer into a shipped instruction, and an unreadable record into an older reading. That is one
+pattern, not two, and it is the pattern this track exists to remove.
+
 ---
 
 ## 15. Final instruction to the executor
