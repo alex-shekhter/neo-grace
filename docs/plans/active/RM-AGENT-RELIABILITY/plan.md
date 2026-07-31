@@ -346,7 +346,7 @@ Keep this table current. It is the single source of truth for progress.
 |---|---|---|---|---|
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
 | 3 | Run ledger & cursor | D1, D2, D3 | TBD | `COMPLETE` |
-| 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
+| 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `IN PROGRESS` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
 | 7 | Deterministic failure localization | D8 | TBD | `NOT STARTED` |
@@ -716,7 +716,7 @@ rollback must also remove the companion-tag registration, or state why not.
 
 # PHASE 4 — Attempt log, fix budget, escalation
 
-**Status:** `NOT STARTED`
+**Status:** `IN PROGRESS`
 **Decisions:** D6 (attempt half), D9
 **Release:** TBD
 
@@ -3587,6 +3587,106 @@ Per A3.1, §4.5 is a floor, not a budget.
 - Drop-site inventory for `LooseEvent` / `buildEpochNode` / `validateLedgerEpoch` (A5.4)
 - Integration tests for every new code, both directions (A12.2)
 - `bun run validate:ci` green
+
+### A19 — 2026-07-31 · Phase 4 spec review: the flake read cannot answer its question as specified
+
+Reviewed `.ngrace/changes/active/C-ATTEMPT-LOG/spec.xml` and `plan.xml` at Stop 1, against the code
+rather than the report. **The bundle is sound and A18.14 is fully covered**, verified independently:
+
+- every acceptance criterion cites its correction inline with the discriminating detail (A5.6), and
+  `AC-EVENT-FIELD-REGISTRY` carries the add-a-field-only negative that keeps the registry from being
+  three literals wearing a constant's name
+- `AffectedAreas` is genuinely traced, not transcribed: `M-CLI` is correctly **absent**, because
+  `cursor attempt` registers inside `cursorCommand` (`grace-cursor.ts:987`) and never touches
+  `grace.ts`. `DurableScope` covers it, so `validateSpecPlanCoverage` holds
+- `bun run ngrace lint --path .` → 0 errors, 11 warnings (the A12.6 baseline); `ngrace status` reports
+  `C-ATTEMPT-LOG [active] spec=approved plan=draft tasks=3 states=needs-plan-approval`
+- **Not a finding:** `bun run ngrace lint --path .` as a `MustPassCommand`.
+  `assertion.phase-incompatible-command` (`catalog.ts:229`) bars *current-mode* nesting only, and both
+  `C-ABSENCE-VALUE/plan.xml:31` and `C-RUN-LEDGER/plan.xml:61` carry the same entry. Checked before
+  raising it, and recorded so it is not re-opened
+
+Three findings. The first changes what the phase must build.
+
+#### A19.1 Correction 36 — the flake read compares two past moments using a mechanism that only knows the present
+
+`AC-FLAKE-THREE-OUTCOMES` asks for *"`ObservedWriteScope` ∩ changed-files **movement between
+attempts**"* from a classification that is a pure read over the log (A18.10 condition 1). Measured:
+`listRepositoryChangedFiles:620-652` spawns `git status --porcelain` against the worktree **now**. It
+has no history, cannot be asked about a past moment, and nothing in the ledger records what the
+intersection was when an attempt was recorded.
+
+**The failure is not "cannot tell" — it is a confident false answer on the common path.** Once the fix
+is committed, `git status` is clean, so the intersection is empty for every attempt pair, every
+`fail → pass` reads as *"no intervening write"*, and **every ordinary retry classifies as flaky**.
+§0.7.3 ranks a confident false result as the worst outcome in this codebase, and D8's whole purpose for
+the classification is to keep flakes from polluting a trend — inverted, it poisons the trend it exists
+to protect.
+
+This is A13.1's shape a third time: a criterion naming a mechanism that cannot answer its question.
+A18.10 already contains the answer and the spec did not carry it into the mechanism — *"evidence not
+captured at attempt time is unrecoverable later."*
+
+**The fix.** The attempt event carries its write evidence **at record time**, as a field in A18.7's
+registry; the classification compares consecutive recorded values. The classification stays a pure read
+— what changes is that the log carries what the read needs.
+
+The evidence must be **content-sensitive, not a file list.** A file list is insufficient and would
+reproduce the same false-flaky result one layer in: an agent that edits `src/x.ts`, fails, edits
+`src/x.ts` again and passes produces an identical changed-file set both times. Use a digest over
+(path, content hash) pairs for the scope-intersecting files, or an equivalent that changes when the
+content changes. The exact construction is the executor's; the property is not.
+
+`AC-FLAKE-THREE-OUTCOMES` is **amended in the spec, citing this entry**, per A13.3 — a criterion
+discovered unbuildable is corrected in the artifact, never satisfied by redefining it in the diff.
+Its discriminating tests become: two attempts with **different** recorded evidence classify
+`normal-retry` **after the worktree is clean**; identical evidence classifies `flaky`; an attempt
+whose evidence field is absent or was unrecordable classifies `unable-to-determine`.
+
+#### A19.2 Correction 37 — the ordinal's "unsupported" is a claim with no witness
+
+A18.12 §1 permitted either derivation from the allocated id range **or** a statement of why the
+collision cannot arise. The spec states it (`Constraints`: *"Concurrent attempt recording on the same
+task is unsupported"*) and stops there. Nothing detects the state it rules out, so *"unsupported"* is
+indistinguishable from *"not implemented"* — A11.2's argument for the `run/` pinning test, one artifact
+over. Two racing `cursor attempt` calls on one task both read max-ordinal = 1, both write ordinal 2,
+and D6's calibration join on `(task, ordinal)` silently merges two attempts into one.
+
+Add `ledger.duplicate-attempt-ordinal` — **error** severity, and safe under invariant 5 for a reason
+worth stating: only attempt events can trigger it, and this phase introduces them, so no
+previously-green project can newly error. It validates inside `validateLedgerEpoch` through the
+registry, beside the checks that already own event integrity.
+
+The statement stays; it acquires a witness.
+
+#### A19.3 Correction 38 — two detection boundaries move, and only one is tabled
+
+`AC-EPOCH-COMPLETENESS` (c) gives the A7.2 both-directions table for `complete="false"`. But the phase
+moves a **second** boundary in the same files: `kind === "terminal"` becomes set membership over
+`{terminal, exhausted}` at `validateEventsAgainstAllocations:727-730` and in `validateLedgerEpoch`.
+A widened allowlist is exactly what A7.2 was written for (correction 16's family), and it is untabled.
+
+Add the rows: an epoch closed by `exhausted` folds; an epoch whose only closing event is `pause` still
+refuses; an epoch closed by an unregistered kind still refuses **and** emits
+`ledger.unknown-event-kind`. A15's refuse-before-write negatives must still fail closed — those were
+the zero-failure finding that the Phase 3 mutation check surfaced, and they are the ones a widened set
+is most likely to quietly disarm.
+
+#### A19.4 Two notes, neither blocking
+
+1. **The spec approved itself.** `status="approved"` was set by the executor at authoring; the plan was
+   correctly left `draft`. Approval is the maintainer's act, and the honest shape is both artifacts
+   `draft` at Stop 1, promoted together after review. Recorded so it does not become the precedent —
+   the A17.1 discipline applied to status rather than to authorship. No rework: approval is given here.
+2. **`M-SKILLS` appears in `TargetAssertions` but not `BaselineAssertions`**, though it exists at
+   baseline. Harmless asymmetry; align it while amending.
+
+#### A19.5 Approval, and the shape of Stop 2
+
+**Approved to proceed** once corrections 36–38 are folded into the bundle. Amend `spec.xml` (citing
+A19), promote both artifacts to `approved`, and implement — there is no second authoring stop. The
+Stop 2 report shows the amended criteria verbatim alongside their evidence, and A18.13's standing rules
+bind unchanged: all five §0.7 audits or `BLOCKED`, each naming its artifact path.
 
 ---
 
