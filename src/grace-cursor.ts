@@ -74,15 +74,21 @@ export type AbsenceValue = {
 };
 
 /**
- * Write-scope snapshot recorded on an attempt event (A19.3 / A20.3).
+ * Write-scope snapshot recorded on an attempt event (A19.3 / A20.3 / A21.2).
  * Per-file content digests distinguish "same path set, content changed" (retry)
- * from "identical snapshot" (flaky) — path-set equality alone misclassifies ordinary fixes.
+ * from "identical snapshot" (flaky). Undetermined digests are AbsenceValue, never
+ * magic strings compared as content (correction 42).
  */
+export type FileContentEvidence =
+  | { kind: "content"; digest: string }
+  /** File did not exist — genuine comparable evidence (both-absent ⇒ no change). */
+  | { kind: "absent" }
+  /** Digest could not be taken — not evidence; classifier returns unable-to-determine. */
+  | { kind: "undetermined"; absence: AbsenceValue };
+
 export type ChangedFileEvidence = {
   path: string;
-  /** sha256 hex of file bytes at snapshot time, or a sentinel when unreadable/absent. */
-  digest: string;
-};
+} & FileContentEvidence;
 
 export type WriteEvidenceSnapshot =
   | { available: true; files: ChangedFileEvidence[] }
@@ -176,6 +182,13 @@ const KNOWN_KIND_STATE = {
 export type KnownEventKind = keyof typeof KNOWN_KIND_STATE;
 
 /**
+ * Deliberate resolvers for paused-pending-approval (A21.1 / correction 41).
+ * Execution by-products (attempt, progress, verification-unavailable) do NOT clear escalation.
+ * Refusing further work is a Phase 5 gate — this phase only keeps the position honest.
+ */
+const ESCALATION_RESOLVER_KINDS = new Set<string>(["resume"]);
+
+/**
  * One shared exhaustive kind→state map for write and read paths (correction 34).
  * Unrecognized kinds do not resolve to in-progress.
  */
@@ -192,6 +205,55 @@ export function cursorStateForEventKind(
       reason: `unrecognized event kind ${JSON.stringify(kind)}; not mapped to a cursor state`,
     },
   };
+}
+
+/**
+ * Derive cursor state from the full event stream (A21.1).
+ * An escalation is sticky until an explicit resolver (`resume`); last-event-wins alone
+ * lets verification-unavailable / progress / attempt clear a decision that is still owed.
+ */
+export function deriveStateFromEvents(
+  events: ReadonlyArray<{ id: number; kind: string }>,
+): { state: CursorState } | { unknown: true; degradation: AbsenceValue } {
+  const ordered = [...events].sort((a, b) => a.id - b.id);
+  if (ordered.length === 0) return { state: "idle" };
+
+  let unresolvedEscalation = false;
+  let lastNonSticky:
+    | { state: CursorState }
+    | { unknown: true; degradation: AbsenceValue }
+    | undefined;
+
+  for (const event of ordered) {
+    if (event.kind === "escalation") {
+      unresolvedEscalation = true;
+      continue;
+    }
+    if (unresolvedEscalation) {
+      if (ESCALATION_RESOLVER_KINDS.has(event.kind)) {
+        unresolvedEscalation = false;
+        lastNonSticky = cursorStateForEventKind(event.kind);
+      }
+      // Non-resolvers leave the escalation sticky; do not apply their kind map.
+      continue;
+    }
+    lastNonSticky = cursorStateForEventKind(event.kind);
+  }
+
+  if (unresolvedEscalation) {
+    return { state: "paused-pending-approval" };
+  }
+  return lastNonSticky ?? { state: "idle" };
+}
+
+/** Position state from durable+loose events (write and read paths share this). */
+function positionStateFromBundle(bundlePath: string): {
+  state?: CursorState;
+  degradation?: AbsenceValue;
+} {
+  const mapped = deriveStateFromEvents(listAccountingEvents(bundlePath));
+  if ("state" in mapped) return { state: mapped.state };
+  return { state: undefined, degradation: mapped.degradation };
 }
 
 /** Parse a written State element against the widened CursorState union (A19.2). */
@@ -361,16 +423,17 @@ export function advanceCursor(
   }
   const id = nextEventId(bundlePath);
   writeEventFile(bundlePath, { id, task, kind });
-  const mapped = cursorStateForEventKind(kind);
+  // A21.1: derive from full stream so escalation stays sticky across non-resolvers.
+  const derived = positionStateFromBundle(bundlePath);
   const position: CursorPosition = {
     changeId,
     bundlePath,
     epoch: currentOpenEpochHint(bundlePath),
     task,
-    state: "state" in mapped ? mapped.state : undefined,
+    state: derived.state,
     sources: { epoch: "events", task: "events", state: "events" },
     inferred: false,
-    degradation: "unknown" in mapped ? mapped.degradation : undefined,
+    degradation: derived.degradation,
   };
   writeCursorFile(bundlePath, position);
   return position;
@@ -621,10 +684,12 @@ export function derivePosition(
         ? nextEpochNumber(bundlePath)
         : ledgerEpochs[ledgerEpochs.length - 1];
     const task = lastEvent?.task ?? lastTaskFromLedger(bundlePath);
+    // A21.1: full stream (ledger+loose), sticky escalation — not last-event-wins alone.
+    const stream = listAccountingEvents(bundlePath);
     let state: CursorState | undefined = "idle";
     let kindDegradation: AbsenceValue | undefined;
-    if (events.length > 0 && lastEvent) {
-      const mapped = cursorStateForEventKind(lastEvent.kind);
+    if (stream.length > 0) {
+      const mapped = deriveStateFromEvents(stream);
       if ("state" in mapped) {
         state = mapped.state;
       } else {
@@ -641,7 +706,7 @@ export function derivePosition(
       sources: {
         epoch: events.length > 0 ? "events" : "ledger",
         task: lastEvent ? "events" : task ? "ledger" : "none",
-        state: events.length > 0 ? "events" : "ledger",
+        state: stream.length > 0 ? (events.length > 0 ? "events" : "ledger") : "ledger",
       },
       inferred: false,
       degradation: degradation ?? kindDegradation,
@@ -857,19 +922,34 @@ export function snapshotWriteEvidence(projectRoot: string): WriteEvidenceSnapsho
   const root = path.resolve(projectRoot);
   const files: ChangedFileEvidence[] = changedFiles.map((relative) => ({
     path: relative,
-    digest: digestProjectFile(root, relative),
+    ...digestProjectFile(root, relative),
   }));
   return { available: true, files };
 }
 
-/** Content digest for one project-relative path (sha256 hex, or a sentinel). */
-export function digestProjectFile(projectRoot: string, relativePath: string): string {
+/**
+ * Content evidence for one project-relative path (A21.2).
+ * Returns structured evidence — never magic strings in a digest field.
+ * Values: content (sha256), absent (comparable), undetermined (not comparable).
+ */
+export function digestProjectFile(projectRoot: string, relativePath: string): FileContentEvidence {
   const absolute = path.join(projectRoot, relativePath);
-  if (!existsSync(absolute)) return "absent";
+  if (!existsSync(absolute)) {
+    return { kind: "absent" };
+  }
   try {
-    return createHash("sha256").update(readFileSync(absolute)).digest("hex");
+    return {
+      kind: "content",
+      digest: createHash("sha256").update(readFileSync(absolute)).digest("hex"),
+    };
   } catch {
-    return "unreadable";
+    return {
+      kind: "undetermined",
+      absence: {
+        verdict: "unable-to-determine",
+        reason: `file content unreadable at ${relativePath}; digest was not taken`,
+      },
+    };
   }
 }
 
@@ -978,15 +1058,16 @@ export function recordAttempt(
     };
   }
 
-  const mapped = cursorStateForEventKind("attempt");
+  const derived = positionStateFromBundle(bundlePath);
   const position: CursorPosition = {
     changeId,
     bundlePath,
     epoch: currentOpenEpochHint(bundlePath),
     task,
-    state: "state" in mapped ? mapped.state : "in-progress",
+    state: derived.state ?? "in-progress",
     sources: { epoch: "events", task: "events", state: "events" },
     inferred: false,
+    degradation: derived.degradation,
   };
   writeCursorFile(bundlePath, position);
   return {
@@ -1026,15 +1107,17 @@ export function recordVerificationUnavailable(
       reason: options.absence.reason,
     },
   });
-  const mapped = cursorStateForEventKind("verification-unavailable");
+  // A21.1: VU must not clear an unresolved escalation (sticky until resume).
+  const derived = positionStateFromBundle(bundlePath);
   const position: CursorPosition = {
     changeId,
     bundlePath,
     epoch: currentOpenEpochHint(bundlePath),
     task,
-    state: "state" in mapped ? mapped.state : "in-progress",
+    state: derived.state ?? "in-progress",
     sources: { epoch: "events", task: "events", state: "events" },
     inferred: false,
+    degradation: derived.degradation,
   };
   writeCursorFile(bundlePath, position);
   return position;
@@ -1060,7 +1143,17 @@ export function classifyFlakeFromEvidence(
         "write evidence unavailable on one or both attempts; cannot distinguish flaky from retry",
     };
   }
-  // A20.3: compare path+digest pairs, not path sets alone.
+  // A21.2: undetermined digests are absence, not comparable content.
+  const undetermined = [...earlier.writeEvidence.files, ...later.writeEvidence.files].find(
+    (file) => file.kind === "undetermined",
+  );
+  if (undetermined && undetermined.kind === "undetermined") {
+    return {
+      verdict: "unable-to-determine",
+      reason: `write evidence digest undetermined (${undetermined.absence.reason}); cannot distinguish flaky from retry`,
+    };
+  }
+  // A20.3: compare path + content/absent pairs (not path sets alone).
   const earlierKey = writeEvidenceFingerprint(earlier.writeEvidence.files);
   const laterKey = writeEvidenceFingerprint(later.writeEvidence.files);
   if (earlierKey === laterKey) {
@@ -1075,10 +1168,18 @@ export function classifyFlakeFromEvidence(
   };
 }
 
-/** Stable fingerprint of path+digest pairs for flake classification. */
+/**
+ * Stable fingerprint of path + determined evidence only.
+ * Caller must reject undetermined files first (A21.2).
+ */
 function writeEvidenceFingerprint(files: ChangedFileEvidence[]): string {
   return files
-    .map((file) => `${file.path}\0${file.digest}`)
+    .map((file) => {
+      if (file.kind === "content") return `${file.path}\0content\0${file.digest}`;
+      if (file.kind === "absent") return `${file.path}\0absent`;
+      // undetermined should not reach here
+      return `${file.path}\0undetermined`;
+    })
     .sort()
     .join("\n");
 }
@@ -1149,12 +1250,34 @@ function writeEvidenceNode(evidence: WriteEvidenceSnapshot): GraceXmlNode {
     return {
       tag: "WriteEvidence",
       attributes: { available: "true" },
-      children: evidence.files.map((file) => ({
-        tag: "File",
-        attributes: { digest: file.digest },
-        children: [] as GraceXmlNode[],
-        text: file.path,
-      })),
+      children: evidence.files.map((file): GraceXmlNode => {
+        if (file.kind === "content") {
+          return {
+            tag: "File",
+            attributes: { digest: file.digest },
+            children: [],
+            text: file.path,
+          };
+        }
+        if (file.kind === "absent") {
+          return {
+            tag: "File",
+            attributes: { status: "absent" },
+            children: [],
+            text: file.path,
+          };
+        }
+        return {
+          tag: "File",
+          attributes: {
+            status: "undetermined",
+            verdict: file.absence.verdict,
+            reason: file.absence.reason,
+          },
+          children: [],
+          text: file.path,
+        };
+      }),
       text: "",
     };
   }
@@ -1182,11 +1305,44 @@ function parseWriteEvidenceNode(node: GraceXmlNode): WriteEvidenceSnapshot {
   }
   const files: ChangedFileEvidence[] = node.children
     .filter((child) => child.tag === "File")
-    .map((child) => ({
-      path: child.text.trim(),
-      digest: (child.attributes.digest ?? "").trim() || "unknown",
-    }))
-    .filter((file) => file.path !== "")
+    .map((child): ChangedFileEvidence | null => {
+      const filePath = child.text.trim();
+      if (!filePath) return null;
+      const status = (child.attributes.status ?? "").trim();
+      const digestAttr = (child.attributes.digest ?? "").trim();
+      if (status === "absent") {
+        return { path: filePath, kind: "absent" };
+      }
+      if (status === "undetermined") {
+        return {
+          path: filePath,
+          kind: "undetermined",
+          absence: {
+            verdict: child.attributes.verdict === "not-run" ? "not-run" : "unable-to-determine",
+            reason: child.attributes.reason ?? "digest undetermined",
+          },
+        };
+      }
+      if (digestAttr && digestAttr !== "unknown" && digestAttr !== "unreadable" && digestAttr !== "absent") {
+        return { path: filePath, kind: "content", digest: digestAttr };
+      }
+      // Legacy sentinel strings or missing digest → undetermined (A21.2), never comparable content.
+      if (digestAttr === "absent") {
+        return { path: filePath, kind: "absent" };
+      }
+      return {
+        path: filePath,
+        kind: "undetermined",
+        absence: {
+          verdict: "unable-to-determine",
+          reason:
+            digestAttr === "unreadable" || digestAttr === "unknown" || digestAttr === ""
+              ? `legacy or missing digest attribute (${digestAttr || "empty"}); not treated as content`
+              : `unrecognized digest sentinel ${JSON.stringify(digestAttr)}`,
+        },
+      };
+    })
+    .filter((file): file is ChangedFileEvidence => file !== null)
     .sort((a, b) => a.path.localeCompare(b.path));
   return { available: true, files };
 }

@@ -16,6 +16,7 @@ import {
   countTaskAttemptEvents,
   cursorStateForEventKind,
   deriveAttemptOrdinal,
+  deriveStateFromEvents,
   expectedLedgerEventAttributes,
   FIX_ATTEMPT_BUDGET,
   foldEpoch,
@@ -28,6 +29,7 @@ import {
   recordAttempt,
   recordVerificationUnavailable,
   regenerateCursor,
+  resumeCursor,
   showCursor,
   type ChangedFileEvidence,
   type WriteEvidenceSnapshot,
@@ -35,13 +37,32 @@ import {
 import { collectProjectStatus, formatStatusText } from "./grace-status";
 import { lintGraceProject } from "./lint/core";
 
-/** Test helper: path list → write evidence with stable synthetic digests. */
+/** Test helper: path list → write evidence with stable synthetic content digests. */
 function evidencePaths(paths: string[], digests?: Record<string, string>): WriteEvidenceSnapshot {
-  const files: ChangedFileEvidence[] = paths.map((path) => ({
-    path,
-    digest: digests?.[path] ?? `digest:${path}`,
+  const files: ChangedFileEvidence[] = paths.map((filePath) => ({
+    path: filePath,
+    kind: "content" as const,
+    digest: digests?.[filePath] ?? `digest:${filePath}`,
   }));
   return { available: true, files };
+}
+
+function evidenceAbsent(paths: string[]): WriteEvidenceSnapshot {
+  return {
+    available: true,
+    files: paths.map((filePath) => ({ path: filePath, kind: "absent" as const })),
+  };
+}
+
+function evidenceUndetermined(paths: string[], reason = "unreadable"): WriteEvidenceSnapshot {
+  return {
+    available: true,
+    files: paths.map((filePath) => ({
+      path: filePath,
+      kind: "undetermined" as const,
+      absence: { verdict: "unable-to-determine" as const, reason },
+    })),
+  };
 }
 
 function createProject() {
@@ -1008,5 +1029,131 @@ describe("CLI attempt surface (A20.4 / correction 40)", () => {
     expect(keys).toContain("verification-unavailable");
     expect(keys).toContain("advance");
     expect(keys).toContain("fold");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A21 corrections 41–42
+// ---------------------------------------------------------------------------
+
+describe("escalation is sticky until resume (A21.1 / correction 41)", () => {
+  function escalate(root: string) {
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "suite-a" },
+      writeEvidence: evidencePaths([]),
+    });
+    const second = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "typecheck", key: "suite-b" },
+      writeEvidence: evidencePaths([]),
+    });
+    expect(second.escalated).toBe(true);
+    expect(second.position.state).toBe("paused-pending-approval");
+    return second;
+  }
+
+  it("write path: verification-unavailable after escalation keeps paused-pending-approval", () => {
+    // Fixture position: escalation is NOT last — one more event after it (the twin that catches last-event-wins).
+    const root = createProject();
+    seedBundle(root);
+    escalate(root);
+    const after = recordVerificationUnavailable(root, "C-RUN", {
+      task: "T-001",
+      absence: { verdict: "not-run", reason: "harness skipped" },
+    });
+    expect(after.state).toBe("paused-pending-approval");
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
+  });
+
+  it("write path: progress after escalation keeps paused-pending-approval", () => {
+    const root = createProject();
+    seedBundle(root);
+    escalate(root);
+    const after = advanceCursor(root, "C-RUN", { task: "T-001", kind: "progress" });
+    expect(after.state).toBe("paused-pending-approval");
+  });
+
+  it("read path: drop cursor after VU-following-escalation still re-derives paused-pending-approval", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    escalate(root);
+    recordVerificationUnavailable(root, "C-RUN", {
+      task: "T-001",
+      absence: { verdict: "unable-to-determine", reason: "skipped" },
+    });
+    writeFileSync(path.join(bundle, "run.xml"), ""); // destroy written cursor
+    const rederived = regenerateCursor(root, "C-RUN");
+    expect(rederived.position.state).toBe("paused-pending-approval");
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
+  });
+
+  it("resume explicitly resolves escalation to in-progress", () => {
+    const root = createProject();
+    seedBundle(root);
+    escalate(root);
+    const resumed = resumeCursor(root, "C-RUN", "T-001");
+    expect(resumed.state).toBe("in-progress");
+    expect(showCursor(root, "C-RUN").state).toBe("in-progress");
+  });
+
+  it("deriveStateFromEvents: sticky until resume, unit-level", () => {
+    const sticky = deriveStateFromEvents([
+      { id: 1, kind: "opened" },
+      { id: 2, kind: "attempt" },
+      { id: 3, kind: "attempt" },
+      { id: 4, kind: "escalation" },
+      { id: 5, kind: "verification-unavailable" },
+      { id: 6, kind: "progress" },
+    ]);
+    expect(sticky).toEqual({ state: "paused-pending-approval" });
+    const resolved = deriveStateFromEvents([
+      { id: 1, kind: "opened" },
+      { id: 4, kind: "escalation" },
+      { id: 5, kind: "resume" },
+    ]);
+    expect(resolved).toEqual({ state: "in-progress" });
+  });
+});
+
+describe("digest undetermined is absence not flaky (A21.2 / correction 42)", () => {
+  const failEv = (evidence: WriteEvidenceSnapshot) => ({ outcome: "fail", writeEvidence: evidence });
+  const passEv = (evidence: WriteEvidenceSnapshot) => ({ outcome: "pass", writeEvidence: evidence });
+
+  it("both sides undetermined (unreadable) → unable-to-determine, not flaky", () => {
+    const result = classifyFlakeFromEvidence(
+      failEv(evidenceUndetermined(["src/a.ts"], "file unreadable")),
+      passEv(evidenceUndetermined(["src/a.ts"], "file unreadable")),
+    );
+    expect(result.verdict).toBe("unable-to-determine");
+    expect(result.verdict).not.toBe("flaky");
+    expect(result.reason).toMatch(/undetermined|unreadable/i);
+  });
+
+  it("one side undetermined → unable-to-determine", () => {
+    const result = classifyFlakeFromEvidence(
+      failEv(evidencePaths(["src/a.ts"])),
+      passEv(evidenceUndetermined(["src/a.ts"])),
+    );
+    expect(result.verdict).toBe("unable-to-determine");
+  });
+
+  it("both sides absent is genuine evidence → flaky when identical", () => {
+    const result = classifyFlakeFromEvidence(
+      failEv(evidenceAbsent(["src/gone.ts"])),
+      passEv(evidenceAbsent(["src/gone.ts"])),
+    );
+    expect(result.verdict).toBe("flaky");
+  });
+
+  it("absent then content is retry", () => {
+    const result = classifyFlakeFromEvidence(
+      failEv(evidenceAbsent(["src/new.ts"])),
+      passEv(evidencePaths(["src/new.ts"])),
+    );
+    expect(result.verdict).toBe("retry");
   });
 });
