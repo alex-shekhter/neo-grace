@@ -4288,6 +4288,83 @@ that is not per task* — would have produced 43, 44, 45 **and 47** together, be
 care whether the read arrives through a write path or a read path. That is the argument for building it
 as a query over the code rather than as a checklist a reviewer applies while following reproductions.
 
+### A26 — 2026-07-31 · Sixth Phase 4 gate: the new element recovers but is never reported
+
+Measured at `c2223f3`. **Correction 47 is fixed in both directions**, verified by driving the CLI.
+
+Upgrade fixture — a `run.xml` with no `<EscalatedTask>` children over a ledger holding an unresolved
+escalation:
+
+```
+State: paused-pending-approval
+EscalatedTasks: T-001
+Sources: epoch=cursor task=cursor state=events
+Degradation: unable-to-determine — written cursor escalation disagrees with durable event stream; …
+```
+
+Stale fixture — the ledger shows the escalation resolved, the file still carries it:
+
+```
+State: in-progress
+Sources: epoch=cursor task=cursor state=events
+Degradation: unable-to-determine — …
+```
+
+The hybrid shape is right: `epoch` and `task` stay cached, escalation comes from the stream, `sources`
+reports the real origin per field, and the disagreement is announced rather than silently won.
+
+**The remaining-surface claim in A25.2 was checked independently and holds.** No module outside
+`grace-cursor.ts` reads escalation: `grammar.ts` touches `run.xml` only for root tag, identity and the
+`cursorNamedTask` referential check, and `catalog.ts`'s mentions are entry text. That is the first
+executor claim on this track that asserted an absence across the codebase, and it is correct.
+
+One correction, and it is narrow.
+
+#### A26.1 Correction 48 — `<EscalatedTask>` is written and recovered from, and never validated
+
+Correction 45 added a new persisted element to `run.xml` (`grace-cursor.ts:1816`). The referential check
+that exists for exactly this purpose was not extended to it. `grammar.ts:1112` resolves the cursor's
+task against `plan.xml` through `cursorNamedTask` (`:795`), which reads `<Task>` alone.
+
+Reproduced against the real CLI, holding everything else constant:
+
+| Cursor | `cursor.unknown-task` |
+|---|---|
+| `<Task>T-001</Task>` + `<EscalatedTask>T-999</EscalatedTask>` | **not emitted** |
+| `<Task>T-999</Task>` | emitted |
+
+So a cursor naming an escalated task that does not exist in the plan passes lint silently.
+
+The consequence is bounded — correction 47 made the mechanism derive escalation from the stream, so a
+bogus entry now only triggers the degradation path rather than misleading a consumer. But bounded is not
+the same as absent, and the pairing this phase inherited is explicit. C-RUN-LEDGER's
+`AC-RECOVER-NOT-BLOCK` states it: *"lint still errors on the written file — the two surfaces disagree by
+design, and one test asserts exactly that pairing."* `<Task>` has both halves. `<EscalatedTask>` has the
+recovery half only.
+
+It is also invariant 4 — grammar arrives with the validator that makes it load-bearing — and the same
+family as correction 16 (A10.2), where a companion was registered as a tag and not as a file. A new
+element that a reader can hand-author needs the check that tells them they got it wrong.
+
+**Fix:** resolve every `<EscalatedTask>` against `plan.xml` in the same block, reusing
+`cursor.unknown-task` (`catalog.ts:488`) rather than minting a code — the diagnosis is identical and the
+message can name the element. The no-plan branch already present four lines below applies unchanged.
+
+#### A26.2 Phase 4 after this
+
+Nothing else is outstanding. Corrections 31–48 are recorded, 31–47 are fixed and independently verified,
+and the phase's own sentence — *escalation is a durable, per-task fact* — is now true of every surface I
+can reach. With 48 closed, Phase 4 is ready for close-out: status board to `COMPLETE`, `C-ATTEMPT-LOG`
+to `applied`, and `git mv` to `archive/`. The bundle already carries the pre-execution `plan.xml`, so
+A17.3's manual discipline holds and no retrospective exception is needed.
+
+Six rounds is the most this track has spent on one phase, and the shape of the spend is worth recording:
+one correction from reading the diff (38), one from a mutation (37), and **six from driving the CLI into
+states the suite does not reach** (41, 43, 44, 45, 47, 48). The suite is now 129 tests and green at every
+round. That is the number Phase 6 exists to change, and A25.2's query plus A22.3's two axes plus this
+one's — *does every persisted element have a validator?* — are the three checks that would have produced
+this phase's entire finding list mechanically.
+
 ---
 
 ## 15. Final instruction to the executor
