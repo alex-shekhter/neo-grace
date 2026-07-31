@@ -3844,6 +3844,109 @@ What would have caught 37 and 38 is a *differential* harness: run the mechanism 
 transition it is specified to survive (fold, restart, regenerate) rather than within one state. Phase 6
 should treat that as the first-class capability and the schema as scaffolding for it.
 
+### A21 — 2026-07-31 · Second Phase 4 gate: corrections 37–40 clear, two more behind them
+
+Measured at `d48a713`. **All four A20 corrections are fixed and independently re-verified** — not
+accepted from the report:
+
+- **37.** My own probe from A20.1, re-run unchanged against the fix: `attempt 2 -> count=2
+  escalated=true`, `BUDGET DURABLE`. `listAccountingEvents` (`:880`) merges ledger and loose by id with
+  loose winning, which also answers the interrupted-fold double-count.
+- **38.** `expectedLedgerEventAttributes` (`:1362`) is a genuinely separate function from the writer's
+  `eventAttributesForLedger`. The duplication is deliberate and documented, and it is the right shape:
+  a self-check must not import its expectation from the thing it checks. Re-running my mutation now
+  makes the fold **throw** and leaves all three loose files on disk.
+- **39.** Per-file sha256 digests, the recommended route.
+- **40.** The CLI exists and works end to end. `advance --kind attempt` now refuses with a message that
+  names the right command. The escalating attempt prints both signatures above the position, satisfying
+  AC-ESCALATION's "does not claim the task failed".
+
+Two corrections follow. Both were found by driving the new CLI rather than by reading it, and both are
+the same defect this phase has now produced three times: **a value that means "we do not know" being
+compared as though it meant something.**
+
+#### A21.1 Correction 41 — escalation is cleared by the next event, whatever it is
+
+`paused-pending-approval` is written at escalation and then silently overwritten by the next event on
+that task. Both paths take last-event-wins through the shared map — the write path at `:364` and the
+read path at `:627` — and `KNOWN_KIND_STATE` (`:165-173`) maps `attempt`, `progress` and
+`verification-unavailable` all to `in-progress`.
+
+Reproduced through the shipped CLI. Two failing attempts escalate correctly:
+
+```
+Budget exhausted for T-001 after 2 attempts — paused-pending-approval (replan decision owed; task has not failed).
+Signatures (2):
+  1. test-failure: suite-a
+  2. typecheck: suite-b
+State: paused-pending-approval
+```
+
+then one ordinary `ngrace cursor verification-unavailable`:
+
+```
+Change: C-X
+State: in-progress
+```
+
+The decision that was owed is no longer owed by anybody. The ledger still holds the escalation event —
+correction 37's fix means the *count* stays exhausted, so a third failure escalates again — but between
+escalations the task reports as normally progressing, which is the state every consumer reads and the
+state Phase 5's gate is being built to read.
+
+A19.2's rationale for widening the union was that an unvalidated cast "is exactly how a task escapes an
+escalation it never resolved". The cast was fixed; the same escape exists through the front door.
+
+**Why the phase's own test missed it:** the drop-cursor-and-re-derive test asserts
+`paused-pending-approval` survives regeneration, and it does — because in that fixture the escalation
+happens to be the last event. Last-event-wins is invisible to any fixture where the interesting event is
+last. The twin that catches it is one more event after the escalation.
+
+**Scope line, and it matters here.** *Refusing* further attempts on an escalated task is a gate, and
+gates are Phase 5 (anti-pattern 9 — no blocking policy inside a mechanism). Phase 4 owes only that the
+position stay honest: an escalation is sticky until an event that explicitly resolves it. `resume` is
+the natural resolver, since it is already a deliberate act rather than a by-product of executing. So
+the read path derives state from the last *unresolved* escalation rather than the last event, and the
+write path stops overwriting it. That is a state-derivation rule, not a policy, and it stays inside
+this phase's remit.
+
+#### A21.2 Correction 42 — digest sentinels are absence values compared for equality
+
+`digestProjectFile` (`:866`) returns three magic strings where a hash is expected: `"absent"` when the
+file is gone (`:868`), `"unreadable"` on any read error (`:872`), and `parseWriteEvidenceNode` supplies
+`"unknown"` when the attribute is missing (`:1187`).
+
+`writeEvidenceFingerprint` (`:1079`) then joins `path\0digest` and `classifyFlakeFromEvidence` compares
+the strings (`:1066`). So two attempts whose digests are both `"unreadable"`, or both `"unknown"`, are
+**identical evidence** and the verdict is a confident `flaky` — computed from content that was never
+read.
+
+This is A20.3 one level down. That correction removed a confident `flaky` derived from path sets that
+could not answer the question; this one is a confident `flaky` derived from a digest that was never
+taken. `"absent"` on both sides is genuine evidence and should keep comparing equal — a file that did
+not exist either time did not change. `"unreadable"` and `"unknown"` are not evidence, and the honest
+verdict is `unable-to-determine`, which the classifier already returns for the `available: false` case
+four lines above.
+
+It is also anti-pattern 5. Phase 2 shipped `AbsenceValue` and this phase already uses it correctly for
+`verification-unavailable`; encoding a second absence vocabulary as reserved strings inside a digest
+field is the unthreaded construct the anti-pattern names, and it is what allowed the comparison to look
+total when it is partial.
+
+#### A21.3 What the two rounds together say about this phase
+
+Every Phase 4 defect found at review — 37, 38, 39, 41, 42 — is one shape: **a mechanism treating an
+unknown as a known.** The budget read an incomplete set as complete; verify read the writer's intent as
+independent truth; the classifier read path sets, then sentinel digests, as content; and the position
+reads the last event as the current state. Five instances, one root, in a phase whose *stated* purpose
+is to record honestly when something did not happen.
+
+That is worth carrying to Phase 6 alongside A20.6. A differential harness catches the state-transition
+half (37, 41). The other half needs something narrower and more mechanical: **an audit that enumerates
+every value a function can return and asks which of them mean "unknown", then checks whether any
+comparison treats those as data.** For `digestProjectFile` that is a three-line inspection with an
+unambiguous answer, and it would have caught 42 before the tests were written.
+
 ---
 
 ## 15. Final instruction to the executor
