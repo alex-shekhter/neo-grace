@@ -345,7 +345,7 @@ Keep this table current. It is the single source of truth for progress.
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
-| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `IN PROGRESS` — A15 gate: corrections 29–30 before merge |
+| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `READY FOR REVIEW` — A16: Windows job unobserved |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
@@ -527,7 +527,7 @@ the validator rule. All additive, so rollback is clean.
 
 # PHASE 3 — Run ledger & cursor
 
-**Status:** `IN PROGRESS` — A12–A14 satisfied; A15 corrections 29–30 outstanding
+**Status:** `READY FOR REVIEW` — A10–A16 cleared; Windows job not yet observed (A16.2)
 **Decisions:** D1, D2, D3
 **Release:** TBD
 
@@ -540,10 +540,10 @@ the validator rule. All additive, so rollback is clean.
 > sources, and three graph modules the phase must add.
 > **A12 and A14 are the review gates.** A12's two corrections (row 3 unbuilt, no integration tests) were
 > satisfied at `f7de98e`; A13 answered A12.1 and corrected the criterion that caused it. **A14 is the
-> gate that followed:** corrections 27–28 applied D5's absence reasoning to `state` and `complete`, and
-> were satisfied at `88f5494`. **A15 is the outstanding gate:** corrections 29–30 — the delete surface is
-> unpinned and Windows CI omits this phase's two suites. Standing rules 6–7 came from A12, rule 8 from
-> A14, and A15.4 carries Phase 6's priority evidence.
+> gates that followed:** A14's corrections 27–28 applied D5's absence reasoning to `state` and
+> `complete`; A15's 29–30 pinned the delete surface and added this phase's suites to Windows CI. **A16
+> clears all findings** — the only thing left is running the Windows job (A16.2). Standing rules 6–7 came
+> from A12, rule 8 from A14, and A15.4 carries Phase 6's priority evidence.
 
 ## 3.1 Objective
 
@@ -3172,6 +3172,55 @@ Two design constraints fall out of the same evidence:
    compliance: the round-2 probe satisfied "≥15 inputs" numerically while a third of it was case-table
    re-runs, and both probe rounds returned 100% pass. A schema makes skipping impossible and
    box-ticking easier, and only re-execution closes that gap.
+
+### A16 — 2026-07-30 · Corrections 29–30 cleared; one verification remains unobserved
+
+Reviewed at `88ead8d`. **No outstanding findings against the code.**
+
+- **Correction 29 satisfied.** The delete surface is pinned precisely: the new test filters grep output
+  to actual call sites and asserts `toEqual` against exactly `grace-cursor.ts:374` and
+  `dart.ts:206`, plus a negative on `rmdirSync`. Drift in either direction fails.
+- **Correction 30 satisfied.** `validate.yml:52` now runs `src/grace-cursor.test.ts` and
+  `src/artifact/grammar.test.ts` on `windows-latest`. The hardcoded-list defect was correctly left
+  alone as inherited (A15.2).
+- **Both greps are verbatim.** Re-run independently; content matches line for line — twelve and four.
+  Ordering differs, which is grep traversal, not editing. The delete surface was filed as its own line
+  item rather than folded into the write-surface field, which is what A15.1 asked for.
+- Suite 669 pass + 3 skip = 672 total, one more than the previous round.
+
+#### A16.1 The scope audit understated a change in the executor's favour
+
+The report says *"Test deletions: none (additive only)."* One test was **replaced**, with a much
+stronger form. The old `it("only grace-graph, grace-cursor, and dart adapter write")` read
+`grace-cursor.ts` and asserted the file *contains* the strings `"writeFileSync"` and `"mkdirSync"` —
+which passes for any file that merely mentions them. It was near-vacuous. The replacement runs the real
+grep and constrains every returned line.
+
+§0.7.1's presumption against weakening is therefore not triggered. But "none" is the wrong word:
+replacing a vacuous assertion with a real one is precisely what a reviewer wants named, and the same
+sentence would have covered a weakening had one occurred.
+
+#### A16.2 The one thing nobody has observed
+
+**Phase 3 is not `COMPLETE` yet, and the reason is a single unrun check.**
+
+The two new pin tests shell out to `bash -lc` with `grep`, and the same round added their file to the
+Windows job. Two changes that interact, neither verifiable from macOS. `windows-latest` ships Git Bash
+on PATH, the grep paths use forward slashes, and the `startsWith("src/…")` assertions should hold — so
+it will probably pass. **Probably is not observed.** `expect(result.exitCode).toBe(0)` fails hard if
+`bash` does not resolve in that context.
+
+Per §15 — *"if you find yourself about to write 'verified' next to something you inferred, that is the
+moment the whole track is about"* — the status stays `READY FOR REVIEW` until the Windows job has
+actually run. §0.6's legend has no value meaning "done pending CI", and inventing one to cover an
+unobserved result would be this track's own failure at the last step.
+
+If the job goes red, the fix is to have the pin tests read the filesystem directly instead of shelling
+out — more portable, and it removes a shell dependency from a test that exists to pin a shell command's
+output.
+
+**To close the phase:** run the Windows job, record the observed result here, and set §2 and the phase
+banner to `COMPLETE` in the same commit.
 
 ---
 
