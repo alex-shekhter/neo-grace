@@ -114,6 +114,7 @@ Rules:
 ### 0.4 Commands you will use constantly
 
 ```bash
+git fetch origin && git status -sb     # FIRST, every phase — see §0.4.1
 bun run typecheck                      # bunx tsc --noEmit
 bun test                               # full unit + integration suite
 bun run validate:cli                   # the three CLI integration suites
@@ -133,6 +134,27 @@ and no substitution to make.
 `grace`. It was, on the maintainer's machine, and `bun run grace lint` silently ran *upstream's*
 linter against this repository. If a command unexpectedly succeeds, check which binary answered.
 
+### 0.4.1 Fetch before you measure — the first command of every phase
+
+**Run `git fetch origin && git status -sb` before reading anything, and confirm the local branch is not
+behind `origin/main`.** Then confirm in §2's status board *on the fetched tree* that the phase you are
+about to start is not already `COMPLETE`.
+
+`git log` shows the local head. A clone that has not fetched shows a head that may be hours old, with a
+clean tree, a green suite, and a `plan.md` whose last amendment is exactly where you expect it — every
+signal consistent with a phase that has not started. Nothing in the worktree distinguishes *"this work
+is not done"* from *"you have not looked."*
+
+This is A5.5 one level up. That rule says an amendment is a claim measured at a commit; this one says
+**check that the commit is still the track's head before you measure at it.** Re-deriving a phase
+against a superseded baseline produces corrections that are true of a commit and irrelevant to the
+work — and the whole phase built on them is unmergeable, which is not a defect any review of its
+contents can find. See A28.
+
+Cost: one second. It is stated as a command rather than a caution because the failure is invisible to
+care and visible to `git fetch` (A15.4, A27.1 — prefer the check a tool performs over the diligence a
+reader supplies).
+
 ### 0.5 Per-phase reporting format
 
 At the end of every phase, report exactly this:
@@ -140,6 +162,7 @@ At the end of every phase, report exactly this:
 ```
 PHASE <n> — <name>
 Status: COMPLETE | BLOCKED
+Baseline: <local head> — origin/main <commit> after fetch; local not behind (§0.4.1)
 Steps completed: <n>/<n>
 Files changed: <list>
 New issue codes: <list, or none>
@@ -4432,6 +4455,44 @@ Unchanged, and now all with concrete callers:
 
 Phase 5's §5.5 needs the same re-derivation this phase got, numbered from correction 49. Its step list
 predates the ledger, the cursor and everything above.
+
+### A28 — 2026-07-31 · Phase 4 was re-derived and built a second time, against a stale local head
+
+**This entry records a whole phase of duplicated work, and the one-second check that would have
+prevented it.** It adds §0.4.1 and a `Baseline:` line to §0.5.
+
+Phase 4 landed as `3c47b25` (#23) at 02:15. Eleven hours later a second effort began: it read
+`git log`, saw `235f0f8` — Phase 3's merge — at the top, took that for the track's head, and re-derived
+Phase 4 from scratch. It produced its own A18 through A22, its own five ratified decisions, four review
+gates, fourteen corrections, and a complete implementation. All of it is unmergeable: two independent
+answers to the same ratified decisions, colliding amendment numbers, and a phase already `COMPLETE`
+with its bundle archived.
+
+**The local clone had not fetched.** Proof, from the fetch that finally ran: `235f0f8..3c47b25 main ->
+main` — the remote-tracking ref had sat at `235f0f8` the entire time. Every other signal agreed with
+the mistake: clean tree, `validate:ci` green, `plan.md` ending exactly at A17 where a reader would
+expect Phase 4 to begin.
+
+Three properties make this worth a rule rather than a caution:
+
+1. **No amount of care inside the session detects it.** Every measurement taken was accurate about the
+   commit it named. The re-derivation was careful, the probes were real, the review gates found
+   genuine defects in the code they were reviewing. Correctness at every step, against the wrong tree.
+2. **It is not a review finding.** Reviewing the contents of that work would never surface it —
+   §0.7's five audits all operate inside the tree. It is detectable only by comparing the tree to
+   something outside it, which nothing in this document asked anyone to do.
+3. **It is the cheapest check on the track.** One command, one second, versus a phase.
+
+That triple — invisible to diligence, invisible to review, trivially visible to a tool — is exactly
+A15.4's and A27.1's argument for what a mechanized reviewer should do first, arriving from outside the
+code. **The strongest checks compare two things that were never compared before**, and A27.1's reading
+class (a surface named on one side and absent on the other) is the same shape at file scale. Local head
+versus remote head is that join at repository scale.
+
+Recorded as a rule, a command in §0.4, and a required report field, in that order of strength: prose
+was ignored three rounds running in Phase 3 (A15.3), a structural requirement changed behaviour
+immediately (A15.4's controlled comparison). The `Baseline:` field makes staleness a thing a phase must
+state rather than a thing it may assume.
 
 ---
 
