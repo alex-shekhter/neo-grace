@@ -736,16 +736,6 @@ export function derivePosition(
       const epochText = wrapper ? childText(wrapper, "Epoch") : undefined;
       const stateText = wrapper ? childText(wrapper, "State") : undefined;
       const parsedState = parseCursorState(stateText);
-      // A5.4: parse EscalatedTask children (correction 45). Absent → recover from stream (D1).
-      const fromFile = wrapper
-        ? wrapper.children
-            .filter((c) => c.tag === "EscalatedTask")
-            .map((c) => c.text.trim())
-            .filter((t) => ANCHOR_PATTERNS.task.test(t))
-            .sort()
-        : [];
-      const fromStream = listUnresolvedEscalatedTasks(listAccountingEvents(bundlePath));
-      const escalatedTasks = fromFile.length > 0 ? fromFile : fromStream;
       if ("invalid" in parsedState) {
         // Unchecked cast hole (A19.2): unrecognized value takes degradation, then re-derive.
         degradation = {
@@ -753,22 +743,77 @@ export function derivePosition(
           reason: `cursor state ${JSON.stringify(parsedState.invalid)} is not a known CursorState; re-derived`,
         };
       } else {
-        // When set non-empty, task must come from it (correction 45) even if written Task lags.
+        // A25.1 / correction 47: escalation is durable — always from ledger∪loose, never from
+        // the written cursor. epoch/task stay cached; "is a decision owed" does not.
+        // File EscalatedTask / file ppa are compared only to announce disagreement (D1).
+        const stream = listAccountingEvents(bundlePath);
+        const escalatedTasks = listUnresolvedEscalatedTasks(stream);
+        const mapped = deriveStateFromEvents(stream);
+        const streamState = "state" in mapped ? mapped.state : undefined;
+        const streamStateSource: PositionSource =
+          stream.length > 0 ? (events.length > 0 ? "events" : "ledger") : "ledger";
+        const fromFile = wrapper
+          ? wrapper.children
+              .filter((c) => c.tag === "EscalatedTask")
+              .map((c) => c.text.trim())
+              .filter((t) => ANCHOR_PATTERNS.task.test(t))
+              .sort()
+          : [];
+        const fileState = parsedState.state;
+        const setsEqual =
+          fromFile.length === escalatedTasks.length &&
+          fromFile.every((t, i) => t === escalatedTasks[i]);
+        const fileClaimsPpa = fileState === "paused-pending-approval";
+        const streamClaimsPpa = escalatedTasks.length > 0;
+        const escalationDisagrees = !setsEqual || fileClaimsPpa !== streamClaimsPpa;
+
+        let escalationDegradation: AbsenceValue | undefined;
+        if (escalationDisagrees) {
+          escalationDegradation = {
+            verdict: "unable-to-determine",
+            reason:
+              "written cursor escalation disagrees with durable event stream; escalation derived from ledger and events",
+          };
+        }
+
+        // State: ppa (and its clearance) always from the stream; other states may lag on the cache.
+        let state: CursorState | undefined;
+        let stateSource: PositionSource;
+        if (streamClaimsPpa) {
+          state = "paused-pending-approval";
+          stateSource = streamStateSource;
+        } else if (fileClaimsPpa || fromFile.length > 0) {
+          // Stale cursor claimed escalation the stream has resolved.
+          state = streamState ?? "in-progress";
+          stateSource = streamStateSource;
+        } else if (streamState === undefined && "degradation" in mapped) {
+          state = undefined;
+          stateSource = streamStateSource;
+        } else {
+          state = fileState;
+          stateSource = "cursor";
+        }
+
+        // When set non-empty, task from set (correction 45); otherwise cached Task.
         const pairedTask =
           escalatedTasks.length > 0
             ? task && escalatedTasks.includes(task)
               ? task
               : escalatedTasks[0]
             : task;
+
         written = {
           changeId,
           bundlePath,
           epoch: epochText ? Number(epochText) : undefined,
           task: pairedTask,
-          state: parsedState.state,
+          state,
           escalatedTasks,
-          sources: { epoch: "cursor", task: "cursor", state: "cursor" },
+          sources: { epoch: "cursor", task: "cursor", state: stateSource },
           inferred: false,
+          degradation:
+            escalationDegradation ??
+            ("degradation" in mapped ? mapped.degradation : undefined),
         };
       }
     }
@@ -780,7 +825,9 @@ export function derivePosition(
     };
   }
 
-  if (written && !degradation) {
+  // Prefer-written hybrid may carry escalation degradation and still answer (correction 47).
+  // Identity / invalid-state degradations leave `written` unset and fall through to re-derive.
+  if (written) {
     return written;
   }
 

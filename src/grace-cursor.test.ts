@@ -1254,6 +1254,132 @@ describe("fold derives unresolved escalation (A22.2 / correction 44)", () => {
 });
 
 // ---------------------------------------------------------------------------
+// A25 / correction 47 — escalation authority is the stream, never the written cursor
+// ---------------------------------------------------------------------------
+
+describe("prefer-written escalation from stream (A25.1 / correction 47)", () => {
+  function escalateT001(root: string) {
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test", key: "a" },
+      writeEvidence: evidencePaths([]),
+    });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test", key: "b" },
+      writeEvidence: evidencePaths([]),
+    });
+  }
+
+  /** Pre-4abc775 shape: State without EscalatedTask children. */
+  function writeLegacyCursor(
+    bundle: string,
+    options: { state: string; task?: string; epoch?: number; escalatedTasks?: string[] },
+  ) {
+    const epoch = options.epoch !== undefined ? `<Epoch>${options.epoch}</Epoch>` : "";
+    const task = options.task ? `<Task>${options.task}</Task>` : "";
+    const escalated = (options.escalatedTasks ?? [])
+      .map((t) => `<EscalatedTask>${t}</EscalatedTask>`)
+      .join("");
+    writeFileSync(
+      path.join(bundle, "run.xml"),
+      `<NgraceRunCursor graceVersion="1.0"><C-RUN>${epoch}${task}${escalated}<State>${options.state}</State></C-RUN></NgraceRunCursor>\n`,
+    );
+  }
+
+  it("upgrade fixture: legacy run.xml without EscalatedTask over unresolved ledger → ppa from stream + degradation", () => {
+    // Authority axis: cache says in-progress; record holds escalation.
+    const root = createProject();
+    const bundle = seedBundle(root);
+    escalateT001(root);
+    writeLegacyCursor(bundle, { state: "in-progress", task: "T-001", epoch: 1 });
+
+    const shown = showCursor(root, "C-RUN");
+    expect(shown.state).toBe("paused-pending-approval");
+    expect(shown.escalatedTasks).toEqual(["T-001"]);
+    expect(shown.task).toBe("T-001");
+    expect(shown.degradation?.verdict).toBe("unable-to-determine");
+    expect(shown.degradation?.reason).toMatch(/disagrees|durable|ledger|stream/i);
+    expect(shown.sources.state).not.toBe("cursor");
+    expect(["ledger", "events"]).toContain(shown.sources.state);
+  });
+
+  it("stale fixture: run.xml still escalated after ledger resolved → not escalated + degradation", () => {
+    // Authority axis: cache keeps a resolved escalation alive.
+    const root = createProject();
+    const bundle = seedBundle(root);
+    escalateT001(root);
+    resumeCursor(root, "C-RUN", "T-001");
+    expect(showCursor(root, "C-RUN").state).toBe("in-progress");
+    expect(showCursor(root, "C-RUN").escalatedTasks).toEqual([]);
+
+    // Stale write after resume.
+    writeLegacyCursor(bundle, {
+      state: "paused-pending-approval",
+      task: "T-001",
+      epoch: 1,
+      escalatedTasks: ["T-001"],
+    });
+
+    const shown = showCursor(root, "C-RUN");
+    expect(shown.state).not.toBe("paused-pending-approval");
+    expect(shown.escalatedTasks).toEqual([]);
+    expect(shown.degradation?.verdict).toBe("unable-to-determine");
+    expect(shown.degradation?.reason).toMatch(/disagrees|durable|ledger|stream/i);
+    expect(shown.sources.state).not.toBe("cursor");
+  });
+
+  it("unchanged: cursor that agrees with ledger produces no degradation", () => {
+    const root = createProject();
+    seedBundle(root);
+    escalateT001(root);
+    // Fresh write from recordAttempt already agrees.
+    const shown = showCursor(root, "C-RUN");
+    expect(shown.state).toBe("paused-pending-approval");
+    expect(shown.escalatedTasks).toEqual(["T-001"]);
+    expect(shown.degradation).toBeUndefined();
+    // state is stream-authoritative even when agreeing
+    expect(["ledger", "events"]).toContain(shown.sources.state);
+  });
+
+  it("transition twin: upgrade + stale fixtures still behave after fold", () => {
+    // Leaves transition axis (fold) and authority axis (stale/legacy cache).
+    const root = createProject();
+    const bundle = seedBundle(root);
+    escalateT001(root);
+    advanceCursor(root, "C-RUN", { task: "T-002", kind: "terminal" });
+    foldEpoch(root, "C-RUN");
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+
+    // Upgrade shape over folded ledger still unresolved.
+    writeLegacyCursor(bundle, { state: "in-progress", task: "T-002", epoch: 1 });
+    const upgrade = showCursor(root, "C-RUN");
+    expect(upgrade.state).toBe("paused-pending-approval");
+    expect(upgrade.escalatedTasks).toEqual(["T-001"]);
+    expect(upgrade.task).toBe("T-001");
+    expect(upgrade.degradation?.verdict).toBe("unable-to-determine");
+    expect(upgrade.sources.state).toBe("ledger"); // loose empty after fold
+
+    // Resolve via new epoch + resume, then plant stale cursor.
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 100, to: 199 });
+    resumeCursor(root, "C-RUN", "T-001");
+    writeLegacyCursor(bundle, {
+      state: "paused-pending-approval",
+      task: "T-001",
+      epoch: 2,
+      escalatedTasks: ["T-001"],
+    });
+    const stale = showCursor(root, "C-RUN");
+    expect(stale.state).not.toBe("paused-pending-approval");
+    expect(stale.escalatedTasks).toEqual([]);
+    expect(stale.degradation?.verdict).toBe("unable-to-determine");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // A23 / A24 — escalatedTasks field + budget window from resolving resume
 // ---------------------------------------------------------------------------
 
