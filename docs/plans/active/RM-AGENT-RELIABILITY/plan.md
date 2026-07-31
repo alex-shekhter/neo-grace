@@ -3578,6 +3578,89 @@ Three. None may be taken by the executor alone (§12.5).
 - Whichever A18.8 routes were taken, named, each with the test that pins it
 - The bundle carries a pre-execution `plan.xml` (A17.3)
 
+### A19 — 2026-07-31 · A18.8's three decisions answered, and one hole the inventory found
+
+**Decided by the maintainer**, all three as recommended. Normative where they disagree with §4.4 and
+§4.5. Measured at `235f0f8`.
+
+#### A19.1 Decision 1 — an unran verification produces no attempt event at all
+
+The budget counts attempt events. It does not inspect them. D9's "dumb counter" survives literally
+because **the exemption lives on the recording side**: a verification that could not run does not
+produce an attempt, so there is nothing for the counter to skip and no condition inside it.
+
+That requires a second event kind, because "no attempt event" must not mean "nothing happened":
+
+| Kind | Written when | Counts against the budget |
+|---|---|---|
+| `attempt` | verification ran and produced a verdict | yes, always |
+| `verification-unavailable` | verification could not run — harness absent, commands skipped, change not approved | no |
+
+The `verification-unavailable` event carries an `AbsenceValue` with its reason. **It is a recorded
+event, not a silence** — that is the whole point, and it is the difference between this and the
+"non-blocking signal ≈ no signal" failure of A17.2.
+
+The discriminating negative in step 4.5.2 stays exactly as written (two *different* signatures still
+exhaust the budget). Add its sibling: **two `verification-unavailable` events in a row do not exhaust
+the budget, and both appear in the folded ledger.** A test that only checks the counter would pass
+while the events vanished into correction 31.
+
+#### A19.2 Decision 2 — `CursorState` gains `paused-pending-approval`
+
+`paused` already means "a human paused this". Budget exhaustion means "a decision is owed before this
+can move", which is what Phase 5's gate will need to read. Collapsing them loses the distinction at
+exactly the surface built to consume it.
+
+The A5.4 inventory, taken before writing rather than at the gate. Every site touching `CursorState` at
+`235f0f8`:
+
+| Site | Disposition |
+|---|---|
+| `grace-cursor.ts:35` | the union — widened |
+| `:66`, `:507` | `CursorPosition.state`, row-3 local — type-driven, no change |
+| `:235-236` (write), `:465` (read) | the two ternaries of correction 34 — **both** replaced by one shared exhaustive map |
+| `:220`, `:382` | literal `in-progress` / `idle` at epoch-open and post-fold — reviewed, unchanged, but `:382` is the interaction in A18.5 §2 |
+| `:662` | `formatCursorPosition` state line — passes any value through; no change needed |
+| `:835-841` | `writeCursorFile`, which maps `absent` → `idle` on serialize and passes everything else through — new state round-trips, **verify with a test rather than by reading** |
+| `:438` | **hole — see below** |
+| `grace-status.ts:337-339`, `query/types.ts:109` | a different `state` (module readiness) — not on this path, listed so the next reader does not re-check |
+
+**The hole at `:438`:** reading a written cursor does
+`state: (stateText as CursorState) || "idle"` — an unchecked cast. Any string in `run.xml` becomes a
+`CursorState`, so a stale or hand-edited cursor claiming `state="shipped"` is accepted silently and
+flows into every consumer above. Today that is nearly harmless because state is advisory. **Phase 4
+makes it load-bearing**: `paused-pending-approval` is the value a gate will refuse to move past, and an
+unvalidated cast is exactly how a task escapes an escalation it never resolved.
+
+Phase 4 replaces the cast with a parse against the widened union, with an unrecognized value producing
+the **degradation** path `cursor show` already owns (`CursorPosition.degradation` at `:88`, set at
+`:422` and `:445`, reported at `:675`) rather than a throw — invariant 3 and anti-pattern 9: the
+mechanism recovers, `lint` reports. This is scope A18 did not name, admitted here rather than
+discovered mid-execution.
+
+#### A19.3 Decision 3 — write evidence is snapshotted onto the attempt event
+
+The flake classifier reads the ledger. It does not call `git`.
+
+Each `attempt` event carries the write evidence observed when it was recorded, so
+`fail → (no fix) → pass` is answered by comparing two recorded snapshots rather than by asking the
+repository a question whose answer depends on when it is asked. A live call would make the same ledger
+classify differently on Tuesday than on Monday — non-determinism in a record whose entire purpose is to
+be durable (D1).
+
+When `listRepositoryChangedFiles` returns `available: false` (`:620-652`), the event records the
+absence value, and the classifier reports **`unable-to-determine`** — not flaky, not a retry. Same
+branch that forced `stateAbsence` into existence in Phase 3 (correction 27); same answer.
+
+**This decision makes correction 31 blocking rather than merely first.** The snapshot is event payload,
+and payload is what the fold currently destroys. Ordered plainly: fix the fold, prove the fix fails on
+dropped payload, then build everything else. Any other order writes evidence into a shredder.
+
+#### A19.4 The spec is approved for drafting
+
+With A18's six corrections and these three answers, Phase 4's bundle may be written:
+`C-ATTEMPT-LOG`, carrying `spec.xml` **and** a `plan.xml` authored before execution per A17.3.
+
 ---
 
 ## 15. Final instruction to the executor
