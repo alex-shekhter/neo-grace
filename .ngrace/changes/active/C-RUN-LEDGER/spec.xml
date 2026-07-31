@@ -133,6 +133,9 @@
         dryRun: !options.apply (:165), early return (:169), and a dry-run notice (:297).
         grep -rn 'writeFileSync\|mkdirSync' src --include='*.ts' | grep -v test returns the A10.9
         baseline plus src/grace-cursor.ts and nothing else. Output reported verbatim.
+        Destructive surface (A15.1): grep -rn 'unlinkSync\|rmSync\|rmdirSync' src --include='*.ts' |
+        grep -v test pins fold's unlinkSync in grace-cursor.ts and dart adapter temp rmSync only —
+        Phase 3's one new destructive operation. Both greps reported verbatim.
       </AC-WRITE-SURFACE>
       <AC-FOLD-ORDERING>
         A failure injected between write and delete leaves both the ledger and the loose files, and a
