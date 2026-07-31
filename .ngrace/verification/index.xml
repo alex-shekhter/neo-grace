@@ -12,6 +12,9 @@
         <V-M-STATUS />
         <V-M-DOCTOR />
         <V-M-SKILLS />
+        <V-M-CURSOR />
+        <V-M-ARTIFACT-TYPES />
+        <V-M-CLI />
       </Owns>
     </VD-MAIN>
   </VerificationDocuments>

@@ -1,0 +1,271 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-RUN-LEDGER>
+    <Summary>Give a change bundle durable position and a durable record of what cannot be re-derived: an append-only run ledger, a regenerable cursor, and a cursor subcommand that recovers rather than blocks.</Summary>
+    <Problem>
+      A change bundle has no durable position and no record of the facts D1 lists as unrecoverable —
+      who approved what against which evidence, overrides applied despite a finding, degradations
+      where a mechanism reported not-run, and retry budget consumed. Nothing else in the tree records
+      them, so losing them is silent. Position cannot live in plan.xml: a per-task status attribute is
+      schema-illegal (artifact.forbidden-status-attribute) and co-locating position with the plan
+      reintroduces the v3 read cost (D1, F3).
+
+      Companion registration does not admit the file. NGRACE_CHANGE_COMPANION_TAGS (artifact/types.ts:28)
+      feeds only the root-tag check in validateChangeDesignContextArtifact (grammar.ts:585); the file
+      design-context.xml is admitted by three separate literals (grammar.ts:751, :798, :809). Adding
+      entries to that constant changes nothing, and a bundle carrying run-ledger.xml errors today with
+      change.unexpected-file — reproduced against the real CLI at 7388d5e (A10.2).
+
+      Task IDs collide across bundles by construction: ANCHOR_PATTERNS.task is /^T-[0-9]{3}$/
+      (artifact/types.ts:98) and every plan starts at T-001 (C-ABSENCE-VALUE carries T-001..T-005;
+      examples carries T-001..T-002). So cursor.unknown-task cannot detect a cursor copied from
+      another bundle, and a stale cursor validates clean while reporting a position that was never
+      true (A11.4).
+
+      The graph does not cover this phase: src/artifact/types.ts and src/grace.ts are in no module,
+      and src/grace-cursor.ts will not be — A5.7's recorded finding arriving in practice (A11.7).
+    </Problem>
+    <Goals>
+      <Goal>
+        Append-only run-ledger.xml as the truth: one Epoch-N section per fold, carrying the plan-side
+        wave as an attribute. Epoch-N is structural sequencing and must not enter ANCHOR_PATTERNS
+        (D3, §3.4).
+      </Goal>
+      <Goal>
+        Immutable per-event files under run/ during an open epoch, identified by pre-allocated
+        disjoint ID ranges recorded in the epoch's opening event. No clock in identity or ordering
+        (D2).
+      </Goal>
+      <Goal>
+        Fold at epoch close with write, verify, then delete ordering — never delete first. An
+        interrupted fold leaves both forms and a re-fold is idempotent (D3).
+      </Goal>
+      <Goal>
+        Regenerable run.xml cursor: a fold over the ledger, optional for a project to have, non-fatal
+        to lose, and never authoritative (D1, anti-pattern 7).
+      </Goal>
+      <Goal>
+        One derived bundle-filename constant beside NGRACE_CHANGE_COMPANION_TAGS, read by all three
+        grammar.ts sites, so a companion cannot be half-registered (A11.1).
+      </Goal>
+      <Goal>
+        Required bundle identity on both artifacts, cross-checked against the directory, restoring the
+        convention spec, plan and design-context already follow (A11.4).
+      </Goal>
+      <Goal>
+        src/grace-cursor.ts as the sole write surface, with six subcommands: show, regenerate,
+        advance, pause, resume, fold. show and bare regenerate do not write (A11.5).
+      </Goal>
+      <Goal>
+        Regeneration reads three sources in order of authority — ledger, loose run/ events, then
+        codebase evidence — with row 3 output labelled inferred and never merged flat into rows 1-2
+        (A11.5).
+      </Goal>
+      <Goal>
+        lint reports, the mechanism recovers: a missing, identity-less or mismatched cursor is a lint
+        error and never blocks cursor show, which re-derives and announces the degradation through
+        Phase 2's verdict vocabulary (A11.5, anti-pattern 9, invariant 3).
+      </Goal>
+      <Goal>Epoch and task counts surfaced in ngrace status without the cursor reaching chooseNextAction (A10.8).</Goal>
+      <Goal>M-CURSOR, M-ARTIFACT-TYPES and M-CLI added to the graph with matching V-M-* entries (A11.7).</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Additive only. A .ngrace tree with no ledger and no cursor lints clean — no issue, no migration (D1, invariant 5).</Constraint>
+      <Constraint>No timestamps in event identity or ordering. A test that sorts by time is a defect in the test (D2, §0.2, anti-pattern 6).</Constraint>
+      <Constraint>Epoch-N must not be added to ANCHOR_PATTERNS. It is structural sequencing, not a semantic family (§3.4).</Constraint>
+      <Constraint>The cursor is never authoritative. chooseNextAction stays derived from spec and plan status and integrity (D1, anti-pattern 7).</Constraint>
+      <Constraint>Fold ordering is write, verify, then delete. The delete step must be unreachable before the verify step (D3, §3.7 gate 4).</Constraint>
+      <Constraint>Only advance, pause, resume and fold write. show and bare regenerate leave the tree byte-identical; regenerate writes solely under --apply (invariant 8, A11.5).</Constraint>
+      <Constraint>lint does not walk run/. Event validation belongs to the fold, and the no-issue behaviour is pinned by a test (A11.2).</Constraint>
+      <Constraint>All twelve codes are defects. None carries issueClass "absence" — a malformed ledger is malformed, not missing (A11.3, A8).</Constraint>
+      <Constraint>No doctor flags and no doctor repair. doctor is pinned strictly read-only by scale-ergonomics.test.ts:213 (A11.6, A5.2 §2).</Constraint>
+      <Constraint>Degradation reports reuse skills/ngrace/ngrace-cli/references/verdicts.md. Phase 3 does not invent a second vocabulary (D13, anti-pattern 5 and 10).</Constraint>
+      <Constraint>Every authored path resolves through resolveContainedProjectPath (artifact/paths.ts:92). fold deletes files and is the phase's one destructive operation.</Constraint>
+      <Constraint>No new runtime dependencies. No Phase 4+ constructs: no attempt log, no fix budget, no gates, no confidence field.</Constraint>
+      <Constraint>skills/ngrace/* is source of truth; plugins/ngrace/skills/ngrace/* stays byte-identical in the same commit (invariant 1, §12.2).</Constraint>
+      <Constraint>Shared test helpers live in src/test-support/; src/grace-cursor.ts must not import them (invariant 7).</Constraint>
+      <Constraint>AffectedAreas derives from the traced code path and A11.7, never from §3.3's provisional file table (A5.6).</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Attempt log, fix budget, escalation (Phase 4); gates and the transition surface (Phase 5); reviewer automation (Phase 6).</NonGoal>
+      <NonGoal>Confidence recording or the calibration report (Phase 9).</NonGoal>
+      <NonGoal>The doctor cursor report line and the analysisIssues rename (Phase 10; A7.4, A11.6).</NonGoal>
+      <NonGoal>Lint validation of loose run/ event files (A11.2; the fold owns it).</NonGoal>
+      <NonGoal>Repairing code-versus-artifact divergence. That is a replan through $ngrace-refresh, already shipped at grace-status.ts:177 (A11.6).</NonGoal>
+      <NonGoal>The file-to-module ObservedWriteScope cross-check (A5.7; still unowned).</NonGoal>
+      <NonGoal>Adding Epoch-N or event IDs to the semantic anchor families.</NonGoal>
+      <NonGoal>A cursor surviving in an archived bundle as its own issue code (adjacent to the unowned archive precondition; decide once, whole).</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-BUNDLE-FILE-ALLOWLIST>
+        One exported constant beside NGRACE_CHANGE_COMPANION_TAGS maps bundle filename to root tag to
+        validator, and grammar.ts:751, :798 and :809 all read it (A11.1). A bundle carrying
+        run-ledger.xml, run.xml and a run/ directory produces no change.unexpected-file for any of
+        them. The near neighbours still error: notes.xml inside a bundle, a stray spec.old.xml, and a
+        .xml file directly under changes/active (grammar.ts:737-739). Both directions reported per
+        A7.2 — this is a detection-boundary change.
+      </AC-BUNDLE-FILE-ALLOWLIST>
+      <AC-LEDGER-GRAMMAR>
+        validateRunLedgerArtifact rejects, each with its own code and its own unit test: unknown root
+        tag, identity absent or not one canonical C-*, identity disagreeing with the bundle directory,
+        non-monotonic epoch numbers, a renumbered or reordered epoch, an event ID outside every
+        allocation, a hole inside a used range, and a used range with no terminal event
+        (ledger.* codes per A11.3). Eight tests minimum; a single "invalid ledger" test is not
+        evidence. Modelled on validateChangeDesignContextArtifact (grammar.ts:575).
+      </AC-LEDGER-GRAMMAR>
+      <AC-CURSOR-CONDITIONAL>
+        Three behaviours, one integration test each. No run.xml: silent, no issue of any kind (D1) —
+        write this one first, it is the behaviour the house's fail-closed instinct loses. run.xml
+        naming a task absent from plan.xml: cursor.unknown-task, error. run.xml consistent with
+        plan.xml: clean. A fourth test covers what cursor.unknown-task cannot: a cursor copied from
+        another bundle whose task IDs collide is caught by cursor.bundle-id-mismatch, not by
+        unknown-task (A11.4).
+      </AC-CURSOR-CONDITIONAL>
+      <AC-RUN-DIR-UNWALKED>
+        A malformed or garbage .xml file under run/ produces no lint issue, pinned by a test that says
+        so (A11.2). The test exists so the absence is a decision on the record rather than an artifact
+        of the isFile() filter at grammar.ts:808.
+      </AC-RUN-DIR-UNWALKED>
+      <AC-WRITE-SURFACE>
+        cursor show and bare cursor regenerate leave the tree byte-identical, proven by directory
+        snapshot using the shared snapshotProjectTree (test-support/fixtures.ts:194) — not by copying
+        the private helper at scale-ergonomics.test.ts:66 (A10.7). regenerate writes only under
+        --apply, following ngrace graph split: dirty-worktree guard (grace-graph.ts:110),
+        dryRun: !options.apply (:165), early return (:169), and a dry-run notice (:297).
+        grep -rn 'writeFileSync\|mkdirSync' src --include='*.ts' | grep -v test returns the A10.9
+        baseline plus src/grace-cursor.ts and nothing else. Output reported verbatim.
+        Destructive surface (A15.1): grep -rn 'unlinkSync\|rmSync\|rmdirSync' src --include='*.ts' |
+        grep -v test pins fold's unlinkSync in grace-cursor.ts and dart adapter temp rmSync only —
+        Phase 3's one new destructive operation. Both greps reported verbatim.
+      </AC-WRITE-SURFACE>
+      <AC-FOLD-ORDERING>
+        A failure injected between write and delete leaves both the ledger and the loose files, and a
+        follow-up fold is idempotent rather than duplicating the epoch. The delete step is provably
+        unreachable before the verify step (§3.7 gate 4). A concurrent-append test with two
+        allocations and interleaved writes folds successfully with every event present, and no
+        ordering assertion anywhere refers to a clock (§0.2, §3.7 gate 3).
+      </AC-FOLD-ORDERING>
+      <AC-REGENERATE-SOURCES>
+        Amended by A13.2 — the original text named ObservedWriteScope for a task-level answer it
+        cannot give: the scope is bundle-level (scope.ts:279, :405) and no plan task carries a file
+        list (TASK_REQUIRED_SECTIONS, grammar.ts:48). Correction 26.
+
+        Regeneration reads ledger, then loose run/ events, then repository evidence, and labels row 3
+        output inferred. Row 3 sets state to in-progress when the bundle's ObservedWriteScope
+        intersects the repository's changed files (observedWriteScopeContains, scope.ts:91, against
+        the changed set collectObservedDrift already computes) and idle when it does not; sets task to
+        the absence value with a reason, never a task id; leaves epoch absent; and marks the change
+        complete only when --assertion-mode target evaluates the plan's TargetAssertions clean. It
+        runs no commands: per-task Verification/Command is rejected because it requires execution,
+        MustPassCommand is deliberately skipped under default lint (A5.2), and §0.2 forbids tests
+        depending on an external toolchain.
+
+        Returning the plan's first task as the position is deleted — it is a confident false position
+        (A12.1) with no evidence at any granularity.
+
+        Tests: one proves an inferred row is distinguishable from a ledger-derived row in both text
+        and JSON output; one proves a project with a ledger and no loose events regenerates
+        identically from rows 1-2 alone; one constructs a bundle whose ObservedWriteScope files are
+        genuinely modified and asserts state in-progress with task carrying the absence value; one
+        constructs an untouched bundle and asserts idle. Reverting the row-3 branch must fail the last
+        two — that is the §0.7.2 evidence whose absence made correction 24 invisible. Row 3 must never
+        populate the fields D1 lists as unrecoverable.
+      </AC-REGENERATE-SOURCES>
+      <AC-RECOVER-NOT-BLOCK>
+        cursor show never blocks. A missing cursor, an identity-less cursor and a mismatched cursor
+        all take the same code path: distrust, re-derive, announce. The announcement uses the verdict
+        vocabulary in skills/ngrace/ngrace-cli/references/verdicts.md and introduces no second
+        vocabulary (A11.5, anti-pattern 9 and 5). lint still errors on the written file — the two
+        surfaces disagree by design, and one test asserts exactly that pairing.
+      </AC-RECOVER-NOT-BLOCK>
+      <AC-STATUS-SURFACE>
+        ngrace status prints epoch and task counts, and prints normally when no cursor exists. The
+        change identity and the next skill already ship (formatStatusText:333, chooseNextAction:171-184)
+        and are not re-credited to this phase. chooseNextAction does not consult the cursor: a project
+        whose cursor implies a different position than plan state still gets the plan-derived
+        nextAction, asserted by test (A10.8, anti-pattern 7).
+      </AC-STATUS-SURFACE>
+      <AC-DROP-SITE-INVENTORY>
+        The A5.4 drop-site inventory for ChangeBundleStatus and StatusResult in the phase report, each
+        site file:line marked widened, deliberately not widened with reason, or not on the path.
+        formatStatusText:333 re-lists five fields by name and is the site most likely to drop the new
+        epoch field — JSON carrying it while text silently does not would be corrections 2, 9 and 10 a
+        fourth time. addNgraceIssue (lint/core.ts:54-62) still re-copies five fields; nothing in this
+        phase may reintroduce a dependency on it carrying more.
+      </AC-DROP-SITE-INVENTORY>
+      <AC-CATALOG-REGISTRATION>
+        All twelve codes are exact catalog entries with derivedFrom and proposedBy (catalog.ts:22-26,
+        §12.1). None carries issueClass "absence" (A11.3). Each has at least one integration test
+        proving it fires and at least one proving it does not fire on a clean project (§0.2).
+      </AC-CATALOG-REGISTRATION>
+      <AC-GRAPH-COVERAGE>
+        M-CURSOR (src/grace-cursor.ts), M-ARTIFACT-TYPES (src/artifact/types.ts) and M-CLI
+        (src/grace.ts) exist in .ngrace/graph/main.xml with matching V-M-* verification entries, so
+        every src file this change edits has an owning module (A11.7). bun run validate:ci,
+        bun run validate:packed and bun run ngrace lint --path . green.
+      </AC-GRAPH-COVERAGE>
+      <AC-ADDITIVE>
+        Invariant 5 demonstrated, not asserted: polyglotFixture(), minimalTsFixture(), scaleFixture(20),
+        examples/ and bun run ngrace lint --path . each yield zero new codes (§0.7.4, A9). A new error
+        on a previously-green project is release-breaking; do not edit a fixture to suit a check.
+      </AC-ADDITIVE>
+      <AC-DOCS-AND-SKILLS>
+        The sixth subcommand reaches its callers: README.md's command table and output-format list,
+        skills/ngrace/ngrace-cli/SKILL.md's surface list, and skills/ngrace/ngrace-execute/SKILL.md
+        stating when to advance and fold — one or two sentences, never restating codes the binary
+        emits (D13, anti-pattern 10). Both packaged mirrors byte-identical in the same commit
+        (A10.6, §12.2). Token delta reported (§0.5, D15).
+      </AC-DOCS-AND-SKILLS>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GRAMMAR />
+      <M-LINT-CORE />
+      <M-LINT-CATALOG />
+      <M-STATUS />
+      <M-SKILLS />
+      <M-CURSOR />
+      <M-ARTIFACT-TYPES />
+      <M-CLI />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run validate:packed</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-cursor.test.ts src/artifact/grammar.test.ts src/grace-lint.test.ts src/grace-status.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        The A7.2 both-directions table for the grammar.ts:809 boundary, naming what newly passes and
+        what still errors. The A5.4 drop-site inventory for ChangeBundleStatus and StatusResult. The
+        write-surface grep output verbatim against the A10.9 baseline. The interrupted-fold and
+        re-fold-idempotent outputs. The concurrent-append test with no clock reference. Proof that a
+        cursor copied between bundles is caught by bundle-id-mismatch and not by unknown-task, with
+        the colliding task IDs shown. An inferred row distinguishable from a ledger-derived row in
+        both output formats. The §0.7.4 sweep across all five targets. The mutation-check table with
+        no zero rows, or the discriminating negative added for each. The adversarial probe covering
+        the five track-specific categories in §0.7.3.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        §3.2 preconditions re-measured at 7388d5e, not assumed (A10.1): the evidence bundle is
+        complete and archived; NGRACE_CHANGE_COMPANION_TAGS is live at artifact/types.ts:28, consumed
+        at grammar.ts:11 and :26; validateChangeDesignContextArtifact is at grammar.ts:575, not the
+        :574 the plan cites.
+      </Assumption>
+      <Assumption>
+        A10's corrections 16-23 and A11's five decisions govern where they disagree with §3.4 and
+        §3.5. Step 3.5.1's verify check as written names change.invalid-root-tag, which grammar.ts:499
+        cannot emit for this input, and is replaced per A10.3.
+      </Assumption>
+      <Assumption>
+        The write-surface baseline at 7388d5e is grace-graph.ts:3, :289, :291 and the dart adapter's
+        temp-dir use at adapters/dart.ts:2, :178 — nothing else (A10.9). Re-measure before claiming
+        the post-state.
+      </Assumption>
+      <Assumption>
+        Two fixture modules build change bundles — test-support/fixtures.ts:391 and
+        artifact/test-fixtures.ts:26/:101. Ledger builders go in src/test-support/ per invariant 7;
+        the phase states which module each new fixture bundle uses (A10.7).
+      </Assumption>
+      <Assumption>Path-only modules without LINKS remain warning-level and deliberate; the eight existing graph.module-without-linked-files warnings are the expected clean state.</Assumption>
+    </Assumptions>
+  </C-RUN-LEDGER>
+</NgraceChangeSpec>

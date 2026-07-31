@@ -8,7 +8,9 @@ import {
   ANCHOR_PATTERNS,
   ARCHIVED_CHANGE_STATUSES,
   CHANGE_STATUSES,
-  NGRACE_CHANGE_COMPANION_TAGS,
+  EPOCH_SECTION_PATTERN,
+  NGRACE_CHANGE_BUNDLE_COMPANIONS,
+  NGRACE_CHANGE_BUNDLE_XML_FILES,
   NGRACE_CONTEXT_ARTIFACTS,
   NGRACE_OPTIONAL_CONTEXT_ARTIFACTS,
   NGRACE_ROOT_TAGS,
@@ -23,7 +25,6 @@ import { childText, readGraceXmlArtifact, walkNodes, type GraceXmlNode, type Par
 
 const STANDARD_ROOT_TAGS = new Set<string>(NGRACE_ROOT_TAGS);
 const CHANGE_ROOT_TAGS = new Set([`${ARTIFACT_TAG_PREFIX}ChangeSpec`, `${ARTIFACT_TAG_PREFIX}ChangePlan`]);
-const COMPANION_ROOT_TAGS = new Set<string>(NGRACE_CHANGE_COMPANION_TAGS);
 const VALID_CHANGE_STATUSES = new Set<string>(CHANGE_STATUSES);
 const ROOT_METADATA_ATTRIBUTE = new Set(["graceVersion"]);
 const CHANGE_ROOT_METADATA_ATTRIBUTES = new Set(["graceVersion", "status"]);
@@ -582,7 +583,7 @@ export function validateChangeDesignContextArtifact(
     return { file: artifact.file, issues };
   }
 
-  if (!COMPANION_ROOT_TAGS.has(root.tag)) {
+  if (root.tag !== `${ARTIFACT_TAG_PREFIX}ChangeDesignContext`) {
     issues.push(issue("error", "design-context.invalid-root-tag", artifact.file, `Unsupported design context root tag '${root.tag}'. Expected NgraceChangeDesignContext.`));
     return { file: artifact.file, rootTag: root.tag, issues };
   }
@@ -621,6 +622,294 @@ export function validateChangeDesignContextArtifact(
   }
 
   return { file: artifact.file, rootTag: root.tag, graceVersion: root.attributes.graceVersion, issues };
+}
+
+/** Validates a NgraceRunLedger artifact (A11.3 ledger.* codes). */
+export function validateRunLedgerArtifact(artifact: ParsedGraceXmlArtifact): ArtifactValidationResult {
+  const root = artifact.root;
+  const issues: NgraceIssue[] = [...artifact.issues];
+
+  if (!root) {
+    return { file: artifact.file, issues };
+  }
+
+  if (root.tag !== `${ARTIFACT_TAG_PREFIX}RunLedger`) {
+    issues.push(
+      issue(
+        "error",
+        "ledger.invalid-root-tag",
+        artifact.file,
+        `Unsupported run ledger root tag '${root.tag}'. Expected ${ARTIFACT_TAG_PREFIX}RunLedger.`,
+      ),
+    );
+    return { file: artifact.file, rootTag: root.tag, issues };
+  }
+
+  if (!root.attributes.graceVersion) {
+    issues.push(
+      issue(
+        "error",
+        "ledger.invalid-root-tag",
+        artifact.file,
+        `${ARTIFACT_TAG_PREFIX}RunLedger must declare graceVersion="${NGRACE_ARTIFACT_VERSION}".`,
+      ),
+    );
+  } else if (root.attributes.graceVersion !== NGRACE_ARTIFACT_VERSION) {
+    issues.push(
+      issue(
+        "error",
+        "ledger.invalid-root-tag",
+        artifact.file,
+        `${ARTIFACT_TAG_PREFIX}RunLedger declares unsupported graceVersion '${root.attributes.graceVersion}'.`,
+      ),
+    );
+  }
+
+  const identity = companionChangeIdentity(root);
+  if (identity.kind !== "ok") {
+    issues.push(
+      issue(
+        "error",
+        "ledger.invalid-change-id",
+        artifact.file,
+        `${ARTIFACT_TAG_PREFIX}RunLedger must identify its bundle through exactly one canonical C-* wrapper.`,
+      ),
+    );
+    return { file: artifact.file, rootTag: root.tag, graceVersion: root.attributes.graceVersion, issues };
+  }
+
+  const wrapper = identity.wrapper;
+  const epochs = wrapper.children.filter((child) => EPOCH_SECTION_PATTERN.test(child.tag));
+  let previousEpoch = 0;
+  for (const epoch of epochs) {
+    const match = EPOCH_SECTION_PATTERN.exec(epoch.tag);
+    const epochNumber = match ? Number(match[1]) : NaN;
+    if (!Number.isInteger(epochNumber) || epochNumber <= 0) {
+      issues.push(
+        issue("error", "ledger.non-monotonic-epoch", artifact.file, `Epoch section '${epoch.tag}' is not a positive Epoch-N tag.`),
+      );
+      continue;
+    }
+    if (epochNumber <= previousEpoch) {
+      if (epochNumber < previousEpoch) {
+        issues.push(
+          issue(
+            "error",
+            "ledger.reordered-epoch",
+            artifact.file,
+            `Epoch-${epochNumber} appears after Epoch-${previousEpoch}; epoch sections must be append-only and never renumbered.`,
+          ),
+        );
+      } else {
+        issues.push(
+          issue(
+            "error",
+            "ledger.non-monotonic-epoch",
+            artifact.file,
+            `Epoch numbers must be strictly increasing; found duplicate Epoch-${epochNumber}.`,
+          ),
+        );
+      }
+    }
+    previousEpoch = Math.max(previousEpoch, epochNumber);
+    issues.push(...validateLedgerEpoch(artifact.file, epoch));
+  }
+
+  // Non-epoch direct children that look like renumbered/moved epochs (Epoch-0, Wave-N, etc.)
+  for (const child of wrapper.children) {
+    if (child.tag.startsWith("Epoch-") && !EPOCH_SECTION_PATTERN.test(child.tag)) {
+      issues.push(
+        issue(
+          "error",
+          "ledger.reordered-epoch",
+          artifact.file,
+          `Malformed epoch section '${child.tag}'; epochs must be Epoch-N with N >= 1.`,
+        ),
+      );
+    }
+  }
+
+  return { file: artifact.file, rootTag: root.tag, graceVersion: root.attributes.graceVersion, issues };
+}
+
+/** Validates a NgraceRunCursor artifact structure (referential checks are separate). */
+export function validateRunCursorArtifact(artifact: ParsedGraceXmlArtifact): ArtifactValidationResult {
+  const root = artifact.root;
+  const issues: NgraceIssue[] = [...artifact.issues];
+
+  if (!root) {
+    return { file: artifact.file, issues };
+  }
+
+  if (root.tag !== `${ARTIFACT_TAG_PREFIX}RunCursor`) {
+    issues.push(
+      issue(
+        "error",
+        "cursor.invalid-root-tag",
+        artifact.file,
+        `Unsupported run cursor root tag '${root.tag}'. Expected ${ARTIFACT_TAG_PREFIX}RunCursor.`,
+      ),
+    );
+    return { file: artifact.file, rootTag: root.tag, issues };
+  }
+
+  if (!root.attributes.graceVersion || root.attributes.graceVersion !== NGRACE_ARTIFACT_VERSION) {
+    issues.push(
+      issue(
+        "error",
+        "cursor.invalid-root-tag",
+        artifact.file,
+        `${ARTIFACT_TAG_PREFIX}RunCursor must declare graceVersion="${NGRACE_ARTIFACT_VERSION}".`,
+      ),
+    );
+  }
+
+  const identity = companionChangeIdentity(root);
+  if (identity.kind !== "ok") {
+    issues.push(
+      issue(
+        "error",
+        "cursor.invalid-change-id",
+        artifact.file,
+        `${ARTIFACT_TAG_PREFIX}RunCursor must identify its bundle through exactly one canonical C-* wrapper.`,
+      ),
+    );
+  }
+
+  return { file: artifact.file, rootTag: root.tag, graceVersion: root.attributes.graceVersion, issues };
+}
+
+/** Plan task ids for cursor referential integrity (D1 / A11.4). */
+export function planTaskIds(planArtifact: ParsedGraceXmlArtifact | null): Set<string> {
+  const ids = new Set<string>();
+  const wrapper = planArtifact?.root ? directChangeWrapper(planArtifact.root) : undefined;
+  const implementationPlan = wrapper?.children.find((child) => child.tag === "ImplementationPlan");
+  if (!implementationPlan) return ids;
+  for (const child of implementationPlan.children) {
+    if (ANCHOR_PATTERNS.task.test(child.tag)) ids.add(child.tag);
+  }
+  return ids;
+}
+
+/** Task named by a run cursor, if present and well-formed. */
+export function cursorNamedTask(root: GraceXmlNode | null): string | undefined {
+  if (!root) return undefined;
+  const identity = companionChangeIdentity(root);
+  if (identity.kind !== "ok") return undefined;
+  const taskNode = identity.wrapper.children.find((child) => child.tag === "Task");
+  const text = taskNode?.text.trim();
+  return text || undefined;
+}
+
+type CompanionIdentity =
+  | { kind: "ok"; changeId: string; wrapper: GraceXmlNode }
+  | { kind: "invalid" };
+
+function companionChangeIdentity(root: GraceXmlNode): CompanionIdentity {
+  const changeTextNodes = root.children.filter((child) => child.tag === "Change");
+  const wrapperNodes = root.children.filter((child) => ANCHOR_PATTERNS.change.test(child.tag));
+  if (changeTextNodes.length === 0 && wrapperNodes.length === 1) {
+    return { kind: "ok", changeId: wrapperNodes[0]!.tag, wrapper: wrapperNodes[0]! };
+  }
+  if (changeTextNodes.length === 1 && wrapperNodes.length === 0) {
+    const changeId = changeTextNodes[0]!.text.trim();
+    if (!ANCHOR_PATTERNS.change.test(changeId)) return { kind: "invalid" };
+    // Synthetic wrapper so callers can still walk children under a text identity (none).
+    return {
+      kind: "ok",
+      changeId,
+      wrapper: { tag: changeId, attributes: {}, children: root.children.filter((c) => c.tag !== "Change"), text: "" },
+    };
+  }
+  return { kind: "invalid" };
+}
+
+function validateLedgerEpoch(file: string, epoch: GraceXmlNode): NgraceIssue[] {
+  const issues: NgraceIssue[] = [];
+  const allocations = epoch.children
+    .filter((child) => child.tag === "Allocation")
+    .map((node) => parseAllocation(node))
+    .filter((entry): entry is RangeAllocation => entry !== null);
+
+  const events = epoch.children
+    .filter((child) => child.tag === "Event")
+    .map((node) => parseLedgerEvent(node))
+    .filter((entry): entry is LedgerEventRecord => entry !== null);
+
+  for (const event of events) {
+    const inAllocation = allocations.some((allocation) => event.id >= allocation.from && event.id <= allocation.to);
+    if (!inAllocation) {
+      issues.push(
+        issue(
+          "error",
+          "ledger.event-outside-allocation",
+          file,
+          `Event id ${event.id} falls outside every RangeAllocation in ${epoch.tag}.`,
+        ),
+      );
+    }
+  }
+
+  for (const allocation of allocations) {
+    const inRange = events
+      .filter((event) => event.id >= allocation.from && event.id <= allocation.to)
+      .map((event) => event.id)
+      .sort((a, b) => a - b);
+    if (inRange.length === 0) continue;
+
+    const maxUsed = inRange[inRange.length - 1]!;
+    const usedSet = new Set(inRange);
+    for (let id = allocation.from; id <= maxUsed; id += 1) {
+      if (!usedSet.has(id)) {
+        issues.push(
+          issue(
+            "error",
+            "ledger.range-hole",
+            file,
+            `Allocation ${allocation.worker} [${allocation.from},${allocation.to}] has a hole at id ${id}.`,
+          ),
+        );
+        break;
+      }
+    }
+
+    const hasTerminal = events.some(
+      (event) => event.id >= allocation.from && event.id <= allocation.to && event.kind === "terminal",
+    );
+    if (!hasTerminal) {
+      issues.push(
+        issue(
+          "error",
+          "ledger.range-unterminated",
+          file,
+          `Allocation ${allocation.worker} [${allocation.from},${allocation.to}] has no terminal event.`,
+        ),
+      );
+    }
+  }
+
+  return issues;
+}
+
+type RangeAllocation = { worker: string; from: number; to: number };
+type LedgerEventRecord = { id: number; task: string; kind: string };
+
+function parseAllocation(node: GraceXmlNode): RangeAllocation | null {
+  const worker = node.attributes.worker?.trim() || childText(node, "Worker")?.trim();
+  const fromRaw = node.attributes.from ?? childText(node, "From");
+  const toRaw = node.attributes.to ?? childText(node, "To");
+  const from = Number(fromRaw);
+  const to = Number(toRaw);
+  if (!worker || !Number.isInteger(from) || !Number.isInteger(to) || from > to) return null;
+  return { worker, from, to };
+}
+
+function parseLedgerEvent(node: GraceXmlNode): LedgerEventRecord | null {
+  const id = Number(node.attributes.id ?? childText(node, "Id"));
+  const task = (node.attributes.task ?? childText(node, "Task") ?? "").trim();
+  const kind = (node.attributes.kind ?? childText(node, "Kind") ?? "").trim();
+  if (!Number.isInteger(id) || id <= 0 || !task || !kind) return null;
+  return { id, task, kind };
 }
 
 /** Validates current-state .ngrace artifact grammar and lifecycle location invariants. */
@@ -748,7 +1037,6 @@ function validateChangeBundlesInDirectory(
 
     const specFile = path.join(entryPath, "spec.xml");
     const planFile = path.join(entryPath, "plan.xml");
-    const designFile = path.join(entryPath, "design-context.xml");
     const specArtifact = readGraceXmlArtifact(specFile);
     const specResult = validateChangeArtifact(specArtifact, location, projectRoot);
     validateReplacementTargetExists(specArtifact, knownChangeIds, specResult.issues);
@@ -795,18 +1083,67 @@ function validateChangeBundlesInDirectory(
       bundleIssues.push(issue("error", "change.applied-plan-missing", entryPath, "An applied archived bundle requires an applied plan.xml."));
     }
 
-    if (existsSync(designFile)) {
-      const designArtifact = readGraceXmlArtifact(designFile);
-      const designResult = validateChangeDesignContextArtifact(designArtifact);
-      const designChange = designArtifact.root ? designContextChangeId(designArtifact.root) : undefined;
-      if (designChange && designChange !== bundleId) {
-        designResult.issues.push(issue("error", "design-context.bundle-id-mismatch", designFile, `design-context.xml references ${designChange}, but its bundle directory is ${bundleId}.`));
+    // Companions admitted by NGRACE_CHANGE_BUNDLE_COMPANIONS (A11.1) — filename, root, validator.
+    for (const companion of NGRACE_CHANGE_BUNDLE_COMPANIONS) {
+      const companionFile = path.join(entryPath, companion.filename);
+      if (!existsSync(companionFile)) continue;
+      const companionArtifact = readGraceXmlArtifact(companionFile);
+      const companionResult = validateChangeBundleCompanion(companion.filename, companionArtifact);
+      const companionChange = companionArtifact.root
+        ? companionFilenameChangeId(companion.filename, companionArtifact.root)
+        : undefined;
+      if (companionChange && companionChange !== bundleId) {
+        const mismatchCode =
+          companion.filename === "design-context.xml"
+            ? "design-context.bundle-id-mismatch"
+            : companion.filename === "run-ledger.xml"
+              ? "ledger.bundle-id-mismatch"
+              : "cursor.bundle-id-mismatch";
+        companionResult.issues.push(
+          issue(
+            "error",
+            mismatchCode,
+            companionFile,
+            `${companion.filename} references ${companionChange}, but its bundle directory is ${bundleId}.`,
+          ),
+        );
       }
-      results.push(designResult);
+      // D1: cursor present-but-naming-unknown-task is an error; absent is silent.
+      if (companion.filename === "run.xml" && companionArtifact.root) {
+        const namedTask = cursorNamedTask(companionArtifact.root);
+        if (namedTask && planArtifact) {
+          const tasks = planTaskIds(planArtifact);
+          if (!tasks.has(namedTask)) {
+            companionResult.issues.push(
+              issue(
+                "error",
+                "cursor.unknown-task",
+                companionFile,
+                `run.xml names task ${namedTask}, which is absent from plan.xml.`,
+              ),
+            );
+          }
+        } else if (namedTask && !planArtifact) {
+          companionResult.issues.push(
+            issue(
+              "error",
+              "cursor.unknown-task",
+              companionFile,
+              `run.xml names task ${namedTask}, but this bundle has no plan.xml to resolve it against.`,
+            ),
+          );
+        }
+      }
+      results.push(companionResult);
     }
 
     for (const fileEntry of readdirSync(entryPath, { withFileTypes: true })) {
-      if (fileEntry.isFile() && fileEntry.name.endsWith(".xml") && !["spec.xml", "plan.xml", "design-context.xml"].includes(fileEntry.name)) {
+      // Directories (including run/) are not walked — loose event validation is fold's job (A11.2).
+      if (
+        fileEntry.isFile()
+        && fileEntry.name.endsWith(".xml")
+        && !NGRACE_CHANGE_BUNDLE_XML_FILES.has(fileEntry.name)
+      ) {
         const file = path.join(entryPath, fileEntry.name);
         bundleIssues.push(issue("error", "change.unexpected-file", file, `Unsupported XML artifact '${fileEntry.name}' in change bundle ${bundleId}.`));
       }
@@ -1637,16 +1974,30 @@ function validateTechnologyStacks(file: string, root: GraceXmlNode, projectRoot:
 }
 
 function designContextChangeId(root: GraceXmlNode): string | undefined {
-  const changeTextNodes = root.children.filter((child) => child.tag === "Change");
-  const wrapperNodes = root.children.filter((child) => ANCHOR_PATTERNS.change.test(child.tag));
-  if (changeTextNodes.length === 1 && wrapperNodes.length === 0) {
-    const changeId = changeTextNodes[0]!.text.trim();
-    return ANCHOR_PATTERNS.change.test(changeId) ? changeId : undefined;
+  const identity = companionChangeIdentity(root);
+  return identity.kind === "ok" ? identity.changeId : undefined;
+}
+
+function companionFilenameChangeId(filename: string, root: GraceXmlNode): string | undefined {
+  if (filename === "design-context.xml") return designContextChangeId(root);
+  const identity = companionChangeIdentity(root);
+  return identity.kind === "ok" ? identity.changeId : undefined;
+}
+
+function validateChangeBundleCompanion(
+  filename: string,
+  artifact: ParsedGraceXmlArtifact,
+): ArtifactValidationResult {
+  switch (filename) {
+    case "design-context.xml":
+      return validateChangeDesignContextArtifact(artifact);
+    case "run-ledger.xml":
+      return validateRunLedgerArtifact(artifact);
+    case "run.xml":
+      return validateRunCursorArtifact(artifact);
+    default:
+      return { file: artifact.file, issues: [...artifact.issues] };
   }
-  if (changeTextNodes.length === 0 && wrapperNodes.length === 1) {
-    return wrapperNodes[0]!.tag;
-  }
-  return undefined;
 }
 
 function findSemanticAnchorInAttribute(value: string): string | null {

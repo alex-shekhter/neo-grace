@@ -13,6 +13,7 @@ description: Operate the neo-grace CLI for .ngrace linting, status, module navig
 - Final execution gate: `ngrace lint --path PROJECT --change C-ID --assertions final --run-commands`
 - Parallel preflight: `ngrace lint --path PROJECT --parallel-preflight`
 - Status: `ngrace status --path PROJECT --with modules --json`
+- Cursor: `ngrace cursor show|regenerate|advance|pause|resume|fold --change C-ID --path PROJECT`
 - Navigation: `ngrace module find|show`, `ngrace verification find|show`, and `ngrace file show`.
 </commands>
 

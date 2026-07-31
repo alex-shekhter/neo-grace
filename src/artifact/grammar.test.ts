@@ -9,12 +9,19 @@ import {
   validateChangeDesignContextArtifact,
   validateContextArtifacts,
   validateNgraceProject,
+  validateRunCursorArtifact,
+  validateRunLedgerArtifact,
   validateSemanticAnchorDiscipline,
 } from "./grammar";
 import { ARTIFACT_DIR } from "./paths";
 import { resolveNgracePaths } from "./project";
 import { writeChangeBundleFixture, writeLegacyGrace3Project, writeMinimalNgraceProject, writeSegmentedNgraceProject } from "./test-fixtures";
 import { parseGraceXmlArtifact } from "./xml";
+import {
+  buildRunCursorXml,
+  buildRunLedgerXml,
+  writeLedgerFixtures,
+} from "../test-support/fixtures";
 
 function createProject() {
   const root = path.join(os.tmpdir(), `grace4-grammar-${crypto.randomUUID()}`);
@@ -477,6 +484,207 @@ describe("neo-grace Artifact Grammar", () => {
       designContext: `<NgraceChangeDesignContext graceVersion="1.0"><C-WRONG><Rationale>Wrong bundle.</Rationale></C-WRONG></NgraceChangeDesignContext>`,
     });
     expect(codes(validateNgraceProject(root))).toContain("design-context.bundle-id-mismatch");
+  });
+});
+
+describe("run ledger and cursor grammar (Phase 3 / A11)", () => {
+  const denseEpoch = {
+    epoch: 1,
+    wave: "1",
+    allocations: [{ worker: "w0", from: 1, to: 99 }],
+    events: [
+      { id: 1, task: "T-001", kind: "opened" },
+      { id: 2, task: "T-001", kind: "terminal" },
+    ],
+  };
+
+  it("rejects unknown ledger root tag", () => {
+    const result = validateRunLedgerArtifact(
+      parseGraceXmlArtifact("run-ledger.xml", `<NotALedger graceVersion="1.0"><C-X/></NotALedger>`),
+    );
+    expect(codes(result)).toContain("ledger.invalid-root-tag");
+  });
+
+  it("rejects ledger identity absent or not one canonical C-*", () => {
+    const missing = validateRunLedgerArtifact(
+      parseGraceXmlArtifact("run-ledger.xml", `<NgraceRunLedger graceVersion="1.0"></NgraceRunLedger>`),
+    );
+    expect(codes(missing)).toContain("ledger.invalid-change-id");
+    const bad = validateRunLedgerArtifact(
+      parseGraceXmlArtifact("run-ledger.xml", `<NgraceRunLedger graceVersion="1.0"><Change>nope</Change></NgraceRunLedger>`),
+    );
+    expect(codes(bad)).toContain("ledger.invalid-change-id");
+  });
+
+  it("rejects ledger identity disagreeing with the bundle directory", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, { changeId: "C-LEDGER", location: "active", specStatus: "approved", planStatus: "approved" });
+    writeLedgerFixtures(root, "C-LEDGER", {
+      ledger: [{ ...denseEpoch }],
+    });
+    // Overwrite with wrong identity
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-LEDGER/run-ledger.xml`,
+      buildRunLedgerXml("C-OTHER", [denseEpoch]),
+    );
+    expect(codes(validateNgraceProject(root))).toContain("ledger.bundle-id-mismatch");
+  });
+
+  it("rejects non-monotonic and reordered epochs", () => {
+    const nonMono = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        buildRunLedgerXml("C-X", [
+          { ...denseEpoch, epoch: 1 },
+          { ...denseEpoch, epoch: 1, events: [{ id: 1, task: "T-001", kind: "opened" }, { id: 2, task: "T-001", kind: "terminal" }] },
+        ]),
+      ),
+    );
+    expect(codes(nonMono)).toContain("ledger.non-monotonic-epoch");
+
+    const reordered = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        buildRunLedgerXml("C-X", [
+          { ...denseEpoch, epoch: 2 },
+          { ...denseEpoch, epoch: 1 },
+        ]),
+      ),
+    );
+    expect(codes(reordered)).toContain("ledger.reordered-epoch");
+  });
+
+  it("rejects event outside allocation, range hole, and unterminated range", () => {
+    const outside = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        buildRunLedgerXml("C-X", [{
+          epoch: 1,
+          allocations: [{ worker: "w0", from: 1, to: 10 }],
+          events: [
+            { id: 1, task: "T-001", kind: "opened" },
+            { id: 50, task: "T-001", kind: "terminal" },
+          ],
+        }]),
+      ),
+    );
+    expect(codes(outside)).toContain("ledger.event-outside-allocation");
+
+    const hole = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        buildRunLedgerXml("C-X", [{
+          epoch: 1,
+          allocations: [{ worker: "w0", from: 1, to: 10 }],
+          events: [
+            { id: 1, task: "T-001", kind: "opened" },
+            { id: 3, task: "T-001", kind: "terminal" },
+          ],
+        }]),
+      ),
+    );
+    expect(codes(hole)).toContain("ledger.range-hole");
+
+    const unterminated = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        buildRunLedgerXml("C-X", [{
+          epoch: 1,
+          allocations: [{ worker: "w0", from: 1, to: 10 }],
+          events: [
+            { id: 1, task: "T-001", kind: "opened" },
+            { id: 2, task: "T-001", kind: "progress" },
+          ],
+        }]),
+      ),
+    );
+    expect(codes(unterminated)).toContain("ledger.range-unterminated");
+  });
+
+  it("accepts a dense terminated ledger", () => {
+    const result = validateRunLedgerArtifact(
+      parseGraceXmlArtifact("run-ledger.xml", buildRunLedgerXml("C-X", [denseEpoch])),
+    );
+    expect(result.issues.filter((i) => i.severity === "error")).toHaveLength(0);
+  });
+
+  it("rejects unknown cursor root and invalid change id", () => {
+    expect(codes(validateRunCursorArtifact(parseGraceXmlArtifact("run.xml", `<Nope/>`)))).toContain(
+      "cursor.invalid-root-tag",
+    );
+    expect(
+      codes(validateRunCursorArtifact(parseGraceXmlArtifact("run.xml", `<NgraceRunCursor graceVersion="1.0"></NgraceRunCursor>`))),
+    ).toContain("cursor.invalid-change-id");
+  });
+
+  it("cursor conditional: absent silent, unknown-task error, clean consistent (AC-CURSOR-CONDITIONAL)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, { changeId: "C-CUR", location: "active", specStatus: "approved", planStatus: "approved" });
+    // absent — write this first (D1 / house fail-closed instinct)
+    const absentCodes = codes(validateNgraceProject(root));
+    expect(absentCodes.some((c) => c.startsWith("cursor."))).toBe(false);
+
+    writeLedgerFixtures(root, "C-CUR", { cursor: { task: "T-999", state: "idle" } });
+    expect(codes(validateNgraceProject(root))).toContain("cursor.unknown-task");
+
+    writeLedgerFixtures(root, "C-CUR", { cursor: { task: "T-001", state: "idle" } });
+    const clean = codes(validateNgraceProject(root)).filter((c) => c.startsWith("cursor."));
+    expect(clean).toEqual([]);
+  });
+
+  it("cursor copied between bundles is caught by bundle-id-mismatch, not unknown-task (A11.4)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, { changeId: "C-A", location: "active", specStatus: "approved", planStatus: "approved" });
+    writeChangeBundleFixture(root, { changeId: "C-B", location: "active", specStatus: "approved", planStatus: "approved" });
+    // Copy cursor from C-A identity into C-B directory — task T-001 exists in both plans
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-B/run.xml`,
+      buildRunCursorXml("C-A", { task: "T-001", state: "idle" }),
+    );
+    const issueList = validateNgraceProject(root).issues.filter((i) => i.file.includes("C-B"));
+    const issueCodes = issueList.map((i) => i.code);
+    expect(issueCodes).toContain("cursor.bundle-id-mismatch");
+    expect(issueCodes).not.toContain("cursor.unknown-task");
+  });
+
+  it("admits run-ledger.xml, run.xml, and run/ without change.unexpected-file; near neighbours still error (AC-BUNDLE-FILE-ALLOWLIST)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, { changeId: "C-ALLOW", location: "active", specStatus: "approved", planStatus: "approved" });
+    writeLedgerFixtures(root, "C-ALLOW", {
+      ledger: [denseEpoch],
+      cursor: { task: "T-001", epoch: 1, state: "idle" },
+      runEvents: [{ id: 1, task: "T-001", kind: "garbage" }],
+    });
+    const admitted = codes(validateNgraceProject(root));
+    expect(admitted.filter((c) => c === "change.unexpected-file")).toEqual([]);
+
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-ALLOW/notes.xml`, `<Notes/>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-ALLOW/spec.old.xml`, `<NgraceChangeSpec graceVersion="1.0"/>`);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/stray.xml`, `<NgraceChangeSpec graceVersion="1.0"/>`);
+    const after = validateNgraceProject(root).issues.filter((i) => i.code === "change.unexpected-file");
+    const names = after.map((i) => path.basename(i.file)).sort();
+    expect(names).toContain("notes.xml");
+    expect(names).toContain("spec.old.xml");
+    expect(names).toContain("stray.xml");
+  });
+
+  it("malformed file under run/ produces no lint issue (AC-RUN-DIR-UNWALKED)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, { changeId: "C-RUNDIR", location: "active", specStatus: "approved", planStatus: "approved" });
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-RUNDIR/run/not-even-xml.xml`,
+      `{{{this is not xml`,
+    );
+    const issues = validateNgraceProject(root).issues.filter((i) => i.file.includes(`${path.sep}run${path.sep}`) || i.file.includes("/run/"));
+    expect(issues).toHaveLength(0);
   });
 });
 

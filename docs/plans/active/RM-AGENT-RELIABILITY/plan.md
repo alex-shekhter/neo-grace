@@ -345,7 +345,7 @@ Keep this table current. It is the single source of truth for progress.
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
-| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `NOT STARTED` |
+| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `COMPLETE` |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
@@ -527,9 +527,23 @@ the validator rule. All additive, so rollback is clean.
 
 # PHASE 3 — Run ledger & cursor
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Decisions:** D1, D2, D3
 **Release:** TBD
+
+> **Amended by §14 A10 and A11 — read both before §3.5.** The steps below were written before the evidence
+> existed. A10 re-derives them against HEAD: §3.1, §3.6 and §3.7 stand; **§3.5 does not**. Eight corrections
+> (16–23), of which correction 16 invalidates §3.4's "registers exactly as `design-context.xml` does"
+> premise and correction 17 shows step 3.5.1's verify check passes today with no code written.
+> **A11 answers A10.12's four decisions and adds a fifth**, and is normative where it disagrees with §3.4
+> and §3.5: twelve issue codes, required bundle identity, a sixth `regenerate` subcommand reading three
+> sources, and three graph modules the phase must add.
+> **A12 and A14 are the review gates.** A12's two corrections (row 3 unbuilt, no integration tests) were
+> satisfied at `f7de98e`; A13 answered A12.1 and corrected the criterion that caused it. **A14 is the
+> gates that followed:** A14's corrections 27–28 applied D5's absence reasoning to `state` and
+> `complete`; A15's 29–30 pinned the delete surface and added this phase's suites to Windows CI. **A16
+> clears all findings** — the only thing left is running the Windows job (A16.2). Standing rules 6–7 came
+> from A12, rule 8 from A14, and A15.4 carries Phase 6's priority evidence.
 
 ## 3.1 Objective
 
@@ -2328,6 +2342,971 @@ exercise* markers; only the dogfood tree contains prose that *discusses* them, w
 swept against a tree with real comments in it.
 
 Not added to the `# PHASE 2` banner: this binds every phase, not that one.
+
+### A10 — 2026-07-30 · Phase 3 re-derived against HEAD
+
+**Everything below was measured at `7388d5e`** (Phase 2 merged, tree clean), per A5.5: this entry is a
+set of claims tied to a commit, and the executor re-measures the ones it depends on rather than
+transcribing them.
+
+§3.1, §3.4's design, §3.6's definition of done and §3.7's four gates survive the re-derivation
+unchanged. §3.2's preconditions hold. **§3.5's step list does not survive intact**: eight corrections
+follow, one of which (16) invalidates a step's central premise and one of which (17) makes a verify
+check vacuous — it passes today, before any code is written.
+
+#### A10.1 §3.2's preconditions, re-measured
+
+Both hold:
+
+| Precondition | Measured | Result |
+|---|---|---|
+| Evidence bundle Phase 1 `COMPLETE` | `docs/plans/archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md` frontmatter `status: complete`; `.ngrace/` tree present at repository root | ✅ |
+| `NGRACE_CHANGE_COMPANION_TAGS` mechanism live | `src/artifact/types.ts:28`; consumed at `src/artifact/grammar.ts:11,26` | ✅ |
+
+One line of drift, recorded so §3.4's cross-reference stays usable: `validateChangeDesignContextArtifact`
+is at `src/artifact/grammar.ts:575`, not `:574`.
+
+#### A10.2 Correction 16 — companion-tag registration does not admit the *file*, and the plan assumes it does
+
+§3.4 says the two new roots "register as **change companion tags**, exactly as `design-context.xml`
+does." That is true of the **root tag** and false of the **file**, and the file is the half Phase 3 needs.
+
+Measured at `7388d5e`, `design-context.xml` is admitted by **three separate hardcoded mentions of its
+filename**, none of which consults `NGRACE_CHANGE_COMPANION_TAGS`:
+
+| Site | What it does |
+|---|---|
+| `grammar.ts:751` | `const designFile = path.join(entryPath, "design-context.xml")` — the file is found by literal name |
+| `grammar.ts:798-806` | `if (existsSync(designFile))` — validation runs only for that name |
+| `grammar.ts:809` | `!["spec.xml", "plan.xml", "design-context.xml"].includes(fileEntry.name)` — a literal allowlist; everything else in the bundle is `change.unexpected-file`, **error** |
+
+`NGRACE_CHANGE_COMPANION_TAGS` is read at `grammar.ts:26` into `COMPANION_ROOT_TAGS`, whose only use is
+the root-tag check inside `validateChangeDesignContextArtifact` (`:585`). Adding two entries to that
+constant therefore changes **nothing** about whether `run-ledger.xml` and `run.xml` are accepted.
+
+Reproduced, not inferred — a bundle carrying both a `run-ledger.xml` and a `run/` directory, linted
+through the real CLI:
+
+```
+- [error] change.unexpected-file …/C-RUN-LEDGER-PROBE/run-ledger.xml
+          — Unsupported XML artifact 'run-ledger.xml' in change bundle C-RUN-LEDGER-PROBE.
+```
+
+**Consequence:** Step 3.5.1 as written produces a bundle that fails lint with an error. `grammar.ts`'s
+filename allowlist is load-bearing for this phase and §3.3 must say so — it currently lists `grammar.ts`
+only for the two new validators.
+
+**Recommended shape, to avoid a fourth literal:** derive the bundle's known filenames from one exported
+constant beside `NGRACE_CHANGE_COMPANION_TAGS` — filename → validator — and have `:751`, `:798` and
+`:809` all read it. That keeps invariant 4 honest (grammar arrives with the validator that makes it
+load-bearing) and means a fifth companion cannot be half-registered the way this correction describes.
+It is a small refactor of an existing literal, not a new abstraction, so it stays inside working
+principle 2 — but it touches a line the phase would otherwise not touch, so it is a decision to
+ratify, not to improvise (§12.5).
+
+#### A10.3 Correction 17 — step 3.5.1's verify check cannot fail
+
+Step 3.5.1 reads: *"a fixture bundle carrying an empty `run-ledger.xml` lints without
+`change.invalid-root-tag`."*
+
+`change.invalid-root-tag` is emitted at `grammar.ts:499`, inside `validateChangeArtifact`, which runs
+only against `spec.xml` and `plan.xml` (`:753`, `:764`). **No input to `run-ledger.xml` can produce it.**
+The check passes at `7388d5e` with no Phase 3 code written at all — while the real behaviour, the
+`change.unexpected-file` error above, goes unobserved.
+
+This is A5.3's shape at the verify layer rather than the data layer: a check that reports a confident,
+smaller truth. Replace it with the assertion that actually discriminates:
+
+> → verify: a fixture bundle carrying an empty `run-ledger.xml` and a `run/` directory lints with **no
+> `change.unexpected-file`** for either path, and the near-neighbour case — an unregistered
+> `notes.xml` in the same bundle — still errors. Show both.
+
+The second clause is the one that must not be dropped: widening an allowlist is a detection-boundary
+change, and A7.2 requires the silent direction be reported alongside the new-pass direction.
+
+#### A10.4 Correction 18 — `run/` is invisible to lint, and the plan never decides whether it should be
+
+The sweep at `grammar.ts:808` iterates `readdirSync(entryPath, { withFileTypes: true })` and filters
+`fileEntry.isFile()`. A `run/` **subdirectory** is therefore skipped entirely: in the probe above, the
+event file `run/1-T-001-start.xml` produced **no issue of any kind** — no error, and no validation.
+
+So loose event files are unreachable from `validateNgraceProject` today, and §3.5 contains no step that
+changes this. That is a defensible design (D2's events are validated at fold time, by the fold, against
+range membership and density) but it is currently an accident of a `isFile()` filter rather than a
+decision, and it means **a malformed event file is silent until someone folds**.
+
+Decide explicitly and record it in the phase report:
+
+- **(a) Lint stays out of `run/`.** Validation of events is the fold's job (D3 step 2). Then say so in
+  §3.4, and add one test pinning that a garbage file under `run/` produces no lint issue — otherwise the
+  next reader "fixes" the gap.
+- **(b) Lint validates `run/*` shallowly** — root tag and ID-inside-an-allocation only. Costs a
+  directory walk on every lint of every bundle.
+
+**Recommendation: (a).** It matches D3, keeps lint cheap, and the fold already owns the invariants. But
+(a) is only safe *with* its pinning test, because "no issue" is indistinguishable from "not implemented"
+— which is the exact confusion D5 exists to remove.
+
+#### A10.5 Correction 19 — Phase 3 names no issue codes, and §12.1's namespace guidance does not match HEAD
+
+Step 3.5.2 requires "one unit test per rejection, each asserting the specific code — six tests minimum"
+and then names **zero codes**. Step 3.5.3's table says "Error" without a code. §3.6 repeats the count.
+
+§12.1 says codes are "namespaced by surface: `artifact.*` and `projection.*` for lint". Measured against
+`src/lint/catalog.ts` at `7388d5e`, lint's actual namespaces are `config.*`, `project.*`, `markup.*`,
+`analysis.*`, `assertion.*`, `graph.*`, `change.*`, `design-context.*`, `artifact.*` and `path.*`. The
+governing precedent is not §12.1's list — it is `design-context.*`: **a change-bundle companion artifact
+gets its own namespace**, registered as exact catalog entries.
+
+Following that precedent, and requiring registration per §12.1 with `derivedFrom` and `proposedBy`
+(`catalog.ts:22-26`):
+
+| Code | Severity | Fires when | `proposedBy` |
+|---|---|---|---|
+| `ledger.invalid-root-tag` | error | root is not `NgraceRunLedger` | `unthreaded-construct` |
+| `ledger.non-monotonic-epoch` | error | epoch numbers not strictly increasing | `zero-or-more-swallow` |
+| `ledger.reordered-epoch` | error | an epoch renumbered or moved vs. its predecessor | `zero-or-more-swallow` |
+| `ledger.event-outside-allocation` | error | an event ID in no `RangeAllocation` — D2's rogue writer | `zero-or-more-swallow` |
+| `ledger.range-hole` | error | a used range not dense from its start | `zero-or-more-swallow` |
+| `ledger.range-unterminated` | error | a used range with no terminal event | `confidently-wrong` |
+| `cursor.invalid-root-tag` | error | root is not `NgraceRunCursor` | `unthreaded-construct` |
+| `cursor.unknown-task` | error | cursor names a task absent from `plan.xml` — D1 | `unthreaded-construct` |
+
+Eight codes, which satisfies "six minimum" for the ledger with the two cursor codes beside it. These are
+**defects, not absences** — a malformed ledger is malformed, not missing; do not set `issueClass:
+"absence"` (A8's distinction, applied again). An *absent* ledger or cursor emits nothing at all (D1,
+invariant 5).
+
+The names above are a proposal, not a ratification. §12.5 forbids the executor inventing them mid-phase,
+so they are settled here or in the `spec.xml` review — not in the diff.
+
+#### A10.6 Correction 20 — §3.3's file table omits every surface a new subcommand touches
+
+`src/grace.ts:20-28` registers seven subcommands. Phase 3 makes it eight. Each of the following names
+that set and is absent from §3.3:
+
+| File | Why it is pulled in |
+|---|---|
+| `README.md:170-186` | The CLI command table and the per-command output-format list |
+| `skills/ngrace/ngrace-cli/SKILL.md:16` | Enumerates the CLI surfaces an agent may call |
+| `plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md` | Byte-identical mirror — invariant 1, §12.2 |
+| `skills/ngrace/ngrace-execute/SKILL.md` + mirror | D1: *"It ships, and `grace-execute` maintains it by default."* A `cursor` subcommand no skill invokes is a mechanism with no caller |
+
+The `ngrace-execute` row is the substantive one. Without it Phase 3 delivers a write surface that
+nothing in the methodology drives, and D1's "optional to build: **No**" is unmet. Keep the skill edit to
+one or two sentences — §12.4 anti-pattern 10 forbids skill text restating a vocabulary the binary emits,
+so the skill says *when* to advance and fold, never *what the codes are*.
+
+Per A5.6, `AffectedAreas` in the `spec.xml` is derived from this traced set, never from §3.3.
+
+#### A10.7 Correction 21 — step 3.5.4's model reference points at a private helper
+
+Step 3.5.4 says to model the directory-snapshot test on `src/artifact/scale-ergonomics.test.ts:212`.
+Measured: the `describe` is at `:212`, the `it` at `:213`, and the snapshot helper it calls,
+`snapshotTree`, is a **file-local function at `:66`** — not exported.
+
+Meanwhile `src/test-support/fixtures.ts:194` exports `snapshotProjectTree(root)`, which is the shared
+helper and the one invariant 7 wants used. The reference stands as a *model*; the dependency is
+`snapshotProjectTree`. Do not copy the private helper into a third location.
+
+Related, and worth stating because §3.3 names only one of them: there are **two** fixture modules that
+build change bundles — `src/test-support/fixtures.ts:391` and `src/artifact/test-fixtures.ts:26,101`
+(`writeMinimalNgraceProject`, used by the grammar and ergonomics suites). Step 3.5.1's "fixture bundle"
+must name which, and if ledger builders are needed by both, invariant 7 says the shared home is
+`src/test-support/`.
+
+#### A10.8 Correction 22 — step 3.5.7 overstates the work, and hides the decision inside it
+
+Step 3.5.7: *"`ngrace status --path .` prints the change, epoch, task counts and next skill."* Measured
+at `7388d5e`, two of those four already ship:
+
+- **the change** — `formatStatusText:333` already prints `changeId`, location, spec/plan status and
+  derived states, from `ChangeBundleStatus` (`grace-status.ts:22-29`)
+- **the next skill** — `chooseNextAction` (`:171-184`) already returns `$ngrace-execute` and friends,
+  printed at `:364` under "Suggested Next Action"
+
+The new content is **epoch and task counts**. Phase 2's §2.1 made the same kind of note honestly
+("three of the seven absence values already ship"); this step should too, so the phase is not credited
+with work that shipped in an earlier release.
+
+The decision the step conceals: **must `chooseNextAction` consult the cursor?** It must not. §12.4
+anti-pattern 7 — *making the cursor authoritative* — is exactly this, and D1 makes the cursor a
+regenerable cache. `nextAction` stays derived from spec/plan status and integrity. The cursor is
+*displayed*, never *consulted*. State this in the report and add a test: a project whose cursor names a
+different position than the plan state implies still gets the plan-derived `nextAction`.
+
+**A5.4 applies here, and this is its most likely victim in Phase 3.** `ChangeBundleStatus` is a record
+crossing a module boundary, and `formatStatusText:333` is a textbook drop site — an object literal that
+re-lists five fields by name. Add `epoch` to the type, forget `:333`, and JSON carries it while text
+silently does not: corrections 2, 9 and 10 for a fourth time. The drop-site inventory for
+`ChangeBundleStatus` and `StatusResult` is required in the phase report.
+
+#### A10.9 Correction 23 — step 3.5.8's baseline reproduces exactly, and this is its pre-state
+
+Recorded now so the executor compares against a measurement rather than re-deriving expectations after
+writing the code. At `7388d5e`, `grep -rn 'writeFileSync\|mkdirSync' src --include='*.ts' | grep -v test`
+returns exactly:
+
+```
+src/grace-graph.ts:3:import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+src/grace-graph.ts:289:  mkdirSync(path.dirname(newAbsolute), { recursive: true });
+src/grace-graph.ts:291:    writeFileSync(write.file, write.contents);
+src/lint/adapters/dart.ts:2:import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+src/lint/adapters/dart.ts:178:  writeFileSync(analyzerFile, DART_ANALYZER_SCRIPT, "utf8");
+```
+
+Step 3.5.8's expected post-state is this set **plus `src/grace-cursor.ts` and nothing else**. Note the
+dart adapter's two lines are its `mkdtempSync` temp-dir use, which §3.5.8 already anticipates.
+
+Invariant 8 binds the new module: the cursor writes only structural state, and `fold` — which deletes
+files — is the phase's one destructive operation. It needs an explicit trigger, not an implicit one.
+
+#### A10.10 The step list's floor — three things D1–D3 require that §3.5 does not cover
+
+Per A3.1, §3.5 is a floor. Three obligations fall inside Phase 3's objective and have no step:
+
+1. **D3's archive precondition.** *"The archive precondition becomes 'no open epoch'"* (`decisions.md`
+   §D3). Nothing in §3.5 implements or tests it, and `grammar.ts:786-796` — where archive-bundle rules
+   already live — is where it belongs. A bundle archiving with work in flight loses the open epoch.
+2. **Invariant 5, demonstrated rather than asserted.** §3.6 says nothing about it. The additive claim is
+   testable in one line: every existing fixture plus `bun run ngrace lint --path .` yields zero new
+   codes (A9 folds the dogfood tree into that sweep, and A9's own finding is why it matters).
+3. **The `run.xml` → `plan.xml` reference direction.** Step 3.5.3 covers *cursor names an unknown task*.
+   The reverse — a cursor whose named change bundle does not exist, or names a different bundle than
+   its own directory — has a direct precedent in `design-context.bundle-id-mismatch` (`grammar.ts:803`)
+   and no step. Add `cursor.bundle-id-mismatch` to A10.5's table or state why the case cannot arise.
+
+#### A10.11 Standing rules that bind this phase, named so they are not rediscovered at the gate
+
+- **A5.4** — drop-site inventory required for `ChangeBundleStatus` / `StatusResult` (A10.8), and for
+  any field added to `LintIssue`. Note that `addNgraceIssue` (`lint/core.ts:54-62`) still re-lists five
+  fields: anything the ledger validators attach beyond `severity/code/file/line/message` is dropped on
+  the way into `LintResult`. Phase 2 chose route 2 (catalog-derived) to sidestep this; Phase 3 must not
+  reintroduce it.
+- **A5.5** — every claim in this entry is measured at `7388d5e`. Re-measure what you depend on.
+- **A5.6** — acceptance criteria descending from these corrections cite them inline, e.g.
+  `AC-BUNDLE-FILE-ALLOWLIST (A10.2)`, and carry the discriminating detail.
+- **A7.2** — `grammar.ts:809` is a detection boundary. Widening it requires the both-directions table:
+  what newly passes (`run-ledger.xml`, `run.xml`) **and** what still errors (`notes.xml`, a stray
+  `spec.old.xml`, a `.xml` file directly under `changes/active/` — `grammar.ts:737-739`).
+- **§0.2** — no test may order ledger events by clock. This is also §3.7 gate 3 and §12.4 anti-pattern 6;
+  it is stated three times because it is the one the house's instincts will reintroduce.
+
+#### A10.12 Decisions required before `spec.xml` is drafted
+
+Four, none of which the executor may take alone (§12.5):
+
+1. **A10.2** — refactor `grammar.ts`'s filename allowlist to one derived constant, or add two more
+   literals? *(recommend: derive)*
+2. **A10.4** — does lint walk `run/`? *(recommend: no, with a pinning test)*
+3. **A10.5** — ratify the eight code names and the `ledger.*` / `cursor.*` namespaces.
+4. **A10.10 §3** — `cursor.bundle-id-mismatch`: in or out?
+
+#### A10.13 Additions to §3.6 definition of done
+
+- The `grammar.ts:809` both-directions table per A7.2, including the still-erroring near neighbours
+- The drop-site inventory for `ChangeBundleStatus` / `StatusResult` per A5.4
+- Whichever A10.4 route was taken, named, with its pinning test
+- `nextAction` proven independent of the cursor (A10.8)
+- The archive-precondition decision from A10.10 §1, implemented or explicitly deferred with a reason
+- Invariant 5 demonstrated across all five sweep targets, not asserted
+
+### A11 — 2026-07-30 · A10's four decisions answered, and the cursor's recovery contract
+
+**Decided by the maintainer.** A10.12's four questions are closed, and answering the fourth opened a
+fifth that is closed here too. This entry is normative for Phase 3 and supersedes §3.4 and §3.5
+wherever they disagree.
+
+#### A11.1 Decision 1 — derive the bundle's filename allowlist (A10.2)
+
+`grammar.ts`'s three literal mentions of `"design-context.xml"` (`:751`, `:798`, `:809`) collapse into
+one exported constant beside `NGRACE_CHANGE_COMPANION_TAGS`, mapping bundle filename → root tag →
+validator. All three sites read it.
+
+This is the correction's own argument applied: a companion registered in the tag list but absent from
+the filename allowlist is *half-registered*, and nothing today detects that state. After this change a
+companion is one entry or it does not exist. Invariant 4 — grammar arrives with the validator that
+makes it load-bearing — becomes structurally true rather than a convention.
+
+It touches a line Phase 3 would not otherwise touch. That is ratified here, not improvised (§12.5).
+
+#### A11.2 Decision 2 — lint does not walk `run/` (A10.4 route a)
+
+Event validation is the fold's job (D3 step 2: range membership and density). Lint stays out.
+
+**The pinning test is not optional.** A garbage file under `run/` must be shown to produce no lint
+issue, in a test that says so. Without it, "no issue" is indistinguishable from "not implemented" —
+which is the confusion D5 exists to remove, and the next reader will "fix" the gap.
+
+#### A11.3 Decision 3 — twelve issue codes, `ledger.*` and `cursor.*` (A10.5, extended by A11.4)
+
+Ratified. The namespaces follow `design-context.*`: a change-bundle companion artifact owns its own
+namespace. All twelve are **defects**, never `issueClass: "absence"` — a malformed ledger is malformed,
+not missing (A8's distinction). An *absent* ledger or cursor emits nothing (D1, invariant 5).
+
+| Code | Fires when |
+|---|---|
+| `ledger.invalid-root-tag` | root is not `NgraceRunLedger` |
+| `ledger.invalid-change-id` | identity is not exactly one canonical `C-*` |
+| `ledger.bundle-id-mismatch` | identity disagrees with the bundle directory |
+| `ledger.non-monotonic-epoch` | epoch numbers not strictly increasing |
+| `ledger.reordered-epoch` | an epoch renumbered or moved relative to its predecessor |
+| `ledger.event-outside-allocation` | an event ID in no `RangeAllocation` — D2's rogue writer |
+| `ledger.range-hole` | a used range not dense from its start |
+| `ledger.range-unterminated` | a used range with no terminal event |
+| `cursor.invalid-root-tag` | root is not `NgraceRunCursor` |
+| `cursor.invalid-change-id` | identity is not exactly one canonical `C-*` |
+| `cursor.bundle-id-mismatch` | identity disagrees with the bundle directory |
+| `cursor.unknown-task` | cursor names a task absent from `plan.xml` |
+
+Each registers per §12.1 with `derivedFrom` and `proposedBy` (`catalog.ts:22-26`).
+
+**Why the identity trio collapses to one code per artifact.** `design-context` splits missing /
+ambiguous / invalid into three (`grammar.ts:616-620`) because it is hand-authored and the diagnostics
+guide the author. Ledger and cursor are machine-written by `grace-cursor.ts`; the granular distinction
+buys nothing and costs four codes.
+
+#### A11.4 Decision 4 — identity is required on both artifacts, and `cursor.unknown-task` does not cover it
+
+**Identity is required, not optional.** Both `run-ledger.xml` and `run.xml` declare their bundle and
+are cross-checked against the directory they sit in.
+
+The check `cursor.unknown-task` was expected to subsume this and does not. `ANCHOR_PATTERNS.task` is
+`/^T-[0-9]{3}$/` (`types.ts:98`), so every plan starts at T-001. Measured at `7388d5e`:
+`.ngrace/changes/archive/C-ABSENCE-VALUE/plan.xml` carries T-001…T-005 and the `examples/` bundle
+carries T-001…T-002. **Task IDs collide across bundles by construction.** Copy a bundle directory to
+template a new change — a normal thing to do — and the stale `run.xml` pointing at T-002 validates
+clean against the new plan while reporting a position that was never true.
+
+A ledger under the wrong bundle is worse still: it attributes one change's approvals, overrides and
+degradations — D1's non-recoverable column — to another change. It is the single worst corruption this
+phase can produce.
+
+This also restores the house convention. Spec and plan cross-check via `change.bundle-id-mismatch`
+(`grammar.ts:757`, `:768`), design-context via `design-context.bundle-id-mismatch` (`:803`), all
+errors. Ledger and cursor would have been the first bundle artifacts to opt out.
+
+#### A11.5 Decision 5 — lint reports, the mechanism recovers
+
+Required identity and dynamic recovery are not in tension; they live on different surfaces.
+
+| Surface | Behaviour on a missing, identity-less, or mismatched cursor |
+|---|---|
+| `ngrace lint` | **Error**, per the codes in A11.3 — the written file is wrong |
+| `ngrace cursor show` | **Never blocks.** Distrusts the cursor, re-derives position, and announces the degradation |
+
+This is §12.4 anti-pattern 9 — *"Blocking policy inside a mechanism. Gates declare what they require;
+mechanisms report."* It also means an untrustworthy cursor and an absent cursor take the **same** code
+path, which is the property that makes it testable.
+
+The degradation is announced, never silent (invariant 3). It reports through Phase 2's absence
+vocabulary in `skills/ngrace/ngrace-cli/references/verdicts.md` — Phase 3 does not invent a second one
+(anti-pattern 5, and D13's one-fragment rule).
+
+##### Regeneration reads three sources, in order of authority
+
+| # | Source | Covers | Authority |
+|---|---|---|---|
+| 1 | `run-ledger.xml` | every closed epoch | **the truth** (D1) |
+| 2 | `run/*` loose events | the open epoch, unfolded | authoritative, unfolded |
+| 3 | Codebase evidence — `ObservedWriteScope` diff (`scope.ts:19`, `:91`, `:405`), anchors present, `--assertion-mode target` | work done but never recorded | **inference** |
+
+**Row 3 output is labelled inferred and never merged flat into rows 1–2.** Regenerating from code alone
+would silently manufacture D1's non-recoverable column: a cursor that looks complete having lost every
+approval record. That is §15's failure with a fresh coat of paint.
+
+**All three rows land in Phase 3.** Row 3 is not an edge case — it is the *adoption* case. Where the
+ledger is intact, rows 1–2 make regeneration trivial; the case that actually hurts is work done with no
+events recorded at all, which is the normal early state of any project adopting this. A regeneration
+that handles the easy case and reports absence on the common one is a mechanism that fails where it is
+needed. Both objections to building it now are already dissolved: the scope-diffing pieces exist, and
+Phase 2 shipped the vocabulary for labelling inference.
+
+Nothing downstream forced this. Phases 4, 5 and 9 each name the **ledger** in their preconditions, not
+the cursor, and Phase 10 depends on Phase 6. Row 3 is in Phase 3 because it belongs to the capability,
+not because a later phase blocks on it — and because a deferral with no phase number and no owner is
+how a real gap becomes permanent debt (contrast A5.7 and A7.4, which both name an owner).
+
+##### `regenerate` writes, so it takes `--apply`
+
+Invariant 8 / F1. `ngrace graph split` is the complete template: dirty-worktree guard
+(`grace-graph.ts:110`), `dryRun: !options.apply` (`:165`), early return (`:169`), and the
+*"dry-run; pass --apply to write"* line (`:297`). Bare `regenerate` prints the position it would write
+and stays read-only, preserving §3.4's rule that only `advance`, `pause`, `resume` and `fold` write.
+
+Subcommands become six: `show`, `regenerate`, `advance`, `pause`, `resume`, `fold`.
+
+#### A11.6 Three tiers of desync, each with an existing owner
+
+`doctor` **diagnoses and never repairs.** It is pinned strictly read-only by a directory-snapshot test
+(`src/artifact/scale-ergonomics.test.ts:213`, *"is strictly read-only (directory snapshot unchanged)"*),
+and repairing would break both that test and invariant 8.
+
+| Condition | Surface | Action |
+|---|---|---|
+| Cursor missing, identity-less, or mismatched | `cursor show` | Re-derive, announce the degradation; lint errors on the file |
+| Cursor recoverable but stale | `cursor regenerate --apply` | Rewrite from rows 1–3 |
+| Code diverged from the artifacts themselves | `status` → `$ngrace-refresh` | **Replan through a new spec** |
+
+The third tier already ships and is not Phase 3's to rebuild: `collectObservedDrift` →
+`unexplained-observed-drift` → the `nextAction` at `grace-status.ts:177`, *"Use $ngrace-refresh to
+reconcile unexplained repository changes through a new NgraceChangeSpec and NgraceChangePlan."*
+Regenerating a cursor against a plan the code no longer matches would produce a confident position over
+stale tasks.
+
+`doctor`'s contribution is **one report line** — cursor present / absent / stale / unrecoverable — and
+it belongs to Phase 10 ("doctor consumers"; A2 already baselines doctor). Do not add doctor flags in
+Phase 3; that is the scope growth A5.2 §2 refused.
+
+#### A11.7 Consequences for §3.3 — the graph does not cover this phase's files
+
+Measured at `7388d5e`, `.ngrace/graph/main.xml` declares nine modules, eight carrying a `Path`:
+`src/lint/{core,types,catalog}.ts`, `src/artifact/{assertions,grammar}.ts`, `src/project-utils.ts`,
+`src/grace-status.ts`, `src/grace-doctor.ts`.
+
+**`src/artifact/types.ts` and `src/grace.ts` are in no module, and `src/grace-cursor.ts` will not be.**
+This is A5.7's recorded finding arriving in practice: a plan may write a file whose owning module
+appears in neither `DurableScope` nor `AffectedAreas`, and lint stays quiet.
+
+Phase 3 adds, with matching `V-M-*` entries:
+
+- **`M-CURSOR`** → `src/grace-cursor.ts`. Required, not optional: it is a new module and the phase's
+  sole write surface, which is exactly what invariant 8 governs.
+- **`M-ARTIFACT-TYPES`** → `src/artifact/types.ts`. Phases 4 and 9 both edit it per their file tables;
+  it has earned a module.
+- **`M-CLI`** → `src/grace.ts`. Phase 5 also edits it.
+
+Together with A10.6's documentation surface (README, `ngrace-cli`, `ngrace-execute`, and the two
+mirrors), this is the set §3.3 omits. `AffectedAreas` derives from here, not from §3.3 (A5.6).
+
+**And nothing will catch it if the executor forgets.** `AffectedAreas` anchors are compared only
+against the *plan's* `DurableScope` — `validateSpecPlanCoverage` (`grammar.ts:1140`, `:1163`), yielding
+`change.scope-does-not-cover-spec` and `change.plan-scope-exceeds-spec`. **Nothing cross-checks them
+against the graph.** Verified: the `C-RUN-LEDGER` draft spec names `M-CURSOR`, `M-ARTIFACT-TYPES` and
+`M-CLI`, none of which exist, and `ngrace lint --path .` reports zero errors.
+
+This is A5.7's family one direction over — that finding covers file→module, this covers
+anchor→existence — and it is why `AC-GRAPH-COVERAGE` has to be an acceptance criterion checked by a
+human rather than a lint code the executor can lean on. Recorded, not scheduled: do not build the
+check in Phase 3.
+
+#### A11.8 Two commits, one review gate
+
+Phase 3 is the largest phase in the track and §12.3 already permits the shape: *"One phase, one or more
+commits, never a commit spanning two phases."*
+
+1. Grammar, filename allowlist, both validators, the twelve codes, `fold`, and the graph modules
+2. `regenerate`, the three-source re-derivation, `status` surfacing, and the skill and README edits
+
+One `READY FOR REVIEW`, one §0.5 report, one §0.7 self-review covering both. This keeps each diff
+reviewable without inventing a phase boundary the sequencing rules do not support.
+
+### A12 — 2026-07-30 · Phase 3 review gate: a capability reported as built was not built
+
+Phase 3's implementation was reviewed against the diff at `e412025`..`77fa9aa`, by reading the code
+rather than the report. **§3.7's four gates pass, and they were verified independently:**
+
+| Gate | Verified |
+|---|---|
+| An absent cursor produces no diagnostic | `grammar.ts:1089` — `if (!existsSync(companionFile)) continue;` |
+| `Epoch-N` is not in `ANCHOR_PATTERNS` | `EPOCH_SECTION_PATTERN` is its own constant (`artifact/types.ts:67`) |
+| No test orders events by timestamp | zero clock references across the new suites |
+| Delete was never reachable before verify | delete at `grace-cursor.ts:330-337`, strictly after verify at `:295-321` |
+
+The A11.1 companion registry landed as designed; the A7.2 both-directions test
+(`grammar.test.ts:655`) and the AC-RUN-DIR-UNWALKED pinning test (`:677`) are real; the drop-site
+inventory is complete and `chooseNextAction` correctly not widened; the write-surface post-state is the
+A10.9 baseline plus `grace-cursor.ts` and nothing else; the suite is green at 641 pass / 0 fail; and
+both edits to pre-existing tests are additive. **Nothing below undoes any of that.**
+
+#### A12.1 Correction 24 — row 3 was not built, and the test covering it cannot fail
+
+`grace-cursor.ts:446-467` reads **no codebase evidence**. It returns `tasks[0]` — the plan's first task
+— unconditionally: no `ObservedWriteScope` diff, no anchor presence, no `--assertion-mode target`,
+though `AC-REGENERATE-SOURCES` names `scope.ts:19`, `:91` and `:405` explicitly.
+
+The covering test, `grace-cursor.test.ts:182`, is named *"work with no recorded events still yields an
+inferred position"* and **constructs no work**: `seedBundle(root)` then `showCursor`. Its assertion
+`expect(position.task).toBe("T-001")` passes identically whether zero tasks are complete or all of
+them are, because the value is a constant.
+
+**This is A10.3's defect, one layer down, inside the phase that A10.3 corrected.** There, a step's
+verify named a code its path could not emit; here, a test's name states a scenario its body does not
+build. Both pass before the thing they check exists.
+
+And the behaviour is not merely incomplete, it is confidently wrong. A bundle where T-001 and T-002 are
+finished but unrecorded reports `Task: T-001, Inferred: yes`. §0.7.3 ranks a confident false result as
+the worst outcome in this codebase — worse than the silent gap it replaced. With no evidence of
+position, anti-pattern 1 and invariant 3 both give the same answer: **the absence value with a reason**,
+never a guess wearing an inference label.
+
+Two resolutions are acceptable, and the choice is the maintainer's:
+
+1. **Build row 3** against `ObservedWriteScope` as `AC-REGENERATE-SOURCES` specifies, with a test whose
+   scenario actually completes tasks without recording them and asserts a position that moves.
+2. **Return the absence value** when rows 1–2 are empty, and record the deferral as a named debt with an
+   owning phase — the A5.7 / A7.4 form, never an unowned follow-up.
+
+What may not stand is a constant labelled as inference.
+
+#### A12.2 Correction 25 — twelve new codes, zero integration tests
+
+`grace-lint.test.ts`, `grace-status.test.ts` and `grace-query.test.ts` contain **zero** occurrences of
+`ledger.` or `cursor.`, and zero of `epochCount` / `taskCount`. Every one of the twelve codes is
+covered at unit level only.
+
+§0.2 is explicit — one integration test that each code fires, one that it does not fire on a clean
+project, because *"codes that only fire in tests you wrote to make them fire are not evidence."*
+`AC-CURSOR-CONDITIONAL` says "three behaviours, **one integration test each**"; `AC-CATALOG-REGISTRATION`
+repeats it; `AC-STATUS-SURFACE` requires the status assertions.
+
+The report's `validate:cli → pass` is true and proves nothing about this phase: that script runs
+exactly the three suites the phase never touched.
+
+#### A12.3 Standing rule 6 — the self-review has no abbreviated form
+
+**Normative for Phases 2–11.** A phase reports all five §0.7 audits or reports `BLOCKED`. There is no
+short form, and "abbreviated" is not a status this protocol has.
+
+Phase 3's report omitted the **mutation check** (§0.7.2) and the **adversarial probe** (§0.7.3)
+outright, and replaced the **compat sweep** (§0.7.4) with the claim *"additive by construction"* in
+place of the required per-fixture table across `polyglotFixture()`, `minimalTsFixture()`,
+`scaleFixture(20)`, `examples/` and `ngrace lint --path .` (A9).
+
+The selection is the finding. Those are precisely the two audits that find what a green suite cannot,
+and the mutation check is the mechanism that would have surfaced A12.1 unaided: reverting the row-3
+branch fails nothing, and §0.7.2 already says **zero failures is a finding, not a pass.** An audit
+dropped for brevity is an audit dropped where it would have bitten.
+
+#### A12.4 Standing rule 7 — a deviation that removes a ratified capability is reported as absence
+
+**Normative for Phases 2–11.** When a phase does not build something a ratified decision required, the
+report says it was **not built**. It does not describe a smaller version of it.
+
+Phase 3 reported: *"Row-3 inference uses plan task list (recoverable), not a full `ObservedWriteScope`
+diff walk."* That reads as a reduced implementation. What shipped reads no repository state at all, so
+the honest sentence is "row 3 was not built." The framing matters because A11.5 settled this
+deliberately — row 3 is in Phase 3 because unrecorded work is the *adoption* case — and a deviation
+worded as a scope trim silently reverses a decision that was argued out and recorded.
+
+This is the sibling of A5.4 and A7.2. Those catch a value dropped between modules and a case dropped at
+a boundary; this catches a **capability** dropped between the decision and the diff. All three are
+invisible in a green test run, and all three read as reasonable in a report.
+
+#### A12.5 Two disclosures, not rework
+
+1. **An undisclosed fourth cursor behaviour.** `grammar.ts:1126-1135` raises `cursor.unknown-task` when
+   a cursor names a task and the bundle has no `plan.xml`. `AC-CURSOR-CONDITIONAL` specified three
+   rows; this is a fourth. The fail-closed direction is defensible — it just needs stating under A7.2
+   rather than being found in review.
+2. **Test-only injection hooks in shipped code.** `grace-cursor.ts:237-239` carries `throw` points that
+   exist solely for the interrupted-fold tests. Testing a crash window legitimately needs something
+   like this, but it puts a test-only path in published code (`package.json#files` now lists
+   `src/grace-cursor.ts`), so it is a decision to record, not a detail to pass over.
+
+#### A12.6 Not a finding: the warning count
+
+`ngrace lint --path .` moving from 8 to 11 `graph.module-without-linked-files` warnings is correct and
+expected — three new path-only modules under A11.7, an existing warning code, not a new one.
+`AC-ADDITIVE`'s "zero new codes" is satisfied. Recorded so a later reader does not re-open it.
+
+### A13 — 2026-07-30 · A12.1 answered: row 3 is built, and the criterion that specified it was wrong
+
+**Decided by the maintainer:** resolution 1. Row 3 is built in Phase 3; it is not deferred, and it does
+not become a named debt. A11.5's reasoning stands — unrecorded work is the adoption case.
+
+Tracing the mechanism to write this entry surfaced a defect in the criterion itself.
+
+#### A13.1 Correction 26 — `AC-REGENERATE-SOURCES` named a mechanism that cannot answer its question
+
+Measured at `77fa9aa`:
+
+- `ObservedWriteScope` is **bundle-level**. It is extracted once from the plan root
+  (`scope.ts:279`, `:405`) into `{ files, globs }` for the whole change.
+- A plan task carries `Title`, `DependsOn`, `AcceptanceCriteria`, `Satisfies` and
+  `Verification/Command` — `TASK_REQUIRED_SECTIONS` at `grammar.ts:48`, confirmed against a real task
+  in `C-ABSENCE-VALUE/plan.xml`. **There is no per-task file list anywhere in the model.**
+
+So no static signal maps a written file to the task that wrote it, and `ObservedWriteScope` cannot
+yield task-level position. `AC-REGENERATE-SOURCES` asked for exactly that, citing `scope.ts:19`, `:91`
+and `:405`. **The criterion was wrong when it was written** — a claim about a mechanism nobody traced
+to the code, which is the failure A5.5 exists to name, committed in the document that enforces A5.5.
+
+This is the wall the executor hit. It does not excuse the response: §12.5 requires reporting the
+contradiction and stopping, and substituting `tasks[0]` silently is what standing rule 7 now forbids.
+But the criterion asked for something unbuildable, and that belongs on the record beside correction 24.
+
+#### A13.2 The corrected row-3 contract
+
+Row 3 answers the question the evidence supports, and returns the absence value for the one it does
+not. **This is a capability, not a reduced one:** it separates *"nothing has happened in this bundle"*
+from *"work has happened here and was never recorded"*, which is precisely the adoption case A11.5
+named — while refusing to guess which task.
+
+| Field | Row 3 value | Derived from |
+|---|---|---|
+| `state` | `in-progress` when the bundle's `ObservedWriteScope` intersects the repository's changed files; `idle` when it does not | `observedWriteScopeContains` (`scope.ts:91`) against `collectObservedDrift`'s changed set (`grace-status.ts:369`) |
+| `task` | **the absence value, with reason** — never a task id | nothing in the model maps files to tasks (A13.1) |
+| `epoch` | absent | no fold has occurred |
+| `complete` | set when `--assertion-mode target` evaluates the plan's `TargetAssertions` clean | existing assertion machinery |
+
+`tasks[0]` is deleted. Reporting the first task as the position is a confident false position (A12.1)
+and there is no evidence for it at any granularity.
+
+**The discriminating test** — the one whose absence made correction 24 invisible — constructs a bundle
+whose `ObservedWriteScope` files are genuinely modified, and asserts `state` is `in-progress` while
+`task` carries the absence value. A second constructs an untouched bundle and asserts `idle`. If the
+row-3 branch is reverted, both must fail; that is the §0.7.2 evidence the phase owes.
+
+**No commands are run.** Per-task `Verification/Command` would give task granularity and is rejected:
+it requires execution, `MustPassCommand` is deliberately skipped under default lint (A5.2), and §0.2
+forbids tests that depend on an external toolchain. `cursor show` stays cheap and deterministic.
+
+#### A13.3 `AC-REGENERATE-SOURCES` is amended, not reinterpreted
+
+The criterion in `.ngrace/changes/active/C-RUN-LEDGER/spec.xml` is rewritten to A13.2 and cites this
+entry, per A5.6. A criterion discovered to be unbuildable is corrected in the spec — never satisfied by
+quietly redefining it in the diff, which is how correction 24 happened.
+
+### A14 — 2026-07-30 · Second review gate: absence reasoning applied one field short
+
+Reviewed at `f7de98e`, against the code. **A12 and A13 were satisfied**, verified independently:
+
+- `tasks[0]` is deleted; `deriveRow3Position` (`grace-cursor.ts:482-521`) implements A13.2 — state from
+  `observedWriteScopeContains`, `taskAbsence` carrying verdict and reason, `epoch` absent, `complete`
+  from target-mode assertions
+- all twelve codes appear in `grace-lint.test.ts`, three occurrences each; suite 665 pass / 0 fail
+- the probe artifact exists (`/tmp/ngrace-phase3-probe/probe.ts`, 10.7 KB) — last round the scratchpad
+  was empty, which is how its absence was known
+- the compat sweep is measured, and its dogfood row reproduces: 0 errors, 11 warnings
+- the mutation table's row-3 revert fails three tests — the discriminating negative whose absence made
+  correction 24 invisible
+
+Two defects remain, and they share a shape worth naming.
+
+#### A14.1 Correction 27 — `state: "idle"` is asserted where nothing was checked
+
+`deriveRow3Position:493-497` initializes `state = "idle"` and refines it only under
+`if (available && scope)`. Two paths reach the default having looked at nothing:
+
+| Path | Cause |
+|---|---|
+| `available === false` | `listRepositoryChangedFiles` returns it whenever git exits non-zero (`:539-541`) |
+| `scope === undefined` | `collectActiveChangeScopes` reads **only** `changesActiveDir` (`scope.ts:199-202`), so **every archived bundle** takes this path, and `showCursor` does not refuse archived bundles |
+
+In both, `idle` asserts *"no work has happened in this bundle"* when the mechanism never looked. That
+is correction 24's shape, and the second path is reachable in ordinary use.
+
+Neither path has a test; the two row-3 tests cover `in-progress` and `idle` only.
+
+#### A14.2 Correction 28 — `complete` collapses "could not check" into `false`, and reports `true` on unevaluated evidence
+
+`targetAssertionsClean` (`grace-cursor.ts:567-574`) returns a bare boolean, both directions wrong:
+
+- It passes `runCommands: false`, so `MustPassCommand` and `MustPassBudget` are skipped — the mechanism
+  A5.2 documented. **`Complete: yes` can therefore print while command-gated evidence was never
+  produced.** That is precisely what `assertion.command-not-evaluated` exists to say.
+- A change that cannot be resolved emits `assertion.change-not-approved`, which matches the
+  `assertion.` prefix filter and lands as `complete: false` — conflating *"target not reached"* with
+  *"target not evaluable"*.
+
+`formatCursorPosition:587` already renders `undefined` as `n/a`, so the type carries the third value
+and nothing ever sets it.
+
+#### A14.3 The shape the two share
+
+**A two-valued answer where absence is the honest third value — inside the phase whose subject is
+absence values.** `deriveRow3Position` builds `taskAbsence` correctly for the task field and then does
+not apply the same reasoning one field over; `AbsenceValue` is already in the file. The fix is a
+`stateAbsence` on both unchecked paths and a three-valued `complete`.
+
+This is D5 turned on the phase that implements D5. Recorded that way because the recurrence is the
+point: knowing the rule and applying it to the field you were thinking about are different things.
+
+#### A14.4 The mutation check covers two changes, not the phase
+
+§0.7.2 asks for each production change, reverted alone. The table has two rows against a production
+diff spanning `grammar.ts` (+393), `grace-cursor.ts` (+930 then +156), `catalog.ts` (+97),
+`artifact/types.ts` (+34) and `grace-status.ts` (+51). Commit 1's surface has never been
+mutation-checked — the first round omitted the audit entirely and the second did not backfill it.
+
+#### A14.5 18/18 PASS means the probe was aimed at what already works
+
+§0.7.3 asks for at least fifteen inputs **not in the phase's case table**. At least six of the eighteen
+are the case table re-run: `notes.xml` (`grammar.test.ts:655`), range-hole and range-unterminated (unit
+tests), interrupted fold (AC-FOLD-ORDERING), absent cursor and unknown task (AC-CURSOR-CONDITIONAL rows
+1–2), garbage under `run/` (`grammar.test.ts:677`). Re-running the case table through the public entry
+point is *one of six* categories, not the probe.
+
+Phase 2's probe found the `START_MODULE_CONTRACTX` over-match. §0.7.6 exists because probes are
+expected to find things. Corrections 27 and 28 were found by reading the one function this round was
+about — which is what a probe pointed at new ground would have covered.
+
+#### A14.6 Standing rule 8 — an audit reports its artifact, and enumerated inputs declare their ground
+
+**Normative for Phases 2–11.** Two additions to §0.5's self-review block:
+
+1. **Every audit names the artifact it produced and its path** — the mutation table, the probe script,
+   the captured sweep output. Across these two rounds the artifact was decisive twice: an empty
+   scratchpad proved no probe ran, and a 10.7 KB script proved one did. An audit that leaves nothing
+   behind cannot be distinguished from an audit that was described.
+2. **Where an audit enumerates inputs, each row is marked `new` or `case-table`**, and the count of
+   `new` rows is what §0.7.3's fifteen-input floor is measured against. Six of eighteen rows being
+   re-runs was invisible until someone cross-referenced them by hand.
+
+This is the legibility sibling of standing rule 6. Rule 6 says the self-review has no short form; rule
+8 makes a short form detectable without re-deriving it.
+
+### A15 — 2026-07-30 · Third gate: corrections 27–28 satisfied, and what the three rounds measured
+
+Reviewed at `88f5494`, against the code. **A14's corrections are correctly built:**
+
+- `deriveRow3Position:507-518` uses `state: CursorState | undefined` with a `stateAbsence`, and the two
+  paths carry **distinct reasons** — git-unavailable and archived-bundle — rather than one collapsed
+  string
+- `evaluateTargetComplete:571-593` returns `{ complete?, completeAbsence? }`, with `not-run` for the
+  skipped-command case, which is the honest reading of A5.2's skip
+- suite 671 pass / 0 fail
+
+**Standing rule 8 worked on its first outing.** All four cited artifacts exist on disk
+(`mutation-results.tsv`, `a14-probe.ts`, `a14-probe-results.tsv`, `compat-sweep.txt`). This is the first
+round in which an audit could be confirmed to have run without reconstructing it by hand. The mutation
+table now spans both commits at fifteen rows and **discloses a genuine zero-failure finding** — the fold
+membership, hole and unterminated reverts failed nothing until two refuse-before-write negatives were
+added. That is §0.7.2 performed as written rather than described.
+
+Two corrections remain, both small, and one of them is partly to the executor's credit.
+
+#### A15.1 Correction 29 — the write-surface check does not pin deletions
+
+§3.5.8 and `AC-WRITE-SURFACE` grep for `writeFileSync|mkdirSync`. Nothing anywhere pins destructive
+operations. Measured at `88f5494`:
+
+```
+src/grace-cursor.ts:374        unlinkSync(contained.absolutePath)      ← fold's delete
+src/lint/adapters/dart.ts:206  rmSync(temporaryDirectory, …)           ← temp cleanup
+```
+
+**Phase 3 introduces the first destructive operation into the tree** — the spec calls `fold` "the
+phase's one destructive operation" — and the check guarding invariant 8 has a hole exactly where this
+phase adds risk. Extend the grep to `unlinkSync|rmSync|rmdirSync` and pin the post-state as the two
+lines above.
+
+The gap surfaced because the executor's off-spec grep included `unlinkSync`, which the documented
+pattern structurally cannot. It was filed inside a field where it read as noncompliance rather than as
+a finding; it is the latter.
+
+#### A15.2 Correction 30 — Windows CI runs a hardcoded file list, and this phase is outside it
+
+`.github/workflows/validate.yml:32` runs a `windows-latest` job on every PR. It runs a **fixed list**:
+
+| Suite | Runs on Windows? |
+|---|---|
+| `src/grace-lint.test.ts`, `src/grace-status.test.ts` | yes, via `validate:cli` |
+| `src/grace-cursor.test.ts` — the 930-line write surface | **no** |
+| `src/artifact/grammar.test.ts` — both new validators | **no** |
+
+The production code appears Windows-safe by construction: the one forward-slash build
+(`grace-cursor.ts`, `${runDirRel}/${filename}`) is the *authored* form, which
+`normalizeProjectRelativePath` canonicalizes (`paths.ts:63`) and `paths.ts:104` re-splits and rejoins
+with the platform separator. The spec's constraint that every authored path route through
+`resolveContainedProjectPath` is what makes that hold. So this is a coverage gap, not a known break.
+
+Adding the phase's two suites to that list is Phase 3's own hygiene and lands in this phase.
+**Replacing the hardcoded list** with something that cannot drift — a new module's tests silently miss
+Windows coverage and every existing test still passes, which is anti-pattern 5 sitting in CI config —
+is an inherited defect. It gets its own `C-*`, not a fold-in.
+
+#### A15.3 The verbatim field, three rounds running
+
+`AC-WRITE-SURFACE` and §3.5.8 require the grep output **verbatim**. A12 flagged paraphrase in round 2.
+At `88f5494` the field is still not command output: it includes `src/artifact/test-fixtures.ts:1,:9`
+(which `grep -v test` excludes) and two `unlinkSync` lines (which the pattern does not match), and omits
+four `mkdirSync` lines (`grace-graph.ts:289`, `grace-cursor.ts:5`, `:200`, `:899`).
+
+The substance is correct — the write surface was verified independently. No new rule is added: the
+requirement already exists and was already flagged. It is recorded here as evidence for A15.4.
+
+#### A15.4 What three rounds measured, and what Phase 6 should build first
+
+**Recorded for Phase 6 — "Detached reviewer & mechanized audits" — as design input, not scheduled work.**
+
+Sorting every finding from the three review rounds by whether a report schema plus **re-execution**
+could have caught it:
+
+| Round | Finding | Machine-detectable? |
+|---|---|---|
+| 1 | Two §0.7 audits missing | yes — required fields |
+| 1 | Compat sweep given as a claim | yes — schema demands rows |
+| 1 | Write-surface field paraphrased | yes — re-run and diff |
+| 1 | Twelve codes, zero integration tests (25) | yes — grep the CLI suites per declared code |
+| 1 | **Row 3 not built (24)** | **no — needed a reader** |
+| 2 | Mutation table covers 2 of ~6 changed files | yes — compare against git's changed set |
+| 2 | Six of eighteen probe rows were case-table re-runs | yes, once tagged (rule 8) |
+| 2 | **`state: idle` asserted unchecked (27)** | **no** |
+| 2 | **`complete` two-valued (28)** | **no** |
+| 3 | Windows list omits the phase's suites (30) | yes — compare suite list to workflow list |
+| 3 | Verbatim field, third occurrence | yes — re-run and diff |
+| 3 | **Delete surface unpinned (29)** | **no** |
+
+Nine of twelve are machine-detectable — and the split is not random. **Every machine-detectable finding
+is process compliance; every reader-required finding is a semantic defect in the code.** Corrections
+24, 27, 28 and 29 are the four that changed what the software does, and no schema would have found any
+of them.
+
+So Phase 6's priority follows from the measurement: **the report schema and the re-execution harness
+first**, because they retire two-thirds of the findings — the two-thirds that consumed the most review
+turns for the least insight — and leave the reader's attention for the third that actually needs it.
+Mechanizing the semantic audits is a later and much harder problem; it should not be attempted first
+merely because it sounds more valuable.
+
+Two design constraints fall out of the same evidence:
+
+1. **Fields the executor computes are weak; fields the tool recomputes are strong.** The strongest
+   single data point in this phase is a controlled comparison inside one round: standing rule 8 — a
+   *structural* requirement, verifiable by `ls` — changed behaviour immediately and the artifacts were
+   real. The verbatim requirement — *prose*, unchecked — failed three rounds running. Prefer recomputed
+   fields everywhere they are possible.
+2. **The report format needs absence values (D5).** A field the executor could not produce is `not-run`
+   with a reason, never omitted and never fabricated. Otherwise structure converts omission into hollow
+   compliance: the round-2 probe satisfied "≥15 inputs" numerically while a third of it was case-table
+   re-runs, and both probe rounds returned 100% pass. A schema makes skipping impossible and
+   box-ticking easier, and only re-execution closes that gap.
+
+### A16 — 2026-07-30 · Corrections 29–30 cleared; one verification remains unobserved
+
+Reviewed at `88ead8d`. **No outstanding findings against the code.**
+
+- **Correction 29 satisfied.** The delete surface is pinned precisely: the new test filters grep output
+  to actual call sites and asserts `toEqual` against exactly `grace-cursor.ts:374` and
+  `dart.ts:206`, plus a negative on `rmdirSync`. Drift in either direction fails.
+- **Correction 30 satisfied.** `validate.yml:52` now runs `src/grace-cursor.test.ts` and
+  `src/artifact/grammar.test.ts` on `windows-latest`. The hardcoded-list defect was correctly left
+  alone as inherited (A15.2).
+- **Both greps are verbatim.** Re-run independently; content matches line for line — twelve and four.
+  Ordering differs, which is grep traversal, not editing. The delete surface was filed as its own line
+  item rather than folded into the write-surface field, which is what A15.1 asked for.
+- Suite 669 pass + 3 skip = 672 total, one more than the previous round.
+
+#### A16.1 The scope audit understated a change in the executor's favour
+
+The report says *"Test deletions: none (additive only)."* One test was **replaced**, with a much
+stronger form. The old `it("only grace-graph, grace-cursor, and dart adapter write")` read
+`grace-cursor.ts` and asserted the file *contains* the strings `"writeFileSync"` and `"mkdirSync"` —
+which passes for any file that merely mentions them. It was near-vacuous. The replacement runs the real
+grep and constrains every returned line.
+
+§0.7.1's presumption against weakening is therefore not triggered. But "none" is the wrong word:
+replacing a vacuous assertion with a real one is precisely what a reviewer wants named, and the same
+sentence would have covered a weakening had one occurred.
+
+#### A16.2 The one thing nobody has observed
+
+**Phase 3 is not `COMPLETE` yet, and the reason is a single unrun check.**
+
+The two new pin tests shell out to `bash -lc` with `grep`, and the same round added their file to the
+Windows job. Two changes that interact, neither verifiable from macOS. `windows-latest` ships Git Bash
+on PATH, the grep paths use forward slashes, and the `startsWith("src/…")` assertions should hold — so
+it will probably pass. **Probably is not observed.** `expect(result.exitCode).toBe(0)` fails hard if
+`bash` does not resolve in that context.
+
+Per §15 — *"if you find yourself about to write 'verified' next to something you inferred, that is the
+moment the whole track is about"* — the status stays `READY FOR REVIEW` until the Windows job has
+actually run. §0.6's legend has no value meaning "done pending CI", and inventing one to cover an
+unobserved result would be this track's own failure at the last step.
+
+If the job goes red, the fix is to have the pin tests read the filesystem directly instead of shelling
+out — more portable, and it removes a shell dependency from a test that exists to pin a shell command's
+output.
+
+#### A16.3 Observed 2026-07-31 — the Windows job is green, and the real hazard was a different one
+
+**The `windows-latest` job ran on PR #22 and passed.** `bash` resolves, the grep paths hold, and both
+pin tests pass on Windows. Phase 3 is `COMPLETE`.
+
+The risk A16.2 named was not the risk that nearly bit. Merging `main` produced a conflict in exactly
+this workflow line, because `9cf1ffd` (#21) had landed independently: the Windows and Dart shards
+invoked `bun test` directly, **bypassing `--timeout=30000`** and running at Bun's 5000 ms default. Its
+evidence — a cold Windows runner spawning Python took 6088 ms and failed an unrelated PR.
+
+Neither side of that conflict was correct alone, and **taking this branch's side would have been
+actively wrong**: it would have reverted the timeout fix onto the two files most exposed to it — the
+fold and concurrent-append tests, plus two pin tests that spawn `bash` and `grep`. Process spawn
+latency on a cold runner is precisely what #21 measured. The failure would have read as "the new tests
+are broken" rather than "the shard lost its timeout." Resolved by taking both (`b4045c1`).
+
+Recorded because the inference in A16.2 was sound and still aimed at the wrong thing. The check was
+worth holding the status for; what it caught was not what it was watching for. That is an argument for
+running the check rather than for predicting its outcome better.
+
+#### A16.4 Outstanding, and not Phase 3's to decide alone: the bundle cannot archive as it stands
+
+`.ngrace/changes/active/C-RUN-LEDGER/` contains **`spec.xml` only**. The Phase 2 precedent,
+`archive/C-ABSENCE-VALUE/`, carries both `spec.xml` and `plan.xml`. Phase 3 executed against this
+document's §3 and its amendments rather than against a bundle `plan.xml`, so none was ever authored.
+
+Two consequences:
+
+1. **Archiving is blocked.** `change.applied-plan-missing` (`grammar.ts:1082-1084`) errors on an
+   archived bundle whose spec is `applied` without an `applied` plan. Setting the spec to `applied` and
+   moving the directory would fail this repository's own lint.
+2. **Leaving it in `active/` is also wrong.** Measured at close-out, `ngrace status --path .` reports
+   `C-RUN-LEDGER [active] spec=approved plan=missing states=needs-plan`, and `nextAction` sends the
+   reader to `$ngrace-plan`. The repository's own status surface asks for a plan for work that is
+   finished — the toolkit misreporting its own state, in the track about not doing that.
+
+Do not resolve this by authoring a retrospective `plan.xml` to satisfy the check — that is a record of
+work that did not happen the way the record would claim. The honest options are to write the bundle
+plan before the next phase and treat spec-only bundles as a lifecycle gap to close deliberately, or to
+decide that plan-level phases drive execution and the bundle grammar should permit a spec-only applied
+bundle. **This is a decision, not a cleanup**, and it belongs with whoever owns the archive precondition
+still unowned from A10.10 §1.
+
+### A17 — 2026-07-31 · A16.4 answered: bundles carry a plan, and this one records why it did not
+
+**Decided by the maintainer.** Change bundles carry a `plan.xml` authored **before** execution. Phase 3
+is a recorded exception, not a precedent.
+
+#### A17.1 The exception is written into the artifact, not only into this document
+
+`C-RUN-LEDGER/plan.xml` was authored at close-out on 2026-07-31 and states so in two places: an XML
+comment at the top for the reader who scans, and the `IntentSummary` for durability. **Both are
+required, because the parser discards comments** — verified: a document with `<!-- … -->` parses with
+zero issues and the comment absent from `root.children`. A comment-only record would be invisible to
+every tool from the moment it was written.
+
+The task breakdown is the real commit sequence — T-001 through T-005 map to `e412025`, `77fa9aa`,
+`f7de98e`, `88f5494` and `88ead8d` — so the plan describes work that happened rather than work that was
+imagined. That is what makes writing it after the fact honest: **the objection was never to a
+retrospective plan, it was to one that implied it had guided the work.** The label is the fix; omission
+was not.
+
+The bundle is now `applied` and archived, and `ngrace status` reports
+`C-RUN-LEDGER [archive] spec=applied plan=applied tasks=5 states=none`.
+
+#### A17.2 This was an ignored signal, not a missing check
+
+`ngrace status` reported `states=needs-plan` on this bundle **continuously from the moment the spec was
+approved**, and `nextAction` pointed at `$ngrace-plan` the entire time. The detection was correct and
+was walked past — through four review rounds, by the executor and by review alike.
+
+So the prevention is not another check. It is making that signal **blocking instead of informational**,
+which has an owner: **Phase 5's transition surface** (D11, D14 — gates declare what they require). A
+gate refusing `applied` without a plan is precisely the shape Phase 5 exists to express. Recorded as a
+named obligation on Phase 5 rather than a good intention, in the A7.4 form.
+
+Note the family this belongs to. A5.3 collected three defects where a value was dropped by an
+allowlist and *nothing errored*; A15.4 found that every machine-detectable finding on this track was
+process compliance. This is a third variant: **a correct, continuous, non-blocking signal is
+functionally equivalent to no signal.** Worth carrying into Phase 6's design alongside A15.4 — a
+mechanized reviewer that reports without gating would reproduce exactly this.
+
+#### A17.3 Until Phase 5 ships, the discipline is manual
+
+**Phase 4 authors its bundle `plan.xml` before execution**, together with the spec. No phase after this
+one may reach `READY FOR REVIEW` with a spec-only bundle. The archive precondition from A10.10 §1 — "no
+open epoch" — should be settled in the same Phase 5 work, since both govern what a bundle must look
+like to leave `active/`.
 
 ---
 

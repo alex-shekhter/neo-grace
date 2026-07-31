@@ -12,6 +12,9 @@
         <M-STATUS />
         <M-DOCTOR />
         <M-SKILLS />
+        <M-CURSOR />
+        <M-ARTIFACT-TYPES />
+        <M-CLI />
       </Owns>
     </GD-MAIN>
   </GraphDocuments>

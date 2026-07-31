@@ -407,6 +407,91 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     explanation: `${ARTIFACT_TAG_PREFIX}Technology may contain at most one <Stacks> element.`,
     remediation: ["Merge stack declarations under a single <Stacks>."],
   },
+  // --- Run ledger / cursor (Phase 3, A11.3). All defects; never issueClass "absence". ---
+  "ledger.invalid-root-tag": {
+    title: "Invalid Run Ledger Root Tag",
+    explanation: `run-ledger.xml must use root tag ${ARTIFACT_TAG_PREFIX}RunLedger with graceVersion="1.0".`,
+    remediation: ["Rewrite the ledger with the canonical root tag, or regenerate via ngrace cursor fold."],
+    derivedFrom: "Malformed companion artifact admitted by the bundle filename allowlist without a root-tag check.",
+    proposedBy: "unthreaded-construct",
+  },
+  "ledger.invalid-change-id": {
+    title: "Invalid Run Ledger Change Identity",
+    explanation: "run-ledger.xml must declare exactly one canonical C-* wrapper matching its bundle.",
+    remediation: ["Use a single C-* wrapper under the root.", "Do not hand-author ledgers; use ngrace cursor fold."],
+    derivedFrom: "Machine-written companion missing required bundle identity.",
+    proposedBy: "unthreaded-construct",
+  },
+  "ledger.bundle-id-mismatch": {
+    title: "Run Ledger Bundle Identity Mismatch",
+    explanation: "run-ledger.xml identity disagrees with its bundle directory. Cross-bundle attribution of non-recoverable records is the worst corruption this surface can produce.",
+    remediation: ["Move or rewrite the ledger so its C-* wrapper matches the directory name.", "Never copy run-ledger.xml between bundles."],
+    derivedFrom: "Task IDs collide across bundles; only bundle identity catches a copied ledger (A11.4).",
+    proposedBy: "unthreaded-construct",
+  },
+  "ledger.non-monotonic-epoch": {
+    title: "Non-Monotonic Ledger Epoch",
+    explanation: "Epoch-N section numbers must be strictly increasing and never repeated.",
+    remediation: ["Append only at epoch close.", "Do not renumber or duplicate Epoch-N sections."],
+    derivedFrom: "Append-only ledger contract; renumbering would hide concurrent-allocation history (D3).",
+    proposedBy: "zero-or-more-swallow",
+  },
+  "ledger.reordered-epoch": {
+    title: "Reordered Or Malformed Ledger Epoch",
+    explanation: "An epoch was renumbered, moved relative to its predecessor, or uses a malformed Epoch-* tag.",
+    remediation: ["Keep epoch order append-only.", "Use Epoch-N with N >= 1 only."],
+    derivedFrom: "Reorder or renumber would manufacture a total order that did not happen (D3).",
+    proposedBy: "zero-or-more-swallow",
+  },
+  "ledger.event-outside-allocation": {
+    title: "Ledger Event Outside Allocation",
+    explanation: "An event id falls in no worker RangeAllocation — D2's rogue-writer detection.",
+    remediation: ["Allocate a range before concurrent work.", "Drop or re-id rogue events before fold."],
+    derivedFrom: "Pre-allocated disjoint ranges make collision and rogue writers detectable without clocks (D2).",
+    proposedBy: "zero-or-more-swallow",
+  },
+  "ledger.range-hole": {
+    title: "Ledger Range Hole",
+    explanation: "A used allocation range is not dense from its start up to the highest used id.",
+    remediation: ["Recover missing event files before fold.", "Do not skip ids inside a used range."],
+    derivedFrom: "Density is how D2 detects lost events that timestamps cannot.",
+    proposedBy: "zero-or-more-swallow",
+  },
+  "ledger.range-unterminated": {
+    title: "Ledger Range Unterminated",
+    explanation: "A used allocation range has no terminal event, so the worker may have died mid-flight.",
+    remediation: ["Emit a terminal event for each used range before fold.", "Mark the epoch incomplete if the worker is gone."],
+    derivedFrom: "A used range with no terminal event is a mid-flight death; silent success would be confidently wrong (D2).",
+    proposedBy: "confidently-wrong",
+  },
+  "cursor.invalid-root-tag": {
+    title: "Invalid Run Cursor Root Tag",
+    explanation: `run.xml must use root tag ${ARTIFACT_TAG_PREFIX}RunCursor with graceVersion="1.0".`,
+    remediation: ["Regenerate the cursor with ngrace cursor regenerate --apply.", "Do not hand-author run.xml."],
+    derivedFrom: "Malformed companion cache admitted by the bundle filename allowlist.",
+    proposedBy: "unthreaded-construct",
+  },
+  "cursor.invalid-change-id": {
+    title: "Invalid Run Cursor Change Identity",
+    explanation: "run.xml must declare exactly one canonical C-* wrapper.",
+    remediation: ["Regenerate the cursor.", "Ensure the wrapper matches the bundle directory."],
+    derivedFrom: "Required identity on machine-written companions (A11.4).",
+    proposedBy: "unthreaded-construct",
+  },
+  "cursor.bundle-id-mismatch": {
+    title: "Run Cursor Bundle Identity Mismatch",
+    explanation: "run.xml identity disagrees with its bundle directory. Task ids collide across bundles, so unknown-task alone cannot catch a copied cursor.",
+    remediation: ["Delete or regenerate the cursor for this bundle.", "Never copy run.xml between bundles."],
+    derivedFrom: "Cross-bundle cursor copy validates clean under task-id collision (A11.4).",
+    proposedBy: "unthreaded-construct",
+  },
+  "cursor.unknown-task": {
+    title: "Run Cursor Names Unknown Task",
+    explanation: "run.xml names a T-* task absent from this bundle's plan.xml (D1 referential integrity).",
+    remediation: ["Regenerate the cursor from the ledger and plan.", "Do not advance past tasks not in the plan."],
+    derivedFrom: "Present-but-inconsistent cursor is an error; absent cursor is silent (D1).",
+    proposedBy: "unthreaded-construct",
+  },
 };
 
 const PREFIX_GUIDES: Array<{ prefix: string; title: string; explanation: string; remediation: string[] }> = [
@@ -481,6 +566,18 @@ const PREFIX_GUIDES: Array<{ prefix: string; title: string; explanation: string;
     title: "Export Surface Analysis Warning",
     explanation: "The language adapter could not prove the exact export surface or detected a shape that weakens precise linting.",
     remediation: ["Prefer clearer export declarations or explicit ROLE/MAP_MODE overrides when necessary.", "Treat heuristic or wildcard-export warnings as cues to simplify or document the file surface."],
+  },
+  {
+    prefix: "ledger.",
+    title: "Run Ledger Issue",
+    explanation: "A run-ledger.xml companion violates epoch ordering, range allocation, or identity rules.",
+    remediation: ["Fold only after ranges are dense and terminated.", "Do not renumber epochs or hand-edit the ledger."],
+  },
+  {
+    prefix: "cursor.",
+    title: "Run Cursor Issue",
+    explanation: "A run.xml cursor cache is malformed, identity-mismatched, or names a task absent from the plan.",
+    remediation: ["Regenerate with ngrace cursor regenerate --apply.", "Treat the cursor as a cache, never as authority."],
   },
 ];
 

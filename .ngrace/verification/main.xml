@@ -45,5 +45,20 @@
       <Scenario>Canonical skills/ngrace tree stays path-safe and byte-synced with the packaged plugin mirror.</Scenario>
       <TraceAssertion>validate-marketplace compares each listed skill directory recursively.</TraceAssertion>
     </V-M-SKILLS>
+    <V-M-CURSOR>
+      <Command>bun test src/grace-cursor.test.ts</Command>
+      <Scenario>Cursor show is non-writing; fold is write-verify-delete; regenerate is dry-run by default.</Scenario>
+      <TraceAssertion>grace-cursor unit tests cover fold ordering, concurrent ranges, and recovery.</TraceAssertion>
+    </V-M-CURSOR>
+    <V-M-ARTIFACT-TYPES>
+      <Command>bun test src/artifact/grammar.test.ts</Command>
+      <Scenario>Companion registry and ledger/cursor root tags stay load-bearing with validators.</Scenario>
+      <TraceAssertion>grammar tests admit run-ledger.xml and run.xml only through the derived allowlist.</TraceAssertion>
+    </V-M-ARTIFACT-TYPES>
+    <V-M-CLI>
+      <Command>bun test src/grace-cursor.test.ts</Command>
+      <Scenario>ngrace cursor subcommand is registered on the CLI entry surface.</Scenario>
+      <TraceAssertion>cursor command module is imported from grace.ts and exercised by unit tests.</TraceAssertion>
+    </V-M-CLI>
   </VD-MAIN>
 </NgraceVerificationDocument>
