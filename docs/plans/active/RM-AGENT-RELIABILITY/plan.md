@@ -3904,6 +3904,32 @@ code. It does **not** become `COMPLETE` on that alone:
    `archive/`, with `ngrace status` reporting it there. No open epoch exists in this repository's own
    tree, so A10.10 §1's precondition is trivially met.
 
+### A22 — 2026-07-31 · Correction 44 verified; the phase now waits on CI, not on review
+
+Verified at `af53b10`, against the code. **No outstanding findings.**
+
+- Correction 44 is built at the right layer: `computeWriteEvidence` returns `available: false` with a
+  HEAD-specific reason before the digest is composed, so the failed measurement never reaches it.
+  The A21 probe, re-run unchanged, now reports `digest: undefined  available: false` and
+  `unable-to-determine` where it previously reported a confident `flaky`
+- its test is discriminating rather than decorative — it asserts both `writeEvidence` **undefined** and
+  the `unable-to-determine` verdict, so restoring the `?? ""` fold fails it
+- A21.2's boundary is in the criterion (`spec.xml:224`), where Phase 7 will find it
+- measured independently: `validate:ci` exit 0, 690 tests / 0 fail, `ngrace lint --path .` 0 errors /
+  11 warnings, working tree clean, no repository-root `scratchpad/`
+- `af53b10` carries the bundle with the implementation, so the record and the code land together
+
+**Status stays `READY FOR REVIEW`** per A21.4, and the reason is A16.2's: the Windows job has not run,
+and this phase puts a new `git rev-parse` subprocess on the status suite's path there. When it is
+green, append the observation to this entry — as A16.3 did — then close the bundle to `applied` and
+`archive/`, and only then set the board to `COMPLETE`.
+
+One observation for whoever builds Phase 7, recorded rather than raised: `classifyFlake` collapses the
+three distinct write-evidence-unavailable causes into one disjunctive reason. The sentence is honest —
+it names the possibilities rather than asserting one — but the specific reason is computed and then
+discarded at record time. If the calibration or localization work wants to tell those cases apart, that
+is where to change it.
+
 ---
 
 ## 15. Final instruction to the executor
