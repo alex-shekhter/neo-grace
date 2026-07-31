@@ -4054,7 +4054,7 @@ Measured at `1216e00`. **Corrections 43 and 44 are fixed**, re-verified by drivi
 `resume --task T-002` leaves `State: paused-pending-approval`, and after `T-002`'s terminal closes the
 range and the epoch folds, both `run.xml` and `cursor show` still report it.
 
-The room fix is the right one. `deriveStateFromEvents` (`:215`) now keys unresolved escalations by task,
+The room fix is the right one. `deriveStateFromEvents` (`:217`) now keys unresolved escalations by task,
 `resume` deletes only its own key, and non-resolvers update `lastNonSticky` again — so the swallow the
 previous shape introduced is gone as a consequence of the design rather than as another patch. The
 mutation table's two zero rows (M4, M5) were reported **as findings rather than presented as passes**,
