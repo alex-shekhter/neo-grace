@@ -3947,6 +3947,107 @@ every value a function can return and asks which of them mean "unknown", then ch
 comparison treats those as data.** For `digestProjectFile` that is a three-line inspection with an
 unambiguous answer, and it would have caught 42 before the tests were written.
 
+### A22 — 2026-07-31 · Third Phase 4 gate: the sticky escalation is bundle-wide, and the fold still erases it
+
+Measured at `e53e914`. **Corrections 41 and 42 are fixed for the case they were reported in**, verified
+by re-driving the CLI rather than by reading the report: after escalation a `verification-unavailable`
+now leaves `State: paused-pending-approval`, and `resume` clears it. The unknown-value audit was
+delivered in the form A21.3 asked for, `FileContentEvidence` replaces the magic strings with a modelled
+`undetermined` carrying an `AbsenceValue`, and the fixture-position column on the mutation table is
+exactly the right addition — it makes the "necessary but not sufficient" property visible per row
+instead of as a footnote.
+
+Two corrections follow. Both are the escalation escaping again, and both were found by driving the CLI
+with **two tasks** and with a **fold** — the two states the fixtures still do not reach.
+
+#### A22.1 Correction 43 — an unrelated task's `resume` clears another task's escalation
+
+`deriveStateFromEvents` (`:215-247`) walks the event stream and tracks **one** `unresolvedEscalation`
+flag for the whole bundle. It is not task-scoped. Escalation is per task — the budget counts
+`countTaskAttemptEvents(accounting, task)` — so a per-task fact is being held in a bundle-level
+variable.
+
+Reproduced through the shipped CLI:
+
+```
+--- T-001 escalates ---
+Budget exhausted for T-001 after 2 attempts — paused-pending-approval (replan decision owed; …)
+State: paused-pending-approval
+--- sanity: VU on T-001 keeps it sticky ---
+State: paused-pending-approval
+--- now an UNRELATED task T-002 resumes ---
+State: in-progress
+```
+
+`resume --task T-002` resolved an escalation owed on `T-001`. Correction 41 closed the door where any
+event cleared the escalation; this is the same escape through the door marked *resolver*, and in a
+parallel wave — the thing epochs, allocations and waves exist for — it is the ordinary case rather than
+an edge one.
+
+The converse is wrong too, and follows from the same line: while the flag is set, every other task's
+events are skipped (`// Non-resolvers leave the escalation sticky; do not apply their kind map`), so a
+bundle where `T-002` is progressing normally reports `paused-pending-approval` for work that is not
+blocked.
+
+**Fix:** track unresolved escalations as a **set keyed by task**. `resume --task X` removes only `X`.
+The bundle-level state is `paused-pending-approval` while that set is non-empty, and otherwise derives
+from the last non-sticky event as it does now. That keeps `CursorPosition` single-valued — no widening,
+no A5.4 inventory — while making the aggregate honest about what it is aggregating.
+
+#### A22.2 Correction 44 — the fold writes `state: "idle"` over an unresolved escalation, and `show` believes it
+
+`foldEpoch` still writes a literal (`:597`):
+
+```js
+state: "idle",
+sources: { epoch: "ledger", task: "ledger", state: "ledger" },
+```
+
+Every other write path in the phase now derives (`:433`, `:1067`, `:1117` all call
+`positionStateFromBundle`). The fold does not. And because `showCursor` prefers the written cursor and
+takes its `State` verbatim once it parses (`:648`, `:661-662`), the erasure is what every reader sees:
+
+```
+--- escalated; now T-002 terminal closes the range, then fold ---
+Fold applied / Events: 5
+--- written run.xml State ---
+<State>idle</State>
+--- cursor show after fold ---
+State: idle
+Task: T-002
+```
+
+An unresolved escalation, gone from the position entirely. The ledger still holds the escalation event,
+so `regenerate` would recover it — but nothing on the default read path looks, and `sources` claims
+`state=ledger` for a value the ledger does not support.
+
+**The reason this survived two rounds is a justification I accepted.** A19.2's inventory marked
+post-fold idle *"deliberately unchanged (A18.5 §2); escalated epochs do not fold"*, and I passed it in
+A20 — while writing, in A20.1 of the same round, that the allocation's terminal requirement "is
+per-range, not per-task, so this is an ordinary multi-task wave". Those two statements contradict, and I
+held both. **Escalated epochs fold whenever any other task in the range terminates.** Recording it
+plainly because the inventory did its job and the review did not: A5.4 surfaced the row, and I read the
+row and did not connect it to a fact I had just written three paragraphs earlier.
+
+**Fix:** the fold derives like every other write path. It is one line, and the general rule is worth
+keeping — *no write path composes a `CursorPosition` from literals once a shared derivation exists*,
+because the literal silently stops tracking the derivation the moment either changes.
+
+#### A22.3 Both are the same root, and it is now named
+
+Corrections 41, 43 and 44 are three doors into one room: **escalation is a per-task fact that this
+phase stores and reads at bundle granularity.** 41 was "any event clears it", 43 is "any task's resume
+clears it", 44 is "the fold overwrites it". Each fix closed a door rather than the room.
+
+The room is the mismatch. Once escalations are a per-task set and every write path derives, all three
+doors close together, and the next one — whatever it is — has nowhere to open onto.
+
+This is the fourth Phase 4 defect class found only by reaching a state no fixture reaches: post-fold
+(37), post-fold again (44), second-event (41), second-task (43). **A20.6's differential harness is now
+the highest-value item on Phase 6's list, and it needs a second axis.** Not only *transitions* — fold,
+restart, regenerate — but *plurality*: two tasks, two workers, two epochs. Every defect in this phase
+lived in one of those two axes, and the entire 115-test suite lives at the origin of both.
+
 ---
 
 ## 15. Final instruction to the executor
