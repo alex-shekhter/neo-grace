@@ -21,9 +21,11 @@ import {
   FIX_ATTEMPT_BUDGET,
   foldEpoch,
   formatCursorPosition,
+  lastResolvingResumeId,
   listAccountingEvents,
   listLedgerEvents,
   listLooseEvents,
+  listUnresolvedEscalatedTasks,
   parseCursorState,
   readAttemptPayload,
   recordAttempt,
@@ -1167,18 +1169,21 @@ describe("per-task escalation set (A22.1 / correction 43)", () => {
 
   it("T-002 progress is recorded and not swallowed while T-001 is escalated (plurality twin)", () => {
     // While set non-empty, bundle stays ppa; T-002's events still land and feed lastNonSticky.
+    // A23.1: task is drawn from escalated set — position names T-001, not the last-event task.
     const root = createProject();
     const bundle = seedBundle(root);
     escalateTask(root, "T-001", true);
     const afterProgress = advanceCursor(root, "C-RUN", { task: "T-002", kind: "progress" });
     expect(afterProgress.state).toBe("paused-pending-approval");
-    expect(afterProgress.task).toBe("T-002");
+    expect(afterProgress.task).toBe("T-001");
+    expect(afterProgress.escalatedTasks).toEqual(["T-001"]);
     const loose = listLooseEvents(bundle);
     expect(loose.some((e) => e.task === "T-002" && e.kind === "progress")).toBe(true);
 
     // After T-001 resolves, derivation reflects recent activity (progress was not skipped).
     resumeCursor(root, "C-RUN", "T-001");
     expect(showCursor(root, "C-RUN").state).toBe("in-progress");
+    expect(showCursor(root, "C-RUN").escalatedTasks).toEqual([]);
   });
 
   it("deriveStateFromEvents: resume of unrelated task leaves other escalation (unit)", () => {
@@ -1245,6 +1250,181 @@ describe("fold derives unresolved escalation (A22.2 / correction 44)", () => {
     // Re-derive without written cursor also recovers from ledger.
     writeFileSync(path.join(bundle, "run.xml"), "");
     expect(regenerateCursor(root, "C-RUN").position.state).toBe("paused-pending-approval");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A23 / A24 — escalatedTasks field + budget window from resolving resume
+// ---------------------------------------------------------------------------
+
+describe("escalatedTasks on CursorPosition (A23.1 / correction 45)", () => {
+  it("plurality: T-001 escalated + T-002 terminal — show names escalated task", () => {
+    // Fixture leaves plurality origin: two tasks; state aggregates, task must not last-event-win.
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test", key: "a" },
+      writeEvidence: evidencePaths([]),
+    });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test", key: "b" },
+      writeEvidence: evidencePaths([]),
+    });
+    advanceCursor(root, "C-RUN", { task: "T-002", kind: "terminal" });
+
+    const shown = showCursor(root, "C-RUN");
+    expect(shown.state).toBe("paused-pending-approval");
+    expect(shown.task).toBe("T-001");
+    expect(shown.escalatedTasks).toEqual(["T-001"]);
+    expect(shown.task).not.toBe("T-002");
+
+    const text = formatCursorPosition(shown);
+    expect(text).toContain("Task: T-001");
+    expect(text).toContain("EscalatedTasks: T-001");
+
+    // A5.4: written cursor round-trips EscalatedTask elements.
+    const runXml = readFileSync(path.join(bundle, "run.xml"), "utf8");
+    expect(runXml).toContain("<EscalatedTask>T-001</EscalatedTask>");
+    expect(runXml).toMatch(/<Task>T-001<\/Task>/);
+  });
+
+  it("writeCursorFile / show / regenerate round-trip escalatedTasks (A5.4)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "a", key: "1" },
+      writeEvidence: evidencePaths([]),
+    });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "b", key: "2" },
+      writeEvidence: evidencePaths([]),
+    });
+    expect(showCursor(root, "C-RUN").escalatedTasks).toEqual(["T-001"]);
+    writeFileSync(path.join(bundle, "run.xml"), ""); // drop written cursor
+    const rederived = regenerateCursor(root, "C-RUN");
+    expect(rederived.position.escalatedTasks).toEqual(["T-001"]);
+    expect(rederived.position.task).toBe("T-001");
+  });
+});
+
+describe("budget window from resolving resume (A24 / correction 46)", () => {
+  function fail(root: string, task: string, key: string) {
+    return recordAttempt(root, "C-RUN", {
+      task,
+      outcome: "fail",
+      signature: { kind: "test", key },
+      writeEvidence: evidencePaths([]),
+    });
+  }
+
+  it("window: escalate, resume, two more fails — second escalation reports 2 and this-round signatures", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    const first = fail(root, "T-001", "a");
+    expect(first.escalated).toBe(false);
+    const second = fail(root, "T-001", "b");
+    expect(second.escalated).toBe(true);
+    expect(second.attemptCount).toBe(2);
+    expect(second.signatures).toEqual([
+      { kind: "test", key: "a" },
+      { kind: "test", key: "b" },
+    ]);
+
+    resumeCursor(root, "C-RUN", "T-001");
+    expect(showCursor(root, "C-RUN").state).toBe("in-progress");
+
+    const third = fail(root, "T-001", "c");
+    expect(third.escalated).toBe(false);
+    expect(third.attemptCount).toBe(1); // window after resolving resume
+
+    const fourth = fail(root, "T-001", "d");
+    expect(fourth.escalated).toBe(true);
+    expect(fourth.attemptCount).toBe(2); // not 4
+    expect(fourth.signatures).toEqual([
+      { kind: "test", key: "c" },
+      { kind: "test", key: "d" },
+    ]);
+    expect(fourth.message).toMatch(/after 2 attempts/);
+    expect(fourth.message).not.toMatch(/after 4 attempts/);
+    expect(fourth.message).toContain("test: c");
+    expect(fourth.message).toContain("test: d");
+    expect(fourth.message).not.toContain("test: a");
+    expect(fourth.message).not.toContain("test: b");
+    // Message lists only this-round signatures (count in list = 2)
+    expect(fourth.message).toMatch(/Signatures \(2\)/);
+  });
+
+  it("negative: two resumes on a never-escalated task do not extend its budget (§4.5.2 form)", () => {
+    // If any resume opened a window, fail-after-resume would count as 1 and not escalate.
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    const first = fail(root, "T-001", "pre");
+    expect(first.escalated).toBe(false);
+    expect(first.attemptCount).toBe(1);
+
+    resumeCursor(root, "C-RUN", "T-001"); // ordinary — nothing to resolve
+    resumeCursor(root, "C-RUN", "T-001"); // still ordinary
+
+    const second = fail(root, "T-001", "post");
+    expect(second.attemptCount).toBe(2); // full history still counted
+    expect(second.escalated).toBe(true);
+    expect(second.signatures.map((s) => s.key)).toEqual(["pre", "post"]);
+  });
+
+  it("transition: window + escalatedTasks hold after fold", () => {
+    // Leaves both plurality and transition axes: escalate T-001, T-002 terminal, fold,
+    // then resume and re-exhaust window; also check escalatedTasks before resume after fold.
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    fail(root, "T-001", "a");
+    fail(root, "T-001", "b");
+    advanceCursor(root, "C-RUN", { task: "T-002", kind: "terminal" });
+    foldEpoch(root, "C-RUN");
+
+    const afterFold = showCursor(root, "C-RUN");
+    expect(afterFold.state).toBe("paused-pending-approval");
+    expect(afterFold.task).toBe("T-001");
+    expect(afterFold.escalatedTasks).toEqual(["T-001"]);
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+
+    // Resume opens a window; two more fails re-escalate at measured 2.
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 100, to: 199 });
+    resumeCursor(root, "C-RUN", "T-001");
+    fail(root, "T-001", "c");
+    const reEsc = fail(root, "T-001", "d");
+    expect(reEsc.escalated).toBe(true);
+    expect(reEsc.attemptCount).toBe(2);
+    expect(reEsc.signatures.map((s) => s.key)).toEqual(["c", "d"]);
+    expect(reEsc.message).toMatch(/after 2 attempts/);
+    expect(reEsc.message).toMatch(/Signatures \(2\)/);
+  });
+
+  it("unit: lastResolvingResumeId ignores ordinary resumes", () => {
+    const events = [
+      { id: 1, kind: "opened", task: "T-001" },
+      { id: 2, kind: "attempt", task: "T-001" },
+      { id: 3, kind: "resume", task: "T-001" }, // ordinary
+      { id: 4, kind: "attempt", task: "T-001" },
+      { id: 5, kind: "escalation", task: "T-001" },
+      { id: 6, kind: "resume", task: "T-001" }, // resolving
+      { id: 7, kind: "attempt", task: "T-001" },
+    ];
+    expect(lastResolvingResumeId(events, "T-001")).toBe(6);
+    expect(countTaskAttemptEvents(events, "T-001")).toBe(1); // only id 7
+    expect(listUnresolvedEscalatedTasks(events)).toEqual([]);
   });
 });
 

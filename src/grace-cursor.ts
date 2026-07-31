@@ -128,6 +128,13 @@ export type CursorPosition = {
    */
   complete?: boolean;
   completeAbsence?: AbsenceValue;
+  /**
+   * Tasks with an unresolved escalation (A23.1 / correction 45).
+   * Empty when none. When non-empty, `task` is drawn from this set so the
+   * state/task pair does not attribute the owed decision to an unrelated task.
+   * Phase 5 gates need *which* tasks are blocked, not only that some are.
+   */
+  escalatedTasks: string[];
   /** How each recoverable field was obtained. */
   sources: {
     epoch: PositionSource;
@@ -208,6 +215,59 @@ export function cursorStateForEventKind(
 }
 
 /**
+ * Tasks with an unresolved escalation (A22.1 / A23.1).
+ * Per-task set: escalation adds, resolving resume removes only that task.
+ * Sorted for stable CursorPosition / XML output.
+ */
+export function listUnresolvedEscalatedTasks(
+  events: ReadonlyArray<{ id: number; kind: string; task?: string }>,
+): string[] {
+  const ordered = [...events].sort((a, b) => a.id - b.id);
+  const unresolved = new Set<string>();
+  for (const event of ordered) {
+    const taskKey = (event.task ?? "").trim();
+    if (!taskKey) continue;
+    if (event.kind === "escalation") {
+      unresolved.add(taskKey);
+      continue;
+    }
+    if (ESCALATION_RESOLVER_KINDS.has(event.kind)) {
+      unresolved.delete(taskKey);
+    }
+  }
+  return [...unresolved].sort();
+}
+
+/**
+ * Id of the last `resume` that **removed an unresolved escalation** for `task` (A24).
+ * Ordinary resumes (nothing to resolve) do not open a budget window.
+ * Returns 0 when the task has never had a resolving resume — counter then counts all attempts.
+ */
+export function lastResolvingResumeId(
+  events: ReadonlyArray<{ id: number; kind: string; task?: string }>,
+  task: string,
+): number {
+  const ordered = [...events].sort((a, b) => a.id - b.id);
+  const unresolved = new Set<string>();
+  let last = 0;
+  for (const event of ordered) {
+    const taskKey = (event.task ?? "").trim();
+    if (!taskKey) continue;
+    if (event.kind === "escalation") {
+      unresolved.add(taskKey);
+      continue;
+    }
+    if (ESCALATION_RESOLVER_KINDS.has(event.kind)) {
+      if (unresolved.has(taskKey)) {
+        unresolved.delete(taskKey);
+        if (taskKey === task) last = event.id;
+      }
+    }
+  }
+  return last;
+}
+
+/**
  * Derive cursor state from the full event stream (A21.1 / A22.1).
  * Escalation is a **per-task** fact: sticky until that task's explicit resolver (`resume`).
  * Bundle-level CursorPosition stays single-valued — paused-pending-approval while any
@@ -220,7 +280,6 @@ export function deriveStateFromEvents(
   const ordered = [...events].sort((a, b) => a.id - b.id);
   if (ordered.length === 0) return { state: "idle" };
 
-  /** Tasks with an unresolved escalation (per-task set — not a bundle-wide flag). */
   const unresolvedEscalations = new Set<string>();
   let lastNonSticky:
     | { state: CursorState }
@@ -228,14 +287,14 @@ export function deriveStateFromEvents(
     | undefined;
 
   for (const event of ordered) {
-    const taskKey = event.task ?? "";
+    const taskKey = (event.task ?? "").trim();
     if (event.kind === "escalation") {
-      unresolvedEscalations.add(taskKey);
+      if (taskKey) unresolvedEscalations.add(taskKey);
       continue;
     }
     if (ESCALATION_RESOLVER_KINDS.has(event.kind)) {
       // resume --task X removes only X; other tasks stay escalated (correction 43).
-      unresolvedEscalations.delete(taskKey);
+      if (taskKey) unresolvedEscalations.delete(taskKey);
       lastNonSticky = cursorStateForEventKind(event.kind);
       continue;
     }
@@ -250,14 +309,33 @@ export function deriveStateFromEvents(
   return lastNonSticky ?? { state: "idle" };
 }
 
-/** Position state from durable+loose events (write and read paths share this). */
-function positionStateFromBundle(bundlePath: string): {
+/**
+ * Shared projection for every write/read path (A22.3 / A23.1).
+ * When escalatedTasks is non-empty, task is drawn from that set so the pair does not lie.
+ */
+function positionProjectionFromBundle(
+  bundlePath: string,
+  options: { preferredTask?: string; lastEventTask?: string } = {},
+): {
   state?: CursorState;
   degradation?: AbsenceValue;
+  escalatedTasks: string[];
+  task?: string;
 } {
-  const mapped = deriveStateFromEvents(listAccountingEvents(bundlePath));
-  if ("state" in mapped) return { state: mapped.state };
-  return { state: undefined, degradation: mapped.degradation };
+  const stream = listAccountingEvents(bundlePath);
+  const escalatedTasks = listUnresolvedEscalatedTasks(stream);
+  const mapped = deriveStateFromEvents(stream);
+  const fallback = options.preferredTask ?? options.lastEventTask;
+  const task =
+    escalatedTasks.length > 0
+      ? fallback && escalatedTasks.includes(fallback)
+        ? fallback
+        : escalatedTasks[0]
+      : fallback;
+  if ("state" in mapped) {
+    return { state: mapped.state, escalatedTasks, task };
+  }
+  return { state: undefined, degradation: mapped.degradation, escalatedTasks, task };
 }
 
 /** Parse a written State element against the widened CursorState union (A19.2). */
@@ -401,6 +479,7 @@ export function advanceCursor(
       epoch: nextEpochNumber(bundlePath),
       task,
       state: "in-progress",
+      escalatedTasks: [],
       sources: { epoch: "events", task: "events", state: "events" },
       inferred: false,
     };
@@ -427,14 +506,15 @@ export function advanceCursor(
   }
   const id = nextEventId(bundlePath);
   writeEventFile(bundlePath, { id, task, kind });
-  // A21.1: derive from full stream so escalation stays sticky across non-resolvers.
-  const derived = positionStateFromBundle(bundlePath);
+  // A21.1 / A23.1: derive state + escalatedTasks; task drawn from set when non-empty.
+  const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
   const position: CursorPosition = {
     changeId,
     bundlePath,
     epoch: currentOpenEpochHint(bundlePath),
-    task,
+    task: derived.task,
     state: derived.state,
+    escalatedTasks: derived.escalatedTasks,
     sources: { epoch: "events", task: "events", state: "events" },
     inferred: false,
     degradation: derived.degradation,
@@ -593,15 +673,17 @@ export function foldEpoch(
     unlinkSync(contained.absolutePath);
   }
 
-  // A22.2 / correction 44: derive like every other write path. A literal idle erased
-  // unresolved escalations once any other task's terminal closed the range for fold.
-  const derived = positionStateFromBundle(bundlePath);
+  // A22.2 / A23.1: derive like every other write path (no literal idle; task from escalated set).
+  const derived = positionProjectionFromBundle(bundlePath, {
+    lastEventTask: events[events.length - 1]?.task,
+  });
   const position: CursorPosition = {
     changeId,
     bundlePath,
     epoch: epochNumber,
-    task: events[events.length - 1]?.task,
+    task: derived.task,
     state: derived.state,
+    escalatedTasks: derived.escalatedTasks,
     sources: { epoch: "ledger", task: "ledger", state: "ledger" },
     inferred: false,
     degradation: derived.degradation,
@@ -654,6 +736,16 @@ export function derivePosition(
       const epochText = wrapper ? childText(wrapper, "Epoch") : undefined;
       const stateText = wrapper ? childText(wrapper, "State") : undefined;
       const parsedState = parseCursorState(stateText);
+      // A5.4: parse EscalatedTask children (correction 45). Absent → recover from stream (D1).
+      const fromFile = wrapper
+        ? wrapper.children
+            .filter((c) => c.tag === "EscalatedTask")
+            .map((c) => c.text.trim())
+            .filter((t) => ANCHOR_PATTERNS.task.test(t))
+            .sort()
+        : [];
+      const fromStream = listUnresolvedEscalatedTasks(listAccountingEvents(bundlePath));
+      const escalatedTasks = fromFile.length > 0 ? fromFile : fromStream;
       if ("invalid" in parsedState) {
         // Unchecked cast hole (A19.2): unrecognized value takes degradation, then re-derive.
         degradation = {
@@ -661,12 +753,20 @@ export function derivePosition(
           reason: `cursor state ${JSON.stringify(parsedState.invalid)} is not a known CursorState; re-derived`,
         };
       } else {
+        // When set non-empty, task must come from it (correction 45) even if written Task lags.
+        const pairedTask =
+          escalatedTasks.length > 0
+            ? task && escalatedTasks.includes(task)
+              ? task
+              : escalatedTasks[0]
+            : task;
         written = {
           changeId,
           bundlePath,
           epoch: epochText ? Number(epochText) : undefined,
-          task,
+          task: pairedTask,
           state: parsedState.state,
+          escalatedTasks,
           sources: { epoch: "cursor", task: "cursor", state: "cursor" },
           inferred: false,
         };
@@ -691,9 +791,16 @@ export function derivePosition(
       events.length > 0
         ? nextEpochNumber(bundlePath)
         : ledgerEpochs[ledgerEpochs.length - 1];
-    const task = lastEvent?.task ?? lastTaskFromLedger(bundlePath);
-    // A21.1: full stream (ledger+loose), sticky escalation — not last-event-wins alone.
+    // A21.1 / A23.1: full stream; task from escalated set when non-empty (not last-event-wins alone).
     const stream = listAccountingEvents(bundlePath);
+    const escalatedTasks = listUnresolvedEscalatedTasks(stream);
+    const lastTask = lastEvent?.task ?? lastTaskFromLedger(bundlePath);
+    const task =
+      escalatedTasks.length > 0
+        ? lastTask && escalatedTasks.includes(lastTask)
+          ? lastTask
+          : escalatedTasks[0]
+        : lastTask;
     let state: CursorState | undefined = "idle";
     let kindDegradation: AbsenceValue | undefined;
     if (stream.length > 0) {
@@ -711,9 +818,21 @@ export function derivePosition(
       epoch,
       task,
       state,
+      escalatedTasks,
       sources: {
         epoch: events.length > 0 ? "events" : "ledger",
-        task: lastEvent ? "events" : task ? "ledger" : "none",
+        task:
+          escalatedTasks.length > 0
+            ? stream.length > 0
+              ? events.length > 0
+                ? "events"
+                : "ledger"
+              : "none"
+            : lastEvent
+              ? "events"
+              : task
+                ? "ledger"
+                : "none",
         state: stream.length > 0 ? (events.length > 0 ? "events" : "ledger") : "ledger",
       },
       inferred: false,
@@ -784,6 +903,7 @@ function deriveRow3Position(
     stateAbsence,
     complete,
     completeAbsence,
+    escalatedTasks: [],
     sources: {
       epoch: "none",
       task: "inferred",
@@ -893,14 +1013,20 @@ export function listRepositoryChangedFiles(projectRoot: string): { available: bo
 }
 
 /**
- * Dumb counter (D9 / A19.1): counts attempt events for a task. Inspects nothing —
- * no signature, no outcome, no content condition.
+ * Dumb counter (D9 / A19.1 / A24): counts attempt events for a task **inside the
+ * current budget window**. Window start is the last resume that resolved an
+ * escalation for that task (not every resume). Inspects nothing on each attempt —
+ * no signature, no outcome, no content condition. The ledger keeps full history;
+ * windowing is a read, never a rewrite (D1).
  */
 export function countTaskAttemptEvents(
-  events: ReadonlyArray<{ task: string; kind: string }>,
+  events: ReadonlyArray<{ id: number; task: string; kind: string }>,
   task: string,
 ): number {
-  return events.filter((event) => event.task === task && event.kind === "attempt").length;
+  const windowStart = lastResolvingResumeId(events, task);
+  return events.filter(
+    (event) => event.task === task && event.kind === "attempt" && event.id > windowStart,
+  ).length;
 }
 
 /** Derived ordinal: 1-based count of this task's attempts with id <= eventId (A18.3). */
@@ -1030,13 +1156,13 @@ export function recordAttempt(
     children,
   });
 
-  // Standing rule 9 / A20.1: count from durable ledger + loose, never loose alone.
+  // Standing rule 9 / A20.1 / A24: count from durable+loose inside the resolution window.
   const accounting = listAccountingEvents(bundlePath);
   const attemptCount = countTaskAttemptEvents(accounting, task);
   const signatures = collectFailureSignatures(accounting, task);
 
   // Escalation only on the fail path when the dumb attempt count hits the budget.
-  // Counter itself has no outcome/signature condition (A19.1).
+  // Counter itself has no outcome/signature condition (A19.1); window is recording-side (A24).
   if (options.outcome === "fail" && attemptCount >= FIX_ATTEMPT_BUDGET) {
     const escalationId = nextEventId(bundlePath);
     writeEventFile(bundlePath, {
@@ -1045,20 +1171,21 @@ export function recordAttempt(
       kind: "escalation",
       children: signatures.map(failureSignatureNode),
     });
-    // A22.3: every write path derives — no literal CursorPosition once shared derivation exists.
-    const derived = positionStateFromBundle(bundlePath);
+    // A22.3 / A23.1: every write path derives — escalatedTasks + task from set.
+    const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
     const position: CursorPosition = {
       changeId,
       bundlePath,
       epoch: currentOpenEpochHint(bundlePath),
-      task,
+      task: derived.task ?? task,
       state: derived.state ?? "paused-pending-approval",
+      escalatedTasks: derived.escalatedTasks,
       sources: { epoch: "events", task: "events", state: "events" },
       inferred: false,
       degradation: derived.degradation,
     };
     writeCursorFile(bundlePath, position);
-    const message = formatEscalationMessage(task, signatures);
+    const message = formatEscalationMessage(task, attemptCount, signatures);
     return {
       position,
       eventId: id,
@@ -1069,13 +1196,14 @@ export function recordAttempt(
     };
   }
 
-  const derived = positionStateFromBundle(bundlePath);
+  const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
   const position: CursorPosition = {
     changeId,
     bundlePath,
     epoch: currentOpenEpochHint(bundlePath),
-    task,
+    task: derived.task ?? task,
     state: derived.state ?? "in-progress",
+    escalatedTasks: derived.escalatedTasks,
     sources: { epoch: "events", task: "events", state: "events" },
     inferred: false,
     degradation: derived.degradation,
@@ -1118,14 +1246,15 @@ export function recordVerificationUnavailable(
       reason: options.absence.reason,
     },
   });
-  // A21.1: VU must not clear an unresolved escalation (sticky until resume).
-  const derived = positionStateFromBundle(bundlePath);
+  // A21.1 / A23.1: VU must not clear an unresolved escalation; task from escalated set.
+  const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
   const position: CursorPosition = {
     changeId,
     bundlePath,
     epoch: currentOpenEpochHint(bundlePath),
-    task,
+    task: derived.task ?? task,
     state: derived.state ?? "in-progress",
+    escalatedTasks: derived.escalatedTasks,
     sources: { epoch: "events", task: "events", state: "events" },
     inferred: false,
     degradation: derived.degradation,
@@ -1358,10 +1487,16 @@ function parseWriteEvidenceNode(node: GraceXmlNode): WriteEvidenceSnapshot {
   return { available: true, files };
 }
 
+/**
+ * Failure signatures on fail-attempts in the current budget window (A24).
+ * Same window as countTaskAttemptEvents — current round only, full history stays in the ledger.
+ */
 function collectFailureSignatures(events: LooseEvent[], task: string): FailureSignature[] {
+  const windowStart = lastResolvingResumeId(events, task);
   const signatures: FailureSignature[] = [];
   for (const event of events) {
     if (event.task !== task || event.kind !== "attempt") continue;
+    if (event.id <= windowStart) continue;
     if (event.attributes.outcome !== "fail") continue;
     const payload = readAttemptPayload(event);
     if (payload.signature) signatures.push(payload.signature);
@@ -1369,9 +1504,14 @@ function collectFailureSignatures(events: LooseEvent[], task: string): FailureSi
   return signatures;
 }
 
-function formatEscalationMessage(task: string, signatures: FailureSignature[]): string {
+/** Measured attemptCount, not FIX_ATTEMPT_BUDGET (correction 46). */
+function formatEscalationMessage(
+  task: string,
+  attemptCount: number,
+  signatures: FailureSignature[],
+): string {
   const lines = [
-    `Budget exhausted for ${task} after ${FIX_ATTEMPT_BUDGET} attempts — paused-pending-approval (replan decision owed; task has not failed).`,
+    `Budget exhausted for ${task} after ${attemptCount} attempts — paused-pending-approval (replan decision owed; task has not failed).`,
     `Signatures (${signatures.length}):`,
     ...signatures.map((signature, index) => `  ${index + 1}. ${signature.kind}: ${signature.key}`),
   ];
@@ -1395,10 +1535,16 @@ export function formatCursorPosition(position: CursorPosition): string {
     stateLine,
     `Epoch: ${position.epoch ?? "none"}`,
     taskLine,
+  ];
+  // A5.4 drop site for escalatedTasks (correction 45).
+  if (position.escalatedTasks.length > 0) {
+    lines.push(`EscalatedTasks: ${position.escalatedTasks.join(", ")}`);
+  }
+  lines.push(
     completeLine,
     `Inferred: ${position.inferred ? "yes" : "no"}`,
     `Sources: epoch=${position.sources.epoch} task=${position.sources.task} state=${position.sources.state}`,
-  ];
+  );
   if (position.degradation) {
     lines.push(`Degradation: ${position.degradation.verdict} — ${position.degradation.reason}`);
   }
@@ -1618,6 +1764,13 @@ function writeCursorFile(bundlePath: string, position: CursorPosition): void {
           ...(position.task
             ? [{ tag: "Task", attributes: {}, children: [] as GraceXmlNode[], text: position.task }]
             : []),
+          // A5.4: EscalatedTask children (correction 45) — empty set omits elements.
+          ...position.escalatedTasks.map((escalatedTask) => ({
+            tag: "EscalatedTask",
+            attributes: {},
+            children: [] as GraceXmlNode[],
+            text: escalatedTask,
+          })),
           // Never write a confident State when only stateAbsence is known (A14.1).
           ...(position.state !== undefined
             ? [
