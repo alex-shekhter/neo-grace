@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-GATE-SURFACE>
     <IntentSummary>
       Create the third check surface: invocable gates that declare required evidence, record

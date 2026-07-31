@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-GATE-SURFACE>
     <Summary>
       Create the third check surface — invocable transition gates that declare required evidence,
