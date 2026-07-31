@@ -1,10 +1,11 @@
 /**
  * Bundle-scoped Verdicts and Decisions on run-ledger.xml (A30.2).
  * Siblings to Epoch-N; never loose run/ events (correction 61).
- * Write path: write, re-read, verify (D3 ordering; nothing to delete).
+ * Write path: validate constructed tree, write, re-read, verify, restore on failure (A31.5).
+ * Read path: newest entry governs; unreadable is absence with reason, never skip (A31.2).
  */
 
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { validateRunLedgerArtifact } from "../artifact/grammar";
@@ -41,7 +42,22 @@ export type GateDecisionRecord = {
   requirements: GateRequirementRecord[];
 };
 
+/** Newest-governs read of the Verdicts section (A31.2). Invalid is never skipped. */
+export type LatestReviewVerdict =
+  | { state: "absent" }
+  | { state: "invalid"; code: "ledger.invalid-verdict"; detail: string }
+  | { state: "present"; verdict: ReviewVerdictRecord };
+
+/** Newest-governs scan of Decisions; any unreadable entry is invalid, never skipped (A31.2). */
+export type DecisionListResult =
+  | { state: "ok"; decisions: GateDecisionRecord[] }
+  | { state: "invalid"; code: "ledger.invalid-decision"; detail: string };
+
 const LEDGER_BUNDLE_SECTIONS = new Set(["Verdicts", "Decisions"]);
+
+const VALID_OUTCOMES = new Set<string>(["pass", "fail", "unable-to-determine"]);
+const VALID_GATES = new Set<string>(["approve", "apply", "archive"]);
+const VALID_DECISIONS = new Set<string>(["permit", "refuse"]);
 
 function cloneNode(node: GraceXmlNode): GraceXmlNode {
   return {
@@ -91,17 +107,43 @@ function ensureSection(wrapper: GraceXmlNode, sectionTag: "Verdicts" | "Decision
   return section;
 }
 
+/**
+ * Validate the constructed tree, write, re-read, verify; restore prior bytes on failure (A31.5).
+ * Never leaves a failed write on disk. Does not delete a good prior file.
+ */
 function writeAndVerifyLedger(bundlePath: string, root: GraceXmlNode): void {
   const ledgerPath = path.join(bundlePath, "run-ledger.xml");
-  writeFileSync(ledgerPath, serializeGraceXmlDocument(root));
-  const reRead = readGraceXmlArtifact(ledgerPath);
-  const validation = validateRunLedgerArtifact(reRead);
-  const errors = validation.issues.filter((issue) => issue.severity === "error");
-  if (errors.length > 0) {
+  const priorBytes = existsSync(ledgerPath) ? readFileSync(ledgerPath) : null;
+
+  const preValidation = validateRunLedgerArtifact({
+    file: ledgerPath,
+    root,
+    issues: [],
+  });
+  const preErrors = preValidation.issues.filter((issue) => issue.severity === "error");
+  if (preErrors.length > 0) {
     throw new GraceCommandError(
       "invalid-project",
-      `run-ledger.xml failed verification after write: ${errors.map((e) => e.code).join(", ")}`,
-      { issues: errors.map((e) => e.code) },
+      `run-ledger.xml failed verification before write: ${preErrors.map((e) => e.code).join(", ")}`,
+      { issues: preErrors.map((e) => e.code) },
+    );
+  }
+
+  writeFileSync(ledgerPath, serializeGraceXmlDocument(root));
+
+  const reRead = readGraceXmlArtifact(ledgerPath);
+  const postValidation = validateRunLedgerArtifact(reRead);
+  const postErrors = postValidation.issues.filter((issue) => issue.severity === "error");
+  if (postErrors.length > 0) {
+    if (priorBytes !== null) {
+      writeFileSync(ledgerPath, priorBytes);
+    } else if (existsSync(ledgerPath)) {
+      unlinkSync(ledgerPath);
+    }
+    throw new GraceCommandError(
+      "invalid-project",
+      `run-ledger.xml failed verification after write; prior content restored: ${postErrors.map((e) => e.code).join(", ")}`,
+      { issues: postErrors.map((e) => e.code) },
     );
   }
 }
@@ -112,6 +154,12 @@ export function recordReviewVerdict(
   changeId: string,
   verdict: ReviewVerdictRecord,
 ): ReviewVerdictRecord {
+  if (!VALID_OUTCOMES.has(verdict.outcome)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Unsupported verdict outcome \`${verdict.outcome}\`. Use pass, fail, or unable-to-determine.`,
+    );
+  }
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const root = loadOrCreateLedgerRoot(bundlePath, changeId);
   const wrapper = ensureWrapper(root, changeId);
@@ -170,7 +218,77 @@ function wrapperFromLedger(bundlePath: string, changeId: string): GraceXmlNode |
   return artifact.root.children.find((child) => child.tag === changeId) ?? null;
 }
 
-/** All recorded review verdicts (oldest first). Empty when section absent — not a pass (D5). */
+function parseVerdictNode(child: GraceXmlNode): ReviewVerdictRecord | { invalid: string } {
+  const outcome = child.attributes.outcome;
+  if (!outcome || !VALID_OUTCOMES.has(outcome)) {
+    return { invalid: `outcome=${outcome ?? "(missing)"}` };
+  }
+  return {
+    outcome: outcome as ReviewVerdictOutcome,
+    reason: child.attributes.reason || undefined,
+    note: child.text.trim() || undefined,
+  };
+}
+
+function parseDecisionNode(child: GraceXmlNode): GateDecisionRecord | { invalid: string } {
+  const gate = child.attributes.gate;
+  const decision = child.attributes.decision;
+  if (!gate || !VALID_GATES.has(gate) || !decision || !VALID_DECISIONS.has(decision)) {
+    return {
+      invalid: `gate=${gate ?? "(missing)"} decision=${decision ?? "(missing)"}`,
+    };
+  }
+  const requirements: GateRequirementRecord[] = [];
+  for (const req of child.children) {
+    if (req.tag !== "Requirement") {
+      return { invalid: `non-Requirement child <${req.tag}> under Decision` };
+    }
+    if (!(req.attributes.id ?? "").trim()) {
+      return { invalid: "Requirement missing id" };
+    }
+    requirements.push({
+      id: req.attributes.id ?? "",
+      required: req.attributes.required === "true",
+      present: req.attributes.present === "true",
+      blocking: req.attributes.blocking === "true",
+      message: req.text.trim() || undefined,
+    });
+  }
+  return {
+    gate: gate as GateId,
+    decision: decision as GateDecisionValue,
+    requirements,
+  };
+}
+
+/**
+ * Newest Verdict entry governs (A31.2). An unreadable newest entry is
+ * `{ state: "invalid" }` — never a silent fallthrough to an older valid entry.
+ */
+export function readLatestReviewVerdict(projectRoot: string, changeId: string): LatestReviewVerdict {
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const wrapper = wrapperFromLedger(bundlePath, changeId);
+  if (!wrapper) return { state: "absent" };
+  const section = wrapper.children.find((child) => child.tag === "Verdicts");
+  if (!section) return { state: "absent" };
+  const verdictNodes = section.children.filter((child) => child.tag === "Verdict");
+  if (verdictNodes.length === 0) return { state: "absent" };
+  const newest = verdictNodes[verdictNodes.length - 1]!;
+  const parsed = parseVerdictNode(newest);
+  if ("invalid" in parsed) {
+    return {
+      state: "invalid",
+      code: "ledger.invalid-verdict",
+      detail: parsed.invalid,
+    };
+  }
+  return { state: "present", verdict: parsed };
+}
+
+/**
+ * All recorded review verdicts (oldest first). Throws when any entry is unreadable
+ * so callers cannot convert an absence into a shorter valid list (A31.2).
+ */
 export function listReviewVerdicts(projectRoot: string, changeId: string): ReviewVerdictRecord[] {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const wrapper = wrapperFromLedger(bundlePath, changeId);
@@ -179,66 +297,92 @@ export function listReviewVerdicts(projectRoot: string, changeId: string): Revie
   if (!section) return [];
   const out: ReviewVerdictRecord[] = [];
   for (const child of section.children) {
-    if (child.tag !== "Verdict") continue;
-    const outcome = child.attributes.outcome as ReviewVerdictOutcome | undefined;
-    if (outcome !== "pass" && outcome !== "fail" && outcome !== "unable-to-determine") continue;
-    out.push({
-      outcome,
-      reason: child.attributes.reason || undefined,
-      note: child.text.trim() || undefined,
-    });
+    if (child.tag !== "Verdict") {
+      throw new GraceCommandError(
+        "invalid-project",
+        `ledger.invalid-verdict: unexpected <${child.tag}> under Verdicts`,
+        { issues: ["ledger.invalid-verdict"] },
+      );
+    }
+    const parsed = parseVerdictNode(child);
+    if ("invalid" in parsed) {
+      throw new GraceCommandError(
+        "invalid-project",
+        `ledger.invalid-verdict: ${parsed.invalid}`,
+        { issues: ["ledger.invalid-verdict"] },
+      );
+    }
+    out.push(parsed);
   }
   return out;
 }
 
-/** Latest review verdict, if any. */
+/** @deprecated Prefer readLatestReviewVerdict — this collapses invalid to undefined. */
 export function latestReviewVerdict(
   projectRoot: string,
   changeId: string,
 ): ReviewVerdictRecord | undefined {
-  const all = listReviewVerdicts(projectRoot, changeId);
-  return all[all.length - 1];
+  const read = readLatestReviewVerdict(projectRoot, changeId);
+  return read.state === "present" ? read.verdict : undefined;
 }
 
-/** All recorded gate decisions (oldest first). */
-export function listGateDecisions(projectRoot: string, changeId: string): GateDecisionRecord[] {
+/** All recorded gate decisions with no silent skip of unreadable entries (A31.2). */
+export function readGateDecisions(projectRoot: string, changeId: string): DecisionListResult {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const wrapper = wrapperFromLedger(bundlePath, changeId);
-  if (!wrapper) return [];
+  if (!wrapper) return { state: "ok", decisions: [] };
   const section = wrapper.children.find((child) => child.tag === "Decisions");
-  if (!section) return [];
+  if (!section) return { state: "ok", decisions: [] };
   const out: GateDecisionRecord[] = [];
   for (const child of section.children) {
-    if (child.tag !== "Decision") continue;
-    const gate = child.attributes.gate as GateId | undefined;
-    const decision = child.attributes.decision as GateDecisionValue | undefined;
-    if (
-      (gate !== "approve" && gate !== "apply" && gate !== "archive")
-      || (decision !== "permit" && decision !== "refuse")
-    ) {
-      continue;
+    if (child.tag !== "Decision") {
+      return {
+        state: "invalid",
+        code: "ledger.invalid-decision",
+        detail: `unexpected <${child.tag}> under Decisions`,
+      };
     }
-    const requirements: GateRequirementRecord[] = child.children
-      .filter((req) => req.tag === "Requirement")
-      .map((req) => ({
-        id: req.attributes.id ?? "",
-        required: req.attributes.required === "true",
-        present: req.attributes.present === "true",
-        blocking: req.attributes.blocking === "true",
-        message: req.text.trim() || undefined,
-      }));
-    out.push({ gate, decision, requirements });
+    const parsed = parseDecisionNode(child);
+    if ("invalid" in parsed) {
+      return {
+        state: "invalid",
+        code: "ledger.invalid-decision",
+        detail: parsed.invalid,
+      };
+    }
+    out.push(parsed);
   }
-  return out;
+  return { state: "ok", decisions: out };
 }
 
-/** True when a permitting decision for `gate` exists in the durable Decisions section. */
+/**
+ * All recorded gate decisions (oldest first). Throws when any entry is unreadable
+ * so callers cannot convert an absence into a shorter valid list (A31.2).
+ */
+export function listGateDecisions(projectRoot: string, changeId: string): GateDecisionRecord[] {
+  const result = readGateDecisions(projectRoot, changeId);
+  if (result.state === "invalid") {
+    throw new GraceCommandError(
+      "invalid-project",
+      `${result.code}: ${result.detail}`,
+      { issues: [result.code] },
+    );
+  }
+  return result.decisions;
+}
+
+/**
+ * True when a permitting decision for `gate` exists. An unreadable Decisions
+ * section is not a permit (absence with reason, never a promoted older value).
+ */
 export function hasPermittingDecision(
   projectRoot: string,
   changeId: string,
   gate: GateId,
 ): boolean {
-  return listGateDecisions(projectRoot, changeId).some(
+  const result = readGateDecisions(projectRoot, changeId);
+  if (result.state === "invalid") return false;
+  return result.decisions.some(
     (entry) => entry.gate === gate && entry.decision === "permit",
   );
 }

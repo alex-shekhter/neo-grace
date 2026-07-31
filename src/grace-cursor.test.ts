@@ -502,7 +502,7 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
     expect(lines.some((line) => line.startsWith("src/lint/adapters/dart.ts:"))).toBe(true);
   });
 
-  it("pins unlinkSync|rmSync|rmdirSync to fold delete and dart temp cleanup only (A15.1)", () => {
+  it("pins unlinkSync|rmSync|rmdirSync to fold delete, ledger rollback, and dart temp cleanup (A15.1 / A31.5)", () => {
     const result = Bun.spawnSync({
       cmd: ["bash", "-lc", "grep -rn 'unlinkSync\\|rmSync\\|rmdirSync' src --include='*.ts' | grep -v test"],
       cwd: path.join(import.meta.dir, ".."),
@@ -515,17 +515,22 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
-    // Import lines plus the two destructive call sites (A15.1 post-state).
+    // Import lines plus call sites: fold delete, ledger post-write rollback (A31.5), dart temp.
     for (const line of lines) {
-      expect(line.startsWith("src/grace-cursor.ts:") || line.startsWith("src/lint/adapters/dart.ts:")).toBe(true);
+      expect(
+        line.startsWith("src/grace-cursor.ts:")
+          || line.startsWith("src/gates/ledger.ts:")
+          || line.startsWith("src/lint/adapters/dart.ts:"),
+      ).toBe(true);
     }
-    // Call sites (not imports) — A15.1 post-state is exactly these two lines (line numbers re-pinned after Phase 4).
     const callSites = lines.filter((line) => /(?:unlinkSync|rmSync|rmdirSync)\s*\(/.test(line)).sort();
     const cursorUnlink = callSites.find((line) => line.startsWith("src/grace-cursor.ts:"));
+    const ledgerUnlink = callSites.find((line) => line.startsWith("src/gates/ledger.ts:"));
     const dartRm = callSites.find((line) => line.startsWith("src/lint/adapters/dart.ts:"));
     expect(cursorUnlink).toMatch(/^src\/grace-cursor\.ts:\d+:\s*unlinkSync\(contained\.absolutePath\);$/);
+    expect(ledgerUnlink).toMatch(/^src\/gates\/ledger\.ts:\d+:\s*unlinkSync\(ledgerPath\);$/);
     expect(dartRm).toBe("src/lint/adapters/dart.ts:206:    rmSync(temporaryDirectory, { recursive: true, force: true });");
-    expect(callSites).toHaveLength(2);
+    expect(callSites).toHaveLength(3);
     expect(lines.some((line) => line.includes("rmdirSync"))).toBe(false);
   });
 });

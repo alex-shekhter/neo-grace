@@ -1,24 +1,19 @@
 /**
- * ngrace gate <approve|apply|archive> — evaluate and record; never author status (A29.2).
+ * ngrace gate <approve|apply|archive|verdict> — evaluate/record; never author status (A29.2, A31.1).
  */
 
 import { defineCommand } from "citty";
 
 import { evaluateGate, evaluationToDecision, type GateEvaluation } from "./core";
-import { recordGateDecision } from "./ledger";
-import type { GateId } from "./ledger";
+import {
+  recordGateDecision,
+  recordReviewVerdict,
+  type GateId,
+  type ReviewVerdictOutcome,
+} from "./ledger";
 import { GraceCommandError, runGraceCommand } from "../query/errors";
 
-function parseGate(value: unknown): GateId {
-  const gate = String(value ?? "");
-  if (gate !== "approve" && gate !== "apply" && gate !== "archive") {
-    throw new GraceCommandError(
-      "invalid-arguments",
-      `Unsupported gate \`${gate}\`. Use approve, apply, or archive.`,
-    );
-  }
-  return gate;
-}
+const GATE_SUBCOMMANDS = new Set(["approve", "apply", "archive", "verdict"]);
 
 export function formatGateEvaluation(evaluation: GateEvaluation): string {
   const lines = [
@@ -48,6 +43,10 @@ export function formatGateEvaluation(evaluation: GateEvaluation): string {
       lines.push(`  - [${issue.severity}] ${issue.code} — ${issue.message}`);
     }
   }
+  // A31.5: report the evaluation even when recording failed.
+  if (evaluation.recordingError) {
+    lines.push(`Recording: failed — ${evaluation.recordingError}`);
+  }
   return lines.join("\n");
 }
 
@@ -61,10 +60,28 @@ function runGate(
   if (options.record !== false) {
     const decision = evaluationToDecision(evaluation);
     if (decision) {
-      recordGateDecision(projectRoot, changeId, decision);
+      try {
+        recordGateDecision(projectRoot, changeId, decision);
+      } catch (error) {
+        // A31.5: a recording failure must not suppress the evaluation the caller asked for.
+        const message =
+          error instanceof Error ? error.message : "unknown recording failure";
+        evaluation.recordingError = message;
+      }
     }
   }
   return evaluation;
+}
+
+function parseOutcome(value: unknown): ReviewVerdictOutcome {
+  const outcome = String(value ?? "");
+  if (outcome !== "pass" && outcome !== "fail" && outcome !== "unable-to-determine") {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Unsupported verdict outcome \`${outcome}\`. Use pass, fail, or unable-to-determine.`,
+    );
+  }
+  return outcome;
 }
 
 function gateSubCommand(gate: GateId) {
@@ -107,7 +124,7 @@ function gateSubCommand(gate: GateId) {
         } else {
           console.log(formatGateEvaluation(evaluation));
         }
-        if (evaluation.decision === "refuse") {
+        if (evaluation.decision === "refuse" || evaluation.recordingError) {
           process.exitCode = 1;
         }
       }, `gate ${gate} failed`);
@@ -115,23 +132,108 @@ function gateSubCommand(gate: GateId) {
   });
 }
 
+const verdictSubCommand = defineCommand({
+  meta: {
+    name: "verdict",
+    description:
+      "Record a review verdict in run-ledger.xml Verdicts (A31.1). Does not form the judgment and does not change status.",
+  },
+  args: {
+    change: {
+      type: "string",
+      description: "Change bundle id (C-*)",
+      required: true,
+    },
+    outcome: {
+      type: "string",
+      description: "pass | fail | unable-to-determine",
+      required: true,
+    },
+    reason: {
+      type: "string",
+      description: "Absence reason when outcome is unable-to-determine (e.g. host-capability-missing)",
+    },
+    note: {
+      type: "string",
+      description: "Optional free-text note stored as Verdict body text",
+    },
+    path: {
+      type: "string",
+      description: "Project root",
+      default: ".",
+    },
+    format: {
+      type: "string",
+      description: "text or json",
+      default: "text",
+    },
+  },
+  async run(context) {
+    const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
+    await runGraceCommand(format, async () => {
+      const changeId = String(context.args.change);
+      const projectRoot = String(context.args.path ?? ".");
+      const outcome = parseOutcome(context.args.outcome);
+      const reason =
+        context.args.reason !== undefined && context.args.reason !== null
+          ? String(context.args.reason)
+          : undefined;
+      const note =
+        context.args.note !== undefined && context.args.note !== null
+          ? String(context.args.note)
+          : undefined;
+      const verdict = recordReviewVerdict(projectRoot, changeId, {
+        outcome,
+        reason: reason || undefined,
+        note: note || undefined,
+      });
+      if (format === "json") {
+        console.log(
+          JSON.stringify(
+            {
+              schemaVersion: "1.0.0",
+              ok: true,
+              changeId,
+              recorded: "verdict",
+              verdict,
+            },
+            null,
+            2,
+          ),
+        );
+      } else {
+        const reasonPart = verdict.reason ? ` reason=${verdict.reason}` : "";
+        console.log(
+          `Recorded verdict for ${changeId}: outcome=${verdict.outcome}${reasonPart}`,
+        );
+      }
+    }, "gate verdict failed");
+  },
+});
+
 export const gateCommand = defineCommand({
   meta: {
     name: "gate",
     description:
-      "Evaluate transition gates (approve / apply / archive). Records Decisions in run-ledger.xml; never authors status or archives bundles.",
+      "Evaluate transition gates (approve / apply / archive) or record a review verdict. Records in run-ledger.xml; never authors status or archives bundles.",
   },
   subCommands: {
     approve: gateSubCommand("approve"),
     apply: gateSubCommand("apply"),
     archive: gateSubCommand("archive"),
+    verdict: verdictSubCommand,
   },
-  async run() {
-    console.log(`Usage: ngrace gate <approve|apply|archive> --change C-ID [--path .] [--format text|json] [--record]
-Evaluates required evidence, appends a Decision to run-ledger.xml, and exits 1 when refused.
-Does not set status=applied and does not move bundles (invariant 8).`);
+  // A31.4: citty runs the parent after every subcommand — only print usage when none ran.
+  async run(context) {
+    const firstPositional = context.rawArgs.find((arg) => !arg.startsWith("-"));
+    if (firstPositional && GATE_SUBCOMMANDS.has(firstPositional)) {
+      return;
+    }
+    console.log(
+      `Usage: ngrace gate <approve|apply|archive|verdict> --change C-ID [options]
+  approve|apply|archive  Evaluate and record a Decision (exits 1 when refused).
+  verdict                Record a review Verdict (--outcome pass|fail|unable-to-determine).
+Does not set status=applied and does not move bundles (invariant 8).`,
+    );
   },
 });
-
-// silence unused in case of tree-shaking tooling
-void parseGate;

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { writeChangeBundleFixture, writeMinimalNgraceProject } from "../artifact/test-fixtures";
@@ -11,17 +12,23 @@ import {
   evaluateApplyGate,
   evaluateArchiveGate,
   evaluateAttemptGate,
+  evaluateGate,
+  evaluationToDecision,
   resolveProjectGateFailOn,
 } from "./core";
 import {
   listGateDecisions,
   listReviewVerdicts,
+  readLatestReviewVerdict,
   recordGateDecision,
   recordReviewVerdict,
 } from "./ledger";
 import { advanceCursor, foldEpoch, listLooseEvents, recordAttempt, showCursor } from "../grace-cursor";
+import { formatGateEvaluation, gateCommand } from "./command";
 
 const tempRoots: string[] = [];
+const REPO_ROOT = path.resolve(import.meta.dir, "../..");
+const GRACE_BIN = path.join(REPO_ROOT, "src/grace.ts");
 
 function tempProject(): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-gate-"));
@@ -47,6 +54,14 @@ function activeBundle(root: string, changeId = "C-GATE") {
   return path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
 }
 
+function runGateCli(args: string[], cwd = REPO_ROOT) {
+  return spawnSync("bun", ["run", GRACE_BIN, "gate", ...args], {
+    cwd,
+    encoding: "utf8",
+    env: process.env,
+  });
+}
+
 describe("gate catalog (D14)", () => {
   it("every catalog code is gate.* and none is a bare lint path", () => {
     const codes = allGateCodes();
@@ -55,6 +70,7 @@ describe("gate catalog (D14)", () => {
       expect(isGateIssueCode(code)).toBe(true);
       expect(code.startsWith("gate.")).toBe(true);
     }
+    expect(codes).toContain("gate.apply.invalid-verdict");
   });
 });
 
@@ -112,6 +128,183 @@ describe("ledger Verdicts and Decisions (A30)", () => {
     const result = evaluateApplyGate(root, "C-GATE");
     expect(result.decision).toBe("refuse");
     expect(result.issues.some((i) => i.code === "gate.apply.no-verdict")).toBe(true);
+  });
+});
+
+describe("correction 62 — invocable verdict writer", () => {
+  it("ngrace gate verdict records a Verdict the apply gate can consume", () => {
+    const root = tempProject();
+    activeBundle(root);
+    expect(evaluateApplyGate(root, "C-GATE").decision).toBe("refuse");
+
+    const recorded = runGateCli(
+      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root, "--format", "json"],
+      root,
+    );
+    expect(recorded.status).toBe(0);
+    const body = JSON.parse(recorded.stdout);
+    expect(body.ok).toBe(true);
+    expect(body.verdict.outcome).toBe("pass");
+    expect(listReviewVerdicts(root, "C-GATE")).toHaveLength(1);
+
+    const applied = evaluateApplyGate(root, "C-GATE");
+    expect(applied.decision).toBe("permit");
+    expect(applied.verdict?.outcome).toBe("pass");
+  });
+
+  it("gate subCommands includes verdict (counterpart Writers surface)", () => {
+    const keys = Object.keys(gateCommand.subCommands ?? {});
+    expect(keys).toContain("verdict");
+    expect(keys).toContain("approve");
+    expect(keys).toContain("apply");
+    expect(keys).toContain("archive");
+  });
+});
+
+describe("correction 63 — malformed newest verdict does not promote older", () => {
+  it("refuses when newest is outcome=failed after an older pass", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    let xml = readFileSync(ledgerPath, "utf8");
+    // Exact A31 fixture: older valid + newer malformed.
+    xml = xml.replace("</Verdicts>", `<Verdict outcome="failed" /></Verdicts>`);
+    writeFileSync(ledgerPath, xml);
+
+    const latest = readLatestReviewVerdict(root, "C-GATE");
+    expect(latest.state).toBe("invalid");
+    if (latest.state === "invalid") {
+      expect(latest.code).toBe("ledger.invalid-verdict");
+      expect(latest.detail).toContain("failed");
+    }
+
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(result.issues.some((i) => i.code === "gate.apply.invalid-verdict")).toBe(true);
+    expect(result.issues.some((i) => i.message.includes("ledger.invalid-verdict"))).toBe(true);
+    // Must NOT report present=true on the older pass.
+    const reviewReq = result.requirements.find((r) => r.id === "review-verdict");
+    expect(reviewReq?.present).toBe(false);
+    expect(result.verdict).toBeUndefined();
+  });
+
+  it("listReviewVerdicts throws rather than silently dropping invalid entries", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    let xml = readFileSync(ledgerPath, "utf8");
+    xml = xml.replace("</Verdicts>", `<Verdict outcome="failed" /></Verdicts>`);
+    writeFileSync(ledgerPath, xml);
+    expect(() => listReviewVerdicts(root, "C-GATE")).toThrow(/ledger\.invalid-verdict/);
+  });
+});
+
+describe("correction 64 — apply requires approved plan, not existsSync", () => {
+  it("refuses status=draft plan even when plan.xml exists", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, {
+      changeId: "C-DRAFT",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "draft",
+    });
+    recordReviewVerdict(root, "C-DRAFT", { outcome: "pass" });
+    const result = evaluateApplyGate(root, "C-DRAFT");
+    expect(result.decision).toBe("refuse");
+    expect(result.issues.some((i) => i.code === "gate.apply.no-plan")).toBe(true);
+    const planReq = result.requirements.find((r) => r.id === "plan-present");
+    expect(planReq?.present).toBe(false);
+    expect(planReq?.message).toMatch(/draft/);
+  });
+});
+
+describe("correction 65 — --format json is pure JSON", () => {
+  it("archive --format json parses with JSON.parse (no trailing usage)", () => {
+    const root = tempProject();
+    activeBundle(root);
+    const result = runGateCli(
+      ["archive", "--change", "C-GATE", "--path", root, "--format", "json", "--record=false"],
+      root,
+    );
+    expect(result.status).toBe(0);
+    // Strict parse of entire stdout — fails if usage prose follows the object.
+    const parsed = JSON.parse(result.stdout);
+    expect(parsed.ok).toBe(true);
+    expect(parsed.decision).toBe("permit");
+    expect(result.stdout).not.toMatch(/Usage:/);
+  });
+});
+
+describe("correction 66 — recorder validates before write and keeps the answer", () => {
+  it("pre-existing invalid verdict: gate still answers; decision count does not grow", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    // Seed a clean pass verdict, then corrupt it in place so the tree is invalid.
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    let xml = readFileSync(ledgerPath, "utf8");
+    xml = xml.replace('outcome="pass"', 'outcome="failed"');
+    writeFileSync(ledgerPath, xml);
+    const before = readFileSync(ledgerPath, "utf8");
+    const decisionCountBefore = (before.match(/<Decision\b/g) ?? []).length;
+
+    // Evaluate + attempt record: evaluation must survive recording failure (A31.5).
+    const evaluation = evaluateGate(root, "C-GATE", "apply");
+    expect(evaluation.decision).toBe("refuse");
+    expect(evaluation.issues.some((i) => i.code === "gate.apply.invalid-verdict")).toBe(true);
+
+    const decision = evaluationToDecision(evaluation)!;
+    let recordingError: string | undefined;
+    try {
+      recordGateDecision(root, "C-GATE", decision);
+    } catch (error) {
+      recordingError = error instanceof Error ? error.message : String(error);
+    }
+    expect(recordingError).toBeDefined();
+    expect(recordingError).toMatch(/ledger\.invalid-verdict|failed verification/);
+
+    // Prior bytes restored / untouched — no new Decision appended.
+    const after = readFileSync(ledgerPath, "utf8");
+    const decisionCountAfter = (after.match(/<Decision\b/g) ?? []).length;
+    expect(decisionCountAfter).toBe(decisionCountBefore);
+
+    // formatGateEvaluation still surfaces the decision when recordingError is set.
+    evaluation.recordingError = recordingError;
+    const text = formatGateEvaluation(evaluation);
+    expect(text).toContain("Decision: refuse");
+    expect(text).toContain("Recording: failed");
+  });
+
+  it("CLI apply reports decision when recording fails", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    let xml = readFileSync(ledgerPath, "utf8");
+    xml = xml.replace('outcome="pass"', 'outcome="bogus"');
+    writeFileSync(ledgerPath, xml);
+
+    const result = runGateCli(
+      ["apply", "--change", "C-GATE", "--path", root, "--format", "json"],
+      root,
+    );
+    // Evaluation is refused (invalid verdict) and recording may also fail — either way JSON has decision.
+    expect(result.stdout.length).toBeGreaterThan(0);
+    const parsed = JSON.parse(result.stdout);
+    expect(parsed.decision).toBe("refuse");
+    expect(parsed.ok).toBe(true);
+    // Must not be the silent error envelope that loses the answer.
+    expect(parsed.gate).toBe("apply");
+  });
+});
+
+describe("correction 67 — no dead parseGate / void suppression", () => {
+  it("command module has no parseGate and no void parseGate", () => {
+    const source = readFileSync(path.join(import.meta.dir, "command.ts"), "utf8");
+    expect(source).not.toMatch(/\bfunction parseGate\b/);
+    expect(source).not.toMatch(/void parseGate/);
   });
 });
 

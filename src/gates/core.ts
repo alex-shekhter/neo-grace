@@ -7,7 +7,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { ANCHOR_PATTERNS } from "../artifact/types";
-import { readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "../artifact/xml";
+import { readGraceXmlArtifact, walkNodes } from "../artifact/xml";
 import {
   listLooseEvents,
   listUnresolvedEscalatedTasks,
@@ -19,7 +19,7 @@ import type { GateFailOn } from "../lint/types";
 import { GATE_CATALOG, type GateIssueGuide } from "./catalog";
 import {
   hasPermittingDecision,
-  latestReviewVerdict,
+  readLatestReviewVerdict,
   type GateDecisionRecord,
   type GateId,
   type GateRequirementRecord,
@@ -41,8 +41,10 @@ export type GateEvaluation = {
   decision: "permit" | "refuse";
   requirements: GateRequirementRecord[];
   issues: GateIssue[];
-  /** Latest verdict when relevant (apply). */
+  /** Latest verdict when relevant (apply) and readable. */
   verdict?: ReviewVerdictRecord;
+  /** Set when the evaluation succeeded but appending the Decision failed (A31.5). */
+  recordingError?: string;
 };
 
 function guideIssue(code: keyof typeof GATE_CATALOG, detail?: string): GateIssue {
@@ -128,8 +130,12 @@ function planSatisfiedAcceptanceCriteria(bundlePath: string): Set<string> {
   return ids;
 }
 
-function hasPlan(bundlePath: string): boolean {
-  return existsSync(path.join(bundlePath, "plan.xml"));
+/** Plan status the way status derives it (grace-status readRootStatus) — A31.3. */
+function readPlanStatus(bundlePath: string): string | undefined {
+  const planFile = path.join(bundlePath, "plan.xml");
+  if (!existsSync(planFile)) return undefined;
+  const artifact = readGraceXmlArtifact(planFile);
+  return artifact.root?.attributes.status;
 }
 
 /**
@@ -212,43 +218,82 @@ export function evaluateApplyGate(projectRoot: string, changeId: string): GateEv
   const issues: GateIssue[] = [];
   const failOn = resolveProjectGateFailOn(projectRoot);
 
-  const planPresent = hasPlan(bundlePath);
-  requirements.push(requirement("plan-present", true, planPresent));
-  if (!planPresent) {
-    issues.push(guideIssue("gate.apply.no-plan"));
-  }
-
-  const verdict = latestReviewVerdict(projectRoot, changeId);
-  const verdictPresent = verdict !== undefined;
+  // A31.3: consume planStatus the way status does; require approved (not existsSync).
+  const planStatus = readPlanStatus(bundlePath);
+  const planApproved = planStatus === "approved";
   requirements.push(
     requirement(
-      "review-verdict",
+      "plan-present",
       true,
-      verdictPresent,
-      verdictPresent
-        ? `outcome=${verdict!.outcome}${verdict!.reason ? ` reason=${verdict!.reason}` : ""}`
-        : "no Verdicts section entry",
+      planApproved,
+      planStatus === undefined
+        ? "plan.xml missing"
+        : planApproved
+          ? `status=${planStatus}`
+          : `status=${planStatus} (required approved)`,
     ),
   );
-  if (!verdictPresent) {
-    // Always required by D11 — not subject to gateFailOn (that governs host-capability absence).
-    issues.push(guideIssue("gate.apply.no-verdict"));
-  } else if (verdict!.reason === "host-capability-missing") {
-    // Verdict exists (D11 satisfied as a record); whether host-capability absence blocks is project policy.
-    const blocks = failOn === "errors";
-    requirements.push(
-      requirement(
-        "host-capability",
-        blocks,
-        !blocks,
-        `reason=host-capability-missing gateFailOn=${failOn}`,
+  if (!planApproved) {
+    issues.push(
+      guideIssue(
+        "gate.apply.no-plan",
+        planStatus === undefined
+          ? "plan.xml missing"
+          : `plan status=${planStatus}; apply requires approved`,
       ),
     );
-    if (failOn === "errors") {
-      issues.push(guideIssue("gate.apply.verdict-host-capability", `gateFailOn=${failOn}`));
-    } else if (failOn === "warnings") {
-      const warn = guideIssue("gate.apply.verdict-host-capability", `gateFailOn=${failOn}`);
-      issues.push({ ...warn, severity: "warning" });
+  }
+
+  // A31.2: newest entry governs; unreadable newest is absence with ledger.invalid-verdict.
+  const latest = readLatestReviewVerdict(projectRoot, changeId);
+  let verdict: ReviewVerdictRecord | undefined;
+  if (latest.state === "absent") {
+    requirements.push(
+      requirement("review-verdict", true, false, "no Verdicts section entry"),
+    );
+    issues.push(guideIssue("gate.apply.no-verdict"));
+  } else if (latest.state === "invalid") {
+    requirements.push(
+      requirement(
+        "review-verdict",
+        true,
+        false,
+        `${latest.code}: newest entry unreadable (${latest.detail})`,
+      ),
+    );
+    issues.push(
+      guideIssue(
+        "gate.apply.invalid-verdict",
+        `${latest.code}: ${latest.detail}`,
+      ),
+    );
+  } else {
+    verdict = latest.verdict;
+    requirements.push(
+      requirement(
+        "review-verdict",
+        true,
+        true,
+        `outcome=${verdict.outcome}${verdict.reason ? ` reason=${verdict.reason}` : ""}`,
+      ),
+    );
+    if (verdict.reason === "host-capability-missing") {
+      // Verdict exists (D11 satisfied as a record); whether host-capability absence blocks is project policy.
+      const blocks = failOn === "errors";
+      requirements.push(
+        requirement(
+          "host-capability",
+          blocks,
+          !blocks,
+          `reason=host-capability-missing gateFailOn=${failOn}`,
+        ),
+      );
+      if (failOn === "errors") {
+        issues.push(guideIssue("gate.apply.verdict-host-capability", `gateFailOn=${failOn}`));
+      } else if (failOn === "warnings") {
+        const warn = guideIssue("gate.apply.verdict-host-capability", `gateFailOn=${failOn}`);
+        issues.push({ ...warn, severity: "warning" });
+      }
     }
   }
 

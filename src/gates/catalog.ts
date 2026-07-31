@@ -28,11 +28,15 @@ export const GATE_CATALOG: Record<string, GateIssueGuide> = {
   },
   "gate.apply.no-plan": {
     code: "gate.apply.no-plan",
-    title: "Apply Requires A Plan",
+    title: "Apply Requires An Approved Plan",
     explanation:
       "applied without a plan was walked past as needs-plan for four review rounds (A17.2). "
-      + "The apply gate refuses rather than advising.",
-    remediation: ["Author plan.xml with $ngrace-plan before apply.", "Do not set status=applied on a spec-only bundle."],
+      + "The apply gate requires plan.xml with status=approved — the same planStatus status derives "
+      + "(A31.3). A draft is not enough.",
+    remediation: [
+      "Author plan.xml with $ngrace-plan and approve it before apply.",
+      "Do not set status=applied on a draft or spec-only bundle.",
+    ],
     severity: "error",
   },
   "gate.apply.no-verdict": {
@@ -42,8 +46,20 @@ export const GATE_CATALOG: Record<string, GateIssueGuide> = {
       "applied requires a recorded review verdict, not a clean one (D11). Absence of any verdict in the "
       + "ledger Verdicts section is not a pass.",
     remediation: [
-      "Record a review verdict in run-ledger.xml Verdicts (Phase 6 produces content; Phase 5 records).",
+      "Record with `ngrace gate verdict --change C-ID --outcome pass|fail|unable-to-determine` (A31.1).",
       "unable-to-determine is a valid recorded verdict and permits apply when project policy allows.",
+    ],
+    severity: "error",
+  },
+  "gate.apply.invalid-verdict": {
+    code: "gate.apply.invalid-verdict",
+    title: "Newest Review Verdict Is Unreadable",
+    explanation:
+      "The newest <Verdict> entry governs; an unreadable newest entry is an absence with reason "
+      + "ledger.invalid-verdict, never a fallthrough to an older valid entry (A31.2).",
+    remediation: [
+      "Fix or remove the malformed newest <Verdict> (outcome must be pass|fail|unable-to-determine).",
+      "Re-record with `ngrace gate verdict --change C-ID --outcome …`.",
     ],
     severity: "error",
   },
