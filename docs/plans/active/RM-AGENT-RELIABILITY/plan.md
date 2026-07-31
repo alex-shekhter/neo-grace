@@ -345,7 +345,7 @@ Keep this table current. It is the single source of truth for progress.
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
-| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `READY FOR REVIEW` — A16: Windows job unobserved |
+| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `COMPLETE` |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
@@ -527,7 +527,7 @@ the validator rule. All additive, so rollback is clean.
 
 # PHASE 3 — Run ledger & cursor
 
-**Status:** `READY FOR REVIEW` — A10–A16 cleared; Windows job not yet observed (A16.2)
+**Status:** `COMPLETE`
 **Decisions:** D1, D2, D3
 **Release:** TBD
 
@@ -3219,8 +3219,48 @@ If the job goes red, the fix is to have the pin tests read the filesystem direct
 out — more portable, and it removes a shell dependency from a test that exists to pin a shell command's
 output.
 
-**To close the phase:** run the Windows job, record the observed result here, and set §2 and the phase
-banner to `COMPLETE` in the same commit.
+#### A16.3 Observed 2026-07-31 — the Windows job is green, and the real hazard was a different one
+
+**The `windows-latest` job ran on PR #22 and passed.** `bash` resolves, the grep paths hold, and both
+pin tests pass on Windows. Phase 3 is `COMPLETE`.
+
+The risk A16.2 named was not the risk that nearly bit. Merging `main` produced a conflict in exactly
+this workflow line, because `9cf1ffd` (#21) had landed independently: the Windows and Dart shards
+invoked `bun test` directly, **bypassing `--timeout=30000`** and running at Bun's 5000 ms default. Its
+evidence — a cold Windows runner spawning Python took 6088 ms and failed an unrelated PR.
+
+Neither side of that conflict was correct alone, and **taking this branch's side would have been
+actively wrong**: it would have reverted the timeout fix onto the two files most exposed to it — the
+fold and concurrent-append tests, plus two pin tests that spawn `bash` and `grep`. Process spawn
+latency on a cold runner is precisely what #21 measured. The failure would have read as "the new tests
+are broken" rather than "the shard lost its timeout." Resolved by taking both (`b4045c1`).
+
+Recorded because the inference in A16.2 was sound and still aimed at the wrong thing. The check was
+worth holding the status for; what it caught was not what it was watching for. That is an argument for
+running the check rather than for predicting its outcome better.
+
+#### A16.4 Outstanding, and not Phase 3's to decide alone: the bundle cannot archive as it stands
+
+`.ngrace/changes/active/C-RUN-LEDGER/` contains **`spec.xml` only**. The Phase 2 precedent,
+`archive/C-ABSENCE-VALUE/`, carries both `spec.xml` and `plan.xml`. Phase 3 executed against this
+document's §3 and its amendments rather than against a bundle `plan.xml`, so none was ever authored.
+
+Two consequences:
+
+1. **Archiving is blocked.** `change.applied-plan-missing` (`grammar.ts:1082-1084`) errors on an
+   archived bundle whose spec is `applied` without an `applied` plan. Setting the spec to `applied` and
+   moving the directory would fail this repository's own lint.
+2. **Leaving it in `active/` is also wrong.** Measured at close-out, `ngrace status --path .` reports
+   `C-RUN-LEDGER [active] spec=approved plan=missing states=needs-plan`, and `nextAction` sends the
+   reader to `$ngrace-plan`. The repository's own status surface asks for a plan for work that is
+   finished — the toolkit misreporting its own state, in the track about not doing that.
+
+Do not resolve this by authoring a retrospective `plan.xml` to satisfy the check — that is a record of
+work that did not happen the way the record would claim. The honest options are to write the bundle
+plan before the next phase and treat spec-only bundles as a lifecycle gap to close deliberately, or to
+decide that plan-level phases drive execution and the bundle grammar should permit a spec-only applied
+bundle. **This is a decision, not a cleanup**, and it belongs with whoever owns the archive precondition
+still unowned from A10.10 §1.
 
 ---
 
