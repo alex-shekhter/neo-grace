@@ -345,7 +345,7 @@ Keep this table current. It is the single source of truth for progress.
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
-| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `IN PROGRESS` — A14 gate: corrections 27–28 before merge |
+| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `IN PROGRESS` — A15 gate: corrections 29–30 before merge |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
@@ -527,7 +527,7 @@ the validator rule. All additive, so rollback is clean.
 
 # PHASE 3 — Run ledger & cursor
 
-**Status:** `IN PROGRESS` — A12/A13 satisfied; A14 corrections 27–28 outstanding
+**Status:** `IN PROGRESS` — A12–A14 satisfied; A15 corrections 29–30 outstanding
 **Decisions:** D1, D2, D3
 **Release:** TBD
 
@@ -540,8 +540,10 @@ the validator rule. All additive, so rollback is clean.
 > sources, and three graph modules the phase must add.
 > **A12 and A14 are the review gates.** A12's two corrections (row 3 unbuilt, no integration tests) were
 > satisfied at `f7de98e`; A13 answered A12.1 and corrected the criterion that caused it. **A14 is the
-> outstanding gate:** corrections 27–28 apply D5's absence reasoning to `state` and `complete`, plus
-> standing rule 8. Standing rules 6 and 7 came from A12.
+> gate that followed:** corrections 27–28 applied D5's absence reasoning to `state` and `complete`, and
+> were satisfied at `88f5494`. **A15 is the outstanding gate:** corrections 29–30 — the delete surface is
+> unpinned and Windows CI omits this phase's two suites. Standing rules 6–7 came from A12, rule 8 from
+> A14, and A15.4 carries Phase 6's priority evidence.
 
 ## 3.1 Objective
 
@@ -3054,6 +3056,122 @@ about — which is what a probe pointed at new ground would have covered.
 
 This is the legibility sibling of standing rule 6. Rule 6 says the self-review has no short form; rule
 8 makes a short form detectable without re-deriving it.
+
+### A15 — 2026-07-30 · Third gate: corrections 27–28 satisfied, and what the three rounds measured
+
+Reviewed at `88f5494`, against the code. **A14's corrections are correctly built:**
+
+- `deriveRow3Position:507-518` uses `state: CursorState | undefined` with a `stateAbsence`, and the two
+  paths carry **distinct reasons** — git-unavailable and archived-bundle — rather than one collapsed
+  string
+- `evaluateTargetComplete:571-593` returns `{ complete?, completeAbsence? }`, with `not-run` for the
+  skipped-command case, which is the honest reading of A5.2's skip
+- suite 671 pass / 0 fail
+
+**Standing rule 8 worked on its first outing.** All four cited artifacts exist on disk
+(`mutation-results.tsv`, `a14-probe.ts`, `a14-probe-results.tsv`, `compat-sweep.txt`). This is the first
+round in which an audit could be confirmed to have run without reconstructing it by hand. The mutation
+table now spans both commits at fifteen rows and **discloses a genuine zero-failure finding** — the fold
+membership, hole and unterminated reverts failed nothing until two refuse-before-write negatives were
+added. That is §0.7.2 performed as written rather than described.
+
+Two corrections remain, both small, and one of them is partly to the executor's credit.
+
+#### A15.1 Correction 29 — the write-surface check does not pin deletions
+
+§3.5.8 and `AC-WRITE-SURFACE` grep for `writeFileSync|mkdirSync`. Nothing anywhere pins destructive
+operations. Measured at `88f5494`:
+
+```
+src/grace-cursor.ts:374        unlinkSync(contained.absolutePath)      ← fold's delete
+src/lint/adapters/dart.ts:206  rmSync(temporaryDirectory, …)           ← temp cleanup
+```
+
+**Phase 3 introduces the first destructive operation into the tree** — the spec calls `fold` "the
+phase's one destructive operation" — and the check guarding invariant 8 has a hole exactly where this
+phase adds risk. Extend the grep to `unlinkSync|rmSync|rmdirSync` and pin the post-state as the two
+lines above.
+
+The gap surfaced because the executor's off-spec grep included `unlinkSync`, which the documented
+pattern structurally cannot. It was filed inside a field where it read as noncompliance rather than as
+a finding; it is the latter.
+
+#### A15.2 Correction 30 — Windows CI runs a hardcoded file list, and this phase is outside it
+
+`.github/workflows/validate.yml:32` runs a `windows-latest` job on every PR. It runs a **fixed list**:
+
+| Suite | Runs on Windows? |
+|---|---|
+| `src/grace-lint.test.ts`, `src/grace-status.test.ts` | yes, via `validate:cli` |
+| `src/grace-cursor.test.ts` — the 930-line write surface | **no** |
+| `src/artifact/grammar.test.ts` — both new validators | **no** |
+
+The production code appears Windows-safe by construction: the one forward-slash build
+(`grace-cursor.ts`, `${runDirRel}/${filename}`) is the *authored* form, which
+`normalizeProjectRelativePath` canonicalizes (`paths.ts:63`) and `paths.ts:104` re-splits and rejoins
+with the platform separator. The spec's constraint that every authored path route through
+`resolveContainedProjectPath` is what makes that hold. So this is a coverage gap, not a known break.
+
+Adding the phase's two suites to that list is Phase 3's own hygiene and lands in this phase.
+**Replacing the hardcoded list** with something that cannot drift — a new module's tests silently miss
+Windows coverage and every existing test still passes, which is anti-pattern 5 sitting in CI config —
+is an inherited defect. It gets its own `C-*`, not a fold-in.
+
+#### A15.3 The verbatim field, three rounds running
+
+`AC-WRITE-SURFACE` and §3.5.8 require the grep output **verbatim**. A12 flagged paraphrase in round 2.
+At `88f5494` the field is still not command output: it includes `src/artifact/test-fixtures.ts:1,:9`
+(which `grep -v test` excludes) and two `unlinkSync` lines (which the pattern does not match), and omits
+four `mkdirSync` lines (`grace-graph.ts:289`, `grace-cursor.ts:5`, `:200`, `:899`).
+
+The substance is correct — the write surface was verified independently. No new rule is added: the
+requirement already exists and was already flagged. It is recorded here as evidence for A15.4.
+
+#### A15.4 What three rounds measured, and what Phase 6 should build first
+
+**Recorded for Phase 6 — "Detached reviewer & mechanized audits" — as design input, not scheduled work.**
+
+Sorting every finding from the three review rounds by whether a report schema plus **re-execution**
+could have caught it:
+
+| Round | Finding | Machine-detectable? |
+|---|---|---|
+| 1 | Two §0.7 audits missing | yes — required fields |
+| 1 | Compat sweep given as a claim | yes — schema demands rows |
+| 1 | Write-surface field paraphrased | yes — re-run and diff |
+| 1 | Twelve codes, zero integration tests (25) | yes — grep the CLI suites per declared code |
+| 1 | **Row 3 not built (24)** | **no — needed a reader** |
+| 2 | Mutation table covers 2 of ~6 changed files | yes — compare against git's changed set |
+| 2 | Six of eighteen probe rows were case-table re-runs | yes, once tagged (rule 8) |
+| 2 | **`state: idle` asserted unchecked (27)** | **no** |
+| 2 | **`complete` two-valued (28)** | **no** |
+| 3 | Windows list omits the phase's suites (30) | yes — compare suite list to workflow list |
+| 3 | Verbatim field, third occurrence | yes — re-run and diff |
+| 3 | **Delete surface unpinned (29)** | **no** |
+
+Nine of twelve are machine-detectable — and the split is not random. **Every machine-detectable finding
+is process compliance; every reader-required finding is a semantic defect in the code.** Corrections
+24, 27, 28 and 29 are the four that changed what the software does, and no schema would have found any
+of them.
+
+So Phase 6's priority follows from the measurement: **the report schema and the re-execution harness
+first**, because they retire two-thirds of the findings — the two-thirds that consumed the most review
+turns for the least insight — and leave the reader's attention for the third that actually needs it.
+Mechanizing the semantic audits is a later and much harder problem; it should not be attempted first
+merely because it sounds more valuable.
+
+Two design constraints fall out of the same evidence:
+
+1. **Fields the executor computes are weak; fields the tool recomputes are strong.** The strongest
+   single data point in this phase is a controlled comparison inside one round: standing rule 8 — a
+   *structural* requirement, verifiable by `ls` — changed behaviour immediately and the artifacts were
+   real. The verbatim requirement — *prose*, unchecked — failed three rounds running. Prefer recomputed
+   fields everywhere they are possible.
+2. **The report format needs absence values (D5).** A field the executor could not produce is `not-run`
+   with a reason, never omitted and never fabricated. Otherwise structure converts omission into hollow
+   compliance: the round-2 probe satisfied "≥15 inputs" numerically while a third of it was case-table
+   re-runs, and both probe rounds returned 100% pass. A schema makes skipping impossible and
+   box-ticking easier, and only re-execution closes that gap.
 
 ---
 
