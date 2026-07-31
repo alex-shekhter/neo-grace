@@ -1,0 +1,201 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <!--
+    EXCEPTION — this plan was authored retrospectively at phase close-out, on 2026-07-31.
+    It did not guide the work. See IntentSummary for the full record; in short:
+
+    WHY: Phase 3 executed against docs/plans/active/RM-AGENT-RELIABILITY §3 and amendments
+    A10-A16 rather than against a bundle plan.xml, so the bundle held spec.xml only. That
+    blocked archival (change.applied-plan-missing) and left ngrace status reporting
+    states=needs-plan for finished work.
+
+    NOT A DETECTION FAILURE: ngrace status reported needs-plan correctly and continuously
+    from the moment the spec was approved. The signal was right and was ignored, through
+    four review rounds.
+
+    PREVENTION, WITH AN OWNER: Phase 5's transition surface (D11, D14) gates on declared
+    evidence. A gate refusing `applied` without a plan is exactly that shape, and turns
+    this from an intention into a mechanism. Until Phase 5 ships, the discipline is manual:
+    Phase 4 authors its bundle plan.xml before execution, not after. Recorded in A17.
+
+    The task breakdown below is the real commit sequence, not an invention. It is honest
+    about being written after the fact.
+  -->
+  <C-RUN-LEDGER>
+    <IntentSummary>
+      Land the run ledger, the regenerable cursor, and the fold protocol per D1, D2 and D3.
+
+      RETROSPECTIVE EXCEPTION (A17): this plan was written at close-out on 2026-07-31 and did
+      not guide execution. Phase 3 was driven by docs/plans/active/RM-AGENT-RELIABILITY §3
+      together with amendments A10-A16, and its bundle carried spec.xml alone until now. The
+      omission blocked archival — change.applied-plan-missing requires an applied plan beside
+      an applied spec — while leaving the bundle reporting states=needs-plan in ngrace status
+      for work that was finished. It is recorded as an exception rather than repaired silently,
+      because a plan that implied it had guided the work would be a false record, and that is
+      the failure this whole track exists to prevent. Future bundles carry a plan.xml authored
+      before execution. Prevention is owned by Phase 5's transition surface, not by good
+      intentions.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-ARTIFACT-TYPES</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-ARTIFACT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+        <M-LINT-CORE />
+        <M-LINT-CATALOG />
+        <M-STATUS />
+        <M-SKILLS />
+        <M-CURSOR />
+        <M-ARTIFACT-TYPES />
+        <M-CLI />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GRAMMAR />
+        <V-M-LINT-CORE />
+        <V-M-LINT-CATALOG />
+        <V-M-STATUS />
+        <V-M-SKILLS />
+        <V-M-CURSOR />
+        <V-M-ARTIFACT-TYPES />
+        <V-M-CLI />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/artifact/types.ts</File>
+      <File>src/artifact/scale-ergonomics.test.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/grace-status.ts</File>
+      <File>src/grace-status.test.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>src/grace.ts</File>
+      <File>src/test-support/fixtures.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>package.json</File>
+      <File>scripts/release-check.ts</File>
+      <File>README.md</File>
+      <File>.github/workflows/validate.yml</File>
+      <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>.ngrace/graph/main.xml</File>
+      <File>.ngrace/graph/index.xml</File>
+      <File>.ngrace/verification/main.xml</File>
+      <File>.ngrace/verification/index.xml</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Companion registry, both validators, twelve codes, fold, and the graph modules</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>One bundle-filename constant read by all three grammar.ts sites; validateRunLedgerArtifact and validateRunCursorArtifact with twelve exact catalog entries, none classified absence; fold ordered write-verify-delete; lint does not walk run/; M-CURSOR, M-ARTIFACT-TYPES and M-CLI in the graph with matching V-M-* entries.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-BUNDLE-FILE-ALLOWLIST />
+          <AC-LEDGER-GRAMMAR />
+          <AC-CURSOR-CONDITIONAL />
+          <AC-RUN-DIR-UNWALKED />
+          <AC-FOLD-ORDERING />
+          <AC-CATALOG-REGISTRATION />
+          <AC-GRAPH-COVERAGE />
+          <AC-ADDITIVE />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/artifact/grammar.test.ts src/lint/catalog.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Surface the cursor in status, README and the CLI and execute skills</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>epochCount and taskCount on ChangeBundleStatus and printed by formatStatusText; chooseNextAction never consults the cursor; README command table and both skills updated with byte-identical packaged mirrors.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-STATUS-SURFACE />
+          <AC-DOCS-AND-SKILLS />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-status.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Row-3 regeneration contract and integration coverage for all twelve codes (A12, A13)</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Regeneration reads ledger, then loose run/ events, then repository evidence, labelling row 3 inferred; the plan's first task is never reported as position; every code fires in an integration test and stays silent on a clean project.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-REGENERATE-SOURCES />
+          <AC-RECOVER-NOT-BLOCK />
+          <AC-DROP-SITE-INVENTORY />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts src/grace-lint.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Three-valued state and complete on row 3 (A14)</Title>
+        <DependsOn>
+          <T-003 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>state carries an absence value with distinct reasons where git is unavailable and where the bundle is outside collectActiveChangeScopes; complete is three-valued and reports not-run when MustPassCommand evidence was skipped rather than evaluated.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-REGENERATE-SOURCES />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Pin the delete surface and extend Windows coverage (A15)</Title>
+        <DependsOn>
+          <T-004 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>unlinkSync, rmSync and rmdirSync pinned to fold's delete and the dart temp cleanup only; grace-cursor.test.ts and artifact/grammar.test.ts added to the windows-latest job, routed through bun run test so the shard keeps its declared timeout.</Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-WRITE-SURFACE />
+        </Satisfies>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-RUN-LEDGER>
+</NgraceChangePlan>

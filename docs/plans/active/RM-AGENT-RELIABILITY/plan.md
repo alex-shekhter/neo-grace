@@ -3262,6 +3262,52 @@ decide that plan-level phases drive execution and the bundle grammar should perm
 bundle. **This is a decision, not a cleanup**, and it belongs with whoever owns the archive precondition
 still unowned from A10.10 §1.
 
+### A17 — 2026-07-31 · A16.4 answered: bundles carry a plan, and this one records why it did not
+
+**Decided by the maintainer.** Change bundles carry a `plan.xml` authored **before** execution. Phase 3
+is a recorded exception, not a precedent.
+
+#### A17.1 The exception is written into the artifact, not only into this document
+
+`C-RUN-LEDGER/plan.xml` was authored at close-out on 2026-07-31 and states so in two places: an XML
+comment at the top for the reader who scans, and the `IntentSummary` for durability. **Both are
+required, because the parser discards comments** — verified: a document with `<!-- … -->` parses with
+zero issues and the comment absent from `root.children`. A comment-only record would be invisible to
+every tool from the moment it was written.
+
+The task breakdown is the real commit sequence — T-001 through T-005 map to `e412025`, `77fa9aa`,
+`f7de98e`, `88f5494` and `88ead8d` — so the plan describes work that happened rather than work that was
+imagined. That is what makes writing it after the fact honest: **the objection was never to a
+retrospective plan, it was to one that implied it had guided the work.** The label is the fix; omission
+was not.
+
+The bundle is now `applied` and archived, and `ngrace status` reports
+`C-RUN-LEDGER [archive] spec=applied plan=applied tasks=5 states=none`.
+
+#### A17.2 This was an ignored signal, not a missing check
+
+`ngrace status` reported `states=needs-plan` on this bundle **continuously from the moment the spec was
+approved**, and `nextAction` pointed at `$ngrace-plan` the entire time. The detection was correct and
+was walked past — through four review rounds, by the executor and by review alike.
+
+So the prevention is not another check. It is making that signal **blocking instead of informational**,
+which has an owner: **Phase 5's transition surface** (D11, D14 — gates declare what they require). A
+gate refusing `applied` without a plan is precisely the shape Phase 5 exists to express. Recorded as a
+named obligation on Phase 5 rather than a good intention, in the A7.4 form.
+
+Note the family this belongs to. A5.3 collected three defects where a value was dropped by an
+allowlist and *nothing errored*; A15.4 found that every machine-detectable finding on this track was
+process compliance. This is a third variant: **a correct, continuous, non-blocking signal is
+functionally equivalent to no signal.** Worth carrying into Phase 6's design alongside A15.4 — a
+mechanized reviewer that reports without gating would reproduce exactly this.
+
+#### A17.3 Until Phase 5 ships, the discipline is manual
+
+**Phase 4 authors its bundle `plan.xml` before execution**, together with the spec. No phase after this
+one may reach `READY FOR REVIEW` with a spec-only bundle. The archive precondition from A10.10 §1 — "no
+open epoch" — should be settled in the same Phase 5 work, since both govern what a bundle must look
+like to leave `active/`.
+
 ---
 
 ## 15. Final instruction to the executor
