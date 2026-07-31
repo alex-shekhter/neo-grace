@@ -5226,6 +5226,89 @@ build; the two blocking findings are both cases where an **absence was converted
 missing writer into a shipped instruction, and an unreadable record into an older reading. That is one
 pattern, not two, and it is the pattern this track exists to remove.
 
+### A32 — 2026-07-31 · Second Phase 5 gate: 62–67 clear, and the same rule one level up
+
+**Measured at `7994288`.** `validate:ci` green here, not transcribed: 743 pass / 0 fail, marketplace
+PASS, walkthrough validated, root lint 0 errors.
+
+**All six A31 corrections are fixed, and five were verified by driving the CLI rather than by reading
+the diff:**
+
+| Correction | Evidence at `7994288` |
+|---|---|
+| 62 — no verdict writer | `ngrace gate verdict --change … --outcome pass` records; apply then reports `review-verdict: present=true — outcome=pass` |
+| 63 — malformed newest promoted an older | `pass` then `outcome="failed"` now yields `Decision: refuse` with `gate.apply.invalid-verdict` naming `ledger.invalid-verdict` |
+| 64 — draft plan permitted apply | `plan-present: present=false — status=draft (required approved)`, refused |
+| 65 — JSON followed by prose | `ngrace gate archive --format json \| jq -r .decision` → `permit` |
+| 66 — write-before-validate, answer swallowed | Against an invalid ledger: decision reported, `Recording: failed — …before write`, and the file **byte-identical** afterwards (md5 unchanged) |
+| 67 — dead `parseGate` | Deleted with its `void` suppression |
+
+D11's honest choice was also checked in both directions on a real bundle: `unable-to-determine` with
+`host-capability-missing` refuses under the default `gateFailOn=errors` and permits under `never`, with
+the reason surfaced either way.
+
+Correction 66's fix is the one worth naming as a pattern: validate the constructed tree first, so the
+error path never touches the file, and report the evaluation separately from the recording failure.
+The previous shape appended on every failed attempt while answering nothing.
+
+#### A32.1 Correction 68 — the newest-governs rule stops at the section boundary
+
+A31.2 established: *the newest entry governs; unreadable is an absence with a reason, never a skip.*
+The fix applied it to entries **inside** a section and left the choice **of** a section unguarded.
+
+Both readers select with `wrapper.children.find(child => child.tag === …)` — first wins. Demonstrated
+on a real bundle:
+
+```xml
+<C-GATE-SURFACE>
+  <Verdicts><Verdict outcome="pass" /></Verdicts>
+  <Verdicts><Verdict outcome="fail" /></Verdicts>
+</C-GATE-SURFACE>
+```
+
+```
+lint  → error ledger.duplicate-verdicts-section
+gate  → Decision: permit    Verdict: pass
+```
+
+The newest record in the file says `fail`; the gate permits on `pass`. Identical to correction 63 with
+the ambiguity moved one level up, and identical in consequence: lint calls it an error, and the surface
+that actually blocks resolves the ambiguity silently in the permissive direction. The same holds for
+`Decisions` and therefore for status's `applied-without-gate-record`.
+
+**Second facet — the two readers disagree about strictness, and the lenient one is on the blocking
+path.** `readGateDecisions` rejects any non-`Decision` child. `readLatestReviewVerdict` *filters* to
+`Verdict` children, so a stray survives:
+
+```xml
+<Verdicts><Verdict outcome="pass" /><Bogus /></Verdicts>
+```
+
+```
+lint  → error ledger.invalid-verdict — <Verdicts> does not allow child <Bogus>
+gate  → Decision: permit    Verdict: pass
+```
+
+Fix, one rule for both readers: **a section that is duplicated, or that contains any child the
+validator rejects, is `{ state: "invalid" }` with `ledger.invalid-verdict` / `ledger.invalid-decision`
+— not a section to pick from.** Where "which record is newest" is undefined, there is no newest record,
+and that is an absence.
+
+Reachability is hand-authored XML, the same as 63 — and 63 is why that is not a mitigation. A ledger is
+a file agents write; the gate is the thing that must not be talked into a permit by a malformed one.
+
+#### A32.2 What this round measured
+
+One finding, from reading: a `find` against a constraint the phase's own validator already calls an
+error. That is the counterpart query again — **the lint catalog enumerates what is malformed, the
+readers enumerate what they tolerate, and the join is where the blocking surface disagrees with the
+advisory one.** Worth handing to Phase 6 as a concrete query: for every code in the lint catalog, does
+any gate or read path treat that same condition as benign?
+
+Three rounds, three phases, and every finding on the blocking path has had the same shape: an unknown
+converted into a usable value. 63 was an entry, 68 is a section, 62 was an absent writer read as a
+present instruction.
+
 ---
 
 ## 15. Final instruction to the executor
