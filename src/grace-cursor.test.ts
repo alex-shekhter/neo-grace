@@ -4,7 +4,10 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import { ARTIFACT_DIR } from "./artifact/paths";
-import { writeChangeBundleFixture, writeMinimalNgraceProject } from "./artifact/test-fixtures";
+import {
+  writeChangeBundleFixture,
+  writeMinimalNgraceProject,
+} from "./artifact/test-fixtures";
 import { validateNgraceProject } from "./artifact/grammar";
 import { snapshotProjectTree } from "./test-support/fixtures";
 import {
@@ -170,6 +173,42 @@ describe("fold ordering (AC-FOLD-ORDERING)", () => {
     const ids = [1, 2, 3, 100, 101];
     expect(ids).toEqual([...ids].sort((a, b) => a - b));
   });
+
+  it("range hole refuses fold before write — no ledger left behind (§0.7.2)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, "1-T-001-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="10"/></NgraceRunEvent>`,
+    );
+    // hole at 2: skip to 3 terminal
+    writeFileSync(
+      path.join(runDir, "3-T-001-terminal.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="3" task="T-001" kind="terminal"/>`,
+    );
+    expect(() => foldEpoch(root, "C-RUN")).toThrow(/hole|invalid-project/i);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+    expect(listLooseEvents(bundle).length).toBeGreaterThan(0);
+  });
+
+  it("unterminated range refuses fold before write — no ledger left behind (§0.7.2)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, "1-T-001-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="10"/></NgraceRunEvent>`,
+    );
+    writeFileSync(
+      path.join(runDir, "2-T-001-progress.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="progress"/>`,
+    );
+    expect(() => foldEpoch(root, "C-RUN")).toThrow(/unterminated|invalid-project/i);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+  });
 });
 
 describe("regenerate three sources (AC-REGENERATE-SOURCES)", () => {
@@ -230,17 +269,99 @@ describe("regenerate three sources (AC-REGENERATE-SOURCES)", () => {
     const position = showCursor(root, "C-RUN");
     expect(position.inferred).toBe(true);
     expect(position.state).toBe("idle");
+    expect(position.stateAbsence).toBeUndefined();
     expect(position.task).toBeUndefined();
     expect(position.taskAbsence?.verdict).toBe("unable-to-determine");
     expect(position.epoch).toBeUndefined();
   });
 
-  it("target assertions clean sets complete under row 3 (A13.2)", () => {
+  it("git unavailable → stateAbsence, never idle (A14.1 / correction 27)", () => {
+    const root = createProject();
+    seedBundle(root);
+    // No git init — listRepositoryChangedFiles returns available:false
+    const position = showCursor(root, "C-RUN");
+    expect(position.inferred).toBe(true);
+    expect(position.state).toBeUndefined();
+    expect(position.stateAbsence?.verdict).toBe("unable-to-determine");
+    expect(position.stateAbsence?.reason).toMatch(/git status exited non-zero/);
+    expect(formatCursorPosition(position)).toContain("unable-to-determine");
+    expect(formatCursorPosition(position)).not.toMatch(/^State: idle$/m);
+  });
+
+  it("archived bundle → stateAbsence for missing active scope (A14.1 / correction 27)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-ARCH",
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(path.join(root, "src/example.ts"), `export function run() { return "ok"; }\n`);
+    initGitBaseline(root);
+
+    const position = showCursor(root, "C-ARCH");
+    expect(position.inferred).toBe(true);
+    expect(position.state).toBeUndefined();
+    expect(position.stateAbsence?.verdict).toBe("unable-to-determine");
+    expect(position.stateAbsence?.reason).toMatch(/no active ObservedWriteScope|archived/);
+    expect(formatCursorPosition(position)).not.toMatch(/^State: idle$/m);
+  });
+
+  it("genuinely complete when structural TargetAssertions clean and no command gate (A14.2)", () => {
     const root = createProject();
     seedBundle(root);
     initGitBaseline(root);
     const position = showCursor(root, "C-RUN");
     expect(position.complete).toBe(true);
+    expect(position.completeAbsence).toBeUndefined();
+    expect(formatCursorPosition(position)).toContain("Complete: yes");
+  });
+
+  it("MustPassCommand skipped → complete absence not-run, not yes/no (A14.2 / correction 28)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-RUN",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+      planTargetAssertions:
+        "<MustVerify><Module>M-EXAMPLE</Module></MustVerify><MustPassCommand><Command>exit 0</Command></MustPassCommand>",
+    });
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(path.join(root, "src/example.ts"), `export function run() { return "ok"; }\n`);
+    initGitBaseline(root);
+
+    const position = showCursor(root, "C-RUN");
+    expect(position.complete).toBeUndefined();
+    expect(position.completeAbsence?.verdict).toBe("not-run");
+    expect(position.completeAbsence?.reason).toMatch(/MustPassCommand|not executed|not evaluable/i);
+    expect(formatCursorPosition(position)).toContain("not-run");
+    expect(formatCursorPosition(position)).not.toMatch(/^Complete: yes$/m);
+    expect(formatCursorPosition(position)).not.toMatch(/^Complete: no$/m);
+  });
+
+  it("unapproved change → complete absence, not incomplete (A14.2 / correction 28)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-DRAFT",
+      location: "active",
+      specStatus: "draft",
+      planStatus: "draft",
+    });
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(path.join(root, "src/example.ts"), `export function run() { return "ok"; }\n`);
+    initGitBaseline(root);
+
+    const position = showCursor(root, "C-DRAFT");
+    expect(position.complete).toBeUndefined();
+    expect(position.completeAbsence?.verdict).toBe("unable-to-determine");
+    expect(position.completeAbsence?.reason).toMatch(/not an active approved|not evaluated/i);
+    expect(formatCursorPosition(position)).not.toMatch(/^Complete: no$/m);
+    expect(formatCursorPosition(position)).not.toMatch(/^Complete: yes$/m);
   });
 });
 

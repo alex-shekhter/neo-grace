@@ -59,12 +59,24 @@ export type CursorPosition = {
    * Never a fabricated T-* id.
    */
   taskAbsence?: AbsenceValue;
-  state: CursorState;
   /**
-   * True only when `--assertion-mode target` finds the plan's TargetAssertions clean
-   * (no command execution — A13.2).
+   * Determined state only. When the mechanism never looked (git unavailable,
+   * archived / missing active scope), leave undefined and set stateAbsence (A14.1).
+   */
+  state?: CursorState;
+  /**
+   * Honest third value when state could not be checked (correction 27).
+   * Distinct reasons for git-unavailable vs no-active-scope.
+   */
+  stateAbsence?: AbsenceValue;
+  /**
+   * Three-valued (A14.2 / correction 28):
+   * - true: TargetAssertions evaluated clean with no skipped command evidence
+   * - false: TargetAssertions evaluated and not met
+   * - undefined + completeAbsence: not evaluable (commands skipped, change not approved, …)
    */
   complete?: boolean;
+  completeAbsence?: AbsenceValue;
   /** How each recoverable field was obtained. */
   sources: {
     epoch: PositionSource;
@@ -473,11 +485,13 @@ export function derivePosition(
 }
 
 /**
- * Row 3 contract (A13.2 / AC-REGENERATE-SOURCES amended):
- * - state: in-progress iff ObservedWriteScope intersects git changed files; else idle
+ * Row 3 contract (A13.2 / A14.1–A14.2):
+ * - state: in-progress iff OWS intersects git changed files; idle when checked and empty;
+ *   stateAbsence when git unavailable or no active scope (never claim idle without looking)
  * - task: absence value with reason (never a task id — no file→task map in the model)
  * - epoch: absent
- * - complete: only when assertion-mode target finds TargetAssertions clean (no commands)
+ * - complete: three-valued — true only when TargetAssertions evaluate clean with no
+ *   skipped command evidence; false when evaluated and unmet; absence when not evaluable
  */
 function deriveRow3Position(
   projectRoot: string,
@@ -490,8 +504,23 @@ function deriveRow3Position(
   const scope = scopes.find((entry) => entry.changeId === changeId);
   const { available, changedFiles } = listRepositoryChangedFiles(projectRoot);
 
-  let state: CursorState = "idle";
-  if (available && scope) {
+  let state: CursorState | undefined;
+  let stateAbsence: AbsenceValue | undefined;
+  if (!available) {
+    // Correction 27 path 1: listRepositoryChangedFiles saw a non-zero git exit.
+    stateAbsence = {
+      verdict: "unable-to-determine",
+      reason:
+        "repository changed-file set unavailable (git status exited non-zero); ObservedWriteScope intersection was not checked",
+    };
+  } else if (!scope) {
+    // Correction 27 path 2: collectActiveChangeScopes reads only changesActiveDir.
+    stateAbsence = {
+      verdict: "unable-to-determine",
+      reason:
+        "bundle has no active ObservedWriteScope (archived or unreadable plan); repository intersection was not checked",
+    };
+  } else {
     const intersects = changedFiles.some((file) => observedWriteScopeContains(scope.observedWrites, file));
     state = intersects ? "in-progress" : "idle";
   }
@@ -502,7 +531,7 @@ function deriveRow3Position(
       "no ledger or loose events; ObservedWriteScope is bundle-level and no plan task carries a file list, so task identity cannot be recovered",
   };
 
-  const complete = targetAssertionsClean(projectRoot, changeId);
+  const { complete, completeAbsence } = evaluateTargetComplete(projectRoot, changeId);
 
   return {
     changeId,
@@ -511,11 +540,13 @@ function deriveRow3Position(
     task: undefined,
     taskAbsence,
     state,
+    stateAbsence,
     complete,
+    completeAbsence,
     sources: {
       epoch: "none",
       task: "inferred",
-      state: "inferred",
+      state: stateAbsence ? "none" : "inferred",
     },
     inferred: true,
     degradation: degradation ?? {
@@ -523,6 +554,63 @@ function deriveRow3Position(
       reason: "no ledger or loose events; position inferred from ObservedWriteScope and target assertions only",
     },
   };
+}
+
+/** Assertion codes that mean "could not evaluate", not "target not reached". */
+const COMPLETE_NOT_EVALUABLE = new Set([
+  "assertion.command-not-evaluated",
+  "assertion.change-not-approved",
+  "assertion.change-required",
+  "assertion.invalid-change-id",
+]);
+
+/**
+ * Three-valued complete (correction 28). Still uses runCommands: false (A5.2);
+ * skipped command evidence becomes absence (not-run), not complete:true or complete:false.
+ */
+export function evaluateTargetComplete(
+  projectRoot: string,
+  changeId: string,
+): { complete?: boolean; completeAbsence?: AbsenceValue } {
+  const result = lintGraceProject(projectRoot, {
+    assertionMode: "target",
+    changeId,
+    runCommands: false,
+  });
+  const assertionErrors = result.issues.filter(
+    (issue) => issue.severity === "error" && issue.code.startsWith("assertion."),
+  );
+  const notEvaluable = assertionErrors.filter((issue) => COMPLETE_NOT_EVALUABLE.has(issue.code));
+  if (notEvaluable.some((issue) => issue.code === "assertion.command-not-evaluated")) {
+    return {
+      complete: undefined,
+      completeAbsence: {
+        verdict: "not-run",
+        reason:
+          "MustPassCommand or MustPassBudget evidence was not executed (command execution not opted in); complete is not evaluable from structural target assertions alone",
+      },
+    };
+  }
+  if (notEvaluable.length > 0) {
+    const first = notEvaluable[0]!;
+    return {
+      complete: undefined,
+      completeAbsence: {
+        verdict: "unable-to-determine",
+        reason:
+          first.code === "assertion.change-not-approved"
+            ? "selected change is not an active approved bundle; target assertions were not evaluated"
+            : `${first.code}: ${first.message}`,
+      },
+    };
+  }
+  return { complete: assertionErrors.length === 0 };
+}
+
+/** @deprecated Prefer evaluateTargetComplete — boolean collapses absence into false (A14.2). */
+export function targetAssertionsClean(projectRoot: string, changeId: string): boolean {
+  const { complete } = evaluateTargetComplete(projectRoot, changeId);
+  return complete === true;
 }
 
 /**
@@ -563,28 +651,24 @@ export function listRepositoryChangedFiles(projectRoot: string): { available: bo
   return { available: true, changedFiles };
 }
 
-/** TargetAssertions clean under assertion-mode target, without running commands (A13.2). */
-export function targetAssertionsClean(projectRoot: string, changeId: string): boolean {
-  const result = lintGraceProject(projectRoot, {
-    assertionMode: "target",
-    changeId,
-    runCommands: false,
-  });
-  return !result.issues.some((issue) => issue.severity === "error" && issue.code.startsWith("assertion."));
-}
-
 export function formatCursorPosition(position: CursorPosition): string {
   const taskLine = position.task
     ? `Task: ${position.task}`
     : position.taskAbsence
       ? `Task: ${position.taskAbsence.verdict} — ${position.taskAbsence.reason}`
       : "Task: none";
+  const stateLine = position.stateAbsence
+    ? `State: ${position.stateAbsence.verdict} — ${position.stateAbsence.reason}`
+    : `State: ${position.state ?? "none"}`;
+  const completeLine = position.completeAbsence
+    ? `Complete: ${position.completeAbsence.verdict} — ${position.completeAbsence.reason}`
+    : `Complete: ${position.complete === undefined ? "n/a" : position.complete ? "yes" : "no"}`;
   const lines = [
     `Change: ${position.changeId}`,
-    `State: ${position.state}`,
+    stateLine,
     `Epoch: ${position.epoch ?? "none"}`,
     taskLine,
-    `Complete: ${position.complete === undefined ? "n/a" : position.complete ? "yes" : "no"}`,
+    completeLine,
     `Inferred: ${position.inferred ? "yes" : "no"}`,
     `Sources: epoch=${position.sources.epoch} task=${position.sources.task} state=${position.sources.state}`,
   ];
@@ -747,7 +831,17 @@ function writeCursorFile(bundlePath: string, position: CursorPosition): void {
           ...(position.task
             ? [{ tag: "Task", attributes: {}, children: [] as GraceXmlNode[], text: position.task }]
             : []),
-          { tag: "State", attributes: {}, children: [] as GraceXmlNode[], text: position.state === "absent" ? "idle" : position.state },
+          // Never write a confident State when only stateAbsence is known (A14.1).
+          ...(position.state !== undefined
+            ? [
+                {
+                  tag: "State",
+                  attributes: {},
+                  children: [] as GraceXmlNode[],
+                  text: position.state === "absent" ? "idle" : position.state,
+                },
+              ]
+            : []),
         ],
         text: "",
       },
