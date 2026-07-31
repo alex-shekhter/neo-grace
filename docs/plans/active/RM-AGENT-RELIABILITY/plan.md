@@ -345,7 +345,7 @@ Keep this table current. It is the single source of truth for progress.
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
-| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `IN PROGRESS` — A12 review gate: two blocking corrections |
+| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `IN PROGRESS` — A14 gate: corrections 27–28 before merge |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `NOT STARTED` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
@@ -527,7 +527,7 @@ the validator rule. All additive, so rollback is clean.
 
 # PHASE 3 — Run ledger & cursor
 
-**Status:** `IN PROGRESS` — returned by the A12 review gate
+**Status:** `IN PROGRESS` — A12/A13 satisfied; A14 corrections 27–28 outstanding
 **Decisions:** D1, D2, D3
 **Release:** TBD
 
@@ -538,9 +538,10 @@ the validator rule. All additive, so rollback is clean.
 > **A11 answers A10.12's four decisions and adds a fifth**, and is normative where it disagrees with §3.4
 > and §3.5: twelve issue codes, required bundle identity, a sixth `regenerate` subcommand reading three
 > sources, and three graph modules the phase must add.
-> **A12 is the review gate.** All four §3.7 gates pass, but two corrections block merge — row 3 was not
-> built and its test cannot fail (A12.1), and twelve new codes shipped with no integration tests (A12.2)
-> — plus two new standing rules, 6 and 7.
+> **A12 and A14 are the review gates.** A12's two corrections (row 3 unbuilt, no integration tests) were
+> satisfied at `f7de98e`; A13 answered A12.1 and corrected the criterion that caused it. **A14 is the
+> outstanding gate:** corrections 27–28 apply D5's absence reasoning to `state` and `complete`, plus
+> standing rule 8. Standing rules 6 and 7 came from A12.
 
 ## 3.1 Objective
 
@@ -2964,6 +2965,95 @@ forbids tests that depend on an external toolchain. `cursor show` stays cheap an
 The criterion in `.ngrace/changes/active/C-RUN-LEDGER/spec.xml` is rewritten to A13.2 and cites this
 entry, per A5.6. A criterion discovered to be unbuildable is corrected in the spec — never satisfied by
 quietly redefining it in the diff, which is how correction 24 happened.
+
+### A14 — 2026-07-30 · Second review gate: absence reasoning applied one field short
+
+Reviewed at `f7de98e`, against the code. **A12 and A13 were satisfied**, verified independently:
+
+- `tasks[0]` is deleted; `deriveRow3Position` (`grace-cursor.ts:482-521`) implements A13.2 — state from
+  `observedWriteScopeContains`, `taskAbsence` carrying verdict and reason, `epoch` absent, `complete`
+  from target-mode assertions
+- all twelve codes appear in `grace-lint.test.ts`, three occurrences each; suite 665 pass / 0 fail
+- the probe artifact exists (`/tmp/ngrace-phase3-probe/probe.ts`, 10.7 KB) — last round the scratchpad
+  was empty, which is how its absence was known
+- the compat sweep is measured, and its dogfood row reproduces: 0 errors, 11 warnings
+- the mutation table's row-3 revert fails three tests — the discriminating negative whose absence made
+  correction 24 invisible
+
+Two defects remain, and they share a shape worth naming.
+
+#### A14.1 Correction 27 — `state: "idle"` is asserted where nothing was checked
+
+`deriveRow3Position:493-497` initializes `state = "idle"` and refines it only under
+`if (available && scope)`. Two paths reach the default having looked at nothing:
+
+| Path | Cause |
+|---|---|
+| `available === false` | `listRepositoryChangedFiles` returns it whenever git exits non-zero (`:539-541`) |
+| `scope === undefined` | `collectActiveChangeScopes` reads **only** `changesActiveDir` (`scope.ts:199-202`), so **every archived bundle** takes this path, and `showCursor` does not refuse archived bundles |
+
+In both, `idle` asserts *"no work has happened in this bundle"* when the mechanism never looked. That
+is correction 24's shape, and the second path is reachable in ordinary use.
+
+Neither path has a test; the two row-3 tests cover `in-progress` and `idle` only.
+
+#### A14.2 Correction 28 — `complete` collapses "could not check" into `false`, and reports `true` on unevaluated evidence
+
+`targetAssertionsClean` (`grace-cursor.ts:567-574`) returns a bare boolean, both directions wrong:
+
+- It passes `runCommands: false`, so `MustPassCommand` and `MustPassBudget` are skipped — the mechanism
+  A5.2 documented. **`Complete: yes` can therefore print while command-gated evidence was never
+  produced.** That is precisely what `assertion.command-not-evaluated` exists to say.
+- A change that cannot be resolved emits `assertion.change-not-approved`, which matches the
+  `assertion.` prefix filter and lands as `complete: false` — conflating *"target not reached"* with
+  *"target not evaluable"*.
+
+`formatCursorPosition:587` already renders `undefined` as `n/a`, so the type carries the third value
+and nothing ever sets it.
+
+#### A14.3 The shape the two share
+
+**A two-valued answer where absence is the honest third value — inside the phase whose subject is
+absence values.** `deriveRow3Position` builds `taskAbsence` correctly for the task field and then does
+not apply the same reasoning one field over; `AbsenceValue` is already in the file. The fix is a
+`stateAbsence` on both unchecked paths and a three-valued `complete`.
+
+This is D5 turned on the phase that implements D5. Recorded that way because the recurrence is the
+point: knowing the rule and applying it to the field you were thinking about are different things.
+
+#### A14.4 The mutation check covers two changes, not the phase
+
+§0.7.2 asks for each production change, reverted alone. The table has two rows against a production
+diff spanning `grammar.ts` (+393), `grace-cursor.ts` (+930 then +156), `catalog.ts` (+97),
+`artifact/types.ts` (+34) and `grace-status.ts` (+51). Commit 1's surface has never been
+mutation-checked — the first round omitted the audit entirely and the second did not backfill it.
+
+#### A14.5 18/18 PASS means the probe was aimed at what already works
+
+§0.7.3 asks for at least fifteen inputs **not in the phase's case table**. At least six of the eighteen
+are the case table re-run: `notes.xml` (`grammar.test.ts:655`), range-hole and range-unterminated (unit
+tests), interrupted fold (AC-FOLD-ORDERING), absent cursor and unknown task (AC-CURSOR-CONDITIONAL rows
+1–2), garbage under `run/` (`grammar.test.ts:677`). Re-running the case table through the public entry
+point is *one of six* categories, not the probe.
+
+Phase 2's probe found the `START_MODULE_CONTRACTX` over-match. §0.7.6 exists because probes are
+expected to find things. Corrections 27 and 28 were found by reading the one function this round was
+about — which is what a probe pointed at new ground would have covered.
+
+#### A14.6 Standing rule 8 — an audit reports its artifact, and enumerated inputs declare their ground
+
+**Normative for Phases 2–11.** Two additions to §0.5's self-review block:
+
+1. **Every audit names the artifact it produced and its path** — the mutation table, the probe script,
+   the captured sweep output. Across these two rounds the artifact was decisive twice: an empty
+   scratchpad proved no probe ran, and a 10.7 KB script proved one did. An audit that leaves nothing
+   behind cannot be distinguished from an audit that was described.
+2. **Where an audit enumerates inputs, each row is marked `new` or `case-table`**, and the count of
+   `new` rows is what §0.7.3's fifteen-input floor is measured against. Six of eighteen rows being
+   re-runs was invisible until someone cross-referenced them by hand.
+
+This is the legibility sibling of standing rule 6. Rule 6 says the self-review has no short form; rule
+8 makes a short form detectable without re-deriving it.
 
 ---
 
