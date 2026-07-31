@@ -370,7 +370,7 @@ Keep this table current. It is the single source of truth for progress.
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
 | 3 | Run ledger & cursor | D1, D2, D3 | TBD | `COMPLETE` |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `COMPLETE` |
-| 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `NOT STARTED` |
+| 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `IN PROGRESS` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
 | 7 | Deterministic failure localization | D8 | TBD | `NOT STARTED` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `NOT STARTED` |
@@ -846,9 +846,17 @@ kinds being absent, so older bundles are unaffected.
 
 # PHASE 5 — Gate declarations & transition surface
 
-**Status:** `NOT STARTED`
+**Status:** `IN PROGRESS`
 **Decisions:** D5 (gate half), D11, D12, D14
 **Release:** TBD
+
+> **Amended by §14 A29 — read it before §5.4 and §5.5.** §5.3's files table and §5.5's step list
+> were written before Phases 2–4 existed and do not survive contact with HEAD: there are no transition
+> commands to wire into, no verdict record, no typed clarification hole, and no project-level fail-on
+> declaration. A29 re-derives the phase at `6389e3a` with corrections 49 onward, works A27.3's three
+> inheritances into concrete steps, and records four ratified conclusions that stage 2 builds to.
+> **A29 is normative where it disagrees with §5.3, §5.4 and §5.5.** A17.3 still binds: the bundle
+> carries a `spec.xml` (draft, awaiting approval) before plan and execution.
 
 ## 5.1 Objective
 
@@ -4493,6 +4501,460 @@ Recorded as a rule, a command in §0.4, and a required report field, in that ord
 was ignored three rounds running in Phase 3 (A15.3), a structural requirement changed behaviour
 immediately (A15.4's controlled comparison). The `Baseline:` field makes staleness a thing a phase must
 state rather than a thing it may assume.
+
+### A29 — 2026-07-31 · Phase 5 re-derived against HEAD
+
+**Everything below was measured at `6389e3a`**
+(`6389e3a3caaa5d032acd71cf8571f9a4558926d3` — `docs(RM-AGENT-RELIABILITY): fetch before you measure,
+as a command and a report field (#25)`). After `git fetch origin && git status -sb`: local `main` was
+not behind `origin/main` (both at `6389e3a`, left-right `0 0`). Tree clean on branch
+`feat/phase-5-rederive` cut from that commit. The track head named in the stage-1 prompt is still the
+head; if it had moved, this entry would have said so (A28 / §0.4.1).
+
+§5.1's objective, §5.6–§5.8's done/review/rollback shape, and the three gate *names*
+(`approve` / `apply` / `archive`) survive. **§5.3's file table, §5.4's evidence sources, and §5.5's
+step list do not.** All three were written before the ledger, the cursor, the attempt log, and the
+status derivations existed. Twelve corrections follow (49–60), starting where A27.3 left the number.
+Four conclusions from the stage-1 pre-read are **recorded as derived** rather than re-opened; none is
+contradicted by the code at this commit (A29.5).
+
+#### A29.1 §5.2's preconditions, re-measured
+
+| Precondition | Measured | Result |
+|---|---|---|
+| Phase 2 `COMPLETE` | §2 status board; `issueClass` and three absence codes in `src/lint/catalog.ts` (`analysis.no-adapter` `:52–67`, `analysis.runtime-missing` `:119–126`, `assertion.command-not-evaluated` `:127–139`); `AbsenceValue` / `AbsenceVerdict` at `src/grace-cursor.ts:69–74` | ✅ |
+| Phase 3 `COMPLETE` | §2; `src/grace-cursor.ts` present (2222 lines); `C-RUN-LEDGER` archived `spec=applied plan=applied` | ✅ |
+| Phase 4 `COMPLETE` | §2; `C-ATTEMPT-LOG` archived `spec=applied plan=applied`; `escalatedTasks` on position (`:137`); fix budget + sticky escalation shipped | ✅ |
+
+Holds. What the gates must *read* exists. What §5.4 assumes they read as *evidence of review and of
+typed holes* does not — corrections 50 and 51.
+
+#### A29.2 Correction 49 — there are no transition commands to wire gates into
+
+§5.3 lists `src/grace.ts` **EDIT — wire gates into the transition commands**.
+
+HEAD: `src/grace.ts:21–30` registers exactly eight subcommands — `cursor`, `doctor`, `file`, `graph`,
+`lint`, `module`, `status`, `verification`. None approves a plan, applies a change, or archives a
+bundle. A repository-wide search for a command that writes `status="applied"` or moves a bundle under
+`archive/` returns **no production path** — only fixtures and skill prose.
+
+The transitions are **authored acts**. `skills/ngrace/ngrace-execute/SKILL.md` rules 8–9:
+
+> 8. Ask for explicit apply confirmation after fresh end-state evidence passes.
+> 9. Only then set spec and plan to `applied` and archive the complete bundle.
+
+Plan approval is the same shape in `ngrace-plan` / `ngrace-spec` (draft → approved by the human, not by
+a CLI verb).
+
+**This is a correction, not a design question.** The host §5.3 names does not exist. Wiring gates
+"into the transition commands" has nowhere to land.
+
+**What the step becomes:** introduce an invocable evaluation surface —
+`ngrace gate <approve|apply|archive> --change C-X` — that the skill text places **before** the authored
+transition. The gate does not itself set `status` or `git mv` the bundle (invariant 8 / F1: the binary
+writes structural state it derives or is given, never authored content). It evaluates, emits a
+machine-readable report, and **records the decision** (correction 56). The agent still performs the
+authored write after a permitting decision.
+
+#### A29.3 Correction 50 — nothing can record a review verdict
+
+D11 and §5.5.5 require a recorded review verdict (any value, including `unable-to-determine`). HEAD
+has no evidence source for that fact.
+
+`KNOWN_KIND_STATE` (`src/grace-cursor.ts:178–187`) is an exhaustive kind→state map:
+
+```
+opened, progress, resume, attempt, verification-unavailable → in-progress
+pause → paused
+terminal → complete
+escalation → paused-pending-approval
+```
+
+No `review-verdict` (or any verdict) kind. No code path writes one — `writeEventFile` (`:1845`) is
+generic, but every caller (`advance`, `recordAttempt`, `recordVerificationUnavailable`, open-epoch,
+pause, resume, escalation) passes a kind from the known set or free-form progress kinds. Skills
+document review outcome *tokens* in `skills/ngrace/ngrace-cli/references/verdicts.md` (`pass` /
+`fail` / `unable-to-determine`) and never a place to put them on disk.
+
+§5.5.5's second test ("apply **permitted** with `unable-to-determine`") cannot be exercised through a
+real surface until something can put a verdict on disk.
+
+**What the step becomes:** Phase 5 ships **the verdict record and its validator**; Phase 6 ships what
+produces the content. That is invariant 4 read forward (grammar with the validator that makes it
+load-bearing) and sequencing rule 3 (5 before 6). Recommended home: a **ledger event** (kind
+`review-verdict`) carrying the outcome as structured attributes / children — the ledger is already the
+run record, gates already read it, and folds already preserve event payload (correction 31 / A18.2).
+
+**Wrinkle, inventoried before touch (standing rule 1 / A5.4).** A verdict moves no cursor state, but
+`KNOWN_KIND_STATE` and `deriveStateFromEvents` (`:277–309`) treat every known kind as a state update
+via `lastNonSticky = cursorStateForEventKind(...)`. Drop sites for a non-position-moving kind:
+
+| Site | Role |
+|---|---|
+| `KNOWN_KIND_STATE` `:178–187` | exhaustive kind→state |
+| `cursorStateForEventKind` `:202–210` | unknown → degradation, not in-progress |
+| `deriveStateFromEvents` `:298`, `:303` | every non-escalation kind updates `lastNonSticky` |
+| `advanceCursor` reserved-kind list `:497–506` | attempt / verification-unavailable / escalation refused |
+| `countTaskAttemptEvents` `:1069+` | filters `kind === "attempt"` only — verdict safe |
+| `listUnresolvedEscalatedTasks` `:222–238` | only `escalation` / resolvers — verdict safe if not a resolver |
+| fold `eventAttributesForLedger` / `expectedLedgerEventAttributes` | payload-preserving; new attributes ride for free |
+| `validateEventsAgainstAllocations` | requires `terminal` in range; verdict is not terminal |
+
+If `review-verdict` were mapped to `in-progress` and treated as an ordinary non-resolver, a verdict
+written after `terminal` would overwrite `complete` with `in-progress` the moment the cursor
+re-derived — the same family as correction 41 (last-event-wins clearing a still-true fact).
+
+**Required with the verdict kind:** a `NON_POSITION_KINDS` (or equivalent) set that
+`deriveStateFromEvents` skips when updating `lastNonSticky`, inventoried against every site above,
+with a discriminating negative: *verdict after terminal leaves state `complete`*. If stage 2's
+inventory finds the ledger the wrong home, that is a §12.5 contradiction and stops for the
+maintainer — it is not a free redesign mid-build.
+
+#### A29.4 Correction 51 — `[NEEDS CLARIFICATION: …]` does not exist; the typed hole must be built
+
+D12's table and §5.5.4 assume typed holes are an authoring convention. At HEAD they are not.
+
+Repository-wide search for `NEEDS CLARIFICATION`, `NEEDS_CLARIFICATION`, `needs-clarification`, and
+`Clarification` under `src/` and `skills/` returns **zero hits**. The string is only in plan /
+decisions prose.
+
+`ASSUMPTION` *does* exist, only as the optional template block
+`<Assumptions><Assumption>` in `skills/ngrace/ngrace-spec/references/change-spec-template.xml:30–32`.
+Grammar does not require or specially validate it (`SPEC_REQUIRED_SECTIONS` at
+`src/artifact/grammar.ts:31–39` has no Assumptions row; optional sections are silently admitted).
+So §5.5.4's third test (an assumption blocks nothing) is buildable today; the first two are not.
+
+**What the step becomes:** Phase 5 builds the typed hole as a **schema element carrying its target
+anchor** — never a prose marker scanned by regex (anti-pattern 3; box 2 cannot verify what it must
+regex out of English). Derive placement from the existing optional-section pattern (Assumptions,
+DesignReferences): a `Clarifications` section under the change-spec and change-plan wrappers, with
+children of the form `<Clarification target="IC-…">…</Clarification>` (and `INV-*`, `AC-*` as D12's
+table requires). Validator: `target` is a canonical anchor of an admitted family; unresolved means
+present and not marked resolved. Authoring change mirrored into `ngrace-spec` and `ngrace-plan`
+templates and skill text (and packaged mirrors).
+
+**Not deferrable.** Clarifications on `IC-*` / `INV-*` are the `approve` gate's only requirement in
+§5.4's table. A Phase 5 without them ships an `approve` gate that requires nothing.
+
+#### A29.5 Correction 52 — fail-on is a per-command flag, not a project declaration
+
+D11: *"the project declares whether a missing review verdict is fatal"*, routed through the "existing
+fail-on policy surface". §5.5.7 says "with the policy permissive / with it strict".
+
+HEAD: `--fail-on errors|warnings|never` exists on `lint` (`src/grace-lint.ts:45`, default `errors`) and
+`status` (`src/grace-status.ts:552`, default `never`). `.ngrace-lint.json` accepts no such key —
+`SUPPORTED_KEYS` (`src/lint/config.ts:7–13`) is exactly
+`ignoredDirs | unverifiedLanguages | codeExtensions | documentAnchorLimit | documentByteLimit`.
+
+A per-invocation flag an agent chooses is not a project policy (A17.2's family: a correct signal the
+caller can walk past is equivalent to no signal).
+
+**What the step becomes:** add a **project declaration** on the existing config surface
+(`.ngrace-lint.json` is the only project-level CLI config file and the only place `SUPPORTED_KEYS`
+validates). Name it so it is not lint-only — e.g. `gateFailOn` with values aligned to the existing
+vocabulary (`errors` | `warnings` | `never`), governing whether a missing / absent review verdict
+(`host-capability-missing` or no verdict event) is fatal at the `apply` gate. Per-invocation override
+on `ngrace gate` only if the existing lint/status flags justify the parallel; default is the project
+value. Lint and status keep their own `--fail-on` for *their* exits — gates do not silently reuse
+lint's process exit policy without a named project key.
+
+#### A29.6 Correction 53 — `host-capability-missing` is a new reason code
+
+§5.4 / D11 name reason `host-capability-missing`. Phase 2's absence vocabulary at HEAD is three issue
+codes with `issueClass: "absence"` and free-form `AbsenceValue.reason` strings on cursor surfaces.
+`host-capability-missing` appears only in plan/decisions prose — not in `src/lint/catalog.ts`, not as
+a constrained reason enum, not in `verdicts.md`.
+
+**What the step becomes:** introduce `host-capability-missing` as a **named absence reason** on the
+verdict / gate path (and document it next to the shared vocabulary), not as a fourth lint
+`issueClass` code unless a lint surface needs to emit it. Gates fail on absence of required evidence;
+the reason codes remediation. Reuse `AbsenceValue` — do not invent a second absence vocabulary
+(anti-pattern 5, A13.2).
+
+#### A29.7 Correction 54 — `src/gates/` and `src/lint/core.test.ts` are still absent
+
+§5.3's two CREATE rows and its parenthetical are accurate at HEAD:
+
+```
+$ ls src/gates          → No such file or directory
+$ ls src/lint/core.test.ts → No such file or directory
+```
+
+`src/lint/core.ts` exists and is the D14 boundary that must not learn about gates. The boundary test
+needs a home; creating `src/lint/core.test.ts` (or colocating under `src/gates/` with an integration
+that invokes `runLint`) remains correct. Prefer the §5.3 shape so the test lives next to the surface
+it pins.
+
+#### A29.8 Correction 55 — §5.3's skill list is short by two
+
+§5.3 names only `ngrace-execute` and `ngrace-reviewer`.
+
+| Gate | Skill that performs the transition today |
+|---|---|
+| `approve` (plan) | `ngrace-plan` (and `ngrace-spec` for the authorizing approved spec) |
+| `apply` / `archive` | `ngrace-execute` rules 8–9 |
+| verdict content (Phase 6) | `ngrace-reviewer` — Phase 5 only needs the record shape and a note that production lands in 6 |
+
+**What the step becomes:** edit `ngrace-execute`, `ngrace-plan`, `ngrace-spec`, and a narrow note in
+`ngrace-reviewer` (verdict record shape / where it will be written), plus all packaged mirrors.
+
+#### A29.9 Correction 56 — a gate decision that is not recorded is functionally no gate (A17.2)
+
+A17.2: a correct, continuous, non-blocking signal was walked past for four review rounds. The gate's
+decision must be **recorded**, and a bundle that reached `applied` or `archive` with no gate record is
+a finding.
+
+**Where the record lives.** Same reasoning as the verdict (correction 50): a ledger event
+(`kind` e.g. `gate-decision`, attributes `gate=approve|apply|archive`, `decision=permit|refuse`, plus
+structured requirement results as children). Folds preserve payload. D1 already places
+non-recoverable approval facts on the ledger.
+
+**What reports a missing record.** Not `lint` — D14 forbids lint from asking whether a process step
+happened. Options that keep the boundary:
+
+1. **`ngrace status`** derives a state (e.g. `applied-without-gate-record`) for archive/active bundles
+   whose status is `applied` but whose ledger∪loose stream has no matching `gate-decision` for apply —
+   same family as `needs-plan` (`grace-status.ts:199`).
+2. **`ngrace gate` itself** can refuse further evaluations or surface the gap when asked.
+
+Prefer (1) for continuous visibility and (2) as the blocking check before a subsequent transition.
+Do **not** emit `gate.*` from `runLint`.
+
+#### A29.10 Correction 57 — archive "no open epoch" and plan-presence are unimplemented gates, not lint
+
+**A10.10 §1 / D3:** archive precondition is "no open epoch". Still unowned. `listLooseEvents`
+(`grace-cursor.ts:376`) returns the open-epoch working set; non-empty `run/` (or unterminated
+allocation — A18.5 §1, escalated task with no `terminal`) is the concrete check. Grammar's archive
+rules (`grammar.ts:1093–1097`) cover status pairing and `change.applied-plan-missing` for applied
+archives, **not** open epochs.
+
+**A17.2:** refuse `applied` without a plan. `ngrace status` already derives `needs-plan` when
+`specStatus === "approved" && !planStatus` (`grace-status.ts:198–199`) and points `nextAction` at
+`$ngrace-plan` (`:223`). `change.applied-plan-missing` (`grammar.ts:1096–1097`) only fires for
+**archived** bundles already marked applied — after the walk-past, as integrity, not as a gate.
+
+**What the steps become:**
+
+- `archive` gate requires `listLooseEvents(bundle).length === 0` (and no unterminated allocation if a
+  ledger epoch is still open — same predicate fold already uses). Consumes existing helpers; does not
+  re-implement epoch detection.
+- `apply` gate requires a plan artifact present (and, per A17.2, retires A17.3's manual discipline).
+  **Consume** status's derivation inputs (`planStatus` present) or call the same pure function status
+  uses — do not fork a second `needs-plan` rule (standing rules 1 and 9).
+- Attempt path: refuse further attempts when `task ∈ escalatedTasks` (A21.1 / A22.3). Read
+  `escalatedTasks` from the position / `listUnresolvedEscalatedTasks` (`grace-cursor.ts:137`,
+  `:222–238`). Policy lives in `src/gates/`; `recordAttempt` / `cursor attempt` **calls** the
+  evaluation rather than inventing a budget rule (anti-pattern 9).
+
+#### A29.11 Correction 58 — §5.4's apply row names evidence that now has real homes
+
+§5.4 apply requires: recorded review verdict; no unresolved clarification on any `AC-*` the change
+claims to satisfy; no unexecuted declared command assertion.
+
+| Evidence | At HEAD |
+|---|---|
+| Review verdict | **missing** — correction 50 |
+| Clarification on `AC-*` | **missing** — correction 51 |
+| Unexecuted command assertion | **exists** — `assertion.command-not-evaluated` (`catalog.ts:127–139`), emitted when commands are not opted in under assertion modes that evaluate them |
+
+The third row is buildable against the existing absence code. The first two are not until 50 and 51
+land. Order in the revised step list: grammar/records first, then requirement evaluation, then the
+three gate declarations.
+
+#### A29.12 Correction 59 — `ASSUMPTION` must stay out of every gate requirement
+
+D12 and §5.4: assumptions never block. HEAD has Assumptions only in the spec template. When
+clarification grammar lands, the approve/apply tables must name **Clarification** only. A test that an
+`<Assumption>` anywhere does not refuse is still required (protects against conflating the two in the
+evaluator). No grammar change required for Assumptions beyond leaving them non-required.
+
+#### A29.13 Correction 60 — §5.3's `grace.ts` edit is CREATE of a subcommand, not EDIT of transitions
+
+Combining 49 and 54: `src/grace.ts` still changes (register `gate: gateCommand`), but the semantic is
+**add a ninth subcommand**, not wire into approve/apply/archive verbs that do not exist. File table
+must say so.
+
+#### A29.14 Scope A27.3 hands this phase — as concrete steps, not acknowledgements
+
+| Inheritance | Concrete step |
+|---|---|
+| **A17.2** — refuse `applied` without a plan | `apply` gate requirement: plan present. Consume `needs-plan` derivation (`grace-status.ts:199`), do not re-derive. Retires A17.3's manual discipline once the gate ships. |
+| **A10.10 §1** — no open epoch to archive | `archive` gate requirement: `listLooseEvents` empty (open epoch = loose `run/` events). Caller named in A18.5 §1: escalated task has no `terminal`, so `paused-pending-approval` bundles cannot fold and must not archive. |
+| **A21.1 / A22.3** — refuse further attempts on escalated task | Gate evaluation on the attempt write path; reads `escalatedTasks` / `listUnresolvedEscalatedTasks`. Not a fourth gate *name* in the D14 trio — a requirement the attempt transition must pass through `src/gates/`. |
+
+#### A29.15 Four ratified conclusions — recorded as derived, not re-opened
+
+These descend from the pipeline framing (LLM → verifier → **gate** → execute/apply) and from
+corrections above. Stage 2 builds to them. They are not open questions for the maintainer unless the
+code contradicts them — it does not at `6389e3a` (A29.16).
+
+**Conclusion 1 — Gate is its own invocable surface, and it is not advisory.**
+(From correction 49 + 56.) There is no transition command host. The gate is box 3: `ngrace gate
+<approve|apply|archive> --change C-X`. Report shape is structured (JSON flag and/or exit + typed
+fields: `gate`, `decision`, `requirements[]` with id/required/present/blocking) so a caller acts
+without parsing prose. Decision is recorded as a ledger event; missing record on an applied/archived
+bundle is a status/gate finding, never a `gate.*` from lint (D14).
+
+**Conclusion 2 — Phase 5 ships the verdict record and validator; Phase 6 produces content.**
+(From correction 50.) No write path exists for a review verdict. Home: ledger event
+`review-verdict`, with `NON_POSITION_KINDS` handling so cursor state is not disturbed. Invariant 4 +
+sequencing rule 3. Phase 6's reviewer fills the record; Phase 5 makes apply able to require it.
+
+**Conclusion 3 — Phase 5 builds the typed clarification element, not a prose marker.**
+(From correction 51.) Schema element with `target` anchor under spec/plan grammar + validator;
+skills that author specs/plans teach it. Anti-pattern 3. Without this, `approve` requires nothing.
+
+**Conclusion 4 — D11's project declaration is binding; a per-call flag alone is insufficient.**
+(From correction 52.) Project key on `.ngrace-lint.json` (only existing project CLI config);
+gates read it for missing-verdict / `host-capability-missing` severity. Per-invocation override only
+on the gate command if kept at all.
+
+#### A29.16 Contradictions between §3's four conclusions and the code
+
+**None at `6389e3a`.** Every conclusion is either a gap the phase must fill (1–3) or a policy home the
+code does not yet provide (4). No existing surface implements a conflicting design that would force
+re-opening a conclusion under §12.5.
+
+#### A29.17 Standing rules that bind this phase, named so they are not rediscovered at the gate
+
+- **A5.4** — drop-site inventory required before widening `KNOWN_KIND_STATE` / adding
+  `NON_POSITION_KINDS` / adding ledger event kinds (`review-verdict`, `gate-decision`). Correction 50's
+  table is the starting inventory; re-measure at build time.
+- **A5.5** — every claim here is measured at `6389e3a`. Re-measure what you depend on; §0.4.1 before
+  anything else.
+- **A5.6** — acceptance criteria descending from these corrections cite them inline, e.g.
+  `AC-GATE-OWN-SURFACE (A29.2)`, and carry the discriminating detail.
+- **A6.4** — tests and measurements must not depend on transient artifact state; fixture bundles only.
+- **A7.2** — any detection-boundary change (clarification validator, gate catalog prefix, lint
+  boundary test) carries the both-directions table.
+- **A12.3 (rule 6)** — the §0.7 self-review has no abbreviated form.
+- **A12.4 (rule 7)** — a deviation that removes a ratified capability is reported as an absence value,
+  not silently substituted.
+- **A14.6 (rule 8)** — every audit names the artifact it read; enumerated inputs declare their ground.
+- **A20.5 (rule 9)** — accounting and policy decisions read the durable record (ledger∪loose via
+  `listAccountingEvents`), not the cursor cache alone. Gate evaluation of verdicts, escalations, and
+  gate-decision history reads the stream.
+- **Standing rule 1 (do not re-derive)** — `needs-plan` and `escalatedTasks` are consumed from
+  existing derivations (`grace-status.ts:199`, `listUnresolvedEscalatedTasks`), not reimplemented.
+- **A17.3** — until this phase's apply gate ships, the bundle still carries a pre-execution plan;
+  stage 1 authors `spec.xml` first (grammar: active plan requires approved spec,
+  `grammar.ts:1090–1091`). Spec is `draft` for maintainer approval before plan.
+- **Anti-pattern 3** — no regex over structured text for clarifications or verdicts.
+- **Anti-pattern 9** — blocking policy lives in `src/gates/`; mechanisms report; attempt path *calls*
+  the gate.
+- **D14** — `runLint` never emits `gate.*`; boundary test is not optional.
+- **Invariant 4** — verdict and clarification grammar arrive with their validators in the same phase.
+- **Invariant 8 / F1** — gate records structural decisions; it does not author `status` or archive paths.
+
+#### A29.18 Revised §5.3 files-touched table
+
+| File | Action |
+|---|---|
+| `src/gates/core.ts` | CREATE — evaluate requirements; emit structured decision |
+| `src/gates/core.test.ts` | CREATE |
+| `src/gates/catalog.ts` | CREATE — `gate.*` codes (never registered in lint catalog as emit-able by lint) |
+| `src/gates/command.ts` (or equivalent) | CREATE — `ngrace gate <approve\|apply\|archive>` CLI |
+| `src/grace.ts` | EDIT — register `gate` subcommand only (correction 49, 60) |
+| `src/grace-cursor.ts` | EDIT — `review-verdict` + `gate-decision` kinds; `NON_POSITION_KINDS`; write helpers; attempt path calls gate for escalated-task refusal |
+| `src/grace-cursor.test.ts` | EDIT — non-position kind after terminal; gate-decision payload survives fold |
+| `src/artifact/grammar.ts` | EDIT — `Clarifications` / `Clarification target=…` validation on spec and plan |
+| `src/artifact/types.ts` | EDIT only if companion/tag constants need a new kind token (prefer keeping events under existing ledger/run tags) |
+| `src/lint/config.ts` / `src/lint/types.ts` | EDIT — project `gateFailOn` (or equivalent) key |
+| `src/lint/core.ts` | READ ONLY — must not learn about gates |
+| `src/lint/core.test.ts` | CREATE — D14 boundary: no `gate.*` from `runLint` |
+| `src/grace-status.ts` | EDIT — derive missing-gate-record / surface gate-relevant states without re-deriving `needs-plan` |
+| `src/lint/catalog.ts` | EDIT only if a lint-visible code is justified; gate codes stay in `src/gates/catalog.ts` |
+| `skills/ngrace/ngrace-execute/SKILL.md` | EDIT — call `ngrace gate apply` / `archive` before rules 8–9 transitions |
+| `skills/ngrace/ngrace-plan/SKILL.md` | EDIT — call `ngrace gate approve` before setting plan approved; teach Clarification |
+| `skills/ngrace/ngrace-spec/SKILL.md` | EDIT — teach Clarification; Assumptions remain non-blocking |
+| `skills/ngrace/ngrace-reviewer/SKILL.md` | EDIT — narrow: verdict record shape / Phase 6 produces content |
+| `skills/ngrace/ngrace-spec/references/change-spec-template.xml` | EDIT — Clarifications section |
+| `skills/ngrace/ngrace-plan/references/change-plan-template.xml` | EDIT — Clarifications section if plan-scoped holes are admitted |
+| `skills/ngrace/ngrace-cli/references/verdicts.md` | EDIT — host-capability-missing / review-verdict placement note |
+| (+ all packaged mirrors under `plugins/ngrace/skills/ngrace/`) | EDIT |
+| `.ngrace/changes/active/C-GATE-SURFACE/` | CREATE — this phase's bundle |
+
+#### A29.19 Revised §5.5 step list
+
+**Step 5.5.1 — Gate surface, catalog, and CLI host.** Create `src/gates/{core,catalog,command}.ts` and
+register `gate` on `src/grace.ts`. No approve/apply/archive write commands.
+→ verify: `ngrace gate --help` lists `approve|apply|archive`; `gate.*` codes exist only in the gates
+catalog; unit test asserts the `gate.` prefix is absent from `src/lint/catalog.ts` emit paths
+(A29.2, A29.13).
+
+**Step 5.5.2 — D14 boundary test.**
+→ verify: integration test runs `ngrace lint` over a project with open epoch, absent review verdict,
+and unresolved clarification fixture material, and asserts **no** `gate.*` code appears
+(A29.7). This is the test most likely to be skipped.
+
+**Step 5.5.3 — Project `gateFailOn` declaration.**
+→ verify: `.ngrace-lint.json` accepts the new key; unknown keys still error; gate evaluation reads the
+project value; per-invocation override behaviour is pinned if implemented (A29.5, conclusion 4).
+
+**Step 5.5.4 — Typed Clarification grammar + validator + templates.**
+→ verify: `<Clarification target="IC-…">` under spec/plan validates; bad target errors; prose
+`[NEEDS CLARIFICATION]` is **not** detected (anti-pattern 3); Assumptions still optional and
+unvalidated as blockers (A29.4, A29.12, conclusion 3). Both-directions table per A7.2.
+
+**Step 5.5.5 — Verdict record (`review-verdict` event) + non-position kind handling.**
+→ verify: write path records outcome including `unable-to-determine` and
+`host-capability-missing`; fold preserves payload (A18.2); verdict after `terminal` leaves state
+`complete` (A29.3 discriminating negative); unknown kind still does not silently mean in-progress
+(correction 34 preserved). Phase 6 content production is out of scope (conclusion 2).
+
+**Step 5.5.6 — Gate-decision record + structured report.**
+→ verify: every evaluation appends a `gate-decision` event; report is machine-actionable without
+prose parsing; status derives a finding when `applied`/archive lacks the matching record; lint still
+silent (A29.9, conclusion 1).
+
+**Step 5.5.7 — Requirement evaluation table.**
+→ verify: required evidence absent → refuse; optional absent → report, do not block; present →
+consult value. Exercise Phase 2 absence reasons plus `host-capability-missing` through required and
+optional rows (A29.6, A29.11).
+
+**Step 5.5.8 — `approve` gate.**
+→ verify: clarification on `IC-*` or `INV-*` refuses; same text as assumption does not; clarification
+on a non-satisfied `AC-*` does not block approve (D12 table); no clarification present permits
+(A29.4). Three+ tests.
+
+**Step 5.5.9 — `apply` gate.**
+→ verify: refuse with no plan (A17.2 / A29.10 — consume `needs-plan` inputs); refuse with no verdict;
+**permit** with `unable-to-determine` (D11 discriminating test); refuse with unresolved clarification
+on a `Satisfies` `AC-*`; refuse with unexecuted required command assertion when that evidence is
+required; `host-capability-missing` under project permissive vs strict (A29.5, A29.11).
+
+**Step 5.5.10 — `archive` gate.**
+→ verify: refuse with loose files in `run/` (open epoch); permit after fold empties `run/`; refuse
+when escalated/unterminated state implies the epoch cannot be clean (A10.10 §1, A29.10).
+
+**Step 5.5.11 — Escalated-task attempt refusal.**
+→ verify: `cursor attempt` on `task ∈ escalatedTasks` refuses via gate evaluation; after resolving
+`resume`, attempts proceed within the A24 window; mechanism does not embed the policy (A21.1,
+A22.3, anti-pattern 9).
+
+**Step 5.5.12 — Skill text and mirrors.**
+→ verify: execute/plan/spec/reviewer (+ templates, verdicts.md) updated; `validate:marketplace`
+passes; line delta reported (D15).
+
+#### A29.20 Additions to §5.6 definition of done
+
+- `ngrace gate` is the invocable surface; no fake transition commands (A29.2)
+- Verdict and gate-decision events exist, survive fold, and do not move cursor state (A29.3, A29.9)
+- Clarification is schema-bound with validator; approve is not vacuous (A29.4)
+- Project `gateFailOn` (or named equivalent) exists and is what apply consults for missing verdict
+  (A29.5)
+- Apply permits `unable-to-determine`, refuses no-verdict and no-plan (D11, A17.2)
+- Archive refuses open epoch; attempt refuses escalated task (A10.10 §1, A21.1)
+- D14 boundary test present; `ASSUMPTION` blocks nothing
+- Bundle `C-GATE-SURFACE` carries pre-execution plan once maintainer approves this draft spec (A17.3)
+- `bun run validate:ci` green
+
+#### A29.21 Bundle for this phase
+
+Proposed change id: **`C-GATE-SURFACE`** (precedents: `C-ABSENCE-VALUE`, `C-RUN-LEDGER`,
+`C-ATTEMPT-LOG`). Stage 1 authors `.ngrace/changes/active/C-GATE-SURFACE/spec.xml` with
+`status="draft"`. Maintainer approves the spec; then `plan.xml` is authored before any production
+code (A17.3, `grammar.ts:1090–1091`).
 
 ---
 

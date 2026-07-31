@@ -1,0 +1,218 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-GATE-SURFACE>
+    <Summary>
+      Create the third check surface — invocable transition gates that declare required evidence,
+      record their decisions, and refuse approve/apply/archive (and further attempts on escalated
+      tasks) without re-deriving what status and the cursor already know.
+    </Summary>
+    <Problem>
+      The pipeline is [LLM generates artifact] → [deterministic verifier] → [policy gate] →
+      [execute/apply]. Box 3 does not exist. Transitions are authored acts: ngrace-execute rules
+      8–9 set status to applied and archive the bundle with no gate; plan approval is the same
+      shape in ngrace-plan/ngrace-spec. A17.2 measured that a correct continuous non-blocking
+      signal (needs-plan on ngrace status) was walked past for four review rounds — so a gate that
+      only advises is no gate.
+
+      §5.3 assumed transition commands inside src/grace.ts. At 6389e3a that file registers eight
+      subcommands (cursor, doctor, file, graph, lint, module, status, verification) and none
+      approves, applies, or archives (A29.2). Wiring into a host that does not exist is not a
+      design question.
+
+      D11 requires a recorded review verdict before applied. KNOWN_KIND_STATE
+      (grace-cursor.ts:178-187) is exhaustive over kind→state with no verdict kind, and no write
+      path produces one (A29.3). Phase 6 will produce verdict content; without a record and
+      validator, Phase 5 cannot implement the apply requirement, and sequencing rule 3 puts 5
+      before 6 for that reason.
+
+      D12 requires typed clarifications as absence. [NEEDS CLARIFICATION] exists nowhere under
+      src/ or skills/. ASSUMPTION exists only as optional template markup. Without a schema
+      element and validator, the approve gate's only §5.4 requirement is vacuous (A29.4).
+
+      D11 says the project declares whether a missing verdict is fatal. --fail-on exists only as a
+      per-command flag on lint and status; .ngrace-lint.json admits five keys and no fail-on
+      (lint/config.ts:7-13) (A29.5). host-capability-missing is named in decisions and absent from
+      the binary (A29.6).
+
+      A27.3 hands three concrete obligations: refuse applied without a plan (A17.2), refuse archive
+      with an open epoch (A10.10 §1), refuse further attempts on an escalated task (A21.1 / A22.3)
+      reading escalatedTasks (grace-cursor.ts:137).
+    </Problem>
+    <Goals>
+      <Goal>
+        An invocable gate surface: ngrace gate &lt;approve|apply|archive&gt; --change C-X, registered
+        from src/grace.ts, implemented under src/gates/. Structured report a caller can act on
+        without parsing prose (A29.2, conclusion 1).
+      </Goal>
+      <Goal>
+        Each gate declares required evidence. Required absence fails closed; optional absence is
+        reported and does not block; present evidence is consulted (D5 gate half). Blocking is never
+        a property of a mechanism (anti-pattern 9).
+      </Goal>
+      <Goal>
+        Gate decisions are recorded as durable ledger events (gate-decision). A bundle that reached
+        applied or archive without a matching record is a status/gate finding, never a gate.* code
+        from runLint (D14, A29.9, A17.2 family).
+      </Goal>
+      <Goal>
+        Review-verdict ledger event and validator ship in this change; Phase 6 produces content.
+        NON_POSITION_KINDS (or equivalent) so a verdict does not move cursor state — discriminating
+        negative: verdict after terminal leaves state complete (A29.3, conclusion 2, invariant 4).
+      </Goal>
+      <Goal>
+        Typed Clarification element with target anchor under change-spec and change-plan grammar,
+        with validator; skills and templates teach it. Never a prose marker (A29.4, conclusion 3,
+        anti-pattern 3).
+      </Goal>
+      <Goal>
+        Project-level gateFailOn (or named equivalent) on .ngrace-lint.json; apply consults it for
+        missing verdict / host-capability-missing (A29.5, conclusion 4, D11).
+      </Goal>
+      <Goal>
+        apply refuses without a plan, consuming needs-plan inputs from status rather than
+        re-deriving (A17.2, standing rule 1). archive refuses open epoch via listLooseEvents
+        (A10.10 §1). cursor attempt refuses when task is in escalatedTasks via gate evaluation
+        (A21.1 / A22.3).
+      </Goal>
+      <Goal>
+        apply permits unable-to-determine and refuses no verdict — the D11 discriminating pair.
+        ASSUMPTION blocks nothing anywhere (D12).
+      </Goal>
+      <Goal>
+        D14 boundary: gate.* never emitted by runLint; integration test present (A29.7).
+      </Goal>
+      <Goal>
+        Skill text places the gate call before the authored transition in ngrace-execute,
+        ngrace-plan, ngrace-spec; narrow note in ngrace-reviewer; packaged mirrors byte-identical.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>No production transition commands that author status=applied or move bundles. Gate evaluates and records; the agent authors the lifecycle write (invariant 8 / F1, A29.2).</Constraint>
+      <Constraint>src/lint/core.ts does not learn about gates. gate.* codes live in src/gates/catalog.ts (D14).</Constraint>
+      <Constraint>Consume needs-plan (grace-status.ts:199) and escalatedTasks / listUnresolvedEscalatedTasks; do not fork second derivations (standing rules 1 and 9, A29.10).</Constraint>
+      <Constraint>No second absence vocabulary. Reuse AbsenceValue; host-capability-missing is a named reason, not a parallel enum (A29.6, anti-pattern 5).</Constraint>
+      <Constraint>Clarifications are schema elements with validators in the same change (invariant 4). No regex over prose (anti-pattern 3).</Constraint>
+      <Constraint>Drop-site inventory before widening KNOWN_KIND_STATE or adding NON_POSITION_KINDS (A5.4, A29.3).</Constraint>
+      <Constraint>Additive only. Projects without gates, verdicts, or clarifications keep validating where those constructs are absent (invariant 5) — except transitions that this change newly refuses.</Constraint>
+      <Constraint>No new runtime dependencies. No Phase 6+ constructs: no detached reviewer automation, no confidence field, no plan-quality signal.</Constraint>
+      <Constraint>skills/ngrace/* is source of truth; plugins/ngrace/skills/ngrace/* stays byte-identical in the same commit (invariant 1, §12.2).</Constraint>
+      <Constraint>AffectedAreas derives from the traced code path and A29.18, never from §5.3's provisional table alone (A5.6).</Constraint>
+      <Constraint>Every AC descending from an A29 correction cites it inline (A5.6).</Constraint>
+      <Constraint>Tests use fixture bundles only; no dependence on transient live artifact state (A6.4).</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Detached reviewer and mechanized audits that produce verdict content (Phase 6). This change ships the record and validator only (conclusion 2).</NonGoal>
+      <NonGoal>Deterministic failure localization (Phase 7), selection (Phase 8), confidence/calibration (Phase 9), plan-quality/doctor consumers (Phase 10), adoption walkthrough (Phase 11).</NonGoal>
+      <NonGoal>CLI commands that set status=applied or archive a bundle directory.</NonGoal>
+      <NonGoal>Making lint depend on run state or emit gate.* codes (D14).</NonGoal>
+      <NonGoal>Treating ASSUMPTION as absence or as a gate requirement (D12).</NonGoal>
+      <NonGoal>Replacing or renaming the three Phase 2 absence issue codes.</NonGoal>
+      <NonGoal>The file-to-module ObservedWriteScope cross-check (A5.7; still unowned).</NonGoal>
+      <NonGoal>Adopting scripts/ or M-RELEASE-AUTOMATION (separate C-*).</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-GATE-OWN-SURFACE>
+        Correction 49 (A29.2). ngrace gate approve|apply|archive --change C-X is registered from
+        src/grace.ts and implemented under src/gates/. It evaluates and records; it does not write
+        status attributes or move bundle directories. Discriminating negative: no new subcommand named
+        approve, apply, or archive at the top level that mutates lifecycle status.
+      </AC-GATE-OWN-SURFACE>
+      <AC-GATE-D14-BOUNDARY>
+        A gate.* code is never present in runLint output. Integration test: project with open epoch
+        and absent review verdict yields zero gate.* codes from ngrace lint (A29.7, D14). Both
+        directions per A7.2: gate evaluation still emits gate.* on its own surface.
+      </AC-GATE-D14-BOUNDARY>
+      <AC-GATE-DECISION-RECORDED>
+        Correction 56 (A29.9). Every evaluation appends a durable gate-decision event (ledger∪loose).
+        Report shape exposes gate, decision, and per-requirement results without requiring prose
+        parse. Status (or gate) surfaces applied/archive without a matching record; lint does not.
+      </AC-GATE-DECISION-RECORDED>
+      <AC-VERDICT-RECORD>
+        Correction 50 (A29.3, conclusion 2). review-verdict event can be written with outcomes
+        including unable-to-determine and host-capability-missing; fold preserves payload; validator
+        makes the grammar load-bearing (invariant 4). Discriminating negative: a review-verdict
+        after terminal leaves cursor state complete (NON_POSITION_KINDS inventory, A5.4). Phase 6
+        content production is out of scope.
+      </AC-VERDICT-RECORD>
+      <AC-TYPED-CLARIFICATION>
+        Correction 51 (A29.4, conclusion 3). Clarification is a schema element with target= anchor
+        under change-spec and change-plan; invalid targets error; unresolved clarifications on IC-*
+        or INV-* refuse approve. [NEEDS CLARIFICATION] prose is not a detection path. Templates and
+        ngrace-spec / ngrace-plan teach the element. Without this AC the approve gate is vacuous.
+      </AC-TYPED-CLARIFICATION>
+      <AC-APPROVE-GATE>
+        Clarification on IC-* or INV-* refuses approve; ASSUMPTION anywhere does not; clarification
+        on a non-satisfied AC-* does not block approve (D12, A29.12). Three tests minimum.
+      </AC-APPROVE-GATE>
+      <AC-APPLY-VERDICT>
+        Apply refuses with no verdict event; apply permits with unable-to-determine (D11
+        discriminating pair, §5.7 gate 3). host-capability-missing under project permissive vs
+        strict gateFailOn both shown (A29.5, A29.6).
+      </AC-APPLY-VERDICT>
+      <AC-APPLY-NEEDS-PLAN>
+        Correction A17.2 / A29.10. Apply refuses when the bundle has no plan, consuming the same
+        inputs status uses for needs-plan (grace-status.ts:199) rather than a forked rule. Retires
+        A17.3's manual discipline once this gate ships.
+      </AC-APPLY-NEEDS-PLAN>
+      <AC-ARCHIVE-OPEN-EPOCH>
+        A10.10 §1 / A29.10. Archive refuses when listLooseEvents is non-empty; permits after fold
+        empties run/. Escalated unfoldable epoch remains refused (A18.5 §1 caller).
+      </AC-ARCHIVE-OPEN-EPOCH>
+      <AC-ESCALATED-ATTEMPT>
+        A21.1 / A22.3 / A29.10. cursor attempt on a task in escalatedTasks refuses via gate
+        evaluation; after resolving resume, attempts proceed within the A24 window. Policy lives in
+        src/gates/; the mechanism does not invent it (anti-pattern 9).
+      </AC-ESCALATED-ATTEMPT>
+      <AC-PROJECT-GATE-FAIL-ON>
+        Correction 52 (A29.5, conclusion 4). Project declaration on .ngrace-lint.json; SUPPORTED_KEYS
+        updated; apply reads it for missing-verdict severity. A per-invocation flag alone does not
+        satisfy this AC.
+      </AC-PROJECT-GATE-FAIL-ON>
+      <AC-ASSUMPTION-NEVER-BLOCKS>
+        An Assumption element on a fixture bundle never causes approve or apply to refuse (D12,
+        A29.12).
+      </AC-ASSUMPTION-NEVER-BLOCKS>
+      <AC-SKILL-GATE-CALL>
+        ngrace-execute places ngrace gate apply/archive before rules 8–9 transitions; ngrace-plan
+        places ngrace gate approve before setting plan approved; ngrace-spec/plan templates carry
+        Clarification; ngrace-reviewer notes verdict record shape. validate:marketplace green; line
+        delta reported (A29.8).
+      </AC-SKILL-GATE-CALL>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI />
+      <M-CURSOR />
+      <M-STATUS />
+      <M-GRAMMAR />
+      <M-LINT-CORE />
+      <M-LINT-TYPES />
+      <M-LINT-CATALOG />
+      <M-ARTIFACT-TYPES />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedCommand>bun test src/gates src/grace-cursor.test.ts src/artifact/grammar.test.ts src/lint/core.test.ts src/grace-status.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace gate --help</ExpectedCommand>
+      <ExpectedEvidence>
+        Unit and integration tests for the three gates, boundary test, non-position verdict,
+        clarifications, project gateFailOn, escalated-attempt refusal; root lint 0 errors with
+        C-GATE-SURFACE present; marketplace mirror check green.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Maintainer approves this draft spec before plan.xml is authored; plan is written before any
+        production code (A17.3, grammar.ts:1090-1091).
+      </Assumption>
+      <Assumption>
+        The four conclusions in A29.15 remain binding for stage 2; a code contradiction during build
+        stops under §12.5 rather than silently redesigning.
+      </Assumption>
+      <Assumption>
+        Ledger remains the home for verdict and gate-decision events unless the A5.4 inventory at
+        build time contradicts it — in which case stage 2 reports and stops (A29.3).
+      </Assumption>
+    </Assumptions>
+  </C-GATE-SURFACE>
+</NgraceChangeSpec>
