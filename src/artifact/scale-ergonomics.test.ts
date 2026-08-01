@@ -373,9 +373,10 @@ describe("Phase 8 — packaging and catalog pins", () => {
     expect(pkg.files).toContain("src/grace-graph.ts");
     expect(pkg.files).toContain("src/grace-cursor.ts");
     expect(pkg.files).toContain("src/grace-context.ts");
-    // A48.5: gates/ and review/ remain absent from files — not Phase 8's fix.
-    expect(pkg.files).not.toContain("src/gates");
-    expect(pkg.files).not.toContain("src/review");
+    // C-OBSERVABLE-CHECKS / A48.5: gates and review ship; scorer stays out (test-support dep).
+    expect(pkg.files).toContain("src/gates");
+    expect(pkg.files).toContain("src/review");
+    expect(pkg.files).toContain("!src/review/scorer.ts");
   });
 
   it("wires doctor and graph through the grace CLI", () => {

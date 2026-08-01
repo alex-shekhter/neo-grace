@@ -15,19 +15,23 @@
 //   ReviewFinding
 //   ReviewOptions
 //   ReviewResult
+//   ScopeAuditReport
 //   TestFileDiff
 //   allReviewCodes
 //   auditCompatNewErrors
 //   auditHunkCoverage
 //   auditScopeOutsideWriteScope
 //   auditTestWeakening
+//   expandScopePathsForArchiveIdentity
 //   findingId
 //   formatReviewResult
 //   isReviewIssueCode
+//   resolveChangePlanPath
 //   runJoinProbes
 //   runPatternDetectors
 //   runPatternDetectorsWithMeta
 //   runReview
+//   ScopeAuditIdentity
 // END_MODULE_MAP
 /**
  * Review surface (D4, D14, §6.4, A35/A36): pattern detectors, process audits,
@@ -44,7 +48,11 @@ import { ARTIFACT_DIR } from "../artifact/paths";
 import { resolveNgracePaths } from "../artifact/project";
 import { readGraceXmlArtifact, walkNodes } from "../artifact/xml";
 import { extractObservedWriteScopeFromPlan } from "./scope-helpers";
-import { listRepositoryChangedFiles } from "../grace-cursor";
+import {
+  listFilesChangedAgainstBase,
+  listRepositoryChangedFiles,
+  type AbsenceValue,
+} from "../grace-cursor";
 import {
   REVIEW_CATALOG,
   guideFor,
@@ -70,6 +78,26 @@ export type ReviewFinding = {
   anchorOrHunkKey: string;
 };
 
+/**
+ * Scope-audit outcome for a named --change (A66.4 five states).
+ * Always present when changeId was requested; absent when process audits are off
+ * or no changeId was given.
+ */
+export type ScopeAuditReport = {
+  status: "ran" | "not-run" | "unable-to-determine";
+  reason: string;
+  changeId: string;
+  /** Where plan.xml was read, when resolved. */
+  planLocation?: "active" | "archive";
+  /** How the changed-file set was obtained when the audit ran. */
+  inputSource?: "explicit" | "base" | "porcelain";
+  baseRef?: string;
+  changedFileCount?: number;
+  /** True when status=ran over a caller-supplied empty --changed-files set (state 5). */
+  callerSuppliedEmpty?: boolean;
+  absence?: AbsenceValue;
+};
+
 export type ReviewResult = {
   schemaVersion: "1.0.0";
   tool: "ngrace-review";
@@ -80,6 +108,8 @@ export type ReviewResult = {
    * Always reported — silent exemptions are anti-pattern 8.
    */
   shapeDataExemptions: string[];
+  /** Present when --change was set and process audits ran. */
+  scopeAudit?: ScopeAuditReport;
   summary: {
     findings: number;
     errors: number;
@@ -134,8 +164,16 @@ export type JoinProbe =
 
 export type ReviewOptions = {
   changeId?: string;
-  /** Explicit changed paths for process audits (overrides git when set). */
+  /**
+   * Explicit changed paths for process audits. When **defined** (including `[]`),
+   * the set is caller-owned: no porcelain fallback (A66 Q5 / corr 169).
+   */
   changedFiles?: string[];
+  /**
+   * Git base ref for a three-dot (`base...HEAD`) name-only diff (A66.3).
+   * Ignored when `changedFiles` is defined.
+   */
+  baseRef?: string;
   testFileDiffs?: TestFileDiff[];
   lintCodesBefore?: string[];
   lintCodesAfter?: string[];
@@ -146,6 +184,19 @@ export type ReviewOptions = {
   processAudits?: boolean;
   joinEngine?: boolean;
 };
+
+/** Resolve plan.xml under active/ first, then archive/ (read-only; corr 139). */
+export function resolveChangePlanPath(
+  projectRoot: string,
+  changeId: string,
+): { planPath: string; location: "active" | "archive" } | undefined {
+  const paths = resolveNgracePaths(path.resolve(projectRoot));
+  const active = path.join(paths.changesActiveDir, changeId, "plan.xml");
+  if (existsSync(active)) return { planPath: active, location: "active" };
+  const archived = path.join(paths.changesArchiveDir, changeId, "plan.xml");
+  if (existsSync(archived)) return { planPath: archived, location: "archive" };
+  return undefined;
+}
 
 // ---------------------------------------------------------------------------
 // Finding IDs (step 6.5.2)
@@ -725,16 +776,54 @@ export function runJoinProbes(probes: JoinProbe[]): ReviewFinding[] {
 // Family B — process audits (§6.4)
 // ---------------------------------------------------------------------------
 
+export type ScopeAuditIdentity = {
+  /** Reviewed change id (C-*). Required for archive identity (corr 171). */
+  changeId: string;
+  /** Where plan.xml was resolved. Archive enables active↔archive aliases for this id only. */
+  planLocation: "active" | "archive";
+};
+
+/**
+ * Corr 171: when the plan resolved from `archive/<id>/`, declared paths under
+ * `active/<id>/…` name the same bundle artifacts now living under `archive/<id>/…`.
+ * Expand only that id's prefixes — never a global `.ngrace/changes/` swap (other bundles
+ * must still flag as out of scope).
+ */
+export function expandScopePathsForArchiveIdentity(
+  paths: string[],
+  identity: ScopeAuditIdentity | undefined,
+): string[] {
+  if (!identity || identity.planLocation !== "archive" || !identity.changeId) {
+    return paths.map(normalizeRel);
+  }
+  const activePrefix = `.ngrace/changes/active/${identity.changeId}/`;
+  const archivePrefix = `.ngrace/changes/archive/${identity.changeId}/`;
+  const out = new Set<string>();
+  for (const raw of paths) {
+    const n = normalizeRel(raw);
+    out.add(n);
+    if (n.startsWith(activePrefix)) {
+      out.add(archivePrefix + n.slice(activePrefix.length));
+    } else if (n.startsWith(archivePrefix)) {
+      out.add(activePrefix + n.slice(archivePrefix.length));
+    }
+  }
+  return [...out].sort();
+}
+
 export function auditScopeOutsideWriteScope(
   changedFiles: string[],
   scopeFiles: string[],
   scopeGlobs: string[],
+  identity?: ScopeAuditIdentity,
 ): ReviewFinding[] {
   const findings: ReviewFinding[] = [];
-  const fileSet = new Set(scopeFiles.map(normalizeRel));
+  const expandedFiles = expandScopePathsForArchiveIdentity(scopeFiles, identity);
+  const expandedGlobs = expandScopePathsForArchiveIdentity(scopeGlobs, identity);
+  const fileSet = new Set(expandedFiles);
   for (const changed of changedFiles.map(normalizeRel)) {
     if (fileSet.has(changed)) continue;
-    const globHit = scopeGlobs.some((glob) => matchSimpleGlob(glob, changed));
+    const globHit = expandedGlobs.some((glob) => matchSimpleGlob(glob, changed));
     if (globHit) continue;
     if (scopeFiles.length === 0 && scopeGlobs.length === 0) continue;
     findings.push(
@@ -864,28 +953,71 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
     findings.push(...runJoinProbes(options.joinProbes));
   }
 
+  let scopeAudit: ScopeAuditReport | undefined;
+
   if (runProcess) {
-    let changedFiles = options.changedFiles;
-    let scopeFiles: string[] = [];
-    let scopeGlobs: string[] = [];
-
     if (options.changeId) {
-      const paths = resolveNgracePaths(root);
-      const planPath = path.join(paths.changesActiveDir, options.changeId, "plan.xml");
-      if (existsSync(planPath)) {
-        const extracted = extractObservedWriteScopeFromPlan(planPath, root);
-        scopeFiles = extracted.files;
-        scopeGlobs = extracted.globs;
-      }
-      if (!changedFiles) {
-        const listed = listRepositoryChangedFiles(root);
-        if (listed.available) changedFiles = listed.changedFiles;
+      const changeId = options.changeId;
+      const resolved = resolveChangePlanPath(root, changeId);
+      if (!resolved) {
+        const reason = `no plan found for ${changeId} under active/ or archive/`;
+        scopeAudit = {
+          status: "not-run",
+          reason,
+          changeId,
+          absence: { verdict: "not-run", reason },
+        };
+      } else {
+        const extracted = extractObservedWriteScopeFromPlan(resolved.planPath, root);
+        const scopeFiles = extracted.files;
+        const scopeGlobs = extracted.globs;
+        const input = resolveScopeChangedFiles(root, options);
+        if (input.kind === "absence") {
+          scopeAudit = {
+            status: input.absence.verdict === "not-run" ? "not-run" : "unable-to-determine",
+            reason: input.absence.reason,
+            changeId,
+            planLocation: resolved.location,
+            absence: input.absence,
+          };
+        } else if (scopeFiles.length === 0 && scopeGlobs.length === 0) {
+          const reason = `plan for ${changeId} has empty ObservedWriteScope`;
+          scopeAudit = {
+            status: "not-run",
+            reason,
+            changeId,
+            planLocation: resolved.location,
+            absence: { verdict: "not-run", reason },
+          };
+        } else {
+          const callerSuppliedEmpty =
+            input.source === "explicit" && input.files.length === 0;
+          const scopeFindings = auditScopeOutsideWriteScope(
+            input.files,
+            scopeFiles,
+            scopeGlobs,
+            { changeId, planLocation: resolved.location },
+          );
+          findings.push(...scopeFindings);
+          const outOfScope = scopeFindings.length;
+          scopeAudit = {
+            status: "ran",
+            reason: callerSuppliedEmpty
+              ? `ran over caller-supplied empty set against ObservedWriteScope for ${changeId}`
+              : outOfScope === 0
+                ? `ran over ${input.files.length} changed file(s) against ObservedWriteScope for ${changeId}; no out-of-scope paths`
+                : `ran over ${input.files.length} changed file(s) against ObservedWriteScope for ${changeId}; ${outOfScope} out-of-scope`,
+            changeId,
+            planLocation: resolved.location,
+            inputSource: input.source,
+            baseRef: input.baseRef,
+            changedFileCount: input.files.length,
+            callerSuppliedEmpty: callerSuppliedEmpty || undefined,
+          };
+        }
       }
     }
 
-    if (changedFiles && (scopeFiles.length > 0 || scopeGlobs.length > 0)) {
-      findings.push(...auditScopeOutsideWriteScope(changedFiles, scopeFiles, scopeGlobs));
-    }
     if (options.testFileDiffs) {
       findings.push(...auditTestWeakening(options.testFileDiffs));
     }
@@ -910,6 +1042,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
     root,
     findings,
     shapeDataExemptions,
+    scopeAudit,
     summary: {
       findings: findings.length,
       errors: findings.filter((f) => f.severity === "error").length,
@@ -917,6 +1050,65 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
       shapeDataExemptions: shapeDataExemptions.length,
     },
   };
+}
+
+type ScopeChangedFilesResolution =
+  | { kind: "files"; files: string[]; source: "explicit" | "base" | "porcelain"; baseRef?: string }
+  | { kind: "absence"; absence: AbsenceValue };
+
+/**
+ * Resolve the changed-file set for the scope audit.
+ * - defined `changedFiles` (incl. []) → caller-owned explicit set (A66 Q5)
+ * - else `baseRef` → three-dot name-only (A66.3)
+ * - else porcelain: non-empty usable; empty or unavailable → not-run / unable-to-determine (corr 169)
+ */
+function resolveScopeChangedFiles(
+  root: string,
+  options: ReviewOptions,
+): ScopeChangedFilesResolution {
+  if (options.changedFiles !== undefined) {
+    const files = [
+      ...new Set(
+        options.changedFiles
+          .map((entry) => entry.replaceAll("\\", "/").replace(/^\.\//, "").trim())
+          .filter((entry) => entry !== ""),
+      ),
+    ].sort();
+    return { kind: "files", files, source: "explicit" };
+  }
+  if (options.baseRef !== undefined && options.baseRef !== null && String(options.baseRef).trim() !== "") {
+    const listed = listFilesChangedAgainstBase(root, String(options.baseRef));
+    if (!listed.available) {
+      return { kind: "absence", absence: listed.absence };
+    }
+    return {
+      kind: "files",
+      files: listed.changedFiles,
+      source: "base",
+      baseRef: String(options.baseRef).trim(),
+    };
+  }
+  const listed = listRepositoryChangedFiles(root);
+  if (!listed.available) {
+    return {
+      kind: "absence",
+      absence: {
+        verdict: "unable-to-determine",
+        reason: "git status unavailable; cannot derive changed files (supply --base or --changed-files)",
+      },
+    };
+  }
+  if (listed.changedFiles.length === 0) {
+    return {
+      kind: "absence",
+      absence: {
+        verdict: "not-run",
+        reason:
+          "no changed files available (working tree clean; supply --base or --changed-files)",
+      },
+    };
+  }
+  return { kind: "files", files: listed.changedFiles, source: "porcelain" };
 }
 
 export function formatReviewResult(result: ReviewResult): string {
@@ -934,8 +1126,21 @@ export function formatReviewResult(result: ReviewResult): string {
     }
     lines.push("");
   }
+
+  if (result.scopeAudit) {
+    lines.push(formatScopeAuditLine(result.scopeAudit));
+    lines.push("");
+  }
+
   if (result.findings.length === 0) {
-    lines.push("No review findings.");
+    // A66.4 / rule 11: "No review findings" is false when the scope audit did not run.
+    const scopeSkipped =
+      result.scopeAudit
+      && (result.scopeAudit.status === "not-run"
+        || result.scopeAudit.status === "unable-to-determine");
+    if (!scopeSkipped) {
+      lines.push("No review findings.");
+    }
     return lines.join("\n");
   }
   lines.push("Findings");
@@ -945,6 +1150,39 @@ export function formatReviewResult(result: ReviewResult): string {
     );
   }
   return lines.join("\n");
+}
+
+function formatScopeAuditLine(audit: ScopeAuditReport): string {
+  if (audit.status === "not-run" || audit.status === "unable-to-determine") {
+    return `Scope audit: ${audit.status} — ${audit.reason}`;
+  }
+  // status === "ran"
+  if (audit.callerSuppliedEmpty) {
+    return (
+      `Scope audit: ran over 0 changed files against ObservedWriteScope for ${audit.changeId}`
+      + ` (input: caller-supplied empty set). No out-of-scope paths.`
+    );
+  }
+  const sourceLabel =
+    audit.inputSource === "base" && audit.baseRef
+      ? `base ${audit.baseRef}`
+      : audit.inputSource === "explicit"
+        ? "explicit --changed-files"
+        : audit.inputSource === "porcelain"
+          ? "working-tree porcelain"
+          : "unknown";
+  const n = audit.changedFileCount ?? 0;
+  const planBit = audit.planLocation ? ` [${audit.planLocation}]` : "";
+  if (audit.reason.includes("no out-of-scope")) {
+    return (
+      `Scope audit: ran over ${n} changed file(s) against ObservedWriteScope for ${audit.changeId}${planBit}`
+      + ` (input: ${sourceLabel}). No out-of-scope paths.`
+    );
+  }
+  return (
+    `Scope audit: ran over ${n} changed file(s) against ObservedWriteScope for ${audit.changeId}${planBit}`
+    + ` (input: ${sourceLabel}).`
+  );
 }
 
 // Re-export catalog helpers used by boundary tests

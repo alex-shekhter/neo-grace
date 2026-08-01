@@ -51,6 +51,7 @@
 //   listLedgerCalibrationEpochs
 //   listLedgerEvents
 //   listLooseEvents
+//   listFilesChangedAgainstBase
 //   listRepositoryChangedFiles
 //   listUnresolvedEscalatedTasks
 //   parseCursorState
@@ -1160,6 +1161,58 @@ export function listRepositoryChangedFiles(projectRoot: string): { available: bo
     ...new Set(
       paths
         .map((entry) => entry.replaceAll("\\", "/").replace(/^\.\//, ""))
+        .filter((entry) => entry !== "" && !entry.startsWith("../") && entry !== ".." && !path.posix.isAbsolute(entry)),
+    ),
+  ].sort();
+  return { available: true, changedFiles };
+}
+
+/**
+ * Files this branch wrote relative to `baseRef`, via the three-dot / merge-base range
+ * (`baseRef...HEAD`). Two-dot would include main-side landings since branching (A66.3).
+ * Read-only; no network. On git failure returns absence (unable-to-determine).
+ */
+export function listFilesChangedAgainstBase(
+  projectRoot: string,
+  baseRef: string,
+):
+  | { available: true; changedFiles: string[] }
+  | { available: false; absence: AbsenceValue } {
+  const trimmed = baseRef.trim();
+  if (!trimmed) {
+    return {
+      available: false,
+      absence: {
+        verdict: "unable-to-determine",
+        reason: "base ref is empty",
+      },
+    };
+  }
+  const range = `${trimmed}...HEAD`;
+  const result = Bun.spawnSync({
+    cmd: ["git", "-c", "status.relativePaths=true", "diff", "--name-only", "--diff-filter=ACMR", range],
+    cwd: projectRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (result.exitCode !== 0) {
+    const stderr = new TextDecoder().decode(result.stderr).trim();
+    return {
+      available: false,
+      absence: {
+        verdict: "unable-to-determine",
+        reason: stderr
+          ? `git diff ${range} failed: ${stderr.slice(0, 200)}`
+          : `git diff ${range} failed (exit ${result.exitCode})`,
+      },
+    };
+  }
+  const output = new TextDecoder().decode(result.stdout);
+  const changedFiles = [
+    ...new Set(
+      output
+        .split("\n")
+        .map((entry) => entry.replaceAll("\\", "/").replace(/^\.\//, "").trim())
         .filter((entry) => entry !== "" && !entry.startsWith("../") && entry !== ".." && !path.posix.isAbsolute(entry)),
     ),
   ].sort();

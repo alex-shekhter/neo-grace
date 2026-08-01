@@ -9339,3 +9339,273 @@ were the only things that would, and only because they were read back at the end
 | §9.5.2 half-1 — `agent-inferred` × `precision` | Blocked on D5's authority axis; amended under rule 7, not owed as a defect |
 
 One drafted bundle, and it is the only thing between here and Phase 10.
+
+### A66 — 2026-08-01 · `C-OBSERVABLE-CHECKS` stage 1 accepted; A51.1 undercounted, and the defect is worse than recorded
+
+Stage 1 verified at `a8cfee9`. The spec stays `status="draft"`, no production code, tree clean.
+**Three of their corrections are to me and all three hold.**
+
+#### A66.1 Correction 169 — it is a false clean, not a silent skip
+
+A51.1 and my stage-1 prompt both described the scope audit as *silently not running*. That is true for
+archived bundles and **false for the case that matters**:
+
+```ts
+if (!changedFiles) {
+  const listed = listRepositoryChangedFiles(root);
+  if (listed.available) changedFiles = listed.changedFiles;   // → [] on a clean tree
+}
+if (changedFiles && (scopeFiles.length > 0 || scopeGlobs.length > 0)) {   // Boolean([]) === true
+  findings.push(...auditScopeOutsideWriteScope(changedFiles, …));          // runs over zero files
+}
+```
+
+With an **active** plan and a committed tree the guard **passes**, the audit **executes** over an
+empty set, and reports clean. It is not skipped — it runs and finds nothing, because it was given
+nothing. That is strictly worse than a skip: a skip can be detected by its absence, and this cannot.
+
+It also changes the fix. Supplying input is not sufficient; **the default empty-input path must itself
+become absence**, or the same false clean survives the flag being added and never used.
+
+#### A66.2 Correction 170 — A51.1 undercounted the out-of-scope writes
+
+A51.1 named two files outside `C-SELECTION`'s `ObservedWriteScope`. There are **three**:
+
+| Path | Verified |
+|---|---|
+| `scripts/release-check.ts` | Not in OWS |
+| `src/artifact/scale-ergonomics.test.ts` | Not in OWS |
+| **`.ngrace/changes/active/C-OBSERVABLE-CHECKS/spec.xml`** | Added in `170a0c5` (#29); OWS lists only `C-SELECTION`'s own bundle artifacts |
+
+The third is the draft spec **of this bundle** — the bundle created to fix the audit that could not
+see it. Their rule-12 count of 3 is therefore right, and all three are legitimate writes that a
+working audit would have asked to be declared.
+
+Also corrected: **twelve** archived bundles, not eleven (Phase 9 added three), and the packed-fix
+iteration count is **2, not nine** — `files` is directory-level, so the nine-file closure is the
+diagnosis, not the number of rounds. Both mine.
+
+#### A66.3 The four proposals, answered
+
+I reproduced their packaging measurement independently — `src/gates`, `src/review`,
+`!src/review/scorer.ts` → **`✓ Packed CLI smoke passed`**, tree restored.
+
+| # | Answer |
+|---|---|
+| 1 | **`--base <ref>` and `--changed-files`, both.** `--base` uses the **three-dot / merge-base** range: the close question is *what did this branch write*, and two-dot would flag files that landed on main since branching |
+| 2 | **Severity stays `error`.** The rule-12 count is 3, all three real and all three fixable by declaring them |
+| 3 | **`validate:packed` joins `validate:ci` directly.** 1.75s is the same order as `typecheck`; a separate optional job is how it got missed the first time |
+| 4 | **Directories plus `!src/review/scorer.ts`**, matching the existing `!src/artifact/test-fixtures.ts` pattern. A nine-file list is correct today and silently wrong for the tenth file |
+
+**Question 5 — absence copy — confirmed, with one addition.** `not-run` when the toolkit knows it
+skipped: no diff supplied and none derivable, or no plan resolvable. `unable-to-determine` when git
+fails unexpectedly or the answer cannot be computed. That matches the existing semantics in
+`grace-cursor.ts`.
+
+The addition: **an explicitly supplied empty `--changed-files` is caller-owned and may report clean**
+— but the sentence must say the set was caller-supplied and empty. A verdict that does not name its
+input is the defect this bundle exists to remove, one level up. That is standing rule 13 applied to a
+sentence rather than a record.
+
+#### A66.4 What stage 2 is actually delivering
+
+The four read-aloud sentences in their table are the deliverable of items 2 and 3, and their state
+list is now five rather than four, because 169 splits *no input* into two cases:
+
+1. audit ran over N files, found nothing
+2. audit ran, found something
+3. **no diff available** — `not-run`, with the reason
+4. **no plan resolvable** — `not-run`, with the reason
+5. **caller supplied an empty set** — clean, and says so
+
+Today states 3, 4 and 5 all print `Findings: 0 / No review findings`, and that sentence is false for
+two of them.
+
+### A67 — 2026-08-01 · `C-OBSERVABLE-CHECKS` stage 2 accepted; three checks can now be red
+
+Verified at `e38504d`. Suite 956 ran / 3 skip / **0 fail**; lint 0 errors / 0 warnings /
+`Governed files: 58`; `validate:packed` **green and inside `validate:ci`** (`package.json:67`).
+
+**All five states re-run independently, and the emitted text matches the report exactly.**
+
+| State | Emitted |
+|---|---|
+| 1 — ran, clean | `Scope audit: ran over 11 changed file(s) against ObservedWriteScope for C-OBSERVABLE-CHECKS [active] (input: base origin/main). No out-of-scope paths.` |
+| 3 — no diff | `Scope audit: not-run — no changed files available (working tree clean; supply --base or --changed-files)` |
+| 4 — no plan | `Scope audit: not-run — no plan found for C-DOES-NOT-EXIST under active/ or archive/` — and **`No review findings.` is suppressed** |
+| 5 — caller empty | `Scope audit: ran over 0 changed files … (input: caller-supplied empty set). No out-of-scope paths.` |
+
+Every sentence names its count, its subject, the subject's location, **and its input source**. That
+last clause is what A66 asked for and it is present in all four.
+
+**Item 3 is demonstrably fixed on a real archived bundle:**
+
+```
+$ ngrace review --change C-SELECTION --base origin/main
+Scope audit: ran over 11 changed file(s) against ObservedWriteScope for C-SELECTION [archive] …
+Findings: 9 (errors: 9, warnings: 0)
+```
+
+`[archive]` resolves, audits, and can be red. Twelve archived bundles were unauditable before this.
+
+**The JSON surface carries a structured absence, not prose:**
+
+```json
+"scopeAudit": { "status": "not-run", "reason": "…",
+                "absence": { "verdict": "not-run", "reason": "…" } }
+```
+
+A machine consumer can now distinguish *skipped* from *clean*. That was the point of the bundle and it
+is met in the typed surface rather than only in the human report.
+
+#### A67.1 Rule 12 was applied to their own work, and the rule was not narrowed
+
+```
+$ ngrace review --change C-OBSERVABLE-CHECKS --base origin/main   → 0 out-of-scope
+```
+
+Mid-build the audit flagged `docs/plans/active/RM-AGENT-RELIABILITY/plan.md` and
+`src/artifact/scale-ergonomics.test.ts`. Both were **declared in `ObservedWriteScope`**, which is what
+A66 asked for and the opposite of the available shortcut. The check found real writes on the branch
+that built it, and the branch changed rather than the check.
+
+**The one inverted assertion is a strengthening, not a weakening:**
+
+```diff
+-    expect(pkg.files).not.toContain("src/gates");
+-    expect(pkg.files).not.toContain("src/review");
++    expect(pkg.files).toContain("src/gates");
++    expect(pkg.files).toContain("src/review");
++    expect(pkg.files).toContain("!src/review/scorer.ts");
+```
+
+Two negative assertions become three positive ones. The pin that recorded the defect now pins the
+fix, including the `scorer.ts` exclusion that the naive fix would have missed.
+
+#### A67.2 Note, not a finding
+
+`bun run ngrace review --changed-files "" …` drops the empty argument through package-script
+forwarding and the flag swallows the next token. Direct invocation (`bun ./src/grace.ts`, and the
+installed `ngrace` binary) is correct. That is a property of script argument forwarding, not of this
+code — recorded so nobody re-derives it as a defect later.
+
+#### A67.3 Authorized to close
+
+Nothing is owed on this bundle. Close it: `ngrace review --base`, `gate verdict`, then
+`approve` / `apply` / `archive`.
+
+The A33.3 sentence at this close is different from every previous one on this track. Until now it has
+had to say what the scope audit **could not** check. This is the first close where the audit had real
+input, named it, and returned a count — so the sentence can say what was checked, over how many files,
+against which declared scope. Write it that way; it is the first time it is available.
+
+### A68 — 2026-08-01 · The close is sound; the fix introduced a false positive of its own
+
+Close verified at `40cd505`. Everything claimed holds:
+
+| Check | Result |
+|---|---|
+| Close-time audit had real input | `ran over 11 changed file(s) … [active] (input: base origin/main)` → **0 out-of-scope** |
+| Verdict and gate decisions recorded | `<Verdict outcome="pass">` plus four `<Decision … decision="permit">` |
+| Other archives untouched | `git diff ec1a6bc 40cd505 --name-only -- …/archive/` minus this bundle → **0** |
+| `run.xml` | Genuinely never present; five bundles have one, seven do not. Nothing dropped |
+| Suite / lint | 956 ran, **0 fail**; 0 errors / 0 warnings / `Governed files: 58` |
+
+**The A33.3 sentence is the first on this track with something specific on the mechanized side**, and
+it says so accurately: eleven files, three-dot range against `origin/main`, measured against the
+declared scope while the plan was still under `active/`, zero out-of-scope. Compare A51's *"the scope
+audit contributed nothing."* That is the whole point of the bundle, written down at the moment it
+first became true.
+
+#### A68.1 Correction 171 — the audit now produces a false positive on archived bundles
+
+Their own adversarial probe found it and disposed of it as a declared non-goal. It is more than that:
+
+```
+$ ngrace review --change C-OBSERVABLE-CHECKS --base origin/main
+Findings: 3 (errors: 3, warnings: 0)
+- review.scope-outside-write-scope .ngrace/changes/archive/C-OBSERVABLE-CHECKS/plan.xml
+- review.scope-outside-write-scope .ngrace/changes/archive/C-OBSERVABLE-CHECKS/run-ledger.xml
+- review.scope-outside-write-scope .ngrace/changes/archive/C-OBSERVABLE-CHECKS/spec.xml
+```
+
+All three are **the bundle's own artifacts**. The plan declares them under
+`.ngrace/changes/active/C-OBSERVABLE-CHECKS/…`; archiving moved them to `archive/…`; the paths no
+longer match. *"Changed file … is outside ObservedWriteScope"* is **false** — the files are declared,
+they were relocated by the archive step itself.
+
+Three things make this worth fixing here rather than recording:
+
+1. **It is the mirror of the defect just removed.** This bundle exists because a check reported clean
+   when it had checked nothing. It now reports three errors about files that are in scope. A false
+   positive in a check whose credibility is the deliverable costs the same as a false negative.
+2. **It is newly introduced by this bundle.** Before item 3, archived plans did not resolve at all, so
+   this could not fire. It is not inherited, which is exactly the case the standing rule says to fix
+   before the PR rather than fold forward.
+3. **The declared non-goal does not cover it.** *"No active↔archive auto-remap"* is right as a general
+   rule — arbitrary path rewriting would hide real drift. But a bundle's own artifacts under its own
+   id are a closed, named set: when the plan resolved from `archive/<id>/`, its declared
+   `active/<id>/…` entries refer to the same files. That is not a remap heuristic; it is the identity
+   of the bundle being reviewed.
+
+The narrow fix is to accept both prefixes for the reviewed change's own id when the plan resolved from
+`archive/`, and nothing else. Both directions must be tested: the bundle's own relocated artifacts stop
+being findings, and a genuinely out-of-scope path under `archive/` — another bundle's id — still is one.
+
+Nothing else is owed. This is the last item before Phase 10.
+
+### A69 — 2026-08-01 · Correction 171 fixed narrowly; `C-OBSERVABLE-CHECKS` is done
+
+Verified at `b89de3e`. The fix touches two files (`src/review/core.ts`, `core.test.ts`), the archived
+bundle is untouched, 962 ran / **0 fail**, lint 0 errors / 0 warnings / `Governed files: 58`.
+
+**The discriminating case was tested independently, not taken from the report.** The risk in 171's fix
+was a prefix swap that would excuse writes to *any* bundle. Running the audit for a **different**
+archived bundle over the same diff:
+
+```
+$ ngrace review --change C-SELECTION --base origin/main
+Findings: 9 (errors: 9, warnings: 0)
+- review.scope-outside-write-scope .ngrace/changes/archive/C-OBSERVABLE-CHECKS/plan.xml
+- review.scope-outside-write-scope .ngrace/changes/archive/C-OBSERVABLE-CHECKS/run-ledger.xml
+- review.scope-outside-write-scope .ngrace/changes/archive/C-OBSERVABLE-CHECKS/spec.xml
+  (…and six more)
+```
+
+The same three paths that are silent under their own id are still findings under another id. The
+normalization is the bundle's identity, not a path rewrite. And for its own id:
+
+```
+$ ngrace review --change C-OBSERVABLE-CHECKS --base origin/main
+Scope audit: ran over 11 changed file(s) … C-OBSERVABLE-CHECKS [archive] … No out-of-scope paths.
+Findings: 0
+```
+
+#### A69.1 What this bundle removed, in one place
+
+| | Before | After |
+|---|---|---|
+| Ship path | `validate:packed` red since Phase 5, and not in `validate:ci` — six merged PRs reported green over an unpublishable tree | Nine-file closure ships via `src/gates`, `src/review`, `!src/review/scorer.ts`; `validate:packed` **inside** `validate:ci` and green |
+| Scope audit input | Ran over `[]` on a committed tree and reported clean — a **false clean**, not a skip | `--base` (three-dot) and `--changed-files`; empty input is `not-run` with a reason |
+| Archived bundles | Twelve bundles resolved to no plan; the audit never ran and the summary still said `No review findings` | Resolves from `archive/`, audits, and can be red |
+| The report's own honesty | One sentence for every state | Five states, each naming its count, subject, location and **input source**; typed `AbsenceValue` on the JSON surface |
+
+The last row is the durable one. A machine consumer can now distinguish *skipped* from *clean*, which
+is what D5's absence value was for and what none of the three checks could express before.
+
+#### A69.2 The pattern this bundle closes
+
+Every defect here was a green result from a check that was never in a position to be red, and each was
+found the same way — by running the check against a state it had never been run against. `validate:packed`
+was never in CI. The scope audit was never given a diff. The plan resolver was never pointed at an
+archive. 171 itself was found by running the fixed audit once more, after the work looked finished.
+
+That is standing rule 12 as a habit rather than a rule, and it is the third bundle in a row where the
+last probe found something the first four did not.
+
+#### A69.3 Nothing is owed
+
+The owed list is empty for the first time since Phase 5. `.ngrace/changes/active/` contains only
+`.gitkeep`; thirteen bundles are archived; the graph describes every source surface; the ship path is
+publishable and checked in CI. **Phase 10** — plan-quality signal and doctor consumers, D10 / §4.9 —
+is unblocked with nothing in front of it.

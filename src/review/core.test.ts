@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 import { writeMinimalNgraceProject } from "../artifact/test-fixtures";
 import { byPattern, corpus } from "../test-support/defect-corpus";
@@ -10,8 +11,10 @@ import {
   auditHunkCoverage,
   auditScopeOutsideWriteScope,
   auditTestWeakening,
+  expandScopePathsForArchiveIdentity,
   findingId,
   formatReviewResult,
+  resolveChangePlanPath,
   runJoinProbes,
   runPatternDetectors,
   runReview,
@@ -694,6 +697,348 @@ describe("runReview does not write", () => {
     runReview(root);
     const after = listRel(root);
     expect(after).toEqual(before);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-OBSERVABLE-CHECKS / A66 — scope audit input, absence, archive resolve
+// Both directions on every axis (A7.2).
+// ---------------------------------------------------------------------------
+
+function writeScopedPlan(
+  root: string,
+  changeId: string,
+  owsFiles: string[],
+  location: "active" | "archive" = "active",
+): string {
+  const dir = path.join(root, ".ngrace", "changes", location, changeId);
+  mkdirSync(dir, { recursive: true });
+  const files = owsFiles.map((f) => `<File>${f}</File>`).join("");
+  const body = `<NgraceChangePlan graceVersion="1.0" status="approved">
+  <${changeId}>
+    <IntentSummary>Scope audit fixture.</IntentSummary>
+    <BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions>
+    <TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions>
+    <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>
+    <ObservedWriteScope>${files}</ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Fixture task</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria>
+        <Verification><Command>bun test</Command></Verification>
+      </T-001>
+    </ImplementationPlan>
+  </${changeId}>
+</NgraceChangePlan>
+`;
+  const planPath = path.join(dir, "plan.xml");
+  writeFileSync(planPath, body);
+  return planPath;
+}
+
+function ensureTempRoot(): string {
+  return track(mkdtempSyncSafe());
+}
+
+describe("C-OBSERVABLE-CHECKS scope audit (A66)", () => {
+  it("outside scope is red; inside scope is silent (both directions)", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeScopedPlan(root, "C-SCOPE", ["src/in-scope.ts"]);
+    const fire = runReview(root, {
+      changeId: "C-SCOPE",
+      changedFiles: ["src/in-scope.ts", "src/out-of-scope.ts"],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(fire.scopeAudit?.status).toBe("ran");
+    expect(fire.findings.some((f) => f.code === "review.scope-outside-write-scope" && f.file === "src/out-of-scope.ts")).toBe(true);
+    expect(fire.findings.some((f) => f.file === "src/in-scope.ts")).toBe(false);
+
+    const silent = runReview(root, {
+      changeId: "C-SCOPE",
+      changedFiles: ["src/in-scope.ts"],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(silent.scopeAudit?.status).toBe("ran");
+    expect(silent.findings.filter((f) => f.code === "review.scope-outside-write-scope")).toHaveLength(0);
+    const text = formatReviewResult(silent);
+    expect(text).toContain("Scope audit: ran over 1 changed file(s)");
+    expect(text).toContain("No out-of-scope paths");
+    expect(text).toContain("No review findings");
+  });
+
+  it("empty porcelain without flags is not-run (corr 169 false clean), not a silent pass", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeScopedPlan(root, "C-SCOPE", ["src/in-scope.ts"]);
+    // Fully committed tree → porcelain [] → not-run (corr 169), never audit over empty set.
+    spawnSync("git", ["init"], { cwd: root, encoding: "utf8" });
+    spawnSync("git", ["add", "-A"], { cwd: root, encoding: "utf8" });
+    spawnSync(
+      "git",
+      ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", "init"],
+      { cwd: root, encoding: "utf8" },
+    );
+    const result = runReview(root, {
+      changeId: "C-SCOPE",
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(result.scopeAudit?.status).toBe("not-run");
+    expect(result.scopeAudit?.absence?.verdict).toBe("not-run");
+    expect(result.scopeAudit?.reason).toMatch(/no changed files available/i);
+    const text = formatReviewResult(result);
+    expect(text).toContain("Scope audit: not-run —");
+    expect(text).not.toMatch(/^No review findings\.$/m);
+    expect(text).not.toContain("No out-of-scope paths");
+  });
+
+  it("caller-supplied empty --changed-files is clean and names the empty set (state 5)", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeScopedPlan(root, "C-SCOPE", ["src/in-scope.ts"]);
+    const result = runReview(root, {
+      changeId: "C-SCOPE",
+      changedFiles: [],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(result.scopeAudit?.status).toBe("ran");
+    expect(result.scopeAudit?.callerSuppliedEmpty).toBe(true);
+    expect(result.scopeAudit?.changedFileCount).toBe(0);
+    expect(result.findings).toHaveLength(0);
+    const text = formatReviewResult(result);
+    expect(text).toContain("caller-supplied empty set");
+    expect(text).toContain("No out-of-scope paths");
+    expect(text).toContain("No review findings");
+  });
+
+  it("no plan under active/ or archive/ is not-run (state 4)", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    const result = runReview(root, {
+      changeId: "C-DOES-NOT-EXIST",
+      changedFiles: ["src/x.ts"],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(result.scopeAudit?.status).toBe("not-run");
+    expect(result.scopeAudit?.reason).toMatch(/no plan found for C-DOES-NOT-EXIST under active\/ or archive\//);
+    const text = formatReviewResult(result);
+    expect(text).toContain("Scope audit: not-run —");
+    expect(text).not.toMatch(/^No review findings\.$/m);
+  });
+
+  it("archived plan resolves read-only and audits when diff is supplied (both directions)", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeScopedPlan(root, "C-ARCHIVED", ["src/in-scope.ts"], "archive");
+    expect(resolveChangePlanPath(root, "C-ARCHIVED")?.location).toBe("archive");
+
+    const fire = runReview(root, {
+      changeId: "C-ARCHIVED",
+      changedFiles: ["src/out-of-scope.ts"],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(fire.scopeAudit?.status).toBe("ran");
+    expect(fire.scopeAudit?.planLocation).toBe("archive");
+    expect(fire.findings.some((f) => f.file === "src/out-of-scope.ts")).toBe(true);
+
+    const silent = runReview(root, {
+      changeId: "C-ARCHIVED",
+      changedFiles: ["src/in-scope.ts"],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(silent.findings.filter((f) => f.code === "review.scope-outside-write-scope")).toHaveLength(0);
+
+    const again = resolveChangePlanPath(root, "C-ARCHIVED");
+    expect(again?.location).toBe("archive");
+  });
+
+  it("active plan preferred over same id in archive", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeScopedPlan(root, "C-BOTH", ["src/active-only.ts"], "active");
+    writeScopedPlan(root, "C-BOTH", ["src/archive-only.ts"], "archive");
+    const resolved = resolveChangePlanPath(root, "C-BOTH");
+    expect(resolved?.location).toBe("active");
+    const result = runReview(root, {
+      changeId: "C-BOTH",
+      changedFiles: ["src/active-only.ts"],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(result.scopeAudit?.planLocation).toBe("active");
+    expect(result.findings).toHaveLength(0);
+    const fire = runReview(root, {
+      changeId: "C-BOTH",
+      changedFiles: ["src/archive-only.ts"],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(fire.findings.some((f) => f.file === "src/archive-only.ts")).toBe(true);
+  });
+
+  it("explicit non-empty diff is used (supplied path used; absent path not assumed)", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeScopedPlan(root, "C-SCOPE", ["src/a.ts"]);
+    const result = runReview(root, {
+      changeId: "C-SCOPE",
+      changedFiles: ["src/b.ts"],
+      baseRef: "origin/main", // ignored when changedFiles is defined
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(result.scopeAudit?.inputSource).toBe("explicit");
+    expect(result.findings.some((f) => f.file === "src/b.ts")).toBe(true);
+  });
+
+  it("ran with findings does not print No review findings (state 2)", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeScopedPlan(root, "C-SCOPE", ["src/a.ts"]);
+    const result = runReview(root, {
+      changeId: "C-SCOPE",
+      changedFiles: ["src/secret.ts"],
+      patterns: false,
+      joinEngine: false,
+    });
+    const text = formatReviewResult(result);
+    expect(text).toContain("review.scope-outside-write-scope");
+    expect(text).not.toContain("No review findings");
+    expect(text).toContain("Scope audit: ran over 1 changed file(s)");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Corr 171 — archive identity for the reviewed change only (A68)
+// ---------------------------------------------------------------------------
+
+describe("corr 171 archive identity (A68)", () => {
+  const ownActive = ".ngrace/changes/active/C-MINE/plan.xml";
+  const ownArchive = ".ngrace/changes/archive/C-MINE/plan.xml";
+  const ownLedgerArchive = ".ngrace/changes/archive/C-MINE/run-ledger.xml";
+  const otherArchive = ".ngrace/changes/archive/C-OTHER/plan.xml";
+  const outside = "src/evil.ts";
+
+  it("own relocated artifacts are silent when plan resolved from archive", () => {
+    // OWS still declares active/<id>/… (as written before archive); diff shows archive/<id>/…
+    const silent = auditScopeOutsideWriteScope(
+      [ownArchive, ownLedgerArchive],
+      [ownActive, ".ngrace/changes/active/C-MINE/run-ledger.xml"],
+      [],
+      { changeId: "C-MINE", planLocation: "archive" },
+    );
+    expect(silent).toHaveLength(0);
+  });
+
+  it("another bundle under archive/<other-id>/ is still a finding (both directions)", () => {
+    const fire = auditScopeOutsideWriteScope(
+      [ownArchive, otherArchive],
+      [ownActive],
+      [],
+      { changeId: "C-MINE", planLocation: "archive" },
+    );
+    expect(fire.some((f) => f.file === otherArchive)).toBe(true);
+    expect(fire.some((f) => f.file === ownArchive)).toBe(false);
+
+    // Without other-bundle path: clean
+    const onlyOwn = auditScopeOutsideWriteScope(
+      [ownArchive],
+      [ownActive],
+      [],
+      { changeId: "C-MINE", planLocation: "archive" },
+    );
+    expect(onlyOwn).toHaveLength(0);
+  });
+
+  it("active plan location is unchanged — no archive alias when still active", () => {
+    // Declared active, changed is archive path: still out of scope when plan is active
+    // (close-time is under active/; we do not rewrite before archive).
+    const fire = auditScopeOutsideWriteScope(
+      [ownArchive],
+      [ownActive],
+      [],
+      { changeId: "C-MINE", planLocation: "active" },
+    );
+    expect(fire.some((f) => f.file === ownArchive)).toBe(true);
+
+    // Declared active, changed active: silent as today
+    const silent = auditScopeOutsideWriteScope(
+      [ownActive],
+      [ownActive],
+      [],
+      { changeId: "C-MINE", planLocation: "active" },
+    );
+    expect(silent).toHaveLength(0);
+  });
+
+  it("non-artifact path outside scope is still a finding", () => {
+    const fire = auditScopeOutsideWriteScope(
+      [ownArchive, outside],
+      [ownActive, "src/in-scope.ts"],
+      [],
+      { changeId: "C-MINE", planLocation: "archive" },
+    );
+    expect(fire.some((f) => f.file === outside)).toBe(true);
+    expect(fire.some((f) => f.file === ownArchive)).toBe(false);
+  });
+
+  it("expand is id-scoped: does not alias another change id", () => {
+    const expanded = expandScopePathsForArchiveIdentity(
+      [ownActive, ".ngrace/changes/active/C-OTHER/spec.xml"],
+      { changeId: "C-MINE", planLocation: "archive" },
+    );
+    expect(expanded).toContain(ownArchive);
+    expect(expanded).toContain(ownActive);
+    // C-OTHER active path is present as declared but NOT expanded to archive/C-OTHER
+    expect(expanded).toContain(".ngrace/changes/active/C-OTHER/spec.xml");
+    expect(expanded).not.toContain(".ngrace/changes/archive/C-OTHER/spec.xml");
+  });
+
+  it("end-to-end: archived plan + own archive paths clean; other archive red", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeScopedPlan(
+      root,
+      "C-MINE",
+      [
+        ".ngrace/changes/active/C-MINE/plan.xml",
+        ".ngrace/changes/active/C-MINE/spec.xml",
+        "src/in-scope.ts",
+      ],
+      "archive",
+    );
+    const clean = runReview(root, {
+      changeId: "C-MINE",
+      changedFiles: [
+        ".ngrace/changes/archive/C-MINE/plan.xml",
+        ".ngrace/changes/archive/C-MINE/spec.xml",
+        "src/in-scope.ts",
+      ],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(clean.scopeAudit?.planLocation).toBe("archive");
+    expect(clean.findings.filter((f) => f.code === "review.scope-outside-write-scope")).toHaveLength(0);
+
+    const dirty = runReview(root, {
+      changeId: "C-MINE",
+      changedFiles: [
+        ".ngrace/changes/archive/C-MINE/plan.xml",
+        ".ngrace/changes/archive/C-OTHER/plan.xml",
+      ],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(dirty.findings.some((f) => f.file === ".ngrace/changes/archive/C-OTHER/plan.xml")).toBe(true);
+    expect(dirty.findings.some((f) => f.file === ".ngrace/changes/archive/C-MINE/plan.xml")).toBe(false);
   });
 });
 

@@ -1,0 +1,227 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-OBSERVABLE-CHECKS>
+    <Summary>
+      Make three toolkit checks able to observe the thing they are named for: ship the nine packed
+      production modules CI never sees (A48.5), feed the scope audit a real diff and refuse the
+      empty-porcelain false clean (corr 138 / A51.1 / corr 169), and resolve archived plans with an
+      explicit absence when the audit is skipped (corr 139 / A51.2). A66 answers folded: both flags,
+      three-dot --base, severity error, packed in validate:ci, dirs plus scorer exclusion, five
+      read-aloud states including caller-supplied empty set.
+    </Summary>
+    <Problem>
+      Three surfaces share one shape — a green result produced by a check that was never in a
+      position to be red (D16; A51.4; A46.4):
+
+      1. A48.5 / ship path. Re-derived at e8a5c5c: `bun run validate:packed` fails with
+         `Cannot find module './gates/command' from '…/node_modules/@neograce/cli/src/grace.ts'`.
+         The gap is the nine-file transitive import closure from `src/grace.ts` (52 production
+         modules) that `package.json#files` does not cover:
+
+           src/gates/catalog.ts, command.ts, core.ts, ledger.ts
+           src/review/catalog.ts, command.ts, core.ts, scope-helpers.ts, shape-data.ts
+
+         `src/calibration` is already on `files` (Phase 9 / #31). `validate:packed` is **not** in
+         `validate:ci` (`package.json` scripts); it is in `validate:release` / `prepublishOnly`.
+         Published `@neograce/cli@6.0.1` predates both directories and is fine; six merged PRs
+         (#26–#31) reported green CI while the ship path was red. `npm pack` currently yields 47
+         files with zero from gates/ or review/.
+
+         Trap: adding whole `src/gates` and `src/review` also ships `src/review/scorer.ts`, which
+         imports `../test-support/defect-corpus`. `src/test-support` is deliberately not in
+         `files`. `scorer.ts` is imported by no production module (only `scorer.test.ts`);
+         `src/lint/catalog.ts` duplicates defect-pattern ids for the same reason (invariant 7).
+         `validate:packed` would not catch a shipped scorer because it is not reachable from the
+         entry point — the smoke fails on the first missing module only.
+
+      2. Correction 138 / scope audit input. `listRepositoryChangedFiles` (`grace-cursor.ts:1135`)
+         runs `git status --porcelain=v1 -z`. At close time porcelain is empty →
+         `{ available: true, changedFiles: [] }`. Because `Boolean([])` is true, the guard at
+         `review/core.ts:886` (`changedFiles &amp;&amp; scopeFiles.length &gt; 0`) **enters** the audit with
+         an empty set when a plan is resolved under active/, and reports zero findings — a false
+         clean, not a skip. `ngrace review` exposes only `--path`, `--change`, `--format`;
+         `ReviewOptions.changedFiles` has no CLI binding. A51.1's close-time witness: C-SELECTION
+         OWS missed `scripts/release-check.ts` and `src/artifact/scale-ergonomics.test.ts` (and the
+         draft `C-OBSERVABLE-CHECKS/spec.xml`); re-derived close-time count against PR #29 files
+         remapped archive→active is **3** `review.scope-outside-write-scope` findings that never
+         printed.
+
+      3. Correction 139 / archived subject. `runReview` resolves plan only under
+         `changesActiveDir` (`review/core.ts:874`). For any archived bundle `scopeFiles` stays
+         empty, the guard is false, the audit never runs, and the summary still prints
+         `No review findings`. Re-derived: **12** archived bundles (all with plan.xml and OWS),
+         0 active-path resolve hits. The silent-skip path is the common case.
+
+      Phase 8's board row stays COMPLETE. None of these is a defect in Phase 8's selection surface;
+      they are Phase 5/6 surfaces that later closes cited as evidence. This bundle is standalone —
+      not a phase of RM-AGENT-RELIABILITY. Corrections 169–170 (A66) refine A51.1: false clean not
+      silent skip; three out-of-scope files not two; twelve archives; packed fix is two directory
+      iterations not nine.
+    </Problem>
+    <Goals>
+      <Goal>
+        package.json#files covers every production module in the grace.ts import closure via
+        directory entries `src/gates` and `src/review` plus exclusion `!src/review/scorer.ts`
+        (A66 answer 4), with dual-allowlist PACK_ALLOWED_PREFIXES `src/gates/` and `src/review/`.
+        validate:packed green at HEAD.
+      </Goal>
+      <Goal>
+        validate:ci includes validate:packed directly in the same script chain (A66 answer 3).
+      </Goal>
+      <Goal>
+        ngrace review accepts `--base &lt;ref&gt;` (three-dot / merge-base range: what this branch
+        wrote) and `--changed-files` (explicit path set, including empty). Help text names both.
+        Mutual exclusivity or clear precedence when both are passed is defined and tested.
+      </Goal>
+      <Goal>
+        When `--change` is set and no changed-files source is available (clean porcelain and neither
+        flag supplied), the scope audit emits absence verdict `not-run` with a reason — never a
+        silent clean and never an empty-array pass (corr 169). Git failure uses `unable-to-determine`.
+        Caller-supplied empty `--changed-files` may report clean but must name that the empty set
+        was caller-supplied (A66 Q5 addition / rule 13).
+      </Goal>
+      <Goal>
+        runReview resolves plan.xml under changesActiveDir or changesArchiveDir (read-only). An
+        archived `--change` still supplies ObservedWriteScope when a diff input is also present.
+      </Goal>
+      <Goal>
+        When `--change` names an id with no plan under active/ or archive/, the scope audit emits
+        absence `not-run` with a reason, never a silent clean scope result.
+      </Goal>
+      <Goal>
+        Five read-aloud states are true on the page (A66.4): (1) ran over N found nothing; (2) ran
+        found something; (3) no diff available not-run; (4) no plan not-run; (5) caller-supplied
+        empty set clean and said so.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Stage 2 implements after plan.xml is authored and ngrace gate approve permits (A17.3). Spec
+        and plan reach status approved with the gate Decision recorded.
+      </Constraint>
+      <Constraint>
+        Do not reopen Phase 8 or edit archived C-SELECTION. The OWS omission is recorded in A50's
+        append-only correction (A51); the archive stays immutable.
+      </Constraint>
+      <Constraint>
+        F1 / invariant 8: ngrace review remains read-only. Diff input is evaluation input, not a
+        write path. Recording verdicts stays on ngrace gate verdict.
+      </Constraint>
+      <Constraint>
+        D14: review.* codes stay on the review surface; lint never emits them. No new gate.* from
+        lint. Absence for skipped audits is review output (text + JSON), not a lint code.
+      </Constraint>
+      <Constraint>
+        Absence with a reason (D5, rule 7) for every skipped audit path. A skipped audit that prints
+        like a passed audit is the failure this change exists to prevent (A43.1 / A51.2).
+      </Constraint>
+      <Constraint>
+        Do not weaken validate:packed to make it pass. The smoke test is the only surface that has
+        been telling the truth about the ship path.
+      </Constraint>
+      <Constraint>
+        Standing rule 12: every behaviour this change adds is measured against this repository
+        before it ships. Close-time scope audit on C-SELECTION with a real diff yields 3 errors
+        (severity stays error — fixable, not legacy-unfixable). Absence paths are counted too.
+      </Constraint>
+      <Constraint>
+        Standing rule 11: every emitted "No review findings" / absence string must read true aloud
+        given the inputs the run actually had. Five required sentences (A66.4): clean run, dirty run,
+        no diff, no plan, caller-supplied empty set.
+      </Constraint>
+      <Constraint>
+        review.scope-outside-write-scope severity stays error (A66 answer 2). Rule-12 count on
+        finished behaviour is reported; if this bundle's own writes are flagged, declare them in
+        ObservedWriteScope rather than narrow the rule.
+      </Constraint>
+      <Constraint>
+        Standing rule 13: write into the record what a later reader will need at the moment it is
+        true (baseline, counts, flag choices, severity decision from rule 12).
+      </Constraint>
+      <Constraint>
+        Surgical diffs. No new runtime dependencies. Skill mirrors stay byte-identical if skill text
+        changes (§12.2).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Re-running or re-closing Phases 6–9. Correct close records already amended; do not
+        re-litigate their board rows.
+      </NonGoal>
+      <NonGoal>
+        Making the apply gate distinguish self-review from detached review (A33.3 / D11 still require
+        existence of a recorded verdict, not toolkit-verified trustworthiness of residual judgment).
+      </NonGoal>
+      <NonGoal>
+        Paying residual graph-module debt, or changing selection / failure-localization behavior.
+      </NonGoal>
+      <NonGoal>
+        Full mutate / differential revert-and-rerun as a required audit (Phase 6 Q1 stands).
+      </NonGoal>
+      <NonGoal>
+        Auto-remapping active/ ↔ archive/ paths inside the scope audit for historical PR file lists.
+        Close-time audits run while the bundle is still under active/; that is the primary path.
+      </NonGoal>
+      <NonGoal>
+        Publishing src/review/scorer.ts or any src/test-support module (invariant 7).
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-PACKED-MODULES-SHIP>
+        A48.5. package.json#files covers the nine production modules under src/gates and src/review
+        that the grace.ts import closure requires. Discriminating negatives: (a) validate:packed is
+        green; (b) removing either directory (or any one of the nine files) from what files covers
+        makes validate:packed red; (c) src/review/scorer.ts is not in the packed tarball (directory
+        entry plus `!src/review/scorer.ts`, or an equivalent file-level list that omits it);
+        (d) release-check dual-allowlist stays consistent with files (same honesty bar as
+        grace-context in Phase 8 and calibration in Phase 9).
+      </AC-PACKED-MODULES-SHIP>
+      <AC-PACKED-IN-CI>
+        A48.5. validate:ci runs validate:packed in the same script chain (not only a separate
+        optional job). Discriminating negative: a deliberate omission of a packed production import
+        fails validate:ci, not only validate:release / prepublishOnly.
+      </AC-PACKED-IN-CI>
+      <AC-SCOPE-DIFF-INPUT>
+        Corr 138 / A66. `--base &lt;ref&gt;` uses the three-dot merge-base range; `--changed-files`
+        supplies an explicit set. A path outside ObservedWriteScope is red; a path inside is silent
+        (both directions). Discriminating negatives: (a) post-commit clean porcelain alone is not
+        treated as "scope clean" when a base ref shows out-of-scope paths; (b) empty porcelain with
+        an active plan and no flags does not enter the audit over `[]` (corr 169); (c) help text
+        names both flags; (d) severity of review.scope-outside-write-scope remains error.
+      </AC-SCOPE-DIFF-INPUT>
+      <AC-SCOPE-ABSENCE-NO-INPUT>
+        Corr 138 / 169. When `--change` is set and no changed-files source is available (clean
+        porcelain, no --base, no --changed-files), review emits absence `not-run` with a reason.
+        Git unexpected failure emits `unable-to-determine`. Discriminating negatives: (a) "No review
+        findings" is not the sole outcome when the scope audit did not run; (b) caller-supplied empty
+        `--changed-files` is clean and the report names that the empty set was caller-supplied
+        (state 5 / rule 13).
+      </AC-SCOPE-ABSENCE-NO-INPUT>
+      <AC-ARCHIVE-PLAN-RESOLVE>
+        Corr 139. `--change` on an archived bundle resolves plan.xml under archive/ (read-only) and
+        runs the scope audit when a diff input is also present. Discriminating negative: archived
+        C-SELECTION (or a fixture archive) with `--changed-files` showing an out-of-scope path emits
+        a finding; resolving never writes under archive/.
+      </AC-ARCHIVE-PLAN-RESOLVE>
+      <AC-SCOPE-ABSENCE-NO-PLAN>
+        Corr 139. When `--change` names an id with no plan under active/ or archive/, review emits
+        absence `not-run` (reason: no plan found for &lt;id&gt; under active/ or archive/), never a
+        silent clean scope result. Discriminating negative: "No review findings" alone is false for
+        `--change C-DOES-NOT-EXIST` and for an active id that has only spec.xml.
+      </AC-SCOPE-ABSENCE-NO-PLAN>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI />
+      <M-REVIEW />
+      <M-CURSOR />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        validate:packed green (~1.75s class) and listed in validate:ci; npm pack includes the nine
+        modules and excludes scorer.ts; unit tests for --base/--changed-files scope findings, empty
+        porcelain absence, archive plan resolution, and no-plan absence; read-aloud of the four
+        summary states; root lint 0 errors; dual-allowlist green.
+      </ExpectedEvidence>
+    </VerificationIntent>
+  </C-OBSERVABLE-CHECKS>
+</NgraceChangeSpec>
