@@ -1,0 +1,358 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-CALIBRATION>
+    <Summary>
+      Record self-reported confidence so it can be studied, consume it nowhere, and build the
+      calibration report without which the field is pure token tax (D6). Stage 1 re-derives against
+      HEAD: the corpus, authority axis, and anchor-level precision Phase 9's draft steps assumed
+      are all absent (A55.4, findings 146–148). This draft schedules what is buildable today and
+      amends what is not (rule 7 / A12.4).
+    </Summary>
+    <Problem>
+      D6's objective is sound and not in question: agent confidence is write-only, never gate-
+      consumable, and exists only so a named consumer can later ask whether claims tracked
+      outcomes. §9.4–§9.5 were written against a tree that does not exist at 4569196:
+
+      1. Gap 1 / finding 146. EpochOpened is not an event kind. KNOWN_KIND_STATE has opened
+         (range allocation), not EpochOpened. run.xml carries &lt;Epoch&gt;1&lt;/Epoch&gt; as a
+         counter with no executor identity. A40.3's "mechanism is in place" row is false at HEAD.
+         Step 9.5.4 over the live tree is 0 included, 0 excluded.
+
+      2. Gap 2 / finding 147. Authority (user-stated | tool-verified | agent-inferred) appears in
+         decisions.md / plan.md / review*.md only. Zero matches under src/ and .ngrace/. The
+         §9.5.2 separation rule's first half has no subject.
+
+      3. Gap 3 / finding 148. precision as an anchor field does not exist. exact | heuristic is
+         exportConfidence on LanguageAnalysis (file-level adapter output), surfaced as
+         analysis.heuristic-confidence. ANCHOR_PATTERNS are id shapes only; nothing attaches
+         provenance to anchors. §9.4's two-field table names two fields neither of which lives
+         on an anchor.
+
+      What is real and load-bearing: 15 AssertionKinds + evaluateAssertion; detached review with
+      deterministic findingId; AbsenceValue degradation throughout the cursor; ReviewVerdictRecord
+      (pass | fail | unable-to-determine, optional reason/note) with six &lt;Verdict&gt; entries
+      across archived bundles. The second half of §9.5.2 (no gate reads claimedConfidence) is
+      buildable today. An empty corpus is reportable, never fabricatable.
+
+      D16 / A46.4: a calibration report over nothing that presents as a table is both a check that
+      has never failed and a path never observed succeeding. That is the failure mode this change
+      exists to prevent.
+    </Problem>
+    <Goals>
+      <Goal>
+        claimedConfidence is a three-level ordinal enforced by grammar (D6 condition 5). Free text
+        and percentages are rejected at write time.
+      </Goal>
+      <Goal>
+        claimedConfidence attaches only to claims an adjudicator will verdict (D6 condition 3).
+        Free-floating narration cannot carry it.
+      </Goal>
+      <Goal>
+        claimedConfidence is write-only from the agent side (D6 condition 2). No gate under
+        src/gates/ reads it. A real test fails when a gate starts reading the field.
+      </Goal>
+      <Goal>
+        Context features for the report are joined from ledger and bundle, not authored beside the
+        claim (D6). Executor identity may be absent and lands as absence with a reason.
+      </Goal>
+      <Goal>
+        The calibration report is the named consumer (D6 condition 4). At N=0 it emits an honest
+        empty/absence sentence with included and excluded counts, never a fabricated calibration
+        table. Incomplete epochs are excluded as a class and counted.
+      </Goal>
+      <Goal>
+        Promotion bar is documented: claimedConfidence informs nothing today; held-out calibration
+        per context class is required before any gate may consume it.
+      </Goal>
+      <Goal>
+        §9.5.2 first half (agent-inferred × precision) is amended as deferred absence with
+        reasoning (rule 7 / A12.4), not silently reimplemented over a different subject while
+        keeping the original heading.
+      </Goal>
+      <Goal>
+        New directory src/calibration/ is a governed module (MODULE_CONTRACT, export parity) with
+        GraphAnchors ownership so change.graph-anchors-miss-write-scope stays green — first live
+        exercise of that rule on greenfield work since #30.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Spec only until planned and approved. This draft schedules work; it does not authorize
+        production code (same shape as C-OBSERVABLE-CHECKS / A51).
+      </Constraint>
+      <Constraint>
+        Phase 9 does not build D5's authority axis (user-stated | tool-verified | agent-inferred).
+        That is an artifact-model expansion; §12.5 and A48's precedent (per-task scope not added
+        to satisfy §8.5.4) settle it. If a check needs authority, the check is amended, not the
+        authority model invented mid-phase.
+      </Constraint>
+      <Constraint>
+        Phase 9 does not invent precision on anchors. exportConfidence on language analysis stays
+        where it is. §9.4's precision column is documented as the intended gate-consumable axis;
+        it is not delivered as an anchor attribute in this change.
+      </Constraint>
+      <Constraint>
+        An empty corpus is reported, never fabricated. No fixture-derived number may be presented
+        as a calibration result over live project data (D6; A55.4).
+      </Constraint>
+      <Constraint>
+        Standing rule 12: every new check is run over this repository as it is; the flag count is
+        recorded. A check that is red only because its subject does not exist is not ready under
+        the original heading.
+      </Constraint>
+      <Constraint>
+        Standing rule 11: every sentence the calibration report emits must read true aloud given
+        the inputs the run actually had — especially at N=0.
+      </Constraint>
+      <Constraint>
+        D14: calibration is a doctor / report consumer surface, not a fourth check surface.
+        lint may enforce ordinal grammar and the no-gate-reads structural rule; gates never
+        consult claimedConfidence; review does not emit calibration.* codes.
+      </Constraint>
+      <Constraint>
+        Invariant 5: additive only. Projects without claimedConfidence or without epochs lint
+        clean.
+      </Constraint>
+      <Constraint>
+        Invariant 8 / F1: the binary writes only structural state it can derive or is explicitly
+        given. Executor identity is harness-stated when supplied; ngrace does not invent it.
+      </Constraint>
+      <Constraint>
+        No new runtime dependencies. Skill mirrors stay byte-identical if skill text changes.
+        Surgical diffs only.
+      </Constraint>
+      <Constraint>
+        D16: a check that has never failed is not a check. A46.4: a path never observed succeeding
+        is not a path. Stage 2 must show the no-gate-reads test fail when a gate is deliberately
+        made to read claimedConfidence, and must show the report path succeed at least once on a
+        fixture with N≥1 labeled pairs (fixture numbers labeled as fixture, never as live
+        calibration).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Building the authority axis (user-stated | tool-verified | agent-inferred) on anchors.
+      </NonGoal>
+      <NonGoal>
+        Attaching precision (exact | heuristic) to anchors, or renaming exportConfidence.
+      </NonGoal>
+      <NonGoal>
+        Consuming claimedConfidence in any gate, review audit, or agent context packet.
+      </NonGoal>
+      <NonGoal>
+        Presenting fixture tables as live calibration results, or inventing labeled pairs by
+        back-filling archived bundles.
+      </NonGoal>
+      <NonGoal>
+        Phase 10 plan-quality signal, doctor §4.9 subset, or adoption walkthrough (Phases 10–11).
+      </NonGoal>
+      <NonGoal>
+        A separate marketplace release assignment (targets remain TBD).
+      </NonGoal>
+    </NonGoals>
+    <Proposals>
+      <!-- Stage-1 recommendations; not ratified until review. Cost is what stage 2 pays if adopted. -->
+      <Proposal id="P1-EPOCH-OPENED">
+        <Question>
+          Whether executor identity on epoch open is in Phase 9's scope or its own C-*.
+        </Question>
+        <Recommendation>
+          In Phase 9 as explicit enabling step 9.5.0 — extend the existing kind="opened" event
+          with optional harness-stated executor identity (attribute or child), not invent a parallel
+          EventKind "EpochOpened" that KNOWN_KIND_STATE does not know. Plan prose may keep the
+          conceptual name EpochOpened; the on-disk kind stays opened. Absence when the host does
+          not supply identity is D5-shaped (reason: host-capability-missing or equivalent).
+          Rejected alternative: a freestanding C-EPOCH-OPENED that Phase 9 waits on — nothing else
+          on the board schedules it, and building the report first re-creates A55.4 in round 2.
+        </Recommendation>
+        <Cost>
+          Files: src/grace-cursor.ts (write + read of opened payload), cursor tests, skill note in
+          ngrace-execute, possibly grammar validation of the optional field. Does not require a new
+          KnownEventKind. One genuine opened-with-identity write path must be observed succeeding
+          (A46.4). Does not by itself create labeled pairs — only the join key for context.
+        </Cost>
+      </Proposal>
+      <Proposal id="P2-ATTACHMENT">
+        <Question>
+          Where claimedConfidence attaches, and what stops free-floating narration.
+        </Question>
+        <Recommendation>
+          Attach as an optional attribute (or single child) on adjudicated claim surfaces that
+          already carry an outcome the machinery will verdict: (1) attempt events — "this
+          verification cycle claims pass/fail" is adjudicated by the attempt outcome and later
+          review/apply; (2) optionally Verdict — "this change is clean" is adjudicated by
+          ReviewVerdictRecord.outcome. Prefer attempt first (higher volume, already three-valued
+          cycle log). Grammar admits claimedConfidence only on those elements; any other parent is
+          a lint/grammar error. Free-floating narration has no element that accepts the attribute.
+        </Recommendation>
+        <Cost>
+          Grammar + recordAttempt / recordReviewVerdict write paths; CLI flag on cursor attempt
+          (and optionally gate verdict); skill one-liner. Does not require authority axis.
+        </Cost>
+      </Proposal>
+      <Proposal id="P3-REPORT-N">
+        <Question>
+          What the calibration report emits at N=0, N=1, and N small.
+        </Question>
+        <Recommendation>
+          N=0: no rate table. Emit included=0, excluded=&lt;count of incomplete or non-pair epochs&gt;,
+          and a single absence-shaped sentence that a reader will hear as "no labeled pairs to
+          calibrate" — never "perfect calibration" or empty buckets that look like 0% error.
+          N=1: raw one-row observation (claimed level, adjudicated outcome, context class if
+          derived); no percentage, no confidence interval, no "calibrated" word.
+          N small (e.g. &lt;20 complete pairs): counts per (claimed level × outcome) only; rates
+          optional and labeled "descriptive count, not a calibration claim."
+          Promotion / "calibration demonstrated" language is forbidden in the report until the
+          promotion bar docs say otherwise — the report never self-certifies readiness for gate
+          consumption.
+        </Recommendation>
+        <Cost>
+          Branching in src/calibration/report.ts and doctor surface; unit tests for N=0/1/small;
+          read-aloud fixtures. Cheap relative to inventing statistics.
+        </Cost>
+      </Proposal>
+      <Proposal id="P4-SEPARATION">
+        <Question>
+          How §9.5.2's separation rule is expressed given gaps 2 and 3.
+        </Question>
+        <Recommendation>
+          Amend §9.5.2 under rule 7 / A12.4: (a) first half deferred — "agent-inferred anchors may
+          not carry precision" has zero subjects at HEAD (rule 12 count: 0 flags because 0
+          operands exist). Record as absence: separation rule half-1 not enforced — authority axis
+          not in artifact model (see D5 cost, out of Phase 9). (b) second half ships — a unit or
+          integration test that fails if any module under src/gates/ imports, reads, or pattern-
+          matches claimedConfidence / claimed-confidence. Grep in the phase report is not the
+          test; the test is. Standing rule 12 on half-2 at HEAD: 0 reads (correct; field absent).
+        </Recommendation>
+        <Cost>
+          One amended verify sentence in the plan; one real test file asserting gate isolation.
+          No lint code for agent-inferred×precision until authority exists.
+        </Cost>
+      </Proposal>
+      <Proposal id="P5-PRECISION">
+        <Question>
+          How precision is treated; whether Phase 9 touches it; what §9.4's table means meantime.
+        </Question>
+        <Recommendation>
+          Phase 9 does not touch precision-on-anchors. exportConfidence remains file-level language
+          analysis. §9.4's table stays as the design target for two non-merged fields; for this
+          change only the claimedConfidence row is implemented. Docs (promotion bar + skill) state
+          explicitly: precision column is CLI-derived instrument sharpness where it already exists
+          (adapters); it is not yet an anchor attribute; claimedConfidence is the only new field.
+        </Recommendation>
+        <Cost>
+          Documentation only for the precision half. Avoids a silent half-build that looks like D5
+          completed.
+        </Cost>
+      </Proposal>
+    </Proposals>
+    <AcceptanceCriteria>
+      <AC-ORDINAL-SCALE>
+        D6 condition 5 / step 9.5.1. claimedConfidence admits exactly three ordered levels
+        (names fixed at plan time in stage 2; e.g. low | medium | high). Discriminating negatives:
+        free text is rejected by the grammar or write path; a percentage string is rejected; a
+        fourth level is rejected; omitting the field remains valid (additive, invariant 5).
+      </AC-ORDINAL-SCALE>
+      <AC-ATTACHMENT-ADJUDICATED-ONLY>
+        D6 condition 3 / proposal P2. claimedConfidence is accepted only on elements that already
+        carry an adjudicator outcome (attempt and/or Verdict as ratified). Discriminating negatives:
+        the same attribute on an unrelated element (e.g. IntentSummary prose, a progress event, a
+        Decision requirement) is a grammar or lint error; narration-only XML cannot smuggle the
+        field.
+      </AC-ATTACHMENT-ADJUDICATED-ONLY>
+      <AC-NO-GATE-READS>
+        D6 condition 2 / step 9.5.2 second half. No code under src/gates/ reads claimedConfidence.
+        Discriminating negative: a deliberate temporary import or property access of the field from
+        a gate module makes the dedicated test red (mutation check); green suite alone is not the
+        evidence. Standing rule 12 baseline at 4569196: 0 reads (field absent).
+      </AC-NO-GATE-READS>
+      <AC-SEPARATION-HALF1-DEFERRED>
+        Step 9.5.2 first half amended (rule 7). Plan and docs state that agent-inferred × precision
+        is not enforced because authority is not an artifact concept at HEAD. Discriminating
+        negatives: no lint code claims to enforce agent-inferred×precision; no issue code ships
+        under that heading that is vacuously green on every tree (D16). Rule 12 count for a
+        hypothetical half-1 check at HEAD: 0 flags / 0 subjects — recorded, not shipped as a check.
+      </AC-SEPARATION-HALF1-DEFERRED>
+      <AC-CONTEXT-DERIVED>
+        D6 / step 9.5.3. Report context (task kind, adapter presence, wrote-vs-read,
+        sequential-vs-parallel, completeness) is joined from ledger and bundle. Discriminating
+        negatives: there is no authored context-class attribute required beside claimedConfidence;
+        executor identity may be absent and surfaces as absence with a reason, never as a forged
+        default model name.
+      </AC-CONTEXT-DERIVED>
+      <AC-EPOCH-IDENTITY-OPTIONAL>
+        Proposal P1 / A55.4. kind=opened may carry optional harness-stated executor identity;
+        when absent, report and joins degrade with a reason. Discriminating negatives: missing
+        identity does not fail lint on existing trees; openEpoch without identity still works;
+        identity is not inventable by ngrace from argv defaults that pretend to be the model.
+      </AC-EPOCH-IDENTITY-OPTIONAL>
+      <AC-REPORT-N0>
+        D6 condition 4 / step 9.5.4 / proposal P3. Over this repository (and any tree with no
+        complete labeled pairs), the report prints included and excluded counts and an honest
+        empty-corpus sentence. Discriminating negatives: it does not print a rate table that
+        implies calibration; it does not say "100%" or "well calibrated"; it does not omit
+        excluded incomplete epochs when any exist; read-aloud of the N=0 sentence is true.
+      </AC-REPORT-N0>
+      <AC-REPORT-EXCLUDES-INCOMPLETE>
+        D6 bias safeguard / step 9.5.4. Incomplete epochs are a separate excluded class with a
+        count. Discriminating negative: pooling complete and incomplete epochs into one rate is
+        impossible in the public report API (or is a tested error).
+      </AC-REPORT-EXCLUDES-INCOMPLETE>
+      <AC-REPORT-FIXTURE-NOT-LIVE>
+        A55.4 / D6. Fixture or unit-test labeled pairs may exercise the join; their numbers never
+        appear as the project's live calibration result. Discriminating negative: doctor/CLI over
+        the repo root with empty corpus still reports N=0 for live data even when tests elsewhere
+        used fixtures with N&gt;0.
+      </AC-REPORT-FIXTURE-NOT-LIVE>
+      <AC-PROMOTION-BAR>
+        D6 condition 6 / step 9.5.5. Docs state claimedConfidence informs nothing today and what
+        would have to be true for that to change (held-out calibration per context class).
+        Discriminating negative: a reader of the skill or doctor help cannot find a sentence that
+        says gates may use the field today.
+      </AC-PROMOTION-BAR>
+      <AC-MODULE-GRAPH>
+        New src/calibration/ is a module with MODULE_CONTRACT and exact export parity; graph gains
+        M-CALIBRATION (or ratified name) with Path; plans that write those files include the
+        module in GraphAnchors. Discriminating negatives: change.graph-anchors-miss-write-scope
+        fires if OWS lists src/calibration/report.ts without the anchor; MAP_MODE EXPORTS parity
+        fails if the map lies.
+      </AC-MODULE-GRAPH>
+      <AC-VALIDATE-CI>
+        bun run validate:ci green after stage 2 implementation. Discriminating negative: typecheck,
+        unit/integration, validate:cli, validate:marketplace all pass; root ngrace lint 0 errors.
+      </AC-VALIDATE-CI>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-ARTIFACT-TYPES />
+      <M-CURSOR />
+      <M-DOCTOR />
+      <M-LINT-CORE />
+      <M-GATES />
+      <M-SKILLS />
+      <!-- M-CALIBRATION created in stage 2; named here as the intended owner of src/calibration/ -->
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Ordinal rejection tests; attachment-site tests (accepted on attempt/Verdict, rejected
+        elsewhere); no-gate-reads mutation test red then green; N=0 report string read-aloud true
+        on repo root; N=1 and small-N unit fixtures labeled as fixtures; incomplete-epoch exclusion
+        counts; promotion-bar text present; GraphAnchors ownership for src/calibration/; root lint
+        0 errors; rule 12 counts recorded for every new check.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <ReadAloud>
+      <N0Sentence>
+        Calibration report: 0 labeled pairs included, 0 epochs excluded as incomplete. No
+        adjudicated claims with claimedConfidence are available to score. claimedConfidence is not
+        used by any gate.
+      </N0Sentence>
+      <N0TruthConditions>
+        True when the project has no complete epoch that both records claimedConfidence on an
+        adjudicated claim and has a joinable outcome. At 4569196 this is the only honest live
+        output: field absent, EpochOpened/executor identity absent, authority absent. A flatter
+        sentence like "calibration: OK" or an empty table of rates would be false in the
+        flattering direction (rule 11 / A46.3).
+      </N0TruthConditions>
+    </ReadAloud>
+  </C-CALIBRATION>
+</NgraceChangeSpec>

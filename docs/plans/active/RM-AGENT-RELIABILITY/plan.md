@@ -4,7 +4,7 @@ kind: plan
 status: approved
 supersededBy: null
 created: 2026-07-29
-updated: 2026-07-31
+updated: 2026-08-01
 baseline: 6.0.1
 targets: []
 context: ./decisions.md
@@ -374,7 +374,7 @@ Keep this table current. It is the single source of truth for progress.
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
 | 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `COMPLETE` |
-| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `NOT STARTED` |
+| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `READY FOR REVIEW` |
 | 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `NOT STARTED` |
 | 11 | Adoption surface | §5.1, §5.3 | TBD | `NOT STARTED` |
 
@@ -1377,7 +1377,7 @@ Delete the module and subcommand. Skills fall back to reading artifacts directly
 
 # PHASE 9 — Confidence recording & calibration report
 
-**Status:** `NOT STARTED`
+**Status:** `READY FOR REVIEW` (stage 1 re-derive + draft spec; no production code — A56)
 **Decisions:** D6 (calibration half)
 **Release:** TBD
 
@@ -8564,6 +8564,113 @@ is therefore the one §9.5 does not list: make `<EpochOpened>` exist with execut
 produce one genuine labeled pair end-to-end so the join is observed working. Otherwise the phase's
 only honest output is an absence value — acceptable as a designed outcome, stated up front; not as
 something round 2 discovers.
+
+### A56 — 2026-08-01 · Phase 9 stage 1 re-derive + draft `C-CALIBRATION`
+
+**Everything below was measured at `4569196`**
+(`45691960c9390f464e199ad4b43f35fa10a3c676` — `fix(graph): describe every source surface and make the
+reverse edge real (#30)`). After `git fetch origin && git status -sb`: local `main` was not behind
+`origin/main` (both at `4569196`). Branch `feat/phase-9-rederive` cut from that commit. Tree clean at
+cut; root lint `0` errors / `0` warnings / `Governed files: 56`. Findings continue from **146**.
+
+A55.4's precondition warning is **confirmed, not relaxed.** Stage 1 delivers a draft spec and this
+amendment only — **no production code**, no `gate approve`.
+
+#### A56.1 Gap re-derivation (commands and whether they hold)
+
+| Gap | Command (at `4569196`) | Output | Holds? |
+|---|---|---|---|
+| **1 — corpus / EpochOpened** | `rg -c "EpochOpened" .ngrace/` · `rg -c "EpochOpened" src/` | both exit 1, **0 matches** | **Yes** — A55.4 stands |
+| **1b — what exists instead** | `rg -n "<Epoch" .ngrace/changes/archive --glob '**/run.xml'` | one hit: `C-SELECTION/run.xml` has `<Epoch>1</Epoch>` inside `NgraceRunCursor` | **Yes** — counter only, no executor identity |
+| **1c — event kind map** | `KNOWN_KIND_STATE` in `src/grace-cursor.ts:237–246` | `opened \| progress \| resume \| attempt \| verification-unavailable \| pause \| terminal \| escalation` — **no** `EpochOpened` | **Yes** — open path writes `kind: "opened"` with allocations (`:528–534`) |
+| **2 — authority axis** | `rg -in "agent-inferred\|user-stated\|tool-verified" src/ .ngrace/` | **0 matches** | **Yes** |
+| **2b — where the words live** | same pattern under `docs/` | only `decisions.md`, `plan.md`, `review*.md` (and one archived namespace plan) | **Yes** — decided, never built |
+| **3 — precision on anchors** | `rg -n "exportConfidence\|heuristic-confidence" src/` + `ANCHOR_PATTERNS` at `src/artifact/types.ts:168` | `exportConfidence: "exact" \| "heuristic"` on `LanguageAnalysis` (`src/lint/types.ts:161`); issue `analysis.heuristic-confidence`; anchors are **id shapes only** | **Yes** — no anchor field named precision or authority |
+| **claimedConfidence** | `rg -n "claimedConfidence\|claimed-confidence" src/ .ngrace/` | **0** | **Yes** — field not present |
+
+**Finding 146** — Gap 1 confirmed. A40.3's row *"Mechanism is in place — executor identity on
+`<EpochOpened>`, same corpus"* is **false at HEAD**. The live open event is `kind="opened"`. Cursor
+`<Epoch>` is a number, not an event.
+
+**Finding 147** — Gap 2 confirmed. Standing rule 12 applied to §9.5.2 half-1
+(`agent-inferred` × `precision`): **0 flags because both operands are absent**, not because the tree
+is clean. Shipping that half as a check would be a D16 vacuous green.
+
+**Finding 148** — Gap 3 confirmed. §9.4's table describes two fields on anchors; **neither exists on
+an anchor.** Precision that exists is adapter file analysis, not claim provenance.
+
+#### A56.2 Adjudicator table re-derived
+
+| Adjudicator (D6) | Status at `4569196` | Evidence |
+|---|---|---|
+| Assertions — "this AC is satisfied" | **Real** | 15 `AssertionKind`s (`MustExist`…`MustPassBudget`), `BaselineAssertions` / `TargetAssertions`, `evaluateAssertion` (`src/artifact/assertions.ts:38, 133`) |
+| Detached reviewer — "this change is clean" | **Real** | `src/review/core.ts`, `findingId` at `:158`, `runReview` |
+| Ledger degradation — "this mechanism ran" | **Real** | `AbsenceValue` throughout `src/grace-cursor.ts` |
+| Gate verdicts | **Real but tiny** | `ReviewVerdictRecord { outcome: pass \| fail \| unable-to-determine, reason?, note? }` (`src/gates/ledger.ts:49–58`); **6** `<Verdict>` entries, one per archived bundle that recorded apply (`C-GATE-SURFACE`, `C-GATE-RECORD-ABSENCE`, `C-REVIEW-SURFACE`, `C-FAILURE-LOCALIZATION`, `C-SELECTION`, `C-GRAPH-COVERAGE`) |
+
+No correction to the stage-1 prompt's adjudicator inventory — counts match (AssertionKind is **15**
+including `MustPassBudget`, not 14; recorded here as the live count).
+
+#### A56.3 What is already decided (not re-opened)
+
+1. Phase 9 does **not** build D5 authority. §12.5 + A48 precedent (per-task scope not added for
+   §8.5.4). Separation half-1 is **amended with reasoning**, never silently retargeted.
+2. §9.5.2 second half (no gate reads `claimedConfidence`) is the load-bearing half and is buildable
+   at HEAD.
+3. Empty corpus is reported, never fabricated.
+4. Ordinal scale, three levels, grammar-enforced (D6 condition 5).
+5. Standing rule 12 applies to every check this phase adds.
+
+#### A56.4 Five proposals (recommendation + cost) — draft in `C-CALIBRATION/spec.xml`
+
+Full text lives under `<Proposals>` in
+`.ngrace/changes/active/C-CALIBRATION/spec.xml` (`status="draft"`). Summary:
+
+| Id | Recommendation | Cost if adopted |
+|---|---|---|
+| **P1** Epoch open / identity | **In Phase 9** as step 9.5.0: optional harness-stated executor identity on existing `kind="opened"`, not a new `KnownEventKind` and not a blocking solo `C-*` that nothing else schedules | `grace-cursor` write/read + tests + skill note; observe success path once (A46.4) |
+| **P2** Attachment site | Optional on **attempt** (primary) and optionally **Verdict** — only elements that already carry an adjudicator outcome. Grammar rejects every other parent | Grammar + `recordAttempt` / optional `recordReviewVerdict` + CLI flag |
+| **P3** Report at N=0/1/small | N=0: counts + honest empty sentence, **no rate table**. N=1: one raw row. N small: counts only; no self-certified "calibrated" | Branching in `src/calibration/report.ts` + doctor surface |
+| **P4** Separation rule | Half-1 **deferred** (rule 7 / A12.4) with recorded rule-12 count 0/0 subjects. Half-2 **ships** as a real test that goes red if `src/gates/` reads the field | Plan amend + one mutation-grade test; **no** vacuous lint code for half-1 |
+| **P5** Precision | Phase 9 **does not** put precision on anchors. §9.4 table remains design target; only `claimedConfidence` row is implemented; docs say so | Docs only for the precision half |
+
+#### A56.5 Read-aloud — what the report says at N=0 (rule 11)
+
+> Calibration report: 0 labeled pairs included, 0 epochs excluded as incomplete. No adjudicated
+> claims with claimedConfidence are available to score. claimedConfidence is not used by any gate.
+
+**Truth conditions at `4569196`:** field absent, no executor identity on open, no authority axis, six
+verdicts exist but none carry claimed confidence, attempt corpus has no such attribute. A flatter
+"calibration: OK" or an empty rate table would be **false in the flattering direction** — the
+phase's primary failure mode (D16 + A46.4 at once).
+
+#### A56.6 GraphAnchors rule on greenfield (`src/calibration/`)
+
+Phase 9 creates a **new directory**. Since #30 that implies module + `MODULE_CONTRACT` + export
+parity + `GraphAnchors` ownership, or `change.graph-anchors-miss-write-scope` is an error.
+
+**Stage 1 experience (honest):** the rule **helped**. It forced `M-CALIBRATION` (or ratified name)
+and GraphAnchors into the draft ACs before any file was written, instead of discovering the miss at
+close. It did not obstruct stage 1 (spec-only). Stage 2 will be the real test of cost: graph edit +
+module contract + OWS listing in the same plan that introduces the path. Report again at close if
+the reverse edge fights the change shape.
+
+#### A56.7 Draft artifact
+
+| Artifact | Path | Status |
+|---|---|---|
+| Change spec | `.ngrace/changes/active/C-CALIBRATION/spec.xml` | `status="draft"`; every AC has a discriminating negative; modelled on `C-OBSERVABLE-CHECKS` |
+
+#### A56.8 Corrections / findings index (146–148)
+
+| # | Finding |
+|---|---|
+| 146 | `EpochOpened` absent; `opened` + cursor `<Epoch>` counter only; A40.3 mechanism row false |
+| 147 | Authority axis absent under `src/` and `.ngrace/`; §9.5.2 half-1 has no subject (rule 12: 0/0) |
+| 148 | Anchor-level `precision` absent; `exportConfidence` is file language analysis only |
+
+No count in the stage-1 prompt was wrong on the three gaps. Adjudicator AssertionKind count is **15**
+(prompt said 14) — minor; all four adjudicators remain **Real**.
 
 ---
 
