@@ -434,6 +434,63 @@ describe("plan-quality report (D10 / Phase 10)", () => {
     expect(report.verdictsTotal).toBe(0);
   });
 
+  it("corr 187: wrong root tag with matching wrapper is unreadable ledger.invalid-root-tag", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeBundle(root, "C-GOOD");
+    writeBundle(root, "C-BADROOT");
+    recordReviewVerdict(root, "C-GOOD", { outcome: "pass", scope: "bundle" });
+    const ledgerPath = path.join(
+      root,
+      ARTIFACT_DIR,
+      "changes",
+      "active",
+      "C-BADROOT",
+      "run-ledger.xml",
+    );
+    // Valid XML, wrong root, but wrapper for this change id present — the 187 gap.
+    writeFileSync(
+      ledgerPath,
+      `<NotALedger graceVersion="1.0"><C-BADROOT /></NotALedger>`,
+    );
+
+    const report = collectPlanQualityReport(root);
+    // Failure mode: C-BADROOT vanished as ok/empty, total shrank, unreadable empty.
+    expect(report.unreadable.map((u) => u.changeId)).toEqual(["C-BADROOT"]);
+    expect(report.unreadable[0]?.code).toBe("ledger.invalid-root-tag");
+    expect(report.unreadable[0]?.detail).toMatch(/NotALedger/);
+    expect(report.unreadable[0]?.detail).toMatch(/NgraceRunLedger/);
+    expect(report.verdictsTotal).toBe(1);
+    expect(report.rows.some((r) => r.changeId === "C-GOOD")).toBe(true);
+    expect(report.summary).toContain("1 bundle unreadable");
+    expect(report.summary).toContain("ledger.invalid-root-tag");
+    expect(report.summary).toContain("C-BADROOT");
+  });
+
+  it("corr 187 discriminating: correct root + wrapper + no Verdicts → ok zero, not unreadable", () => {
+    // Same shape as corr 185 empty-Verdicts negative; re-assert so the root-tag check
+    // cannot swallow legitimate empty ledgers if someone over-tightens the gate.
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeBundle(root, "C-EMPTYOK");
+    const ledgerPath = path.join(
+      root,
+      ARTIFACT_DIR,
+      "changes",
+      "active",
+      "C-EMPTYOK",
+      "run-ledger.xml",
+    );
+    writeFileSync(
+      ledgerPath,
+      `<NgraceRunLedger graceVersion="1.0"><C-EMPTYOK></C-EMPTYOK></NgraceRunLedger>`,
+    );
+    const report = collectPlanQualityReport(root);
+    expect(report.unreadable).toEqual([]);
+    expect(report.verdictsTotal).toBe(0);
+    expect(report.summary).not.toContain("unreadable");
+  });
+
   it("corr 185 adversarial table: empty, zero-byte, wrong root, directory, two wrappers", () => {
     const root = createRoot();
     writeMinimalProject(root);
@@ -457,11 +514,11 @@ describe("plan-quality report (D10 / Phase 10)", () => {
       },
       {
         id: "C-WRONGROOT",
-        // Wrong root and no C-WRONGROOT wrapper child — not "wrong root with matching child".
+        // Wrong root without matching wrapper: root-tag check fires before wrapper (corr 187).
         setup: (p) =>
           writeFileSync(p, `<NotALedger graceVersion="1.0"><SomethingElse /></NotALedger>`),
         expectUnreadable: true,
-        code: "ledger.bundle-id-mismatch",
+        code: "ledger.invalid-root-tag",
       },
       {
         id: "C-DIRLEDGER",

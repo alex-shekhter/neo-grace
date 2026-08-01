@@ -380,7 +380,10 @@ function wrapperFromLedger(bundlePath: string, changeId: string): GraceXmlNode |
 
 /**
  * Distinguishes absent-no-file vs unreadable vs ok for plan-quality and other consumers
- * that must not shrink a corpus silently (corr 185 / A31.2 / D5).
+ * that must not shrink a corpus silently (corr 185–187 / A31.2 / D5).
+ *
+ * Validation chain: exists → regular file → parses → correct root → wrapper →
+ * Verdicts section → children. Any failed link is unreadable (or absent-no-file), never ok.
  *
  * Does not change readLatestReviewVerdict or gate behaviour.
  */
@@ -439,6 +442,17 @@ export function readLedgerVerdictsSurface(
       state: "unreadable",
       code: issue?.code ?? "xml.parse",
       detail: issue?.message ?? "run-ledger.xml could not be parsed",
+    };
+  }
+
+  // Corr 187: a non-ledger root with a matching wrapper must not look like ok/empty.
+  // Match lint code ledger.invalid-root-tag (grammar validateRunLedger).
+  const expectedRoot = `${ARTIFACT_TAG_PREFIX}RunLedger`;
+  if (artifact.root.tag !== expectedRoot) {
+    return {
+      state: "unreadable",
+      code: "ledger.invalid-root-tag",
+      detail: `Unsupported run ledger root tag '${artifact.root.tag}'. Expected ${expectedRoot}.`,
     };
   }
 

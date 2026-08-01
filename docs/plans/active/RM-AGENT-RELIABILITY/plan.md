@@ -10135,3 +10135,111 @@ Archive not modified.
 the archived plan's OWS: the draft is a **new** change id, not a C-PLAN-QUALITY write, and the
 archive must not be rewritten to absorb it. Production files for 185–186 remain inside OWS
 (verified with `--changed-files` listing only those paths → 0 out-of-scope).
+
+
+### A74 — 2026-08-01 · Corrections 187–188 (post-close; wrong-root silence + sweep honesty)
+
+**On `feat/phase-10-rederive` after cd1a10a.** Phase 10 board stays **`COMPLETE`**. Archived
+`C-PLAN-QUALITY` **untouched** (A69, third application). Findings continue from **187**.
+
+#### A74.1 Correction 187 — wrong root with matching wrapper was ok/empty
+
+**Before (scratch: wrong root, wrapper for C-SELECTION present):**
+
+```
+lint   → Errors: 1
+         ledger.invalid-root-tag … Unsupported run ledger root tag 'NotALedger'. Expected NgraceRunLedger.
+doctor → Plan-quality … 9 scope-not-recorded of 10 readable total
+         verdicts total (readable): 10
+         unreadable bundles: 0                ← not a ledger, but named as clean empty
+```
+
+A73.1's wrong-root row tested *no matching wrapper*, so the wrapper check caught it as
+`ledger.bundle-id-mismatch`. The adjacent case — wrong root **with** a matching child — parsed,
+found the wrapper, had no Verdicts, and returned `{ state: "ok", verdicts: [] }`. Same class as
+183/185: a confident empty report about a file that is not a run ledger. Lint is red the whole time.
+
+**Fix:** after `!artifact.root`, require
+`artifact.root.tag === \`${ARTIFACT_TAG_PREFIX}RunLedger\``; else
+`{ state: "unreadable", code: "ledger.invalid-root-tag", detail: … }` matching grammar/lint
+wording. Gate `readLatestReviewVerdict` still collapses via `wrapperFromLedger` (fail-closed).
+
+**After (same probe):**
+
+```
+doctor → … of 10 readable total. 1 bundle unreadable (ledger.invalid-root-tag)
+         and excluded from every count: C-SELECTION.
+  verdicts total (readable): 10
+  unreadable bundles: 1
+    - C-SELECTION: ledger.invalid-root-tag — Unsupported run ledger root tag 'NotALedger'. …
+```
+
+**Real repository:** `verdicts total (readable): 11`, `unreadable bundles: 0`.
+
+**Discriminating negative:** correct root + matching wrapper + no Verdicts → still `ok` with
+zero verdicts (must not become unreadable when the root-tag check is present).
+
+#### A74.2 Correction 188 — A73.1 directory row: function vs CLI
+
+A73.1 recorded *"Directory named `run-ledger.xml` → named unreadable, `xml.parse`."* That is
+true for **`readLedgerVerdictsSurface` / `collectPlanQualityReport`** (unit path). End-to-end
+`ngrace doctor` / `ngrace lint` do **not** render plan-quality for that fixture: lint fails on
+the directory first, so doctor exits 1 with *"Unable to complete ngrace doctor."* Inherited CLI
+behaviour (EISDIR-class loud failure), not a Phase 10 defect. Acceptable. If loud failure should
+become an absence at the CLI surface, schedule it under `C-LEDGER-READ-ABSENCE`, not here.
+
+**Amended row (entry point named):**
+
+| State | Entry point | Named unreadable? | Silent shrink? |
+|---|---|---|---|
+| Directory named `run-ledger.xml` | `readLedgerVerdictsSurface` | yes, `xml.parse` | no |
+| Directory named `run-ledger.xml` | `ngrace doctor` CLI | n/a — lint fails; plan-quality not rendered | n/a (loud fail) |
+
+#### A74.3 Validation chain (enumerate so the next gap is findable)
+
+`readLedgerVerdictsSurface` validates in order. Any link with no check is a silent `ok`.
+
+| # | Link | Check | Failure exit |
+|---|---|---|---|
+| 1 | Bundle resolves | `resolveChangeBundle` | `absent-no-file` |
+| 2 | `run-ledger.xml` exists | `existsSync` | `absent-no-file` |
+| 3 | Regular file | `statSync` + `isFile()` | `unreadable` `xml.parse` |
+| 4 | Parses | `readGraceXmlArtifact` / `!root` | `unreadable` `xml.parse` (or first issue code) |
+| 5 | Correct root tag | `root.tag === NgraceRunLedger` (**corr 187**) | `unreadable` `ledger.invalid-root-tag` |
+| 6 | Wrapper for change id | `children.find(tag === changeId)` | `unreadable` `ledger.bundle-id-mismatch` |
+| 7 | Verdicts section unique | `selectUniqueSection` | absent → `ok` []; invalid → unreadable |
+| 8 | Each child is valid Verdict | tag + `parseVerdictNode` | `unreadable` `ledger.invalid-verdict` |
+
+**Known non-checks (deliberate or deferred):**
+
+- `graceVersion` attribute (lint checks it under the same code; plan-quality does not fail on
+  missing/wrong version alone if root tag is correct — not observed as silent shrink of a
+  corpus row today; if needed, fold into `C-LEDGER-READ-ABSENCE` or a later corr).
+- Exactly-one C-* wrapper identity (lint `ledger.invalid-change-id`); plan-quality only needs
+  *our* wrapper and tolerates an extra sibling (A73 two-wrapper row).
+
+#### A74.4 Updated broken-ledger table (entry point per row)
+
+Question for each: **did the count shrink without saying so?**
+
+| State | Entry point | Named unreadable? | Code / note | Silent shrink? |
+|---|---|---|---|---|
+| Truncated mid-file | plan-quality / doctor | yes | `xml.parse` | no |
+| Empty / zero-byte file | plan-quality | yes | `xml.parse` | no |
+| Wrong root, **no** matching wrapper | plan-quality | yes | `ledger.invalid-root-tag` (187; was mismatch via wrapper) | no |
+| Wrong root, **with** matching wrapper | plan-quality / doctor | yes | `ledger.invalid-root-tag` (**187**) | no |
+| Correct root, wrapper, no Verdicts | plan-quality | no | `ok`, 0 verdicts | no |
+| Directory named `run-ledger.xml` | `readLedgerVerdictsSurface` | yes | `xml.parse` | no |
+| Directory named `run-ledger.xml` | `ngrace doctor` CLI | n/a | lint/doctor exit 1 (**188**) | n/a |
+| Two wrappers (ours + other) | plan-quality | no | ours readable | no |
+| Missing file | plan-quality | not unreadable | `absent-no-file` | n/a |
+| Invalid scope token | plan-quality | yes | `ledger.invalid-verdict` (183) | no |
+
+#### A74.5 Files
+
+`src/gates/ledger.ts` (root-tag link in `readLedgerVerdictsSurface`), `src/review/outcomes.test.ts`,
+this amendment. Archive not modified. `C-LEDGER-READ-ABSENCE` draft unchanged.
+
+**OWS note (A69/A73).** Scope audit against archived `C-PLAN-QUALITY` still reports **1 finding**:
+`.ngrace/changes/active/C-LEDGER-READ-ABSENCE/spec.xml` (draft outside frozen OWS). Production
+paths for 187 remain inside OWS. Declared, not unexplained red.
