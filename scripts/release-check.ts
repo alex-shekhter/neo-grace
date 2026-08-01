@@ -95,7 +95,13 @@ const PACK_ALLOWED_EXACT = new Set([
 ]);
 // Note (A48.5): src/gates/ and src/review/ are still NOT on this list — inherited ship-path
 // defect from Phases 5–6; owns its own C-*. Adding grace-context.ts does not fix that.
-const PACK_ALLOWED_PREFIXES = ["src/artifact/", "src/lint/", "src/query/", "src/verification/"];
+const PACK_ALLOWED_PREFIXES = [
+  "src/artifact/",
+  "src/lint/",
+  "src/query/",
+  "src/verification/",
+  "src/calibration/",
+];
 const PACK_FORBIDDEN = [
   /(^|\/)__tests__(\/|$)/i,
   /(^|\/)tests?(\/|$)/i,

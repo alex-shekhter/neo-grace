@@ -28,6 +28,11 @@ import { ARTIFACT_DIR } from "./artifact/paths";
 import { detectGraceProjectKind, resolveNgracePaths } from "./artifact/project";
 import { NGRACE_OPTIONAL_CONTEXT_ARTIFACTS, skillName } from "./artifact/types";
 import { buildGraphProjection, buildVerificationProjection } from "./artifact/projections";
+import {
+  collectCalibrationReport,
+  formatCalibrationText,
+  type CalibrationReport,
+} from "./calibration/report";
 import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "./language-registry";
 import { loadGraceLintConfig } from "./lint/config";
 import { lintGraceProject } from "./lint/core";
@@ -69,6 +74,8 @@ export type DoctorResult = {
     present: boolean;
   }>;
   analysisIssues: Array<Pick<LintIssue, "code" | "severity" | "file" | "message" | "issueClass">>;
+  /** D6 calibration consumer — write-only claimedConfidence vs independent adjudicators. */
+  calibration: CalibrationReport;
 };
 
 /**
@@ -142,6 +149,7 @@ export function collectDoctorReport(projectRoot: string): DoctorResult {
     // assertion.command-not-evaluated is absence but unreachable from doctor under
     // current mode (A5.2) — partition still includes it when present on the issue list.
     analysisIssues: toDoctorAbsenceIssues(lint.issues),
+    calibration: collectCalibrationReport(root),
   };
 }
 
@@ -217,13 +225,16 @@ export function formatDoctorText(report: DoctorResult): string {
     }
   }
 
+  lines.push("", formatCalibrationText(report.calibration).trimEnd());
+
   return `${lines.join("\n")}\n`;
 }
 
 export const doctorCommand = defineCommand({
   meta: {
     name: "doctor",
-    description: "Read-only report: adapters, analysis coverage, document size pressure, optional context gaps.",
+    description:
+      "Read-only report: adapters, analysis coverage, document size pressure, optional context gaps, calibration (claimedConfidence is never gate-consumed).",
   },
   args: {
     path: {

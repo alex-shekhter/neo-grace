@@ -41,6 +41,7 @@
     "src/lint",
     "src/query",
     "src/verification",
+    "src/calibration",
     "!src/**/*.test.ts",
     "!src/artifact/test-fixtures.ts",
     "README.md",

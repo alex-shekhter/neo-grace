@@ -90,5 +90,10 @@
       <Scenario>Temp project fixtures and defect corpus seed stable, deterministic test projects.</Scenario>
       <TraceAssertion>test-support tests cover fixture builders and corpus pattern ids.</TraceAssertion>
     </V-M-TEST-SUPPORT>
+    <V-M-CALIBRATION>
+      <Command>bun test src/calibration</Command>
+      <Scenario>Calibration joins claimedConfidence to target-assertions only; N=0 is honest; gates never read the field.</Scenario>
+      <TraceAssertion>calibration unit tests cover ordinal rejection, incomplete-epoch exclusion, and gate isolation.</TraceAssertion>
+    </V-M-CALIBRATION>
   </VD-MAIN>
 </NgraceVerificationDocument>

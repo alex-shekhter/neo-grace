@@ -21,6 +21,7 @@
         <M-QUERY />
         <M-CONTEXT />
         <M-TEST-SUPPORT />
+        <M-CALIBRATION />
       </Owns>
     </GD-MAIN>
   </GraphDocuments>

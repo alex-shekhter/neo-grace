@@ -1377,7 +1377,7 @@ Delete the module and subcommand. Skills fall back to reading artifacts directly
 
 # PHASE 9 — Confidence recording & calibration report
 
-**Status:** `READY FOR REVIEW` (stage 1 re-derive + draft spec; no production code — A56)
+**Status:** `READY FOR REVIEW` (stage 2 built — A58; awaits review)
 **Decisions:** D6 (calibration half)
 **Release:** TBD
 
@@ -8773,3 +8773,77 @@ Without it the phase ships a report whose only observed output is `N=0` — corr
 identical to what it would print if the join were broken. **`0 included, 0 excluded` is not
 distinguishable from a join that silently never fires**, and that indistinguishability is the thing to
 remove before the phase closes.
+
+### A58 — 2026-08-01 · Phase 9 stage 2 built (adjudicator is target-assertions)
+
+**Baseline:** `4669208` (A57 on `feat/phase-9-rederive`). After `git fetch origin && git status -sb`:
+`origin/main` still at `4569196`; branch is ahead with A56+A57. Stage 2 implements A56 P1/P3/P4/P5
+and A57 corr 149–151. Findings continue from **152**.
+
+#### A58.1 Adjudicator decision (settles 149–150)
+
+| Option | Verdict |
+|---|---|
+| Attempt `outcome` attribute | **Rejected** — claimant grades self (149) |
+| Gate `Verdict` after review | **Rejected as primary** — still agent-authored via `ngrace gate verdict` |
+| Review findings count | Deferred — needs diff input (C-OBSERVABLE-CHECKS) |
+| **`evaluateTargetComplete` / target-assertions** | **Adopted** — first row of D6's table; was dead (150); now sole join adjudicator |
+
+**Shape:** claim site = optional `claimedConfidence` on `attempt` (write-only). Score side =
+`evaluateTargetComplete` → `pass` / `fail` / pending (absence). Every included pair records
+`adjudicator: "target-assertions"`. Pending is counted separately from included and excluded; never
+silent-fail.
+
+`targetAssertionsClean` remains the boolean collapse; production call path is
+`collectCalibrationReport` → `evaluateTargetComplete` (150 discharged).
+
+#### A58.2 What shipped
+
+| Surface | Change |
+|---|---|
+| Ordinal | `CLAIMED_CONFIDENCE_LEVELS` + `parseClaimedConfidence` in `src/artifact/types.ts` |
+| Claim write | `recordAttempt(..., claimedConfidence?)`; CLI `--claimed-confidence` |
+| Open identity (P1) | optional `ExecutorIdentity` child on `kind=opened`; CLI `--executor-model` / `--executor-harness` |
+| Report | `src/calibration/report.ts` — included / excluded / pending + summary |
+| Doctor | `calibration` field on `DoctorResult`; text section |
+| Gates | isolation test; mutation red→green proven |
+| Graph | `M-CALIBRATION` + `V-M-CALIBRATION`; package + release-check `src/calibration/` |
+| Skills | execute: claimedConfidence + promotion bar (+4 skill lines; 724→728) |
+| Live pair (151) | `C-CALIBRATION` T-001 event 2: claimed=medium, adjudicated=pass, adjudicator=target-assertions |
+
+#### A58.3 Read-aloud table (rule 11)
+
+| State | Sentence heard | True? |
+|---|---|---|
+| N=0 | "0 labeled pairs included, 0 excluded, 0 pending… not used by any gate" | Yes on empty project |
+| N=1 live (this repo) | "1 labeled pair… C-CALIBRATION T-001 event 2 claimed=medium adjudicated=pass adjudicator=target-assertions… One observation is not a calibration claim" | **Yes — observed** |
+| Pending | "…pending… not scored as fail" | Yes when MustPassCommand blocks evaluation |
+| Excluded | incomplete epoch still in loose run/ | Yes |
+
+#### A58.4 Mutation — AC-NO-GATE-READS
+
+| Step | Result |
+|---|---|
+| Append `claimedConfidence` string to `src/gates/core.ts` | isolation test **RED** (`src/gates/core.ts` in violations) |
+| Revert | isolation test **GREEN** |
+
+Standing rule 12 on repo: `rg claimedConfidence src/gates/` → **0**.
+
+#### A58.5 GraphAnchors greenfield report
+
+**Helped.** Forced `M-CALIBRATION` into graph + OWS before close; `change.graph-anchors-miss-write-scope`
+and scope review caught `token-accounting.test.ts` and ledger/cursor files missing from OWS. Cost:
+plan/spec AffectedAreas must stay in lockstep (two fix rounds). **Not obstructive** — the miss would
+have been silent without the reverse edge.
+
+#### A58.6 Findings 152+
+
+| # | Finding |
+|---|---|
+| 152 | Live path succeeds: one included pair at C-CALIBRATION / T-001 / event 2 / target-assertions |
+| 153 | `evaluateTargetComplete` now has a production caller (calibration report) — 150 closed |
+| 154 | Skill token total 724→728 (+4 lines on ngrace-execute) |
+
+Half-1 separation remains deferred (P4): no agent-inferred×precision check shipped; rule-12 still
+0 subjects under `src/` for authority axis.
+

@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-CALIBRATION>
     <Summary>
       Record self-reported confidence so it can be studied, consume it nowhere, and build the
@@ -253,11 +253,12 @@
         fourth level is rejected; omitting the field remains valid (additive, invariant 5).
       </AC-ORDINAL-SCALE>
       <AC-ATTACHMENT-ADJUDICATED-ONLY>
-        D6 condition 3 / proposal P2. claimedConfidence is accepted only on elements that already
-        carry an adjudicator outcome (attempt and/or Verdict as ratified). Discriminating negatives:
-        the same attribute on an unrelated element (e.g. IntentSummary prose, a progress event, a
-        Decision requirement) is a grammar or lint error; narration-only XML cannot smuggle the
-        field.
+        D6 condition 3 / A57 corr 149–150. claimedConfidence attaches on attempt as the claim site
+        only. The join score is never the attempt outcome attribute; it is evaluateTargetComplete
+        (adjudicator id target-assertions). Discriminating negatives: free text/percentages rejected
+        on write; a pair whose adjudicatedOutcome equals only the agent-authored attempt outcome
+        without an independent adjudicator is not a labeled pair; pending when target-assertions
+        cannot produce a boolean (never silent fail); progress events have no claimedConfidence write path.
       </AC-ATTACHMENT-ADJUDICATED-ONLY>
       <AC-NO-GATE-READS>
         D6 condition 2 / step 9.5.2 second half. No code under src/gates/ reads claimedConfidence.
@@ -322,13 +323,13 @@
       </AC-VALIDATE-CI>
     </AcceptanceCriteria>
     <AffectedAreas>
-      <M-ARTIFACT-TYPES />
+      <M-CALIBRATION />
       <M-CURSOR />
+      <M-ARTIFACT-TYPES />
       <M-DOCTOR />
-      <M-LINT-CORE />
-      <M-GATES />
       <M-SKILLS />
-      <!-- M-CALIBRATION created in stage 2; named here as the intended owner of src/calibration/ -->
+      <M-CLI />
+      <M-TEST-SUPPORT />
     </AffectedAreas>
     <VerificationIntent>
       <ExpectedCommand>bun run validate:ci</ExpectedCommand>

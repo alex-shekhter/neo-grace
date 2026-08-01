@@ -78,6 +78,8 @@ import {
   ANCHOR_PATTERNS,
   ARTIFACT_TAG_PREFIX,
   EPOCH_SECTION_PATTERN,
+  parseClaimedConfidence,
+  type ClaimedConfidence,
   NGRACE_ARTIFACT_VERSION,
 } from "./artifact/types";
 import {
@@ -513,6 +515,11 @@ export function advanceCursor(
     to?: number;
     wave?: string;
     openEpoch?: boolean;
+    /**
+     * Optional harness-stated executor identity on kind=opened (D6 / P1).
+     * Unverifiable by ngrace; may be absent. Never invent a default model name.
+     */
+    executorIdentity?: { model?: string; harness?: string };
   },
 ): CursorPosition {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
@@ -525,12 +532,29 @@ export function advanceCursor(
     const worker = options.worker ?? "w0";
     const id = nextEventId(bundlePath, from);
     const task = options.task;
+    const openChildren: GraceXmlNode[] = [];
+    if (options.executorIdentity) {
+      const model = options.executorIdentity.model?.trim();
+      const harness = options.executorIdentity.harness?.trim();
+      if (model || harness) {
+        const attrs: Record<string, string> = {};
+        if (model) attrs.model = model;
+        if (harness) attrs.harness = harness;
+        openChildren.push({
+          tag: "ExecutorIdentity",
+          attributes: attrs,
+          children: [],
+          text: "",
+        });
+      }
+    }
     writeEventFile(bundlePath, {
       id,
       task,
       kind: "opened",
       allocations: [{ worker, from, to }],
       wave: options.wave,
+      children: openChildren.length > 0 ? openChildren : undefined,
     });
     const position: CursorPosition = {
       changeId,
@@ -1230,6 +1254,12 @@ export function recordAttempt(
     task: string;
     outcome: "pass" | "fail";
     signature?: FailureSignature;
+    /**
+     * Optional agent-authored claimed confidence (D6). Write-only; no gate may read it.
+     * Join score comes from independent adjudicators (target-assertions), never from
+     * this attempt's outcome attribute (corr 149).
+     */
+    claimedConfidence?: ClaimedConfidence | string;
     /** Override snapshotted write evidence (tests). Default: snapshotWriteEvidence. */
     writeEvidence?: WriteEvidenceSnapshot;
   },
@@ -1244,6 +1274,15 @@ export function recordAttempt(
       "invalid-arguments",
       "Failed attempts require a FailureSignature (kind + key).",
     );
+  }
+
+  let claimedConfidenceAttr: string | undefined;
+  if (options.claimedConfidence !== undefined && options.claimedConfidence !== "") {
+    const parsed = parseClaimedConfidence(String(options.claimedConfidence));
+    if (!parsed.ok) {
+      throw new GraceCommandError("invalid-arguments", parsed.reason);
+    }
+    claimedConfidenceAttr = parsed.value;
   }
 
   // A21.1 / A22.3 / A29.10: refuse further attempts on escalated tasks via gate evaluation
@@ -1265,11 +1304,15 @@ export function recordAttempt(
   children.push(writeEvidenceNode(writeEvidence));
 
   const id = nextEventId(bundlePath);
+  const attributes: Record<string, string> = { outcome: options.outcome };
+  if (claimedConfidenceAttr) {
+    attributes.claimedConfidence = claimedConfidenceAttr;
+  }
   writeEventFile(bundlePath, {
     id,
     task,
     kind: "attempt",
-    attributes: { outcome: options.outcome },
+    attributes,
     children,
   });
 
@@ -2119,11 +2162,21 @@ export const cursorCommand = defineCommand({
         from: { type: "string", description: "Allocation from id" },
         to: { type: "string", description: "Allocation to id" },
         wave: { type: "string", description: "Plan-side wave attribute" },
+        executorModel: {
+          type: "string",
+          description: "Optional harness-stated model id on openEpoch (ExecutorIdentity; may be absent)",
+        },
+        executorHarness: {
+          type: "string",
+          description: "Optional harness-stated host id on openEpoch (ExecutorIdentity; may be absent)",
+        },
         format: { type: "string", alias: "f", description: "text or json", default: "text" },
       },
       async run(context) {
         const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
         await runGraceCommand(format, () => {
+          const model = context.args.executorModel ? String(context.args.executorModel).trim() : "";
+          const harness = context.args.executorHarness ? String(context.args.executorHarness).trim() : "";
           const position = advanceCursor(String(context.args.path ?? "."), requireChangeId(context.args), {
             task: String(context.args.task),
             kind: context.args.kind ? String(context.args.kind) : undefined,
@@ -2132,6 +2185,13 @@ export const cursorCommand = defineCommand({
             from: context.args.from ? Number(context.args.from) : undefined,
             to: context.args.to ? Number(context.args.to) : undefined,
             wave: context.args.wave ? String(context.args.wave) : undefined,
+            executorIdentity:
+              model || harness
+                ? {
+                    model: model || undefined,
+                    harness: harness || undefined,
+                  }
+                : undefined,
           });
           if (format === "json") process.stdout.write(`${JSON.stringify(position, null, 2)}\n`);
           else process.stdout.write(formatCursorPosition(position));
@@ -2141,7 +2201,8 @@ export const cursorCommand = defineCommand({
     attempt: defineCommand({
       meta: {
         name: "attempt",
-        description: "Record a verification-cycle attempt (outcome pass|fail; signature required on fail).",
+        description:
+          "Record a verification-cycle attempt (outcome pass|fail; signature required on fail). Optional claimedConfidence is write-only analysis data — not used as the calibration score.",
       },
       args: {
         path: { type: "string", alias: "p", description: "Project root", default: "." },
@@ -2150,6 +2211,10 @@ export const cursorCommand = defineCommand({
         outcome: { type: "string", description: "pass or fail", required: true },
         signatureKind: { type: "string", description: "Failure signature kind (required when outcome=fail)" },
         signatureKey: { type: "string", description: "Failure signature key (required when outcome=fail)" },
+        claimedConfidence: {
+          type: "string",
+          description: "Optional low|medium|high self-report (analysis only; no gate may read it)",
+        },
         format: { type: "string", alias: "f", description: "text or json", default: "text" },
       },
       async run(context) {
@@ -2164,9 +2229,13 @@ export const cursorCommand = defineCommand({
           }
           const signatureKind = context.args.signatureKind ? String(context.args.signatureKind) : undefined;
           const signatureKey = context.args.signatureKey ? String(context.args.signatureKey) : undefined;
+          const claimedRaw = context.args.claimedConfidence
+            ? String(context.args.claimedConfidence).trim()
+            : undefined;
           const result = recordAttempt(String(context.args.path ?? "."), requireChangeId(context.args), {
             task: String(context.args.task),
             outcome: outcomeRaw,
+            claimedConfidence: claimedRaw,
             signature:
               outcomeRaw === "fail" && signatureKind && signatureKey
                 ? { kind: signatureKind, key: signatureKey }

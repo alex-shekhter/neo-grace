@@ -21,6 +21,7 @@
         <V-M-QUERY />
         <V-M-CONTEXT />
         <V-M-TEST-SUPPORT />
+        <V-M-CALIBRATION />
       </Owns>
     </VD-MAIN>
   </VerificationDocuments>
