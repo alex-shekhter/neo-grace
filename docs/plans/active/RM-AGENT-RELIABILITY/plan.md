@@ -8847,3 +8847,82 @@ have been silent without the reverse edge.
 Half-1 separation remains deferred (P4): no agent-inferred×precision check shipped; rule-12 still
 0 subjects under `src/` for authority axis.
 
+### A59 — 2026-08-01 · Phase 9 build accepted; the join adjudicates changes and counts attempts
+
+Verified at `bfb2ed5`: lint 0 errors / 0 warnings / `Governed files: 57`, suite 923 ran / 3 skip /
+**0 fail**, `validate:ci` green.
+
+**Correction 149 is properly closed, and the test that closes it is the right one.**
+`report.test.ts:217` — *"included fail when target assertions are red (independent of agent pass)"* —
+pins the thing that mattered: the attempt still carries `outcome="pass"`, and the score comes from
+somewhere else. The three-way branch on `complete` is correct: `undefined` becomes **pending with the
+absence reason**, never `fail`.
+
+**Correction 151 is closed with a real pair.** Confirmed in the ledger, not just the report:
+
+```xml
+<Event id="1" task="T-001" kind="opened"><ExecutorIdentity model="grok-4.5" harness="grok-build" /></Event>
+<Event id="2" task="T-001" kind="attempt" outcome="pass" claimedConfidence="medium" />
+<Event id="3" task="T-001" kind="terminal" />
+```
+
+`ngrace doctor` emits it live, and the sentence is honest without being asked: *"One observation is
+not a calibration claim; no percentage is reported."*
+
+**Correction 150's disposition needs restating, and the engineering was better than my suggestion.**
+A57 said `targetAssertionsClean` was exported with no callers and proposed it as the adjudicator. The
+build instead used `evaluateTargetComplete` and marked the boolean wrapper `@deprecated` — correctly,
+because `targetAssertionsClean` collapses absence into `false` (A14.2), which would have scored
+*"could not determine"* as *"the agent was wrong."* That is the right call and it is the opposite of
+the shortcut. Two corrections to the report, though: `evaluateTargetComplete` **already had a
+production caller** at `grace-cursor.ts:1024`, so calibration is its second, not its first; and
+`targetAssertionsClean` **still has no callers** — 150 is resolved by deprecation, not by acquiring
+one. Say which.
+
+#### A59.1 Correction 155 — one adjudication is counted as many pairs
+
+```ts
+const ledgerClaims: CalibrationClaimRow[] = [];
+for (const event of listLedgerEvents(bundlePath)) { … }        // N claims
+
+const { complete } = evaluateTargetComplete(root, changeId);    // ← ONE adjudication, outside the loop
+
+for (const row of ledgerClaims) { … adjudicatedOutcome … }      // …applied to all N
+```
+
+`evaluateTargetComplete` is called **once per change** (`report.ts:156`) and its single verdict is
+written onto every claim in that change. The unit of adjudication is the **change**; the unit of
+counting is the **attempt**. Three consequences:
+
+- **`N labeled pairs included` overstates the corpus.** Five claims in one change are one outcome and
+  five claims, not five pairs. The sentence is true today only because N is 1.
+- **The corpus will trend to all-pass by construction.** A change reaches `applied` only when its
+  target assertions are clean, so every folded claim in a completed change scores `pass` — a `low`
+  claim and a `high` claim on the same change are indistinguishable in outcome. The calibration curve
+  this phase exists to enable would be flat for reasons that have nothing to do with the executor.
+- **No test covers it.** Every test in `report.test.ts` is N=0 or N=1; there is no case with two
+  claims in one change, which is why the conflation is invisible in a green suite.
+
+The honest resolutions are to score at the unit that is actually adjudicated — one pair per change,
+with the claims summarized — or to find a per-claim adjudicator. What is not available is counting
+attempts while adjudicating changes.
+
+#### A59.2 Correction 156 — the label is recomputed, so the corpus does not accumulate
+
+`evaluateTargetComplete` runs `lintGraceProject` against the **current tree** at report time. The
+outcome is never stored beside the claim. So a claim recorded today is scored against whatever the
+change's target assertions say whenever `doctor` next runs, and the same historical pair can be
+`pass` on one day and `fail` on another.
+
+D6's argument for recording at all is that *labeled pairs fall out as a byproduct* and accumulate
+until a study is possible. **A corpus whose labels move is not a corpus** — it is a query over present
+state wearing a corpus's vocabulary. The claim is durable; its label is not.
+
+The fix is to adjudicate once and **write the outcome into the ledger beside the claim** — at fold
+time, when the epoch closes and the change's state is the state the claim was made under. That also
+resolves 155's second bullet, because the score is taken when the attempt happened rather than after
+the change necessarily succeeded.
+
+Both corrections share one shape, and it is the shape this track keeps producing: the mechanism is
+right, and the noun is wrong. *"1 labeled pair included"* is a sentence about evidence. What the code
+has is one claim and one recomputed query result, which is a different thing wearing the same word.
