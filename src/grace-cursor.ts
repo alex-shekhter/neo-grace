@@ -1187,6 +1187,17 @@ export function recordAttempt(
     );
   }
 
+  // A21.1 / A22.3 / A29.10: refuse further attempts on escalated tasks via gate evaluation
+  // (anti-pattern 9 — policy lives in src/gates/, mechanism only calls it).
+  const escalated = listUnresolvedEscalatedTasks(listAccountingEvents(bundlePath));
+  if (escalated.includes(task)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `gate.attempt.escalated: task ${task} is paused-pending-approval; resolve with ngrace cursor resume before further attempts.`,
+      { issues: ["gate.attempt.escalated"] },
+    );
+  }
+
   const writeEvidence = options.writeEvidence ?? snapshotWriteEvidence(projectRoot);
   const children: GraceXmlNode[] = [];
   if (options.outcome === "fail" && options.signature) {

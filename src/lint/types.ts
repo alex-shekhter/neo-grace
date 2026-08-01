@@ -68,6 +68,9 @@ export type LintOptions = {
   parallelPreflight?: boolean;
 };
 
+/** Project policy for whether host-capability-missing (and similar) blocks apply (D11 / A29.5). */
+export type GateFailOn = "errors" | "warnings" | "never";
+
 export type GraceLintConfig = {
   ignoredDirs?: string[];
   /** Extensions that deliberately skip analysis.no-adapter, e.g. [".rs", ".go"]. */
@@ -83,6 +86,12 @@ export type GraceLintConfig = {
   documentAnchorLimit?: number;
   /** Max bytes per graph/verification document before warning (default 30720 = 30 KB). */
   documentByteLimit?: number;
+  /**
+   * Project declaration: whether a recorded host-capability-missing review verdict is fatal
+   * at the apply gate (D11 / A29.5). Default when omitted: errors (strict).
+   * Distinct from per-command --fail-on on lint/status.
+   */
+  gateFailOn?: GateFailOn;
 };
 
 /** Defaults for document-size pressure warnings (Phase 8 / G-16). */

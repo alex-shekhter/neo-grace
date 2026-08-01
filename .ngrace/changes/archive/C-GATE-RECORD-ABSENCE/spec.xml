@@ -1,0 +1,72 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-GATE-RECORD-ABSENCE>
+    <Summary>
+      Distinguish pre-gate archive absence of a Decisions section from a genuine
+      applied-without-gate-record violation (A33.1 / correction 69).
+    </Summary>
+    <Problem>
+      After Phase 5 shipped apply-gate recording, ngrace status flagged every archived
+      applied bundle that predated the gate surface with applied-without-gate-record.
+      C-ABSENCE-VALUE, C-RUN-LEDGER, and C-ATTEMPT-LOG can never clear that finding — they
+      were applied before Decisions existed. The signal is permanently on for reasons the
+      reader cannot act on (A17.2 from the other side), so a bundle that genuinely skipped
+      its gate is indistinguishable from the three older ones.
+
+      The code already separates permit | absent | invalid on applyGateRecord, but absent
+      and no-permit both pushed applied-without-gate-record. Correction 69 gives absent its
+      own state and reason.
+    </Problem>
+    <Goals>
+      <Goal>
+        No Decisions section on an archived applied bundle reports apply-gate-record-absent
+        with an explicit reason (may predate the gate), never applied-without-gate-record.
+      </Goal>
+      <Goal>
+        A Decisions section that exists without a permitting apply still reports
+        applied-without-gate-record (the designed violation).
+      </Goal>
+      <Goal>
+        Invalid Decisions still reports gate-record-invalid:&lt;code&gt;; a clean gated archive
+        reports neither finding (states=none for gate-record diagnostics).
+      </Goal>
+      <Goal>
+        No archived Phase 2–4 artifact is edited; grandfathering is by construction.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Do not reopen or rewrite C-GATE-SURFACE or older archived bundles.</Constraint>
+      <Constraint>Gate this bundle's own close-out through ngrace gate (lifecycle as designed).</Constraint>
+      <Constraint>Never emit gate.* from runLint (D14).</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Retroactively writing Decisions into pre-gate archives.</NonGoal>
+      <NonGoal>Changing exit-code policy for status integrity warnings.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-ABSENT-NOT-VIOLATION>
+        Archived applied bundles with no Decisions section derive apply-gate-record-absent,
+        not applied-without-gate-record (A33.1).
+      </AC-ABSENT-NOT-VIOLATION>
+      <AC-SECTION-WITHOUT-PERMIT>
+        A present Decisions section without a permitting apply Decision still derives
+        applied-without-gate-record.
+      </AC-SECTION-WITHOUT-PERMIT>
+      <AC-INVALID-AND-CLEAN>
+        Invalid Decisions derives gate-record-invalid; a gated archive with apply permit
+        has neither finding.
+      </AC-INVALID-AND-CLEAN>
+      <AC-REPO-STATUS>
+        ngrace status --path . on this repository shows the three pre-gate archives under
+        apply-gate-record-absent and C-GATE-SURFACE under states=none for gate findings.
+      </AC-REPO-STATUS>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-STATUS />
+      <M-CLI />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>Status unit tests for four cases; ngrace status on this repo; validate:ci green.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-GATE-RECORD-ABSENCE>
+</NgraceChangeSpec>

@@ -46,6 +46,24 @@ Hard rules for tiers:
 - Mis-classifying an architectural change as T0 is a review failure — see `ngrace-reviewer`.
 </ceremony_tiers>
 
+<clarifications>
+Typed holes (D12) are schema elements, never prose markers. When a contract, invariant, or acceptance criterion is unknown at authoring time, declare:
+
+```xml
+<Clarifications>
+  <Clarification target="IC-EXAMPLE">What is the wire shape for this contract?</Clarification>
+  <Clarification target="INV-AUTH" resolved="true">Resolved: tokens expire at 15m.</Clarification>
+</Clarifications>
+```
+
+Rules:
+- `target` must be a canonical `IC-*`, `INV-*`, or `AC-*` anchor.
+- Unresolved clarifications on `IC-*` / `INV-*` block plan approval (`ngrace gate approve`).
+- Unresolved clarifications on `AC-*` that a task `Satisfies` block apply.
+- `Assumptions` remain presence with weak provenance and never block a gate.
+- Do **not** write `[NEEDS CLARIFICATION: …]` in free text — lint and gates cannot verify prose markers.
+</clarifications>
+
 <acceptance_criteria_anchors>
 Prefer addressable `AC-*` tags under `AcceptanceCriteria` so `ngrace-plan` can map them via task `<Satisfies>`:
 

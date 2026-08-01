@@ -39,8 +39,9 @@ Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires
 6. Apply approved durable context, graph, and verification changes centrally.
 7. Reconcile durable state, run leaf plan gates, then run selected `--assertions final` as the outermost lifecycle gate, including `--run-commands` when `MustPassCommand` is declared. Final mode performs full project lint, evaluates the selected target, keeps unrelated approved baselines active, and does not re-evaluate the selected plan's superseded baseline.
 8. Ask for explicit apply confirmation after fresh end-state evidence passes.
-9. Only then set spec and plan to `applied` and archive the complete bundle.
-10. Never edit approved assertions/scopes/tasks in place, bypass stale evidence, or continue through unknown drift.
+9. Before setting `applied` or archiving: record the review judgment with `ngrace gate verdict --change C-ID --outcome <token>` (closed set in `references/verdicts.md`; Phase 6 forms the judgment; this command only writes it), then run `ngrace gate apply --change C-ID` and `ngrace gate archive --change C-ID`. Each gate evaluates and records a Decision in `run-ledger.xml`; exit non-zero means refuse. Do not set status or move the bundle when refused. The gate does not itself author `status` or archive paths.
+10. Only after both gates permit, set spec and plan to `applied` and archive the complete bundle.
+11. Never edit approved assertions/scopes/tasks in place, bypass stale evidence, or continue through unknown drift.
 </execution_rules>
 
 <verdicts>

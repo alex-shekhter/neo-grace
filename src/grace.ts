@@ -6,6 +6,7 @@ import { cursorCommand } from "./grace-cursor";
 import { doctorCommand } from "./grace-doctor";
 import { fileCommand } from "./grace-file";
 import { graphCommand } from "./grace-graph";
+import { gateCommand } from "./gates/command";
 import { lintCommand } from "./grace-lint";
 import { moduleCommand } from "./grace-module";
 import { statusCommand } from "./grace-status";
@@ -22,6 +23,7 @@ const main = defineCommand({
     cursor: cursorCommand,
     doctor: doctorCommand,
     file: fileCommand,
+    gate: gateCommand,
     graph: graphCommand,
     lint: lintCommand,
     module: moduleCommand,

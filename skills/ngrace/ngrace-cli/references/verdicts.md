@@ -9,6 +9,17 @@ they do not restate these tokens. Issue codes and absence reasons stay in the bi
 - `fail` — checked and not acceptable
 - `unable-to-determine` — no honest verdict was possible (absence)
 
+Record with `ngrace gate verdict --change C-ID --outcome pass|fail|unable-to-determine [--reason …] [--note …]`.
+Stored on the change bundle in `run-ledger.xml` under `<Verdicts><Verdict outcome="…" reason="…"/></Verdicts>`
+(sibling to `Epoch-N`; not a loose `run/` event). The apply gate requires a recorded verdict of any
+outcome, including `unable-to-determine` (D11).
+
+### Absence reasons on a review verdict
+
+- `host-capability-missing` — the host cannot produce a detached review (D11). Whether that blocks
+  apply is the project `gateFailOn` policy in `.ngrace-lint.json` (`errors` | `warnings` | `never`).
+  It is never disguised as `pass`.
+
 ## Acceptance-criterion satisfaction
 
 - `satisfied` — criterion met with evidence

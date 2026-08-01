@@ -12,6 +12,7 @@ import { skillRef } from "./artifact/types";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./artifact/projections";
 import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope } from "./artifact/scope";
 import { readGraceXmlArtifact } from "./artifact/xml";
+import { readPermittingDecision } from "./gates/ledger";
 import { collectModuleHealth } from "./query/health";
 import { loadGraceArtifactIndex } from "./query/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -30,6 +31,18 @@ export type ChangeBundleStatus = {
   epochCount?: number;
   /** Tasks named in plan.xml ImplementationPlan, when present. */
   taskCount?: number;
+  /**
+   * A29.9 / A32.1 / A33.1: apply Decision read for archived applied bundles.
+   * - permit: Decisions holds a permitting apply
+   * - absent: no Decisions section (pre-gate grandfather; not a violation)
+   * - no-permit: Decisions exists without a permitting apply (violation)
+   * - invalid: unreadable Decisions (code/detail reach the report)
+   */
+  applyGateRecord?: {
+    status: "permit" | "absent" | "no-permit" | "invalid";
+    code?: string;
+    detail?: string;
+  };
 };
 
 /** neo-grace status result for text or JSON output. */
@@ -133,6 +146,34 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       baselineFailures: bundleLintIssues.filter((issue) => /^assertion\.(?:Must|command-not-evaluated)/.test(issue.code)).length,
     });
 
+    // A29.9 / A32.1 / A33.1: gate-record findings for archived applied bundles (never gate.* from lint).
+    // absent ≠ no-permit: no Decisions section is grandfathered with reason; section without permit is the violation.
+    let applyGateRecord: ChangeBundleStatus["applyGateRecord"];
+    if (location === "archive" && (specStatus === "applied" || planStatus === "applied")) {
+      const permit = readPermittingDecision(root, changeId, "apply");
+      if (permit.state === "permit") {
+        applyGateRecord = { status: "permit" };
+      } else if (permit.state === "invalid") {
+        applyGateRecord = {
+          status: "invalid",
+          code: permit.code,
+          detail: permit.detail,
+        };
+        derivedStates.push(`gate-record-invalid:${permit.code}`);
+      } else if (permit.state === "absent") {
+        applyGateRecord = {
+          status: "absent",
+          detail: "no Decisions section (bundle may predate the gate surface)",
+        };
+        // Absence with reason — not dressed as a violation (A33.1 / D5).
+        derivedStates.push("apply-gate-record-absent");
+      } else {
+        // Decisions section exists and holds no permitting apply — the real violation.
+        applyGateRecord = { status: "no-permit" };
+        derivedStates.push("applied-without-gate-record");
+      }
+    }
+
     const epochCount = existsSync(ledgerFile) ? countLedgerEpochs(ledgerFile) : undefined;
     const taskCount = existsSync(planFile) ? countPlanTasks(planFile) : undefined;
 
@@ -145,6 +186,7 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       path: relativeBundlePath,
       epochCount,
       taskCount,
+      applyGateRecord,
     } satisfies ChangeBundleStatus;
   });
 }

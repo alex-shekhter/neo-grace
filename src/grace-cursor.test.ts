@@ -474,7 +474,7 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
    * §3.5.8 / A10.9 write surface and A15.1 delete surface.
    * Same shell patterns as the phase report; post-state is pinned here so drift fails CI.
    */
-  it("pins writeFileSync|mkdirSync to graph, cursor, and dart only", () => {
+  it("pins writeFileSync|mkdirSync to graph, cursor, gates ledger, and dart only", () => {
     const result = Bun.spawnSync({
       cmd: ["bash", "-lc", "grep -rn 'writeFileSync\\|mkdirSync' src --include='*.ts' | grep -v test"],
       cwd: path.join(import.meta.dir, ".."),
@@ -487,16 +487,22 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
-    // A10.9 baseline + grace-cursor.ts; nothing else (test-fixtures excluded by grep -v test).
+    // A10.9 baseline + grace-cursor + gates/ledger (A30 Verdicts/Decisions write); nothing else.
     for (const line of lines) {
-      expect(line.startsWith("src/grace-graph.ts:") || line.startsWith("src/grace-cursor.ts:") || line.startsWith("src/lint/adapters/dart.ts:")).toBe(true);
+      expect(
+        line.startsWith("src/grace-graph.ts:")
+          || line.startsWith("src/grace-cursor.ts:")
+          || line.startsWith("src/gates/ledger.ts:")
+          || line.startsWith("src/lint/adapters/dart.ts:"),
+      ).toBe(true);
     }
     expect(lines.some((line) => line.startsWith("src/grace-cursor.ts:"))).toBe(true);
     expect(lines.some((line) => line.startsWith("src/grace-graph.ts:"))).toBe(true);
+    expect(lines.some((line) => line.startsWith("src/gates/ledger.ts:"))).toBe(true);
     expect(lines.some((line) => line.startsWith("src/lint/adapters/dart.ts:"))).toBe(true);
   });
 
-  it("pins unlinkSync|rmSync|rmdirSync to fold delete and dart temp cleanup only (A15.1)", () => {
+  it("pins unlinkSync|rmSync|rmdirSync to fold delete, ledger rollback, and dart temp cleanup (A15.1 / A31.5)", () => {
     const result = Bun.spawnSync({
       cmd: ["bash", "-lc", "grep -rn 'unlinkSync\\|rmSync\\|rmdirSync' src --include='*.ts' | grep -v test"],
       cwd: path.join(import.meta.dir, ".."),
@@ -509,17 +515,22 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
-    // Import lines plus the two destructive call sites (A15.1 post-state).
+    // Import lines plus call sites: fold delete, ledger post-write rollback (A31.5), dart temp.
     for (const line of lines) {
-      expect(line.startsWith("src/grace-cursor.ts:") || line.startsWith("src/lint/adapters/dart.ts:")).toBe(true);
+      expect(
+        line.startsWith("src/grace-cursor.ts:")
+          || line.startsWith("src/gates/ledger.ts:")
+          || line.startsWith("src/lint/adapters/dart.ts:"),
+      ).toBe(true);
     }
-    // Call sites (not imports) — A15.1 post-state is exactly these two lines (line numbers re-pinned after Phase 4).
     const callSites = lines.filter((line) => /(?:unlinkSync|rmSync|rmdirSync)\s*\(/.test(line)).sort();
     const cursorUnlink = callSites.find((line) => line.startsWith("src/grace-cursor.ts:"));
+    const ledgerUnlink = callSites.find((line) => line.startsWith("src/gates/ledger.ts:"));
     const dartRm = callSites.find((line) => line.startsWith("src/lint/adapters/dart.ts:"));
     expect(cursorUnlink).toMatch(/^src\/grace-cursor\.ts:\d+:\s*unlinkSync\(contained\.absolutePath\);$/);
+    expect(ledgerUnlink).toMatch(/^src\/gates\/ledger\.ts:\d+:\s*unlinkSync\(ledgerPath\);$/);
     expect(dartRm).toBe("src/lint/adapters/dart.ts:206:    rmSync(temporaryDirectory, { recursive: true, force: true });");
-    expect(callSites).toHaveLength(2);
+    expect(callSites).toHaveLength(3);
     expect(lines.some((line) => line.includes("rmdirSync"))).toBe(false);
   });
 });

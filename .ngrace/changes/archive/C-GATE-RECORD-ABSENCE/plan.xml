@@ -1,0 +1,88 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-GATE-RECORD-ABSENCE>
+    <IntentSummary>
+      Fix correction 69: split status gate-record findings so no Decisions section is an
+      absence with reason (apply-gate-record-absent), while a Decisions section without a
+      permitting apply remains applied-without-gate-record. Authored after C-GATE-SURFACE
+      closed; does not reopen that bundle (A33.4).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-STATUS />
+        <M-CLI />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-STATUS />
+        <V-M-CLI />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/gates/ledger.ts</File>
+      <File>src/gates/core.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/grace-status.ts</File>
+      <File>src/grace-status.test.ts</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+      <File>.ngrace/changes/active/C-GATE-RECORD-ABSENCE/spec.xml</File>
+      <File>.ngrace/changes/active/C-GATE-RECORD-ABSENCE/plan.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Split absent vs no-permit on readPermittingDecision and status</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-ABSENT-NOT-VIOLATION />
+          <AC-SECTION-WITHOUT-PERMIT />
+          <AC-INVALID-AND-CLEAN />
+          <AC-REPO-STATUS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            readGateDecisions reports sectionPresent; readPermittingDecision returns
+            absent | no-permit | permit | invalid; status maps each distinctly.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts src/grace-status.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Close this bundle through ngrace gate and mark Phase 5 COMPLETE</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <Satisfies>
+          <AC-REPO-STATUS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            gate verdict/approve/apply/archive permit; archived applied with apply permit;
+            §2 board and Phase 5 banner COMPLETE.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run ngrace status --path .</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-GATE-RECORD-ABSENCE>
+</NgraceChangePlan>
