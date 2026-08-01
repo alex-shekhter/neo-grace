@@ -9420,3 +9420,81 @@ list is now five rather than four, because 169 splits *no input* into two cases:
 
 Today states 3, 4 and 5 all print `Findings: 0 / No review findings`, and that sentence is false for
 two of them.
+
+### A67 — 2026-08-01 · `C-OBSERVABLE-CHECKS` stage 2 accepted; three checks can now be red
+
+Verified at `e38504d`. Suite 956 ran / 3 skip / **0 fail**; lint 0 errors / 0 warnings /
+`Governed files: 58`; `validate:packed` **green and inside `validate:ci`** (`package.json:67`).
+
+**All five states re-run independently, and the emitted text matches the report exactly.**
+
+| State | Emitted |
+|---|---|
+| 1 — ran, clean | `Scope audit: ran over 11 changed file(s) against ObservedWriteScope for C-OBSERVABLE-CHECKS [active] (input: base origin/main). No out-of-scope paths.` |
+| 3 — no diff | `Scope audit: not-run — no changed files available (working tree clean; supply --base or --changed-files)` |
+| 4 — no plan | `Scope audit: not-run — no plan found for C-DOES-NOT-EXIST under active/ or archive/` — and **`No review findings.` is suppressed** |
+| 5 — caller empty | `Scope audit: ran over 0 changed files … (input: caller-supplied empty set). No out-of-scope paths.` |
+
+Every sentence names its count, its subject, the subject's location, **and its input source**. That
+last clause is what A66 asked for and it is present in all four.
+
+**Item 3 is demonstrably fixed on a real archived bundle:**
+
+```
+$ ngrace review --change C-SELECTION --base origin/main
+Scope audit: ran over 11 changed file(s) against ObservedWriteScope for C-SELECTION [archive] …
+Findings: 9 (errors: 9, warnings: 0)
+```
+
+`[archive]` resolves, audits, and can be red. Twelve archived bundles were unauditable before this.
+
+**The JSON surface carries a structured absence, not prose:**
+
+```json
+"scopeAudit": { "status": "not-run", "reason": "…",
+                "absence": { "verdict": "not-run", "reason": "…" } }
+```
+
+A machine consumer can now distinguish *skipped* from *clean*. That was the point of the bundle and it
+is met in the typed surface rather than only in the human report.
+
+#### A67.1 Rule 12 was applied to their own work, and the rule was not narrowed
+
+```
+$ ngrace review --change C-OBSERVABLE-CHECKS --base origin/main   → 0 out-of-scope
+```
+
+Mid-build the audit flagged `docs/plans/active/RM-AGENT-RELIABILITY/plan.md` and
+`src/artifact/scale-ergonomics.test.ts`. Both were **declared in `ObservedWriteScope`**, which is what
+A66 asked for and the opposite of the available shortcut. The check found real writes on the branch
+that built it, and the branch changed rather than the check.
+
+**The one inverted assertion is a strengthening, not a weakening:**
+
+```diff
+-    expect(pkg.files).not.toContain("src/gates");
+-    expect(pkg.files).not.toContain("src/review");
++    expect(pkg.files).toContain("src/gates");
++    expect(pkg.files).toContain("src/review");
++    expect(pkg.files).toContain("!src/review/scorer.ts");
+```
+
+Two negative assertions become three positive ones. The pin that recorded the defect now pins the
+fix, including the `scorer.ts` exclusion that the naive fix would have missed.
+
+#### A67.2 Note, not a finding
+
+`bun run ngrace review --changed-files "" …` drops the empty argument through package-script
+forwarding and the flag swallows the next token. Direct invocation (`bun ./src/grace.ts`, and the
+installed `ngrace` binary) is correct. That is a property of script argument forwarding, not of this
+code — recorded so nobody re-derives it as a defect later.
+
+#### A67.3 Authorized to close
+
+Nothing is owed on this bundle. Close it: `ngrace review --base`, `gate verdict`, then
+`approve` / `apply` / `archive`.
+
+The A33.3 sentence at this close is different from every previous one on this track. Until now it has
+had to say what the scope audit **could not** check. This is the first close where the audit had real
+input, named it, and returned a count — so the sentence can say what was checked, over how many files,
+against which declared scope. Write it that way; it is the first time it is available.
