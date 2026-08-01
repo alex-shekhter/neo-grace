@@ -8011,6 +8011,94 @@ gate the approval through `ngrace gate approve`.
 
 ---
 
+### A49 — 2026-07-31 · Phase 8 review gate: the per-worker slice is 86% the same slice
+
+**Measured at `cfd9292`.** `bun test` 899 pass / 3 skip / 0 fail (902 collected), root lint 0 errors,
+`validate:ci` green.
+
+**A48's four answers are implemented as decided, and two of them well.** The archived-subject banner is
+present and blunt (*ARCHIVED SUBJECT — measurement artifact only… Do not hand this slice to an executor
+as live work*). `design-context.xml` is excluded from the denominator as well as the slice, and the
+exclusion list says so in the output. The `selected > full` case reports absence with a reason instead
+of coercing the numerator. `selectedBytesDefinition` is printed beside the number. `release-check.ts`
+and `package.json` gained `src/grace-context.ts` and nothing else, with a comment recording that
+`src/gates` and `src/review` are still missing — A48.5's honesty requirement met exactly, including in
+the report.
+
+Three corrections, **135–137**. The first is a measurement the phase took and did not report.
+
+#### A49.1 Correction 135 — two tasks of one plan receive the same slice, and the number that would say so is missing
+
+Probe, two tasks of the same bundle:
+
+```
+$ ngrace context --task T-001 --change C-GATE-SURFACE   → selectedBytes 10758
+$ ngrace context --task T-005 --change C-GATE-SURFACE   → selectedBytes 10151
+$ ngrace context --task T-008 --change C-GATE-SURFACE   → selectedBytes 10075
+
+diff of the T-001 and T-008 slice bodies: 20 differing lines out of 350
+                                          ~1.4 KB of ~10.5 KB
+```
+
+**About 86% of a "per-worker task slice" is byte-identical to the slice its sibling worker gets.** §8.4
+is explicit about what that means: *"Slices are per worker, never per plan (R1). A shared slice
+re-breaks the parallel path on first real use."*
+
+This is **not a defect in the code**. It follows necessarily from corrections 128 and 133 — tasks never
+name modules, and scope is plan-level — so the body is drawn from `DurableScope` and is identical for
+every task of the plan, with the task's `Title` and its `Satisfies` bodies as the only delta. A48.4
+already amended §8.5.4 for the scope. What was not carried through is the consequence for the phase's
+own deliverable:
+
+| Reported | Not reported |
+|---|---|
+| per-slice `selectionRatio` 0.72–0.82 | that a wave of 8 tasks receives 8 slices sharing ~86% of their bytes |
+| "Savings are real (~72–82% of the envelope)" | that the aggregate saving across a plan's tasks is far below the per-slice figure |
+
+The per-slice ratio and the per-plan saving are different numbers, and only the flattering one is on the
+page. Report both: per-slice ratio as today, **plus** the union of a plan's task slices against the same
+envelope, and the measured cross-task overlap. Then §8.4's "never per plan" can be assessed against
+evidence instead of asserted. If the honest conclusion is that a task slice is a plan slice with a
+task-shaped header, **say that** — §8.5.7's instruction is that the measurement is the deliverable, not
+a favourable result, and it applies to this number too.
+
+#### A49.2 Correction 136 — skill narrowing has never been observed on real state
+
+```
+$ ngrace context --skills --path .                        → 16 of 16
+$ ngrace context --skills --change C-SELECTION --path .    → 16 of 16
+  basis: cursor absent or no plan state — full published set
+```
+
+C-SELECTION is active, has an approved `plan.xml`, and has a `run-ledger.xml` carrying a gate Decision.
+It is the only live subject in the repository, and the skill surface returns the full set with the
+absent-cursor basis. **Every narrowing result in this phase comes from a synthetic cursor in a
+fixture**; §8.5.5's "three cursor states produce three different recommended skill sets" is satisfied
+entirely by fixtures, and the compat sweep's `context --skills → ok` conceals it.
+
+This is the fourth appearance of one shape on this track — corrections 62, 106, 110, 113 — and A46.4
+named it: **a path never observed succeeding is not a path.** The full-set answer is correct behaviour
+for absent state; what is missing is any evidence the *other* branch works on anything real.
+
+Cheap and available: advance the cursor on `C-SELECTION` (execution does this anyway), then show the
+narrowed set from live state in the report, with the basis string each candidate carries. One real
+invocation retires the doubt.
+
+#### A49.3 Correction 137 (minor) — the denominator is enumerable but not checkable
+
+`fullComposition` lists ten paths and no sizes, so a reader can see *which* files were summed and
+cannot check the sum. A48.2 asked for the enumeration precisely so the denominator could not be
+adjusted after the fact; sizes are what make that auditable rather than merely visible. Emit bytes per
+entry.
+
+For the record, the breakdown a reader currently cannot see, for
+`C-FAILURE-LOCALIZATION/T-001` (34886 total): spec 16291, plan 7708, verification 4632, graph 2592,
+project context 3663. The five `.ngrace/context/*` files are 10.5% of the denominator and are excluded
+from the slice by policy while a skill instruction still tells the agent to load them — small, but it
+is exactly the kind of thing per-entry sizes let a reader notice without running probes.
+
+---
+
 ## 15. Final instruction to the executor
 
 Work one phase at a time. Report in the §0.5 format. Stop after each phase and wait for review.
