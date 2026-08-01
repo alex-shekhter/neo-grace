@@ -370,7 +370,7 @@ Keep this table current. It is the single source of truth for progress.
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
 | 3 | Run ledger & cursor | D1, D2, D3 | TBD | `COMPLETE` |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `COMPLETE` |
-| 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `COMPLETE` |
+| 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `IN PROGRESS` (A33.1) |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
 | 7 | Deterministic failure localization | D8 | TBD | `NOT STARTED` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `NOT STARTED` |
@@ -846,7 +846,7 @@ kinds being absent, so older bundles are unaffected.
 
 # PHASE 5 — Gate declarations & transition surface
 
-**Status:** `COMPLETE`
+**Status:** `IN PROGRESS` — reopened by A33.1 (correction 69); everything else in the phase is closed
 **Decisions:** D5 (gate half), D11, D12, D14
 **Release:** TBD
 
@@ -5308,6 +5308,94 @@ any gate or read path treat that same condition as benign?
 Three rounds, three phases, and every finding on the blocking path has had the same shape: an unknown
 converted into a usable value. 63 was an entry, 68 is a section, 62 was an absent writer read as a
 present instruction.
+
+### A33 — 2026-07-31 · Third Phase 5 gate: 68 clears, and the new signal fires on every older bundle
+
+**Measured at `94fed65`.** Correction 68 is fixed and the fix was verified by probe, not by reading:
+
+| Fixture | Result at `94fed65` |
+|---|---|
+| Two `<Verdicts>` sections, `pass` then `fail` | `refuse` — `ledger.invalid-verdict: duplicate Verdicts sections (2); newest is undefined` |
+| `<Verdicts><Verdict outcome="pass" /><Bogus /></Verdicts>` | `refuse` — `unexpected <Bogus> under Verdicts` |
+| One section, `pass` then `fail` | `Verdict: fail`, and **apply permits** — D11's "recorded, not clean", checked on a plan-approved bundle |
+| No ledger at all | `gate.apply.no-verdict` — absent, not invalid |
+
+The close-out is real. `C-GATE-SURFACE` is archived `spec=applied plan=applied states=none`, its ledger
+holds one `Verdicts` and one `Decisions` section with `approve`, `apply` and `archive` permits, `lint`
+emits zero `gate.*` codes, and `validate:ci` is green. **This is the first phase on this track whose own
+transitions were gated by the surface it built**, which is the strongest evidence the phase works that
+this document can carry.
+
+#### A33.1 Correction 69 — `applied-without-gate-record` fires on every bundle that predates the gate
+
+`ngrace status --path .` on this repository, at this commit:
+
+```
+- C-ABSENCE-VALUE [archive] spec=applied plan=applied tasks=5 states=applied-without-gate-record
+- C-ATTEMPT-LOG   [archive] spec=applied plan=applied tasks=5 states=applied-without-gate-record
+- C-GATE-SURFACE  [archive] spec=applied plan=applied epochs=0 tasks=8 states=none
+- C-RUN-LEDGER    [archive] spec=applied plan=applied tasks=5 states=applied-without-gate-record
+```
+
+Three of the four bundles carry the finding permanently, and none of them can ever clear it: they were
+applied in Phases 2, 3 and 4, before a gate existed to record anything. None of them has a
+`run-ledger.xml` with a `Decisions` section, because none could have.
+
+**It does not change exit codes** — I checked, and `ngrace status --fail-on errors` already exits 1 at
+`6389e3a` for unrelated integrity reasons, so this is noise rather than a break. Noise is still the
+failure mode A17.2 named from the other side: a signal that is permanently on for reasons the reader
+cannot act on gets filtered out, and then the one bundle that genuinely skipped its gate looks like the
+other three.
+
+**The distinction already exists in the code and is thrown away one line later.** `applyGateRecord`
+carries `permit | absent | invalid`, and `invalid` earns its own `gate-record-invalid:<code>` state —
+but `absent` pushes the same `applied-without-gate-record` as a bundle whose Decisions section exists
+and lacks the permit.
+
+Fix: give `absent` its own state and reason. A bundle with no `Decisions` section at all cannot be
+distinguished from one that predates the gate, and D5's answer to that is to say so, not to guess — an
+absence with a reason, reported and not dressed as a violation. Keep `applied-without-gate-record` for
+what it was designed to catch: a Decisions section that exists and does not contain a permitting apply.
+The three older bundles are then grandfathered **by construction**, with no archived artifact edited.
+
+#### A33.2 Why the compat sweep did not catch it
+
+§0.7.4's sweep was run and reported *"no new lint issue codes on clean fixtures"* — true, and beside the
+point: the phase's new diagnostic is a **status derived state**, not a lint code. A9 put this repository's
+own tree into the sweep precisely so a new signal would be seen against real bundles, and running
+`ngrace status --path .` once would have shown three of them lit.
+
+**The sweep's ground is "new diagnostics of any kind, on every surface this phase touched" — not "new
+lint codes."** Recorded here rather than as a standing rule because it is a clarification of §0.7.4
+rather than a new obligation; if it recurs, it earns rule 11.
+
+#### A33.3 The self-recorded verdict, recorded as a limitation rather than left implicit
+
+The close-out's `Verdict outcome="pass"` was written by the same agent that wrote the code, through
+`ngrace gate verdict`. The gate cannot tell that apart from a detached review, and it is not supposed
+to — §4.3's detachment is a **host capability**, and D11 requires a verdict to exist, not to be
+trustworthy on its own.
+
+So Phase 5 closes with its own central guarantee running on the honor system, exactly as §6.4's table
+predicts for hosts without cold-context subagents. That is not a defect in this phase; it is the reason
+Phase 6 exists, and it is written here so the first bundle in the archive carrying a self-recorded pass
+is a known fact rather than a discovery later.
+
+#### A33.4 The fix needs a second bundle, and that is the right answer
+
+`C-GATE-SURFACE` is `applied` and archived. Correction 69 is a defect this phase introduced, found
+before the branch left the machine, so it belongs in this work rather than in a follow-up track — but
+it cannot go into a bundle that is already applied, because approved and applied artifacts are
+immutable and A17.1 settled that the honest move is to record rather than rewrite.
+
+So: **fix 69 under a new bundle** — `C-GATE-RECORD-ABSENCE` or a better name — spec and plan authored
+before the code, gated through `ngrace gate` exactly as `C-GATE-SURFACE` was. §2's board and this
+phase's banner go back to `IN PROGRESS` until it lands, then to `COMPLETE`.
+
+This is the first time on this track that a phase found a defect in its own work *after* closing its
+bundle, and the second bundle is not a demerit: it is the lifecycle behaving as designed, on the phase
+that built the gates. The alternative — reopening an archived bundle to keep the count at one — is
+exactly the immutability violation the gates exist to refuse.
 
 ---
 
