@@ -1,0 +1,138 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-SELECTION>
+    <IntentSummary>
+      Task slices and skill subsetting (D15): ngrace context --task / --skills as separate
+      read-only outputs; Purpose Title + Satisfies→AC wording identity; plan-scope DurableScope
+      and ObservedWriteScope with shared-scope sentence (A48.4); absolute exclusions; full
+      envelope measurement in utf8-bytes with enumerated composition; toolkit stage only.
+
+      Authored before production code per A17.3. A47 is normative over §8.3–§8.5; A48 is
+      normative where it answers A47.3 and amends §8.5.4 (corr 133). Build order: pure
+      normalizer and ratio helpers, slice composition, skill candidates, CLI surface, skills,
+      real-repo measurements.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>src/grace-module.ts</Value></MustExist>
+      <MustExist><Value>src/grace-file.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.ts</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-context.ts</Value></MustExist>
+      <MustExist><Value>src/grace-context.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/grace-context.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace context --help</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-context.ts</File>
+      <File>src/grace-context.test.ts</File>
+      <File>src/grace.ts</File>
+      <File>package.json</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+      <File>.ngrace/changes/active/C-SELECTION/plan.xml</File>
+      <File>.ngrace/changes/active/C-SELECTION/spec.xml</File>
+      <File>.ngrace/changes/active/C-SELECTION/run-ledger.xml</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Slice composition: Purpose, body, shared scope, exclusions</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Purpose is Title + Satisfies→AC bodies after corr 120 normalizer (A47.2 116/120/131).
+            Body is plan DurableScope modules/verification via existing queries; OWS plan-level with
+            AC-SELECTION-SCOPE-IS-SHARED sentence (A48.4). design-context, sibling archive content,
+            other task bodies, and default .ngrace/context/* excluded (A47.2 122–123, 126).
+            Archived subject names subjectLocation archive in the output (A48.1).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-SELECTION-PURPOSE-VERBATIM />
+          <AC-SELECTION-BODY-PLAN-SCOPE />
+          <AC-SELECTION-EXCLUSIONS />
+          <AC-SELECTION-SCOPE-IS-SHARED />
+          <AC-SELECTION-REAL-MEASUREMENT />
+          <AC-SELECTION-OUTPUT-ALOUD />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-context.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Skill candidates, stage field, and measurement envelope</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Three states → three skill sets; absent cursor → full published set; each candidate has
+            basis; selectionStage toolkit only and labelled as sole value observed (A48.3, corr 125).
+            full envelope is A48.2 enumerated files (no design-context); selectedBytes defined
+            like-for-like; selected &gt;= full reported not coerced; skill ratio separate.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-SELECTION-SKILLS />
+          <AC-SELECTION-FULL-ENVELOPE />
+          <AC-SELECTION-REAL-MEASUREMENT />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-context.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>CLI surface, package files entry, execute skill</Title>
+        <DependsOn>
+          <T-002 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            ngrace context --task and --skills mutually exclusive; no --compact; text and JSON;
+            writes nothing (F1). package.json#files lists grace-context.ts; report notes gates/review
+            still missing (A48.5). ngrace-execute calls context --task; skill delta reported.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-SELECTION-COMMAND-SHAPE />
+          <AC-SELECTION-READ-ONLY />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/grace-context.test.ts</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-SELECTION>
+</NgraceChangePlan>

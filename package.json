@@ -28,6 +28,7 @@
     "src/grace-file.ts",
     "src/project-utils.ts",
     "src/grace.ts",
+    "src/grace-context.ts",
     "src/grace-cursor.ts",
     "src/grace-doctor.ts",
     "src/grace-graph.ts",
