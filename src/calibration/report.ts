@@ -9,8 +9,10 @@
 //
 // START_MODULE_MAP
 //   ADJUDICATOR_TARGET_ASSERTIONS
+//   CONTEXT_CLASS_NOT_STORED
 //   CalibrationAdjudicatorId
 //   CalibrationClaimSummary
+//   CalibrationContextBucket
 //   CalibrationPairRow
 //   CalibrationReport
 //   collectCalibrationReport
@@ -18,21 +20,17 @@
 // END_MODULE_MAP
 
 /**
- * Calibration report (D6 condition 4 / Phase 9 / A59 corr 155–156 / A61 corr 160–161).
+ * Calibration report (D6 condition 4 / Phase 9 / A59–A63).
  *
  * Unit of a labeled pair: **one folded epoch that was adjudicated at fold time**
  * (CalibrationAdjudication with adjudicatedAt=fold), not one attempt. Multiple
  * claimedConfidence attempts in the same epoch are claims summarized on that single pair.
  *
- * Labels are **stored** at fold (evaluateTargetComplete once) and never recomputed
- * at report time — a corpus whose labels move is not a corpus.
+ * Labels and context class are **stored** at fold and never recomputed at report time
+ * (corr 156 / 165). Backfilled adjudications are excluded from computation (corr 161).
  *
- * Backfilled adjudications (adjudicatedAt=backfill, or restated to backfill) are
- * **excluded from calibration computation** and counted on their own line (A61 corr 161).
- * They remain visible so contaminated history is not silently dropped or silently pooled.
- *
- * Incomplete epochs (claims still only in loose run/) are excluded as a class.
- * Stored pending stays pending; never silent-fail.
+ * Report surfaces both corpus-status counts (included/excluded/pending/backfilled) and
+ * **bucketing by stored context class** (§9.5.4) — visible at N=1, not only at large N.
  */
 
 import { existsSync, readdirSync } from "node:fs";
@@ -44,6 +42,7 @@ import {
   type ClaimedConfidence,
   parseClaimedConfidence,
 } from "../artifact/types";
+import type { CalibrationContextClass } from "./context";
 import {
   listCalibrationRestatements,
   listLedgerCalibrationEpochs,
@@ -78,8 +77,19 @@ export type CalibrationPairRow = {
   adjudicatedOutcome?: "pass" | "fail";
   adjudicator?: CalibrationAdjudicatorId;
   adjudicatedAt?: CalibrationAdjudicatedAt;
+  /** Stored at fold; absent on pre-round-4 pairs. */
+  context?: CalibrationContextClass;
   bucket: "included" | "excluded" | "pending" | "backfilled";
   reason?: string;
+};
+
+/** One context-class bucket over included pairs (§9.5.4). */
+export type CalibrationContextBucket = {
+  /** Stored contextClass key, or the sentinel for pre-round-4 pairs. */
+  contextClass: string;
+  count: number;
+  pass: number;
+  fail: number;
 };
 
 export type CalibrationReport = {
@@ -98,10 +108,18 @@ export type CalibrationReport = {
    */
   backfilled: number;
   pairs: CalibrationPairRow[];
+  /**
+   * Included pairs grouped by stored context class (§9.5.4).
+   * Always emitted, including at N=0 (empty) and N=1 (one class, one row).
+   */
+  byContextClass: CalibrationContextBucket[];
   promotionBar:
     | "claimedConfidence informs no gate; held-out calibration per context class is required before any consumer may use it";
   summary: string;
 };
+
+/** Sentinel when an included pair has no stored context (pre-round-4). */
+export const CONTEXT_CLASS_NOT_STORED = "(context-not-stored)" as const;
 
 function listChangeIds(projectRoot: string): string[] {
   const paths = resolveNgracePaths(projectRoot);
@@ -131,10 +149,27 @@ function claimSummaryFromEvent(event: LooseEvent): CalibrationClaimSummary | und
   };
 }
 
+function buildContextBuckets(pairs: CalibrationPairRow[]): CalibrationContextBucket[] {
+  const map = new Map<string, CalibrationContextBucket>();
+  for (const row of pairs.filter((p) => p.bucket === "included")) {
+    const key = row.context?.key ?? CONTEXT_CLASS_NOT_STORED;
+    let bucket = map.get(key);
+    if (!bucket) {
+      bucket = { contextClass: key, count: 0, pass: 0, fail: 0 };
+      map.set(key, bucket);
+    }
+    bucket.count += 1;
+    if (row.adjudicatedOutcome === "pass") bucket.pass += 1;
+    if (row.adjudicatedOutcome === "fail") bucket.fail += 1;
+  }
+  return [...map.values()].sort((a, b) => a.contextClass.localeCompare(b.contextClass));
+}
+
 /**
  * Build the calibration report. Reads only stored fold-time adjudications —
  * never calls evaluateTargetComplete (corr 156). Applies CalibrationRestatements
- * as provenance overrides without mutating archives (A61).
+ * as provenance overrides without mutating archives (A61). Context class is
+ * read from storage only (corr 165) — never re-derived at report time.
  */
 export function collectCalibrationReport(projectRoot: string): CalibrationReport {
   const root = path.resolve(projectRoot);
@@ -195,6 +230,8 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
       const adjudicatedAt: CalibrationAdjudicatedAt = restatement
         ? restatement.adjudicatedAt
         : adj.adjudicatedAt;
+      // Context is stored; never re-derived (corr 165).
+      const context = adj.context;
 
       if (adj.outcome === "pass" || adj.outcome === "fail") {
         if (adjudicatedAt === "backfill") {
@@ -206,6 +243,7 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
             adjudicatedOutcome: adj.outcome,
             adjudicator: ADJUDICATOR_TARGET_ASSERTIONS,
             adjudicatedAt: "backfill",
+            context,
             bucket: "backfilled",
             reason:
               restatement?.reason ??
@@ -220,6 +258,7 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
             adjudicatedOutcome: adj.outcome,
             adjudicator: ADJUDICATOR_TARGET_ASSERTIONS,
             adjudicatedAt: "fold",
+            context,
             bucket: "included",
           });
         }
@@ -232,6 +271,7 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
           claims,
           adjudicator: ADJUDICATOR_TARGET_ASSERTIONS,
           adjudicatedAt,
+          context,
           bucket: "pending",
           reason:
             adj.reason ??
@@ -251,6 +291,7 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
   const excluded = pairs.filter((p) => p.bucket === "excluded").length;
   const pending = pairs.filter((p) => p.bucket === "pending").length;
   const backfilled = pairs.filter((p) => p.bucket === "backfilled").length;
+  const byContextClass = buildContextBuckets(pairs);
 
   return {
     schemaVersion: "1.0.0",
@@ -261,9 +302,10 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
     pending,
     backfilled,
     pairs,
+    byContextClass,
     promotionBar:
       "claimedConfidence informs no gate; held-out calibration per context class is required before any consumer may use it",
-    summary: buildSummary(included, excluded, pending, backfilled, pairs),
+    summary: buildSummary(included, excluded, pending, backfilled, pairs, byContextClass),
   };
 }
 
@@ -274,23 +316,50 @@ function formatClaimsBrief(claims: CalibrationClaimSummary[]): string {
     .join(", ");
 }
 
+function formatContextBrief(row: CalibrationPairRow): string {
+  if (!row.context) return "contextClass=(context-not-stored)";
+  return (
+    `contextClass=${row.context.key} ` +
+    `taskKind=${row.context.taskKind} adapterPresence=${row.context.adapterPresence} ` +
+    `wroteVsRead=${row.context.wroteVsRead} sequentialVsParallel=${row.context.sequentialVsParallel}`
+  );
+}
+
+function formatContextBuckets(buckets: CalibrationContextBucket[]): string {
+  if (buckets.length === 0) {
+    return "By context class: (none — N included is 0).";
+  }
+  if (buckets.length === 1) {
+    const b = buckets[0]!;
+    return (
+      `By context class: 1 class with ${b.count} row` +
+      `${b.count === 1 ? "" : "s"} — ${b.contextClass} (pass=${b.pass}, fail=${b.fail}).`
+    );
+  }
+  const parts = buckets.map((b) => `${b.contextClass}:n=${b.count},pass=${b.pass},fail=${b.fail}`);
+  return `By context class (${buckets.length} classes): ${parts.join("; ")}.`;
+}
+
 function buildSummary(
   included: number,
   excluded: number,
   pending: number,
   backfilled: number,
   pairs: CalibrationPairRow[],
+  byContextClass: CalibrationContextBucket[],
 ): string {
   const backfillClause =
     backfilled > 0
       ? ` ${backfilled} backfilled (excluded from computation; adjudicatedAt=backfill).`
       : "";
+  const contextClause = ` ${formatContextBuckets(byContextClass)}`;
 
   if (included === 0 && excluded === 0 && pending === 0 && backfilled === 0) {
     return (
       `Calibration report: 0 labeled pairs included, 0 epochs excluded as incomplete, 0 pending, 0 backfilled. ` +
       `No adjudicated claims with claimedConfidence are available to score. ` +
       `A labeled pair is one folded epoch adjudicated at fold time (not one attempt). ` +
+      `By context class: (none — N included is 0). ` +
       `claimedConfidence is not used by any gate.`
     );
   }
@@ -313,7 +382,7 @@ function buildSummary(
       );
     }
     parts.push(
-      `A labeled pair is one folded epoch adjudicated at fold time. claimedConfidence is not used by any gate. No rate table — N included is 0.`,
+      `A labeled pair is one folded epoch adjudicated at fold time. ${formatContextBuckets(byContextClass)} claimedConfidence is not used by any gate. No rate table — N included is 0.`,
     );
     return parts.join(" ");
   }
@@ -324,8 +393,10 @@ function buildSummary(
       `Calibration report: 1 labeled pair included, ${excluded} excluded, ${pending} pending, ${backfilled} backfilled. ` +
       `Pair: ${row.changeId} Epoch-${row.epoch} adjudicated=${row.adjudicatedOutcome} ` +
       `adjudicator=${row.adjudicator} adjudicatedAt=${row.adjudicatedAt} ` +
-      `claims(${row.claimCount}): ${formatClaimsBrief(row.claims)}.` +
-      `${backfillClause} ` +
+      `claims(${row.claimCount}): ${formatClaimsBrief(row.claims)}. ` +
+      `${formatContextBrief(row)}.` +
+      `${backfillClause}` +
+      `${contextClause} ` +
       `One observation is not a calibration claim; no percentage is reported. ` +
       `claimedConfidence is not used by any gate.`
     );
@@ -345,7 +416,8 @@ function buildSummary(
     `${excluded} excluded, ${pending} pending, ${backfilled} backfilled. ` +
     `Outcomes (descriptive, not a calibration claim): ${outcomePart}. ` +
     `Adjudicator: ${ADJUDICATOR_TARGET_ASSERTIONS} at fold.` +
-    `${backfillClause} claimedConfidence is not used by any gate.`
+    `${backfillClause}` +
+    `${contextClause} claimedConfidence is not used by any gate.`
   );
 }
 
@@ -361,6 +433,17 @@ export function formatCalibrationText(report: CalibrationReport): string {
     `  backfilled (excluded from computation): ${report.backfilled}`,
     `  promotion: ${report.promotionBar}`,
   ];
+  // Context-class buckets always shown (§9.5.4) — including N=0 empty and N=1 single class.
+  lines.push("  by context class:");
+  if (report.byContextClass.length === 0) {
+    lines.push("    (none — N included is 0)");
+  } else {
+    for (const b of report.byContextClass) {
+      lines.push(
+        `    - ${b.contextClass}: count=${b.count} pass=${b.pass} fail=${b.fail}`,
+      );
+    }
+  }
   if (report.pairs.length > 0) {
     lines.push("  pairs:");
     for (const row of report.pairs) {
@@ -368,7 +451,8 @@ export function formatCalibrationText(report: CalibrationReport): string {
         lines.push(
           `    - ${row.changeId} Epoch-${row.epoch} bucket=${row.bucket} adjudicated=${row.adjudicatedOutcome} ` +
             `adjudicator=${row.adjudicator} adjudicatedAt=${row.adjudicatedAt} ` +
-            `claims(${row.claimCount}): ${formatClaimsBrief(row.claims)}` +
+            `claims(${row.claimCount}): ${formatClaimsBrief(row.claims)} ` +
+            `${formatContextBrief(row)}` +
             (row.reason ? ` reason=${row.reason}` : ""),
         );
       } else {

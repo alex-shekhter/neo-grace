@@ -1,0 +1,84 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-CALIBRATION-CONTEXT>
+    <IntentSummary>
+      Phase 9 round 4: derive and store calibration context class at fold; bucket report
+      by context class; second genuine fold-time pair carries derived context (A63 corr 165).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/calibration/report.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-CALIBRATION-PROVENANCE/run-ledger.xml</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/calibration/context.ts</Value></MustExist>
+      <MustExist><Value>src/calibration/context.test.ts</Value></MustExist>
+      <MustExist><Value>src/calibration/report.ts</Value></MustExist>
+      <MustExist><Value>src/calibration/report.test.ts</Value></MustExist>
+      <MustContain>
+        <File>src/calibration/context.ts</File>
+        <Text>deriveCalibrationContext</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/calibration/report.ts</File>
+        <Text>byContextClass</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>rejectAuthoredContextAttributes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/calibration/report.test.ts</File>
+        <Text>corr 165</Text>
+      </MustContain>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CALIBRATION />
+        <M-CURSOR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CALIBRATION />
+        <V-M-CURSOR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/calibration/context.ts</File>
+      <File>src/calibration/context.test.ts</File>
+      <File>src/calibration/report.ts</File>
+      <File>src/calibration/report.test.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>.ngrace/graph/main.xml</File>
+      <File>.ngrace/verification/main.xml</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+      <File>.ngrace/changes/active/C-CALIBRATION-CONTEXT/spec.xml</File>
+      <File>.ngrace/changes/active/C-CALIBRATION-CONTEXT/plan.xml</File>
+      <File>.ngrace/changes/active/C-CALIBRATION-CONTEXT/run-ledger.xml</File>
+      <File>.ngrace/changes/active/C-CALIBRATION-CONTEXT/run.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Context derivation at fold, report bucketing, real fold with contextClass</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-CONTEXT-DERIVED />
+          <AC-CONTEXT-NOT-AUTHORED />
+          <AC-CONTEXT-STORED />
+          <AC-REPORT-BUCKETED />
+          <AC-BOTH-DIRECTIONS />
+          <AC-REAL-FOLD />
+          <AC-SECTION-TABLE />
+          <AC-VALIDATE-CI />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>Four dimensions derived and stored at fold on CalibrationAdjudication.</Criterion>
+          <Criterion>Report byContextClass visible at N=1; authored context ignored.</Criterion>
+          <Criterion>A7.2 both directions covered; this change's fold is live evidence.</Criterion>
+          <Criterion>§9.5/§9.6 table complete with no unamended gap.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/calibration</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-CALIBRATION-CONTEXT>
+</NgraceChangePlan>

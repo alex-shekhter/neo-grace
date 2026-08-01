@@ -374,7 +374,7 @@ Keep this table current. It is the single source of truth for progress.
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
 | 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `COMPLETE` |
-| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `IN PROGRESS` |
+| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `COMPLETE` |
 | 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `NOT STARTED` |
 | 11 | Adoption surface | §5.1, §5.3 | TBD | `NOT STARTED` |
 
@@ -1377,7 +1377,7 @@ Delete the module and subcommand. Skills fall back to reading artifacts directly
 
 # PHASE 9 — Confidence recording & calibration report
 
-**Status:** `COMPLETE` (A62 — real fold path observed; adjudicatedAt provenance; C-CALIBRATION-PROVENANCE archived)
+**Status:** `COMPLETE` (A64 — context derived at fold; report bucketed by context class; C-CALIBRATION-CONTEXT archived)
 **Decisions:** D6 (calibration half)
 **Release:** TBD
 
@@ -9193,3 +9193,83 @@ rather than reconstruct it when it was needed.
 Board row 9 returns to `IN PROGRESS`. `C-CALIBRATION-PROVENANCE` is archived and immutable; the
 derivation belongs to a new bundle, and its own fold will produce the second genuine pair — this time
 one that carries a derived context class, which is the thing that makes the corpus worth accumulating.
+
+### A64 — 2026-08-01 · Phase 9 round 4: context class at fold; §9.5/§9.6 closed; COMPLETE
+
+Round 4 against A63 at baseline `4b41f7d`. Branch `feat/phase-9-rederive`. **165 closed.**
+Phase 9 board and §9 banner return to `COMPLETE` only after the §9.5/§9.6 table below shows no
+unamended gap.
+
+#### A64.1 Correction 165 — context derived at fold, stored with the pair
+
+Four dimensions joined from ledger + bundle (`src/calibration/context.ts`):
+
+| Dimension | Derived from | Values (A7.2 both covered in tests) |
+|---|---|---|
+| `taskKind` | plan.xml task via claim task id → Satisfies AC-* | `satisfies-ac` / `no-satisfies` (+ mixed/unknown) |
+| `adapterPresence` | WriteEvidence paths vs `ADAPTER_BACKED_EXTENSIONS` | `present` / `absent` (+ mixed/undetermined) |
+| `wroteVsRead` | WriteEvidence available + file count | `wrote` / `read-only` (+ undetermined) |
+| `sequentialVsParallel` | Epoch Allocation worker set | `sequential` / `parallel` (+ undetermined) |
+
+Stored on `CalibrationAdjudication` as attributes + `contextClass` key
+(`taskKind|adapterPresence|wroteVsRead|sequentialVsParallel`). Report reads storage only — never
+re-derives (same durability rule as 156 for labels and 160 for adjudicatedAt).
+
+Authored context attributes (`taskKind`, `adapterPresence`, `wroteVsRead`, `sequentialVsParallel`,
+`contextClass`) are rejected by `rejectAuthoredContextAttributes` on the write surface, and ignored
+at fold if present on a hand-written claim event.
+
+#### A64.2 Report bucketing (§9.5.4)
+
+`byContextClass` always emitted: empty at N=0; **one class with one row** at N=1; multi-class when
+multiple keys exist. Corpus-status counts remain separate (included/excluded/pending/backfilled).
+
+#### A64.3 Second genuine fold (live)
+
+`ngrace cursor fold` on `C-CALIBRATION-CONTEXT` wrote (by fold, not by hand):
+
+```xml
+<CalibrationAdjudication adjudicator="target-assertions" outcome="pass" claimCount="1"
+  claims="medium" adjudicatedAt="fold" taskKind="satisfies-ac" adapterPresence="present"
+  wroteVsRead="wrote" sequentialVsParallel="sequential"
+  contextClass="satisfies-ac|present|wrote|sequential" />
+```
+
+#### A64.4 §9.5 / §9.6 table (deliverable)
+
+| Item | Status | What satisfies it |
+|---|---|---|
+| **9.5.1** Ordinal `claimedConfidence` | **Met** | `parseClaimedConfidence`; free text/percent rejected; tests in `report.test.ts` |
+| **9.5.2** Separation rule (no gate reads) | **Met** | `gates-isolation.test.ts` mutation-proven; half-1 agent-inferred×precision **amended** deferred (P4/A56 finding 147, rule 7) — subject still absent |
+| **9.5.3** Context derivation by join | **Met** | `deriveCalibrationContext` at fold; four dims; not authored; stored on adjudication |
+| **9.5.4** Report bucketed by context class | **Met** | `byContextClass` + doctor section; incomplete epochs excluded; included/excluded shown |
+| **9.5.5** Promotion bar documented | **Met** | doctor + skill: held-out calibration per context class before any gate may use the field |
+| **9.6** Ordinal scale enforced | **Met** | write-time + tests |
+| **9.6** Separation rule tested (no-gate-reads) | **Met** | `gates-isolation.test.ts` |
+| **9.6** Context derived, not authored | **Met** | corr 165; rejection + ignore-authored tests |
+| **9.6** Report excludes incomplete epochs and says so | **Met** | excluded bucket + summary sentences |
+| **9.6** Promotion bar documented | **Met** | doctor / execute skill |
+| **9.6** `validate:ci` green | **Met** | this round |
+
+**Unamended gaps: none.** Half-1 of 9.5.2 remains the only amended item (authority axis absent —
+rule 7 / A56), not a silent skip of 9.5.3.
+
+#### A64.5 Close
+
+- `C-CALIBRATION-CONTEXT` [archive] spec=applied plan=applied
+- `ngrace review` 0 findings; `gate verdict` pass; `gate apply` permit; `gate archive` permit;
+  agent authored status=applied and moved bundle (A33.3: gates record decisions only)
+- Root lint 0/0; `bun test` / `validate:ci` green
+- Board row 9 and §9 banner: `COMPLETE`
+
+#### A64.6 Findings 166+
+
+**166** — Context must be stored at fold for the same reason labels and adjudicatedAt must:
+a later join over a moved tree is not a historical pair. Round 4 closes the third instance of
+that lesson in Phase 9 (156, 160, 165).
+
+**167** — Pre-round-4 fold pairs (C-CALIBRATION-PROVENANCE) correctly surface as
+`(context-not-stored)` in byContextClass rather than inventing a derivation from today's tree.
+
+**168** — `taskKind` is structural (Satisfies AC-* vs empty), not free-text "bugfix/feature":
+plans have no Kind field; inventing one would reintroduce authored context.

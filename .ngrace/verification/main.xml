@@ -92,8 +92,8 @@
     </V-M-TEST-SUPPORT>
     <V-M-CALIBRATION>
       <Command>bun test src/calibration</Command>
-      <Scenario>Calibration joins claimedConfidence to target-assertions only; N=0 is honest; gates never read the field.</Scenario>
-      <TraceAssertion>calibration unit tests cover ordinal rejection, incomplete-epoch exclusion, and gate isolation.</TraceAssertion>
+      <Scenario>Calibration joins claimedConfidence to target-assertions only; N=0 is honest; gates never read the field; context class derived at fold and bucketed in the report.</Scenario>
+      <TraceAssertion>calibration unit tests cover ordinal rejection, incomplete-epoch exclusion, gate isolation, context derivation both directions, and context-class bucketing.</TraceAssertion>
     </V-M-CALIBRATION>
   </VD-MAIN>
 </NgraceVerificationDocument>

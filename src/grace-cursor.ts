@@ -60,6 +60,7 @@
 //   recordCalibrationRestatement
 //   recordVerificationUnavailable
 //   regenerateCursor
+//   rejectAuthoredContextAttributes
 //   resolveChangeBundle
 //   resumeCursor
 //   showCursor
@@ -98,6 +99,13 @@ import {
 import { collectActiveChangeScopes, observedWriteScopeContains } from "./artifact/scope";
 import { childText, readGraceXmlArtifact, type GraceXmlNode } from "./artifact/xml";
 import { serializeGraceXmlDocument, serializeGraceXmlNode } from "./artifact/xml-serialize";
+import {
+  AUTHORED_CONTEXT_ATTRIBUTE_NAMES,
+  deriveCalibrationContext,
+  parseCalibrationContextAttributes,
+  serializeCalibrationContextAttributes,
+  type CalibrationContextClass,
+} from "./calibration/context";
 import { isGitWorktreeDirty } from "./grace-graph";
 import { lintGraceProject } from "./lint/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -686,10 +694,11 @@ export function foldEpoch(
   const wave = options.wave ?? readWaveFromOpened(events);
   // A59 corr 155–156: adjudicate once at fold when claims exist; store durable label.
   // Unit of adjudication is the change/epoch, not each attempt.
+  // A63 corr 165: also store derived context class at fold (not recomputed later).
   const calibrationAdjudication =
     options.injectDropPayload === true
       ? undefined
-      : buildCalibrationAdjudicationAtFold(projectRoot, changeId, events);
+      : buildCalibrationAdjudicationAtFold(projectRoot, changeId, events, allocations);
   const epochNode = buildEpochNode(epochNumber, wave, allocations, events, {
     dropPayload: options.injectDropPayload === true,
     calibrationAdjudication,
@@ -1623,6 +1632,8 @@ function parseCalibrationAdjudicationNode(node: GraceXmlNode): CalibrationAdjudi
   // surface as undefined and the report treats them as pending provenance.
   const adjudicatedAt = parseAdjudicatedAt(node.attributes.adjudicatedAt);
   if (adjudicatedAt === undefined) return undefined;
+  // Context class (A63 corr 165): present on fold-time records from round 4+; optional.
+  const context = parseCalibrationContextAttributes(node.attributes);
   return {
     adjudicator: "target-assertions",
     outcome,
@@ -1630,6 +1641,7 @@ function parseCalibrationAdjudicationNode(node: GraceXmlNode): CalibrationAdjudi
     claimCount: Number.isInteger(claimCount) ? claimCount : 0,
     claims: (node.attributes.claims ?? "").trim(),
     adjudicatedAt,
+    context,
   };
 }
 
@@ -2028,6 +2040,11 @@ export type CalibrationAdjudicationRecord = {
    * - backfill: written or restated after the outcome was already known (excluded from computation)
    */
   adjudicatedAt: CalibrationAdjudicatedAt;
+  /**
+   * Context class derived at fold from ledger + bundle (A63 corr 165 / §9.5.3).
+   * Absent on pre-round-4 records; report buckets those under context-not-stored.
+   */
+  context?: CalibrationContextClass;
 };
 
 function attemptHasClaimedConfidence(event: LooseEvent): boolean {
@@ -2038,11 +2055,13 @@ function attemptHasClaimedConfidence(event: LooseEvent): boolean {
 /**
  * One adjudication per fold that contains claimedConfidence attempts (corr 155–156).
  * Uses evaluateTargetComplete (three-valued); never the attempt outcome attribute.
+ * Derives and stores context class (corr 165) — ignores any authored context on claims.
  */
 function buildCalibrationAdjudicationAtFold(
   projectRoot: string,
   changeId: string,
   events: LooseEvent[],
+  allocations: RangeAllocation[],
 ): CalibrationAdjudicationRecord | undefined {
   const claimEvents = events.filter(attemptHasClaimedConfidence);
   if (claimEvents.length === 0) return undefined;
@@ -2052,33 +2071,35 @@ function buildCalibrationAdjudicationAtFold(
     .filter((level) => level.length > 0);
   const { complete, completeAbsence } = evaluateTargetComplete(projectRoot, changeId);
 
+  // Context is derived by join; authored attributes on claim events are ignored.
+  const context = deriveCalibrationContext({
+    projectRoot,
+    changeId,
+    events,
+    claimEvents,
+    allocations,
+  });
+
+  const base = {
+    adjudicator: "target-assertions" as const,
+    claimCount: claimEvents.length,
+    claims: claims.join(","),
+    adjudicatedAt: "fold" as const,
+    context,
+  };
+
   if (complete === true) {
-    return {
-      adjudicator: "target-assertions",
-      outcome: "pass",
-      claimCount: claimEvents.length,
-      claims: claims.join(","),
-      adjudicatedAt: "fold",
-    };
+    return { ...base, outcome: "pass" };
   }
   if (complete === false) {
-    return {
-      adjudicator: "target-assertions",
-      outcome: "fail",
-      claimCount: claimEvents.length,
-      claims: claims.join(","),
-      adjudicatedAt: "fold",
-    };
+    return { ...base, outcome: "fail" };
   }
   return {
-    adjudicator: "target-assertions",
+    ...base,
     outcome: "pending",
     reason:
       completeAbsence?.reason ??
       "target-assertions could not produce a boolean outcome at fold (pending, not fail)",
-    claimCount: claimEvents.length,
-    claims: claims.join(","),
-    adjudicatedAt: "fold",
   };
 }
 
@@ -2091,6 +2112,9 @@ function calibrationAdjudicationNode(record: CalibrationAdjudicationRecord): Gra
     adjudicatedAt: record.adjudicatedAt,
   };
   if (record.reason) attributes.reason = record.reason;
+  if (record.context) {
+    Object.assign(attributes, serializeCalibrationContextAttributes(record.context));
+  }
   return {
     tag: "CalibrationAdjudication",
     attributes,
@@ -2296,6 +2320,24 @@ function writeCursorFile(bundlePath: string, position: CursorPosition): void {
   writeFileSync(contained.absolutePath, serializeGraceXmlDocument(node));
 }
 
+/**
+ * Refuse agent-authored context dimensions on run events (D6 / §9.5.3).
+ * Context is derived at fold and stored on CalibrationAdjudication only.
+ */
+export function rejectAuthoredContextAttributes(
+  attributes: Record<string, string> | undefined,
+): void {
+  if (!attributes) return;
+  for (const name of AUTHORED_CONTEXT_ATTRIBUTE_NAMES) {
+    if (Object.prototype.hasOwnProperty.call(attributes, name)) {
+      throw new GraceCommandError(
+        "invalid-arguments",
+        `Context feature ${name} must not be authored on a run event; it is derived at fold (D6 / §9.5.3).`,
+      );
+    }
+  }
+}
+
 function writeEventFile(
   bundlePath: string,
   event: {
@@ -2310,6 +2352,7 @@ function writeEventFile(
     children?: GraceXmlNode[];
   },
 ): void {
+  rejectAuthoredContextAttributes(event.attributes);
   const runDirRel = "run";
   const filename = `${event.id}-${event.task}-${event.kind}.xml`;
   const relative = `${runDirRel}/${filename}`;
