@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-OBSERVABLE-CHECKS>
     <IntentSummary>
       Stage 2 of C-OBSERVABLE-CHECKS (A66). Make three checks able to observe their subject:
