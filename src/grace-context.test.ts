@@ -14,6 +14,7 @@ import {
   formatSliceBody,
   formatSliceText,
   listFullEnvelopeFiles,
+  measurePlanWave,
   normalizeAuthoredText,
   PUBLISHED_SKILLS,
   SCOPE_SHARED_SENTENCE,
@@ -21,6 +22,7 @@ import {
   selectionRatio,
   SKILLS_MID_EXECUTION,
   SKILLS_PRE_EXECUTION,
+  sumCompositionBytes,
   utf8Bytes,
 } from "./grace-context";
 
@@ -217,12 +219,13 @@ describe("listFullEnvelopeFiles (A48.2)", () => {
     );
     const bundle = path.join(root, ARTIFACT_DIR, "changes", "active", "C-ENV");
     const composition = listFullEnvelopeFiles(root, bundle);
-    expect(composition.some((f) => f.endsWith("spec.xml"))).toBe(true);
-    expect(composition.some((f) => f.endsWith("plan.xml"))).toBe(true);
-    expect(composition.some((f) => f.includes("graph/main.xml"))).toBe(true);
-    expect(composition.some((f) => f.includes("verification/"))).toBe(true);
-    expect(composition.some((f) => f.includes("context/principles.xml"))).toBe(true);
-    expect(composition.some((f) => f.includes("design-context"))).toBe(false);
+    expect(composition.some((e) => e.path.endsWith("spec.xml") && e.bytes > 0)).toBe(true);
+    expect(composition.some((e) => e.path.endsWith("plan.xml") && e.bytes > 0)).toBe(true);
+    expect(composition.some((e) => e.path.includes("graph/main.xml") && e.bytes > 0)).toBe(true);
+    expect(composition.some((e) => e.path.includes("verification/") && e.bytes > 0)).toBe(true);
+    expect(composition.some((e) => e.path.includes("context/principles.xml") && e.bytes > 0)).toBe(true);
+    expect(composition.some((e) => e.path.includes("design-context"))).toBe(false);
+    expect(sumCompositionBytes(composition)).toBe(composition.reduce((s, e) => s + e.bytes, 0));
   });
 });
 
@@ -289,7 +292,7 @@ describe("buildTaskSlice", () => {
     expect(text).not.toContain("Redis");
     expect(text).not.toContain("design-context.xml</");
     expect(slice.exclusions.some((e) => e.kind === "design-context")).toBe(true);
-    expect(slice.measurement.fullComposition.some((f) => f.includes("design-context"))).toBe(false);
+    expect(slice.measurement.fullComposition.some((e) => e.path.includes("design-context"))).toBe(false);
   });
 
   it("omits project .ngrace/context/* from the body and lists them in fullComposition (corr 122)", () => {
@@ -301,7 +304,7 @@ describe("buildTaskSlice", () => {
     expect(body).not.toContain("Prefer evidence");
     expect(body).not.toContain("NgracePrinciples");
     expect(slice.exclusions.some((e) => e.kind === "project-context")).toBe(true);
-    expect(slice.measurement.fullComposition.some((f) => f.includes("context/principles.xml"))).toBe(true);
+    expect(slice.measurement.fullComposition.some((e) => e.path.includes("context/principles.xml"))).toBe(true);
   });
 
   it("marks archived subjects as measurement-only (A48.1)", () => {
@@ -333,7 +336,7 @@ describe("buildTaskSlice", () => {
     expect(text).not.toContain("C-SIBLING-ARCH");
   });
 
-  it("carries measurement ground fields (A48.2)", () => {
+  it("carries measurement ground fields (A48.2) with per-entry sizes (A49.3)", () => {
     const root = tempRoot();
     writeMinimalNgraceProject(root);
     writeSelectionBundle(root, { changeId: "C-SLICE", location: "active", planStatus: "approved" });
@@ -343,6 +346,8 @@ describe("buildTaskSlice", () => {
     expect(slice.measurement.selectedBytes).toBeGreaterThan(0);
     expect(slice.measurement.selectedBytesDefinition).toBe(SELECTED_BYTES_DEFINITION);
     expect(slice.measurement.fullComposition.length).toBeGreaterThan(3);
+    expect(slice.measurement.fullComposition.every((e) => e.bytes > 0 && e.path.length > 0)).toBe(true);
+    expect(sumCompositionBytes(slice.measurement.fullComposition)).toBe(slice.measurement.fullBytes);
     // Ratio may be null when selected > full — that is reportable honesty
     if (slice.measurement.selectionRatio !== null) {
       expect(slice.measurement.selectionRatio).toBeGreaterThanOrEqual(0);
@@ -430,7 +435,8 @@ describe("skill recommendations", () => {
     }
     const rec = buildSkillRecommendation(root);
     expect(rec.measurement.unit).toBe("utf8-bytes");
-    expect(rec.measurement.fullComposition.every((f) => f.endsWith("SKILL.md"))).toBe(true);
+    expect(rec.measurement.fullComposition.every((e) => e.path.endsWith("SKILL.md") && e.bytes > 0)).toBe(true);
+    expect(sumCompositionBytes(rec.measurement.fullComposition)).toBe(rec.measurement.fullBytes);
     expect(rec.measurement.selectionRatio).not.toBeNull();
     expect(rec.measurement.selectedBytes).toBe(rec.measurement.fullBytes);
   });
@@ -478,6 +484,7 @@ describe("ngrace context CLI", () => {
     expect(parsed.archivedMeasurementOnly).toBe(true);
     expect(parsed.measurement.unit).toBe("utf8-bytes");
     expect(parsed.measurement.fullComposition.length).toBeGreaterThan(0);
+    expect(parsed.measurement.fullComposition[0]).toHaveProperty("bytes");
     expect(parsed.writeScope.sharedWithSiblingTasks).toBe(true);
   });
 
@@ -505,14 +512,14 @@ describe("ngrace context CLI", () => {
 
 // ─── Real-repository measurements (≥3) ───────────────────────────────────────
 
-describe("real-repository measurements (§8.5.7 / A48.1)", () => {
+describe("real-repository measurements (§8.5.7 / A48.1 / A49.1)", () => {
   const subjects = [
     { changeId: "C-FAILURE-LOCALIZATION", taskId: "T-001" },
     { changeId: "C-REVIEW-SURFACE", taskId: "T-001" },
     { changeId: "C-GATE-SURFACE", taskId: "T-001" },
   ] as const;
 
-  it("measures three named archive tasks with ground fields", () => {
+  it("measures three named archive tasks with ground fields and per-entry sizes", () => {
     const rows: Array<{
       changeId: string;
       taskId: string;
@@ -521,6 +528,7 @@ describe("real-repository measurements (§8.5.7 / A48.1)", () => {
       selectedBytes: number;
       selectionRatio: number | null;
       compositionCount: number;
+      composition: Array<{ path: string; bytes: number }>;
     }> = [];
 
     for (const subject of subjects) {
@@ -528,7 +536,8 @@ describe("real-repository measurements (§8.5.7 / A48.1)", () => {
       expect(slice.subjectLocation).toBe("archive");
       expect(slice.archivedMeasurementOnly).toBe(true);
       expect(slice.measurement.fullComposition.length).toBeGreaterThan(0);
-      expect(slice.measurement.fullComposition.some((f) => f.includes("design-context"))).toBe(false);
+      expect(slice.measurement.fullComposition.some((e) => e.path.includes("design-context"))).toBe(false);
+      expect(sumCompositionBytes(slice.measurement.fullComposition)).toBe(slice.measurement.fullBytes);
       rows.push({
         changeId: slice.changeId,
         taskId: slice.taskId,
@@ -537,25 +546,35 @@ describe("real-repository measurements (§8.5.7 / A48.1)", () => {
         selectedBytes: slice.measurement.selectedBytes,
         selectionRatio: slice.measurement.selectionRatio,
         compositionCount: slice.measurement.fullComposition.length,
+        composition: slice.measurement.fullComposition,
       });
     }
 
     expect(rows.length).toBe(3);
-    // Print for the phase report (visible in test output)
     console.log("REAL_MEASUREMENTS_JSON=" + JSON.stringify(rows, null, 2));
     for (const row of rows) {
       expect(row.fullBytes).toBeGreaterThan(0);
       expect(row.selectedBytes).toBeGreaterThan(0);
-      // Saving may be small or selected may exceed full — both are reportable
     }
   });
 
-  it("live C-SELECTION task is measurable when plan exists", () => {
+  it("plan wave metrics for C-GATE-SURFACE (8 tasks) report overlap and union (A49.1)", () => {
+    const wave = measurePlanWave(packageRoot(), "C-GATE-SURFACE");
+    expect(wave.taskCount).toBe(8);
+    expect(wave.meanPairwiseOverlapFraction).toBeGreaterThan(0.7);
+    expect(wave.sumSelectedBytes).toBeGreaterThan(wave.unionSelectedBytes);
+    expect(wave.honestReading).toMatch(/plan-level body/i);
+    expect(wave.honestReading).toMatch(/nearly identical/i);
+    console.log("PLAN_WAVE_JSON=" + JSON.stringify(wave, null, 2));
+  });
+
+  it("C-SELECTION task is measurable (active during build; archive after close)", () => {
     const slice = buildTaskSlice(packageRoot(), "C-SELECTION", "T-001");
-    expect(slice.subjectLocation).toBe("active");
-    expect(slice.archivedMeasurementOnly).toBe(false);
+    expect(["active", "archive"]).toContain(slice.subjectLocation);
     expect(slice.purpose.title.length).toBeGreaterThan(0);
     expect(slice.measurement.fullComposition.length).toBeGreaterThan(0);
+    expect(sumCompositionBytes(slice.measurement.fullComposition)).toBe(slice.measurement.fullBytes);
+    expect(slice.planWave?.taskCount).toBe(3);
     console.log(
       "LIVE_MEASUREMENT_JSON=" +
         JSON.stringify({
@@ -565,8 +584,28 @@ describe("real-repository measurements (§8.5.7 / A48.1)", () => {
           fullBytes: slice.measurement.fullBytes,
           selectedBytes: slice.measurement.selectedBytes,
           selectionRatio: slice.measurement.selectionRatio,
-          compositionCount: slice.measurement.fullComposition.length,
+          composition: slice.measurement.fullComposition,
+          planWave: slice.planWave,
         }),
+    );
+  });
+
+  it("real cursor state on C-SELECTION narrows skills (A49.2 corr 136)", () => {
+    // Observed live while active (cursor advance wrote run.xml); survives archive when run.xml ships with the bundle.
+    const rec = buildSkillRecommendation(packageRoot(), { changeId: "C-SELECTION" });
+    expect(rec.candidates.length).toBe(SKILLS_MID_EXECUTION.length);
+    expect(rec.candidates.length).toBeLessThan(PUBLISHED_SKILLS.length);
+    expect(rec.candidates.every((c) => c.basis.includes("cursor present"))).toBe(true);
+    expect(rec.candidates.some((c) => c.skill === "ngrace-execute")).toBe(true);
+    expect(rec.candidates.some((c) => c.skill === "ngrace-init")).toBe(false);
+    console.log(
+      "LIVE_SKILLS_JSON=" +
+        JSON.stringify({
+          changeId: rec.changeId,
+          candidateCount: rec.candidates.length,
+          candidates: rec.candidates,
+          selectionStage: rec.selectionStage,
+        }, null, 2),
     );
   });
 });

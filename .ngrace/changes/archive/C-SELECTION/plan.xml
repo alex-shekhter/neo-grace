@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-SELECTION>
     <IntentSummary>
       Task slices and skill subsetting (D15): ngrace context --task / --skills as separate
@@ -64,7 +64,9 @@
       <File>.ngrace/changes/active/C-SELECTION/plan.xml</File>
       <File>.ngrace/changes/active/C-SELECTION/spec.xml</File>
       <File>.ngrace/changes/active/C-SELECTION/run-ledger.xml</File>
+      <File>.ngrace/changes/active/C-SELECTION/run.xml</File>
       <File>src/test-support/token-accounting.test.ts</File>
+      <Glob>.ngrace/changes/active/C-SELECTION/run/**</Glob>
     </ObservedWriteScope>
     <ImplementationPlan>
       <T-001>

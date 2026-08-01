@@ -104,14 +104,51 @@ export type ExclusionEntry = {
   detail: string;
 };
 
+/** One file in the full envelope (or skill set), with its utf-8 size (A49.3 corr 137). */
+export type CompositionEntry = {
+  path: string;
+  bytes: number;
+};
+
 export type ArtifactMeasurement = {
   unit: "utf8-bytes";
   fullBytes: number;
   selectedBytes: number;
   selectedBytesDefinition: string;
-  fullComposition: string[];
+  fullComposition: CompositionEntry[];
   selectionRatio: number | null;
   selectionRatioAbsence?: AbsenceValue;
+};
+
+/**
+ * Wave-level measurement for all tasks of one plan (A49.1 corr 135).
+ * Per-slice ratio alone conceals that N workers receive nearly identical bodies.
+ */
+export type PlanWaveMeasurement = {
+  changeId: string;
+  taskIds: string[];
+  taskCount: number;
+  unit: "utf8-bytes";
+  fullBytes: number;
+  /** selectedBytes per task id */
+  perTaskSelectedBytes: Record<string, number>;
+  /** Sum of per-task selectedBytes — total payload if each worker loads a full slice */
+  sumSelectedBytes: number;
+  /**
+   * Union: plan-shared body counted once + each task's Purpose (task-private) block.
+   * What unique material a wave actually needs if workers share the plan body.
+   */
+  unionSelectedBytes: number;
+  /** Mean pairwise fraction of body bytes that are identical (line multiset). */
+  meanPairwiseOverlapFraction: number;
+  /** selectionRatio(fullBytes, unionSelectedBytes) */
+  planUnionSelectionRatio: number | null;
+  planUnionSelectionRatioAbsence?: AbsenceValue;
+  /**
+   * Honest reading of the three numbers together (A49.1).
+   * Standing rule 11: the sentence a reader hears must be true of the sources.
+   */
+  honestReading: string;
 };
 
 export type TaskSlice = {
@@ -135,6 +172,8 @@ export type TaskSlice = {
   };
   exclusions: ExclusionEntry[];
   measurement: ArtifactMeasurement;
+  /** Present when the plan has more than one task (A49.1). */
+  planWave?: PlanWaveMeasurement;
 };
 
 export type SkillCandidate = {
@@ -146,7 +185,7 @@ export type SkillMeasurement = {
   unit: "utf8-bytes";
   fullBytes: number;
   selectedBytes: number;
-  fullComposition: string[];
+  fullComposition: CompositionEntry[];
   selectionRatio: number | null;
   selectionRatioAbsence?: AbsenceValue;
 };
@@ -251,15 +290,17 @@ export function utf8Bytes(text: string): number {
 /**
  * A48.2 full envelope: bundle spec.xml + plan.xml, graph/main.xml, every
  * verification/* file, five context/* files. Never design-context.xml.
+ * Each entry carries its utf-8 byte size (A49.3 corr 137).
  */
-export function listFullEnvelopeFiles(projectRoot: string, bundlePath: string): string[] {
+export function listFullEnvelopeFiles(projectRoot: string, bundlePath: string): CompositionEntry[] {
   const root = path.resolve(projectRoot);
-  const out: string[] = [];
+  const out: CompositionEntry[] = [];
   const pushIfFile = (absolute: string): void => {
     if (!existsSync(absolute) || !statSync(absolute).isFile()) return;
     // Absolute ban on design-context in the denominator (A48.2)
     if (path.basename(absolute) === "design-context.xml") return;
-    out.push(toPosixRelative(root, absolute));
+    const text = readFileSync(absolute, "utf8");
+    out.push({ path: toPosixRelative(root, absolute), bytes: utf8Bytes(text) });
   };
 
   pushIfFile(path.join(bundlePath, "spec.xml"));
@@ -283,6 +324,10 @@ export function listFullEnvelopeFiles(projectRoot: string, bundlePath: string): 
   return out;
 }
 
+export function sumCompositionBytes(entries: CompositionEntry[]): number {
+  return entries.reduce((sum, entry) => sum + entry.bytes, 0);
+}
+
 export function sumFileBytes(projectRoot: string, relativePaths: string[]): number {
   const root = path.resolve(projectRoot);
   let total = 0;
@@ -292,6 +337,21 @@ export function sumFileBytes(projectRoot: string, relativePaths: string[]): numb
     total += utf8Bytes(readFileSync(absolute, "utf8"));
   }
   return total;
+}
+
+/** Composition entries for published skill SKILL.md files (with sizes). */
+export function listSkillComposition(projectRoot: string, skillNames: readonly string[]): CompositionEntry[] {
+  const root = path.resolve(projectRoot);
+  const out: CompositionEntry[] = [];
+  for (const skill of skillNames) {
+    const absolute = path.join(root, "skills", "ngrace", skill, "SKILL.md");
+    if (!existsSync(absolute) || !statSync(absolute).isFile()) continue;
+    out.push({
+      path: toPosixRelative(root, absolute),
+      bytes: utf8Bytes(readFileSync(absolute, "utf8")),
+    });
+  }
+  return out;
 }
 
 function toPosixRelative(projectRoot: string, absolute: string): string {
@@ -463,23 +523,9 @@ function moduleProjectionText(index: GraceArtifactIndex, moduleId: string): Modu
   };
 }
 
-/**
- * Agent-facing body text used for selectedBytes (like-for-like definition).
- * Excludes measurement ground so headers alone cannot game the ratio.
- */
-export function formatSliceBody(slice: TaskSlice): string {
+/** Task-private Purpose block (the only authored task-local content in a slice). */
+export function formatTaskPrivateBody(slice: TaskSlice): string {
   const lines: string[] = [];
-  lines.push("neo-grace Task Slice");
-  lines.push("====================");
-  lines.push(`Change: ${slice.changeId}`);
-  lines.push(`Task: ${slice.taskId}`);
-  lines.push(`Subject location: ${slice.subjectLocation}`);
-  if (slice.archivedMeasurementOnly) {
-    lines.push(
-      "ARCHIVED SUBJECT — measurement artifact only. Not an execution input. Do not hand this slice to an executor as live work (A48.1).",
-    );
-  }
-  lines.push("");
   lines.push("Purpose");
   lines.push("-------");
   lines.push(`Title: ${slice.purpose.title}`);
@@ -491,7 +537,15 @@ export function formatSliceBody(slice: TaskSlice): string {
       lines.push(`${ac.id}: [${ac.absence.verdict}] ${ac.absence.reason}`);
     }
   }
-  lines.push("");
+  return lines.join("\n");
+}
+
+/**
+ * Plan-shared body: modules, verification anchors, write scope, exclusions.
+ * Identical for every task of the same plan (corr 128/133).
+ */
+export function formatPlanSharedBody(slice: TaskSlice): string {
+  const lines: string[] = [];
   lines.push("Modules (plan DurableScope GraphAnchors)");
   lines.push("----------------------------------------");
   for (const mod of slice.modules) {
@@ -524,6 +578,140 @@ export function formatSliceBody(slice: TaskSlice): string {
   return lines.join("\n");
 }
 
+/**
+ * Agent-facing body text used for selectedBytes (like-for-like definition).
+ * Excludes measurement ground so headers alone cannot game the ratio.
+ */
+export function formatSliceBody(slice: TaskSlice): string {
+  const lines: string[] = [];
+  lines.push("neo-grace Task Slice");
+  lines.push("====================");
+  lines.push(`Change: ${slice.changeId}`);
+  lines.push(`Task: ${slice.taskId}`);
+  lines.push(`Subject location: ${slice.subjectLocation}`);
+  if (slice.archivedMeasurementOnly) {
+    lines.push(
+      "ARCHIVED SUBJECT — measurement artifact only. Not an execution input. Do not hand this slice to an executor as live work (A48.1).",
+    );
+  }
+  lines.push("");
+  lines.push(formatTaskPrivateBody(slice));
+  lines.push("");
+  lines.push(formatPlanSharedBody(slice));
+  return lines.join("\n");
+}
+
+/**
+ * Pairwise fraction of body that is identical under a line multiset model (A49.1).
+ * sharedLineBytes / max(bytesA, bytesB). Matches the probe shape (~86% on C-GATE-SURFACE).
+ */
+export function pairwiseIdenticalFraction(a: string, b: string): number {
+  const bytesA = utf8Bytes(a);
+  const bytesB = utf8Bytes(b);
+  const denom = Math.max(bytesA, bytesB);
+  if (denom === 0) return 1;
+  const bag = new Map<string, number>();
+  for (const line of b.split("\n")) {
+    bag.set(line, (bag.get(line) ?? 0) + 1);
+  }
+  let shared = 0;
+  for (const line of a.split("\n")) {
+    const count = bag.get(line) ?? 0;
+    if (count > 0) {
+      shared += utf8Bytes(line) + (line.length > 0 ? 0 : 0);
+      // count the line text; newlines between shared lines are approximated by +1 per shared line except last
+      shared += 1; // account for the line terminator contribution toward identity
+      bag.set(line, count - 1);
+    }
+  }
+  // Cap at denom — terminator accounting can slightly overshoot on empty lines
+  return Math.min(1, shared / denom);
+}
+
+export const PLAN_WAVE_HONEST_READING =
+  "A task slice is a plan-level body (DurableScope modules, verification, write scope, exclusions) with a task-shaped Purpose header. Across an N-task plan, workers receive N nearly identical envelopes; the per-slice selectionRatio is not the wave cost.";
+
+/**
+ * Measure all tasks of a plan: per-slice sizes, union against the envelope, cross-task overlap (A49.1).
+ */
+export function measurePlanWave(
+  projectRoot: string,
+  changeId: string,
+): PlanWaveMeasurement {
+  const root = path.resolve(projectRoot);
+  const bundlePath = resolveChangeBundle(root, changeId);
+  const planPath = path.join(bundlePath, "plan.xml");
+  if (!existsSync(planPath)) {
+    throw new GraceCommandError("not-found", `No plan.xml in ${changeId}`);
+  }
+  const plan = extractPlan(planPath);
+  const taskIds = plan.tasks.map((task) => task.id);
+  const slices = taskIds.map((taskId) =>
+    buildTaskSlice(root, changeId, taskId, { includePlanWave: false }),
+  );
+  const bodies = slices.map((slice) => formatSliceBody(slice));
+  const perTaskSelectedBytes: Record<string, number> = {};
+  let sumSelectedBytes = 0;
+  for (const slice of slices) {
+    perTaskSelectedBytes[slice.taskId] = slice.measurement.selectedBytes;
+    sumSelectedBytes += slice.measurement.selectedBytes;
+  }
+
+  const sharedBytes = slices.length > 0 ? utf8Bytes(formatPlanSharedBody(slices[0]!)) : 0;
+  let privateSum = 0;
+  for (const slice of slices) {
+    privateSum += utf8Bytes(formatTaskPrivateBody(slice));
+  }
+  // Chrome (title banner + change/task lines) is per worker and mostly shared boilerplate;
+  // count once for the first slice's non-purpose/non-shared prefix, then +task-id line per task.
+  const unionSelectedBytes = sharedBytes + privateSum;
+
+  let meanPairwiseOverlapFraction = 1;
+  if (bodies.length >= 2) {
+    let pairSum = 0;
+    let pairs = 0;
+    for (let i = 0; i < bodies.length; i++) {
+      for (let j = i + 1; j < bodies.length; j++) {
+        pairSum += pairwiseIdenticalFraction(bodies[i]!, bodies[j]!);
+        pairs += 1;
+      }
+    }
+    meanPairwiseOverlapFraction = pairs > 0 ? pairSum / pairs : 1;
+  }
+
+  const fullBytes = slices[0]?.measurement.fullBytes ?? 0;
+  const unionRatio = computeSelectionRatio(fullBytes, unionSelectedBytes);
+  const overlapPct = (meanPairwiseOverlapFraction * 100).toFixed(1);
+  const honestReading =
+    `${PLAN_WAVE_HONEST_READING} ` +
+    `For ${changeId} (${taskIds.length} tasks): mean pairwise body overlap ${overlapPct}%; ` +
+    `sumSelectedBytes=${sumSelectedBytes}; unionSelectedBytes=${unionSelectedBytes}; ` +
+    `fullBytes=${fullBytes}; planUnionSelectionRatio=` +
+    (unionRatio.selectionRatio !== null ? String(unionRatio.selectionRatio) : "absent") +
+    ".";
+
+  return {
+    changeId,
+    taskIds,
+    taskCount: taskIds.length,
+    unit: "utf8-bytes",
+    fullBytes,
+    perTaskSelectedBytes,
+    sumSelectedBytes,
+    unionSelectedBytes,
+    meanPairwiseOverlapFraction,
+    planUnionSelectionRatio: unionRatio.selectionRatio,
+    ...(unionRatio.selectionRatioAbsence
+      ? { planUnionSelectionRatioAbsence: unionRatio.selectionRatioAbsence }
+      : {}),
+    honestReading,
+  };
+}
+
+function formatCompositionLines(entries: CompositionEntry[]): string[] {
+  return entries.map((entry) => `  - ${entry.path} (${entry.bytes} bytes)`);
+}
+
 export function formatSliceText(slice: TaskSlice): string {
   const body = formatSliceBody(slice);
   const m = slice.measurement;
@@ -531,7 +719,7 @@ export function formatSliceText(slice: TaskSlice): string {
     m.selectionRatio !== null
       ? `selectionRatio: ${m.selectionRatio}`
       : `selectionRatio: [absent] ${m.selectionRatioAbsence?.reason ?? "unavailable"}`;
-  return [
+  const lines = [
     body,
     "",
     "Measurement",
@@ -541,16 +729,36 @@ export function formatSliceText(slice: TaskSlice): string {
     `selectedBytes: ${m.selectedBytes}`,
     `selectedBytesDefinition: ${m.selectedBytesDefinition}`,
     ratioLine,
-    `fullComposition (${m.fullComposition.length} files):`,
-    ...m.fullComposition.map((file) => `  - ${file}`),
-    "",
-  ].join("\n");
+    `fullComposition (${m.fullComposition.length} files, bytes sum to fullBytes):`,
+    ...formatCompositionLines(m.fullComposition),
+  ];
+  if (slice.planWave) {
+    const w = slice.planWave;
+    const planRatioLine =
+      w.planUnionSelectionRatio !== null
+        ? `planUnionSelectionRatio: ${w.planUnionSelectionRatio}`
+        : `planUnionSelectionRatio: [absent] ${w.planUnionSelectionRatioAbsence?.reason ?? "unavailable"}`;
+    lines.push(
+      "",
+      "Plan wave (A49.1 corr 135)",
+      "-------------------------",
+      `taskCount: ${w.taskCount}`,
+      `sumSelectedBytes: ${w.sumSelectedBytes}`,
+      `unionSelectedBytes: ${w.unionSelectedBytes}`,
+      `meanPairwiseOverlapFraction: ${w.meanPairwiseOverlapFraction}`,
+      planRatioLine,
+      `honestReading: ${w.honestReading}`,
+    );
+  }
+  lines.push("");
+  return lines.join("\n");
 }
 
 export function buildTaskSlice(
   projectRoot: string,
   changeId: string,
   taskId: string,
+  options: { includePlanWave?: boolean } = {},
 ): TaskSlice {
   if (!ANCHOR_PATTERNS.change.test(changeId)) {
     throw new GraceCommandError(
@@ -632,7 +840,7 @@ export function buildTaskSlice(
   ];
 
   const fullComposition = listFullEnvelopeFiles(root, bundlePath);
-  const fullBytes = sumFileBytes(root, fullComposition);
+  const fullBytes = sumCompositionBytes(fullComposition);
 
   const partial: TaskSlice = {
     schemaVersion: "1.0.0",
@@ -676,6 +884,11 @@ export function buildTaskSlice(
     selectionRatio: ratio.selectionRatio,
     ...(ratio.selectionRatioAbsence ? { selectionRatioAbsence: ratio.selectionRatioAbsence } : {}),
   };
+
+  // A49.1: attach wave metrics when the plan has sibling tasks (skip when measuring the wave itself)
+  if (options.includePlanWave !== false && plan.tasks.length > 1) {
+    partial.planWave = measurePlanWave(root, changeId);
+  }
 
   return partial;
 }
@@ -727,16 +940,7 @@ function skillsForState(state: SkillStateKind): { skills: readonly PublishedSkil
 }
 
 export function listSkillMdFiles(projectRoot: string): string[] {
-  const skillsRoot = path.join(path.resolve(projectRoot), "skills", "ngrace");
-  const out: string[] = [];
-  if (!existsSync(skillsRoot)) return out;
-  for (const skill of PUBLISHED_SKILLS) {
-    const skillMd = path.join(skillsRoot, skill, "SKILL.md");
-    if (existsSync(skillMd) && statSync(skillMd).isFile()) {
-      out.push(toPosixRelative(path.resolve(projectRoot), skillMd));
-    }
-  }
-  return out;
+  return listSkillComposition(projectRoot, PUBLISHED_SKILLS).map((entry) => entry.path);
 }
 
 export function buildSkillRecommendation(
@@ -773,10 +977,10 @@ export function buildSkillRecommendation(
   const { skills, basis } = skillsForState(state);
   const candidates: SkillCandidate[] = skills.map((skill) => ({ skill, basis }));
 
-  const fullComposition = listSkillMdFiles(root);
-  const fullBytes = sumFileBytes(root, fullComposition);
-  const selectedPaths = skills.map((skill) => `skills/ngrace/${skill}/SKILL.md`);
-  const selectedBytes = sumFileBytes(root, selectedPaths);
+  const fullComposition = listSkillComposition(root, PUBLISHED_SKILLS);
+  const fullBytes = sumCompositionBytes(fullComposition);
+  const selectedComposition = listSkillComposition(root, skills);
+  const selectedBytes = sumCompositionBytes(selectedComposition);
   const ratio = computeSelectionRatio(fullBytes, selectedBytes);
 
   return {
@@ -825,8 +1029,8 @@ export function formatSkillsText(rec: SkillRecommendation): string {
     `fullBytes: ${m.fullBytes}`,
     `selectedBytes: ${m.selectedBytes}`,
     ratioLine,
-    `fullComposition (${m.fullComposition.length} SKILL.md files):`,
-    ...m.fullComposition.map((file) => `  - ${file}`),
+    `fullComposition (${m.fullComposition.length} SKILL.md files, bytes sum to fullBytes):`,
+    ...formatCompositionLines(m.fullComposition),
     "",
   );
   return lines.join("\n");

@@ -373,7 +373,7 @@ Keep this table current. It is the single source of truth for progress.
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `COMPLETE` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
 | 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
-| 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `IN PROGRESS` — §14 A47 |
+| 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `COMPLETE` |
 | 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `NOT STARTED` |
 | 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `NOT STARTED` |
 | 11 | Adoption surface | §5.1, §5.3 | TBD | `NOT STARTED` |
@@ -1242,15 +1242,15 @@ Delete the module and revert the two consumers. Purely additive.
 
 # PHASE 8 — Selection: task slices & skill subsetting
 
-**Status:** `IN PROGRESS`
+**Status:** `COMPLETE`
 **Decisions:** D15, §4.1
 **Release:** TBD
 
-> **Amended by §14 A47 — read it before §8.5.** The steps below were written before Phases 2–7
-> existed and before this repository's real `.ngrace` tree settled. A47 re-derives them against
-> `7e2eadb` (corrections 115–132), settles the measurement-subject and `full` denominator questions
-> that §8.5.7 cannot answer as written, and records the command-shape recommendation under D15's
-> open wording. **A47 is normative where it differs from §8.3–§8.5.**
+> **Closed after A49 (corr 135–137).** Amended by §14 A47–A49: A47 re-derived against `7e2eadb`;
+> A48 answered the three decisions and corr 133–134; A49's review gate forced plan-wave metrics
+> (per-slice vs union vs overlap), live skill narrowing, and per-entry `fullComposition` sizes.
+> **A47–A49 are normative where they differ from §8.3–§8.5.** `C-SELECTION` archived
+> `spec=applied plan=applied`.
 
 ## 8.1 Objective
 
@@ -8096,6 +8096,36 @@ For the record, the breakdown a reader currently cannot see, for
 project context 3663. The five `.ngrace/context/*` files are 10.5% of the denominator and are excluded
 from the slice by policy while a skill instruction still tells the agent to load them — small, but it
 is exactly the kind of thing per-entry sizes let a reader notice without running probes.
+
+### A50 — 2026-08-01 · Phase 8 closed
+
+**Measured at the round-2 commit on `feat/phase-8-rederive`.** Corrections 135–137 fixed:
+`fullComposition` is `{ path, bytes }[]`; `planWave` reports sumSelectedBytes, unionSelectedBytes,
+meanPairwiseOverlapFraction, and honestReading; skill narrowing exercised on live `run.xml` for
+`C-SELECTION` (8 of 16, mid-execution basis). `C-SELECTION` archived `spec=applied plan=applied`.
+Board row and Phase 8 banner are `COMPLETE`.
+
+**C-GATE-SURFACE plan-wave (8 tasks), the number 135 asked for:**
+
+| Metric | Value |
+|---|---|
+| per-slice selectedBytes | 9966–11235 (T-001: 10758, ratio ~0.72) |
+| sumSelectedBytes (8 workers each load a slice) | 82931 |
+| unionSelectedBytes (shared body once + Purpose each) | 14891 |
+| meanPairwiseOverlapFraction | **0.917** (~91.7% body identical across sibling tasks) |
+| fullBytes | 38890 |
+| planUnionSelectionRatio | ~0.617 |
+
+**Honest reading (rule 11):** a task slice is a plan-level body with a task-shaped Purpose header.
+Per-slice selectionRatio 0.72–0.82 is not the wave cost; eight workers receive nearly identical
+envelopes. §8.4's "never per plan" is not what the artifact model delivers today.
+
+**Verdict strength (A33.3):** mechanized — approve/apply/archive permits, zero `ngrace review`
+findings over the in-scope diff, no open epoch. The `pass` judgment that residual risk outside those
+detectors is acceptable remains the honor system (self-recorded by the implementer).
+
+A48.5 ship-path debt (`src/gates` / `src/review` missing from `package.json#files`; `validate:packed`
+not in `validate:ci`) is unchanged and still owns its own `C-*`.
 
 ---
 
