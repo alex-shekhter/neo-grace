@@ -32,11 +32,14 @@ export type ChangeBundleStatus = {
   /** Tasks named in plan.xml ImplementationPlan, when present. */
   taskCount?: number;
   /**
-   * A29.9 / A32.1: apply Decision read for archived applied bundles.
-   * Invalid sections surface code/detail rather than collapsing to a bare false.
+   * A29.9 / A32.1 / A33.1: apply Decision read for archived applied bundles.
+   * - permit: Decisions holds a permitting apply
+   * - absent: no Decisions section (pre-gate grandfather; not a violation)
+   * - no-permit: Decisions exists without a permitting apply (violation)
+   * - invalid: unreadable Decisions (code/detail reach the report)
    */
   applyGateRecord?: {
-    status: "permit" | "absent" | "invalid";
+    status: "permit" | "absent" | "no-permit" | "invalid";
     code?: string;
     detail?: string;
   };
@@ -143,8 +146,8 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       baselineFailures: bundleLintIssues.filter((issue) => /^assertion\.(?:Must|command-not-evaluated)/.test(issue.code)).length,
     });
 
-    // A29.9 / A32.1: applied without a permitting apply Decision is a status finding (never gate.* from lint).
-    // Invalid Decisions section is not a permit — reason reaches the report, not a bare false.
+    // A29.9 / A32.1 / A33.1: gate-record findings for archived applied bundles (never gate.* from lint).
+    // absent ≠ no-permit: no Decisions section is grandfathered with reason; section without permit is the violation.
     let applyGateRecord: ChangeBundleStatus["applyGateRecord"];
     if (location === "archive" && (specStatus === "applied" || planStatus === "applied")) {
       const permit = readPermittingDecision(root, changeId, "apply");
@@ -156,10 +159,17 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
           code: permit.code,
           detail: permit.detail,
         };
-        derivedStates.push("applied-without-gate-record");
         derivedStates.push(`gate-record-invalid:${permit.code}`);
+      } else if (permit.state === "absent") {
+        applyGateRecord = {
+          status: "absent",
+          detail: "no Decisions section (bundle may predate the gate surface)",
+        };
+        // Absence with reason — not dressed as a violation (A33.1 / D5).
+        derivedStates.push("apply-gate-record-absent");
       } else {
-        applyGateRecord = { status: "absent" };
+        // Decisions section exists and holds no permitting apply — the real violation.
+        applyGateRecord = { status: "no-permit" };
         derivedStates.push("applied-without-gate-record");
       }
     }

@@ -51,13 +51,19 @@ export type LatestReviewVerdict =
 
 /** Newest-governs scan of Decisions; any unreadable entry is invalid, never skipped (A31.2 / A32.1). */
 export type DecisionListResult =
-  | { state: "ok"; decisions: GateDecisionRecord[] }
+  | { state: "ok"; decisions: GateDecisionRecord[]; sectionPresent: boolean }
   | { state: "invalid"; code: "ledger.invalid-decision"; detail: string };
 
-/** Permit lookup with reason — invalid never collapses to a bare false (A32.1). */
+/**
+ * Permit lookup with reason (A32.1 / A33.1).
+ * - absent: no Decisions section (pre-gate bundles; not a violation)
+ * - no-permit: Decisions section exists but holds no permitting apply
+ * - invalid: unreadable section
+ */
 export type PermittingDecisionStatus =
   | { state: "permit" }
-  | { state: "absent" }
+  | { state: "absent"; reason: "no-decisions-section" }
+  | { state: "no-permit" }
   | { state: "invalid"; code: "ledger.invalid-decision"; detail: string };
 
 const LEDGER_BUNDLE_SECTIONS = new Set(["Verdicts", "Decisions"]);
@@ -379,9 +385,9 @@ export function latestReviewVerdict(
 export function readGateDecisions(projectRoot: string, changeId: string): DecisionListResult {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const wrapper = wrapperFromLedger(bundlePath, changeId);
-  if (!wrapper) return { state: "ok", decisions: [] };
+  if (!wrapper) return { state: "ok", decisions: [], sectionPresent: false };
   const selected = selectUniqueSection(wrapper, "Decisions");
-  if (selected.state === "absent") return { state: "ok", decisions: [] };
+  if (selected.state === "absent") return { state: "ok", decisions: [], sectionPresent: false };
   if (selected.state === "invalid") {
     return {
       state: "invalid",
@@ -408,7 +414,7 @@ export function readGateDecisions(projectRoot: string, changeId: string): Decisi
     }
     out.push(parsed);
   }
-  return { state: "ok", decisions: out };
+  return { state: "ok", decisions: out, sectionPresent: true };
 }
 
 /**
@@ -428,8 +434,8 @@ export function listGateDecisions(projectRoot: string, changeId: string): GateDe
 }
 
 /**
- * Permit lookup that keeps the reason when the Decisions section is unreadable (A32.1).
- * Invalid is not a permit; callers that need the reason must not collapse this to boolean alone.
+ * Permit lookup that keeps the reason when the Decisions section is unreadable (A32.1)
+ * and distinguishes no section (A33.1 grandfather) from section-without-permit (violation).
  */
 export function readPermittingDecision(
   projectRoot: string,
@@ -447,7 +453,10 @@ export function readPermittingDecision(
   if (result.decisions.some((entry) => entry.gate === gate && entry.decision === "permit")) {
     return { state: "permit" };
   }
-  return { state: "absent" };
+  if (!result.sectionPresent) {
+    return { state: "absent", reason: "no-decisions-section" };
+  }
+  return { state: "no-permit" };
 }
 
 /**

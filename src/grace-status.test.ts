@@ -525,6 +525,85 @@ describe("ngrace status", () => {
     expect(formatStatusText(result)).toContain("C-NOCUR");
   });
 
+  it("correction 69: pre-gate archive without Decisions is apply-gate-record-absent, not violation", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    // Three older-style applied archives: no run-ledger / no Decisions section.
+    writeChange(root, "C-OLD-A", { location: "archive", specStatus: "applied", planStatus: "applied" });
+    writeChange(root, "C-OLD-B", { location: "archive", specStatus: "applied", planStatus: "applied" });
+    writeChange(root, "C-OLD-C", { location: "archive", specStatus: "applied", planStatus: "applied" });
+    const result = collectProjectStatus(root);
+    for (const id of ["C-OLD-A", "C-OLD-B", "C-OLD-C"]) {
+      const change = result.changes.find((entry) => entry.changeId === id);
+      expect(change?.derivedStates).toContain("apply-gate-record-absent");
+      expect(change?.derivedStates).not.toContain("applied-without-gate-record");
+      expect(change?.applyGateRecord?.status).toBe("absent");
+      expect(change?.applyGateRecord?.detail).toMatch(/predate/i);
+    }
+    expect(result.derivedStates).toContain("apply-gate-record-absent");
+    expect(result.derivedStates).not.toContain("applied-without-gate-record");
+  });
+
+  it("correction 69: Decisions section without apply permit is applied-without-gate-record", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-SKIP", { location: "archive", specStatus: "applied", planStatus: "applied" });
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/archive/C-SKIP/run-ledger.xml`,
+      `<NgraceRunLedger graceVersion="1.0"><C-SKIP>`
+        + `<Decisions><Decision gate="approve" decision="permit" /></Decisions>`
+        + `</C-SKIP></NgraceRunLedger>`,
+    );
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-SKIP");
+    expect(change?.derivedStates).toContain("applied-without-gate-record");
+    expect(change?.derivedStates).not.toContain("apply-gate-record-absent");
+    expect(change?.applyGateRecord?.status).toBe("no-permit");
+  });
+
+  it("correction 69: invalid Decisions section is gate-record-invalid, not conflated with absent", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-BAD", { location: "archive", specStatus: "applied", planStatus: "applied" });
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/archive/C-BAD/run-ledger.xml`,
+      `<NgraceRunLedger graceVersion="1.0"><C-BAD>`
+        + `<Decisions><Decision gate="apply" decision="permit" /></Decisions>`
+        + `<Decisions><Decision gate="apply" decision="refuse" /></Decisions>`
+        + `</C-BAD></NgraceRunLedger>`,
+    );
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-BAD");
+    expect(change?.derivedStates.some((s) => s.startsWith("gate-record-invalid:"))).toBe(true);
+    expect(change?.derivedStates).not.toContain("apply-gate-record-absent");
+    expect(change?.applyGateRecord?.status).toBe("invalid");
+    expect(change?.applyGateRecord?.code).toBe("ledger.invalid-decision");
+  });
+
+  it("correction 69: clean gated archive has states=none for gate-record findings", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-GATED", { location: "archive", specStatus: "applied", planStatus: "applied" });
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/archive/C-GATED/run-ledger.xml`,
+      `<NgraceRunLedger graceVersion="1.0"><C-GATED>`
+        + `<Verdicts><Verdict outcome="pass" /></Verdicts>`
+        + `<Decisions><Decision gate="apply" decision="permit" /></Decisions>`
+        + `</C-GATED></NgraceRunLedger>`,
+    );
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-GATED");
+    expect(change?.derivedStates).not.toContain("applied-without-gate-record");
+    expect(change?.derivedStates).not.toContain("apply-gate-record-absent");
+    expect(change?.derivedStates.every((s) => !s.startsWith("gate-record-invalid:"))).toBe(true);
+    expect(change?.applyGateRecord?.status).toBe("permit");
+    const text = formatStatusText(result);
+    expect(text).toMatch(/C-GATED \[archive\].*states=none/);
+  });
+
   it("renders analysis coverage for polyglot and omits Unverified for TS-only projects", async () => {
     const { polyglotFixture, minimalTsFixture } = await import("./test-support/fixtures");
 

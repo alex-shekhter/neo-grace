@@ -301,6 +301,31 @@ describe("correction 68 — newest-governs at the section boundary (A32.1)", () 
   });
 });
 
+describe("correction 69 — absent Decisions is not applied-without-gate-record (A33.1)", () => {
+  it("no Decisions section → absent, not no-permit", () => {
+    const root = tempProject();
+    activeBundle(root);
+    // no run-ledger → no Decisions section
+    const permit = readPermittingDecision(root, "C-GATE", "apply");
+    expect(permit.state).toBe("absent");
+    if (permit.state === "absent") {
+      expect(permit.reason).toBe("no-decisions-section");
+    }
+  });
+
+  it("Decisions section without apply permit → no-permit", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    recordGateDecision(root, "C-GATE", {
+      gate: "approve",
+      decision: "permit",
+      requirements: [],
+    });
+    const permit = readPermittingDecision(root, "C-GATE", "apply");
+    expect(permit.state).toBe("no-permit");
+  });
+});
+
 describe("correction 64 — apply requires approved plan, not existsSync", () => {
   it("refuses status=draft plan even when plan.xml exists", () => {
     const root = tempProject();

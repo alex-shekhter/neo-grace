@@ -388,9 +388,13 @@ export function evaluateAttemptOnBundle(
   return evaluateAttemptGate(changeId, task, escalated);
 }
 
-/** Status helper: applied archive without a permitting apply decision (A29.9 / A32.1). */
+/**
+ * True when an archived applied bundle has a Decisions section problem that is a violation
+ * (no-permit or invalid) — not a pre-gate absence (A33.1).
+ */
 export function missingApplyGateRecord(projectRoot: string, changeId: string): boolean {
-  return readPermittingDecision(projectRoot, changeId, "apply").state !== "permit";
+  const state = readPermittingDecision(projectRoot, changeId, "apply").state;
+  return state === "no-permit" || state === "invalid";
 }
 
 /** Re-export clarification target check for grammar tests. */
