@@ -8127,6 +8127,28 @@ detectors is acceptable remains the honor system (self-recorded by the implement
 A48.5 ship-path debt (`src/gates` / `src/review` missing from `package.json#files`; `validate:packed`
 not in `validate:ci`) is unchanged and still owns its own `C-*`.
 
+**A50 correction (A51 / corr 138–139) — append-only; text above is not rewritten.** The A33.3 sentence
+overstated the mechanized half. **What was actually mechanized at close:** gate permits
+(approve / apply / archive), no open epoch, and pattern detectors over the tree. **The scope audit
+contributed nothing.** At report time `listRepositoryChangedFiles` saw a clean working tree
+(`available: true`, `changedFiles: 0`) because §0.5 commits before the report, and `ngrace review`
+exposes no `--base` / `--changed-files` input, so the audit that claims to compare the diff to
+`ObservedWriteScope` had no input. Against `origin/main` this branch wrote two files outside
+`C-SELECTION`'s declared `ObservedWriteScope`:
+
+| File | Why written | Why unreported |
+|---|---|---|
+| `scripts/release-check.ts` | allowlist dual-edit forced by the ship-path test (A48.5 honesty) | not in OWS; scope audit saw zero files |
+| `src/artifact/scale-ergonomics.test.ts` | pinned skill-text / token count for Phase 8 | not in OWS; scope audit saw zero files |
+
+Both writes were legitimate; the defect is the declared scope missing them and the audit never being
+in a position to fire. After archive, `runReview` resolves the plan only under `changesActiveDir`, so
+`ngrace review --change C-SELECTION` skips the audit in silence and still prints "No review findings"
+(corr 139). The archive is immutable — this note is the record, not an edit to the artifact. These
+Phase 6 surfaces join A48.5's owed work as draft `C-OBSERVABLE-CHECKS` under
+`.ngrace/changes/active/` (spec only; no production fix in this phase). Phase 8's board row stays
+`COMPLETE`.
+
 ---
 
 ### A51 — 2026-08-01 · Phase 8's close cites a scope audit that had no input
