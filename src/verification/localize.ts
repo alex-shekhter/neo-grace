@@ -1,5 +1,5 @@
 /**
- * Deterministic failure localization (D8, Phase 7 / A41–A43).
+ * Deterministic failure localization (D8, Phase 7 / A41–A44).
  *
  * Inputs: expected markers from a V-M-* entry (document order), observed markers
  * parsed from a caller-supplied log against the project-wide alphabet, optional
@@ -9,6 +9,11 @@
  * the supplied log, in log order, at most one count per line. This is NOT "markers
  * the run emitted" — assertion diffs that echo a marker string can still appear.
  * Capture the run's own output, not only the test framework failure report.
+ *
+ * Expected vs observed (A44.1 / corr 112): expected is a **requirement list** in
+ * declaration order; observed is a **transcript**. The comparator is an ordered
+ * subsequence scan — "did the transcript contain the required markers, in order?"
+ * Extra and repeated own-marker occurrences are context, not divergence.
  *
  * Route (1) — binary runs tests — is deferred (A42.1). parseObservedMarkers takes
  * a string so a later C-* can hand it spawn output without touching the comparator.
@@ -83,13 +88,18 @@ export type LocalizationResult = {
   /** Markers from other V-M-* entries seen in the log, log order (A42.3). */
   foreignMarkers: string[];
   /**
-   * First divergent index, or null when sequences agree or when own+foreign are both empty
-   * (A43.1 — zero marker evidence is absence, not divergence at 0).
+   * First unmet required-marker index, or null when every requirement appears in order
+   * in the observed transcript (or when own+foreign are both empty — A43.1 absence path).
    * Suppressed when flake is flaky (D8 / corr 98).
    */
   divergence: Divergence | null;
   /** True when a flaky fail→pass pair suppressed a causal divergence claim. */
   divergenceSuppressed?: boolean;
+  /**
+   * Per-requirement counts in the observed transcript when requirements are met and at
+   * least one required marker appears more than once (A44.1 — repeats are context).
+   */
+  observedRequirementCounts?: Array<{ marker: string; count: number }>;
   /** Resolved BLOCK_* regions for the divergent marker (A42.2). */
   locations: BlockLocation[];
   locationAbsence?: AbsenceValue;
@@ -112,24 +122,57 @@ function inability(reason: string): AbsenceValue {
 }
 
 /**
- * firstDivergentBlock — pure comparator (D8 / §7.4).
- * Seven axes: index 0, mid, end, observed shorter, observed longer, repeated (via longer), identical.
+ * firstDivergentBlock — pure comparator under requirement/transcript semantics (D8 / A44.1).
+ *
+ * Expected is a requirement list in declaration order; observed is a transcript.
+ * Divergence is the first required marker not found at or after the scan cursor
+ * (ordered subsequence). Extra and repeated observed markers are not divergence.
+ *
+ * Axes (restated from A42.6 equality axes — the seven-count does not survive):
+ *   1. first unmet requirement at index 0
+ *   2. first unmet requirement mid-sequence
+ *   3. first unmet requirement at end
+ *   4. all requirements met → null
+ *   5. repeats absorbed → null (counts reported as context by localizeFailure)
+ *   6. order violated (required marker appears only before an earlier match)
+ * Parser cases (empty log, foreign-only, per-line cap, assertion-diff echo) are separate.
  */
 export function firstDivergentBlock(
   expected: readonly string[],
   observed: readonly string[],
 ): Divergence | null {
-  const max = Math.max(expected.length, observed.length);
-  for (let i = 0; i < max; i += 1) {
-    if (expected[i] !== observed[i]) {
+  let cursor = 0;
+  for (let i = 0; i < expected.length; i += 1) {
+    const want = expected[i]!;
+    let found = -1;
+    for (let j = cursor; j < observed.length; j += 1) {
+      if (observed[j] === want) {
+        found = j;
+        break;
+      }
+    }
+    if (found < 0) {
       return {
         index: i,
-        expected: expected[i],
-        observed: observed[i],
+        expected: want,
+        // What sits at the cursor when the requirement is unmet (or undefined past end).
+        observed: cursor < observed.length ? observed[cursor] : undefined,
       };
     }
+    cursor = found + 1;
   }
   return null;
+}
+
+/** Count how many times each required marker appears in the observed transcript. */
+export function countRequiredInObserved(
+  expected: readonly string[],
+  observed: readonly string[],
+): Array<{ marker: string; count: number }> {
+  return expected.map((marker) => ({
+    marker,
+    count: observed.filter((m) => m === marker).length,
+  }));
 }
 
 /**
@@ -138,7 +181,7 @@ export function firstDivergentBlock(
  * Ground (A43.2): textual presence of declared markers, **at most one count per line**,
  * lines in file order. A line that mentions the marker twice is one hit (description, not
  * two emissions). Across lines, every line that contains a marker contributes once —
- * repeated emission on separate lines still reaches the observed-longer axis (A42.6).
+ * repeats stay in the transcript and are absorbed by the subsequence comparator (A44.1).
  *
  * Prefers longer alphabet entries when two share a start position on the same line.
  */
@@ -368,9 +411,10 @@ export function loadReviewJsonFindings(filePath: string): ProcessContextFinding[
 }
 
 /**
- * Build a flake pair from durable attempt events (ledger∪loose) for a change (A43.3 / corr 110).
+ * Build a flake pair from durable attempt events (ledger∪loose) for a change (A43.3 / A44.2).
+ * Adjacency is within a **task's** attempt sequence (group by task, order by id), not the
+ * global event stream — interleaved tasks are the wave model (A44.2 / corr 113).
  * Uses the most recent fail→pass pair that both carry write evidence, optionally scoped to a task.
- * Returns null when no suitable pair exists (caller reports no flake field, not AbsenceValue — flag was asked).
  */
 export function flakePairFromChange(
   projectRoot: string,
@@ -405,21 +449,36 @@ export function flakePairFromChange(
   return pair;
 }
 
-function findLatestFailPassPair(events: LooseEvent[]): FlakePair | null {
-  const ordered = [...events].sort((a, b) => a.id - b.id);
+/**
+ * Find the latest fail→pass pair with write evidence, grouping by task first (A44.2).
+ * Global adjacency of T1-fail / T2-attempt / T1-pass must still yield a pair for T1.
+ */
+export function findLatestFailPassPair(events: LooseEvent[]): FlakePair | null {
+  const byTask = new Map<string, LooseEvent[]>();
+  for (const event of events) {
+    const list = byTask.get(event.task) ?? [];
+    list.push(event);
+    byTask.set(event.task, list);
+  }
   let latest: FlakePair | null = null;
-  for (let i = 0; i < ordered.length - 1; i += 1) {
-    const earlier = ordered[i]!;
-    const later = ordered[i + 1]!;
-    if (earlier.task !== later.task) continue;
-    const ep = readAttemptPayload(earlier);
-    const lp = readAttemptPayload(later);
-    if (ep.outcome !== "fail" || lp.outcome !== "pass") continue;
-    if (!ep.writeEvidence || !lp.writeEvidence) continue;
-    latest = {
-      earlier: { outcome: "fail", writeEvidence: ep.writeEvidence },
-      later: { outcome: "pass", writeEvidence: lp.writeEvidence },
-    };
+  let latestLaterId = -1;
+  for (const group of byTask.values()) {
+    const ordered = [...group].sort((a, b) => a.id - b.id);
+    for (let i = 0; i < ordered.length - 1; i += 1) {
+      const earlier = ordered[i]!;
+      const later = ordered[i + 1]!;
+      const ep = readAttemptPayload(earlier);
+      const lp = readAttemptPayload(later);
+      if (ep.outcome !== "fail" || lp.outcome !== "pass") continue;
+      if (!ep.writeEvidence || !lp.writeEvidence) continue;
+      if (later.id > latestLaterId) {
+        latestLaterId = later.id;
+        latest = {
+          earlier: { outcome: "fail", writeEvidence: ep.writeEvidence },
+          later: { outcome: "pass", writeEvidence: lp.writeEvidence },
+        };
+      }
+    }
   }
   return latest;
 }
@@ -516,12 +575,13 @@ export function localizeFailure(input: LocalizeInput): LocalizationResult {
     return withProcessAndFlake(base, input);
   }
 
-  // own empty + foreign non-empty: divergence at 0 stands — log demonstrably carries markers.
-  // own non-empty: normal compare.
+  // own empty + foreign non-empty: first unmet requirement at 0 — log demonstrably carries markers.
+  // own non-empty: ordered-subsequence compare (A44.1).
   const divergence = firstDivergentBlock(verification.requiredLogMarkers, observed);
   base.divergence = divergence;
 
   if (divergence) {
+    // Locate the unmet *requirement* (expected), not an extra observed token.
     const markerForLocation = divergence.expected ?? divergence.observed;
     const moduleRecord =
       input.module
@@ -532,6 +592,12 @@ export function localizeFailure(input: LocalizeInput): LocalizationResult {
     base.locations = resolved.locations;
     if (resolved.locationAbsence) {
       base.locationAbsence = resolved.locationAbsence;
+    }
+  } else {
+    // Requirements met: report repeat counts as context when any required marker appears >1×.
+    const counts = countRequiredInObserved(verification.requiredLogMarkers, observed);
+    if (counts.some((row) => row.count > 1)) {
+      base.observedRequirementCounts = counts;
     }
   }
 
@@ -602,7 +668,17 @@ export function formatLocalizationText(result: LocalizationResult): string {
         + ` observed=${JSON.stringify(result.divergence.observed ?? null)}`,
     );
   } else if (!result.absence) {
-    lines.push("First divergent block: (none — sequences agree; failure is elsewhere)");
+    lines.push(
+      "First divergent block: (none — all required markers found in order; failure is elsewhere)",
+    );
+  }
+  if (result.observedRequirementCounts && result.observedRequirementCounts.length > 0) {
+    const parts = result.observedRequirementCounts.map(
+      (row) => `${row.marker}×${row.count}`,
+    );
+    lines.push(
+      `Observed requirement counts: ${parts.join(", ")} (repeats absorbed; not a divergence)`,
+    );
   }
   if (result.locations.length > 0) {
     lines.push("Location:");

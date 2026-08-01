@@ -3,16 +3,26 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { writeMinimalNgraceProject, writeSegmentedNgraceProject } from "../artifact/test-fixtures";
+import {
+  writeChangeBundleFixture,
+  writeMinimalNgraceProject,
+  writeSegmentedNgraceProject,
+} from "../artifact/test-fixtures";
 import { ARTIFACT_DIR } from "../artifact/paths";
-import type { WriteEvidenceSnapshot } from "../grace-cursor";
+import {
+  advanceCursor,
+  recordAttempt,
+  type WriteEvidenceSnapshot,
+} from "../grace-cursor";
 import { loadGraceArtifactIndex } from "../query/core";
 import type { ModuleRecord } from "../query/types";
 import { allReviewCodes } from "../review/catalog";
 import {
   ADMISSIBLE_REVIEW_CODES,
+  countRequiredInObserved,
   excludedReviewCodesForLocalization,
   filterAdmissibleReviewFindings,
+  findLatestFailPassPair,
   firstDivergentBlock,
   flakePairFromChange,
   formatLocalizationText,
@@ -81,58 +91,77 @@ const M3 = "[A][m3][BLOCK_M3]";
 const FOREIGN = "[B][run][BLOCK_RUN]";
 
 // ---------------------------------------------------------------------------
-// firstDivergentBlock — seven axes (A40.2 / A42.6)
+// firstDivergentBlock — requirement/transcript axes (A44.1, restated from A42.6)
 // ---------------------------------------------------------------------------
 
-describe("firstDivergentBlock — seven axes (A40.2)", () => {
-  it("axis: divergence at index 0", () => {
-    const d = firstDivergentBlock([M0, M1], [M1, M0]);
-    expect(d).toEqual({ index: 0, expected: M0, observed: M1 });
+describe("firstDivergentBlock — requirement subsequence (A44.1)", () => {
+  // Five-row both-directions table from A44.1 (each its own case, A40.2).
+  it("row: [A,B,C] vs [A,A,B,B,C] → null (repeats absorbed)", () => {
+    expect(firstDivergentBlock([M0, M1, M2], [M0, M0, M1, M1, M2])).toBeNull();
   });
 
-  it("axis: divergence mid-sequence", () => {
-    const d = firstDivergentBlock([M0, M1, M2], [M0, M2, M1]);
+  it("row: [A,B,C] vs [A,C] → divergence at expected index 1 (B never appeared)", () => {
+    const d = firstDivergentBlock([M0, M1, M2], [M0, M2]);
     expect(d).toEqual({ index: 1, expected: M1, observed: M2 });
   });
 
-  it("axis: divergence at the end (last expected missing / wrong)", () => {
-    const d = firstDivergentBlock([M0, M1, M2], [M0, M1, M3]);
-    expect(d).toEqual({ index: 2, expected: M2, observed: M3 });
+  it("row: [A,B,C] vs [B,A,C] → divergence at expected index 1 (A late; B not after it)", () => {
+    const d = firstDivergentBlock([M0, M1, M2], [M1, M0, M2]);
+    expect(d).toEqual({ index: 1, expected: M1, observed: M2 });
   });
 
-  it("axis: observed shorter than expected", () => {
+  it("row: [A,B,C] vs [A,B,C] → null", () => {
+    expect(firstDivergentBlock([M0, M1, M2], [M0, M1, M2])).toBeNull();
+  });
+
+  it("row: [A] vs [A,A,A] → null (repeats are context, not divergence)", () => {
+    // Failing-before (equality comparator) reported index 1 expected=null observed=A.
+    // Requirement semantics: all met.
+    expect(firstDivergentBlock([M0], [M0, M0, M0])).toBeNull();
+    const counts = countRequiredInObserved([M0], [M0, M0, M0]);
+    expect(counts).toEqual([{ marker: M0, count: 3 }]);
+  });
+
+  // Restated axes (each separate case).
+  it("axis: first unmet requirement at index 0", () => {
+    // M0 never appears in the transcript at all.
+    const d = firstDivergentBlock([M0, M1], [M1]);
+    expect(d).toEqual({ index: 0, expected: M0, observed: M1 });
+  });
+
+  it("axis: first unmet requirement mid-sequence", () => {
+    const d = firstDivergentBlock([M0, M1, M2], [M0, M2]);
+    expect(d).toEqual({ index: 1, expected: M1, observed: M2 });
+  });
+
+  it("axis: first unmet requirement at end", () => {
     const d = firstDivergentBlock([M0, M1, M2], [M0, M1]);
     expect(d).toEqual({ index: 2, expected: M2, observed: undefined });
   });
 
-  it("axis: observed longer than expected", () => {
-    const d = firstDivergentBlock([M0, M1], [M0, M1, M2]);
-    expect(d).toEqual({ index: 2, expected: undefined, observed: M2 });
-  });
-
-  it("axis: repeated marker makes observed longer (production path to longer)", () => {
-    // Comparator alone: hand-built longer array proves the comparator axis.
-    const d = firstDivergentBlock([M0, M1], [M0, M1, M1]);
-    expect(d).toEqual({ index: 2, expected: undefined, observed: M1 });
-  });
-
-  it("axis: identical sequences → null", () => {
+  it("axis: all requirements met → null", () => {
     expect(firstDivergentBlock([M0, M1], [M0, M1])).toBeNull();
   });
 
-  it("empty expected and empty observed → null", () => {
+  it("axis: repeats absorbed → null (extra own markers after match)", () => {
+    expect(firstDivergentBlock([M0, M1], [M0, M1, M1])).toBeNull();
+    // Extra M2 after all requirements met is not a divergence under requirement semantics.
+    expect(firstDivergentBlock([M0, M1], [M0, M0, M1, M2])).toBeNull();
+  });
+
+  it("axis: order violated (required marker only before earlier match)", () => {
+    // B appears before A is satisfied; after A, B is not available again.
+    const d = firstDivergentBlock([M0, M1, M2], [M1, M0, M2]);
+    expect(d?.index).toBe(1);
+    expect(d?.expected).toBe(M1);
+  });
+
+  it("empty expected → null (vacuously all requirements met)", () => {
     expect(firstDivergentBlock([], [])).toBeNull();
+    expect(firstDivergentBlock([], [M0])).toBeNull();
   });
 
-  it("empty expected, non-empty observed → index 0", () => {
-    expect(firstDivergentBlock([], [M0])).toEqual({
-      index: 0,
-      expected: undefined,
-      observed: M0,
-    });
-  });
-
-  it("non-empty expected, empty observed → index 0", () => {
+  it("non-empty expected, empty observed → first unmet at 0", () => {
     expect(firstDivergentBlock([M0], [])).toEqual({
       index: 0,
       expected: M0,
@@ -142,10 +171,10 @@ describe("firstDivergentBlock — seven axes (A40.2)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// parseObservedMarkers — per-line at most one (A43.2); across lines all (A42.6)
+// parseObservedMarkers — per-line at most one (A43.2); across lines all kept
 // ---------------------------------------------------------------------------
 
-describe("parseObservedMarkers — per-line once, line order (A42.6 / A43.2)", () => {
+describe("parseObservedMarkers — per-line once, line order (A43.2 / A44.1)", () => {
   const alphabet = [M0, M1, M2, FOREIGN];
 
   it("case: empty log → []", () => {
@@ -166,11 +195,11 @@ describe("parseObservedMarkers — per-line once, line order (A42.6 / A43.2)", (
     expect(parseObservedMarkers(log, alphabet)).toEqual([M0, FOREIGN, M1]);
   });
 
-  it("case: repeated marker on separate lines keeps every line (path to observed-longer)", () => {
+  it("case: repeated marker on separate lines keeps every line (transcript preserves repeats)", () => {
     const log = `${M0}\n${M1}\n${M1}\n`;
     expect(parseObservedMarkers(log, [M0, M1])).toEqual([M0, M1, M1]);
-    const d = firstDivergentBlock([M0, M1], parseObservedMarkers(log, [M0, M1]));
-    expect(d).toEqual({ index: 2, expected: undefined, observed: M1 });
+    // Subsequence comparator absorbs the extra M1 — not a divergence (A44.1).
+    expect(firstDivergentBlock([M0, M1], parseObservedMarkers(log, [M0, M1]))).toBeNull();
   });
 
   it("case: at most one count per line (within-line inflation removed)", () => {
@@ -181,6 +210,7 @@ describe("parseObservedMarkers — per-line once, line order (A42.6 / A43.2)", (
   it("case: assertion-diff log that echoes the marker (A43.2 probe)", () => {
     // Failing marker tests print the expected string in "right:" / "never emitted" lines.
     // Per-line rule: two lines each containing the marker → two textual hits (recorded limitation).
+    // Under requirement semantics the single requirement is still met (A44.1).
     const marker = "[LedgerCore][post][BLOCK_VALIDATE_BALANCE]";
     const log = [
       `right: "${marker}"`,
@@ -188,9 +218,8 @@ describe("parseObservedMarkers — per-line once, line order (A42.6 / A43.2)", (
     ].join("\n");
     const observed = parseObservedMarkers(log, [marker]);
     expect(observed).toEqual([marker, marker]);
-    // Not "zero emissions" — honesty: ground is textual presence, not emission certainty.
-    const d = firstDivergentBlock([marker], observed);
-    expect(d).toEqual({ index: 1, expected: undefined, observed: marker });
+    // Ground remains textual presence (two hits); comparator no longer treats extras as divergence.
+    expect(firstDivergentBlock([marker], observed)).toBeNull();
   });
 
   it("empty alphabet → [] even when log contains text", () => {
@@ -695,6 +724,50 @@ describe("localizeFailure — absences and end-to-end", () => {
     expect(result.locations.some((l) => l.path === "src/example.ts")).toBe(true);
   });
 
+  it("corr 112: three emissions of the required marker → null, not divergence at 1", () => {
+    // A44.1 probe: loop over three ledger entries; failure is elsewhere.
+    // Failing-before (equality): First divergent block: index 1 expected=null observed=marker
+    //                           Location: crates/core/src/lib.rs:16-21
+    const root = tempRoot("ngrace-repeat-");
+    writeMinimalNgraceProject(root);
+    write(
+      root,
+      "src/example.ts",
+      [
+        "// START_MODULE_CONTRACT",
+        "// LINKS: M-EXAMPLE",
+        "// END_MODULE_CONTRACT",
+        "// START_BLOCK_RUN",
+        'console.info("[Example][run][BLOCK_RUN]");',
+        "// END_BLOCK_RUN",
+      ].join("\n"),
+    );
+    const index = loadGraceArtifactIndex(root);
+    const verification = index.verifications[0]!;
+    const marker = verification.requiredLogMarkers[0]!;
+    const log = [
+      `INFO ${marker} ok`,
+      `INFO ${marker} ok`,
+      `INFO ${marker} ok`,
+      "test failed: assertion elsewhere",
+    ].join("\n");
+    const result = localizeFailure({
+      index,
+      verification,
+      module: index.modules.find((m) => m.id === "M-EXAMPLE"),
+      logText: log,
+    });
+    expect(result.observed).toEqual([marker, marker, marker]);
+    expect(result.divergence).toBeNull();
+    expect(result.locations).toEqual([]);
+    expect(result.absence).toBeUndefined();
+    expect(result.observedRequirementCounts).toEqual([{ marker, count: 3 }]);
+    const text = formatLocalizationText(result);
+    expect(text).toMatch(/all required markers found in order/);
+    expect(text).toMatch(/×3/);
+    expect(text).not.toMatch(/First divergent block: index/);
+  });
+
   it("ungoverned test path → module absence", () => {
     const root = tempRoot("ngrace-ungov-");
     writeMinimalNgraceProject(root);
@@ -897,6 +970,84 @@ describe("CLI ngrace verification localize — every absence row has an invocati
     expect("absence" in loaded).toBe(true);
   });
 
+  it("corr 112 CLI: three emissions of required marker → null + counts, not divergence", () => {
+    const root = fixtureWithBlock("ngrace-cli-repeat-");
+    const logPath = path.join(root, "run.log");
+    const marker = "[Example][run][BLOCK_RUN]";
+    writeFileSync(
+      logPath,
+      [`INFO ${marker} ok`, `INFO ${marker} ok`, `INFO ${marker} ok`, "test failed: assertion elsewhere"].join("\n"),
+    );
+    const body = cliJson(["V-M-EXAMPLE", "--path", root, "--log", logPath, "--json"]);
+    expect(body.divergence).toBeNull();
+    expect(body.locations).toEqual([]);
+    expect(body.observed).toEqual([marker, marker, marker]);
+    expect(body.observedRequirementCounts).toEqual([{ marker, count: 3 }]);
+  });
+
+  it("corr 113 CLI: interleaved fail(T1)/attempt(T2)/pass(T1) → flake flaky via --change", () => {
+    const root = tempRoot("ngrace-cli-flake-pair-");
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-FLAKE",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+    });
+    write(
+      root,
+      "src/example.ts",
+      [
+        "// START_MODULE_CONTRACT",
+        "// LINKS: M-EXAMPLE",
+        "// END_MODULE_CONTRACT",
+        "// START_BLOCK_RUN",
+        'console.info("[Example][run][BLOCK_RUN]");',
+        "// END_BLOCK_RUN",
+      ].join("\n"),
+    );
+    const sameEvidence: WriteEvidenceSnapshot = {
+      available: true,
+      files: [{ path: "src/example.ts", kind: "content", digest: "same" }],
+    };
+    const otherEvidence: WriteEvidenceSnapshot = {
+      available: true,
+      files: [{ path: "src/example.ts", kind: "content", digest: "other" }],
+    };
+    advanceCursor(root, "C-FLAKE", { task: "T-001", openEpoch: true, from: 1, to: 99, wave: "1" });
+    recordAttempt(root, "C-FLAKE", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "t1-fail" },
+      writeEvidence: sameEvidence,
+    });
+    recordAttempt(root, "C-FLAKE", {
+      task: "T-002",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "t2-mid" },
+      writeEvidence: otherEvidence,
+    });
+    recordAttempt(root, "C-FLAKE", {
+      task: "T-001",
+      outcome: "pass",
+      writeEvidence: sameEvidence,
+    });
+    const logPath = path.join(root, "run.log");
+    writeFileSync(logPath, "[Example][run][BLOCK_RUN]\n");
+    const body = cliJson([
+      "V-M-EXAMPLE",
+      "--path",
+      root,
+      "--log",
+      logPath,
+      "--change",
+      "C-FLAKE",
+      "--json",
+    ]);
+    expect((body.flake as { verdict: string }).verdict).toBe("flaky");
+    expect((body.flake as { reason: string }).reason).toMatch(/identical write evidence/);
+  });
+
   it("writes nothing under the project root (F1)", () => {
     const root = fixtureWithBlock("ngrace-cli-nowrite-");
     const logPath = path.join(root, "run.log");
@@ -935,6 +1086,136 @@ describe("CLI ngrace verification localize — every absence row has an invocati
       Buffer.from(after.stdout).toString("utf8").trim().split("\n").filter(Boolean).sort(),
     );
     expect([...afterSet].sort()).toEqual([...beforeSet].sort());
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Flake producer success path — interleaved tasks (A44.2 / corr 113)
+// ---------------------------------------------------------------------------
+
+describe("flakePairFromChange — task-grouped pairing (A44.2 / corr 113)", () => {
+  function evidence(digest: string): WriteEvidenceSnapshot {
+    return {
+      available: true,
+      files: [{ path: "src/example.ts", kind: "content", digest }],
+    };
+  }
+
+  function projectWithChange(prefix: string, changeId = "C-FLAKE"): string {
+    const root = tempRoot(prefix);
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId,
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+    });
+    write(
+      root,
+      "src/example.ts",
+      [
+        "// START_MODULE_CONTRACT",
+        "// LINKS: M-EXAMPLE",
+        "// END_MODULE_CONTRACT",
+        "// START_BLOCK_RUN",
+        'console.info("[Example][run][BLOCK_RUN]");',
+        "// END_BLOCK_RUN",
+      ].join("\n"),
+    );
+    return root;
+  }
+
+  it("interleaved fail(T1)/attempt(T2)/pass(T1) → pair found (task-grouped)", () => {
+    const root = projectWithChange("ngrace-flake-interleave-");
+    advanceCursor(root, "C-FLAKE", { task: "T-001", openEpoch: true, from: 1, to: 99, wave: "1" });
+    // Global stream: T1 fail → T2 fail → T1 pass. Global adjacency misses the pair.
+    recordAttempt(root, "C-FLAKE", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "t1-fail" },
+      writeEvidence: evidence("same"),
+    });
+    recordAttempt(root, "C-FLAKE", {
+      task: "T-002",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "t2-mid" },
+      writeEvidence: evidence("other"),
+    });
+    recordAttempt(root, "C-FLAKE", {
+      task: "T-001",
+      outcome: "pass",
+      writeEvidence: evidence("same"),
+    });
+
+    const loaded = flakePairFromChange(root, "C-FLAKE");
+    expect("absence" in loaded).toBe(false);
+    if ("absence" in loaded) return;
+    expect(loaded.earlier.outcome).toBe("fail");
+    expect(loaded.later.outcome).toBe("pass");
+  });
+
+  it("same interleaved bundle without the pass → unable-to-determine", () => {
+    const root = projectWithChange("ngrace-flake-no-pass-");
+    advanceCursor(root, "C-FLAKE", { task: "T-001", openEpoch: true, from: 1, to: 99, wave: "1" });
+    recordAttempt(root, "C-FLAKE", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "t1-fail" },
+      writeEvidence: evidence("same"),
+    });
+    recordAttempt(root, "C-FLAKE", {
+      task: "T-002",
+      outcome: "fail",
+      signature: { kind: "test-failure", key: "t2-mid" },
+      writeEvidence: evidence("other"),
+    });
+    // No pass for T-001.
+    const loaded = flakePairFromChange(root, "C-FLAKE");
+    expect("absence" in loaded).toBe(true);
+    if ("absence" in loaded) {
+      expect(loaded.absence.verdict).toBe("unable-to-determine");
+      expect(loaded.absence.reason).toMatch(/no fail→pass attempt pair/);
+    }
+  });
+
+  it("findLatestFailPassPair groups by task (unit of the pairing defect)", () => {
+    // Synthetic event list matching writeEvidenceNode shape: path in text, digest attr.
+    const mk = (
+      id: number,
+      task: string,
+      outcome: string,
+      digest: string,
+    ) =>
+      ({
+        id,
+        task,
+        kind: "attempt" as const,
+        file: `events/${id}.xml`,
+        attributes: { outcome },
+        children: [
+          {
+            tag: "WriteEvidence",
+            attributes: { available: "true" },
+            children: [
+              {
+                tag: "File",
+                attributes: { digest },
+                children: [],
+                text: "src/example.ts",
+              },
+            ],
+            text: "",
+          },
+        ],
+      });
+    const pair = findLatestFailPassPair([
+      mk(1, "T-001", "fail", "same"),
+      mk(2, "T-002", "fail", "x"),
+      mk(3, "T-001", "pass", "same"),
+    ]);
+    expect(pair).not.toBeNull();
+    expect(pair!.earlier.outcome).toBe("fail");
+    expect(pair!.later.outcome).toBe("pass");
   });
 });
 

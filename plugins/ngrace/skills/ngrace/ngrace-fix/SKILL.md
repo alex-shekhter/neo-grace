@@ -16,9 +16,10 @@ description: Debug and fix issues in a neo-grace project using .ngrace semantic 
    Observed is textual presence of declared markers in that log (see command output ground),
    not proven emissions — if only a failure report exists, treat the observed sequence as
    unreliable and prefer absence over a confident divergence.
-   Read first divergent block and `path:startLine-endLine` when a `BLOCK_*` region resolves;
-   if location or sequence is absent, treat that as absence — never invent a stack frame as the
-   divergence point.
+   Expected is a requirement list in declaration order; observed is a transcript — repeats and
+   extra own-marker traffic are absorbed, not divergence. Read the first *unmet* required marker
+   and `path:startLine-endLine` when a `BLOCK_*` region resolves; if location or sequence is
+   absent, treat that as absence — never invent a stack frame as the divergence point.
 5. Inspect file-local contracts and semantic blocks before editing.
 6. Identify root cause, present findings, then make the smallest safe fix.
 </investigation_path>
