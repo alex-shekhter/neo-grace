@@ -1,3 +1,18 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Lint issue catalog and emission patterns
+//   SCOPE: Titles, remediations, absence guides, and emission pattern sets
+//   DEPENDS: none
+//   LINKS: M-LINT-CATALOG
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   DEFAULT_EMISSION_PATTERNS
+//   EMISSION_PATTERN_SETS
+//   EmissionPatternSet
+//   emissionPatternsFor
+// END_MODULE_MAP
 /**
  * Language-aware patterns for recognizing runtime log/trace emission lines.
  * Used by hasRuntimeMarkerEvidence so idiomatic Rust/Go logging counts as

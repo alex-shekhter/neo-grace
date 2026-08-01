@@ -15,6 +15,12 @@
         <V-M-CURSOR />
         <V-M-ARTIFACT-TYPES />
         <V-M-CLI />
+        <V-M-GATES />
+        <V-M-REVIEW />
+        <V-M-LOCALIZE />
+        <V-M-QUERY />
+        <V-M-CONTEXT />
+        <V-M-TEST-SUPPORT />
       </Owns>
     </VD-MAIN>
   </VerificationDocuments>

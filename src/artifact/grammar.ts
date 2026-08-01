@@ -1,3 +1,35 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Artifact grammar, XML, and project layout
+//   SCOPE: Validation of .ngrace artifacts and path resolution
+//   DEPENDS: none
+//   LINKS: M-GRAMMAR
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   ArtifactValidationResult
+//   NGRACE_CONTEXT_ARTIFACTS
+//   NGRACE_OPTIONAL_CONTEXT_ARTIFACTS
+//   NgraceValidationResult
+//   classifySemanticAnchorTag
+//   cursorEscalatedTasks
+//   cursorNamedTask
+//   planTaskIds
+//   validateArtifactRoot
+//   validateChangeArtifact
+//   validateChangeDesignContextArtifact
+//   validateContextArtifacts
+//   validateDesignSystemArtifact
+//   validateInvariantsArtifact
+//   validateNgraceProject
+//   validateNgraceProjectLayout
+//   validateOptionalContextArtifacts
+//   validateRunCursorArtifact
+//   validateRunLedgerArtifact
+//   validateSemanticAnchorDiscipline
+//   validateSpecPlanCoverage
+// END_MODULE_MAP
 import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 

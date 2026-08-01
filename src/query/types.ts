@@ -1,3 +1,32 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Artifact query and navigation CLI
+//   SCOPE: Module, file, graph, and verification resolution
+//   DEPENDS: none
+//   LINKS: M-QUERY
+//   ROLE: TYPES
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   FileBlockRecord
+//   FileContractRecord
+//   FileFieldSection
+//   FileListItem
+//   FileMarkupRecord
+//   GraceArtifactIndex
+//   ModuleFindOptions
+//   ModuleGraphRecord
+//   ModuleHealthIssue
+//   ModuleHealthRecord
+//   ModuleInterfaceItem
+//   ModuleMatch
+//   ModuleRecord
+//   ModuleVerificationRecord
+//   NgraceModuleRecord
+//   VerificationFindOptions
+//   VerificationMatch
+//   VerificationScenario
+// END_MODULE_MAP
 import type { NgraceIssue } from "../artifact/types";
 import type { GraphAnchorRecord, GraphProjection, VerificationProjection } from "../artifact/projections";
 import type { FileMarkupRecord } from "../project-utils";

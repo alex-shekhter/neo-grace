@@ -103,6 +103,99 @@ describe("stripQuotedStrings / hasGraceMarkers (nested templates)", () => {
       expect(collectNearMissMarkerIssues("src/prose.ts", `${line}\n`), line).toEqual([]);
     }
   });
+
+  it("corr 145: apostrophe in // comment does not open a string span", () => {
+    // Axis 1: ' inside a // comment must not swallow following markers.
+    const withApostrophe = `// START_MODULE_CONTRACT
+//   PURPOSE: Parse the user's governed file
+//   SCOPE: Fixture
+//   DEPENDS: none
+//   LINKS: M-EXAMPLE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   foo
+// END_MODULE_MAP
+export function foo() { return 1; }
+`;
+    const stripped = stripQuotedStrings(withApostrophe);
+    expect(stripped).toContain("END_MODULE_CONTRACT");
+    expect(stripped).toContain("START_MODULE_MAP");
+    expect(stripped).toContain("foo");
+    expect(hasGraceMarkers(withApostrophe)).toBe(true);
+    const analysis = analyzeGovernedFile("/tmp", "src/apostrophe.ts", withApostrophe);
+    expect(analysis.issues.filter((i) => i.code === "markup.missing-end-marker")).toEqual([]);
+    expect(analysis.issues.filter((i) => i.code === "markup.module-map-missing")).toEqual([]);
+    expect(analysis.issues.filter((i) => i.code === "markup.module-map-mismatch")).toEqual([]);
+  });
+
+  it("corr 145: // inside a string is not a comment; markers there stay stripped", () => {
+    // Axis 2: // inside string literals must still not start a comment.
+    const urlAndTemplate = [
+      'const url = "http://example.com/path";',
+      "const s = 'http://also.example';",
+      "const t = `// START_MODULE_CONTRACT`;",
+      'const u = "// END_MODULE_CONTRACT";',
+      "",
+    ].join("\n");
+    const stripped = stripQuotedStrings(urlAndTemplate);
+    expect(stripped).not.toMatch(/START_MODULE_CONTRACT/);
+    expect(stripped).not.toMatch(/END_MODULE_CONTRACT/);
+    expect(stripped).toContain("const url");
+    // http:// blanked inside the string, but // must not eat the rest of the file.
+    expect(stripped.split("\n").length).toBe(urlAndTemplate.split("\n").length);
+    expect(hasGraceMarkers(urlAndTemplate)).toBe(false);
+  });
+
+  it("corr 145: apostrophe inside a string literal remains a delimiter", () => {
+    // Axis 3: ' inside strings still opens/closes as before.
+    const source = [
+      "const msg = 'it\\'s fine';",
+      'const other = "still here";',
+      "// START_MODULE_CONTRACT",
+      "// END_MODULE_CONTRACT",
+      "",
+    ].join("\n");
+    expect(hasGraceMarkers(source)).toBe(true);
+    const stripped = stripQuotedStrings(source);
+    expect(stripped).toContain("START_MODULE_CONTRACT");
+    expect(stripped).toContain("END_MODULE_CONTRACT");
+  });
+
+  it("corr 145: quotes inside block comments do not open a string span", () => {
+    // Axis 4: block comments — quotes do not start strings; body is kept.
+    const source = [
+      "/* PURPOSE: the user's file",
+      "   still in block",
+      "*/",
+      "// START_MODULE_CONTRACT",
+      "// END_MODULE_CONTRACT",
+      "",
+    ].join("\n");
+    const stripped = stripQuotedStrings(source);
+    expect(stripped).toContain("the user's file");
+    expect(stripped).toContain("START_MODULE_CONTRACT");
+    expect(hasGraceMarkers(source)).toBe(true);
+  });
+
+  it("corr 145 / A8: near-miss after a comment apostrophe still fires (silent-regression pin)", () => {
+    // A8 only inspects first-token near-misses (1–2 tokens). Place the miss on its
+    // own comment line after a prose line that contains an apostrophe. Before the
+    // fix, the apostrophe opened a span and blanked the following lines, so A8
+    // never saw START_MODULE_CONTRACTX — a silent regression in a green suite.
+    const hiddenNearMiss = [
+      "// PURPOSE: the user's governed surface",
+      "// START_MODULE_CONTRACTX",
+      "",
+    ].join("\n");
+    expect(hasGraceMarkers(hiddenNearMiss)).toBe(false);
+    const issues = collectNearMissMarkerIssues("src/a8-apostrophe.ts", hiddenNearMiss);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]!.code).toBe("markup.near-miss-marker");
+    expect(issues[0]!.message).toContain("START_MODULE_CONTRACTX");
+  });
 });
 
 describe("governed file analysis", () => {

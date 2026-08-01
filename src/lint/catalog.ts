@@ -1,3 +1,20 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Lint issue catalog and emission patterns
+//   SCOPE: Titles, remediations, absence guides, and emission pattern sets
+//   DEPENDS: none
+//   LINKS: M-LINT-CATALOG
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   DefectPatternId
+//   formatLintExplanation
+//   getExactLintIssueGuide
+//   getLintIssueGuide
+//   listAbsenceCatalogCodes
+//   withLintIssueGuide
+// END_MODULE_MAP
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { ARTIFACT_TAG_PREFIX, skillRef } from "../artifact/types";
 import { CONFIG_FILE_NAME } from "./config";
@@ -151,6 +168,20 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     title: "Superseded Change Missing Replacement Reference",
     explanation: "A NgraceChangeSpec or NgraceChangePlan with status='superseded' should name the replacement C-* anchor via a <Replacement> or <ReplacementChange> child tag.",
     remediation: ["Add a <Replacement>C-REPLACEMENT-ID</Replacement> child to the superseded wrapper.", "Or add a direct <C-REPLACEMENT-ID /> child tag as the replacement reference."],
+  },
+  "change.graph-anchors-miss-write-scope": {
+    title: "GraphAnchors Do Not Own ObservedWriteScope Path",
+    explanation:
+      "An active plan lists a non-test src/ path in ObservedWriteScope whose MODULE_CONTRACT LINKS "
+      + "does not include any module from DurableScope/GraphAnchors. Ownership is the reverse edge "
+      + "(LINKS), not directory prefix. Non-src paths and test files are not subject to this check.",
+    remediation: [
+      "Add a GraphAnchors module that the file already LINKS, or change the file's LINKS to a module the plan anchors.",
+      "Or remove the path from ObservedWriteScope if it is not part of this change's source write set.",
+    ],
+    derivedFrom:
+      "C-GRAPH-COVERAGE / A53: GraphAnchors must be able to name the code the plan claims to write; LINKS is the partition.",
+    proposedBy: "confidently-wrong",
   },
   "change.scope-does-not-cover-spec": {
     title: "Plan Scope Does Not Cover Spec AffectedAreas",

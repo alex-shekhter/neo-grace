@@ -1,3 +1,15 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Artifact query and navigation CLI
+//   SCOPE: Module, file, graph, and verification resolution
+//   DEPENDS: none
+//   LINKS: M-QUERY
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   fileCommand
+// END_MODULE_MAP
 import { defineCommand } from "citty";
 
 import { loadGraceArtifactIndex, resolveGovernedFile } from "./query/core";

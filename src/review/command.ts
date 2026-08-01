@@ -1,3 +1,15 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Review surface
+//   SCOPE: Process audits, pattern detectors, and review.* findings
+//   DEPENDS: none
+//   LINKS: M-REVIEW
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   reviewCommand
+// END_MODULE_MAP
 /**
  * ngrace review — run mechanized audits and pattern detectors; never write verdicts (A35.2 corr 81).
  */

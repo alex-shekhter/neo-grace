@@ -1,3 +1,23 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Shared artifact constants and path helpers
+//   SCOPE: Root tags, companions, anchor patterns, ARTIFACT_DIR
+//   DEPENDS: none
+//   LINKS: M-ARTIFACT-TYPES
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   ARTIFACT_DIR
+//   ContainedPathMode
+//   ContainedPathOptions
+//   ContainedProjectPath
+//   ProjectPathError
+//   canonicalizeExistingPath
+//   normalizeProjectRelativePath
+//   resolveContainedProjectPath
+//   toProjectRelativePath
+// END_MODULE_MAP
 import { existsSync, realpathSync } from "node:fs";
 import path from "node:path";
 

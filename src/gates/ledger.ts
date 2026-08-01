@@ -1,3 +1,33 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Transition gate surface
+//   SCOPE: Approve, apply, archive evaluation and ledger decisions
+//   DEPENDS: none
+//   LINKS: M-GATES
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   DecisionListResult
+//   GateDecisionRecord
+//   GateDecisionValue
+//   GateId
+//   GateRequirementRecord
+//   LEDGER_NON_EPOCH_SECTIONS
+//   LatestReviewVerdict
+//   PermittingDecisionStatus
+//   ReviewVerdictOutcome
+//   ReviewVerdictRecord
+//   hasPermittingDecision
+//   latestReviewVerdict
+//   listGateDecisions
+//   listReviewVerdicts
+//   readGateDecisions
+//   readLatestReviewVerdict
+//   readPermittingDecision
+//   recordGateDecision
+//   recordReviewVerdict
+// END_MODULE_MAP
 /**
  * Bundle-scoped Verdicts and Decisions on run-ledger.xml (A30.2).
  * Siblings to Epoch-N; never loose run/ events (correction 61).

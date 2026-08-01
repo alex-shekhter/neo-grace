@@ -83,7 +83,8 @@ describe("codeExtensions config", () => {
     const result = lintGraceProject(root);
     // The file is invisible: never discovered, so its markup is never validated.
     expect(issuesForElixir(result)).toEqual([]);
-    expect(result.governedFiles).toBe(0);
+    // writeMinimalNgraceProject ships governed src/example.ts; elixir remains ungoverned.
+    expect(result.governedFiles).toBe(1);
   });
 
   it("governs a project-declared language and reports it as unverified", () => {
@@ -92,7 +93,8 @@ describe("codeExtensions config", () => {
     writeProjectFile(root, ".ngrace-lint.json", JSON.stringify({ codeExtensions: [".ex", ".exs"] }));
 
     const result = lintGraceProject(root);
-    expect(result.governedFiles).toBe(1);
+    // example.ts + ledger.ex
+    expect(result.governedFiles).toBe(2);
     // Governed, and honest about what it cannot verify.
     expect(issuesForElixir(result)).toContain("analysis.no-adapter");
     // Phase 2: catalog route 2 attaches issueClass on finalize (A7.3 §2: assert exists first).
@@ -116,7 +118,7 @@ describe("codeExtensions config", () => {
     );
 
     const result = lintGraceProject(root);
-    expect(result.governedFiles).toBe(1);
+    expect(result.governedFiles).toBe(2);
     expect(issuesForElixir(result)).not.toContain("analysis.no-adapter");
     expect(result.summary.errors).toBe(0);
   });

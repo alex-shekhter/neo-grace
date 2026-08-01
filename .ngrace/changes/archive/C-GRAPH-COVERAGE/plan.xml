@@ -1,0 +1,210 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-GRAPH-COVERAGE>
+    <IntentSummary>
+      Full src/ reverse edge and GraphAnchors↔OWS LINKS check (C-GRAPH-COVERAGE). A and C
+      re-decided per A53: govern all 56 non-test src/ files; layer-3 ownership is LINKS-only.
+      B and D as ratified. Authored before production code (A17.3). Live subject: this plan must
+      pass the rule it introduces (A53.4 / corr 143).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/project-utils.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/graph/main.xml</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-LOCALIZE</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-CONTEXT</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/lint src/grace-lint.test.ts src/project-utils.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-LINT-CORE />
+        <M-LINT-CATALOG />
+        <M-LINT-TYPES />
+        <M-PROJECT-UTILS />
+        <M-GRAMMAR />
+        <M-ARTIFACT-TYPES />
+        <M-ASSERTIONS />
+        <M-STATUS />
+        <M-DOCTOR />
+        <M-CURSOR />
+        <M-SKILLS />
+        <M-GATES />
+        <M-REVIEW />
+        <M-LOCALIZE />
+        <M-QUERY />
+        <M-CONTEXT />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-LINT-CORE />
+        <V-M-LINT-CATALOG />
+        <V-M-LINT-TYPES />
+        <V-M-PROJECT-UTILS />
+        <V-M-GRAMMAR />
+        <V-M-ARTIFACT-TYPES />
+        <V-M-ASSERTIONS />
+        <V-M-STATUS />
+        <V-M-DOCTOR />
+        <V-M-CURSOR />
+        <V-M-SKILLS />
+        <V-M-GATES />
+        <V-M-REVIEW />
+        <V-M-LOCALIZE />
+        <V-M-QUERY />
+        <V-M-CONTEXT />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/assertions.ts</File>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/paths.ts</File>
+      <File>src/artifact/project.ts</File>
+      <File>src/artifact/projections.ts</File>
+      <File>src/artifact/scope.ts</File>
+      <File>src/artifact/test-fixtures.ts</File>
+      <File>src/artifact/types.ts</File>
+      <File>src/artifact/xml-serialize.ts</File>
+      <File>src/artifact/xml.ts</File>
+      <File>src/gates/catalog.ts</File>
+      <File>src/gates/command.ts</File>
+      <File>src/gates/core.ts</File>
+      <File>src/gates/ledger.ts</File>
+      <File>src/grace-context.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-doctor.ts</File>
+      <File>src/grace-file.ts</File>
+      <File>src/grace-graph.ts</File>
+      <File>src/grace-lint.ts</File>
+      <File>src/grace-module.ts</File>
+      <File>src/grace-status.ts</File>
+      <File>src/grace-verification.ts</File>
+      <File>src/grace.ts</File>
+      <File>src/language-registry.ts</File>
+      <File>src/lint/adapters/base.ts</File>
+      <File>src/lint/adapters/dart.ts</File>
+      <File>src/lint/adapters/go.ts</File>
+      <File>src/lint/adapters/python.ts</File>
+      <File>src/lint/adapters/rust.ts</File>
+      <File>src/lint/adapters/typescript.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/config.ts</File>
+      <File>src/lint/core.ts</File>
+      <File>src/lint/core.test.ts</File>
+      <File>src/lint/document-size.ts</File>
+      <File>src/lint/emission-patterns.ts</File>
+      <File>src/lint/scanners/go-lexer.ts</File>
+      <File>src/lint/scanners/rust-lexer.ts</File>
+      <File>src/lint/types.ts</File>
+      <File>src/project-utils.ts</File>
+      <File>src/project-utils.test.ts</File>
+      <File>src/query/core.ts</File>
+      <File>src/query/errors.ts</File>
+      <File>src/query/health.ts</File>
+      <File>src/query/render.ts</File>
+      <File>src/query/types.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/review/command.ts</File>
+      <File>src/review/core.ts</File>
+      <File>src/review/scope-helpers.ts</File>
+      <File>src/review/scorer.ts</File>
+      <File>src/review/shape-data.ts</File>
+      <File>src/test-support/defect-corpus.ts</File>
+      <File>src/test-support/fixtures.ts</File>
+      <File>src/test-support/token-accounting.ts</File>
+      <File>src/verification/check-references.ts</File>
+      <File>src/verification/localize.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/language-registry.test.ts</File>
+      <File>.ngrace/graph/main.xml</File>
+      <File>.ngrace/graph/index.xml</File>
+      <File>.ngrace/verification/main.xml</File>
+      <File>.ngrace/verification/index.xml</File>
+      <File>.ngrace/changes/active/C-GRAPH-COVERAGE/spec.xml</File>
+      <File>.ngrace/changes/active/C-GRAPH-COVERAGE/plan.xml</File>
+      <File>.ngrace/changes/active/C-GRAPH-COVERAGE/run-ledger.xml</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Layer 1 — graph and verification modules</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-LAYER1-MODULES-PRESENT />
+          <AC-BUDGETS-HOLD />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            GD-MAIN and indexes gain M-GATES, M-REVIEW, M-LOCALIZE, M-QUERY, M-CONTEXT,
+            M-TEST-SUPPORT with Path; VD-MAIN gains matching V-M-*; under 50 anchors / 30 KB.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run ngrace lint --path .</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Layer 2 — MODULE_CONTRACT on all non-test src/</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <Satisfies>
+          <AC-LAYER2-FULL-SRC />
+          <AC-LAYER2-REVERSE-EDGE />
+          <AC-LAYER2-HONEST-ROLES />
+          <AC-CONTEXT-LINKED-FILES />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            All 56 non-test src/ files governed with honest ROLE/MAP_MODE and LINKS partition;
+            zero graph.module-without-linked-files; context Linked Files non-empty for linked modules.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run ngrace lint --path .</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Layer 3 — GraphAnchors vs OWS LINKS check</Title>
+        <DependsOn>
+          <T-002 />
+        </DependsOn>
+        <Satisfies>
+          <AC-LAYER3-LINT-CHECK />
+          <AC-LAYER3-SELF-APPLICATION />
+          <AC-LAYER3-ARCHIVE-POLICY />
+          <AC-NO-OBSERVABLE-CHECKS-SCOPE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            change.graph-anchors-miss-write-scope on active plans only; both directions on four
+            axes; this plan silent under root lint; archives not evaluated.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/lint src/grace-lint.test.ts</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-GRAPH-COVERAGE>
+</NgraceChangePlan>

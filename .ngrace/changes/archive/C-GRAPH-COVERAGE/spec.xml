@@ -1,0 +1,207 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-GRAPH-COVERAGE>
+    <Summary>
+      Close the three-layer graph coverage defect: describe undescribed surfaces, govern every
+      non-test src/ file with MODULE_CONTRACT LINKS (full reverse edge), and add a lint check that
+      active plans' GraphAnchors own module-ownable ObservedWriteScope paths via those LINKS.
+    </Summary>
+    <Problem>
+      Recorded three times as deferred debt (A36.4, A46.6, A52.3) and never scheduled. Stage-1
+      re-derivation at 170a0c5 confirmed three layers; A53 accepted stage 1 and blocked A/C as
+      proposed (corrections 141–143).
+
+      Layer 1 — coverage. GD-MAIN had 12 modules / 11 Path files against 56 non-test src/ files.
+      Undescribed: src/gates, src/review, src/verification, src/query (corr 140: query was never
+      in the debt notes).
+
+      Layer 2 — linkage. Governed files: 0; eleven graph.module-without-linked-files warnings.
+      No production MODULE_CONTRACT; Linked Files in context --task always "none" (A46.4).
+
+      Layer 3 — consistency. No check joins GraphAnchors to ObservedWriteScope. C-REVIEW-SURFACE
+      writes src/review/* while anchoring modules that do not own those paths.
+
+      A53.1 / 141: Path + co-located surface left ten src/ files unowned (CLI verbs, language-registry,
+      test-support), including src/grace-context.ts from C-SELECTION. A53.2 / 142: directory-prefix
+      ownership is not a partition and lets layer 3 pass without MODULE_CONTRACT. A53.3: full
+      coverage is +179 MODULE_MAP lines over the middle rule, exact parity on all 56 files, and the
+      only option that dissolves 141 and 142. A53.4 / 143: this bundle's own plan is the live subject.
+    </Problem>
+    <Goals>
+      <Goal>
+        Layer 1: graph + verification describe gates, review, localization, query, context, and
+        test-support surfaces within the 50-anchor / 30 KB budgets.
+      </Goal>
+      <Goal>
+        Layer 2: every non-test file under src/ is governed with honest ROLE/MAP_MODE and
+        MODULE_CONTRACT LINKS to exactly one primary module (partition). Every Path-bearing module
+        has ≥1 linked file. Root lint has zero graph.module-without-linked-files.
+      </Goal>
+      <Goal>
+        Layer 3: lint errors when an active plan's module-ownable OWS path (non-test under src/) does
+        not declare LINKS to any of that plan's GraphAnchors. No directory-prefix ownership.
+        Archived plans are not evaluated. Non-src and test paths never alone trip the rule.
+      </Goal>
+      <Goal>
+        This bundle's active plan.xml passes the layer-3 rule under a real ngrace lint invocation
+        (A53.4). context --task shows non-empty Linked Files for linked modules.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        plan.xml before production code (A17.3). Spec and plan approved via ngrace gate approve
+        before implementation commits that change product behavior.
+      </Constraint>
+      <Constraint>
+        Own bundle, own PR. Do not fold C-OBSERVABLE-CHECKS. Do not touch phase board rows.
+        Archive immutable.
+      </Constraint>
+      <Constraint>
+        D14: layer-3 code is lint (change.* or scope.*), never gate.* or review.*.
+      </Constraint>
+      <Constraint>
+        Do not retire graph.module-without-linked-files by removing Path. Linkage becomes true.
+      </Constraint>
+      <Constraint>
+        ROLE honest: SCRIPT/LOCALS for zero-export entry (src/grace.ts); never CONFIG as map escape.
+        Exact export parity on all governed .ts (zero production export *).
+      </Constraint>
+      <Constraint>
+        Layer-3 ownership is LINKS-only (clause 2). No directory-prefix clause (corr 142).
+      </Constraint>
+      <Constraint>
+        Standing rule 11: every Linked Files line and the new error message must read true aloud.
+      </Constraint>
+      <Constraint>
+        Surgical diffs. No new runtime dependencies. Skill mirrors byte-identical if skills change.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Rewriting archived plans to pass layer 3. They remain historical; D16 witness may use
+        fixture copies of their bodies in tests, not archive edits.
+      </NonGoal>
+      <NonGoal>
+        C-OBSERVABLE-CHECKS (packed modules, review --base, archive plan resolve for review).
+      </NonGoal>
+      <NonGoal>
+        Promoting graph.module-without-linked-files from warning to error in this bundle.
+      </NonGoal>
+      <NonGoal>
+        Changing selection algorithm beyond data it already projects.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-LAYER1-MODULES-PRESENT>
+        .ngrace/graph/main.xml declares modules for gates, review, localization (verification),
+        query, context, and test-support with Path on real production files; matching V-M-* exist.
+        Discriminating negative: removing any of those modules leaves its Path file without a
+        home module or reintroduces an undescribed surface for plans that must anchor it.
+      </AC-LAYER1-MODULES-PRESENT>
+      <AC-LAYER2-FULL-SRC>
+        Every non-test file under src/ is governed (hasGraceMarkers / MODULE_CONTRACT). Governed
+        files count equals the non-test src/ population (56 at implementation baseline). Each
+        file LINKS exactly one primary module that exists in the graph. Discriminating negatives:
+        an ungoverned non-test src/ file remains after the change; a file with LINKS to a missing
+        module emits markup.unknown-link.
+      </AC-LAYER2-FULL-SRC>
+      <AC-LAYER2-REVERSE-EDGE>
+        bun run ngrace lint --path . reports zero graph.module-without-linked-files. Every module
+        that declares Path has ≥1 governed LINKS. Discriminating negative: stripping LINKS from
+        M-CLI's Path file reintroduces the warning for M-CLI.
+      </AC-LAYER2-REVERSE-EDGE>
+      <AC-LAYER2-HONEST-ROLES>
+        No newly governed production file uses ROLE: CONFIG unless it is genuinely configuration.
+        src/grace.ts uses SCRIPT/LOCALS (zero exports). Discriminating negative: CONFIG on
+        src/review/core.ts or RUNTIME/EXPORTS on src/grace.ts fails parity or review.
+      </AC-LAYER2-HONEST-ROLES>
+      <AC-LAYER3-LINT-CHECK>
+        lint emits change.graph-anchors-miss-write-scope (error) when an active plan lists a
+        non-test src/ path in ObservedWriteScope whose MODULE_CONTRACT LINKS intersects none of
+        the plan's GraphAnchors (or the file is not governed). Ownership is LINKS only — not Path
+        prefix. Discriminating negatives (A7.2, one axis each): (1) anchors own scope via LINKS →
+        silent; (2) anchors do not → red; (3) OWS only non-src paths → silent; (4) same mismatch
+        under archive/ → not evaluated / no issue from this code. Message names the path and that
+        LINKS must include a GraphAnchors module.
+      </AC-LAYER3-LINT-CHECK>
+      <AC-LAYER3-SELF-APPLICATION>
+        This bundle's active plan.xml GraphAnchors and ObservedWriteScope satisfy the layer-3 rule
+        under bun run ngrace lint --path . after implementation. Discriminating negative: root lint
+        emits change.graph-anchors-miss-write-scope for C-GRAPH-COVERAGE (A53.4).
+      </AC-LAYER3-SELF-APPLICATION>
+      <AC-LAYER3-ARCHIVE-POLICY>
+        Archived plans are not rewritten and root lint does not fail solely because archive content
+        would fail layer 3. Discriminating negative: evaluating archive plans for this code turns
+        the clean tree red.
+      </AC-LAYER3-ARCHIVE-POLICY>
+      <AC-CONTEXT-LINKED-FILES>
+        ngrace context --task for a plan anchoring a linked module prints Linked Files with real
+        paths, not "- none". Discriminating negative: Linked Files — none for a module with Path
+        and governed LINKS.
+      </AC-CONTEXT-LINKED-FILES>
+      <AC-BUDGETS-HOLD>
+        GD-MAIN and VD-MAIN stay under 50 anchors and 30 KB. Discriminating negative:
+        graph.document-too-large or anchor-limit warning from this bundle's graph edits.
+      </AC-BUDGETS-HOLD>
+      <AC-NO-OBSERVABLE-CHECKS-SCOPE>
+        Diff does not implement C-OBSERVABLE-CHECKS items. Discriminating negative: packed-files,
+        review --base, or archive review resolve land in this change's production diff.
+      </AC-NO-OBSERVABLE-CHECKS-SCOPE>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI />
+      <M-LINT-CORE />
+      <M-LINT-CATALOG />
+      <M-LINT-TYPES />
+      <M-PROJECT-UTILS />
+      <M-GRAMMAR />
+      <M-ARTIFACT-TYPES />
+      <M-ASSERTIONS />
+      <M-STATUS />
+      <M-DOCTOR />
+      <M-CURSOR />
+      <M-SKILLS />
+      <M-GATES />
+      <M-REVIEW />
+      <M-LOCALIZE />
+      <M-QUERY />
+      <M-CONTEXT />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Root: 0 errors, 0 graph.module-without-linked-files, Governed files = non-test src/ count,
+        C-GRAPH-COVERAGE silent for change.graph-anchors-miss-write-scope. Fixture suite: both
+        directions on layer-3 axes. context --task non-empty Linked Files. validate:ci green.
+        D14: no gate.* / review.* from runLint.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        DECISION A (ratified round 2): full coverage — every non-test file under src/ is governed.
+        Path-only and Path+co-located leave unowned files (141) or require prefix ownership (142).
+        Full coverage is +179 MODULE_MAP lines over middle rule; exact parity prevents silent rot.
+      </Assumption>
+      <Assumption>
+        DECISION B (ratified stage 1 / A53): four surface modules at gates/core, review/core,
+        verification/localize, query/core. Round 2 adds M-CONTEXT (grace-context.ts) and
+        M-TEST-SUPPORT (fixtures.ts) so CLI selection and test helpers have honest module cards
+        (rule 11) rather than overloading M-CLI.
+      </Assumption>
+      <Assumption>
+        DECISION C (ratified round 2): layer-3 ownership is LINKS-only (clause 2). No directory
+        prefix. Severity error on active plans. Non-src and test paths exempt. Message states the
+        path lacks LINKS into GraphAnchors.
+      </Assumption>
+      <Assumption>
+        DECISION D (ratified stage 1 / A53): archived bundles not required to pass; not rewritten;
+        not evaluated for the new code.
+      </Assumption>
+      <Assumption>
+        CLI verb grouping: grace-lint → M-LINT-CORE; grace-file/graph/module → M-QUERY;
+        grace-verification → M-LOCALIZE; grace-context → M-CONTEXT; grace.ts → M-CLI only.
+        language-registry → M-PROJECT-UTILS. Reads true on context --task cards.
+      </Assumption>
+    </Assumptions>
+  </C-GRAPH-COVERAGE>
+</NgraceChangeSpec>

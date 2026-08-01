@@ -1,3 +1,21 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Artifact query and navigation CLI
+//   SCOPE: Module, file, graph, and verification resolution
+//   DEPENDS: none
+//   LINKS: M-QUERY
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   formatFileText
+//   formatModuleFindTable
+//   formatModuleHealthTable
+//   formatModuleHealthText
+//   formatModuleText
+//   formatVerificationFindTable
+//   formatVerificationText
+// END_MODULE_MAP
 import { getModuleDepends, getModuleName, getModulePath, getModuleType, getModuleVerificationIds } from "./core";
 import type { FileMarkupRecord, ModuleHealthRecord, ModuleMatch, ModuleRecord, ModuleVerificationRecord, VerificationMatch } from "./types";
 

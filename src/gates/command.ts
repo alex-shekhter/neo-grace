@@ -1,3 +1,16 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Transition gate surface
+//   SCOPE: Approve, apply, archive evaluation and ledger decisions
+//   DEPENDS: none
+//   LINKS: M-GATES
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   formatGateEvaluation
+//   gateCommand
+// END_MODULE_MAP
 /**
  * ngrace gate <approve|apply|archive|verdict> — evaluate/record; never author status (A29.2, A31.1).
  */

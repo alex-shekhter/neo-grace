@@ -1,3 +1,19 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Transition gate surface
+//   SCOPE: Approve, apply, archive evaluation and ledger decisions
+//   DEPENDS: none
+//   LINKS: M-GATES
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   GATE_CATALOG
+//   GateIssueGuide
+//   GateIssueSeverity
+//   allGateCodes
+//   isGateIssueCode
+// END_MODULE_MAP
 /**
  * Gate issue codes (D14). Must never be emitted by runLint — boundary test in
  * src/lint/core.test.ts. Codes are namespaced gate.* only.

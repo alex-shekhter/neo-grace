@@ -1,4 +1,23 @@
 #!/usr/bin/env bun
+// START_MODULE_CONTRACT
+//   PURPOSE: Doctor CLI surface
+//   SCOPE: Adapter coverage and absence-by-reason reports
+//   DEPENDS: none
+//   LINKS: M-DOCTOR
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   DoctorAdapterReport
+//   DoctorResult
+//   absenceCountsByReason
+//   collectDoctorReport
+//   doctorCommand
+//   formatDoctorText
+//   partitionAbsenceIssues
+//   toDoctorAbsenceIssues
+// END_MODULE_MAP
 
 import { existsSync } from "node:fs";
 import path from "node:path";

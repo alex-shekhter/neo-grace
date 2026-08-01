@@ -1,4 +1,24 @@
 #!/usr/bin/env bun
+// START_MODULE_CONTRACT
+//   PURPOSE: Artifact query and navigation CLI
+//   SCOPE: Module, file, graph, and verification resolution
+//   DEPENDS: none
+//   LINKS: M-QUERY
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   GraphSplitMove
+//   GraphSplitPlan
+//   documentIdFromPrefix
+//   extractAnchorSerialization
+//   formatGraphSplitPlan
+//   graphCommand
+//   isGitWorktreeDirty
+//   normalizeSplitPrefix
+//   planGraphSplit
+// END_MODULE_MAP
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";

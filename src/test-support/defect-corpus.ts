@@ -1,3 +1,22 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Test fixtures and defect corpus
+//   SCOPE: Temp projects, corpus seeds, and token-accounting helpers
+//   DEPENDS: none
+//   LINKS: M-TEST-SUPPORT
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   ExpectedFinding
+//   FindingSurface
+//   LintAssertionMode
+//   PATTERNS
+//   PatternId
+//   SeededDefect
+//   byPattern
+//   corpus
+// END_MODULE_MAP
 /**
  * Seeded-defect corpus for the agent-reliability track (D4).
  *

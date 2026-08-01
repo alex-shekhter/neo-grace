@@ -1,3 +1,40 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Failure localization
+//   SCOPE: Marker divergence comparison and verification localize CLI
+//   DEPENDS: none
+//   LINKS: M-LOCALIZE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   ADMISSIBLE_REVIEW_CODES
+//   AdmissibleReviewCode
+//   BlockLocation
+//   Divergence
+//   FlakePair
+//   LocalizationResult
+//   LocalizeInput
+//   OBSERVED_GROUND
+//   ProcessContextFinding
+//   assertAdmissibilityClosedByName
+//   countRequiredInObserved
+//   excludedReviewCodesForLocalization
+//   filterAdmissibleReviewFindings
+//   findLatestFailPassPair
+//   firstDivergentBlock
+//   flakePairFromChange
+//   formatDivergenceLine
+//   formatLocalizationText
+//   isAdmissibleLocalizationReviewCode
+//   loadReviewJsonFindings
+//   localizeFailure
+//   parseObservedMarkers
+//   projectMarkerAlphabet
+//   resolveBlockLocations
+//   resolveModuleForTestPath
+//   splitObservedByEntry
+// END_MODULE_MAP
 /**
  * Deterministic failure localization (D8, Phase 7 / A41–A44).
  *

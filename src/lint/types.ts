@@ -1,3 +1,35 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Lint shared types
+//   SCOPE: Lint result, issue, config, and analysis type surface
+//   DEPENDS: none
+//   LINKS: M-LINT-TYPES
+//   ROLE: TYPES
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   AnalysisCoverage
+//   AnalysisCoverageEntry
+//   DEFAULT_DOCUMENT_ANCHOR_LIMIT
+//   DEFAULT_DOCUMENT_BYTE_LIMIT
+//   GateFailOn
+//   GraceLintConfig
+//   IssueClass
+//   LanguageAdapter
+//   LanguageAnalysis
+//   LanguageRuntimeMissingError
+//   LintAssertionMode
+//   LintIssue
+//   LintOptions
+//   LintProfile
+//   LintResult
+//   LintSeverity
+//   MapMode
+//   MarkupSection
+//   ModuleContractInfo
+//   ModuleMapItem
+//   ModuleRole
+// END_MODULE_MAP
 export type LintSeverity = "error" | "warning";
 
 export type LintProfile = "standard";

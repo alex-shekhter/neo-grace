@@ -1,3 +1,22 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Governed-file discovery and markup analysis
+//   SCOPE: Scanning, contracts, language routing, and graph projections
+//   DEPENDS: none
+//   LINKS: M-PROJECT-UTILS
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   DataFlowStepRecord
+//   GraphAnchorRecord
+//   GraphProjection
+//   VerificationAnchorRecord
+//   VerificationProjection
+//   buildGraphProjection
+//   buildVerificationProjection
+//   stateMatchesEvidence
+// END_MODULE_MAP
 import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 

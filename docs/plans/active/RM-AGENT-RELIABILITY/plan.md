@@ -8303,6 +8303,268 @@ older debt: three phases have added a surface the graph does not describe, and t
 `graph.module-without-linked-files` warnings every phase reports as "pre-existing" are its visible
 edge. It should be scheduled before Phase 9 adds a fourth.
 
+### A53 — 2026-08-01 · `C-GRAPH-COVERAGE` stage 1 accepted; the ownership rule is not yet satisfiable
+
+`C-GRAPH-COVERAGE` is the fourth row of A52.3, now a branch (`fix/graph-coverage`, `c0bdb8a`) rather
+than a memory. It is **not a phase of this track** — standalone bundle, own PR, no board row — but its
+corrections continue this track's numbering because the debt was recorded here.
+
+Stage 1 was re-derived at `170a0c5`. All three layers hold as stated, and two of the executor's own
+findings are accepted before anything else:
+
+| Their finding | Verified | Verdict |
+|---|---|---|
+| **Correction 140** — the debt notes under-counted. A36.4/A46.6/A52.3 name `src/gates`, `src/review`, `src/verification`; **`src/query/` (5 files) was never named** | `plan.md:7371` and `:8299` name three surfaces; neither names `src/query` | **Accepted.** My own framing repeated the same three. Four surfaces, 17 files |
+| `src/grace.ts` has zero exports, so `RUNTIME`/`EXPORTS` cannot be satisfied; honest role is `SCRIPT`/`LOCALS` | Adapter: `exports=0 locals=1 conf=exact` | **Accepted, and it is the right call.** `CONFIG` would have been the cheap escape; they named it and refused it |
+
+The draft spec is 262 lines, `status="draft"`, eight ACs carrying discriminating negatives. `src/` and
+`.ngrace/changes/archive/` are untouched (`git diff main --stat` empty for both). Root lint unchanged
+at 0 errors / 11 warnings / `Governed files: 0`, as it must be for a stage that adds no markup.
+
+#### A53.1 Correction 141 — the layer-3 rule is unsatisfiable for ten existing files
+
+Proposal C is: *every `ObservedWriteScope` file that is a non-test path under `src/` must be owned by
+at least one `GraphAnchors` module*, as an **error**, with ownership by module `Path`, by a governed
+file's `LINKS`, or by directory prefix.
+
+Applied to the repository as the bundle proposes to leave it — 12 existing modules plus M-GATES,
+M-REVIEW, M-LOCALIZE, M-QUERY — ten non-test `src/` files are owned by nothing:
+
+```
+src/grace-context.ts   src/grace-file.ts    src/grace-graph.ts
+src/grace-lint.ts      src/grace-module.ts  src/grace-verification.ts
+src/language-registry.ts       src/test-support/*.ts  (3)
+```
+
+This is not hypothetical. **`C-SELECTION`'s `ObservedWriteScope` contains `src/grace-context.ts`** —
+Phase 8's own product, merged five days ago. Had this rule existed then, that plan would have been a
+lint **error** with no module available to satisfy it, because none is proposed for it.
+
+The rule is correct where it was designed: it fires on `C-REVIEW-SURFACE` (anchors own `src/lint/**`
+and `src/grace.ts`; nothing owns `src/review/**`), and for a *new* directory such as Phase 9's
+`src/calibration/` it forces a module to be added with the surface — which is precisely the cascade
+this bundle exists to stop. What it has not been tested against is the legacy it inherits. **Excluding
+the ten reintroduces the blind spot the rule exists to close**, and the exclusion list would name the
+CLI verb surface — the most-edited files in the repository.
+
+#### A53.2 Correction 142 — clause 3 decouples the two layers it was meant to join
+
+Ownership clause 3 (a nested `Path src/<dir>/…` owns `src/<dir>/**`) is load-bearing under the
+recommended coverage rule, and it has two consequences the proposal does not address.
+
+**Ownership stops being a partition.** `src/artifact/` holds three module `Path`s and ten files, so
+M-ASSERTIONS, M-GRAMMAR and M-ARTIFACT-TYPES each own all ten. `src/lint/` is the same shape. "Which
+module owns this file" then has no single answer, and a plan satisfies the rule by anchoring any one
+of them.
+
+**Layer 2 does no work for layer 3.** If a directory prefix confers ownership, the rule can be
+satisfied without a single `MODULE_CONTRACT` — the reverse edge this bundle exists to build is not
+what the new check reads. Clause 2 (a governed file declares `LINKS: M-X`) is the clause with teeth:
+it makes each file name its own module, which is both a partition and an application of the thing
+layer 2 installs.
+
+#### A53.3 The cost comparison understates the option that resolves both
+
+Measured against the real tree with the TypeScript adapter (`exportConfidence: "exact"` for **all 56**
+non-test files; one zero-export file, `src/grace.ts`):
+
+| Coverage rule | Files | `MODULE_MAP` lines | Files left unowned |
+|---|---|---|---|
+| Path-only | 11 | 184 | 41 |
+| Path + co-located surface *(their recommendation)* | 28 | 338 | 10 |
+| **All non-test `src/`** | 56 | **517** | **0** |
+
+Their estimates (~182, ~501) were sound. What the framing missed is the **delta**: full coverage is
+**+179 lines over the option they recommend**, not a different order of magnitude — and it is the only
+one of the three under which correction 141 does not arise, clause 3 can be deleted, and clause 2
+becomes the whole rule.
+
+The standing objection to full coverage is that a 517-line obligation rots. It cannot rot silently
+here: parity is `exact` for every file, so any drift is an **error** on the next lint run, not a
+warning someone learns to skip. That is the same property this track has demanded everywhere else —
+a check positioned to be red.
+
+#### A53.4 The bundle's own plan is the live subject
+
+`AC-LAYER3-LINT-CHECK` proposes to witness the new code firing on "a real `C-REVIEW-SURFACE` plan body
+in a temp active fixture." That is sound as far as it goes, and it is still a fixture. Once this
+bundle is implemented it will have an **active `plan.xml` with its own `GraphAnchors` and
+`ObservedWriteScope`** — a live subject, in the tree, that the new rule must pass on its own terms.
+A rule whose author's plan cannot satisfy it is not ready, and this bundle's write scope will touch
+`src/lint/`, `src/project-utils.ts`, `.ngrace/graph/main.xml` and whatever files rule A governs.
+
+Between the fixture and the self-application, the second is the one that would have caught 141.
+
+### A54 — 2026-08-01 · `C-GRAPH-COVERAGE` round 2 accepted; one latent trap in the obligation it creates
+
+Round 2 was verified at `eef6ed4`. **Decisions A and C were re-decided as full coverage with
+`LINKS`-only ownership**, which is the answer A53.3 pointed at, and the build is sound.
+
+| Claim | Independently verified |
+|---|---|
+| Lint 0 errors / 0 warnings / `Governed files: 56` | Confirmed at `eef6ed4` |
+| Suite 906 pass / 3 skip / 0 fail | Confirmed |
+| 18 anchors in graph and verification, both ≪ 30 KB | Confirmed, `<M-` and `<V-M-` both 18 |
+| No `CONFIG` escape | Confirmed: 71 `RUNTIME`, 3 `TYPES`, 1 `SCRIPT`; `MAP_MODE` 73 `EXPORTS`, 1 `LOCALS`. **Zero `NONE`** |
+| Self-application: the bundle's own plan passes its own rule | Confirmed — `C-GRAPH-COVERAGE` is active and lint is clean |
+
+The **58-versus-56 gap** is correct and worth recording: `src/grace-lint.test.ts` and
+`src/project-utils.test.ts` carry contract markers inside fixture strings and are properly **not**
+governed. That is correction 144 working, not an accounting error.
+
+**Correction 144 is accepted and is a real inconsistency, not a convenience.** At `4c4147b`,
+`stripQuotedStrings` was already used by `hasGraceMarkers` (`:172`) and by the A8 near-miss surface
+(`:209`); `validateMarkerStructure` was the one consumer reading raw text. Aligning it does not weaken
+A8, because A8 already stripped. It became reachable only when real files gained contracts.
+
+#### A54.1 The rule fires on real content, not only on a fixture
+
+A53.4 asked for more than a fixture. Verified directly by staging the **real, unmodified
+`C-REVIEW-SURFACE` plan body** as an active bundle:
+
+```
+Errors: 6
+- change.graph-anchors-miss-write-scope — ObservedWriteScope path src/review/core.ts is not linked
+  to any GraphAnchors module (file LINKS: M-REVIEW; GraphAnchors: M-CLI, M-LINT-CATALOG,
+  M-LINT-CORE, M-SKILLS).
+  (…and the same for catalog.ts, command.ts, scope-helpers.ts, scorer.ts, shape-data.ts)
+```
+
+Six errors, exactly the six `src/review/*` files, and the message names the path, the file's **actual**
+`LINKS`, and the plan's **actual** anchors — so a reader knows what to add without opening anything.
+The defect that motivated this bundle is now caught on the artifact that exhibited it. Temporary
+bundle removed; tree restored to 0/0/56.
+
+Also verified: the module summaries were widened to stay true of what they now govern. `M-QUERY` —
+*"Artifact query and navigation: module, file, graph, and verification resolution"* — honestly covers
+`grace-file.ts`, `grace-graph.ts` and `grace-module.ts`. That is rule 11 applied to the graph itself.
+
+#### A54.2 Correction 145 — an apostrophe in a contract field reports three errors, all false
+
+This bundle obliges every non-test `src/` file to carry a `MODULE_CONTRACT` whose `PURPOSE` and
+`SCOPE` are English prose — 56 today, one per new file forever. English prose contains apostrophes,
+and `stripQuotedStrings` treats `'` in a line comment as a string delimiter:
+
+```
+// START_MODULE_CONTRACT
+//   PURPOSE: Parse the user's governed file      ← the apostrophe opens a span
+//   …
+// END_MODULE_CONTRACT                            ← swallowed
+```
+
+```
+error markup.missing-end-marker    line 1: module-contract is missing its end marker.
+error markup.module-map-missing    line 1: MAP_MODE EXPORTS requires a non-empty MODULE_MAP.
+error markup.module-map-mismatch   line 1: MODULE_MAP EXPORTS mismatch. Missing: foo; extra: none.
+```
+
+**All three sentences are false.** The end marker is on the page. The map is present. The mismatch is
+an artifact of the first two. A contributor is told to add something already there, with no indication
+that an apostrophe two lines up is the cause.
+
+It **fails closed** — a loud error, never a silent pass — so nothing ships broken, and no shipped
+contract currently contains an apostrophe. It is latent, not live. It is also **created by this
+bundle**: before round 2 no file in `src/` carried a contract, so the trap was unreachable. Under the
+rule that a defect is fixed where it is detected, it belongs here rather than in a fourth deferral.
+
+The fix is not a one-line strip. `stripQuotedStrings` cannot simply ignore quotes inside `//` spans,
+because `//` also occurs **inside** string literals (`"http://…"`), so comment state and string state
+must be tracked in one pass, in that order. Both directions must be tested: a quote in a comment must
+stop opening a span, **and** a `//` inside a string must still not start a comment. The function is
+read by governance detection (`hasGraceMarkers`), by A8 near-miss detection, and now by marker
+structure validation — all three change behaviour together, and the second is the one that could
+regress silently.
+
+### A55 — 2026-08-01 · `C-GRAPH-COVERAGE` closed, and the rule that would have caught 141 in stage 1
+
+Round 3 verified at `ecd6802`. **The bundle is `COMPLETE`** and the fourth row of A52.3 is discharged.
+
+| Close claim | Independently verified |
+|---|---|
+| Correction 145 fixed, both directions | All five axes re-tested from outside the suite: apostrophe contract → **no issues**; `"http://…/START_MODULE_CONTRACT"` → still ungoverned; string apostrophe → still a delimiter; template marker → still stripped; block-comment apostrophe → markers visible |
+| `Governed files:` unchanged at 56 | Confirmed. The fix removes false errors; it pulls no new file into `hasGraceMarkers` |
+| Suite green | 914 ran, 3 skip, **0 fail** |
+| Root lint | 0 errors / 0 warnings / 56 governed |
+| Only this bundle entered `archive/` | `git diff 4c4147b --name-only -- .ngrace/changes/archive/` returns **four files, all `C-GRAPH-COVERAGE`**; `run.xml` retained; `spec` and `plan` both `applied` |
+
+The **A8 pin is the part worth keeping.** It asserts that `markup.near-miss-marker` fires on
+`START_MODULE_CONTRACTX` placed after a prose line containing an apostrophe — a case that, before the
+fix, was blanked before A8 ever saw it. A near-miss that silently stops being reported is invisible in
+a green suite, which is why that pin, and not the apostrophe test, is the one that protects the fix.
+
+Their A33.3 sentence is honest without being prompted into it: the `review` scope audit is **vacuous
+post-commit**, `0 findings` is not a proven write-scope cover of the branch, and `C-OBSERVABLE-CHECKS`
+still owns that defect. That is the third phase in a row where the honest verdict sentence was written
+without an argument about it.
+
+#### A55.1 Standing rule 12 — a new check is measured against the tree as it is
+
+Correction 141 is the first defect on this track that was neither a wrong computation nor a false
+sentence. The proposed ownership rule computed correctly and said something true. It was still
+unusable, because it was designed against the tree **as the design assumed it to be** — every source
+file belonging to a module — rather than the tree as it actually was, where ten files belonged to
+none. `C-SELECTION`'s own write scope contained one of them.
+
+> **Standing rule 12.** Before a new check ships, run it over the existing repository and count what
+> it would flag. A check that is red on legacy it cannot express a fix for is not ready, and the count
+> is the evidence — not the intent behind the rule.
+
+This is cheap and mechanical, and it is the step that turns "the rule is correct" into "the rule is
+adoptable." It generalizes past lint: the same question applies to any gate, assertion or verdict
+added to a tree that predates it. Phase 9's separation rule (`agent-inferred` anchors may not carry
+`precision`) is the next candidate and should be measured this way before it is written.
+
+Note what did **not** work: stage 1 asked for a discriminating negative per AC, and got good ones. A
+discriminating negative establishes that a check *can* be red. It says nothing about whether the
+things it makes red are fixable. Rule 12 is the missing half.
+
+#### A55.2 What the bundle actually removed
+
+| Layer | Before | After |
+|---|---|---|
+| Coverage | 12 modules, 11 files, four surfaces undescribed | 18 modules, `src/gates`, `src/review`, `src/verification`, `src/query`, `src/grace-context.ts`, `src/test-support` all described |
+| Linkage | `Governed files: 0`; every module `Linked Files — none` | `Governed files: 56`; every `Path` module linked; 11 warnings gone |
+| Consistency | Nothing joined `GraphAnchors` to `ObservedWriteScope` | `change.graph-anchors-miss-write-scope`, error, verified red on the real `C-REVIEW-SURFACE` body |
+
+`ngrace context --task` now prints real files under `Linked Files`. The surface Phase 8 shipped and
+measured was, for its largest section, projecting nothing; it no longer is.
+
+#### A55.3 What remains owed
+
+| Item | Home | Since |
+|---|---|---|
+| `src/gates`, `src/review` missing from `package.json#files`; `validate:packed` not in `validate:ci` | `C-OBSERVABLE-CHECKS` (draft) | A48.5 |
+| Scope audit sees only uncommitted work | `C-OBSERVABLE-CHECKS` (draft) | A51.1 |
+| Archived bundles resolve to no plan; audit skipped in silence | `C-OBSERVABLE-CHECKS` (draft) | A51.2 |
+| ~~Graph describes neither `src/gates`, `src/review`, nor `src/verification`~~ | **Discharged** — `C-GRAPH-COVERAGE`, archived `applied` | A36.4 → A55 |
+
+One item remains, it is a drafted bundle rather than a memory, and it is next. The debt discharged
+here took three amendments to schedule and one bundle to remove; the difference between those two
+numbers is the whole argument for fixing a defect in the cycle that detects it.
+
+#### A55.4 Phase 9's precondition is not met
+
+Recorded here because it blocks the next phase rather than this bundle. §9.2 requires Phases 3 and 6
+`COMPLETE`, and both are — but the substance Phase 9 reports over does not exist:
+
+```
+EpochOpened in .ngrace/**  → 0
+EpochOpened in src/**      → 0
+```
+
+`<EpochOpened>` is not an event kind in this codebase. `run.xml` carries `<Epoch>1</Epoch>`, a counter
+with no executor identity. So **A40.3's row reading *"Mechanism is in place — executor identity on
+`<EpochOpened>`, same corpus"* is not true at HEAD**, and D6's context-derivation-by-join has nothing
+to join against. Step 9.5.4's report would print `0 included, 0 excluded`, and every Phase 9 assertion
+would pass over an empty corpus.
+
+An empty corpus is not a failure — D6's argument is *record now so the study becomes possible later*.
+The failure mode is a well-formed calibration table that has adjudicated nothing. Phase 9's first step
+is therefore the one §9.5 does not list: make `<EpochOpened>` exist with executor identity, and
+produce one genuine labeled pair end-to-end so the join is observed working. Otherwise the phase's
+only honest output is an absence value — acceptable as a designed outcome, stated up front; not as
+something round 2 discovers.
+
 ---
 
 ## 15. Final instruction to the executor

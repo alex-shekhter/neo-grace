@@ -1,3 +1,33 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Test fixtures and defect corpus
+//   SCOPE: Temp projects, corpus seeds, and token-accounting helpers
+//   DEPENDS: none
+//   LINKS: M-TEST-SUPPORT
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   ChangeSpec
+//   ContextFileName
+//   GovernedFileSpec
+//   GraceProjectBuilder
+//   LedgerAllocation
+//   LedgerEpochSpec
+//   LedgerEventSpec
+//   ModuleSpec
+//   VerificationSpec
+//   buildRunCursorXml
+//   buildRunLedgerXml
+//   commentPrefixForExtension
+//   createTempProject
+//   minimalTsFixture
+//   polyglotFixture
+//   scaleFixture
+//   snapshotProjectTree
+//   writeLedgerFixtures
+//   writeProjectFile
+// END_MODULE_MAP
 /**
  * Shared neo-grace temp-project fixtures for unit and integration tests.
  *

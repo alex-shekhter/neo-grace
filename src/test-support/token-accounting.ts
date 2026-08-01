@@ -1,3 +1,19 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Test fixtures and defect corpus
+//   SCOPE: Temp projects, corpus seeds, and token-accounting helpers
+//   DEPENDS: none
+//   LINKS: M-TEST-SUPPORT
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   CommandOutputMeasurement
+//   commandOutputBytes
+//   packageRoot
+//   selectionRatio
+//   skillTextLines
+// END_MODULE_MAP
 /**
  * Token / footprint measurements for the agent-reliability track (D15).
  *
