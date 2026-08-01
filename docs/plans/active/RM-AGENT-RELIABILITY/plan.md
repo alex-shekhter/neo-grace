@@ -10129,3 +10129,9 @@ Collapsed identical-branch ternaries to a single literal space before the proxy 
 `src/gates/core.test.ts`, draft `C-LEDGER-READ-ABSENCE/spec.xml`, this amendment.
 Archive not modified.
 
+
+**OWS note (A69).** `ngrace review --change C-PLAN-QUALITY --base origin/main` flags
+`.ngrace/changes/active/C-LEDGER-READ-ABSENCE/spec.xml` as out of scope. That is correct under
+the archived plan's OWS: the draft is a **new** change id, not a C-PLAN-QUALITY write, and the
+archive must not be rewritten to absorb it. Production files for 185–186 remain inside OWS
+(verified with `--changed-files` listing only those paths → 0 out-of-scope).
