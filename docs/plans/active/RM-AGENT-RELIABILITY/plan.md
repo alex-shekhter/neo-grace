@@ -8303,6 +8303,98 @@ older debt: three phases have added a surface the graph does not describe, and t
 `graph.module-without-linked-files` warnings every phase reports as "pre-existing" are its visible
 edge. It should be scheduled before Phase 9 adds a fourth.
 
+### A53 — 2026-08-01 · `C-GRAPH-COVERAGE` stage 1 accepted; the ownership rule is not yet satisfiable
+
+`C-GRAPH-COVERAGE` is the fourth row of A52.3, now a branch (`fix/graph-coverage`, `c0bdb8a`) rather
+than a memory. It is **not a phase of this track** — standalone bundle, own PR, no board row — but its
+corrections continue this track's numbering because the debt was recorded here.
+
+Stage 1 was re-derived at `170a0c5`. All three layers hold as stated, and two of the executor's own
+findings are accepted before anything else:
+
+| Their finding | Verified | Verdict |
+|---|---|---|
+| **Correction 140** — the debt notes under-counted. A36.4/A46.6/A52.3 name `src/gates`, `src/review`, `src/verification`; **`src/query/` (5 files) was never named** | `plan.md:7371` and `:8299` name three surfaces; neither names `src/query` | **Accepted.** My own framing repeated the same three. Four surfaces, 17 files |
+| `src/grace.ts` has zero exports, so `RUNTIME`/`EXPORTS` cannot be satisfied; honest role is `SCRIPT`/`LOCALS` | Adapter: `exports=0 locals=1 conf=exact` | **Accepted, and it is the right call.** `CONFIG` would have been the cheap escape; they named it and refused it |
+
+The draft spec is 262 lines, `status="draft"`, eight ACs carrying discriminating negatives. `src/` and
+`.ngrace/changes/archive/` are untouched (`git diff main --stat` empty for both). Root lint unchanged
+at 0 errors / 11 warnings / `Governed files: 0`, as it must be for a stage that adds no markup.
+
+#### A53.1 Correction 141 — the layer-3 rule is unsatisfiable for ten existing files
+
+Proposal C is: *every `ObservedWriteScope` file that is a non-test path under `src/` must be owned by
+at least one `GraphAnchors` module*, as an **error**, with ownership by module `Path`, by a governed
+file's `LINKS`, or by directory prefix.
+
+Applied to the repository as the bundle proposes to leave it — 12 existing modules plus M-GATES,
+M-REVIEW, M-LOCALIZE, M-QUERY — ten non-test `src/` files are owned by nothing:
+
+```
+src/grace-context.ts   src/grace-file.ts    src/grace-graph.ts
+src/grace-lint.ts      src/grace-module.ts  src/grace-verification.ts
+src/language-registry.ts       src/test-support/*.ts  (3)
+```
+
+This is not hypothetical. **`C-SELECTION`'s `ObservedWriteScope` contains `src/grace-context.ts`** —
+Phase 8's own product, merged five days ago. Had this rule existed then, that plan would have been a
+lint **error** with no module available to satisfy it, because none is proposed for it.
+
+The rule is correct where it was designed: it fires on `C-REVIEW-SURFACE` (anchors own `src/lint/**`
+and `src/grace.ts`; nothing owns `src/review/**`), and for a *new* directory such as Phase 9's
+`src/calibration/` it forces a module to be added with the surface — which is precisely the cascade
+this bundle exists to stop. What it has not been tested against is the legacy it inherits. **Excluding
+the ten reintroduces the blind spot the rule exists to close**, and the exclusion list would name the
+CLI verb surface — the most-edited files in the repository.
+
+#### A53.2 Correction 142 — clause 3 decouples the two layers it was meant to join
+
+Ownership clause 3 (a nested `Path src/<dir>/…` owns `src/<dir>/**`) is load-bearing under the
+recommended coverage rule, and it has two consequences the proposal does not address.
+
+**Ownership stops being a partition.** `src/artifact/` holds three module `Path`s and ten files, so
+M-ASSERTIONS, M-GRAMMAR and M-ARTIFACT-TYPES each own all ten. `src/lint/` is the same shape. "Which
+module owns this file" then has no single answer, and a plan satisfies the rule by anchoring any one
+of them.
+
+**Layer 2 does no work for layer 3.** If a directory prefix confers ownership, the rule can be
+satisfied without a single `MODULE_CONTRACT` — the reverse edge this bundle exists to build is not
+what the new check reads. Clause 2 (a governed file declares `LINKS: M-X`) is the clause with teeth:
+it makes each file name its own module, which is both a partition and an application of the thing
+layer 2 installs.
+
+#### A53.3 The cost comparison understates the option that resolves both
+
+Measured against the real tree with the TypeScript adapter (`exportConfidence: "exact"` for **all 56**
+non-test files; one zero-export file, `src/grace.ts`):
+
+| Coverage rule | Files | `MODULE_MAP` lines | Files left unowned |
+|---|---|---|---|
+| Path-only | 11 | 184 | 41 |
+| Path + co-located surface *(their recommendation)* | 28 | 338 | 10 |
+| **All non-test `src/`** | 56 | **517** | **0** |
+
+Their estimates (~182, ~501) were sound. What the framing missed is the **delta**: full coverage is
+**+179 lines over the option they recommend**, not a different order of magnitude — and it is the only
+one of the three under which correction 141 does not arise, clause 3 can be deleted, and clause 2
+becomes the whole rule.
+
+The standing objection to full coverage is that a 517-line obligation rots. It cannot rot silently
+here: parity is `exact` for every file, so any drift is an **error** on the next lint run, not a
+warning someone learns to skip. That is the same property this track has demanded everywhere else —
+a check positioned to be red.
+
+#### A53.4 The bundle's own plan is the live subject
+
+`AC-LAYER3-LINT-CHECK` proposes to witness the new code firing on "a real `C-REVIEW-SURFACE` plan body
+in a temp active fixture." That is sound as far as it goes, and it is still a fixture. Once this
+bundle is implemented it will have an **active `plan.xml` with its own `GraphAnchors` and
+`ObservedWriteScope`** — a live subject, in the tree, that the new rule must pass on its own terms.
+A rule whose author's plan cannot satisfy it is not ready, and this bundle's write scope will touch
+`src/lint/`, `src/project-utils.ts`, `.ngrace/graph/main.xml` and whatever files rule A governs.
+
+Between the fixture and the self-application, the second is the one that would have caught 141.
+
 ---
 
 ## 15. Final instruction to the executor
