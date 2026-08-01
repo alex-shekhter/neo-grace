@@ -1,4 +1,63 @@
 #!/usr/bin/env bun
+// START_MODULE_CONTRACT
+//   PURPOSE: Cursor and run ledger write surface
+//   SCOPE: Show, regenerate, advance, fold, and attempt recording
+//   DEPENDS: none
+//   LINKS: M-CURSOR
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   AbsenceValue
+//   AbsenceVerdict
+//   CURSOR_STATES
+//   ChangedFileEvidence
+//   CursorPosition
+//   CursorState
+//   FIX_ATTEMPT_BUDGET
+//   FailureSignature
+//   FileContentEvidence
+//   FlakeVerdict
+//   FoldResult
+//   KnownEventKind
+//   LooseEvent
+//   PositionSource
+//   RangeAllocation
+//   RecordAttemptResult
+//   WriteEvidenceSnapshot
+//   advanceCursor
+//   classifyFlakeFromEvidence
+//   countTaskAttemptEvents
+//   cursorCommand
+//   cursorStateForEventKind
+//   deriveAttemptOrdinal
+//   derivePosition
+//   deriveStateFromEvents
+//   digestProjectFile
+//   evaluateTargetComplete
+//   expectedLedgerEventAttributes
+//   foldEpoch
+//   formatCursorPosition
+//   formatFoldResult
+//   lastResolvingResumeId
+//   listAccountingEvents
+//   listLedgerEvents
+//   listLooseEvents
+//   listRepositoryChangedFiles
+//   listUnresolvedEscalatedTasks
+//   parseCursorState
+//   pauseCursor
+//   readAttemptPayload
+//   recordAttempt
+//   recordVerificationUnavailable
+//   regenerateCursor
+//   resolveChangeBundle
+//   resumeCursor
+//   showCursor
+//   snapshotWriteEvidence
+//   targetAssertionsClean
+// END_MODULE_MAP
 
 import { createHash } from "node:crypto";
 import {

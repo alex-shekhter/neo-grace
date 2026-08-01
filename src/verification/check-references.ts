@@ -1,3 +1,18 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Failure localization
+//   SCOPE: Marker divergence comparison and verification localize CLI
+//   DEPENDS: none
+//   LINKS: M-LOCALIZE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   checkModuleCheckReferences
+//   commandReferencesNormalizedTestFile
+//   expandCommandTargets
+//   normalizeTestFileForChecks
+// END_MODULE_MAP
 import path from "node:path";
 
 /**

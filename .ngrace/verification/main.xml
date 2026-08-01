@@ -60,5 +60,35 @@
       <Scenario>ngrace cursor subcommand is registered on the CLI entry surface.</Scenario>
       <TraceAssertion>cursor command module is imported from grace.ts and exercised by unit tests.</TraceAssertion>
     </V-M-CLI>
+    <V-M-GATES>
+      <Command>bun test src/gates</Command>
+      <Scenario>Gate evaluation permits and refuses approve/apply/archive with required evidence.</Scenario>
+      <TraceAssertion>gates unit tests cover decision recording and missing-evidence fail-closed paths.</TraceAssertion>
+    </V-M-GATES>
+    <V-M-REVIEW>
+      <Command>bun test src/review</Command>
+      <Scenario>Review surface emits review.* findings with deterministic IDs and never writes Verdicts.</Scenario>
+      <TraceAssertion>review unit tests cover pattern detectors, scope audit, and D14 boundary with lint.</TraceAssertion>
+    </V-M-REVIEW>
+    <V-M-LOCALIZE>
+      <Command>bun test src/verification/localize.test.ts</Command>
+      <Scenario>Localization reports first divergent marker block and admissible review process context.</Scenario>
+      <TraceAssertion>localize unit tests cover comparator axes, foreign markers, and flake consumption.</TraceAssertion>
+    </V-M-LOCALIZE>
+    <V-M-QUERY>
+      <Command>bun test src/grace-query.test.ts</Command>
+      <Scenario>Module and file query resolve graph Path and linked governed files.</Scenario>
+      <TraceAssertion>grace-query integration tests pin JSON shapes for module and file resolution.</TraceAssertion>
+    </V-M-QUERY>
+    <V-M-CONTEXT>
+      <Command>bun test src/grace-context.test.ts</Command>
+      <Scenario>Task slices project GraphAnchors modules with Linked Files from governed LINKS.</Scenario>
+      <TraceAssertion>grace-context unit tests cover Purpose, selectedBytes, and skill subsetting.</TraceAssertion>
+    </V-M-CONTEXT>
+    <V-M-TEST-SUPPORT>
+      <Command>bun test src/test-support</Command>
+      <Scenario>Temp project fixtures and defect corpus seed stable, deterministic test projects.</Scenario>
+      <TraceAssertion>test-support tests cover fixture builders and corpus pattern ids.</TraceAssertion>
+    </V-M-TEST-SUPPORT>
   </VD-MAIN>
 </NgraceVerificationDocument>

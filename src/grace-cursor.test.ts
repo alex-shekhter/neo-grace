@@ -81,12 +81,8 @@ function seedBundle(root: string, changeId = "C-RUN") {
     specStatus: "approved",
     planStatus: "approved",
   });
-  // Governed source referenced by ObservedWriteScope in the fixture plan
-  mkdirSync(path.join(root, "src"), { recursive: true });
-  writeFileSync(
-    path.join(root, "src/example.ts"),
-    `export function run() { return "ok"; }\n`,
-  );
+  // writeMinimalNgraceProject already writes governed src/example.ts (LINKS: M-EXAMPLE)
+  // matching ObservedWriteScope in the fixture plan (C-GRAPH-COVERAGE layer 3).
   return path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
 }
 
@@ -532,7 +528,7 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
     const scorerRm = callSites.find((line) => line.startsWith("src/review/scorer.ts:"));
     expect(cursorUnlink).toMatch(/^src\/grace-cursor\.ts:\d+:\s*unlinkSync\(contained\.absolutePath\);$/);
     expect(ledgerUnlink).toMatch(/^src\/gates\/ledger\.ts:\d+:\s*unlinkSync\(ledgerPath\);$/);
-    expect(dartRm).toBe("src/lint/adapters/dart.ts:206:    rmSync(temporaryDirectory, { recursive: true, force: true });");
+    expect(dartRm).toMatch(/^src\/lint\/adapters\/dart\.ts:\d+:\s*rmSync\(temporaryDirectory, \{ recursive: true, force: true \}\);$/);
     expect(scorerRm).toMatch(/^src\/review\/scorer\.ts:\d+:\s*rmSync\(root, \{ recursive: true, force: true \}\);$/);
     expect(callSites).toHaveLength(4);
     expect(lines.some((line) => line.includes("rmdirSync"))).toBe(false);

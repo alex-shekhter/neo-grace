@@ -1,4 +1,29 @@
 #!/usr/bin/env bun
+// START_MODULE_CONTRACT
+//   PURPOSE: Lint orchestration and language adapters
+//   SCOPE: Project load, governed-file analysis, adapters, and scanners
+//   DEPENDS: none
+//   LINKS: M-LINT-CORE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   GraceLintConfig
+//   LanguageAdapter
+//   LanguageAnalysis
+//   LintAssertionMode
+//   LintIssue
+//   LintOptions
+//   LintProfile
+//   LintResult
+//   LintSeverity
+//   MapMode
+//   ModuleRole
+//   formatTextReport
+//   lintCommand
+//   lintGraceProject
+// END_MODULE_MAP
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 

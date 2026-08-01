@@ -1,3 +1,26 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Transition gate surface
+//   SCOPE: Approve, apply, archive evaluation and ledger decisions
+//   DEPENDS: none
+//   LINKS: M-GATES
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   GateEvaluation
+//   GateIssue
+//   evaluateApplyGate
+//   evaluateApproveGate
+//   evaluateArchiveGate
+//   evaluateAttemptGate
+//   evaluateAttemptOnBundle
+//   evaluateGate
+//   evaluationToDecision
+//   isClarificationTarget
+//   missingApplyGateRecord
+//   resolveProjectGateFailOn
+// END_MODULE_MAP
 /**
  * Transition gate evaluation (D5 gate half, D11, D12, D14).
  * Blocking is a property of the gate; mechanisms report (anti-pattern 9).

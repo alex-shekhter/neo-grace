@@ -1,3 +1,54 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Context selection surface
+//   SCOPE: Task slices, skill subsetting, and selectedBytes measurement
+//   DEPENDS: none
+//   LINKS: M-CONTEXT
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   ArtifactMeasurement
+//   CompositionEntry
+//   ExclusionEntry
+//   ModuleSliceEntry
+//   PLAN_WAVE_HONEST_READING
+//   PUBLISHED_SKILLS
+//   PlanWaveMeasurement
+//   PublishedSkill
+//   PurposeAcSlot
+//   SCOPE_SHARED_SENTENCE
+//   SELECTED_BYTES_DEFINITION
+//   SELECTION_STAGE_GROUND
+//   SELECTION_STAGE_TOOLKIT
+//   SKILLS_MID_EXECUTION
+//   SKILLS_PRE_EXECUTION
+//   SkillCandidate
+//   SkillMeasurement
+//   SkillRecommendation
+//   SkillStateKind
+//   TaskSlice
+//   buildSkillRecommendation
+//   buildTaskSlice
+//   classifySkillState
+//   computeSelectionRatio
+//   contextCommand
+//   formatPlanSharedBody
+//   formatSkillsText
+//   formatSliceBody
+//   formatSliceText
+//   formatTaskPrivateBody
+//   listFullEnvelopeFiles
+//   listSkillComposition
+//   listSkillMdFiles
+//   measurePlanWave
+//   normalizeAuthoredText
+//   pairwiseIdenticalFraction
+//   selectionRatio
+//   sumCompositionBytes
+//   sumFileBytes
+//   utf8Bytes
+// END_MODULE_MAP
 /**
  * Task slices and skill subsetting (Phase 8 / D15).
  *

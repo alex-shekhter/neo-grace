@@ -1,3 +1,23 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Review surface
+//   SCOPE: Process audits, pattern detectors, and review.* findings
+//   DEPENDS: none
+//   LINKS: M-REVIEW
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   CorpusScoreReport
+//   EntryScore
+//   FindingVerdict
+//   SurfaceHit
+//   caughtBaseline
+//   formatCorpusScore
+//   ratchetHolds
+//   scoreCorpus
+//   scoreEntry
+// END_MODULE_MAP
 /**
  * Multi-surface corpus scorer (D4 + A36.3 correction 85).
  *

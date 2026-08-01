@@ -1,3 +1,29 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Plan assertion evaluation
+//   SCOPE: Must* shapes and absence primitives for plans and gates
+//   DEPENDS: none
+//   LINKS: M-ASSERTIONS
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   ASSERTION_KINDS
+//   ASSERTION_PATTERN_MAX_LENGTH
+//   ASSERTION_SCHEMAS
+//   AssertionContext
+//   AssertionExtractionResult
+//   AssertionKind
+//   AssertionSchema
+//   BUDGET_OPERATORS
+//   BudgetOperator
+//   GraceAssertion
+//   compileSafeAssertionPattern
+//   evaluateAssertion
+//   extractAssertions
+//   extractAssertionsWithIssues
+//   spawnShellCommand
+// END_MODULE_MAP
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 

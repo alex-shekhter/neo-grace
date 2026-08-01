@@ -59,5 +59,35 @@
       <Path>src/grace.ts</Path>
       <Type>ENTRY_POINT</Type>
     </M-CLI>
+    <M-GATES>
+      <Summary>Transition gate surface: approve, apply, archive evaluation and ledger decisions.</Summary>
+      <Path>src/gates/core.ts</Path>
+      <Type>CORE_LOGIC</Type>
+    </M-GATES>
+    <M-REVIEW>
+      <Summary>Review surface: process audits, pattern detectors, and review.* findings.</Summary>
+      <Path>src/review/core.ts</Path>
+      <Type>CORE_LOGIC</Type>
+    </M-REVIEW>
+    <M-LOCALIZE>
+      <Summary>Failure localization: marker divergence comparison and verification localize CLI.</Summary>
+      <Path>src/verification/localize.ts</Path>
+      <Type>CORE_LOGIC</Type>
+    </M-LOCALIZE>
+    <M-QUERY>
+      <Summary>Artifact query and navigation: module, file, graph, and verification resolution.</Summary>
+      <Path>src/query/core.ts</Path>
+      <Type>CORE_LOGIC</Type>
+    </M-QUERY>
+    <M-CONTEXT>
+      <Summary>Context selection surface: task slices, skill subsetting, and selectedBytes measurement.</Summary>
+      <Path>src/grace-context.ts</Path>
+      <Type>ENTRY_POINT</Type>
+    </M-CONTEXT>
+    <M-TEST-SUPPORT>
+      <Summary>Test fixtures, defect corpus, and token-accounting helpers for the suite.</Summary>
+      <Path>src/test-support/fixtures.ts</Path>
+      <Type>UTILITY</Type>
+    </M-TEST-SUPPORT>
   </GD-MAIN>
 </NgraceGraphDocument>

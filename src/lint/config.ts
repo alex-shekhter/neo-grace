@@ -1,3 +1,16 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Lint orchestration and language adapters
+//   SCOPE: Project load, governed-file analysis, adapters, and scanners
+//   DEPENDS: none
+//   LINKS: M-LINT-CORE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   CONFIG_FILE_NAME
+//   loadGraceLintConfig
+// END_MODULE_MAP
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 

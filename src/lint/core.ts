@@ -1,3 +1,18 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Lint orchestration and language adapters
+//   SCOPE: Project load, governed-file analysis, adapters, and scanners
+//   DEPENDS: none
+//   LINKS: M-LINT-CORE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   formatTextReport
+//   isModuleOwnableWritePath
+//   isValidTextFormat
+//   lintGraceProject
+// END_MODULE_MAP
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
@@ -5,7 +20,13 @@ import { evaluateAssertion, extractAssertionsWithIssues } from "../artifact/asse
 import { validateNgraceProject } from "../artifact/grammar";
 import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "../artifact/project";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "../artifact/projections";
-import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution } from "../artifact/scope";
+import {
+  collectActiveChangeScopes,
+  createDurableOwnershipIndex,
+  detectScopeOverlaps,
+  detectUnsafeConcurrentExecution,
+  type ActiveChangeScope,
+} from "../artifact/scope";
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { ARTIFACT_TAG_PREFIX, ANCHOR_PATTERNS, type NgraceIssue, type NgraceProjectPaths } from "../artifact/types";
 import { readGraceXmlArtifact } from "../artifact/xml";
@@ -422,11 +443,66 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
     addNgraceIssue(result, issue);
   }
 
+  validateGraphAnchorsOwnWriteScope(result, activeScopes, governedRecords);
+
   const planFilesActive = [...listPlanFiles(paths.changesActiveDir)];
   const planFilesArchived = [...listPlanFiles(paths.changesArchiveDir)];
   validateAssertions(result, paths, planFilesActive, planFilesArchived, graph, verification, root, options);
 
   return finalizeResult(result);
+}
+
+/** Non-test paths under src/ are module-ownable for GraphAnchors↔OWS (C-GRAPH-COVERAGE / A53). */
+export function isModuleOwnableWritePath(relativePath: string): boolean {
+  const normalized = relativePath.replaceAll("\\", "/");
+  if (!normalized.startsWith("src/")) {
+    return false;
+  }
+  if (/(^|\/)(?:__tests__|tests)(\/|$)|(?:\.test|\.spec)\.[^.]+$/.test(normalized)) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Active plans only: each module-ownable ObservedWriteScope File must declare LINKS to at least
+ * one GraphAnchors module. Ownership is LINKS only (no directory prefix). Archives are not in
+ * activeScopes and are not evaluated (decision D / A53).
+ */
+function validateGraphAnchorsOwnWriteScope(
+  result: LintResult,
+  activeScopes: ActiveChangeScope[],
+  governedRecords: FileMarkupRecord[],
+): void {
+  const linksByPath = new Map<string, readonly string[]>();
+  for (const record of governedRecords) {
+    linksByPath.set(record.path.replaceAll("\\", "/"), record.linkedModuleIds);
+  }
+
+  for (const scope of activeScopes) {
+    const anchors = new Set(scope.durable.graphAnchors);
+    const planFile = path.join(scope.bundlePath, "plan.xml");
+    for (const file of scope.observedWrites.files) {
+      const rel = file.replaceAll("\\", "/");
+      if (!isModuleOwnableWritePath(rel)) {
+        continue;
+      }
+      const links = linksByPath.get(rel);
+      const owned = Boolean(links?.some((id) => anchors.has(id)));
+      if (owned) {
+        continue;
+      }
+      const anchorList = [...anchors].sort().join(", ") || "none";
+      addIssue(result, {
+        severity: "error",
+        code: "change.graph-anchors-miss-write-scope",
+        file: planFile,
+        message: links && links.length > 0
+          ? `ObservedWriteScope path ${rel} is not linked to any GraphAnchors module (file LINKS: ${links.join(", ")}; GraphAnchors: ${anchorList}).`
+          : `ObservedWriteScope path ${rel} is under src/ but is not a governed file whose MODULE_CONTRACT LINKS include a GraphAnchors module.`,
+      });
+    }
+  }
 }
 
 export function isValidTextFormat(format: string) {

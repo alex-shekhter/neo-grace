@@ -1,3 +1,15 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Lint orchestration and language adapters
+//   SCOPE: Project load, governed-file analysis, adapters, and scanners
+//   DEPENDS: none
+//   LINKS: M-LINT-CORE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   stripRustNoise
+// END_MODULE_MAP
 /**
  * Character scanner that blanks Rust comments and string/char literal bodies
  * while preserving length and every newline.

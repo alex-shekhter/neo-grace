@@ -1,3 +1,23 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Artifact grammar, XML, and project layout
+//   SCOPE: Validation of .ngrace artifacts and path resolution
+//   DEPENDS: none
+//   LINKS: M-GRAMMAR
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   GraceXmlNode
+//   ParsedGraceXmlArtifact
+//   childNodes
+//   childText
+//   createGraceXmlParser
+//   hasForbiddenAttributes
+//   parseGraceXmlArtifact
+//   readGraceXmlArtifact
+//   walkNodes
+// END_MODULE_MAP
 import { existsSync, readFileSync } from "node:fs";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 

@@ -1,3 +1,15 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Review surface
+//   SCOPE: Process audits, pattern detectors, and review.* findings
+//   DEPENDS: none
+//   LINKS: M-REVIEW
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   extractObservedWriteScopeFromPlan
+// END_MODULE_MAP
 /**
  * Lightweight ObservedWriteScope extraction for process audits.
  * Does not re-implement scope validation — only lists File/Path/Glob values.

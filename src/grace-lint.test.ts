@@ -1367,3 +1367,131 @@ describe("Phase 3 run ledger / cursor integration (§0.2, A12.2)", () => {
     expect(codes).toEqual([]);
   });
 });
+
+describe("change.graph-anchors-miss-write-scope (C-GRAPH-COVERAGE / A53)", () => {
+  const CODE = "change.graph-anchors-miss-write-scope";
+
+  function writePlanWithScope(
+    root: string,
+    changeId: string,
+    location: "active" | "archive",
+    graphAnchors: string,
+    observedWriteFiles: string[],
+  ) {
+    const dir = `${ARTIFACT_DIR}/changes/${location}/${changeId}`;
+    const ows = observedWriteFiles.map((f) => `<File>${f}</File>`).join("");
+    writeProjectFile(
+      root,
+      `${dir}/spec.xml`,
+      `<NgraceChangeSpec graceVersion="1.0" status="approved"><${changeId}><Summary>S.</Summary><Goals><Goal>G.</Goal></Goals><Constraints><Constraint>C.</Constraint></Constraints><NonGoals><NonGoal>N.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>A.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></${changeId}></NgraceChangeSpec>`,
+    );
+    writeProjectFile(
+      root,
+      `${dir}/plan.xml`,
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><${changeId}><IntentSummary>I.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors>${graphAnchors}</GraphAnchors></DurableScope><ObservedWriteScope>${ows}</ObservedWriteScope><ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>ok</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></${changeId}></NgraceChangePlan>`,
+    );
+  }
+
+  it("silent when GraphAnchors module appears in the file's LINKS (axis: owns)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writePlanWithScope(root, "C-OWN", "active", "<M-EXAMPLE />", ["src/example.ts"]);
+    const issues = lintGraceProject(root).issues.filter((i) => i.code === CODE);
+    expect(issues).toEqual([]);
+  });
+
+  it("red when GraphAnchors do not intersect file LINKS (axis: miss)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/graph/main.xml`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary><Path>src/example.ts</Path></M-EXAMPLE><M-OTHER><Summary>Other.</Summary><Path>src/other.ts</Path></M-OTHER></GD-MAIN></NgraceGraphDocument>`,
+    );
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/graph/index.xml`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-OTHER /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+    );
+    writeProjectFile(
+      root,
+      "src/other.ts",
+      `// START_MODULE_CONTRACT
+//   PURPOSE: Other module.
+//   SCOPE: Fixture.
+//   DEPENDS: none
+//   LINKS: M-OTHER
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   other
+// END_MODULE_MAP
+export function other() { return 1; }
+`,
+    );
+    // Review-shaped: write example (links M-EXAMPLE) but only anchor M-OTHER
+    writePlanWithScope(root, "C-MISS", "active", "<M-OTHER />", ["src/example.ts"]);
+    const issues = lintGraceProject(root).issues.filter((i) => i.code === CODE);
+    expect(issues.length).toBeGreaterThanOrEqual(1);
+    expect(issues[0]!.severity).toBe("error");
+    expect(issues[0]!.message).toContain("src/example.ts");
+    expect(issues[0]!.message).toMatch(/LINKS|GraphAnchors/);
+  });
+
+  it("silent when ObservedWriteScope is only non-src paths (axis: non-ownable)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writePlanWithScope(root, "C-NONSRC", "active", "<M-EXAMPLE />", [
+      "README.md",
+      "package.json",
+      "docs/plans/active/RM-X/plan.md",
+      "skills/ngrace/ngrace-cli/SKILL.md",
+    ]);
+    const issues = lintGraceProject(root).issues.filter((i) => i.code === CODE);
+    expect(issues).toEqual([]);
+  });
+
+  it("archived mismatch is not evaluated (axis: archive policy)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/graph/main.xml`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Example module.</Summary><Path>src/example.ts</Path></M-EXAMPLE><M-OTHER><Summary>Other.</Summary><Path>src/other.ts</Path></M-OTHER></GD-MAIN></NgraceGraphDocument>`,
+    );
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/graph/index.xml`,
+      `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><M-OTHER /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+    );
+    writeProjectFile(
+      root,
+      "src/other.ts",
+      `// START_MODULE_CONTRACT
+//   PURPOSE: Other module.
+//   SCOPE: Fixture.
+//   DEPENDS: none
+//   LINKS: M-OTHER
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   other
+// END_MODULE_MAP
+export function other() { return 1; }
+`,
+    );
+    writePlanWithScope(root, "C-ARCH", "archive", "<M-OTHER />", ["src/example.ts"]);
+    const issues = lintGraceProject(root).issues.filter((i) => i.code === CODE);
+    expect(issues).toEqual([]);
+  });
+
+  it("silent for test files under src/ even without LINKS ownership", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writePlanWithScope(root, "C-TEST", "active", "<M-EXAMPLE />", ["src/example.test.ts"]);
+    const issues = lintGraceProject(root).issues.filter((i) => i.code === CODE);
+    expect(issues).toEqual([]);
+  });
+});

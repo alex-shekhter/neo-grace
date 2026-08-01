@@ -1,3 +1,36 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Governed-file discovery and markup analysis
+//   SCOPE: Scanning, contracts, language routing, and graph projections
+//   DEPENDS: none
+//   LINKS: M-PROJECT-UTILS
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   FileBlockRecord
+//   FileContractRecord
+//   FileFieldSection
+//   FileListItem
+//   FileMarkupRecord
+//   GovernedFileAnalysis
+//   GovernedFileAnalysisOptions
+//   MarkerEvidenceOptions
+//   TextSection
+//   analyzeGovernedFile
+//   collectCodeFiles
+//   collectNearMissMarkerIssues
+//   findSection
+//   hasGraceMarkers
+//   hasRuntimeMarkerEvidence
+//   lineNumberAt
+//   normalizeRelative
+//   parseGovernedFile
+//   parseMarkerBlockName
+//   readTextIfExists
+//   stripCommentPrefix
+//   stripQuotedStrings
+// END_MODULE_MAP
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { ANCHOR_PATTERNS } from "./artifact/types";
@@ -612,7 +645,9 @@ function validateMarkerStructure(file: string, text: string): LintIssue[] {
   const issues: LintIssue[] = [];
   const completed = new Set<string>();
   const openMarkers: MarkerEvent[] = [];
-  const lines = text.split("\n");
+  // Same searchable surface as hasGraceMarkers: markers inside string/template
+  // literals are documentation or fixtures, not structure (corr 144 / full coverage).
+  const lines = stripQuotedStrings(text).split("\n");
   for (let index = 0; index < lines.length; index += 1) {
     const event = parseMarkerEvent(stripCommentPrefix(lines[index]!).trim(), index + 1);
     if (!event) {

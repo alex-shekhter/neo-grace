@@ -133,6 +133,8 @@
       <File>src/verification/check-references.ts</File>
       <File>src/verification/localize.ts</File>
       <File>src/grace-lint.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/language-registry.test.ts</File>
       <File>.ngrace/graph/main.xml</File>
       <File>.ngrace/graph/index.xml</File>
       <File>.ngrace/verification/main.xml</File>

@@ -1,3 +1,18 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Governed-file discovery and markup analysis
+//   SCOPE: Scanning, contracts, language routing, and graph projections
+//   DEPENDS: none
+//   LINKS: M-PROJECT-UTILS
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   ADAPTER_BACKED_EXTENSIONS
+//   CODE_EXTENSIONS
+//   LANGUAGE_ADAPTERS
+//   isGovernedCodeExtension
+// END_MODULE_MAP
 import { createDartAdapter } from "./lint/adapters/dart";
 import { createGoAdapter } from "./lint/adapters/go";
 import { createPythonAdapter } from "./lint/adapters/python";

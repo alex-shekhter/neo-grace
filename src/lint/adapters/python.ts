@@ -1,3 +1,15 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Lint orchestration and language adapters
+//   SCOPE: Project load, governed-file analysis, adapters, and scanners
+//   DEPENDS: none
+//   LINKS: M-LINT-CORE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   createPythonAdapter
+// END_MODULE_MAP
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 

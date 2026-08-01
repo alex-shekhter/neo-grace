@@ -1,3 +1,18 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Lint orchestration and language adapters
+//   SCOPE: Project load, governed-file analysis, adapters, and scanners
+//   DEPENDS: none
+//   LINKS: M-LINT-CORE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   GoDeclKind
+//   GoDeclaration
+//   createGoAdapter
+//   scanTopLevelDeclarations
+// END_MODULE_MAP
 import path from "node:path";
 
 import { stripGoNoise } from "../scanners/go-lexer";

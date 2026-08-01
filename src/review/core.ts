@@ -1,3 +1,34 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Review surface
+//   SCOPE: Process audits, pattern detectors, and review.* findings
+//   DEPENDS: none
+//   LINKS: M-REVIEW
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   HunkCoverageInput
+//   JoinProbe
+//   REVIEW_CATALOG
+//   RegexOverStructureScan
+//   ReviewFinding
+//   ReviewOptions
+//   ReviewResult
+//   TestFileDiff
+//   allReviewCodes
+//   auditCompatNewErrors
+//   auditHunkCoverage
+//   auditScopeOutsideWriteScope
+//   auditTestWeakening
+//   findingId
+//   formatReviewResult
+//   isReviewIssueCode
+//   runJoinProbes
+//   runPatternDetectors
+//   runPatternDetectorsWithMeta
+//   runReview
+// END_MODULE_MAP
 /**
  * Review surface (D4, D14, §6.4, A35/A36): pattern detectors, process audits,
  * join engine, and deterministic finding IDs.

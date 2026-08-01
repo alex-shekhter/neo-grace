@@ -1,3 +1,19 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Artifact query and navigation CLI
+//   SCOPE: Module, file, graph, and verification resolution
+//   DEPENDS: none
+//   LINKS: M-QUERY
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   GraceCommandError
+//   GraceCommandErrorCode
+//   GraceCommandErrorEnvelope
+//   runGraceCommand
+//   runQueryCommand
+// END_MODULE_MAP
 /** Stable user-facing query command error code. */
 export type GraceCommandErrorCode = "invalid-project" | "not-found" | "ambiguous-target" | "invalid-arguments";
 

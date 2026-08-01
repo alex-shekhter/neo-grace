@@ -1,3 +1,18 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Test fixtures and defect corpus
+//   SCOPE: Temp projects, corpus seeds, and token-accounting helpers
+//   DEPENDS: none
+//   LINKS: M-TEST-SUPPORT
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   writeChangeBundleFixture
+//   writeLegacyGrace3Project
+//   writeMinimalNgraceProject
+//   writeSegmentedNgraceProject
+// END_MODULE_MAP
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -44,6 +59,29 @@ export function writeMinimalNgraceProject(root: string): void {
     root,
     `${ARTIFACT_DIR}/verification/main.xml`,
     `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test src/example.test.ts</Command><Scenario>Example works.</Scenario><Marker>[Example][run][BLOCK_RUN]</Marker></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>`,
+  );
+  // Governed Path file so active plans with GraphAnchors M-EXAMPLE + OWS src/example.ts
+  // satisfy change.graph-anchors-miss-write-scope (C-GRAPH-COVERAGE / LINKS ownership).
+  writeProjectFile(
+    root,
+    "src/example.ts",
+    `// START_MODULE_CONTRACT
+//   PURPOSE: Example runtime.
+//   SCOPE: Fixture implementation for M-EXAMPLE.
+//   DEPENDS: none
+//   LINKS: M-EXAMPLE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   run
+// END_MODULE_MAP
+export function run() {
+  // START_BLOCK_RUN
+  return "ok";
+  // END_BLOCK_RUN
+}
+`,
   );
   ensureChangeDirectories(root);
 }

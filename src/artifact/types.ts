@@ -1,3 +1,48 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Shared artifact constants and path helpers
+//   SCOPE: Root tags, companions, anchor patterns, ARTIFACT_DIR
+//   DEPENDS: none
+//   LINKS: M-ARTIFACT-TYPES
+//   ROLE: TYPES
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   ACTIVE_CHANGE_STATUSES
+//   ANCHOR_PATTERNS
+//   ARCHIVED_CHANGE_STATUSES
+//   ARTIFACT_TAG_PREFIX
+//   CHANGE_STATUSES
+//   ChangeStatus
+//   DATA_FLOW_STEP_PROPERTIES
+//   DataFlowStepProperty
+//   EPOCH_SECTION_PATTERN
+//   FailureSignature
+//   GraceProjectKind
+//   INTERFACE_BREAKING_CHANGE_POLICIES
+//   InterfaceBreakingChangePolicy
+//   MODULE_TYPES
+//   ModuleType
+//   NGRACE_ARTIFACT_VERSION
+//   NGRACE_CHANGE_BUNDLE_COMPANIONS
+//   NGRACE_CHANGE_BUNDLE_XML_FILES
+//   NGRACE_CHANGE_COMPANION_TAGS
+//   NGRACE_CONTEXT_ARTIFACTS
+//   NGRACE_OPTIONAL_CONTEXT_ARTIFACTS
+//   NGRACE_ROOT_TAGS
+//   NgraceChangeBundleCompanion
+//   NgraceChangeCompanionTag
+//   NgraceContextArtifact
+//   NgraceIssue
+//   NgraceOptionalContextArtifact
+//   NgraceProjectPaths
+//   NgraceRootTag
+//   SKILL_PREFIX
+//   SemanticAnchorClassification
+//   SemanticAnchorFamily
+//   skillName
+//   skillRef
+// END_MODULE_MAP
 /** Supported GRACE artifact grammar version for this release. */
 export const NGRACE_ARTIFACT_VERSION = "1.0" as const;
 

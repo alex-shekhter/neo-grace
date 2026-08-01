@@ -1,3 +1,21 @@
+// START_MODULE_CONTRACT
+//   PURPOSE: Review surface
+//   SCOPE: Process audits, pattern detectors, and review.* findings
+//   DEPENDS: none
+//   LINKS: M-REVIEW
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   REVIEW_CATALOG
+//   ReviewIssueGuide
+//   ReviewIssueSeverity
+//   allReviewCodes
+//   guideFor
+//   isReviewIssueCode
+//   patternReviewCodes
+// END_MODULE_MAP
 /**
  * Review issue codes (D14). Must never be emitted by runLint — boundary test in
  * src/lint/core.test.ts. Codes are namespaced review.* only.
