@@ -64,6 +64,8 @@
       <File>src/verification/localize.ts</File>
       <File>src/verification/localize.test.ts</File>
       <File>src/grace-verification.ts</File>
+      <File>src/query/core.ts</File>
+      <File>src/query/health.ts</File>
       <File>src/grace-query.test.ts</File>
       <File>src/test-support/token-accounting.test.ts</File>
       <File>skills/ngrace/ngrace-fix/SKILL.md</File>

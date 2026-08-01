@@ -7,12 +7,15 @@ import { skillRef } from "../artifact/types";
 import { readGraceXmlArtifact } from "../artifact/xml";
 import { hasRuntimeMarkerEvidence, parseMarkerBlockName } from "../project-utils";
 import { checkModuleCheckReferences } from "../verification/check-references";
-import { getModuleImplementationFiles, getModuleName, getModulePath, getModuleType, resolveModule } from "./core";
+import {
+  getModuleImplementationFiles,
+  getModuleName,
+  getModulePath,
+  getModuleType,
+  isLikelyTestPath,
+  resolveModule,
+} from "./core";
 import type { GraceArtifactIndex, ModuleHealthIssue, ModuleHealthRecord, ModuleRecord } from "./types";
-
-function isLikelyTestPath(relativePath: string) {
-  return /(^|\/)(__tests__|tests)(\/|$)|(^|\/)(test_[^/]+|[^/]+\.(test|spec)\.[^.]+)$/.test(relativePath);
-}
 
 function dirForRemediation(testFile: string) {
   return path.dirname(testFile.replaceAll("\\", "/"));

@@ -14,16 +14,19 @@ import {
   excludedReviewCodesForLocalization,
   filterAdmissibleReviewFindings,
   firstDivergentBlock,
+  flakePairFromChange,
   formatLocalizationText,
   isAdmissibleLocalizationReviewCode,
   loadReviewJsonFindings,
   localizeFailure,
+  OBSERVED_GROUND,
   parseObservedMarkers,
   projectMarkerAlphabet,
   resolveBlockLocations,
   resolveModuleForTestPath,
   splitObservedByEntry,
 } from "./localize";
+import { isLikelyTestPath } from "../query/core";
 
 function stubModule(
   localFiles: ModuleRecord["localFiles"],
@@ -139,10 +142,10 @@ describe("firstDivergentBlock — seven axes (A40.2)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// parseObservedMarkers — every occurrence, log order (A42.6); parser cases
+// parseObservedMarkers — per-line at most one (A43.2); across lines all (A42.6)
 // ---------------------------------------------------------------------------
 
-describe("parseObservedMarkers — every occurrence, log order (A42.6)", () => {
+describe("parseObservedMarkers — per-line once, line order (A42.6 / A43.2)", () => {
   const alphabet = [M0, M1, M2, FOREIGN];
 
   it("case: empty log → []", () => {
@@ -163,12 +166,31 @@ describe("parseObservedMarkers — every occurrence, log order (A42.6)", () => {
     expect(parseObservedMarkers(log, alphabet)).toEqual([M0, FOREIGN, M1]);
   });
 
-  it("case: repeated marker keeps every occurrence (path to observed-longer)", () => {
+  it("case: repeated marker on separate lines keeps every line (path to observed-longer)", () => {
     const log = `${M0}\n${M1}\n${M1}\n`;
     expect(parseObservedMarkers(log, [M0, M1])).toEqual([M0, M1, M1]);
-    // End-to-end: parse → firstDivergentBlock yields observed longer.
     const d = firstDivergentBlock([M0, M1], parseObservedMarkers(log, [M0, M1]));
     expect(d).toEqual({ index: 2, expected: undefined, observed: M1 });
+  });
+
+  it("case: at most one count per line (within-line inflation removed)", () => {
+    const log = `${M0} ${M0} and again ${M0}\n`;
+    expect(parseObservedMarkers(log, [M0])).toEqual([M0]);
+  });
+
+  it("case: assertion-diff log that echoes the marker (A43.2 probe)", () => {
+    // Failing marker tests print the expected string in "right:" / "never emitted" lines.
+    // Per-line rule: two lines each containing the marker → two textual hits (recorded limitation).
+    const marker = "[LedgerCore][post][BLOCK_VALIDATE_BALANCE]";
+    const log = [
+      `right: "${marker}"`,
+      `expected marker ${marker} was never emitted`,
+    ].join("\n");
+    const observed = parseObservedMarkers(log, [marker]);
+    expect(observed).toEqual([marker, marker]);
+    // Not "zero emissions" — honesty: ground is textual presence, not emission certainty.
+    const d = firstDivergentBlock([marker], observed);
+    expect(d).toEqual({ index: 1, expected: undefined, observed: marker });
   });
 
   it("empty alphabet → [] even when log contains text", () => {
@@ -384,9 +406,15 @@ describe("flake consumption — classifyFlakeFromEvidence, not rebuilt", () => {
     files: [{ path: "src/a.ts", kind: "content", digest }],
   });
 
-  it("flaky → divergence suppressed, no causal claim", () => {
-    const root = tempRoot("ngrace-flake-");
+  // Logs that produce a well-founded divergence (partial sequence) so flake can suppress it.
+  function projectWithTwoMarkers(prefix: string) {
+    const root = tempRoot(prefix);
     writeMinimalNgraceProject(root);
+    write(
+      root,
+      `${ARTIFACT_DIR}/verification/main.xml`,
+      `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test src/example.test.ts</Command><Scenario>Example works.</Scenario><Marker>[Example][run][BLOCK_RUN]</Marker><Marker>[Example][validate][BLOCK_VALIDATE]</Marker></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>`,
+    );
     write(
       root,
       "src/example.ts",
@@ -397,16 +425,25 @@ describe("flake consumption — classifyFlakeFromEvidence, not rebuilt", () => {
         "// START_BLOCK_RUN",
         'console.info("[Example][run][BLOCK_RUN]");',
         "// END_BLOCK_RUN",
+        "// START_BLOCK_VALIDATE",
+        'console.info("[Example][validate][BLOCK_VALIDATE]");',
+        "// END_BLOCK_VALIDATE",
       ].join("\n"),
     );
+    return root;
+  }
+
+  it("flaky → divergence suppressed, no causal claim", () => {
+    const root = projectWithTwoMarkers("ngrace-flake-");
     const index = loadGraceArtifactIndex(root);
     const verification = index.verifications[0]!;
     const module = index.modules.find((m) => m.id === verification.moduleId);
+    // Only first marker observed → real divergence at 1 before flake suppression.
     const result = localizeFailure({
       index,
       verification,
       module,
-      logText: "no markers here\n",
+      logText: `${verification.requiredLogMarkers[0]}\n`,
       flakePair: {
         earlier: { outcome: "fail", writeEvidence: evidence("abc") },
         later: { outcome: "pass", writeEvidence: evidence("abc") },
@@ -419,27 +456,14 @@ describe("flake consumption — classifyFlakeFromEvidence, not rebuilt", () => {
   });
 
   it("retry → divergence still reported when log shows it", () => {
-    const root = tempRoot("ngrace-retry-");
-    writeMinimalNgraceProject(root);
-    write(
-      root,
-      "src/example.ts",
-      [
-        "// START_MODULE_CONTRACT",
-        "// LINKS: M-EXAMPLE",
-        "// END_MODULE_CONTRACT",
-        "// START_BLOCK_RUN",
-        'console.info("[Example][run][BLOCK_RUN]");',
-        "// END_BLOCK_RUN",
-      ].join("\n"),
-    );
+    const root = projectWithTwoMarkers("ngrace-retry-");
     const index = loadGraceArtifactIndex(root);
     const verification = index.verifications[0]!;
     const result = localizeFailure({
       index,
       verification,
       module: index.modules[0],
-      logText: "nothing\n",
+      logText: `${verification.requiredLogMarkers[0]}\n`,
       flakePair: {
         earlier: { outcome: "fail", writeEvidence: evidence("aaa") },
         later: { outcome: "pass", writeEvidence: evidence("bbb") },
@@ -447,19 +471,18 @@ describe("flake consumption — classifyFlakeFromEvidence, not rebuilt", () => {
     });
     expect(result.flake?.verdict).toBe("retry");
     expect(result.divergenceSuppressed).toBeUndefined();
-    expect(result.divergence?.index).toBe(0);
+    expect(result.divergence?.index).toBe(1);
   });
 
   it("unable-to-determine flake → no flake claim about flakiness, divergence may remain", () => {
-    const root = tempRoot("ngrace-flake-ud-");
-    writeMinimalNgraceProject(root);
+    const root = projectWithTwoMarkers("ngrace-flake-ud-");
     const index = loadGraceArtifactIndex(root);
     const verification = index.verifications[0]!;
     const result = localizeFailure({
       index,
       verification,
       module: index.modules[0],
-      logText: "nothing\n",
+      logText: `${verification.requiredLogMarkers[0]}\n`,
       flakePair: {
         earlier: {
           outcome: "fail",
@@ -472,7 +495,7 @@ describe("flake consumption — classifyFlakeFromEvidence, not rebuilt", () => {
       },
     });
     expect(result.flake?.verdict).toBe("unable-to-determine");
-    expect(result.divergence?.index).toBe(0);
+    expect(result.divergence?.index).toBe(1);
   });
 });
 
@@ -516,7 +539,7 @@ describe("localizeFailure — absences and end-to-end", () => {
     expect(result.absence?.reason).toMatch(/no required log markers/);
   });
 
-  it("stack-trace-only log → no divergence location from frames", () => {
+  it("corr 108 row1: stack-trace-only / empty-marker log → absence, not divergence at 0", () => {
     const root = tempRoot("ngrace-stack-");
     writeMinimalNgraceProject(root);
     write(
@@ -544,20 +567,47 @@ describe("localizeFailure — absences and end-to-end", () => {
       module: index.modules.find((m) => m.id === "M-EXAMPLE"),
       logText: stack,
     });
-    // Observed empty → diverge at 0; location is BLOCK region or absence — never a stack frame path.
+    // A43.1: own empty + foreign empty → absence; no index, no location.
     expect(result.observed).toEqual([]);
-    expect(result.divergence?.index).toBe(0);
-    expect(result.locations.every((l) => !l.path.includes("node:internal"))).toBe(true);
+    expect(result.foreignMarkers).toEqual([]);
+    expect(result.absence?.verdict).toBe("unable-to-determine");
+    expect(result.absence?.reason).toMatch(/no declared marker of any entry/);
+    expect(result.divergence).toBeNull();
+    expect(result.locations).toEqual([]);
     const text = formatLocalizationText(result);
     expect(text).not.toMatch(/node:internal/);
-    expect(text).not.toMatch(/at Object\./);
-    // Location should be the BLOCK_RUN region when the file exposes it.
-    if (result.locations.length > 0) {
-      expect(result.locations[0]!.path).toBe("src/example.ts");
-    }
+    expect(text).not.toMatch(/First divergent block: index/);
+    expect(text).toMatch(/Observed ground:/);
   });
 
-  it("foreign-only log reports foreign markers and empty own observed", () => {
+  it("corr 108 row1: empty log file → absence (not crates/... location)", () => {
+    const root = tempRoot("ngrace-empty-log-");
+    writeMinimalNgraceProject(root);
+    write(
+      root,
+      "src/example.ts",
+      [
+        "// START_MODULE_CONTRACT",
+        "// LINKS: M-EXAMPLE",
+        "// END_MODULE_CONTRACT",
+        "// START_BLOCK_RUN",
+        'console.info("[Example][run][BLOCK_RUN]");',
+        "// END_BLOCK_RUN",
+      ].join("\n"),
+    );
+    const index = loadGraceArtifactIndex(root);
+    const result = localizeFailure({
+      index,
+      verification: index.verifications[0]!,
+      module: index.modules.find((m) => m.id === "M-EXAMPLE"),
+      logText: "",
+    });
+    expect(result.absence?.verdict).toBe("unable-to-determine");
+    expect(result.divergence).toBeNull();
+    expect(result.locations).toEqual([]);
+  });
+
+  it("corr 108 row2: foreign-only log → divergence at 0 stands (log carries markers)", () => {
     const root = tempRoot("ngrace-foreign-");
     writeSegmentedNgraceProject(root);
     write(
@@ -597,7 +647,11 @@ describe("localizeFailure — absences and end-to-end", () => {
     });
     expect(result.observed).toEqual([]);
     expect(result.foreignMarkers).toEqual([secondMarker]);
+    expect(result.absence).toBeUndefined();
     expect(result.divergence?.index).toBe(0);
+    // Location for expected marker at index 0 must resolve (not pass-by-skipping).
+    expect(result.locations.length).toBeGreaterThan(0);
+    expect(result.locations[0]!.path).toBe("src/example.ts");
   });
 
   it("happy path: partial sequence diverges at missing marker with location", () => {
@@ -688,11 +742,22 @@ describe("localizeFailure — absences and end-to-end", () => {
 // CLI integration — ngrace verification localize
 // ---------------------------------------------------------------------------
 
-describe("CLI ngrace verification localize", () => {
+describe("CLI ngrace verification localize — every absence row has an invocation (A43 bar)", () => {
   const repoRoot = path.resolve(import.meta.dir, "../..");
 
-  it("localizes from --log and filters --review-json; no log is absence", () => {
-    const root = tempRoot("ngrace-cli-loc-");
+  function cliJson(args: string[]): Record<string, unknown> {
+    const result = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "verification", "localize", ...args],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).toBe(0);
+    return JSON.parse(Buffer.from(result.stdout).toString("utf8")) as Record<string, unknown>;
+  }
+
+  function fixtureWithBlock(prefix: string): string {
+    const root = tempRoot(prefix);
     writeMinimalNgraceProject(root);
     write(
       root,
@@ -706,6 +771,33 @@ describe("CLI ngrace verification localize", () => {
         "// END_BLOCK_RUN",
       ].join("\n"),
     );
+    return root;
+  }
+
+  it("missing --log → absence (CLI)", () => {
+    const root = fixtureWithBlock("ngrace-cli-nolog-");
+    const body = cliJson(["V-M-EXAMPLE", "--path", root, "--json"]);
+    const absence = body.absence as { verdict: string; reason: string };
+    expect(absence.verdict).toBe("unable-to-determine");
+    expect(absence.reason).toMatch(/no log supplied/);
+    expect(body.divergence).toBeNull();
+  });
+
+  it("empty --log file → absence, no location (corr 108 CLI)", () => {
+    const root = fixtureWithBlock("ngrace-cli-empty-");
+    const logPath = path.join(root, "empty.log");
+    writeFileSync(logPath, "");
+    const body = cliJson(["V-M-EXAMPLE", "--path", root, "--log", logPath, "--json"]);
+    const absence = body.absence as { verdict: string; reason: string };
+    expect(absence.verdict).toBe("unable-to-determine");
+    expect(absence.reason).toMatch(/no declared marker of any entry/);
+    expect(body.divergence).toBeNull();
+    expect(body.locations).toEqual([]);
+    expect(body.observedGround).toBe(OBSERVED_GROUND);
+  });
+
+  it("stack-trace-only --log → absence (CLI)", () => {
+    const root = fixtureWithBlock("ngrace-cli-stack-");
     const logPath = path.join(root, "run.log");
     writeFileSync(logPath, "Error: boom\n    at Object.<anonymous> (/tmp/x.ts:1:1)\n");
     const reviewPath = path.join(root, "review.json");
@@ -731,62 +823,82 @@ describe("CLI ngrace verification localize", () => {
         ],
       }),
     );
-
-    const withLog = Bun.spawnSync({
-      cmd: [
-        process.execPath,
-        "./src/grace.ts",
-        "verification",
-        "localize",
-        "V-M-EXAMPLE",
-        "--path",
-        root,
-        "--log",
-        logPath,
-        "--review-json",
-        reviewPath,
-        "--json",
-      ],
-      cwd: repoRoot,
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    expect(withLog.exitCode).toBe(0);
-    const body = JSON.parse(Buffer.from(withLog.stdout).toString("utf8"));
-    expect(body.ok).toBe(true);
-    expect(body.tool).toBe("ngrace-verification-localize");
-    expect(body.divergence?.index).toBe(0);
-    expect(body.processContext.map((f: { code: string }) => f.code)).toEqual([
+    const body = cliJson([
+      "V-M-EXAMPLE",
+      "--path",
+      root,
+      "--log",
+      logPath,
+      "--review-json",
+      reviewPath,
+      "--json",
+    ]);
+    expect((body.absence as { verdict: string }).verdict).toBe("unable-to-determine");
+    expect(body.divergence).toBeNull();
+    expect(body.locations).toEqual([]);
+    expect((body.processContext as Array<{ code: string }>).map((f) => f.code)).toEqual([
       "review.scope-outside-write-scope",
     ]);
-    // Stack frames never appear as locations.
-    expect(JSON.stringify(body.locations)).not.toContain("node:internal");
-    expect(JSON.stringify(body.locations)).not.toContain("/tmp/x.ts");
+    expect(JSON.stringify(body)).not.toContain("/tmp/x.ts");
+  });
 
-    const noLog = Bun.spawnSync({
-      cmd: [
-        process.execPath,
-        "./src/grace.ts",
-        "verification",
-        "localize",
-        "V-M-EXAMPLE",
-        "--path",
-        root,
-        "--json",
-      ],
-      cwd: repoRoot,
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    expect(noLog.exitCode).toBe(0);
-    const absent = JSON.parse(Buffer.from(noLog.stdout).toString("utf8"));
-    expect(absent.absence?.verdict).toBe("unable-to-determine");
-    expect(absent.observed).toEqual([]);
+  it("marker-less V-M-* → absence (CLI)", () => {
+    const root = tempRoot("ngrace-cli-nomarkers-");
+    writeMinimalNgraceProject(root);
+    write(
+      root,
+      `${ARTIFACT_DIR}/verification/main.xml`,
+      `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test src/example.test.ts</Command><Scenario>Example works.</Scenario></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>`,
+    );
+    const logPath = path.join(root, "run.log");
+    writeFileSync(logPath, "anything\n");
+    const body = cliJson(["V-M-EXAMPLE", "--path", root, "--log", logPath, "--json"]);
+    expect((body.absence as { reason: string }).reason).toMatch(/no required log markers/);
+  });
+
+  it("ungoverned --test-file → moduleAbsence (CLI)", () => {
+    const root = fixtureWithBlock("ngrace-cli-ungov-");
+    const logPath = path.join(root, "run.log");
+    writeFileSync(logPath, "[Example][run][BLOCK_RUN]\n");
+    const body = cliJson([
+      "V-M-EXAMPLE",
+      "--path",
+      root,
+      "--log",
+      logPath,
+      "--test-file",
+      "src/never-governed.test.ts",
+      "--json",
+    ]);
+    expect((body.moduleAbsence as { verdict: string }).verdict).toBe("unable-to-determine");
+  });
+
+  it("--change with no attempt pair → flake unable-to-determine (CLI producer, corr 110)", () => {
+    // C-FAILURE-LOCALIZATION exists on this repo with a gate Decision but no fail→pass attempts.
+    const logPath = path.join(repoRoot, "package.json"); // any existing file as log; will be empty-marker absence too
+    const body = cliJson([
+      "V-M-ARTIFACT-TYPES",
+      "--path",
+      repoRoot,
+      "--log",
+      logPath,
+      "--change",
+      "C-FAILURE-LOCALIZATION",
+      "--json",
+    ]);
+    // Marker-less entry on this V-M; flake still loaded from --change.
+    expect(body.flake).toBeDefined();
+    expect((body.flake as { verdict: string }).verdict).toBe("unable-to-determine");
+    expect((body.flake as { reason: string }).reason).toMatch(/no fail→pass attempt pair|C-FAILURE-LOCALIZATION/);
+  });
+
+  it("flakePairFromChange returns absence for unknown change", () => {
+    const loaded = flakePairFromChange(repoRoot, "C-DOES-NOT-EXIST-XYZ");
+    expect("absence" in loaded).toBe(true);
   });
 
   it("writes nothing under the project root (F1)", () => {
-    const root = tempRoot("ngrace-cli-nowrite-");
-    writeMinimalNgraceProject(root);
+    const root = fixtureWithBlock("ngrace-cli-nowrite-");
     const logPath = path.join(root, "run.log");
     writeFileSync(logPath, "x\n");
     const before = Bun.spawnSync({
@@ -823,5 +935,13 @@ describe("CLI ngrace verification localize", () => {
       Buffer.from(after.stdout).toString("utf8").trim().split("\n").filter(Boolean).sort(),
     );
     expect([...afterSet].sort()).toEqual([...beforeSet].sort());
+  });
+});
+
+describe("isLikelyTestPath shared export (corr 111)", () => {
+  it("matches the prior local predicate", () => {
+    expect(isLikelyTestPath("src/foo.test.ts")).toBe(true);
+    expect(isLikelyTestPath("src/foo.ts")).toBe(false);
+    expect(isLikelyTestPath("tests/helper.ts")).toBe(true);
   });
 });

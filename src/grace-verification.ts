@@ -6,9 +6,11 @@ import { GraceCommandError, runQueryCommand } from "./query/errors";
 import { formatVerificationFindTable, formatVerificationText } from "./query/render";
 import type { GraceArtifactIndex } from "./query/types";
 import {
+  flakePairFromChange,
   formatLocalizationText,
   loadReviewJsonFindings,
   localizeFailure,
+  type FlakePair,
   type ProcessContextFinding,
 } from "./verification/localize";
 
@@ -190,6 +192,16 @@ export const verificationCommand = defineCommand({
           type: "string",
           description: "Optional failing test path for module join when not implied by the V-M-* entry",
         },
+        change: {
+          type: "string",
+          description:
+            "Optional C-* change id: load fail→pass attempt write evidence from the durable ledger "
+            + "(ledger∪loose) for flake classification (A43.3). Absent → no flake field.",
+        },
+        task: {
+          type: "string",
+          description: "Optional T-* task id to scope flake pair search when --change is set",
+        },
         format: {
           type: "string",
           alias: "f",
@@ -231,6 +243,25 @@ export const verificationCommand = defineCommand({
             reviewFindings = loaded;
           }
 
+          let flakePair: FlakePair | undefined;
+          let flakeLoadAbsence: string | undefined;
+          const changeId =
+            context.args.change !== undefined && context.args.change !== null
+              ? String(context.args.change).trim()
+              : "";
+          if (changeId) {
+            const taskArg =
+              context.args.task !== undefined && context.args.task !== null
+                ? String(context.args.task).trim()
+                : undefined;
+            const loaded = flakePairFromChange(projectRoot, changeId, taskArg || undefined);
+            if ("absence" in loaded) {
+              flakeLoadAbsence = loaded.absence.reason;
+            } else {
+              flakePair = loaded;
+            }
+          }
+
           const result = localizeFailure({
             index,
             verification,
@@ -242,7 +273,17 @@ export const verificationCommand = defineCommand({
                 ? String(context.args["test-file"])
                 : undefined,
             reviewFindings,
+            flakePair,
           });
+
+          // When --change was given but no pair found, report flake as unable-to-determine
+          // (producer was asked; answer is absence of pair — not silent omission of the ask).
+          if (flakeLoadAbsence && !result.flake) {
+            result.flake = {
+              verdict: "unable-to-determine",
+              reason: flakeLoadAbsence,
+            };
+          }
 
           if (format === "json") {
             process.stdout.write(`${JSON.stringify({ ok: true, ...result }, null, 2)}\n`);

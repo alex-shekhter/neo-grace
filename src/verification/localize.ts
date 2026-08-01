@@ -1,9 +1,14 @@
 /**
- * Deterministic failure localization (D8, Phase 7 / A41–A42).
+ * Deterministic failure localization (D8, Phase 7 / A41–A43).
  *
  * Inputs: expected markers from a V-M-* entry (document order), observed markers
  * parsed from a caller-supplied log against the project-wide alphabet, optional
- * review JSON and flake pair.
+ * review JSON and optional flake pair from ledger attempts (--change).
+ *
+ * Ground for `observed` (A43.2 / corr 109): declared markers textually present in
+ * the supplied log, in log order, at most one count per line. This is NOT "markers
+ * the run emitted" — assertion diffs that echo a marker string can still appear.
+ * Capture the run's own output, not only the test framework failure report.
  *
  * Route (1) — binary runs tests — is deferred (A42.1). parseObservedMarkers takes
  * a string so a later C-* can hand it spawn output without touching the comparator.
@@ -16,13 +21,18 @@ import path from "node:path";
 
 import {
   classifyFlakeFromEvidence,
+  listAccountingEvents,
+  readAttemptPayload,
+  resolveChangeBundle,
   type AbsenceValue,
   type FlakeVerdict,
+  type LooseEvent,
   type WriteEvidenceSnapshot,
 } from "../grace-cursor";
 import { parseMarkerBlockName } from "../project-utils";
-import { allReviewCodes, isReviewIssueCode } from "../review/catalog";
+import { isLikelyTestPath } from "../query/core";
 import type { GraceArtifactIndex, ModuleRecord, ModuleVerificationRecord } from "../query/types";
+import { allReviewCodes, isReviewIssueCode } from "../review/catalog";
 
 /** D8 admissible process-audit codes — closed by name (A42.4). Mechanization is necessary, not sufficient. */
 export const ADMISSIBLE_REVIEW_CODES = [
@@ -34,6 +44,10 @@ export const ADMISSIBLE_REVIEW_CODES = [
 export type AdmissibleReviewCode = (typeof ADMISSIBLE_REVIEW_CODES)[number];
 
 const ADMISSIBLE_SET = new Set<string>(ADMISSIBLE_REVIEW_CODES);
+
+/** Declared in text/JSON so callers know the parse is textual presence, not emission certainty (A43.2). */
+export const OBSERVED_GROUND =
+  "declared markers textually present in the supplied log, in log order (at most one count per line); not proven run emissions";
 
 export type Divergence = {
   index: number;
@@ -64,11 +78,14 @@ export type LocalizationResult = {
   moduleAbsence?: AbsenceValue;
   expected: string[];
   observed: string[];
+  /** Ground for `observed` — always the same string (A43.2 / rule 8). */
+  observedGround: string;
   /** Markers from other V-M-* entries seen in the log, log order (A42.3). */
   foreignMarkers: string[];
   /**
-   * First divergent index, or null when sequences agree.
-   * Suppressed (null with divergenceSuppressed) when flake is flaky (D8 / corr 98).
+   * First divergent index, or null when sequences agree or when own+foreign are both empty
+   * (A43.1 — zero marker evidence is absence, not divergence at 0).
+   * Suppressed when flake is flaky (D8 / corr 98).
    */
   divergence: Divergence | null;
   /** True when a flaky fail→pass pair suppressed a causal divergence claim. */
@@ -79,10 +96,15 @@ export type LocalizationResult = {
   processContext: ProcessContextFinding[];
   flake?: { verdict: FlakeVerdict; reason: string };
   /**
-   * Top-level absence when localization cannot answer (missing log, marker-less entry, etc.).
+   * Top-level absence when localization cannot answer (missing log, empty log, marker-less entry, etc.).
    * Always unable-to-determine in v1 (A42.1).
    */
   absence?: AbsenceValue;
+};
+
+export type FlakePair = {
+  earlier: { outcome: string; writeEvidence: WriteEvidenceSnapshot };
+  later: { outcome: string; writeEvidence: WriteEvidenceSnapshot };
 };
 
 function inability(reason: string): AbsenceValue {
@@ -112,8 +134,13 @@ export function firstDivergentBlock(
 
 /**
  * Parse observed markers from a log against a declared alphabet.
- * Every occurrence is kept, in log order (A42.6). Non-overlapping scan prefers longer
- * markers when two alphabet entries share a start position.
+ *
+ * Ground (A43.2): textual presence of declared markers, **at most one count per line**,
+ * lines in file order. A line that mentions the marker twice is one hit (description, not
+ * two emissions). Across lines, every line that contains a marker contributes once —
+ * repeated emission on separate lines still reaches the observed-longer axis (A42.6).
+ *
+ * Prefers longer alphabet entries when two share a start position on the same line.
  */
 export function parseObservedMarkers(
   logText: string,
@@ -126,29 +153,22 @@ export function parseObservedMarkers(
   if (unique.length === 0) {
     return [];
   }
-  // Longer markers first so a prefix of another marker does not steal the hit.
   const byLength = [...unique].sort((a, b) => b.length - a.length);
-  const hits: Array<{ pos: number; end: number; marker: string }> = [];
-  for (const marker of byLength) {
-    let from = 0;
-    while (from < logText.length) {
-      const idx = logText.indexOf(marker, from);
-      if (idx < 0) {
-        break;
-      }
-      hits.push({ pos: idx, end: idx + marker.length, marker });
-      from = idx + marker.length;
-    }
-  }
-  hits.sort((a, b) => a.pos - b.pos || b.marker.length - a.marker.length);
   const result: string[] = [];
-  let cursor = 0;
-  for (const hit of hits) {
-    if (hit.pos < cursor) {
-      continue;
+  for (const line of logText.split("\n")) {
+    if (!line) continue;
+    // At most one marker count per line: first (longest-preferred) non-overlapping hit on the line.
+    let best: { pos: number; marker: string } | undefined;
+    for (const marker of byLength) {
+      const idx = line.indexOf(marker);
+      if (idx < 0) continue;
+      if (!best || idx < best.pos || (idx === best.pos && marker.length > best.marker.length)) {
+        best = { pos: idx, marker };
+      }
     }
-    result.push(hit.marker);
-    cursor = hit.end;
+    if (best) {
+      result.push(best.marker);
+    }
   }
   return result;
 }
@@ -217,7 +237,7 @@ export function resolveBlockLocations(
   }
   const locations: BlockLocation[] = [];
   for (const file of moduleRecord.localFiles) {
-    // Runtime files only — tests are not the emission site (health.ts same posture via isLikelyTestPath).
+    // Runtime files only — tests are not the emission site (shared isLikelyTestPath, corr 111).
     if (isLikelyTestPath(file.path)) {
       continue;
     }
@@ -243,10 +263,6 @@ export function resolveBlockLocations(
   return { locations };
 }
 
-function isLikelyTestPath(relativePath: string): boolean {
-  return /(^|\/)(__tests__|tests)(\/|$)|(^|\/)(test_[^/]+|[^/]+\.(test|spec)\.[^.]+)$/.test(relativePath);
-}
-
 /**
  * Join a failing test path to a module (A41.2 corr 97).
  * Prefer V-M-* testFiles; fall back to governed file LINKS.
@@ -258,7 +274,11 @@ export function resolveModuleForTestPath(
   const normalized = testPath.replaceAll("\\", "/");
   for (const entry of index.verifications) {
     for (const file of entry.testFiles) {
-      if (file.replaceAll("\\", "/") === normalized || file.replaceAll("\\", "/").endsWith("/" + normalized) || normalized.endsWith("/" + file.replaceAll("\\", "/"))) {
+      if (
+        file.replaceAll("\\", "/") === normalized
+        || file.replaceAll("\\", "/").endsWith("/" + normalized)
+        || normalized.endsWith("/" + file.replaceAll("\\", "/"))
+      ) {
         if (entry.moduleId) {
           return { moduleId: entry.moduleId, verificationId: entry.id };
         }
@@ -347,6 +367,63 @@ export function loadReviewJsonFindings(filePath: string): ProcessContextFinding[
   return findings;
 }
 
+/**
+ * Build a flake pair from durable attempt events (ledger∪loose) for a change (A43.3 / corr 110).
+ * Uses the most recent fail→pass pair that both carry write evidence, optionally scoped to a task.
+ * Returns null when no suitable pair exists (caller reports no flake field, not AbsenceValue — flag was asked).
+ */
+export function flakePairFromChange(
+  projectRoot: string,
+  changeId: string,
+  task?: string,
+): FlakePair | { absence: AbsenceValue } {
+  let bundlePath: string;
+  try {
+    bundlePath = resolveChangeBundle(projectRoot, changeId);
+  } catch (error) {
+    return {
+      absence: inability(
+        `cannot load change ${changeId} for flake classification: ${error instanceof Error ? error.message : String(error)}`,
+      ),
+    };
+  }
+  // Rule 9 (A20.5): durable record, not cursor cache.
+  const events = listAccountingEvents(bundlePath).filter((event) => event.kind === "attempt");
+  const scoped = task
+    ? events.filter((event) => event.task === task)
+    : events;
+  const pair = findLatestFailPassPair(scoped);
+  if (!pair) {
+    return {
+      absence: inability(
+        task
+          ? `no fail→pass attempt pair with write evidence for task ${task} in ${changeId}`
+          : `no fail→pass attempt pair with write evidence in ${changeId}`,
+      ),
+    };
+  }
+  return pair;
+}
+
+function findLatestFailPassPair(events: LooseEvent[]): FlakePair | null {
+  const ordered = [...events].sort((a, b) => a.id - b.id);
+  let latest: FlakePair | null = null;
+  for (let i = 0; i < ordered.length - 1; i += 1) {
+    const earlier = ordered[i]!;
+    const later = ordered[i + 1]!;
+    if (earlier.task !== later.task) continue;
+    const ep = readAttemptPayload(earlier);
+    const lp = readAttemptPayload(later);
+    if (ep.outcome !== "fail" || lp.outcome !== "pass") continue;
+    if (!ep.writeEvidence || !lp.writeEvidence) continue;
+    latest = {
+      earlier: { outcome: "fail", writeEvidence: ep.writeEvidence },
+      later: { outcome: "pass", writeEvidence: lp.writeEvidence },
+    };
+  }
+  return latest;
+}
+
 export type LocalizeInput = {
   index: GraceArtifactIndex;
   /** V-M-* entry to localize against. */
@@ -362,12 +439,9 @@ export type LocalizeInput = {
   reviewFindings?: ProcessContextFinding[];
   /**
    * Optional fail then pass write-evidence pair for flake classification.
-   * When omitted, flake is not reported.
+   * Produced by CLI via --change → flakePairFromChange (A43.3). When omitted, flake is not reported.
    */
-  flakePair?: {
-    earlier: { outcome: string; writeEvidence: WriteEvidenceSnapshot };
-    later: { outcome: string; writeEvidence: WriteEvidenceSnapshot };
-  };
+  flakePair?: FlakePair;
 };
 
 /**
@@ -382,6 +456,7 @@ export function localizeFailure(input: LocalizeInput): LocalizationResult {
     moduleId: verification.moduleId ?? input.module?.id,
     expected: [...verification.requiredLogMarkers],
     observed: [],
+    observedGround: OBSERVED_GROUND,
     foreignMarkers: [],
     divergence: null,
     locations: [],
@@ -431,12 +506,21 @@ export function localizeFailure(input: LocalizeInput): LocalizationResult {
   base.observed = observed;
   base.foreignMarkers = foreignMarkers;
 
+  // A43.1 / corr 108: zero marker evidence (own empty AND foreign empty) is absence,
+  // not a confident divergence at 0 with a source location.
+  if (observed.length === 0 && foreignMarkers.length === 0) {
+    base.absence = inability(
+      "log carries no declared marker of any entry; cannot distinguish a run that died before the first marker from a log that never carried markers",
+    );
+    // No divergence index, no location — evidence did not settle either (A43.1, §7.7).
+    return withProcessAndFlake(base, input);
+  }
+
+  // own empty + foreign non-empty: divergence at 0 stands — log demonstrably carries markers.
+  // own non-empty: normal compare.
   const divergence = firstDivergentBlock(verification.requiredLogMarkers, observed);
   base.divergence = divergence;
 
-  // Resolve location for the side that is "where it started going wrong":
-  // prefer the expected marker at the divergent index (the step that should have run /
-  // the first mismatch point in the plan), falling back to observed.
   if (divergence) {
     const markerForLocation = divergence.expected ?? divergence.observed;
     const moduleRecord =
@@ -451,9 +535,7 @@ export function localizeFailure(input: LocalizeInput): LocalizationResult {
     }
   }
 
-  // Stack-trace ban: we never set locations from frames. If log has no alphabet markers,
-  // observed is empty — divergence at 0 with observed undefined, location from expected only.
-  // Explicit: never parse stack frames.
+  // Stack-trace ban: never set locations from frames. Explicit: never parse stack frames.
 
   return withProcessAndFlake(base, input);
 }
@@ -505,6 +587,7 @@ export function formatLocalizationText(result: LocalizationResult): string {
   }
   lines.push(`Expected (${result.expected.length}): ${result.expected.join(" → ") || "(none)"}`);
   lines.push(`Observed (${result.observed.length}): ${result.observed.join(" → ") || "(none)"}`);
+  lines.push(`Observed ground: ${result.observedGround}`);
   if (result.foreignMarkers.length > 0) {
     lines.push(
       `Foreign markers observed (${result.foreignMarkers.length}): ${result.foreignMarkers.join(" → ")}`,
