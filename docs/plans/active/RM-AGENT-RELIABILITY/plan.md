@@ -8129,6 +8129,100 @@ not in `validate:ci`) is unchanged and still owns its own `C-*`.
 
 ---
 
+### A51 — 2026-08-01 · Phase 8's close cites a scope audit that had no input
+
+**Measured at `f58351f`.** `bun test` 904 collected / 3 skip / 0 fail, root lint 0 errors,
+`validate:ci` green, `C-SELECTION` archived at `spec=applied plan=applied`, board row 8 `COMPLETE`.
+
+**135, 136 and 137 are confirmed fixed, and 135 is fixed well.** `planWave` is emitted on every
+multi-task slice with `taskCount`, `sumSelectedBytes` 82931, `unionSelectedBytes` 14891,
+`meanPairwiseOverlapFraction` 0.917 and `planUnionSelectionRatio` 0.617 — and the `honestReading`
+string says the thing that was missing: *a task slice is a plan-level body with a task-shaped Purpose
+header; the per-slice selectionRatio is not the wave cost.* That an 8-worker wave loads 82931 bytes
+against a 38890-byte envelope — 2.1× the whole unselected envelope — is now on the page instead of
+behind a flattering per-slice number. Skill narrowing is demonstrated on live cursor state (8 of 16,
+not fixture-only), and `fullComposition` carries per-entry bytes that sum to `fullBytes`.
+
+Two corrections, **138–139**. Neither is a defect in Phase 8's code. Both are Phase 6 surfaces, and
+they matter here because Phase 8's close **cited one of them as its mechanized evidence**.
+
+#### A51.1 Correction 138 — the scope audit's only input is the working tree, and the workflow commits first
+
+`auditScopeOutsideWriteScope` is fed by `listRepositoryChangedFiles` (`grace-cursor.ts:1028–1048`),
+which runs `git status --porcelain`. **Committed work is invisible to it.** Probed on this branch:
+
+```
+$ git status --porcelain | wc -l        → 0
+$ listRepositoryChangedFiles(cwd)       → { available: true, changedFiles: 0 }
+```
+
+`available: true` with zero files, so nothing distinguishes *nothing changed* from *everything is
+committed*. §0.5 requires the executor to commit before reporting, and the close runs `ngrace review`
+after that commit — so **the audit and the workflow are mutually exclusive**, and the CLI offers no way
+to supply a diff: `options.changedFiles` exists in `runReview` (`review/core.ts:837`) and
+`ngrace review` exposes only `--path`, `--change` and `--format`.
+
+The finding it could not produce is present on this very branch. Against `origin/main`, 16 files
+changed; `C-SELECTION`'s `ObservedWriteScope` lists 15 paths and does **not** include
+`scripts/release-check.ts` or `src/artifact/scale-ergonomics.test.ts`, both of which this phase wrote.
+Both edits were legitimate — the allowlist dual-edit is forced by a test, the other is a pinned count —
+so the defect is not the writes. **The defect is that a declared scope missed two files and the audit
+whose entire job is that comparison reported zero findings.**
+
+This reaches back: Phases 6, 7 and 8 each closed citing *review → 0 findings* as the mechanized half of
+the verdict (A33.3). For the pattern detectors that claim holds — they scan the tree, not a diff. **For
+the scope audit it has been vacuous at close time in every one of them.**
+
+#### A51.2 Correction 139 — after archiving, `--change` finds no plan and the audit is skipped in silence
+
+`runReview` resolves the plan only under `changesActiveDir`:
+
+```ts
+const planPath = path.join(paths.changesActiveDir, options.changeId, "plan.xml");
+if (existsSync(planPath)) { … }              // review/core.ts:841–846
+```
+
+Once a bundle is archived, `scopeFiles` and `scopeGlobs` stay empty, the `if (changedFiles && (…))`
+guard is false, and the audit does not run — with no absence value, no warning, and a summary that
+still reads `No review findings`. Every archived bundle on this track is therefore permanently
+un-auditable for scope, and a reviewer re-running `ngrace review --change C-SELECTION` today gets a
+clean report that means nothing.
+
+Absence with a reason is owed here (D5, rule 7): *scope audit not run — no plan found for C-SELECTION
+under active/*, and separately *scope audit not run — no changed files available*. A skipped audit that
+prints like a passed audit is the same failure as a confident divergence over an empty log (A43.1),
+one surface over.
+
+#### A51.3 What this changes about Phase 8's status
+
+Phase 8's own deliverable is verified: the slice surface, the measurement, the plan-wave honesty, the
+live skill narrowing. **The board row stays `COMPLETE`** — reverting it would misattribute a Phase 6
+defect to Phase 8's work.
+
+What must change is the close record. A50's A33.3 sentence claims a mechanized half that included a
+scope audit with no input. It is corrected to name what was actually mechanized — gate permits, no open
+epoch, pattern detectors over the tree — and to state that **the scope audit contributed nothing**,
+with the two out-of-scope files named. That is the whole point of A33.3: say which part of the verdict
+is real.
+
+#### A51.4 The `C-*` this earns, now carrying three things
+
+A48.5 already owed a ship-path `C-*` (`src/gates` and `src/review` missing from `package.json#files`;
+`validate:packed` missing from `validate:ci`). 138 and 139 join it, because they are the same category
+— **checks that cannot observe the thing they are named for**:
+
+| | Defect | Fix |
+|---|---|---|
+| A48.5 | `validate:packed` never runs in CI | Add it to `validate:ci`, add the two directories to `files` |
+| 138 | Scope audit sees only uncommitted work | Accept a diff — a `--changed-files` / `--base <ref>` input — and make the CLI able to supply one |
+| 139 | Archived bundles resolve to no plan | Look in `archive/` too, and emit absence when the audit is skipped |
+
+Three surfaces, one shape: a green result produced by a check that was never in a position to be red.
+D16 has been the track's rule since Phase 6 and this is its third application to the toolkit's own
+checks rather than to a user's project.
+
+---
+
 ## 15. Final instruction to the executor
 
 Work one phase at a time. Report in the §0.5 format. Stop after each phase and wait for review.
