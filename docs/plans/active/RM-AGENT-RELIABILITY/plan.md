@@ -9498,3 +9498,58 @@ The A33.3 sentence at this close is different from every previous one on this tr
 had to say what the scope audit **could not** check. This is the first close where the audit had real
 input, named it, and returned a count — so the sentence can say what was checked, over how many files,
 against which declared scope. Write it that way; it is the first time it is available.
+
+### A68 — 2026-08-01 · The close is sound; the fix introduced a false positive of its own
+
+Close verified at `40cd505`. Everything claimed holds:
+
+| Check | Result |
+|---|---|
+| Close-time audit had real input | `ran over 11 changed file(s) … [active] (input: base origin/main)` → **0 out-of-scope** |
+| Verdict and gate decisions recorded | `<Verdict outcome="pass">` plus four `<Decision … decision="permit">` |
+| Other archives untouched | `git diff ec1a6bc 40cd505 --name-only -- …/archive/` minus this bundle → **0** |
+| `run.xml` | Genuinely never present; five bundles have one, seven do not. Nothing dropped |
+| Suite / lint | 956 ran, **0 fail**; 0 errors / 0 warnings / `Governed files: 58` |
+
+**The A33.3 sentence is the first on this track with something specific on the mechanized side**, and
+it says so accurately: eleven files, three-dot range against `origin/main`, measured against the
+declared scope while the plan was still under `active/`, zero out-of-scope. Compare A51's *"the scope
+audit contributed nothing."* That is the whole point of the bundle, written down at the moment it
+first became true.
+
+#### A68.1 Correction 171 — the audit now produces a false positive on archived bundles
+
+Their own adversarial probe found it and disposed of it as a declared non-goal. It is more than that:
+
+```
+$ ngrace review --change C-OBSERVABLE-CHECKS --base origin/main
+Findings: 3 (errors: 3, warnings: 0)
+- review.scope-outside-write-scope .ngrace/changes/archive/C-OBSERVABLE-CHECKS/plan.xml
+- review.scope-outside-write-scope .ngrace/changes/archive/C-OBSERVABLE-CHECKS/run-ledger.xml
+- review.scope-outside-write-scope .ngrace/changes/archive/C-OBSERVABLE-CHECKS/spec.xml
+```
+
+All three are **the bundle's own artifacts**. The plan declares them under
+`.ngrace/changes/active/C-OBSERVABLE-CHECKS/…`; archiving moved them to `archive/…`; the paths no
+longer match. *"Changed file … is outside ObservedWriteScope"* is **false** — the files are declared,
+they were relocated by the archive step itself.
+
+Three things make this worth fixing here rather than recording:
+
+1. **It is the mirror of the defect just removed.** This bundle exists because a check reported clean
+   when it had checked nothing. It now reports three errors about files that are in scope. A false
+   positive in a check whose credibility is the deliverable costs the same as a false negative.
+2. **It is newly introduced by this bundle.** Before item 3, archived plans did not resolve at all, so
+   this could not fire. It is not inherited, which is exactly the case the standing rule says to fix
+   before the PR rather than fold forward.
+3. **The declared non-goal does not cover it.** *"No active↔archive auto-remap"* is right as a general
+   rule — arbitrary path rewriting would hide real drift. But a bundle's own artifacts under its own
+   id are a closed, named set: when the plan resolved from `archive/<id>/`, its declared
+   `active/<id>/…` entries refer to the same files. That is not a remap heuristic; it is the identity
+   of the bundle being reviewed.
+
+The narrow fix is to accept both prefixes for the reviewed change's own id when the plan resolved from
+`archive/`, and nothing else. Both directions must be tested: the bundle's own relocated artifacts stop
+being findings, and a genuinely out-of-scope path under `archive/` — another bundle's id — still is one.
+
+Nothing else is owed. This is the last item before Phase 10.
