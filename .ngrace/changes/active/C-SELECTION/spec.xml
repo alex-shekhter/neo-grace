@@ -1,0 +1,190 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-SELECTION>
+    <Summary>
+      Task slices and skill subsetting (D15): emit the minimal relevant set of artifacts and of
+      skills deterministically from graph and cursor state, never by model paraphrase, and report
+      selectionRatio against a pinned full envelope so the savings claim has a number.
+    </Summary>
+    <Problem>
+      D15 and D7 restore v3's ExecutionPacket field list as a *projection*, not an authored document:
+      purpose text, graph-minimal module and verification excerpts, write scope, and absolute
+      exclusions — composed over retrieval primitives that already exist (module show --with
+      verification, module find --depends-on, file show --contracts). Nothing at 7e2eadb performs
+      that composition. Agents still load whole plans, whole graphs, and all 16 skills by habit.
+
+      Three measurement holes block an honest ship of that composition. First, .ngrace/changes/active/
+      holds only .gitkeep — zero active tasks — while §8.5.7 demands ≥3 real tasks from this
+      repository's own .ngrace, and §8.5.2's "archived bundles never appear" does not say whether an
+      archived task may be a *subject* (A47.2 corr 117). Second, selectionRatio(full, selected)
+      exists in test-support (token-accounting.ts:143) and nothing defines full or the unit
+      (corr 118–119). Third, "byte-identical" Purpose text is untestable against indented multi-line
+      XML without a normalization rule (corr 120).
+
+      The plan's §8.4 cites "§4.1" and "§4.6 rule 2" which resolve to Phase 4's objective and done
+      criteria; the real slice field list and design-context exclusion live in
+      review-consolidated.md at :284 and :493 (corr 115). Tasks have Title not Summary
+      (grammar.ts:48); Satisfies→AC-* resolution is real (grammar.ts:1755–1774) (corr 116).
+      Project .ngrace/context/* is neither included nor excluded by the field list (corr 122).
+      design-context.xml is a per-bundle companion (types.ts:35), not one of those five (corr 123).
+      Tasks do not name M-*; module set is plan DurableScope (corr 128). Stage-2 harness narrowing
+      has no adapter in this repository (corr 125 / A46.4).
+    </Problem>
+    <Goals>
+      <Goal>
+        Read-only ngrace context surface: --task emits a task slice; --skills emits a skill
+        recommendation; mutually exclusive in v1; no --compact (A47.3 decision 3 / corr 124).
+      </Goal>
+      <Goal>
+        Purpose header is task Title plus each Satisfies target's AC-* body from the subject spec,
+        in Satisfies document order, after the corr 120 normalizer — wording identity, never
+        paraphrase (corr 116, 120, 131).
+      </Goal>
+      <Goal>
+        Body is plan-scope graph-minimal: DurableScope GraphAnchors and VerificationAnchors,
+        module show --with verification projections, file show --contracts when links exist, plan
+        ObservedWriteScope files. Empty IC/LINKS are ordinary outcomes with ground, not errors
+        (corr 127–129).
+      </Goal>
+      <Goal>
+        Absolute exclusions: design-context.xml never appears; archived sibling content never
+        appears in a different subject's slice; other tasks' Title/Criterion/Verification bodies
+        never appear; default slice omits project .ngrace/context/* and accounts for them in the
+        full envelope (corr 122–123, 129).
+      </Goal>
+      <Goal>
+        Skill candidates from cursor/plan state with basis on each candidate; absent cursor yields
+        the full published skill set; selectionStage is toolkit only until a host adapter is
+        exercised (corr 121, 125).
+      </Goal>
+      <Goal>
+        selectionRatio reported in the artifact with fullBytes, selectedBytes, unit utf8-bytes,
+        fullComposition, and subject ground — denominator fixed before measurement (A47.3 decision 2,
+        corr 118). Separate skill ratio. No production import from test-support (corr 119).
+      </Goal>
+      <Goal>
+        ≥3 real-repository measurements under A47.3 decision 1 (archive subjects allowed when
+        change is explicit; live C-SELECTION tasks when plan exists). Fixtures do not answer
+        §8.7 gate 3 (corr 132).
+      </Goal>
+      <Goal>
+        Both-directions controls on every inclusion and exclusion axis (corr 126, A7.2, A40.2).
+        Standing rule 11: every emitted field reads true aloud given its sources (A46.3).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Selection, never compression (D15). No model in the toolkit path. No summarization of
+        artifact text.
+      </Constraint>
+      <Constraint>
+        Compose over existing retrieval primitives; do not restore authored ExecutionPacket
+        documents (D7). Do not invent task-level module sets from Criterion prose (corr 128,
+        anti-pattern 3).
+      </Constraint>
+      <Constraint>
+        Read-only: context writes nothing (F1 / invariant 8). No gate.* or review.* codes from this
+        surface. No new ledger section without a scope statement (A30.6).
+      </Constraint>
+      <Constraint>
+        package.json#files gains src/grace-context.ts when the module ships (corr 130). Skill
+        mirrors stay byte-identical (§12.2). Invariant 7: production does not import test-support.
+      </Constraint>
+      <Constraint>
+        Stage 1 errs toward inclusion; false negatives are unrecoverable for stage 2. Correctness
+        never depends on harness stage 2 (D15).
+      </Constraint>
+      <Constraint>
+        A47 is normative over plan §8.3–§8.5 where they differ. Maintainer answers A47.3 before
+        status becomes approved.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Host-side semantic narrowing (stage 2), scoped skill loading, or any selectionStage harness
+        success path. Document as §5.2 conditional; do not test as if present (corr 125).
+      </NonGoal>
+      <NonGoal>
+        Tokenizers, token caps, or aggregate skill-text ceilings (D15 rejected caps).
+      </NonGoal>
+      <NonGoal>
+        Authoring task-level DurableScope or per-task ObservedWriteScope. Consume plan-level scope
+        honestly (corr 128–129).
+      </NonGoal>
+      <NonGoal>
+        Paying A36.4 / A46.6 graph debt (gates, review, localize modules still unlinked). Out of
+        this phase's scope.
+      </NonGoal>
+      <NonGoal>
+        Embedding project principles.xml in every slice. Standing-invariants reload stays a skill
+        instruction (corr 122).
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SELECTION-COMMAND-SHAPE>
+        A47.3 decision 3 / corr 124. ngrace context --task and ngrace context --skills are separate
+        outputs, mutually exclusive in v1. Discriminating negatives: passing both is
+        invalid-arguments; neither flag invents --compact; help text says task slice / skill
+        recommendation in the first sentence (corr 122 naming collision).
+      </AC-SELECTION-COMMAND-SHAPE>
+      <AC-SELECTION-PURPOSE-VERBATIM>
+        A47.2 corr 116, 120, 131. Purpose uses task Title (not Summary) and each Satisfies AC-*
+        body after the corr 120 normalizer, in Satisfies order. Discriminating negatives: a
+        paraphrase of Title or AC fails the wording-identity assertion; indent-only source changes
+        do not; a multi-Satisfies task emits every AC labelled by id; an unresolvable Satisfies
+        target is AbsenceValue for that slot, not a silent skip.
+      </AC-SELECTION-PURPOSE-VERBATIM>
+      <AC-SELECTION-BODY-PLAN-SCOPE>
+        A47.2 corr 127–129. Body module set is plan DurableScope GraphAnchors and
+        VerificationAnchors, composed via existing module/file queries. Discriminating negatives:
+        empty Linked Files still emit module + verification without error; a module from another
+        plan's DurableScope does not appear; other tasks' Title strings do not appear; plan OWS
+        files may appear for every task in the plan and are not claimed as task-private.
+      </AC-SELECTION-BODY-PLAN-SCOPE>
+      <AC-SELECTION-EXCLUSIONS>
+        A47.2 corr 115, 122, 123, 126. design-context.xml never appears even when present in the
+        subject bundle; archived sibling content never appears in a different subject's slice;
+        project .ngrace/context/* absent from default slice; each exclusion axis has its own
+        silent-direction control (A40.2).
+      </AC-SELECTION-EXCLUSIONS>
+      <AC-SELECTION-SKILLS>
+        A47.2 corr 121, 125. Three cursor/plan states produce three different recommended sets;
+        absent cursor yields the full published set (marketplace-declared 16 at HEAD), not empty;
+        each candidate carries basis; selectionStage is toolkit only. Discriminating negative: no
+        test constructs a harness-stage success path and calls it exercised (A46.4).
+      </AC-SELECTION-SKILLS>
+      <AC-SELECTION-FULL-ENVELOPE>
+        A47.3 decision 2 / corr 118–119. Every measurement names fullBytes, selectedBytes,
+        unit utf8-bytes, fullComposition, and selectionRatio computed as (full-selected)/full.
+        Artifact ratio full envelope is the deterministic unselected composition A47.3 recommends;
+        skill ratio full is the sum of published SKILL.md bytes. Discriminating negatives: a bare
+        ratio without ground fields fails; production does not import src/test-support/.
+      </AC-SELECTION-FULL-ENVELOPE>
+      <AC-SELECTION-REAL-MEASUREMENT>
+        A47.3 decision 1 / corr 117, 132. ≥3 measurements against this repository's real tasks
+        (archive subjects allowed with explicit change id; live C-SELECTION tasks when present),
+        each with subjectLocation and changeId/taskId. Discriminating negative: a temp fixture
+        measurement is not cited as the §8.5.7 number.
+      </AC-SELECTION-REAL-MEASUREMENT>
+      <AC-SELECTION-READ-ONLY>
+        F1 / invariant 8. ngrace context writes nothing under the project root. package.json#files
+        lists src/grace-context.ts when shipped (corr 130).
+      </AC-SELECTION-READ-ONLY>
+      <AC-SELECTION-OUTPUT-ALOUD>
+        A46.3 standing rule 11. For each non-trivial field (Purpose Title, each AC body, each
+        listed exclusion, each skill basis, each measurement ground field), the sentence a reader
+        hears is true of the source artifacts. A probe that "passes" only by correcting the probe
+        is unfinished until this table is written.
+      </AC-SELECTION-OUTPUT-ALOUD>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/grace-context.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+    </VerificationIntent>
+  </C-SELECTION>
+</NgraceChangeSpec>
+

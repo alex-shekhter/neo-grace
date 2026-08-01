@@ -373,7 +373,7 @@ Keep this table current. It is the single source of truth for progress.
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `COMPLETE` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
 | 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
-| 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `NOT STARTED` |
+| 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `IN PROGRESS` — §14 A47 |
 | 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `NOT STARTED` |
 | 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `NOT STARTED` |
 | 11 | Adoption surface | §5.1, §5.3 | TBD | `NOT STARTED` |
@@ -1242,9 +1242,15 @@ Delete the module and revert the two consumers. Purely additive.
 
 # PHASE 8 — Selection: task slices & skill subsetting
 
-**Status:** `NOT STARTED`
+**Status:** `IN PROGRESS`
 **Decisions:** D15, §4.1
 **Release:** TBD
+
+> **Amended by §14 A47 — read it before §8.5.** The steps below were written before Phases 2–7
+> existed and before this repository's real `.ngrace` tree settled. A47 re-derives them against
+> `7e2eadb` (corrections 115–132), settles the measurement-subject and `full` denominator questions
+> that §8.5.7 cannot answer as written, and records the command-shape recommendation under D15's
+> open wording. **A47 is normative where it differs from §8.3–§8.5.**
 
 ## 8.1 Objective
 
@@ -7366,6 +7372,511 @@ caller in this repository outside its own tests. Three phases of "consumed" that
 `graph.module-without-linked-files` warnings are the shape they are. A36.4 recorded this as owing its
 own `C-*` after Phase 5; two phases later the debt has grown rather than been paid. It stays out of
 Phase 8's scope and stays scheduled, not folded in.
+
+### A47 — 2026-07-31 · Phase 8 re-derived against HEAD
+
+**Everything below was measured at `7e2eadb`**
+(`7e2eadbbc918a8e09215380730f85acd248ad3cc` — `feat(reliability): deterministic failure localization
+(Phase 7) (#28)`). After `git fetch origin && git status -sb`: local `main` was not behind
+`origin/main` (both at `7e2eadb`, left-right `0 0`). Tree clean on branch `feat/phase-8-rederive` cut
+from that commit. The track head named in the stage-1 prompt is still the head; if it had moved, this
+entry would have said so (A28 / §0.4.1).
+
+§8.1's objective, §8.6–§8.8's done/review/rollback shape, D15 (selection not compression; two-stage
+narrowing; toolkit recommends, host loads), D7's composition-over-existing-queries frame, the absolute
+`design-context.xml` exclusion, stage-1 inclusion bias, and parallel-safety (per worker, never per plan)
+survive. **§8.3's file table, §8.4's Purpose-header field name and citation anchors, and §8.5's step list
+do not.** All three predate the discovery that this repository has zero active tasks, that
+`selectionRatio`'s denominator is undefined, that tasks do not carry `<Summary>` or name `M-*` anchors,
+and that project-level `.ngrace/context/*` sits outside both the field list and the exclusion list.
+Eighteen corrections follow (115–132), starting where A45 left the number. The measurement-subject /
+denominator pair is **recorded as a decision for the maintainer** (A47.3) — it is the one premise the
+code cannot settle without inventing a number. Command shape under D15's open wording is the second
+(A47.3 decision 3). Nothing here invents a seventeenth design decision (§12.5); D1–D16 stand.
+
+#### A47.1 §8.2's preconditions, re-measured
+
+| Precondition | Measured | Result |
+|---|---|---|
+| Phase 3 `COMPLETE` — skill subsetting derives from cursor state | §2 board row 3 `COMPLETE`; `src/grace-cursor.ts` present; `C-RUN-LEDGER` archived `spec=applied plan=applied`; cursor kinds and position derivation live | ✅ |
+| Evidence-bundle Phase 0 token accounting exists | `src/test-support/token-accounting.ts` exports `skillTextLines()` (`:58`), `commandOutputBytes()` (`:106`), `selectionRatio(full, selected)` (`:143`); co-located tests at `token-accounting.test.ts`; `skillTextLines().total === 723` at this commit; `package.json#files` does **not** enumerate `src/test-support/` (invariant 7) | ✅ instrument exists; see corr 118–119 for what it does **not** fix |
+| Phase 7 `COMPLETE` (sequencing: 8 floats after 3; 7 not required) | §2 board row 7 `COMPLETE`; `C-FAILURE-LOCALIZATION` archived | ✅ |
+
+Holds as preconditions. What §8.5.7 assumes as measurement subjects **does not** — correction 117.
+
+#### A47.2 Corrections 115–132
+
+##### Correction 115 — §8.4's "§4.1" and "§4.6 rule 2" do not resolve in `plan.md`
+
+§8.4 opens with "The slice (§4.1, D7)" and closes with "`design-context.xml` exclusion is **absolute**,
+not advisory (§4.6 rule 2)." In this document §4.1 is Phase 4's *Objective* and §4.6 is Phase 4's
+*Definition of done* — neither holds a slice field list or an exclusion rule.
+
+**The real referents are in `review-consolidated.md`:**
+
+| Plan citation | Actual home | Content |
+|---|---|---|
+| "§4.1" slice field list | `review-consolidated.md` around line **284** | Purpose header (task Summary + AC-* text it Satisfies, verbatim); body graph-minimal (M-*, IC-*, V-M-*, task-local LINKS:); ObservedWriteScope; exclusions: design-context, archived bundles, other tasks' scopes |
+| "§4.6 rule 2" | `review-consolidated.md` around line **493** | "`design-context.xml` is not loaded during execution. Absolute, not advisory" |
+
+**What the step becomes:** every Purpose/body/exclusion claim in this phase cites
+`review-consolidated.md` (or D7 / D15) by those anchors, not plan §4.1 / §4.6. The field list at :284 is
+still the starting contract; corrections 116, 122, 128–132 amend it against HEAD.
+
+##### Correction 116 — there is no task `<Summary>`; Purpose uses `<Title>` + Satisfies→AC-* text
+
+§8.4 / review-consolidated:284: *"Purpose header: task Summary + the AC-* text it Satisfies."*
+
+Measured at `src/artifact/grammar.ts:48`:
+
+```ts
+const TASK_REQUIRED_SECTIONS = ["Title", "DependsOn", "AcceptanceCriteria", "Verification"] as const;
+```
+
+No task `<Summary>` appears in grammar or in any of the seven archived plans (zero `<Summary>` under
+`<ImplementationPlan>`; every task has `<Title>`). Spec-level `<Summary>` exists
+(`SPEC_REQUIRED_SECTIONS` starts with `"Summary"` at `grammar.ts:32`) and is the change's summary, not
+the task's.
+
+The other half is real: tasks carry optional `<Satisfies>` children that are AC-* empty elements
+(e.g. `<AC-LOCALIZE-COMPARATOR-AXES />`), and the grammar validates those targets against the approved
+spec (`grammar.ts:1755–1774` — unmapped warning when AC authored, unknown Satisfies always error).
+Resolution path: task Satisfies → spec `<AC-*>` element text body.
+
+**What the step becomes:** Purpose header = **task `<Title>` text + each Satisfies target's AC-* body
+from the approved (or, for archive subjects, applied) spec**, after the normalization rule in corr 120.
+Never agent paraphrase. Spec Summary is not a Purpose field unless a later amendment says so.
+
+##### Correction 117 — zero active tasks; §8.5.7 cannot run as written; subject ≠ leakage
+
+`.ngrace/changes/active/` holds only `.gitkeep`. **Zero active bundles, therefore zero tasks.**
+`ngrace context --task T-001` has no default subject. §8.5.7's "at least three real tasks from this
+repository's own `.ngrace`" cannot be satisfied against active alone.
+
+The seven archived bundles hold real tasks (unique `T-*` with `<Title>` under
+`<ImplementationPlan>`):
+
+| Bundle | Tasks |
+|---|---|
+| `C-REVIEW-SURFACE` | 10 |
+| `C-GATE-SURFACE` | 8 |
+| `C-ABSENCE-VALUE` | 5 |
+| `C-ATTEMPT-LOG` | 5 |
+| `C-RUN-LEDGER` | 5 |
+| `C-FAILURE-LOCALIZATION` | 4 |
+| `C-GATE-RECORD-ABSENCE` | 2 |
+
+§8.5.2 makes archived bundles an **exclusion** from slice *content*. It does not answer whether an
+archived bundle's own task may be the **subject** of a slice. Those are different questions:
+
+| Question | §8.5.2 answer | Open? |
+|---|---|---|
+| May content from an archived sibling leak into an active task's slice? | **No** — absolute exclusion | closed |
+| May `ngrace context` be pointed at a task that lives in an archived plan? | not answered | **A47.3 decision 1** |
+
+Phase 8's own `C-SELECTION` will be the only active bundle while the phase runs, giving at least one
+genuinely live subject once its plan is approved — still fewer than three until the plan has ≥3 tasks.
+
+##### Correction 118 — `selectionRatio(full, selected)` exists; nothing defines `full`
+
+`src/test-support/token-accounting.ts:143–160` implements
+`(full - selected) / full` with range checks. It is a pure arithmetic helper. **No caller, no type, and
+no document pins what `full` counts** — whole `.ngrace` tree? every artifact an executor might read?
+every file the task's modules link to? **Unit** is also unset: the helper is unit-agnostic; sibling
+`commandOutputBytes` measures **UTF-8 stdout bytes** (`:91–95`, `:125`).
+
+A ratio whose denominator is chosen after the numerator is known proves whatever it was built to prove.
+**The denominator must be fixed in the emitted artifact before any measurement is taken**, and the
+output must name what it is a ratio *of* (standing rule 8 / A14.6). Settled in A47.3 decision 2.
+
+##### Correction 119 — ratio helpers live in `test-support/`; a runtime-reported ratio must not import them
+
+Invariant 7: test helpers are never published. `package.json#files` lists individual `src/grace-*.ts`
+paths and dirs; **`src/test-support/` is absent** (confirmed: no `test-support` entry; no
+`grace-context.ts` yet either). `selectionRatio` and `skillTextLines` are measurement instruments for
+phase reports and tests — not a shipped surface.
+
+**What the step becomes:** stage 2 computes the reported ratio inside the production module (a three-line
+pure function co-located with the slice emitter, or inlined). Tests may keep using
+`test-support/selectionRatio` as an independent check that the numbers agree. **Do not** `import` from
+`src/test-support/` into `src/grace-context.ts`. When `grace-context.ts` ships, add it to
+`package.json#files` beside the other `grace-*.ts` entries (corr 130).
+
+##### Correction 120 — "byte-identical" is untestable without a normalization rule
+
+§8.5.3: *"the emitted text is byte-identical to the source `Summary` and `AC-*`."* XML text nodes in
+this repository's plans are indented and often multi-line. Example, a real Title after parse:
+
+```
+'Pure sequence tools: parseObservedMarkers and firstDivergentBlock'
+```
+
+(single line — already trim-friendly). Real AC bodies carry leading whitespace per line from the
+authoring indent (e.g. AC-LOCALIZE-OBSERVED-FROM-LOG body begins `'\n        A42.1 / A41.2…'`).
+
+Raw file-byte identity of the element interior includes indentation that is an authoring accident, not
+purpose text. Emitting it "byte-identical" either (a) dumps indent into the agent context or (b) forces
+the test to assert on indent — both wrong. The paraphrase check this rule exists to enforce is about
+**wording**, not layout.
+
+**Pinned normalization rule (normative for this phase):**
+
+1. Extract the element's text content after XML parse (entity-decoded; character data only; no tags).
+2. Split on `\n` (normalize `\r\n` → `\n` first).
+3. On each line: strip trailing ASCII whitespace (`[ \t]`).
+4. Compute the minimum leading-space count among **non-empty** lines; strip that many leading spaces
+   from every non-empty line (common-indent strip). Do not strip additional interior spaces.
+5. Drop leading and trailing empty lines from the block. Preserve interior empty lines (paragraph breaks).
+6. Join with `\n`. That string is the **verbatim form**.
+
+Purpose header asserts equality under this normalizer against source Title / AC-* bodies. Any
+rewrite, summary, synonym, truncation, or reordering of words is a defect. Tests pin the normalizer
+itself (indent in / indent out) as a separate axis from "paraphrase rejected."
+
+##### Correction 121 — 16 skills in both trees; all 16 are published
+
+`skills/ngrace/` and `plugins/ngrace/skills/ngrace/` each hold **16** skill directories. D15's "which
+of the 16 apply" is accurate as a count. `.claude-plugin/marketplace.json` lists all 16 under
+`plugins[0].skills` (paths under `./skills/ngrace/…` relative to the packaged plugin). At HEAD the
+shipped set equals the directory set — there is no unpublished skill to exclude from the recommendation
+catalog. Stage 2 still keys recommendations off the **marketplace list** (or an equivalent single source
+in the binary), not off `readdir`, so a future unpublished directory cannot silently enter the set
+(standing rule: shipped set is declared, Agents.md).
+
+`skillTextLines().total` at this commit: **723** (canonical tree only; mirror not double-counted).
+
+##### Correction 122 — `.ngrace/context/` is real and sits in neither field list nor exclusion list
+
+`.ngrace/context/` holds five project-level artifacts: `principles.xml`, `requirements.xml`,
+`technology.xml`, `ux-guidelines.xml`, `deployment.xml` (3 663 bytes combined at HEAD). §8.4's field
+list does not mention them; its exclusion list does not either. That is a gap, not an answer.
+
+**Recommendation (A47.3 decision 2 folds this into the envelope):** default **out of the task slice**
+(they are project-wide standing docs, not task-scoped; always including them defeats graph-minimal).
+They **belong in the `full` envelope** so the ratio accounts for their omission, and the slice output
+names them under explicit exclusions when omitted. Standing-invariants reload after compaction
+(`review-consolidated.md` rule 3 near :497) remains a **skill instruction** ("reload principles /
+cursor / slice"), not a reason to embed `principles.xml` in every slice.
+
+**Naming collision:** a command called `context` that emits a *task slice* will be read as "show me the
+context artifacts." Stage 2 help text and skill copy must say *task slice* / *skill recommendation* in
+the first sentence. See corr 124 for command shape.
+
+##### Correction 123 — `design-context.xml` is a per-bundle companion, not one of the five
+
+`src/artifact/types.ts:35–37` admits `design-context.xml` with root
+`NgraceChangeDesignContext` as a **change-bundle companion** (alongside `run-ledger.xml` and
+`run.xml`). It is not under `.ngrace/context/`. No archived bundle at HEAD currently carries one
+(`find .ngrace -name design-context.xml` → empty), but the exclusion remains absolute for when one
+exists: never load into an execution slice, including when a module or LINKS: path points at it
+(`review-consolidated.md:493`). Do not conflate the five project context files with this companion.
+
+##### Correction 124 — D15 leaves command shape open; slice and skills should be separate outputs
+
+D15 outstanding: *"Whether that stays a flag, becomes the default of `--task`, or splits into a
+separate skill-recommendation output should be decided on its merits rather than inherited from §4.6's
+wording."* Naming risk: `--compact` implies compression.
+
+**Recommendation (A47.3 decision 3):** **separate outputs.**
+
+| Output | Consumer | Source |
+|---|---|---|
+| Task slice | executing agent | graph + plan + spec composition |
+| Skill recommendation | host / harness | cursor state + plan status |
+
+Reasons: different consumers; D15 requires recording *which stage produced the final skill set* for
+D6's sliced-vs-full calibration, which a merged blob makes ambiguous; a host that cannot honour skill
+subsetting still wants the slice. Avoid `--compact`. Preferred CLI shape under the existing `context`
+name (no new top-level verb required):
+
+```
+ngrace context --task T-001 [--change C-ID]   # slice only
+ngrace context --skills [--change C-ID]       # skill recommendation only
+```
+
+Mutual exclusion in v1 (passing both is `invalid-arguments`). JSON shapes differ and each carries its
+own `ground` line. If the maintainer prefers a split verb (`ngrace slice` / `ngrace skills`), that is
+still selection-not-compression — record it when answering A47.3.
+
+##### Correction 125 — stage 2 has no host adapter here (D16 mirror / A46.4)
+
+Two-stage narrowing: stage 1 toolkit (deterministic), stage 2 harness (optional semantic). **This
+repository has no host adapter that performs stage 2.** Shipping types, flags, or skill prose that
+describe stage-2 success without an exercised path is corrections 106/110/113 in a new costume
+(A46.4): a path never observed succeeding is not a path.
+
+**What stage 2 of Phase 8 exercises:** stage-1 candidate emission with basis; absent-cursor → full skill
+set; three cursor/plan-state → three different candidate sets; recording `selectionStage: "toolkit"` (or
+equivalent) on the skill output. **What is merely typed / documented:** harness-side semantic narrowing,
+host load honouring, any `selectionStage: "harness"` value. Those remain §5.2 conditional guarantees;
+tests must not claim them. A unit test that constructs a harness-stage record by hand does not exercise
+a path (A46.4).
+
+##### Correction 126 — inclusion bias needs both directions and one-axis controls
+
+"Stage 1 errs toward inclusion; a false negative is unrecoverable" is the design's own risk statement.
+A suite that only shows the selector including the right things says nothing about silent drops.
+
+**Required controls (A7.2 + A40.2):**
+
+| Axis | Must fire (inclusion) | Must stay silent (no false drop / no leak) |
+|---|---|---|
+| Title / AC Purpose | present when authored | paraphrase rejected (corr 120) |
+| Plan DurableScope M-* | each anchor in body | module from a different plan's DurableScope absent |
+| design-context | — | never present, even if linked |
+| Archived sibling content | — | never present in an active subject's slice |
+| Other task's Title/AC body | — | never present |
+| Project `.ngrace/context/*` | — | absent from default slice (corr 122) |
+| Skill candidate | included when state says so | not dropped when cursor mid-execution (false negative) |
+| Absent cursor skills | full published set | empty set is a defect |
+
+Each control varies **one** axis. Count assertions alone fail the phase (§8.5.1).
+
+##### Correction 127 — retrieval primitives exist as claimed (READ ONLY confirmed)
+
+| Claim | Measured | Result |
+|---|---|---|
+| `module find --depends-on` | `grace-module.ts:50` arg `dependsOn`; CLI `--depends-on` | ✅ (plan D7's `--depends` shorthand is informal) |
+| `module show --with verification` | `grace-module.ts:97–126`; `with` CSV includes `verification` | ✅ |
+| `file show --contracts` | `grace-file.ts:45–48` | ✅ |
+
+§8.3's "READ ONLY — the retrieval primitives already exist" is confirmed. At HEAD, dogfood modules
+often report `Linked Files: none` and this graph carries **zero `IC-*` anchors** (`grep IC-`
+over `.ngrace/graph` → 0). Composition must tolerate empty contract/LINKS/IC sets as ordinary
+outcomes (emit absence or omit with ground), not as errors and not as invented content.
+
+##### Correction 128 — tasks do not name `M-*`; module set is plan `DurableScope`
+
+§8.4: *"M-* anchors the task names."* In every archived plan at HEAD, `M-*` anchors live under plan
+`<DurableScope><GraphAnchors>`, not under `<T-*>`. A scan of task bodies finds only occasional prose
+mentions inside `<Criterion>`, not structured module children. True task-scoped module sets are not
+authored.
+
+**What the step becomes:** slice body module set = **subject plan's `DurableScope` GraphAnchors** (and
+VerificationAnchors → `V-M-*` entries), which is **plan-scope-minimal**, not task-scope-minimal. That
+is the honest graph-minimal available at HEAD. Inventing a heuristic module set from Criterion prose is
+pattern 3 and is refused. If a later phase adds task-level module scope, selection consumes it then.
+
+##### Correction 129 — `ObservedWriteScope` is plan-level; "other tasks' scopes" means other tasks' bodies
+
+Plans carry one `<ObservedWriteScope>` per change, listing `<File>` paths. There is no per-task write
+scope in the grammar. Emitting "the task's ObservedWriteScope" is therefore **the plan's OWS** for any
+task in that plan — shared, not task-private.
+
+"Other tasks' scopes never appear" cannot mean other OWS documents. It means: **other tasks'
+`<Title>`, `<AcceptanceCriteria>` / `<Criterion>`, `<Satisfies>` targets, and `<Verification>`
+bodies do not appear in this task's slice.** Plan-level OWS and DurableScope may appear in full for
+every task in the plan (corr 128's honesty). Discriminating negative: slicing `T-002` must not contain
+`T-001`'s Title string.
+
+##### Correction 130 — shipping `grace-context.ts` requires a `package.json#files` entry
+
+`package.json#files` is an allowlist of individual CLI entry files plus directories. A new
+`src/grace-context.ts` is invisible to the published package until listed. Stage 2 adds it in the same
+commit that registers the subcommand (precedent: every existing `grace-*.ts`). Mirror not applicable
+(CLI source, not skill).
+
+##### Correction 131 — Purpose AC text is multi-target; order is Satisfies document order
+
+A task may Satisfies several AC-* (e.g. T-002 of `C-FAILURE-LOCALIZATION` satisfies four). Emit each
+AC body in **Satisfies child document order**, each labelled with its AC id. Missing AC body (should be
+unreachable if lint is clean) → AbsenceValue for that slot, not a skip that looks like "no AC."
+
+##### Correction 132 — §8.5.7's "the number §4.1 has never had" is still the deliverable; fixtures still do not answer
+
+§8.7 gate 3: measurements against this repository, not fixtures. After A47.3, the measurement is
+`selectionRatio` over the pinned `full` envelope for ≥3 **named** real tasks (archive subjects and/or
+live `C-SELECTION` tasks), each report line carrying `changeId`, `taskId`, `selectedBytes`,
+`fullBytes`, `unit: "utf8-bytes"`, `fullComposition[]`, and `subjectLocation: active|archive`. A
+temp-directory fixture may unit-test composition logic; it may not be the number cited as "this
+repository's saving."
+
+#### A47.3 Decisions required before `spec.xml` is approved (A18.8 form)
+
+Three. None invents a track-level design decision; all are implementation resolutions under ratified
+D15 / D7. None may be taken by the executor alone if the maintainer wants a different route (§12.5).
+
+**1 — May archived tasks be subjects of a slice / of §8.5.7 measurement?**
+
+| Option | Cost | Note |
+|---|---|---|
+| **(a) Yes, when the change is explicit** — `ngrace context --task T-001 --change C-REVIEW-SURFACE` (or equivalent disambiguation). Exclusion "archived bundles never appear" means *sibling* archive content does not leak into a different subject's slice; the subject's own plan/spec are the ground. | Low. Unlocks ≥3 real subjects immediately. Ground line must say `subjectLocation: archive`. | **Recommend.** Distinguishes subject from leakage. |
+| (b) Active only. Measurement waits until `C-SELECTION` has ≥3 tasks, or is deferred. | Blocks the phase's headline number on its own plan authoring. Archive work becomes invisible to the instrument built to measure real `.ngrace`. | Honest but slow; still needs a story for "three tasks." |
+| (c) Fixtures that copy archive XML into temp active bundles. | Fails §8.7 gate 3 in spirit: fixtures do not answer the question. | Reject. |
+
+**Recommendation: (a).** Measure at least three archive tasks *and* every live `C-SELECTION` task once
+the plan exists. Report both populations; do not pool them into one unlabeled average (A14.6, A40.2).
+
+**2 — What is `full`, and in what unit?**
+
+| Option | Definition of `full` | Cost |
+|---|---|---|
+| **(a) Deterministic unselected envelope for the subject task** — UTF-8 byte length of the concatenation of: subject `plan.xml` entire file; subject `spec.xml` entire file; for each `M-*` in plan DurableScope, `module show --with verification` text (or the same projection the slice uses); for each governed file linked from those modules, `file show --contracts` text when links exist; all five `.ngrace/context/*` files; subject `design-context.xml` if present; all 16 published skill `SKILL.md` bodies (for skill-ratio sibling) / or, for the *artifact* ratio alone, omit skills and report a second ratio for skills. Unit: **utf8-bytes**. Composition list emitted on every measurement. | Medium to implement; **denominator fixed before numerator**; comparable across tasks; matches D15's "CLI output size" instrument (`commandOutputBytes`). | **Recommend** for the artifact slice ratio. Skill selection gets its own pair: `full = sum of 16 SKILL.md bytes`, `selected = sum of recommended skill SKILL.md bytes`. |
+| (b) Whole `.ngrace/` tree bytes. | Trivial. Inflates savings; confounds selection with "we did not dump unrelated archives." | Reject — proves the wrong claim. |
+| (c) Agent-habit estimate ("everything an executor would read"). | Unmeasurable and non-deterministic. | Reject. |
+| (d) Tokens via a tokenizer. | Cross-model variance; extra dependency. | Reject for v1; bytes are the fixed instrument. |
+
+**Recommendation: (a), two ratios, both in utf8-bytes, both with composition/ground in the output.**
+`selectionRatio` arithmetic may live in production as a local pure function (corr 119). The JSON/text
+report **names** `fullBytes`, `selectedBytes`, `unit`, `fullComposition`, never a bare ratio.
+
+**3 — Command shape: one surface or two?**
+
+| Option | Shape | Cost |
+|---|---|---|
+| **(a) Separate outputs under `context`** — `--task` vs `--skills`, mutually exclusive in v1 | Low. Clear consumers. Stage label unambiguous. | **Recommend** (corr 124). |
+| (b) Single merged document with both sections | Host and agent share one blob; D6 stage recording blurs. | Acceptable only if sections are strictly delimited and stage is per-section. |
+| (c) Rename to `ngrace slice` + `ngrace skills` | Clearer naming; new top-level verbs; more help/docs churn. | Fine if maintainer wants to dodge the `context` collision (corr 122). |
+
+**Recommendation: (a).** Avoid `--compact` entirely.
+
+#### A47.4 Standing rules that bind this phase, named so they are not rediscovered at the gate
+
+- **A5.4** — drop-site inventory before slice output grows a field on `LintIssue`, gate reports, review
+  findings, or cursor position it does not own. Prefer a dedicated result type from the query surface.
+- **A5.5** — every claim here is measured at `7e2eadb`. Re-measure what you depend on; §0.4.1 first.
+- **A5.6** — acceptance criteria descending from these corrections cite them inline, e.g.
+  `AC-SELECTION-FULL-ENVELOPE (A47.3)`, and carry the discriminating detail.
+- **A6.4** — composition unit tests use temp fixtures; §8.5.7 measurements name this repository's real
+  change ids and never claim a fixture as "this repository's saving."
+- **A7.2** — inclusion/exclusion boundaries carry the both-directions table (corr 126).
+- **A12.3 (rule 6)** — the §0.7 self-review has no abbreviated form.
+- **A12.4 (rule 7)** — a deviation that removes a ratified capability (verbatim Purpose, absolute
+  design-context exclusion, absent-cursor → full skill set, per-worker disjointness, real-repo
+  measurement) is reported as absence with reasoning, never silently substituted.
+- **A14.6 (rule 8)** — every audit names the artifact it read; every ratio names `full`, `selected`,
+  unit, composition, and subject ground.
+- **A20.5 (rule 9)** — skill subsetting that consults run state reads the durable record
+  (ledger∪loose) when state is load-bearing; cursor is the D1 cache for *position*, not a second
+  truth for "what was recommended."
+- **A30.6 (rule 10)** — slice and skill outputs are ephemeral to the invocation unless a later decision
+  records them; do not invent a ledger section for selection mid-phase without stating scope first.
+- **A46.3 (rule 11)** — read the output aloud. For every field the slice can contain, the sentence a
+  human or agent will hear must be true given the artifacts it came from. Purpose text is quotation,
+  not summary; "excluded: design-context" must mean it was eligible to appear and was dropped, or the
+  line must say "not present in subject bundle."
+- **A46.4 / D16 mirror** — stage-2 harness narrowing is not a path in this repository (corr 125).
+- **A40.2** — each exclusion and each inclusion axis has its own control; do not collapse into a count.
+- **A17.3** — bundle carries draft `spec.xml` this stage; plan before production code after maintainer
+  approval. Grammar: active plan requires approved spec (`grammar.ts:1206–1207`).
+- **D15** — selection, never compression; no model in the toolkit path; skill-text delta reported.
+- **D7** — compose over existing retrieval primitives; do not restore authored `<ExecutionPacket>`
+  documents.
+- **D1** — cursor is a cache; skill subsetting derives from it but does not make it authoritative over
+  the ledger.
+- **D6** — record which selection stage produced the skill set (`toolkit` only, until a host adapter
+  exists); do not consume confidence.
+- **D5 / anti-pattern 1** — missing task, missing change, empty DurableScope, unresolvable AC: absence
+  with reason, never a confident empty slice that looks like "nothing relevant."
+- **Anti-pattern 3** — do not regex Criterion prose to invent module sets (corr 128).
+- **Anti-pattern 5** — do not invent a second ratio type or a parallel "context packet" artifact the
+  rest of the toolkit never reads.
+- **Anti-pattern 9** — selection reports; it does not block apply. Gates stay in `src/gates/`.
+- **Invariant 7** — no production import from `src/test-support/` (corr 119).
+- **Invariant 8 / F1** — `ngrace context` does not author status, verdicts, or archive paths; read-only.
+- **§12.2** — skill edits mirrored in the same commit.
+
+#### A47.5 Revised §8.3 files-touched table
+
+| File | Action |
+|---|---|
+| `src/grace-context.ts` | CREATE — slice composition, Purpose normalizer (corr 120), full-envelope measurement, skill candidate set from cursor/plan state, local pure `selectionRatio`; read-only |
+| `src/grace-context.test.ts` | CREATE — explicit anchor lists; exclusion axes (corr 126); normalizer; Purpose wording identity; both-directions inclusion; skill state table; ratio ground fields present |
+| `src/grace.ts` | EDIT — register `context` subcommand |
+| `package.json` | EDIT — add `src/grace-context.ts` to `"files"` (corr 130) |
+| `src/grace-module.ts`, `src/grace-file.ts` | READ ONLY — retrieval primitives (corr 127) |
+| `src/grace-cursor.ts` | READ ONLY — position/state for skill subsetting; do not widen cursor schema this phase unless a measured gap forces it (report, do not invent) |
+| `src/query/core.ts` / projections | READ ONLY — load plan/spec/module/verification records |
+| `src/artifact/grammar.ts` | READ ONLY — task/spec vocabulary; no grammar change required for selection as a projection |
+| `src/test-support/token-accounting.ts` | READ ONLY — tests may import; production must not (corr 119) |
+| `skills/ngrace/ngrace-execute/SKILL.md` | EDIT — call `ngrace context --task` for the slice; do not paraphrase Purpose; reload standing invariants by path not by embedding |
+| `skills/ngrace/ngrace-cli/SKILL.md` | EDIT if help routing needs one line for `context` — keep minimal (D15) |
+| (+ all packaged mirrors under `plugins/ngrace/skills/ngrace/`) | EDIT in same commit (§12.2) |
+| `.ngrace/changes/active/C-SELECTION/` | CREATE — this phase's bundle |
+
+#### A47.6 Revised §8.5 step list
+
+**Step 8.5.1 — Slice emission over existing queries (corr 127–129, 131).**
+Compose Purpose (Title + Satisfies→AC bodies, corr 116/120/131) and body (plan DurableScope M-* /
+V-M-*, module show --with verification projections, file show --contracts when links exist, plan
+ObservedWriteScope files). Empty IC/LINKS are ordinary (corr 127).
+→ verify: for a named real task, explicit expected anchor/id list matches emission — **not** a count.
+At least one case with empty Linked Files still emits the module and verification, not an error.
+
+**Step 8.5.2 — Exclusions (corr 115, 122, 123, 129).**
+→ verify: `design-context.xml` never appears, including when deliberately present in the subject
+bundle fixture; archived *sibling* bundle paths/ids never appear in an active subject's slice; other
+tasks' Title/Criterion strings never appear; default slice omits `.ngrace/context/*` and lists them
+under exclusions or ground when reporting the full envelope.
+
+**Step 8.5.3 — Purpose wording identity (corr 116, 120).**
+→ verify: normalizer unit tests (indent stripped, words preserved, interior blank lines preserved);
+Purpose Title and each AC body equal normalized source; a deliberate paraphrase fixture fails the
+assertion. No path labels rewritten text as "from approved artifacts."
+
+**Step 8.5.4 — Per-worker / per-task slices (parallel safety).**
+→ verify: two tasks in the same plan produce two emissions whose task-local bodies (Title, AC set,
+Verification) are disjoint; shared plan DurableScope/OWS may appear in both (corr 128–129) and is
+documented as plan-shared, not claimed as task-private.
+
+**Step 8.5.5 — Skill subsetting from cursor / plan state (corr 121, 125).**
+→ verify: three distinct states → three different candidate sets (e.g. no plan / approved mid-execution
+/ init-only tree); absent cursor → **full published set**, not empty; each candidate carries basis
+(which state, which rule). Output records `selectionStage: "toolkit"` only. No test claims harness
+stage success (corr 125).
+
+**Step 8.5.6 — Candidates carry their basis.**
+→ verify: no bare skill name without a reason field; JSON schema pins `basis` / equivalent.
+
+**Step 8.5.7 — Measure with pinned denominator (A47.3, corr 117–119, 132).**
+→ verify: for ≥3 real tasks from this repository (archive subjects allowed under decision 1a, each
+named), emit `selectedBytes`, `fullBytes`, `unit: "utf8-bytes"`, `fullComposition`, `selectionRatio`,
+`subjectLocation`. Skill ratio reported separately. If savings are small, say so — the measurement is
+the deliverable. Fixtures may not substitute for these three.
+
+**Step 8.5.8 — CLI surface and read-only (F1, corr 124, 130).**
+→ verify: `ngrace context --task` / `ngrace context --skills` registered; mutual exclusion;
+text + JSON; writes nothing (snapshot or temp-root mtime check); `package.json#files` lists
+`grace-context.ts`.
+
+**Step 8.5.9 — Skill text delta (D15).**
+→ verify: `skillTextLines` before/after reported in the phase report; token-accounting expected total
+updated if skills change.
+
+#### A47.7 Additions to §8.6 definition of done
+
+- A47 corrections applied; Purpose uses Title not Summary
+- `full` envelope and unit pinned in the emitted artifact, not only in the report
+- ≥3 real-repo measurements with named change/task ground; fixtures labeled as non-measurement
+- Exclusions absolute and both-directions tested (corr 126)
+- Purpose wording-identical under corr 120 normalizer
+- Plan-shared vs task-local fields documented and tested (corr 128–129)
+- Absent cursor → full skill set; stage field is `toolkit` only unless a host adapter is exercised
+- No production import from `test-support/`
+- `bun run validate:ci` green; root lint 0 errors
+- Bundle `C-SELECTION` carries draft spec at stage 1; plan before code after approval
+
+#### A47.8 Anything else undecidable (A18.8 form) — A47.3's three
+
+No fourth maintainer decision is required to draft the spec. Open implementation choices that are
+**not** track decisions if A47.3 is accepted as recommended:
+
+- Exact skill-state rules table (which plan statuses include `ngrace-init` vs `ngrace-execute`) —
+  engineering, pinned by the three-state test, drafted in plan.xml after approval.
+- Whether `ngrace-cli` is edited this phase or only `ngrace-execute` — preference: **execute + one
+  line in cli if routing needs it**.
+- Whether JSON is the default for measurement CI or text with a trailing JSON block — preference:
+  **`--format json` carries the ratio fields; text prints a human Purpose/body and a final
+  `Measurement:` stanza**.
+
+These are recorded so stage 2 does not invent a seventeenth decision around them (§12.5).
+
+#### A47.9 Bundle for this phase
+
+Proposed change id: **`C-SELECTION`** (precedent: `C-FAILURE-LOCALIZATION`, `C-REVIEW-SURFACE`).
+Stage 1 authors `.ngrace/changes/active/C-SELECTION/spec.xml` with `status="draft"`. Maintainer
+answers A47.3 and approves the spec; then `plan.xml` is authored before any production code (A17.3,
+`grammar.ts:1206–1207`).
 
 ---
 
