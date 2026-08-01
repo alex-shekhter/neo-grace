@@ -25,6 +25,9 @@ jobs:
       - name: Run CI validation
         run: bun run validate:ci
 
+      - name: Run determinism and corpus ratchet gate (D4)
+        run: bun run validate:determinism
+
       - name: Run local release consistency check
         run: bun run release:check
 

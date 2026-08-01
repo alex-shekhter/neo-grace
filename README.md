@@ -227,6 +227,40 @@ When a spec declares `AC-*` criteria, each id should be referenced by a task
 spec `AffectedAreas` (or justify omissions under `<OutOfPlanScope>` with a
 non-empty `<Reason>`).
 
+## Host capability matrix (conditional guarantees)
+
+Some reliability guarantees depend on the **agent host**, not only on the portable CLI and skills.
+Selling them as unconditional would be the confidence-without-check failure this toolkit exists to remove.
+
+| Layer | Owns | Portability |
+| --- | --- | --- |
+| **CLI (portable)** | Mechanized review (`ngrace review`: pattern detectors, process audits, deterministic finding IDs, corpus scorer), transition gates (`ngrace gate`), lint, ledger, status | Same on every host with Bun |
+| **Skills (portable)** | When to call the CLI, judgment checklist, user-facing explanation, verdict vocabulary pointers | Same text everywhere; does not enforce isolation |
+| **Host adapters (optional)** | Cold subagent spawn (no implementer transcript), tool-level read-only allowlists, pre-write guards | **Only where the host supports them** |
+
+### What degrades without host support
+
+| Guarantee | With host support | Without (degraded) |
+| --- | --- | --- |
+| Detached review | Separate instance, cold context, no implementer transcript | Honor system — same agent may self-review |
+| Read-only reviewer | Tool allowlist with no write tools (enforced by host) | Instruction-only; a misbehaving agent can still write |
+| Apply requires a review verdict | Still required by `ngrace gate apply` (existence of a recorded outcome) | Still required — but the verdict may be `unable-to-determine` with reason `host-capability-missing` when detachment was impossible |
+
+Project policy `gateFailOn` in `.ngrace-lint.json` (`errors` \| `warnings` \| `never`) controls whether a missing or host-capability verdict is fatal at apply. It is never silently green.
+
+Run mechanized detectors anywhere:
+
+```bash
+ngrace review --path . --change C-ID
+bun run validate:determinism   # two-run identity + corpus no-regression ratchet (D4)
+```
+
+Record judgment separately (CLI never pretends a self-review was detached):
+
+```bash
+ngrace gate verdict --change C-ID --outcome pass|fail|unable-to-determine [--reason host-capability-missing]
+```
+
 ## Repository Layout
 
 | Path | Purpose |
@@ -238,8 +272,11 @@ non-empty `<Reason>`).
 | `src/grace.ts` | CLI entrypoint |
 | `src/artifact/*` | neo-grace project detection, XML parsing, grammar, projections, assertions, and scopes |
 | `src/lint/*` | `ngrace lint` implementation |
+| `src/review/*` | `ngrace review` mechanized detectors, scorer, finding IDs |
+| `src/gates/*` | `ngrace gate` transition surface |
 | `src/query/*` | Projection-backed query layer for CLI navigation |
 | `scripts/validate-marketplace.ts` | Packaging, version, path, and mirror validation |
+| `scripts/validate-determinism.ts` | D4 determinism + corpus ratchet gate |
 | `RELEASING.md` | Manual release checklist and validation commands |
 
 ## Development

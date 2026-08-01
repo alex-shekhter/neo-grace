@@ -1,0 +1,282 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-REVIEW-SURFACE>
+    <IntentSummary>
+      Create the review check surface: mechanized pattern detectors (family A), process audits
+      (family B), join engine (family C), deterministic finding IDs, multi-surface corpus scorer
+      with pre/post-apply silent-direction ground (A36.3), determinism/no-regression CI gate with
+      D16 falsification witness, detached-reviewer allowlist, and host-capability matrix.
+
+      Authored before production code per A17.3. A35 is normative over §6.3–§6.5; A36 is normative
+      where it differs (decisions 1–2, correction 85). Build order is dependency: surface + D14,
+      then IDs, then family C substrate, then A, then B, then scorer, then determinism gate, then
+      skills/README.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/defect-corpus.ts</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/command.ts</Value></MustExist>
+      <MustExist><Value>src/review/scorer.ts</Value></MustExist>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace review --help</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-LINT-CORE />
+        <M-LINT-CATALOG />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-LINT-CORE />
+        <V-M-LINT-CATALOG />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/review/command.ts</File>
+      <File>src/review/scorer.ts</File>
+      <File>src/review/scorer.test.ts</File>
+      <File>src/review/scope-helpers.ts</File>
+      <File>src/review/shape-data.ts</File>
+      <File>src/grace.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/lint/core.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>package.json</File>
+      <File>.github/workflows/validate.yml</File>
+      <File>scripts/validate-determinism.ts</File>
+      <File>README.md</File>
+      <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md</File>
+      <File>skills/ngrace/ngrace-cli/references/verdicts.md</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-cli/references/verdicts.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+      <File>.ngrace/changes/active/C-REVIEW-SURFACE/plan.xml</File>
+      <File>.ngrace/changes/active/C-REVIEW-SURFACE/run-ledger.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Review surface skeleton, catalog, CLI, D14 boundary</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            src/review/{core,catalog,command}.ts exist; ngrace review registered on grace.ts;
+            review.* codes only in review catalog; runLint emits zero review.*; review surface
+            can emit review.* on a fixture (A7.2 both directions). Does not write Verdicts or status.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-REVIEW-OWN-SURFACE />
+          <AC-REVIEW-D14-BOUNDARY />
+          <AC-REVIEW-NO-VERDICT-WRITE />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/review src/lint/core.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Deterministic finding IDs</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            findingId hashes audit/pattern, file, anchorOrHunkKey, ruleId — never line-only,
+            timestamps, or narration. Two runs identical; blank line above finding leaves ID stable.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-REVIEW-FINDING-IDS />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Join engine (family C) with A34.1 four pairs</Title>
+        <DependsOn>
+          <T-002 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Parameterized counterpart and unknown-value queries ship with fire/silent fixtures for
+            A34.1 pairs (scope×home, writers×commands, lint-catalog×benign readers,
+            new-diagnostic×pre-existing). Join findings use review.&lt;pattern&gt; only when they are
+            corpus instances of that pattern; otherwise family-B codes (A36.2).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-REVIEW-JOIN-ENGINE />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Pattern detectors (family A)</Title>
+        <DependsOn>
+          <T-003 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Five codes review.confidently-wrong, self-referential-comparison, regex-over-structure,
+            zero-or-more-swallow, unthreaded-construct fire on corpus mustFire:true review rows and
+            stay silent on pre-apply clean trees (A36.3). Lint-owned rows not reimplemented.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-REVIEW-PATTERN-DETECTORS />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/review</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Process audits (family B)</Title>
+        <DependsOn>
+          <T-002 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Scope, test-weakening, backward-compat, hunk-coverage audits each have distinct
+            review.* codes (not the five pattern names) and fires/silent pairs. No implementer
+            transcript required. Do not move pattern trend rates.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-REVIEW-PROCESS-AUDITS />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Multi-surface corpus scorer with pre/post-apply</Title>
+        <DependsOn>
+          <T-004 />
+          <T-005 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Scorer runs corpus() multi-surface; each entry scored before and after apply() (A36.3);
+            reports per-pattern and per-surface rates, both directions. Process-audit codes not in
+            expected rows do not inflate pattern rates.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-REVIEW-SCORER />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/review/scorer.test.ts</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Determinism and no-regression gate with red witness</Title>
+        <DependsOn>
+          <T-006 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            validate:determinism wired into package.json and CI. Two-run identity plus ratchet.
+            Falsification witness test deliberately breaks a detector/ID and asserts failure; red
+            output captured in phase report (D16).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-REVIEW-DETERMINISM-GATE />
+        </Satisfies>
+        <Verification>
+          <Command>bun run validate:determinism</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Reviewer skill detachment and read-only allowlist</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            ngrace-reviewer and contract-reviewer carry detachment contract and read-only tool
+            allowlist with no write tools, reported verbatim. Mirrors under plugins/. Judgment
+            via ngrace review; record via ngrace gate verdict.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-REVIEW-DETACHMENT-ALLOWLIST />
+        </Satisfies>
+        <Verification>
+          <Command>bun run validate:marketplace</Command>
+        </Verification>
+      </T-008>
+      <T-009>
+        <Title>Host capability matrix in README</Title>
+        <DependsOn>
+          <T-008 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            README publishes CLI / skills / host-adapters matrix with degradation for missing cold
+            subagents and tool allowlists. No unconditional detachment claim.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-REVIEW-HOST-MATRIX />
+        </Satisfies>
+        <Verification>
+          <Command>grep -E 'capabilit|degrad|host adapter' README.md</Command>
+        </Verification>
+      </T-009>
+      <T-010>
+        <Title>Execute skill minimal path and validate:ci close-out</Title>
+        <DependsOn>
+          <T-007 />
+          <T-009 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Execute skill does not claim binary records detached review it cannot prove. Full
+            validate:ci green; root lint 0 errors; D15 token delta reportable.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-REVIEW-NO-VERDICT-WRITE />
+          <AC-REVIEW-HOST-MATRIX />
+        </Satisfies>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-010>
+    </ImplementationPlan>
+  </C-REVIEW-SURFACE>
+</NgraceChangePlan>

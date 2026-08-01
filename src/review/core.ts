@@ -1,0 +1,920 @@
+/**
+ * Review surface (D4, D14, §6.4, A35/A36): pattern detectors, process audits,
+ * join engine, and deterministic finding IDs.
+ *
+ * Does not write Verdicts, Decisions, or status (F1). Recording stays on ngrace gate verdict.
+ */
+
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
+
+import { ARTIFACT_DIR } from "../artifact/paths";
+import { resolveNgracePaths } from "../artifact/project";
+import { readGraceXmlArtifact, walkNodes } from "../artifact/xml";
+import { extractObservedWriteScopeFromPlan } from "./scope-helpers";
+import { listRepositoryChangedFiles } from "../grace-cursor";
+import {
+  REVIEW_CATALOG,
+  guideFor,
+  type ReviewIssueGuide,
+} from "./catalog";
+import {
+  SHAPE_DATA_MARKER,
+  patternSourceLooksLikeMarkupGuard,
+} from "./shape-data";
+
+export type ReviewFinding = {
+  severity: "error" | "warning";
+  code: string;
+  file: string;
+  message: string;
+  title?: string;
+  explanation?: string;
+  remediation?: string[];
+  /** Deterministic id — stable across reruns and unrelated blank-line edits. */
+  findingId: string;
+  ruleId: string;
+  /** Content-stable anchor (never line number alone). */
+  anchorOrHunkKey: string;
+};
+
+export type ReviewResult = {
+  schemaVersion: "1.0.0";
+  tool: "ngrace-review";
+  root: string;
+  findings: ReviewFinding[];
+  /**
+   * Paths skipped because they hold detector shapes as data (A38.2 / corr 90).
+   * Always reported — silent exemptions are anti-pattern 8.
+   */
+  shapeDataExemptions: string[];
+  summary: {
+    findings: number;
+    errors: number;
+    warnings: number;
+    /** Count of shape-data exemptions (same as shapeDataExemptions.length). */
+    shapeDataExemptions: number;
+  };
+};
+
+export type HunkCoverageInput = {
+  hunkKey: string;
+  file: string;
+  covered: boolean;
+};
+
+export type TestFileDiff = {
+  file: string;
+  before: string;
+  after: string;
+};
+
+/**
+ * Join-engine probe for A34.1 fixtures. Process-shaped by default (A36.2):
+ * emits family-B codes unless the caller asserts a corpus pattern instance.
+ */
+export type JoinProbe =
+  | {
+      kind: "scope-home";
+      recordScope: "task" | "epoch" | "bundle" | "project";
+      homeAdmits: Array<"task" | "epoch" | "bundle" | "project">;
+      file: string;
+    }
+  | {
+      kind: "writer-command";
+      exportedWriters: string[];
+      invocableCommands: string[];
+      file: string;
+    }
+  | {
+      kind: "lint-vs-reader";
+      lintRejects: boolean;
+      readerTreatsAsBenign: boolean;
+      file: string;
+      condition: string;
+    }
+  | {
+      kind: "diagnostic-vs-preexisting";
+      diagnosticCode: string;
+      preexistingCanNeverClear: boolean;
+      file: string;
+    };
+
+export type ReviewOptions = {
+  changeId?: string;
+  /** Explicit changed paths for process audits (overrides git when set). */
+  changedFiles?: string[];
+  testFileDiffs?: TestFileDiff[];
+  lintCodesBefore?: string[];
+  lintCodesAfter?: string[];
+  hunkCoverage?: HunkCoverageInput[];
+  joinProbes?: JoinProbe[];
+  /** Disable pattern detectors (tests of process audits alone). */
+  patterns?: boolean;
+  processAudits?: boolean;
+  joinEngine?: boolean;
+};
+
+// ---------------------------------------------------------------------------
+// Finding IDs (step 6.5.2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Deterministic finding id. Never uses line numbers alone, timestamps,
+ * iteration order, or narration.
+ */
+export function findingId(parts: {
+  auditOrPatternId: string;
+  file: string;
+  anchorOrHunkKey: string;
+  ruleId: string;
+}): string {
+  const payload = [
+    parts.auditOrPatternId,
+    normalizeRel(parts.file),
+    parts.anchorOrHunkKey,
+    parts.ruleId,
+  ].join("\0");
+  return createHash("sha256").update(payload).digest("hex").slice(0, 16);
+}
+
+function normalizeRel(file: string): string {
+  return file.replaceAll("\\", "/");
+}
+
+function makeFinding(
+  code: keyof typeof REVIEW_CATALOG | string,
+  file: string,
+  message: string,
+  ruleId: string,
+  anchorOrHunkKey: string,
+): ReviewFinding {
+  const guide: ReviewIssueGuide | undefined = guideFor(code);
+  const auditOrPatternId = guide?.proposedBy ?? code;
+  return {
+    severity: guide?.severity ?? "error",
+    code,
+    file: normalizeRel(file),
+    message,
+    title: guide?.title,
+    explanation: guide?.explanation,
+    remediation: guide?.remediation,
+    ruleId,
+    anchorOrHunkKey,
+    findingId: findingId({
+      auditOrPatternId,
+      file: normalizeRel(file),
+      anchorOrHunkKey,
+      ruleId,
+    }),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Walk helpers
+// ---------------------------------------------------------------------------
+
+function listFilesRecursive(root: string, relDir = ""): string[] {
+  const abs = path.join(root, relDir);
+  if (!existsSync(abs)) return [];
+  const out: string[] = [];
+  for (const entry of readdirSync(abs, { withFileTypes: true })) {
+    if (entry.name === "node_modules" || entry.name === ".git") continue;
+    const rel = relDir ? `${relDir}/${entry.name}` : entry.name;
+    const full = path.join(root, rel);
+    if (entry.isDirectory()) {
+      out.push(...listFilesRecursive(root, rel));
+    } else if (entry.isFile()) {
+      out.push(rel.replaceAll("\\", "/"));
+    }
+  }
+  return out;
+}
+
+function readText(root: string, rel: string): string | undefined {
+  const full = path.join(root, rel);
+  if (!existsSync(full) || !statSync(full).isFile()) return undefined;
+  try {
+    return readFileSync(full, "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Family A — pattern detectors
+// ---------------------------------------------------------------------------
+
+const KNOWN_VERIFICATION_CHILDREN = new Set([
+  "Command",
+  "Scenario",
+  "Marker",
+  "TraceAssertion",
+  "TestFile",
+  "File",
+  "Cwd",
+  "Notes",
+  "Description",
+  "Expected",
+  "Id",
+  "Module",
+]);
+
+function detectConfidentlyWrong(root: string): ReviewFinding[] {
+  const findings: ReviewFinding[] = [];
+  const sourceFiles = listFilesRecursive(root, "src").filter(
+    (f) => f.endsWith(".ts") && !f.endsWith(".test.ts"),
+  );
+  const sourceBlob = sourceFiles.map((f) => readText(root, f) ?? "").join("\n");
+
+  // Markers claimed in verification but never emitted in runtime sources (XML walk, not regex).
+  for (const verificationRel of listFilesRecursive(root, `${ARTIFACT_DIR}/verification`).filter(
+    (f) => f.endsWith(".xml"),
+  )) {
+    const abs = path.join(root, verificationRel);
+    if (!existsSync(abs)) continue;
+    const artifact = readGraceXmlArtifact(abs);
+    if (!artifact.root) continue;
+    for (const node of walkNodes(artifact.root)) {
+      if (node.tag !== "Marker") continue;
+      const marker = node.text.trim();
+      if (!marker) continue;
+      if (!sourceBlob.includes(marker)) {
+        findings.push(
+          makeFinding(
+            "review.confidently-wrong",
+            verificationRel,
+            `Verification requires marker ${marker} that no runtime source emits.`,
+            "marker-not-emitted",
+            `marker:${marker}`,
+          ),
+        );
+      }
+    }
+  }
+
+  // MustExist targets that do not exist on disk.
+  for (const planRel of listFilesRecursive(root, `${ARTIFACT_DIR}/changes`).filter((f) =>
+    f.endsWith("plan.xml"),
+  )) {
+    const abs = path.join(root, planRel);
+    const artifact = readGraceXmlArtifact(abs);
+    if (!artifact.root) continue;
+    for (const node of walkNodes(artifact.root)) {
+      if (node.tag !== "MustExist") continue;
+      const valueNode = node.children.find((c) => c.tag === "Value");
+      const target = (valueNode?.text ?? node.text).trim();
+      if (!target || target.startsWith("M-") || target.startsWith("V-") || target.startsWith("AC-")) {
+        continue;
+      }
+      if (!existsSync(path.join(root, target))) {
+        findings.push(
+          makeFinding(
+            "review.confidently-wrong",
+            planRel,
+            `MustExist claims ${target} which is not present on disk.`,
+            "must-exist-missing",
+            `must-exist:${target}`,
+          ),
+        );
+      }
+    }
+  }
+
+  return findings;
+}
+
+function detectSelfReferential(root: string): ReviewFinding[] {
+  const findings: ReviewFinding[] = [];
+
+  for (const rel of listFilesRecursive(root, "src").filter((f) => f.endsWith(".test.ts") || f.endsWith(".test.js"))) {
+    // Review-surface unit tests hold defect shapes as fixtures (held-out controls); not production tests.
+    if (rel.startsWith("src/review/")) continue;
+    const text = readText(root, rel);
+    if (!text) continue;
+    // expect(x).toBe(x) / expect(src).toEqual(src)
+    if (/\bexpect\s*\(\s*([A-Za-z_$][\w$]*)\s*\)\s*\.\s*(?:toBe|toEqual|toStrictEqual)\s*\(\s*\1\s*\)/.test(text)) {
+      findings.push(
+        makeFinding(
+          "review.self-referential-comparison",
+          rel,
+          "Test asserts a value equals itself (both sides share one origin).",
+          "expect-same-identifier",
+          "expect-self",
+        ),
+      );
+    }
+    // readFileSync of sibling source then compare to itself
+    if (
+      /readFileSync\s*\(/.test(text)
+      && /\bexpect\s*\(\s*([A-Za-z_$][\w$]*)\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*\1\s*\)/.test(text)
+    ) {
+      // already covered above; keep one finding
+    }
+  }
+
+  for (const planRel of listFilesRecursive(root, `${ARTIFACT_DIR}/changes`).filter((f) =>
+    f.endsWith("plan.xml"),
+  )) {
+    const abs = path.join(root, planRel);
+    const artifact = readGraceXmlArtifact(abs);
+    if (!artifact.root) continue;
+    const posixPlan = planRel.replaceAll("\\", "/");
+    for (const node of walkNodes(artifact.root)) {
+      if (node.tag !== "MustMatchPattern") continue;
+      const fileNode = node.children.find((c) => c.tag === "File");
+      const file = (fileNode?.text ?? "").trim().replaceAll("\\", "/");
+      if (!file) continue;
+      if (file === posixPlan || file.endsWith(posixPlan) || posixPlan.endsWith(file)) {
+        findings.push(
+          makeFinding(
+            "review.self-referential-comparison",
+            planRel,
+            "Baseline MustMatchPattern targets the plan itself as oracle.",
+            "plan-matches-self",
+            `must-match:${file}`,
+          ),
+        );
+      }
+    }
+  }
+
+  return findings;
+}
+
+/**
+ * Extract pattern *sources* from regex literals and `new RegExp(...)` so we can
+ * judge whether the pattern carries markup/attribute syntax (A37.1 shape, not fixture literals).
+ */
+function extractRegexPatternSources(source: string): string[] {
+  const out: string[] = [];
+  // new RegExp("..." | '...' | `...`) — first argument only
+  for (const m of source.matchAll(
+    /new\s+RegExp\s*\(\s*(`(?:\\.|[^`\\])*`|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g,
+  )) {
+    const raw = m[1]!;
+    out.push(raw.slice(1, -1));
+  }
+  // Regex literals immediately consumed as guards: /.../.test( / .exec( / .match(
+  for (const m of source.matchAll(
+    /\/((?:\\.|[^/\n\\])+)\/[gimsuy]*(?=\s*\.\s*(?:test|exec|match)\s*\()/g,
+  )) {
+    out.push(m[1]!);
+  }
+  // Assignment forms: const re = /.../
+  for (const m of source.matchAll(
+    /(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*=\s*\/((?:\\.|[^/\n\\])+)\/[gimsuy]*/g,
+  )) {
+    out.push(m[1]!);
+  }
+  return [...new Set(out)];
+}
+
+function fileHoldsShapesAsData(rel: string, text: string): boolean {
+  // Corpus stores defect text as fixtures (not a production guard).
+  if (rel.includes("defect-corpus")) return true;
+  // Explicit opt-in for shape-as-data modules (A37.3 / corr 88) — not a directory prefix.
+  if (text.includes(SHAPE_DATA_MARKER)) return true;
+  return false;
+}
+
+function usesRegexAsGuard(text: string): boolean {
+  return /\.test\s*\(|\.exec\s*\(|\.match\s*\(/.test(text);
+}
+
+/**
+ * Identifiers bound to a call result: `const X = f(...)` or `const X = a.b(...)`.
+ * A marker line-scan over such an identifier is a transformed-value scan (A38.1 / corr 89).
+ * The helper's *name* is irrelevant — only the dataflow matters.
+ */
+function identifiersAssignedFromCall(text: string): Set<string> {
+  const ids = new Set<string>();
+  for (const m of text.matchAll(
+    /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*[A-Za-z_$][\w$.]*\s*\(/g,
+  )) {
+    ids.add(m[1]!);
+  }
+  return ids;
+}
+
+/**
+ * Bare-identifier subjects of *line-oriented* `.split("\n")` chained to an array
+ * callback: `source.split("\n").some(...)`.
+ *
+ * Does not match call-expression subjects (`normalize(source).split(...)`) — those
+ * end in `)` before `.split` (A39.1 / corr 92).
+ * Non-newline splits (e.g. `body.split(/\s+/)`) are not line scans.
+ */
+function lineScanBareIdentifierSubjects(text: string): string[] {
+  const subjects: string[] = [];
+  // Chained: ID.split("\n").(some|every|filter|find) — "\n" as two source chars \ + n
+  // Identifier must be immediately before `.split` (not `source).split` from a call arg).
+  for (const m of text.matchAll(
+    /\b([A-Za-z_$][\w$]*)\s*\.\s*split\s*\(\s*(?:"\\n"|'\\n'|`\\n`)\s*\)\s*\.\s*(?:some|every|filter|find)\s*\(/g,
+  )) {
+    subjects.push(m[1]!);
+  }
+  return subjects;
+}
+
+/**
+ * True when a *call expression* is the subject of a newline split chained to a
+ * callback: `normalize(source).split("\n").some(...)` (A39.1 / corr 92).
+ * Same dataflow as binding the call result to a name, without requiring the name.
+ */
+function hasCallExpressionLineScanSubject(text: string): boolean {
+  return /\)\s*\.\s*split\s*\(\s*(?:"\\n"|'\\n'|`\\n`)\s*\)\s*\.\s*(?:some|every|filter|find)\s*\(/.test(
+    text,
+  );
+}
+
+/**
+ * Defective comment-marker line guard: line-anchored START_MODULE_* regex used as a
+ * governance check on *raw* input (corpus re-03 family).
+ *
+ * Discriminator is dataflow (A38.1 / corr 89), not a production symbol name:
+ * re-03 scans the function's raw parameter (`source.split…`); the correct scanner
+ * scans a value derived by a transform (`const searchable = f(text)` then split).
+ * Marker token must appear *inside a pattern source*, not merely in prose.
+ */
+/**
+ * Comment-prefix tokens in a regex *pattern source*. Literals write `//` as `\/\/`,
+ * so a raw `/\/\//` check on the source string misses pure-// scanners (A38 probe / 91).
+ */
+function patternSourceHasCommentPrefix(patternSource: string): boolean {
+  // Decode one level of common regex escapes so `\/\/` becomes `//`.
+  const decoded = patternSource.replace(/\\([\\/"'ntr])/g, (_m, ch: string) => {
+    if (ch === "n") return "\n";
+    if (ch === "t") return "\t";
+    if (ch === "r") return "\r";
+    return ch;
+  });
+  return /\/\/|#|--/.test(decoded);
+}
+
+function isDefectiveUnstrippedMarkerLineGuard(text: string): boolean {
+  const patterns = extractRegexPatternSources(text);
+  const markerInPattern = patterns.some((p) =>
+    /START_MODULE_CONTRACT|START_MODULE_MAP|START_BLOCK_/.test(p),
+  );
+  const lineAnchoredMarker = patterns.some(
+    (p) =>
+      p.startsWith("^")
+      && /START_MODULE_CONTRACT|START_MODULE_MAP|START_BLOCK_/.test(p)
+      && patternSourceHasCommentPrefix(p),
+  );
+  if (!markerInPattern || !lineAnchoredMarker) return false;
+  if (!usesRegexAsGuard(text)) return false;
+
+  const transformed = identifiersAssignedFromCall(text);
+  const bareSubjects = lineScanBareIdentifierSubjects(text);
+  const inlineCallSubject = hasCallExpressionLineScanSubject(text);
+
+  // Chained scans: fire only when a bare identifier subject is not call-derived.
+  // Call-expression subjects (inline transform) are call-derived without a binding (92).
+  if (bareSubjects.length > 0 || inlineCallSubject) {
+    const rawBare = bareSubjects.filter((s) => !transformed.has(s));
+    return rawBare.length > 0;
+  }
+
+  // No chained split-callback: still silent when a call-derived intermediate is
+  // newline-split (for-loop / indexed / two-step scan over the transformed value).
+  for (const id of transformed) {
+    const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (
+      new RegExp(
+        String.raw`\b${escaped}\s*\.\s*split\s*\(\s*(?:"\\n"|'\\n'|` + "`\\n`" + String.raw`)\s*\)`,
+      ).test(text)
+    ) {
+      return false;
+    }
+  }
+  // Marker line-regex used as a guard with no transformed line-scan subject.
+  // Covers two-step raw form: `const lines = source.split("\n"); lines.some(...)` (d).
+  return true;
+}
+
+export type RegexOverStructureScan = {
+  findings: ReviewFinding[];
+  shapeDataExemptions: string[];
+};
+
+function detectRegexOverStructure(root: string): RegexOverStructureScan {
+  const findings: ReviewFinding[] = [];
+  const shapeDataExemptions: string[] = [];
+  for (const rel of listFilesRecursive(root, "src").filter(
+    (f) => (f.endsWith(".ts") || f.endsWith(".js")) && !f.endsWith(".test.ts"),
+  )) {
+    const text = readText(root, rel);
+    if (!text) continue;
+    // Corr 88 / 90: exempt only shape-as-data files; report every exemption.
+    if (fileHoldsShapesAsData(rel, text)) {
+      shapeDataExemptions.push(normalizeRel(rel));
+      continue;
+    }
+    if (!usesRegexAsGuard(text)) continue;
+
+    const patterns = extractRegexPatternSources(text);
+    const markupPattern = patterns.find((p) => patternSourceLooksLikeMarkupGuard(p));
+    if (markupPattern) {
+      findings.push(
+        makeFinding(
+          "review.regex-over-structure",
+          rel,
+          "File uses a regular expression as a structural guard over text that has structure.",
+          "markup-or-attribute-regex-guard",
+          `pattern:${markupPattern.slice(0, 48)}`,
+        ),
+      );
+      continue;
+    }
+
+    if (isDefectiveUnstrippedMarkerLineGuard(text)) {
+      findings.push(
+        makeFinding(
+          "review.regex-over-structure",
+          rel,
+          "Line-oriented marker regex over source without stripping structured regions first.",
+          "unstripped-marker-line-guard",
+          "marker-line-unstripped",
+        ),
+      );
+    }
+  }
+  shapeDataExemptions.sort((a, b) => a.localeCompare(b));
+  return { findings, shapeDataExemptions };
+}
+
+function detectZeroOrMoreSwallow(root: string): ReviewFinding[] {
+  const findings: ReviewFinding[] = [];
+  for (const planRel of listFilesRecursive(root, `${ARTIFACT_DIR}/changes`).filter((f) =>
+    f.endsWith("plan.xml"),
+  )) {
+    const abs = path.join(root, planRel);
+    const artifact = readGraceXmlArtifact(abs);
+    if (!artifact.root) continue;
+    for (const node of walkNodes(artifact.root)) {
+      if (!/^T-\d+$/.test(node.tag)) continue;
+      const title = node.children.find((c) => c.tag === "Title")?.text.trim() ?? "";
+      const depends = node.children.find((c) => c.tag === "DependsOn");
+      const emptyDepends =
+        depends !== undefined
+        && depends.children.length === 0
+        && !depends.text.trim();
+      if (!emptyDepends) continue;
+      if (/\bafter\b|\bsecond\b|\bthen\b|\bfollow|\bcompletes?\b|\bonce\b.*\bT-\d+/i.test(title)) {
+        findings.push(
+          makeFinding(
+            "review.zero-or-more-swallow",
+            planRel,
+            `${node.tag} title claims sequencing ("${title}") but DependsOn is empty.`,
+            "empty-depends-with-sequence-title",
+            `task:${node.tag}:empty-depends`,
+          ),
+        );
+      }
+    }
+  }
+  return findings;
+}
+
+function detectUnthreadedConstruct(root: string): ReviewFinding[] {
+  const findings: ReviewFinding[] = [];
+  for (const verificationRel of listFilesRecursive(root, `${ARTIFACT_DIR}/verification`).filter(
+    (f) => f.endsWith(".xml"),
+  )) {
+    const abs = path.join(root, verificationRel);
+    const artifact = readGraceXmlArtifact(abs);
+    if (!artifact.root) continue;
+    for (const node of walkNodes(artifact.root)) {
+      if (!/^V-M-/.test(node.tag)) continue;
+      for (const child of node.children) {
+        if (KNOWN_VERIFICATION_CHILDREN.has(child.tag)) continue;
+        findings.push(
+          makeFinding(
+            "review.unthreaded-construct",
+            verificationRel,
+            `Verification child <${child.tag}> under ${node.tag} is not threaded through health or assertion evaluation.`,
+            "unknown-verification-child",
+            `vm-child:${node.tag}:${child.tag}`,
+          ),
+        );
+      }
+    }
+  }
+  return findings;
+}
+
+export function runPatternDetectors(root: string): ReviewFinding[] {
+  return runPatternDetectorsWithMeta(root).findings;
+}
+
+/** Pattern detectors plus shape-data exemption paths (A38.2). */
+export function runPatternDetectorsWithMeta(root: string): {
+  findings: ReviewFinding[];
+  shapeDataExemptions: string[];
+} {
+  const regexScan = detectRegexOverStructure(root);
+  return {
+    findings: [
+      ...detectConfidentlyWrong(root),
+      ...detectSelfReferential(root),
+      ...regexScan.findings,
+      ...detectZeroOrMoreSwallow(root),
+      ...detectUnthreadedConstruct(root),
+    ],
+    shapeDataExemptions: regexScan.shapeDataExemptions,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Family C — join engine (A34.1 pairs as process-shaped codes per A36.2)
+// ---------------------------------------------------------------------------
+
+export function runJoinProbes(probes: JoinProbe[]): ReviewFinding[] {
+  const findings: ReviewFinding[] = [];
+  for (const probe of probes) {
+    if (probe.kind === "scope-home") {
+      if (!probe.homeAdmits.includes(probe.recordScope)) {
+        findings.push(
+          makeFinding(
+            "review.counterpart-scope-mismatch",
+            probe.file,
+            `Record scope "${probe.recordScope}" is not admitted by home constraints [${probe.homeAdmits.join(", ")}].`,
+            "join-scope-home",
+            `scope:${probe.recordScope}`,
+          ),
+        );
+      }
+    } else if (probe.kind === "writer-command") {
+      for (const writer of probe.exportedWriters) {
+        if (!probe.invocableCommands.includes(writer)) {
+          findings.push(
+            makeFinding(
+              "review.counterpart-writer-missing",
+              probe.file,
+              `Exported writer "${writer}" has no invocable command surface.`,
+              "join-writer-command",
+              `writer:${writer}`,
+            ),
+          );
+        }
+      }
+    } else if (probe.kind === "lint-vs-reader") {
+      if (probe.lintRejects && probe.readerTreatsAsBenign) {
+        findings.push(
+          makeFinding(
+            "review.counterpart-reader-tolerates",
+            probe.file,
+            `Lint rejects "${probe.condition}" but a blocking reader treats it as benign.`,
+            "join-lint-reader",
+            `cond:${probe.condition}`,
+          ),
+        );
+      }
+    } else if (probe.kind === "diagnostic-vs-preexisting") {
+      if (probe.preexistingCanNeverClear) {
+        findings.push(
+          makeFinding(
+            "review.counterpart-grandfather-gap",
+            probe.file,
+            `Diagnostic ${probe.diagnosticCode} fires permanently on artifacts that can never clear it.`,
+            "join-grandfather",
+            `diag:${probe.diagnosticCode}`,
+          ),
+        );
+      }
+    }
+  }
+  return findings;
+}
+
+// ---------------------------------------------------------------------------
+// Family B — process audits (§6.4)
+// ---------------------------------------------------------------------------
+
+export function auditScopeOutsideWriteScope(
+  changedFiles: string[],
+  scopeFiles: string[],
+  scopeGlobs: string[],
+): ReviewFinding[] {
+  const findings: ReviewFinding[] = [];
+  const fileSet = new Set(scopeFiles.map(normalizeRel));
+  for (const changed of changedFiles.map(normalizeRel)) {
+    if (fileSet.has(changed)) continue;
+    const globHit = scopeGlobs.some((glob) => matchSimpleGlob(glob, changed));
+    if (globHit) continue;
+    if (scopeFiles.length === 0 && scopeGlobs.length === 0) continue;
+    findings.push(
+      makeFinding(
+        "review.scope-outside-write-scope",
+        changed,
+        `Changed file ${changed} is outside ObservedWriteScope.`,
+        "scope-outside",
+        `file:${changed}`,
+      ),
+    );
+  }
+  return findings;
+}
+
+/** Minimal glob: `**` / `*` only, for process-audit tests and plan globs. */
+function matchSimpleGlob(glob: string, file: string): boolean {
+  const g = glob.replaceAll("\\", "/");
+  const f = file.replaceAll("\\", "/");
+  if (g === f) return true;
+  // **/*.ts style
+  const escaped = g
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*/g, "\0")
+    .replace(/\*/g, "[^/]*")
+    .replace(/\0/g, ".*");
+  return new RegExp(`^${escaped}$`).test(f);
+}
+
+export function auditTestWeakening(diffs: TestFileDiff[]): ReviewFinding[] {
+  const findings: ReviewFinding[] = [];
+  for (const diff of diffs) {
+    const beforeAsserts = countAssertions(diff.before);
+    const afterAsserts = countAssertions(diff.after);
+    if (afterAsserts < beforeAsserts) {
+      findings.push(
+        makeFinding(
+          "review.test-assertion-weakened",
+          diff.file,
+          `Test file lost assertions (${beforeAsserts} → ${afterAsserts}).`,
+          "assert-count-drop",
+          `asserts:${beforeAsserts}->${afterAsserts}`,
+        ),
+      );
+    }
+    // expect(...).toBe(true) replacing a specific value is a weakening signal when toBe(true) increased
+    const beforeStrict = (diff.before.match(/\.toBe\s*\(\s*[^t]/g) ?? []).length;
+    const afterStrict = (diff.after.match(/\.toBe\s*\(\s*[^t]/g) ?? []).length;
+    const beforeLoose = (diff.before.match(/\.toBeTruthy\s*\(|\.toBe\s*\(\s*true\s*\)/g) ?? []).length;
+    const afterLoose = (diff.after.match(/\.toBeTruthy\s*\(|\.toBe\s*\(\s*true\s*\)/g) ?? []).length;
+    if (afterStrict < beforeStrict && afterLoose > beforeLoose) {
+      findings.push(
+        makeFinding(
+          "review.test-assertion-weakened",
+          diff.file,
+          "Strict equality assertions were replaced with looser checks.",
+          "strict-to-loose",
+          "strict-to-loose",
+        ),
+      );
+    }
+  }
+  return findings;
+}
+
+function countAssertions(source: string): number {
+  return (source.match(/\bexpect\s*\(/g) ?? []).length
+    + (source.match(/\bassert\s*\(/g) ?? []).length;
+}
+
+export function auditCompatNewErrors(
+  codesBefore: string[],
+  codesAfter: string[],
+): ReviewFinding[] {
+  const before = new Set(codesBefore);
+  const findings: ReviewFinding[] = [];
+  for (const code of codesAfter) {
+    if (!before.has(code)) {
+      findings.push(
+        makeFinding(
+          "review.compat-new-error",
+          "*",
+          `New issue code ${code} appeared on a previously clean comparison set.`,
+          "compat-new",
+          `code:${code}`,
+        ),
+      );
+    }
+  }
+  return findings;
+}
+
+export function auditHunkCoverage(hunks: HunkCoverageInput[]): ReviewFinding[] {
+  return hunks
+    .filter((h) => !h.covered)
+    .map((h) =>
+      makeFinding(
+        "review.hunk-uncovered",
+        h.file,
+        `Changed hunk ${h.hunkKey} has no covering test attribution.`,
+        "hunk-uncovered",
+        h.hunkKey,
+      ),
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Public entry
+// ---------------------------------------------------------------------------
+
+export function runReview(projectRoot: string, options: ReviewOptions = {}): ReviewResult {
+  const root = path.resolve(projectRoot);
+  const runPatterns = options.patterns !== false;
+  const runProcess = options.processAudits !== false;
+  const runJoin = options.joinEngine !== false;
+
+  const findings: ReviewFinding[] = [];
+  let shapeDataExemptions: string[] = [];
+
+  if (runPatterns) {
+    const patternResult = runPatternDetectorsWithMeta(root);
+    findings.push(...patternResult.findings);
+    shapeDataExemptions = patternResult.shapeDataExemptions;
+  }
+
+  if (runJoin && options.joinProbes && options.joinProbes.length > 0) {
+    findings.push(...runJoinProbes(options.joinProbes));
+  }
+
+  if (runProcess) {
+    let changedFiles = options.changedFiles;
+    let scopeFiles: string[] = [];
+    let scopeGlobs: string[] = [];
+
+    if (options.changeId) {
+      const paths = resolveNgracePaths(root);
+      const planPath = path.join(paths.changesActiveDir, options.changeId, "plan.xml");
+      if (existsSync(planPath)) {
+        const extracted = extractObservedWriteScopeFromPlan(planPath, root);
+        scopeFiles = extracted.files;
+        scopeGlobs = extracted.globs;
+      }
+      if (!changedFiles) {
+        const listed = listRepositoryChangedFiles(root);
+        if (listed.available) changedFiles = listed.changedFiles;
+      }
+    }
+
+    if (changedFiles && (scopeFiles.length > 0 || scopeGlobs.length > 0)) {
+      findings.push(...auditScopeOutsideWriteScope(changedFiles, scopeFiles, scopeGlobs));
+    }
+    if (options.testFileDiffs) {
+      findings.push(...auditTestWeakening(options.testFileDiffs));
+    }
+    if (options.lintCodesBefore && options.lintCodesAfter) {
+      findings.push(...auditCompatNewErrors(options.lintCodesBefore, options.lintCodesAfter));
+    }
+    if (options.hunkCoverage) {
+      findings.push(...auditHunkCoverage(options.hunkCoverage));
+    }
+  }
+
+  findings.sort(
+    (a, b) =>
+      a.file.localeCompare(b.file)
+      || a.code.localeCompare(b.code)
+      || a.findingId.localeCompare(b.findingId),
+  );
+
+  return {
+    schemaVersion: "1.0.0",
+    tool: "ngrace-review",
+    root,
+    findings,
+    shapeDataExemptions,
+    summary: {
+      findings: findings.length,
+      errors: findings.filter((f) => f.severity === "error").length,
+      warnings: findings.filter((f) => f.severity === "warning").length,
+      shapeDataExemptions: shapeDataExemptions.length,
+    },
+  };
+}
+
+export function formatReviewResult(result: ReviewResult): string {
+  const lines = [
+    "neo-grace Review Report",
+    "=======================",
+    `Root: ${result.root}`,
+    `Findings: ${result.summary.findings} (errors: ${result.summary.errors}, warnings: ${result.summary.warnings})`,
+    `Shape-data exemptions: ${result.summary.shapeDataExemptions}`,
+    "",
+  ];
+  if (result.shapeDataExemptions.length > 0) {
+    for (const p of result.shapeDataExemptions) {
+      lines.push(`  - ${p}`);
+    }
+    lines.push("");
+  }
+  if (result.findings.length === 0) {
+    lines.push("No review findings.");
+    return lines.join("\n");
+  }
+  lines.push("Findings");
+  for (const f of result.findings) {
+    lines.push(
+      `- [${f.severity}] ${f.code} ${f.file} — ${f.message} (id=${f.findingId})`,
+    );
+  }
+  return lines.join("\n");
+}
+
+// Re-export catalog helpers used by boundary tests
+export { isReviewIssueCode, allReviewCodes, REVIEW_CATALOG } from "./catalog";

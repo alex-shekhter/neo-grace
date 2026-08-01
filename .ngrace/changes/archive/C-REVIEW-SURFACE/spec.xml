@@ -1,0 +1,189 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-REVIEW-SURFACE>
+    <Summary>
+      Create the review check surface — mechanized pattern detectors and process audits with
+      deterministic finding IDs, a multi-surface corpus scorer for D4, a determinism/no-regression
+      CI gate with a falsification witness, detached-reviewer skill text and read-only tool
+      allowlists, and a published host-capability matrix with honest degradation.
+    </Summary>
+    <Problem>
+      The pipeline is [LLM generates] → [deterministic verifier] → [policy gate] → [execute/apply].
+      Box 3 (gates) shipped in Phase 5. What produces the review content that apply requires is still
+      honor-system: two archived bundles (C-GATE-SURFACE, C-GATE-RECORD-ABSENCE) hold self-recorded
+      pass verdicts written by the implementer through ngrace gate verdict (A33.3). The gate cannot
+      tell a self-review from a detached one, and D11 only requires a recorded verdict's existence.
+
+      §6.4's four process audits (scope, test weakening, backward-compat, hunk coverage) and the
+      defect corpus's nine review-surface expected findings are about different things. The corpus
+      names exact codes — review.confidently-wrong, review.self-referential-comparison,
+      review.regex-over-structure, review.zero-or-more-swallow, review.unthreaded-construct — that
+      no catalog emits at e5627ca. A scorer written only against §6.4's audits would report zero
+      detection on all nine review rows while every audit passed its own tests: a measuring
+      instrument pointed at nothing (D4).
+
+      A27.2 and A34.1 hand a build order: the unknown-value query, the counterpart query
+      (parameterized over four concrete list-pairs from Phase 5), and the differential harness.
+      Those cover confidently-wrong and unthreaded-construct well and leave self-referential-comparison,
+      regex-over-structure, and the silent zero-or-more half as separate detectors (A35.2 corr 72).
+
+      src/review/ does not exist. Role presets under ngrace-setup-subagents/references/roles/ carry
+      no tool allowlists. README.md has no host-capability or degradation language. CI has no
+      determinism or corpus gate. D16 requires the determinism gate be observed failing once.
+    </Problem>
+    <Goals>
+      <Goal>
+        An invocable review surface: ngrace review, registered from src/grace.ts, implemented under
+        src/review/. It runs mechanized detectors and emits deterministic finding IDs; it does not
+        author status or write Verdicts (invariant 8 / F1; Phase 5's ngrace gate verdict remains the
+        recorder) (A35.2 corr 81).
+      </Goal>
+      <Goal>
+        Detector set is the A35.3 superset: (A) five pattern detectors emitting the exact corpus
+        review.* codes; (B) four process audits with distinct review.* codes; (C) join engine with
+        A34.1's four pairs as first fixtures. No family silently dropped (A12.4 / standing rule 7).
+      </Goal>
+      <Goal>
+        Deterministic finding IDs stable across reruns and across unrelated edits (blank line above
+        a finding leaves the ID unchanged). Never line-number-only, timestamps, or narration.
+      </Goal>
+      <Goal>
+        Multi-surface corpus scorer over corpus() (11 entries, 18 expected findings at e5627ca):
+        lint, health, and review dispatched by finding.surface; both directions (mustFire true missed
+        and mustFire false fired) (A35.2 corr 70, 82; D4).
+      </Goal>
+      <Goal>
+        Determinism + no-regression gate wired into validate:* / CI, with a falsification witness
+        that demonstrates red when a detection is deliberately broken (D4, D16, A35.2 corr 83).
+      </Goal>
+      <Goal>
+        D14 boundary one surface over: runLint never emits review.*; the review surface does
+        (A7.2 both directions; A35.2 corr 73, 77).
+      </Goal>
+      <Goal>
+        Detachment contract in ngrace-reviewer and a read-only tool allowlist on the reviewer role
+        preset(s), reported verbatim; enforcement is host-side where the host supports it (A35.2
+        corr 74; §5.2).
+      </Goal>
+      <Goal>
+        Host-capability matrix published in README.md with degradation for cold subagent spawn and
+        tool-level read-only stated plainly (A35.2 corr 75).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>src/lint/core.ts does not learn about review. review.* codes live in src/review/catalog.ts (D14).</Constraint>
+      <Constraint>ngrace review does not write Verdicts, Decisions, status attributes, or archive paths. Recording stays on ngrace gate verdict (F1, A35.2 corr 81).</Constraint>
+      <Constraint>Decided (A36.1): the corpus stays at 11 entries this phase. Process audits are proven by unit fires/silent pairs and §0.7.2's mutation check. Seeding process-audit rows is owed only if a process audit regresses in content while the determinism gate stays green.</Constraint>
+      <Constraint>Decided (A36.2): a join-engine finding takes a review.&lt;pattern&gt; code only when it is an instance of that pattern as the corpus defines it. Otherwise it is process-shaped and takes a family-B code. Resemblance is not the test; the corpus entry is. Family B never moves the pattern trend.</Constraint>
+      <Constraint>Full grace mutate / revert-and-rerun is out of scope (Q1, A35.2 corr 84). Hunk coverage is attribution only.</Constraint>
+      <Constraint>No new runtime dependencies. Surgical diffs only (§0.1).</Constraint>
+      <Constraint>Skill edits under skills/ngrace/ are mirrored to plugins/ngrace/skills/ngrace/ in the same commit (§12.2).</Constraint>
+      <Constraint>Detachment and tool-level read-only are conditional guarantees (§5.2). Do not claim them unconditionally in README or skill text.</Constraint>
+      <Constraint>Every new review.* code carries §12.1 evidence links (derivedFrom / proposedBy) where applicable.</Constraint>
+      <Constraint>Standing rule 10 (A30.6): review findings state their scope before any durable home is chosen. Default: ephemeral to the review run; do not invent a second ledger section mid-phase without an amendment.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Making the apply gate distinguish self-review from detached review. D11 requires existence of a recorded verdict, not toolkit-verified trustworthiness (A33.3, A35.2 corr 80).</NonGoal>
+      <NonGoal>Re-implementing lint-owned or health-owned corpus rows inside src/review/ (zo-01, ut-01, health markers).</NonGoal>
+      <NonGoal>Deterministic failure localization (Phase 7), selection (Phase 8), confidence/calibration (Phase 9), plan-quality/doctor (Phase 10), adoption (Phase 11).</NonGoal>
+      <NonGoal>Full mutate / differential revert-and-rerun as a required audit (Q1).</NonGoal>
+      <NonGoal>Making lint depend on run state or emit review.* / gate.* codes (D14).</NonGoal>
+      <NonGoal>Inventing a sixteenth track-level design decision (D1–D16 stand) (§12.5).</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-REVIEW-OWN-SURFACE>
+        Correction 81 (A35.2). ngrace review is registered from src/grace.ts and implemented under
+        src/review/. It evaluates and emits findings with deterministic IDs; it does not write
+        status or Verdicts. Discriminating negative: no review subcommand that calls
+        recordReviewVerdict or sets status attributes.
+      </AC-REVIEW-OWN-SURFACE>
+      <AC-REVIEW-D14-BOUNDARY>
+        A review.* code is never present in runLint output (A35.2 corr 73, 77; D14). Integration
+        test both directions per A7.2: review surface emits review.* on a seeded fixture; lint over
+        the same tree emits zero review.*.
+      </AC-REVIEW-D14-BOUNDARY>
+      <AC-REVIEW-PATTERN-DETECTORS>
+        A35.3 family A. The five codes review.confidently-wrong, review.self-referential-comparison,
+        review.regex-over-structure, review.zero-or-more-swallow, review.unthreaded-construct each
+        fire on their corpus mustFire:true review rows and stay silent on clean controls. The clean
+        control for every entry is its own pre-apply() state, which build() produces lint-clean
+        (A36.3 corr 85). Per-pattern fires/silent pairs reported (A35.2 corr 72).
+      </AC-REVIEW-PATTERN-DETECTORS>
+      <AC-REVIEW-PROCESS-AUDITS>
+        A35.3 family B. Scope, test weakening, backward-compat, and hunk-coverage audits each ship
+        with distinct review.* codes (not the five pattern names) and a fires/silent pair. None
+        requires the implementer's transcript (§6.7.3). Not folded into the five-pattern trend rate
+        (A35.2 corr 71; A12.4).
+      </AC-REVIEW-PROCESS-AUDITS>
+      <AC-REVIEW-JOIN-ENGINE>
+        A35.3 family C / A34.1. Parameterized counterpart (and unknown-value) query ships with
+        fixtures for the four Phase 5 list-pairs: record scope×home, writers×commands,
+        lint-catalog×benign readers, new-diagnostic×pre-existing artifacts. Each has fire and silent
+        controls.
+      </AC-REVIEW-JOIN-ENGINE>
+      <AC-REVIEW-FINDING-IDS>
+        Finding IDs are stable across two runs on an unchanged tree and unchanged when a blank line
+        is inserted above the finding. IDs are not derived from line numbers alone, timestamps,
+        iteration order, or agent narration (§6.4).
+      </AC-REVIEW-FINDING-IDS>
+      <AC-REVIEW-SCORER>
+        Scorer runs corpus() multi-surface (lint, health, review) and reports detection rate per
+        pattern and per surface, both directions (A35.2 corr 70, 82; D4). Correction 85 (A36.3):
+        every entry is scored twice — before and after apply() — because all four mustFire:false rows
+        are lint-surface and the review surface would otherwise have zero silent-direction ground.
+        A review.* finding on a pre-apply() tree is a false positive and is reported beside the
+        after-state mustFire:false violations. Process-audit codes that are not corpus expected rows
+        do not inflate pattern rates (A35.3).
+      </AC-REVIEW-SCORER>
+      <AC-REVIEW-DETERMINISM-GATE>
+        validate:determinism (or equivalent validate:* name) is wired into CI. Gate = two-run
+        identity plus no-regression ratchet on previously caught seeded defects (D4). Falsification
+        witness: a test deliberately breaks a detector or ID input and asserts non-zero / refuse;
+        phase report shows that red output once (A35.2 corr 76, 83; D16; §6.7.1).
+      </AC-REVIEW-DETERMINISM-GATE>
+      <AC-REVIEW-DETACHMENT-ALLOWLIST>
+        Reviewer role definition carries a tool allowlist with no write tool, reported verbatim
+        (A35.2 corr 74; §6.4 non-negotiable 2). Skill text states detachment is host-conditional.
+      </AC-REVIEW-DETACHMENT-ALLOWLIST>
+      <AC-REVIEW-HOST-MATRIX>
+        README.md publishes the three-layer capability matrix (CLI / skills / host adapters) and
+        states degradation without cold subagents or tool allowlists (A35.2 corr 75; §5.2). No
+        unconditional detachment claim.
+      </AC-REVIEW-HOST-MATRIX>
+      <AC-REVIEW-NO-VERDICT-WRITE>
+        ngrace review never appends to Verdicts or Decisions and never authors status (F1,
+        A35.2 corr 80–81). Recording remains ngrace gate verdict.
+      </AC-REVIEW-NO-VERDICT-WRITE>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI />
+      <M-LINT-CORE />
+      <M-LINT-CATALOG />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedCommand>bun test src/review src/lint/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace review --help</ExpectedCommand>
+      <ExpectedEvidence>
+        Unit and integration tests for pattern detectors, process audits, join engine, finding ID
+        stability, multi-surface scorer both directions, D14 boundary, and determinism-gate red
+        witness; root lint 0 errors with C-REVIEW-SURFACE present; marketplace mirror check green;
+        README host-capability section present; allowlist reported in phase report.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Answered, not assumed: A36.1 accepts decision 1 (corpus stays at 11, with a named trigger for
+        seeding process-audit rows later) and A36.2 accepts decision 2 with one clause — a join
+        finding takes a review.&lt;pattern&gt; code only when it is an instance of that pattern as the
+        corpus defines it; otherwise it is process-shaped and takes a family-B code.
+      </Assumption>
+      <Assumption>
+        Hosts that cannot enforce tool allowlists or cold subagent spawn remain usable: they record
+        host-capability-missing (or form a non-detached verdict under project gateFailOn policy)
+        rather than a disguised pass (D5, D11).
+      </Assumption>
+    </Assumptions>
+  </C-REVIEW-SURFACE>
+</NgraceChangeSpec>
