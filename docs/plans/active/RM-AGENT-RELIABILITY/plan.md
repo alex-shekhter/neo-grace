@@ -4,7 +4,7 @@ kind: plan
 status: approved
 supersededBy: null
 created: 2026-07-29
-updated: 2026-07-30
+updated: 2026-07-31
 baseline: 6.0.1
 targets: []
 context: ./decisions.md
@@ -371,7 +371,7 @@ Keep this table current. It is the single source of truth for progress.
 | 3 | Run ledger & cursor | D1, D2, D3 | TBD | `COMPLETE` |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `COMPLETE` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `COMPLETE` |
-| 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
+| 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `IN PROGRESS` (A35) |
 | 7 | Deterministic failure localization | D8 | TBD | `NOT STARTED` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `NOT STARTED` |
 | 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `NOT STARTED` |
@@ -993,9 +993,19 @@ construction, so nothing in the existing pipeline regresses.
 
 # PHASE 6 — Detached reviewer & mechanized audits
 
-**Status:** `NOT STARTED`
+**Status:** `IN PROGRESS` (A35)
 **Decisions:** D4 (gate), §4.3, §5.2
 **Release:** TBD
+
+> **Amended by §14 A35 — read it before §6.3–§6.5.** The steps below were written before Phases 2–5
+> existed and before the corpus named exact `review.*` codes. A35 re-derives the phase at `e5627ca`
+> with corrections 70 onward, reconciles §6.4's process audits against the corpus's pattern codes
+> (they are different things; the scorer as written would measure nothing on the review surface), and
+> sets the detector set as a **superset**: five pattern detectors + four process audits + A34.1's
+> parameterized join engine as the build method. **A35 is normative where it disagrees with §6.3,
+> §6.4 and §6.5.** A17.3 still binds: the bundle carries a `spec.xml` (draft, awaiting approval)
+> before plan and execution. Two archived bundles already hold self-recorded `pass` verdicts
+> (A33.3) — Phase 6 is what makes detachment real rather than honor-system.
 
 ## 6.1 Objective
 
@@ -5464,6 +5474,476 @@ nothing to run against if it is short. Measure it before starting, not after.
 
 A33.3's limitation carries forward unchanged: two archived bundles now hold self-recorded `pass`
 verdicts. Phase 6 is what makes that a detached fact rather than an honor-system one.
+
+### A35 — 2026-07-31 · Phase 6 re-derived against HEAD
+
+**Everything below was measured at `e5627ca`**
+(`e5627cafb46169d182f29a8af6a907eae87b38c0` — `feat(reliability): transition gates, ledger verdicts
+and decisions, typed clarifications (Phase 5) (#26)`). After `git fetch origin && git status -sb`:
+local `main` was not behind `origin/main` (both at `e5627ca`, left-right `0 0`). Tree clean on branch
+`feat/phase-6-rederive` cut from that commit. The track head named in the stage-1 prompt is still the
+head; if it had moved, this entry would have said so (A28 / §0.4.1).
+
+§6.1's objective, §6.6–§6.8's done/review/rollback shape, D4, the three non-negotiables, and the
+host-capability framing survive. **§6.3's file table, §6.4's implicit claim that the audits feed the
+corpus scorer, and §6.5's step list do not.** All three predate the corpus's exact codes, the gates
+surface, and A27.2–A34.1's measured build order. Fifteen corrections follow (70–84), starting where
+A34 left the number. The detector-set reconciliation is **recorded as derived** (A35.3), not as a
+sixteenth design decision — it joins things already ratified (D4, D14, A27.2, A34.1–A34.2, the corpus
+`PATTERNS` array) rather than inventing a new one (§12.5).
+
+#### A35.1 §6.2's preconditions, re-measured
+
+| Precondition | Measured | Result |
+|---|---|---|
+| Phase 5 `COMPLETE` | §2 board row 5 `COMPLETE`; `src/gates/` ships `core.ts`, `catalog.ts`, `command.ts`, `ledger.ts`, `core.test.ts`; `ngrace gate --help` lists `approve\|apply\|archive\|verdict`; `C-GATE-SURFACE` and `C-GATE-RECORD-ABSENCE` archived `spec=applied plan=applied states=none` | ✅ |
+| Corpus ≥ 10 entries | `src/test-support/defect-corpus.ts` — `corpus().length === 11` (ids `corpus-cw-01` … `corpus-ut-02`); `defect-corpus.test.ts` asserts `>= 10`; five `PATTERNS`, each with ≥2 entries | ✅ |
+
+Corpus composition at `e5627ca` (denominator for the scorer):
+
+| | Count |
+|---|---|
+| Seeded-defect entries | **11** (not 12 — correction 70) |
+| Expected findings total | **18** |
+| By surface | lint **7**, health **2**, review **9**, gate **0** |
+| `mustFire` | **14 true / 4 false** |
+
+The four `mustFire: false` rows are over-fire guards (D4 both directions). Unique `review.*` codes the
+corpus expects: `review.confidently-wrong`, `review.self-referential-comparison`,
+`review.regex-over-structure`, `review.zero-or-more-swallow`, `review.unthreaded-construct` — one per
+`PATTERNS` entry. **None of those codes is registered in any catalog at HEAD** (correction 77).
+
+#### A35.2 Corrections 70–84
+
+##### Correction 70 — the corpus has eleven entries, not twelve
+
+Stage materials said "12 seeded defects across 5 patterns". Measured: `ALL` in
+`defect-corpus.ts:686–698` lists eleven constants; `corpus()` returns eleven; ids are unique. Findings
+totals (18; 7/2/9/0; 14/4) match the stage materials even when the entry count does not.
+
+**What the step becomes:** scorer denominators and ratchet keys use `corpus()` at HEAD — 11 entries,
+18 expected findings. Do not invent a twelfth entry to match a prompt.
+
+##### Correction 71 — §6.4's audits and the corpus's `review.*` codes are about different things
+
+§6.4's audit table:
+
+| Audit | Computation | Emits `review.<pattern>`? |
+|---|---|---|
+| Scope | `git diff --name-only` vs `ObservedWriteScope` | **No** |
+| Test weakening | diff test files; flag removed/loosened assertions | **No** |
+| Backward-compat | lint every fixture before/after; diff issue-code sets | **No** |
+| Hunk coverage | which changed hunks are defended by any test | **No** |
+
+The corpus names exact codes (`review.confidently-wrong`, …) — **code-analysis / structure detectors**
+keyed to the five `PATTERNS`. Verified per entry (A35.3 mapping table): no corpus row expects a
+scope/test-weakening/compat/hunk code.
+
+§6.5.4 as written ("scorer over the corpus") therefore reports **zero detection on all nine
+review-surface findings** while every process audit can pass its own unit tests. A scorer measuring
+nothing, in the phase whose subject is measurement, is the defect D4 exists to prevent (determinism
+alone certifies a reviewer that finds nothing).
+
+**What the step becomes:** see A35.3 — detector set is a **superset**; the scorer measures over the
+corpus's declared surfaces and codes; process audits keep their fires/silent pairs and feed the
+determinism half of D4; they are not silently dropped (standing rule 7 / A12.4).
+
+##### Correction 72 — A27.2 / A34.1 map onto some patterns and miss others
+
+Verified against the eleven entries (not assumed):
+
+| A27.2 / A34 check | Corpus patterns it would catch | Entries |
+|---|---|---|
+| **Unknown-value query** (unknown treated as data) | `confidently-wrong` | `cw-01` (marker never emitted claimed as required), `cw-02` (MustExist of a path never created) |
+| **Counterpart query** (two lists that should agree) | `unthreaded-construct`; also the over-fire half of several entries | `ut-02` (new child never threaded); A34.1 instances 61/62/68/69 are this shape and are **not** in the corpus |
+| **Differential harness** (transition / plurality / authority) | partially `zero-or-more-swallow` when exercised as state, not as static shape | weak fit at corpus level — `zo-02` is a static empty-DependsOn, not a plurality run |
+
+**Patterns the A27.2 trio does *not* cover as primary detectors:**
+
+| Pattern | Why the trio is not enough | Corpus evidence |
+|---|---|---|
+| `self-referential-comparison` | Needs analysis of whether both sides of a comparison share one origin | `sr-01` (test reads own source and `expect(src).toBe(src)`); `sr-02` (baseline pattern matches the plan's own IntentSummary) |
+| `regex-over-structure` | Needs structural vs regex-over-text analysis of guards | `re-01`, `re-02`, `re-03` — all ship defective helpers that grep structured text |
+| `zero-or-more-swallow` (silent half) | Needs cardinality / "empty list admits malformed intent" judgment beyond existing lint | `zo-01` is already lint (`change.task-empty-acceptance`); `zo-02` is the silent case (`review.zero-or-more-swallow`) |
+
+**What the step becomes:** A27.2 / A34.1 are the **build order for the static half**, not the full
+detector set. Pattern detectors for all five `PATTERNS` remain required. A34.1's four parameterized
+joins are the first instances of the counterpart engine and also catch production defects the corpus
+does not seed.
+
+##### Correction 73 — `src/review/` does not exist; `src/gates/` is the structural precedent
+
+```
+$ ls src/review   → No such file or directory
+$ ls src/gates    → catalog.ts command.ts core.test.ts core.ts ledger.ts
+```
+
+D14: review is its own surface. Gates already own `src/gates/catalog.ts` and never register in
+`src/lint/catalog.ts`; `src/lint/core.test.ts:19–59` pins `runLint` emits no `gate.*`. Phase 6 needs
+the same boundary **one surface over**: `runLint` emits no `review.*`, and `evaluateGate` does not
+become the review emitter.
+
+**What the step becomes:** CREATE `src/review/{core,catalog,scorer,command}.ts` (+ tests) mirroring
+gates ownership. Boundary test extends or parallels the gate one — assert no `review.*` from
+`runLint`, and that the review surface *does* emit `review.*` on a seeded fixture (A7.2 both
+directions).
+
+##### Correction 74 — role presets carry no tool allowlists
+
+Measured under `skills/ngrace/ngrace-setup-subagents/references/roles/`:
+
+| File | Tool allowlist today? |
+|---|---|
+| `contract-reviewer.md` | **None** — mission prose only |
+| `verification-reviewer.md` | **None** |
+| `fixer.md` | **None** (and it *writes*) |
+| `module-implementer.md` | **None** (and it *writes*) |
+
+§6.3 says "EDIT — read-only reviewer preset". There is nothing to edit that is an allowlist; the
+second non-negotiable (§6.4) requires **enforcement by allowlist, not instruction**. Hosts that
+cannot enforce degrade to honor system, published (§6.5.7 / §5.2).
+
+**What the step becomes:** CREATE an explicit read-only tool allowlist on the reviewer role
+definition(s) (contract-reviewer and any dedicated detached-reviewer preset this phase adds), with
+no write tools. Report the allowlist verbatim (step 6.5.6). Fixer/implementer stay writable; do not
+silently convert them. Mirrors under `plugins/ngrace/skills/ngrace/…` in the same commit (§12.2).
+
+##### Correction 75 — `README.md` has no host-capability or degradation language
+
+```
+$ grep -nE 'capabilit|host|degrad' README.md  → (no matches)
+```
+
+§6.5.7 is a **CREATE** of a section, not an EDIT of existing matrix prose.
+
+**What the step becomes:** author the three-layer matrix (CLI portable / skills portable / host
+adapters optional) and state degradation for cold subagent spawn and tool-level read-only. Selling
+either as unconditional is the confidence-without-check failure this track removes (D4, D11 host
+tail, §5.2).
+
+##### Correction 76 — CI has no determinism gate and no corpus script
+
+`.github/workflows/validate.yml` at HEAD: jobs `validate` (`bun run validate:ci`),
+`windows-compatibility`, `dart-adapter`. **No** matrix shard, **no** determinism job, **no** corpus
+score step. `package.json` scripts follow `validate:*` (`validate:cli`, `validate:ci`,
+`validate:marketplace`, `validate:examples`, `validate:release`, `validate:packed`) — no
+`validate:determinism` / `validate:corpus`.
+
+**What the step becomes:** add a `validate:determinism` (or equivalent) script that runs two review
+passes over an unchanged tree and the no-regression ratchet over `corpus()`, wire it into
+`validate:ci` and/or the workflow, and **demonstrate it red** when a detection is deliberately
+broken (D4 §6.5.5, D16, §6.7.1). The red demonstration is a deliverable, not a verification step
+you may assert.
+
+##### Correction 77 — no `review.*` code exists in any catalog
+
+`src/lint/catalog.ts` has `DefectPatternId` and `proposedBy` fields (lines 10–26) that *name* the five
+patterns for lint codes that defend against them, but **zero** `review.*` entries.
+`src/gates/catalog.ts` is exclusively `gate.*`. Grep for `review.` under `src/gates/` and
+`src/lint/catalog.ts` is empty.
+
+**What the step becomes:** register every emitted `review.*` code in `src/review/catalog.ts` with
+severity, remediation, and §12.1 evidence links (`derivedFrom` / `proposedBy`). Pattern codes match
+the corpus exactly. Process-audit codes get distinct names (correction 71 / A35.3) so the scorer can
+tell them apart from pattern detectors.
+
+##### Correction 78 — the grammar line the stage prompt cited has moved
+
+Stage prompt: `src/artifact/grammar.ts:1090`. Measured: the active-plan / approved-spec rule is at
+`grammar.ts:1205–1207` (`change.plan-requires-approved-spec`: *"An active plan may exist only beside
+an approved spec."*). A29.21's citation was correct at its commit; the file grew through Phase 5.
+
+**What the step becomes:** stage 1 authors `spec.xml` `status="draft"` only; no `plan.xml` until the
+spec is approved (A17.3). Cite the rule by code and current line, re-measured at build time (A5.5).
+
+##### Correction 79 — §6.3's file table is short by the surfaces the phase actually touches
+
+§6.3 names: `src/review/{core,catalog,scorer}`, tests, `src/grace.ts`, reviewer skill, role presets,
+README. Missing at HEAD's packaging reality (A10.6 / A29.8 family):
+
+| Omitted | Why it is load-bearing |
+|---|---|
+| `src/review/command.ts` (or equivalent) | gates needed `command.ts` for the invocable surface; a library without a CLI is a writer-only-in-tests shape (A31.1) |
+| `src/lint/core.test.ts` (EDIT) | extend D14 boundary one surface over |
+| `package.json` scripts | `validate:determinism` / scorer entry |
+| `.github/workflows/validate.yml` | wire the gate |
+| `skills/ngrace/ngrace-cli/references/verdicts.md` | where review findings meet the verdict record |
+| packaged mirrors | §12.2 |
+| `.ngrace/changes/active/C-REVIEW-SURFACE/` | this phase's bundle |
+
+**What the step becomes:** revised table in A35.5.
+
+##### Correction 80 — two archived bundles hold self-recorded `pass` verdicts
+
+Measured:
+
+```
+C-GATE-SURFACE/run-ledger.xml        <Verdict outcome="pass">Phase 5 review complete …
+C-GATE-RECORD-ABSENCE/run-ledger.xml <Verdict outcome="pass">A33.1 correction 69
+```
+
+Both written through `ngrace gate verdict` by the implementer. The gate cannot distinguish self-review
+from detached review (A33.3, D11: existence not trustworthiness). That is not a Phase 5 defect; it is
+**this phase's purpose stated as a fact about the repository**.
+
+**What the step becomes:** detachment is enforced by host allowlist + cold spawn where the host
+supports it, published as conditional elsewhere (corrections 74–75). Do not try to make the gate
+detect self-review — that would invent a trust signal the toolkit cannot verify (D5 authority axis).
+
+##### Correction 81 — `ngrace` has nine subcommands; `review` is not among them
+
+`src/grace.ts:22–32` registers: `cursor`, `doctor`, `file`, `gate`, `graph`, `lint`, `module`,
+`status`, `verification`. No `review`.
+
+**What the step becomes:** register a tenth subcommand `review` that runs mechanized audits /
+pattern detectors and emits deterministic finding IDs. It does **not** author a verdict — Phase 5's
+`ngrace gate verdict` remains the recorder (sequencing rule 3, A29 conclusion 2, invariant 8 / F1).
+Judgment content is formed by the detached reviewer (skill) consulting the CLI's findings; recording
+is a separate, already-shipped act.
+
+##### Correction 82 — the scorer must multi-surface; a review-only scorer fails half the corpus
+
+Of 18 expected findings, 9 are `surface: "review"`, 7 `lint`, 2 `health`. A scorer that only invokes
+the new review surface under-reports detection rate and cannot exercise the four over-fire guards that
+sit on lint codes (`project.missing-grace`, `graph.module-without-linked-files`,
+`markup.missing-module-contract`, `assertion.command-not-evaluated`).
+
+**What the step becomes:** scorer dispatches by `finding.surface` — `runLint` / health query / review
+core — and reports per-pattern and per-surface rates, both directions (mustFire true missed;
+mustFire false fired).
+
+##### Correction 83 — D16 requires a falsification witness for the determinism gate, not a green assertion
+
+D16: a check that has never failed is not a check. §6.7.1 asks: was the determinism gate ever
+observed failing? A `validate:determinism` job that has only ever been green is A10-of-namespace
+track all over again.
+
+**What the step becomes:** (1) a unit/integration test that deliberately breaks a detector (or
+tampers with a finding ID input) and asserts the gate **refuses** / exits non-zero; (2) the phase
+report shows that red output once. CI stays green because the witness lives inside a test, not as a
+permanently-broken job. Both are required — the test holds the red; the report proves someone saw it.
+
+##### Correction 84 — full `grace mutate` stays out; hunk coverage is attribution, not revert-and-rerun
+
+§6.4 already says this (Q1 unanimous). Re-confirmed: no `mutate` surface exists at HEAD; Phase 6
+builds hunk-coverage *attribution* (which hunks have any defending test) and leaves revert-and-rerun
+as an opt-in deep audit not built here. Do not re-open Q1.
+
+#### A35.3 Detector set — reconciliation (normative)
+
+**Phase 6's detector set is a superset of three families.** Dropping any one is standing-rule-7
+territory and is not done here.
+
+| Family | What it is | Codes | How D4 sees it |
+|---|---|---|---|
+| **A — Pattern detectors** | Code/artifact analysis for the five `PATTERNS` | exactly the five `review.<pattern>` codes the corpus names | **Trend** denominator for review-surface rows; ratchet keys |
+| **B — Process audits** | §6.4's four: scope, test weakening, backward-compat, hunk coverage | distinct `review.*` codes *not* in the five pattern names (e.g. `review.scope-outside-write-scope`, `review.test-assertion-weakened`, `review.compat-new-error`, `review.hunk-uncovered`) | **Determinism** half (IDs + counts stable); fires/silent unit pairs; **not** the five-pattern trend until the corpus gains rows for them |
+| **C — Join engine** | A34.1's parameterized counterpart query (and A27.2's unknown-value query) | findings map onto family A codes where the shape fits; A34.1 instances that are not corpus-seeded still emit under the matching pattern or under a process-audit code when they are process-shaped | build method for A and for production defects the corpus does not seed |
+
+**Mapping table — corpus pattern → primary implementation → A27.2/A34 coverage**
+
+| Pattern | Corpus entries (`mustFire: true` review) | Primary detector | A27.2 / A34 coverage |
+|---|---|---|---|
+| `confidently-wrong` | `cw-01`, `cw-02` | unknown-value / claim-without-evidence query | **Primary** (A27.2 #1); A34.2's "unknown→usable value" is the same family |
+| `self-referential-comparison` | `sr-01`, `sr-02` | both-sides-share-origin analysis of tests and assertions | **Not covered** by the A27.2 trio as primary |
+| `regex-over-structure` | `re-01`, `re-02`, `re-03` | regex-over-structured-text detector on changed helpers | **Not covered** by the A27.2 trio as primary |
+| `zero-or-more-swallow` | `zo-02` only (`zo-01` is lint) | empty/zero-or-more cardinality with malformed intent | **Partial** — static shape, not differential harness |
+| `unthreaded-construct` | `ut-02` (`ut-01` is lint `graph.unknown-module-type`) | counterpart query: new element × readers that load-bear it | **Primary** (A27.2 #2, A34.1) |
+
+**Lint/health rows in the corpus** are already owned by existing surfaces. The scorer runs them for a
+complete rate; Phase 6 does not re-implement `change.task-empty-acceptance` or
+`health.required-log-marker-not-found` inside `src/review/`.
+
+**A34.1's four join instances, as first parameterizations of family C:**
+
+1. every persisted element × discovery / identity / lifecycle of its home (corr 61)
+2. every exported record surface × invocable commands that reach it, both directions (corr 62)
+3. every lint-catalog code × every read path that treats the same condition as benign (corr 68)
+4. every new diagnostic × artifacts that already exist and can never clear it (corr 69)
+
+These are not corpus rows. They are the build-order tests that would have caught Phase 5's half of
+findings, and they ship as unit fixtures of the join engine.
+
+**What the scorer measures over:** every `expected` finding in `corpus()`, dispatched by
+`finding.surface`, both directions. Per-pattern rates use `entry.pattern`. Process-audit codes that
+are not in any `expected` row do not move the trend number and must not be force-fitted into a
+pattern bucket to inflate it.
+
+**What is not dropped:** §6.4's four audits remain deliverables (A35.6 steps). Reporting them as
+"covered by pattern detectors" would be a silent substitution (A12.4).
+
+#### A35.4 Standing rules that bind this phase, named so they are not rediscovered at the gate
+
+- **A5.4** — drop-site inventory before any new review finding lands in a shared report type, and
+  before `LintIssue` / status / gate report shapes grow a review field they do not own.
+- **A5.5** — every claim here is measured at `e5627ca`. Re-measure what you depend on; §0.4.1 first.
+- **A5.6** — acceptance criteria descending from these corrections cite them inline, e.g.
+  `AC-REVIEW-PATTERN-CODES (A35.2 corr 77)`, and carry the discriminating detail.
+- **A6.4** — corpus scoring and determinism runs use temp fixtures / `corpus()` builders, never
+  transient repo state.
+- **A7.2** — detection boundaries (pattern fire/silent, process-audit fire/silent, `runLint` never
+  emits `review.*`, review surface does emit `review.*`) carry the both-directions table.
+- **A12.3 (rule 6)** — the §0.7 self-review has no abbreviated form. **Reflexivity:** this phase's
+  product is the mechanization of that protocol, and you still run it by hand while building it
+  (§0.7 note).
+- **A12.4 (rule 7)** — a deviation that removes a ratified capability (any of the four §6.4 audits,
+  any of the five pattern detectors, the determinism-red witness) is reported as absence with
+  reasoning, never silently substituted.
+- **A14.6 (rule 8)** — every audit names the artifact it read; corpus scoring declares its ground
+  (`corpus()` ids, commit, surfaces invoked).
+- **A20.5 (rule 9)** — if review consults run state at all, it reads the durable record
+  (ledger∪loose), not the cursor cache alone. Prefer pure diff/artifact inputs for detachment.
+- **A30.6 (rule 10)** — a new record states its scope before it is given a home. Review *findings*
+  are change-scoped and ephemeral-to-the-run unless a later decision records them; do not stuff them
+  into `Epoch-N` or invent a second ledger section without stating scope first. Verdict recording
+  stays on Phase 5's `Verdicts` section via `ngrace gate verdict`.
+- **A17.3** — bundle carries draft `spec.xml` this stage; plan before production code after
+  maintainer approval.
+- **D14** — `runLint` never emits `review.*` or `gate.*`; each surface owns its catalog.
+- **D4** — gate (determinism + ratchet) **and** trend (per-pattern rate); neither alone.
+- **D16** — the determinism gate's falsification witness is a deliverable (correction 83).
+- **Anti-pattern 1** — do not assert detection rates you did not compute from `corpus()`.
+- **Anti-pattern 2** — scorer ground truth is the corpus entry, not the detector's own output
+  re-read as expected.
+- **Anti-pattern 3** — pattern detectors that need structure scan structure; do not regex the plan
+  into a false `review.*`.
+- **Anti-pattern 9** — blocking policy for apply stays in `src/gates/`; review reports findings.
+- **Invariant 8 / F1** — `ngrace review` does not author `status` or verdict records.
+- **§5.2** — detachment and tool-level read-only are conditional guarantees; publish degradation.
+
+#### A35.5 Revised §6.3 files-touched table
+
+| File | Action |
+|---|---|
+| `src/review/core.ts` | CREATE — pattern detectors, process audits, finding IDs, join engine entry points |
+| `src/review/core.test.ts` | CREATE — fires/silent pairs per audit and per pattern; ID stability |
+| `src/review/catalog.ts` | CREATE — `review.*` codes (pattern + process-audit); never registered as lint emit-ables |
+| `src/review/scorer.ts` | CREATE — multi-surface corpus scoring (D4) |
+| `src/review/scorer.test.ts` | CREATE — both directions; deliberate-miss ratchet witness |
+| `src/review/command.ts` | CREATE — `ngrace review` CLI (correction 81) |
+| `src/grace.ts` | EDIT — register `review` subcommand only |
+| `src/lint/core.ts` | READ ONLY — must not learn about review |
+| `src/lint/core.test.ts` | EDIT — D14 boundary one surface over: no `review.*` from `runLint` |
+| `src/gates/**` | READ ONLY for boundary sanity — review does not emit via gate evaluation |
+| `src/test-support/defect-corpus.ts` | READ ONLY this phase unless a maintainer decision expands it (A35.8) |
+| `package.json` | EDIT — `validate:determinism` (name may vary; `validate:*` convention) |
+| `.github/workflows/validate.yml` | EDIT — wire the determinism/corpus gate |
+| `skills/ngrace/ngrace-reviewer/SKILL.md` | EDIT — detachment contract; call `ngrace review`; judgment vs record |
+| `skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md` (and any new detached-reviewer preset) | EDIT/CREATE — read-only tool allowlist verbatim |
+| `skills/ngrace/ngrace-cli/references/verdicts.md` | EDIT — how mechanized findings relate to `ngrace gate verdict` |
+| `skills/ngrace/ngrace-execute/SKILL.md` | EDIT only if apply path must say "run review then record verdict" — keep minimal |
+| (+ all packaged mirrors under `plugins/ngrace/skills/ngrace/`) | EDIT |
+| `README.md` | EDIT — CREATE host-capability matrix section (correction 75) |
+| `.ngrace/changes/active/C-REVIEW-SURFACE/` | CREATE — this phase's bundle |
+
+#### A35.6 Revised §6.5 step list
+
+**Step 6.5.1 — Review surface skeleton, catalog, CLI host, D14 boundary.** Create
+`src/review/{core,catalog,command}.ts`, register `review` on `src/grace.ts`, pin no `review.*` from
+`runLint` and some `review.*` from the review surface (corrections 73, 77, 79, 81; A7.2).
+→ verify: `ngrace review --help` works; boundary test both directions; `review.*` codes live only in
+`src/review/catalog.ts`.
+
+**Step 6.5.2 — Deterministic finding IDs.**
+`findingId(f) = hash(auditId | patternId, file, anchorOrHunkKey, ruleId)` — never line numbers alone,
+timestamps, iteration order, or narration (correction 84's ID half of §6.4).
+→ verify: two runs identical IDs and counts; blank line inserted above a finding leaves the ID
+unchanged.
+
+**Step 6.5.3 — Join engine (family C), with A34.1's four pairs as first instances.**
+→ verify: each of the four pairs has a fixture that fires and a clean control that stays silent.
+Unknown-value query (A27.2 #1) lands here or in 6.5.4 as shared substrate for `confidently-wrong`.
+
+**Step 6.5.4 — Pattern detectors (family A), one pattern at a time.**
+Order by A27.2 findings-per-work then the gaps: (1) `confidently-wrong`, (2) `unthreaded-construct`,
+(3) `regex-over-structure`, (4) `self-referential-comparison`, (5) `zero-or-more-swallow` for the
+silent half (`zo-02`). Do not re-implement lint-owned rows (`zo-01`, `ut-01`, health markers).
+→ verify: each pattern fires on its corpus `mustFire: true` review rows and stays silent on clean
+projects / `mustFire: false` neighbours. Report the pair per pattern.
+
+**Step 6.5.5 — Process audits (family B), one at a time.**
+Scope, test weakening, backward-compat, hunk coverage — each with its own codes and fires/silent
+pair (correction 71, 84). Full mutate stays out.
+→ verify: pair per audit; none requires the implementer's transcript (review gate §6.7.3).
+
+**Step 6.5.6 — Scorer over `corpus()`, multi-surface, both directions.**
+→ verify: prints detection rate per pattern and per surface; lists every `mustFire: false` that
+incorrectly fired and every `mustFire: true` that missed (corrections 70, 82). Initial baseline may
+show review-surface misses until 6.5.4 is complete — report honestly; do not pad with process-audit
+codes (A35.3).
+
+**Step 6.5.7 — Determinism + no-regression gate, with a red witness.**
+Wire `validate:determinism` (name under `validate:*`) into CI. Gate = two runs identical **plus**
+no previously-caught seeded defect missed now (D4).
+→ verify: (a) green on HEAD after detectors ship; (b) **red** when a detection is deliberately
+broken — show the failing output in the phase report (corrections 76, 83; D16; §6.7.1). The red
+witness is a test that holds, not a permanently broken CI job.
+
+**Step 6.5.8 — Reviewer skill: detachment contract and read-only allowlist.**
+→ verify: allowlist reported verbatim with no write tool (correction 74); skill tells agents to run
+`ngrace review` for mechanized findings and `ngrace gate verdict` to record; judgment stays
+detached. Mirrors pass `validate:marketplace`.
+
+**Step 6.5.9 — Publish the host capability matrix in `README.md`.**
+→ verify: matrix states which guarantees are conditional and what degrades without cold subagents /
+tool allowlists (correction 75). No unconditional claim for detachment.
+
+**Step 6.5.10 — Skill text minimal path for execute (only if needed) + token delta.**
+→ verify: execute does not claim the binary records a detached review it cannot prove; D15 line
+delta reported.
+
+#### A35.7 Additions to §6.6 definition of done
+
+- Five pattern detectors emit the exact corpus `review.*` codes; fires/silent pairs reported
+  (A35.3 family A)
+- Four process audits ship with their own codes and pairs; not folded into pattern rates (family B)
+- Join engine ships with A34.1's four instances as fixtures (family C)
+- IDs stable across reruns **and** across unrelated edits
+- Scorer multi-surface, both directions, over 11 entries / 18 findings
+- Determinism gate demonstrated **red then green** (D16 witness)
+- Read-only allowlist reported verbatim
+- Capability matrix published with degradation stated
+- D14 boundary: no `review.*` from `runLint`; review surface emits `review.*`
+- `ngrace review` does not write verdicts or status (F1)
+- Bundle `C-REVIEW-SURFACE` carries draft spec at stage 1; plan before code after approval (A17.3)
+- `bun run validate:ci` green
+
+#### A35.8 Decisions required before `spec.xml` is approved
+
+Two. Neither invents a sixteenth track-level design decision; both are scope choices inside already
+ratified D4 / D14 / §6.4. None may be taken by the executor alone if the maintainer wants a different
+route (§12.5).
+
+1. **Corpus expansion for process audits this phase?**
+   - **Options:** (a) leave the corpus at 11 entries; process audits proven only by unit
+     fires/silent pairs and determinism stability; (b) add seeded entries whose `expected` codes are
+     the new process-audit codes, expanding D4's ratchet ground.
+   - **Costs:** (a) process audits can regress in *content* while the ratchet stays green if only
+     pattern detectors are keyed — mitigated by unit pairs and mutation check §0.7.2; (b) expands
+     ground truth mid-track and requires new fixture design under anti-patterns 2 and 3.
+   - **Recommend: (a).** D4's trend is defined over the five patterns of `review-consolidated.md`
+     §2.1; process audits are the mechanization of §0.7 and feed the **gate** half (determinism),
+     not the pattern trend. Expanding the corpus is a later ratchet improvement, not a Phase 6
+     blocker.
+
+2. **Join-engine findings that are not corpus-seeded — code mapping?**
+   - **Options:** (a) always map onto one of the five `review.<pattern>` codes when the shape fits,
+     and use process-audit codes when the finding is process-shaped; no sixth pattern name; (b)
+     introduce new codes such as `review.counterpart-writer-missing` for A34.1 instances.
+   - **Costs:** (a) keeps the catalog aligned with D4's five patterns and the corpus; some A34.1
+     instances are slightly forced into a pattern bucket; (b) cleaner names, but a catalog that
+     grows outside D4's trend without corpus rows creates codes the scorer never sees (D16 risk).
+   - **Recommend: (a).** New codes only for family B (process audits), which §6.4 already named by
+     computation. Family C is a build method, not a sixth pattern.
+
+If the maintainer accepts both recommendations, stage 2 may proceed on A35 as written after spec
+approval. If either is rejected, amend here before production code.
+
+#### A35.9 Bundle for this phase
+
+Proposed change id: **`C-REVIEW-SURFACE`** (precedent: `C-GATE-SURFACE`). Stage 1 authors
+`.ngrace/changes/active/C-REVIEW-SURFACE/spec.xml` with `status="draft"`. Maintainer approves the
+spec; then `plan.xml` is authored before any production code (A17.3, `grammar.ts:1205–1207`).
 
 ---
 
