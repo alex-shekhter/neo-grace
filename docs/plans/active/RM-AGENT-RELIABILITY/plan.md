@@ -7276,6 +7276,99 @@ properties, and this track exists for the gap between them.
 
 ---
 
+### A46 — 2026-07-31 · Phase 7 closed
+
+**Measured at `4cc351a`.** `bun test` 871 pass / 3 skip / 0 fail (874 collected), `validate:ci` green,
+`validate:marketplace` PASS, root lint 0 errors with the 11 pre-existing graph warnings, polyglot lint
+clean, working tree clean.
+
+**Correction 114 is confirmed fixed** with a typed discriminator rather than a reworded string:
+
+```
+["B","A","C"] → { kind: "requirement-out-of-order", index: 1, expected: "B", appearedAt: 0 }
+["A","C"]     → { kind: "requirement-absent",       index: 1, expected: "B", atCursor: "C" }
+["A","B","C"] → null
+```
+
+and the renderer prints them as different sentences, with `at-cursor` labelled *not a substitute for the
+missing requirement*. `C-FAILURE-LOCALIZATION` is archived at `spec=applied plan=applied`, and the
+board row and banner are `COMPLETE`.
+
+#### A46.1 Four rounds, and every one of them was a value with no warrant behind it
+
+| Round | The surface said | The input supported |
+|---|---|---|
+| 1 | `crates/core/src/lib.rs:16-21` | an empty file |
+| 2 | *first divergent block: index 1* | a run that met every requirement |
+| 3 | *expected B, observed C* | a log whose first line is B |
+| — | *flake: consumed* | a producer no invocation could reach (110, 113) |
+
+Every one is D5's gate rule broken in the same direction, and **in every case the correct answer was
+already reachable from data the surface had in hand** — `foreignMarkers` for round 1, the
+requirement/transcript distinction for round 2, the earlier-position lookup for round 3. Not one of them
+needed a new mechanism. That is the pattern worth carrying out of this phase: when a verifier is about
+to state something it cannot support, the discriminator is usually already computed and discarded one
+line above.
+
+#### A46.2 The durable idea — a requirement list is not a transcript
+
+Correction 112's category error generalises past markers. `<Marker>` entries are **requirements in
+declaration order**; a run log is a **transcript**. Comparing them by index equality makes every loop,
+retry and re-entry a divergence — which is why the healthy triple emission was reported as a fault at
+the block that worked. The comparison that holds is an ordered subsequence scan: *were the required
+things observed, in order*, with repeats absorbed and counted rather than treated as noise or as error.
+
+Anywhere else on this track where a declared list meets an observed stream — attempt outcomes against
+planned tasks, expected commands against executed ones — the same question applies first: **which of
+these two is a requirement and which is a record?** They are never the same kind of list, and the
+comparator has to know which it is holding.
+
+#### A46.3 Standing rule 11 — read the output aloud before calling it correct
+
+A45.2's finding, promoted. **A result that is correct under its rule can still be false as a sentence.**
+Round 3's adversarial probe landed on the out-of-order case, found the code behaved as specified,
+corrected the probe, and moved on — leaving a surface that told a fixer *B never ran* about a log whose
+first line was B.
+
+So: for each non-trivial field a surface can emit, state the sentence a reader will hear, and ask
+whether that sentence is true given the input. A probe resolved by correcting the probe is not finished
+until that question is asked. The round-4 report carries the first such table; it is the model.
+
+#### A46.4 D16 sharpened — a path never seen succeeding
+
+Corrections 106, 110 and 113 are one defect at three depths: an assembler input with no producer (106),
+a producer with no invocation (110), and an invocation whose success path no test ever reached (113).
+D16 says a check that has never failed is not a check; the mirror holds. **A path never observed
+succeeding is not a path** — it is a type signature. The Phase 5 opener (a verdict record with no
+writer, correction 62) is the same finding one surface over, which makes this the second track-wide
+instance and the reason it belongs in the amendments rather than in a phase report.
+
+The payoff is concrete: `classifyFlakeFromEvidence` shipped in Phase 4 and, until `776bf70`, had no
+caller in this repository outside its own tests. Three phases of "consumed" that were not.
+
+#### A46.5 What shipped, stated at its actual strength
+
+- **`observed` is textual presence, not proven emission.** The ground line says so in text and JSON, the
+  assertion-diff case is pinned as a known limitation, and `ngrace-fix` tells the agent which stream to
+  capture. A log that echoes an expected marker still inflates the transcript; nothing deterministic
+  separates an emission from a quotation of one.
+- **Route (1) is deferred, not missing.** The binary does not run tests; `parseObservedMarkers` takes a
+  string, so a later `C-*` can supply spawn output without touching the comparator.
+- **The bundle's own verdict is half mechanized.** The gate proved a plan was approved, a verdict
+  existed, no epoch was open and no clarification was unresolved, and `ngrace review` returned zero
+  findings over the diff. That the `pass` judgment deserves trust is still the honor system: it was
+  self-recorded by the agent that wrote the code (A33.3).
+
+#### A46.6 Still owed — the graph now misses three surfaces
+
+`.ngrace/graph/main.xml` carries the same twelve modules it had before Phase 5. It describes neither
+`src/gates/`, nor `src/review/`, nor now `src/verification/localize.ts` — which is why the eleven
+`graph.module-without-linked-files` warnings are the shape they are. A36.4 recorded this as owing its
+own `C-*` after Phase 5; two phases later the debt has grown rather than been paid. It stays out of
+Phase 8's scope and stays scheduled, not folded in.
+
+---
+
 ## 15. Final instruction to the executor
 
 Work one phase at a time. Report in the §0.5 format. Stop after each phase and wait for review.
