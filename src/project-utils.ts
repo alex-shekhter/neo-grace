@@ -121,6 +121,17 @@ export function readTextIfExists(filePath: string) {
  * nested backtick inside `${}` does not terminate the outer template early
  * (corpus-re-03 / A3.3).
  */
+/**
+ * Blank string and template-literal contents so markers inside quotes are not
+ * mistaken for real markup. Comment and string state are tracked in one pass
+ * (corr 145): quotes inside line or block comments do not open a span, and
+ * comment openers inside a string do not start a comment. Comment text is
+ * preserved so real markers and A8 near-misses in comments remain visible.
+ *
+ * Line comments: double-slash only (not hash or double-dash — those are
+ * operators in TS/JS). Block comments: slash-star … star-slash — quotes inside
+ * do not open strings; body is kept.
+ */
 export function stripQuotedStrings(text: string) {
   let result = "";
   let i = 0;
@@ -188,8 +199,47 @@ export function stripQuotedStrings(text: string) {
     }
   };
 
+  // normal | line_comment | block_comment — strings handled by stripQuoted.
+  type OutsideString = "normal" | "line_comment" | "block_comment";
+  let outside: OutsideString = "normal";
+
   while (i < text.length) {
     const char = text[i]!;
+
+    if (outside === "line_comment") {
+      result += char;
+      if (char === "\n") {
+        outside = "normal";
+      }
+      i += 1;
+      continue;
+    }
+
+    if (outside === "block_comment") {
+      result += char;
+      if (char === "*" && text[i + 1] === "/") {
+        result += "/";
+        i += 2;
+        outside = "normal";
+        continue;
+      }
+      i += 1;
+      continue;
+    }
+
+    // outside === "normal"
+    if (char === "/" && text[i + 1] === "/") {
+      result += "//";
+      i += 2;
+      outside = "line_comment";
+      continue;
+    }
+    if (char === "/" && text[i + 1] === "*") {
+      result += "/*";
+      i += 2;
+      outside = "block_comment";
+      continue;
+    }
     if (char === '"' || char === "'" || char === "`") {
       stripQuoted(char);
       continue;
