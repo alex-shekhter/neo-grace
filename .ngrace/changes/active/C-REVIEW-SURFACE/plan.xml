@@ -64,6 +64,7 @@
       <File>src/review/scorer.ts</File>
       <File>src/review/scorer.test.ts</File>
       <File>src/review/scope-helpers.ts</File>
+      <File>src/review/shape-data.ts</File>
       <File>src/grace.ts</File>
       <File>src/grace-cursor.test.ts</File>
       <File>src/lint/core.test.ts</File>

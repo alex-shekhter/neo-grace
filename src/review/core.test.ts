@@ -106,6 +106,189 @@ describe("pattern detectors — corpus fires/silent pairs", () => {
   });
 });
 
+/**
+ * A37.1 / corr 86–88: held-out generalization controls.
+ * Never added to corpus() (A36.1 denominator stays 11). Each is an instance the detector
+ * was not fixture-fitted against.
+ */
+describe("held-out generalization controls (A37.1) — not in corpus()", () => {
+  function minimalWithSrc(relFile: string, body: string): string {
+    const root = track(path.join(os.tmpdir(), `heldout-${Date.now()}-${Math.random().toString(16).slice(2)}`));
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    // Emit the verification marker so confidently-wrong does not fire on the fixture shell.
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(
+      path.join(root, "src", "example.ts"),
+      `export function run() {
+  console.info("[Example][run][BLOCK_RUN] run");
+  return "ok";
+}
+`,
+    );
+    writeFileSync(path.join(root, relFile), body);
+    return root;
+  }
+
+  it("regex-over-structure: planHasTask new RegExp XML guard fires (A37.1 / corr 86)", () => {
+    const root = minimalWithSrc(
+      "src/plan-has-task.ts",
+      `export function planHasTask(xml: string, id: string): boolean {
+  const re = new RegExp(\`<Task[^>]*id="\${id}"\`);
+  return re.test(xml);
+}
+`,
+    );
+    const findings = runPatternDetectors(root).filter((f) => f.code === "review.regex-over-structure");
+    expect(findings.length).toBeGreaterThan(0);
+    expect(findings.some((f) => f.file.endsWith("plan-has-task.ts"))).toBe(true);
+  });
+
+  it("confidently-wrong: MustExist of a non-corpus path fires", () => {
+    const root = track(byPattern("confidently-wrong")[0]!.build());
+    // Held-out path string — not src/never-created.ts from corpus-cw-02
+    const planPath = path.join(root, ".ngrace/changes/active");
+    // Use a clean project without a change: inject verification-level claim via plan-less MustExist on a synthetic plan
+    const changeDir = path.join(root, ".ngrace/changes/active/C-HELDOUT-CW");
+    mkdirSync(changeDir, { recursive: true });
+    writeFileSync(
+      path.join(changeDir, "plan.xml"),
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-HELDOUT-CW>
+  <IntentSummary>Held-out</IntentSummary>
+  <BaselineAssertions><MustExist><Value>src/example.ts</Value></MustExist></BaselineAssertions>
+  <TargetAssertions><MustExist><Value>build/artifacts/held-out-absent.bin</Value></MustExist></TargetAssertions>
+  <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors><VerificationAnchors><V-M-EXAMPLE /></VerificationAnchors></DurableScope>
+  <ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>
+  <ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+</C-HELDOUT-CW></NgraceChangePlan>`,
+    );
+    writeFileSync(
+      path.join(changeDir, "spec.xml"),
+      `<NgraceChangeSpec graceVersion="1.0" status="approved"><C-HELDOUT-CW>
+  <Summary>Held-out</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints>
+  <NonGoals><NonGoal>n</NonGoal></NonGoals>
+  <AcceptanceCriteria><AC-H1>a</AC-H1></AcceptanceCriteria>
+  <AffectedAreas><M-EXAMPLE /></AffectedAreas>
+  <VerificationIntent><ExpectedCommand>echo 1</ExpectedCommand><ExpectedEvidence>e</ExpectedEvidence></VerificationIntent>
+</C-HELDOUT-CW></NgraceChangeSpec>`,
+    );
+    const findings = runPatternDetectors(root).filter((f) => f.code === "review.confidently-wrong");
+    expect(findings.some((f) => f.message.includes("build/artifacts/held-out-absent.bin"))).toBe(true);
+  });
+
+  it("self-referential-comparison: expect(parsed).toEqual(parsed) after JSON.parse fires", () => {
+    const root = minimalWithSrc(
+      "src/roundtrip.test.ts",
+      `import { expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+test("roundtrip", () => {
+  const parsed = JSON.parse(readFileSync(new URL("./fixture.json", import.meta.url), "utf8"));
+  expect(parsed).toEqual(parsed);
+});
+`,
+    );
+    const findings = runPatternDetectors(root).filter(
+      (f) => f.code === "review.self-referential-comparison",
+    );
+    expect(findings.length).toBeGreaterThan(0);
+  });
+
+  it("zero-or-more-swallow: empty DependsOn with non-corpus sequencing title fires", () => {
+    const root = track(byPattern("zero-or-more-swallow")[0]!.build());
+    // Need a plan with two tasks — use zo-02's project shape via a fresh change
+    const entry = corpus().find((e) => e.id === "corpus-zo-02-empty-depends-malformed-task")!;
+    const zoRoot = track(entry.build());
+    // Mutate to a held-out title, not "Second after first"
+    const planPath = path.join(zoRoot, ".ngrace/changes/active/C-CORPUS-ZO2/plan.xml");
+    const plan = require("node:fs").readFileSync(planPath, "utf8") as string;
+    writeFileSync(
+      planPath,
+      plan.replace(
+        /<ImplementationPlan>[\s\S]*?<\/ImplementationPlan>/,
+        `<ImplementationPlan><T-001><Title>Bootstrap</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>First done.</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001><T-002><Title>Runs once T-001 completes</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Second done.</Criterion></AcceptanceCriteria><Verification><Command>echo 2</Command></Verification></T-002></ImplementationPlan>`,
+      ),
+    );
+    const findings = runPatternDetectors(zoRoot).filter(
+      (f) => f.code === "review.zero-or-more-swallow",
+    );
+    expect(findings.length).toBeGreaterThan(0);
+    expect(findings.some((f) => f.message.includes("Runs once"))).toBe(true);
+  });
+
+  it("unthreaded-construct: unknown FutureHook child under V-M-* fires", () => {
+    const root = track(byPattern("unthreaded-construct")[0]!.build());
+    const verificationPath = path.join(root, ".ngrace/verification/main.xml");
+    const xml = require("node:fs").readFileSync(verificationPath, "utf8") as string;
+    writeFileSync(
+      verificationPath,
+      xml.replace("</V-M-EXAMPLE>", "<FutureHook mode=\"async\" />\n</V-M-EXAMPLE>"),
+    );
+    const findings = runPatternDetectors(root).filter(
+      (f) => f.code === "review.unthreaded-construct",
+    );
+    expect(findings.some((f) => f.message.includes("FutureHook"))).toBe(true);
+  });
+});
+
+describe("A37 corrections 86–88", () => {
+  it("corr 87: project-utils hasGraceMarkers shape is silent when present in a fixture copy", () => {
+    // Mirror the production-correct shape: stripQuotedStrings then line-anchored marker regex.
+    const root = track(path.join(os.tmpdir(), `corr87-${Date.now()}`));
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(
+      path.join(root, "src", "example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return 1; }\n`,
+    );
+    writeFileSync(
+      path.join(root, "src", "markers.ts"),
+      `export function stripQuotedStrings(text: string) { return text; }
+export function hasGraceMarkers(text: string) {
+  const searchable = stripQuotedStrings(text);
+  return searchable.split("\\n").some((line) =>
+    /^(\\s*)(\\/\\/|#|--|;+|\\*)\\s*(?:START_MODULE_CONTRACT(?![A-Za-z0-9_]))/.test(line),
+  );
+}
+`,
+    );
+    const findings = runPatternDetectors(root).filter((f) => f.code === "review.regex-over-structure");
+    expect(findings.filter((f) => f.file.endsWith("markers.ts"))).toHaveLength(0);
+  });
+
+  it("corr 88: review surface is scanned except shape-data modules", () => {
+    // A production-shaped defect under src/review/ must be visible (not directory-exempt).
+    const root = track(path.join(os.tmpdir(), `corr88-${Date.now()}`));
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src", "review"), { recursive: true });
+    writeFileSync(
+      path.join(root, "src", "example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return 1; }\n`,
+    );
+    writeFileSync(
+      path.join(root, "src", "review", "rogue-guard.ts"),
+      `export function elementId(xml: string, id: string): boolean {
+  return new RegExp(\`<Item id="\${id}"\`).test(xml);
+}
+`,
+    );
+    writeFileSync(
+      path.join(root, "src", "review", "shape-data.ts"),
+      `/** @ngrace-review-shape-data */
+export function patternSourceLooksLikeMarkupGuard(p: string) {
+  return /<[A-Za-z]/.test(p);
+}
+`,
+    );
+    const findings = runPatternDetectors(root).filter((f) => f.code === "review.regex-over-structure");
+    expect(findings.some((f) => f.file.replaceAll("\\\\", "/").endsWith("review/rogue-guard.ts"))).toBe(
+      true,
+    );
+    expect(findings.some((f) => f.file.includes("shape-data"))).toBe(false);
+  });
+});
+
 describe("join engine (A34.1) — family B codes", () => {
   it("scope×home fires when scope not admitted", () => {
     const fire = runJoinProbes([

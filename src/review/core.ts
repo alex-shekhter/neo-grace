@@ -11,6 +11,7 @@ import path from "node:path";
 
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { resolveNgracePaths } from "../artifact/project";
+import { readGraceXmlArtifact, walkNodes } from "../artifact/xml";
 import { extractObservedWriteScopeFromPlan } from "./scope-helpers";
 import { listRepositoryChangedFiles } from "../grace-cursor";
 import {
@@ -18,6 +19,10 @@ import {
   guideFor,
   type ReviewIssueGuide,
 } from "./catalog";
+import {
+  SHAPE_DATA_MARKER,
+  patternSourceLooksLikeMarkupGuard,
+} from "./shape-data";
 
 export type ReviewFinding = {
   severity: "error" | "warning";
@@ -207,17 +212,22 @@ const KNOWN_VERIFICATION_CHILDREN = new Set([
 
 function detectConfidentlyWrong(root: string): ReviewFinding[] {
   const findings: ReviewFinding[] = [];
+  const sourceFiles = listFilesRecursive(root, "src").filter(
+    (f) => f.endsWith(".ts") && !f.endsWith(".test.ts"),
+  );
+  const sourceBlob = sourceFiles.map((f) => readText(root, f) ?? "").join("\n");
 
-  // Markers claimed in verification but never emitted in runtime sources.
-  const verificationRel = `${ARTIFACT_DIR}/verification/main.xml`;
-  const verification = readText(root, verificationRel);
-  if (verification) {
-    const markers = [...verification.matchAll(/<Marker>([^<]+)<\/Marker>/g)].map((m) => m[1]!.trim());
-    const sourceFiles = listFilesRecursive(root, "src").filter(
-      (f) => f.endsWith(".ts") && !f.endsWith(".test.ts"),
-    );
-    const sourceBlob = sourceFiles.map((f) => readText(root, f) ?? "").join("\n");
-    for (const marker of markers) {
+  // Markers claimed in verification but never emitted in runtime sources (XML walk, not regex).
+  for (const verificationRel of listFilesRecursive(root, `${ARTIFACT_DIR}/verification`).filter(
+    (f) => f.endsWith(".xml"),
+  )) {
+    const abs = path.join(root, verificationRel);
+    if (!existsSync(abs)) continue;
+    const artifact = readGraceXmlArtifact(abs);
+    if (!artifact.root) continue;
+    for (const node of walkNodes(artifact.root)) {
+      if (node.tag !== "Marker") continue;
+      const marker = node.text.trim();
       if (!marker) continue;
       if (!sourceBlob.includes(marker)) {
         findings.push(
@@ -237,15 +247,17 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
   for (const planRel of listFilesRecursive(root, `${ARTIFACT_DIR}/changes`).filter((f) =>
     f.endsWith("plan.xml"),
   )) {
-    const plan = readText(root, planRel);
-    if (!plan) continue;
-    for (const match of plan.matchAll(/<MustExist>\s*<Value>([^<]+)<\/Value>\s*<\/MustExist>/g)) {
-      const target = match[1]!.trim();
+    const abs = path.join(root, planRel);
+    const artifact = readGraceXmlArtifact(abs);
+    if (!artifact.root) continue;
+    for (const node of walkNodes(artifact.root)) {
+      if (node.tag !== "MustExist") continue;
+      const valueNode = node.children.find((c) => c.tag === "Value");
+      const target = (valueNode?.text ?? node.text).trim();
       if (!target || target.startsWith("M-") || target.startsWith("V-") || target.startsWith("AC-")) {
         continue;
       }
-      const abs = path.join(root, target);
-      if (!existsSync(abs)) {
+      if (!existsSync(path.join(root, target))) {
         findings.push(
           makeFinding(
             "review.confidently-wrong",
@@ -266,6 +278,8 @@ function detectSelfReferential(root: string): ReviewFinding[] {
   const findings: ReviewFinding[] = [];
 
   for (const rel of listFilesRecursive(root, "src").filter((f) => f.endsWith(".test.ts") || f.endsWith(".test.js"))) {
+    // Review-surface unit tests hold defect shapes as fixtures (held-out controls); not production tests.
+    if (rel.startsWith("src/review/")) continue;
     const text = readText(root, rel);
     if (!text) continue;
     // expect(x).toBe(x) / expect(src).toEqual(src)
@@ -292,15 +306,15 @@ function detectSelfReferential(root: string): ReviewFinding[] {
   for (const planRel of listFilesRecursive(root, `${ARTIFACT_DIR}/changes`).filter((f) =>
     f.endsWith("plan.xml"),
   )) {
-    const plan = readText(root, planRel);
-    if (!plan) continue;
-    // MustMatchPattern whose File is this plan
+    const abs = path.join(root, planRel);
+    const artifact = readGraceXmlArtifact(abs);
+    if (!artifact.root) continue;
     const posixPlan = planRel.replaceAll("\\", "/");
-    const fileMatch = plan.match(
-      /<MustMatchPattern>\s*<File>([^<]+)<\/File>\s*<Pattern>([^<]*)<\/Pattern>\s*<\/MustMatchPattern>/,
-    );
-    if (fileMatch) {
-      const file = fileMatch[1]!.trim().replaceAll("\\", "/");
+    for (const node of walkNodes(artifact.root)) {
+      if (node.tag !== "MustMatchPattern") continue;
+      const fileNode = node.children.find((c) => c.tag === "File");
+      const file = (fileNode?.text ?? "").trim().replaceAll("\\", "/");
+      if (!file) continue;
       if (file === posixPlan || file.endsWith(posixPlan) || posixPlan.endsWith(file)) {
         findings.push(
           makeFinding(
@@ -318,71 +332,104 @@ function detectSelfReferential(root: string): ReviewFinding[] {
   return findings;
 }
 
+/**
+ * Extract pattern *sources* from regex literals and `new RegExp(...)` so we can
+ * judge whether the pattern carries markup/attribute syntax (A37.1 shape, not fixture literals).
+ */
+function extractRegexPatternSources(source: string): string[] {
+  const out: string[] = [];
+  // new RegExp("..." | '...' | `...`) — first argument only
+  for (const m of source.matchAll(
+    /new\s+RegExp\s*\(\s*(`(?:\\.|[^`\\])*`|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g,
+  )) {
+    const raw = m[1]!;
+    out.push(raw.slice(1, -1));
+  }
+  // Regex literals immediately consumed as guards: /.../.test( / .exec( / .match(
+  for (const m of source.matchAll(
+    /\/((?:\\.|[^/\n\\])+)\/[gimsuy]*(?=\s*\.\s*(?:test|exec|match)\s*\()/g,
+  )) {
+    out.push(m[1]!);
+  }
+  // Assignment forms: const re = /.../
+  for (const m of source.matchAll(
+    /(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*=\s*\/((?:\\.|[^/\n\\])+)\/[gimsuy]*/g,
+  )) {
+    out.push(m[1]!);
+  }
+  return [...new Set(out)];
+}
+
+function fileHoldsShapesAsData(rel: string, text: string): boolean {
+  // Corpus stores defect text as fixtures (not a production guard).
+  if (rel.includes("defect-corpus")) return true;
+  // Explicit opt-in for shape-as-data modules (A37.3 / corr 88) — not a directory prefix.
+  if (text.includes(SHAPE_DATA_MARKER)) return true;
+  return false;
+}
+
+function usesRegexAsGuard(text: string): boolean {
+  return /\.test\s*\(|\.exec\s*\(|\.match\s*\(/.test(text);
+}
+
+/**
+ * Defective comment-marker line guard: line-anchored START_MODULE_* regex used as a
+ * governance check *without* stripping quoted/template regions first (corpus re-03 family).
+ * Production hasGraceMarkers uses stripQuotedStrings and must stay silent (A37.2).
+ * Marker token must appear *inside a pattern source*, not merely in prose/remediation strings.
+ */
+function isDefectiveUnstrippedMarkerLineGuard(text: string): boolean {
+  const patterns = extractRegexPatternSources(text);
+  const markerInPattern = patterns.some((p) =>
+    /START_MODULE_CONTRACT|START_MODULE_MAP|START_BLOCK_/.test(p),
+  );
+  const lineAnchoredMarker = patterns.some(
+    (p) =>
+      p.startsWith("^")
+      && /START_MODULE_CONTRACT|START_MODULE_MAP|START_BLOCK_/.test(p)
+      && /(\/\/|#)/.test(p),
+  );
+  if (!markerInPattern || !lineAnchoredMarker) return false;
+  if (!usesRegexAsGuard(text)) return false;
+  // Correct implementations strip strings/templates before scanning comments.
+  if (/\bstripQuotedStrings\b/.test(text)) return false;
+  return true;
+}
+
 function detectRegexOverStructure(root: string): ReviewFinding[] {
   const findings: ReviewFinding[] = [];
   for (const rel of listFilesRecursive(root, "src").filter(
     (f) => (f.endsWith(".ts") || f.endsWith(".js")) && !f.endsWith(".test.ts"),
   )) {
-    // Do not flag the review surface itself (detectors contain the defective shapes as data)
-    // or the corpus seed file (stores defect text as fixtures).
-    if (rel.startsWith("src/review/") || rel.includes("defect-corpus")) continue;
     const text = readText(root, rel);
     if (!text) continue;
+    // Corr 88: exempt only shape-as-data files, never a whole directory prefix.
+    if (fileHoldsShapesAsData(rel, text)) continue;
+    if (!usesRegexAsGuard(text)) continue;
 
-    // re-01 shape: status= attribute guard via regex + .test(
-    if (
-      /status\\s\*=\\s\*\[?["']approved["']\]?/.test(text)
-      || /\/status\\s\*=\\s\*/.test(text)
-      || /\/status\s*=\s*\[?["']approved["']/.test(text)
-    ) {
-      if (/\.test\s*\(/.test(text)) {
-        findings.push(
-          makeFinding(
-            "review.regex-over-structure",
-            rel,
-            "File uses a regular expression as a structural guard over text that has structure.",
-            "status-attr-regex",
-            "status-eq-regex",
-          ),
-        );
-        continue;
-      }
-    }
-
-    // re-02 shape: /export function (\w+)/ scan of raw source
-    if (/\/export function\s*[(\\]]/.test(text) || /\/export function \(\\w\+\)/.test(text)) {
-      if (/\.exec\s*\(|\.test\s*\(/.test(text)) {
-        findings.push(
-          makeFinding(
-            "review.regex-over-structure",
-            rel,
-            "File uses a regular expression as a structural guard over text that has structure.",
-            "export-function-regex",
-            "export-fn-regex",
-          ),
-        );
-        continue;
-      }
-    }
-
-    // re-03 shape: line-oriented START_MODULE_CONTRACT marker regex as a governance guard
-    // Require both the marker token inside a regex and a line-anchored pattern (^\s*).
-    if (
-      /START_MODULE_CONTRACT/.test(text)
-      && /\/\^/.test(text)
-      && /START_MODULE_CONTRACT/.test(text)
-      && /\.test\s*\(/.test(text)
-      && /function\s+\w+\s*\([^)]*source|function\s+\w+\s*\([^)]*line|fileLooksGoverned|hasGraceMarkers/.test(
-        text,
-      )
-    ) {
+    const patterns = extractRegexPatternSources(text);
+    const markupPattern = patterns.find((p) => patternSourceLooksLikeMarkupGuard(p));
+    if (markupPattern) {
       findings.push(
         makeFinding(
           "review.regex-over-structure",
           rel,
-          "Line-oriented marker regex over source without structure awareness.",
-          "marker-line-regex",
-          "start-module-contract-regex",
+          "File uses a regular expression as a structural guard over text that has structure.",
+          "markup-or-attribute-regex-guard",
+          `pattern:${markupPattern.slice(0, 48)}`,
+        ),
+      );
+      continue;
+    }
+
+    if (isDefectiveUnstrippedMarkerLineGuard(text)) {
+      findings.push(
+        makeFinding(
+          "review.regex-over-structure",
+          rel,
+          "Line-oriented marker regex over source without stripping structured regions first.",
+          "unstripped-marker-line-guard",
+          "marker-line-unstripped",
         ),
       );
     }
@@ -395,25 +442,26 @@ function detectZeroOrMoreSwallow(root: string): ReviewFinding[] {
   for (const planRel of listFilesRecursive(root, `${ARTIFACT_DIR}/changes`).filter((f) =>
     f.endsWith("plan.xml"),
   )) {
-    const plan = readText(root, planRel);
-    if (!plan) continue;
-    // Task with empty DependsOn and title that claims sequencing
-    const taskBlocks = [
-      ...plan.matchAll(
-        /<(T-\d+)>\s*<Title>([^<]*)<\/Title>\s*<DependsOn>\s*<\/DependsOn>/g,
-      ),
-    ];
-    for (const block of taskBlocks) {
-      const taskId = block[1]!;
-      const title = block[2]!;
-      if (/\bafter\b|\bsecond\b|\bthen\b|\bfollow/i.test(title)) {
+    const abs = path.join(root, planRel);
+    const artifact = readGraceXmlArtifact(abs);
+    if (!artifact.root) continue;
+    for (const node of walkNodes(artifact.root)) {
+      if (!/^T-\d+$/.test(node.tag)) continue;
+      const title = node.children.find((c) => c.tag === "Title")?.text.trim() ?? "";
+      const depends = node.children.find((c) => c.tag === "DependsOn");
+      const emptyDepends =
+        depends !== undefined
+        && depends.children.length === 0
+        && !depends.text.trim();
+      if (!emptyDepends) continue;
+      if (/\bafter\b|\bsecond\b|\bthen\b|\bfollow|\bcompletes?\b|\bonce\b.*\bT-\d+/i.test(title)) {
         findings.push(
           makeFinding(
             "review.zero-or-more-swallow",
             planRel,
-            `${taskId} title claims sequencing ("${title}") but DependsOn is empty.`,
+            `${node.tag} title claims sequencing ("${title}") but DependsOn is empty.`,
             "empty-depends-with-sequence-title",
-            `task:${taskId}:empty-depends`,
+            `task:${node.tag}:empty-depends`,
           ),
         );
       }
@@ -424,27 +472,26 @@ function detectZeroOrMoreSwallow(root: string): ReviewFinding[] {
 
 function detectUnthreadedConstruct(root: string): ReviewFinding[] {
   const findings: ReviewFinding[] = [];
-  const verificationRel = `${ARTIFACT_DIR}/verification/main.xml`;
-  const verification = readText(root, verificationRel);
-  if (!verification) return findings;
-
-  // Children of V-M-* that are not known verification tags
-  const vmBlocks = [...verification.matchAll(/<(V-M-[A-Z0-9-]+)>([\s\S]*?)<\/\1>/g)];
-  for (const block of vmBlocks) {
-    const body = block[2]!;
-    const children = [...body.matchAll(/<([A-Za-z][\w-]*)(?:\s[^>]*)?>/g)].map((m) => m[1]!);
-    for (const child of children) {
-      if (KNOWN_VERIFICATION_CHILDREN.has(child)) continue;
-      if (child.startsWith("/") || child === block[1]) continue;
-      findings.push(
-        makeFinding(
-          "review.unthreaded-construct",
-          verificationRel,
-          `Verification child <${child}> under ${block[1]} is not threaded through health or assertion evaluation.`,
-          "unknown-verification-child",
-          `vm-child:${block[1]}:${child}`,
-        ),
-      );
+  for (const verificationRel of listFilesRecursive(root, `${ARTIFACT_DIR}/verification`).filter(
+    (f) => f.endsWith(".xml"),
+  )) {
+    const abs = path.join(root, verificationRel);
+    const artifact = readGraceXmlArtifact(abs);
+    if (!artifact.root) continue;
+    for (const node of walkNodes(artifact.root)) {
+      if (!/^V-M-/.test(node.tag)) continue;
+      for (const child of node.children) {
+        if (KNOWN_VERIFICATION_CHILDREN.has(child.tag)) continue;
+        findings.push(
+          makeFinding(
+            "review.unthreaded-construct",
+            verificationRel,
+            `Verification child <${child.tag}> under ${node.tag} is not threaded through health or assertion evaluation.`,
+            "unknown-verification-child",
+            `vm-child:${node.tag}:${child.tag}`,
+          ),
+        );
+      }
     }
   }
   return findings;
