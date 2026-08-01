@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-FAILURE-LOCALIZATION>
     <Summary>
       Deterministic failure localization (D8): given expected V-M-* markers and an observed run

@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-FAILURE-LOCALIZATION>
     <IntentSummary>
       Deterministic failure localization (D8): firstDivergentBlock over expected V-M-* markers

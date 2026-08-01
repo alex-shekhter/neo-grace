@@ -372,7 +372,7 @@ Keep this table current. It is the single source of truth for progress.
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `COMPLETE` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `COMPLETE` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
-| 7 | Deterministic failure localization | D8 | TBD | `IN PROGRESS` |
+| 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `NOT STARTED` |
 | 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `NOT STARTED` |
 | 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `NOT STARTED` |
@@ -1139,17 +1139,15 @@ then has no verdict producer — so rollback must also relax that requirement, o
 
 # PHASE 7 — Deterministic failure localization
 
-**Status:** `IN PROGRESS`
+**Status:** `COMPLETE`
 **Decisions:** D8
 **Release:** TBD
 
-> **Amended by §14 A41 — read it before §7.3–§7.5.** The steps below were written before Phases 2–6
-> existed and before an observed marker sequence had any home in this repository. A41 re-derives the
-> phase at `fe3aaa4` (Phase 6 merge, #27): ten corrections (93–102), the observed-sequence source
-> decision in A18.8 form, a per-code admissibility table over Phase 6's `review.*` catalog, revised
-> file table and step list. **A41 is normative where it disagrees with §7.3–§7.5.** Stage 1 is
-> re-derivation only; production code waits on maintainer acceptance of A41 and approval of the draft
-> `C-FAILURE-LOCALIZATION` spec.
+> **Closed after A45 (corr 114).** Amended by §14 A41–A45: observed sequence from caller-supplied
+> log (route 2), requirement/transcript subsequence comparator, absent vs out-of-order discriminator,
+> task-grouped flake producer via `--change`, D8-closed review process context. Bundle
+> `C-FAILURE-LOCALIZATION` archived `spec=applied plan=applied`. **A41–A45 are normative where they
+> disagree with §7.3–§7.5.**
 
 ## 7.1 Objective
 
