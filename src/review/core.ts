@@ -22,6 +22,7 @@
 //   auditHunkCoverage
 //   auditScopeOutsideWriteScope
 //   auditTestWeakening
+//   expandScopePathsForArchiveIdentity
 //   findingId
 //   formatReviewResult
 //   isReviewIssueCode
@@ -30,6 +31,7 @@
 //   runPatternDetectors
 //   runPatternDetectorsWithMeta
 //   runReview
+//   ScopeAuditIdentity
 // END_MODULE_MAP
 /**
  * Review surface (D4, D14, §6.4, A35/A36): pattern detectors, process audits,
@@ -774,16 +776,54 @@ export function runJoinProbes(probes: JoinProbe[]): ReviewFinding[] {
 // Family B — process audits (§6.4)
 // ---------------------------------------------------------------------------
 
+export type ScopeAuditIdentity = {
+  /** Reviewed change id (C-*). Required for archive identity (corr 171). */
+  changeId: string;
+  /** Where plan.xml was resolved. Archive enables active↔archive aliases for this id only. */
+  planLocation: "active" | "archive";
+};
+
+/**
+ * Corr 171: when the plan resolved from `archive/<id>/`, declared paths under
+ * `active/<id>/…` name the same bundle artifacts now living under `archive/<id>/…`.
+ * Expand only that id's prefixes — never a global `.ngrace/changes/` swap (other bundles
+ * must still flag as out of scope).
+ */
+export function expandScopePathsForArchiveIdentity(
+  paths: string[],
+  identity: ScopeAuditIdentity | undefined,
+): string[] {
+  if (!identity || identity.planLocation !== "archive" || !identity.changeId) {
+    return paths.map(normalizeRel);
+  }
+  const activePrefix = `.ngrace/changes/active/${identity.changeId}/`;
+  const archivePrefix = `.ngrace/changes/archive/${identity.changeId}/`;
+  const out = new Set<string>();
+  for (const raw of paths) {
+    const n = normalizeRel(raw);
+    out.add(n);
+    if (n.startsWith(activePrefix)) {
+      out.add(archivePrefix + n.slice(activePrefix.length));
+    } else if (n.startsWith(archivePrefix)) {
+      out.add(activePrefix + n.slice(archivePrefix.length));
+    }
+  }
+  return [...out].sort();
+}
+
 export function auditScopeOutsideWriteScope(
   changedFiles: string[],
   scopeFiles: string[],
   scopeGlobs: string[],
+  identity?: ScopeAuditIdentity,
 ): ReviewFinding[] {
   const findings: ReviewFinding[] = [];
-  const fileSet = new Set(scopeFiles.map(normalizeRel));
+  const expandedFiles = expandScopePathsForArchiveIdentity(scopeFiles, identity);
+  const expandedGlobs = expandScopePathsForArchiveIdentity(scopeGlobs, identity);
+  const fileSet = new Set(expandedFiles);
   for (const changed of changedFiles.map(normalizeRel)) {
     if (fileSet.has(changed)) continue;
-    const globHit = scopeGlobs.some((glob) => matchSimpleGlob(glob, changed));
+    const globHit = expandedGlobs.some((glob) => matchSimpleGlob(glob, changed));
     if (globHit) continue;
     if (scopeFiles.length === 0 && scopeGlobs.length === 0) continue;
     findings.push(
@@ -956,6 +996,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
             input.files,
             scopeFiles,
             scopeGlobs,
+            { changeId, planLocation: resolved.location },
           );
           findings.push(...scopeFindings);
           const outOfScope = scopeFindings.length;
