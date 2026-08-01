@@ -862,6 +862,11 @@ kinds being absent, so older bundles are unaffected.
 > 61: gate decisions and review verdicts are bundle-scoped, and the run event stream is task- and
 > epoch-scoped, so they live in a non-`Epoch-N` section of `run-ledger.xml`. A30 also sets standing
 > rule 10 and retires `NON_POSITION_KINDS` from this phase's scope.
+>
+> **A31, A32, A33 and A34 are the four review gates — A34 closes the phase.** Corrections 62–69 landed
+> across them; the phase shipped two bundles, `C-GATE-SURFACE` and `C-GATE-RECORD-ABSENCE`, each closed
+> through its own gates. A34.1 records what the rounds measured and hands Phase 6 four parameterized
+> join queries; A33.3 records the self-recorded verdict that Phase 6 exists to replace.
 
 ## 5.1 Objective
 
@@ -5396,6 +5401,69 @@ This is the first time on this track that a phase found a defect in its own work
 bundle, and the second bundle is not a demerit: it is the lifecycle behaving as designed, on the phase
 that built the gates. The alternative — reopening an archived bundle to keep the count at one — is
 exactly the immutability violation the gates exist to refuse.
+
+### A34 — 2026-07-31 · Phase 5 closed
+
+**Measured at `09b230f`. Phase 5 is `COMPLETE`.** Correction 69 is fixed and the three states are
+distinct, verified by probe on real bundles rather than by reading the report:
+
+| Situation | State |
+|---|---|
+| No `Decisions` section (the three pre-gate bundles) | `apply-gate-record-absent` |
+| `Decisions` present, no permitting apply | `applied-without-gate-record` |
+| `Decisions` unreadable | `gate-record-invalid:ledger.invalid-decision`, beside the lint error |
+| Gated bundle with an apply permit | `states=none` |
+
+Grandfathering is by construction: `git diff` over the Phase 2–4 archives across the whole phase
+returns **zero files**. `validate:ci` exits 0 with 754 pass / 0 fail, root lint 0 errors, `lint` emits
+no `gate.*`.
+
+Both bundles this phase produced were closed through the surface it built. `C-GATE-SURFACE` and
+`C-GATE-RECORD-ABSENCE` each carry a recorded verdict and `approve` / `apply` / `archive` permits in
+their ledgers, and A33.4's second bundle turned out to be the cleanest demonstration available that the
+lifecycle works: a defect found after a bundle closed did not reopen it.
+
+#### A34.1 What the four review rounds measured
+
+Eight findings across four rounds (62–69), plus 61 from the review of the re-derivation itself:
+
+| Source | Findings | Count |
+|---|---|---|
+| A join between two lists that had never been compared | 61 (record scope × home constraints), 62 (writers × readers), 68 (validator rejects × reader tolerates), 69 (new diagnostic × pre-existing bundles) | 4 |
+| Driving the CLI into a state the suite does not reach | 63, 64, 65, 66 | 4 |
+| Reading the code plainly | 67 | 1 |
+
+**Half of this phase's findings were joins, and each was a different pair of lists.** That is the
+sharpest result of the phase, and it revises A27.2's build order: the counterpart query is not one check
+but a *shape* — enumerate two lists that the code assumes agree, and compare them. Phase 6 should build
+it parameterized over pairs, with these four as its first instances:
+
+1. every persisted element × the discovery, identity and lifecycle rules of its home (61)
+2. every exported record surface × the invocable commands that reach it, in both directions (62)
+3. every code in the lint catalog × every read path that treats the same condition as benign (68)
+4. every new diagnostic × the artifacts that already exist and cannot ever clear it (69)
+
+None of the four needed execution. All four were invisible to a green suite, and three were invisible to
+a self-review that ran honestly — the fourth, 69, was invisible because the sweep's ground was narrower
+than the phase's surface (A33.2).
+
+#### A34.2 The pattern all four blocking-path findings shared
+
+62, 63, 68 and 69 are one sentence with four subjects: **an unknown was converted into a usable value.**
+A missing writer read as a present instruction; an unreadable entry read as an older entry; an ambiguous
+section read as the first one; an inapplicable check read as a violation. D5 exists to make that
+conversion impossible, and the phase that implements D5's gate half still made it four times — which is
+the argument for mechanizing the query rather than for trying harder.
+
+#### A34.3 Phase 6 is unblocked, with one precondition still to check
+
+Sequencing rule 3 (5 → 6) is satisfied: the gate surface exists, and the reviewer's verdict requirement
+is a live gate with a write path. §6.2's other precondition — the evidence bundle's Phase 0 corpus
+holding ≥10 entries — has not been re-measured since that bundle archived, and the determinism gate has
+nothing to run against if it is short. Measure it before starting, not after.
+
+A33.3's limitation carries forward unchanged: two archived bundles now hold self-recorded `pass`
+verdicts. Phase 6 is what makes that a detached fact rather than an honor-system one.
 
 ---
 
