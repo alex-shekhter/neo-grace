@@ -6303,6 +6303,82 @@ name".
 structure."** The phase is rediscovering its own subject in its own implementation, which is not irony so
 much as evidence that the pattern is hard and the corpus entry earns its place.
 
+### A40 — 2026-07-31 · Phase 6 closed
+
+**Measured at `23d89b3`. Phase 6 is `COMPLETE`.** Correction 92 is fixed and all four style fixtures
+behave, verified by running them rather than by reading the report:
+
+```
+a  source.split("\n").some(…)                                  → review.regex-over-structure   ✓ fire
+b  normalize(source).split("\n").some(…)                       → (silent)                      ✓
+c  const s = normalize(source); …; lines.some(…)               → (silent)                      ✓
+d  const lines = source.split("\n"); lines.some(…)             → review.regex-over-structure   ✓ fire
+```
+
+Correction 89's rename probe is still silent, so the fix did not reopen it. `validate:ci` exits 0,
+`validate:determinism` passes at 14/14, `ngrace review --path .` reports 0 findings with 2 exemptions
+named, `ngrace lint --path .` 0 errors. `C-REVIEW-SURFACE` is archived `spec=applied plan=applied
+states=none`, its ledger carrying a `pass` verdict and `approve` / `apply` / `archive` permits.
+
+**This is the first bundle on this track whose verdict is backed by a mechanized pass over its own diff.**
+The executor's own statement of what that does and does not mean is the right one and is quoted here so it
+survives the report:
+
+> The apply gate's existence of a verdict and the content of the mechanized finding set are mechanized;
+> the judgment that residual risk outside those detectors is acceptable — and thus that the outcome should
+> be `pass` rather than `unable-to-determine` — is still the honor system.
+
+#### A40.1 What the four rounds measured
+
+Seven corrections, 86–92:
+
+| Source | Corrections | Count |
+|---|---|---|
+| Driving the surface into a state its suite does not reach | 86 (fresh instance), 87 (`review` on this repo), 89 (rename probe), 92 (four style fixtures) | 4 |
+| Reading the code | 88, 90 | 2 |
+| The executor's own §0.7.3 probe, self-reported | 91 | 1 |
+
+**Four of the seven are one defect in four costumes**, and the sequence is the phase's real result:
+
+| Round | The detector's answer depended on | Found by |
+|---|---|---|
+| 1 | the corpus fixture's literal text | an instance it was not written against |
+| 1 | the flagged function's name (`hasGraceMarkers`) | running the surface on this repository |
+| 2 | the exempting function's name (`stripQuotedStrings`) | renaming that helper |
+| 3 | whether a value was bound to a name | the same program in two styles |
+
+Each fix was correct and each moved the coupling somewhere narrower rather than removing it. That is not
+a criticism of the work — it is what building a heuristic detector looks like, and it is why the phase
+needed four rounds and why the corpus entry for `regex-over-structure` earns its place: **the detector
+under repair is itself an instance of the pattern it detects.**
+
+#### A40.2 The instrument this phase leaves behind
+
+Three numbers, never collapsed — corpus detection 14/14, held-out FIRE 5/5, held-out SILENT 5/5 — plus
+the per-detector **axis list** A39.2 forced: for each pattern, which axes its controls actually vary, and
+which are honestly still unvaried. The axis list is the more valuable half. A score says the detector
+works on what it was tested against; the axis list says what "tested against" means.
+
+The rule generalizes past this phase: **a control is only evidence about the axis it varies.** A held-out
+defect proves a detector fires on new defects. A held-out legitimate variant proves it stays silent on new
+correct code. Neither proves anything about an axis nobody varied, and when a detector's decision procedure
+changes, its controls must change axis with it or they measure the previous round's defect.
+
+Phase 9's calibration work inherits this directly: a calibration number over a corpus the detectors were
+written from measures the corpus.
+
+#### A40.3 Where the track stands
+
+Phases 2–6 are `COMPLETE`. Sequencing rule 4 (6 → 10) is satisfied; **7 and 8 float** — 7 needs only
+Phase 2, 8 needs Phases 2 and 3, and both have been unblocked since Phase 3 landed. 9 needs the ledger
+and the confidence recording from 4; 10 needs 6; 11 is last by §5.1.
+
+Three older bundles still carry `apply-gate-record-absent` by construction (A33.1), and two carry
+self-recorded verdicts (A33.3) — `C-REVIEW-SURFACE` is the first that does not.
+
+A36.4's item is still owed: `.ngrace/graph/main.xml` describes neither `src/gates/` nor `src/review/`.
+Two surfaces now, one `C-*`.
+
 ---
 
 ## 15. Final instruction to the executor
