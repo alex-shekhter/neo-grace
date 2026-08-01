@@ -374,7 +374,7 @@ Keep this table current. It is the single source of truth for progress.
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
 | 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `COMPLETE` |
-| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `COMPLETE` |
+| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `IN PROGRESS` |
 | 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `NOT STARTED` |
 | 11 | Adoption surface | §5.1, §5.3 | TBD | `NOT STARTED` |
 
@@ -9142,3 +9142,54 @@ archive. That is the supersession surface for calibration provenance under archi
 
 **164** — Parser refusal on missing `adjudicatedAt` is stricter than defaulting to fold. A record
 without a moment is not an adjudicated pair; it surfaces as pending provenance absence.
+
+### A63 — 2026-08-01 · Round 3 is right; §9.5.3 was never built, by them or by me
+
+Verified at `0a6ca9c`: lint 0/0/`Governed files: 57`, 929 ran / **0 fail**, `validate:ci` green.
+
+**160 and 161 are closed, and 160 is closed in the strongest available way.**
+
+| Check | Result |
+|---|---|
+| `adjudicatedAt` read from the record | `parseAdjudicatedAt(node.attributes.adjudicatedAt)` (`grace-cursor.ts:1624`), `undefined` when missing — no default to `fold` |
+| The new pair was written by `fold` | `<CalibrationAdjudication … outcome="fail" … adjudicatedAt="fold" />` in `C-CALIBRATION-PROVENANCE` |
+| `C-CALIBRATION` archive untouched | `git diff 3039220 0a6ca9c --name-only -- …/archive/C-CALIBRATION/` → **0 files**; its record still reads `pass` / `fold` |
+| Restatement supersedes without editing | `<CalibrationRestatements>` lives in the **new** bundle's ledger; `doctor` renders the old pair as `bucket=backfilled adjudicatedAt=backfill` with the reason |
+| Backfilled excluded from computation | `included: 1`, `backfilled: 1`, counted on separate lines |
+
+**The first real pair is a disagreement, and they kept it.** The agent recorded `outcome="pass"` with
+`claimedConfidence="medium"`; the independent adjudicator scored `fail`, because the plan carried an
+invalid `MustMatch` at fold time. The plan was fixed afterwards and **the stored label did not move** —
+which is correction 156 working exactly as designed. Nobody hand-writes a failing first data point for
+their own phase. That single record does more to establish the join than any passing one could.
+
+#### A63.1 Correction 165 — §9.5.3 is not built, and §9.6 says the phase is not done without it
+
+```
+$ rg -in "contextClass|taskKind|adapterPresence|wrote-vs-read|sequential-vs-parallel" src/
+(no matches)
+```
+
+**Step 9.5.3 — *"Context derivation by join → task kind, adapter presence, wrote-vs-read, and
+sequential-vs-parallel are all derived; none is authored alongside the claim"* — was never built.**
+Step 9.5.4 requires the report to be *"bucketed by context class"*; the four buckets that exist
+(`included` / `excluded` / `pending` / `backfilled`) are corpus-status buckets, not context classes.
+§9.6's third bullet, **"Context derived, not authored," is unmet**, so `Status: COMPLETE` is false
+against the phase's own definition of done.
+
+**This omission is shared.** Three consecutive round prompts from me named 149, 150, 151, 155, 156,
+160 and 161 and never once mentioned 9.5.3. The executor's reports tracked the corrections they were
+given. Neither side re-read the step list against the deliverable, which is precisely what §9.6 exists
+to force and what standing rule 12's habit — *measure against what is actually there* — would have
+caught if applied to the phase rather than only to its checks.
+
+**Why it cannot be deferred to a later phase.** Context must be derived **at the moment the pair is
+stored**, beside the claim, or a later study cannot bucket historical pairs at all: deriving context
+afterwards means reading a repository that has moved on, which is exactly the recompute defect
+correction 156 removed. This is the same lesson for the third time in one phase — 156 for the label,
+160 for the moment, 165 for the context — and each time the fix was to record it when it was true
+rather than reconstruct it when it was needed.
+
+Board row 9 returns to `IN PROGRESS`. `C-CALIBRATION-PROVENANCE` is archived and immutable; the
+derivation belongs to a new bundle, and its own fold will produce the second genuine pair — this time
+one that carries a derived context class, which is the thing that makes the corpus worth accumulating.
