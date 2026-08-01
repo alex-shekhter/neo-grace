@@ -7212,6 +7212,72 @@ hand (`foreignMarkers` then, the requirement/transcript distinction now).
 
 ---
 
+### A45 — 2026-07-31 · Third Phase 7 gate: the marker that is in the log is reported as the one that is missing
+
+**Measured at `776bf70`.** `bun test` 866 pass / 3 skip / 0 fail, `localize.test.ts` 60 tests, root lint
+0 errors.
+
+**112 and 113 are confirmed fixed.** The polyglot triple-emission probe that reported `index 1` with a
+location now reports `First divergent block: (none — all required markers found in order; failure is
+elsewhere)` plus `Observed requirement counts: …×3 (repeats absorbed; not a divergence)`.
+`firstDivergentBlock` is a clean ordered-subsequence scan over requirements, and the duplicate
+requirement case (`[A,A]` against one emission) falls out of it correctly. The flake producer groups by
+task and its success path is exercised through the CLI against a bundle built with the real
+`recordAttempt` writer, returning `flaky` — the first demonstrated production call into
+`classifyFlakeFromEvidence` since it shipped in Phase 4. The A42.6 axis deletions are honest
+replacements, and the restated axis list is stated as a list.
+
+One correction, **114**.
+
+#### A45.1 Correction 114 — "expected B, observed C" when B is the first line of the log
+
+```
+firstDivergentBlock(["A","B","C"], ["B","A","C"])
+  → { index: 1, expected: "B", observed: "C" }
+
+First divergent block: index 1 expected="B" observed="C"
+```
+
+`B` is in the transcript. It was the first thing emitted. The surface reports it as the requirement that
+was not met and names `C` as what happened instead, and a fixer reads that as *B never ran* — so they go
+looking at the block that did run, for a reason that is not the reason.
+
+The subsequence answer is **correct**: requirements are ordered, `A` was satisfied at position 1, and
+`B` does not appear after it. What is wrong is that the record collapses two different findings into one
+shape:
+
+| Finding | Transcript | What the fixer should do |
+|---|---|---|
+| Requirement **absent** | `B` appears nowhere | The block never ran — look upstream of it |
+| Requirement **out of order** | `B` appears, before the cursor | The block ran too early — look at the sequencing, not the block |
+
+These are different bugs with different fixes, and the second is exactly the case D8's rationale
+describes — *state is corrupted in one block and detected three blocks later*. The discriminator is one
+lookup the comparator already has in hand: whether `want` occurs in `observed` at all.
+
+Give `Divergence` a typed discriminator — `requirement-absent` versus `requirement-out-of-order`, the
+latter carrying the position where the marker *did* appear — and render them as different sentences.
+When the answer is out-of-order, `observed` must not be presented as a substitute for the missing
+marker; there is no substitute, because nothing took its place.
+
+**Both directions:** `["A","B","C"]` vs `["A","C"]` stays `requirement-absent` at index 1; vs
+`["B","A","C"]` becomes `requirement-out-of-order` at index 1 naming position 0; vs `["A","B","C"]`
+stays null.
+
+#### A45.2 The probe that found this and stopped one question short
+
+§0.7's adversarial probe this round included the reverse-order input, and the report records it as: *one
+initial FAIL was a wrong probe expectation (reverse `[C,B,A]` meets A late then unmets B at index 1 —
+correct code). Re-checked: pass. No production fix required.*
+
+The code was right and the probe expectation was wrong, so the conclusion was sound as far as it went.
+What was not asked is whether the **report** of that correct answer is honest — and it is not. **A probe
+that lands on a real case and is resolved by correcting the probe should be finished by reading the
+output aloud as a user would**, because "correct under the rule" and "true as a sentence" are different
+properties, and this track exists for the gap between them.
+
+---
+
 ## 15. Final instruction to the executor
 
 Work one phase at a time. Report in the §0.5 format. Stop after each phase and wait for review.
