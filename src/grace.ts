@@ -2,6 +2,7 @@
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 
+import { contextCommand } from "./grace-context";
 import { cursorCommand } from "./grace-cursor";
 import { doctorCommand } from "./grace-doctor";
 import { fileCommand } from "./grace-file";
@@ -21,6 +22,7 @@ const main = defineCommand({
     description: `neo-grace CLI for ${ARTIFACT_DIR} linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation.`,
   },
   subCommands: {
+    context: contextCommand,
     cursor: cursorCommand,
     doctor: doctorCommand,
     file: fileCommand,

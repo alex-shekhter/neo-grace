@@ -365,13 +365,17 @@ describe("Phase 8 — packaging and catalog pins", () => {
     expect(getLintIssueGuide("graph.document-too-large").remediation.some((r) => r.includes("graph split"))).toBe(true);
   });
 
-  it("publishes grace-doctor, grace-graph, and grace-cursor in package.json#files", () => {
+  it("publishes grace-doctor, grace-graph, grace-cursor, and grace-context in package.json#files", () => {
     const pkg = JSON.parse(readFileSync(path.join(import.meta.dir, "../../package.json"), "utf8")) as {
       files: string[];
     };
     expect(pkg.files).toContain("src/grace-doctor.ts");
     expect(pkg.files).toContain("src/grace-graph.ts");
     expect(pkg.files).toContain("src/grace-cursor.ts");
+    expect(pkg.files).toContain("src/grace-context.ts");
+    // A48.5: gates/ and review/ remain absent from files — not Phase 8's fix.
+    expect(pkg.files).not.toContain("src/gates");
+    expect(pkg.files).not.toContain("src/review");
   });
 
   it("wires doctor and graph through the grace CLI", () => {
