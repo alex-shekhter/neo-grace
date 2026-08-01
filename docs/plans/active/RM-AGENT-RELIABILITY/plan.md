@@ -9273,3 +9273,69 @@ that lesson in Phase 9 (156, 160, 165).
 
 **168** — `taskKind` is structural (Satisfies AC-* vs empty), not free-text "bugfix/feature":
 plans have no Kind field; inventing one would reintroduce authored context.
+
+### A65 — 2026-08-01 · Phase 9 closed, and the lesson it produced three times
+
+Verified at `b5ab8f4`. **Phase 9 is `COMPLETE`.**
+
+| Check | Result |
+|---|---|
+| Context derived at fold only | `deriveCalibrationContext` is called once, at `grace-cursor.ts:2075`. **`report.ts` never calls it** — old pairs surface as `(context-not-stored)`, never retroactively invented |
+| Four dimensions, both directions | `satisfies-ac`/`no-satisfies`, `present`/`absent`, `wrote`/`read-only`, `sequential`/`parallel` — eight tests, plus authored-attribute rejection |
+| Second genuine fold | `<CalibrationAdjudication … adjudicatedAt="fold" taskKind="satisfies-ac" adapterPresence="present" wroteVsRead="wrote" sequentialVsParallel="sequential" contextClass="satisfies-ac\|present\|wrote\|sequential" />` |
+| Suite / lint | 948 ran, **0 fail**; 0 errors / 0 warnings / `Governed files: 58` |
+| §9.7 Q1–Q3 | Nothing outside the report reads the field (mutation-proven); complete and incomplete epochs are not pooled, and backfilled is a third bucket; the promotion bar is in `ngrace-execute/SKILL.md:52` and in `doctor` output, mirror identical |
+
+The §9.5/§9.6 table came back with **one amended item and no unamended gap**: 9.5.2 half-1
+(`agent-inferred` × `precision`) stays deferred under rule 7 because the authority axis is still not
+an artifact concept. That is the correct disposition and it is recorded rather than silently dropped.
+
+#### A65.1 What the corpus actually contains
+
+```
+included (fold-adjudicated epochs): 2      backfilled (excluded from computation): 1
+excluded: 0    pending: 0
+by context class:
+  - (context-not-stored):                      count=1 pass=0 fail=1
+  - satisfies-ac|present|wrote|sequential:     count=1 pass=1 fail=0
+```
+
+Three records, and each one is honest about a different thing. The backfilled pair says it was
+hand-migrated and carries the reason. One included pair says its context was never stored, because it
+predates the derivation. The other carries all four dimensions because it was folded after they
+existed. **Nothing was reconstructed to make the table look uniform**, and the report says
+*"Outcomes (descriptive, not a calibration claim)"* rather than reporting a rate over N=2.
+
+The first fold-written pair is still the most valuable one: agent `outcome="pass"`,
+`claimedConfidence="medium"`, adjudicator `fail`. A disagreement, kept, on the phase's own work.
+
+#### A65.2 Standing rule 13 — write it when it is true
+
+Phase 9 produced one lesson three times, at three scales:
+
+| Correction | What was reconstructed | Fix |
+|---|---|---|
+| 156 | The **label** — recomputed against the current tree at report time | Store the outcome at fold |
+| 160 | The **moment** — a record labelled `fold` that was written by hand afterwards | Read `adjudicatedAt` from the record; make `backfill` expressible |
+| 165 | The **context** — never derived at all, deferrable only by reading a repo that had moved on | Derive at fold, store beside the claim |
+
+Each time the mechanism was correct and the record was not, and each time the same fix applied.
+
+> **Standing rule 13.** Anything a later reader will need about the moment a record was made must be
+> written into the record then. A value reconstructed afterwards is a query over present state wearing
+> the vocabulary of evidence — and it cannot be distinguished from the real thing once written.
+
+This is why Phase 9 was reopened twice. It is also why the phase is worth having: its output is
+consumed by nobody today, so nothing downstream would ever have complained. The step list and §9.6
+were the only things that would, and only because they were read back at the end.
+
+#### A65.3 What remains owed
+
+| Item | Home |
+|---|---|
+| `src/gates`, `src/review` missing from `package.json#files`; `validate:packed` not in `validate:ci` | `C-OBSERVABLE-CHECKS` (draft) |
+| Scope audit sees only uncommitted work | `C-OBSERVABLE-CHECKS` (draft) |
+| Archived bundles resolve to no plan; audit skipped in silence | `C-OBSERVABLE-CHECKS` (draft) |
+| §9.5.2 half-1 — `agent-inferred` × `precision` | Blocked on D5's authority axis; amended under rule 7, not owed as a defect |
+
+One drafted bundle, and it is the only thing between here and Phase 10.
