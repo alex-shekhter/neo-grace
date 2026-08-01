@@ -1,0 +1,103 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-OBSERVABLE-CHECKS>
+    <IntentSummary>
+      Stage 2 of C-OBSERVABLE-CHECKS (A66). Make three checks able to observe their subject:
+      ship src/gates and src/review (minus scorer.ts) via package.json#files and put
+      validate:packed in validate:ci; give ngrace review --base (three-dot) and --changed-files
+      and turn the empty-porcelain false clean into not-run absence (corr 169); resolve
+      archived plans under archive/ with not-run when no plan exists. Five read-aloud states.
+      Authored before production code (A17.3). Answers from A66.3 folded; severity stays error.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/command.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>scripts/release-check.ts</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustPassCommand>
+        <Command>bun run validate:packed</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-REVIEW />
+        <M-CURSOR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-REVIEW />
+        <V-M-CURSOR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>package.json</File>
+      <File>scripts/release-check.ts</File>
+      <File>src/review/core.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/review/command.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>.ngrace/changes/active/C-OBSERVABLE-CHECKS/spec.xml</File>
+      <File>.ngrace/changes/active/C-OBSERVABLE-CHECKS/plan.xml</File>
+      <File>.ngrace/changes/active/C-OBSERVABLE-CHECKS/run-ledger.xml</File>
+      <File>.ngrace/changes/active/C-OBSERVABLE-CHECKS/run.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Ship path: files allowlist, dual-allowlist, validate:packed in CI</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-PACKED-MODULES-SHIP />
+          <AC-PACKED-IN-CI />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            package.json#files includes src/gates and src/review and excludes
+            !src/review/scorer.ts; release-check PACK_ALLOWED_PREFIXES gains src/gates/ and
+            src/review/; validate:ci runs validate:packed; validate:packed is green.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:packed</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Scope audit input, absence, archive plan resolve, five-state report</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-SCOPE-DIFF-INPUT />
+          <AC-SCOPE-ABSENCE-NO-INPUT />
+          <AC-ARCHIVE-PLAN-RESOLVE />
+          <AC-SCOPE-ABSENCE-NO-PLAN />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            --base uses three-dot merge-base range; --changed-files is explicit including empty;
+            empty porcelain without flags is not-run (corr 169); no plan under active/ or archive/
+            is not-run; git failure is unable-to-determine; archived plans resolve read-only;
+            both directions per axis; five read-aloud states true on the page.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-OBSERVABLE-CHECKS>
+</NgraceChangePlan>
