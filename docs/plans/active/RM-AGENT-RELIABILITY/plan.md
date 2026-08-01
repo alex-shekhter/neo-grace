@@ -7113,6 +7113,105 @@ The surface is close. What is missing is the branch that says so.
 
 ---
 
+### A44 — 2026-07-31 · Second Phase 7 gate: a healthy run reports a divergent block
+
+**Measured at `9e3b125`.** `localize.test.ts` 51 tests / 134 expects, `validate:ci` green, root lint 0
+errors.
+
+**108 and 111 are confirmed fixed.** The empty-log probe that produced `crates/core/src/lib.rs:16-21`
+now produces `Absence: unable-to-determine — log carries no declared marker of any entry; cannot
+distinguish a run that died before the first marker from a log that never carried markers`, with no
+index and no location, and the foreign-only row still diverges at 0. `isLikelyTestPath` is exported once
+from `query/core.ts`. **109's four parts are all present** — per-line cap, `observedGround` in text and
+JSON, the assertion-diff probe pinned, and the skill naming the stream to capture. The flake producer
+(110) reads ledger∪loose through `listAccountingEvents`, satisfying rule 9.
+
+Two corrections, **112–113**. The first is the more serious finding of this phase, and part of it is
+mine.
+
+#### A44.1 Correction 112 — three emissions of a required marker is reported as a divergence
+
+Probe on `examples/polyglot`, a log in which the required marker fired three times and the failure was
+elsewhere:
+
+```
+log:  INFO [LedgerCore][post][BLOCK_VALIDATE_BALANCE] ok      (×3)
+      test failed: assertion elsewhere
+
+Expected (1): [LedgerCore][post][BLOCK_VALIDATE_BALANCE]
+Observed (3): […] → […] → […]
+First divergent block: index 1 expected=null observed="[LedgerCore][post][BLOCK_VALIDATE_BALANCE]"
+Location: crates/core/src/lib.rs:16-21
+```
+
+**A run that satisfied every declared requirement is told its flow diverged, and pointed at the block
+that worked.** A loop over three ledger entries is the ordinary case, not a corner: any `<Marker>` in
+iterated code produces this. D8's own rationale is the indictment — *test results alone point the fixer
+at the assertion site, which is reliably the place the bug is not* — and this points somewhere with more
+confidence and less warrant than the stack trace would have.
+
+**The cause is a category error between the two lists, and correction 107 is what exposed it.** I asked
+for every occurrence to be kept in log order so the observed-longer axis had a production path; under
+the strict index-equality comparator that instruction turned every repeat into a divergence. Collapsing
+repeats again is not the fix — it hides genuine information and makes the axis unreachable a second
+time. The comparator's semantics are what is wrong:
+
+- **Expected is a requirement list in declaration order.** `health.ts:91–94` reads it that way —
+  *requires marker X, but it was not found* — and `ngrace-verification/SKILL.md` defines `<Marker>` as
+  what *must be proven emitted*. It is not a transcript.
+- **Observed is a transcript.** Repeats, interleaving and extra traffic are normal in it.
+
+So the question is *did the transcript contain the required markers, in order* — an ordered subsequence
+scan, where the divergence point is **the first required marker not found at or after the cursor**.
+Both directions, each its own case (A40.2):
+
+| Expected | Observed | Answer |
+|---|---|---|
+| `[A,B,C]` | `[A,A,B,B,C]` | **null** — repeats absorbed; requirements met |
+| `[A,B,C]` | `[A,C]` | divergence at expected index 1 — `B` never appeared |
+| `[A,B,C]` | `[B,A,C]` | divergence at expected index 1 — `A` satisfied late, `B` not after it |
+| `[A,B,C]` | `[A,B,C]` | null |
+| `[A]` | `[A,A,A]` | **null**, with the repeat count reported as context, not as divergence |
+
+Extra own-marker occurrences stop being divergence and become a reported count. **A42.6's axis list is
+restated by this, and I am restating it rather than the executor guessing:** "observed longer" was an
+axis of an equality comparator. Under requirement semantics the axes are *first unmet requirement at 0 /
+mid / end*, *all met → null*, *repeats absorbed*, *order violated*, plus the parser's own cases. The
+seven-axis count from A42.6 does not survive; the discipline behind it does.
+
+#### A44.2 Correction 113 — the flake producer has never been seen producing
+
+`localize.test.ts` covers `--change` with no attempt pair (`flake: unable-to-determine`) and an unknown
+change id (absence). **No test, at any level, has `flakePairFromChange` return a pair.** The success
+path of the producer built to answer correction 110 is unexercised, so `classifyFlakeFromEvidence`
+still has no demonstrated production call — the third phase in which that is true. D16: a check never
+seen succeeding is not yet a check.
+
+And the pairing rule has a defect the missing test would have caught. `findLatestFailPassPair`
+(`localize.ts:408–425`) walks the globally ordered event list and considers only `i` with `i+1`,
+skipping when the two carry different tasks:
+
+```
+T-001 fail → T-002 attempt → T-001 pass     ⇒  no pair found
+```
+
+The adjacency that matters is adjacency **within a task's attempt sequence**, not within the bundle's
+event stream, and interleaved attempts across tasks are precisely what the wave model (Phase 3) is for.
+Group by task, order by id inside the group, then scan adjacent pairs.
+
+Fix both together, and the discriminating pair is: a bundle with an interleaved `fail(T1) / attempt(T2)
+/ pass(T1)` sequence yields the flake verdict, and the same bundle with the `pass` removed yields
+`unable-to-determine`.
+
+#### A44.3 What the two rounds have in common
+
+Round 1 gave a confident answer to a log with no evidence. Round 2 gives a confident answer to a run
+with no defect. Both are the ratified pipeline's `[Deterministic Verifier]` stage emitting a value it
+had no grounds for — and in both, the correct answer was already reachable from data the surface had in
+hand (`foreignMarkers` then, the requirement/transcript distinction now).
+
+---
+
 ## 15. Final instruction to the executor
 
 Work one phase at a time. Report in the §0.5 format. Stop after each phase and wait for review.
