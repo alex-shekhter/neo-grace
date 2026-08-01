@@ -8245,6 +8245,66 @@ checks rather than to a user's project.
 
 ---
 
+### A52 — 2026-08-01 · Phase 8 closed, and the debt it leaves is scheduled rather than remembered
+
+**Measured at `e11802a`.** `bun test` 901 pass / 3 skip / 0 fail, root lint 0 errors, `validate:ci`
+green, diff since `1c2fc73` is two files and 185 insertions with **zero deletions** — append-only, as
+required.
+
+**138 and 139 are answered exactly as A51 asked, and the answer is a record rather than a repair.**
+A50's A33.3 sentence now carries an append-only correction naming what was actually mechanized (gate
+permits, no open epoch, pattern detectors over the tree), stating plainly that **the scope audit
+contributed nothing**, and tabling both out-of-scope files with why each was written and why neither was
+reported. The archived `C-SELECTION` bundle is untouched — `git diff` over `.ngrace/changes/archive/` is
+empty — so the immutability rule held while the omission still got recorded.
+
+`C-OBSERVABLE-CHECKS` is drafted with six acceptance criteria, and the two that matter most are the ones
+nobody asked for by name: `AC-SCOPE-ABSENCE-NO-INPUT` and `AC-SCOPE-ABSENCE-NO-PLAN` require the surface
+to distinguish *skipped* from *clean*, with the discriminating negative stated as **"No review findings"
+is false when the audit was skipped for lack of input.** That is D5 applied to the toolkit's own report,
+and it is the correct generalisation of both corrections rather than a fix for each.
+
+#### A52.1 Phase 8's durable output
+
+The phase delivered the slice surface, the skill recommendation, and the measurement §4.1 had never
+had. The number that matters is not the headline one:
+
+| Measure | Value | What it means |
+|---|---|---|
+| Per-slice `selectionRatio` | 0.72–0.82 | One worker's slice against the unselected envelope |
+| `meanPairwiseOverlapFraction` | 0.917 | Two workers of one plan receive near-identical slices |
+| `sumSelectedBytes` vs `fullBytes` | 82931 vs 38890 | An 8-task wave loads **2.1× the whole envelope** |
+| `planUnionSelectionRatio` | 0.617 | The saving if the shared body were sent once |
+
+The first line is what the phase would have reported unchallenged. The rest is what makes it honest, and
+it exists because §8.5.7's rule — *the measurement is the deliverable, not a favourable result* — was
+applied to the phase's own number. **A task slice is a plan-level body with a task-shaped header**, and
+that follows from the artifact model (corrections 128, 133), not from the compositor.
+
+#### A52.2 Five corrections, five sentences
+
+Every Phase 8 correction was about a claim rather than a computation: what the slice *is* (135), what
+the skill surface has *done* (136), what the denominator can be *checked* against (137), and what the
+verdict has *verified* (138, 139). The code was right each time. That is the expected shape for a phase
+whose entire output is text another agent reads as authoritative, and it is standing rule 11 (A46.3)
+earning its place two phases after it was written.
+
+#### A52.3 What remains owed, in one place
+
+| Item | Home | Since |
+|---|---|---|
+| `src/gates`, `src/review` missing from `package.json#files`; `validate:packed` not in `validate:ci` | `C-OBSERVABLE-CHECKS` (draft) | A48.5 |
+| Scope audit sees only uncommitted work | `C-OBSERVABLE-CHECKS` (draft) | A51.1 |
+| Archived bundles resolve to no plan; audit skipped in silence | `C-OBSERVABLE-CHECKS` (draft) | A51.2 |
+| `.ngrace/graph/main.xml` describes neither `src/gates/`, `src/review/`, nor `src/verification/` | still unassigned | A36.4, restated A46.6 |
+
+The first three are now a drafted bundle rather than a memory. **The fourth is not**, and it is the
+older debt: three phases have added a surface the graph does not describe, and the eleven
+`graph.module-without-linked-files` warnings every phase reports as "pre-existing" are its visible
+edge. It should be scheduled before Phase 9 adds a fourth.
+
+---
+
 ## 15. Final instruction to the executor
 
 Work one phase at a time. Report in the §0.5 format. Stop after each phase and wait for review.
