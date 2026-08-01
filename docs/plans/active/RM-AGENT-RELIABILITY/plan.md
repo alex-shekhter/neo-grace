@@ -370,7 +370,7 @@ Keep this table current. It is the single source of truth for progress.
 | 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
 | 3 | Run ledger & cursor | D1, D2, D3 | TBD | `COMPLETE` |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `COMPLETE` |
-| 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `IN PROGRESS` (A33.1) |
+| 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `COMPLETE` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `NOT STARTED` |
 | 7 | Deterministic failure localization | D8 | TBD | `NOT STARTED` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `NOT STARTED` |
@@ -846,7 +846,7 @@ kinds being absent, so older bundles are unaffected.
 
 # PHASE 5 — Gate declarations & transition surface
 
-**Status:** `IN PROGRESS` — reopened by A33.1 (correction 69); everything else in the phase is closed
+**Status:** `COMPLETE`
 **Decisions:** D5 (gate half), D11, D12, D14
 **Release:** TBD
 

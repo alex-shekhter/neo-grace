@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-GATE-RECORD-ABSENCE>
     <IntentSummary>
       Fix correction 69: split status gate-record findings so no Decisions section is an
