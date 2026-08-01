@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-SELECTION>
     <Summary>
       Task slices and skill subsetting (D15): emit the minimal relevant set of artifacts and of
@@ -94,8 +94,27 @@
         never depends on harness stage 2 (D15).
       </Constraint>
       <Constraint>
-        A47 is normative over plan §8.3–§8.5 where they differ. Maintainer answers A47.3 before
-        status becomes approved.
+        A47 is normative over plan §8.3–§8.5 where they differ; A48 answers A47.3 and is normative
+        over A47 where they differ.
+      </Constraint>
+      <Constraint>
+        A48.4: §8.5.4's per-worker scope disjointness is amended, not satisfied. The artifact model
+        has no per-task scope — ObservedWriteScope and DurableScope are plan-level
+        (grammar.ts:40-46) — so two workers on two tasks of one plan receive the same write scope.
+        Per-task separation is carried by the task body, DependsOn, and the exclusions. Record the
+        amendment as absence with reasoning (rule 7 / A12.4); do not substitute a weaker test under
+        the original heading, and do not derive a narrower scope from Criterion prose.
+      </Constraint>
+      <Constraint>
+        A48.2: design-context.xml is excluded from the denominator as well as the numerator. Counting
+        a file that is never loaded during execution would inflate the saving for free.
+      </Constraint>
+      <Constraint>
+        A48.2: the ratio compares like with like. selectionRatio throws when selected exceeds full
+        (token-accounting.ts:154), and a slice emits derived text — headers, labels, projections —
+        that is not a byte-for-byte subset of the envelope. Define what counts as selected bytes so
+        the comparison is honest, and if a subject genuinely produces selected >= full, report that
+        result rather than narrowing the numerator until it fits.
       </Constraint>
     </Constraints>
     <NonGoals>
@@ -113,6 +132,13 @@
       <NonGoal>
         Paying A36.4 / A46.6 graph debt (gates, review, localize modules still unlinked). Out of
         this phase's scope.
+      </NonGoal>
+      <NonGoal>
+        Fixing the ship path for src/gates and src/review (A48.5). package.json#files omits both, so
+        the packed CLI fails at import on every invocation and validate:packed is red at HEAD; that
+        defect is inherited from Phases 5 and 6 and earns its own C-* and its own PR, together with
+        adding validate:packed to validate:ci. This phase still adds src/grace-context.ts to files
+        (corr 130), and must not be read as having fixed the rest.
       </NonGoal>
       <NonGoal>
         Embedding project principles.xml in every slice. Standing-invariants reload stays a skill
@@ -160,11 +186,21 @@
         ratio without ground fields fails; production does not import src/test-support/.
       </AC-SELECTION-FULL-ENVELOPE>
       <AC-SELECTION-REAL-MEASUREMENT>
-        A47.3 decision 1 / corr 117, 132. ≥3 measurements against this repository's real tasks
-        (archive subjects allowed with explicit change id; live C-SELECTION tasks when present),
-        each with subjectLocation and changeId/taskId. Discriminating negative: a temp fixture
-        measurement is not cited as the §8.5.7 number.
+        A47.3 decision 1 as answered in A48.1 / corr 117, 132. ≥3 measurements against this
+        repository's real tasks — an archived task is a permitted subject when the caller names the
+        change explicitly, since the exclusion governs what leaks into a slice and a subject is
+        chosen rather than discovered. Each measurement carries subjectLocation and changeId/taskId.
+        Discriminating negatives: a temp fixture measurement is not cited as the §8.5.7 number; an
+        archived subject's slice states in its emitted text that the subject is archived, so a
+        measurement artifact can never be handed to an executor as live work (rule 8, rule 11).
       </AC-SELECTION-REAL-MEASUREMENT>
+      <AC-SELECTION-SCOPE-IS-SHARED>
+        A48.4. The emitted write scope says it is plan-level and shared with sibling tasks. A slice
+        that prints scope paths without that sentence is read as "these are your files", which is
+        false for every plan with more than one task. Discriminating negatives: the sentence is
+        present in text and JSON output; no field name or heading implies the scope is task-private;
+        no test asserts per-task disjointness as if the model provided it.
+      </AC-SELECTION-SCOPE-IS-SHARED>
       <AC-SELECTION-READ-ONLY>
         F1 / invariant 8. ngrace context writes nothing under the project root. package.json#files
         lists src/grace-context.ts when shipped (corr 130).

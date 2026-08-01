@@ -7880,6 +7880,137 @@ answers A47.3 and approves the spec; then `plan.xml` is authored before any prod
 
 ---
 
+### A48 — 2026-07-31 · A47 accepted, three decisions answered, and the repository has been unpublishable since Phase 5
+
+**Measured at `649797b`** on `feat/phase-8-rederive`. Root lint 0 errors / 11 pre-existing graph
+warnings, diff is `plan.md` + `C-SELECTION/spec.xml` only, append-only with A1–A47 untouched.
+
+**A47 is accepted.** Its claims were re-measured rather than transcribed, and they hold:
+
+| Claim | Verified |
+|---|---|
+| 116 — no task `<Summary>` | `TASK_REQUIRED_SECTIONS = ["Title","DependsOn","AcceptanceCriteria","Verification"]`, `grammar.ts:48`; `Satisfies` → spec `AC-*` validated at `:1755–1762` |
+| 117 — archived task counts | **10, 8, 5, 5, 5, 4, 2** across the seven bundles — exactly right, and the stage-1 prompt's larger figures were wrong: they counted `<T-00N />` `DependsOn` references as tasks. A47's count is the correct one |
+| 118/119 — `selectionRatio` in `test-support/` | `token-accounting.ts:143`; not on the ship path |
+| 121 — sixteen skills | 16 directories in both trees |
+| 128 — tasks never name `M-*` | Zero `M-` occurrences inside task bodies; every `M-*` in `plan.xml` sits in plan-level `BaselineAssertions` / `TargetAssertions` |
+| 129 — scope is plan-level | `DurableScope` and `ObservedWriteScope` are in `PLAN_REQUIRED_SECTIONS`, `grammar.ts:40–46` |
+
+#### A48.1 Decision 1 answered — yes, an archived task may be a subject, when it is named
+
+**Option (a).** The exclusion in §8.5.2 governs what leaks **into** a slice; a slice's *subject* is
+chosen by the caller and never discovered, so naming `--change C-REVIEW-SURFACE --task T-003` is a
+different act from a live slice quietly absorbing archived material. Without this the phase has 0
+subjects; with it, 39 real tasks across seven bundles.
+
+**One constraint attached:** the slice must declare that its subject is archived, in the output, beside
+the subject id (rule 8 / A14.6). A slice of an archived task is a **measurement artifact, not an
+execution input**, and nothing should be able to hand one to an executor as if it were live work. That
+sentence has to be in the emitted text, not only in the phase report (rule 11 / A46.3).
+
+#### A48.2 Decision 2 answered — the envelope, in bytes, enumerated
+
+**Option (a), sharpened on the point that decides whether the number means anything.**
+
+`full` is the **unselected envelope for the subject**: the bundle's `spec.xml` and `plan.xml`,
+`.ngrace/graph/main.xml`, every `.ngrace/verification/*`, and the five `.ngrace/context/*` files — what
+an executor reads when nothing selects for it. Unit is **utf-8 bytes**. Tokenizer tokens are rejected
+for v1: they need a tokenizer the toolkit does not ship and would make the number model-dependent.
+
+Two requirements that make it falsifiable rather than favourable:
+
+1. **Emit the composition, not only the size.** `fullBytes`, `selectedBytes`, `ratio`, and the
+   **enumerated file list the denominator was summed over**. A denominator nobody can enumerate is a
+   denominator that can be adjusted after the fact, and §8.7's third gate question exists because this
+   phase's deliverable *is* the number.
+2. **`design-context.xml` is excluded from the denominator as well as the numerator.** It is never
+   loaded during execution (`review-consolidated.md:493`), so counting it in `full` would inflate the
+   saving for free — the single cheapest way to make this phase look successful, and therefore the one
+   to close by name.
+
+The skill ratio is a separate measurement with its own denominator: the summed bytes of the 16
+`SKILL.md` files. Do not average the two into one figure.
+
+#### A48.3 Decision 3 answered — `--task` and `--skills` on `ngrace context`, mutually exclusive
+
+**Option (a).** Not (c): the collision with `.ngrace/context/` is real but it is resolved by correction
+122's own answer — those five files are not in a slice by default — and two more top-level verbs on a
+ten-command CLI costs more than the collision does. `--compact` is not to exist (D15's named naming
+risk).
+
+**Add the stage field D15 requires.** *"Record which stage produced the final set"* — D6 derives
+*sliced vs full context* for calibration and pooling the states blurs it. Emit the field. Its only value
+today is stage 1, because no host adapter exists here; say that in the output rather than implying a
+choice was made among stages (A46.4 — a path never observed taking another value is a ground
+declaration, not a check, and must be labelled as one).
+
+#### A48.4 Correction 133 — §8.5.4's per-worker disjointness has no per-task scope to be disjoint over
+
+§8.4 is emphatic: *"Slices are per worker, never per plan (R1). A shared slice re-breaks the parallel
+path on first real use."* §8.5.4 verifies it: *"two workers on two tasks receive disjoint scopes, with
+no silent union."*
+
+**There is no per-task scope in the artifact model.** `ObservedWriteScope` and `DurableScope` are
+plan-level required sections; a task requires `Title`, `DependsOn`, `AcceptanceCriteria`, `Verification`
+and nothing else. Two workers on two tasks of the same plan necessarily receive **the same** write
+scope. A47's correction 129 records the placement correctly and then reinterprets the *exclusion*
+("other tasks' scopes" = other tasks' bodies) — which is right — while leaving §8.5.4's verification
+standing on an input that does not exist.
+
+Three ways out, and the choice is made here rather than at the gate:
+
+| | | |
+|---|---|---|
+| (i) | Derive a per-task scope from the task's `Verification` / `AcceptanceCriteria` targets | **Rejected.** A heuristic narrowing, and D15's own rule is that a false negative in stage 1 is unrecoverable. Inventing a scope narrower than the authored one is the worst available failure |
+| (ii) | Write scope in a slice is plan-level; per-task separation is carried by the task body, `DependsOn`, and the exclusions | **Adopted** |
+| (iii) | Add a per-task scope element to the grammar | **Rejected** — an artifact-model change and a seventeenth decision (§12.5) |
+
+Under (ii), **§8.5.4 is amended, not satisfied**: the deviation is recorded as absence with reasoning
+(rule 7 / A12.4), never silently substituted by a test that asserts something weaker under the old
+heading. And the slice must **say** the scope it prints is plan-level and shared with sibling tasks —
+a slice that prints a scope without that sentence will be read as *these are your files*, which is
+false, and rule 11 exists for exactly this.
+
+#### A48.5 Correction 134 — the packaged CLI has been broken since Phase 5, and CI cannot see it
+
+```
+$ bun run validate:packed
+✗ Packed CLI smoke failed: lint: expected exit 0, received 1.
+  stderr=error: Cannot find module './gates/command'
+         from '…/node_modules/@neograce/cli/src/grace.ts'
+```
+
+`package.json#files` lists `src/artifact`, `src/lint`, `src/query`, `src/verification` — and **neither
+`src/gates` nor `src/review`.** `npm pack --dry-run` produces a 44-file tarball with zero files from
+either. `src/grace.ts`, the `bin` entry, statically imports `./gates/command` and `./review/command`, so
+the packed CLI fails at import on **every** invocation, not only `gate` and `review`.
+
+Three things make this precise rather than alarming:
+
+- **No user is affected.** Published `@neograce/cli@6.0.1` was built from PR #8's tree, long before
+  `src/gates/` (#26) and `src/review/` (#27) existed; it is internally consistent. The registry copy is
+  fine.
+- **Publishing is blocked, correctly.** `prepublishOnly` → `validate:release` → `validate:packed`, and
+  that gate is red. The mechanism worked. **What failed is that nobody ran it for five merged PRs.**
+- **`validate:ci` does not include `validate:packed`.** Every phase since Phase 5 reported
+  `validate:ci` green, truthfully, over a repository that could not be published. A green suite that
+  structurally cannot observe the ship path is D16's argument pointed at this repository's own release
+  surface.
+
+**This is inherited, not Phase 8's doing, and it earns its own `C-*` and its own PR** rather than a
+fold-in — the same treatment A36.4 gave the graph debt. Two things must land in it, not one: the `files`
+list gains `src/gates` and `src/review`, **and** `validate:packed` joins `validate:ci` so the next
+surface added cannot repeat it. A47's correction 130 (add `src/grace-context.ts` to `files`) is correct
+and must not be the only thing that lands, or Phase 8 will ship a `files` list still missing two
+surfaces that shipped before it.
+
+#### A48.6 Spec approved
+
+`C-SELECTION` is `approved` with A48.1–A48.4 folded in. `plan.xml` before production code (A17.3), and
+gate the approval through `ngrace gate approve`.
+
+---
+
 ## 15. Final instruction to the executor
 
 Work one phase at a time. Report in the §0.5 format. Stop after each phase and wait for review.
