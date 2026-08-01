@@ -1,0 +1,228 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-FAILURE-LOCALIZATION>
+    <Summary>
+      Deterministic failure localization (D8): given expected V-M-* markers and an observed run
+      log, report the first divergent block and the module that failed — or AbsenceValue with a
+      reason — never a stack-trace stand-in for a question the evidence did not settle.
+    </Summary>
+    <Problem>
+      When verification fails, a stack trace reports where execution blew up. The first divergent
+      block reports where the flow started going wrong — frequently different. D8 restores that
+      join: expected marker sequence from the verification entry, observed sequence from the run,
+      first index at which they diverge.
+
+      At fe3aaa4 both sides of that join do not exist. Expected does: collectExactEvidence walks
+      Marker children in document order into requiredLogMarkers (projections.ts:873-880,
+      query/core.ts:189). Observed does not: health.ts:91-99 checks each marker with
+      hasRuntimeMarkerEvidence (project-utils.ts:320-351), a static scan of source text for an
+      emission statement — not a record of what a run emitted, in what order. No production path
+      scrapes markers from command stdout, test output, or a log file into a sequence (A41.2 corr 93).
+
+      firstDivergentBlock(expected, observed) needs observed. Building the comparator without an
+      input contract is the defect this re-derivation exists to prevent (A41.3).
+
+      Self-review is a localization source only for its mechanized subset (D8): scope,
+      test-weakening, backward-compat. Phase 6 shipped those as family-B review.* codes plus hunk
+      coverage, counterpart joins, and five family-A pattern detectors. Step 7.5.4's test was
+      unwritable until those codes existed; A41.5 names which are admissible and which are not.
+
+      Flake classification already ships (classifyFlakeFromEvidence, grace-cursor.ts:1327-1367).
+      D8 requires flaky results classified rather than pooled into localization signal. Phase 7
+      consumes the classifier; it does not rebuild it (A41.2 corr 98).
+
+      ngrace verification is find|show only (grace-verification.ts) — a read-only query surface.
+      Localization belongs there as a query answer, not as a fourth issue catalog (D14, A41.2 corr 95).
+    </Problem>
+    <Goals>
+      <Goal>
+        Pure sequence tools: parseObservedMarkers(logText, alphabet) and firstDivergentBlock, with
+        unit cases for each axis A40.2 forces — divergence at 0, mid, end, observed shorter, observed
+        longer, repeated marker, identical, plus empty sides (A41.7 step 7.5.1, A42.6).
+      </Goal>
+      <Goal>
+        Observed sequence comes from a caller-supplied log: --log &lt;file&gt;, with stdin only through
+        the explicit --log - (A42.1, answering A41.3 with route 2). The absence path is sharp: missing,
+        unreadable, empty, or stack-trace-only logs produce AbsenceValue with verdict
+        unable-to-determine, never a frame-derived divergence index (A41.2 corr 102, §7.7).
+      </Goal>
+      <Goal>
+        The scanned alphabet is every marker declared by any V-M-* entry in the project
+        (index.verifications, query/core.ts:130,151). Markers belonging to the queried entry form the
+        observed sequence; markers belonging to other entries are reported as foreign markers observed,
+        in log order, and are never compared. A run that left the expected path must be distinguishable
+        from a run that emitted nothing (A42.3).
+      </Goal>
+      <Goal>
+        The first divergent block resolves to a source location: parseMarkerBlockName
+        (project-utils.ts:306-309) then the linked runtime file exposing that BLOCK_* name, reported as
+        path:startLine-endLine from FileBlockRecord. Marker without a BLOCK_* suffix, or a block name
+        no linked file exposes, is location-absent with a reason — never a fabricated place (A42.2).
+      </Goal>
+      <Goal>
+        Module join from failing test path via existing V-M-* testFiles and governed linkedModuleIds
+        (A41.2 corr 97). Ungoverned path is absence, not a guess.
+      </Goal>
+      <Goal>
+        Reuse AbsenceValue / AbsenceVerdict (grace-cursor.ts:69-74). No second absence vocabulary
+        (A41.2 corr 99, anti-pattern 5).
+      </Goal>
+      <Goal>
+        Review findings enter through --review-json &lt;file&gt;, reading the document ngrace review
+        --format json already emits (schemaVersion 1.0.0, findings[]), so the admissibility filter has a
+        real producer rather than a unit-tested private function (A42.5, D16). D8's admissible set is
+        closed by name — review.scope-outside-write-scope, review.test-assertion-weakened,
+        review.compat-new-error — and mechanization is necessary, not sufficient: every other catalog
+        code is excluded, including family A and hunk-uncovered, and any addition is an amendment rather
+        than an inference (A41.5 as governed by A42.4). None replaces the marker-sequence answer. With
+        the flag absent, process context is simply absent and no AbsenceValue is owed.
+      </Goal>
+      <Goal>
+        Consume classifyFlakeFromEvidence: flaky fails are not localized as causal divergence;
+        unable-to-determine does not claim flake status; retry remains localizable when a log is
+        supplied (A41.2 corr 98).
+      </Goal>
+      <Goal>
+        Surface as ngrace verification localize (read-only query). Consume from ngrace-fix with
+        minimal skill text; mirror byte-identical (D15, §12.2). Writes nothing (F1).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>A41.3 is answered in A42.1: route (2), caller-supplied log. Route (1) is deferred with its cost recorded, not silently dropped (A12.4).</Constraint>
+      <Constraint>Every localization absence in v1 carries verdict unable-to-determine. not-run is unused: it means the toolkit knows execution was skipped (grace-cursor.ts:996), and with route (1) deferred this surface never runs anything (A42.1).</Constraint>
+      <Constraint>Every occurrence of a marker is kept, in log order. Collapsing repeats to first-occurrence makes the observed-longer axis unreachable from any real log (A42.6).</Constraint>
+      <Constraint>No new runtime dependencies. Surgical diffs only (§0.1).</Constraint>
+      <Constraint>src/lint/core.ts does not learn about localization. No localize.* catalog without an amendment that says so (D14, A41.2 corr 95).</Constraint>
+      <Constraint>ngrace verification localize does not author status, Verdicts, Decisions, or archive paths (F1, invariant 8).</Constraint>
+      <Constraint>Do not rebuild classifyFlakeFromEvidence or invent a parallel flake enum (A41.2 corr 98).</Constraint>
+      <Constraint>Do not present a stack trace as the divergence point under any path (§7.7.1, A41.2 corr 102).</Constraint>
+      <Constraint>Static health.required-log-marker-not-found remains the static check; localization does not replace or silence it (A41.2 corr 93 vs route 3).</Constraint>
+      <Constraint>Skill edits under skills/ngrace/ are mirrored to plugins/ngrace/skills/ngrace/ in the same commit (§12.2).</Constraint>
+      <Constraint>Standing rule 10 (A30.6): localization answers are query-scoped and ephemeral to the invocation unless a later decision records them. Do not invent a ledger section mid-phase without stating scope first.</Constraint>
+      <Constraint>A40.2: a control is only evidence about the axis it varies. Six comparator axes are six cases, not one.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Making static source-marker presence the localization answer (A41.3 route 3 rejected).</NonGoal>
+      <NonGoal>
+        Running the declared V-M-* commands and scraping their output (A41.3 route 1). Deferred with its
+        cost recorded at fe3aaa4: spawnShellCommand (assertions.ts:589-599) captures stdout/stderr for
+        exit-code and budget evaluation only, so no marker scrape exists for either route (corr 96). The
+        route therefore costs the shared scrape plus spawn wiring, an opt-in flag, PATH/runtime
+        portability, and its own absence semantics, inside a binary whose posture since §5.2 is that it
+        reads and does not run. parseObservedMarkers takes a string, so a later C-* can supply that
+        string from spawn output without touching the comparator (A42.1).
+      </NonGoal>
+      <NonGoal>Rebuilding flake classification, the attempt log, or the review surface.</NonGoal>
+      <NonGoal>Feeding family-A pattern findings or counterpart joins into localization as divergence points (A41.5, D8 judgment half).</NonGoal>
+      <NonGoal>Selection (Phase 8), confidence/calibration (Phase 9), plan-quality/doctor (Phase 10), adoption (Phase 11).</NonGoal>
+      <NonGoal>Making lint depend on run state or emit localization / review.* / gate.* codes (D14).</NonGoal>
+      <NonGoal>Inventing a seventeenth track-level design decision (D1–D16 stand) (§12.5).</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-LOCALIZE-OBSERVED-FROM-LOG>
+        A42.1 / A41.2 corr 93. Observed markers come from --log &lt;file&gt;, or stdin through the
+        explicit --log -. Discriminating negatives: with no log the command emits AbsenceValue
+        (unable-to-determine) and does not invent an observed sequence from source text; an implicit
+        TTY-sniffed stdin is not accepted, so "no log supplied" stays distinguishable from "empty log
+        supplied".
+      </AC-LOCALIZE-OBSERVED-FROM-LOG>
+      <AC-LOCALIZE-FOREIGN-MARKERS>
+        A42.3. The scanned alphabet is every marker declared by any V-M-* entry in the project, not only
+        the queried entry's. Discriminating negatives: a log containing only another entry's markers
+        reports those markers as foreign and an empty own-sequence, rather than being indistinguishable
+        from a silent log; a log interleaving two entries' markers produces the same divergence answer
+        as the same log with the foreign lines removed, so interleaving never manufactures divergence
+        at index 0.
+      </AC-LOCALIZE-FOREIGN-MARKERS>
+      <AC-LOCALIZE-BLOCK-LOCATION>
+        A42.2 / D8. The divergent marker resolves to a source region: parseMarkerBlockName, then the
+        linked runtime file whose parsed blocks expose that name, reported as path plus
+        startLine-endLine from FileBlockRecord. Discriminating negatives: a marker with no BLOCK_*
+        suffix yields divergence with the location absent and a reason; a block name no linked file
+        exposes yields the same; a block name exposed by more than one file reports all of them rather
+        than picking one. No location is ever derived from a stack frame (§7.7.1).
+      </AC-LOCALIZE-BLOCK-LOCATION>
+      <AC-LOCALIZE-COMPARATOR-AXES>
+        A41.2 corr 102 / A40.2 / A42.6 / §7.5.1. firstDivergentBlock covers divergence at 0, mid, end,
+        observed shorter, observed longer, repeated marker, and identical (null), each as its own unit
+        case; empty expected and empty observed are covered. parseObservedMarkers carries its own cases:
+        empty log, log with no declared markers, foreign-only log, interleaved log, repeated marker.
+        Observed-longer must be reachable from a real log, which it is only because every occurrence is
+        kept in log order — a unit call that hand-builds a longer array is evidence about the
+        comparator, not about the parser.
+      </AC-LOCALIZE-COMPARATOR-AXES>
+      <AC-LOCALIZE-NO-STACK-AS-DIVERGENCE>
+        §7.7.1 / A41.2 corr 102. A fixture whose log is only a stack trace (no expected markers)
+        produces no divergence index and never labels a stack frame as the first divergent block.
+      </AC-LOCALIZE-NO-STACK-AS-DIVERGENCE>
+      <AC-LOCALIZE-ABSENCE-VALUE>
+        A41.2 corr 99 / D5 / A42.1. Marker-less V-M-*, missing log, unreadable log, empty log, log with
+        no declared markers, and ungoverned test path each emit AbsenceValue with a reason, every one of
+        them with verdict unable-to-determine. No second absence vocabulary; no not-run in v1.
+        Empty-marker case is not a confident answer (§7.7.2).
+      </AC-LOCALIZE-ABSENCE-VALUE>
+      <AC-LOCALIZE-MODULE-JOIN>
+        A41.2 corr 97. A failing test path listed on a V-M-* entry or linked to a module resolves to
+        that module; a path in neither map is absence, not a guessed M-*.
+      </AC-LOCALIZE-MODULE-JOIN>
+      <AC-LOCALIZE-REVIEW-ADMISSIBILITY>
+        A41.5 / D8 / A41.2 corr 101 / A42.4 / A42.5. Findings arrive through --review-json &lt;file&gt;
+        in the shape ngrace review --format json emits, so the filter is exercised end to end and not
+        only through a direct call to the assembler (D16). Table-driven over every code in
+        REVIEW_CATALOG: only review.scope-outside-write-scope, review.test-assertion-weakened, and
+        review.compat-new-error may appear as secondary process context; every other code — family A and
+        hunk-uncovered included — is excluded, on the single rule that D8's set is closed by name and
+        mechanization is necessary but not sufficient. None of the three substitutes for the
+        marker-sequence answer, and none may produce a divergence index.
+      </AC-LOCALIZE-REVIEW-ADMISSIBILITY>
+      <AC-LOCALIZE-FLAKE-CONSUME>
+        A41.2 corr 98 / D8. classifyFlakeFromEvidence is imported, not reimplemented. flaky → no
+        causal divergence claim for that fail; unable-to-determine → no flake claim; retry →
+        localization still allowed when a log is present. One fixture per verdict.
+      </AC-LOCALIZE-FLAKE-CONSUME>
+      <AC-LOCALIZE-QUERY-SURFACE>
+        A41.2 corr 95 / D14 / F1. ngrace verification localize is registered on the verification
+        query surface, returns structured text/JSON, and writes nothing. No new issue catalog. runLint
+        over a project with localization available still emits no localize.* / review.* / gate.* from
+        this change.
+      </AC-LOCALIZE-QUERY-SURFACE>
+      <AC-LOCALIZE-FIX-SKILL>
+        A41.2 corr 100 / D15. ngrace-fix consumes the command on a short path; packaged mirror is
+        byte-identical; token/line delta reported in the phase report.
+      </AC-LOCALIZE-FIX-SKILL>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI />
+      <M-CURSOR />
+      <M-PROJECT-UTILS />
+      <M-ASSERTIONS />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedCommand>bun test src/verification</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace verification localize --help</ExpectedCommand>
+      <ExpectedEvidence>
+        Unit tests for six comparator axes, absence paths, A41.5 review-code exclusion table, and
+        flake verdict treatments; integration test for ngrace verification localize over a temp
+        project with a synthetic log; stack-trace-only fixture produces no divergence index; root
+        lint 0 errors with C-FAILURE-LOCALIZATION present; skill mirror byte-identical; no writes
+        from the localize command.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption id="A-1">
+        Answered, not assumed: A42.1 settles A41.3 as route (2), caller-supplied log, with route (1)
+        deferred and its cost recorded; A42.4 settles the admissibility rule as closed by name, retiring
+        the question of whether mechanizing the anti-pattern audit widened D8's subset; A42.5 settles
+        the review-findings input as --review-json rather than nothing.
+      </Assumption>
+      <Assumption id="A-2">
+        Markers keep the [Component][method][BLOCK_NAME] shape the explainer and verification skills
+        teach, and runtime code keeps START_BLOCK_/END_BLOCK_ anchors, so parseMarkerBlockName and
+        parseBlocks resolve a divergent marker to a region. Where they do not, A42.2's absence rows
+        apply — the assumption degrades to absence rather than to a guess.
+      </Assumption>
+    </Assumptions>
+  </C-FAILURE-LOCALIZATION>
+</NgraceChangeSpec>

@@ -372,7 +372,7 @@ Keep this table current. It is the single source of truth for progress.
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `COMPLETE` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `COMPLETE` |
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
-| 7 | Deterministic failure localization | D8 | TBD | `NOT STARTED` |
+| 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `NOT STARTED` |
 | 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `NOT STARTED` |
 | 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `NOT STARTED` |
@@ -1139,9 +1139,15 @@ then has no verdict producer — so rollback must also relax that requirement, o
 
 # PHASE 7 — Deterministic failure localization
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Decisions:** D8
 **Release:** TBD
+
+> **Closed after A45 (corr 114).** Amended by §14 A41–A45: observed sequence from caller-supplied
+> log (route 2), requirement/transcript subsequence comparator, absent vs out-of-order discriminator,
+> task-grouped flake producer via `--change`, D8-closed review process context. Bundle
+> `C-FAILURE-LOCALIZATION` archived `spec=applied plan=applied`. **A41–A45 are normative where they
+> disagree with §7.3–§7.5.**
 
 ## 7.1 Objective
 
@@ -1160,6 +1166,8 @@ When verification fails, say *where it started going wrong* — not only where i
 | `src/grace-verification.ts` | EDIT — surface the localization |
 | `skills/ngrace/ngrace-fix/SKILL.md` | EDIT — consume it |
 | (+ mirror) | EDIT |
+
+> **Provisional.** A41.6 replaces this table for the build. Do not implement from the rows above.
 
 ## 7.4 Design
 
@@ -1187,6 +1195,10 @@ answer to a question the evidence did not settle.
 **Self-review is a localization source only for its mechanized subset** (D8). Judgment findings —
 adversarial probe, anti-pattern audit — may not feed localization.
 
+> **§7.4's "observed sequence from the run" is the open premise.** At HEAD no observed sequence
+> exists (A41.2 corr 93). A41.3 states the options and recommendation; the maintainer settles it
+> before stage 2.
+
 ## 7.5 Steps
 
 **Step 7.5.1 — `firstDivergentBlock` over marker sequences.**
@@ -1207,6 +1219,8 @@ output.
 
 **Step 7.5.5 — Surface in `ngrace verification` and consume in `ngrace-fix`.**
 → verify: output shows module, first divergent block, and expected-vs-observed. Report it.
+
+> **Provisional.** A41.7 replaces this step list for the build.
 
 ## 7.6 Definition of done
 
@@ -6378,6 +6392,980 @@ self-recorded verdicts (A33.3) — `C-REVIEW-SURFACE` is the first that does not
 
 A36.4's item is still owed: `.ngrace/graph/main.xml` describes neither `src/gates/` nor `src/review/`.
 Two surfaces now, one `C-*`.
+
+### A41 — 2026-07-31 · Phase 7 re-derived against HEAD
+
+**Everything below was measured at `fe3aaa4`**
+(`fe3aaa43132658b51620c567ae30093f52aae942` — `feat(reliability): detached reviewer, mechanized
+audits, and the corpus scorer (Phase 6) (#27)`). After `git fetch origin && git status -sb`: local
+`main` was not behind `origin/main` (both at `fe3aaa4`, left-right `0 0`). Tree clean on branch
+`feat/phase-7-rederive` cut from that commit. The track head named in the stage-1 prompt is still the
+head; if it had moved, this entry would have said so (A28 / §0.4.1).
+
+§7.1's objective, §7.6–§7.8's done/review/rollback shape, D8, the two-question split (module vs first
+divergent block), the stack-trace ban, and the mechanized-vs-judgment self-review rule survive.
+**§7.3's file table, §7.4's claim that both inputs "already exist", and §7.5's step list do not.** All
+three predate the discovery that the *observed* marker sequence has no home in this repository, and
+predate Phase 6's real `review.*` catalog that makes §7.5.4's test writable. Ten corrections follow
+(93–102), starting where A40 left the number. The observed-sequence source is **recorded as a decision
+for the maintainer** (A41.3) — it is the one premise the code cannot settle. The review-code
+admissibility table (A41.5) is **derived** from D8 plus the catalog at HEAD, not a seventeenth design
+decision (§12.5).
+
+#### A41.1 §7.2's preconditions, re-measured
+
+| Precondition | Measured | Result |
+|---|---|---|
+| Phase 2 `COMPLETE` | §2 board; three `issueClass: "absence"` codes in `src/lint/catalog.ts` (`analysis.no-adapter`, `analysis.runtime-missing`, `assertion.command-not-evaluated`); `AbsenceValue` / `AbsenceVerdict` at `src/grace-cursor.ts:69–74` | ✅ |
+| Phases 3–6 `COMPLETE` (sequencing: 7 floats after 2; 6 not required but supplies the mechanized subset D8 names) | §2 board rows 3–6 `COMPLETE`; `src/review/catalog.ts` ships family A + B + join-process codes; `C-REVIEW-SURFACE` archived | ✅ |
+
+Holds. What Phase 7 must *report when it cannot answer* exists (D5 vocabulary). What §7.4 assumes as
+the observed half of the join **does not** — correction 93.
+
+#### A41.2 Corrections 93–102
+
+##### Correction 93 — the observed marker sequence does not exist
+
+D8 and §7.4 both state:
+
+> expected marker sequence from the verification entry, observed sequence from the run, first index at
+> which they diverge. … both inputs already exist.
+
+**Expected exists.** `collectExactEvidence(node, "Marker")` (`src/artifact/projections.ts:873–880`)
+walks `V-M-*` children in document order and fills `VerificationAnchorRecord.markers`;
+`toModuleVerificationRecord` copies them to `requiredLogMarkers` (`src/query/core.ts:189`).
+
+**Observed does not.** `src/query/health.ts:91–99` checks each required marker with
+`hasRuntimeMarkerEvidence` (`src/project-utils.ts:320–351`), which scans **source text** of linked
+runtime files for an emission of that marker (language-aware via `emissionPatternsFor`,
+`src/lint/emission-patterns.ts:62`). That is a static presence check: *does the code contain a
+statement that would emit this marker*. It is not a record of what a run emitted, in what order.
+
+Repository-wide search for any scrape of markers from command stdout/stderr, test output, or a log
+file into a sequence yields **no production path**. `firstDivergentBlock(expected, observed)` needs
+`observed`. Nothing captures it.
+
+**What the step becomes:** stage 1's first deliverable is A41.3 — where observed comes from — before
+any production code. The pure comparator (corr 94's pure function) can be written once the input
+contract is fixed; it cannot invent the second array.
+
+##### Correction 94 — `src/verification/` is a clean create-beside for `localize.ts`
+
+Measured:
+
+```
+$ ls src/verification/
+check-references.test.ts  check-references.ts
+```
+
+`check-references.ts` owns language-aware command→test-path expansion (`expandCommandTargets` for
+`go test` / `cargo test`, lines 8–50+). §7.3's `localize.ts` is a clean CREATE beside it — confirmed,
+not contradicted. No rename or relocation of `check-references` is required.
+
+##### Correction 95 — `ngrace verification` is find|show only, and it is a query surface
+
+`src/grace-verification.ts` registers exactly two subcommands: `find` and `show`. Both load the
+projection index and print; neither writes, neither runs tests, neither localizes. Help text:
+"Query neo-grace verification entries, scenarios, and evidence requirements."
+
+D14 names three *check* surfaces (`lint` / gates / `review`). `verification` is a **read-only query**
+surface, already registered on `src/grace.ts`. Localization as `ngrace verification localize` (or
+equivalent) stays on that query surface: structured answer about a run, not a fourth issue catalog.
+**Do not invent `localize.*` codes in a new catalog** without an amendment that says so (anti-pattern 5
+/ D14). Absence answers reuse `AbsenceValue` (corr 99).
+
+##### Correction 96 — `--run-commands` executes commands but does not scrape markers
+
+`ngrace lint --run-commands` is a real opt-in (`src/grace-lint.ts:119`, `lint/core.ts` →
+`assertions.ts`). `spawnShellCommand` (`assertions.ts:589–599`) captures stdout/stderr via
+`Bun.spawnSync` for **exit-code and budget-metric** evaluation only. MustPassBudget reads a number
+from stdout (`:521–546`); MustPassCommand checks exit. **No path extracts ordered markers from that
+output.**
+
+So route (1) of A41.3 is not "wire up an existing scrape" — it is "add a scrape over an existing
+spawn." Nearly free on the *process* half; zero on the *marker-sequence* half.
+
+##### Correction 97 — "language-aware test-file inference" is real but narrower than D8's phrasing
+
+D8: *Which module failed? — test results + language-aware test-file inference — already computable.*
+
+What actually exists:
+
+| Piece | Where | What it does |
+|---|---|---|
+| V-M-* → module | `moduleIdForVerification` (`projections.ts:954–956`) | `V-M-FOO` → `M-FOO` by stripping `V-` |
+| Declared / inferred test files on the entry | `toModuleVerificationRecord` (`query/core.ts:178–187`); `inferTestFiles` (`:203–208`) | explicit `<TestFiles>` or regex over `*.test.*` / `*.spec.*` tokens in commands |
+| Command → path expansion (go/cargo) | `expandCommandTargets` (`verification/check-references.ts:8+`) | language-native package/test flags → directory or `tests/<name>.rs` |
+| File → module via LINKS | `query/core.ts:137` `linkedModuleIds` | governed file's contract LINKS |
+| Test-path heuristic | `isLikelyTestPath` in health/core | regex, not adapter-backed |
+| Language adapters | `src/lint/adapters/*`, `language-registry.ts` | export/local parity — **not** test-failure→module mapping |
+
+Step 7.5.2 is implementable as a join over these existing maps, with absence when the failing path is
+in no entry's `testFiles` and no module's governed files. It is **not** "call a language adapter and
+get a module." Do not invent adapter APIs for localization.
+
+##### Correction 98 — flake classification already ships; Phase 7 consumes it
+
+`classifyFlakeFromEvidence` (`src/grace-cursor.ts:1327–1367`) returns
+`FlakeVerdict = "flaky" | "retry" | "unable-to-determine"` (`:98`). Evidence is the write-scope
+snapshot on attempt events (Phase 4 / A19.3) — no live git at classify time.
+
+| Verdict | Meaning | Localization treatment (D8 third section) |
+|---|---|---|
+| `flaky` | fail→pass, identical write evidence | Failure is noise. **Do not present a divergence point as the cause of a flaky fail.** Report the flake verdict; localization of the fail is either omitted or carried only as non-blocking context beside the flake classification. |
+| `retry` | fail→pass, write evidence changed | Real intervening work. Localization of the earlier fail is meaningful if the caller still has that run's observed log. |
+| `unable-to-determine` | wrong shape, missing evidence, undetermined digests | Cannot classify. Localization may still answer from a supplied log; it must not claim the failure is (or is not) flaky. |
+
+Phase 7 does **not** rebuild the classifier. It imports and consults it when attempt pairs exist.
+
+##### Correction 99 — absence vocabulary is `AbsenceValue`; do not invent a second one
+
+```ts
+// src/grace-cursor.ts:69–74
+export type AbsenceVerdict = "not-run" | "unable-to-determine";
+export type AbsenceValue = { verdict: AbsenceVerdict; reason: string };
+```
+
+Phase 2's three catalog absence codes remain `issueClass: "absence"` on the lint surface. Localization
+outputs that cannot answer (no markers declared, no observed log supplied, ungoverned test file, flaky
+classification) emit **`AbsenceValue` with a reason string** — the same shape the cursor and attempt
+paths already use — not a parallel `LocalizationAbsence` enum and not a silent null (anti-pattern 5,
+standing rule 7 / A12.4).
+
+##### Correction 100 — `ngrace-fix` is investigation-path prose; the EDIT is real
+
+`skills/ngrace/ngrace-fix/SKILL.md` is 18 lines: five-step `<investigation_path>` and a one-line
+`<verification>` note. No localization, no divergence, no call to any CLI beyond the conceptual
+"Run the specific V-M-* commands." Packaged mirror under
+`plugins/ngrace/skills/ngrace/ngrace-fix/SKILL.md` is byte-identical. §7.3's EDIT is real; D15's
+token accounting applies — report the line delta.
+
+##### Correction 101 — step 7.5.4 is now writable against real codes
+
+When §7.5.4 was written, "judgment-class review finding" was a hypothetical class. Phase 6 shipped the
+full `REVIEW_CATALOG` (`src/review/catalog.ts`). D8 admits self-review for localization **only** for
+its mechanized subset: *scope diff, test-weakening diff, backward-compat fixture sweep*. The judgment
+half — adversarial probe, anti-pattern audit — may not.
+
+A41.5 is the per-code table. The test §7.5.4 asks for is: for every code marked **not admissible**,
+feeding a finding of that code into the localization assembler leaves it out of the localization
+output (and does not turn it into a divergence index). For every code marked **admissible**, it may
+appear as secondary process context, never as a substitute for the marker-sequence answer.
+
+##### Correction 102 — boundary cases are axes (A40.2), and the stack-trace ban has no existing violator
+
+§7.5.1 lists six comparator cases: divergence at 0, mid, end, observed shorter, observed longer,
+identical. A40.2: **a control is only evidence about the axis it varies.** Each of those six is an
+axis; a single "happy path" unit test does not cover the others. Stage 2's unit table must name them
+separately.
+
+§7.7 question 1 asks whether any path presents a stack trace as the divergence point. At HEAD there
+is no localization path at all, so there is nothing to remove — the ban is a **guard on the new
+surface**: parser/CLI/skill must not accept a stack trace as `observed`, must not fill `index` from a
+frame line, and must not print a stack frame under a "first divergent block" heading. The empty-marker
+and missing-log cases (question 2) are absence, not a confident stack-derived answer.
+
+#### A41.3 Decision required — where does the observed sequence come from?
+
+**This is the one premise the code cannot settle.** Three routes, each with real precedent or real
+objection. None invents a track-level design decision; all are implementation routes under ratified
+D8. None may be taken by the executor alone if the maintainer wants a different route (§12.5).
+
+1. **The binary runs the declared `V-M-*` commands and scrapes markers from output.**
+   - **Precedent:** `ngrace lint --run-commands` already executes project commands under explicit
+     opt-in; `Bun.spawnSync` / `spawnShellCommand` exist in `assertions.ts`, `grace-status.ts`,
+     `grace-graph.ts`, `grace-cursor.ts`.
+   - **Cost:** the toolkit owns test execution for localization. Detached-reviewer posture (§5.2,
+     Phase 6) argues against widening what the binary runs. Portability: commands need the project's
+     runtimes on PATH. Marker scrape itself does not exist (corr 96) — must be written. Opt-in flag
+     required (never default-on; D5 / `command-not-evaluated` precedent).
+   - **Absence path:** command not run → `not-run` / reason; command fails before any marker →
+     observed empty or partial with reason; scrape finds nothing → observed `[]`, not a guess.
+
+2. **The agent runs the tests and hands the output in** — `ngrace verification localize --log <file>`
+   and/or stdin.
+   - **Precedent:** `ngrace-execute` rules 3–5 already run verification and record attempts; the
+     agent owns the run. Query surfaces already accept paths and print JSON (`grace-verification.ts`).
+   - **Cost:** nothing on portability; binary stays out of execution. Input is whatever the caller
+     supplies — the absence path must be sharp: missing `--log`, unreadable file, empty file, log with
+     no known markers, log that is a stack trace only.
+   - **Matches D8's framing:** localization is a verifier-side answer about a run the agent has
+     already performed.
+
+3. **Static-only comparison** — expected markers versus markers present in source, in declaration
+   order.
+   - **Cost:** this is not localization. It is a rename of `health.required-log-marker-not-found`
+     (`health.ts:91–94`). D8's whole point is the difference between where execution blew up and where
+     it started going wrong; static presence cannot state order of emission at runtime.
+
+**Recommendation: (2) as the primary path, with (1) available as an explicit opt-in** if the maintainer
+wants it in the same phase — implemented as the *same* pure scrape function over a string, with
+`--run-commands` (or a dedicated flag on `localize`) supplying that string from `spawnShellCommand`
+stdout+stderr. The core of the phase is then:
+
+```
+parseObservedMarkers(logText, expected: string[]): string[]   // order-preserving filter/extract
+firstDivergentBlock(expected, observed)
+```
+
+Sources feed `logText`; they do not fork the comparator. Route (3) is rejected as a localization
+answer; static health remains the static health check.
+
+If the maintainer accepts the recommendation, stage 2 implements (2) fully and may include (1) as
+opt-in behind a flag. If the maintainer wants (1)-only, or (2)-only with (1) deferred, amend here
+before production code.
+
+#### A41.4 Standing rules that bind this phase, named so they are not rediscovered at the gate
+
+- **A5.4** — drop-site inventory before localization output grows a field on `LintIssue`,
+  `ModuleHealthRecord`, gate reports, or review findings it does not own. Prefer a dedicated result
+  type returned by the query surface.
+- **A5.5** — every claim here is measured at `fe3aaa4`. Re-measure what you depend on; §0.4.1 first.
+- **A5.6** — acceptance criteria descending from these corrections cite them inline, e.g.
+  `AC-LOCALIZE-OBSERVED-FROM-LOG (A41.3)`, and carry the discriminating detail.
+- **A6.4** — tests use temp fixtures and synthetic logs; never the developer's live test output as
+  ground.
+- **A7.2** — detection boundaries (divergence axes, admissible vs rejected review codes, absence
+  reasons, flake treatments) carry the both-directions table.
+- **A12.3 (rule 6)** — the §0.7 self-review has no abbreviated form.
+- **A12.4 (rule 7)** — a deviation that removes a ratified capability (any of the six comparator
+  axes, the stack-trace ban, the absence path, flake classification consumption) is reported as
+  absence with reasoning, never silently substituted.
+- **A14.6 (rule 8)** — every audit names the artifact it read; localization reports declare ground
+  (V-M-* id, log source, expected marker list, observed list or absence).
+- **A20.5 (rule 9)** — if localization consults attempts for flake classification, it reads the
+  durable record (ledger∪loose), not the cursor cache alone.
+- **A30.6 (rule 10)** — localization *answers* are query-scoped and ephemeral to the invocation
+  unless a later decision records them; do not invent a ledger section for localization mid-phase
+  without stating scope first.
+- **A17.3** — bundle carries draft `spec.xml` this stage; plan before production code after
+  maintainer approval. Grammar: active plan requires approved spec (`grammar.ts:1206–1207`).
+- **A40.2** — a control is only evidence about the axis it varies. Six comparator axes; each needs
+  its own case. Flake and absence are separate axes from divergence index.
+- **D5 / anti-pattern 1** — no answer without evidence is absence with reason, never a stack-trace
+  stand-in and never silence.
+- **D8** — first divergent block from sequences; self-review only for the mechanized subset; flakes
+  classified not pooled.
+- **D14** — localization lives on the verification *query* surface; `runLint` does not emit
+  localization codes; no fourth check catalog without an amendment.
+- **Anti-pattern 5** — do not invent a second absence vocabulary or a parallel marker-order type the
+  rest of the toolkit never reads.
+- **Anti-pattern 9** — localization reports; it does not block apply. Gates stay in `src/gates/`.
+- **Invariant 8 / F1** — `ngrace verification localize` does not author status, verdicts, or archive
+  paths.
+- **D15** — skill text delta for `ngrace-fix` is reported; selection not compression.
+
+#### A41.5 Phase 6 `review.*` codes — admissible localization inputs (derived from D8)
+
+D8: self-review is a localization source **only** for its mechanized subset — scope, test-weakening,
+backward-compat. Judgment half (adversarial probe, anti-pattern audit) may not. Phase 6's catalog
+makes that table concrete:
+
+| Code | Family | Admissible for localization? | Why |
+|---|---|---|---|
+| `review.scope-outside-write-scope` | process-audit | **Yes** — secondary process context | D8 names scope diff |
+| `review.test-assertion-weakened` | process-audit | **Yes** — secondary process context | D8 names test-weakening |
+| `review.compat-new-error` | process-audit | **Yes** — secondary process context | D8 names backward-compat sweep |
+| `review.hunk-uncovered` | process-audit | **No** (default) | Mechanized, but D8 does not name hunk coverage as a localization source. Attribution of untested hunks is not "where the flow diverged." Including it would let coverage gaps masquerade as divergence points. Revisit only with an amendment. |
+| `review.counterpart-scope-mismatch` | join-process | **No** | Structural join about record homes (A34.1 #1); not about a failed run's marker sequence |
+| `review.counterpart-writer-missing` | join-process | **No** | Structural join about writers (A34.1 #2) |
+| `review.counterpart-reader-tolerates` | join-process | **No** | Structural join about readers (A34.1 #3) |
+| `review.counterpart-grandfather-gap` | join-process | **No** | Structural join about new diagnostics (A34.1 #4) |
+| `review.confidently-wrong` | pattern | **No** | Mechanized anti-pattern audit (pattern 1). D8 bars the judgment half; family A is that half made mechanical. Feeding it into localization is pattern 1 as an input to diagnosis. |
+| `review.self-referential-comparison` | pattern | **No** | Same — anti-pattern audit mechanized |
+| `review.regex-over-structure` | pattern | **No** | Same |
+| `review.zero-or-more-swallow` | pattern | **No** | Same |
+| `review.unthreaded-construct` | pattern | **No** | Same |
+
+**Admissible codes never replace the marker-sequence answer.** They may appear beside it as process
+context ("tests were weakened in this change") when the caller supplies review findings or when a
+later step joins a review result. The divergence index itself comes only from
+`firstDivergentBlock(expected, observed)` over marker sequences, or absence.
+
+#### A41.6 Revised §7.3 files-touched table
+
+| File | Action |
+|---|---|
+| `src/verification/localize.ts` | CREATE — `parseObservedMarkers`, `firstDivergentBlock`, module join, absence assembly, optional flake consult; pure over inputs |
+| `src/verification/localize.test.ts` | CREATE — six comparator axes; absence paths; judgment-code rejection table (A41.5); flake treatments; no stack-trace-as-divergence |
+| `src/grace-verification.ts` | EDIT — add `localize` subcommand (read-only query; `--log` / stdin; JSON+text). Opt-in run path only if A41.3 admits (1) |
+| `src/grace-verification` integration tests (existing suite or co-located) | EDIT/CREATE — CLI wiring: module, divergence, expected-vs-observed; absence on missing log; never writes |
+| `src/grace-cursor.ts` | READ ONLY this phase unless flake consult needs a thin export already present — prefer importing `classifyFlakeFromEvidence` as-is (corr 98) |
+| `src/query/health.ts` | READ ONLY — static marker check stays; localization does not replace or silence it |
+| `src/query/core.ts` / projections | READ ONLY for expected markers and test-file maps |
+| `src/review/catalog.ts` | READ ONLY — admissibility table keys off existing codes (A41.5); do not move review codes into verification |
+| `src/lint/catalog.ts` | READ ONLY unless a justified lint-visible code appears (default: none; localization is query output + AbsenceValue) |
+| `skills/ngrace/ngrace-fix/SKILL.md` | EDIT — consume `ngrace verification localize`; teach absence and stack-trace ban in one short path |
+| `skills/ngrace/ngrace-execute/SKILL.md` | EDIT only if needed to pass log path into fix/localize after a failed verification cycle — keep minimal (D15) |
+| (+ all packaged mirrors under `plugins/ngrace/skills/ngrace/`) | EDIT in same commit (§12.2) |
+| `.ngrace/changes/active/C-FAILURE-LOCALIZATION/` | CREATE — this phase's bundle |
+
+#### A41.7 Revised §7.5 step list
+
+**Step 7.5.1 — Pure sequence tools: `parseObservedMarkers` + `firstDivergentBlock`.**
+Extract observed markers from a log string against an expected list (order-preserving: first
+occurrence of each expected marker in log order, or ordered scan of expected against log lines —
+state the algorithm in the module header and pin it with tests). Then `firstDivergentBlock`.
+→ verify: unit tests for **each** axis separately (A40.2): divergence at 0, mid-sequence, at the end,
+observed shorter, observed longer, identical → null. Plus: empty expected, empty observed, both empty.
+
+**Step 7.5.2 — Expected sequence from `V-M-*`; module join from test path.**
+Load expected from verification projection (`requiredLogMarkers` / document order). Join a failing
+test path to a module via entry `testFiles` and/or governed `linkedModuleIds` (corr 97). Ungoverned
+path → `AbsenceValue`, not a guessed module.
+→ verify: governed test path resolves; ungoverned path is absence with reason; expected order matches
+document order of `<Marker>` children.
+
+**Step 7.5.3 — Observed input contract (A41.3 primary path).**
+Primary: `--log <file>` and/or stdin. Missing, unreadable, or empty log → absence (`not-run` or
+`unable-to-determine` with reason — pick one rule and pin it). Log that is only a stack trace and
+contains no expected markers → observed empty / absence for divergence, **never** a frame-derived
+index (corr 102, §7.7.1).
+→ verify: each absence path; stack-trace-only fixture does not produce a divergence index; no code
+path labels a stack frame as "first divergent block".
+
+**Step 7.5.4 — Optional opt-in execution (only if A41.3 admits route 1).**
+If admitted: flag-gated run of declared commands via existing spawn helper; feed combined
+stdout+stderr into the same `parseObservedMarkers`. Default remains log/stdin. If route 1 is
+deferred, this step is absence-with-reason when asked to run without the flag, and the step is
+recorded as deferred rather than silently dropped (A12.4).
+→ verify: default does not spawn; opt-in uses the same pure parse path as `--log`.
+
+**Step 7.5.5 — Absence when markers are unavailable.**
+No markers declared on the V-M-* entry → absence (do not fall back to trace assertions as fake
+markers). Observed unavailable → absence. Reuse `AbsenceValue` (corr 99).
+→ verify: marker-less entry; missing log; both. Output contains no stack-trace fallback.
+
+**Step 7.5.6 — Reject non-admissible review findings as localization sources (A41.5).**
+Assembler accepts only the three D8 process-audit codes as secondary context. Family A, join-process,
+and `review.hunk-uncovered` are excluded, with a table-driven test over the real catalog codes.
+→ verify: for each excluded code, a fixture finding does not appear as divergence; for each admitted
+code, it may appear only as process context beside a sequence answer or sequence absence.
+
+**Step 7.5.7 — Consume flake classification; do not rebuild it (corr 98).**
+When a fail→pass attempt pair with write evidence is available, call `classifyFlakeFromEvidence`.
+`flaky` → do not present divergence as the cause of that fail. `unable-to-determine` → do not claim
+flake status. `retry` → localization of the fail remains meaningful if the log is supplied.
+→ verify: one fixture per verdict.
+
+**Step 7.5.8 — Surface on `ngrace verification localize` and consume in `ngrace-fix`.**
+CLI output: module (or absence), first divergent block (or absence), expected vs observed lists,
+optional process context, optional flake verdict. JSON shape stable. Skill: one short path that calls
+the command after a failed verification cycle; mirrors updated same commit.
+→ verify: integration test over a temp project + synthetic log; skill mirror byte-identical
+(`validate:marketplace`); D15 line delta reported.
+
+#### A41.8 Additions to §7.6 definition of done
+
+- Observed-sequence source is the route the maintainer accepted in A41.3, named in the spec
+- Six comparator axes each have a unit case (A40.2)
+- No path presents a stack trace as the divergence point (§7.7.1), demonstrated by fixture
+- Empty-marker and missing-log cases are absence, never a confident answer (§7.7.2)
+- A41.5 exclusion table is tested against real catalog codes
+- Flake verdicts treated per corr 98; classifier not reimplemented
+- `AbsenceValue` reused; no second absence vocabulary
+- D14: no `review.*` / `gate.*` / new `localize.*` catalog from this surface without amendment
+- `ngrace verification localize` writes nothing (F1)
+- Bundle `C-FAILURE-LOCALIZATION` carries draft spec at stage 1; plan before code after approval
+- `bun run validate:ci` green; root lint 0 errors
+
+#### A41.9 Anything else undecidable (A18.8 form) — only A41.3
+
+No second design decision is required to draft the spec. Open implementation choices that are
+**not** maintainer decisions if A41.3 is accepted as recommended:
+
+- Exact parse algorithm (line-scan vs regex over log) — engineering, pinned by tests, not a track
+  decision.
+- Whether `ngrace-execute` is edited this phase or only `ngrace-fix` — preference: **fix only**
+  unless execute's verification cycle cannot name the log path without one sentence of guidance.
+- Whether admitted process-audit codes are auto-loaded from a review run or only accepted when the
+  caller passes findings — preference: **caller-supplied or not at all in v1**, so localization stays
+  pure over its inputs and does not couple to `ngrace review` invocation order.
+
+These three are recorded so stage 2 does not invent a seventeenth decision around them (§12.5). If the
+maintainer wants a different default, say so when answering A41.3.
+
+#### A41.10 Bundle for this phase
+
+Proposed change id: **`C-FAILURE-LOCALIZATION`** (precedent: `C-REVIEW-SURFACE`, `C-GATE-SURFACE`).
+Stage 1 authors `.ngrace/changes/active/C-FAILURE-LOCALIZATION/spec.xml` with `status="draft"`.
+Maintainer answers A41.3 and approves the spec; then `plan.xml` is authored before any production code
+(A17.3, `grammar.ts:1206–1207`).
+
+---
+
+### A42 — 2026-07-31 · A41 accepted, the observed-sequence decision answered, and the block the localizer never finds
+
+**Measured at `0f00738`** on `feat/phase-7-rederive`. Root lint 0 errors / 11 pre-existing graph
+warnings, plan diff append-only with A1–A41 untouched, `C-FAILURE-LOCALIZATION/spec.xml` present at
+`status="draft"`.
+
+**A41 is accepted.** Its claims were re-measured here rather than transcribed, and they hold:
+
+| Claim | Verified |
+|---|---|
+| Corr 93 — observed sequence has no home | `health.ts:91–99` calls `hasRuntimeMarkerEvidence` over **source text**; no production path scrapes a log into a sequence |
+| Corr 94 — `src/verification/` is a clean create-beside | `check-references.ts`, `check-references.test.ts`, nothing else |
+| Corr 95 — `verification` is a query surface | `src/grace-verification.ts` registers `find` and `show` only |
+| Corr 99 — absence vocabulary | `AbsenceVerdict = "not-run" \| "unable-to-determine"`, `grace-cursor.ts:69–74` |
+| Corr 100 — `ngrace-fix` is 18 lines, mirror byte-identical | `diff` clean against `plugins/ngrace/skills/ngrace/ngrace-fix/SKILL.md` |
+| A41.5 is exhaustive over the catalog | 13 codes in `REVIEW_CATALOG`; 13 rows, 3 admitted / 10 excluded |
+| Grammar rule | `change.plan-requires-approved-spec`, `grammar.ts:1206` |
+
+Correction 93 is the finding of this stage and it is correct: **D8's "both inputs already exist" was
+half true, and the half that was false is the half the phase is named after.** Five corrections follow
+(103–107), and they are all downstream of one thing — A41 fixes the *input* contract and leaves the
+*output* contract where §7.4's pseudocode left it, as an integer index into an array of strings.
+
+#### A42.1 A41.3 answered — route (2) only; route (1) is deferred and recorded
+
+**Route (2): the observed sequence comes from a caller-supplied log.** Route (1) is **deferred**, not
+implemented this phase, and recorded as deferred per rule 7 (A12.4).
+
+The stage-1 prompt offered (1) as an opt-in *if the existing `--run-commands` machinery made it nearly
+free*. Correction 96 measured that condition and it failed: `spawnShellCommand`
+(`assertions.ts:589–599`) captures stdout/stderr for exit-code and budget-metric evaluation only, and
+**no marker scrape exists for either route**. So (1) is not "wire up an existing scrape" — it is the
+same scrape everyone needs, plus spawn wiring, plus a flag, plus PATH/runtime portability, plus its own
+absence semantics, inside a binary whose posture since §5.2 is that it reads and does not run. The
+condition that would have bought it was not met, so it does not ship. This is a scope decision, not a
+rejection of the route: `parseObservedMarkers` takes a string, and a later `C-*` can hand it
+`spawnShellCommand` output without touching the comparator.
+
+Two consequences, stated so they are not rediscovered at the gate:
+
+1. **`not-run` is unused by localization in v1.** The precedent for `not-run` is the toolkit *knowing*
+   execution was skipped (`grace-cursor.ts:996`, "skipped command evidence becomes absence (not-run)").
+   With route (1) deferred, localization never runs anything, so it never knows that. Missing log,
+   unreadable log, empty log, log with no declared markers, marker-less entry, ungoverned test path —
+   all are **`unable-to-determine`** with a reason, matching the default at `grace-cursor.ts:2137`. A
+   `not-run` emitted by this surface in v1 would be a claim about a run nobody observed.
+2. **Step 7.5.4 becomes a recorded deferral**, not a silent drop and not an absence-at-runtime branch.
+   There is no flag to be absent about; there is a paragraph in the spec's NonGoals saying route (1)
+   was costed at `fe3aaa4` and deferred.
+
+**Input contract:** `--log <file>`. Stdin is accepted **only** through the explicit `--log -`. A
+TTY-sniffing implicit stdin would make "no log supplied" ambiguous with "empty log supplied" — the one
+distinction the absence path exists to keep sharp — and the agent can pipe just as well with `--log -`.
+
+#### A42.2 Correction 103 — a divergent *block* is a source location, and the join already exists
+
+D8 asks for the **first divergent block**. A41.7 step 7.5.1 returns `{ index, expected, observed }`,
+step 7.5.8 prints "first divergent block (or absence)", and nothing in between converts a marker string
+into a place in the code. As specified, the phase ships an array diff and calls it localization: the
+fixer is told "expected `[LedgerCore][post][BLOCK_VALIDATE_BALANCE]` at index 2, observed something
+else" and is left to grep for it.
+
+**The join is already written, for a different purpose, three lines from the code A41 measured:**
+
+```
+parseMarkerBlockName(marker)            project-utils.ts:306–309   "[…][BLOCK_X]" → "X"
+moduleRecord.localFiles[].blocks[]      project-utils.ts:420       parseBlocks over START_BLOCK_/END_BLOCK_
+FileBlockRecord { name, startLine, endLine }   project-utils.ts:33–37
+health.ts:95–98                         already does marker → block name → linked runtime file
+```
+
+`health.required-log-marker-block-not-found` walks exactly this path to ask *does any linked runtime
+file expose `BLOCK_X`*. Phase 7 needs the same walk to ask *which file, and which lines*. Block records
+carry `startLine` and `endLine`, so the answer is `path:startLine–endLine` — a region, not a frame.
+
+**This is also the positive half of the stack-trace ban.** §7.7.1 says what the divergence point must
+not be. Until the marker resolves to a `BLOCK_*` region, the output has nothing to offer in its place,
+and "no path presents a stack trace" is satisfied trivially by presenting no location at all.
+
+Both directions, per rule 3 (A7.2):
+
+| Case | Answer |
+|---|---|
+| Divergent marker carries `[BLOCK_X]`, one linked runtime file exposes `BLOCK_X` | `file:startLine–endLine` |
+| Marker carries no `[BLOCK_*]` suffix (`parseMarkerBlockName` → `undefined`) | Divergence index and marker strings, **location absent with reason** |
+| Block name resolves in no linked runtime file | Location absent with reason — this is `health.required-log-marker-block-not-found` territory; localization reports it, it does not re-lint it |
+| Block name resolves in more than one file | Report all of them; do not pick one |
+
+#### A42.3 Correction 104 — `parseObservedMarkers(logText, expected)` cannot see the run leaving the path
+
+The signature takes `expected`, so the only strings it can look for are the ones it already expects.
+Therefore **observed ⊆ expected**, and the only divergence the surface can ever report is *an expected
+marker did not appear*. The most diagnostic real failure — the run went somewhere else, and said so —
+is invisible: a log full of another module's markers parses to `[]`, identical to a log of silence.
+
+**The alphabet is one line away.** `index.verifications` is project-wide (`query/core.ts:130, 151`) and
+every entry carries `requiredLogMarkers`. Build the observed sequence against **every marker declared
+anywhere in the project**, then split it:
+
+- markers belonging to the queried entry → the `observed` array that goes to `firstDivergentBlock`;
+- markers belonging to other entries → reported as **foreign markers observed**, in log order, as
+  context beside the answer.
+
+Comparing only the entry's own alphabet is what keeps interleaved logs from producing spurious
+divergence at index 0 when two modules emit into one stream. Reporting the foreign ones is what keeps
+"the run took a different path" from being indistinguishable from "the run emitted nothing."
+
+Discriminating negatives for the test table: a log containing only another entry's markers must report
+foreign markers and an absent/empty own-sequence, **not** silence; a log interleaving both entries must
+produce the same divergence answer as the same log with the foreign lines removed.
+
+#### A42.4 Correction 105 — admissibility is closed by name, and the table's rationale must say so
+
+A41.5's ten exclusions are right. Its *rule* is not uniform, and the non-uniform half is attackable.
+
+`review.hunk-uncovered` is excluded on the correct ground: "mechanized, but D8 does not name it."
+Family A is excluded on a different ground: "the judgment half made mechanical." But D8's closing
+sentence is a property rule — *mechanized findings are evidence, judgment findings are advice* — and
+family A at HEAD is deterministic, ID-stable, and gated by `validate:determinism`. Anyone can argue
+next round that family A is now mechanized and therefore evidence, and A41.5's own phrasing is the
+opening.
+
+**State the governing rule once and derive all thirteen rows from it: D8's admissible set is closed by
+name — scope diff, test-weakening diff, backward-compat sweep. Mechanization is necessary, not
+sufficient. Any addition is an amendment, not an inference.** Under that rule family A and
+`hunk-uncovered` are excluded for the same reason, and the reason survives Phase 6 having mechanized
+the anti-pattern audit. D8's stated worry — *or pattern 1 becomes an input to failure diagnosis* — is
+about what the finding is about, not about how it was computed, and Phase 6's own four rounds
+(corrections 86–92: one defect in four costumes) are the evidence that determinism is not the same
+thing as reliability.
+
+Assumption `A-2` in the draft spec is retired by this; the exclusions do not need the maintainer to
+amend D8's subset, because nothing here widens it.
+
+#### A42.5 Correction 106 — the exclusion table has no producer, which is D16 on the new surface
+
+A41.9's third preference and the spec's Assumption `A-3` say admitted process-audit codes appear "only
+when the caller supplies findings **or not at all in v1**." Taken as written, v1 ships a filter over an
+input nothing can supply, tested only by calling the assembler directly — a check that cannot fire in
+production, in the track whose D16 is *a check that has never failed is not a check*, and whose
+Phase 5 opened with a verdict record no code could write (correction 62).
+
+**Give it the producer that already exists.** `ngrace review --format json` emits a stable, versioned
+document with a `findings[]` array (`schemaVersion: "1.0.0"`, `tool: "ngrace-review"`). Accept
+`--review-json <file>`, read that shape, apply A41.5, and the admissibility table becomes an
+end-to-end path with a real input instead of a unit-tested private function. It costs one flag and one
+reader, keeps localization pure over its inputs, and does not couple to `ngrace review` invocation
+order — which was the actual concern behind the preference.
+
+If the flag is absent, process context is simply absent — no absence value is owed, because the caller
+asked no question about review findings.
+
+#### A42.6 Correction 107 — duplicates are the seventh axis, and they are the only route to "observed longer"
+
+§7.5.1's six axes include "observed longer than expected." Under any parse that keys on declared
+markers (A42.3 included), observed cannot contain a marker the entry never declared. **So "observed
+longer" is reachable only when a marker is emitted more than once** — a loop, a retry, a re-entered
+block. Which means A41.7's aside, "first occurrence of each expected marker in log order, *or* ordered
+scan of expected against log lines — state the algorithm", is not an implementation detail: the first
+option collapses duplicates and makes the sixth axis unreachable from any real log, and the two options
+give different answers for the same input.
+
+Pin it: **every occurrence is kept, in log order.** Then a loop that ran twice is visible, "observed
+longer" has a production path, and the repeated-marker case joins the table as its own axis (A40.2 — a
+control is only evidence about the axis it varies; a unit call that hand-builds a longer array is
+evidence about the comparator, not about the parser).
+
+Seven axes for `firstDivergentBlock`, plus the parser's own cases: empty log, log with no declared
+markers, foreign-only log, interleaved log, repeated marker.
+
+#### A42.7 A41.9's open choices, answered
+
+| Choice | Answer |
+|---|---|
+| Parse algorithm | Every occurrence, log order (A42.6). Alphabet is project-wide, comparison is entry-scoped (A42.3). |
+| `ngrace-execute` edited this phase? | **No — `ngrace-fix` only**, as preferred. Execute already runs verification; naming a log path is fix's business. |
+| Caller-supplied review findings | **`--review-json <file>`, consuming `ngrace review --format json`** (A42.5). Not auto-invoked, not omitted. |
+| Stdin | Only via explicit `--log -` (A42.1). |
+| Absence verdict | `unable-to-determine` for every localization absence in v1; `not-run` unused (A42.1). |
+
+#### A42.8 Spec approved
+
+`C-FAILURE-LOCALIZATION` is `approved` with A42.1–A42.7 folded in: route (2) fixed and route (1) moved
+to NonGoals with its cost recorded, `AC-LOCALIZE-BLOCK-LOCATION` added (103),
+`AC-LOCALIZE-OBSERVED-FROM-LOG` widened to the project-wide alphabet with foreign-marker reporting
+(104), `AC-LOCALIZE-REVIEW-ADMISSIBILITY` given the closed-by-name rule and the `--review-json`
+producer (105, 106), `AC-LOCALIZE-COMPARATOR-AXES` at seven axes plus parser cases (107), and
+Assumptions `A-1`/`A-2`/`A-3` retired — all three are answered above. `plan.xml` before production code
+(A17.3), and gate the approval through `ngrace gate approve`.
+
+---
+
+### A43 — 2026-07-31 · Phase 7 review gate: the log with no evidence gets a location anyway
+
+**Measured at `7561f56`.** `bun test` 847 pass / 3 skip / 0 fail (the report's 846 is one stale),
+root lint 0 errors, `localize.test.ts` 41 tests / 104 expects.
+
+Corrections 103–107 are **confirmed implemented**: the project-wide alphabet with foreign split
+(`projectMarkerAlphabet` / `splitObservedByEntry`), the block-location resolution with its four-row
+absence table, the closed-by-name admissibility rule with a `--review-json` producer, every occurrence
+kept in log order, and route (1) deferred rather than dropped. The seven comparator axes are seven
+cases. None of that needs redoing.
+
+Four corrections follow, **108–111**. The first two are the same failure D8 exists to prevent, arriving
+through the input rather than the output: **a log that contains no evidence produces a confident
+answer, and a log that contains the word "expected" produces the wrong one.**
+
+#### A43.1 Correction 108 — zero marker evidence yields divergence at index 0, with a source location
+
+Probe on `examples/polyglot`, empty log file:
+
+```
+$ bun run ngrace verification localize --path examples/polyglot V-M-LEDGER-CORE --log <empty>
+Expected (1): [LedgerCore][post][BLOCK_VALIDATE_BALANCE]
+Observed (0): (none)
+First divergent block: index 0 expected="[LedgerCore][post][BLOCK_VALIDATE_BALANCE]" observed=null
+Location:
+  crates/core/src/lib.rs:16-21
+```
+
+An empty file is offered as evidence and the surface answers with an index, a marker, and a line range
+in the user's source. **This is §7.7.2 — "does the empty-marker case produce a confident answer?" —
+answered yes**, and the approved spec names the case three times:
+`AC-LOCALIZE-ABSENCE-VALUE` lists "missing log, unreadable log, **empty log**, **log with no declared
+markers**" as absences carrying `unable-to-determine`. `localizeFailure` has no such branch: past the
+`logText == null` guard it parses, compares, and resolves a location unconditionally.
+
+`localize.test.ts:551` and `:599` **pin the defect as correct** (`expect(result.divergence?.index).toBe(0)`
+for a stack-trace-only log and a foreign-only log), and `:555` guards its location assertion behind
+`if (result.locations.length > 0)` — an assertion that passes by not running, in the file that is this
+phase's evidence.
+
+**The distinction is well-founded and the data is already collected.** Zero observed markers is the
+absence of evidence; one or more makes subsequent absence *into* evidence:
+
+| Observed (own) | Foreign markers | Answer |
+|---|---|---|
+| empty | empty | **Absence** — `unable-to-determine`, "log carries no declared marker of any entry; cannot distinguish a run that died before the first marker from a log that never carried markers" |
+| empty | non-empty | **Divergence at 0 is well-founded** — the log demonstrably carries markers, so the absence of *these* is the finding: the run went somewhere else |
+| non-empty | either | Divergence as built today |
+
+Today rows 1 and 2 are indistinguishable in the answer — both print `index 0` — which means A42.3's
+foreign-marker split is collected and then discarded at the only point where it decides something. The
+fix is a branch, not a mechanism.
+
+#### A43.2 Correction 109 — a log saying the marker was **never emitted** parses as two emissions
+
+`parseObservedMarkers` scans with `indexOf` over the raw log text, so any textual occurrence counts as
+an emission — including the log's own report that the marker is missing. Probe, same entry:
+
+```
+log:  right: "[LedgerCore][post][BLOCK_VALIDATE_BALANCE]"
+      expected marker [LedgerCore][post][BLOCK_VALIDATE_BALANCE] was never emitted
+
+Observed (2): [LedgerCore][post][BLOCK_VALIDATE_BALANCE] → [LedgerCore][post][BLOCK_VALIDATE_BALANCE]
+First divergent block: index 1 expected=null observed="[LedgerCore][post][BLOCK_VALIDATE_BALANCE]"
+Location: crates/core/src/lib.rs:16-21
+```
+
+A log stating the marker never fired is read as the marker firing twice, and the surface reports
+**observed longer than expected** — the axis A42.6 was written to make reachable, reached here by an
+artifact of the parser. This is not an exotic input: an assertion diff that echoes the expected string
+is what a failing marker test prints, in every framework.
+
+No purely textual rule separates emission from echo, and inventing one would be pattern 3 wearing a
+parser. So the requirement is honesty about ground, not cleverness:
+
+1. **Declare what `observed` means** — in the text output, in the JSON, and in the module header:
+   *declared markers textually present in the supplied log, in log order*. Not "markers the run
+   emitted." Rule 8 (A14.6): the report names its ground.
+2. **At most one occurrence counted per line.** An emission is a log line; a line containing the marker
+   twice is a description of it. Deterministic, justified by the emission model the repo already
+   teaches, and it removes the within-line inflation.
+3. **Pin the probe above as a test** — a known, recorded limitation beats an undiscovered one, and the
+   expected value in that test is whatever the fixed parser does, stated plainly.
+4. **`ngrace-fix` says which stream to capture** — the run's own output, not the test framework's
+   failure report; and if only the failure report exists, the observed sequence is unreliable and the
+   honest reading is the absence.
+
+#### A43.3 Correction 110 — flake consumption has no producer, which is 106 in a second costume
+
+`localizeFailure` accepts `flakePair` and calls `classifyFlakeFromEvidence`, and **no CLI path ever
+constructs one**: `src/grace-verification.ts:234–241` passes `index`, `verification`, `module`,
+`logText`, `logAbsenceReason`, `testFile`, `reviewFindings` — and stops. So
+`AC-LOCALIZE-FLAKE-CONSUME` is satisfied by three unit tests calling the assembler directly, and
+`classifyFlakeFromEvidence` remains — at `7561f56`, two phases after it shipped — a function whose only
+callers in this repository are its own tests.
+
+This is exactly correction 106, which A42.5 raised against the review-findings input. That one was
+fixed; the identical defect one field over was not, because it had not been named. **Rule: an assembler
+input that no invocation can supply is not a feature, it is a unit test with a type signature.**
+
+The durable side exists — `readAttemptPayload` (`grace-cursor.ts:1386`) reads attempt events, and rule
+9 (A20.5) already specifies ledger∪loose rather than the cursor cache. Either give the flag its
+producer, or drop `flakePair` from the surface and record the deferral the way route (1) was recorded.
+Do not leave a third option.
+
+#### A43.4 Correction 111 (minor) — a third copy of `isLikelyTestPath`
+
+`localize.ts:246` defines it character-identically to `health.ts:13` and `core.ts:220`. It decides which
+files count as emission sites, so the day one copy is corrected the localizer silently disagrees with
+the health check about where a `BLOCK_*` may live — and `health.required-log-marker-block-not-found` and
+the localizer's location absence would then answer differently about the same file. Export one and
+import it.
+
+#### A43.5 What this round is really about
+
+108 and 109 are the same shape as every blocking finding on this track: **an unknown converted into a
+usable value.** An empty log is an unknown, and it came out as `crates/core/src/lib.rs:16-21`. A log
+saying the marker never fired is an unknown about emission, and it came out as two emissions. The
+stack-trace ban was honoured in its negative form — no frame ever reaches the output — while the
+positive form it was traded for now fires on evidence that does not exist.
+
+The surface is close. What is missing is the branch that says so.
+
+---
+
+### A44 — 2026-07-31 · Second Phase 7 gate: a healthy run reports a divergent block
+
+**Measured at `9e3b125`.** `localize.test.ts` 51 tests / 134 expects, `validate:ci` green, root lint 0
+errors.
+
+**108 and 111 are confirmed fixed.** The empty-log probe that produced `crates/core/src/lib.rs:16-21`
+now produces `Absence: unable-to-determine — log carries no declared marker of any entry; cannot
+distinguish a run that died before the first marker from a log that never carried markers`, with no
+index and no location, and the foreign-only row still diverges at 0. `isLikelyTestPath` is exported once
+from `query/core.ts`. **109's four parts are all present** — per-line cap, `observedGround` in text and
+JSON, the assertion-diff probe pinned, and the skill naming the stream to capture. The flake producer
+(110) reads ledger∪loose through `listAccountingEvents`, satisfying rule 9.
+
+Two corrections, **112–113**. The first is the more serious finding of this phase, and part of it is
+mine.
+
+#### A44.1 Correction 112 — three emissions of a required marker is reported as a divergence
+
+Probe on `examples/polyglot`, a log in which the required marker fired three times and the failure was
+elsewhere:
+
+```
+log:  INFO [LedgerCore][post][BLOCK_VALIDATE_BALANCE] ok      (×3)
+      test failed: assertion elsewhere
+
+Expected (1): [LedgerCore][post][BLOCK_VALIDATE_BALANCE]
+Observed (3): […] → […] → […]
+First divergent block: index 1 expected=null observed="[LedgerCore][post][BLOCK_VALIDATE_BALANCE]"
+Location: crates/core/src/lib.rs:16-21
+```
+
+**A run that satisfied every declared requirement is told its flow diverged, and pointed at the block
+that worked.** A loop over three ledger entries is the ordinary case, not a corner: any `<Marker>` in
+iterated code produces this. D8's own rationale is the indictment — *test results alone point the fixer
+at the assertion site, which is reliably the place the bug is not* — and this points somewhere with more
+confidence and less warrant than the stack trace would have.
+
+**The cause is a category error between the two lists, and correction 107 is what exposed it.** I asked
+for every occurrence to be kept in log order so the observed-longer axis had a production path; under
+the strict index-equality comparator that instruction turned every repeat into a divergence. Collapsing
+repeats again is not the fix — it hides genuine information and makes the axis unreachable a second
+time. The comparator's semantics are what is wrong:
+
+- **Expected is a requirement list in declaration order.** `health.ts:91–94` reads it that way —
+  *requires marker X, but it was not found* — and `ngrace-verification/SKILL.md` defines `<Marker>` as
+  what *must be proven emitted*. It is not a transcript.
+- **Observed is a transcript.** Repeats, interleaving and extra traffic are normal in it.
+
+So the question is *did the transcript contain the required markers, in order* — an ordered subsequence
+scan, where the divergence point is **the first required marker not found at or after the cursor**.
+Both directions, each its own case (A40.2):
+
+| Expected | Observed | Answer |
+|---|---|---|
+| `[A,B,C]` | `[A,A,B,B,C]` | **null** — repeats absorbed; requirements met |
+| `[A,B,C]` | `[A,C]` | divergence at expected index 1 — `B` never appeared |
+| `[A,B,C]` | `[B,A,C]` | divergence at expected index 1 — `A` satisfied late, `B` not after it |
+| `[A,B,C]` | `[A,B,C]` | null |
+| `[A]` | `[A,A,A]` | **null**, with the repeat count reported as context, not as divergence |
+
+Extra own-marker occurrences stop being divergence and become a reported count. **A42.6's axis list is
+restated by this, and I am restating it rather than the executor guessing:** "observed longer" was an
+axis of an equality comparator. Under requirement semantics the axes are *first unmet requirement at 0 /
+mid / end*, *all met → null*, *repeats absorbed*, *order violated*, plus the parser's own cases. The
+seven-axis count from A42.6 does not survive; the discipline behind it does.
+
+#### A44.2 Correction 113 — the flake producer has never been seen producing
+
+`localize.test.ts` covers `--change` with no attempt pair (`flake: unable-to-determine`) and an unknown
+change id (absence). **No test, at any level, has `flakePairFromChange` return a pair.** The success
+path of the producer built to answer correction 110 is unexercised, so `classifyFlakeFromEvidence`
+still has no demonstrated production call — the third phase in which that is true. D16: a check never
+seen succeeding is not yet a check.
+
+And the pairing rule has a defect the missing test would have caught. `findLatestFailPassPair`
+(`localize.ts:408–425`) walks the globally ordered event list and considers only `i` with `i+1`,
+skipping when the two carry different tasks:
+
+```
+T-001 fail → T-002 attempt → T-001 pass     ⇒  no pair found
+```
+
+The adjacency that matters is adjacency **within a task's attempt sequence**, not within the bundle's
+event stream, and interleaved attempts across tasks are precisely what the wave model (Phase 3) is for.
+Group by task, order by id inside the group, then scan adjacent pairs.
+
+Fix both together, and the discriminating pair is: a bundle with an interleaved `fail(T1) / attempt(T2)
+/ pass(T1)` sequence yields the flake verdict, and the same bundle with the `pass` removed yields
+`unable-to-determine`.
+
+#### A44.3 What the two rounds have in common
+
+Round 1 gave a confident answer to a log with no evidence. Round 2 gives a confident answer to a run
+with no defect. Both are the ratified pipeline's `[Deterministic Verifier]` stage emitting a value it
+had no grounds for — and in both, the correct answer was already reachable from data the surface had in
+hand (`foreignMarkers` then, the requirement/transcript distinction now).
+
+---
+
+### A45 — 2026-07-31 · Third Phase 7 gate: the marker that is in the log is reported as the one that is missing
+
+**Measured at `776bf70`.** `bun test` 866 pass / 3 skip / 0 fail, `localize.test.ts` 60 tests, root lint
+0 errors.
+
+**112 and 113 are confirmed fixed.** The polyglot triple-emission probe that reported `index 1` with a
+location now reports `First divergent block: (none — all required markers found in order; failure is
+elsewhere)` plus `Observed requirement counts: …×3 (repeats absorbed; not a divergence)`.
+`firstDivergentBlock` is a clean ordered-subsequence scan over requirements, and the duplicate
+requirement case (`[A,A]` against one emission) falls out of it correctly. The flake producer groups by
+task and its success path is exercised through the CLI against a bundle built with the real
+`recordAttempt` writer, returning `flaky` — the first demonstrated production call into
+`classifyFlakeFromEvidence` since it shipped in Phase 4. The A42.6 axis deletions are honest
+replacements, and the restated axis list is stated as a list.
+
+One correction, **114**.
+
+#### A45.1 Correction 114 — "expected B, observed C" when B is the first line of the log
+
+```
+firstDivergentBlock(["A","B","C"], ["B","A","C"])
+  → { index: 1, expected: "B", observed: "C" }
+
+First divergent block: index 1 expected="B" observed="C"
+```
+
+`B` is in the transcript. It was the first thing emitted. The surface reports it as the requirement that
+was not met and names `C` as what happened instead, and a fixer reads that as *B never ran* — so they go
+looking at the block that did run, for a reason that is not the reason.
+
+The subsequence answer is **correct**: requirements are ordered, `A` was satisfied at position 1, and
+`B` does not appear after it. What is wrong is that the record collapses two different findings into one
+shape:
+
+| Finding | Transcript | What the fixer should do |
+|---|---|---|
+| Requirement **absent** | `B` appears nowhere | The block never ran — look upstream of it |
+| Requirement **out of order** | `B` appears, before the cursor | The block ran too early — look at the sequencing, not the block |
+
+These are different bugs with different fixes, and the second is exactly the case D8's rationale
+describes — *state is corrupted in one block and detected three blocks later*. The discriminator is one
+lookup the comparator already has in hand: whether `want` occurs in `observed` at all.
+
+Give `Divergence` a typed discriminator — `requirement-absent` versus `requirement-out-of-order`, the
+latter carrying the position where the marker *did* appear — and render them as different sentences.
+When the answer is out-of-order, `observed` must not be presented as a substitute for the missing
+marker; there is no substitute, because nothing took its place.
+
+**Both directions:** `["A","B","C"]` vs `["A","C"]` stays `requirement-absent` at index 1; vs
+`["B","A","C"]` becomes `requirement-out-of-order` at index 1 naming position 0; vs `["A","B","C"]`
+stays null.
+
+#### A45.2 The probe that found this and stopped one question short
+
+§0.7's adversarial probe this round included the reverse-order input, and the report records it as: *one
+initial FAIL was a wrong probe expectation (reverse `[C,B,A]` meets A late then unmets B at index 1 —
+correct code). Re-checked: pass. No production fix required.*
+
+The code was right and the probe expectation was wrong, so the conclusion was sound as far as it went.
+What was not asked is whether the **report** of that correct answer is honest — and it is not. **A probe
+that lands on a real case and is resolved by correcting the probe should be finished by reading the
+output aloud as a user would**, because "correct under the rule" and "true as a sentence" are different
+properties, and this track exists for the gap between them.
+
+---
+
+### A46 — 2026-07-31 · Phase 7 closed
+
+**Measured at `4cc351a`.** `bun test` 871 pass / 3 skip / 0 fail (874 collected), `validate:ci` green,
+`validate:marketplace` PASS, root lint 0 errors with the 11 pre-existing graph warnings, polyglot lint
+clean, working tree clean.
+
+**Correction 114 is confirmed fixed** with a typed discriminator rather than a reworded string:
+
+```
+["B","A","C"] → { kind: "requirement-out-of-order", index: 1, expected: "B", appearedAt: 0 }
+["A","C"]     → { kind: "requirement-absent",       index: 1, expected: "B", atCursor: "C" }
+["A","B","C"] → null
+```
+
+and the renderer prints them as different sentences, with `at-cursor` labelled *not a substitute for the
+missing requirement*. `C-FAILURE-LOCALIZATION` is archived at `spec=applied plan=applied`, and the
+board row and banner are `COMPLETE`.
+
+#### A46.1 Four rounds, and every one of them was a value with no warrant behind it
+
+| Round | The surface said | The input supported |
+|---|---|---|
+| 1 | `crates/core/src/lib.rs:16-21` | an empty file |
+| 2 | *first divergent block: index 1* | a run that met every requirement |
+| 3 | *expected B, observed C* | a log whose first line is B |
+| — | *flake: consumed* | a producer no invocation could reach (110, 113) |
+
+Every one is D5's gate rule broken in the same direction, and **in every case the correct answer was
+already reachable from data the surface had in hand** — `foreignMarkers` for round 1, the
+requirement/transcript distinction for round 2, the earlier-position lookup for round 3. Not one of them
+needed a new mechanism. That is the pattern worth carrying out of this phase: when a verifier is about
+to state something it cannot support, the discriminator is usually already computed and discarded one
+line above.
+
+#### A46.2 The durable idea — a requirement list is not a transcript
+
+Correction 112's category error generalises past markers. `<Marker>` entries are **requirements in
+declaration order**; a run log is a **transcript**. Comparing them by index equality makes every loop,
+retry and re-entry a divergence — which is why the healthy triple emission was reported as a fault at
+the block that worked. The comparison that holds is an ordered subsequence scan: *were the required
+things observed, in order*, with repeats absorbed and counted rather than treated as noise or as error.
+
+Anywhere else on this track where a declared list meets an observed stream — attempt outcomes against
+planned tasks, expected commands against executed ones — the same question applies first: **which of
+these two is a requirement and which is a record?** They are never the same kind of list, and the
+comparator has to know which it is holding.
+
+#### A46.3 Standing rule 11 — read the output aloud before calling it correct
+
+A45.2's finding, promoted. **A result that is correct under its rule can still be false as a sentence.**
+Round 3's adversarial probe landed on the out-of-order case, found the code behaved as specified,
+corrected the probe, and moved on — leaving a surface that told a fixer *B never ran* about a log whose
+first line was B.
+
+So: for each non-trivial field a surface can emit, state the sentence a reader will hear, and ask
+whether that sentence is true given the input. A probe resolved by correcting the probe is not finished
+until that question is asked. The round-4 report carries the first such table; it is the model.
+
+#### A46.4 D16 sharpened — a path never seen succeeding
+
+Corrections 106, 110 and 113 are one defect at three depths: an assembler input with no producer (106),
+a producer with no invocation (110), and an invocation whose success path no test ever reached (113).
+D16 says a check that has never failed is not a check; the mirror holds. **A path never observed
+succeeding is not a path** — it is a type signature. The Phase 5 opener (a verdict record with no
+writer, correction 62) is the same finding one surface over, which makes this the second track-wide
+instance and the reason it belongs in the amendments rather than in a phase report.
+
+The payoff is concrete: `classifyFlakeFromEvidence` shipped in Phase 4 and, until `776bf70`, had no
+caller in this repository outside its own tests. Three phases of "consumed" that were not.
+
+#### A46.5 What shipped, stated at its actual strength
+
+- **`observed` is textual presence, not proven emission.** The ground line says so in text and JSON, the
+  assertion-diff case is pinned as a known limitation, and `ngrace-fix` tells the agent which stream to
+  capture. A log that echoes an expected marker still inflates the transcript; nothing deterministic
+  separates an emission from a quotation of one.
+- **Route (1) is deferred, not missing.** The binary does not run tests; `parseObservedMarkers` takes a
+  string, so a later `C-*` can supply spawn output without touching the comparator.
+- **The bundle's own verdict is half mechanized.** The gate proved a plan was approved, a verdict
+  existed, no epoch was open and no clarification was unresolved, and `ngrace review` returned zero
+  findings over the diff. That the `pass` judgment deserves trust is still the honor system: it was
+  self-recorded by the agent that wrote the code (A33.3).
+
+#### A46.6 Still owed — the graph now misses three surfaces
+
+`.ngrace/graph/main.xml` carries the same twelve modules it had before Phase 5. It describes neither
+`src/gates/`, nor `src/review/`, nor now `src/verification/localize.ts` — which is why the eleven
+`graph.module-without-linked-files` warnings are the shape they are. A36.4 recorded this as owing its
+own `C-*` after Phase 5; two phases later the debt has grown rather than been paid. It stays out of
+Phase 8's scope and stays scheduled, not folded in.
 
 ---
 

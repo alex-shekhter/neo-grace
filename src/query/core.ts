@@ -217,7 +217,12 @@ function extractPath(text: string) {
   return match?.[1]?.trim();
 }
 
-function isLikelyTestPath(relativePath: string) {
+/**
+ * Shared predicate for "this path is a test file, not a runtime emission site."
+ * Used by health, module path selection, and localization block resolution (A43.4 / corr 111).
+ * One copy only — drift would make health and localize disagree about the same BLOCK_*.
+ */
+export function isLikelyTestPath(relativePath: string) {
   return /(^|\/)(__tests__|tests)(\/|$)|(^|\/)(test_[^/]+|[^/]+\.(test|spec)\.[^.]+)$/.test(relativePath);
 }
 
