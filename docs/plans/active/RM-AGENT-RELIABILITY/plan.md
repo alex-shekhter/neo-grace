@@ -8683,3 +8683,93 @@ was not checked**. Every mechanism here is downstream of that. If you find yours
 write "verified" next to something you inferred, that is the moment the whole track is about.
 
 Write the absence value instead. It is always available, and it is never wrong.
+
+### A57 — 2026-08-01 · Phase 9 stage 1 accepted; the labeled pair is self-adjudicated
+
+A56 was verified at `e4b5f85`. Gaps 1–3 hold, the draft `C-CALIBRATION` spec is 358 lines with twelve
+ACs each carrying a discriminating negative, and the plan edit is correct: `READY FOR REVIEW` is in
+the §0.6 legend, and §0.6 requires the board to be kept current, so the three deletions (frontmatter
+date, board row, §9 status) are the job rather than a rewrite.
+
+**Two of their corrections are to me, and both stand:**
+
+| Correction | Verified |
+|---|---|
+| `AssertionKind` is **15**, not the 14 in my prompt — `MustPassBudget` was the one I dropped | Confirmed, `assertions.ts:39–53` |
+| `<EpochOpened>` is not merely absent; **the event vocabulary already exists** as `KNOWN_KIND_STATE` (`grace-cursor.ts:237`) with `opened`, `progress`, `resume`, `attempt`, `verification-unavailable`, `pause`, `terminal`, `escalation` | Confirmed. `KnownEventKind` is the type |
+
+The second is a better reading than mine. I framed gap 1 as *"make `<EpochOpened>` exist"*, which
+invites a new event kind. The honest shape is **optional harness identity on the existing
+`kind="opened"` event**, which is what P1 proposes. A40.3's row is still false, but the remedy is
+smaller than I described.
+
+**Ratified: P1** (identity on `opened`, not a new kind), **P3** (N=0 emits counts and the honest
+sentence, never a rate table), **P4** (half-1 amended under rule 7, with the rule-12 count recorded
+rather than shipped as a check), **P5** (Phase 9 does not put `precision` on anchors).
+
+`AC-SEPARATION-HALF1-DEFERRED` and `AC-NO-GATE-READS` are the two best ACs in the draft. The first
+records *"0 flags / 0 subjects — recorded, not shipped as a check"*, which is standing rule 12 doing
+exactly what it was written for. The second states that a green suite alone is not the evidence and
+names the mutation that must make it red. Neither was asked for in that form.
+
+#### A57.1 Correction 149 — the pair P2 would collect is the agent grading itself
+
+P2 attaches `claimedConfidence` to an `attempt` as the primary site, on the grounds that an attempt
+already carries an adjudicator outcome. It carries **an outcome**. It does not carry an
+**adjudicator's** outcome:
+
+```ts
+export function recordAttempt(projectRoot, changeId, options: {
+  task: string;
+  outcome: "pass" | "fail";      // ← supplied by the caller, via `ngrace cursor attempt --outcome`
+  signature?: FailureSignature;
+})
+```
+
+The only validation is that a `fail` carries a signature (`grace-cursor.ts:1242`). Nothing checks that
+a `pass` is true. So the agent writes the claim and, in the same command, writes the grade of its own
+work. Correlating those two measures **self-consistency, not calibration** — and an unfalsifiable
+self-report is precisely what D6 says GRACE avoids: *"claims are adjudicated by machinery already
+being built,"* whose four rows are verification assertions, reviewer findings, ledger degradation
+records, and ground truth by construction. An agent-authored attempt outcome is none of them.
+
+`AC-ATTACHMENT-ADJUDICATED-ONLY` is therefore a rule-11 finding against its own name: *"accepted only
+on elements that already carry an adjudicator outcome (attempt…)"* is read as *these pairs are
+labeled data*, and for the attempt site that sentence is false. The AC is well-constructed; the claim
+in its first line is not yet true.
+
+**The attachment site is not the problem — the outcome side of the join is.** Where the agent records
+its claim is a fine question; what the claim is scored against is the question that decides whether
+this phase produces a corpus or a mirror.
+
+#### A57.2 Correction 150 — the adjudicator already exists and has never run
+
+```
+$ rg -n "targetAssertionsClean" src
+src/grace-cursor.ts:1078:export function targetAssertionsClean(projectRoot, changeId): boolean
+```
+
+**One hit: the definition.** No caller anywhere in `src/`. A machine evaluation of a change's
+`TargetAssertions` — exactly the first row of D6's adjudicator table — is exported, tested by nothing
+in production use, and consulted by no surface. `recordAttempt` does not call it; nothing does.
+
+This is A46.4 again, and it is also the fix for 149: the outcome half of a labeled pair should come
+from an adjudicator that is not the claimant, and one is sitting unused two hundred lines above
+`recordAttempt`. Whatever the join ends up reading — `targetAssertionsClean`, reviewer findings, a
+gate verdict recorded after `ngrace review` — **the report must record which adjudicator supplied the
+outcome**, per D15's *"record which stage produced the final set"* applied here. A pair whose
+provenance is unstated is not evidence about anything.
+
+#### A57.3 Correction 151 — no criterion requires one live pair
+
+`AC-REPORT-FIXTURE-NOT-LIVE` correctly forbids fixture numbers from being presented as the project's
+calibration result. Nothing requires the live path to be **observed succeeding once**.
+
+Phase 9 can produce its own first labeled pair by dogfooding: `C-CALIBRATION`'s own execution opens an
+epoch, records attempts, and reaches an adjudicated outcome. Phase 8 was held to the same standard and
+it is what turned its measurement from a fixture claim into a number about this repository.
+
+Without it the phase ships a report whose only observed output is `N=0` — correct, honest, and
+identical to what it would print if the join were broken. **`0 included, 0 excluded` is not
+distinguishable from a join that silently never fires**, and that indistinguishability is the thing to
+remove before the phase closes.
