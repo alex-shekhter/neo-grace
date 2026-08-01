@@ -6988,6 +6988,131 @@ Assumptions `A-1`/`A-2`/`A-3` retired — all three are answered above. `plan.xm
 
 ---
 
+### A43 — 2026-07-31 · Phase 7 review gate: the log with no evidence gets a location anyway
+
+**Measured at `7561f56`.** `bun test` 847 pass / 3 skip / 0 fail (the report's 846 is one stale),
+root lint 0 errors, `localize.test.ts` 41 tests / 104 expects.
+
+Corrections 103–107 are **confirmed implemented**: the project-wide alphabet with foreign split
+(`projectMarkerAlphabet` / `splitObservedByEntry`), the block-location resolution with its four-row
+absence table, the closed-by-name admissibility rule with a `--review-json` producer, every occurrence
+kept in log order, and route (1) deferred rather than dropped. The seven comparator axes are seven
+cases. None of that needs redoing.
+
+Four corrections follow, **108–111**. The first two are the same failure D8 exists to prevent, arriving
+through the input rather than the output: **a log that contains no evidence produces a confident
+answer, and a log that contains the word "expected" produces the wrong one.**
+
+#### A43.1 Correction 108 — zero marker evidence yields divergence at index 0, with a source location
+
+Probe on `examples/polyglot`, empty log file:
+
+```
+$ bun run ngrace verification localize --path examples/polyglot V-M-LEDGER-CORE --log <empty>
+Expected (1): [LedgerCore][post][BLOCK_VALIDATE_BALANCE]
+Observed (0): (none)
+First divergent block: index 0 expected="[LedgerCore][post][BLOCK_VALIDATE_BALANCE]" observed=null
+Location:
+  crates/core/src/lib.rs:16-21
+```
+
+An empty file is offered as evidence and the surface answers with an index, a marker, and a line range
+in the user's source. **This is §7.7.2 — "does the empty-marker case produce a confident answer?" —
+answered yes**, and the approved spec names the case three times:
+`AC-LOCALIZE-ABSENCE-VALUE` lists "missing log, unreadable log, **empty log**, **log with no declared
+markers**" as absences carrying `unable-to-determine`. `localizeFailure` has no such branch: past the
+`logText == null` guard it parses, compares, and resolves a location unconditionally.
+
+`localize.test.ts:551` and `:599` **pin the defect as correct** (`expect(result.divergence?.index).toBe(0)`
+for a stack-trace-only log and a foreign-only log), and `:555` guards its location assertion behind
+`if (result.locations.length > 0)` — an assertion that passes by not running, in the file that is this
+phase's evidence.
+
+**The distinction is well-founded and the data is already collected.** Zero observed markers is the
+absence of evidence; one or more makes subsequent absence *into* evidence:
+
+| Observed (own) | Foreign markers | Answer |
+|---|---|---|
+| empty | empty | **Absence** — `unable-to-determine`, "log carries no declared marker of any entry; cannot distinguish a run that died before the first marker from a log that never carried markers" |
+| empty | non-empty | **Divergence at 0 is well-founded** — the log demonstrably carries markers, so the absence of *these* is the finding: the run went somewhere else |
+| non-empty | either | Divergence as built today |
+
+Today rows 1 and 2 are indistinguishable in the answer — both print `index 0` — which means A42.3's
+foreign-marker split is collected and then discarded at the only point where it decides something. The
+fix is a branch, not a mechanism.
+
+#### A43.2 Correction 109 — a log saying the marker was **never emitted** parses as two emissions
+
+`parseObservedMarkers` scans with `indexOf` over the raw log text, so any textual occurrence counts as
+an emission — including the log's own report that the marker is missing. Probe, same entry:
+
+```
+log:  right: "[LedgerCore][post][BLOCK_VALIDATE_BALANCE]"
+      expected marker [LedgerCore][post][BLOCK_VALIDATE_BALANCE] was never emitted
+
+Observed (2): [LedgerCore][post][BLOCK_VALIDATE_BALANCE] → [LedgerCore][post][BLOCK_VALIDATE_BALANCE]
+First divergent block: index 1 expected=null observed="[LedgerCore][post][BLOCK_VALIDATE_BALANCE]"
+Location: crates/core/src/lib.rs:16-21
+```
+
+A log stating the marker never fired is read as the marker firing twice, and the surface reports
+**observed longer than expected** — the axis A42.6 was written to make reachable, reached here by an
+artifact of the parser. This is not an exotic input: an assertion diff that echoes the expected string
+is what a failing marker test prints, in every framework.
+
+No purely textual rule separates emission from echo, and inventing one would be pattern 3 wearing a
+parser. So the requirement is honesty about ground, not cleverness:
+
+1. **Declare what `observed` means** — in the text output, in the JSON, and in the module header:
+   *declared markers textually present in the supplied log, in log order*. Not "markers the run
+   emitted." Rule 8 (A14.6): the report names its ground.
+2. **At most one occurrence counted per line.** An emission is a log line; a line containing the marker
+   twice is a description of it. Deterministic, justified by the emission model the repo already
+   teaches, and it removes the within-line inflation.
+3. **Pin the probe above as a test** — a known, recorded limitation beats an undiscovered one, and the
+   expected value in that test is whatever the fixed parser does, stated plainly.
+4. **`ngrace-fix` says which stream to capture** — the run's own output, not the test framework's
+   failure report; and if only the failure report exists, the observed sequence is unreliable and the
+   honest reading is the absence.
+
+#### A43.3 Correction 110 — flake consumption has no producer, which is 106 in a second costume
+
+`localizeFailure` accepts `flakePair` and calls `classifyFlakeFromEvidence`, and **no CLI path ever
+constructs one**: `src/grace-verification.ts:234–241` passes `index`, `verification`, `module`,
+`logText`, `logAbsenceReason`, `testFile`, `reviewFindings` — and stops. So
+`AC-LOCALIZE-FLAKE-CONSUME` is satisfied by three unit tests calling the assembler directly, and
+`classifyFlakeFromEvidence` remains — at `7561f56`, two phases after it shipped — a function whose only
+callers in this repository are its own tests.
+
+This is exactly correction 106, which A42.5 raised against the review-findings input. That one was
+fixed; the identical defect one field over was not, because it had not been named. **Rule: an assembler
+input that no invocation can supply is not a feature, it is a unit test with a type signature.**
+
+The durable side exists — `readAttemptPayload` (`grace-cursor.ts:1386`) reads attempt events, and rule
+9 (A20.5) already specifies ledger∪loose rather than the cursor cache. Either give the flag its
+producer, or drop `flakePair` from the surface and record the deferral the way route (1) was recorded.
+Do not leave a third option.
+
+#### A43.4 Correction 111 (minor) — a third copy of `isLikelyTestPath`
+
+`localize.ts:246` defines it character-identically to `health.ts:13` and `core.ts:220`. It decides which
+files count as emission sites, so the day one copy is corrected the localizer silently disagrees with
+the health check about where a `BLOCK_*` may live — and `health.required-log-marker-block-not-found` and
+the localizer's location absence would then answer differently about the same file. Export one and
+import it.
+
+#### A43.5 What this round is really about
+
+108 and 109 are the same shape as every blocking finding on this track: **an unknown converted into a
+usable value.** An empty log is an unknown, and it came out as `crates/core/src/lib.rs:16-21`. A log
+saying the marker never fired is an unknown about emission, and it came out as two emissions. The
+stack-trace ban was honoured in its negative form — no frame ever reaches the output — while the
+positive form it was traded for now fires on evidence that does not exist.
+
+The surface is close. What is missing is the branch that says so.
+
+---
+
 ## 15. Final instruction to the executor
 
 Work one phase at a time. Report in the §0.5 format. Stop after each phase and wait for review.
