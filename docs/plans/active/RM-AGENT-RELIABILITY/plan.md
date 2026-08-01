@@ -6233,6 +6233,74 @@ new *correct* code. Phase 6's controls should therefore come in pairs: a held-ou
 and a **held-out legitimate variant that must stay silent** — for this branch, the renamed scanner is
 exactly that control.
 
+### A39 — 2026-07-31 · Third Phase 6 gate: the key stopped being a name and became a syntax
+
+**Measured at `2bc2020`.** Verified here: the rename probe that produced correction 89 is now **silent**
+on identical code, `ngrace review --path .` reports `Shape-data exemptions: 2` with both paths and no
+findings, `validate:determinism` passes with corpus detection unchanged, and `validate:ci` is green.
+
+**89 and 90 are fixed, and 91 was found by the executor's own probe** — a pattern source containing `\/\/`
+with no `#` alternative slipped the comment-prefix check, and the fix decodes one escape level before
+testing. That is the §0.7.3 probe doing what it exists for, self-reported.
+
+The three-number report is the right instrument and should survive into later phases: corpus detection
+14/14, held-out FIRE 5/5, held-out SILENT 5/5, none collapsed.
+
+One correction, 92 — and it is the same defect in its third costume.
+
+#### A39.1 Correction 92 — the marker branch now decides on whether a value was given a name
+
+The dataflow rule is real: a marker scan over the function's raw input fires, a scan over a transformed
+value stays silent. But "transformed value" is implemented as *an identifier assigned from a call*, so the
+answer depends on whether the transform's result was bound to a variable. Four one-file fixtures, all
+scanning source comments for `START_MODULE_CONTRACT`:
+
+| # | Shape | Expected | Actual |
+|---|---|---|---|
+| a | `source.split("\n").some(l => /…/.test(l))` — raw input | fire | **fire** ✓ |
+| b | `normalize(source).split("\n").some(l => /…/.test(l))` — inline transform | silent | **fires** ✗ |
+| c | `const s = normalize(source); const lines = s.split("\n"); lines.some(…)` | silent | **silent** ✓ |
+| d | `const lines = source.split("\n"); lines.some(…)` — raw, two-step | fire | **fire** ✓ |
+
+**(b) and (c) are the same program.** One binds the stripped text to a name and one does not, and only the
+named one is believed. The key has moved from a symbol name (87, 89) to a syntactic form, which is a
+narrower brittleness but the same kind: the detector's answer still depends on something that carries no
+meaning.
+
+The fix is a small extension of the rule already written — treat a call expression in subject position as
+call-derived, exactly as an identifier assigned from a call is — and the discriminating negatives are (b)
+must go silent while (a) and (d) keep firing. Note that (d) firing is a genuine result: the defect written
+in two-step form is still caught, so the rule is not merely form-matching in the other direction.
+
+#### A39.2 Why the new SILENT controls did not catch it
+
+A38 asked for a held-out legitimate variant per pattern, and the one written for this branch is the
+renamed production scanner — which uses the **const form**, the same form as (c). So the control and the
+implementation agree on style, and the style is what the rule keys on. One legitimate variant per pattern
+proves the detector is not keyed to a name; it does not prove the detector is not keyed to a form.
+
+**The generalization to carry forward:** a control is only evidence about the axis it varies. The renamed
+scanner varies *naming* and holds *form* constant, so it can only ever falsify a name-keyed rule. When a
+detector's decision procedure changes — from names to dataflow — the controls have to change axis with it,
+or they measure the previous round's defect.
+
+That is worth more than this correction. It says the pair of controls A38 introduced is a floor per
+pattern, and the ceiling is one control per *thing the rule could be accidentally keying on*: name, form,
+file path, ordering, length. For this detector: two names (done), two forms (this correction), and the
+subject's position in the expression.
+
+#### A39.3 What this round measured
+
+One finding, from four one-file fixtures that differ only in style. The probe was the same question as
+A38.3's, asked one level down: *does this detector's answer depend on something that carries no meaning?*
+Round 1 answered "a fixture's literal", round 2 "a function's name", round 3 "whether a value was given a
+name".
+
+**Three rounds, one defect, three costumes — and the detector under repair is the one for
+`regex-over-structure`, which is itself the pattern "a guard keyed to text shape rather than to
+structure."** The phase is rediscovering its own subject in its own implementation, which is not irony so
+much as evidence that the pattern is hard and the corpus entry earns its place.
+
 ---
 
 ## 15. Final instruction to the executor
