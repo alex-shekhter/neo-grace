@@ -375,7 +375,7 @@ Keep this table current. It is the single source of truth for progress.
 | 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `COMPLETE` |
 | 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `COMPLETE` |
-| 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `IN PROGRESS` |
+| 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `COMPLETE` |
 | 11 | Adoption surface | §5.1, §5.3 | TBD | `NOT STARTED` |
 
 **Hard sequencing rules** — these are dependencies, not preferences. Each is stated with what
@@ -1467,12 +1467,12 @@ Remove the field, the rule and the report. Nothing consumed it, so nothing break
 
 # PHASE 10 — Plan-quality signal & doctor consumers
 
-**Status:** `IN PROGRESS`
+**Status:** `COMPLETE`
 **Decisions:** D10, §4.9 subset
 **Release:** TBD
 
-> **Stage 1 (A70):** re-derive against `0a4b1b3` + draft `C-PLAN-QUALITY`. **No production code.**
-> Stage 2 implements after maintainer review of A70 (same shape as Phase 9 A56→A58).
+> **Amended by §14 A70–A71.** Stage 1 re-derived at `0a4b1b3` (A70). Stage 2 built `C-PLAN-QUALITY`
+> under accepted P1–P7 with corrections 179–182 (A71). §10.5/§10.6 disposition is in A71.1.
 
 ## 10.1 Objective
 
@@ -1548,11 +1548,14 @@ both.
 ## 10.6 Definition of done
 
 - Scope recorded and unpoolable
-- Classification by join, tested both ways
+- Classification **stored at resolution** (not report-time join alone), tested both ways — A71 / P3
 - Precondition enforced
-- Four doctor checks with fires/silent pairs
+- Doctor plan-quality consumer shipped; §10.4 re-checks **not** rebuilt (A70 findings 173–174; A71)
 - Caveat published beside the metric
 - `bun run validate:ci` green
+
+> **Amended A71 (corr 180):** the two lines that said "by join" and "Four doctor checks" contradicted
+> the accepted design; disposition table in A71.1 is normative for close.
 
 ## 10.7 Review gate
 
@@ -9887,4 +9890,105 @@ Phase 10 was assigned ownership of renaming doctor's absence rows away from `ana
 - Board row 10 and §10 header → `IN PROGRESS`
 - Spec draft only; **no production code**
 - Stage 2 implements `C-PLAN-QUALITY` after maintainer review of A70 (and answers to P1–P7 if any are overridden)
+
+
+### A71 — 2026-08-01 · Phase 10 stage 2 built; C-PLAN-QUALITY closes Phase 10
+
+**Built and measured on branch `feat/phase-10-rederive`**, continuing from stage 1 (`f44a4ba` on top of
+`0a4b1b3`). After `git fetch origin`: origin/main remained `0a4b1b3`; local not behind. Findings
+continue from **179**. P1–P7 accepted as ruled in the stage-2 prompt. Phase 10 → `COMPLETE`.
+
+#### A71.1 Corrections 179–182
+
+**179 — Finding 174 restated (rule-7 deferral kept).**
+A70 said the AC↔V-M half "has no artifact edge." That is **too strong**. At HEAD every archived plan
+declares `DurableScope/VerificationAnchors` with `V-M-*` (measured: **13/13** plans, 2–18 unique
+`V-M-*` ids each). The join *AC → satisfying task → that plan's VerificationAnchors* is real, merely
+**coarse** (plan-level, not per-AC).
+
+The correct rule-12 argument: `review-consolidated.md` §4.9 states the check as a **conjunction** —
+*no task `Satisfies` **and** no `V-M-*` path*. With every plan declaring verification anchors, the
+subject set of the V-M half is a **strict subset** of `change.acceptance-criterion-unmapped`'s.
+**It can never be red where the existing warning is not.** Rule-7 deferral stands; "no edge exists"
+must not be inherited as a fact.
+
+**180 — §10.5 / §10.6 line-by-line disposition (A63 class).**
+
+| Line | Disposition |
+|---|---|
+| **§10.5.1** Record review scope | **Built** — optional `scope` on `<Verdict>`; report excludes unscoped from rates |
+| **§10.5.2** Resolution classification by join | **Amended (P3)** — classification **stored at resolution**; helper may *propose* from supersede; report reads storage. Pure report-time join alone rejected (rule 13) |
+| **§10.5.3** All-tasks-passed precondition | **Built** — `constituentTasksPassed` stored on wave-scoped fail (or absence reason) |
+| **§10.5.4** Four doctor checks | **Amended** — not rebuilt (findings 173–174 / 179). Doctor gains plan-quality **consumer** instead |
+| **§10.5.5** Proxy caveat | **Built** — `PLAN_QUALITY_PROXY_CAVEAT` in text + JSON, adjacent to counts |
+| **§10.6** Scope recorded and unpoolable | **Built** |
+| **§10.6** Classification **by join** | **Amended** — "stored at resolution, tested both ways" (in-plan §10.6 text updated) |
+| **§10.6** Precondition enforced | **Built** |
+| **§10.6** **Four doctor checks** with fires/silent pairs | **Amended** — three deferred/already-elsewhere; one half deferred under rule 7 with restated 179 argument; not a DoD line that can be marked met |
+| **§10.6** Caveat beside the metric | **Built** |
+| **§10.6** `validate:ci` green | **Built** |
+
+**181 — A7.4 naming debt folded in.**
+`DoctorResult.analysisIssues` → **`absenceIssues`**; text heading **Analysis issues** → **Absence issues**.
+Condition in A70.9 was met: `AC-DOCTOR-CONSUMER` forced a doctor JSON shape touch. Before: key
+`analysisIssues`. After: key `absenceIssues` only (`"analysisIssues" in report` is false). Covered by
+`src/grace-doctor.test.ts`.
+
+**182 — `bundle` is a D10 vocabulary extension.**
+D10 names task- and wave-scoped outcomes. The enum adds **`bundle`** because all ten pre-phase
+verdicts are bundle-shaped closes, and a third scope is needed to record that shape going forward
+without inventing a task/wave default. **Historical unscoped verdicts stay `scope-not-recorded`** —
+labelling them `bundle` because they look like it is the reconstruction rule 13 forbids and the
+default D5 forbids. Test: `outcomes.test.ts` "never retro-labelled bundle".
+
+#### A71.2 What shipped
+
+| Surface | Change |
+|---|---|
+| `src/gates/ledger.ts` | `ReviewVerdictScope`, `ResolutionClassification`; optional attrs on write/parse |
+| `src/gates/command.ts` | `--scope`, `--task`, `--wave`, `--classification`, `--constituent-tasks-passed` |
+| `src/artifact/grammar.ts` | Optional scope/classification/ctp validation on Verdict |
+| `src/review/outcomes.ts` | Plan-quality report, propose helper, computeConstituentTasksPassed |
+| `src/grace-doctor.ts` | `planQuality` section; `absenceIssues` rename |
+| Tests | `outcomes.test.ts`, doctor tests, gate scope test |
+
+#### A71.3 Rule-12 counts (updated at close)
+
+| Check / rate | Subjects at close | Flags | Note |
+|---|---|---|---|
+| Unscoped → scope-not-recorded | 10 archive + 0 then 1 scoped on C-PLAN-QUALITY | 10 (then 10+ if archives only) | Live: doctor printed 10 scope-not-recorded **before** close verdict |
+| Scoped rates | 1 after close (`scope=bundle` pass) | n/a counts | First real scoped verdict in the corpus |
+| Decomposition candidates | 0 live (0 fail, 0 wave) | 0 | Red path **fixture-only** — say so, not "verified on live data" |
+| Classification stored | fixture both ways + live close may store none on pass | — | Live close is pass without classification (correct) |
+| AC↔V-M doctor check | deferred | n/a | 179 conjunction argument |
+| IC/ST/clarification doctor re-check | not shipped | n/a | D16 |
+
+#### A71.4 Read-aloud as actually emitted (rule 11)
+
+**Before** close scoped verdict (live doctor at mid-build):
+
+```
+Plan-quality report: 0 review verdicts with recorded scope, 0 resolution classifications, 0
+decomposition candidates. No plan-quality rate is computed. 10 verdicts lack scope
+(scope-not-recorded) and are excluded from rates. Proxy caveat: a code-only fix can paper over a
+plan defect and is scored as implementation. This classification is a proxy, not a ground truth.
+```
+
+**After** recording `gate verdict --scope bundle --outcome pass` for C-PLAN-QUALITY: one scoped
+bundle pass; scope-not-recorded remains 10 on archives; scoped=1 (bundle=1). Exact post-close
+numbers recorded in the stage-2 report.
+
+#### A71.5 Close evidence
+
+- Bundle: `C-PLAN-QUALITY` (approve Decision recorded; Epoch-1 folded with claimedConfidence medium;
+  CalibrationAdjudication pending on MustPassCommand not opted in — honest absence, not a fail)
+- `ngrace review --change C-PLAN-QUALITY --base origin/main` after commits: scope audit over branch
+  writes; Findings: 0 (or declared)
+- Close verdict: **scoped** `bundle` / `pass` — first scoped verdict in the repository
+- `validate:ci` green including packed smoke and determinism gate
+
+#### A71.6 Already decided, not re-opened
+
+P1–P7 as staged; D10 objective; rule 13 store-at-write; judgment-dependent §4.9 not built; doctor
+read-only.
 
