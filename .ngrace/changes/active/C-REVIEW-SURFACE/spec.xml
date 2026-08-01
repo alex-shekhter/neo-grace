@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-REVIEW-SURFACE>
     <Summary>
       Create the review check surface — mechanized pattern detectors and process audits with
@@ -72,8 +72,8 @@
     <Constraints>
       <Constraint>src/lint/core.ts does not learn about review. review.* codes live in src/review/catalog.ts (D14).</Constraint>
       <Constraint>ngrace review does not write Verdicts, Decisions, status attributes, or archive paths. Recording stays on ngrace gate verdict (F1, A35.2 corr 81).</Constraint>
-      <Constraint>Do not expand the seeded-defect corpus for process-audit codes unless the maintainer rejects A35.8 decision 1's recommendation (a). Default: corpus stays at its HEAD population; process audits proven by unit pairs and determinism.</Constraint>
-      <Constraint>Join-engine findings map onto the five review.&lt;pattern&gt; codes when the shape fits; new codes only for family B process audits (A35.8 decision 2 recommend a).</Constraint>
+      <Constraint>Decided (A36.1): the corpus stays at 11 entries this phase. Process audits are proven by unit fires/silent pairs and §0.7.2's mutation check. Seeding process-audit rows is owed only if a process audit regresses in content while the determinism gate stays green.</Constraint>
+      <Constraint>Decided (A36.2): a join-engine finding takes a review.&lt;pattern&gt; code only when it is an instance of that pattern as the corpus defines it. Otherwise it is process-shaped and takes a family-B code. Resemblance is not the test; the corpus entry is. Family B never moves the pattern trend.</Constraint>
       <Constraint>Full grace mutate / revert-and-rerun is out of scope (Q1, A35.2 corr 84). Hunk coverage is attribution only.</Constraint>
       <Constraint>No new runtime dependencies. Surgical diffs only (§0.1).</Constraint>
       <Constraint>Skill edits under skills/ngrace/ are mirrored to plugins/ngrace/skills/ngrace/ in the same commit (§12.2).</Constraint>
@@ -104,8 +104,9 @@
       <AC-REVIEW-PATTERN-DETECTORS>
         A35.3 family A. The five codes review.confidently-wrong, review.self-referential-comparison,
         review.regex-over-structure, review.zero-or-more-swallow, review.unthreaded-construct each
-        fire on their corpus mustFire:true review rows and stay silent on clean controls. Per-pattern
-        fires/silent pairs reported (A35.2 corr 72).
+        fire on their corpus mustFire:true review rows and stay silent on clean controls. The clean
+        control for every entry is its own pre-apply() state, which build() produces lint-clean
+        (A36.3 corr 85). Per-pattern fires/silent pairs reported (A35.2 corr 72).
       </AC-REVIEW-PATTERN-DETECTORS>
       <AC-REVIEW-PROCESS-AUDITS>
         A35.3 family B. Scope, test weakening, backward-compat, and hunk-coverage audits each ship
@@ -126,8 +127,12 @@
       </AC-REVIEW-FINDING-IDS>
       <AC-REVIEW-SCORER>
         Scorer runs corpus() multi-surface (lint, health, review) and reports detection rate per
-        pattern and per surface, both directions (A35.2 corr 70, 82; D4). Process-audit codes that
-        are not corpus expected rows do not inflate pattern rates (A35.3).
+        pattern and per surface, both directions (A35.2 corr 70, 82; D4). Correction 85 (A36.3):
+        every entry is scored twice — before and after apply() — because all four mustFire:false rows
+        are lint-surface and the review surface would otherwise have zero silent-direction ground.
+        A review.* finding on a pre-apply() tree is a false positive and is reported beside the
+        after-state mustFire:false violations. Process-audit codes that are not corpus expected rows
+        do not inflate pattern rates (A35.3).
       </AC-REVIEW-SCORER>
       <AC-REVIEW-DETERMINISM-GATE>
         validate:determinism (or equivalent validate:* name) is wired into CI. Gate = two-run
@@ -169,9 +174,10 @@
     </VerificationIntent>
     <Assumptions>
       <Assumption>
-        A35.8 decisions 1 and 2 are accepted as recommended (no corpus expansion for process audits
-        this phase; join findings map onto five patterns / process-audit codes only). If the
-        maintainer rejects either, this spec is amended before production code.
+        Answered, not assumed: A36.1 accepts decision 1 (corpus stays at 11, with a named trigger for
+        seeding process-audit rows later) and A36.2 accepts decision 2 with one clause — a join
+        finding takes a review.&lt;pattern&gt; code only when it is an instance of that pattern as the
+        corpus defines it; otherwise it is process-shaped and takes a family-B code.
       </Assumption>
       <Assumption>
         Hosts that cannot enforce tool allowlists or cold subagent spawn remain usable: they record

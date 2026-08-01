@@ -5945,6 +5945,91 @@ Proposed change id: **`C-REVIEW-SURFACE`** (precedent: `C-GATE-SURFACE`). Stage 
 `.ngrace/changes/active/C-REVIEW-SURFACE/spec.xml` with `status="draft"`. Maintainer approves the
 spec; then `plan.xml` is authored before any production code (A17.3, `grammar.ts:1205–1207`).
 
+### A36 — 2026-07-31 · A35 accepted, both decisions answered, and one gap in the measurement ground
+
+**Measured at `bd7a228`.** `validate:ci` green, root lint 0 errors, plan diff append-only with A1–A35
+untouched.
+
+**A35 is accepted.** Its factual claims were re-measured here rather than transcribed, and they hold —
+including the two that correct the stage-1 prompt itself:
+
+| Claim | Verified |
+|---|---|
+| Corpus is **11** entries, not 12 (corr 70) | `cw01 cw02 sr01 sr02 re01 re02 re03 zo01 zo02 ut01 ut02`; the twelfth `SeededDefect`-typed const is `ALL`, the aggregate |
+| The approved-spec rule is `grammar.ts:1207`, not `:1090` (corr 78) | Phase 5 added ~170 lines to `grammar.ts`; the prompt cited a pre-Phase-5 line |
+| Nine review-surface rows, `zo-01` and `ut-01` lint-owned | Confirmed per entry, with `ut-01` emitting `graph.unknown-module-type` |
+| CI has three jobs and no determinism gate (corr 76) | `validate`, `windows-compatibility`, `dart-adapter` |
+| Nine subcommands registered (corr 81) | `src/grace.ts` |
+
+**A35.3's reconciliation is the right answer and is ratified as normative.** Three families, nothing
+from §6.4 dropped, process-audit codes barred from the pattern trend. The mapping table's honesty is
+what makes it usable: it says plainly that `self-referential-comparison` and `regex-over-structure` are
+**not** covered by A27.2's trio, rather than stretching the trio to claim them.
+
+#### A36.1 Decision 1 answered — the corpus stays at 11, with a named trigger
+
+**Option (a), as recommended.** D4's trend is defined over the five patterns; process audits mechanize
+§0.7 and feed the **gate** half. Seeding process-audit rows would need either a sixth pattern — changing
+what the trend measures, mid-track, in the phase that builds the instrument — or mislabelled rows under
+an existing pattern, which is anti-pattern 2 wearing a corpus for a costume.
+
+Falsification ground for family B is therefore its unit fires/silent pairs plus §0.7.2's mutation check,
+and that is a weaker ratchet than family A's. Recorded with its trigger, in D16's form: **if a process
+audit ever regresses in content while the determinism gate stays green, that is the evidence that seeded
+rows are owed** — and it becomes a corpus expansion, not an argument.
+
+#### A36.2 Decision 2 answered — (a), with the mapping rule stated so it cannot inflate
+
+**Option (a), as recommended, sharpened:** a join-engine finding emits a `review.<pattern>` code **only
+when it is an instance of that pattern as the corpus defines it**. Otherwise it is process-shaped and
+takes a family-B code. Family B never moves the pattern trend.
+
+Without that clause, (a) reads as "map onto a pattern when the shape fits", and "fits" is exactly the
+judgment that inflates a detection rate under deadline. Correction 62 — a record with no writer — is the
+worked example: it is *not* `unthreaded-construct` as the corpus seeds it (`ut-02` is a new verification
+field no reader load-bears), it is the counterpart query finding a missing writer, and it belongs under a
+family-B code. Two findings of the same *shape* can belong to different families, and the corpus entry is
+the arbiter, not the resemblance.
+
+#### A36.3 Correction 85 — the review surface has no silent-direction ground, and the fix is free
+
+D4 requires both directions, and A35 commits to it in `AC-REVIEW-SCORER` and step 6.5.6. But **all four
+`mustFire: false` rows in the corpus are lint-surface** — `project.missing-grace`,
+`graph.module-without-linked-files`, `markup.missing-module-contract`,
+`assertion.command-not-evaluated`. There is **not one `mustFire: false` row on the review surface.**
+
+So the scorer as specified measures over-firing for lint and health and, for review, reports the silent
+direction over an empty set — while printing a "both directions" heading. A measurement that cannot fail
+in one direction, in the phase whose subject is measuring detectors, is D16's own argument turned on the
+instrument.
+
+**The ground already exists and costs nothing:** every entry's `build()` is documented and tested to
+produce a project that lints clean, and `apply()` is what introduces the defect. Run each detector
+against the **pre-`apply()` state** and any `review.*` finding there is a false positive. That converts
+zero silent-direction data points into eleven, with no corpus expansion and no new fixture design — and
+it keeps A36.1's answer intact.
+
+Step 6.5.6 and `AC-REVIEW-SCORER` are amended accordingly: the scorer runs each entry twice, before and
+after `apply()`, and reports over-fires from the before-state alongside `mustFire: false` violations from
+the after-state.
+
+#### A36.4 Not this phase — the graph does not describe `src/gates/` or `src/review/`
+
+`.ngrace/graph/main.xml` carries twelve modules and none of them is `M-GATES`; Phase 5 shipped a whole
+surface without adding one, and Phase 6 will do the same for `src/review/` if nothing says otherwise.
+The graph is drifting behind the codebase it governs.
+
+**Explicitly out of Phase 6's scope.** It is inherited from Phase 5, it is not a defect in this phase's
+work, and folding it in would widen a phase that already has ten steps. It earns its own `C-*` — noted
+here so it is a scheduled item rather than a thing everyone can see and nobody owns.
+
+#### A36.5 Spec approved
+
+`C-REVIEW-SURFACE` is `approved` with A36.3's amendment folded into `AC-REVIEW-SCORER` and
+`AC-REVIEW-PATTERN-DETECTORS`, and Assumption 1 retired — the two decisions it deferred are answered
+above. `plan.xml` before production code (A17.3), and gate the approval through `ngrace gate approve`,
+which exists now.
+
 ---
 
 ## 15. Final instruction to the executor
