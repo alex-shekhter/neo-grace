@@ -9339,3 +9339,84 @@ were the only things that would, and only because they were read back at the end
 | §9.5.2 half-1 — `agent-inferred` × `precision` | Blocked on D5's authority axis; amended under rule 7, not owed as a defect |
 
 One drafted bundle, and it is the only thing between here and Phase 10.
+
+### A66 — 2026-08-01 · `C-OBSERVABLE-CHECKS` stage 1 accepted; A51.1 undercounted, and the defect is worse than recorded
+
+Stage 1 verified at `a8cfee9`. The spec stays `status="draft"`, no production code, tree clean.
+**Three of their corrections are to me and all three hold.**
+
+#### A66.1 Correction 169 — it is a false clean, not a silent skip
+
+A51.1 and my stage-1 prompt both described the scope audit as *silently not running*. That is true for
+archived bundles and **false for the case that matters**:
+
+```ts
+if (!changedFiles) {
+  const listed = listRepositoryChangedFiles(root);
+  if (listed.available) changedFiles = listed.changedFiles;   // → [] on a clean tree
+}
+if (changedFiles && (scopeFiles.length > 0 || scopeGlobs.length > 0)) {   // Boolean([]) === true
+  findings.push(...auditScopeOutsideWriteScope(changedFiles, …));          // runs over zero files
+}
+```
+
+With an **active** plan and a committed tree the guard **passes**, the audit **executes** over an
+empty set, and reports clean. It is not skipped — it runs and finds nothing, because it was given
+nothing. That is strictly worse than a skip: a skip can be detected by its absence, and this cannot.
+
+It also changes the fix. Supplying input is not sufficient; **the default empty-input path must itself
+become absence**, or the same false clean survives the flag being added and never used.
+
+#### A66.2 Correction 170 — A51.1 undercounted the out-of-scope writes
+
+A51.1 named two files outside `C-SELECTION`'s `ObservedWriteScope`. There are **three**:
+
+| Path | Verified |
+|---|---|
+| `scripts/release-check.ts` | Not in OWS |
+| `src/artifact/scale-ergonomics.test.ts` | Not in OWS |
+| **`.ngrace/changes/active/C-OBSERVABLE-CHECKS/spec.xml`** | Added in `170a0c5` (#29); OWS lists only `C-SELECTION`'s own bundle artifacts |
+
+The third is the draft spec **of this bundle** — the bundle created to fix the audit that could not
+see it. Their rule-12 count of 3 is therefore right, and all three are legitimate writes that a
+working audit would have asked to be declared.
+
+Also corrected: **twelve** archived bundles, not eleven (Phase 9 added three), and the packed-fix
+iteration count is **2, not nine** — `files` is directory-level, so the nine-file closure is the
+diagnosis, not the number of rounds. Both mine.
+
+#### A66.3 The four proposals, answered
+
+I reproduced their packaging measurement independently — `src/gates`, `src/review`,
+`!src/review/scorer.ts` → **`✓ Packed CLI smoke passed`**, tree restored.
+
+| # | Answer |
+|---|---|
+| 1 | **`--base <ref>` and `--changed-files`, both.** `--base` uses the **three-dot / merge-base** range: the close question is *what did this branch write*, and two-dot would flag files that landed on main since branching |
+| 2 | **Severity stays `error`.** The rule-12 count is 3, all three real and all three fixable by declaring them |
+| 3 | **`validate:packed` joins `validate:ci` directly.** 1.75s is the same order as `typecheck`; a separate optional job is how it got missed the first time |
+| 4 | **Directories plus `!src/review/scorer.ts`**, matching the existing `!src/artifact/test-fixtures.ts` pattern. A nine-file list is correct today and silently wrong for the tenth file |
+
+**Question 5 — absence copy — confirmed, with one addition.** `not-run` when the toolkit knows it
+skipped: no diff supplied and none derivable, or no plan resolvable. `unable-to-determine` when git
+fails unexpectedly or the answer cannot be computed. That matches the existing semantics in
+`grace-cursor.ts`.
+
+The addition: **an explicitly supplied empty `--changed-files` is caller-owned and may report clean**
+— but the sentence must say the set was caller-supplied and empty. A verdict that does not name its
+input is the defect this bundle exists to remove, one level up. That is standing rule 13 applied to a
+sentence rather than a record.
+
+#### A66.4 What stage 2 is actually delivering
+
+The four read-aloud sentences in their table are the deliverable of items 2 and 3, and their state
+list is now five rather than four, because 169 splits *no input* into two cases:
+
+1. audit ran over N files, found nothing
+2. audit ran, found something
+3. **no diff available** — `not-run`, with the reason
+4. **no plan resolvable** — `not-run`, with the reason
+5. **caller supplied an empty set** — clean, and says so
+
+Today states 3, 4 and 5 all print `Findings: 0 / No review findings`, and that sentence is false for
+two of them.
