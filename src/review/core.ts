@@ -44,7 +44,18 @@ export type ReviewResult = {
   tool: "ngrace-review";
   root: string;
   findings: ReviewFinding[];
-  summary: { findings: number; errors: number; warnings: number };
+  /**
+   * Paths skipped because they hold detector shapes as data (A38.2 / corr 90).
+   * Always reported — silent exemptions are anti-pattern 8.
+   */
+  shapeDataExemptions: string[];
+  summary: {
+    findings: number;
+    errors: number;
+    warnings: number;
+    /** Count of shape-data exemptions (same as shapeDataExemptions.length). */
+    shapeDataExemptions: number;
+  };
 };
 
 export type HunkCoverageInput = {
@@ -373,11 +384,63 @@ function usesRegexAsGuard(text: string): boolean {
 }
 
 /**
- * Defective comment-marker line guard: line-anchored START_MODULE_* regex used as a
- * governance check *without* stripping quoted/template regions first (corpus re-03 family).
- * Production hasGraceMarkers uses stripQuotedStrings and must stay silent (A37.2).
- * Marker token must appear *inside a pattern source*, not merely in prose/remediation strings.
+ * Identifiers bound to a call result: `const X = f(...)` or `const X = a.b(...)`.
+ * A marker line-scan over such an identifier is a transformed-value scan (A38.1 / corr 89).
+ * The helper's *name* is irrelevant — only the dataflow matters.
  */
+function identifiersAssignedFromCall(text: string): Set<string> {
+  const ids = new Set<string>();
+  for (const m of text.matchAll(
+    /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*[A-Za-z_$][\w$.]*\s*\(/g,
+  )) {
+    ids.add(m[1]!);
+  }
+  return ids;
+}
+
+/**
+ * Subjects of *line-oriented* `.split("\n")` chained to an array callback — the re-03 /
+ * production marker-scan shape: `source.split("\n").some(line => /…/.test(line))`.
+ *
+ * Only the chained form is used: a whole-file scan of `const lines = ID.split` + later
+ * `lines.some` falsely couples unrelated functions that share the name `lines`.
+ * Non-newline splits (e.g. `body.split(/\s+/)`) are not line scans.
+ */
+function lineScanSplitSubjects(text: string): string[] {
+  const subjects: string[] = [];
+  // Chained: ID.split("\n").(some|every|filter|find) — "\n" as two source chars \ + n
+  for (const m of text.matchAll(
+    /\b([A-Za-z_$][\w$]*)\s*\.\s*split\s*\(\s*(?:"\\n"|'\\n'|`\\n`)\s*\)\s*\.\s*(?:some|every|filter|find)\s*\(/g,
+  )) {
+    subjects.push(m[1]!);
+  }
+  return subjects;
+}
+
+/**
+ * Defective comment-marker line guard: line-anchored START_MODULE_* regex used as a
+ * governance check on *raw* input (corpus re-03 family).
+ *
+ * Discriminator is dataflow (A38.1 / corr 89), not a production symbol name:
+ * re-03 scans the function's raw parameter (`source.split…`); the correct scanner
+ * scans a value derived by a transform (`const searchable = f(text)` then split).
+ * Marker token must appear *inside a pattern source*, not merely in prose.
+ */
+/**
+ * Comment-prefix tokens in a regex *pattern source*. Literals write `//` as `\/\/`,
+ * so a raw `/\/\//` check on the source string misses pure-// scanners (A38 probe / 91).
+ */
+function patternSourceHasCommentPrefix(patternSource: string): boolean {
+  // Decode one level of common regex escapes so `\/\/` becomes `//`.
+  const decoded = patternSource.replace(/\\([\\/"'ntr])/g, (_m, ch: string) => {
+    if (ch === "n") return "\n";
+    if (ch === "t") return "\t";
+    if (ch === "r") return "\r";
+    return ch;
+  });
+  return /\/\/|#|--/.test(decoded);
+}
+
 function isDefectiveUnstrippedMarkerLineGuard(text: string): boolean {
   const patterns = extractRegexPatternSources(text);
   const markerInPattern = patterns.some((p) =>
@@ -387,24 +450,51 @@ function isDefectiveUnstrippedMarkerLineGuard(text: string): boolean {
     (p) =>
       p.startsWith("^")
       && /START_MODULE_CONTRACT|START_MODULE_MAP|START_BLOCK_/.test(p)
-      && /(\/\/|#)/.test(p),
+      && patternSourceHasCommentPrefix(p),
   );
   if (!markerInPattern || !lineAnchoredMarker) return false;
   if (!usesRegexAsGuard(text)) return false;
-  // Correct implementations strip strings/templates before scanning comments.
-  if (/\bstripQuotedStrings\b/.test(text)) return false;
+
+  const transformed = identifiersAssignedFromCall(text);
+  const subjects = lineScanSplitSubjects(text);
+  if (subjects.length > 0) {
+    // Fire when any chained line-scan subject is not call-derived; silent when all are.
+    return subjects.some((s) => !transformed.has(s));
+  }
+  // No chained split-callback: still silent when a call-derived intermediate is
+  // newline-split (for-loop / indexed scan over the transformed value).
+  for (const id of transformed) {
+    const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (
+      new RegExp(
+        String.raw`\b${escaped}\s*\.\s*split\s*\(\s*(?:"\\n"|'\\n'|` + "`\\n`" + String.raw`)\s*\)`,
+      ).test(text)
+    ) {
+      return false;
+    }
+  }
+  // Marker line-regex used as a guard with no transformed line-scan subject.
   return true;
 }
 
-function detectRegexOverStructure(root: string): ReviewFinding[] {
+export type RegexOverStructureScan = {
+  findings: ReviewFinding[];
+  shapeDataExemptions: string[];
+};
+
+function detectRegexOverStructure(root: string): RegexOverStructureScan {
   const findings: ReviewFinding[] = [];
+  const shapeDataExemptions: string[] = [];
   for (const rel of listFilesRecursive(root, "src").filter(
     (f) => (f.endsWith(".ts") || f.endsWith(".js")) && !f.endsWith(".test.ts"),
   )) {
     const text = readText(root, rel);
     if (!text) continue;
-    // Corr 88: exempt only shape-as-data files, never a whole directory prefix.
-    if (fileHoldsShapesAsData(rel, text)) continue;
+    // Corr 88 / 90: exempt only shape-as-data files; report every exemption.
+    if (fileHoldsShapesAsData(rel, text)) {
+      shapeDataExemptions.push(normalizeRel(rel));
+      continue;
+    }
     if (!usesRegexAsGuard(text)) continue;
 
     const patterns = extractRegexPatternSources(text);
@@ -434,7 +524,8 @@ function detectRegexOverStructure(root: string): ReviewFinding[] {
       );
     }
   }
-  return findings;
+  shapeDataExemptions.sort((a, b) => a.localeCompare(b));
+  return { findings, shapeDataExemptions };
 }
 
 function detectZeroOrMoreSwallow(root: string): ReviewFinding[] {
@@ -498,13 +589,25 @@ function detectUnthreadedConstruct(root: string): ReviewFinding[] {
 }
 
 export function runPatternDetectors(root: string): ReviewFinding[] {
-  return [
-    ...detectConfidentlyWrong(root),
-    ...detectSelfReferential(root),
-    ...detectRegexOverStructure(root),
-    ...detectZeroOrMoreSwallow(root),
-    ...detectUnthreadedConstruct(root),
-  ];
+  return runPatternDetectorsWithMeta(root).findings;
+}
+
+/** Pattern detectors plus shape-data exemption paths (A38.2). */
+export function runPatternDetectorsWithMeta(root: string): {
+  findings: ReviewFinding[];
+  shapeDataExemptions: string[];
+} {
+  const regexScan = detectRegexOverStructure(root);
+  return {
+    findings: [
+      ...detectConfidentlyWrong(root),
+      ...detectSelfReferential(root),
+      ...regexScan.findings,
+      ...detectZeroOrMoreSwallow(root),
+      ...detectUnthreadedConstruct(root),
+    ],
+    shapeDataExemptions: regexScan.shapeDataExemptions,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -700,9 +803,12 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
   const runJoin = options.joinEngine !== false;
 
   const findings: ReviewFinding[] = [];
+  let shapeDataExemptions: string[] = [];
 
   if (runPatterns) {
-    findings.push(...runPatternDetectors(root));
+    const patternResult = runPatternDetectorsWithMeta(root);
+    findings.push(...patternResult.findings);
+    shapeDataExemptions = patternResult.shapeDataExemptions;
   }
 
   if (runJoin && options.joinProbes && options.joinProbes.length > 0) {
@@ -754,10 +860,12 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
     tool: "ngrace-review",
     root,
     findings,
+    shapeDataExemptions,
     summary: {
       findings: findings.length,
       errors: findings.filter((f) => f.severity === "error").length,
       warnings: findings.filter((f) => f.severity === "warning").length,
+      shapeDataExemptions: shapeDataExemptions.length,
     },
   };
 }
@@ -768,8 +876,15 @@ export function formatReviewResult(result: ReviewResult): string {
     "=======================",
     `Root: ${result.root}`,
     `Findings: ${result.summary.findings} (errors: ${result.summary.errors}, warnings: ${result.summary.warnings})`,
+    `Shape-data exemptions: ${result.summary.shapeDataExemptions}`,
     "",
   ];
+  if (result.shapeDataExemptions.length > 0) {
+    for (const p of result.shapeDataExemptions) {
+      lines.push(`  - ${p}`);
+    }
+    lines.push("");
+  }
   if (result.findings.length === 0) {
     lines.push("No review findings.");
     return lines.join("\n");

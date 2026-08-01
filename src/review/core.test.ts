@@ -11,6 +11,7 @@ import {
   auditScopeOutsideWriteScope,
   auditTestWeakening,
   findingId,
+  formatReviewResult,
   runJoinProbes,
   runPatternDetectors,
   runReview,
@@ -107,11 +108,13 @@ describe("pattern detectors — corpus fires/silent pairs", () => {
 });
 
 /**
- * A37.1 / corr 86–88: held-out generalization controls.
- * Never added to corpus() (A36.1 denominator stays 11). Each is an instance the detector
- * was not fixture-fitted against.
+ * Held-out controls (A37.1 + A38.3) — never in corpus() (A36.1 denominator stays 11).
+ *
+ * Controls come in pairs per pattern detector:
+ *   - fire: a defect the detector was not fixture-fitted against
+ *   - silent: legitimate code the detector was not written against (the 87/89 direction)
  */
-describe("held-out generalization controls (A37.1) — not in corpus()", () => {
+describe("held-out controls (A37/A38) — not in corpus()", () => {
   function minimalWithSrc(relFile: string, body: string): string {
     const root = track(path.join(os.tmpdir(), `heldout-${Date.now()}-${Math.random().toString(16).slice(2)}`));
     mkdirSync(root, { recursive: true });
@@ -130,7 +133,9 @@ describe("held-out generalization controls (A37.1) — not in corpus()", () => {
     return root;
   }
 
-  it("regex-over-structure: planHasTask new RegExp XML guard fires (A37.1 / corr 86)", () => {
+  // --- FIRE column (held-out defects) ---
+
+  it("FIRE regex-over-structure: planHasTask new RegExp XML guard (A37.1 / corr 86)", () => {
     const root = minimalWithSrc(
       "src/plan-has-task.ts",
       `export function planHasTask(xml: string, id: string): boolean {
@@ -144,11 +149,8 @@ describe("held-out generalization controls (A37.1) — not in corpus()", () => {
     expect(findings.some((f) => f.file.endsWith("plan-has-task.ts"))).toBe(true);
   });
 
-  it("confidently-wrong: MustExist of a non-corpus path fires", () => {
+  it("FIRE confidently-wrong: MustExist of a non-corpus path", () => {
     const root = track(byPattern("confidently-wrong")[0]!.build());
-    // Held-out path string — not src/never-created.ts from corpus-cw-02
-    const planPath = path.join(root, ".ngrace/changes/active");
-    // Use a clean project without a change: inject verification-level claim via plan-less MustExist on a synthetic plan
     const changeDir = path.join(root, ".ngrace/changes/active/C-HELDOUT-CW");
     mkdirSync(changeDir, { recursive: true });
     writeFileSync(
@@ -176,7 +178,7 @@ describe("held-out generalization controls (A37.1) — not in corpus()", () => {
     expect(findings.some((f) => f.message.includes("build/artifacts/held-out-absent.bin"))).toBe(true);
   });
 
-  it("self-referential-comparison: expect(parsed).toEqual(parsed) after JSON.parse fires", () => {
+  it("FIRE self-referential-comparison: expect(parsed).toEqual(parsed) after JSON.parse", () => {
     const root = minimalWithSrc(
       "src/roundtrip.test.ts",
       `import { expect, test } from "bun:test";
@@ -193,12 +195,9 @@ test("roundtrip", () => {
     expect(findings.length).toBeGreaterThan(0);
   });
 
-  it("zero-or-more-swallow: empty DependsOn with non-corpus sequencing title fires", () => {
-    const root = track(byPattern("zero-or-more-swallow")[0]!.build());
-    // Need a plan with two tasks — use zo-02's project shape via a fresh change
+  it("FIRE zero-or-more-swallow: empty DependsOn with non-corpus sequencing title", () => {
     const entry = corpus().find((e) => e.id === "corpus-zo-02-empty-depends-malformed-task")!;
     const zoRoot = track(entry.build());
-    // Mutate to a held-out title, not "Second after first"
     const planPath = path.join(zoRoot, ".ngrace/changes/active/C-CORPUS-ZO2/plan.xml");
     const plan = require("node:fs").readFileSync(planPath, "utf8") as string;
     writeFileSync(
@@ -215,7 +214,7 @@ test("roundtrip", () => {
     expect(findings.some((f) => f.message.includes("Runs once"))).toBe(true);
   });
 
-  it("unthreaded-construct: unknown FutureHook child under V-M-* fires", () => {
+  it("FIRE unthreaded-construct: unknown FutureHook child under V-M-*", () => {
     const root = track(byPattern("unthreaded-construct")[0]!.build());
     const verificationPath = path.join(root, ".ngrace/verification/main.xml");
     const xml = require("node:fs").readFileSync(verificationPath, "utf8") as string;
@@ -228,11 +227,105 @@ test("roundtrip", () => {
     );
     expect(findings.some((f) => f.message.includes("FutureHook"))).toBe(true);
   });
+
+  // --- SILENT column (held-out legitimate variants) ---
+
+  it("SILENT regex-over-structure: renamed transform helper (A38.1 / corr 89 rename probe)", () => {
+    // Pure rename of stripQuotedStrings → stripLiterals; behaviour identical; must stay silent.
+    const root = minimalWithSrc(
+      "src/markers.ts",
+      `export function stripLiterals(text: string) {
+  return text.replace(/"[^"]*"/g, " ");
+}
+export function hasGraceMarkers(text: string) {
+  const searchable = stripLiterals(text);
+  return searchable.split("\\n").some((line) =>
+    /^(\\s*)(\\/\\/|#|--|;+|\\*)\\s*(?:START_MODULE_CONTRACT(?![A-Za-z0-9_]))/.test(line),
+  );
+}
+`,
+    );
+    const findings = runPatternDetectors(root).filter((f) => f.code === "review.regex-over-structure");
+    expect(findings.filter((f) => f.file.endsWith("markers.ts"))).toHaveLength(0);
+  });
+
+  it("SILENT confidently-wrong: MustExist of a path that is present on disk", () => {
+    const root = track(byPattern("confidently-wrong")[0]!.build());
+    const changeDir = path.join(root, ".ngrace/changes/active/C-HELDOUT-CW-OK");
+    mkdirSync(changeDir, { recursive: true });
+    writeFileSync(
+      path.join(changeDir, "plan.xml"),
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-HELDOUT-CW-OK>
+  <IntentSummary>Held-out silent</IntentSummary>
+  <BaselineAssertions><MustExist><Value>src/example.ts</Value></MustExist></BaselineAssertions>
+  <TargetAssertions><MustExist><Value>src/example.ts</Value></MustExist></TargetAssertions>
+  <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors><VerificationAnchors><V-M-EXAMPLE /></VerificationAnchors></DurableScope>
+  <ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>
+  <ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+</C-HELDOUT-CW-OK></NgraceChangePlan>`,
+    );
+    writeFileSync(
+      path.join(changeDir, "spec.xml"),
+      `<NgraceChangeSpec graceVersion="1.0" status="approved"><C-HELDOUT-CW-OK>
+  <Summary>Held-out silent</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints>
+  <NonGoals><NonGoal>n</NonGoal></NonGoals>
+  <AcceptanceCriteria><AC-H1>a</AC-H1></AcceptanceCriteria>
+  <AffectedAreas><M-EXAMPLE /></AffectedAreas>
+  <VerificationIntent><ExpectedCommand>echo 1</ExpectedCommand><ExpectedEvidence>e</ExpectedEvidence></VerificationIntent>
+</C-HELDOUT-CW-OK></NgraceChangeSpec>`,
+    );
+    const findings = runPatternDetectors(root).filter((f) => f.code === "review.confidently-wrong");
+    expect(findings.filter((f) => f.message.includes("src/example.ts"))).toHaveLength(0);
+  });
+
+  it("SILENT self-referential-comparison: expect(actual).toEqual(expected) with distinct ids", () => {
+    const root = minimalWithSrc(
+      "src/roundtrip-ok.test.ts",
+      `import { expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+test("roundtrip", () => {
+  const actual = JSON.parse(readFileSync(new URL("./fixture.json", import.meta.url), "utf8"));
+  const expected = { ok: true };
+  expect(actual).toEqual(expected);
+});
+`,
+    );
+    const findings = runPatternDetectors(root).filter(
+      (f) => f.code === "review.self-referential-comparison",
+    );
+    expect(findings).toHaveLength(0);
+  });
+
+  it("SILENT zero-or-more-swallow: empty DependsOn without sequencing claim in title", () => {
+    const entry = corpus().find((e) => e.id === "corpus-zo-02-empty-depends-malformed-task")!;
+    const zoRoot = track(entry.build());
+    const planPath = path.join(zoRoot, ".ngrace/changes/active/C-CORPUS-ZO2/plan.xml");
+    const plan = require("node:fs").readFileSync(planPath, "utf8") as string;
+    writeFileSync(
+      planPath,
+      plan.replace(
+        /<ImplementationPlan>[\s\S]*?<\/ImplementationPlan>/,
+        `<ImplementationPlan><T-001><Title>Bootstrap utilities</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>First done.</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001><T-002><Title>Register adapters</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Second done.</Criterion></AcceptanceCriteria><Verification><Command>echo 2</Command></Verification></T-002></ImplementationPlan>`,
+      ),
+    );
+    const findings = runPatternDetectors(zoRoot).filter(
+      (f) => f.code === "review.zero-or-more-swallow",
+    );
+    expect(findings).toHaveLength(0);
+  });
+
+  it("SILENT unthreaded-construct: only known Command child under V-M-*", () => {
+    const root = track(byPattern("unthreaded-construct")[0]!.build());
+    // base clean project already has only known children; ensure no unthreaded findings
+    const findings = runPatternDetectors(root).filter(
+      (f) => f.code === "review.unthreaded-construct",
+    );
+    expect(findings).toHaveLength(0);
+  });
 });
 
-describe("A37 corrections 86–88", () => {
-  it("corr 87: project-utils hasGraceMarkers shape is silent when present in a fixture copy", () => {
-    // Mirror the production-correct shape: stripQuotedStrings then line-anchored marker regex.
+describe("A37/A38 corrections 86–90", () => {
+  it("corr 87/89: transform-then-scan shape is silent regardless of helper name", () => {
     const root = track(path.join(os.tmpdir(), `corr87-${Date.now()}`));
     mkdirSync(root, { recursive: true });
     writeMinimalNgraceProject(root);
@@ -256,8 +349,41 @@ export function hasGraceMarkers(text: string) {
     expect(findings.filter((f) => f.file.endsWith("markers.ts"))).toHaveLength(0);
   });
 
+  it("corr 89: stripQuotedStrings *name* alone does not silence a raw-input scan", () => {
+    // Pre-fix (symbol-name clause) stayed silent here; dataflow fix must fire.
+    const root = track(path.join(os.tmpdir(), `corr89-raw-${Date.now()}`));
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(
+      path.join(root, "src", "example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return 1; }\n`,
+    );
+    writeFileSync(
+      path.join(root, "src", "raw-scan.ts"),
+      `export function stripQuotedStrings(text: string) { return text; }
+/** Mentions stripQuotedStrings but scans the raw parameter. */
+export function fileLooksGoverned(source: string): boolean {
+  void stripQuotedStrings;
+  return source.split("\\n").some((line) =>
+    /^(\\s*)(\\/\\/|#)\\s*START_MODULE_CONTRACT/.test(line),
+  );
+}
+`,
+    );
+    const findings = runPatternDetectors(root).filter((f) => f.code === "review.regex-over-structure");
+    expect(findings.some((f) => f.file.endsWith("raw-scan.ts"))).toBe(true);
+  });
+
+  it("corr 89: re-03 corpus instance still fires after dataflow fix", () => {
+    const entry = corpus().find((e) => e.id === "corpus-re-03-nested-template-markers")!;
+    const root = track(entry.build());
+    entry.apply(root);
+    const findings = runPatternDetectors(root).filter((f) => f.code === "review.regex-over-structure");
+    expect(findings.some((f) => f.file.endsWith("scan-markers.ts"))).toBe(true);
+  });
+
   it("corr 88: review surface is scanned except shape-data modules", () => {
-    // A production-shaped defect under src/review/ must be visible (not directory-exempt).
     const root = track(path.join(os.tmpdir(), `corr88-${Date.now()}`));
     mkdirSync(root, { recursive: true });
     writeMinimalNgraceProject(root);
@@ -286,6 +412,54 @@ export function patternSourceLooksLikeMarkupGuard(p: string) {
       true,
     );
     expect(findings.some((f) => f.file.includes("shape-data"))).toBe(false);
+  });
+
+  it("finding 91: pure-// marker line guard (no # alternative) still fires", () => {
+    // Adversarial: pattern source is /^\/\/\s*START_MODULE…/ with only escaped slashes.
+    const root = track(path.join(os.tmpdir(), `f91-${Date.now()}`));
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(
+      path.join(root, "src", "example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return 1; }\n`,
+    );
+    writeFileSync(
+      path.join(root, "src", "pure-slash.ts"),
+      `export function fileLooksGoverned(source: string): boolean {
+  return source.split("\\n").some((line) =>
+    /^\\/\\/\\s*START_MODULE_CONTRACT/.test(line),
+  );
+}
+`,
+    );
+    const findings = runPatternDetectors(root).filter((f) => f.code === "review.regex-over-structure");
+    expect(findings.some((f) => f.file.endsWith("pure-slash.ts"))).toBe(true);
+  });
+
+  it("corr 90: shape-data exemptions appear in summary count and JSON paths", () => {
+    const root = track(path.join(os.tmpdir(), `corr90-${Date.now()}`));
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src", "review"), { recursive: true });
+    writeFileSync(
+      path.join(root, "src", "example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return 1; }\n`,
+    );
+    writeFileSync(
+      path.join(root, "src", "review", "shape-data.ts"),
+      `/** @ngrace-review-shape-data */
+export function patternSourceLooksLikeMarkupGuard(p: string) {
+  return /<[A-Za-z]/.test(p);
+}
+`,
+    );
+    const result = runReview(root, { processAudits: false, joinEngine: false });
+    expect(result.summary.shapeDataExemptions).toBeGreaterThanOrEqual(1);
+    expect(result.shapeDataExemptions.some((p) => p.includes("shape-data"))).toBe(true);
+    const text = formatReviewResult(result);
+    expect(text).toContain("Shape-data exemptions:");
+    expect(text).toMatch(/shape-data/);
   });
 });
 
