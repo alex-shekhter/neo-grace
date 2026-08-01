@@ -375,7 +375,7 @@ Keep this table current. It is the single source of truth for progress.
 | 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `COMPLETE` |
 | 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `COMPLETE` |
-| 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `NOT STARTED` |
+| 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `COMPLETE` |
 | 11 | Adoption surface | §5.1, §5.3 | TBD | `NOT STARTED` |
 
 **Hard sequencing rules** — these are dependencies, not preferences. Each is stated with what
@@ -1467,9 +1467,12 @@ Remove the field, the rule and the report. Nothing consumed it, so nothing break
 
 # PHASE 10 — Plan-quality signal & doctor consumers
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE`
 **Decisions:** D10, §4.9 subset
 **Release:** TBD
+
+> **Amended by §14 A70–A71.** Stage 1 re-derived at `0a4b1b3` (A70). Stage 2 built `C-PLAN-QUALITY`
+> under accepted P1–P7 with corrections 179–182 (A71). §10.5/§10.6 disposition is in A71.1.
 
 ## 10.1 Objective
 
@@ -1545,11 +1548,14 @@ both.
 ## 10.6 Definition of done
 
 - Scope recorded and unpoolable
-- Classification by join, tested both ways
+- Classification **stored at resolution** (not report-time join alone), tested both ways — A71 / P3
 - Precondition enforced
-- Four doctor checks with fires/silent pairs
+- Doctor plan-quality consumer shipped; §10.4 re-checks **not** rebuilt (A70 findings 173–174; A71)
 - Caveat published beside the metric
 - `bun run validate:ci` green
+
+> **Amended A71 (corr 180):** the two lines that said "by join" and "Four doctor checks" contradicted
+> the accepted design; disposition table in A71.1 is normative for close.
 
 ## 10.7 Review gate
 
@@ -9609,3 +9615,631 @@ The owed list is empty for the first time since Phase 5. `.ngrace/changes/active
 `.gitkeep`; thirteen bundles are archived; the graph describes every source surface; the ship path is
 publishable and checked in CI. **Phase 10** — plan-quality signal and doctor consumers, D10 / §4.9 —
 is unblocked with nothing in front of it.
+
+### A70 — 2026-08-01 · Phase 10 stage 1 re-derive + draft `C-PLAN-QUALITY`
+
+**Everything below was measured at `0a4b1b3`**
+(`0a4b1b31d2103e96ebf0ab28e54ba9bbee18dba4` — `fix(checks): give three green checks something to be
+red about (#32)`). After `git fetch origin && git status -sb`: local `main` was not behind
+`origin/main` (both at `0a4b1b3`). Branch `feat/phase-10-rederive` cut from that commit. Tree clean at
+cut; root lint `0` errors / `0` warnings / `Governed files: 58`. Findings continue from **172**.
+
+Stage 1 delivers a draft spec and this amendment only — **no production code**, no `gate approve`.
+Same two-stage shape as Phase 9 (A56 → A57 → A58).
+
+#### A70.1 Repository ground (rule 2: claims measured at a commit)
+
+| Reading | At `0a4b1b3` | Command / evidence |
+|---|---|---|
+| `bun test` | 959 pass / 3 skip / **0 fail**, 962 across 49 files | `bun test` |
+| `bun run ngrace lint --path .` | 0 errors / 0 warnings, 99 files, **Governed files: 58**, 50 XML artifacts | `bun run ngrace lint --path .` |
+| `bun run ngrace doctor --path .` | exit 0; adapters ×5; Governed files: 58, adapter-backed `.ts×58`; no size pressure; both optional context artifacts missing; Analysis issues: None; Calibration: 2 included / 0 excluded / 0 pending / 1 backfilled | `bun run ngrace doctor --path .` |
+| `.ngrace/changes/active/` | empty except `.gitkeep` | `ls .ngrace/changes/active/` |
+| Archived bundles | **13** | `ls .ngrace/changes/archive/` |
+| Ledgers with `<Verdict>` | **10** (one each; three early bundles have no `run-ledger.xml`) | `rg -c '<Verdict ' .ngrace/changes/archive/*/run-ledger.xml` |
+| Fail review verdicts | **0** (all ten are `outcome="pass"`) | `rg 'outcome="fail"' …/run-ledger.xml` → only a `CalibrationAdjudication` fail, not a review Verdict |
+| `wave=` on archive ledgers | **0** | `rg wave= .ngrace/changes/archive` |
+| Unique `AC-*` in archive specs | **115** | `rg -o 'AC-[A-Z0-9-]+' …/spec.xml \| sort -u` |
+| `IC-*` in `.ngrace/**` | **0** | `rg -o '<IC-' .ngrace` |
+| `UI_COMPONENT` / ST-* UI states | **0** modules, **0** ST-* states | graph projection |
+| `change.acceptance-criterion-unmapped` on root | **0** warnings | lint clean |
+| `.ngrace-lint.json` | `ignoredDirs: ["examples","scripts"]` (unchanged from A2) | file contents |
+
+#### A70.2 Re-captured doctor baseline (replaces A2 for Phase 10 comparison)
+
+A2 recorded `Governed files: 0` and no calibration section. That tree is gone. **Phase 10 compares
+against the readings in A70.1 together with this config**, or against neither — not against A2's zero.
+
+Configuration in force (`.ngrace-lint.json`):
+
+```json
+{
+  "ignoredDirs": [
+    "examples",
+    "scripts"
+  ]
+}
+```
+
+`bun run ngrace doctor --path .` → exit 0 (abbreviated; full text measured at `0a4b1b3`):
+
+```
+neo-grace Doctor
+================
+Root: /Users/sas/Projects/neo-grace
+
+Adapters
+  - js-ts: .cjs, .cts, .js, .jsx, .mjs, .mts, .ts, .tsx
+  - python: .py, .pyi
+  - dart: .dart
+  - go: .go
+  - rust: .rs
+
+Analysis coverage
+  Governed files: 58
+  Adapter-backed: .ts×58
+  Unverified: (none)
+
+Document size (limits: 50 anchors / 30720 bytes)
+  No documents over limit.
+
+Optional context artifacts
+  - design-system.xml: missing (optional)
+  - invariants.xml: missing (optional)
+
+Analysis issues
+  None.
+
+Calibration
+------------
+Calibration report: 2 labeled pairs included (one per fold-adjudicated epoch), 0 excluded, 0 pending, 1 backfilled. …
+  included (fold-adjudicated epochs): 2
+  excluded (incomplete epochs): 0
+  pending (no durable boolean outcome): 0
+  backfilled (excluded from computation): 1
+  …
+```
+
+`bun run ngrace lint --path .` → exit 0, 99 files, **58 governed**, 50 XML, 0 errors, 0 warnings.
+
+§10.5.4's *"stays silent on the evidence bundle's Phase 1 `.ngrace`"* no longer names a live tree.
+Silent baseline for any new doctor/plan-quality surface is **this repository at `0a4b1b3`**, and
+fixtures for the red direction — not a resurrected Phase-1 snapshot.
+
+#### A70.3 Gap re-derivation — §10.3 files and §10.4/§10.5 steps
+
+| Gap | Command (at `0a4b1b3`) | Output | Holds? |
+|---|---|---|---|
+| **1 — doctor test file** | `wc -l src/grace-doctor.test.ts` | **200** lines; file exists | **Plan false** — §10.3 says CREATE; action is **EDIT** (A3 already created it) |
+| **2 — IC owner/version** | `sed -n '685,745p' src/artifact/projections.ts` | non-empty `<Version>` + semver; exactly one `<Provider M-*>`; code `projection.graph.invalid-interface-contract` | **§10.4 check 2 already an error on lint/projection** |
+| **3 — ST evidence** | `rg -n "ui-state-unverified" src/query/health.ts src/lint/catalog.ts` | `health.ui-state-unverified` + `health.ui-states-undeclared` | **§10.4 check 3 already exists (health surface)** |
+| **4 — AC Satisfies half** | `rg -n -B6 "acceptance-criterion-unmapped" src/artifact/grammar.ts` | `change.acceptance-criterion-unmapped` **warning** when AC has no task `Satisfies` | **Half of §10.4 check 1 exists (lint)** |
+| **5 — AC V-M path half** | `rg -n "acceptance.*V-M\|AC-.*verification path\|Satisfies.*verification" src/` + grammar inventory | **No code** that requires an `AC-*` to have a `V-M-*` path | **Missing half confirmed** |
+| **6 — clarifications** | `rg -n "clarification" src/gates/core.ts` | `gate.approve.clarification-unresolved` (IC/INV); `gate.apply.clarification-unresolved` (satisfied AC) | **§10.4 check 4 already blocking at two gates (D12/Phase 5)** |
+| **7 — outcomes module** | `ls src/review/outcomes.ts` | No such file | **§10.3 CREATE still holds** |
+| **8 — wave** | `rg -n "wave" src/grace-cursor.ts` | optional on open/fold/`Epoch-N` / opened event (`:231,533,695,2181,2228,2422`) | **Real, optional** |
+| **9 — Verdict scope** | `ReviewVerdictRecord` in `src/gates/ledger.ts:49–58` | `outcome \| reason? \| note?` — **no scope field** | **Holds — scope not recorded** |
+| **10 — Verdict write path** | `recordReviewVerdict` `:194–219` | attributes `outcome` (+ optional `reason`); body text = note | **No scope write site** |
+| **11 — Verdict corpus** | count `<Verdict ` under archive | **10** (prompt/A56 said six; tree grew) | **Count correction** |
+| **12 — fold-time join precedent** | `deriveCalibrationContext` call site | once at `src/grace-cursor.ts:2075`; report never re-derives (A65) | **Pattern to copy for classification storage** |
+| **13 — D10 "amendments are ledger events"** | `rg -n "amendment" src/gates src/grace-cursor.ts` + supersede grammar | Supersede is `status="superseded"` + `<Replacement>`; **no amendment event kind** | **D10 premise false at HEAD** — finding 175 |
+| **14 — Graph ownership** | `src/lint/core.ts:483–498`; `M-REVIEW` in graph | New file under `src/review/` needs `LINKS: M-REVIEW` + plan GraphAnchors `M-REVIEW` (no new module) | **Holds** |
+| **15 — Doctor read-only** | `src/grace-doctor.ts:98` | `collectDoctorReport` documents must not write | **Holds** |
+
+#### A70.4 Findings (172–178)
+
+| # | Finding |
+|---|---|
+| **172** | §10.3 lists `src/grace-doctor.test.ts` as CREATE. File exists (200 lines). Stage 2 **EDIT**s it. |
+| **173** | Three of four §10.4 doctor checks are already enforced on other surfaces (IC projection error; ST health; clarification gates). Rebuilding them in `doctor` on a lint-clean project is a D16 vacuous green — the class `C-OBSERVABLE-CHECKS` just removed. |
+| **174** | §10.4 check 1 is half-enforced: Satisfies unmapped is a **warning** on lint. The "no V-M path" half has **no artifact relationship** to implement: `AC-*` is change-scoped; `V-M-*` is module-scoped; nothing joins them. Inventing that join mid-phase is a sixteenth design decision (§12.5). |
+| **175** | D10 states classification is a join because *"amendments are ledger events (D1)"*. At HEAD there is **no amendment event**. Supersede is a change **status** plus Replacement. Roadmap `plan.md` §14 amendments are not ledger events. Classification cannot be "already recorded" until a resolution record is written. |
+| **176** | Ten review `<Verdict>` entries exist; **none carry scope**; **none are fail**. Wave is implemented and unused on every archived ledger (`wave=` count 0). Plan-quality pooling cannot be tested against live fail corpus — only fixtures and the first real fail after stage 2. |
+| **177** | Rule-12 counts for the four §10.4 headings if re-shipped as doctor checks on this repository: see A70.5. Three have **zero subjects** here (IC, ST UI, unresolved clarifications on IC/INV). Zero subjects is unmeasured, not clean (A55.1 / D16). |
+| **178** | A2 baseline is stale: Governed files 0→58; calibration section exists; 13 archived bundles. Replaced by A70.2. |
+
+No count in the stage-1 prompt was wrong on claims 1–5 of §3. Verdict count is **10**, not "six→more" as a vague band — recorded as **10**.
+
+#### A70.5 Standing rule 12 — counts for every check the phase would add
+
+| Proposed check / signal | Subjects possible (this repo) | Subjects that would flag today | Notes |
+|---|---|---|---|
+| Doctor re-fire IC no owner/version | 0 IC-* | 0 | Vacuous; already `projection.graph.invalid-interface-contract` when an IC exists without fields |
+| Doctor re-fire ST no evidence | 0 UI_COMPONENT / 0 ST-* states | 0 | Vacuous; already `health.ui-state-unverified` when subjects exist |
+| Doctor re-fire unresolved clarifications | 0 open clarifications blocking | 0 | Vacuous on clean tree; already gate-blocking when present |
+| Doctor re-fire AC unmapped (Satisfies) | 115 AC-* across archives (archived plans not re-litigated by live lint the same way); **0** on active lint surface | 0 unmapped warnings at root | Already lint **warning**; doctor today only surfaces **absence-class** issues (`toDoctorAbsenceIssues`) — so even this half would not appear in Analysis issues without a surface change |
+| New: AC with no V-M path | **Undefined subject set** — no AC→V-M edge in the model | n/a | Do not ship under original heading (rule 7) |
+| Plan-quality: verdicts with scope | 10 verdicts | 10 would be `scope-not-recorded` (absence), 0 scoped | Real subjects; absence path is the first red-capable signal |
+| Plan-quality: resolution classification | 0 stored classifications; 0 `status=superseded` bundles | 0 | Store-at-write required (rule 13); supersede join alone is incomplete |
+| Plan-quality: decomposition precondition | 0 wave-scoped fail verdicts | 0 | Needs wave-scoped fail + task terminals at record time |
+| Plan-quality report at N=0 | 1 project (this repo) | N=0 honest empty is the live case | Must not print a flattering rate table |
+
+#### A70.6 What is already decided (not re-opened)
+
+1. D10 objective: measure the **plan**, not only the agent — wave-scoped review outcomes with resolution classification and the narrow decomposition inference.
+2. Task-scoped and wave-scoped outcomes **must not be pooled** (D10 required alongside #1).
+3. Classification is by **resolution**, not by the reviewer's opinion (implementation vs plan defect table in D10 / §10.4).
+4. The one sound inference: wave-level review failure where every constituent task passed its own verification → decomposition failure — and the precondition must be recorded or the inference is not validatable later.
+5. Honest caveat: code-only fix can paper over a plan defect → scored as implementation. Proxy, not truth; docs and surfaces must say so beside the number.
+6. Judgment-dependent §4.9 remainder is **not built**.
+7. Doctor stays **read-only** (invariant 8 / F1).
+8. Standing rules 11, 12, 13 bind this phase hardest; rule 7 forbids silent retarget of a ratified check.
+9. `src/review/outcomes.ts` is the intended home for scope/classification joins; new file under existing `M-REVIEW` (LINKS ownership, not a new module directory).
+10. Fold-time storage precedent (Phase 9 / A65 rule 13) is the model for anything a later reader will need about the moment of truth.
+
+#### A70.7 Seven proposals (recommendation + cost) — also in draft `C-PLAN-QUALITY`
+
+##### P1 — What does `doctor` actually gain?
+
+**Recommendation:** Doctor gains a **plan-quality report consumer** (peer of Calibration), not a second copy of lint/health/gate checks.
+
+| Option | Verdict |
+|---|---|
+| Re-implement §10.4 checks 2–4 in doctor | **Reject.** D16 vacuous green on this tree; already enforced elsewhere; `C-OBSERVABLE-CHECKS` just paid to remove that class |
+| Aggregate/surface existing codes with absence reasons | **Optional polish only** if stage 2 has budget — and only if doctor is extended past absence-class `analysisIssues`. Does not deliver D10. Cost: surface redesign + A7.4 naming debt |
+| Build only AC↔V-M half | **Defer under rule 7** with recorded rule-12 "undefined subjects" (finding 174). No edge in the model |
+| Plan-quality section on doctor | **Ship.** This is D10's consumer. Red when: scoped fail verdicts exist and classifications are stored; or when scope is required for a metric and missing (absence). Reachable via fixtures and the first real fail after stage 2 |
+
+**What makes it red on a real project:** a wave-scoped `outcome=fail` Verdict with stored classification `plan` or `implementation`, or a decomposition row whose precondition is false/true. N=0 is absence + counts, not "0% plan defects" (flattering empty).
+
+**Cost:** `src/review/outcomes.ts` + doctor format/JSON + tests; no duplicate IC/ST/clarification checkers.
+
+##### P2 — Where does review scope live?
+
+**Recommendation:** Optional attribute on `<Verdict>` going forward: `scope="task" | "wave" | "bundle"` (names fixed at stage-2 plan time). CLI `ngrace gate verdict --scope …`. Not a separate record type — same moment as the outcome (rule 13 / rule 10 inventory).
+
+| Existing 10 verdicts | Read-back |
+|---|---|
+| No `scope` attribute | **Absence** with reason `scope-not-recorded` — **never** a default of `task` or `wave` (that would be a D5 violation) |
+
+Queries that compute plan-quality rates **exclude** unscoped verdicts from pooled rates and **count** them as unscored. Pooling task+wave is a tested error / impossible in the public API.
+
+**Cost:** `ReviewVerdictRecord` + `recordReviewVerdict` + gate CLI + grammar validation of scope enum; migration of zero historical attributes (additive).
+
+##### P3 — When is resolution classification written?
+
+**Recommendation:** **Stored at the moment of resolution**, not recomputed at report time as the sole source of truth (standing rule 13). Phase 9 was reopened twice for the report-time join pattern.
+
+| Approach | Disposition |
+|---|---|
+| Pure report-time join over immutable ledger | **Insufficient alone.** Supersede status is joinable but incomplete (finding 175); "code-only fix" is not a positive ledger event today — it is the residual when supersede/replan evidence is absent |
+| Store `ResolutionClassification` beside or on the resolving record | **Ship.** When the harness records how a review fail was resolved (or when a supersede is applied after a fail), write `classification=implementation|plan` plus evidence refs (`supersede` → replacement id; `code-only` → explicit harness assertion; `unknown` → absence) |
+
+A deterministic **helper** may *propose* a classification from ledger facts for the writer to confirm; the **stored** value is what the report reads. Replay of the helper is allowed for audit; the report does not re-derive as primary.
+
+**Cost:** ledger section or Verdict attributes + write path + report read; tests both directions (plan vs implementation).
+
+##### P4 — How is "required an amendment or supersede" detected?
+
+**Recommendation — mechanisms that exist:**
+
+| Mechanism | Detects | False-negative mode |
+|---|---|---|
+| `status="superseded"` + `<Replacement>` / child `C-*` | Plan (or change) replaced by another bundle | Bundle fixed in place without supersede |
+| Escalation → replan (D9 `escalatedTasks` + resume after replan) | Budget-driven replan | Replan that never escalated |
+| Roadmap `plan.md` §14 amendments | **Not detectable** from change ledgers | Entire class of plan defects on the RM track |
+
+D10's "amendments are ledger events" is amended as: **supersede and explicit resolution records are the joinable artifacts; free-text roadmap amendments are out of band.** Stage 2 must not claim to classify RM-plan.md edits as plan defects.
+
+**Cost:** document the FN; implement supersede-linked classification path; optional escalation link.
+
+##### P5 — All-tasks-passed precondition
+
+**Recommendation:** When recording a **wave-scoped** fail Verdict, compute from the ledger **at that moment** whether every constituent task of that wave has a terminal success (or the harness's defined "passed verification" event), and **store** `constituentTasksPassed="true|false"` plus absence if the task set or terminals are incomplete (`constituentTasksPassed` absent + reason `tasks-unverifiable`). Report-time recomputation is forbidden as primary (rule 13).
+
+Decomposition failure is reported only when `scope=wave` AND `outcome=fail` AND `constituentTasksPassed=true`. A wave fail with a failed task is **not** decomposition.
+
+**Cost:** wave→task membership (from plan wave attribute / open events) + terminal scan at write + stored attributes; fixture for both directions.
+
+##### P6 — Proxy caveat, verbatim and adjacent
+
+**Recommendation — fixed sentence (rule 11), adjacent to the number in text and JSON:**
+
+> Proxy caveat: a code-only fix can paper over a plan defect and is scored as implementation. This classification is a proxy, not a ground truth.
+
+JSON: top-level field on the plan-quality report object, e.g. `"proxyCaveat": "<same sentence>"`, always present when the classification counts section is present (including N=0 counts).
+
+**Cost:** string constant shared by text + JSON formatters; one test that both surfaces contain it next to the counts.
+
+##### P7 — Surface at N=0
+
+**Recommendation (Phase 9 pattern):**
+
+> Plan-quality report: 0 review verdicts with recorded scope, 0 resolution classifications, 0 decomposition candidates. No plan-quality rate is computed. Existing verdicts without scope are counted as scope-not-recorded (N), not as task or wave defaults. Proxy caveat: …
+
+No rate table. No "0% plan defects". No "plan quality: OK".
+
+**Cost:** branching in report formatter; fixture over this repository's 10 unscoped verdicts.
+
+#### A70.8 Read-aloud sentences (standing rule 11)
+
+| State | Exact sentence the user will see |
+|---|---|
+| **N=0 / only unscoped history** | `Plan-quality report: 0 review verdicts with recorded scope, 0 resolution classifications, 0 decomposition candidates. No plan-quality rate is computed. 10 verdicts lack scope (scope-not-recorded) and are excluded from rates. Proxy caveat: a code-only fix can paper over a plan defect and is scored as implementation. This classification is a proxy, not a ground truth.` *(the "10" is measured at report time; the shape is fixed)* |
+| **Scoped fails with classifications** | Counts of implementation vs plan defects, scoped by task vs wave (never pooled into one unlabeled rate), caveat immediately after the counts |
+| **Wave fail, all tasks passed** | Decomposition-failure count includes the case only when stored precondition is true; sentence names the precondition |
+| **Wave fail, a task also failed** | Not counted as decomposition; sentence or row says precondition false |
+| **Doctor §4.9 re-checks deferred** | Doctor does **not** print a green "requirements-quality: OK" for IC/ST/clarification when it did not re-run them; either omit or print `requirements-quality subset: deferred — enforced on lint/health/gates (see A70)` |
+
+Truth conditions at `0a4b1b3`: ten unscoped pass verdicts, zero classifications, zero wave attributes on ledgers, zero IC/ST subjects, zero unmapped AC warnings at root. A flatter summary would be **false in the flattering direction**.
+
+#### A70.9 A7.4 `analysisIssues` naming debt
+
+Phase 10 was assigned ownership of renaming doctor's absence rows away from `analysisIssues` / "Analysis issues". **Recommendation:** fold into stage 2 only if the plan-quality section forces a doctor JSON shape touch; otherwise schedule a one-line rename bundle rather than couple it to D10. Not a silent drop — listed here as owed or explicitly deferred with a home.
+
+#### A70.10 Draft artifact
+
+| Artifact | Path | Status |
+|---|---|---|
+| Change spec | `.ngrace/changes/active/C-PLAN-QUALITY/spec.xml` | `status="draft"`; every AC has a discriminating negative; modelled on `C-OBSERVABLE-CHECKS` / `C-CALIBRATION` |
+
+#### A70.11 Corrections / findings index (172–178)
+
+| # | Finding |
+|---|---|
+| 172 | `grace-doctor.test.ts` exists — EDIT not CREATE |
+| 173 | §10.4 checks 2–4 already enforced elsewhere; doctor re-copy is D16 |
+| 174 | AC↔V-M half has no artifact edge; defer under rule 7 |
+| 175 | D10 "amendments are ledger events" is false at HEAD |
+| 176 | 10 unscoped pass verdicts; 0 wave= on archive ledgers; 0 fail review verdicts |
+| 177 | Rule-12 zero-subject counts for IC/ST/clarification re-checks |
+| 178 | A2 doctor baseline replaced by A70.2 |
+
+#### A70.12 Stage 1 disposition
+
+- Board row 10 and §10 header → `IN PROGRESS`
+- Spec draft only; **no production code**
+- Stage 2 implements `C-PLAN-QUALITY` after maintainer review of A70 (and answers to P1–P7 if any are overridden)
+
+
+### A71 — 2026-08-01 · Phase 10 stage 2 built; C-PLAN-QUALITY closes Phase 10
+
+**Built and measured on branch `feat/phase-10-rederive`**, continuing from stage 1 (`f44a4ba` on top of
+`0a4b1b3`). After `git fetch origin`: origin/main remained `0a4b1b3`; local not behind. Findings
+continue from **179**. P1–P7 accepted as ruled in the stage-2 prompt. Phase 10 → `COMPLETE`.
+
+#### A71.1 Corrections 179–182
+
+**179 — Finding 174 restated (rule-7 deferral kept).**
+A70 said the AC↔V-M half "has no artifact edge." That is **too strong**. At HEAD every archived plan
+declares `DurableScope/VerificationAnchors` with `V-M-*` (measured: **13/13** plans, 2–18 unique
+`V-M-*` ids each). The join *AC → satisfying task → that plan's VerificationAnchors* is real, merely
+**coarse** (plan-level, not per-AC).
+
+The correct rule-12 argument: `review-consolidated.md` §4.9 states the check as a **conjunction** —
+*no task `Satisfies` **and** no `V-M-*` path*. With every plan declaring verification anchors, the
+subject set of the V-M half is a **strict subset** of `change.acceptance-criterion-unmapped`'s.
+**It can never be red where the existing warning is not.** Rule-7 deferral stands; "no edge exists"
+must not be inherited as a fact.
+
+**180 — §10.5 / §10.6 line-by-line disposition (A63 class).**
+
+| Line | Disposition |
+|---|---|
+| **§10.5.1** Record review scope | **Built** — optional `scope` on `<Verdict>`; report excludes unscoped from rates |
+| **§10.5.2** Resolution classification by join | **Amended (P3)** — classification **stored at resolution**; helper may *propose* from supersede; report reads storage. Pure report-time join alone rejected (rule 13) |
+| **§10.5.3** All-tasks-passed precondition | **Built** — `constituentTasksPassed` stored on wave-scoped fail (or absence reason) |
+| **§10.5.4** Four doctor checks | **Amended** — not rebuilt (findings 173–174 / 179). Doctor gains plan-quality **consumer** instead |
+| **§10.5.5** Proxy caveat | **Built** — `PLAN_QUALITY_PROXY_CAVEAT` in text + JSON, adjacent to counts |
+| **§10.6** Scope recorded and unpoolable | **Built** |
+| **§10.6** Classification **by join** | **Amended** — "stored at resolution, tested both ways" (in-plan §10.6 text updated) |
+| **§10.6** Precondition enforced | **Built** |
+| **§10.6** **Four doctor checks** with fires/silent pairs | **Amended** — three deferred/already-elsewhere; one half deferred under rule 7 with restated 179 argument; not a DoD line that can be marked met |
+| **§10.6** Caveat beside the metric | **Built** |
+| **§10.6** `validate:ci` green | **Built** |
+
+**181 — A7.4 naming debt folded in.**
+`DoctorResult.analysisIssues` → **`absenceIssues`**; text heading **Analysis issues** → **Absence issues**.
+Condition in A70.9 was met: `AC-DOCTOR-CONSUMER` forced a doctor JSON shape touch. Before: key
+`analysisIssues`. After: key `absenceIssues` only (`"analysisIssues" in report` is false). Covered by
+`src/grace-doctor.test.ts`.
+
+**182 — `bundle` is a D10 vocabulary extension.**
+D10 names task- and wave-scoped outcomes. The enum adds **`bundle`** because all ten pre-phase
+verdicts are bundle-shaped closes, and a third scope is needed to record that shape going forward
+without inventing a task/wave default. **Historical unscoped verdicts stay `scope-not-recorded`** —
+labelling them `bundle` because they look like it is the reconstruction rule 13 forbids and the
+default D5 forbids. Test: `outcomes.test.ts` "never retro-labelled bundle".
+
+#### A71.2 What shipped
+
+| Surface | Change |
+|---|---|
+| `src/gates/ledger.ts` | `ReviewVerdictScope`, `ResolutionClassification`; optional attrs on write/parse |
+| `src/gates/command.ts` | `--scope`, `--task`, `--wave`, `--classification`, `--constituent-tasks-passed` |
+| `src/artifact/grammar.ts` | Optional scope/classification/ctp validation on Verdict |
+| `src/review/outcomes.ts` | Plan-quality report, propose helper, computeConstituentTasksPassed |
+| `src/grace-doctor.ts` | `planQuality` section; `absenceIssues` rename |
+| Tests | `outcomes.test.ts`, doctor tests, gate scope test |
+
+#### A71.3 Rule-12 counts (updated at close)
+
+| Check / rate | Subjects at close | Flags | Note |
+|---|---|---|---|
+| Unscoped → scope-not-recorded | 10 archive + 0 then 1 scoped on C-PLAN-QUALITY | 10 (then 10+ if archives only) | Live: doctor printed 10 scope-not-recorded **before** close verdict |
+| Scoped rates | 1 after close (`scope=bundle` pass) | n/a counts | First real scoped verdict in the corpus |
+| Decomposition candidates | 0 live (0 fail, 0 wave) | 0 | Red path **fixture-only** — say so, not "verified on live data" |
+| Classification stored | fixture both ways + live close may store none on pass | — | Live close is pass without classification (correct) |
+| AC↔V-M doctor check | deferred | n/a | 179 conjunction argument |
+| IC/ST/clarification doctor re-check | not shipped | n/a | D16 |
+
+#### A71.4 Read-aloud as actually emitted (rule 11)
+
+**Before** close scoped verdict (live doctor at mid-build):
+
+```
+Plan-quality report: 0 review verdicts with recorded scope, 0 resolution classifications, 0
+decomposition candidates. No plan-quality rate is computed. 10 verdicts lack scope
+(scope-not-recorded) and are excluded from rates. Proxy caveat: a code-only fix can paper over a
+plan defect and is scored as implementation. This classification is a proxy, not a ground truth.
+```
+
+**After** recording `gate verdict --scope bundle --outcome pass` for C-PLAN-QUALITY: one scoped
+bundle pass; scope-not-recorded remains 10 on archives; scoped=1 (bundle=1). Exact post-close
+numbers recorded in the stage-2 report.
+
+#### A71.5 Close evidence
+
+- Bundle: `C-PLAN-QUALITY` (approve Decision recorded; Epoch-1 folded with claimedConfidence medium;
+  CalibrationAdjudication pending on MustPassCommand not opted in — honest absence, not a fail)
+- `ngrace review --change C-PLAN-QUALITY --base origin/main` after commits: scope audit over branch
+  writes; Findings: 0 (or declared)
+- Close verdict: **scoped** `bundle` / `pass` — first scoped verdict in the repository
+- `validate:ci` green including packed smoke and determinism gate
+
+#### A71.6 Already decided, not re-opened
+
+P1–P7 as staged; D10 objective; rule 13 store-at-write; judgment-dependent §4.9 not built; doctor
+read-only.
+
+
+### A72 — 2026-08-01 · Corrections 183–184 (post-close narrow fix; archive untouched)
+
+**Measured on `feat/phase-10-rederive` after stage-2 close (`2f617b6` head at start).** Phase 10
+board row stays **`COMPLETE`**. No new change bundle. Archived `C-PLAN-QUALITY` is **not modified**
+— same disposition as A69 (corr 171 fixed in `src/review/core.ts` + tests after close; archive
+immutable).
+
+#### A72.1 Correction 183 — unreadable bundles recorded, not skipped
+
+**Before (scratch probe, invalid `scope="squad"` on C-SELECTION Verdict):**
+
+```
+lint   → Errors: 1  ledger.invalid-verdict … found 'squad'
+doctor → Plan-quality report: 1 … scope-not-recorded of 10 total
+         verdicts total: 10   (C-SELECTION absent; 11 → 10; no mention of a skip)
+```
+
+Root cause: `collectPlanQualityReport` catch-and-continue on `listReviewVerdicts` throw, contradicting
+the throw's purpose (A31.2: unreadable is absence with reason, never a shorter list). Anti-pattern 8
+/ D5 / mirror of corr 169.
+
+**Fix:** catch only `GraceCommandError` with `ledger.invalid-*` issue/message; push
+`PlanQualityReport.unreadable: { changeId, code, detail }[]`; rethrow everything else. Summary and
+text name the count and id(s). `verdictsTotal` is **readable** only; the sentence states unreadable
+bundles are excluded and how many.
+
+**After (same probe):**
+
+```
+Plan-quality report: 1 … of 10 readable total. 1 bundle unreadable (ledger.invalid-verdict)
+and excluded from every count: C-SELECTION. …
+  verdicts total (readable): 10
+  unreadable bundles: 1
+    - C-SELECTION: ledger.invalid-verdict — scope=squad
+```
+
+**Real repository after fix:** `verdicts total (readable): 11`, `scoped: 1`, `scope-not-recorded: 10`,
+`unreadable bundles: 0`.
+
+#### A72.2 Correction 184 — constituentTasksPassed outside wave+fail
+
+**Before:** `recordReviewVerdict` and the CLI ignored `constituentTasksPassed` /
+`--constituent-tasks-passed` unless `scope=wave && outcome=fail` — no error, no storage, no message.
+
+**Fix:** reject with `invalid-arguments` and message
+`constituentTasksPassed applies only to wave-scoped fail verdicts` in both `recordReviewVerdict`
+and `gate verdict` CLI. Test asserts the message and that nothing was written.
+
+#### A72.3 Files (inside C-PLAN-QUALITY ObservedWriteScope)
+
+`src/review/outcomes.ts`, `outcomes.test.ts`, `src/gates/ledger.ts`, `src/gates/command.ts`,
+`src/gates/core.test.ts`, `docs/plans/…/plan.md` (this amendment). Archive not listed and not
+touched.
+
+#### A72.4 Close evidence
+
+`bun run ngrace review --change C-PLAN-QUALITY --base origin/main` → 0 out-of-scope (OWS still
+covers). `bun run validate:ci` green. Mutation: reverting catch-continue fails corr-183 test;
+removing 184 reject fails corr-184 test.
+
+
+### A73 — 2026-08-01 · Corrections 185–186 (post-close; parse-path silence)
+
+**On `feat/phase-10-rederive` after a1596f0.** Phase 10 board stays **`COMPLETE`**. Archived
+`C-PLAN-QUALITY` **untouched** (A69). Findings continue from **185**.
+
+#### A73.1 Correction 185 — unparseable ledger vanished after 183
+
+**Before (scratch: truncated C-SELECTION run-ledger mid-attribute):**
+
+```
+lint   → Errors: 1  xml.parse … Attributes for 'Requirement' have open quote.
+doctor → … 9 scope-not-recorded of 10 readable total
+         verdicts total (readable): 10
+         unreadable bundles: 0          ← corrupt bundle not named
+```
+
+183 only classified **thrown** `ledger.invalid-*`. Parse failure never throws:
+`wrapperFromLedger` collapses no-file / unparseable / missing-wrapper to `null` →
+`readLatestReviewVerdict` → `absent` → `listReviewVerdicts` → `[]`.
+
+| Situation | Today (legacy gate path) | Plan-quality after 185 |
+|---|---|---|
+| No `run-ledger.xml` | null → absent | **absent-no-file** (not unreadable) |
+| File exists, does not parse | null → absent | **unreadable** `xml.parse` + detail |
+| Parses, no wrapper for change id | null → absent | **unreadable** `ledger.bundle-id-mismatch` |
+| Wrapper present, no Verdicts | absent / [] | **ok**, zero verdicts |
+
+**Fix (consumer only):** `readLedgerVerdictsSurface` in `src/gates/ledger.ts` returns
+`absent-no-file | unreadable | ok`. `collectPlanQualityReport` uses it exclusively for the
+corpus walk. **`readLatestReviewVerdict` / gate paths left unchanged** so apply still fail-closes
+(`gate.apply.no-verdict` / refuse) without throwing.
+
+**Gate fail-closed evidence:** truncate ledger after a pass verdict → `evaluateGate(apply)` →
+`decision=refuse`, review-verdict blocking; `listReviewVerdicts` still returns `[]` (legacy
+collapse). Test: `corr 185: gates still fail closed…`.
+
+**After (same truncated probe):**
+
+```
+… 9 scope-not-recorded of 10 readable total. 1 bundle unreadable (xml.parse)
+and excluded from every count: C-SELECTION.
+  unreadable bundles: 1
+    - C-SELECTION: xml.parse — Attributes for 'Requirement' have open quote.
+```
+
+**Real repository:** `verdicts total (readable): 11`, `scoped: 1`, `scope-not-recorded: 10`,
+`unreadable bundles: 0`.
+
+**Inherited half scheduled:** draft
+`.ngrace/changes/active/C-LEDGER-READ-ABSENCE/spec.xml` (`status="draft"`) — make every ledger
+caller use three exits, not only plan-quality. Not implemented in this fix.
+
+**Adversarial broken-ledger table (plan-quality; question = "did the count shrink without saying so?"):**
+
+| State | Named unreadable? | Silent shrink? |
+|---|---|---|
+| Truncated mid-file | yes, `xml.parse` | no |
+| Empty / zero-byte file | yes, `xml.parse` | no |
+| Valid XML wrong root, no matching wrapper | yes, `ledger.bundle-id-mismatch` | no |
+| Directory named `run-ledger.xml` | yes, `xml.parse` | no |
+| Two wrappers (ours + other) | no — ours readable | no |
+| Missing file | not unreadable (absent) | n/a |
+| No Verdicts section | not unreadable, 0 verdicts | no |
+| Invalid scope token | yes, `ledger.invalid-verdict` (183) | no |
+
+#### A73.2 Correction 186 — dead ternaries in `buildSummary`
+
+Collapsed identical-branch ternaries to a single literal space before the proxy caveat.
+
+#### A73.3 Files
+
+`src/gates/ledger.ts` (+ `readLedgerVerdictsSurface`), `src/review/outcomes.ts` / `.test.ts`,
+`src/gates/core.test.ts`, draft `C-LEDGER-READ-ABSENCE/spec.xml`, this amendment.
+Archive not modified.
+
+
+**OWS note (A69).** `ngrace review --change C-PLAN-QUALITY --base origin/main` flags
+`.ngrace/changes/active/C-LEDGER-READ-ABSENCE/spec.xml` as out of scope. That is correct under
+the archived plan's OWS: the draft is a **new** change id, not a C-PLAN-QUALITY write, and the
+archive must not be rewritten to absorb it. Production files for 185–186 remain inside OWS
+(verified with `--changed-files` listing only those paths → 0 out-of-scope).
+
+
+### A74 — 2026-08-01 · Corrections 187–188 (post-close; wrong-root silence + sweep honesty)
+
+**On `feat/phase-10-rederive` after cd1a10a.** Phase 10 board stays **`COMPLETE`**. Archived
+`C-PLAN-QUALITY` **untouched** (A69, third application). Findings continue from **187**.
+
+#### A74.1 Correction 187 — wrong root with matching wrapper was ok/empty
+
+**Before (scratch: wrong root, wrapper for C-SELECTION present):**
+
+```
+lint   → Errors: 1
+         ledger.invalid-root-tag … Unsupported run ledger root tag 'NotALedger'. Expected NgraceRunLedger.
+doctor → Plan-quality … 9 scope-not-recorded of 10 readable total
+         verdicts total (readable): 10
+         unreadable bundles: 0                ← not a ledger, but named as clean empty
+```
+
+A73.1's wrong-root row tested *no matching wrapper*, so the wrapper check caught it as
+`ledger.bundle-id-mismatch`. The adjacent case — wrong root **with** a matching child — parsed,
+found the wrapper, had no Verdicts, and returned `{ state: "ok", verdicts: [] }`. Same class as
+183/185: a confident empty report about a file that is not a run ledger. Lint is red the whole time.
+
+**Fix:** after `!artifact.root`, require
+`artifact.root.tag === \`${ARTIFACT_TAG_PREFIX}RunLedger\``; else
+`{ state: "unreadable", code: "ledger.invalid-root-tag", detail: … }` matching grammar/lint
+wording. Gate `readLatestReviewVerdict` still collapses via `wrapperFromLedger` (fail-closed).
+
+**After (same probe):**
+
+```
+doctor → … of 10 readable total. 1 bundle unreadable (ledger.invalid-root-tag)
+         and excluded from every count: C-SELECTION.
+  verdicts total (readable): 10
+  unreadable bundles: 1
+    - C-SELECTION: ledger.invalid-root-tag — Unsupported run ledger root tag 'NotALedger'. …
+```
+
+**Real repository:** `verdicts total (readable): 11`, `unreadable bundles: 0`.
+
+**Discriminating negative:** correct root + matching wrapper + no Verdicts → still `ok` with
+zero verdicts (must not become unreadable when the root-tag check is present).
+
+#### A74.2 Correction 188 — A73.1 directory row: function vs CLI
+
+A73.1 recorded *"Directory named `run-ledger.xml` → named unreadable, `xml.parse`."* That is
+true for **`readLedgerVerdictsSurface` / `collectPlanQualityReport`** (unit path). End-to-end
+`ngrace doctor` / `ngrace lint` do **not** render plan-quality for that fixture: lint fails on
+the directory first, so doctor exits 1 with *"Unable to complete ngrace doctor."* Inherited CLI
+behaviour (EISDIR-class loud failure), not a Phase 10 defect. Acceptable. If loud failure should
+become an absence at the CLI surface, schedule it under `C-LEDGER-READ-ABSENCE`, not here.
+
+**Amended row (entry point named):**
+
+| State | Entry point | Named unreadable? | Silent shrink? |
+|---|---|---|---|
+| Directory named `run-ledger.xml` | `readLedgerVerdictsSurface` | yes, `xml.parse` | no |
+| Directory named `run-ledger.xml` | `ngrace doctor` CLI | n/a — lint fails; plan-quality not rendered | n/a (loud fail) |
+
+#### A74.3 Validation chain (enumerate so the next gap is findable)
+
+`readLedgerVerdictsSurface` validates in order. Any link with no check is a silent `ok`.
+
+| # | Link | Check | Failure exit |
+|---|---|---|---|
+| 1 | Bundle resolves | `resolveChangeBundle` | `absent-no-file` |
+| 2 | `run-ledger.xml` exists | `existsSync` | `absent-no-file` |
+| 3 | Regular file | `statSync` + `isFile()` | `unreadable` `xml.parse` |
+| 4 | Parses | `readGraceXmlArtifact` / `!root` | `unreadable` `xml.parse` (or first issue code) |
+| 5 | Correct root tag | `root.tag === NgraceRunLedger` (**corr 187**) | `unreadable` `ledger.invalid-root-tag` |
+| 6 | Wrapper for change id | `children.find(tag === changeId)` | `unreadable` `ledger.bundle-id-mismatch` |
+| 7 | Verdicts section unique | `selectUniqueSection` | absent → `ok` []; invalid → unreadable |
+| 8 | Each child is valid Verdict | tag + `parseVerdictNode` | `unreadable` `ledger.invalid-verdict` |
+
+**Known non-checks (deliberate or deferred):**
+
+- `graceVersion` attribute (lint checks it under the same code; plan-quality does not fail on
+  missing/wrong version alone if root tag is correct — not observed as silent shrink of a
+  corpus row today; if needed, fold into `C-LEDGER-READ-ABSENCE` or a later corr).
+- Exactly-one C-* wrapper identity (lint `ledger.invalid-change-id`); plan-quality only needs
+  *our* wrapper and tolerates an extra sibling (A73 two-wrapper row).
+
+#### A74.4 Updated broken-ledger table (entry point per row)
+
+Question for each: **did the count shrink without saying so?**
+
+| State | Entry point | Named unreadable? | Code / note | Silent shrink? |
+|---|---|---|---|---|
+| Truncated mid-file | plan-quality / doctor | yes | `xml.parse` | no |
+| Empty / zero-byte file | plan-quality | yes | `xml.parse` | no |
+| Wrong root, **no** matching wrapper | plan-quality | yes | `ledger.invalid-root-tag` (187; was mismatch via wrapper) | no |
+| Wrong root, **with** matching wrapper | plan-quality / doctor | yes | `ledger.invalid-root-tag` (**187**) | no |
+| Correct root, wrapper, no Verdicts | plan-quality | no | `ok`, 0 verdicts | no |
+| Directory named `run-ledger.xml` | `readLedgerVerdictsSurface` | yes | `xml.parse` | no |
+| Directory named `run-ledger.xml` | `ngrace doctor` CLI | n/a | lint/doctor exit 1 (**188**) | n/a |
+| Two wrappers (ours + other) | plan-quality | no | ours readable | no |
+| Missing file | plan-quality | not unreadable | `absent-no-file` | n/a |
+| Invalid scope token | plan-quality | yes | `ledger.invalid-verdict` (183) | no |
+
+#### A74.5 Files
+
+`src/gates/ledger.ts` (root-tag link in `readLedgerVerdictsSurface`), `src/review/outcomes.test.ts`,
+this amendment. Archive not modified. `C-LEDGER-READ-ABSENCE` draft unchanged.
+
+**OWS note (A69/A73).** Scope audit against archived `C-PLAN-QUALITY` still reports **1 finding**:
+`.ngrace/changes/active/C-LEDGER-READ-ABSENCE/spec.xml` (draft outside frozen OWS). Production
+paths for 187 remain inside OWS. Declared, not unexplained red.

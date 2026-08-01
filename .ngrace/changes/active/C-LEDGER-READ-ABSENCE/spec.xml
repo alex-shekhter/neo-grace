@@ -1,0 +1,81 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-LEDGER-READ-ABSENCE>
+    <Summary>
+      Give every ledger read path three exits (absent / unreadable / ok) instead of collapsing
+      no-file, parse failure, and missing wrapper into null (inherited Phase 5 conflation;
+      surfaced by Phase 10 corr 185). Spec only until planned and approved.
+    </Summary>
+    <Problem>
+      wrapperFromLedger (src/gates/ledger.ts) returns null for: (1) no run-ledger.xml,
+      (2) file present but XML does not parse, (3) parses but no wrapper for the change id.
+      Gates fail closed on the collapse (apply → no-verdict). Plan-quality (corr 185) needed a
+      separate readLedgerVerdictsSurface to avoid silent corpus shrink. The inherited API still
+      lies to every other caller that treats null as "no ledger yet."
+    </Problem>
+    <Goals>
+      <Goal>
+        wrapperFromLedger (or its replacement) returns a discriminated reason, not bare null, for
+        every caller — absent-no-file | unreadable (with code/detail) | ok(wrapper).
+      </Goal>
+      <Goal>
+        readLatestReviewVerdict and listReviewVerdicts consume the three-exit API without changing
+        gate permit/refuse outcomes on currently green fixtures (compat).
+      </Goal>
+      <Goal>
+        Plan-quality continues to use the same surface; no dual classification of unreadable.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Spec only until planned and approved. Does not authorize production code (A17.3).
+      </Constraint>
+      <Constraint>
+        Additive / fail-closed only. Existing projects without run-ledger stay green. Unreadable
+        never becomes a silent pass at any gate.
+      </Constraint>
+      <Constraint>
+        Standing rule 12: measure flag counts on this repository before shipping any new check.
+      </Constraint>
+      <Constraint>
+        Do not edit archived C-PLAN-QUALITY or other archives.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Rewriting gate policy (D11 apply still requires a recorded verdict when readable).
+      </NonGoal>
+      <NonGoal>
+        Changing plan-quality report shape beyond consuming the shared three-exit API.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-THREE-EXITS>
+        Ledger read distinguishes absent-no-file, unreadable (parse/mismatch), and ok. Discriminating
+        negatives: truncated file is unreadable not absent; missing file is absent not unreadable;
+        wrong wrapper id is unreadable with ledger.bundle-id-mismatch.
+      </AC-THREE-EXITS>
+      <AC-GATE-COMPAT>
+        Gate apply/approve/archive outcomes on the existing suite fixtures are unchanged. Discriminating
+        negative: a deliberate regression that turns fail-closed refuse into throw or permit fails a test.
+      </AC-GATE-COMPAT>
+      <AC-PLAN-QUALITY-SHARES>
+        collectPlanQualityReport uses the shared three-exit API (no private re-implementation of parse
+        classification). Discriminating negative: removing the shared API makes plan-quality tests red.
+      </AC-PLAN-QUALITY-SHARES>
+      <AC-VALIDATE-CI>
+        bun run validate:ci green after implementation.
+      </AC-VALIDATE-CI>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GATES />
+      <M-REVIEW />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Unit tests for three-exit matrix; gate fail-closed on corrupt ledger; plan-quality unreadable
+        rows; root lint 0 errors.
+      </ExpectedEvidence>
+    </VerificationIntent>
+  </C-LEDGER-READ-ABSENCE>
+</NgraceChangeSpec>

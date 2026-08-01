@@ -18,6 +18,7 @@
 //   partitionAbsenceIssues
 //   toDoctorAbsenceIssues
 // END_MODULE_MAP
+// Note: DoctorResult.absenceIssues was formerly analysisIssues (A7.4 / Phase 10 corr 181).
 
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -43,6 +44,11 @@ import {
 } from "./lint/document-size";
 import type { AnalysisCoverage, LintIssue } from "./lint/types";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
+import {
+  collectPlanQualityReport,
+  formatPlanQualityText,
+  type PlanQualityReport,
+} from "./review/outcomes";
 
 export type DoctorAdapterReport = {
   id: string;
@@ -73,9 +79,15 @@ export type DoctorResult = {
     file: string;
     present: boolean;
   }>;
-  analysisIssues: Array<Pick<LintIssue, "code" | "severity" | "file" | "message" | "issueClass">>;
+  /**
+   * Absence-class issues only (issueClass filter). Renamed from analysisIssues in Phase 10
+   * (A7.4 / corr 181) — the key was accurate only while every reachable absence was analysis.*.
+   */
+  absenceIssues: Array<Pick<LintIssue, "code" | "severity" | "file" | "message" | "issueClass">>;
   /** D6 calibration consumer — write-only claimedConfidence vs independent adjudicators. */
   calibration: CalibrationReport;
+  /** D10 plan-quality consumer — scope, stored classification, decomposition precondition. */
+  planQuality: PlanQualityReport;
 };
 
 /**
@@ -148,8 +160,9 @@ export function collectDoctorReport(projectRoot: string): DoctorResult {
     // A4.3 / A5.1: classify via issueClass, not an analysis. prefix allowlist.
     // assertion.command-not-evaluated is absence but unreachable from doctor under
     // current mode (A5.2) — partition still includes it when present on the issue list.
-    analysisIssues: toDoctorAbsenceIssues(lint.issues),
+    absenceIssues: toDoctorAbsenceIssues(lint.issues),
     calibration: collectCalibrationReport(root),
+    planQuality: collectPlanQualityReport(root),
   };
 }
 
@@ -206,26 +219,26 @@ export function formatDoctorText(report: DoctorResult): string {
     lines.push(`  - ${artifact.file}: ${artifact.present ? "present" : "missing (optional)"}`);
   }
 
-  // Heading kept as "Analysis issues" for Phase 10 baseline continuity (A2); content is
-  // absence-class issues only (A4.3 filter replacement).
-  lines.push("", "Analysis issues");
-  if (report.analysisIssues.length === 0) {
+  // Renamed from "Analysis issues" (A7.4 / corr 181) — content is absence-class only.
+  lines.push("", "Absence issues");
+  if (report.absenceIssues.length === 0) {
     lines.push("  None.");
   } else {
     // Count by code only — rows already come from toDoctorAbsenceIssues (A7.3 §4).
     const counts: Record<string, number> = {};
-    for (const issue of report.analysisIssues) {
+    for (const issue of report.absenceIssues) {
       counts[issue.code] = (counts[issue.code] ?? 0) + 1;
     }
     for (const code of Object.keys(counts).sort()) {
       lines.push(`  ${code}: ${counts[code]}`);
     }
-    for (const issue of report.analysisIssues) {
+    for (const issue of report.absenceIssues) {
       lines.push(`  - [${issue.severity}] ${issue.code} ${issue.file} — ${issue.message}`);
     }
   }
 
   lines.push("", formatCalibrationText(report.calibration).trimEnd());
+  lines.push("", formatPlanQualityText(report.planQuality).trimEnd());
 
   return `${lines.join("\n")}\n`;
 }
@@ -234,8 +247,9 @@ export const doctorCommand = defineCommand({
   meta: {
     name: "doctor",
     description:
-      "Read-only report: adapters, analysis coverage, document size pressure, optional context gaps, calibration (claimedConfidence is never gate-consumed).",
+      "Read-only report: adapters, analysis coverage, document size pressure, optional context gaps, absence issues, calibration (claimedConfidence is never gate-consumed), plan-quality (D10).",
   },
+
   args: {
     path: {
       type: "string",

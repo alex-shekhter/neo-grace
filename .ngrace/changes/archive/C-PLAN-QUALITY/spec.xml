@@ -1,0 +1,302 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-PLAN-QUALITY>
+    <Summary>
+      Phase 10 stage 1 draft (A70). Deliver D10 plan-quality signal: record review scope so
+      task- and wave-scoped outcomes cannot be pooled; store resolution classification
+      (implementation vs plan defect) at the moment of resolution (standing rule 13); store the
+      all-tasks-passed precondition for the decomposition inference; publish the proxy caveat
+      beside the number; surface the report on doctor (peer of Calibration). Do not re-implement
+      §10.4 doctor checks that already fire on lint, health, or gates (D16 / findings 173–174).
+    </Summary>
+    <Problem>
+      D10 is the only signal that measures the plan rather than the agent. §10 was written before
+      Phases 5–9 and C-OBSERVABLE-CHECKS landed. At 0a4b1b3 (A70):
+
+      1. Finding 172. src/grace-doctor.test.ts exists (200 lines). §10.3 CREATE is wrong; EDIT.
+
+      2. Findings 173, 177. Three of four §10.4 doctor checks already exist:
+         IC-* owner/version → projection.graph.invalid-interface-contract (error);
+         ST-* evidence → health.ui-state-unverified / health.ui-states-undeclared;
+         unresolved clarifications → gate.approve / gate.apply clarification-unresolved.
+         Rebuilding them in doctor on a lint-clean project is a vacuous green (D16), the class
+         C-OBSERVABLE-CHECKS just removed. Rule-12 subjects on this repo: 0 IC-*, 0 UI_COMPONENT
+         ST-* states, 0 open blocking clarifications.
+
+      3. Finding 174. AC-* unmapped Satisfies half exists as change.acceptance-criterion-unmapped
+         (warning). The "no V-M-* path" half has no artifact edge: AC is change-scoped, V-M is
+         module-scoped. Inventing the join is a sixteenth design decision (§12.5). Defer under
+         rule 7 with recorded absence.
+
+      4. Finding 175. D10 claims classification is a join because "amendments are ledger events."
+         At HEAD there is no amendment event kind. Supersede is status + Replacement. Roadmap
+         plan.md amendments are not ledger events. Classification must be stored (rule 13).
+
+      5. Finding 176. ReviewVerdictRecord is outcome | reason? | note? with no scope. Ten archive
+         Verdicts, all pass, none scoped; wave= count on archive ledgers is 0. Pooling cannot be
+         prevented by data that was never written.
+
+      6. A2 doctor baseline (Governed files: 0, no calibration) is stale. A70.2 re-captures
+         Governed files: 58 and calibration present. §10.5.4 Phase-1 silence target is gone.
+
+      What is real: wave optional on Epoch-N and opened; fold-time CalibrationAdjudication storage
+      at grace-cursor.ts:2075 (rule 13 model); M-REVIEW owns src/review/*; doctor is read-only and
+      already hosts Calibration as a consumer section.
+    </Problem>
+    <Goals>
+      <Goal>
+        Review outcomes carry scope (task | wave | bundle) so task-scoped and wave-scoped failures
+        are distinguishable and cannot be pooled into one unlabeled rate (D10).
+      </Goal>
+      <Goal>
+        Resolution classification (implementation defect | plan defect) is stored when the
+        resolution is recorded, not reconstructed as the sole report-time truth (rule 13 / A65.2).
+      </Goal>
+      <Goal>
+        Wave-level review failure with every constituent task having passed its own verification
+        is classifiable as decomposition failure only when the precondition is stored beside the
+        outcome (D10).
+      </Goal>
+      <Goal>
+        The proxy caveat appears adjacent to the classification counts in text and JSON.
+      </Goal>
+      <Goal>
+        At N=0 (no scoped verdicts / no classifications) the report prints counts and an honest
+        empty sentence — no flattering rate table (rule 11; Phase 9 pattern).
+      </Goal>
+      <Goal>
+        Doctor gains a plan-quality consumer section (peer of Calibration), read-only.
+      </Goal>
+      <Goal>
+        §10.4 checks already enforced elsewhere are not re-shipped as doctor-only copies (D16).
+        AC↔V-M half is deferred under rule 7 with recorded reasoning (finding 174).
+      </Goal>
+      <Goal>
+        src/review/outcomes.ts is a governed file with MODULE_CONTRACT LINKS: M-REVIEW; plans that
+        write it name M-REVIEW under GraphAnchors (ownership is LINKS, not directory prefix).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Stage 2 implements after plan.xml is authored and ngrace gate approve permits. Spec and
+        plan reach status approved with the gate Decision recorded (A17.3).
+      </Constraint>
+      <Constraint>
+        Standing rule 12: every new check or rate is run over this repository as it is; flag counts
+        are recorded. A check with zero subjects is unmeasured, not clean.
+      </Constraint>
+      <Constraint>
+        Standing rule 11: every sentence the plan-quality report emits must read true aloud given
+        the inputs the run actually had — especially at N=0 and for unscoped historical verdicts.
+      </Constraint>
+      <Constraint>
+        Standing rule 13: scope, classification, and constituentTasksPassed are written when they
+        are true (or known false); report-time reconstruction is not the primary source of truth.
+      </Constraint>
+      <Constraint>
+        Standing rule 7 / A12.4: AC↔V-M half and doctor re-copies of IC/ST/clarification are
+        amended as deferred or rejected with reasoning, never silently retargeted under the same
+        heading while claiming the original check shipped.
+      </Constraint>
+      <Constraint>
+        D5: absence of scope is absence with a reason, never a default of task or wave.
+      </Constraint>
+      <Constraint>
+        D14: plan-quality is a doctor/report consumer of ledger review outcomes, not a fourth check
+        surface that invents review.* or gate.* codes from lint.
+      </Constraint>
+      <Constraint>
+        Invariant 5: additive only. Existing Verdicts without scope remain valid; projects without
+        classifications lint and doctor clean aside from honest absence reporting.
+      </Constraint>
+      <Constraint>
+        Invariant 8 / F1: doctor and the report stay read-only. Writers are gate verdict / ledger
+        append paths already used for Verdicts.
+      </Constraint>
+      <Constraint>
+        No new runtime dependencies. Skill mirrors stay byte-identical if skill text changes.
+        Surgical diffs. No abstraction for a single caller.
+      </Constraint>
+      <Constraint>
+        GraphAnchors / ObservedWriteScope: any new src/review/outcomes.ts path is linked via
+        MODULE_CONTRACT LINKS: M-REVIEW and listed in OWS with GraphAnchors including M-REVIEW,
+        or change.graph-anchors-miss-write-scope is an error.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Re-implementing IC owner/version, ST evidence, or clarification gates inside doctor as
+        duplicate checkers (findings 173, 177).
+      </NonGoal>
+      <NonGoal>
+        Building an AC-* → V-M-* edge that does not exist in the artifact model (finding 174).
+        Deferred under rule 7 until a ratified model exists.
+      </NonGoal>
+      <NonGoal>
+        Classifying roadmap plan.md §14 amendments as plan defects from change ledgers (finding
+        175 FN class). Out of band.
+      </NonGoal>
+      <NonGoal>
+        The judgment-dependent remainder of review-consolidated §4.9.
+      </NonGoal>
+      <NonGoal>
+        Consuming claimedConfidence or plan-quality rates in any gate (D6 / D10 are write and
+        report, not gate inputs).
+      </NonGoal>
+      <NonGoal>
+        Defaulting historical unscoped Verdicts to task or wave (D5).
+      </NonGoal>
+      <NonGoal>
+        Editing archived run-ledgers to backfill scope or classification (archives are history).
+      </NonGoal>
+      <NonGoal>
+        Necessarily renaming analysisIssues in the same change (A7.4); may be co-located if the
+        doctor JSON shape is already open, otherwise a separate named home.
+      </NonGoal>
+    </NonGoals>
+    <Proposals>
+      <P1-Doctor-Consumer>
+        Doctor gains plan-quality report section, not re-lint of §10.4 checks 2–4. Cost: outcomes
+        module + doctor format/JSON + tests.
+      </P1-Doctor-Consumer>
+      <P2-Scope-On-Verdict>
+        Optional scope attribute on Verdict (task|wave|bundle); unscoped → scope-not-recorded
+        absence. Cost: ledger type + CLI + tests.
+      </P2-Scope-On-Verdict>
+      <P3-Store-Classification>
+        Store resolution classification at resolution time; helper may propose from supersede.
+        Cost: write path + stored fields + both-direction tests.
+      </P3-Store-Classification>
+      <P4-Supersede-Mechanism>
+        Plan defect evidence: status=superseded + Replacement; escalation/replan optional link;
+        code-only is explicit residual. Cost: docs of FN + implement supersede path.
+      </P4-Supersede-Mechanism>
+      <P5-Precondition-Stored>
+        constituentTasksPassed stored on wave-scoped fail at write. Cost: membership + terminal
+        scan + stored attribute.
+      </P5-Precondition-Stored>
+      <P6-Caveat-Adjacent>
+        Fixed proxy caveat sentence in text and JSON next to counts. Cost: shared constant + test.
+      </P6-Caveat-Adjacent>
+      <P7-N0-Honest>
+        N=0: counts + empty sentence + unscoped count; no rate table. Cost: formatter branches.
+      </P7-N0-Honest>
+    </Proposals>
+    <AcceptanceCriteria>
+      <AC-SCOPE-ON-VERDICT>
+        D10 / step 10.5.1. New Verdicts may carry scope=task|wave|bundle (enum fixed at stage-2
+        plan time). Discriminating negatives: (a) a query or report API that pools task-scoped and
+        wave-scoped outcomes into one unlabeled rate is impossible or is a tested error; (b)
+        unscoped historical Verdicts read as absence reason scope-not-recorded, never as a default
+        scope; (c) omitting scope remains valid on write (additive); (d) an invalid scope token is
+        rejected at write.
+      </AC-SCOPE-ON-VERDICT>
+      <AC-CLASSIFICATION-STORED>
+        D10 / step 10.5.2 / rule 13. Resolution classification implementation|plan is stored when
+        the resolution is recorded (or explicitly asserted), and the report reads the stored value.
+        Discriminating negatives: (a) report-time-only recompute without a stored field is not the
+        primary path; (b) a change resolved by supersede (status=superseded + Replacement) can be
+        classified plan when so recorded; (c) a code-only resolution classifies implementation when
+        so recorded; (d) both directions asserted against real ledger XML, not mocks of the join
+        alone.
+      </AC-CLASSIFICATION-STORED>
+      <AC-AMENDMENT-PREMISE-AMENDED>
+        Finding 175 / rule 7. Docs and skill text do not claim "amendments are already ledger
+        events" as the sole ground for classification. Discriminating negatives: (a) no user-facing
+        sentence asserts that every plan defect leaves an amendment event kind; (b) supersede +
+        Replacement and explicit resolution records are named as the joinable artifacts; (c)
+        roadmap plan.md amendments are named as out of band.
+      </AC-AMENDMENT-PREMISE-AMENDED>
+      <AC-DECOMPOSITION-PRECONDITION>
+        D10 / step 10.5.3. A wave-scoped fail is classified decomposition only when stored
+        constituentTasksPassed is true. Discriminating negatives: (a) wave fail where one
+        constituent task failed verification is not decomposition; (b) missing precondition is
+        absence with a reason, not an inferred true; (c) report does not re-derive the
+        precondition from present-state terminals as primary truth.
+      </AC-DECOMPOSITION-PRECONDITION>
+      <AC-PROXY-CAVEAT-ADJACENT>
+        D10 / step 10.5.5. The proxy caveat sentence is adjacent to the classification counts in
+        text and present as a JSON field on the same report object. Discriminating negatives: (a)
+        caveat only in a distant footnote or skill page is insufficient; (b) JSON without the
+        field when counts are present fails the test; (c) wording matches the read-aloud constant
+        (rule 11).
+      </AC-PROXY-CAVEAT-ADJACENT>
+      <AC-REPORT-N0>
+        Step 10.5 / A70.8. Over this repository (and any tree with no scoped verdicts or
+        classifications), the report prints counts and an honest empty sentence. Discriminating
+        negatives: (a) no rate table that implies plan-quality calibration; (b) no "0% plan
+        defects" or "plan quality: OK"; (c) unscoped verdicts are counted as scope-not-recorded,
+        not assigned a default scope; (d) read-aloud of the N=0 sentence is true at 0a4b1b3.
+      </AC-REPORT-N0>
+      <AC-DOCTOR-CONSUMER>
+        Doctor (read-only) surfaces the plan-quality report as a section peer to Calibration.
+        Discriminating negatives: (a) doctor does not write the ledger; (b) doctor does not emit
+        a green requirements-quality OK for IC/ST/clarification checks it did not run; (c) JSON
+        and text both carry the report or an explicit absence.
+      </AC-DOCTOR-CONSUMER>
+      <AC-NO-VACUOUS-DOCTOR-RECHECKS>
+        Findings 173–174 / D16 / rule 7. Stage 2 does not ship doctor-only duplicates of IC
+        owner/version, ST evidence, or clarification gates under the §10.4 headings. Discriminating
+        negatives: (a) no new issue code that is green on every tree solely because subjects are
+        absent; (b) AC↔V-M is documented deferred, not implemented as a vacuous check; (c) rule-12
+        counts from A70.5 remain the recorded baseline for those deferred items.
+      </AC-NO-VACUOUS-DOCTOR-RECHECKS>
+      <AC-OUTCOMES-MODULE>
+        src/review/outcomes.ts and outcomes.test.ts exist under M-REVIEW (MODULE_CONTRACT LINKS:
+        M-REVIEW; export parity). Discriminating negatives: (a) GraphAnchors omit M-REVIEW while
+        OWS lists outcomes.ts → change.graph-anchors-miss-write-scope error; (b) MAP_MODE EXPORTS
+        fails if the map lies; (c) package.json#files already covers src/review (C-OBSERVABLE-CHECKS)
+        so no pack regression for the new file.
+      </AC-OUTCOMES-MODULE>
+      <AC-DOCTOR-TEST-EDIT>
+        Finding 172. src/grace-doctor.test.ts is EDIT not CREATE; plan-quality cases land there
+        and/or co-located outcomes tests. Discriminating negative: stage 2 does not delete the
+        existing doctor suite to replace it with a thinner one (scope audit / A3.1).
+      </AC-DOCTOR-TEST-EDIT>
+      <AC-VALIDATE-CI>
+        bun run validate:ci green after stage 2 implementation. Discriminating negative: typecheck,
+        unit/integration, validate:cli, validate:marketplace, validate:packed all pass; root ngrace
+        lint 0 errors; rule-12 counts reported for every new check that ships.
+      </AC-VALIDATE-CI>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+      <M-GATES />
+      <M-DOCTOR />
+      <M-CURSOR />
+      <M-CLI />
+      <M-GRAMMAR />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Scope attribute write/read and unscoped absence; no-pool API test; classification stored
+        both ways against real ledger fixtures; decomposition precondition true/false/absent;
+        proxy caveat in text+JSON; N=0 read-aloud true on repo root (10 unscoped, 0 rates);
+        doctor section present and read-only; no vacuous IC/ST/clarification doctor re-check;
+        GraphAnchors M-REVIEW for outcomes.ts; root lint 0 errors; A70 rule-12 table updated if
+        counts change at close.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <ReadAloud>
+      <N0Sentence>
+        Plan-quality report: 0 review verdicts with recorded scope, 0 resolution classifications, 0
+        decomposition candidates. No plan-quality rate is computed. N verdicts lack scope
+        (scope-not-recorded) and are excluded from rates. Proxy caveat: a code-only fix can paper
+        over a plan defect and is scored as implementation. This classification is a proxy, not a
+        ground truth.
+      </N0Sentence>
+      <N0TruthConditions>
+        True when the project has no Verdict with a recorded scope attribute and no stored
+        resolution classification. At 0a4b1b3, N=10 unscoped pass verdicts, zero wave= on archive
+        ledgers, zero fail review verdicts, zero superseded bundles — so the only honest live
+        output is counts plus absence, never a rate. A flatter sentence like "plan quality: OK"
+        or "0% plan defects" would be false in the flattering direction (rule 11 / A46.3).
+      </N0TruthConditions>
+      <CaveatSentence>
+        Proxy caveat: a code-only fix can paper over a plan defect and is scored as implementation.
+        This classification is a proxy, not a ground truth.
+      </CaveatSentence>
+    </ReadAloud>
+  </C-PLAN-QUALITY>
+</NgraceChangeSpec>

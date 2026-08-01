@@ -97,6 +97,66 @@ describe("ledger Verdicts and Decisions (A30)", () => {
     expect(ledger).not.toContain("Epoch-");
   });
 
+  it("Phase 10: stores scope and classification; unscoped never invents scope (corr 182)", () => {
+    const root = tempProject();
+    activeBundle(root);
+    recordReviewVerdict(root, "C-GATE", {
+      outcome: "fail",
+      scope: "wave",
+      wave: "1",
+      classification: "plan",
+      constituentTasksPassed: true,
+    });
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    const all = listReviewVerdicts(root, "C-GATE");
+    expect(all[0]?.scope).toBe("wave");
+    expect(all[0]?.classification).toBe("plan");
+    expect(all[0]?.constituentTasksPassed).toBe(true);
+    // Second verdict unscoped — must not gain a default scope on read.
+    expect(all[1]?.scope).toBeUndefined();
+    expect(all[1]?.outcome).toBe("pass");
+    const ledger = readFileSync(
+      path.join(root, ARTIFACT_DIR, "changes", "active", "C-GATE", "run-ledger.xml"),
+      "utf8",
+    );
+    expect(ledger).toContain('scope="wave"');
+    expect(ledger).toContain('classification="plan"');
+    // Unscoped entry has outcome only — no scope= invented (self-closing or open).
+    expect(ledger).toMatch(/<Verdict outcome="pass"[ />]/);
+    expect(ledger).not.toMatch(/<Verdict outcome="pass"[^>]*scope=/);
+  });
+
+  it("corr 184: constituentTasksPassed outside wave+fail is rejected, not dropped", () => {
+    const root = tempProject();
+    activeBundle(root);
+    expect(() =>
+      recordReviewVerdict(root, "C-GATE", {
+        outcome: "pass",
+        scope: "task",
+        task: "T-001",
+        constituentTasksPassed: true,
+      }),
+    ).toThrow(/constituentTasksPassed applies only to wave-scoped fail verdicts/);
+    // Silent path would have stored a pass with no ctp — ensure nothing was written.
+    expect(listReviewVerdicts(root, "C-GATE")).toHaveLength(0);
+  });
+
+  it("corr 185: gates still fail closed on truncated ledger (no throw, no permit)", () => {
+    const root = tempProject();
+    activeBundle(root);
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-GATE", "run-ledger.xml");
+    const full = readFileSync(ledgerPath, "utf8");
+    writeFileSync(ledgerPath, full.slice(0, Math.floor(full.length / 2)));
+
+    // Must not throw — gate evaluates and refuses (fail closed).
+    const evaluation = evaluateGate(root, "C-GATE", "apply");
+    expect(evaluation.decision).toBe("refuse");
+    expect(evaluation.requirements.some((r) => r.id === "review-verdict" && r.blocking)).toBe(true);
+    // Legacy read still collapses to absent (empty list), not a throw.
+    expect(listReviewVerdicts(root, "C-GATE")).toEqual([]);
+  });
+
   it("survives fold of a later epoch without losing sections (A30 probe)", () => {
     const root = tempProject();
     const bundle = activeBundle(root);

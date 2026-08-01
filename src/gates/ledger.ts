@@ -15,15 +15,21 @@
 //   GateRequirementRecord
 //   LEDGER_NON_EPOCH_SECTIONS
 //   LatestReviewVerdict
+//   LedgerVerdictsSurface
 //   PermittingDecisionStatus
+//   ResolutionClassification
 //   ReviewVerdictOutcome
 //   ReviewVerdictRecord
+//   ReviewVerdictScope
 //   hasPermittingDecision
 //   latestReviewVerdict
 //   listGateDecisions
 //   listReviewVerdicts
+//   parseResolutionClassification
+//   parseReviewVerdictScope
 //   readGateDecisions
 //   readLatestReviewVerdict
+//   readLedgerVerdictsSurface
 //   readPermittingDecision
 //   recordGateDecision
 //   recordReviewVerdict
@@ -36,7 +42,7 @@
  * Section boundary: duplicate or validator-rejected section is invalid, not first-wins (A32.1 / 68).
  */
 
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { validateRunLedgerArtifact } from "../artifact/grammar";
@@ -48,12 +54,42 @@ import { GraceCommandError } from "../query/errors";
 
 export type ReviewVerdictOutcome = "pass" | "fail" | "unable-to-determine";
 
+/**
+ * D10 review scope, extended with `bundle` (A71 / corr 182).
+ * Historical unscoped verdicts stay scope-not-recorded — never retro-labelled bundle.
+ */
+export type ReviewVerdictScope = "task" | "wave" | "bundle";
+
+/** Stored at resolution (rule 13) — implementation vs plan defect (D10). */
+export type ResolutionClassification = "implementation" | "plan";
+
 export type ReviewVerdictRecord = {
   outcome: ReviewVerdictOutcome;
   /** D5 reason when outcome is an absence (e.g. host-capability-missing). */
   reason?: string;
   /** Optional free text. */
   note?: string;
+  /**
+   * Optional D10 scope. Absent means scope-not-recorded at report time —
+   * never defaulted to task, wave, or bundle (D5 / rule 13 / corr 182).
+   */
+  scope?: ReviewVerdictScope;
+  /** Task id when scope=task (optional label). */
+  task?: string;
+  /** Wave id when scope=wave (optional label; used for precondition join). */
+  wave?: string;
+  /**
+   * Stored resolution classification (implementation | plan). Written at resolution
+   * time; report reads this field, never re-derives as sole truth (P3 / rule 13).
+   */
+  classification?: ResolutionClassification;
+  /**
+   * Stored when scope=wave and outcome=fail: whether every constituent task passed
+   * its own verification at record time. Absent + reason when unknown.
+   */
+  constituentTasksPassed?: boolean;
+  /** D5 reason when constituentTasksPassed could not be determined. */
+  constituentTasksPassedReason?: string;
 };
 
 export type GateId = "approve" | "apply" | "archive";
@@ -99,8 +135,30 @@ export type PermittingDecisionStatus =
 const LEDGER_BUNDLE_SECTIONS = new Set(["Verdicts", "Decisions"]);
 
 const VALID_OUTCOMES = new Set<string>(["pass", "fail", "unable-to-determine"]);
+const VALID_SCOPES = new Set<string>(["task", "wave", "bundle"]);
+const VALID_CLASSIFICATIONS = new Set<string>(["implementation", "plan"]);
 const VALID_GATES = new Set<string>(["approve", "apply", "archive"]);
 const VALID_DECISIONS = new Set<string>(["permit", "refuse"]);
+
+export function parseReviewVerdictScope(value: string): ReviewVerdictScope {
+  if (!VALID_SCOPES.has(value)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Unsupported verdict scope \`${value}\`. Use task, wave, or bundle.`,
+    );
+  }
+  return value as ReviewVerdictScope;
+}
+
+export function parseResolutionClassification(value: string): ResolutionClassification {
+  if (!VALID_CLASSIFICATIONS.has(value)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Unsupported resolution classification \`${value}\`. Use implementation or plan.`,
+    );
+  }
+  return value as ResolutionClassification;
+}
 
 function cloneNode(node: GraceXmlNode): GraceXmlNode {
   return {
@@ -203,20 +261,74 @@ export function recordReviewVerdict(
       `Unsupported verdict outcome \`${verdict.outcome}\`. Use pass, fail, or unable-to-determine.`,
     );
   }
+  if (verdict.scope !== undefined && !VALID_SCOPES.has(verdict.scope)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Unsupported verdict scope \`${verdict.scope}\`. Use task, wave, or bundle.`,
+    );
+  }
+  if (verdict.classification !== undefined && !VALID_CLASSIFICATIONS.has(verdict.classification)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Unsupported resolution classification \`${verdict.classification}\`. Use implementation or plan.`,
+    );
+  }
+  // Corr 184: constituentTasksPassed applies only to wave-scoped fail — never silent drop.
+  const ctpSupplied =
+    verdict.constituentTasksPassed !== undefined ||
+    Boolean(verdict.constituentTasksPassedReason?.trim());
+  if (ctpSupplied && !(verdict.scope === "wave" && verdict.outcome === "fail")) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      "constituentTasksPassed applies only to wave-scoped fail verdicts",
+    );
+  }
+
+  // Stored fields only — never invent scope or classification defaults (D5 / corr 182).
+  const stored: ReviewVerdictRecord = {
+    outcome: verdict.outcome,
+    ...(verdict.reason ? { reason: verdict.reason } : {}),
+    ...(verdict.note ? { note: verdict.note } : {}),
+    ...(verdict.scope ? { scope: verdict.scope } : {}),
+    ...(verdict.task ? { task: verdict.task } : {}),
+    ...(verdict.wave ? { wave: verdict.wave } : {}),
+    ...(verdict.classification ? { classification: verdict.classification } : {}),
+  };
+  if (verdict.scope === "wave" && verdict.outcome === "fail") {
+    if (verdict.constituentTasksPassed !== undefined) {
+      stored.constituentTasksPassed = verdict.constituentTasksPassed;
+      if (verdict.constituentTasksPassedReason) {
+        stored.constituentTasksPassedReason = verdict.constituentTasksPassedReason;
+      }
+    } else if (verdict.constituentTasksPassedReason) {
+      stored.constituentTasksPassedReason = verdict.constituentTasksPassedReason;
+    }
+  }
+
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const root = loadOrCreateLedgerRoot(bundlePath, changeId);
   const wrapper = ensureWrapper(root, changeId);
   const section = ensureSection(wrapper, "Verdicts");
-  const attributes: Record<string, string> = { outcome: verdict.outcome };
-  if (verdict.reason) attributes.reason = verdict.reason;
+  const attributes: Record<string, string> = { outcome: stored.outcome };
+  if (stored.reason) attributes.reason = stored.reason;
+  if (stored.scope) attributes.scope = stored.scope;
+  if (stored.task) attributes.task = stored.task;
+  if (stored.wave) attributes.wave = stored.wave;
+  if (stored.classification) attributes.classification = stored.classification;
+  if (stored.constituentTasksPassed !== undefined) {
+    attributes.constituentTasksPassed = stored.constituentTasksPassed ? "true" : "false";
+  }
+  if (stored.constituentTasksPassedReason) {
+    attributes.constituentTasksPassedReason = stored.constituentTasksPassedReason;
+  }
   section.children.push({
     tag: "Verdict",
     attributes,
     children: [],
-    text: verdict.note ?? "",
+    text: stored.note ?? "",
   });
   writeAndVerifyLedger(bundlePath, root);
-  return verdict;
+  return stored;
 }
 
 /** Append a gate decision to the ledger Decisions section (A30.2). Leaves run/ untouched. */
@@ -253,6 +365,11 @@ export function recordGateDecision(
   return decision;
 }
 
+/**
+ * Legacy collapse for gate paths (Phase 5). Maps no-file / unparseable / missing-wrapper
+ * to null. Gate consumers fail closed; plan-quality must use readLedgerVerdictsSurface (corr 185).
+ * Full three-exit replacement is scheduled as C-LEDGER-READ-ABSENCE.
+ */
 function wrapperFromLedger(bundlePath: string, changeId: string): GraceXmlNode | null {
   const ledgerPath = path.join(bundlePath, "run-ledger.xml");
   if (!existsSync(ledgerPath)) return null;
@@ -261,16 +378,160 @@ function wrapperFromLedger(bundlePath: string, changeId: string): GraceXmlNode |
   return artifact.root.children.find((child) => child.tag === changeId) ?? null;
 }
 
+/**
+ * Distinguishes absent-no-file vs unreadable vs ok for plan-quality and other consumers
+ * that must not shrink a corpus silently (corr 185–187 / A31.2 / D5).
+ *
+ * Validation chain: exists → regular file → parses → correct root → wrapper →
+ * Verdicts section → children. Any failed link is unreadable (or absent-no-file), never ok.
+ *
+ * Does not change readLatestReviewVerdict or gate behaviour.
+ */
+export type LedgerVerdictsSurface =
+  | { state: "absent-no-file" }
+  | { state: "unreadable"; code: string; detail: string }
+  | { state: "ok"; verdicts: ReviewVerdictRecord[] };
+
+export function readLedgerVerdictsSurface(
+  projectRoot: string,
+  changeId: string,
+): LedgerVerdictsSurface {
+  let bundlePath: string;
+  try {
+    bundlePath = resolveChangeBundle(projectRoot, changeId);
+  } catch {
+    return { state: "absent-no-file" };
+  }
+
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (!existsSync(ledgerPath)) {
+    return { state: "absent-no-file" };
+  }
+
+  try {
+    const st = statSync(ledgerPath);
+    if (!st.isFile()) {
+      return {
+        state: "unreadable",
+        code: "xml.parse",
+        detail: `run-ledger.xml is not a regular file (${st.isDirectory() ? "directory" : "special"})`,
+      };
+    }
+  } catch (error) {
+    return {
+      state: "unreadable",
+      code: "xml.parse",
+      detail: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  let artifact: ReturnType<typeof readGraceXmlArtifact>;
+  try {
+    artifact = readGraceXmlArtifact(ledgerPath);
+  } catch (error) {
+    return {
+      state: "unreadable",
+      code: "xml.parse",
+      detail: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  if (!artifact.root) {
+    const issue = artifact.issues[0];
+    return {
+      state: "unreadable",
+      code: issue?.code ?? "xml.parse",
+      detail: issue?.message ?? "run-ledger.xml could not be parsed",
+    };
+  }
+
+  // Corr 187: a non-ledger root with a matching wrapper must not look like ok/empty.
+  // Match lint code ledger.invalid-root-tag (grammar validateRunLedger).
+  const expectedRoot = `${ARTIFACT_TAG_PREFIX}RunLedger`;
+  if (artifact.root.tag !== expectedRoot) {
+    return {
+      state: "unreadable",
+      code: "ledger.invalid-root-tag",
+      detail: `Unsupported run ledger root tag '${artifact.root.tag}'. Expected ${expectedRoot}.`,
+    };
+  }
+
+  const wrapper = artifact.root.children.find((child) => child.tag === changeId);
+  if (!wrapper) {
+    return {
+      state: "unreadable",
+      code: "ledger.bundle-id-mismatch",
+      detail: `run-ledger.xml has no wrapper for ${changeId}`,
+    };
+  }
+
+  const selected = selectUniqueSection(wrapper, "Verdicts");
+  if (selected.state === "absent") {
+    return { state: "ok", verdicts: [] };
+  }
+  if (selected.state === "invalid") {
+    return {
+      state: "unreadable",
+      code: "ledger.invalid-verdict",
+      detail: selected.detail,
+    };
+  }
+
+  const verdicts: ReviewVerdictRecord[] = [];
+  for (const child of selected.section.children) {
+    if (child.tag !== "Verdict") {
+      return {
+        state: "unreadable",
+        code: "ledger.invalid-verdict",
+        detail: `unexpected <${child.tag}> under Verdicts`,
+      };
+    }
+    const parsed = parseVerdictNode(child);
+    if ("invalid" in parsed) {
+      return {
+        state: "unreadable",
+        code: "ledger.invalid-verdict",
+        detail: parsed.invalid,
+      };
+    }
+    verdicts.push(parsed);
+  }
+  return { state: "ok", verdicts };
+}
+
 function parseVerdictNode(child: GraceXmlNode): ReviewVerdictRecord | { invalid: string } {
   const outcome = child.attributes.outcome;
   if (!outcome || !VALID_OUTCOMES.has(outcome)) {
     return { invalid: `outcome=${outcome ?? "(missing)"}` };
   }
-  return {
+  const scopeRaw = (child.attributes.scope ?? "").trim();
+  if (scopeRaw && !VALID_SCOPES.has(scopeRaw)) {
+    return { invalid: `scope=${scopeRaw}` };
+  }
+  const classRaw = (child.attributes.classification ?? "").trim();
+  if (classRaw && !VALID_CLASSIFICATIONS.has(classRaw)) {
+    return { invalid: `classification=${classRaw}` };
+  }
+  const ctpRaw = (child.attributes.constituentTasksPassed ?? "").trim();
+  if (ctpRaw && ctpRaw !== "true" && ctpRaw !== "false") {
+    return { invalid: `constituentTasksPassed=${ctpRaw}` };
+  }
+  const record: ReviewVerdictRecord = {
     outcome: outcome as ReviewVerdictOutcome,
     reason: child.attributes.reason || undefined,
     note: child.text.trim() || undefined,
   };
+  // Never invent scope when attribute is absent (corr 182 retro-label forbid).
+  if (scopeRaw) record.scope = scopeRaw as ReviewVerdictScope;
+  if (child.attributes.task?.trim()) record.task = child.attributes.task.trim();
+  if (child.attributes.wave?.trim()) record.wave = child.attributes.wave.trim();
+  if (classRaw) record.classification = classRaw as ResolutionClassification;
+  if (ctpRaw === "true") record.constituentTasksPassed = true;
+  if (ctpRaw === "false") record.constituentTasksPassed = false;
+  if (child.attributes.constituentTasksPassedReason?.trim()) {
+    record.constituentTasksPassedReason = child.attributes.constituentTasksPassedReason.trim();
+  }
+  return record;
 }
 
 function parseDecisionNode(child: GraceXmlNode): GateDecisionRecord | { invalid: string } {
