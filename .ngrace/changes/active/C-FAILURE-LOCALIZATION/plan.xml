@@ -1,0 +1,167 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-FAILURE-LOCALIZATION>
+    <IntentSummary>
+      Deterministic failure localization (D8): firstDivergentBlock over expected V-M-* markers
+      versus observed markers parsed from a caller-supplied log, with BLOCK_* region resolution,
+      foreign-marker context, D8-closed review process context via --review-json, and flake
+      classification consumed not rebuilt.
+
+      Authored before production code per A17.3. A41 is normative over §7.3–§7.5; A42 is normative
+      where it differs (route 2 only, corrections 103–107). Build order: pure comparator and parser,
+      then project-wide alphabet split, block location join, module join, review-json filter, flake
+      consult, CLI surface, ngrace-fix skill + mirror.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-verification.ts</Value></MustExist>
+      <MustExist><Value>src/verification/check-references.ts</Value></MustExist>
+      <MustExist><Value>src/project-utils.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-PROJECT-UTILS</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-PROJECT-UTILS</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/verification/localize.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-verification.ts</Value></MustExist>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-PROJECT-UTILS</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace verification localize --help</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-CURSOR />
+        <M-PROJECT-UTILS />
+        <M-ASSERTIONS />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-CURSOR />
+        <V-M-PROJECT-UTILS />
+        <V-M-ASSERTIONS />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/verification/localize.ts</File>
+      <File>src/verification/localize.test.ts</File>
+      <File>src/grace-verification.ts</File>
+      <File>src/grace-query.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>skills/ngrace/ngrace-fix/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-fix/SKILL.md</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+      <File>.ngrace/changes/active/C-FAILURE-LOCALIZATION/plan.xml</File>
+      <File>.ngrace/changes/active/C-FAILURE-LOCALIZATION/run-ledger.xml</File>
+      <File>.ngrace/changes/active/C-FAILURE-LOCALIZATION/spec.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Pure sequence tools: parseObservedMarkers and firstDivergentBlock</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            firstDivergentBlock covers seven axes as separate unit cases: divergence at 0, mid, end,
+            observed shorter, observed longer, repeated marker, identical (null); empty sides covered.
+            parseObservedMarkers keeps every occurrence in log order against a project-wide alphabet;
+            cases: empty log, no declared markers, foreign-only, interleaved, repeated. Observed-longer
+            reachable from a real log via repeated emission (A42.6, A40.2).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-LOCALIZE-COMPARATOR-AXES />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/verification/localize.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Alphabet split, module join, BLOCK_* location resolution</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Expected from V-M-* document order; observed is entry-scoped after project-wide parse;
+            foreign markers reported in log order and never compared (A42.3). Module join via testFiles
+            and linkedModuleIds; ungoverned path is AbsenceValue unable-to-determine (A41.2 corr 97).
+            Divergent marker resolves via parseMarkerBlockName to path:startLine-endLine; no BLOCK_*
+            suffix, no file, multi-file — four-row A42.2 table. No stack-frame location.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-LOCALIZE-FOREIGN-MARKERS />
+          <AC-LOCALIZE-BLOCK-LOCATION />
+          <AC-LOCALIZE-MODULE-JOIN />
+          <AC-LOCALIZE-NO-STACK-AS-DIVERGENCE />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/verification/localize.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Absence paths, --review-json filter, flake consumption</Title>
+        <DependsOn>
+          <T-002 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Every localization absence uses unable-to-determine (A42.1). --review-json reads ngrace
+            review JSON; only the three D8-named codes pass as process context; table-driven over
+            full REVIEW_CATALOG; closed-by-name rule (A42.4–A42.5). Flag absent → process context
+            absent, no AbsenceValue. classifyFlakeFromEvidence imported; flaky suppresses causal
+            divergence; one fixture per flake verdict (A41.2 corr 98).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-LOCALIZE-ABSENCE-VALUE />
+          <AC-LOCALIZE-REVIEW-ADMISSIBILITY />
+          <AC-LOCALIZE-FLAKE-CONSUME />
+          <AC-LOCALIZE-OBSERVED-FROM-LOG />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/verification/localize.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>CLI surface and ngrace-fix skill</Title>
+        <DependsOn>
+          <T-003 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            ngrace verification localize registered; --log required (--log - for stdin); --review-json
+            optional; text and JSON output; writes nothing (F1). Integration over temp project +
+            synthetic log. ngrace-fix short path; packaged mirror byte-identical; D15 line delta
+            reported. Route (1) not implemented (NonGoals).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Satisfies>
+          <AC-LOCALIZE-QUERY-SURFACE />
+          <AC-LOCALIZE-FIX-SKILL />
+        </Satisfies>
+        <Verification>
+          <Command>bun test src/verification src/grace-query.test.ts</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-FAILURE-LOCALIZATION>
+</NgraceChangePlan>
