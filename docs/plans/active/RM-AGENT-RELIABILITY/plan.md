@@ -10053,3 +10053,79 @@ touched.
 covers). `bun run validate:ci` green. Mutation: reverting catch-continue fails corr-183 test;
 removing 184 reject fails corr-184 test.
 
+
+### A73 — 2026-08-01 · Corrections 185–186 (post-close; parse-path silence)
+
+**On `feat/phase-10-rederive` after a1596f0.** Phase 10 board stays **`COMPLETE`**. Archived
+`C-PLAN-QUALITY` **untouched** (A69). Findings continue from **185**.
+
+#### A73.1 Correction 185 — unparseable ledger vanished after 183
+
+**Before (scratch: truncated C-SELECTION run-ledger mid-attribute):**
+
+```
+lint   → Errors: 1  xml.parse … Attributes for 'Requirement' have open quote.
+doctor → … 9 scope-not-recorded of 10 readable total
+         verdicts total (readable): 10
+         unreadable bundles: 0          ← corrupt bundle not named
+```
+
+183 only classified **thrown** `ledger.invalid-*`. Parse failure never throws:
+`wrapperFromLedger` collapses no-file / unparseable / missing-wrapper to `null` →
+`readLatestReviewVerdict` → `absent` → `listReviewVerdicts` → `[]`.
+
+| Situation | Today (legacy gate path) | Plan-quality after 185 |
+|---|---|---|
+| No `run-ledger.xml` | null → absent | **absent-no-file** (not unreadable) |
+| File exists, does not parse | null → absent | **unreadable** `xml.parse` + detail |
+| Parses, no wrapper for change id | null → absent | **unreadable** `ledger.bundle-id-mismatch` |
+| Wrapper present, no Verdicts | absent / [] | **ok**, zero verdicts |
+
+**Fix (consumer only):** `readLedgerVerdictsSurface` in `src/gates/ledger.ts` returns
+`absent-no-file | unreadable | ok`. `collectPlanQualityReport` uses it exclusively for the
+corpus walk. **`readLatestReviewVerdict` / gate paths left unchanged** so apply still fail-closes
+(`gate.apply.no-verdict` / refuse) without throwing.
+
+**Gate fail-closed evidence:** truncate ledger after a pass verdict → `evaluateGate(apply)` →
+`decision=refuse`, review-verdict blocking; `listReviewVerdicts` still returns `[]` (legacy
+collapse). Test: `corr 185: gates still fail closed…`.
+
+**After (same truncated probe):**
+
+```
+… 9 scope-not-recorded of 10 readable total. 1 bundle unreadable (xml.parse)
+and excluded from every count: C-SELECTION.
+  unreadable bundles: 1
+    - C-SELECTION: xml.parse — Attributes for 'Requirement' have open quote.
+```
+
+**Real repository:** `verdicts total (readable): 11`, `scoped: 1`, `scope-not-recorded: 10`,
+`unreadable bundles: 0`.
+
+**Inherited half scheduled:** draft
+`.ngrace/changes/active/C-LEDGER-READ-ABSENCE/spec.xml` (`status="draft"`) — make every ledger
+caller use three exits, not only plan-quality. Not implemented in this fix.
+
+**Adversarial broken-ledger table (plan-quality; question = "did the count shrink without saying so?"):**
+
+| State | Named unreadable? | Silent shrink? |
+|---|---|---|
+| Truncated mid-file | yes, `xml.parse` | no |
+| Empty / zero-byte file | yes, `xml.parse` | no |
+| Valid XML wrong root, no matching wrapper | yes, `ledger.bundle-id-mismatch` | no |
+| Directory named `run-ledger.xml` | yes, `xml.parse` | no |
+| Two wrappers (ours + other) | no — ours readable | no |
+| Missing file | not unreadable (absent) | n/a |
+| No Verdicts section | not unreadable, 0 verdicts | no |
+| Invalid scope token | yes, `ledger.invalid-verdict` (183) | no |
+
+#### A73.2 Correction 186 — dead ternaries in `buildSummary`
+
+Collapsed identical-branch ternaries to a single literal space before the proxy caveat.
+
+#### A73.3 Files
+
+`src/gates/ledger.ts` (+ `readLedgerVerdictsSurface`), `src/review/outcomes.ts` / `.test.ts`,
+`src/gates/core.test.ts`, draft `C-LEDGER-READ-ABSENCE/spec.xml`, this amendment.
+Archive not modified.
+

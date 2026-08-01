@@ -36,13 +36,12 @@ import { resolveNgracePaths } from "../artifact/project";
 import { ANCHOR_PATTERNS } from "../artifact/types";
 import { readGraceXmlArtifact, type GraceXmlNode } from "../artifact/xml";
 import {
-  listReviewVerdicts,
+  readLedgerVerdictsSurface,
   type ResolutionClassification,
   type ReviewVerdictRecord,
   type ReviewVerdictScope,
 } from "../gates/ledger";
 import { resolveChangeBundle } from "../grace-cursor";
-import { GraceCommandError } from "../query/errors";
 
 /** Frozen wording (A70.8 / P6). Shared by text and JSON. */
 export const PLAN_QUALITY_PROXY_CAVEAT =
@@ -98,23 +97,6 @@ export type PlanQualityReport = {
   summary: string;
 };
 
-/** ledger.invalid-verdict and siblings — the only errors we convert to unreadable absence. */
-function asUnreadableLedgerFailure(
-  error: unknown,
-): { code: string; detail: string } | undefined {
-  if (!(error instanceof GraceCommandError)) return undefined;
-  const issueCode =
-    error.issues?.find((c) => c.startsWith("ledger.invalid-")) ??
-    (error.message.startsWith("ledger.invalid-")
-      ? error.message.split(":")[0]?.trim()
-      : undefined);
-  if (!issueCode || !issueCode.startsWith("ledger.invalid-")) return undefined;
-  const detail = error.message.includes(": ")
-    ? error.message.slice(error.message.indexOf(": ") + 2)
-    : error.message;
-  return { code: issueCode, detail };
-}
-
 function listChangeIds(projectRoot: string): string[] {
   const paths = resolveNgracePaths(projectRoot);
   const ids: string[] = [];
@@ -156,7 +138,8 @@ function toRow(changeId: string, verdict: ReviewVerdictRecord): PlanQualityVerdi
 /**
  * Build the plan-quality report from stored Verdict attributes only.
  * Does not invent scope for unscoped history (corr 182).
- * Unreadable ledgers are named absences, never silent skips (corr 183).
+ * Unreadable ledgers are named absences, never silent skips (corr 183 / 185).
+ * Uses readLedgerVerdictsSurface so parse failures are not collapsed to absent (corr 185).
  */
 export function collectPlanQualityReport(projectRoot: string): PlanQualityReport {
   const root = path.resolve(projectRoot);
@@ -164,23 +147,20 @@ export function collectPlanQualityReport(projectRoot: string): PlanQualityReport
   const unreadable: PlanQualityUnreadableBundle[] = [];
 
   for (const changeId of listChangeIds(root)) {
-    let verdicts: ReviewVerdictRecord[];
-    try {
-      verdicts = listReviewVerdicts(root, changeId);
-    } catch (error) {
-      const ledgerFail = asUnreadableLedgerFailure(error);
-      if (ledgerFail) {
-        unreadable.push({
-          changeId,
-          code: ledgerFail.code,
-          detail: ledgerFail.detail,
-        });
-        continue;
-      }
-      // Not a readable-ledger failure — do not classify as unreadable (corr 183).
-      throw error;
+    const surface = readLedgerVerdictsSurface(root, changeId);
+    if (surface.state === "absent-no-file") {
+      // No run-ledger.xml: zero verdicts, not unreadable (corr 183/185 discriminating negative).
+      continue;
     }
-    for (const v of verdicts) {
+    if (surface.state === "unreadable") {
+      unreadable.push({
+        changeId,
+        code: surface.code,
+        detail: surface.detail,
+      });
+      continue;
+    }
+    for (const v of surface.verdicts) {
       rows.push(toRow(changeId, v));
     }
   }
@@ -254,6 +234,7 @@ function buildSummary(report: PlanQualityReport): string {
   } = report;
   const unreadableClause = formatUnreadableClause(unreadable);
   // No rate table. No "0% plan defects". No "plan quality: OK" (P7 / rule 11).
+  // Spacing before caveat is a single literal space (corr 186 — no dead ternary).
   if (scoped === 0) {
     return (
       `Plan-quality report: 0 review verdicts with recorded scope, ` +
@@ -262,7 +243,7 @@ function buildSummary(report: PlanQualityReport): string {
       `No plan-quality rate is computed. ` +
       `${scopeNotRecorded} verdicts lack scope (scope-not-recorded) and are excluded from rates.` +
       unreadableClause +
-      (unreadableClause.endsWith(".") ? " " : " ") +
+      ` ` +
       PLAN_QUALITY_PROXY_CAVEAT
     );
   }
@@ -271,7 +252,7 @@ function buildSummary(report: PlanQualityReport): string {
     `(task=${report.byScope.task}, wave=${report.byScope.wave}, bundle=${report.byScope.bundle}), ` +
     `${scopeNotRecorded} scope-not-recorded of ${verdictsTotal} readable total.` +
     unreadableClause +
-    (unreadableClause ? " " : " ") +
+    ` ` +
     `Classifications stored: implementation=${classifications.implementation}, plan=${classifications.plan}, unstored=${classifications.unstored}. ` +
     `Decomposition candidates (wave fail + stored all-tasks-passed): ${decompositionCandidates}. ` +
     `Task- and wave-scoped outcomes are not pooled. ` +

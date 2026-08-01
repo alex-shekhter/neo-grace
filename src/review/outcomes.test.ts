@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -370,5 +370,146 @@ describe("plan-quality report (D10 / Phase 10)", () => {
     expect(report.unreadable).toEqual([]);
     expect(report.verdictsTotal).toBe(0);
     expect(report.summary).not.toContain("unreadable");
+  });
+
+  it("corr 185: truncated/malformed ledger is unreadable xml.parse, not a silent shrink", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeBundle(root, "C-GOOD");
+    writeBundle(root, "C-TRUNC");
+    recordReviewVerdict(root, "C-GOOD", { outcome: "pass", scope: "bundle" });
+    recordReviewVerdict(root, "C-TRUNC", { outcome: "pass" });
+    const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-TRUNC", "run-ledger.xml");
+    const full = readFileSync(ledgerPath, "utf8");
+    writeFileSync(ledgerPath, full.slice(0, Math.floor(full.length / 2)));
+
+    const report = collectPlanQualityReport(root);
+    // Failure mode: C-TRUNC vanished, total shrank, unreadable empty.
+    expect(report.unreadable.map((u) => u.changeId)).toEqual(["C-TRUNC"]);
+    expect(report.unreadable[0]?.code).toBe("xml.parse");
+    expect(report.verdictsTotal).toBe(1);
+    expect(report.rows.some((r) => r.changeId === "C-GOOD")).toBe(true);
+    expect(report.summary).toContain("1 bundle unreadable");
+    expect(report.summary).toContain("xml.parse");
+    expect(report.summary).toContain("C-TRUNC");
+  });
+
+  it("corr 185: parses but wrong change wrapper is ledger.bundle-id-mismatch", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeBundle(root, "C-MISMATCH");
+    const ledgerPath = path.join(
+      root,
+      ARTIFACT_DIR,
+      "changes",
+      "active",
+      "C-MISMATCH",
+      "run-ledger.xml",
+    );
+    writeFileSync(
+      ledgerPath,
+      `<NgraceRunLedger graceVersion="1.0"><C-OTHER><Verdicts><Verdict outcome="pass" /></Verdicts></C-OTHER></NgraceRunLedger>`,
+    );
+    const report = collectPlanQualityReport(root);
+    expect(report.unreadable).toEqual([
+      expect.objectContaining({
+        changeId: "C-MISMATCH",
+        code: "ledger.bundle-id-mismatch",
+      }),
+    ]);
+    expect(report.verdictsTotal).toBe(0);
+  });
+
+  it("corr 185: wrapper present, no Verdicts section → zero verdicts, not unreadable", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeBundle(root, "C-NOVER");
+    const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-NOVER", "run-ledger.xml");
+    writeFileSync(
+      ledgerPath,
+      `<NgraceRunLedger graceVersion="1.0"><C-NOVER><Decisions></Decisions></C-NOVER></NgraceRunLedger>`,
+    );
+    const report = collectPlanQualityReport(root);
+    expect(report.unreadable).toEqual([]);
+    expect(report.verdictsTotal).toBe(0);
+  });
+
+  it("corr 185 adversarial table: empty, zero-byte, wrong root, directory, two wrappers", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    const cases: Array<{
+      id: string;
+      setup: (ledgerPath: string) => void;
+      expectUnreadable: boolean;
+      code?: string;
+    }> = [
+      {
+        id: "C-EMPTY",
+        setup: (p) => writeFileSync(p, ""),
+        expectUnreadable: true,
+        code: "xml.parse",
+      },
+      {
+        id: "C-ZERO",
+        setup: (p) => writeFileSync(p, ""),
+        expectUnreadable: true,
+        code: "xml.parse",
+      },
+      {
+        id: "C-WRONGROOT",
+        // Wrong root and no C-WRONGROOT wrapper child — not "wrong root with matching child".
+        setup: (p) =>
+          writeFileSync(p, `<NotALedger graceVersion="1.0"><SomethingElse /></NotALedger>`),
+        expectUnreadable: true,
+        code: "ledger.bundle-id-mismatch",
+      },
+      {
+        id: "C-DIRLEDGER",
+        setup: (p) => {
+          try {
+            unlinkSync(p);
+          } catch {
+            /* none */
+          }
+          mkdirSync(p, { recursive: true });
+        },
+        expectUnreadable: true,
+        code: "xml.parse",
+      },
+      {
+        id: "C-TWOWRAP",
+        setup: (p) =>
+          writeFileSync(
+            p,
+            `<NgraceRunLedger graceVersion="1.0">` +
+              `<C-TWOWRAP><Verdicts><Verdict outcome="pass" scope="bundle" /></Verdicts></C-TWOWRAP>` +
+              `<C-OTHER><Verdicts><Verdict outcome="fail" /></Verdicts></C-OTHER>` +
+              `</NgraceRunLedger>`,
+          ),
+        expectUnreadable: false,
+      },
+    ];
+
+    for (const c of cases) {
+      writeBundle(root, c.id);
+      const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", c.id, "run-ledger.xml");
+      c.setup(ledgerPath);
+    }
+
+    const report = collectPlanQualityReport(root);
+    const byId = new Map(report.unreadable.map((u) => [u.changeId, u]));
+
+    for (const c of cases) {
+      if (c.expectUnreadable) {
+        expect(byId.has(c.id)).toBe(true);
+        if (c.code) expect(byId.get(c.id)?.code).toBe(c.code);
+      } else {
+        // C-TWOWRAP: our wrapper exists → readable, must not shrink without naming
+        expect(byId.has(c.id)).toBe(false);
+        expect(report.rows.some((r) => r.changeId === c.id && r.scope === "bundle")).toBe(true);
+      }
+    }
+    // No silent shrink: every unreadable case is named
+    expect(report.unreadable.length).toBe(cases.filter((c) => c.expectUnreadable).length);
   });
 });

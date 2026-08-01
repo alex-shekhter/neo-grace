@@ -15,6 +15,7 @@
 //   GateRequirementRecord
 //   LEDGER_NON_EPOCH_SECTIONS
 //   LatestReviewVerdict
+//   LedgerVerdictsSurface
 //   PermittingDecisionStatus
 //   ResolutionClassification
 //   ReviewVerdictOutcome
@@ -28,6 +29,7 @@
 //   parseReviewVerdictScope
 //   readGateDecisions
 //   readLatestReviewVerdict
+//   readLedgerVerdictsSurface
 //   readPermittingDecision
 //   recordGateDecision
 //   recordReviewVerdict
@@ -40,7 +42,7 @@
  * Section boundary: duplicate or validator-rejected section is invalid, not first-wins (A32.1 / 68).
  */
 
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { validateRunLedgerArtifact } from "../artifact/grammar";
@@ -363,12 +365,124 @@ export function recordGateDecision(
   return decision;
 }
 
+/**
+ * Legacy collapse for gate paths (Phase 5). Maps no-file / unparseable / missing-wrapper
+ * to null. Gate consumers fail closed; plan-quality must use readLedgerVerdictsSurface (corr 185).
+ * Full three-exit replacement is scheduled as C-LEDGER-READ-ABSENCE.
+ */
 function wrapperFromLedger(bundlePath: string, changeId: string): GraceXmlNode | null {
   const ledgerPath = path.join(bundlePath, "run-ledger.xml");
   if (!existsSync(ledgerPath)) return null;
   const artifact = readGraceXmlArtifact(ledgerPath);
   if (!artifact.root) return null;
   return artifact.root.children.find((child) => child.tag === changeId) ?? null;
+}
+
+/**
+ * Distinguishes absent-no-file vs unreadable vs ok for plan-quality and other consumers
+ * that must not shrink a corpus silently (corr 185 / A31.2 / D5).
+ *
+ * Does not change readLatestReviewVerdict or gate behaviour.
+ */
+export type LedgerVerdictsSurface =
+  | { state: "absent-no-file" }
+  | { state: "unreadable"; code: string; detail: string }
+  | { state: "ok"; verdicts: ReviewVerdictRecord[] };
+
+export function readLedgerVerdictsSurface(
+  projectRoot: string,
+  changeId: string,
+): LedgerVerdictsSurface {
+  let bundlePath: string;
+  try {
+    bundlePath = resolveChangeBundle(projectRoot, changeId);
+  } catch {
+    return { state: "absent-no-file" };
+  }
+
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (!existsSync(ledgerPath)) {
+    return { state: "absent-no-file" };
+  }
+
+  try {
+    const st = statSync(ledgerPath);
+    if (!st.isFile()) {
+      return {
+        state: "unreadable",
+        code: "xml.parse",
+        detail: `run-ledger.xml is not a regular file (${st.isDirectory() ? "directory" : "special"})`,
+      };
+    }
+  } catch (error) {
+    return {
+      state: "unreadable",
+      code: "xml.parse",
+      detail: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  let artifact: ReturnType<typeof readGraceXmlArtifact>;
+  try {
+    artifact = readGraceXmlArtifact(ledgerPath);
+  } catch (error) {
+    return {
+      state: "unreadable",
+      code: "xml.parse",
+      detail: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  if (!artifact.root) {
+    const issue = artifact.issues[0];
+    return {
+      state: "unreadable",
+      code: issue?.code ?? "xml.parse",
+      detail: issue?.message ?? "run-ledger.xml could not be parsed",
+    };
+  }
+
+  const wrapper = artifact.root.children.find((child) => child.tag === changeId);
+  if (!wrapper) {
+    return {
+      state: "unreadable",
+      code: "ledger.bundle-id-mismatch",
+      detail: `run-ledger.xml has no wrapper for ${changeId}`,
+    };
+  }
+
+  const selected = selectUniqueSection(wrapper, "Verdicts");
+  if (selected.state === "absent") {
+    return { state: "ok", verdicts: [] };
+  }
+  if (selected.state === "invalid") {
+    return {
+      state: "unreadable",
+      code: "ledger.invalid-verdict",
+      detail: selected.detail,
+    };
+  }
+
+  const verdicts: ReviewVerdictRecord[] = [];
+  for (const child of selected.section.children) {
+    if (child.tag !== "Verdict") {
+      return {
+        state: "unreadable",
+        code: "ledger.invalid-verdict",
+        detail: `unexpected <${child.tag}> under Verdicts`,
+      };
+    }
+    const parsed = parseVerdictNode(child);
+    if ("invalid" in parsed) {
+      return {
+        state: "unreadable",
+        code: "ledger.invalid-verdict",
+        detail: parsed.invalid,
+      };
+    }
+    verdicts.push(parsed);
+  }
+  return { state: "ok", verdicts };
 }
 
 function parseVerdictNode(child: GraceXmlNode): ReviewVerdictRecord | { invalid: string } {

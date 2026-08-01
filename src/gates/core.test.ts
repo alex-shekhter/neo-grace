@@ -141,6 +141,22 @@ describe("ledger Verdicts and Decisions (A30)", () => {
     expect(listReviewVerdicts(root, "C-GATE")).toHaveLength(0);
   });
 
+  it("corr 185: gates still fail closed on truncated ledger (no throw, no permit)", () => {
+    const root = tempProject();
+    activeBundle(root);
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-GATE", "run-ledger.xml");
+    const full = readFileSync(ledgerPath, "utf8");
+    writeFileSync(ledgerPath, full.slice(0, Math.floor(full.length / 2)));
+
+    // Must not throw — gate evaluates and refuses (fail closed).
+    const evaluation = evaluateGate(root, "C-GATE", "apply");
+    expect(evaluation.decision).toBe("refuse");
+    expect(evaluation.requirements.some((r) => r.id === "review-verdict" && r.blocking)).toBe(true);
+    // Legacy read still collapses to absent (empty list), not a throw.
+    expect(listReviewVerdicts(root, "C-GATE")).toEqual([]);
+  });
+
   it("survives fold of a later epoch without losing sections (A30 probe)", () => {
     const root = tempProject();
     const bundle = activeBundle(root);
