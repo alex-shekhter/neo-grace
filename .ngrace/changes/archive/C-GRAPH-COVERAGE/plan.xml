@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-GRAPH-COVERAGE>
     <IntentSummary>
       Full src/ reverse edge and GraphAnchors↔OWS LINKS check (C-GRAPH-COVERAGE). A and C
@@ -116,6 +116,7 @@
       <File>src/lint/scanners/rust-lexer.ts</File>
       <File>src/lint/types.ts</File>
       <File>src/project-utils.ts</File>
+      <File>src/project-utils.test.ts</File>
       <File>src/query/core.ts</File>
       <File>src/query/errors.ts</File>
       <File>src/query/health.ts</File>

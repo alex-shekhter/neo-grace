@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-GRAPH-COVERAGE>
     <Summary>
       Close the three-layer graph coverage defect: describe undescribed surfaces, govern every

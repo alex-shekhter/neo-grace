@@ -1,4 +1,0 @@
-<NgraceRunLedger graceVersion="1.0">
-  
-<C-GRAPH-COVERAGE>
-  <Decisions><Decision gate="approve" decision="permit"><Requirement id="no-unresolved-ic-inv-clarification" required="true" present="true" blocking="false" /></Decision></Decisions></C-GRAPH-COVERAGE></NgraceRunLedger>
