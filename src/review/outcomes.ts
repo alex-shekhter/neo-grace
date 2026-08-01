@@ -10,6 +10,7 @@
 // START_MODULE_MAP
 //   PLAN_QUALITY_PROXY_CAVEAT
 //   PlanQualityReport
+//   PlanQualityUnreadableBundle
 //   PlanQualityVerdictRow
 //   collectPlanQualityReport
 //   computeConstituentTasksPassed
@@ -18,11 +19,14 @@
 // END_MODULE_MAP
 
 /**
- * Plan-quality report (D10 / Phase 10 / A70–A71).
+ * Plan-quality report (D10 / Phase 10 / A70–A72).
  *
  * Scope, classification, and constituentTasksPassed are **stored** on Verdict at write
  * time (rule 13). This module never invents scope for historical unscoped verdicts
  * (corr 182) and never pools task- and wave-scoped outcomes into one unlabeled rate.
+ *
+ * Unreadable Verdicts sections are recorded as absence (corr 183) — never catch-and-skip
+ * into a shorter, cleaner-looking corpus (A31.2 / D5 / anti-pattern 8).
  */
 
 import { existsSync, readdirSync } from "node:fs";
@@ -38,6 +42,7 @@ import {
   type ReviewVerdictScope,
 } from "../gates/ledger";
 import { resolveChangeBundle } from "../grace-cursor";
+import { GraceCommandError } from "../query/errors";
 
 /** Frozen wording (A70.8 / P6). Shared by text and JSON. */
 export const PLAN_QUALITY_PROXY_CAVEAT =
@@ -56,10 +61,21 @@ export type PlanQualityVerdictRow = {
   isDecompositionCandidate: boolean;
 };
 
+/** Bundle whose Verdicts section could not be read (corr 183 / A31.2). */
+export type PlanQualityUnreadableBundle = {
+  changeId: string;
+  code: string;
+  detail: string;
+};
+
 export type PlanQualityReport = {
   schemaVersion: "1.0.0";
   tool: "grace-plan-quality";
   root: string;
+  /**
+   * Readable verdict rows only. Unreadable bundles are not converted into a shorter total —
+   * they appear in `unreadable` and in the summary sentence (corr 183).
+   */
   verdictsTotal: number;
   scoped: number;
   scopeNotRecorded: number;
@@ -72,10 +88,32 @@ export type PlanQualityReport = {
   };
   /** scope=wave ∧ outcome=fail ∧ stored constituentTasksPassed=true */
   decompositionCandidates: number;
+  /**
+   * Bundles whose run-ledger Verdicts section threw ledger.invalid-verdict (or equivalent).
+   * Empty on a clean tree. Never silently omitted (corr 183).
+   */
+  unreadable: PlanQualityUnreadableBundle[];
   proxyCaveat: typeof PLAN_QUALITY_PROXY_CAVEAT;
   rows: PlanQualityVerdictRow[];
   summary: string;
 };
+
+/** ledger.invalid-verdict and siblings — the only errors we convert to unreadable absence. */
+function asUnreadableLedgerFailure(
+  error: unknown,
+): { code: string; detail: string } | undefined {
+  if (!(error instanceof GraceCommandError)) return undefined;
+  const issueCode =
+    error.issues?.find((c) => c.startsWith("ledger.invalid-")) ??
+    (error.message.startsWith("ledger.invalid-")
+      ? error.message.split(":")[0]?.trim()
+      : undefined);
+  if (!issueCode || !issueCode.startsWith("ledger.invalid-")) return undefined;
+  const detail = error.message.includes(": ")
+    ? error.message.slice(error.message.indexOf(": ") + 2)
+    : error.message;
+  return { code: issueCode, detail };
+}
 
 function listChangeIds(projectRoot: string): string[] {
   const paths = resolveNgracePaths(projectRoot);
@@ -118,17 +156,29 @@ function toRow(changeId: string, verdict: ReviewVerdictRecord): PlanQualityVerdi
 /**
  * Build the plan-quality report from stored Verdict attributes only.
  * Does not invent scope for unscoped history (corr 182).
+ * Unreadable ledgers are named absences, never silent skips (corr 183).
  */
 export function collectPlanQualityReport(projectRoot: string): PlanQualityReport {
   const root = path.resolve(projectRoot);
   const rows: PlanQualityVerdictRow[] = [];
+  const unreadable: PlanQualityUnreadableBundle[] = [];
 
   for (const changeId of listChangeIds(root)) {
     let verdicts: ReviewVerdictRecord[];
     try {
       verdicts = listReviewVerdicts(root, changeId);
-    } catch {
-      continue;
+    } catch (error) {
+      const ledgerFail = asUnreadableLedgerFailure(error);
+      if (ledgerFail) {
+        unreadable.push({
+          changeId,
+          code: ledgerFail.code,
+          detail: ledgerFail.detail,
+        });
+        continue;
+      }
+      // Not a readable-ledger failure — do not classify as unreadable (corr 183).
+      throw error;
     }
     for (const v of verdicts) {
       rows.push(toRow(changeId, v));
@@ -139,6 +189,7 @@ export function collectPlanQualityReport(projectRoot: string): PlanQualityReport
     const c = a.changeId.localeCompare(b.changeId);
     return c !== 0 ? c : a.outcome.localeCompare(b.outcome);
   });
+  unreadable.sort((a, b) => a.changeId.localeCompare(b.changeId));
 
   const byScope = { task: 0, wave: 0, bundle: 0 };
   let scopeNotRecorded = 0;
@@ -170,6 +221,7 @@ export function collectPlanQualityReport(projectRoot: string): PlanQualityReport
     byScope,
     classifications: { implementation, plan, unstored },
     decompositionCandidates,
+    unreadable,
     proxyCaveat: PLAN_QUALITY_PROXY_CAVEAT,
     rows,
     summary: "",
@@ -178,9 +230,29 @@ export function collectPlanQualityReport(projectRoot: string): PlanQualityReport
   return report;
 }
 
+function formatUnreadableClause(unreadable: PlanQualityUnreadableBundle[]): string {
+  if (unreadable.length === 0) return "";
+  const codes = [...new Set(unreadable.map((u) => u.code))].sort();
+  const codePart = codes.join(", ");
+  const n = unreadable.length;
+  const noun = n === 1 ? "bundle" : "bundles";
+  const ids = unreadable.map((u) => u.changeId).join(", ");
+  return (
+    ` ${n} ${noun} unreadable (${codePart}) and excluded from every count` +
+    (n <= 3 ? `: ${ids}.` : `.`)
+  );
+}
+
 function buildSummary(report: PlanQualityReport): string {
-  const { scoped, scopeNotRecorded, classifications, decompositionCandidates, verdictsTotal } =
-    report;
+  const {
+    scoped,
+    scopeNotRecorded,
+    classifications,
+    decompositionCandidates,
+    verdictsTotal,
+    unreadable,
+  } = report;
+  const unreadableClause = formatUnreadableClause(unreadable);
   // No rate table. No "0% plan defects". No "plan quality: OK" (P7 / rule 11).
   if (scoped === 0) {
     return (
@@ -188,14 +260,18 @@ function buildSummary(report: PlanQualityReport): string {
       `${classifications.implementation + classifications.plan} resolution classifications, ` +
       `${decompositionCandidates} decomposition candidates. ` +
       `No plan-quality rate is computed. ` +
-      `${scopeNotRecorded} verdicts lack scope (scope-not-recorded) and are excluded from rates. ` +
+      `${scopeNotRecorded} verdicts lack scope (scope-not-recorded) and are excluded from rates.` +
+      unreadableClause +
+      (unreadableClause.endsWith(".") ? " " : " ") +
       PLAN_QUALITY_PROXY_CAVEAT
     );
   }
   return (
     `Plan-quality report: ${scoped} review verdicts with recorded scope ` +
     `(task=${report.byScope.task}, wave=${report.byScope.wave}, bundle=${report.byScope.bundle}), ` +
-    `${scopeNotRecorded} scope-not-recorded of ${verdictsTotal} total. ` +
+    `${scopeNotRecorded} scope-not-recorded of ${verdictsTotal} readable total.` +
+    unreadableClause +
+    (unreadableClause ? " " : " ") +
     `Classifications stored: implementation=${classifications.implementation}, plan=${classifications.plan}, unstored=${classifications.unstored}. ` +
     `Decomposition candidates (wave fail + stored all-tasks-passed): ${decompositionCandidates}. ` +
     `Task- and wave-scoped outcomes are not pooled. ` +
@@ -209,13 +285,19 @@ export function formatPlanQualityText(report: PlanQualityReport): string {
     "Plan quality",
     "-".repeat(12),
     report.summary,
-    `  verdicts total: ${report.verdictsTotal}`,
+    `  verdicts total (readable): ${report.verdictsTotal}`,
     `  scoped: ${report.scoped} (task=${report.byScope.task}, wave=${report.byScope.wave}, bundle=${report.byScope.bundle})`,
     `  scope-not-recorded: ${report.scopeNotRecorded}`,
     `  classifications: implementation=${report.classifications.implementation}, plan=${report.classifications.plan}, unstored=${report.classifications.unstored}`,
     `  decomposition candidates: ${report.decompositionCandidates}`,
-    `  ${report.proxyCaveat}`,
+    `  unreadable bundles: ${report.unreadable.length}`,
   ];
+  if (report.unreadable.length > 0) {
+    for (const u of report.unreadable) {
+      lines.push(`    - ${u.changeId}: ${u.code} — ${u.detail}`);
+    }
+  }
+  lines.push(`  ${report.proxyCaveat}`);
   return lines.join("\n");
 }
 

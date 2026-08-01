@@ -251,12 +251,23 @@ const verdictSubCommand = defineCommand({
         classification,
       };
 
+      const ctpArgPresent =
+        context.args["constituent-tasks-passed"] !== undefined &&
+        context.args["constituent-tasks-passed"] !== null &&
+        String(context.args["constituent-tasks-passed"]).trim() !== "";
+      const ctpRaw = ctpArgPresent
+        ? String(context.args["constituent-tasks-passed"]).trim()
+        : "";
+
+      // Corr 184: never silently ignore --constituent-tasks-passed outside wave+fail.
+      if (ctpArgPresent && !(scope === "wave" && outcome === "fail")) {
+        throw new GraceCommandError(
+          "invalid-arguments",
+          "constituentTasksPassed applies only to wave-scoped fail verdicts",
+        );
+      }
+
       if (scope === "wave" && outcome === "fail") {
-        const ctpRaw =
-          context.args["constituent-tasks-passed"] !== undefined &&
-          context.args["constituent-tasks-passed"] !== null
-            ? String(context.args["constituent-tasks-passed"]).trim()
-            : "";
         if (ctpRaw === "true" || ctpRaw === "false") {
           payload.constituentTasksPassed = ctpRaw === "true";
         } else if (wave) {

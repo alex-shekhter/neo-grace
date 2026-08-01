@@ -126,6 +126,21 @@ describe("ledger Verdicts and Decisions (A30)", () => {
     expect(ledger).not.toMatch(/<Verdict outcome="pass"[^>]*scope=/);
   });
 
+  it("corr 184: constituentTasksPassed outside wave+fail is rejected, not dropped", () => {
+    const root = tempProject();
+    activeBundle(root);
+    expect(() =>
+      recordReviewVerdict(root, "C-GATE", {
+        outcome: "pass",
+        scope: "task",
+        task: "T-001",
+        constituentTasksPassed: true,
+      }),
+    ).toThrow(/constituentTasksPassed applies only to wave-scoped fail verdicts/);
+    // Silent path would have stored a pass with no ctp — ensure nothing was written.
+    expect(listReviewVerdicts(root, "C-GATE")).toHaveLength(0);
+  });
+
   it("survives fold of a later epoch without losing sections (A30 probe)", () => {
     const root = tempProject();
     const bundle = activeBundle(root);

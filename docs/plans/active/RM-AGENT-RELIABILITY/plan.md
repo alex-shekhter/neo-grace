@@ -9992,3 +9992,64 @@ numbers recorded in the stage-2 report.
 P1–P7 as staged; D10 objective; rule 13 store-at-write; judgment-dependent §4.9 not built; doctor
 read-only.
 
+
+### A72 — 2026-08-01 · Corrections 183–184 (post-close narrow fix; archive untouched)
+
+**Measured on `feat/phase-10-rederive` after stage-2 close (`2f617b6` head at start).** Phase 10
+board row stays **`COMPLETE`**. No new change bundle. Archived `C-PLAN-QUALITY` is **not modified**
+— same disposition as A69 (corr 171 fixed in `src/review/core.ts` + tests after close; archive
+immutable).
+
+#### A72.1 Correction 183 — unreadable bundles recorded, not skipped
+
+**Before (scratch probe, invalid `scope="squad"` on C-SELECTION Verdict):**
+
+```
+lint   → Errors: 1  ledger.invalid-verdict … found 'squad'
+doctor → Plan-quality report: 1 … scope-not-recorded of 10 total
+         verdicts total: 10   (C-SELECTION absent; 11 → 10; no mention of a skip)
+```
+
+Root cause: `collectPlanQualityReport` catch-and-continue on `listReviewVerdicts` throw, contradicting
+the throw's purpose (A31.2: unreadable is absence with reason, never a shorter list). Anti-pattern 8
+/ D5 / mirror of corr 169.
+
+**Fix:** catch only `GraceCommandError` with `ledger.invalid-*` issue/message; push
+`PlanQualityReport.unreadable: { changeId, code, detail }[]`; rethrow everything else. Summary and
+text name the count and id(s). `verdictsTotal` is **readable** only; the sentence states unreadable
+bundles are excluded and how many.
+
+**After (same probe):**
+
+```
+Plan-quality report: 1 … of 10 readable total. 1 bundle unreadable (ledger.invalid-verdict)
+and excluded from every count: C-SELECTION. …
+  verdicts total (readable): 10
+  unreadable bundles: 1
+    - C-SELECTION: ledger.invalid-verdict — scope=squad
+```
+
+**Real repository after fix:** `verdicts total (readable): 11`, `scoped: 1`, `scope-not-recorded: 10`,
+`unreadable bundles: 0`.
+
+#### A72.2 Correction 184 — constituentTasksPassed outside wave+fail
+
+**Before:** `recordReviewVerdict` and the CLI ignored `constituentTasksPassed` /
+`--constituent-tasks-passed` unless `scope=wave && outcome=fail` — no error, no storage, no message.
+
+**Fix:** reject with `invalid-arguments` and message
+`constituentTasksPassed applies only to wave-scoped fail verdicts` in both `recordReviewVerdict`
+and `gate verdict` CLI. Test asserts the message and that nothing was written.
+
+#### A72.3 Files (inside C-PLAN-QUALITY ObservedWriteScope)
+
+`src/review/outcomes.ts`, `outcomes.test.ts`, `src/gates/ledger.ts`, `src/gates/command.ts`,
+`src/gates/core.test.ts`, `docs/plans/…/plan.md` (this amendment). Archive not listed and not
+touched.
+
+#### A72.4 Close evidence
+
+`bun run ngrace review --change C-PLAN-QUALITY --base origin/main` → 0 out-of-scope (OWS still
+covers). `bun run validate:ci` green. Mutation: reverting catch-continue fails corr-183 test;
+removing 184 reject fails corr-184 test.
+

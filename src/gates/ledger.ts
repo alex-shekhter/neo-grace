@@ -271,6 +271,17 @@ export function recordReviewVerdict(
       `Unsupported resolution classification \`${verdict.classification}\`. Use implementation or plan.`,
     );
   }
+  // Corr 184: constituentTasksPassed applies only to wave-scoped fail — never silent drop.
+  const ctpSupplied =
+    verdict.constituentTasksPassed !== undefined ||
+    Boolean(verdict.constituentTasksPassedReason?.trim());
+  if (ctpSupplied && !(verdict.scope === "wave" && verdict.outcome === "fail")) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      "constituentTasksPassed applies only to wave-scoped fail verdicts",
+    );
+  }
+
   // Stored fields only — never invent scope or classification defaults (D5 / corr 182).
   const stored: ReviewVerdictRecord = {
     outcome: verdict.outcome,

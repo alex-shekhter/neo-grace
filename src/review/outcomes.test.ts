@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -257,5 +257,118 @@ describe("plan-quality report (D10 / Phase 10)", () => {
     const caveatIdx = text.lastIndexOf(PLAN_QUALITY_PROXY_CAVEAT);
     expect(summaryIdx).toBeGreaterThanOrEqual(0);
     expect(caveatIdx).toBeGreaterThan(summaryIdx);
+  });
+
+  it("corr 183: clean tree has empty unreadable; totals unchanged", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeBundle(root, "C-CLEAN");
+    recordReviewVerdict(root, "C-CLEAN", { outcome: "pass", scope: "bundle" });
+    const report = collectPlanQualityReport(root);
+    expect(report.unreadable).toEqual([]);
+    expect(report.verdictsTotal).toBe(1);
+    expect(report.scoped).toBe(1);
+    expect(report.summary).not.toContain("unreadable");
+    expect(formatPlanQualityText(report)).toContain("unreadable bundles: 0");
+  });
+
+  it("corr 183: invalid scope makes bundle unreadable, not a silently shorter total", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeBundle(root, "C-GOOD");
+    writeBundle(root, "C-BAD");
+    recordReviewVerdict(root, "C-GOOD", { outcome: "pass", scope: "bundle" });
+    recordReviewVerdict(root, "C-BAD", { outcome: "pass" });
+    // Hand-corrupt: invalid scope token — only reachable by edit, not by writer.
+    const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-BAD", "run-ledger.xml");
+    const raw = readFileSync(ledgerPath, "utf8");
+    writeFileSync(
+      ledgerPath,
+      raw.replace('<Verdict outcome="pass"', '<Verdict outcome="pass" scope="squad"'),
+    );
+
+    const report = collectPlanQualityReport(root);
+    // Failure mode this test forbids: C-BAD vanished and total shrank with no unreadable row.
+    expect(report.unreadable.map((u) => u.changeId)).toEqual(["C-BAD"]);
+    expect(report.unreadable[0]?.code).toBe("ledger.invalid-verdict");
+    expect(report.unreadable[0]?.detail.toLowerCase()).toMatch(/scope|squad/);
+    expect(report.verdictsTotal).toBe(1);
+    expect(report.rows.every((r) => r.changeId !== "C-BAD")).toBe(true);
+    expect(report.rows.some((r) => r.changeId === "C-GOOD")).toBe(true);
+    expect(report.summary).toContain("1 bundle unreadable");
+    expect(report.summary).toContain("ledger.invalid-verdict");
+    expect(report.summary).toContain("C-BAD");
+    expect(report.summary).toContain("excluded from every count");
+    const text = formatPlanQualityText(report);
+    expect(text).toContain("unreadable bundles: 1");
+    expect(text).toContain("C-BAD");
+  });
+
+  it("corr 183: every bundle unreadable still names absence (N=0 readable stays honest)", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeBundle(root, "C-ONLY");
+    recordReviewVerdict(root, "C-ONLY", { outcome: "pass" });
+    const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-ONLY", "run-ledger.xml");
+    writeFileSync(
+      ledgerPath,
+      readFileSync(ledgerPath, "utf8").replace(
+        '<Verdict outcome="pass"',
+        '<Verdict outcome="pass" scope="squad"',
+      ),
+    );
+    const report = collectPlanQualityReport(root);
+    expect(report.verdictsTotal).toBe(0);
+    expect(report.scoped).toBe(0);
+    expect(report.unreadable).toHaveLength(1);
+    expect(report.summary).toContain("0 review verdicts with recorded scope");
+    expect(report.summary).toContain("1 bundle unreadable");
+    expect(report.summary).toContain("No plan-quality rate is computed");
+    expect(report.summary).not.toContain("plan quality: OK");
+  });
+
+  it("corr 183 adversarial: duplicate Verdicts section is unreadable absence", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeBundle(root, "C-DUP");
+    const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-DUP", "run-ledger.xml");
+    writeFileSync(
+      ledgerPath,
+      `<NgraceRunLedger graceVersion="1.0"><C-DUP>` +
+        `<Verdicts><Verdict outcome="pass" /></Verdicts>` +
+        `<Verdicts><Verdict outcome="fail" /></Verdicts>` +
+        `</C-DUP></NgraceRunLedger>`,
+    );
+    const report = collectPlanQualityReport(root);
+    expect(report.unreadable.map((u) => u.changeId)).toEqual(["C-DUP"]);
+    expect(report.unreadable[0]?.code).toBe("ledger.invalid-verdict");
+    expect(report.verdictsTotal).toBe(0);
+  });
+
+  it("corr 183 adversarial: unexpected child under Verdicts is unreadable", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeBundle(root, "C-BOGUS");
+    const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-BOGUS", "run-ledger.xml");
+    writeFileSync(
+      ledgerPath,
+      `<NgraceRunLedger graceVersion="1.0"><C-BOGUS>` +
+        `<Verdicts><Verdict outcome="pass" /><Bogus /></Verdicts>` +
+        `</C-BOGUS></NgraceRunLedger>`,
+    );
+    const report = collectPlanQualityReport(root);
+    expect(report.unreadable.map((u) => u.changeId)).toEqual(["C-BOGUS"]);
+    expect(report.verdictsTotal).toBe(0);
+  });
+
+  it("corr 183 adversarial: missing run-ledger is empty readable set, not unreadable", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeBundle(root, "C-NOLEDGER");
+    // No run-ledger.xml written.
+    const report = collectPlanQualityReport(root);
+    expect(report.unreadable).toEqual([]);
+    expect(report.verdictsTotal).toBe(0);
+    expect(report.summary).not.toContain("unreadable");
   });
 });
