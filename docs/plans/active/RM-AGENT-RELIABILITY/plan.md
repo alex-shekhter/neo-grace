@@ -374,7 +374,7 @@ Keep this table current. It is the single source of truth for progress.
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
 | 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `COMPLETE` |
-| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `COMPLETE` |
+| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `IN PROGRESS` |
 | 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `NOT STARTED` |
 | 11 | Adoption surface | §5.1, §5.3 | TBD | `NOT STARTED` |
 
@@ -8993,3 +8993,79 @@ not recomputed as a live query for the report after migration.
 | 157 | Unit of pair = fold-adjudicated epoch; claimCount may be >1 on one pair |
 | 158 | Labels stored at fold in `CalibrationAdjudication`; report never recomputes |
 | 159 | Live pair survived migration + archive; without migration would have been honest pending |
+
+### A61 — 2026-08-01 · Phase 9 reopened: the fold path has never run, and the field that would say so cannot
+
+Round 2 verified at `3039220`. **155 and 156 are genuinely fixed.** `report.ts` mentions
+`evaluateTargetComplete` only in comments — the report reads stored records and never re-lints — and
+the unit of a pair is now one folded epoch with `claimCount` summarizing its claims. The two-claims
+test asserts `included === 1, claimCount === 2`, which is the right assertion. The 150 restatement is
+accurate. None of that needs redoing.
+
+**Phase 9 does not close yet.** Two defects in its own deliverable, both in the corpus rather than the
+mechanism.
+
+#### A61.1 Correction 160 — correction 151 is not closed; the fold path has never executed
+
+```
+$ git show bfb2ed5:.ngrace/changes/active/C-CALIBRATION/run-ledger.xml
+<Event id="1" kind="opened" …>  <Event id="2" kind="attempt" claimedConfidence="medium" …>  <Event id="3" kind="terminal" />
+```
+
+**No `CalibrationAdjudication`.** Epoch-1 was folded before the mechanism existed. The record now in
+the archive was written by hand during round-2 migration — *after* the change had passed and the
+outcome was known:
+
+```xml
+<CalibrationAdjudication adjudicator="target-assertions" outcome="pass"
+                         claimCount="1" claims="medium" adjudicatedAt="fold" />
+```
+
+A60's own finding 159 states it plainly — *"without migration would have been honest pending"* — which
+is the admission that **the fold-time path produced nothing.** It is unit-tested; it has never run.
+A46.4: *a path never observed succeeding is not a path.* 151 asked for the live path to be observed
+succeeding once, and a hand-written record is the one thing that cannot demonstrate it.
+
+The contamination compounds it. The corpus's sole pair is a claim scored retroactively against an
+outcome that was already known — the most contaminated data point available, and currently 100% of the
+corpus. D6 condition 2 exists to prevent exactly this: *"otherwise the measurement is contaminated."*
+
+#### A61.2 Correction 161 — `adjudicatedAt` is a constant wearing a provenance field's name
+
+```ts
+adjudicatedAt?: "fold";          // report.ts:74 — a single-valued type
+```
+```ts
+return { …, adjudicatedAt: "fold" };   // grace-cursor.ts:1612 — synthesized at PARSE time
+```
+
+The value is not read from the attribute. Whatever a record contains, the parser returns `"fold"`. So
+the field cannot express when adjudication happened, cannot distinguish a fold-time record from a
+backfilled one, and would report `adjudicatedAt=fold` for a record that said otherwise.
+
+This is the shape A48 already ruled on for D15's stage field in Phase 8: its only value was
+`toolkit`, and the requirement was that the output **declare that as ground rather than imply a choice
+among stages**. `adjudicatedAt` is the same construction one phase later, and here it is worse,
+because the string it prints is the one thing 160 needs it to be able to contradict.
+
+#### A61.3 How to close, and the by-product that closes it
+
+**Board row 9 returns from `COMPLETE`.** These are defects in Phase 9's own surface, not inherited
+ones, so the row is not honest at `COMPLETE` while they stand. `C-CALIBRATION` is archived and
+immutable (`CLAUDE.md`); the fix belongs to a new bundle in the same phase, and the archived record is
+corrected by *superseding* it, never by editing it.
+
+Two things must become true:
+
+1. **`adjudicatedAt` must be able to say something other than `fold`** — read from the record, with a
+   value for backfilled adjudication — and a backfilled pair must be excluded from any calibration
+   computation and counted on its own line. Then the archive's existing record can be restated
+   honestly instead of quietly asserting a moment that did not happen.
+2. **One genuine fold-time adjudication must be observed**, written by `fold` rather than by hand.
+
+The second is free. The fix in (1) is itself a change bundle: it opens an epoch, records attempts, and
+is folded — and if the mechanism works, folding it writes the first real `CalibrationAdjudication` as
+a by-product. Phase 9's first honest pair should be the one produced by fixing Phase 9.
+
+If it turns out the fold path does *not* write the record when exercised for real, that is the most
+valuable finding this phase could produce, and it is reachable only by running it.
