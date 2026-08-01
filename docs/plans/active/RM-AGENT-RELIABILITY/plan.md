@@ -6030,6 +6030,129 @@ here so it is a scheduled item rather than a thing everyone can see and nobody o
 above. `plan.xml` before production code (A17.3), and gate the approval through `ngrace gate approve`,
 which exists now.
 
+### A37 — 2026-07-31 · Phase 6 review gate: the detector matches the fixture, and the fixture is the score
+
+**Measured at `3adbcfb`.** Verified here rather than transcribed: `validate:determinism` runs and prints
+its score, finding IDs are identical across two runs on this repository, `ngrace lint --path .` emits
+zero `review.*` (D14 holds one surface over), and `ngrace review` writes nothing — the only `rmSync` in
+`src/review/` is the scorer cleaning its own temp roots.
+
+**What is genuinely built.** `detectConfidentlyWrong` (marker claimed in verification that no source
+emits; `MustExist` target absent on disk), `detectUnthreaded` (unknown children of `V-M-*`), and
+`detectSelfReferential` (`expect(x).toBe(x)`; a `MustMatchPattern` whose `File` is the plan itself) are
+real checks that generalize beyond the corpus. The determinism gate exists with four red witnesses, the
+allowlist is published verbatim with an explicit deny list, and `ngrace review` correctly leaves
+recording to `ngrace gate verdict`.
+
+Three corrections, 86–88. Two are blocking, and they are two faces of one defect.
+
+#### A37.1 Correction 86 (blocking) — `regex-over-structure` detects the corpus's literals, not the pattern
+
+The corpus seeds `re-01` by writing a file containing:
+
+```ts
+return /status\s*=\s*["']approved["']/i.test(xml);
+```
+
+The detector's first branch tests source text for `/status\s*=\s*\[?["']approved["']\]?/`, and its own
+comments name the branches `re-01 shape`, `re-02 shape`, `re-03 shape`. It is searching for the fixture's
+literal, not for the pattern the fixture is an instance of.
+
+Proof, and it took one file. A fresh instance of the *same* pattern — a structural guard over XML
+implemented as a regex, which is precisely `regex-over-structure` — written into a temp project:
+
+```ts
+export function planHasTask(xml: string, id: string): boolean {
+  const re = new RegExp(`<Task[^>]*id="${id}"`);
+  return re.test(xml);
+}
+```
+
+```
+runReview(root, { patterns: true }) → findings: []
+```
+
+Silent. Meanwhile `validate:determinism` reports `regex-over-structure: 3/3` and an overall
+`100.0% (14/14)`.
+
+**That number is the phase's product, and it is measuring the fixtures.** D4 exists to make the reviewer's
+capability visible; a detector fit to the corpus makes the corpus a mirror, which is §12.4's anti-pattern
+2 — *a comparison where one side derives from the thing under test* — arriving in the phase that A35.4
+explicitly bound to that anti-pattern. A 100% score on first build was the tell, and it should be treated
+as one in future phases: a brand-new heuristic surface scoring perfectly against its own ground is a
+finding, not a milestone.
+
+**Fix, in two parts.** Detect the shape: a regex literal or `new RegExp` whose pattern contains markup or
+attribute syntax, consumed by `.test(` / `.exec(` / `.match(` as a guard — with the corpus's three as
+instances rather than as the definition. Then add a **held-out generalization control per pattern
+detector**: one instance each detector was *not* written against, living in the test suite and never in
+`corpus()`, so D4's denominator is untouched (A36.1) while fixture-fitting stops being invisible. The
+control is the discriminating negative, applied to detectors.
+
+#### A37.2 Correction 87 (blocking) — the same detector fires a false error on this repository today
+
+`ngrace review --path .` at `3adbcfb`:
+
+```
+- [error] review.regex-over-structure src/project-utils.ts —
+  Line-oriented marker regex over source without structure awareness.
+```
+
+`src/project-utils.ts` is the toolkit's marker scanner. Scanning source *comments* for
+`START_MODULE_CONTRACT` with a line-anchored regex is the correct implementation — comments have no
+structure to scan — and Phase 2's A8 built the near-miss half of it deliberately.
+
+The trigger is worse than a coincidence. Its final clause is:
+
+```ts
+/function\s+\w+\s*\([^)]*source|function\s+\w+\s*\([^)]*line|fileLooksGoverned|hasGraceMarkers/
+```
+
+`hasGraceMarkers` is the production symbol at `src/project-utils.ts:171`. **The detector names the
+function it flags.** That is the same fixture-fitting as correction 86, pointed at real code instead of
+seeded code, and it produces the outcome §0.7.3 ranks worst: a confident false error that blocks correct
+work and teaches people to ignore the tool.
+
+**The phase's own compat sweep did not run the surface the phase created.** A33.2 widened the sweep's
+ground from "new lint codes" to "new diagnostics of any kind on every surface this phase touched", and
+the report ran `ngrace lint` and `ngrace status` — both of which are clean — while `ngrace review
+--path .` was never run against this repository. One command, one finding, sitting in the deliverable.
+
+Fix: the false positive goes, the symbol-name clause goes with it, and `ngrace review --path .` on this
+repository becomes part of the phase's definition of done — clean, or every finding argued.
+
+#### A37.3 Correction 88 — the reviewer exempts its own source, by path prefix
+
+`src/review/core.ts:328`:
+
+```ts
+if (rel.startsWith("src/review/") || rel.includes("defect-corpus")) continue;
+```
+
+The stated reason is sound — detector sources hold the defective shapes as data — but the mechanism is a
+directory-wide exemption, and the consequence is that **the one directory in this repository most likely
+to contain a genuine `regex-over-structure` defect is the one the reviewer cannot see.** Correction 86 is
+the proof: `src/review/core.ts` is built out of regexes over source text, and the reviewer would never
+say so. §6.1 asks for the reviewer's own stability to be testable, and a path-prefix exemption also
+silently covers every file added under `src/review/` later.
+
+Narrow it: exempt the *lines* that carry shapes as data, or move the shapes into a fixture file that is
+exempt, and let the detector see the rest of its own surface. If the reviewer then flags itself, that is
+information, not an inconvenience.
+
+#### A37.4 What this round measured
+
+| Source | Corrections |
+|---|---|
+| Driving the surface into a state its suite does not reach (one fresh fixture; one run against the repo) | 86, 87 |
+| Reading the code | 88 |
+
+Both blocking findings came from asking the same question in two directions: *does the detector fire on an
+instance it was not written against*, and *does it stay silent on legitimate code it was not written
+against*. Neither is exotic — they are §0.7.3's first two probe categories, near-misses and the silent
+direction, applied to the detector rather than to the artifact. The suite could not have found them,
+because the suite and the detector share the corpus as their only ground.
+
 ---
 
 ## 15. Final instruction to the executor
