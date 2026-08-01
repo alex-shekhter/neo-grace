@@ -54,11 +54,35 @@ const ADMISSIBLE_SET = new Set<string>(ADMISSIBLE_REVIEW_CODES);
 export const OBSERVED_GROUND =
   "declared markers textually present in the supplied log, in log order (at most one count per line); not proven run emissions";
 
-export type Divergence = {
-  index: number;
-  expected: string | undefined;
-  observed: string | undefined;
-};
+/**
+ * First unmet requirement under subsequence scan (A45.1 / corr 114).
+ *
+ * Two findings that previously shared one shape:
+ * - requirement-absent: the marker never appears in the transcript → look upstream
+ * - requirement-out-of-order: the marker appears only before the cursor → sequencing, not "never ran"
+ *
+ * On out-of-order, do not present another observed token as a substitute for the missing slot.
+ */
+export type Divergence =
+  | {
+      kind: "requirement-absent";
+      /** Index into the expected (requirement) list. */
+      index: number;
+      expected: string;
+      /**
+       * Token at the scan cursor when the requirement was unmet, if any.
+       * Context only — not "what ran instead of expected."
+       */
+      atCursor?: string;
+    }
+  | {
+      kind: "requirement-out-of-order";
+      /** Index into the expected (requirement) list. */
+      index: number;
+      expected: string;
+      /** Index into the observed transcript where expected first appeared (before the cursor). */
+      appearedAt: number;
+    };
 
 export type BlockLocation = {
   path: string;
@@ -122,20 +146,22 @@ function inability(reason: string): AbsenceValue {
 }
 
 /**
- * firstDivergentBlock — pure comparator under requirement/transcript semantics (D8 / A44.1).
+ * firstDivergentBlock — pure comparator under requirement/transcript semantics (D8 / A44–A45).
  *
  * Expected is a requirement list in declaration order; observed is a transcript.
  * Divergence is the first required marker not found at or after the scan cursor
  * (ordered subsequence). Extra and repeated observed markers are not divergence.
  *
- * Axes (restated from A42.6 equality axes — the seven-count does not survive):
- *   1. first unmet requirement at index 0
- *   2. first unmet requirement mid-sequence
- *   3. first unmet requirement at end
- *   4. all requirements met → null
- *   5. repeats absorbed → null (counts reported as context by localizeFailure)
- *   6. order violated (required marker appears only before an earlier match)
- * Parser cases (empty log, foreign-only, per-line cap, assertion-diff echo) are separate.
+ * When unmet, discriminates (A45.1):
+ *   - requirement-absent — want never appears in observed
+ *   - requirement-out-of-order — want appears only before the cursor (ran too early)
+ *
+ * Axes (restated from A42.6; seven-count does not survive):
+ *   1. first unmet at 0 / mid / end (each with kind)
+ *   2. all met → null
+ *   3. repeats absorbed → null
+ *   4. order violated → requirement-out-of-order
+ * Parser cases remain separate.
  */
 export function firstDivergentBlock(
   expected: readonly string[],
@@ -152,11 +178,27 @@ export function firstDivergentBlock(
       }
     }
     if (found < 0) {
+      // Discriminator (A45.1): does want appear anywhere in the full transcript?
+      let earlier = -1;
+      for (let j = 0; j < cursor; j += 1) {
+        if (observed[j] === want) {
+          earlier = j;
+          break;
+        }
+      }
+      if (earlier >= 0) {
+        return {
+          kind: "requirement-out-of-order",
+          index: i,
+          expected: want,
+          appearedAt: earlier,
+        };
+      }
       return {
+        kind: "requirement-absent",
         index: i,
         expected: want,
-        // What sits at the cursor when the requirement is unmet (or undefined past end).
-        observed: cursor < observed.length ? observed[cursor] : undefined,
+        atCursor: cursor < observed.length ? observed[cursor] : undefined,
       };
     }
     cursor = found + 1;
@@ -581,8 +623,9 @@ export function localizeFailure(input: LocalizeInput): LocalizationResult {
   base.divergence = divergence;
 
   if (divergence) {
-    // Locate the unmet *requirement* (expected), not an extra observed token.
-    const markerForLocation = divergence.expected ?? divergence.observed;
+    // Locate the unmet *requirement* (expected). For out-of-order this is the block that
+    // ran too early — the sentence in formatLocalizationText says sequencing, not "never ran".
+    const markerForLocation = divergence.expected;
     const moduleRecord =
       input.module
       ?? (base.moduleId
@@ -631,6 +674,31 @@ function withProcessAndFlake(
   return base;
 }
 
+/**
+ * Human sentence for a divergence (A45.1). Out-of-order must not read as "B never ran"
+ * or name another marker as a substitute for the missing slot.
+ */
+export function formatDivergenceLine(d: Divergence): string {
+  if (d.kind === "requirement-out-of-order") {
+    return (
+      `First divergent block: index ${d.index} requirement-out-of-order`
+      + ` expected=${JSON.stringify(d.expected)}`
+      + ` appeared-at=${d.appearedAt}`
+      + ` (ran too early — look at sequencing, not the block as missing)`
+    );
+  }
+  // requirement-absent
+  const cursorNote =
+    d.atCursor !== undefined
+      ? ` at-cursor=${JSON.stringify(d.atCursor)} (next token; not a substitute for the missing requirement)`
+      : " (never appeared in the log)";
+  return (
+    `First divergent block: index ${d.index} requirement-absent`
+    + ` expected=${JSON.stringify(d.expected)}`
+    + cursorNote
+  );
+}
+
 /** Format localization result as human-readable text. */
 export function formatLocalizationText(result: LocalizationResult): string {
   const lines: string[] = [
@@ -662,11 +730,7 @@ export function formatLocalizationText(result: LocalizationResult): string {
   if (result.divergenceSuppressed) {
     lines.push("First divergent block: suppressed (flaky classification)");
   } else if (result.divergence) {
-    lines.push(
-      `First divergent block: index ${result.divergence.index}`
-        + ` expected=${JSON.stringify(result.divergence.expected ?? null)}`
-        + ` observed=${JSON.stringify(result.divergence.observed ?? null)}`,
-    );
+    lines.push(formatDivergenceLine(result.divergence));
   } else if (!result.absence) {
     lines.push(
       "First divergent block: (none — all required markers found in order; failure is elsewhere)",

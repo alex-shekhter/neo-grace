@@ -25,6 +25,7 @@ import {
   findLatestFailPassPair,
   firstDivergentBlock,
   flakePairFromChange,
+  formatDivergenceLine,
   formatLocalizationText,
   isAdmissibleLocalizationReviewCode,
   loadReviewJsonFindings,
@@ -94,20 +95,32 @@ const FOREIGN = "[B][run][BLOCK_RUN]";
 // firstDivergentBlock — requirement/transcript axes (A44.1, restated from A42.6)
 // ---------------------------------------------------------------------------
 
-describe("firstDivergentBlock — requirement subsequence (A44.1)", () => {
+describe("firstDivergentBlock — requirement subsequence (A44.1 / A45.1)", () => {
   // Five-row both-directions table from A44.1 (each its own case, A40.2).
   it("row: [A,B,C] vs [A,A,B,B,C] → null (repeats absorbed)", () => {
     expect(firstDivergentBlock([M0, M1, M2], [M0, M0, M1, M1, M2])).toBeNull();
   });
 
-  it("row: [A,B,C] vs [A,C] → divergence at expected index 1 (B never appeared)", () => {
+  it("row: [A,B,C] vs [A,C] → requirement-absent at index 1 (B never appeared)", () => {
     const d = firstDivergentBlock([M0, M1, M2], [M0, M2]);
-    expect(d).toEqual({ index: 1, expected: M1, observed: M2 });
+    expect(d).toEqual({
+      kind: "requirement-absent",
+      index: 1,
+      expected: M1,
+      atCursor: M2,
+    });
   });
 
-  it("row: [A,B,C] vs [B,A,C] → divergence at expected index 1 (A late; B not after it)", () => {
+  it("row: [A,B,C] vs [B,A,C] → requirement-out-of-order at index 1 (B at position 0)", () => {
+    // Failing-before (A45 probe): { index: 1, expected: "B", observed: "C" }
+    // — read aloud as "B never ran; C ran instead", which is false (B was first).
     const d = firstDivergentBlock([M0, M1, M2], [M1, M0, M2]);
-    expect(d).toEqual({ index: 1, expected: M1, observed: M2 });
+    expect(d).toEqual({
+      kind: "requirement-out-of-order",
+      index: 1,
+      expected: M1,
+      appearedAt: 0,
+    });
   });
 
   it("row: [A,B,C] vs [A,B,C] → null", () => {
@@ -115,28 +128,62 @@ describe("firstDivergentBlock — requirement subsequence (A44.1)", () => {
   });
 
   it("row: [A] vs [A,A,A] → null (repeats are context, not divergence)", () => {
-    // Failing-before (equality comparator) reported index 1 expected=null observed=A.
-    // Requirement semantics: all met.
     expect(firstDivergentBlock([M0], [M0, M0, M0])).toBeNull();
     const counts = countRequiredInObserved([M0], [M0, M0, M0]);
     expect(counts).toEqual([{ marker: M0, count: 3 }]);
   });
 
-  // Restated axes (each separate case).
-  it("axis: first unmet requirement at index 0", () => {
-    // M0 never appears in the transcript at all.
-    const d = firstDivergentBlock([M0, M1], [M1]);
-    expect(d).toEqual({ index: 0, expected: M0, observed: M1 });
-  });
-
-  it("axis: first unmet requirement mid-sequence", () => {
+  // A45.1 three-row table (absent / out-of-order / null) — each its own case.
+  it("A45 row: [A,B,C] vs [A,C] → requirement-absent at 1", () => {
     const d = firstDivergentBlock([M0, M1, M2], [M0, M2]);
-    expect(d).toEqual({ index: 1, expected: M1, observed: M2 });
+    expect(d?.kind).toBe("requirement-absent");
+    expect(d?.index).toBe(1);
+    expect(d?.expected).toBe(M1);
   });
 
-  it("axis: first unmet requirement at end", () => {
+  it("A45 row: [A,B,C] vs [B,A,C] → requirement-out-of-order at 1 appearedAt 0", () => {
+    const d = firstDivergentBlock([M0, M1, M2], [M1, M0, M2]);
+    expect(d).toEqual({
+      kind: "requirement-out-of-order",
+      index: 1,
+      expected: M1,
+      appearedAt: 0,
+    });
+  });
+
+  it("A45 row: [A,B,C] vs [A,B,C] → null", () => {
+    expect(firstDivergentBlock([M0, M1, M2], [M0, M1, M2])).toBeNull();
+  });
+
+  // Restated axes (each separate case).
+  it("axis: first unmet requirement at index 0 (absent)", () => {
+    const d = firstDivergentBlock([M0, M1], [M1]);
+    expect(d).toEqual({
+      kind: "requirement-absent",
+      index: 0,
+      expected: M0,
+      atCursor: M1,
+    });
+  });
+
+  it("axis: first unmet requirement mid-sequence (absent)", () => {
+    const d = firstDivergentBlock([M0, M1, M2], [M0, M2]);
+    expect(d).toEqual({
+      kind: "requirement-absent",
+      index: 1,
+      expected: M1,
+      atCursor: M2,
+    });
+  });
+
+  it("axis: first unmet requirement at end (absent, past end)", () => {
     const d = firstDivergentBlock([M0, M1, M2], [M0, M1]);
-    expect(d).toEqual({ index: 2, expected: M2, observed: undefined });
+    expect(d).toEqual({
+      kind: "requirement-absent",
+      index: 2,
+      expected: M2,
+      atCursor: undefined,
+    });
   });
 
   it("axis: all requirements met → null", () => {
@@ -145,15 +192,17 @@ describe("firstDivergentBlock — requirement subsequence (A44.1)", () => {
 
   it("axis: repeats absorbed → null (extra own markers after match)", () => {
     expect(firstDivergentBlock([M0, M1], [M0, M1, M1])).toBeNull();
-    // Extra M2 after all requirements met is not a divergence under requirement semantics.
     expect(firstDivergentBlock([M0, M1], [M0, M0, M1, M2])).toBeNull();
   });
 
-  it("axis: order violated (required marker only before earlier match)", () => {
-    // B appears before A is satisfied; after A, B is not available again.
+  it("axis: order violated → requirement-out-of-order (not absent)", () => {
     const d = firstDivergentBlock([M0, M1, M2], [M1, M0, M2]);
+    expect(d?.kind).toBe("requirement-out-of-order");
     expect(d?.index).toBe(1);
     expect(d?.expected).toBe(M1);
+    if (d?.kind === "requirement-out-of-order") {
+      expect(d.appearedAt).toBe(0);
+    }
   });
 
   it("empty expected → null (vacuously all requirements met)", () => {
@@ -161,12 +210,34 @@ describe("firstDivergentBlock — requirement subsequence (A44.1)", () => {
     expect(firstDivergentBlock([], [M0])).toBeNull();
   });
 
-  it("non-empty expected, empty observed → first unmet at 0", () => {
+  it("non-empty expected, empty observed → requirement-absent at 0", () => {
     expect(firstDivergentBlock([M0], [])).toEqual({
+      kind: "requirement-absent",
       index: 0,
       expected: M0,
-      observed: undefined,
+      atCursor: undefined,
     });
+  });
+});
+
+describe("formatDivergenceLine — honest sentences (A45.1 / corr 114)", () => {
+  it("out-of-order does not present another marker as a substitute", () => {
+    const d = firstDivergentBlock([M0, M1, M2], [M1, M0, M2])!;
+    const line = formatDivergenceLine(d);
+    expect(line).toMatch(/requirement-out-of-order/);
+    expect(line).toMatch(/appeared-at=0/);
+    expect(line).toMatch(/sequencing/);
+    // Must not read as "expected B observed C".
+    expect(line).not.toMatch(/observed=/);
+    expect(line).not.toMatch(/never appeared/);
+  });
+
+  it("absent says never appeared / at-cursor is context not substitute", () => {
+    const d = firstDivergentBlock([M0, M1, M2], [M0, M2])!;
+    const line = formatDivergenceLine(d);
+    expect(line).toMatch(/requirement-absent/);
+    expect(line).toMatch(/at-cursor=/);
+    expect(line).toMatch(/not a substitute/);
   });
 });
 
