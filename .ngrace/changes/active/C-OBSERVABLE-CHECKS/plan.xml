@@ -53,6 +53,8 @@
       <File>src/review/command.ts</File>
       <File>src/grace-cursor.ts</File>
       <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/scale-ergonomics.test.ts</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
       <File>.ngrace/changes/active/C-OBSERVABLE-CHECKS/spec.xml</File>
       <File>.ngrace/changes/active/C-OBSERVABLE-CHECKS/plan.xml</File>
       <File>.ngrace/changes/active/C-OBSERVABLE-CHECKS/run-ledger.xml</File>

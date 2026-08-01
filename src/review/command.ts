@@ -36,6 +36,18 @@ export const reviewCommand = defineCommand({
       type: "string",
       description: "Optional change id (C-*) for ObservedWriteScope-aware process audits",
     },
+    base: {
+      type: "string",
+      description:
+        "Git base ref for a three-dot (merge-base) name-only diff of changed files "
+        + "(what this branch wrote). Used when --change is set and --changed-files is not.",
+    },
+    "changed-files": {
+      type: "string",
+      description:
+        "Comma-separated relative paths for the scope audit (caller-owned). "
+        + "Present and empty means an explicit empty set. Overrides --base and porcelain.",
+    },
     format: {
       type: "string",
       description: "text or json",
@@ -56,7 +68,36 @@ export const reviewCommand = defineCommand({
           `Invalid change id \`${changeId}\`. Expected C-* form.`,
         );
       }
-      const result = runReview(projectRoot, { changeId });
+
+      const rawChanged = context.args["changed-files"];
+      const hasChangedFilesFlag = rawChanged !== undefined && rawChanged !== null;
+      const baseRaw = context.args.base;
+      const hasBase =
+        baseRaw !== undefined && baseRaw !== null && String(baseRaw).trim() !== "";
+
+      if (hasChangedFilesFlag && hasBase) {
+        throw new GraceCommandError(
+          "invalid-arguments",
+          "Pass only one of --changed-files or --base (explicit set overrides base when both would apply; CLI refuses both).",
+        );
+      }
+
+      let changedFiles: string[] | undefined;
+      if (hasChangedFilesFlag) {
+        // Empty string → caller-supplied empty set (A66 Q5 / state 5).
+        const text = String(rawChanged);
+        changedFiles = text.trim() === ""
+          ? []
+          : text.split(",").map((p) => p.trim()).filter((p) => p !== "");
+      }
+
+      const baseRef = hasBase ? String(baseRaw).trim() : undefined;
+
+      const result = runReview(projectRoot, {
+        changeId,
+        changedFiles,
+        baseRef,
+      });
       if (format === "json") {
         console.log(JSON.stringify({ ok: true, ...result }, null, 2));
       } else {
