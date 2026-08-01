@@ -8475,6 +8475,96 @@ read by governance detection (`hasGraceMarkers`), by A8 near-miss detection, and
 structure validation — all three change behaviour together, and the second is the one that could
 regress silently.
 
+### A55 — 2026-08-01 · `C-GRAPH-COVERAGE` closed, and the rule that would have caught 141 in stage 1
+
+Round 3 verified at `ecd6802`. **The bundle is `COMPLETE`** and the fourth row of A52.3 is discharged.
+
+| Close claim | Independently verified |
+|---|---|
+| Correction 145 fixed, both directions | All five axes re-tested from outside the suite: apostrophe contract → **no issues**; `"http://…/START_MODULE_CONTRACT"` → still ungoverned; string apostrophe → still a delimiter; template marker → still stripped; block-comment apostrophe → markers visible |
+| `Governed files:` unchanged at 56 | Confirmed. The fix removes false errors; it pulls no new file into `hasGraceMarkers` |
+| Suite green | 914 ran, 3 skip, **0 fail** |
+| Root lint | 0 errors / 0 warnings / 56 governed |
+| Only this bundle entered `archive/` | `git diff 4c4147b --name-only -- .ngrace/changes/archive/` returns **four files, all `C-GRAPH-COVERAGE`**; `run.xml` retained; `spec` and `plan` both `applied` |
+
+The **A8 pin is the part worth keeping.** It asserts that `markup.near-miss-marker` fires on
+`START_MODULE_CONTRACTX` placed after a prose line containing an apostrophe — a case that, before the
+fix, was blanked before A8 ever saw it. A near-miss that silently stops being reported is invisible in
+a green suite, which is why that pin, and not the apostrophe test, is the one that protects the fix.
+
+Their A33.3 sentence is honest without being prompted into it: the `review` scope audit is **vacuous
+post-commit**, `0 findings` is not a proven write-scope cover of the branch, and `C-OBSERVABLE-CHECKS`
+still owns that defect. That is the third phase in a row where the honest verdict sentence was written
+without an argument about it.
+
+#### A55.1 Standing rule 12 — a new check is measured against the tree as it is
+
+Correction 141 is the first defect on this track that was neither a wrong computation nor a false
+sentence. The proposed ownership rule computed correctly and said something true. It was still
+unusable, because it was designed against the tree **as the design assumed it to be** — every source
+file belonging to a module — rather than the tree as it actually was, where ten files belonged to
+none. `C-SELECTION`'s own write scope contained one of them.
+
+> **Standing rule 12.** Before a new check ships, run it over the existing repository and count what
+> it would flag. A check that is red on legacy it cannot express a fix for is not ready, and the count
+> is the evidence — not the intent behind the rule.
+
+This is cheap and mechanical, and it is the step that turns "the rule is correct" into "the rule is
+adoptable." It generalizes past lint: the same question applies to any gate, assertion or verdict
+added to a tree that predates it. Phase 9's separation rule (`agent-inferred` anchors may not carry
+`precision`) is the next candidate and should be measured this way before it is written.
+
+Note what did **not** work: stage 1 asked for a discriminating negative per AC, and got good ones. A
+discriminating negative establishes that a check *can* be red. It says nothing about whether the
+things it makes red are fixable. Rule 12 is the missing half.
+
+#### A55.2 What the bundle actually removed
+
+| Layer | Before | After |
+|---|---|---|
+| Coverage | 12 modules, 11 files, four surfaces undescribed | 18 modules, `src/gates`, `src/review`, `src/verification`, `src/query`, `src/grace-context.ts`, `src/test-support` all described |
+| Linkage | `Governed files: 0`; every module `Linked Files — none` | `Governed files: 56`; every `Path` module linked; 11 warnings gone |
+| Consistency | Nothing joined `GraphAnchors` to `ObservedWriteScope` | `change.graph-anchors-miss-write-scope`, error, verified red on the real `C-REVIEW-SURFACE` body |
+
+`ngrace context --task` now prints real files under `Linked Files`. The surface Phase 8 shipped and
+measured was, for its largest section, projecting nothing; it no longer is.
+
+#### A55.3 What remains owed
+
+| Item | Home | Since |
+|---|---|---|
+| `src/gates`, `src/review` missing from `package.json#files`; `validate:packed` not in `validate:ci` | `C-OBSERVABLE-CHECKS` (draft) | A48.5 |
+| Scope audit sees only uncommitted work | `C-OBSERVABLE-CHECKS` (draft) | A51.1 |
+| Archived bundles resolve to no plan; audit skipped in silence | `C-OBSERVABLE-CHECKS` (draft) | A51.2 |
+| ~~Graph describes neither `src/gates`, `src/review`, nor `src/verification`~~ | **Discharged** — `C-GRAPH-COVERAGE`, archived `applied` | A36.4 → A55 |
+
+One item remains, it is a drafted bundle rather than a memory, and it is next. The debt discharged
+here took three amendments to schedule and one bundle to remove; the difference between those two
+numbers is the whole argument for fixing a defect in the cycle that detects it.
+
+#### A55.4 Phase 9's precondition is not met
+
+Recorded here because it blocks the next phase rather than this bundle. §9.2 requires Phases 3 and 6
+`COMPLETE`, and both are — but the substance Phase 9 reports over does not exist:
+
+```
+EpochOpened in .ngrace/**  → 0
+EpochOpened in src/**      → 0
+```
+
+`<EpochOpened>` is not an event kind in this codebase. `run.xml` carries `<Epoch>1</Epoch>`, a counter
+with no executor identity. So **A40.3's row reading *"Mechanism is in place — executor identity on
+`<EpochOpened>`, same corpus"* is not true at HEAD**, and D6's context-derivation-by-join has nothing
+to join against. Step 9.5.4's report would print `0 included, 0 excluded`, and every Phase 9 assertion
+would pass over an empty corpus.
+
+An empty corpus is not a failure — D6's argument is *record now so the study becomes possible later*.
+The failure mode is a well-formed calibration table that has adjudicated nothing. Phase 9's first step
+is therefore the one §9.5 does not list: make `<EpochOpened>` exist with executor identity, and
+produce one genuine labeled pair end-to-end so the join is observed working. Otherwise the phase's
+only honest output is an absence value — acceptable as a designed outcome, stated up front; not as
+something round 2 discovers.
+
 ---
 
 ## 15. Final instruction to the executor
