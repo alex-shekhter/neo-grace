@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-REVIEW-SURFACE>
     <IntentSummary>
       Create the review check surface: mechanized pattern detectors (family A), process audits

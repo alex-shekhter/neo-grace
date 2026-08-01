@@ -371,7 +371,7 @@ Keep this table current. It is the single source of truth for progress.
 | 3 | Run ledger & cursor | D1, D2, D3 | TBD | `COMPLETE` |
 | 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `COMPLETE` |
 | 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `COMPLETE` |
-| 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `IN PROGRESS` (A35) |
+| 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
 | 7 | Deterministic failure localization | D8 | TBD | `NOT STARTED` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `NOT STARTED` |
 | 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `NOT STARTED` |
@@ -993,7 +993,7 @@ construction, so nothing in the existing pipeline regresses.
 
 # PHASE 6 — Detached reviewer & mechanized audits
 
-**Status:** `IN PROGRESS` (A35)
+**Status:** `COMPLETE`
 **Decisions:** D4 (gate), §4.3, §5.2
 **Release:** TBD
 
@@ -1005,7 +1005,9 @@ construction, so nothing in the existing pipeline regresses.
 > parameterized join engine as the build method. **A35 is normative where it disagrees with §6.3,
 > §6.4 and §6.5.** A17.3 still binds: the bundle carries a `spec.xml` (draft, awaiting approval)
 > before plan and execution. Two archived bundles already hold self-recorded `pass` verdicts
-> (A33.3) — Phase 6 is what makes detachment real rather than honor-system.
+> (A33.3) — Phase 6 is what makes detachment real rather than honor-system. Closed after A39 (corr
+> 92) with `C-REVIEW-SURFACE` applied and archived; first bundle whose apply verdict is backed by a
+> mechanized `ngrace review` of its own surface (residual judgment still honor-system — A33.3).
 
 ## 6.1 Objective
 

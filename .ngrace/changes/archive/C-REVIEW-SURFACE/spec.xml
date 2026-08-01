@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-REVIEW-SURFACE>
     <Summary>
       Create the review check surface — mechanized pattern detectors and process audits with
