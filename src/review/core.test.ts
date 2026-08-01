@@ -463,6 +463,86 @@ export function patternSourceLooksLikeMarkupGuard(p: string) {
   });
 });
 
+/**
+ * A39.1 / corr 92 — four fixtures that differ only in form, not meaning.
+ * (b) and (c) are the same program; only binding the transform result used to silence.
+ * (d) firing pins that two-step raw scans are still caught (not form-matching the other way).
+ */
+describe("A39 correction 92 — inline vs bound transform (four fixtures)", () => {
+  const MARKER_LINE =
+    String.raw`/^(\s*)(\/\/|#)\s*START_MODULE_CONTRACT/`;
+
+  function projectWith(body: string): string {
+    const root = track(path.join(os.tmpdir(), `corr92-${Date.now()}-${Math.random().toString(16).slice(2)}`));
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(
+      path.join(root, "src", "example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return 1; }\n`,
+    );
+    writeFileSync(path.join(root, "src", "scan.ts"), body);
+    return root;
+  }
+
+  function regexFindings(root: string) {
+    return runPatternDetectors(root).filter((f) => f.code === "review.regex-over-structure");
+  }
+
+  it("(a) raw input chained: source.split.some → fire", () => {
+    const root = projectWith(
+      `export function fileLooksGoverned(source: string): boolean {
+  return source.split("\\n").some((l) =>
+    ${MARKER_LINE}.test(l),
+  );
+}
+`,
+    );
+    expect(regexFindings(root).some((f) => f.file.endsWith("scan.ts"))).toBe(true);
+  });
+
+  it("(b) inline transform: normalize(source).split.some → silent", () => {
+    const root = projectWith(
+      `export function normalize(text: string): string { return text; }
+export function fileLooksGoverned(source: string): boolean {
+  return normalize(source).split("\\n").some((l) =>
+    ${MARKER_LINE}.test(l),
+  );
+}
+`,
+    );
+    expect(regexFindings(root).filter((f) => f.file.endsWith("scan.ts"))).toHaveLength(0);
+  });
+
+  it("(c) bound transform: const s = normalize(source); s.split via lines → silent", () => {
+    const root = projectWith(
+      `export function normalize(text: string): string { return text; }
+export function fileLooksGoverned(source: string): boolean {
+  const s = normalize(source);
+  const lines = s.split("\\n");
+  return lines.some((l) =>
+    ${MARKER_LINE}.test(l),
+  );
+}
+`,
+    );
+    expect(regexFindings(root).filter((f) => f.file.endsWith("scan.ts"))).toHaveLength(0);
+  });
+
+  it("(d) raw two-step: const lines = source.split; lines.some → fire", () => {
+    const root = projectWith(
+      `export function fileLooksGoverned(source: string): boolean {
+  const lines = source.split("\\n");
+  return lines.some((l) =>
+    ${MARKER_LINE}.test(l),
+  );
+}
+`,
+    );
+    expect(regexFindings(root).some((f) => f.file.endsWith("scan.ts"))).toBe(true);
+  });
+});
+
 describe("join engine (A34.1) — family B codes", () => {
   it("scope×home fires when scope not admitted", () => {
     const fire = runJoinProbes([

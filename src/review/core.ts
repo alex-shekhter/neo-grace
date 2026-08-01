@@ -399,22 +399,34 @@ function identifiersAssignedFromCall(text: string): Set<string> {
 }
 
 /**
- * Subjects of *line-oriented* `.split("\n")` chained to an array callback — the re-03 /
- * production marker-scan shape: `source.split("\n").some(line => /…/.test(line))`.
+ * Bare-identifier subjects of *line-oriented* `.split("\n")` chained to an array
+ * callback: `source.split("\n").some(...)`.
  *
- * Only the chained form is used: a whole-file scan of `const lines = ID.split` + later
- * `lines.some` falsely couples unrelated functions that share the name `lines`.
+ * Does not match call-expression subjects (`normalize(source).split(...)`) — those
+ * end in `)` before `.split` (A39.1 / corr 92).
  * Non-newline splits (e.g. `body.split(/\s+/)`) are not line scans.
  */
-function lineScanSplitSubjects(text: string): string[] {
+function lineScanBareIdentifierSubjects(text: string): string[] {
   const subjects: string[] = [];
   // Chained: ID.split("\n").(some|every|filter|find) — "\n" as two source chars \ + n
+  // Identifier must be immediately before `.split` (not `source).split` from a call arg).
   for (const m of text.matchAll(
     /\b([A-Za-z_$][\w$]*)\s*\.\s*split\s*\(\s*(?:"\\n"|'\\n'|`\\n`)\s*\)\s*\.\s*(?:some|every|filter|find)\s*\(/g,
   )) {
     subjects.push(m[1]!);
   }
   return subjects;
+}
+
+/**
+ * True when a *call expression* is the subject of a newline split chained to a
+ * callback: `normalize(source).split("\n").some(...)` (A39.1 / corr 92).
+ * Same dataflow as binding the call result to a name, without requiring the name.
+ */
+function hasCallExpressionLineScanSubject(text: string): boolean {
+  return /\)\s*\.\s*split\s*\(\s*(?:"\\n"|'\\n'|`\\n`)\s*\)\s*\.\s*(?:some|every|filter|find)\s*\(/.test(
+    text,
+  );
 }
 
 /**
@@ -456,13 +468,18 @@ function isDefectiveUnstrippedMarkerLineGuard(text: string): boolean {
   if (!usesRegexAsGuard(text)) return false;
 
   const transformed = identifiersAssignedFromCall(text);
-  const subjects = lineScanSplitSubjects(text);
-  if (subjects.length > 0) {
-    // Fire when any chained line-scan subject is not call-derived; silent when all are.
-    return subjects.some((s) => !transformed.has(s));
+  const bareSubjects = lineScanBareIdentifierSubjects(text);
+  const inlineCallSubject = hasCallExpressionLineScanSubject(text);
+
+  // Chained scans: fire only when a bare identifier subject is not call-derived.
+  // Call-expression subjects (inline transform) are call-derived without a binding (92).
+  if (bareSubjects.length > 0 || inlineCallSubject) {
+    const rawBare = bareSubjects.filter((s) => !transformed.has(s));
+    return rawBare.length > 0;
   }
+
   // No chained split-callback: still silent when a call-derived intermediate is
-  // newline-split (for-loop / indexed scan over the transformed value).
+  // newline-split (for-loop / indexed / two-step scan over the transformed value).
   for (const id of transformed) {
     const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     if (
@@ -474,6 +491,7 @@ function isDefectiveUnstrippedMarkerLineGuard(text: string): boolean {
     }
   }
   // Marker line-regex used as a guard with no transformed line-scan subject.
+  // Covers two-step raw form: `const lines = source.split("\n"); lines.some(...)` (d).
   return true;
 }
 
