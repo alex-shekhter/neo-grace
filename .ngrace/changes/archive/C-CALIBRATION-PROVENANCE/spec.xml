@@ -1,0 +1,113 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-CALIBRATION-PROVENANCE>
+    <Summary>
+      Phase 9 round 3 (A61): make adjudicatedAt a real provenance field (read from the
+      record; express backfill; exclude backfilled pairs from computation), restate the
+      hand-migrated C-CALIBRATION Epoch-1 as backfill without editing the archive, and
+      observe one genuine fold-time CalibrationAdjudication written by fold (corr 160–161).
+    </Summary>
+    <Problem>
+      Round 2 closed 155/156 correctly, but two defects remain in Phase 9's own surface:
+
+      1. Corr 160 / 151 not closed. Epoch-1 of C-CALIBRATION was folded before
+         CalibrationAdjudication existed. The archive record was hand-written during
+         migration after the change had already passed. The fold path is unit-tested and
+         has never run on a live change. A46.4: a path never observed succeeding is not
+         a path. The corpus's only pair is contaminated (scored retroactively against a
+         known outcome) — D6 condition 2.
+
+      2. Corr 161. adjudicatedAt is typed as a single-valued constant and the parser
+         synthesizes "fold" at parse time rather than reading the attribute. The field
+         cannot express backfill and would print fold for a record that said otherwise.
+         Same construction A48 already ruled on for D15's stage field.
+
+      Archive is immutable (CLAUDE.md). Correction is by superseding provenance via a
+      restatement owned by this change, never by editing the archive.
+    </Problem>
+    <Goals>
+      <Goal>
+        adjudicatedAt is read from the CalibrationAdjudication record and accepts
+        fold | backfill (A61 corr 161).
+      </Goal>
+      <Goal>
+        Backfilled pairs are excluded from calibration computation and counted on their
+        own line; never silently pooled with fold-time pairs.
+      </Goal>
+      <Goal>
+        Both directions (A7.2): fold-time records report fold and enter included;
+        backfilled records report backfill and do not enter included.
+      </Goal>
+      <Goal>
+        C-CALIBRATION Epoch-1 is restated as backfill via this bundle; archive untouched.
+      </Goal>
+      <Goal>
+        One genuine fold-time CalibrationAdjudication is written by fold when this
+        change's epoch is folded — not by hand, not by migration, not by fixture alone
+        (A61 corr 160 / A46.4).
+      </Goal>
+      <Goal>
+        Root lint 0/0, bun test and validate:ci green.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Do not edit .ngrace/changes/archive/C-CALIBRATION/ (immutable archive).
+      </Constraint>
+      <Constraint>
+        Do not hand-write this change's CalibrationAdjudication; fold must write it.
+      </Constraint>
+      <Constraint>
+        claimedConfidence remains write-only; no gate may consume it.
+      </Constraint>
+      <Constraint>
+        Labels remain stored, never recomputed at report time (corr 156 still holds).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Authority axis (user-stated | tool-verified | agent-inferred) — still deferred.
+      </NonGoal>
+      <NonGoal>
+        Anchor-level precision field — still deferred.
+      </NonGoal>
+      <NonGoal>
+        Held-out calibration study or any gate consumption of claimedConfidence.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-ADJUDICATED-AT-READ>
+        Parser reads adjudicatedAt from the record; fold and backfill are distinct values.
+      </AC-ADJUDICATED-AT-READ>
+      <AC-BACKFILL-EXCLUDED>
+        Backfilled pairs are not included in calibration computation; counted separately.
+      </AC-BACKFILL-EXCLUDED>
+      <AC-BOTH-DIRECTIONS>
+        Fold-time → included with adjudicatedAt=fold; backfill → backfilled, not included.
+      </AC-BOTH-DIRECTIONS>
+      <AC-RESTATE-EPOCH1>
+        C-CALIBRATION Epoch-1 reports as backfilled; archive XML still says fold on disk.
+      </AC-RESTATE-EPOCH1>
+      <AC-REAL-FOLD>
+        This change's ledger contains CalibrationAdjudication written by foldEpoch, with
+        adjudicatedAt=fold, observed in doctor as an included pair.
+      </AC-REAL-FOLD>
+      <AC-VALIDATE-CI>
+        bun run validate:ci green; root lint 0 errors 0 warnings.
+      </AC-VALIDATE-CI>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CALIBRATION />
+      <M-CURSOR />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/calibration</ExpectedCommand>
+      <ExpectedEvidence>
+        adjudicatedAt read from record (fold|backfill); backfilled count separate from
+        included; restatement of C-CALIBRATION Epoch-1 without archive edit; live
+        CalibrationAdjudication written by fold on this change with adjudicatedAt=fold;
+        root lint 0/0; validate:ci green.
+      </ExpectedEvidence>
+    </VerificationIntent>
+  </C-CALIBRATION-PROVENANCE>
+</NgraceChangeSpec>
+

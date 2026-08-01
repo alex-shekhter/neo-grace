@@ -35,7 +35,7 @@ Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires
 2. Execute one dependency-ready task or one verified parallel-safe batch at a time.
 3. Run each task's acceptance and verification immediately.
 4. Advance the run cursor when a task starts or completes (`ngrace cursor advance`); pause/resume around interruptions; fold the open epoch when the wave is quiescent (`ngrace cursor fold`).
-5. Record every verification cycle with `ngrace cursor attempt --change C-ID --task T-NNN --outcome pass|fail` (add `--signature-kind` and `--signature-key` on fail). When verification cannot run, use `ngrace cursor verification-unavailable --change C-ID --task T-NNN --reason …` — never an attempt and never silence. Do not use `cursor advance --kind attempt`. Two failed attempts exhaust the fix budget and escalate to paused-pending-approval: a pause awaiting a replan decision, not a task failure.
+5. Record every verification cycle with `ngrace cursor attempt --change C-ID --task T-NNN --outcome pass|fail` (add `--signature-kind` and `--signature-key` on fail). Optionally record agent self-report with `--claimed-confidence low|medium|high` — **analysis only**: no gate may read it; the calibration report scores it against independent `target-assertions`, never against the attempt's own outcome. When verification cannot run, use `ngrace cursor verification-unavailable --change C-ID --task T-NNN --reason …` — never an attempt and never silence. Do not use `cursor advance --kind attempt`. Two failed attempts exhaust the fix budget and escalate to paused-pending-approval: a pause awaiting a replan decision, not a task failure. On epoch open, the harness may pass `--executor-model` / `--executor-harness` (optional; may be absent).
 6. Apply approved durable context, graph, and verification changes centrally.
 7. Reconcile durable state, run leaf plan gates, then run selected `--assertions final` as the outermost lifecycle gate, including `--run-commands` when `MustPassCommand` is declared. Final mode performs full project lint, evaluates the selected target, keeps unrelated approved baselines active, and does not re-evaluate the selected plan's superseded baseline.
 8. Ask for explicit apply confirmation after fresh end-state evidence passes.
@@ -47,4 +47,8 @@ Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires
 <verdicts>
 Report the value the CLI emitted. Never summarize an absence into a pass. Shared vocabulary: `references/verdicts.md` under ngrace-cli (do not restate tokens here).
 </verdicts>
+
+<calibration>
+`claimedConfidence` is recorded so correlation with outcomes can be studied later. **It informs nothing today** — no gate, review audit, or context slice may consume it. Promotion bar: demonstrated calibration on a held-out set, per context class, before any gate may use it. See `ngrace doctor` Calibration section (includes included/excluded/pending counts; N=0 is an honest empty report, not a rate table).
+</calibration>
 </skill>

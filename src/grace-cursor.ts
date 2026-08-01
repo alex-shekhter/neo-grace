@@ -12,6 +12,10 @@
 //   AbsenceValue
 //   AbsenceVerdict
 //   CURSOR_STATES
+//   CALIBRATION_ADJUDICATED_AT
+//   CalibrationAdjudicatedAt
+//   CalibrationAdjudicationRecord
+//   CalibrationRestatement
 //   ChangedFileEvidence
 //   CursorPosition
 //   CursorState
@@ -21,6 +25,7 @@
 //   FlakeVerdict
 //   FoldResult
 //   KnownEventKind
+//   LedgerCalibrationEpoch
 //   LooseEvent
 //   PositionSource
 //   RangeAllocation
@@ -42,6 +47,8 @@
 //   formatFoldResult
 //   lastResolvingResumeId
 //   listAccountingEvents
+//   listCalibrationRestatements
+//   listLedgerCalibrationEpochs
 //   listLedgerEvents
 //   listLooseEvents
 //   listRepositoryChangedFiles
@@ -50,8 +57,10 @@
 //   pauseCursor
 //   readAttemptPayload
 //   recordAttempt
+//   recordCalibrationRestatement
 //   recordVerificationUnavailable
 //   regenerateCursor
+//   rejectAuthoredContextAttributes
 //   resolveChangeBundle
 //   resumeCursor
 //   showCursor
@@ -78,6 +87,8 @@ import {
   ANCHOR_PATTERNS,
   ARTIFACT_TAG_PREFIX,
   EPOCH_SECTION_PATTERN,
+  parseClaimedConfidence,
+  type ClaimedConfidence,
   NGRACE_ARTIFACT_VERSION,
 } from "./artifact/types";
 import {
@@ -88,6 +99,13 @@ import {
 import { collectActiveChangeScopes, observedWriteScopeContains } from "./artifact/scope";
 import { childText, readGraceXmlArtifact, type GraceXmlNode } from "./artifact/xml";
 import { serializeGraceXmlDocument, serializeGraceXmlNode } from "./artifact/xml-serialize";
+import {
+  AUTHORED_CONTEXT_ATTRIBUTE_NAMES,
+  deriveCalibrationContext,
+  parseCalibrationContextAttributes,
+  serializeCalibrationContextAttributes,
+  type CalibrationContextClass,
+} from "./calibration/context";
 import { isGitWorktreeDirty } from "./grace-graph";
 import { lintGraceProject } from "./lint/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -513,6 +531,11 @@ export function advanceCursor(
     to?: number;
     wave?: string;
     openEpoch?: boolean;
+    /**
+     * Optional harness-stated executor identity on kind=opened (D6 / P1).
+     * Unverifiable by ngrace; may be absent. Never invent a default model name.
+     */
+    executorIdentity?: { model?: string; harness?: string };
   },
 ): CursorPosition {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
@@ -525,12 +548,29 @@ export function advanceCursor(
     const worker = options.worker ?? "w0";
     const id = nextEventId(bundlePath, from);
     const task = options.task;
+    const openChildren: GraceXmlNode[] = [];
+    if (options.executorIdentity) {
+      const model = options.executorIdentity.model?.trim();
+      const harness = options.executorIdentity.harness?.trim();
+      if (model || harness) {
+        const attrs: Record<string, string> = {};
+        if (model) attrs.model = model;
+        if (harness) attrs.harness = harness;
+        openChildren.push({
+          tag: "ExecutorIdentity",
+          attributes: attrs,
+          children: [],
+          text: "",
+        });
+      }
+    }
     writeEventFile(bundlePath, {
       id,
       task,
       kind: "opened",
       allocations: [{ worker, from, to }],
       wave: options.wave,
+      children: openChildren.length > 0 ? openChildren : undefined,
     });
     const position: CursorPosition = {
       changeId,
@@ -652,8 +692,16 @@ export function foldEpoch(
 
   const epochNumber = nextEpochNumber(bundlePath);
   const wave = options.wave ?? readWaveFromOpened(events);
+  // A59 corr 155–156: adjudicate once at fold when claims exist; store durable label.
+  // Unit of adjudication is the change/epoch, not each attempt.
+  // A63 corr 165: also store derived context class at fold (not recomputed later).
+  const calibrationAdjudication =
+    options.injectDropPayload === true
+      ? undefined
+      : buildCalibrationAdjudicationAtFold(projectRoot, changeId, events, allocations);
   const epochNode = buildEpochNode(epochNumber, wave, allocations, events, {
     dropPayload: options.injectDropPayload === true,
+    calibrationAdjudication,
   });
   const ledgerPath = path.join(bundlePath, "run-ledger.xml");
 
@@ -1230,6 +1278,12 @@ export function recordAttempt(
     task: string;
     outcome: "pass" | "fail";
     signature?: FailureSignature;
+    /**
+     * Optional agent-authored claimed confidence (D6). Write-only; no gate may read it.
+     * Join score comes from independent adjudicators (target-assertions), never from
+     * this attempt's outcome attribute (corr 149).
+     */
+    claimedConfidence?: ClaimedConfidence | string;
     /** Override snapshotted write evidence (tests). Default: snapshotWriteEvidence. */
     writeEvidence?: WriteEvidenceSnapshot;
   },
@@ -1244,6 +1298,15 @@ export function recordAttempt(
       "invalid-arguments",
       "Failed attempts require a FailureSignature (kind + key).",
     );
+  }
+
+  let claimedConfidenceAttr: string | undefined;
+  if (options.claimedConfidence !== undefined && options.claimedConfidence !== "") {
+    const parsed = parseClaimedConfidence(String(options.claimedConfidence));
+    if (!parsed.ok) {
+      throw new GraceCommandError("invalid-arguments", parsed.reason);
+    }
+    claimedConfidenceAttr = parsed.value;
   }
 
   // A21.1 / A22.3 / A29.10: refuse further attempts on escalated tasks via gate evaluation
@@ -1265,11 +1328,15 @@ export function recordAttempt(
   children.push(writeEvidenceNode(writeEvidence));
 
   const id = nextEventId(bundlePath);
+  const attributes: Record<string, string> = { outcome: options.outcome };
+  if (claimedConfidenceAttr) {
+    attributes.claimedConfidence = claimedConfidenceAttr;
+  }
   writeEventFile(bundlePath, {
     id,
     task,
     kind: "attempt",
-    attributes: { outcome: options.outcome },
+    attributes,
     children,
   });
 
@@ -1491,6 +1558,241 @@ export function listLedgerEvents(bundlePath: string): LooseEvent[] {
     }
   }
   return events.sort((a, b) => a.id - b.id);
+}
+
+/** One folded epoch's claims + stored CalibrationAdjudication (A59 corr 155–156). */
+export type LedgerCalibrationEpoch = {
+  changeId: string;
+  epoch: number;
+  claims: LooseEvent[];
+  adjudication: CalibrationAdjudicationRecord | undefined;
+};
+
+/**
+ * Read folded epochs that carry claimedConfidence claims and any stored adjudication.
+ * Report never recomputes labels — only stored CalibrationAdjudication counts as adjudicated.
+ */
+export function listLedgerCalibrationEpochs(bundlePath: string, changeId: string): LedgerCalibrationEpoch[] {
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (!existsSync(ledgerPath)) return [];
+  const artifact = readGraceXmlArtifact(ledgerPath);
+  if (!artifact.root) return [];
+  const rows: LedgerCalibrationEpoch[] = [];
+  for (const wrapper of artifact.root.children) {
+    if (wrapper.tag !== changeId) continue;
+    for (const epoch of wrapper.children) {
+      const match = EPOCH_SECTION_PATTERN.exec(epoch.tag);
+      if (!match) continue;
+      const epochNumber = Number(match[1]);
+      const claims: LooseEvent[] = [];
+      let adjudication: CalibrationAdjudicationRecord | undefined;
+      for (const child of epoch.children) {
+        if (child.tag === "Event") {
+          const id = Number(child.attributes.id);
+          const task = (child.attributes.task ?? "").trim();
+          const kind = (child.attributes.kind ?? "").trim();
+          if (!Number.isInteger(id) || !task || !kind) continue;
+          const event: LooseEvent = {
+            id,
+            task,
+            kind,
+            file: ledgerPath,
+            attributes: { ...child.attributes },
+            children: child.children.map(cloneXmlNode),
+          };
+          if (attemptHasClaimedConfidence(event)) claims.push(event);
+        }
+        if (child.tag === "CalibrationAdjudication") {
+          adjudication = parseCalibrationAdjudicationNode(child);
+        }
+      }
+      if (claims.length === 0 && !adjudication) continue;
+      rows.push({ changeId, epoch: epochNumber, claims, adjudication });
+    }
+  }
+  return rows.sort((a, b) => a.epoch - b.epoch);
+}
+
+/** Moments at which a CalibrationAdjudication may have been written (A61 corr 161). */
+export const CALIBRATION_ADJUDICATED_AT = ["fold", "backfill"] as const;
+export type CalibrationAdjudicatedAt = (typeof CALIBRATION_ADJUDICATED_AT)[number];
+
+function parseAdjudicatedAt(raw: string | undefined): CalibrationAdjudicatedAt | undefined {
+  const value = (raw ?? "").trim();
+  if (value === "fold" || value === "backfill") return value;
+  return undefined;
+}
+
+function parseCalibrationAdjudicationNode(node: GraceXmlNode): CalibrationAdjudicationRecord | undefined {
+  const outcome = (node.attributes.outcome ?? "").trim();
+  if (outcome !== "pass" && outcome !== "fail" && outcome !== "pending") return undefined;
+  const claimCount = Number(node.attributes.claimCount ?? "0");
+  // Read from the record (A61 corr 161). Missing attribute is not silently "fold" —
+  // only an explicit value is evidence of a moment. Legacy records without the attribute
+  // surface as undefined and the report treats them as pending provenance.
+  const adjudicatedAt = parseAdjudicatedAt(node.attributes.adjudicatedAt);
+  if (adjudicatedAt === undefined) return undefined;
+  // Context class (A63 corr 165): present on fold-time records from round 4+; optional.
+  const context = parseCalibrationContextAttributes(node.attributes);
+  return {
+    adjudicator: "target-assertions",
+    outcome,
+    reason: node.attributes.reason?.trim() || undefined,
+    claimCount: Number.isInteger(claimCount) ? claimCount : 0,
+    claims: (node.attributes.claims ?? "").trim(),
+    adjudicatedAt,
+    context,
+  };
+}
+
+/**
+ * One restatement of a stored CalibrationAdjudication's provenance (A61).
+ * Lives under the *authoring* change's ledger as a sibling of Epoch-N; never
+ * mutates the restated archive. Report applies these as overrides.
+ */
+export type CalibrationRestatement = {
+  /** Change whose stored adjudication is being restated. */
+  changeId: string;
+  epoch: number;
+  adjudicatedAt: "backfill";
+  reason?: string;
+  /** Bundle that authored this restatement (where the ledger section lives). */
+  authoringChangeId: string;
+};
+
+/**
+ * Scan all change ledgers for CalibrationRestatements sections.
+ * Restatements supersede stored adjudicatedAt without editing archives.
+ */
+export function listCalibrationRestatements(projectRoot: string): CalibrationRestatement[] {
+  const root = path.resolve(projectRoot);
+  const paths = resolveNgracePaths(root);
+  const out: CalibrationRestatement[] = [];
+  for (const directory of [paths.changesActiveDir, paths.changesArchiveDir]) {
+    if (!existsSync(directory)) continue;
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !ANCHOR_PATTERNS.change.test(entry.name)) continue;
+      const authoringChangeId = entry.name;
+      const ledgerPath = path.join(directory, authoringChangeId, "run-ledger.xml");
+      if (!existsSync(ledgerPath)) continue;
+      const artifact = readGraceXmlArtifact(ledgerPath);
+      if (!artifact.root) continue;
+      const wrapper = artifact.root.children.find((c) => c.tag === authoringChangeId);
+      if (!wrapper) continue;
+      for (const section of wrapper.children) {
+        if (section.tag !== "CalibrationRestatements") continue;
+        for (const child of section.children) {
+          if (child.tag !== "Restatement") continue;
+          const changeId = (child.attributes.changeId ?? "").trim();
+          const epoch = Number(child.attributes.epoch ?? "");
+          const adjudicatedAt = parseAdjudicatedAt(child.attributes.adjudicatedAt);
+          if (!ANCHOR_PATTERNS.change.test(changeId)) continue;
+          if (!Number.isInteger(epoch) || epoch < 1) continue;
+          // Only backfill restatements are defined (restate contaminated fold claims).
+          if (adjudicatedAt !== "backfill") continue;
+          out.push({
+            changeId,
+            epoch,
+            adjudicatedAt: "backfill",
+            reason: child.attributes.reason?.trim() || child.text.trim() || undefined,
+            authoringChangeId,
+          });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Append or replace a CalibrationRestatements section on the authoring change's ledger.
+ * Does not edit the restated change's archive. Requires an existing run-ledger.xml
+ * (fold first, then restate).
+ */
+export function recordCalibrationRestatement(
+  projectRoot: string,
+  authoringChangeId: string,
+  restatement: {
+    changeId: string;
+    epoch: number;
+    adjudicatedAt: "backfill";
+    reason?: string;
+  },
+): void {
+  if (!ANCHOR_PATTERNS.change.test(authoringChangeId)) {
+    throw new GraceCommandError("invalid-arguments", `Invalid authoring change id: ${authoringChangeId}`);
+  }
+  if (!ANCHOR_PATTERNS.change.test(restatement.changeId)) {
+    throw new GraceCommandError("invalid-arguments", `Invalid restated change id: ${restatement.changeId}`);
+  }
+  if (!Number.isInteger(restatement.epoch) || restatement.epoch < 1) {
+    throw new GraceCommandError("invalid-arguments", `Restatement epoch must be a positive integer.`);
+  }
+  if (restatement.adjudicatedAt !== "backfill") {
+    throw new GraceCommandError("invalid-arguments", `Only adjudicatedAt=backfill restatements are supported.`);
+  }
+
+  const bundlePath = resolveChangeBundle(projectRoot, authoringChangeId);
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (!existsSync(ledgerPath)) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `Cannot record restatement: ${authoringChangeId} has no run-ledger.xml (fold first).`,
+    );
+  }
+  const artifact = readGraceXmlArtifact(ledgerPath);
+  if (!artifact.root) {
+    throw new GraceCommandError("invalid-project", `run-ledger.xml at ${ledgerPath} is unreadable.`);
+  }
+  const root: GraceXmlNode = {
+    tag: artifact.root.tag,
+    attributes: { ...artifact.root.attributes },
+    children: artifact.root.children.map(cloneXmlNode),
+    text: artifact.root.text,
+  };
+  let wrapper = root.children.find((c) => c.tag === authoringChangeId);
+  if (!wrapper) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `run-ledger.xml does not contain wrapper ${authoringChangeId}.`,
+    );
+  }
+
+  const restatementNode: GraceXmlNode = {
+    tag: "Restatement",
+    attributes: {
+      changeId: restatement.changeId,
+      epoch: String(restatement.epoch),
+      adjudicatedAt: "backfill",
+      ...(restatement.reason ? { reason: restatement.reason } : {}),
+    },
+    children: [],
+    text: "",
+  };
+
+  let section = wrapper.children.find((c) => c.tag === "CalibrationRestatements");
+  if (!section) {
+    section = { tag: "CalibrationRestatements", attributes: {}, children: [], text: "" };
+    wrapper.children.push(section);
+  }
+  // Replace matching (changeId, epoch) or append.
+  const idx = section.children.findIndex(
+    (c) =>
+      c.tag === "Restatement" &&
+      (c.attributes.changeId ?? "").trim() === restatement.changeId &&
+      Number(c.attributes.epoch ?? "") === restatement.epoch,
+  );
+  if (idx >= 0) {
+    section.children[idx] = restatementNode;
+  } else {
+    section.children.push(restatementNode);
+  }
+
+  const contained = resolveContainedProjectPath(bundlePath, "run-ledger.xml", {
+    mode: "output",
+    allowedRoot: bundlePath,
+  });
+  writeFileSync(contained.absolutePath, serializeGraceXmlDocument(root));
 }
 
 function failureSignatureNode(signature: FailureSignature): GraceXmlNode {
@@ -1722,12 +2024,114 @@ function validateEventsAgainstAllocations(events: LooseEvent[], allocations: Ran
   return issues;
 }
 
+/** Stored beside claims in the same epoch (A59 corr 155–156). Immutable after write. */
+export type CalibrationAdjudicationRecord = {
+  adjudicator: "target-assertions";
+  /** pass | fail when evaluable; pending when complete is undefined. */
+  outcome: "pass" | "fail" | "pending";
+  /** When outcome is pending, the absence reason. */
+  reason?: string;
+  claimCount: number;
+  /** Claimed confidence levels in document order, comma-separated (e.g. "low,high"). */
+  claims: string;
+  /**
+   * Adjudication moment, read from the record (A61 corr 161).
+   * - fold: written by foldEpoch when the epoch closed
+   * - backfill: written or restated after the outcome was already known (excluded from computation)
+   */
+  adjudicatedAt: CalibrationAdjudicatedAt;
+  /**
+   * Context class derived at fold from ledger + bundle (A63 corr 165 / §9.5.3).
+   * Absent on pre-round-4 records; report buckets those under context-not-stored.
+   */
+  context?: CalibrationContextClass;
+};
+
+function attemptHasClaimedConfidence(event: LooseEvent): boolean {
+  const raw = event.attributes.claimedConfidence;
+  return event.kind === "attempt" && typeof raw === "string" && raw.trim() !== "";
+}
+
+/**
+ * One adjudication per fold that contains claimedConfidence attempts (corr 155–156).
+ * Uses evaluateTargetComplete (three-valued); never the attempt outcome attribute.
+ * Derives and stores context class (corr 165) — ignores any authored context on claims.
+ */
+function buildCalibrationAdjudicationAtFold(
+  projectRoot: string,
+  changeId: string,
+  events: LooseEvent[],
+  allocations: RangeAllocation[],
+): CalibrationAdjudicationRecord | undefined {
+  const claimEvents = events.filter(attemptHasClaimedConfidence);
+  if (claimEvents.length === 0) return undefined;
+
+  const claims = claimEvents
+    .map((event) => (event.attributes.claimedConfidence ?? "").trim())
+    .filter((level) => level.length > 0);
+  const { complete, completeAbsence } = evaluateTargetComplete(projectRoot, changeId);
+
+  // Context is derived by join; authored attributes on claim events are ignored.
+  const context = deriveCalibrationContext({
+    projectRoot,
+    changeId,
+    events,
+    claimEvents,
+    allocations,
+  });
+
+  const base = {
+    adjudicator: "target-assertions" as const,
+    claimCount: claimEvents.length,
+    claims: claims.join(","),
+    adjudicatedAt: "fold" as const,
+    context,
+  };
+
+  if (complete === true) {
+    return { ...base, outcome: "pass" };
+  }
+  if (complete === false) {
+    return { ...base, outcome: "fail" };
+  }
+  return {
+    ...base,
+    outcome: "pending",
+    reason:
+      completeAbsence?.reason ??
+      "target-assertions could not produce a boolean outcome at fold (pending, not fail)",
+  };
+}
+
+function calibrationAdjudicationNode(record: CalibrationAdjudicationRecord): GraceXmlNode {
+  const attributes: Record<string, string> = {
+    adjudicator: record.adjudicator,
+    outcome: record.outcome,
+    claimCount: String(record.claimCount),
+    claims: record.claims,
+    adjudicatedAt: record.adjudicatedAt,
+  };
+  if (record.reason) attributes.reason = record.reason;
+  if (record.context) {
+    Object.assign(attributes, serializeCalibrationContextAttributes(record.context));
+  }
+  return {
+    tag: "CalibrationAdjudication",
+    attributes,
+    children: [],
+    text: "",
+  };
+}
+
 function buildEpochNode(
   epochNumber: number,
   wave: string | undefined,
   allocations: RangeAllocation[],
   events: LooseEvent[],
-  options: { dropPayload?: boolean } = {},
+  options: {
+    dropPayload?: boolean;
+    calibrationAdjudication?: CalibrationAdjudicationRecord;
+  } = {},
 ): GraceXmlNode {
   const children: GraceXmlNode[] = [
     ...allocations.map((allocation) => ({
@@ -1762,6 +2166,10 @@ function buildEpochNode(
       };
     }),
   ];
+  // Durable fold-time label (corr 156) — sibling of Events, not recomputed at report time.
+  if (options.calibrationAdjudication) {
+    children.push(calibrationAdjudicationNode(options.calibrationAdjudication));
+  }
   return {
     tag: `Epoch-${epochNumber}`,
     attributes: wave ? { wave } : {},
@@ -1912,6 +2320,24 @@ function writeCursorFile(bundlePath: string, position: CursorPosition): void {
   writeFileSync(contained.absolutePath, serializeGraceXmlDocument(node));
 }
 
+/**
+ * Refuse agent-authored context dimensions on run events (D6 / §9.5.3).
+ * Context is derived at fold and stored on CalibrationAdjudication only.
+ */
+export function rejectAuthoredContextAttributes(
+  attributes: Record<string, string> | undefined,
+): void {
+  if (!attributes) return;
+  for (const name of AUTHORED_CONTEXT_ATTRIBUTE_NAMES) {
+    if (Object.prototype.hasOwnProperty.call(attributes, name)) {
+      throw new GraceCommandError(
+        "invalid-arguments",
+        `Context feature ${name} must not be authored on a run event; it is derived at fold (D6 / §9.5.3).`,
+      );
+    }
+  }
+}
+
 function writeEventFile(
   bundlePath: string,
   event: {
@@ -1926,6 +2352,7 @@ function writeEventFile(
     children?: GraceXmlNode[];
   },
 ): void {
+  rejectAuthoredContextAttributes(event.attributes);
   const runDirRel = "run";
   const filename = `${event.id}-${event.task}-${event.kind}.xml`;
   const relative = `${runDirRel}/${filename}`;
@@ -2119,11 +2546,21 @@ export const cursorCommand = defineCommand({
         from: { type: "string", description: "Allocation from id" },
         to: { type: "string", description: "Allocation to id" },
         wave: { type: "string", description: "Plan-side wave attribute" },
+        executorModel: {
+          type: "string",
+          description: "Optional harness-stated model id on openEpoch (ExecutorIdentity; may be absent)",
+        },
+        executorHarness: {
+          type: "string",
+          description: "Optional harness-stated host id on openEpoch (ExecutorIdentity; may be absent)",
+        },
         format: { type: "string", alias: "f", description: "text or json", default: "text" },
       },
       async run(context) {
         const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
         await runGraceCommand(format, () => {
+          const model = context.args.executorModel ? String(context.args.executorModel).trim() : "";
+          const harness = context.args.executorHarness ? String(context.args.executorHarness).trim() : "";
           const position = advanceCursor(String(context.args.path ?? "."), requireChangeId(context.args), {
             task: String(context.args.task),
             kind: context.args.kind ? String(context.args.kind) : undefined,
@@ -2132,6 +2569,13 @@ export const cursorCommand = defineCommand({
             from: context.args.from ? Number(context.args.from) : undefined,
             to: context.args.to ? Number(context.args.to) : undefined,
             wave: context.args.wave ? String(context.args.wave) : undefined,
+            executorIdentity:
+              model || harness
+                ? {
+                    model: model || undefined,
+                    harness: harness || undefined,
+                  }
+                : undefined,
           });
           if (format === "json") process.stdout.write(`${JSON.stringify(position, null, 2)}\n`);
           else process.stdout.write(formatCursorPosition(position));
@@ -2141,7 +2585,8 @@ export const cursorCommand = defineCommand({
     attempt: defineCommand({
       meta: {
         name: "attempt",
-        description: "Record a verification-cycle attempt (outcome pass|fail; signature required on fail).",
+        description:
+          "Record a verification-cycle attempt (outcome pass|fail; signature required on fail). Optional claimedConfidence is write-only analysis data — not used as the calibration score.",
       },
       args: {
         path: { type: "string", alias: "p", description: "Project root", default: "." },
@@ -2150,6 +2595,10 @@ export const cursorCommand = defineCommand({
         outcome: { type: "string", description: "pass or fail", required: true },
         signatureKind: { type: "string", description: "Failure signature kind (required when outcome=fail)" },
         signatureKey: { type: "string", description: "Failure signature key (required when outcome=fail)" },
+        claimedConfidence: {
+          type: "string",
+          description: "Optional low|medium|high self-report (analysis only; no gate may read it)",
+        },
         format: { type: "string", alias: "f", description: "text or json", default: "text" },
       },
       async run(context) {
@@ -2164,9 +2613,13 @@ export const cursorCommand = defineCommand({
           }
           const signatureKind = context.args.signatureKind ? String(context.args.signatureKind) : undefined;
           const signatureKey = context.args.signatureKey ? String(context.args.signatureKey) : undefined;
+          const claimedRaw = context.args.claimedConfidence
+            ? String(context.args.claimedConfidence).trim()
+            : undefined;
           const result = recordAttempt(String(context.args.path ?? "."), requireChangeId(context.args), {
             task: String(context.args.task),
             outcome: outcomeRaw,
+            claimedConfidence: claimedRaw,
             signature:
               outcomeRaw === "fail" && signatureKind && signatureKey
                 ? { kind: signatureKind, key: signatureKey }

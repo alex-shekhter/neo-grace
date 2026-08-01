@@ -13,7 +13,9 @@
 //   ARCHIVED_CHANGE_STATUSES
 //   ARTIFACT_TAG_PREFIX
 //   CHANGE_STATUSES
+//   CLAIMED_CONFIDENCE_LEVELS
 //   ChangeStatus
+//   ClaimedConfidence
 //   DATA_FLOW_STEP_PROPERTIES
 //   DataFlowStepProperty
 //   EPOCH_SECTION_PATTERN
@@ -40,6 +42,7 @@
 //   SKILL_PREFIX
 //   SemanticAnchorClassification
 //   SemanticAnchorFamily
+//   parseClaimedConfidence
 //   skillName
 //   skillRef
 // END_MODULE_MAP
@@ -163,6 +166,34 @@ export const MODULE_TYPES = [
 ] as const;
 
 export type ModuleType = (typeof MODULE_TYPES)[number];
+
+/**
+ * Agent-authored claimed confidence ordinal (D6 / Phase 9).
+ * Three levels only — not free text, not a percentage. Write-only from the agent;
+ * no gate may consume it. Distinct from language-analysis `exportConfidence` (precision).
+ */
+export const CLAIMED_CONFIDENCE_LEVELS = ["low", "medium", "high"] as const;
+
+export type ClaimedConfidence = (typeof CLAIMED_CONFIDENCE_LEVELS)[number];
+
+const CLAIMED_CONFIDENCE_SET = new Set<string>(CLAIMED_CONFIDENCE_LEVELS);
+
+/** Parse a claimedConfidence token; rejects free text, percentages, and fourth levels. */
+export function parseClaimedConfidence(
+  raw: string | undefined | null,
+): { ok: true; value: ClaimedConfidence } | { ok: false; reason: string } {
+  if (raw === undefined || raw === null || raw.trim() === "") {
+    return { ok: false, reason: "claimedConfidence is empty" };
+  }
+  const value = raw.trim();
+  if (CLAIMED_CONFIDENCE_SET.has(value)) {
+    return { ok: true, value: value as ClaimedConfidence };
+  }
+  return {
+    ok: false,
+    reason: `claimedConfidence must be one of ${CLAIMED_CONFIDENCE_LEVELS.join(" | ")}; got ${JSON.stringify(value)}`,
+  };
+}
 
 /** Semantic anchor regexes. Semantic anchors are tags and never attributes. */
 export const ANCHOR_PATTERNS = {

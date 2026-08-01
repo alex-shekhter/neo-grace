@@ -1,0 +1,96 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-CALIBRATION>
+    <IntentSummary>
+      Phase 9 stage 2: record claimedConfidence (write-only), join to independent
+      target-assertions adjudicator (corr 149–150), optional ExecutorIdentity on opened,
+      calibration report with N=0 honesty and one live labeled pair (corr 151). Authority
+      axis and anchor precision are out of scope (P4/P5).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-doctor.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/types.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/graph/main.xml</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/calibration/report.ts</Value></MustExist>
+      <MustExist><Value>src/calibration/report.test.ts</Value></MustExist>
+      <MustExist><Value>src/calibration/gates-isolation.test.ts</Value></MustExist>
+      <MustExist><Value>M-CALIBRATION</Value></MustExist>
+      <MustExist><Value>V-M-CALIBRATION</Value></MustExist>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CALIBRATION />
+        <M-CURSOR />
+        <M-ARTIFACT-TYPES />
+        <M-DOCTOR />
+        <M-SKILLS />
+        <M-CLI />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CALIBRATION />
+        <V-M-CURSOR />
+        <V-M-ARTIFACT-TYPES />
+        <V-M-DOCTOR />
+        <V-M-SKILLS />
+        <V-M-CLI />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/calibration/report.ts</File>
+      <File>src/calibration/report.test.ts</File>
+      <File>src/calibration/gates-isolation.test.ts</File>
+      <File>src/artifact/types.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-doctor.ts</File>
+      <File>src/grace-doctor.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>package.json</File>
+      <File>scripts/release-check.ts</File>
+      <File>.ngrace/graph/main.xml</File>
+      <File>.ngrace/graph/index.xml</File>
+      <File>.ngrace/verification/main.xml</File>
+      <File>.ngrace/verification/index.xml</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+      <File>.ngrace/changes/active/C-CALIBRATION/spec.xml</File>
+      <File>.ngrace/changes/active/C-CALIBRATION/plan.xml</File>
+      <File>.ngrace/changes/active/C-CALIBRATION/run-ledger.xml</File>
+      <File>.ngrace/changes/active/C-CALIBRATION/run.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>claimedConfidence ordinal, attachment on attempt, open identity, calibration join</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-ORDINAL-SCALE />
+          <AC-ATTACHMENT-ADJUDICATED-ONLY />
+          <AC-NO-GATE-READS />
+          <AC-SEPARATION-HALF1-DEFERRED />
+          <AC-CONTEXT-DERIVED />
+          <AC-EPOCH-IDENTITY-OPTIONAL />
+          <AC-REPORT-N0 />
+          <AC-REPORT-EXCLUDES-INCOMPLETE />
+          <AC-REPORT-FIXTURE-NOT-LIVE />
+          <AC-PROMOTION-BAR />
+          <AC-MODULE-GRAPH />
+          <AC-VALIDATE-CI />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>Ordinal accepts three levels and rejects free text, percentages, fourth level.</Criterion>
+          <Criterion>Outcome side of join is target-assertions, never attempt outcome (corr 149-150).</Criterion>
+          <Criterion>Report names adjudicator; N=0 honest; incomplete epochs excluded; pending separate.</Criterion>
+          <Criterion>No gate reads claimedConfidence (mutation-proven).</Criterion>
+          <Criterion>One live labeled pair from this repository (corr 151).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/calibration</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-CALIBRATION>
+</NgraceChangePlan>

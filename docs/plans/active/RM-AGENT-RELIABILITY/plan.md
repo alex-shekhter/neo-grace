@@ -4,7 +4,7 @@ kind: plan
 status: approved
 supersededBy: null
 created: 2026-07-29
-updated: 2026-07-31
+updated: 2026-08-01
 baseline: 6.0.1
 targets: []
 context: ./decisions.md
@@ -374,7 +374,7 @@ Keep this table current. It is the single source of truth for progress.
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
 | 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `COMPLETE` |
-| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `NOT STARTED` |
+| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `COMPLETE` |
 | 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `NOT STARTED` |
 | 11 | Adoption surface | §5.1, §5.3 | TBD | `NOT STARTED` |
 
@@ -1377,7 +1377,7 @@ Delete the module and subcommand. Skills fall back to reading artifacts directly
 
 # PHASE 9 — Confidence recording & calibration report
 
-**Status:** `NOT STARTED`
+**Status:** `COMPLETE` (A64 — context derived at fold; report bucketed by context class; C-CALIBRATION-CONTEXT archived)
 **Decisions:** D6 (calibration half)
 **Release:** TBD
 
@@ -8565,6 +8565,113 @@ produce one genuine labeled pair end-to-end so the join is observed working. Oth
 only honest output is an absence value — acceptable as a designed outcome, stated up front; not as
 something round 2 discovers.
 
+### A56 — 2026-08-01 · Phase 9 stage 1 re-derive + draft `C-CALIBRATION`
+
+**Everything below was measured at `4569196`**
+(`45691960c9390f464e199ad4b43f35fa10a3c676` — `fix(graph): describe every source surface and make the
+reverse edge real (#30)`). After `git fetch origin && git status -sb`: local `main` was not behind
+`origin/main` (both at `4569196`). Branch `feat/phase-9-rederive` cut from that commit. Tree clean at
+cut; root lint `0` errors / `0` warnings / `Governed files: 56`. Findings continue from **146**.
+
+A55.4's precondition warning is **confirmed, not relaxed.** Stage 1 delivers a draft spec and this
+amendment only — **no production code**, no `gate approve`.
+
+#### A56.1 Gap re-derivation (commands and whether they hold)
+
+| Gap | Command (at `4569196`) | Output | Holds? |
+|---|---|---|---|
+| **1 — corpus / EpochOpened** | `rg -c "EpochOpened" .ngrace/` · `rg -c "EpochOpened" src/` | both exit 1, **0 matches** | **Yes** — A55.4 stands |
+| **1b — what exists instead** | `rg -n "<Epoch" .ngrace/changes/archive --glob '**/run.xml'` | one hit: `C-SELECTION/run.xml` has `<Epoch>1</Epoch>` inside `NgraceRunCursor` | **Yes** — counter only, no executor identity |
+| **1c — event kind map** | `KNOWN_KIND_STATE` in `src/grace-cursor.ts:237–246` | `opened \| progress \| resume \| attempt \| verification-unavailable \| pause \| terminal \| escalation` — **no** `EpochOpened` | **Yes** — open path writes `kind: "opened"` with allocations (`:528–534`) |
+| **2 — authority axis** | `rg -in "agent-inferred\|user-stated\|tool-verified" src/ .ngrace/` | **0 matches** | **Yes** |
+| **2b — where the words live** | same pattern under `docs/` | only `decisions.md`, `plan.md`, `review*.md` (and one archived namespace plan) | **Yes** — decided, never built |
+| **3 — precision on anchors** | `rg -n "exportConfidence\|heuristic-confidence" src/` + `ANCHOR_PATTERNS` at `src/artifact/types.ts:168` | `exportConfidence: "exact" \| "heuristic"` on `LanguageAnalysis` (`src/lint/types.ts:161`); issue `analysis.heuristic-confidence`; anchors are **id shapes only** | **Yes** — no anchor field named precision or authority |
+| **claimedConfidence** | `rg -n "claimedConfidence\|claimed-confidence" src/ .ngrace/` | **0** | **Yes** — field not present |
+
+**Finding 146** — Gap 1 confirmed. A40.3's row *"Mechanism is in place — executor identity on
+`<EpochOpened>`, same corpus"* is **false at HEAD**. The live open event is `kind="opened"`. Cursor
+`<Epoch>` is a number, not an event.
+
+**Finding 147** — Gap 2 confirmed. Standing rule 12 applied to §9.5.2 half-1
+(`agent-inferred` × `precision`): **0 flags because both operands are absent**, not because the tree
+is clean. Shipping that half as a check would be a D16 vacuous green.
+
+**Finding 148** — Gap 3 confirmed. §9.4's table describes two fields on anchors; **neither exists on
+an anchor.** Precision that exists is adapter file analysis, not claim provenance.
+
+#### A56.2 Adjudicator table re-derived
+
+| Adjudicator (D6) | Status at `4569196` | Evidence |
+|---|---|---|
+| Assertions — "this AC is satisfied" | **Real** | 15 `AssertionKind`s (`MustExist`…`MustPassBudget`), `BaselineAssertions` / `TargetAssertions`, `evaluateAssertion` (`src/artifact/assertions.ts:38, 133`) |
+| Detached reviewer — "this change is clean" | **Real** | `src/review/core.ts`, `findingId` at `:158`, `runReview` |
+| Ledger degradation — "this mechanism ran" | **Real** | `AbsenceValue` throughout `src/grace-cursor.ts` |
+| Gate verdicts | **Real but tiny** | `ReviewVerdictRecord { outcome: pass \| fail \| unable-to-determine, reason?, note? }` (`src/gates/ledger.ts:49–58`); **6** `<Verdict>` entries, one per archived bundle that recorded apply (`C-GATE-SURFACE`, `C-GATE-RECORD-ABSENCE`, `C-REVIEW-SURFACE`, `C-FAILURE-LOCALIZATION`, `C-SELECTION`, `C-GRAPH-COVERAGE`) |
+
+No correction to the stage-1 prompt's adjudicator inventory — counts match (AssertionKind is **15**
+including `MustPassBudget`, not 14; recorded here as the live count).
+
+#### A56.3 What is already decided (not re-opened)
+
+1. Phase 9 does **not** build D5 authority. §12.5 + A48 precedent (per-task scope not added for
+   §8.5.4). Separation half-1 is **amended with reasoning**, never silently retargeted.
+2. §9.5.2 second half (no gate reads `claimedConfidence`) is the load-bearing half and is buildable
+   at HEAD.
+3. Empty corpus is reported, never fabricated.
+4. Ordinal scale, three levels, grammar-enforced (D6 condition 5).
+5. Standing rule 12 applies to every check this phase adds.
+
+#### A56.4 Five proposals (recommendation + cost) — draft in `C-CALIBRATION/spec.xml`
+
+Full text lives under `<Proposals>` in
+`.ngrace/changes/active/C-CALIBRATION/spec.xml` (`status="draft"`). Summary:
+
+| Id | Recommendation | Cost if adopted |
+|---|---|---|
+| **P1** Epoch open / identity | **In Phase 9** as step 9.5.0: optional harness-stated executor identity on existing `kind="opened"`, not a new `KnownEventKind` and not a blocking solo `C-*` that nothing else schedules | `grace-cursor` write/read + tests + skill note; observe success path once (A46.4) |
+| **P2** Attachment site | Optional on **attempt** (primary) and optionally **Verdict** — only elements that already carry an adjudicator outcome. Grammar rejects every other parent | Grammar + `recordAttempt` / optional `recordReviewVerdict` + CLI flag |
+| **P3** Report at N=0/1/small | N=0: counts + honest empty sentence, **no rate table**. N=1: one raw row. N small: counts only; no self-certified "calibrated" | Branching in `src/calibration/report.ts` + doctor surface |
+| **P4** Separation rule | Half-1 **deferred** (rule 7 / A12.4) with recorded rule-12 count 0/0 subjects. Half-2 **ships** as a real test that goes red if `src/gates/` reads the field | Plan amend + one mutation-grade test; **no** vacuous lint code for half-1 |
+| **P5** Precision | Phase 9 **does not** put precision on anchors. §9.4 table remains design target; only `claimedConfidence` row is implemented; docs say so | Docs only for the precision half |
+
+#### A56.5 Read-aloud — what the report says at N=0 (rule 11)
+
+> Calibration report: 0 labeled pairs included, 0 epochs excluded as incomplete. No adjudicated
+> claims with claimedConfidence are available to score. claimedConfidence is not used by any gate.
+
+**Truth conditions at `4569196`:** field absent, no executor identity on open, no authority axis, six
+verdicts exist but none carry claimed confidence, attempt corpus has no such attribute. A flatter
+"calibration: OK" or an empty rate table would be **false in the flattering direction** — the
+phase's primary failure mode (D16 + A46.4 at once).
+
+#### A56.6 GraphAnchors rule on greenfield (`src/calibration/`)
+
+Phase 9 creates a **new directory**. Since #30 that implies module + `MODULE_CONTRACT` + export
+parity + `GraphAnchors` ownership, or `change.graph-anchors-miss-write-scope` is an error.
+
+**Stage 1 experience (honest):** the rule **helped**. It forced `M-CALIBRATION` (or ratified name)
+and GraphAnchors into the draft ACs before any file was written, instead of discovering the miss at
+close. It did not obstruct stage 1 (spec-only). Stage 2 will be the real test of cost: graph edit +
+module contract + OWS listing in the same plan that introduces the path. Report again at close if
+the reverse edge fights the change shape.
+
+#### A56.7 Draft artifact
+
+| Artifact | Path | Status |
+|---|---|---|
+| Change spec | `.ngrace/changes/active/C-CALIBRATION/spec.xml` | `status="draft"`; every AC has a discriminating negative; modelled on `C-OBSERVABLE-CHECKS` |
+
+#### A56.8 Corrections / findings index (146–148)
+
+| # | Finding |
+|---|---|
+| 146 | `EpochOpened` absent; `opened` + cursor `<Epoch>` counter only; A40.3 mechanism row false |
+| 147 | Authority axis absent under `src/` and `.ngrace/`; §9.5.2 half-1 has no subject (rule 12: 0/0) |
+| 148 | Anchor-level `precision` absent; `exportConfidence` is file language analysis only |
+
+No count in the stage-1 prompt was wrong on the three gaps. Adjudicator AssertionKind count is **15**
+(prompt said 14) — minor; all four adjudicators remain **Real**.
+
 ---
 
 ## 15. Final instruction to the executor
@@ -8576,3 +8683,659 @@ was not checked**. Every mechanism here is downstream of that. If you find yours
 write "verified" next to something you inferred, that is the moment the whole track is about.
 
 Write the absence value instead. It is always available, and it is never wrong.
+
+### A57 — 2026-08-01 · Phase 9 stage 1 accepted; the labeled pair is self-adjudicated
+
+A56 was verified at `e4b5f85`. Gaps 1–3 hold, the draft `C-CALIBRATION` spec is 358 lines with twelve
+ACs each carrying a discriminating negative, and the plan edit is correct: `READY FOR REVIEW` is in
+the §0.6 legend, and §0.6 requires the board to be kept current, so the three deletions (frontmatter
+date, board row, §9 status) are the job rather than a rewrite.
+
+**Two of their corrections are to me, and both stand:**
+
+| Correction | Verified |
+|---|---|
+| `AssertionKind` is **15**, not the 14 in my prompt — `MustPassBudget` was the one I dropped | Confirmed, `assertions.ts:39–53` |
+| `<EpochOpened>` is not merely absent; **the event vocabulary already exists** as `KNOWN_KIND_STATE` (`grace-cursor.ts:237`) with `opened`, `progress`, `resume`, `attempt`, `verification-unavailable`, `pause`, `terminal`, `escalation` | Confirmed. `KnownEventKind` is the type |
+
+The second is a better reading than mine. I framed gap 1 as *"make `<EpochOpened>` exist"*, which
+invites a new event kind. The honest shape is **optional harness identity on the existing
+`kind="opened"` event**, which is what P1 proposes. A40.3's row is still false, but the remedy is
+smaller than I described.
+
+**Ratified: P1** (identity on `opened`, not a new kind), **P3** (N=0 emits counts and the honest
+sentence, never a rate table), **P4** (half-1 amended under rule 7, with the rule-12 count recorded
+rather than shipped as a check), **P5** (Phase 9 does not put `precision` on anchors).
+
+`AC-SEPARATION-HALF1-DEFERRED` and `AC-NO-GATE-READS` are the two best ACs in the draft. The first
+records *"0 flags / 0 subjects — recorded, not shipped as a check"*, which is standing rule 12 doing
+exactly what it was written for. The second states that a green suite alone is not the evidence and
+names the mutation that must make it red. Neither was asked for in that form.
+
+#### A57.1 Correction 149 — the pair P2 would collect is the agent grading itself
+
+P2 attaches `claimedConfidence` to an `attempt` as the primary site, on the grounds that an attempt
+already carries an adjudicator outcome. It carries **an outcome**. It does not carry an
+**adjudicator's** outcome:
+
+```ts
+export function recordAttempt(projectRoot, changeId, options: {
+  task: string;
+  outcome: "pass" | "fail";      // ← supplied by the caller, via `ngrace cursor attempt --outcome`
+  signature?: FailureSignature;
+})
+```
+
+The only validation is that a `fail` carries a signature (`grace-cursor.ts:1242`). Nothing checks that
+a `pass` is true. So the agent writes the claim and, in the same command, writes the grade of its own
+work. Correlating those two measures **self-consistency, not calibration** — and an unfalsifiable
+self-report is precisely what D6 says GRACE avoids: *"claims are adjudicated by machinery already
+being built,"* whose four rows are verification assertions, reviewer findings, ledger degradation
+records, and ground truth by construction. An agent-authored attempt outcome is none of them.
+
+`AC-ATTACHMENT-ADJUDICATED-ONLY` is therefore a rule-11 finding against its own name: *"accepted only
+on elements that already carry an adjudicator outcome (attempt…)"* is read as *these pairs are
+labeled data*, and for the attempt site that sentence is false. The AC is well-constructed; the claim
+in its first line is not yet true.
+
+**The attachment site is not the problem — the outcome side of the join is.** Where the agent records
+its claim is a fine question; what the claim is scored against is the question that decides whether
+this phase produces a corpus or a mirror.
+
+#### A57.2 Correction 150 — the adjudicator already exists and has never run
+
+```
+$ rg -n "targetAssertionsClean" src
+src/grace-cursor.ts:1078:export function targetAssertionsClean(projectRoot, changeId): boolean
+```
+
+**One hit: the definition.** No caller anywhere in `src/`. A machine evaluation of a change's
+`TargetAssertions` — exactly the first row of D6's adjudicator table — is exported, tested by nothing
+in production use, and consulted by no surface. `recordAttempt` does not call it; nothing does.
+
+This is A46.4 again, and it is also the fix for 149: the outcome half of a labeled pair should come
+from an adjudicator that is not the claimant, and one is sitting unused two hundred lines above
+`recordAttempt`. Whatever the join ends up reading — `targetAssertionsClean`, reviewer findings, a
+gate verdict recorded after `ngrace review` — **the report must record which adjudicator supplied the
+outcome**, per D15's *"record which stage produced the final set"* applied here. A pair whose
+provenance is unstated is not evidence about anything.
+
+#### A57.3 Correction 151 — no criterion requires one live pair
+
+`AC-REPORT-FIXTURE-NOT-LIVE` correctly forbids fixture numbers from being presented as the project's
+calibration result. Nothing requires the live path to be **observed succeeding once**.
+
+Phase 9 can produce its own first labeled pair by dogfooding: `C-CALIBRATION`'s own execution opens an
+epoch, records attempts, and reaches an adjudicated outcome. Phase 8 was held to the same standard and
+it is what turned its measurement from a fixture claim into a number about this repository.
+
+Without it the phase ships a report whose only observed output is `N=0` — correct, honest, and
+identical to what it would print if the join were broken. **`0 included, 0 excluded` is not
+distinguishable from a join that silently never fires**, and that indistinguishability is the thing to
+remove before the phase closes.
+
+### A58 — 2026-08-01 · Phase 9 stage 2 built (adjudicator is target-assertions)
+
+**Baseline:** `4669208` (A57 on `feat/phase-9-rederive`). After `git fetch origin && git status -sb`:
+`origin/main` still at `4569196`; branch is ahead with A56+A57. Stage 2 implements A56 P1/P3/P4/P5
+and A57 corr 149–151. Findings continue from **152**.
+
+#### A58.1 Adjudicator decision (settles 149–150)
+
+| Option | Verdict |
+|---|---|
+| Attempt `outcome` attribute | **Rejected** — claimant grades self (149) |
+| Gate `Verdict` after review | **Rejected as primary** — still agent-authored via `ngrace gate verdict` |
+| Review findings count | Deferred — needs diff input (C-OBSERVABLE-CHECKS) |
+| **`evaluateTargetComplete` / target-assertions** | **Adopted** — first row of D6's table; was dead (150); now sole join adjudicator |
+
+**Shape:** claim site = optional `claimedConfidence` on `attempt` (write-only). Score side =
+`evaluateTargetComplete` → `pass` / `fail` / pending (absence). Every included pair records
+`adjudicator: "target-assertions"`. Pending is counted separately from included and excluded; never
+silent-fail.
+
+`targetAssertionsClean` remains the boolean collapse; production call path is
+`collectCalibrationReport` → `evaluateTargetComplete` (150 discharged).
+
+#### A58.2 What shipped
+
+| Surface | Change |
+|---|---|
+| Ordinal | `CLAIMED_CONFIDENCE_LEVELS` + `parseClaimedConfidence` in `src/artifact/types.ts` |
+| Claim write | `recordAttempt(..., claimedConfidence?)`; CLI `--claimed-confidence` |
+| Open identity (P1) | optional `ExecutorIdentity` child on `kind=opened`; CLI `--executor-model` / `--executor-harness` |
+| Report | `src/calibration/report.ts` — included / excluded / pending + summary |
+| Doctor | `calibration` field on `DoctorResult`; text section |
+| Gates | isolation test; mutation red→green proven |
+| Graph | `M-CALIBRATION` + `V-M-CALIBRATION`; package + release-check `src/calibration/` |
+| Skills | execute: claimedConfidence + promotion bar (+4 skill lines; 724→728) |
+| Live pair (151) | `C-CALIBRATION` T-001 event 2: claimed=medium, adjudicated=pass, adjudicator=target-assertions |
+
+#### A58.3 Read-aloud table (rule 11)
+
+| State | Sentence heard | True? |
+|---|---|---|
+| N=0 | "0 labeled pairs included, 0 excluded, 0 pending… not used by any gate" | Yes on empty project |
+| N=1 live (this repo) | "1 labeled pair… C-CALIBRATION T-001 event 2 claimed=medium adjudicated=pass adjudicator=target-assertions… One observation is not a calibration claim" | **Yes — observed** |
+| Pending | "…pending… not scored as fail" | Yes when MustPassCommand blocks evaluation |
+| Excluded | incomplete epoch still in loose run/ | Yes |
+
+#### A58.4 Mutation — AC-NO-GATE-READS
+
+| Step | Result |
+|---|---|
+| Append `claimedConfidence` string to `src/gates/core.ts` | isolation test **RED** (`src/gates/core.ts` in violations) |
+| Revert | isolation test **GREEN** |
+
+Standing rule 12 on repo: `rg claimedConfidence src/gates/` → **0**.
+
+#### A58.5 GraphAnchors greenfield report
+
+**Helped.** Forced `M-CALIBRATION` into graph + OWS before close; `change.graph-anchors-miss-write-scope`
+and scope review caught `token-accounting.test.ts` and ledger/cursor files missing from OWS. Cost:
+plan/spec AffectedAreas must stay in lockstep (two fix rounds). **Not obstructive** — the miss would
+have been silent without the reverse edge.
+
+#### A58.6 Findings 152+
+
+| # | Finding |
+|---|---|
+| 152 | Live path succeeds: one included pair at C-CALIBRATION / T-001 / event 2 / target-assertions |
+| 153 | `evaluateTargetComplete` now has a production caller (calibration report) — 150 closed |
+| 154 | Skill token total 724→728 (+4 lines on ngrace-execute) |
+
+Half-1 separation remains deferred (P4): no agent-inferred×precision check shipped; rule-12 still
+0 subjects under `src/` for authority axis.
+
+### A59 — 2026-08-01 · Phase 9 build accepted; the join adjudicates changes and counts attempts
+
+Verified at `bfb2ed5`: lint 0 errors / 0 warnings / `Governed files: 57`, suite 923 ran / 3 skip /
+**0 fail**, `validate:ci` green.
+
+**Correction 149 is properly closed, and the test that closes it is the right one.**
+`report.test.ts:217` — *"included fail when target assertions are red (independent of agent pass)"* —
+pins the thing that mattered: the attempt still carries `outcome="pass"`, and the score comes from
+somewhere else. The three-way branch on `complete` is correct: `undefined` becomes **pending with the
+absence reason**, never `fail`.
+
+**Correction 151 is closed with a real pair.** Confirmed in the ledger, not just the report:
+
+```xml
+<Event id="1" task="T-001" kind="opened"><ExecutorIdentity model="grok-4.5" harness="grok-build" /></Event>
+<Event id="2" task="T-001" kind="attempt" outcome="pass" claimedConfidence="medium" />
+<Event id="3" task="T-001" kind="terminal" />
+```
+
+`ngrace doctor` emits it live, and the sentence is honest without being asked: *"One observation is
+not a calibration claim; no percentage is reported."*
+
+**Correction 150's disposition needs restating, and the engineering was better than my suggestion.**
+A57 said `targetAssertionsClean` was exported with no callers and proposed it as the adjudicator. The
+build instead used `evaluateTargetComplete` and marked the boolean wrapper `@deprecated` — correctly,
+because `targetAssertionsClean` collapses absence into `false` (A14.2), which would have scored
+*"could not determine"* as *"the agent was wrong."* That is the right call and it is the opposite of
+the shortcut. Two corrections to the report, though: `evaluateTargetComplete` **already had a
+production caller** at `grace-cursor.ts:1024`, so calibration is its second, not its first; and
+`targetAssertionsClean` **still has no callers** — 150 is resolved by deprecation, not by acquiring
+one. Say which.
+
+#### A59.1 Correction 155 — one adjudication is counted as many pairs
+
+```ts
+const ledgerClaims: CalibrationClaimRow[] = [];
+for (const event of listLedgerEvents(bundlePath)) { … }        // N claims
+
+const { complete } = evaluateTargetComplete(root, changeId);    // ← ONE adjudication, outside the loop
+
+for (const row of ledgerClaims) { … adjudicatedOutcome … }      // …applied to all N
+```
+
+`evaluateTargetComplete` is called **once per change** (`report.ts:156`) and its single verdict is
+written onto every claim in that change. The unit of adjudication is the **change**; the unit of
+counting is the **attempt**. Three consequences:
+
+- **`N labeled pairs included` overstates the corpus.** Five claims in one change are one outcome and
+  five claims, not five pairs. The sentence is true today only because N is 1.
+- **The corpus will trend to all-pass by construction.** A change reaches `applied` only when its
+  target assertions are clean, so every folded claim in a completed change scores `pass` — a `low`
+  claim and a `high` claim on the same change are indistinguishable in outcome. The calibration curve
+  this phase exists to enable would be flat for reasons that have nothing to do with the executor.
+- **No test covers it.** Every test in `report.test.ts` is N=0 or N=1; there is no case with two
+  claims in one change, which is why the conflation is invisible in a green suite.
+
+The honest resolutions are to score at the unit that is actually adjudicated — one pair per change,
+with the claims summarized — or to find a per-claim adjudicator. What is not available is counting
+attempts while adjudicating changes.
+
+#### A59.2 Correction 156 — the label is recomputed, so the corpus does not accumulate
+
+`evaluateTargetComplete` runs `lintGraceProject` against the **current tree** at report time. The
+outcome is never stored beside the claim. So a claim recorded today is scored against whatever the
+change's target assertions say whenever `doctor` next runs, and the same historical pair can be
+`pass` on one day and `fail` on another.
+
+D6's argument for recording at all is that *labeled pairs fall out as a byproduct* and accumulate
+until a study is possible. **A corpus whose labels move is not a corpus** — it is a query over present
+state wearing a corpus's vocabulary. The claim is durable; its label is not.
+
+The fix is to adjudicate once and **write the outcome into the ledger beside the claim** — at fold
+time, when the epoch closes and the change's state is the state the claim was made under. That also
+resolves 155's second bullet, because the score is taken when the attempt happened rather than after
+the change necessarily succeeded.
+
+Both corrections share one shape, and it is the shape this track keeps producing: the mechanism is
+right, and the noun is wrong. *"1 labeled pair included"* is a sentence about evidence. What the code
+has is one claim and one recomputed query result, which is a different thing wearing the same word.
+
+### A60 — 2026-08-01 · Phase 9 round 2: fold-time adjudication; 155/156 closed; phase COMPLETE
+
+**Baseline:** `4b1aba6` (A59). Branch `feat/phase-9-rederive`. Findings continue from **157**.
+
+#### A60.1 Disposition of 150 (restated)
+
+| Claim in A58 report | Corrected |
+|---|---|
+| `evaluateTargetComplete` got its first production caller via calibration | **False** — already called at `grace-cursor.ts:1024` (position inference). Calibration is its **second** |
+| 150 closed by giving `targetAssertionsClean` a caller | **False** — `targetAssertionsClean` still has **no callers**; 150 is resolved by **deprecating** the boolean wrapper and using three-valued `evaluateTargetComplete` at fold |
+
+#### A60.2 Corrections 155–156 — what changed
+
+| Before | After |
+|---|---|
+| One `evaluateTargetComplete` per change applied to N attempts → N "pairs" | **One labeled pair per fold-adjudicated epoch**; claims summarized (`claimCount`, levels) |
+| Labels recomputed at report time from current tree | **`CalibrationAdjudication` written at fold** into the epoch; report **only reads** stored labels |
+| No two-claim test | **corr 155 test**: two claims → `included === 1`, `claimCount === 2` |
+| No durability test | **corr 156 test**: stored `fail` survives tree later becoming clean; pending stays pending |
+
+Adjudication unit remains the change/epoch (`evaluateTargetComplete` once at fold). Counting unit is that
+same epoch. Attempt `outcome` remains audit-only (149 still holds).
+
+#### A60.3 Live pair migration (151 survives)
+
+Pre-round-2 ledger had the claim events but **no** `CalibrationAdjudication`. Without migration the
+report correctly showed **pending** (never recomputed). Migrated Epoch-1 by writing:
+
+```xml
+<CalibrationAdjudication adjudicator="target-assertions" outcome="pass"
+  claimCount="1" claims="medium" adjudicatedAt="fold" />
+```
+
+After migration and after archive: doctor still emits the pair
+(`C-CALIBRATION Epoch-1 … claims(1): T-001#2=medium`). Honest note: the stored pass matches the
+adjudication that would have been recorded had fold-time stamping existed at stage-2 fold; it was
+not recomputed as a live query for the report after migration.
+
+#### A60.4 Read-aloud (rule 11)
+
+| State | Sentence | True? |
+|---|---|---|
+| N=0 | 0 pairs; "one folded epoch adjudicated at fold time (not one attempt)" | Yes |
+| N=1 | Epoch-N, adjudicatedAt=fold, claims(k): … | Yes |
+| Two claims one epoch | "1 labeled pair" + claims(2) | Yes (test) |
+| Pending | not scored as fail; durable if stored at fold | Yes |
+| Excluded | incomplete epoch still in loose run/ | Yes |
+
+#### A60.5 Close
+
+- Board + §9 banner → `COMPLETE`
+- `ngrace review --change C-CALIBRATION` → 0 findings
+- `ngrace gate verdict --outcome pass` → recorded
+- `gate approve` / `apply` / `archive` → all **permit**
+- Agent authored `status=applied` and moved bundle to `archive/C-CALIBRATION` (F1)
+- **A33.3:** Mechanized: review 0 findings, gate requirements (plan present, verdict exists, no open
+  epoch, no unresolved clarifications). Honor-system: the residual judgment that `outcome=pass` is
+  the right verdict for residual risk — recorded by the same executor that built the change.
+
+#### A60.6 Findings 157+
+
+| # | Finding |
+|---|---|
+| 157 | Unit of pair = fold-adjudicated epoch; claimCount may be >1 on one pair |
+| 158 | Labels stored at fold in `CalibrationAdjudication`; report never recomputes |
+| 159 | Live pair survived migration + archive; without migration would have been honest pending |
+
+### A61 — 2026-08-01 · Phase 9 reopened: the fold path has never run, and the field that would say so cannot
+
+Round 2 verified at `3039220`. **155 and 156 are genuinely fixed.** `report.ts` mentions
+`evaluateTargetComplete` only in comments — the report reads stored records and never re-lints — and
+the unit of a pair is now one folded epoch with `claimCount` summarizing its claims. The two-claims
+test asserts `included === 1, claimCount === 2`, which is the right assertion. The 150 restatement is
+accurate. None of that needs redoing.
+
+**Phase 9 does not close yet.** Two defects in its own deliverable, both in the corpus rather than the
+mechanism.
+
+#### A61.1 Correction 160 — correction 151 is not closed; the fold path has never executed
+
+```
+$ git show bfb2ed5:.ngrace/changes/active/C-CALIBRATION/run-ledger.xml
+<Event id="1" kind="opened" …>  <Event id="2" kind="attempt" claimedConfidence="medium" …>  <Event id="3" kind="terminal" />
+```
+
+**No `CalibrationAdjudication`.** Epoch-1 was folded before the mechanism existed. The record now in
+the archive was written by hand during round-2 migration — *after* the change had passed and the
+outcome was known:
+
+```xml
+<CalibrationAdjudication adjudicator="target-assertions" outcome="pass"
+                         claimCount="1" claims="medium" adjudicatedAt="fold" />
+```
+
+A60's own finding 159 states it plainly — *"without migration would have been honest pending"* — which
+is the admission that **the fold-time path produced nothing.** It is unit-tested; it has never run.
+A46.4: *a path never observed succeeding is not a path.* 151 asked for the live path to be observed
+succeeding once, and a hand-written record is the one thing that cannot demonstrate it.
+
+The contamination compounds it. The corpus's sole pair is a claim scored retroactively against an
+outcome that was already known — the most contaminated data point available, and currently 100% of the
+corpus. D6 condition 2 exists to prevent exactly this: *"otherwise the measurement is contaminated."*
+
+#### A61.2 Correction 161 — `adjudicatedAt` is a constant wearing a provenance field's name
+
+```ts
+adjudicatedAt?: "fold";          // report.ts:74 — a single-valued type
+```
+```ts
+return { …, adjudicatedAt: "fold" };   // grace-cursor.ts:1612 — synthesized at PARSE time
+```
+
+The value is not read from the attribute. Whatever a record contains, the parser returns `"fold"`. So
+the field cannot express when adjudication happened, cannot distinguish a fold-time record from a
+backfilled one, and would report `adjudicatedAt=fold` for a record that said otherwise.
+
+This is the shape A48 already ruled on for D15's stage field in Phase 8: its only value was
+`toolkit`, and the requirement was that the output **declare that as ground rather than imply a choice
+among stages**. `adjudicatedAt` is the same construction one phase later, and here it is worse,
+because the string it prints is the one thing 160 needs it to be able to contradict.
+
+#### A61.3 How to close, and the by-product that closes it
+
+**Board row 9 returns from `COMPLETE`.** These are defects in Phase 9's own surface, not inherited
+ones, so the row is not honest at `COMPLETE` while they stand. `C-CALIBRATION` is archived and
+immutable (`CLAUDE.md`); the fix belongs to a new bundle in the same phase, and the archived record is
+corrected by *superseding* it, never by editing it.
+
+Two things must become true:
+
+1. **`adjudicatedAt` must be able to say something other than `fold`** — read from the record, with a
+   value for backfilled adjudication — and a backfilled pair must be excluded from any calibration
+   computation and counted on its own line. Then the archive's existing record can be restated
+   honestly instead of quietly asserting a moment that did not happen.
+2. **One genuine fold-time adjudication must be observed**, written by `fold` rather than by hand.
+
+The second is free. The fix in (1) is itself a change bundle: it opens an epoch, records attempts, and
+is folded — and if the mechanism works, folding it writes the first real `CalibrationAdjudication` as
+a by-product. Phase 9's first honest pair should be the one produced by fixing Phase 9.
+
+If it turns out the fold path does *not* write the record when exercised for real, that is the most
+valuable finding this phase could produce, and it is reachable only by running it.
+
+### A62 — 2026-08-01 · Phase 9 round 3: real fold path; adjudicatedAt provenance; COMPLETE
+
+Round 3 against A61 at baseline `8af024e`. Branch `feat/phase-9-rederive`. **160 and 161 closed.**
+Phase 9 board and §9 banner return to `COMPLETE`.
+
+#### A62.1 Correction 161 — `adjudicatedAt` is read, backfill is expressible
+
+- Type is `fold | backfill` (`CalibrationAdjudicatedAt`).
+- `parseCalibrationAdjudicationNode` **reads** the attribute; it no longer synthesizes `"fold"`.
+  Missing/invalid attribute fails parse (no silent constant).
+- Report buckets: `included` only for `adjudicatedAt=fold` + pass|fail; `backfilled` for
+  `adjudicatedAt=backfill` + pass|fail (own count line, never pooled into included);
+  `pending` stays pending regardless of moment (A7.2).
+- `CalibrationRestatements` / `recordCalibrationRestatement` supersede stored provenance without
+  editing archives. Report applies restatements as overrides.
+
+#### A62.2 Correction 160 — fold path observed succeeding
+
+`ngrace cursor fold` on `C-CALIBRATION-PROVENANCE` wrote (by fold, not by hand):
+
+```xml
+<CalibrationAdjudication adjudicator="target-assertions" outcome="fail"
+                         claimCount="1" claims="medium" adjudicatedAt="fold" />
+```
+
+Events on the same epoch: opened (`ExecutorIdentity model="grok-4.5" harness="grok-build"`),
+attempt `claimedConfidence="medium" outcome="pass"`, terminal. Agent pass ≠ score (149 still holds
+live): fold stored `fail` because TargetAssertions used invalid `MustMatch` at fold time. Plan fixed
+after fold; `evaluateTargetComplete` is now `true`, but the stored label remains `fail` (156 live).
+
+#### A62.3 Restatement of C-CALIBRATION Epoch-1
+
+Archive XML **untouched** (`adjudicatedAt="fold"` still on disk). This change's ledger carries:
+
+```xml
+<CalibrationRestatements>
+  <Restatement changeId="C-CALIBRATION" epoch="1" adjudicatedAt="backfill"
+    reason="hand-migrated after Epoch-1 fold; fold path had not yet written CalibrationAdjudication (A61 corr 160)" />
+</CalibrationRestatements>
+```
+
+Doctor: `C-CALIBRATION` → `bucket=backfilled adjudicatedAt=backfill`; not in included.
+
+#### A62.4 Read-aloud (rule 11)
+
+| State | Sentence fragment |
+|---|---|
+| N included = 1 | `1 labeled pair included, … 1 backfilled` + pair line with `adjudicatedAt=fold` |
+| Backfilled line | `backfilled (excluded from computation): 1` and pair `bucket=backfilled adjudicatedAt=backfill` |
+| Moment name | `adjudicatedAt=fold` vs `adjudicatedAt=backfill` — read from record / restatement, not synthesized |
+
+#### A62.5 Close
+
+- `C-CALIBRATION-PROVENANCE` [archive] spec=applied plan=applied
+- `ngrace review` 0 findings; `gate verdict` pass; `gate apply` permit; `gate archive` permit;
+  agent authored status=applied and moved bundle (A33.3: gates record decisions only —
+  status and archive move remain the honor system)
+- Root lint 0/0; `bun test` green; `validate:ci` green
+- Board row 9 and §9 banner: `COMPLETE`
+
+#### A62.6 Findings 162+
+
+**162** — First live fold of Phase 9 stored `outcome="fail"` because the plan at fold used
+`MustMatch` (not an assertion kind). Fold path worked; the plan was wrong. Correcting the plan
+after fold does not move the stored label (156). Contaminated hand-migrated pair is no longer
+100% of the included corpus.
+
+**163** — Restatement is a ledger section on the *authoring* change, not an edit of the restated
+archive. That is the supersession surface for calibration provenance under archive immutability.
+
+**164** — Parser refusal on missing `adjudicatedAt` is stricter than defaulting to fold. A record
+without a moment is not an adjudicated pair; it surfaces as pending provenance absence.
+
+### A63 — 2026-08-01 · Round 3 is right; §9.5.3 was never built, by them or by me
+
+Verified at `0a6ca9c`: lint 0/0/`Governed files: 57`, 929 ran / **0 fail**, `validate:ci` green.
+
+**160 and 161 are closed, and 160 is closed in the strongest available way.**
+
+| Check | Result |
+|---|---|
+| `adjudicatedAt` read from the record | `parseAdjudicatedAt(node.attributes.adjudicatedAt)` (`grace-cursor.ts:1624`), `undefined` when missing — no default to `fold` |
+| The new pair was written by `fold` | `<CalibrationAdjudication … outcome="fail" … adjudicatedAt="fold" />` in `C-CALIBRATION-PROVENANCE` |
+| `C-CALIBRATION` archive untouched | `git diff 3039220 0a6ca9c --name-only -- …/archive/C-CALIBRATION/` → **0 files**; its record still reads `pass` / `fold` |
+| Restatement supersedes without editing | `<CalibrationRestatements>` lives in the **new** bundle's ledger; `doctor` renders the old pair as `bucket=backfilled adjudicatedAt=backfill` with the reason |
+| Backfilled excluded from computation | `included: 1`, `backfilled: 1`, counted on separate lines |
+
+**The first real pair is a disagreement, and they kept it.** The agent recorded `outcome="pass"` with
+`claimedConfidence="medium"`; the independent adjudicator scored `fail`, because the plan carried an
+invalid `MustMatch` at fold time. The plan was fixed afterwards and **the stored label did not move** —
+which is correction 156 working exactly as designed. Nobody hand-writes a failing first data point for
+their own phase. That single record does more to establish the join than any passing one could.
+
+#### A63.1 Correction 165 — §9.5.3 is not built, and §9.6 says the phase is not done without it
+
+```
+$ rg -in "contextClass|taskKind|adapterPresence|wrote-vs-read|sequential-vs-parallel" src/
+(no matches)
+```
+
+**Step 9.5.3 — *"Context derivation by join → task kind, adapter presence, wrote-vs-read, and
+sequential-vs-parallel are all derived; none is authored alongside the claim"* — was never built.**
+Step 9.5.4 requires the report to be *"bucketed by context class"*; the four buckets that exist
+(`included` / `excluded` / `pending` / `backfilled`) are corpus-status buckets, not context classes.
+§9.6's third bullet, **"Context derived, not authored," is unmet**, so `Status: COMPLETE` is false
+against the phase's own definition of done.
+
+**This omission is shared.** Three consecutive round prompts from me named 149, 150, 151, 155, 156,
+160 and 161 and never once mentioned 9.5.3. The executor's reports tracked the corrections they were
+given. Neither side re-read the step list against the deliverable, which is precisely what §9.6 exists
+to force and what standing rule 12's habit — *measure against what is actually there* — would have
+caught if applied to the phase rather than only to its checks.
+
+**Why it cannot be deferred to a later phase.** Context must be derived **at the moment the pair is
+stored**, beside the claim, or a later study cannot bucket historical pairs at all: deriving context
+afterwards means reading a repository that has moved on, which is exactly the recompute defect
+correction 156 removed. This is the same lesson for the third time in one phase — 156 for the label,
+160 for the moment, 165 for the context — and each time the fix was to record it when it was true
+rather than reconstruct it when it was needed.
+
+Board row 9 returns to `IN PROGRESS`. `C-CALIBRATION-PROVENANCE` is archived and immutable; the
+derivation belongs to a new bundle, and its own fold will produce the second genuine pair — this time
+one that carries a derived context class, which is the thing that makes the corpus worth accumulating.
+
+### A64 — 2026-08-01 · Phase 9 round 4: context class at fold; §9.5/§9.6 closed; COMPLETE
+
+Round 4 against A63 at baseline `4b41f7d`. Branch `feat/phase-9-rederive`. **165 closed.**
+Phase 9 board and §9 banner return to `COMPLETE` only after the §9.5/§9.6 table below shows no
+unamended gap.
+
+#### A64.1 Correction 165 — context derived at fold, stored with the pair
+
+Four dimensions joined from ledger + bundle (`src/calibration/context.ts`):
+
+| Dimension | Derived from | Values (A7.2 both covered in tests) |
+|---|---|---|
+| `taskKind` | plan.xml task via claim task id → Satisfies AC-* | `satisfies-ac` / `no-satisfies` (+ mixed/unknown) |
+| `adapterPresence` | WriteEvidence paths vs `ADAPTER_BACKED_EXTENSIONS` | `present` / `absent` (+ mixed/undetermined) |
+| `wroteVsRead` | WriteEvidence available + file count | `wrote` / `read-only` (+ undetermined) |
+| `sequentialVsParallel` | Epoch Allocation worker set | `sequential` / `parallel` (+ undetermined) |
+
+Stored on `CalibrationAdjudication` as attributes + `contextClass` key
+(`taskKind|adapterPresence|wroteVsRead|sequentialVsParallel`). Report reads storage only — never
+re-derives (same durability rule as 156 for labels and 160 for adjudicatedAt).
+
+Authored context attributes (`taskKind`, `adapterPresence`, `wroteVsRead`, `sequentialVsParallel`,
+`contextClass`) are rejected by `rejectAuthoredContextAttributes` on the write surface, and ignored
+at fold if present on a hand-written claim event.
+
+#### A64.2 Report bucketing (§9.5.4)
+
+`byContextClass` always emitted: empty at N=0; **one class with one row** at N=1; multi-class when
+multiple keys exist. Corpus-status counts remain separate (included/excluded/pending/backfilled).
+
+#### A64.3 Second genuine fold (live)
+
+`ngrace cursor fold` on `C-CALIBRATION-CONTEXT` wrote (by fold, not by hand):
+
+```xml
+<CalibrationAdjudication adjudicator="target-assertions" outcome="pass" claimCount="1"
+  claims="medium" adjudicatedAt="fold" taskKind="satisfies-ac" adapterPresence="present"
+  wroteVsRead="wrote" sequentialVsParallel="sequential"
+  contextClass="satisfies-ac|present|wrote|sequential" />
+```
+
+#### A64.4 §9.5 / §9.6 table (deliverable)
+
+| Item | Status | What satisfies it |
+|---|---|---|
+| **9.5.1** Ordinal `claimedConfidence` | **Met** | `parseClaimedConfidence`; free text/percent rejected; tests in `report.test.ts` |
+| **9.5.2** Separation rule (no gate reads) | **Met** | `gates-isolation.test.ts` mutation-proven; half-1 agent-inferred×precision **amended** deferred (P4/A56 finding 147, rule 7) — subject still absent |
+| **9.5.3** Context derivation by join | **Met** | `deriveCalibrationContext` at fold; four dims; not authored; stored on adjudication |
+| **9.5.4** Report bucketed by context class | **Met** | `byContextClass` + doctor section; incomplete epochs excluded; included/excluded shown |
+| **9.5.5** Promotion bar documented | **Met** | doctor + skill: held-out calibration per context class before any gate may use the field |
+| **9.6** Ordinal scale enforced | **Met** | write-time + tests |
+| **9.6** Separation rule tested (no-gate-reads) | **Met** | `gates-isolation.test.ts` |
+| **9.6** Context derived, not authored | **Met** | corr 165; rejection + ignore-authored tests |
+| **9.6** Report excludes incomplete epochs and says so | **Met** | excluded bucket + summary sentences |
+| **9.6** Promotion bar documented | **Met** | doctor / execute skill |
+| **9.6** `validate:ci` green | **Met** | this round |
+
+**Unamended gaps: none.** Half-1 of 9.5.2 remains the only amended item (authority axis absent —
+rule 7 / A56), not a silent skip of 9.5.3.
+
+#### A64.5 Close
+
+- `C-CALIBRATION-CONTEXT` [archive] spec=applied plan=applied
+- `ngrace review` 0 findings; `gate verdict` pass; `gate apply` permit; `gate archive` permit;
+  agent authored status=applied and moved bundle (A33.3: gates record decisions only)
+- Root lint 0/0; `bun test` / `validate:ci` green
+- Board row 9 and §9 banner: `COMPLETE`
+
+#### A64.6 Findings 166+
+
+**166** — Context must be stored at fold for the same reason labels and adjudicatedAt must:
+a later join over a moved tree is not a historical pair. Round 4 closes the third instance of
+that lesson in Phase 9 (156, 160, 165).
+
+**167** — Pre-round-4 fold pairs (C-CALIBRATION-PROVENANCE) correctly surface as
+`(context-not-stored)` in byContextClass rather than inventing a derivation from today's tree.
+
+**168** — `taskKind` is structural (Satisfies AC-* vs empty), not free-text "bugfix/feature":
+plans have no Kind field; inventing one would reintroduce authored context.
+
+### A65 — 2026-08-01 · Phase 9 closed, and the lesson it produced three times
+
+Verified at `b5ab8f4`. **Phase 9 is `COMPLETE`.**
+
+| Check | Result |
+|---|---|
+| Context derived at fold only | `deriveCalibrationContext` is called once, at `grace-cursor.ts:2075`. **`report.ts` never calls it** — old pairs surface as `(context-not-stored)`, never retroactively invented |
+| Four dimensions, both directions | `satisfies-ac`/`no-satisfies`, `present`/`absent`, `wrote`/`read-only`, `sequential`/`parallel` — eight tests, plus authored-attribute rejection |
+| Second genuine fold | `<CalibrationAdjudication … adjudicatedAt="fold" taskKind="satisfies-ac" adapterPresence="present" wroteVsRead="wrote" sequentialVsParallel="sequential" contextClass="satisfies-ac\|present\|wrote\|sequential" />` |
+| Suite / lint | 948 ran, **0 fail**; 0 errors / 0 warnings / `Governed files: 58` |
+| §9.7 Q1–Q3 | Nothing outside the report reads the field (mutation-proven); complete and incomplete epochs are not pooled, and backfilled is a third bucket; the promotion bar is in `ngrace-execute/SKILL.md:52` and in `doctor` output, mirror identical |
+
+The §9.5/§9.6 table came back with **one amended item and no unamended gap**: 9.5.2 half-1
+(`agent-inferred` × `precision`) stays deferred under rule 7 because the authority axis is still not
+an artifact concept. That is the correct disposition and it is recorded rather than silently dropped.
+
+#### A65.1 What the corpus actually contains
+
+```
+included (fold-adjudicated epochs): 2      backfilled (excluded from computation): 1
+excluded: 0    pending: 0
+by context class:
+  - (context-not-stored):                      count=1 pass=0 fail=1
+  - satisfies-ac|present|wrote|sequential:     count=1 pass=1 fail=0
+```
+
+Three records, and each one is honest about a different thing. The backfilled pair says it was
+hand-migrated and carries the reason. One included pair says its context was never stored, because it
+predates the derivation. The other carries all four dimensions because it was folded after they
+existed. **Nothing was reconstructed to make the table look uniform**, and the report says
+*"Outcomes (descriptive, not a calibration claim)"* rather than reporting a rate over N=2.
+
+The first fold-written pair is still the most valuable one: agent `outcome="pass"`,
+`claimedConfidence="medium"`, adjudicator `fail`. A disagreement, kept, on the phase's own work.
+
+#### A65.2 Standing rule 13 — write it when it is true
+
+Phase 9 produced one lesson three times, at three scales:
+
+| Correction | What was reconstructed | Fix |
+|---|---|---|
+| 156 | The **label** — recomputed against the current tree at report time | Store the outcome at fold |
+| 160 | The **moment** — a record labelled `fold` that was written by hand afterwards | Read `adjudicatedAt` from the record; make `backfill` expressible |
+| 165 | The **context** — never derived at all, deferrable only by reading a repo that had moved on | Derive at fold, store beside the claim |
+
+Each time the mechanism was correct and the record was not, and each time the same fix applied.
+
+> **Standing rule 13.** Anything a later reader will need about the moment a record was made must be
+> written into the record then. A value reconstructed afterwards is a query over present state wearing
+> the vocabulary of evidence — and it cannot be distinguished from the real thing once written.
+
+This is why Phase 9 was reopened twice. It is also why the phase is worth having: its output is
+consumed by nobody today, so nothing downstream would ever have complained. The step list and §9.6
+were the only things that would, and only because they were read back at the end.
+
+#### A65.3 What remains owed
+
+| Item | Home |
+|---|---|
+| `src/gates`, `src/review` missing from `package.json#files`; `validate:packed` not in `validate:ci` | `C-OBSERVABLE-CHECKS` (draft) |
+| Scope audit sees only uncommitted work | `C-OBSERVABLE-CHECKS` (draft) |
+| Archived bundles resolve to no plan; audit skipped in silence | `C-OBSERVABLE-CHECKS` (draft) |
+| §9.5.2 half-1 — `agent-inferred` × `precision` | Blocked on D5's authority axis; amended under rule 7, not owed as a defect |
+
+One drafted bundle, and it is the only thing between here and Phase 10.

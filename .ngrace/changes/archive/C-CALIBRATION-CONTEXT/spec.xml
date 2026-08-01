@@ -1,0 +1,73 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-CALIBRATION-CONTEXT>
+    <Summary>
+      Phase 9 round 4 (A63 corr 165): derive calibration context class by join at fold
+      (taskKind, adapterPresence, wroteVsRead, sequentialVsParallel), store it with the
+      pair, bucket the report by context class, prove authored context is rejected/ignored.
+      This change's own fold is the second genuine fold-time pair, carrying stored context.
+    </Summary>
+    <Problem>
+      §9.5.3 and §9.6 require context derived not authored, and §9.5.4 requires the report
+      bucketed by context class. Rounds 1–3 closed ordinal, join, fold-time labels, and
+      adjudicatedAt provenance, but never built context derivation. Corpus-status buckets
+      (included/excluded/pending/backfilled) are not context classes. Context must be
+      stored at fold — deriving later re-reads a moved tree (same class of defect as 156/160).
+    </Problem>
+    <Goals>
+      <Goal>Four dimensions derived by join from ledger and plan; none authored on claims.</Goal>
+      <Goal>Context stored on CalibrationAdjudication at fold; report reads storage only.</Goal>
+      <Goal>Report groups included pairs by context class; section visible at N=0 and N=1.</Goal>
+      <Goal>A7.2 both directions on each dimension in tests.</Goal>
+      <Goal>Authored context attributes rejected on write and ignored if present on disk at fold.</Goal>
+      <Goal>This change's fold writes a real CalibrationAdjudication with contextClass (A46.4).</Goal>
+      <Goal>§9.5/§9.6 table complete with no unamended gap; phase COMPLETE only then.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Do not edit archived C-CALIBRATION or C-CALIBRATION-PROVENANCE ledgers.</Constraint>
+      <Constraint>Do not hand-write this change's CalibrationAdjudication; fold must write it.</Constraint>
+      <Constraint>claimedConfidence remains write-only; no gate may consume it or context class.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Authority axis and anchor precision (still deferred).</NonGoal>
+      <NonGoal>Held-out calibration study or gate consumption of confidence/context.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-CONTEXT-DERIVED>
+        All four dimensions derived at fold from plan/ledger/write-evidence/allocations.
+      </AC-CONTEXT-DERIVED>
+      <AC-CONTEXT-NOT-AUTHORED>
+        Authored context attributes rejected on write surface; ignored if present on claim events at fold.
+      </AC-CONTEXT-NOT-AUTHORED>
+      <AC-CONTEXT-STORED>
+        CalibrationAdjudication carries taskKind, adapterPresence, wroteVsRead, sequentialVsParallel, contextClass.
+      </AC-CONTEXT-STORED>
+      <AC-REPORT-BUCKETED>
+        Report byContextClass groups included pairs; visible at N=1 with one class one row.
+      </AC-REPORT-BUCKETED>
+      <AC-BOTH-DIRECTIONS>
+        Tests cover both values for each of the four dimensions.
+      </AC-BOTH-DIRECTIONS>
+      <AC-REAL-FOLD>
+        This change's fold writes CalibrationAdjudication with context; doctor shows it.
+      </AC-REAL-FOLD>
+      <AC-SECTION-TABLE>
+        §9.5 and §9.6 table reported with no unamended gap.
+      </AC-SECTION-TABLE>
+      <AC-VALIDATE-CI>
+        bun run validate:ci green; root lint 0/0.
+      </AC-VALIDATE-CI>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CALIBRATION />
+      <M-CURSOR />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/calibration</ExpectedCommand>
+      <ExpectedEvidence>
+        context derivation unit tests both directions; fold stores contextClass; report
+        byContextClass at N=0/N=1; authored context ignored; live fold on this change;
+        root lint 0/0; validate:ci green.
+      </ExpectedEvidence>
+    </VerificationIntent>
+  </C-CALIBRATION-CONTEXT>
+</NgraceChangeSpec>

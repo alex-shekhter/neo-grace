@@ -89,5 +89,10 @@
       <Path>src/test-support/fixtures.ts</Path>
       <Type>UTILITY</Type>
     </M-TEST-SUPPORT>
+    <M-CALIBRATION>
+      <Summary>Calibration report: claimedConfidence vs independent target-assertions adjudicators; context class derived at fold; never gate-consumed.</Summary>
+      <Path>src/calibration/report.ts</Path>
+      <Type>CORE_LOGIC</Type>
+    </M-CALIBRATION>
   </GD-MAIN>
 </NgraceGraphDocument>
