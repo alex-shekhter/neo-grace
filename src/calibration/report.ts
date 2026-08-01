@@ -18,14 +18,18 @@
 // END_MODULE_MAP
 
 /**
- * Calibration report (D6 condition 4 / Phase 9 / A59 corr 155–156).
+ * Calibration report (D6 condition 4 / Phase 9 / A59 corr 155–156 / A61 corr 160–161).
  *
  * Unit of a labeled pair: **one folded epoch that was adjudicated at fold time**
- * (CalibrationAdjudication), not one attempt. Multiple claimedConfidence attempts in
- * the same epoch are claims summarized on that single pair.
+ * (CalibrationAdjudication with adjudicatedAt=fold), not one attempt. Multiple
+ * claimedConfidence attempts in the same epoch are claims summarized on that single pair.
  *
  * Labels are **stored** at fold (evaluateTargetComplete once) and never recomputed
  * at report time — a corpus whose labels move is not a corpus.
+ *
+ * Backfilled adjudications (adjudicatedAt=backfill, or restated to backfill) are
+ * **excluded from calibration computation** and counted on their own line (A61 corr 161).
+ * They remain visible so contaminated history is not silently dropped or silently pooled.
  *
  * Incomplete epochs (claims still only in loose run/) are excluded as a class.
  * Stored pending stays pending; never silent-fail.
@@ -41,9 +45,11 @@ import {
   parseClaimedConfidence,
 } from "../artifact/types";
 import {
+  listCalibrationRestatements,
   listLedgerCalibrationEpochs,
   listLooseEvents,
   resolveChangeBundle,
+  type CalibrationAdjudicatedAt,
   type LooseEvent,
 } from "../grace-cursor";
 
@@ -61,8 +67,8 @@ export type CalibrationClaimSummary = {
 };
 
 /**
- * One labeled unit: one change-epoch with fold-time adjudication (or pending/excluded).
- * claimCount may be >1; included count is always one per such epoch.
+ * One labeled unit: one change-epoch with stored adjudication (or pending/excluded).
+ * claimCount may be >1; included count is always one per fold-adjudicated epoch.
  */
 export type CalibrationPairRow = {
   changeId: string;
@@ -71,8 +77,8 @@ export type CalibrationPairRow = {
   claims: CalibrationClaimSummary[];
   adjudicatedOutcome?: "pass" | "fail";
   adjudicator?: CalibrationAdjudicatorId;
-  adjudicatedAt?: "fold";
-  bucket: "included" | "excluded" | "pending";
+  adjudicatedAt?: CalibrationAdjudicatedAt;
+  bucket: "included" | "excluded" | "pending" | "backfilled";
   reason?: string;
 };
 
@@ -80,12 +86,17 @@ export type CalibrationReport = {
   schemaVersion: "1.0.0";
   tool: "grace-calibration";
   root: string;
-  /** Folded epochs with stored pass|fail adjudication. */
+  /** Folded epochs with stored pass|fail adjudication written at fold time. */
   included: number;
   /** Incomplete epochs (loose run/) that still hold claims. */
   excluded: number;
   /** Folded epochs with stored pending, or claims without stored adjudication. */
   pending: number;
+  /**
+   * Pass|fail adjudications that were backfilled (or restated as backfill).
+   * Visible, never pooled into included (A61 corr 161).
+   */
+  backfilled: number;
   pairs: CalibrationPairRow[];
   promotionBar:
     | "claimedConfidence informs no gate; held-out calibration per context class is required before any consumer may use it";
@@ -122,11 +133,16 @@ function claimSummaryFromEvent(event: LooseEvent): CalibrationClaimSummary | und
 
 /**
  * Build the calibration report. Reads only stored fold-time adjudications —
- * never calls evaluateTargetComplete (corr 156).
+ * never calls evaluateTargetComplete (corr 156). Applies CalibrationRestatements
+ * as provenance overrides without mutating archives (A61).
  */
 export function collectCalibrationReport(projectRoot: string): CalibrationReport {
   const root = path.resolve(projectRoot);
   const pairs: CalibrationPairRow[] = [];
+  const restatements = listCalibrationRestatements(root);
+  const restatementByKey = new Map(
+    restatements.map((r) => [`${r.changeId}#${r.epoch}`, r] as const),
+  );
 
   for (const changeId of listChangeIds(root)) {
     let bundlePath: string;
@@ -158,7 +174,7 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
         .filter((c): c is CalibrationClaimSummary => c !== undefined);
 
       if (!epoch.adjudication) {
-        // Pre-round-2 ledger or fold without adjudication path: not recomputed.
+        // Pre-round-2 ledger, unreadable adjudicatedAt, or fold without adjudication path.
         if (claims.length === 0) continue;
         pairs.push({
           changeId,
@@ -174,25 +190,48 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
 
       const adj = epoch.adjudication;
       const claimCount = Math.max(adj.claimCount, claims.length);
+      // Restatement supersedes stored adjudicatedAt without editing the archive (A61).
+      const restatement = restatementByKey.get(`${changeId}#${epoch.epoch}`);
+      const adjudicatedAt: CalibrationAdjudicatedAt = restatement
+        ? restatement.adjudicatedAt
+        : adj.adjudicatedAt;
+
       if (adj.outcome === "pass" || adj.outcome === "fail") {
-        pairs.push({
-          changeId,
-          epoch: epoch.epoch,
-          claimCount,
-          claims,
-          adjudicatedOutcome: adj.outcome,
-          adjudicator: ADJUDICATOR_TARGET_ASSERTIONS,
-          adjudicatedAt: "fold",
-          bucket: "included",
-        });
+        if (adjudicatedAt === "backfill") {
+          pairs.push({
+            changeId,
+            epoch: epoch.epoch,
+            claimCount,
+            claims,
+            adjudicatedOutcome: adj.outcome,
+            adjudicator: ADJUDICATOR_TARGET_ASSERTIONS,
+            adjudicatedAt: "backfill",
+            bucket: "backfilled",
+            reason:
+              restatement?.reason ??
+              "backfilled adjudication — excluded from calibration computation (not scored with fold-time pairs)",
+          });
+        } else {
+          pairs.push({
+            changeId,
+            epoch: epoch.epoch,
+            claimCount,
+            claims,
+            adjudicatedOutcome: adj.outcome,
+            adjudicator: ADJUDICATOR_TARGET_ASSERTIONS,
+            adjudicatedAt: "fold",
+            bucket: "included",
+          });
+        }
       } else {
+        // pending outcome stays pending regardless of adjudicatedAt (A7.2).
         pairs.push({
           changeId,
           epoch: epoch.epoch,
           claimCount,
           claims,
           adjudicator: ADJUDICATOR_TARGET_ASSERTIONS,
-          adjudicatedAt: "fold",
+          adjudicatedAt,
           bucket: "pending",
           reason:
             adj.reason ??
@@ -211,6 +250,7 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
   const included = pairs.filter((p) => p.bucket === "included").length;
   const excluded = pairs.filter((p) => p.bucket === "excluded").length;
   const pending = pairs.filter((p) => p.bucket === "pending").length;
+  const backfilled = pairs.filter((p) => p.bucket === "backfilled").length;
 
   return {
     schemaVersion: "1.0.0",
@@ -219,10 +259,11 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
     included,
     excluded,
     pending,
+    backfilled,
     pairs,
     promotionBar:
       "claimedConfidence informs no gate; held-out calibration per context class is required before any consumer may use it",
-    summary: buildSummary(included, excluded, pending, pairs),
+    summary: buildSummary(included, excluded, pending, backfilled, pairs),
   };
 }
 
@@ -237,11 +278,17 @@ function buildSummary(
   included: number,
   excluded: number,
   pending: number,
+  backfilled: number,
   pairs: CalibrationPairRow[],
 ): string {
-  if (included === 0 && excluded === 0 && pending === 0) {
+  const backfillClause =
+    backfilled > 0
+      ? ` ${backfilled} backfilled (excluded from computation; adjudicatedAt=backfill).`
+      : "";
+
+  if (included === 0 && excluded === 0 && pending === 0 && backfilled === 0) {
     return (
-      `Calibration report: 0 labeled pairs included, 0 epochs excluded as incomplete, 0 pending. ` +
+      `Calibration report: 0 labeled pairs included, 0 epochs excluded as incomplete, 0 pending, 0 backfilled. ` +
       `No adjudicated claims with claimedConfidence are available to score. ` +
       `A labeled pair is one folded epoch adjudicated at fold time (not one attempt). ` +
       `claimedConfidence is not used by any gate.`
@@ -250,7 +297,7 @@ function buildSummary(
 
   if (included === 0) {
     const parts = [
-      `Calibration report: 0 labeled pairs included, ${excluded} excluded as incomplete, ${pending} pending.`,
+      `Calibration report: 0 labeled pairs included, ${excluded} excluded as incomplete, ${pending} pending, ${backfilled} backfilled.`,
     ];
     if (pending > 0) {
       parts.push(
@@ -259,6 +306,11 @@ function buildSummary(
     }
     if (excluded > 0) {
       parts.push(`Excluded units are incomplete (unfolder) epochs that still hold claims.`);
+    }
+    if (backfilled > 0) {
+      parts.push(
+        `Backfilled pairs carry a stored outcome with adjudicatedAt=backfill; they are visible and excluded from calibration computation.`,
+      );
     }
     parts.push(
       `A labeled pair is one folded epoch adjudicated at fold time. claimedConfidence is not used by any gate. No rate table — N included is 0.`,
@@ -269,10 +321,11 @@ function buildSummary(
   if (included === 1) {
     const row = pairs.find((p) => p.bucket === "included")!;
     return (
-      `Calibration report: 1 labeled pair included, ${excluded} excluded, ${pending} pending. ` +
+      `Calibration report: 1 labeled pair included, ${excluded} excluded, ${pending} pending, ${backfilled} backfilled. ` +
       `Pair: ${row.changeId} Epoch-${row.epoch} adjudicated=${row.adjudicatedOutcome} ` +
       `adjudicator=${row.adjudicator} adjudicatedAt=${row.adjudicatedAt} ` +
-      `claims(${row.claimCount}): ${formatClaimsBrief(row.claims)}. ` +
+      `claims(${row.claimCount}): ${formatClaimsBrief(row.claims)}.` +
+      `${backfillClause} ` +
       `One observation is not a calibration claim; no percentage is reported. ` +
       `claimedConfidence is not used by any gate.`
     );
@@ -289,8 +342,10 @@ function buildSummary(
     .join(", ");
   return (
     `Calibration report: ${included} labeled pairs included (one per fold-adjudicated epoch), ` +
-    `${excluded} excluded, ${pending} pending. Outcomes (descriptive, not a calibration claim): ${outcomePart}. ` +
-    `Adjudicator: ${ADJUDICATOR_TARGET_ASSERTIONS} at fold. claimedConfidence is not used by any gate.`
+    `${excluded} excluded, ${pending} pending, ${backfilled} backfilled. ` +
+    `Outcomes (descriptive, not a calibration claim): ${outcomePart}. ` +
+    `Adjudicator: ${ADJUDICATOR_TARGET_ASSERTIONS} at fold.` +
+    `${backfillClause} claimedConfidence is not used by any gate.`
   );
 }
 
@@ -303,21 +358,24 @@ export function formatCalibrationText(report: CalibrationReport): string {
     `  included (fold-adjudicated epochs): ${report.included}`,
     `  excluded (incomplete epochs): ${report.excluded}`,
     `  pending (no durable boolean outcome): ${report.pending}`,
+    `  backfilled (excluded from computation): ${report.backfilled}`,
     `  promotion: ${report.promotionBar}`,
   ];
   if (report.pairs.length > 0) {
     lines.push("  pairs:");
     for (const row of report.pairs) {
-      if (row.bucket === "included") {
+      if (row.bucket === "included" || row.bucket === "backfilled") {
         lines.push(
-          `    - ${row.changeId} Epoch-${row.epoch} bucket=included adjudicated=${row.adjudicatedOutcome} ` +
+          `    - ${row.changeId} Epoch-${row.epoch} bucket=${row.bucket} adjudicated=${row.adjudicatedOutcome} ` +
             `adjudicator=${row.adjudicator} adjudicatedAt=${row.adjudicatedAt} ` +
-            `claims(${row.claimCount}): ${formatClaimsBrief(row.claims)}`,
+            `claims(${row.claimCount}): ${formatClaimsBrief(row.claims)}` +
+            (row.reason ? ` reason=${row.reason}` : ""),
         );
       } else {
         lines.push(
           `    - ${row.changeId} Epoch-${row.epoch || "open"} bucket=${row.bucket} ` +
-            `claims(${row.claimCount})${row.reason ? ` reason=${row.reason}` : ""}`,
+            `claims(${row.claimCount})${row.reason ? ` reason=${row.reason}` : ""}` +
+            (row.adjudicatedAt ? ` adjudicatedAt=${row.adjudicatedAt}` : ""),
         );
       }
     }

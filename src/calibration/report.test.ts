@@ -9,6 +9,7 @@ import {
   advanceCursor,
   foldEpoch,
   recordAttempt,
+  recordCalibrationRestatement,
 } from "../grace-cursor";
 import {
   ADJUDICATOR_TARGET_ASSERTIONS,
@@ -319,5 +320,114 @@ describe("collectCalibrationReport (per-epoch pairs, fold-time labels)", () => {
         writeEvidence: { available: true, files: [] },
       }),
     ).toThrow(/claimedConfidence/);
+  });
+
+  it("corr 161 A7.2: fold-time record reports adjudicatedAt=fold and is included", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeApprovedPlan(root, "C-CAL-FOLD");
+    openAttemptTerminalFold(root, "C-CAL-FOLD", [{ confidence: "medium" }]);
+
+    const report = collectCalibrationReport(root);
+    expect(report.included).toBe(1);
+    expect(report.backfilled).toBe(0);
+    const pair = report.pairs.find((p) => p.bucket === "included")!;
+    expect(pair.adjudicatedAt).toBe("fold");
+    expect(report.summary).toContain("adjudicatedAt=fold");
+    expect(report.summary).toContain("1 labeled pair included");
+    expect(formatCalibrationText(report)).toContain("backfilled (excluded from computation): 0");
+  });
+
+  it("corr 161 A7.2: backfilled record reports adjudicatedAt=backfill and is not included", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeApprovedPlan(root, "C-CAL-BF");
+    openAttemptTerminalFold(root, "C-CAL-BF", [{ confidence: "high" }]);
+
+    // Hand-edit the stored adjudication moment to backfill (simulates a contaminated write).
+    const ledgerPath = path.join(root, ARTIFACT_DIR, "changes/active/C-CAL-BF/run-ledger.xml");
+    const ledger = readFileSync(ledgerPath, "utf8").replace(
+      'adjudicatedAt="fold"',
+      'adjudicatedAt="backfill"',
+    );
+    writeFileSync(ledgerPath, ledger);
+
+    const report = collectCalibrationReport(root);
+    expect(report.included).toBe(0);
+    expect(report.backfilled).toBe(1);
+    expect(report.pending).toBe(0);
+    const pair = report.pairs.find((p) => p.bucket === "backfilled")!;
+    expect(pair).toBeDefined();
+    expect(pair.adjudicatedAt).toBe("backfill");
+    expect(pair.adjudicatedOutcome).toBe("pass");
+    expect(report.summary).toContain("0 labeled pairs included");
+    expect(report.summary).toContain("1 backfilled");
+    expect(report.summary).toContain("adjudicatedAt=backfill");
+    expect(report.summary).toContain("excluded from calibration computation");
+    // Must not pool backfill into the included count or invent a rate.
+    expect(report.summary).not.toMatch(/1 labeled pair included/);
+    expect(report.summary.toLowerCase()).not.toContain("100%");
+    const text = formatCalibrationText(report);
+    expect(text).toContain("backfilled (excluded from computation): 1");
+    expect(text).toContain("bucket=backfilled");
+    expect(text).toContain("adjudicatedAt=backfill");
+  });
+
+  it("corr 161: restatement overrides stored fold without editing the restated ledger", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    // Contaminated historical pair: still says fold on disk.
+    writeApprovedPlan(root, "C-CAL-OLD");
+    openAttemptTerminalFold(root, "C-CAL-OLD", [{ confidence: "medium" }]);
+    // Authoring change that records the restatement (must have its own fold first).
+    writeApprovedPlan(root, "C-CAL-NEW");
+    openAttemptTerminalFold(root, "C-CAL-NEW", [{ confidence: "low" }]);
+
+    recordCalibrationRestatement(root, "C-CAL-NEW", {
+      changeId: "C-CAL-OLD",
+      epoch: 1,
+      adjudicatedAt: "backfill",
+      reason: "hand-migrated after fold; fold path had not written CalibrationAdjudication",
+    });
+
+    // Archive of OLD still says fold on disk.
+    const oldLedger = readFileSync(
+      path.join(root, ARTIFACT_DIR, "changes/active/C-CAL-OLD/run-ledger.xml"),
+      "utf8",
+    );
+    expect(oldLedger).toContain('adjudicatedAt="fold"');
+    expect(oldLedger).not.toContain("backfill");
+
+    const report = collectCalibrationReport(root);
+    expect(report.included).toBe(1); // only C-CAL-NEW
+    expect(report.backfilled).toBe(1); // C-CAL-OLD via restatement
+    const oldPair = report.pairs.find((p) => p.changeId === "C-CAL-OLD")!;
+    expect(oldPair.bucket).toBe("backfilled");
+    expect(oldPair.adjudicatedAt).toBe("backfill");
+    expect(oldPair.reason).toContain("hand-migrated");
+    const newPair = report.pairs.find((p) => p.changeId === "C-CAL-NEW")!;
+    expect(newPair.bucket).toBe("included");
+    expect(newPair.adjudicatedAt).toBe("fold");
+    expect(report.summary).toContain("1 labeled pair included");
+    expect(report.summary).toContain("1 backfilled");
+    expect(formatCalibrationText(report)).toContain("C-CAL-OLD Epoch-1 bucket=backfilled");
+    expect(formatCalibrationText(report)).toContain("adjudicatedAt=backfill");
+  });
+
+  it("corr 161: adjudicatedAt is read from the record, not synthesized as fold", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeApprovedPlan(root, "C-CAL-READ");
+    openAttemptTerminalFold(root, "C-CAL-READ", [{ confidence: "medium" }]);
+    const ledgerPath = path.join(root, ARTIFACT_DIR, "changes/active/C-CAL-READ/run-ledger.xml");
+    // If the parser synthesized "fold", flipping the attribute would still report fold.
+    writeFileSync(
+      ledgerPath,
+      readFileSync(ledgerPath, "utf8").replace('adjudicatedAt="fold"', 'adjudicatedAt="backfill"'),
+    );
+    const report = collectCalibrationReport(root);
+    expect(report.pairs[0]!.adjudicatedAt).toBe("backfill");
+    expect(report.pairs[0]!.bucket).toBe("backfilled");
+    expect(report.included).toBe(0);
   });
 });

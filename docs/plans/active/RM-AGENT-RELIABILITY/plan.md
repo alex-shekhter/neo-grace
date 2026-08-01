@@ -374,7 +374,7 @@ Keep this table current. It is the single source of truth for progress.
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
 | 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `COMPLETE` |
-| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `IN PROGRESS` |
+| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `COMPLETE` |
 | 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `NOT STARTED` |
 | 11 | Adoption surface | §5.1, §5.3 | TBD | `NOT STARTED` |
 
@@ -1377,7 +1377,7 @@ Delete the module and subcommand. Skills fall back to reading artifacts directly
 
 # PHASE 9 — Confidence recording & calibration report
 
-**Status:** `COMPLETE` (A60 — fold-time adjudication; 155/156 closed; C-CALIBRATION archived)
+**Status:** `COMPLETE` (A62 — real fold path observed; adjudicatedAt provenance; C-CALIBRATION-PROVENANCE archived)
 **Decisions:** D6 (calibration half)
 **Release:** TBD
 
@@ -9069,3 +9069,76 @@ a by-product. Phase 9's first honest pair should be the one produced by fixing P
 
 If it turns out the fold path does *not* write the record when exercised for real, that is the most
 valuable finding this phase could produce, and it is reachable only by running it.
+
+### A62 — 2026-08-01 · Phase 9 round 3: real fold path; adjudicatedAt provenance; COMPLETE
+
+Round 3 against A61 at baseline `8af024e`. Branch `feat/phase-9-rederive`. **160 and 161 closed.**
+Phase 9 board and §9 banner return to `COMPLETE`.
+
+#### A62.1 Correction 161 — `adjudicatedAt` is read, backfill is expressible
+
+- Type is `fold | backfill` (`CalibrationAdjudicatedAt`).
+- `parseCalibrationAdjudicationNode` **reads** the attribute; it no longer synthesizes `"fold"`.
+  Missing/invalid attribute fails parse (no silent constant).
+- Report buckets: `included` only for `adjudicatedAt=fold` + pass|fail; `backfilled` for
+  `adjudicatedAt=backfill` + pass|fail (own count line, never pooled into included);
+  `pending` stays pending regardless of moment (A7.2).
+- `CalibrationRestatements` / `recordCalibrationRestatement` supersede stored provenance without
+  editing archives. Report applies restatements as overrides.
+
+#### A62.2 Correction 160 — fold path observed succeeding
+
+`ngrace cursor fold` on `C-CALIBRATION-PROVENANCE` wrote (by fold, not by hand):
+
+```xml
+<CalibrationAdjudication adjudicator="target-assertions" outcome="fail"
+                         claimCount="1" claims="medium" adjudicatedAt="fold" />
+```
+
+Events on the same epoch: opened (`ExecutorIdentity model="grok-4.5" harness="grok-build"`),
+attempt `claimedConfidence="medium" outcome="pass"`, terminal. Agent pass ≠ score (149 still holds
+live): fold stored `fail` because TargetAssertions used invalid `MustMatch` at fold time. Plan fixed
+after fold; `evaluateTargetComplete` is now `true`, but the stored label remains `fail` (156 live).
+
+#### A62.3 Restatement of C-CALIBRATION Epoch-1
+
+Archive XML **untouched** (`adjudicatedAt="fold"` still on disk). This change's ledger carries:
+
+```xml
+<CalibrationRestatements>
+  <Restatement changeId="C-CALIBRATION" epoch="1" adjudicatedAt="backfill"
+    reason="hand-migrated after Epoch-1 fold; fold path had not yet written CalibrationAdjudication (A61 corr 160)" />
+</CalibrationRestatements>
+```
+
+Doctor: `C-CALIBRATION` → `bucket=backfilled adjudicatedAt=backfill`; not in included.
+
+#### A62.4 Read-aloud (rule 11)
+
+| State | Sentence fragment |
+|---|---|
+| N included = 1 | `1 labeled pair included, … 1 backfilled` + pair line with `adjudicatedAt=fold` |
+| Backfilled line | `backfilled (excluded from computation): 1` and pair `bucket=backfilled adjudicatedAt=backfill` |
+| Moment name | `adjudicatedAt=fold` vs `adjudicatedAt=backfill` — read from record / restatement, not synthesized |
+
+#### A62.5 Close
+
+- `C-CALIBRATION-PROVENANCE` [archive] spec=applied plan=applied
+- `ngrace review` 0 findings; `gate verdict` pass; `gate apply` permit; `gate archive` permit;
+  agent authored status=applied and moved bundle (A33.3: gates record decisions only —
+  status and archive move remain the honor system)
+- Root lint 0/0; `bun test` green; `validate:ci` green
+- Board row 9 and §9 banner: `COMPLETE`
+
+#### A62.6 Findings 162+
+
+**162** — First live fold of Phase 9 stored `outcome="fail"` because the plan at fold used
+`MustMatch` (not an assertion kind). Fold path worked; the plan was wrong. Correcting the plan
+after fold does not move the stored label (156). Contaminated hand-migrated pair is no longer
+100% of the included corpus.
+
+**163** — Restatement is a ledger section on the *authoring* change, not an edit of the restated
+archive. That is the supersession surface for calibration provenance under archive immutability.
+
+**164** — Parser refusal on missing `adjudicatedAt` is stricter than defaulting to fold. A record
+without a moment is not an adjudicated pair; it surfaces as pending provenance absence.

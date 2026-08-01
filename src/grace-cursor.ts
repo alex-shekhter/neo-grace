@@ -12,7 +12,10 @@
 //   AbsenceValue
 //   AbsenceVerdict
 //   CURSOR_STATES
+//   CALIBRATION_ADJUDICATED_AT
+//   CalibrationAdjudicatedAt
 //   CalibrationAdjudicationRecord
+//   CalibrationRestatement
 //   ChangedFileEvidence
 //   CursorPosition
 //   CursorState
@@ -44,6 +47,7 @@
 //   formatFoldResult
 //   lastResolvingResumeId
 //   listAccountingEvents
+//   listCalibrationRestatements
 //   listLedgerCalibrationEpochs
 //   listLedgerEvents
 //   listLooseEvents
@@ -53,6 +57,7 @@
 //   pauseCursor
 //   readAttemptPayload
 //   recordAttempt
+//   recordCalibrationRestatement
 //   recordVerificationUnavailable
 //   regenerateCursor
 //   resolveChangeBundle
@@ -1599,18 +1604,183 @@ export function listLedgerCalibrationEpochs(bundlePath: string, changeId: string
   return rows.sort((a, b) => a.epoch - b.epoch);
 }
 
+/** Moments at which a CalibrationAdjudication may have been written (A61 corr 161). */
+export const CALIBRATION_ADJUDICATED_AT = ["fold", "backfill"] as const;
+export type CalibrationAdjudicatedAt = (typeof CALIBRATION_ADJUDICATED_AT)[number];
+
+function parseAdjudicatedAt(raw: string | undefined): CalibrationAdjudicatedAt | undefined {
+  const value = (raw ?? "").trim();
+  if (value === "fold" || value === "backfill") return value;
+  return undefined;
+}
+
 function parseCalibrationAdjudicationNode(node: GraceXmlNode): CalibrationAdjudicationRecord | undefined {
   const outcome = (node.attributes.outcome ?? "").trim();
   if (outcome !== "pass" && outcome !== "fail" && outcome !== "pending") return undefined;
   const claimCount = Number(node.attributes.claimCount ?? "0");
+  // Read from the record (A61 corr 161). Missing attribute is not silently "fold" —
+  // only an explicit value is evidence of a moment. Legacy records without the attribute
+  // surface as undefined and the report treats them as pending provenance.
+  const adjudicatedAt = parseAdjudicatedAt(node.attributes.adjudicatedAt);
+  if (adjudicatedAt === undefined) return undefined;
   return {
     adjudicator: "target-assertions",
     outcome,
     reason: node.attributes.reason?.trim() || undefined,
     claimCount: Number.isInteger(claimCount) ? claimCount : 0,
     claims: (node.attributes.claims ?? "").trim(),
-    adjudicatedAt: "fold",
+    adjudicatedAt,
   };
+}
+
+/**
+ * One restatement of a stored CalibrationAdjudication's provenance (A61).
+ * Lives under the *authoring* change's ledger as a sibling of Epoch-N; never
+ * mutates the restated archive. Report applies these as overrides.
+ */
+export type CalibrationRestatement = {
+  /** Change whose stored adjudication is being restated. */
+  changeId: string;
+  epoch: number;
+  adjudicatedAt: "backfill";
+  reason?: string;
+  /** Bundle that authored this restatement (where the ledger section lives). */
+  authoringChangeId: string;
+};
+
+/**
+ * Scan all change ledgers for CalibrationRestatements sections.
+ * Restatements supersede stored adjudicatedAt without editing archives.
+ */
+export function listCalibrationRestatements(projectRoot: string): CalibrationRestatement[] {
+  const root = path.resolve(projectRoot);
+  const paths = resolveNgracePaths(root);
+  const out: CalibrationRestatement[] = [];
+  for (const directory of [paths.changesActiveDir, paths.changesArchiveDir]) {
+    if (!existsSync(directory)) continue;
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !ANCHOR_PATTERNS.change.test(entry.name)) continue;
+      const authoringChangeId = entry.name;
+      const ledgerPath = path.join(directory, authoringChangeId, "run-ledger.xml");
+      if (!existsSync(ledgerPath)) continue;
+      const artifact = readGraceXmlArtifact(ledgerPath);
+      if (!artifact.root) continue;
+      const wrapper = artifact.root.children.find((c) => c.tag === authoringChangeId);
+      if (!wrapper) continue;
+      for (const section of wrapper.children) {
+        if (section.tag !== "CalibrationRestatements") continue;
+        for (const child of section.children) {
+          if (child.tag !== "Restatement") continue;
+          const changeId = (child.attributes.changeId ?? "").trim();
+          const epoch = Number(child.attributes.epoch ?? "");
+          const adjudicatedAt = parseAdjudicatedAt(child.attributes.adjudicatedAt);
+          if (!ANCHOR_PATTERNS.change.test(changeId)) continue;
+          if (!Number.isInteger(epoch) || epoch < 1) continue;
+          // Only backfill restatements are defined (restate contaminated fold claims).
+          if (adjudicatedAt !== "backfill") continue;
+          out.push({
+            changeId,
+            epoch,
+            adjudicatedAt: "backfill",
+            reason: child.attributes.reason?.trim() || child.text.trim() || undefined,
+            authoringChangeId,
+          });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Append or replace a CalibrationRestatements section on the authoring change's ledger.
+ * Does not edit the restated change's archive. Requires an existing run-ledger.xml
+ * (fold first, then restate).
+ */
+export function recordCalibrationRestatement(
+  projectRoot: string,
+  authoringChangeId: string,
+  restatement: {
+    changeId: string;
+    epoch: number;
+    adjudicatedAt: "backfill";
+    reason?: string;
+  },
+): void {
+  if (!ANCHOR_PATTERNS.change.test(authoringChangeId)) {
+    throw new GraceCommandError("invalid-arguments", `Invalid authoring change id: ${authoringChangeId}`);
+  }
+  if (!ANCHOR_PATTERNS.change.test(restatement.changeId)) {
+    throw new GraceCommandError("invalid-arguments", `Invalid restated change id: ${restatement.changeId}`);
+  }
+  if (!Number.isInteger(restatement.epoch) || restatement.epoch < 1) {
+    throw new GraceCommandError("invalid-arguments", `Restatement epoch must be a positive integer.`);
+  }
+  if (restatement.adjudicatedAt !== "backfill") {
+    throw new GraceCommandError("invalid-arguments", `Only adjudicatedAt=backfill restatements are supported.`);
+  }
+
+  const bundlePath = resolveChangeBundle(projectRoot, authoringChangeId);
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (!existsSync(ledgerPath)) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `Cannot record restatement: ${authoringChangeId} has no run-ledger.xml (fold first).`,
+    );
+  }
+  const artifact = readGraceXmlArtifact(ledgerPath);
+  if (!artifact.root) {
+    throw new GraceCommandError("invalid-project", `run-ledger.xml at ${ledgerPath} is unreadable.`);
+  }
+  const root: GraceXmlNode = {
+    tag: artifact.root.tag,
+    attributes: { ...artifact.root.attributes },
+    children: artifact.root.children.map(cloneXmlNode),
+    text: artifact.root.text,
+  };
+  let wrapper = root.children.find((c) => c.tag === authoringChangeId);
+  if (!wrapper) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `run-ledger.xml does not contain wrapper ${authoringChangeId}.`,
+    );
+  }
+
+  const restatementNode: GraceXmlNode = {
+    tag: "Restatement",
+    attributes: {
+      changeId: restatement.changeId,
+      epoch: String(restatement.epoch),
+      adjudicatedAt: "backfill",
+      ...(restatement.reason ? { reason: restatement.reason } : {}),
+    },
+    children: [],
+    text: "",
+  };
+
+  let section = wrapper.children.find((c) => c.tag === "CalibrationRestatements");
+  if (!section) {
+    section = { tag: "CalibrationRestatements", attributes: {}, children: [], text: "" };
+    wrapper.children.push(section);
+  }
+  // Replace matching (changeId, epoch) or append.
+  const idx = section.children.findIndex(
+    (c) =>
+      c.tag === "Restatement" &&
+      (c.attributes.changeId ?? "").trim() === restatement.changeId &&
+      Number(c.attributes.epoch ?? "") === restatement.epoch,
+  );
+  if (idx >= 0) {
+    section.children[idx] = restatementNode;
+  } else {
+    section.children.push(restatementNode);
+  }
+
+  const contained = resolveContainedProjectPath(bundlePath, "run-ledger.xml", {
+    mode: "output",
+    allowedRoot: bundlePath,
+  });
+  writeFileSync(contained.absolutePath, serializeGraceXmlDocument(root));
 }
 
 function failureSignatureNode(signature: FailureSignature): GraceXmlNode {
@@ -1842,7 +2012,7 @@ function validateEventsAgainstAllocations(events: LooseEvent[], allocations: Ran
   return issues;
 }
 
-/** Stored at fold beside claims in the same epoch (A59 corr 155–156). Immutable after fold. */
+/** Stored beside claims in the same epoch (A59 corr 155–156). Immutable after write. */
 export type CalibrationAdjudicationRecord = {
   adjudicator: "target-assertions";
   /** pass | fail when evaluable; pending when complete is undefined. */
@@ -1852,8 +2022,12 @@ export type CalibrationAdjudicationRecord = {
   claimCount: number;
   /** Claimed confidence levels in document order, comma-separated (e.g. "low,high"). */
   claims: string;
-  /** Adjudication moment — always fold for records written by foldEpoch. */
-  adjudicatedAt: "fold";
+  /**
+   * Adjudication moment, read from the record (A61 corr 161).
+   * - fold: written by foldEpoch when the epoch closed
+   * - backfill: written or restated after the outcome was already known (excluded from computation)
+   */
+  adjudicatedAt: CalibrationAdjudicatedAt;
 };
 
 function attemptHasClaimedConfidence(event: LooseEvent): boolean {

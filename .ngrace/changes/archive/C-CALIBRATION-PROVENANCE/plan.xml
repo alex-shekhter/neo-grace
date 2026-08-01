@@ -1,0 +1,84 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-CALIBRATION-PROVENANCE>
+    <IntentSummary>
+      Phase 9 round 3: adjudicatedAt is real provenance (fold|backfill, read from record);
+      backfilled pairs excluded from computation; restate C-CALIBRATION Epoch-1 as
+      backfill without editing the archive; observe one genuine fold-time adjudication
+      written by fold on this change (A61 corr 160–161).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/calibration/report.ts</Value></MustExist>
+      <MustExist><Value>src/calibration/report.test.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-CALIBRATION/run-ledger.xml</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/calibration/report.ts</Value></MustExist>
+      <MustExist><Value>src/calibration/report.test.ts</Value></MustExist>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>recordCalibrationRestatement</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>listCalibrationRestatements</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/calibration/report.ts</File>
+        <Text>backfilled</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/calibration/report.test.ts</File>
+        <Text>adjudicatedAt=backfill</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>CalibrationAdjudicatedAt</Text>
+      </MustContain>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CALIBRATION />
+        <M-CURSOR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CALIBRATION />
+        <V-M-CURSOR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/calibration/report.ts</File>
+      <File>src/calibration/report.test.ts</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+      <File>.ngrace/changes/active/C-CALIBRATION-PROVENANCE/spec.xml</File>
+      <File>.ngrace/changes/active/C-CALIBRATION-PROVENANCE/plan.xml</File>
+      <File>.ngrace/changes/active/C-CALIBRATION-PROVENANCE/run-ledger.xml</File>
+      <File>.ngrace/changes/active/C-CALIBRATION-PROVENANCE/run.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>adjudicatedAt provenance, backfill exclusion, restatement, real fold</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-ADJUDICATED-AT-READ />
+          <AC-BACKFILL-EXCLUDED />
+          <AC-BOTH-DIRECTIONS />
+          <AC-RESTATE-EPOCH1 />
+          <AC-REAL-FOLD />
+          <AC-VALIDATE-CI />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>Parser reads adjudicatedAt; fold and backfill are distinct.</Criterion>
+          <Criterion>Backfilled pairs counted separately and excluded from included.</Criterion>
+          <Criterion>Restatement reclassifies C-CALIBRATION Epoch-1 without archive edit.</Criterion>
+          <Criterion>Folding this change writes a real CalibrationAdjudication with adjudicatedAt=fold.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/calibration</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-CALIBRATION-PROVENANCE>
+</NgraceChangePlan>
