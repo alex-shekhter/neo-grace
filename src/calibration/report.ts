@@ -1,6 +1,6 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Calibration report over claimedConfidence vs independent adjudicators
-//   SCOPE: Join agent-authored confidence to target-assertions outcomes; never gate-consume
+//   SCOPE: Join agent-authored confidence to stored fold-time target-assertions outcomes
 //   DEPENDS: none
 //   LINKS: M-CALIBRATION
 //   ROLE: RUNTIME
@@ -10,21 +10,25 @@
 // START_MODULE_MAP
 //   ADJUDICATOR_TARGET_ASSERTIONS
 //   CalibrationAdjudicatorId
-//   CalibrationClaimRow
+//   CalibrationClaimSummary
+//   CalibrationPairRow
 //   CalibrationReport
 //   collectCalibrationReport
 //   formatCalibrationText
 // END_MODULE_MAP
 
 /**
- * Calibration report (D6 condition 4 / Phase 9).
+ * Calibration report (D6 condition 4 / Phase 9 / A59 corr 155–156).
  *
- * Claim side: attempt events that carry claimedConfidence (agent-authored, write-only).
- * Outcome side: evaluateTargetComplete / target assertions — not the attempt's outcome
- * attribute (corr 149). Adjudicator provenance is always recorded (corr 150 / D15).
+ * Unit of a labeled pair: **one folded epoch that was adjudicated at fold time**
+ * (CalibrationAdjudication), not one attempt. Multiple claimedConfidence attempts in
+ * the same epoch are claims summarized on that single pair.
+ *
+ * Labels are **stored** at fold (evaluateTargetComplete once) and never recomputed
+ * at report time — a corpus whose labels move is not a corpus.
  *
  * Incomplete epochs (claims still only in loose run/) are excluded as a class.
- * Claims whose adjudicator cannot produce a boolean are pending — never silent fail.
+ * Stored pending stays pending; never silent-fail.
  */
 
 import { existsSync, readdirSync } from "node:fs";
@@ -37,30 +41,38 @@ import {
   parseClaimedConfidence,
 } from "../artifact/types";
 import {
-  evaluateTargetComplete,
-  listLedgerEvents,
+  listLedgerCalibrationEpochs,
   listLooseEvents,
-  type LooseEvent,
   resolveChangeBundle,
+  type LooseEvent,
 } from "../grace-cursor";
 
-/** Sole independent adjudicator for labeled pairs in Phase 9 (corr 150). */
+/** Sole independent adjudicator for labeled pairs in Phase 9. */
 export const ADJUDICATOR_TARGET_ASSERTIONS = "target-assertions" as const;
 
 export type CalibrationAdjudicatorId = typeof ADJUDICATOR_TARGET_ASSERTIONS;
 
-export type CalibrationClaimRow = {
-  changeId: string;
-  taskId: string;
+export type CalibrationClaimSummary = {
   eventId: number;
+  taskId: string;
   claimedConfidence: ClaimedConfidence;
-  /** Agent-authored attempt outcome — recorded for audit, never the join score. */
+  /** Agent-authored attempt outcome — audit only, never the join score. */
   attemptOutcome: string | undefined;
-  /** Independent adjudicator outcome when included; absent when pending/excluded. */
+};
+
+/**
+ * One labeled unit: one change-epoch with fold-time adjudication (or pending/excluded).
+ * claimCount may be >1; included count is always one per such epoch.
+ */
+export type CalibrationPairRow = {
+  changeId: string;
+  epoch: number;
+  claimCount: number;
+  claims: CalibrationClaimSummary[];
   adjudicatedOutcome?: "pass" | "fail";
   adjudicator?: CalibrationAdjudicatorId;
+  adjudicatedAt?: "fold";
   bucket: "included" | "excluded" | "pending";
-  /** Why excluded or pending (rule 11). */
   reason?: string;
 };
 
@@ -68,14 +80,15 @@ export type CalibrationReport = {
   schemaVersion: "1.0.0";
   tool: "grace-calibration";
   root: string;
+  /** Folded epochs with stored pass|fail adjudication. */
   included: number;
+  /** Incomplete epochs (loose run/) that still hold claims. */
   excluded: number;
+  /** Folded epochs with stored pending, or claims without stored adjudication. */
   pending: number;
-  pairs: CalibrationClaimRow[];
-  /** Promotion bar: this report never certifies gate consumption. */
+  pairs: CalibrationPairRow[];
   promotionBar:
     | "claimedConfidence informs no gate; held-out calibration per context class is required before any consumer may use it";
-  /** Read-aloud summary sentence(s) for the current N. */
   summary: string;
 };
 
@@ -93,41 +106,27 @@ function listChangeIds(projectRoot: string): string[] {
   return ids.sort();
 }
 
-function claimFromAttempt(
-  event: LooseEvent,
-  changeId: string,
-  bucket: CalibrationClaimRow["bucket"],
-  extras: Partial<CalibrationClaimRow> = {},
-): CalibrationClaimRow | undefined {
+function claimSummaryFromEvent(event: LooseEvent): CalibrationClaimSummary | undefined {
   const raw = event.attributes.claimedConfidence;
   if (raw === undefined || raw === "") return undefined;
   const parsed = parseClaimedConfidence(raw);
-  if (!parsed.ok) {
-    // Malformed field: treat as non-claim for the corpus (write path should have rejected).
-    return undefined;
-  }
-  if (event.kind !== "attempt") {
-    // Standing rule: only attempt may carry the field. Skip non-attempts if present.
-    return undefined;
-  }
+  if (!parsed.ok) return undefined;
+  if (event.kind !== "attempt") return undefined;
   return {
-    changeId,
-    taskId: event.task,
     eventId: event.id,
+    taskId: event.task,
     claimedConfidence: parsed.value,
     attemptOutcome: event.attributes.outcome,
-    bucket,
-    ...extras,
   };
 }
 
 /**
- * Build the calibration report for a project.
- * Fixture numbers are never invented as live results — only events on disk are joined.
+ * Build the calibration report. Reads only stored fold-time adjudications —
+ * never calls evaluateTargetComplete (corr 156).
  */
 export function collectCalibrationReport(projectRoot: string): CalibrationReport {
   const root = path.resolve(projectRoot);
-  const pairs: CalibrationClaimRow[] = [];
+  const pairs: CalibrationPairRow[] = [];
 
   for (const changeId of listChangeIds(root)) {
     let bundlePath: string;
@@ -137,46 +136,67 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
       continue;
     }
 
-    // Incomplete epoch: claims only in loose run/ → excluded (D6 bias safeguard).
-    for (const event of listLooseEvents(bundlePath)) {
-      const row = claimFromAttempt(event, changeId, "excluded", {
-        reason: "incomplete epoch — claim is still in loose run/ (not folded)",
+    // Incomplete epoch: claims only in loose run/ → one excluded unit per open epoch with claims.
+    const looseClaims = listLooseEvents(bundlePath)
+      .map(claimSummaryFromEvent)
+      .filter((c): c is CalibrationClaimSummary => c !== undefined);
+    if (looseClaims.length > 0) {
+      pairs.push({
+        changeId,
+        epoch: 0,
+        claimCount: looseClaims.length,
+        claims: looseClaims,
+        bucket: "excluded",
+        reason: "incomplete epoch — claims still in loose run/ (not folded); no durable adjudication yet",
       });
-      if (row) pairs.push(row);
     }
 
-    // Folded ledger claims: join to independent adjudicator.
-    const ledgerClaims: CalibrationClaimRow[] = [];
-    for (const event of listLedgerEvents(bundlePath)) {
-      const row = claimFromAttempt(event, changeId, "pending");
-      if (row) ledgerClaims.push(row);
-    }
-    if (ledgerClaims.length === 0) continue;
+    // Folded epochs: only stored CalibrationAdjudication is evidence (corr 155–156).
+    for (const epoch of listLedgerCalibrationEpochs(bundlePath, changeId)) {
+      const claims = epoch.claims
+        .map(claimSummaryFromEvent)
+        .filter((c): c is CalibrationClaimSummary => c !== undefined);
 
-    const { complete, completeAbsence } = evaluateTargetComplete(root, changeId);
-
-    for (const row of ledgerClaims) {
-      if (complete === true) {
+      if (!epoch.adjudication) {
+        // Pre-round-2 ledger or fold without adjudication path: not recomputed.
+        if (claims.length === 0) continue;
         pairs.push({
-          ...row,
-          bucket: "included",
-          adjudicatedOutcome: "pass",
-          adjudicator: ADJUDICATOR_TARGET_ASSERTIONS,
+          changeId,
+          epoch: epoch.epoch,
+          claimCount: claims.length,
+          claims,
+          bucket: "pending",
+          reason:
+            "no CalibrationAdjudication stored at fold; labels are never recomputed at report time",
         });
-      } else if (complete === false) {
+        continue;
+      }
+
+      const adj = epoch.adjudication;
+      const claimCount = Math.max(adj.claimCount, claims.length);
+      if (adj.outcome === "pass" || adj.outcome === "fail") {
         pairs.push({
-          ...row,
-          bucket: "included",
-          adjudicatedOutcome: "fail",
+          changeId,
+          epoch: epoch.epoch,
+          claimCount,
+          claims,
+          adjudicatedOutcome: adj.outcome,
           adjudicator: ADJUDICATOR_TARGET_ASSERTIONS,
+          adjudicatedAt: "fold",
+          bucket: "included",
         });
       } else {
         pairs.push({
-          ...row,
+          changeId,
+          epoch: epoch.epoch,
+          claimCount,
+          claims,
+          adjudicator: ADJUDICATOR_TARGET_ASSERTIONS,
+          adjudicatedAt: "fold",
           bucket: "pending",
           reason:
-            completeAbsence?.reason ??
-            "target-assertions could not produce a boolean outcome (pending, not fail)",
+            adj.reason ??
+            "target-assertions could not produce a boolean at fold (pending, not fail)",
         });
       }
     }
@@ -185,7 +205,7 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
   pairs.sort((a, b) => {
     const c = a.changeId.localeCompare(b.changeId);
     if (c !== 0) return c;
-    return a.eventId - b.eventId;
+    return a.epoch - b.epoch;
   });
 
   const included = pairs.filter((p) => p.bucket === "included").length;
@@ -206,16 +226,24 @@ export function collectCalibrationReport(projectRoot: string): CalibrationReport
   };
 }
 
+function formatClaimsBrief(claims: CalibrationClaimSummary[]): string {
+  if (claims.length === 0) return "(no claim detail)";
+  return claims
+    .map((c) => `${c.taskId}#${c.eventId}=${c.claimedConfidence}`)
+    .join(", ");
+}
+
 function buildSummary(
   included: number,
   excluded: number,
   pending: number,
-  pairs: CalibrationClaimRow[],
+  pairs: CalibrationPairRow[],
 ): string {
   if (included === 0 && excluded === 0 && pending === 0) {
     return (
       `Calibration report: 0 labeled pairs included, 0 epochs excluded as incomplete, 0 pending. ` +
       `No adjudicated claims with claimedConfidence are available to score. ` +
+      `A labeled pair is one folded epoch adjudicated at fold time (not one attempt). ` +
       `claimedConfidence is not used by any gate.`
     );
   }
@@ -226,13 +254,15 @@ function buildSummary(
     ];
     if (pending > 0) {
       parts.push(
-        `Pending claims await an independent adjudicator outcome (target-assertions); they are not scored as fail.`,
+        `Pending epochs await a stored fold-time adjudication or still lack a boolean target-assertions outcome; they are not scored as fail.`,
       );
     }
     if (excluded > 0) {
-      parts.push(`Excluded claims sit in incomplete (unfolder) epochs.`);
+      parts.push(`Excluded units are incomplete (unfolder) epochs that still hold claims.`);
     }
-    parts.push(`claimedConfidence is not used by any gate. No rate table — N included is 0.`);
+    parts.push(
+      `A labeled pair is one folded epoch adjudicated at fold time. claimedConfidence is not used by any gate. No rate table — N included is 0.`,
+    );
     return parts.join(" ");
   }
 
@@ -240,33 +270,27 @@ function buildSummary(
     const row = pairs.find((p) => p.bucket === "included")!;
     return (
       `Calibration report: 1 labeled pair included, ${excluded} excluded, ${pending} pending. ` +
-      `Pair: ${row.changeId} ${row.taskId} event ${row.eventId} claimed=${row.claimedConfidence} ` +
-      `adjudicated=${row.adjudicatedOutcome} adjudicator=${row.adjudicator}. ` +
+      `Pair: ${row.changeId} Epoch-${row.epoch} adjudicated=${row.adjudicatedOutcome} ` +
+      `adjudicator=${row.adjudicator} adjudicatedAt=${row.adjudicatedAt} ` +
+      `claims(${row.claimCount}): ${formatClaimsBrief(row.claims)}. ` +
       `One observation is not a calibration claim; no percentage is reported. ` +
       `claimedConfidence is not used by any gate.`
     );
   }
 
-  // N small or larger: counts only — descriptive, not a self-certified calibration.
-  const byLevel: Record<string, { pass: number; fail: number }> = {};
+  const byOutcome: Record<string, number> = {};
   for (const row of pairs.filter((p) => p.bucket === "included")) {
-    const key = row.claimedConfidence;
-    byLevel[key] ??= { pass: 0, fail: 0 };
-    if (row.adjudicatedOutcome === "pass") byLevel[key]!.pass += 1;
-    else byLevel[key]!.fail += 1;
+    const key = row.adjudicatedOutcome ?? "unknown";
+    byOutcome[key] = (byOutcome[key] ?? 0) + 1;
   }
-  const buckets = Object.keys(byLevel)
+  const outcomePart = Object.keys(byOutcome)
     .sort()
-    .map((level) => {
-      const b = byLevel[level]!;
-      return `${level}: pass=${b.pass} fail=${b.fail}`;
-    })
-    .join("; ");
+    .map((k) => `${k}=${byOutcome[k]}`)
+    .join(", ");
   return (
-    `Calibration report: ${included} labeled pairs included, ${excluded} excluded, ${pending} pending. ` +
-    `Counts by claimed level (descriptive, not a calibration claim): ${buckets}. ` +
-    `Adjudicator for all included pairs: ${ADJUDICATOR_TARGET_ASSERTIONS}. ` +
-    `claimedConfidence is not used by any gate.`
+    `Calibration report: ${included} labeled pairs included (one per fold-adjudicated epoch), ` +
+    `${excluded} excluded, ${pending} pending. Outcomes (descriptive, not a calibration claim): ${outcomePart}. ` +
+    `Adjudicator: ${ADJUDICATOR_TARGET_ASSERTIONS} at fold. claimedConfidence is not used by any gate.`
   );
 }
 
@@ -276,24 +300,26 @@ export function formatCalibrationText(report: CalibrationReport): string {
     "Calibration",
     "-".repeat(12),
     report.summary,
-    `  included: ${report.included}`,
+    `  included (fold-adjudicated epochs): ${report.included}`,
     `  excluded (incomplete epochs): ${report.excluded}`,
-    `  pending (no adjudicator outcome yet): ${report.pending}`,
+    `  pending (no durable boolean outcome): ${report.pending}`,
     `  promotion: ${report.promotionBar}`,
   ];
   if (report.pairs.length > 0) {
     lines.push("  pairs:");
     for (const row of report.pairs) {
-      const adj =
-        row.bucket === "included"
-          ? ` adjudicated=${row.adjudicatedOutcome} adjudicator=${row.adjudicator}`
-          : row.reason
-            ? ` reason=${row.reason}`
-            : "";
-      lines.push(
-        `    - ${row.changeId} ${row.taskId}#${row.eventId} claimed=${row.claimedConfidence} ` +
-          `bucket=${row.bucket}${adj}`,
-      );
+      if (row.bucket === "included") {
+        lines.push(
+          `    - ${row.changeId} Epoch-${row.epoch} bucket=included adjudicated=${row.adjudicatedOutcome} ` +
+            `adjudicator=${row.adjudicator} adjudicatedAt=${row.adjudicatedAt} ` +
+            `claims(${row.claimCount}): ${formatClaimsBrief(row.claims)}`,
+        );
+      } else {
+        lines.push(
+          `    - ${row.changeId} Epoch-${row.epoch || "open"} bucket=${row.bucket} ` +
+            `claims(${row.claimCount})${row.reason ? ` reason=${row.reason}` : ""}`,
+        );
+      }
     }
   }
   return `${lines.join("\n")}\n`;

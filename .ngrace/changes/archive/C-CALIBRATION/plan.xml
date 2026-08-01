@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-CALIBRATION>
     <IntentSummary>
       Phase 9 stage 2: record claimedConfidence (write-only), join to independent

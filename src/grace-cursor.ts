@@ -12,6 +12,7 @@
 //   AbsenceValue
 //   AbsenceVerdict
 //   CURSOR_STATES
+//   CalibrationAdjudicationRecord
 //   ChangedFileEvidence
 //   CursorPosition
 //   CursorState
@@ -21,6 +22,7 @@
 //   FlakeVerdict
 //   FoldResult
 //   KnownEventKind
+//   LedgerCalibrationEpoch
 //   LooseEvent
 //   PositionSource
 //   RangeAllocation
@@ -42,6 +44,7 @@
 //   formatFoldResult
 //   lastResolvingResumeId
 //   listAccountingEvents
+//   listLedgerCalibrationEpochs
 //   listLedgerEvents
 //   listLooseEvents
 //   listRepositoryChangedFiles
@@ -676,8 +679,15 @@ export function foldEpoch(
 
   const epochNumber = nextEpochNumber(bundlePath);
   const wave = options.wave ?? readWaveFromOpened(events);
+  // A59 corr 155–156: adjudicate once at fold when claims exist; store durable label.
+  // Unit of adjudication is the change/epoch, not each attempt.
+  const calibrationAdjudication =
+    options.injectDropPayload === true
+      ? undefined
+      : buildCalibrationAdjudicationAtFold(projectRoot, changeId, events);
   const epochNode = buildEpochNode(epochNumber, wave, allocations, events, {
     dropPayload: options.injectDropPayload === true,
+    calibrationAdjudication,
   });
   const ledgerPath = path.join(bundlePath, "run-ledger.xml");
 
@@ -1536,6 +1546,73 @@ export function listLedgerEvents(bundlePath: string): LooseEvent[] {
   return events.sort((a, b) => a.id - b.id);
 }
 
+/** One folded epoch's claims + stored CalibrationAdjudication (A59 corr 155–156). */
+export type LedgerCalibrationEpoch = {
+  changeId: string;
+  epoch: number;
+  claims: LooseEvent[];
+  adjudication: CalibrationAdjudicationRecord | undefined;
+};
+
+/**
+ * Read folded epochs that carry claimedConfidence claims and any stored adjudication.
+ * Report never recomputes labels — only stored CalibrationAdjudication counts as adjudicated.
+ */
+export function listLedgerCalibrationEpochs(bundlePath: string, changeId: string): LedgerCalibrationEpoch[] {
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (!existsSync(ledgerPath)) return [];
+  const artifact = readGraceXmlArtifact(ledgerPath);
+  if (!artifact.root) return [];
+  const rows: LedgerCalibrationEpoch[] = [];
+  for (const wrapper of artifact.root.children) {
+    if (wrapper.tag !== changeId) continue;
+    for (const epoch of wrapper.children) {
+      const match = EPOCH_SECTION_PATTERN.exec(epoch.tag);
+      if (!match) continue;
+      const epochNumber = Number(match[1]);
+      const claims: LooseEvent[] = [];
+      let adjudication: CalibrationAdjudicationRecord | undefined;
+      for (const child of epoch.children) {
+        if (child.tag === "Event") {
+          const id = Number(child.attributes.id);
+          const task = (child.attributes.task ?? "").trim();
+          const kind = (child.attributes.kind ?? "").trim();
+          if (!Number.isInteger(id) || !task || !kind) continue;
+          const event: LooseEvent = {
+            id,
+            task,
+            kind,
+            file: ledgerPath,
+            attributes: { ...child.attributes },
+            children: child.children.map(cloneXmlNode),
+          };
+          if (attemptHasClaimedConfidence(event)) claims.push(event);
+        }
+        if (child.tag === "CalibrationAdjudication") {
+          adjudication = parseCalibrationAdjudicationNode(child);
+        }
+      }
+      if (claims.length === 0 && !adjudication) continue;
+      rows.push({ changeId, epoch: epochNumber, claims, adjudication });
+    }
+  }
+  return rows.sort((a, b) => a.epoch - b.epoch);
+}
+
+function parseCalibrationAdjudicationNode(node: GraceXmlNode): CalibrationAdjudicationRecord | undefined {
+  const outcome = (node.attributes.outcome ?? "").trim();
+  if (outcome !== "pass" && outcome !== "fail" && outcome !== "pending") return undefined;
+  const claimCount = Number(node.attributes.claimCount ?? "0");
+  return {
+    adjudicator: "target-assertions",
+    outcome,
+    reason: node.attributes.reason?.trim() || undefined,
+    claimCount: Number.isInteger(claimCount) ? claimCount : 0,
+    claims: (node.attributes.claims ?? "").trim(),
+    adjudicatedAt: "fold",
+  };
+}
+
 function failureSignatureNode(signature: FailureSignature): GraceXmlNode {
   return {
     tag: "FailureSignature",
@@ -1765,12 +1842,98 @@ function validateEventsAgainstAllocations(events: LooseEvent[], allocations: Ran
   return issues;
 }
 
+/** Stored at fold beside claims in the same epoch (A59 corr 155–156). Immutable after fold. */
+export type CalibrationAdjudicationRecord = {
+  adjudicator: "target-assertions";
+  /** pass | fail when evaluable; pending when complete is undefined. */
+  outcome: "pass" | "fail" | "pending";
+  /** When outcome is pending, the absence reason. */
+  reason?: string;
+  claimCount: number;
+  /** Claimed confidence levels in document order, comma-separated (e.g. "low,high"). */
+  claims: string;
+  /** Adjudication moment — always fold for records written by foldEpoch. */
+  adjudicatedAt: "fold";
+};
+
+function attemptHasClaimedConfidence(event: LooseEvent): boolean {
+  const raw = event.attributes.claimedConfidence;
+  return event.kind === "attempt" && typeof raw === "string" && raw.trim() !== "";
+}
+
+/**
+ * One adjudication per fold that contains claimedConfidence attempts (corr 155–156).
+ * Uses evaluateTargetComplete (three-valued); never the attempt outcome attribute.
+ */
+function buildCalibrationAdjudicationAtFold(
+  projectRoot: string,
+  changeId: string,
+  events: LooseEvent[],
+): CalibrationAdjudicationRecord | undefined {
+  const claimEvents = events.filter(attemptHasClaimedConfidence);
+  if (claimEvents.length === 0) return undefined;
+
+  const claims = claimEvents
+    .map((event) => (event.attributes.claimedConfidence ?? "").trim())
+    .filter((level) => level.length > 0);
+  const { complete, completeAbsence } = evaluateTargetComplete(projectRoot, changeId);
+
+  if (complete === true) {
+    return {
+      adjudicator: "target-assertions",
+      outcome: "pass",
+      claimCount: claimEvents.length,
+      claims: claims.join(","),
+      adjudicatedAt: "fold",
+    };
+  }
+  if (complete === false) {
+    return {
+      adjudicator: "target-assertions",
+      outcome: "fail",
+      claimCount: claimEvents.length,
+      claims: claims.join(","),
+      adjudicatedAt: "fold",
+    };
+  }
+  return {
+    adjudicator: "target-assertions",
+    outcome: "pending",
+    reason:
+      completeAbsence?.reason ??
+      "target-assertions could not produce a boolean outcome at fold (pending, not fail)",
+    claimCount: claimEvents.length,
+    claims: claims.join(","),
+    adjudicatedAt: "fold",
+  };
+}
+
+function calibrationAdjudicationNode(record: CalibrationAdjudicationRecord): GraceXmlNode {
+  const attributes: Record<string, string> = {
+    adjudicator: record.adjudicator,
+    outcome: record.outcome,
+    claimCount: String(record.claimCount),
+    claims: record.claims,
+    adjudicatedAt: record.adjudicatedAt,
+  };
+  if (record.reason) attributes.reason = record.reason;
+  return {
+    tag: "CalibrationAdjudication",
+    attributes,
+    children: [],
+    text: "",
+  };
+}
+
 function buildEpochNode(
   epochNumber: number,
   wave: string | undefined,
   allocations: RangeAllocation[],
   events: LooseEvent[],
-  options: { dropPayload?: boolean } = {},
+  options: {
+    dropPayload?: boolean;
+    calibrationAdjudication?: CalibrationAdjudicationRecord;
+  } = {},
 ): GraceXmlNode {
   const children: GraceXmlNode[] = [
     ...allocations.map((allocation) => ({
@@ -1805,6 +1968,10 @@ function buildEpochNode(
       };
     }),
   ];
+  // Durable fold-time label (corr 156) — sibling of Events, not recomputed at report time.
+  if (options.calibrationAdjudication) {
+    children.push(calibrationAdjudicationNode(options.calibrationAdjudication));
+  }
   return {
     tag: `Epoch-${epochNumber}`,
     attributes: wave ? { wave } : {},

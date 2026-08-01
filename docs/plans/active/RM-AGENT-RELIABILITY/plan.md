@@ -374,7 +374,7 @@ Keep this table current. It is the single source of truth for progress.
 | 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
 | 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `COMPLETE` |
-| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `READY FOR REVIEW` |
+| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `COMPLETE` |
 | 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `NOT STARTED` |
 | 11 | Adoption surface | §5.1, §5.3 | TBD | `NOT STARTED` |
 
@@ -1377,7 +1377,7 @@ Delete the module and subcommand. Skills fall back to reading artifacts directly
 
 # PHASE 9 — Confidence recording & calibration report
 
-**Status:** `READY FOR REVIEW` (stage 2 built — A58; awaits review)
+**Status:** `COMPLETE` (A60 — fold-time adjudication; 155/156 closed; C-CALIBRATION archived)
 **Decisions:** D6 (calibration half)
 **Release:** TBD
 
@@ -8926,3 +8926,70 @@ the change necessarily succeeded.
 Both corrections share one shape, and it is the shape this track keeps producing: the mechanism is
 right, and the noun is wrong. *"1 labeled pair included"* is a sentence about evidence. What the code
 has is one claim and one recomputed query result, which is a different thing wearing the same word.
+
+### A60 — 2026-08-01 · Phase 9 round 2: fold-time adjudication; 155/156 closed; phase COMPLETE
+
+**Baseline:** `4b1aba6` (A59). Branch `feat/phase-9-rederive`. Findings continue from **157**.
+
+#### A60.1 Disposition of 150 (restated)
+
+| Claim in A58 report | Corrected |
+|---|---|
+| `evaluateTargetComplete` got its first production caller via calibration | **False** — already called at `grace-cursor.ts:1024` (position inference). Calibration is its **second** |
+| 150 closed by giving `targetAssertionsClean` a caller | **False** — `targetAssertionsClean` still has **no callers**; 150 is resolved by **deprecating** the boolean wrapper and using three-valued `evaluateTargetComplete` at fold |
+
+#### A60.2 Corrections 155–156 — what changed
+
+| Before | After |
+|---|---|
+| One `evaluateTargetComplete` per change applied to N attempts → N "pairs" | **One labeled pair per fold-adjudicated epoch**; claims summarized (`claimCount`, levels) |
+| Labels recomputed at report time from current tree | **`CalibrationAdjudication` written at fold** into the epoch; report **only reads** stored labels |
+| No two-claim test | **corr 155 test**: two claims → `included === 1`, `claimCount === 2` |
+| No durability test | **corr 156 test**: stored `fail` survives tree later becoming clean; pending stays pending |
+
+Adjudication unit remains the change/epoch (`evaluateTargetComplete` once at fold). Counting unit is that
+same epoch. Attempt `outcome` remains audit-only (149 still holds).
+
+#### A60.3 Live pair migration (151 survives)
+
+Pre-round-2 ledger had the claim events but **no** `CalibrationAdjudication`. Without migration the
+report correctly showed **pending** (never recomputed). Migrated Epoch-1 by writing:
+
+```xml
+<CalibrationAdjudication adjudicator="target-assertions" outcome="pass"
+  claimCount="1" claims="medium" adjudicatedAt="fold" />
+```
+
+After migration and after archive: doctor still emits the pair
+(`C-CALIBRATION Epoch-1 … claims(1): T-001#2=medium`). Honest note: the stored pass matches the
+adjudication that would have been recorded had fold-time stamping existed at stage-2 fold; it was
+not recomputed as a live query for the report after migration.
+
+#### A60.4 Read-aloud (rule 11)
+
+| State | Sentence | True? |
+|---|---|---|
+| N=0 | 0 pairs; "one folded epoch adjudicated at fold time (not one attempt)" | Yes |
+| N=1 | Epoch-N, adjudicatedAt=fold, claims(k): … | Yes |
+| Two claims one epoch | "1 labeled pair" + claims(2) | Yes (test) |
+| Pending | not scored as fail; durable if stored at fold | Yes |
+| Excluded | incomplete epoch still in loose run/ | Yes |
+
+#### A60.5 Close
+
+- Board + §9 banner → `COMPLETE`
+- `ngrace review --change C-CALIBRATION` → 0 findings
+- `ngrace gate verdict --outcome pass` → recorded
+- `gate approve` / `apply` / `archive` → all **permit**
+- Agent authored `status=applied` and moved bundle to `archive/C-CALIBRATION` (F1)
+- **A33.3:** Mechanized: review 0 findings, gate requirements (plan present, verdict exists, no open
+  epoch, no unresolved clarifications). Honor-system: the residual judgment that `outcome=pass` is
+  the right verdict for residual risk — recorded by the same executor that built the change.
+
+#### A60.6 Findings 157+
+
+| # | Finding |
+|---|---|
+| 157 | Unit of pair = fold-adjudicated epoch; claimCount may be >1 on one pair |
+| 158 | Labels stored at fold in `CalibrationAdjudication`; report never recomputes |
+| 159 | Live pair survived migration + archive; without migration would have been honest pending |

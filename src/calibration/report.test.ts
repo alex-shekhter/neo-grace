@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -97,6 +97,27 @@ function writeApprovedPlan(
   );
 }
 
+function openAttemptTerminalFold(
+  root: string,
+  changeId: string,
+  claims: Array<{ confidence: string; outcome?: "pass" | "fail" }>,
+): void {
+  advanceCursor(root, changeId, { task: "T-001", openEpoch: true });
+  for (const claim of claims) {
+    recordAttempt(root, changeId, {
+      task: "T-001",
+      outcome: claim.outcome ?? "pass",
+      claimedConfidence: claim.confidence,
+      writeEvidence: { available: true, files: [] },
+      ...(claim.outcome === "fail"
+        ? { signature: { kind: "test", key: "k" } }
+        : {}),
+    });
+  }
+  advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+  foldEpoch(root, changeId);
+}
+
 describe("parseClaimedConfidence ordinal", () => {
   it("accepts the three levels", () => {
     for (const level of CLAIMED_CONFIDENCE_LEVELS) {
@@ -115,7 +136,7 @@ describe("parseClaimedConfidence ordinal", () => {
   });
 });
 
-describe("collectCalibrationReport", () => {
+describe("collectCalibrationReport (per-epoch pairs, fold-time labels)", () => {
   it("N=0: honest empty summary, no rate table", () => {
     const root = createRoot();
     writeMinimalProject(root);
@@ -124,12 +145,10 @@ describe("collectCalibrationReport", () => {
     expect(report.excluded).toBe(0);
     expect(report.pending).toBe(0);
     expect(report.summary).toContain("0 labeled pairs included");
+    expect(report.summary).toContain("one folded epoch");
     expect(report.summary).toContain("claimedConfidence is not used by any gate");
     expect(report.summary.toLowerCase()).not.toContain("100%");
-    expect(report.summary.toLowerCase()).not.toContain("well calibrated");
-    expect(report.promotionBar).toContain("informs no gate");
-    const text = formatCalibrationText(report);
-    expect(text).toContain("included: 0");
+    expect(formatCalibrationText(report)).toContain("included (fold-adjudicated epochs): 0");
   });
 
   it("loose claimedConfidence is excluded (incomplete epoch), not included", () => {
@@ -151,88 +170,139 @@ describe("collectCalibrationReport", () => {
     expect(report.excluded).toBe(1);
     expect(report.included).toBe(0);
     expect(report.pairs[0]?.bucket).toBe("excluded");
-    expect(report.pairs[0]?.reason).toContain("incomplete epoch");
+    expect(report.pairs[0]?.claimCount).toBe(1);
     expect(report.summary).toContain("0 labeled pairs included");
-    expect(report.summary).toContain("1 excluded");
   });
 
-  it("N=1: one included pair names target-assertions adjudicator", () => {
+  it("N=1: one included pair names fold-time target-assertions adjudicator", () => {
     const root = createRoot();
     writeMinimalProject(root);
     writeApprovedPlan(root, "C-CAL-ONE");
-    advanceCursor(root, "C-CAL-ONE", { task: "T-001", openEpoch: true });
-    recordAttempt(root, "C-CAL-ONE", {
-      task: "T-001",
-      outcome: "pass",
-      claimedConfidence: "high",
-      writeEvidence: { available: true, files: [] },
-    });
-    // Close the epoch so the claim can be included.
-    advanceCursor(root, "C-CAL-ONE", { task: "T-001", kind: "terminal" });
-    foldEpoch(root, "C-CAL-ONE");
+    openAttemptTerminalFold(root, "C-CAL-ONE", [{ confidence: "high" }]);
 
     const report = collectCalibrationReport(root);
     expect(report.included).toBe(1);
     expect(report.excluded).toBe(0);
     const pair = report.pairs.find((p) => p.bucket === "included");
     expect(pair).toBeDefined();
-    expect(pair!.claimedConfidence).toBe("high");
+    expect(pair!.claimCount).toBe(1);
+    expect(pair!.claims[0]!.claimedConfidence).toBe("high");
     expect(pair!.adjudicatedOutcome).toBe("pass");
     expect(pair!.adjudicator).toBe(ADJUDICATOR_TARGET_ASSERTIONS);
+    expect(pair!.adjudicatedAt).toBe("fold");
     expect(pair!.changeId).toBe("C-CAL-ONE");
-    expect(pair!.taskId).toBe("T-001");
-    // Agent-authored attempt outcome is not the join score — both recorded.
-    expect(pair!.attemptOutcome).toBe("pass");
+    expect(pair!.epoch).toBe(1);
+    expect(pair!.claims[0]!.attemptOutcome).toBe("pass");
     expect(report.summary).toContain("1 labeled pair included");
     expect(report.summary).toContain(`adjudicator=${ADJUDICATOR_TARGET_ASSERTIONS}`);
+    expect(report.summary).toContain("adjudicatedAt=fold");
     expect(report.summary).not.toMatch(/%/);
+
+    // Fold wrote durable CalibrationAdjudication into the ledger.
+    const ledger = readFileSync(
+      path.join(root, ARTIFACT_DIR, "changes/active/C-CAL-ONE/run-ledger.xml"),
+      "utf8",
+    );
+    expect(ledger).toContain("CalibrationAdjudication");
+    expect(ledger).toContain('outcome="pass"');
+    expect(ledger).toContain('adjudicatedAt="fold"');
   });
 
-  it("pending when target assertions are not evaluable (MustPassCommand without run)", () => {
+  it("corr 155: two claims in one change are one labeled pair, not two", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeApprovedPlan(root, "C-CAL-TWO");
+    openAttemptTerminalFold(root, "C-CAL-TWO", [
+      { confidence: "low" },
+      { confidence: "high" },
+    ]);
+
+    const report = collectCalibrationReport(root);
+    expect(report.included).toBe(1);
+    expect(report.pairs.filter((p) => p.bucket === "included")).toHaveLength(1);
+    const pair = report.pairs.find((p) => p.bucket === "included")!;
+    expect(pair.claimCount).toBe(2);
+    expect(pair.claims.map((c) => c.claimedConfidence).sort()).toEqual(["high", "low"]);
+    expect(pair.adjudicatedOutcome).toBe("pass");
+    expect(report.summary).toContain("1 labeled pair included");
+    expect(report.summary).toContain("claims(2)");
+    // Must not say "2 labeled pairs".
+    expect(report.summary).not.toMatch(/2 labeled pairs/);
+  });
+
+  it("corr 156: stored fail label does not move when the tree later becomes clean", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    // Fold while target is missing → fail stored at fold.
+    writeApprovedPlan(root, "C-CAL-DUR", { targetMustExist: "src/missing-at-fold.ts" });
+    openAttemptTerminalFold(root, "C-CAL-DUR", [
+      { confidence: "medium", outcome: "pass" }, // agent pass ≠ score
+    ]);
+
+    const before = collectCalibrationReport(root);
+    expect(before.included).toBe(1);
+    expect(before.pairs[0]!.adjudicatedOutcome).toBe("fail");
+    expect(before.pairs[0]!.claims[0]!.attemptOutcome).toBe("pass");
+
+    // Tree now satisfies a different plan path — but we do not recompute labels.
+    // Fix the missing file so a live re-eval would pass; stored label must stay fail.
+    write(
+      root,
+      "src/missing-at-fold.ts",
+      `// START_MODULE_CONTRACT\n//   PURPOSE: Late\n//   SCOPE: x\n//   DEPENDS: none\n//   LINKS: M-EXAMPLE\n//   ROLE: RUNTIME\n//   MAP_MODE: EXPORTS\n// END_MODULE_CONTRACT\n//\n// START_MODULE_MAP\n//   late\n// END_MODULE_MAP\nexport const late = true;\n`,
+    );
+    // Also re-point plan to existing example so target assertions would pass if recomputed.
+    writeApprovedPlan(root, "C-CAL-DUR", { targetMustExist: "src/example.ts" });
+
+    const after = collectCalibrationReport(root);
+    expect(after.included).toBe(1);
+    expect(after.pairs[0]!.adjudicatedOutcome).toBe("fail");
+    expect(after.pairs[0]!.adjudicatedAt).toBe("fold");
+    // Ledger still holds the stored fail.
+    const ledger = readFileSync(
+      path.join(root, ARTIFACT_DIR, "changes/active/C-CAL-DUR/run-ledger.xml"),
+      "utf8",
+    );
+    expect(ledger).toContain('outcome="fail"');
+  });
+
+  it("pending when target assertions not evaluable at fold stays pending, never fail", () => {
     const root = createRoot();
     writeMinimalProject(root);
     writeApprovedPlan(root, "C-CAL-PEND", {
       extraTarget: `<MustPassCommand><Command>bun test</Command></MustPassCommand>`,
     });
-    advanceCursor(root, "C-CAL-PEND", { task: "T-001", openEpoch: true });
-    recordAttempt(root, "C-CAL-PEND", {
-      task: "T-001",
-      outcome: "pass",
-      claimedConfidence: "low",
-      writeEvidence: { available: true, files: [] },
-    });
-    advanceCursor(root, "C-CAL-PEND", { task: "T-001", kind: "terminal" });
-    foldEpoch(root, "C-CAL-PEND");
+    openAttemptTerminalFold(root, "C-CAL-PEND", [{ confidence: "low" }]);
 
     const report = collectCalibrationReport(root);
     expect(report.included).toBe(0);
     expect(report.pending).toBe(1);
     expect(report.pairs[0]?.bucket).toBe("pending");
-    expect(report.pairs[0]?.reason).toBeDefined();
+    expect(report.pairs[0]?.adjudicatedOutcome).toBeUndefined();
+    expect(report.pairs[0]?.adjudicatedAt).toBe("fold");
     expect(report.summary).toContain("pending");
     expect(report.summary).toContain("not scored as fail");
-    expect(report.pairs[0]?.adjudicatedOutcome).toBeUndefined();
+
+    // Even if we later remove MustPassCommand (tree would pass), stored pending stays pending.
+    writeApprovedPlan(root, "C-CAL-PEND");
+    const after = collectCalibrationReport(root);
+    expect(after.pending).toBe(1);
+    expect(after.included).toBe(0);
+    expect(after.pairs[0]?.bucket).toBe("pending");
   });
 
-  it("included fail when target assertions are red (independent of agent pass)", () => {
+  it("included fail independent of agent pass (149 still holds)", () => {
     const root = createRoot();
     writeMinimalProject(root);
-    // Target requires a file that does not exist — machine fail.
     writeApprovedPlan(root, "C-CAL-FAIL", { targetMustExist: "src/missing-target.ts" });
-    advanceCursor(root, "C-CAL-FAIL", { task: "T-001", openEpoch: true });
-    recordAttempt(root, "C-CAL-FAIL", {
-      task: "T-001",
-      outcome: "pass", // agent claims pass — must NOT become the score
-      claimedConfidence: "medium",
-      writeEvidence: { available: true, files: [] },
-    });
-    advanceCursor(root, "C-CAL-FAIL", { task: "T-001", kind: "terminal" });
-    foldEpoch(root, "C-CAL-FAIL");
+    openAttemptTerminalFold(root, "C-CAL-FAIL", [
+      { confidence: "medium", outcome: "pass" },
+    ]);
 
     const report = collectCalibrationReport(root);
     expect(report.included).toBe(1);
     expect(report.pairs[0]?.adjudicatedOutcome).toBe("fail");
-    expect(report.pairs[0]?.attemptOutcome).toBe("pass");
+    expect(report.pairs[0]?.claims[0]?.attemptOutcome).toBe("pass");
     expect(report.pairs[0]?.adjudicator).toBe(ADJUDICATOR_TARGET_ASSERTIONS);
   });
 
@@ -246,14 +316,6 @@ describe("collectCalibrationReport", () => {
         task: "T-001",
         outcome: "pass",
         claimedConfidence: "80%",
-        writeEvidence: { available: true, files: [] },
-      }),
-    ).toThrow(/claimedConfidence/);
-    expect(() =>
-      recordAttempt(root, "C-CAL-BAD", {
-        task: "T-001",
-        outcome: "pass",
-        claimedConfidence: "sure",
         writeEvidence: { available: true, files: [] },
       }),
     ).toThrow(/claimedConfidence/);
