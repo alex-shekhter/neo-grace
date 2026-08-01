@@ -9,13 +9,14 @@ import {
 } from "./token-accounting";
 
 describe("token-accounting (D15)", () => {
-  it("skillTextLines().total reports 674 for SKILL.md files at HEAD", () => {
+  it("skillTextLines().total reports 709 for SKILL.md files at HEAD", () => {
     // Phase 2: three skills each gained a four-line <verdicts> block (636 → 648).
     // Phase 3: ngrace-cli cursor surface line + ngrace-execute advance/fold rule (648 → 650).
     // Phase 4: ngrace-execute attempt/budget/escalation rule (650 → 651).
     // Phase 5: gate calls in execute/plan + clarification + reviewer verdict-home note (651 → 674).
+    // Phase 6: detachment contract + review-first path in reviewer/execute (674 → 709).
     const measured = skillTextLines();
-    expect(measured.total).toBe(674);
+    expect(measured.total).toBe(709);
     expect(Object.keys(measured.perSkill).length).toBe(16);
     // Sanity: known skills present
     expect(measured.perSkill["ngrace-init"]).toBeGreaterThan(0);

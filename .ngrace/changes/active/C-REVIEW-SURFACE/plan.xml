@@ -63,10 +63,14 @@
       <File>src/review/command.ts</File>
       <File>src/review/scorer.ts</File>
       <File>src/review/scorer.test.ts</File>
+      <File>src/review/scope-helpers.ts</File>
       <File>src/grace.ts</File>
+      <File>src/grace-cursor.test.ts</File>
       <File>src/lint/core.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
       <File>package.json</File>
       <File>.github/workflows/validate.yml</File>
+      <File>scripts/validate-determinism.ts</File>
       <File>README.md</File>
       <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
       <File>skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md</File>

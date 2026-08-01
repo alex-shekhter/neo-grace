@@ -14,6 +14,14 @@ Stored on the change bundle in `run-ledger.xml` under `<Verdicts><Verdict outcom
 (sibling to `Epoch-N`; not a loose `run/` event). The apply gate requires a recorded verdict of any
 outcome, including `unable-to-determine` (D11).
 
+### Mechanized findings vs recorded verdicts
+
+- `ngrace review` runs pattern detectors and process audits and emits deterministic finding IDs.
+  It does **not** write Verdicts, Decisions, or status.
+- Form judgment from those findings (and checklist judgment), then record with `ngrace gate verdict`.
+- Detachment (cold subagent + read-only tool allowlist) is a **host capability**. Where the host
+  cannot provide it, use `unable-to-determine` with `host-capability-missing` — never a silent pass.
+
 ### Absence reasons on a review verdict
 
 - `host-capability-missing` — the host cannot produce a detached review (D11). Whether that blocks

@@ -11,6 +11,7 @@ import { lintCommand } from "./grace-lint";
 import { moduleCommand } from "./grace-module";
 import { statusCommand } from "./grace-status";
 import { verificationCommand } from "./grace-verification";
+import { reviewCommand } from "./review/command";
 import { ARTIFACT_DIR } from "./artifact/paths";
 
 const main = defineCommand({
@@ -27,6 +28,7 @@ const main = defineCommand({
     graph: graphCommand,
     lint: lintCommand,
     module: moduleCommand,
+    review: reviewCommand,
     status: statusCommand,
     verification: verificationCommand,
   },

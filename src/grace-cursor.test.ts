@@ -515,22 +515,26 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
-    // Import lines plus call sites: fold delete, ledger post-write rollback (A31.5), dart temp.
+    // Import lines plus call sites: fold delete, ledger post-write rollback (A31.5), dart temp,
+    // review scorer temp-project cleanup (Phase 6 corpus scoring).
     for (const line of lines) {
       expect(
         line.startsWith("src/grace-cursor.ts:")
           || line.startsWith("src/gates/ledger.ts:")
-          || line.startsWith("src/lint/adapters/dart.ts:"),
+          || line.startsWith("src/lint/adapters/dart.ts:")
+          || line.startsWith("src/review/scorer.ts:"),
       ).toBe(true);
     }
     const callSites = lines.filter((line) => /(?:unlinkSync|rmSync|rmdirSync)\s*\(/.test(line)).sort();
     const cursorUnlink = callSites.find((line) => line.startsWith("src/grace-cursor.ts:"));
     const ledgerUnlink = callSites.find((line) => line.startsWith("src/gates/ledger.ts:"));
     const dartRm = callSites.find((line) => line.startsWith("src/lint/adapters/dart.ts:"));
+    const scorerRm = callSites.find((line) => line.startsWith("src/review/scorer.ts:"));
     expect(cursorUnlink).toMatch(/^src\/grace-cursor\.ts:\d+:\s*unlinkSync\(contained\.absolutePath\);$/);
     expect(ledgerUnlink).toMatch(/^src\/gates\/ledger\.ts:\d+:\s*unlinkSync\(ledgerPath\);$/);
     expect(dartRm).toBe("src/lint/adapters/dart.ts:206:    rmSync(temporaryDirectory, { recursive: true, force: true });");
-    expect(callSites).toHaveLength(3);
+    expect(scorerRm).toMatch(/^src\/review\/scorer\.ts:\d+:\s*rmSync\(root, \{ recursive: true, force: true \}\);$/);
+    expect(callSites).toHaveLength(4);
     expect(lines.some((line) => line.includes("rmdirSync"))).toBe(false);
   });
 });

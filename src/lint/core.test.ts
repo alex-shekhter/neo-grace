@@ -7,6 +7,9 @@ import { writeChangeBundleFixture, writeMinimalNgraceProject } from "../artifact
 import { lintGraceProject } from "./core";
 import { isGateIssueCode } from "../gates/catalog";
 import { advanceCursor } from "../grace-cursor";
+import { isReviewIssueCode } from "../review/catalog";
+import { runReview } from "../review/core";
+import { mkdirSync, writeFileSync } from "node:fs";
 
 const tempRoots: string[] = [];
 
@@ -57,5 +60,42 @@ describe("D14 boundary — runLint never emits gate.*", () => {
     expect(evaluation.issues.some((i) => i.code.startsWith("gate."))).toBe(true);
     const lint = lintGraceProject(root, {});
     expect(lint.issues.filter((i) => i.code.startsWith("gate."))).toHaveLength(0);
+  });
+});
+
+describe("D14 boundary — runLint never emits review.*", () => {
+  it("seeded regex-over-structure fixture yields zero review.* from lint", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-d14-review-"));
+    tempRoots.push(root);
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(
+      path.join(root, "src", "check-status.ts"),
+      `export function planIsApproved(xml: string): boolean {
+  return /status\\s*=\\s*["']approved["']/i.test(xml);
+}
+`,
+    );
+    const lint = lintGraceProject(root, {});
+    expect(lint.issues.filter((i) => isReviewIssueCode(i.code))).toHaveLength(0);
+    expect(lint.issues.every((i) => !i.code.startsWith("review."))).toBe(true);
+  });
+
+  it("both directions: review surface emits review.* on the same fixture", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-d14-review-b-"));
+    tempRoots.push(root);
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(
+      path.join(root, "src", "check-status.ts"),
+      `export function planIsApproved(xml: string): boolean {
+  return /status\\s*=\\s*["']approved["']/i.test(xml);
+}
+`,
+    );
+    const review = runReview(root, { processAudits: false, joinEngine: false });
+    expect(review.findings.some((f) => f.code === "review.regex-over-structure")).toBe(true);
+    const lint = lintGraceProject(root, {});
+    expect(lint.issues.filter((i) => i.code.startsWith("review."))).toHaveLength(0);
   });
 });
