@@ -8395,6 +8395,86 @@ A rule whose author's plan cannot satisfy it is not ready, and this bundle's wri
 
 Between the fixture and the self-application, the second is the one that would have caught 141.
 
+### A54 — 2026-08-01 · `C-GRAPH-COVERAGE` round 2 accepted; one latent trap in the obligation it creates
+
+Round 2 was verified at `eef6ed4`. **Decisions A and C were re-decided as full coverage with
+`LINKS`-only ownership**, which is the answer A53.3 pointed at, and the build is sound.
+
+| Claim | Independently verified |
+|---|---|
+| Lint 0 errors / 0 warnings / `Governed files: 56` | Confirmed at `eef6ed4` |
+| Suite 906 pass / 3 skip / 0 fail | Confirmed |
+| 18 anchors in graph and verification, both ≪ 30 KB | Confirmed, `<M-` and `<V-M-` both 18 |
+| No `CONFIG` escape | Confirmed: 71 `RUNTIME`, 3 `TYPES`, 1 `SCRIPT`; `MAP_MODE` 73 `EXPORTS`, 1 `LOCALS`. **Zero `NONE`** |
+| Self-application: the bundle's own plan passes its own rule | Confirmed — `C-GRAPH-COVERAGE` is active and lint is clean |
+
+The **58-versus-56 gap** is correct and worth recording: `src/grace-lint.test.ts` and
+`src/project-utils.test.ts` carry contract markers inside fixture strings and are properly **not**
+governed. That is correction 144 working, not an accounting error.
+
+**Correction 144 is accepted and is a real inconsistency, not a convenience.** At `4c4147b`,
+`stripQuotedStrings` was already used by `hasGraceMarkers` (`:172`) and by the A8 near-miss surface
+(`:209`); `validateMarkerStructure` was the one consumer reading raw text. Aligning it does not weaken
+A8, because A8 already stripped. It became reachable only when real files gained contracts.
+
+#### A54.1 The rule fires on real content, not only on a fixture
+
+A53.4 asked for more than a fixture. Verified directly by staging the **real, unmodified
+`C-REVIEW-SURFACE` plan body** as an active bundle:
+
+```
+Errors: 6
+- change.graph-anchors-miss-write-scope — ObservedWriteScope path src/review/core.ts is not linked
+  to any GraphAnchors module (file LINKS: M-REVIEW; GraphAnchors: M-CLI, M-LINT-CATALOG,
+  M-LINT-CORE, M-SKILLS).
+  (…and the same for catalog.ts, command.ts, scope-helpers.ts, scorer.ts, shape-data.ts)
+```
+
+Six errors, exactly the six `src/review/*` files, and the message names the path, the file's **actual**
+`LINKS`, and the plan's **actual** anchors — so a reader knows what to add without opening anything.
+The defect that motivated this bundle is now caught on the artifact that exhibited it. Temporary
+bundle removed; tree restored to 0/0/56.
+
+Also verified: the module summaries were widened to stay true of what they now govern. `M-QUERY` —
+*"Artifact query and navigation: module, file, graph, and verification resolution"* — honestly covers
+`grace-file.ts`, `grace-graph.ts` and `grace-module.ts`. That is rule 11 applied to the graph itself.
+
+#### A54.2 Correction 145 — an apostrophe in a contract field reports three errors, all false
+
+This bundle obliges every non-test `src/` file to carry a `MODULE_CONTRACT` whose `PURPOSE` and
+`SCOPE` are English prose — 56 today, one per new file forever. English prose contains apostrophes,
+and `stripQuotedStrings` treats `'` in a line comment as a string delimiter:
+
+```
+// START_MODULE_CONTRACT
+//   PURPOSE: Parse the user's governed file      ← the apostrophe opens a span
+//   …
+// END_MODULE_CONTRACT                            ← swallowed
+```
+
+```
+error markup.missing-end-marker    line 1: module-contract is missing its end marker.
+error markup.module-map-missing    line 1: MAP_MODE EXPORTS requires a non-empty MODULE_MAP.
+error markup.module-map-mismatch   line 1: MODULE_MAP EXPORTS mismatch. Missing: foo; extra: none.
+```
+
+**All three sentences are false.** The end marker is on the page. The map is present. The mismatch is
+an artifact of the first two. A contributor is told to add something already there, with no indication
+that an apostrophe two lines up is the cause.
+
+It **fails closed** — a loud error, never a silent pass — so nothing ships broken, and no shipped
+contract currently contains an apostrophe. It is latent, not live. It is also **created by this
+bundle**: before round 2 no file in `src/` carried a contract, so the trap was unreachable. Under the
+rule that a defect is fixed where it is detected, it belongs here rather than in a fourth deferral.
+
+The fix is not a one-line strip. `stripQuotedStrings` cannot simply ignore quotes inside `//` spans,
+because `//` also occurs **inside** string literals (`"http://…"`), so comment state and string state
+must be tracked in one pass, in that order. Both directions must be tested: a quote in a comment must
+stop opening a span, **and** a `//` inside a string must still not start a comment. The function is
+read by governance detection (`hasGraceMarkers`), by A8 near-miss detection, and now by marker
+structure validation — all three change behaviour together, and the second is the one that could
+regress silently.
+
 ---
 
 ## 15. Final instruction to the executor
