@@ -6153,6 +6153,86 @@ against*. Neither is exotic — they are §0.7.3's first two probe categories, n
 direction, applied to the detector rather than to the artifact. The suite could not have found them,
 because the suite and the detector share the corpus as their only ground.
 
+### A38 — 2026-07-31 · Second Phase 6 gate: the symbol-name clause changed sign, not kind
+
+**Measured at `53ba099`.** Verified here: `ngrace review --path .` reports **0 findings**, the five
+held-out controls live in `src/review/core.test.ts` and **none** is in `corpus()`, the directory-wide
+exemption is gone and replaced by an `@ngrace-review-shape-data` file marker carried by exactly one
+production file, and `validate:ci` is green.
+
+**Correction 86 is genuinely fixed.** `detectRegexOverStructure` now extracts pattern sources from
+`new RegExp(...)` and regex literals and asks whether the *pattern body* carries markup or attribute
+syntax. A37.1's held-out fixture — `new RegExp(\`<Task[^>]*id="${id}"\`)` — fires. Reporting corpus
+detection and generalization as two numbers is the right shape, and 5/5 on controls the detectors were
+not written against is a real result. **Correction 88 is fixed properly**: exemption by explicit file
+marker rather than by path prefix, with a rogue guard under `src/review/` proven visible.
+
+Two corrections follow, 89 and 90.
+
+#### A38.1 Correction 89 — the false positive is suppressed by a second production symbol name
+
+Correction 87 said: the detector's trigger clause names `hasGraceMarkers`, the function it flags. The fix
+removed that clause and added this one, sixteen lines away (`src/review/core.ts:395`):
+
+```ts
+// Correct implementations strip strings/templates before scanning comments.
+if (/\bstripQuotedStrings\b/.test(text)) return false;
+```
+
+`stripQuotedStrings` is a production symbol defined once in this repository, at
+`src/project-utils.ts:91`. The comment above the function states the coupling outright: *"Production
+`hasGraceMarkers` uses `stripQuotedStrings` and must stay silent."*
+
+**The clause that made it fire became the clause that makes it silent.** Same key, opposite sign, same
+brittleness — proven with a pure rename, no behaviour change:
+
+```
+cp src/project-utils.ts <tmp>/src/  &&  s/stripQuotedStrings/stripLiterals/
+runReview(<tmp>, { patterns: true })
+→ review.regex-over-structure src/project-utils.ts
+```
+
+Identical, legitimate code; the false error returns. It also fails the other way: any file that genuinely
+regexes structure while happening to call `stripQuotedStrings` is now exempt.
+
+**The honest discriminator is in the corpus already, and it is dataflow, not naming.** Compare re-03's
+seeded defect with the production scanner:
+
+| | Subject of the marker regex |
+|---|---|
+| `re-03` — defective | `source.split("\n").some(line => /^(\s*)(\/\/|#)\s*START_MODULE_CONTRACT/.test(line))` — the function's **raw input** |
+| `project-utils.ts` — correct | `const searchable = stripQuotedStrings(text)` and then the scan — a value **derived by a transform** |
+
+That is the actual difference the corpus encodes: a marker scan applied to raw text versus one applied to
+a normalized value. It is checkable with the same text-level analysis already written, it survives a
+rename, and it does not need to know which helper performed the transform. Implement that, and re-run the
+rename probe as the discriminating negative.
+
+#### A38.2 Correction 90 (minor) — an exemption nobody can see
+
+`fileHoldsShapesAsData` skips any file containing `@ngrace-review-shape-data`, and the review report says
+nothing about it. The marker is the right mechanism, but a silent exemption is a lever: a future round
+under deadline can retire a finding by adding one line to the file that produced it, and no output
+changes.
+
+Report the exempt files — a count in the summary and the paths under `--format json`. An exemption that
+must appear in the report is one someone can argue with, which is the whole difference between a scoped
+exemption and a quiet one (anti-pattern 8).
+
+#### A38.3 What this round measured
+
+One finding, from a rename. The probe was: *does this detector's answer depend on something that carries
+no meaning?* A symbol name is exactly that — it is not behaviour, it is not structure, and any refactor
+may change it.
+
+**Both rounds of this phase have found the same defect twice, in three costumes:** a detector keyed to a
+fixture's literal (86), keyed to the flagged function's name (87), and keyed to the exempting function's
+name (89). The generalization controls A37 required catch the first shape and would not have caught the
+other two — they prove a detector fires on new *defects*, and say nothing about whether it stays silent on
+new *correct* code. Phase 6's controls should therefore come in pairs: a held-out defect that must fire,
+and a **held-out legitimate variant that must stay silent** — for this branch, the renamed scanner is
+exactly that control.
+
 ---
 
 ## 15. Final instruction to the executor
