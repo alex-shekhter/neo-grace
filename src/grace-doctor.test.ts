@@ -122,8 +122,13 @@ describe("collectDoctorReport", () => {
     writeMinimalProject(root);
     const report = collectDoctorReport(root);
     expect(report.tool).toBe("grace-doctor");
-    expect(report.analysisIssues).toEqual([]);
-    expect(formatDoctorText(report)).toContain("Analysis issues\n  None.");
+    expect(report.absenceIssues).toEqual([]);
+    expect(formatDoctorText(report)).toContain("Absence issues\n  None.");
+    // Corr 181: old JSON key analysisIssues must not ship.
+    expect("analysisIssues" in report).toBe(false);
+    expect(report.planQuality).toBeDefined();
+    expect(report.planQuality.proxyCaveat).toContain("Proxy caveat:");
+    expect(formatDoctorText(report)).toContain("Plan quality");
   });
 
   it("non-zero case: governed .ex file yields analysis.no-adapter with issueClass", () => {
@@ -152,13 +157,13 @@ def run, do: :ok
 `,
     );
     const report = collectDoctorReport(root);
-    expect(report.analysisIssues.length).toBeGreaterThan(0);
-    expect(report.analysisIssues.every((i) => i.issueClass === "absence")).toBe(true);
-    expect(report.analysisIssues.some((i) => i.code === "analysis.no-adapter")).toBe(true);
-    expect(report.analysisIssues.some((i) => i.code === "assertion.command-not-evaluated")).toBe(false);
+    expect(report.absenceIssues.length).toBeGreaterThan(0);
+    expect(report.absenceIssues.every((i) => i.issueClass === "absence")).toBe(true);
+    expect(report.absenceIssues.some((i) => i.code === "analysis.no-adapter")).toBe(true);
+    expect(report.absenceIssues.some((i) => i.code === "assertion.command-not-evaluated")).toBe(false);
     const text = formatDoctorText(report);
     expect(text).toContain("analysis.no-adapter:");
-    expect(report.analysisIssues[0]?.issueClass).toBe("absence");
+    expect(report.absenceIssues[0]?.issueClass).toBe("absence");
   });
 
   const hasPython = ["python3", "python"].some((binary) => {
@@ -191,10 +196,10 @@ def greet():
 `,
       );
       const report = collectDoctorReport(root);
-      const codes = report.analysisIssues.map((i) => i.code);
+      const codes = report.absenceIssues.map((i) => i.code);
       // Prefix filter would include analysis.heuristic-confidence; issueClass filter must not.
       expect(codes).not.toContain("analysis.heuristic-confidence");
-      expect(report.analysisIssues.every((i) => i.issueClass === "absence")).toBe(true);
+      expect(report.absenceIssues.every((i) => i.issueClass === "absence")).toBe(true);
     },
   );
 });

@@ -808,6 +808,40 @@ function validateLedgerVerdictsSection(file: string, wrapper: GraceXmlNode): Ngr
           ),
         );
       }
+      // Optional D10 scope / classification (Phase 10). Absent is valid (additive); invalid tokens error.
+      const scope = (child.attributes.scope ?? "").trim();
+      if (scope && !["task", "wave", "bundle"].includes(scope)) {
+        issues.push(
+          issue(
+            "error",
+            "ledger.invalid-verdict",
+            file,
+            `Verdict scope must be task, wave, or bundle when present; found '${scope}'.`,
+          ),
+        );
+      }
+      const classification = (child.attributes.classification ?? "").trim();
+      if (classification && !["implementation", "plan"].includes(classification)) {
+        issues.push(
+          issue(
+            "error",
+            "ledger.invalid-verdict",
+            file,
+            `Verdict classification must be implementation or plan when present; found '${classification}'.`,
+          ),
+        );
+      }
+      const ctp = (child.attributes.constituentTasksPassed ?? "").trim();
+      if (ctp && ctp !== "true" && ctp !== "false") {
+        issues.push(
+          issue(
+            "error",
+            "ledger.invalid-verdict",
+            file,
+            `Verdict constituentTasksPassed must be true or false when present; found '${ctp}'.`,
+          ),
+        );
+      }
     }
   }
   return issues;

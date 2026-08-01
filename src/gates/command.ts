@@ -19,12 +19,16 @@ import { defineCommand } from "citty";
 
 import { evaluateGate, evaluationToDecision, type GateEvaluation } from "./core";
 import {
+  parseResolutionClassification,
+  parseReviewVerdictScope,
   recordGateDecision,
   recordReviewVerdict,
   type GateId,
   type ReviewVerdictOutcome,
+  type ReviewVerdictRecord,
 } from "./ledger";
 import { GraceCommandError, runGraceCommand } from "../query/errors";
+import { computeConstituentTasksPassed } from "../review/outcomes";
 
 const GATE_SUBCOMMANDS = new Set(["approve", "apply", "archive", "verdict"]);
 
@@ -170,6 +174,29 @@ const verdictSubCommand = defineCommand({
       type: "string",
       description: "Optional free-text note stored as Verdict body text",
     },
+    scope: {
+      type: "string",
+      description:
+        "Optional D10 review scope: task | wave | bundle. Omitted verdicts read as scope-not-recorded (never defaulted).",
+    },
+    task: {
+      type: "string",
+      description: "Optional task id when --scope task",
+    },
+    wave: {
+      type: "string",
+      description: "Optional wave id when --scope wave (also used for constituentTasksPassed)",
+    },
+    classification: {
+      type: "string",
+      description:
+        "Optional resolution classification stored at write: implementation | plan (rule 13). Code-only must be explicit — never a silent residual.",
+    },
+    "constituent-tasks-passed": {
+      type: "string",
+      description:
+        "Optional true|false for wave-scoped fail. When omitted on wave+fail, computed from ledger and stored (or absence reason).",
+    },
     path: {
       type: "string",
       description: "Project root",
@@ -195,11 +222,57 @@ const verdictSubCommand = defineCommand({
         context.args.note !== undefined && context.args.note !== null
           ? String(context.args.note)
           : undefined;
-      const verdict = recordReviewVerdict(projectRoot, changeId, {
+      const scopeRaw =
+        context.args.scope !== undefined && context.args.scope !== null
+          ? String(context.args.scope).trim()
+          : "";
+      const scope = scopeRaw ? parseReviewVerdictScope(scopeRaw) : undefined;
+      const task =
+        context.args.task !== undefined && context.args.task !== null
+          ? String(context.args.task).trim() || undefined
+          : undefined;
+      const wave =
+        context.args.wave !== undefined && context.args.wave !== null
+          ? String(context.args.wave).trim() || undefined
+          : undefined;
+      const classRaw =
+        context.args.classification !== undefined && context.args.classification !== null
+          ? String(context.args.classification).trim()
+          : "";
+      const classification = classRaw ? parseResolutionClassification(classRaw) : undefined;
+
+      const payload: ReviewVerdictRecord = {
         outcome,
         reason: reason || undefined,
         note: note || undefined,
-      });
+        scope,
+        task,
+        wave,
+        classification,
+      };
+
+      if (scope === "wave" && outcome === "fail") {
+        const ctpRaw =
+          context.args["constituent-tasks-passed"] !== undefined &&
+          context.args["constituent-tasks-passed"] !== null
+            ? String(context.args["constituent-tasks-passed"]).trim()
+            : "";
+        if (ctpRaw === "true" || ctpRaw === "false") {
+          payload.constituentTasksPassed = ctpRaw === "true";
+        } else if (wave) {
+          const computed = computeConstituentTasksPassed(projectRoot, changeId, wave);
+          if (computed.value === true || computed.value === false) {
+            payload.constituentTasksPassed = computed.value;
+          } else {
+            payload.constituentTasksPassedReason = computed.reason;
+          }
+        } else {
+          payload.constituentTasksPassedReason =
+            "wave-scoped fail without --wave — tasks-unverifiable";
+        }
+      }
+
+      const verdict = recordReviewVerdict(projectRoot, changeId, payload);
       if (format === "json") {
         console.log(
           JSON.stringify(
@@ -215,10 +288,11 @@ const verdictSubCommand = defineCommand({
           ),
         );
       } else {
-        const reasonPart = verdict.reason ? ` reason=${verdict.reason}` : "";
-        console.log(
-          `Recorded verdict for ${changeId}: outcome=${verdict.outcome}${reasonPart}`,
-        );
+        const parts = [`outcome=${verdict.outcome}`];
+        if (verdict.scope) parts.push(`scope=${verdict.scope}`);
+        if (verdict.classification) parts.push(`classification=${verdict.classification}`);
+        if (verdict.reason) parts.push(`reason=${verdict.reason}`);
+        console.log(`Recorded verdict for ${changeId}: ${parts.join(" ")}`);
       }
     }, "gate verdict failed");
   },

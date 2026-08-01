@@ -1,0 +1,102 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-PLAN-QUALITY>
+    <IntentSummary>
+      Phase 10 stage 2 (A70 rulings P1–P7; corrections 179–182). D10 plan-quality signal:
+      optional scope on Verdict (task|wave|bundle; bundle is D10 vocabulary extension, corr 182);
+      store resolution classification at resolution time (rule 13); store constituentTasksPassed
+      on wave-scoped fail; doctor plan-quality section peer to Calibration; rename analysisIssues
+      to absenceIssues (A7.4 / corr 181); no vacuous §10.4 doctor re-checks; AC↔V-M deferred
+      under rule 7 with restated conjunction argument (corr 179). Authored before production code.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/grace-doctor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-doctor.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-DOCTOR</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/review/outcomes.ts</Value></MustExist>
+      <MustExist><Value>src/review/outcomes.test.ts</Value></MustExist>
+      <MustPassCommand>
+        <Command>bun test src/review/outcomes.test.ts src/gates/core.test.ts src/grace-doctor.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+        <M-GATES />
+        <M-DOCTOR />
+        <M-CLI />
+        <M-CURSOR />
+        <M-GRAMMAR />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+        <V-M-GATES />
+        <V-M-DOCTOR />
+        <V-M-CLI />
+        <V-M-CURSOR />
+        <V-M-GRAMMAR />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/outcomes.ts</File>
+      <File>src/review/outcomes.test.ts</File>
+      <File>src/gates/ledger.ts</File>
+      <File>src/gates/command.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/grace-doctor.ts</File>
+      <File>src/grace-doctor.test.ts</File>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/scale-ergonomics.test.ts</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+      <File>.ngrace/changes/active/C-PLAN-QUALITY/spec.xml</File>
+      <File>.ngrace/changes/active/C-PLAN-QUALITY/plan.xml</File>
+      <File>.ngrace/changes/active/C-PLAN-QUALITY/run-ledger.xml</File>
+      <File>.ngrace/changes/active/C-PLAN-QUALITY/run.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Verdict scope, classification storage, outcomes report, doctor consumer, absenceIssues rename</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-SCOPE-ON-VERDICT />
+          <AC-CLASSIFICATION-STORED />
+          <AC-AMENDMENT-PREMISE-AMENDED />
+          <AC-DECOMPOSITION-PRECONDITION />
+          <AC-PROXY-CAVEAT-ADJACENT />
+          <AC-REPORT-N0 />
+          <AC-DOCTOR-CONSUMER />
+          <AC-NO-VACUOUS-DOCTOR-RECHECKS />
+          <AC-OUTCOMES-MODULE />
+          <AC-DOCTOR-TEST-EDIT />
+          <AC-VALIDATE-CI />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Optional scope on Verdict (task|wave|bundle); unscoped is scope-not-recorded never default;
+            classification stored at write; constituentTasksPassed on wave fail; doctor plan-quality
+            section with proxy caveat in text+JSON; analysisIssues renamed to absenceIssues; no
+            vacuous §10.4 doctor re-checks; validate:ci green.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-PLAN-QUALITY>
+</NgraceChangePlan>

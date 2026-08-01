@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-PLAN-QUALITY>
     <Summary>
       Phase 10 stage 1 draft (A70). Deliver D10 plan-quality signal: record review scope so
@@ -77,8 +77,8 @@
     </Goals>
     <Constraints>
       <Constraint>
-        Spec only until planned and approved. This draft schedules work; it does not authorize
-        production code (same shape as C-CALIBRATION / C-OBSERVABLE-CHECKS stage 1).
+        Stage 2 implements after plan.xml is authored and ngrace gate approve permits. Spec and
+        plan reach status approved with the gate Decision recorded (A17.3).
       </Constraint>
       <Constraint>
         Standing rule 12: every new check or rate is run over this repository as it is; flag counts
@@ -264,7 +264,7 @@
       <M-DOCTOR />
       <M-CURSOR />
       <M-CLI />
-      <M-SKILLS />
+      <M-GRAMMAR />
       <M-TEST-SUPPORT />
     </AffectedAreas>
     <VerificationIntent>
