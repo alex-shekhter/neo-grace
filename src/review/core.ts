@@ -26,6 +26,7 @@
 //   findingId
 //   formatReviewResult
 //   isReviewIssueCode
+//   listRuntimeSourceFilesForMarkerScan
 //   resolveChangePlanPath
 //   runJoinProbes
 //   runPatternDetectors
@@ -46,6 +47,10 @@ import path from "node:path";
 
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { resolveNgracePaths } from "../artifact/project";
+import {
+  isRegisteredSemanticAnchor,
+  VERIFICATION_THREADED_CHILD_TAGS,
+} from "../artifact/types";
 import { readGraceXmlArtifact, walkNodes } from "../artifact/xml";
 import { extractObservedWriteScopeFromPlan } from "./scope-helpers";
 import {
@@ -53,6 +58,12 @@ import {
   listRepositoryChangedFiles,
   type AbsenceValue,
 } from "../grace-cursor";
+import { CODE_EXTENSIONS } from "../language-registry";
+import {
+  getModuleImplementationFiles,
+  isLikelyTestPath,
+  loadGraceArtifactIndex,
+} from "../query/core";
 import {
   REVIEW_CATALOG,
   guideFor,
@@ -288,26 +299,59 @@ function readText(root: string, rel: string): string | undefined {
 // Family A — pattern detectors
 // ---------------------------------------------------------------------------
 
-const KNOWN_VERIFICATION_CHILDREN = new Set([
-  "Command",
-  "Scenario",
-  "Marker",
-  "TraceAssertion",
-  "TestFile",
-  "File",
-  "Cwd",
-  "Notes",
-  "Description",
-  "Expected",
-  "Id",
-  "Module",
-]);
+/**
+ * Runtime sources that may emit verification markers (corr 205-A).
+ *
+ * Preferred source of truth: graph-linked implementation files via
+ * `getModuleImplementationFiles` (same set health uses). Rejected alternative:
+ * only TypeScript under a top-level `src/` directory — polyglot monorepos put
+ * Go/Rust elsewhere and non-TS markers were false-positive confidently-wrong.
+ *
+ * Fallback when the index cannot load or no linked files exist: every path under
+ * the project root whose extension is in `CODE_EXTENSIONS`, excluding tests and
+ * `.ngrace/` / `node_modules` / `.git`.
+ */
+export function listRuntimeSourceFilesForMarkerScan(root: string): string[] {
+  const linked = tryLinkedImplementationPaths(root);
+  if (linked.length > 0) {
+    return linked;
+  }
+  return listCodeExtensionRuntimeSources(root);
+}
+
+function tryLinkedImplementationPaths(root: string): string[] {
+  try {
+    const index = loadGraceArtifactIndex(root);
+    const paths = new Set<string>();
+    for (const moduleRecord of index.modules.values()) {
+      for (const file of getModuleImplementationFiles(moduleRecord)) {
+        paths.add(file.path.replaceAll("\\", "/"));
+      }
+    }
+    return [...paths].sort();
+  } catch {
+    return [];
+  }
+}
+
+function listCodeExtensionRuntimeSources(root: string): string[] {
+  return listFilesRecursive(root).filter((rel) => {
+    if (
+      rel.startsWith(`${ARTIFACT_DIR}/`)
+      || rel.startsWith("node_modules/")
+      || rel.startsWith(".git/")
+    ) {
+      return false;
+    }
+    if (isLikelyTestPath(rel)) return false;
+    const ext = path.extname(rel).toLowerCase();
+    return CODE_EXTENSIONS.has(ext);
+  }).sort();
+}
 
 function detectConfidentlyWrong(root: string): ReviewFinding[] {
   const findings: ReviewFinding[] = [];
-  const sourceFiles = listFilesRecursive(root, "src").filter(
-    (f) => f.endsWith(".ts") && !f.endsWith(".test.ts"),
-  );
+  const sourceFiles = listRuntimeSourceFilesForMarkerScan(root);
   const sourceBlob = sourceFiles.map((f) => readText(root, f) ?? "").join("\n");
 
   // Markers claimed in verification but never emitted in runtime sources (XML walk, not regex).
@@ -336,7 +380,8 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
     }
   }
 
-  // MustExist targets that do not exist on disk.
+  // MustExist targets that do not exist on disk (corr 205-B).
+  // Semantic anchors (ANCHOR_PATTERNS) are not disk paths — never check them as files.
   for (const planRel of listFilesRecursive(root, `${ARTIFACT_DIR}/changes`).filter((f) =>
     f.endsWith("plan.xml"),
   )) {
@@ -347,7 +392,7 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
       if (node.tag !== "MustExist") continue;
       const valueNode = node.children.find((c) => c.tag === "Value");
       const target = (valueNode?.text ?? node.text).trim();
-      if (!target || target.startsWith("M-") || target.startsWith("V-") || target.startsWith("AC-")) {
+      if (!target || isRegisteredSemanticAnchor(target)) {
         continue;
       }
       if (!existsSync(path.join(root, target))) {
@@ -672,7 +717,8 @@ function detectUnthreadedConstruct(root: string): ReviewFinding[] {
     for (const node of walkNodes(artifact.root)) {
       if (!/^V-M-/.test(node.tag)) continue;
       for (const child of node.children) {
-        if (KNOWN_VERIFICATION_CHILDREN.has(child.tag)) continue;
+        // corr 205-C: set shared with projections evidence + structure tags
+        if (VERIFICATION_THREADED_CHILD_TAGS.has(child.tag)) continue;
         findings.push(
           makeFinding(
             "review.unthreaded-construct",

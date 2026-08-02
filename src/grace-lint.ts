@@ -27,7 +27,7 @@
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 
-import { formatLintExplanation, getLintIssueGuide } from "./lint/catalog";
+import { classifyIssueCode, formatLintExplanation, getLintIssueGuide } from "./lint/catalog";
 import { formatTextReport, isValidTextFormat, lintGraceProject } from "./lint/core";
 import type { LintAssertionMode, LintOptions, LintProfile, LintResult } from "./lint/types";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -165,12 +165,17 @@ export const lintCommand = defineCommand({
 
       if (context.args.explain) {
         const code = String(context.args.explain);
+        const classification = classifyIssueCode(code);
+        const guide = getLintIssueGuide(code);
         if (format === "json") {
-          process.stdout.write(`${JSON.stringify({ schemaVersion: "1.0.0", tool: "grace-lint", guide: getLintIssueGuide(code) }, null, 2)}\n`);
-          return;
+          process.stdout.write(
+            `${JSON.stringify({ schemaVersion: "1.0.0", tool: "grace-lint", classification, guide }, null, 2)}\n`,
+          );
+        } else {
+          process.stdout.write(`${formatLintExplanation(code)}\n`);
         }
-
-        process.stdout.write(`${formatLintExplanation(code)}\n`);
+        // Unknown codes: exit non-zero so recovery docs and scripts cannot treat fiction as success (A76 / 189).
+        process.exitCode = classification === "unknown" ? 1 : 0;
         return;
       }
 

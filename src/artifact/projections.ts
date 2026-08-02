@@ -26,6 +26,7 @@ import {
   DATA_FLOW_STEP_PROPERTIES,
   INTERFACE_BREAKING_CHANGE_POLICIES,
   MODULE_TYPES,
+  VERIFICATION_ENTRY_EVIDENCE_TAGS,
   type NgraceIssue,
   type NgraceProjectPaths,
 } from "./types";
@@ -891,7 +892,7 @@ function validateModuleVerificationCoverage(graph: GraphProjection, verification
 
 function collectExactEvidence(
   node: GraceXmlNode,
-  tag: "Command" | "Scenario" | "Marker" | "TraceAssertion" | "AccessibilityCheck" | "VisualCheck",
+  tag: (typeof VERIFICATION_ENTRY_EVIDENCE_TAGS)[number],
 ): string[] {
   return [...walkNodes(node)]
     .filter((candidate) => candidate !== node && candidate.tag === tag)

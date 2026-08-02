@@ -16,6 +16,7 @@ import {
   formatReviewResult,
   resolveChangePlanPath,
   runJoinProbes,
+  listRuntimeSourceFilesForMarkerScan,
   runPatternDetectors,
   runReview,
 } from "./core";
@@ -1061,3 +1062,183 @@ function listRel(root: string): string[] {
   walk("");
   return out.sort();
 }
+
+
+describe("corr 205 — review language scope (polyglot false positives)", () => {
+  it("marker emitted from Go is silent; missing marker still fires", () => {
+    const root = track(path.join(os.tmpdir(), `corr205-go-${Date.now()}`));
+    writeMinimalNgraceProject(root);
+    // Linked Go runtime with the verification marker
+    mkdirSync(path.join(root, "services/api"), { recursive: true });
+    writeFileSync(
+      path.join(root, "services/api/router.go"),
+      `package api\n\nfunc Route() { slog.Info("[Example][run][BLOCK_RUN] ok") }\n`,
+    );
+    // Point module path + LINKS at the Go file
+    writeFileSync(
+      path.join(root, ".ngrace/graph/main.xml"),
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Example.</Summary><Path>services/api/router.go</Path></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
+    );
+    writeFileSync(
+      path.join(root, "services/api/router.go"),
+      `// START_MODULE_CONTRACT
+//   PURPOSE: Gateway.
+//   SCOPE: Dispatch.
+//   DEPENDS: none
+//   LINKS: M-EXAMPLE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   Route
+// END_MODULE_MAP
+package api
+func Route() { println("[Example][run][BLOCK_RUN] ok") }
+`,
+    );
+    // Remove default TS example marker emission so Go is the sole emitter
+    writeFileSync(
+      path.join(root, "src/example.ts"),
+      `// START_MODULE_CONTRACT
+//   PURPOSE: Example.
+//   SCOPE: Fixture.
+//   DEPENDS: none
+//   LINKS: M-EXAMPLE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   run
+// END_MODULE_MAP
+export function run() { return 1; }
+`,
+    );
+    const silent = runPatternDetectors(root).filter(
+      (f) => f.code === "review.confidently-wrong" && f.message.includes("marker"),
+    );
+    expect(silent).toHaveLength(0);
+
+    // Discriminating negative: change marker requirement so nothing emits it
+    const vPath = path.join(root, ".ngrace/verification/main.xml");
+    const xml = require("node:fs").readFileSync(vPath, "utf8") as string;
+    writeFileSync(vPath, xml.replace("[Example][run][BLOCK_RUN]", "[Example][run][BLOCK_NEVER]"));
+    const fires = runPatternDetectors(root).filter(
+      (f) => f.code === "review.confidently-wrong" && f.message.includes("BLOCK_NEVER"),
+    );
+    expect(fires.length).toBeGreaterThan(0);
+  });
+
+  it("marker emitted from Rust is silent", () => {
+    const root = track(path.join(os.tmpdir(), `corr205-rs-${Date.now()}`));
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "crates/core/src"), { recursive: true });
+    writeFileSync(
+      path.join(root, "crates/core/src/lib.rs"),
+      `// START_MODULE_CONTRACT
+//   PURPOSE: Core.
+//   SCOPE: Post.
+//   DEPENDS: none
+//   LINKS: M-EXAMPLE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   post
+// END_MODULE_MAP
+pub fn post() { println!("[Example][run][BLOCK_RUN]"); }
+`,
+    );
+    writeFileSync(
+      path.join(root, ".ngrace/graph/main.xml"),
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Example.</Summary><Path>crates/core/src/lib.rs</Path></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
+    );
+    writeFileSync(
+      path.join(root, "src/example.ts"),
+      `// START_MODULE_CONTRACT
+//   PURPOSE: Example.
+//   SCOPE: Fixture.
+//   DEPENDS: none
+//   LINKS: M-EXAMPLE
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   run
+// END_MODULE_MAP
+export function run() { return 1; }
+`,
+    );
+    const findings = runPatternDetectors(root).filter(
+      (f) => f.code === "review.confidently-wrong" && f.message.includes("marker"),
+    );
+    expect(findings).toHaveLength(0);
+  });
+
+  it("MustExist IC-* / DF-* is not treated as a path; missing path still fires", () => {
+    const root = track(path.join(os.tmpdir(), `corr205-me-${Date.now()}`));
+    writeMinimalNgraceProject(root);
+    const changeDir = path.join(root, ".ngrace/changes/active/C-ME");
+    mkdirSync(changeDir, { recursive: true });
+    writeFileSync(
+      path.join(changeDir, "spec.xml"),
+      `<NgraceChangeSpec graceVersion="1.0" status="approved"><C-ME><Summary>s</Summary><Goals><Goal>g</Goal></Goals><AcceptanceCriteria><AC-1>a</AC-1></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas></C-ME></NgraceChangeSpec>`,
+    );
+    writeFileSync(
+      path.join(changeDir, "plan.xml"),
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-ME>
+        <IntentSummary>i</IntentSummary>
+        <BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions>
+        <TargetAssertions>
+          <MustExist><Value>IC-POSTING-V1</Value></MustExist>
+          <MustExist><Value>DF-POSTING</Value></MustExist>
+          <MustExist><Value>src/never-created.ts</Value></MustExist>
+        </TargetAssertions>
+        <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>
+        <ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>
+        <ImplementationPlan><T-001><Title>t</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+      </C-ME></NgraceChangePlan>`,
+    );
+    const findings = runPatternDetectors(root).filter((f) => f.code === "review.confidently-wrong");
+    const messages = findings.map((f) => f.message).join("\n");
+    expect(messages).not.toContain("IC-POSTING-V1");
+    expect(messages).not.toContain("DF-POSTING");
+    expect(messages).toContain("src/never-created.ts");
+  });
+
+  it("AccessibilityCheck and VisualCheck are silent; FutureHook still fires", () => {
+    const root = track(byPattern("unthreaded-construct")[0]!.build());
+    const vPath = path.join(root, ".ngrace/verification/main.xml");
+    let xml = require("node:fs").readFileSync(vPath, "utf8") as string;
+    xml = xml.replace(
+      "</V-M-EXAMPLE>",
+      `<AccessibilityCheck><Tool>axe</Tool></AccessibilityCheck>
+      <VisualCheck><Tool>percy</Tool></VisualCheck>
+      </V-M-EXAMPLE>`,
+    );
+    writeFileSync(vPath, xml);
+    let findings = runPatternDetectors(root).filter((f) => f.code === "review.unthreaded-construct");
+    expect(findings).toHaveLength(0);
+
+    xml = require("node:fs").readFileSync(vPath, "utf8") as string;
+    writeFileSync(
+      vPath,
+      xml.replace("</V-M-EXAMPLE>", `<FutureHook mode="async" />\n</V-M-EXAMPLE>`),
+    );
+    findings = runPatternDetectors(root).filter((f) => f.code === "review.unthreaded-construct");
+    expect(findings.some((f) => f.message.includes("FutureHook"))).toBe(true);
+  });
+
+  it("polyglot golden path is green with Markers, MustExist anchors, and AccessibilityCheck restored", () => {
+    const poly = path.resolve(import.meta.dir, "../../examples/polyglot");
+    const report = runReview(poly);
+    expect(report.summary.errors).toBe(0);
+    expect(report.findings).toHaveLength(0);
+  });
+
+  it("listRuntimeSourceFilesForMarkerScan prefers linked files over src-only guess", () => {
+    const poly = path.resolve(import.meta.dir, "../../examples/polyglot");
+    const files = listRuntimeSourceFilesForMarkerScan(poly);
+    expect(files.some((f) => f.endsWith(".go"))).toBe(true);
+    expect(files.some((f) => f.endsWith(".rs"))).toBe(true);
+  });
+});

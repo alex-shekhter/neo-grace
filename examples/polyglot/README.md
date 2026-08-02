@@ -25,9 +25,12 @@ A worked neo-grace project for a React UI + Go API + Rust core monorepo. Use thi
 
 ```bash
 ngrace lint --path examples/polyglot
+ngrace review --path examples/polyglot   # plain review is green on the golden path
 ```
 
-CI runs this on every push. Zero errors is the contract; warnings (if any) are intentional documentation signals.
+CI runs lint + the walkthrough validator (`scripts/validate-walkthrough.ts`) on every push:
+four deliberate breaks and the §2.5 lifecycle, each with a red witness. See
+[WALKTHROUGH.md](./WALKTHROUGH.md).
 
 ## Ceremony tier note
 

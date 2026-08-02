@@ -1,0 +1,79 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-REVIEW-LANGUAGE-SCOPE>
+    <IntentSummary>
+      Corr 205/A77: fix review marker scan, MustExist anchor handling, and threaded verification
+      children; restore polyglot golden-path declarations. Post-close narrow fix.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/types.ts</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:determinism</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace review --path examples/polyglot</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+        <M-ARTIFACT-TYPES />
+        <M-PROJECT-UTILS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+        <V-M-ARTIFACT-TYPES />
+        <V-M-PROJECT-UTILS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/artifact/types.ts</File>
+      <File>src/artifact/projections.ts</File>
+      <File>examples/polyglot/.ngrace/verification/api.xml</File>
+      <File>examples/polyglot/.ngrace/verification/core.xml</File>
+      <File>examples/polyglot/.ngrace/verification/ui.xml</File>
+      <File>examples/polyglot/.ngrace/changes/archive/C-ADD-POSTING-CONTRACT/plan.xml</File>
+      <File>README.md</File>
+      <File>docs/plans/archive/RM-AGENT-RELIABILITY/plan.md</File>
+      <File>.ngrace/changes/active/C-REVIEW-LANGUAGE-SCOPE/spec.xml</File>
+      <File>.ngrace/changes/active/C-REVIEW-LANGUAGE-SCOPE/plan.xml</File>
+      <File>.ngrace/changes/active/C-REVIEW-LANGUAGE-SCOPE/run-ledger.xml</File>
+      <File>.ngrace/changes/active/C-REVIEW-LANGUAGE-SCOPE/run.xml</File>
+      <File>.ngrace/changes/archive/C-REVIEW-LANGUAGE-SCOPE/spec.xml</File>
+      <File>.ngrace/changes/archive/C-REVIEW-LANGUAGE-SCOPE/plan.xml</File>
+      <File>.ngrace/changes/archive/C-REVIEW-LANGUAGE-SCOPE/run-ledger.xml</File>
+      <File>.ngrace/changes/archive/C-REVIEW-LANGUAGE-SCOPE/run.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Fix detectors A/B/C, restore example, tests, README sha, A77</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-MARKER-SCAN />
+          <AC-MUSTEXIST-ANCHORS />
+          <AC-THREADED-CHILDREN />
+          <AC-POLYGLOT-GREEN />
+          <AC-CORPUS />
+          <AC-VALIDATE-CI />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>All ACs; polyglot review 0 with declarations; corpus 14/14; validate:ci green.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-REVIEW-LANGUAGE-SCOPE>
+</NgraceChangePlan>
