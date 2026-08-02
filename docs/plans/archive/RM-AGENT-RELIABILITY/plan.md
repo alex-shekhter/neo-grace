@@ -10763,7 +10763,7 @@ legitimate until merge — rule 1 applies after merge). Example declarations **r
 #### A77.4 Correction 206
 
 README footprint table Commit column was `"measure at release cut"` with no SHA. Filled with
-commit `d05be5f` after re-measure (polyglot restore can move review bytes).
+commit `97553ef` after re-measure (polyglot restore can move review bytes).
 
 #### A77.5 Rule-12 (after fix, declarations restored)
 

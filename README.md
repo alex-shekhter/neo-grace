@@ -259,7 +259,7 @@ skip depth (adversarial probe, mutation audit, checklist volume).
 |---|---|---|---|
 | `skillTextLines().total` (16 `SKILL.md`) | package root | **728 lines** (not bytes) | pin in `token-accounting.test.ts` |
 | `skillTextLines().referencesTotal` | package root | **1445 lines** (includes recovery.md) | same instrument |
-| `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `d05be5f` (feat/phase-11-rederive after corr 205; release cut updates) |
+| `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `97553ef` (feat/phase-11-rederive after corr 205; release cut updates) |
 | `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |
 | `ngrace doctor --path <polyglot>` | polyglot | **1907** (state-dependent) | same |
 | `ngrace context --task T-001 --change C-ADD-KEYBOARD-NAV` | polyglot | **4012** | same |
