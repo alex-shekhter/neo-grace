@@ -303,9 +303,13 @@ CI pins npm to an exact version (`npm@11.17.0` in `publish.yml`), not a range.
 
 Two reasons. Trusted publishing needs npm >= 11.5.1, and a floating range once pulled
 npm 12 mid-release, whose changed `npm pack --json` output broke the packed smoke test.
-Separately, `release:checklist` compares the local `npm pack` shasum against the published
-tarball — `npm pack` is deterministic for a given tree *and npm version*, so that check
-only means anything when your local npm matches CI's.
+Separately, `release:checklist` compares the published tarball against what this tree packs
+**by content** — the file list plus a sha256 per file. It deliberately does not compare
+archive digests: with npm pinned to the same version on both sides, a local pack of the exact
+release commit still produced a different tarball shasum than CI's while containing
+byte-identical files, because tar/gzip framing varies by platform. A digest comparison there
+could not pass for any correct release, so it reported nothing. Framing differences are printed
+as a note, not an error.
 
 If you upgrade local npm, bump the pin in both publish jobs to match.
 

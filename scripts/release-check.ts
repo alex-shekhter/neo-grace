@@ -14,6 +14,7 @@
 //   collectReleaseConsistencyErrors - Returns all version and changelog consistency errors for tests and main.
 //   expectedNpmDistTag - Resolves latest for stable or the first prerelease identifier.
 //   collectPackedContentErrors - Rejects test, fixture, temporary, and unrelated files from npm pack JSON.
+//   collectPublishedContentErrors - Compares local and published tarball file sets and per-file digests.
 //   collectReleaseStateErrors - Validates tag, ancestry, packed files, npm dist-tag, and GitHub Release state.
 //   collectReleaseProtectionErrors - Validates the protected stable environment, main branch, and release-tag ruleset.
 //   main - Reads release files, prints consistency errors, and exits nonzero on failure.
@@ -58,6 +59,10 @@ export type ReleaseState = {
   packedFiles: string[];
   localPackShasum: string;
   npmPackageShasum: string;
+  /** path -> sha256 for every file in the locally packed tarball. */
+  localPackContent: PackContentDigests;
+  /** path -> sha256 for every file in the published tarball. */
+  publishedPackContent: PackContentDigests;
   npmDistTags: Record<string, string>;
   githubRelease?: { tagName: string; isPrerelease: boolean };
 };
@@ -148,6 +153,62 @@ export function collectPackedContentErrors(packJson: string): string[] {
   }
 }
 
+/** Relative package path -> sha256 of the file's bytes inside a tarball. */
+export type PackContentDigests = Record<string, string>;
+
+/** How many differing paths are named before the message is truncated. */
+const CONTENT_DIFF_SAMPLE = 5;
+
+function sample(paths: string[]): string {
+  const shown = paths.slice(0, CONTENT_DIFF_SAMPLE).join(", ");
+  const rest = paths.length - CONTENT_DIFF_SAMPLE;
+  return rest > 0 ? `${shown}, and ${rest} more` : shown;
+}
+
+/**
+ * Compares what was published against what this tree packs, by content.
+ *
+ * The archive digest cannot answer this question: npm's tar/gzip framing differs
+ * between packer versions, so a local pack of the exact release commit produces a
+ * different tarball shasum than CI's while containing byte-identical files. That
+ * mismatch is not evidence of drift, and treating it as an error produced a red
+ * that no correct release could clear.
+ *
+ * Empty input is an absence, not a pass: if either side could not be read, say so.
+ */
+export function collectPublishedContentErrors(
+  local: PackContentDigests,
+  published: PackContentDigests,
+): string[] {
+  const localPaths = Object.keys(local);
+  const publishedPaths = Object.keys(published);
+
+  if (localPaths.length === 0 || publishedPaths.length === 0) {
+    return [
+      "Published or local package content could not be read, so the published tarball was never compared. "
+        + `Local files: ${localPaths.length}, published files: ${publishedPaths.length}.`,
+    ];
+  }
+
+  const errors: string[] = [];
+  const missing = publishedPaths.filter((file) => !(file in local)).sort();
+  const extra = localPaths.filter((file) => !(file in published)).sort();
+  const changed = publishedPaths
+    .filter((file) => file in local && local[file] !== published[file])
+    .sort();
+
+  if (missing.length > 0) {
+    errors.push(`Published tarball contains ${missing.length} file(s) this tree does not pack: ${sample(missing)}.`);
+  }
+  if (extra.length > 0) {
+    errors.push(`This tree packs ${extra.length} file(s) the published tarball does not contain: ${sample(extra)}.`);
+  }
+  if (changed.length > 0) {
+    errors.push(`${changed.length} published file(s) differ in content from this tree: ${sample(changed)}.`);
+  }
+  return errors;
+}
+
 /** Validates one collected candidate/stable release state without performing mutations. */
 export function collectReleaseStateErrors(state: ReleaseState): string[] {
   const errors: string[] = [];
@@ -172,11 +233,7 @@ export function collectReleaseStateErrors(state: ReleaseState): string[] {
     errors.push(`npm dist-tag ${distTag} points to ${state.npmDistTags[distTag] ?? "nothing"}, expected ${state.version}.`);
   }
 
-  if (!state.localPackShasum || !state.npmPackageShasum) {
-    errors.push("Local or published npm package shasum is missing.");
-  } else if (state.localPackShasum !== state.npmPackageShasum) {
-    errors.push(`Local npm pack shasum ${state.localPackShasum} does not match published ${state.version} shasum ${state.npmPackageShasum}.`);
-  }
+  errors.push(...collectPublishedContentErrors(state.localPackContent, state.publishedPackContent));
 
   if (!state.githubRelease) {
     errors.push(`GitHub Release ${canonicalTag} is missing.`);
