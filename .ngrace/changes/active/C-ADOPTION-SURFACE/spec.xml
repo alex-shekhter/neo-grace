@@ -1,0 +1,220 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-ADOPTION-SURFACE>
+    <Summary>
+      Phase 11 stage 1 draft (A75). Close RM-AGENT-RELIABILITY with an adoption surface that
+      teaches only shipped capabilities: extend the CI-verified polyglot walkthrough to a full
+      lifecycle (approve → slice → scope finding → not-run absence → review pass → fold → archive),
+      repair the five pre-existing review findings that make a green review impossible today,
+      extend validate-walkthrough with lifecycle red witnesses, publish a shipped-state reliability
+      tier table with honest footprint numbers (method + commit), fix lint --explain absence for
+      unknown codes so recovery docs are trustworthy, update explainer references (+ mirrors), then
+      archive the roadmap plan once releases are assigned. Spec only until planned and approved.
+    </Summary>
+    <Problem>
+      §11 was written in 2026-07 before Phases 2–10. At 4497af6 (A75):
+
+      1. Finding 190–191. Lifecycle names unshipped ScopeAmendment / ngrace amend, and treats
+         not-run as if it were a review-verdict token. Shipped: review.scope-outside-write-scope +
+         plan ObservedWriteScope; not-run on verification-unavailable and audit status only.
+
+      2. Finding 192. §11.3 says CREATE docs/ walkthrough; examples/polyglot/WALKTHROUGH.md already
+         exists (349 lines), is linked from README, and is CI-verified by four breaks.
+
+      3. Finding 193. ngrace review on the golden path reports 5 pre-existing errors (MustExist
+         IC/DF as paths, two markers not emitted, unthreaded AccessibilityCheck). validate:examples
+         never runs review. Step 11.5.1 cannot demonstrate a pass until these are fixed without
+         narrowing detectors (A67.1).
+
+      4. Finding 194–195. Token instrument is test-support only; tier cells are not per-mechanism
+         byte counts; plan's 7-row table drops Provenance from §5.3's 8-row design table; Provenance
+         authority axis never shipped.
+
+      5. Finding 189. ngrace lint --explain invents titles and asserts drift for strings that are
+         not issue codes (exit 0). All 13 review.* codes also fall through to the same fallback.
+         Recovery procedure 1 cannot honestly teach this surface until absence is honest.
+
+      6. Finding 196. Lifecycle CI subjects: 0. Four breaks only.
+
+      7. Finding 197. targets [] and every Release cell TBD; CHANGELOG still 6.0.1 while Phases 2–10
+         are on main unreleased. Archive without assignment freezes that silence.
+
+      8. Findings 198–199. §15 orphaned mid-§14; C-LEDGER-READ-ABSENCE draft outlives the track;
+         A69.3 owed-empty claim is stale.
+    </Problem>
+    <Goals>
+      <Goal>
+        examples/polyglot/WALKTHROUGH.md carries one complete change lifecycle a newcomer can run,
+        using only shipped CLI vocabulary (A75.2 amended lifecycle). No ngrace amend, no
+        ScopeAmendment, no gate verdict outcome not-run.
+      </Goal>
+      <Goal>
+        The five pre-existing review findings on the polyglot example are fixed by example-artifact
+        (and source marker) edits so ngrace review can report 0 errors on an in-scope changed-file
+        set — without weakening review detectors.
+      </Goal>
+      <Goal>
+        scripts/validate-walkthrough.ts exercises each lifecycle step on a scratch copy and fails
+        when a step or its documented token is removed (D16 red witnesses). validate:examples
+        remains the wire into validate:ci.
+      </Goal>
+      <Goal>
+        README publishes a shipped-state reliability tier table. Every depth claim is either
+        measured (skillTextLines / commandOutputBytes at a named commit with re-run recipe) or
+        explicitly labelled unmeasured / not a per-invocation surface. Provenance row is deferred
+        or absent — never Full.
+      </Goal>
+      <Goal>
+        ngrace lint --explain exits non-zero for codes outside the emittable set and does not claim
+        drift about garbage input. Emittable-but-uncatalogued codes do not invent false certainty.
+      </Goal>
+      <Goal>
+        Recovery procedures (unfamiliar lint code; rebuild cursor from ledger; read incomplete epoch)
+        are executed against deliberately broken scratch fixtures with output shown, not only written.
+      </Goal>
+      <Goal>
+        skills/ngrace/ngrace-explainer/references/* and the plugins mirror stay byte-identical;
+        token-accounting.test.ts pin updated if any SKILL.md body changes.
+      </Goal>
+      <Goal>
+        After maintainer release assignment, docs/plans/README.md index and plan frontmatter/status
+        directory agree; plan archived complete; §15 relocated to file end; C-LEDGER-READ-ABSENCE
+        named as surviving scheduled work.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Spec only until planned and approved. Does not authorize production code (A17.3). Stage 2
+        implements after plan.xml and ngrace gate approve permit.
+      </Constraint>
+      <Constraint>
+        Standing rule 11: every sentence in the walkthrough and tier table must read true aloud for
+        a newcomer given what the binary emits at the named commit.
+      </Constraint>
+      <Constraint>
+        Standing rule 12: count subjects before claiming green — review on polyglot, lifecycle CI
+        assertions, explain emittable set — zero subjects is unmeasured.
+      </Constraint>
+      <Constraint>
+        Standing rule 13: publish numbers only when measured at a named commit; never reconstruct a
+        token figure at report time without the command.
+      </Constraint>
+      <Constraint>
+        D16: every new CI assertion names the deletion or mutation that makes it red.
+      </Constraint>
+      <Constraint>
+        Do not implement ngrace amend or ScopeAmendment in this bundle. Do not narrow review
+        detectors to silence example findings (A67.1).
+      </Constraint>
+      <Constraint>
+        Do not pick a product version or edit CHANGELOG.md until the maintainer assigns releases
+        (finding 197). Stage 2 may block on that decision for the archive step only.
+      </Constraint>
+      <Constraint>
+        C-LEDGER-READ-ABSENCE remains a separate draft; this bundle does not implement it. Scope
+        audit must declare both active drafts (A73/A74 disposition pattern).
+      </Constraint>
+      <Constraint>
+        §12.2: explainer mirror updates in the same commit as canonical edits.
+        package.json#files must not gain test-support.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Shipping Wave-3 §4.2 ScopeAmendment / ngrace amend / unrequested gap type as product.
+      </NonGoal>
+      <NonGoal>
+        Building D5 authority-axis provenance on anchors (A56 finding 147 remains deferred).
+      </NonGoal>
+      <NonGoal>
+        Implementing C-LEDGER-READ-ABSENCE three-exit ledger reads.
+      </NonGoal>
+      <NonGoal>
+        Creating a second walkthrough under docs/ or a second golden-path example.
+      </NonGoal>
+      <NonGoal>
+        Publishing src/test-support/token-accounting.ts on npm.
+      </NonGoal>
+      <NonGoal>
+        Replacing the host capability matrix already in README (§5.2).
+      </NonGoal>
+      <NonGoal>
+        Choosing semver / writing CHANGELOG without maintainer release assignment.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-LIFECYCLE-PROSE>
+        WALKTHROUGH.md documents the A75.2 amended lifecycle with exact shipped commands. Prose does
+        not mention ngrace amend, ScopeAmendment, or gate verdict --outcome not-run. Discriminating
+        negative: a CI prose check fails if those forbidden strings appear as taught commands.
+      </AC-LIFECYCLE-PROSE>
+      <AC-REVIEW-GREEN>
+        On a scratch copy of examples/polyglot, after gate approve, ngrace review --change
+        C-ADD-KEYBOARD-NAV --changed-files &lt;in-scope file only&gt; reports 0 errors. The five
+        A75.4 findings are gone via example/source fixes, not detector disablement. Discriminating
+        negative: re-introducing MustExist IC-POSTING-V1 as a path claim makes review red again.
+      </AC-REVIEW-GREEN>
+      <AC-SCOPE-FINDING>
+        The walkthrough (and CI) demonstrate review.scope-outside-write-scope for a path outside
+        ObservedWriteScope, and the documented resolution is declaring the path in the plan write
+        scope. Discriminating negative: removing the out-of-scope file from the CI break stops the
+        code from being emitted.
+      </AC-SCOPE-FINDING>
+      <AC-NOT-RUN-SURFACE>
+        The walkthrough shows not-run via cursor verification-unavailable --verdict not-run and/or
+        review audit status not-run — never as a recorded review Verdict outcome. Discriminating
+        negative: CI fails if walkthrough teaches outcome not-run on gate verdict.
+      </AC-NOT-RUN-SURFACE>
+      <AC-LIFECYCLE-CI>
+        validate-walkthrough.ts (or a sibling invoked by validate:examples) runs the lifecycle
+        commands on a temp copy and asserts each step. Each assertion has a named red witness
+        (A75.7 table). Discriminating negative: deleting the approve assertion or the permit string
+        check makes the script exit non-zero.
+      </AC-LIFECYCLE-CI>
+      <AC-TIER-TABLE>
+        README contains a reliability tier table whose rows match shipped mechanisms; Provenance is
+        not claimed Full; every numeric footprint cites commit + re-run recipe or is labelled
+        unmeasured. Discriminating negative: a fabricated number without a measurement command fails
+        review (manual) / a unit test snapshots the stated method paragraph presence.
+      </AC-TIER-TABLE>
+      <AC-EXPLAIN-ABSENCE>
+        ngrace lint --explain not.a.real.code exits non-zero and does not claim the code signals
+        drift. A real catalogue code still explains correctly (exit 0). Discriminating negative:
+        restoring the old fallback makes the new test red.
+      </AC-EXPLAIN-ABSENCE>
+      <AC-RECOVERY-EXECUTED>
+        Each of the three recovery procedures is run against a deliberate scratch break in stage 2
+        evidence (report or fixture script). Discriminating negative: procedure text that names a
+        command the binary does not implement fails review gate 11.7.3.
+      </AC-RECOVERY-EXECUTED>
+      <AC-MIRROR-AND-PINS>
+        Canonical and plugins ngrace-explainer trees remain byte-identical after edits.
+        token-accounting.test.ts total pin matches skillTextLines() if SKILL.md bodies change.
+        Discriminating negative: validate:marketplace fails on mirror drift; pin test fails on
+        unupdated total.
+      </AC-MIRROR-AND-PINS>
+      <AC-ARCHIVE>
+        When the maintainer has assigned releases: plan status complete, directory archive/,
+        docs/plans/README.md updated same commit, §15 at file end, C-LEDGER-READ-ABSENCE named as
+        surviving draft work. Discriminating negative: frontmatter status disagrees with directory
+        (README rule 2).
+      </AC-ARCHIVE>
+      <AC-VALIDATE-CI>
+        bun run validate:ci green after implementation.
+      </AC-VALIDATE-CI>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-LINT />
+      <M-REVIEW />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        validate-walkthrough lifecycle red witnesses; polyglot review 0 errors on in-scope set;
+        lint --explain unknown code non-zero; mirror check; token pin; root lint 0 errors.
+        Roadmap: RM-AGENT-RELIABILITY Phase 11 (A75). Also touches examples/polyglot, README,
+        docs/plans, scripts/validate-walkthrough.ts, skills/ngrace/ngrace-explainer (+ plugins mirror)
+        — paths outside graph modules; declared here for humans, not as AffectedAreas anchors.
+      </ExpectedEvidence>
+    </VerificationIntent>
+  </C-ADOPTION-SURFACE>
+</NgraceChangeSpec>

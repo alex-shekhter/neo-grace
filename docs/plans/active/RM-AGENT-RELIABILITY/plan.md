@@ -376,7 +376,7 @@ Keep this table current. It is the single source of truth for progress.
 | 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `COMPLETE` |
 | 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `COMPLETE` |
 | 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `COMPLETE` |
-| 11 | Adoption surface | §5.1, §5.3 | TBD | `NOT STARTED` |
+| 11 | Adoption surface | §5.1, §5.3 | TBD | `IN PROGRESS` |
 
 **Hard sequencing rules** — these are dependencies, not preferences. Each is stated with what
 breaks if violated:
@@ -1571,7 +1571,7 @@ Delete the outcomes module and revert the doctor checks.
 
 # PHASE 11 — Adoption surface
 
-**Status:** `NOT STARTED`
+**Status:** `IN PROGRESS` (A75 — stage 1 re-derive + draft `C-ADOPTION-SURFACE`)
 **Decisions:** §5.1, §5.3
 **Release:** TBD
 
@@ -10243,3 +10243,375 @@ this amendment. Archive not modified. `C-LEDGER-READ-ABSENCE` draft unchanged.
 **OWS note (A69/A73).** Scope audit against archived `C-PLAN-QUALITY` still reports **1 finding**:
 `.ngrace/changes/active/C-LEDGER-READ-ABSENCE/spec.xml` (draft outside frozen OWS). Production
 paths for 187 remain inside OWS. Declared, not unexplained red.
+
+### A75 — 2026-08-01 · Phase 11 stage 1 re-derive + draft `C-ADOPTION-SURFACE`
+
+**Everything below was measured at `4497af6`**
+(`4497af666be57b1a2098da754ef78042e2ebf0b0` — `feat(reliability): plan-quality signal and doctor
+consumer (Phase 10) (#33)`). After `git fetch origin && git status -sb`: local `main` was not behind
+`origin/main` (both at `4497af6`). Branch `feat/phase-11-rederive` cut from that commit. Tree clean at
+cut; root lint `0` errors / `0` warnings / `Governed files: 59`. Findings continue from **189**.
+
+Stage 1 delivers a draft spec and this amendment only — **no production code**, no walkthrough prose,
+no `README` tier table, no `gate approve` on the repo tree. Same two-stage shape as Phases 9–10
+(A56–A58, A70–A71).
+
+#### A75.1 Repository ground (rule 2 / rule 13: claims measured at a commit)
+
+| Reading | At `4497af6` | Command / evidence |
+|---|---|---|
+| `git rev-parse HEAD` / `origin/main` | both `4497af6…` | §0.4.1 |
+| `bun run ngrace lint --path .` | 0 errors / 0 warnings, 101 files, **Governed files: 59**, 55 XML | CLI |
+| `bun run ngrace doctor --path .` | exit 0; Calibration 2 included / 0 excluded / 1 pending / 1 backfilled; Plan-quality: 1 scoped / 10 scope-not-recorded / 11 readable | CLI |
+| `.ngrace/changes/active/` | `C-LEDGER-READ-ABSENCE` (draft) only | `ls` |
+| Archived bundles (this repo) | **14** | `ls .ngrace/changes/archive/` |
+| Product version / CHANGELOG head | **6.0.1** (2026-07-29); `package.json` version `6.0.1`; every §2 Release cell still `TBD` | files |
+| CLI subcommands at `v6.0.1` | `doctor file graph lint module status verification` (**7**) | `git show v6.0.1:src/grace.ts` |
+| CLI subcommands at HEAD | **+** `context`, `cursor`, `gate`, `review` (**11**) | `src/grace.ts` |
+| `skillTextLines()` | **total 728**, **16** skills, `referencesTotal` **1382** | `bun -e` import of `src/test-support/token-accounting.ts` |
+| Token pin | `token-accounting.test.ts` expects `total === 728`, 16 skills | file |
+| Scale-ergonomics skill-line pin | **none** at HEAD (pins packaging/`#files` + catalog titles only) | `src/artifact/scale-ergonomics.test.ts` — prompt's dual-pin claim is half-true |
+| Explainer mirror | byte-identical `skills/…/ngrace-explainer` ↔ `plugins/…/ngrace-explainer` | `diff -rq` exit 0 |
+| Walkthrough CI breaks | **4** in `scripts/validate-walkthrough.ts` | file; `validate:examples` green in **~0.28s** wall |
+| Lifecycle CI checks | **0** | no lifecycle assertions in `validate-walkthrough.ts` |
+| `examples/polyglot` status | active `C-ADD-KEYBOARD-NAV` `ready-to-execute`; archive `C-ADD-POSTING-CONTRACT` **`apply-gate-record-absent`** (no `run-ledger.xml`) | `ngrace status --path examples/polyglot` |
+| Polyglot `ngrace review` (no induced scope break) | **Findings: 5** (errors: 5) — all pre-existing | CLI |
+| Polyglot `ngrace review` + out-of-scope file | **Findings: 6** (5 + `review.scope-outside-write-scope`) | CLI on scratch copy after `gate approve` |
+
+#### A75.2 Question 1 — lifecycle names capabilities that do not ship
+
+§11.4 lifecycle (and §5.1):
+
+> approve → execute one task with a sliced context → **hit a scope amendment** → see a **`not-run`
+> verdict** → pass a detached review → fold an epoch → archive.
+
+| Lifecycle step | Shipped surface at `4497af6` | Holds as written? |
+|---|---|---|
+| approve | `ngrace gate approve --change C-…` → `Decision: permit`; writes `run-ledger.xml` | **Yes** (verified on scratch copy of `examples/polyglot`) |
+| sliced context | `ngrace context --task T-001 --change C-ADD-KEYBOARD-NAV` → real task slice | **Yes** |
+| **scope amendment** | `rg "ScopeAmendment\|unrequested" src` → **0** non-test hits. No `ScopeAmendment` in grammar. No `ngrace amend`. Shipped: `review.scope-outside-write-scope` (`src/review/catalog.ts:128`) + plan `ObservedWriteScope` | **No** — names unshipped product |
+| **`not-run` verdict** | `not-run` is an **absence** token on verification rows / process-audit status / `cursor verification-unavailable --verdict not-run`. Review **outcomes** are `pass \| fail \| unable-to-determine` (`skills/ngrace/ngrace-cli/references/verdicts.md`). Scope audit text can say `not-run` when no changed files are available | **No** if read as a review-verdict token; **Yes** if named to the real surface |
+| detached review | `ngrace review` + `ngrace gate verdict`; detachment is host capability (README matrix) | **Yes** (mechanized); detachment conditional |
+| fold epoch | `ngrace cursor fold` | **Yes** |
+| archive | `ngrace gate archive` | **Yes** (evaluate/record decision; does not itself `git mv`) |
+
+**Disposition — scope amendment (review gate 11.7.1 in advance).**
+
+§4.2's `<ScopeAmendment>` element and `ngrace amend` were **genuinely intended in the review corpus
+and never shipped** on this track. Wave-3 item 3.1 in `review-consolidated.md` is still design, not
+code. What shipped is post-hoc detection: a changed path outside `ObservedWriteScope` →
+`ngrace review` emits `review.scope-outside-write-scope` → resolution is **declaring the path in the
+plan's `ObservedWriteScope`** (plan edit + human re-approval of the plan when required). That is a
+recorded trail of scope change via the plan artifact, not an append-only amendment element.
+
+**Amend §11.4 wording for stage 2 (do not invent `ngrace amend` in the walkthrough):**
+
+> approve → execute one task with a sliced context → write outside `ObservedWriteScope` and see
+> `review.scope-outside-write-scope` → record the resolution by declaring the path in the plan's
+> write scope → see a `not-run` absence (verification-unavailable or audit status) → pass a
+> mechanized review with zero findings and record `ngrace gate verdict --outcome pass` → fold an
+> epoch → archive.
+
+**Home for the unshipped product:** not this phase. Named gap
+**`C-SCOPE-AMENDMENT` (not drafted)** — or an explicit out-of-track note: Wave-3 §4.2 remains
+unbuilt; Phase 11 documents the shipped detector, not the command that was never written.
+
+**Disposition — `not-run`.**
+
+Exact command that emits the token on a durable event:
+
+```bash
+ngrace cursor verification-unavailable \
+  --change C-ADD-KEYBOARD-NAV --task T-001 \
+  --reason "<why>" --verdict not-run --path <scratch>
+# → run/<epoch>-T-001-verification-unavailable.xml with verdict="not-run"
+```
+
+Also visible as **process-audit status** in the review report (`Scope audit: not-run — …`) when no
+changed-file input is available (`src/review/core.ts`). Walkthrough and CI must use one of these
+surfaces. A review **Verdict** of `not-run` must never appear — that token is not in the outcome
+vocabulary; the CI check must fail the walkthrough if it prints `outcome="not-run"` or teaches
+`gate verdict --outcome not-run`.
+
+**Finding 190** (lifecycle names unshipped amendment product). **Finding 191** (`not-run` is not a
+review-verdict token).
+
+#### A75.3 Question 2 — where the walkthrough lives
+
+| §11.3 row (as written) | Resolves at HEAD to | Action for stage 2 |
+|---|---|---|
+| `examples/polyglot/README.md` EDIT | exists, **34** lines | **EDIT** — point at full lifecycle section of WALKTHROUGH |
+| `README.md` EDIT — tier table | exists, **293** lines; host matrix already shipped (§5.2); **no** reliability tier table yet | **EDIT** — publish re-derived tier table |
+| `docs/` CREATE — walkthrough | **orphan target** — `examples/polyglot/WALKTHROUGH.md` already exists (**349** lines), linked from `README.md:26`, CI-verified by `scripts/validate-walkthrough.ts` | **AMEND row → EDIT** `examples/polyglot/WALKTHROUGH.md` (extend). Do **not** create a second walkthrough under `docs/` |
+| `skills/ngrace/ngrace-explainer/references/*` EDIT | exists (7 reference files; skill body 24 lines) | **EDIT** as needed for recovery / lifecycle pointers |
+| (+ mirrors) EDIT | `plugins/ngrace/skills/ngrace/ngrace-explainer/**` byte-identical today | **EDIT in same commit** (§12.2) |
+
+§11.4 and §5.1 both say extend the existing CI-verified example. **§11.3's `docs/` CREATE is wrong at
+HEAD.** Finding **192**.
+
+#### A75.4 Question 3 — the example does not pass mechanized review
+
+Measured on scratch copy after `gate approve`, and again on the live tree without induced scope break:
+
+```
+ngrace review --change C-ADD-KEYBOARD-NAV --path examples/polyglot
+# Findings: 5 (errors: 5) — Scope audit: not-run (clean tree)
+```
+
+| # | Code | Subject | Disposition |
+|---|---|---|---|
+| 1 | `review.confidently-wrong` | archive plan `MustExist` `DF-POSTING` | **Real example defect.** Detector treats non-`M-`/`V-`/`AC-` MustExist targets as **disk paths** (`src/review/core.ts:350–353`). `DF-POSTING` is a graph anchor in `graph/contracts.xml`, not a file. Fix: drop or replace those MustExist rows (GraphAnchors already name the anchors). **In scope for Phase 11** — required for "pass a detached review." |
+| 2 | `review.confidently-wrong` | archive plan `MustExist` `IC-POSTING-V1` | Same as #1. **In scope.** |
+| 3 | `review.confidently-wrong` | `verification/api.xml` marker `[ApiRouter][Route][BLOCK_DISPATCH]` | **Teaching placeholder that is now load-bearing under review.** Source does not emit the marker. Fix: emit a real marker string from runtime source, or remove the Marker requirement from the golden-path verification. **In scope.** |
+| 4 | `review.confidently-wrong` | `verification/core.xml` marker `[LedgerCore][post][BLOCK_VALIDATE_BALANCE]` | Same as #3. **In scope.** |
+| 5 | `review.unthreaded-construct` | `<AccessibilityCheck>` under `V-M-WEB-LEDGER-TABLE` | **Real example defect.** Construct present, not threaded through health/assertion evaluation. Fix: remove the unthreaded child from the example **or** thread it (product work — out of Phase 11 if it needs new evaluation plumbing). **Default for Phase 11: remove or replace with a threaded form the binary already understands**, so review can be green without a new detector path. |
+| 6 | `review.scope-outside-write-scope` | induced only | The walkthrough demo finding. Not pre-existing. |
+
+**Do not narrow the review detectors to silence the five** (A67.1). Count stays **5** until the
+example is repaired. `validate:examples` has never run `ngrace review` (rule 12: zero subjects on that
+check for the golden path). **Sizing:** small–medium example-artifact edits only; no detector
+retarget. Finding **193**.
+
+#### A75.5 Question 4 — "token figure behind every cell"
+
+Instrument: `src/test-support/token-accounting.ts` (D15). Three functions:
+`skillTextLines()`, `commandOutputBytes(argv, root)`, `selectionRatio(full, selected)`.
+
+**Three problems, dispositions:**
+
+1. **Test-support only.** Not in `package.json#files`; production must not import it (corr 119).
+   **Method for published numbers:** state in README *“Measured at commit `<sha>` with
+   `skillTextLines` / `commandOutputBytes` from `src/test-support/token-accounting.ts` (repo clone;
+   not published on npm). Re-run: `bun -e 'import { skillTextLines } from \"./src/test-support/token-accounting.ts\"; …'`.”*
+   Prefer **stated method + commit** over inventing a shipped regenerator in this phase. Optional
+   later: a `scripts/measure-footprint.ts` that is also not published — only if stage 2 wants
+   one-command re-measure. Finding **194**.
+
+2. **Cells are mechanism × tier; measurable units are not.** Re-derived honest subjects:
+
+| Mechanism row | Measurable at HEAD? | What to publish |
+|---|---|---|
+| Honest verdicts | **No cell bytes.** Vocabulary cost is skill/docs text, not a tier switch | Adjective **Full** + note: always on; no optional off-switch. Footprint: absence of a skip, not a byte count |
+| Ledger & scope trail | **Partial.** `commandOutputBytes` for `gate`/`cursor` on success paths | Per-invocation stdout bytes at named commit for representative `gate approve` / `cursor show` — **not** “Full × T0 = N tokens” |
+| Run cursor | **Yes** (per-invocation) | Same |
+| Context slices | **Yes** | `context --task` bytes (**4012** on polyglot T-001 at `4497af6`); skill-recommendation `context --skills` (**2291** bytes). `selectionRatio` when comparing full dump vs slice — only if stage 2 defines the “full” baseline command (there is no dump-all default) |
+| Detached review | **Partial** | `review` currently **exits 1** on the golden path (throws in `commandOutputBytes`). Publish only after findings 1–5 fixed, or publish measured-on-fixture bytes with the caveat |
+| Coverage attribution | **No separate CLI** | Depth note inside review; no independent byte column |
+| Provenance (§4.4) | **Not shipped** as mechanism | Do not claim Full. Authority axis absent under `src/` (A56 finding 147). Calibration stores `adjudicatedAt` provenance — different construct |
+| Doctor subset | **Yes** | `doctor --path .` → **3246** bytes at `4497af6` on this repo |
+
+**Amend 11.5.2 verify line:**
+
+> Every cell that claims a depth is either (a) backed by a measured `skillTextLines` delta and/or
+> `commandOutputBytes` figure at a named commit with a re-run recipe, or (b) explicitly labelled
+> **unmeasured** / **not a per-invocation surface** with the reason. No fabricated per-cell token
+> counts. Adjectives without numbers remain only where rule 13 says a number would be a lie.
+
+3. **Which tier table is normative?**
+
+| Source | Rows | Notes |
+|---|---|---|
+| `review-consolidated.md` §5.3 | **8** | Includes **Provenance (§4.4)**; names “Scope recording / amendment trail”, “Requirements checklists” |
+| plan §11.4 | **7** | Drops Provenance; renames rows; “Doctor checklist subset” |
+
+**Normative for publish:** neither draft as written. Stage 2 publishes a **shipped-state table**
+derived from Phases 2–10, using §5.3's eight-row skeleton where a row exists in product, and marking
+Provenance **deferred / not shipped** (do not print Full). Plan §11.4 is the provisional copy; §5.3 is
+design intent. Finding **195**.
+
+Measured skill baseline at `4497af6`: **728** SKILL.md lines / 16 skills / **1382** reference lines.
+
+#### A75.6 Question 5 — `ngrace lint --explain` invents entries (finding **189**)
+
+Verified:
+
+```
+$ bun run ngrace lint --explain ledger.invalid-root-tag   # real exact guide → correct, exit 0
+$ bun run ngrace lint --explain not.a.real.code           # synthesized title + "signals drift", exit 0
+$ bun run ngrace lint --explain review.scope-outside-write-scope
+# Title synthesized; "does not yet have a dedicated explanation" + still claims drift — exit 0
+```
+
+Resolution path (`src/lint/catalog.ts:678–694`): exact → prefix → **synthesized fallback that always
+asserts drift**.
+
+**Catalogue / emission counts at `4497af6`:**
+
+| Set | Count |
+|---|---|
+| `EXACT_GUIDES` keys | **76** |
+| `PREFIX_GUIDES` | **14** (`project.` … `cursor.`; **no** `review.`, `gate.`, `health.` prefix except health's two exact UI codes) |
+| Review catalog codes | **13** (all fallback under `lint --explain`) |
+| Gate catalog codes | **8** (all fallback) |
+| Emitted codes classified exact / prefix / fallback (non-test `issue`/`makeFinding`/`code:` scan) | **67 / 87 / 34** |
+| Of the 34 fallback emitters | all 13 `review.*`, all 8 `gate.*`, plus `config.*`, `design-context.*`, `xml.*`, one `verification.*` |
+
+**Fix re-derived:**
+
+- `--explain` gains an **absence exit** when the code is outside the emittable set (union of codes the
+  binary can produce: lint exact+prefix-known families, review catalog, gate catalog, health codes,
+  and other registered emitters — or a single `listEmittableIssueCodes()` built from those
+  registries). Unknown string → non-zero exit, title/explanation that say **unknown code**, never
+  “signals drift.”
+- Codes that **are** emittable but lack exact guides keep prefix or a softer “no dedicated entry;
+  see the emitting surface” message — still must not invent a confident governance claim for
+  garbage input.
+- **Home:** **inside `C-ADOPTION-SURFACE`** as a blocking AC for recovery docs (rule 7 cuts both
+  ways: do not teach a dishonest surface; do not document around it). Size: small
+  (`getLintIssueGuide` + CLI exit + tests). Alternative solo bundle only if stage 2 wants to split
+  — not recommended; recovery procedure 1 is this phase's load-bearing doc.
+
+#### A75.7 Question 6 — can CI fail if a lifecycle step is removed?
+
+Today `scripts/validate-walkthrough.ts`: 4 breaks on scratch copies + prose mentions codes. Precedent
+is correct. Lifecycle extension (proposed shape for stage 2):
+
+| Step | Command (always on **scratch** copy; never repo tree — `gate approve` writes ledger) | Green assertion | Red witness (D16) |
+|---|---|---|---|
+| approve | `gate approve --change C-ADD-KEYBOARD-NAV` | stdout contains `Decision: permit`; `run-ledger.xml` exists | Delete approve call / assert refuse if requirements broken |
+| sliced context | `context --task T-001 --change …` | stdout contains task id + write-scope files | Remove assertion that slice mentions `LedgerTable.tsx` |
+| scope outside | `review --changed-files services/api/.../router.go` | emits `review.scope-outside-write-scope` | Remove expect; or stop passing the out-of-scope file |
+| not-run absence | `cursor verification-unavailable … --verdict not-run` | event XML `verdict="not-run"` | Delete event / change verdict default and assert absence of token |
+| review pass | `review --changed-files <in-scope only>` (after example fix) | findings errors == 0 | Re-introduce one of the five defects; must go red |
+| verdict record | `gate verdict --outcome pass` | ledger contains `<Verdict outcome="pass"` | Omit; apply would refuse — optional secondary |
+| fold | `cursor fold` | loose `run/` folded into ledger | Skip fold; assert open-epoch still blocks archive |
+| archive gate | `gate archive` | `Decision: permit` (or documented refuse reason) | Leave epoch open → `gate.archive.open-epoch` |
+
+**Prose-only (cannot fail CI alone):** host detachment narrative, “you approve as a human,” ceremony
+tier philosophy. Label as prose in the walkthrough.
+
+**Where it runs:** extend `scripts/validate-walkthrough.ts`; keep wired through
+`validate:examples` → `validate:ci`. Current `validate:examples` ~**0.28s**; lifecycle adds several
+CLI spawns on temp dirs — budget **low single-digit seconds** if kept to structural checks (no real
+`bun test` of the example app). Finding **196** (lifecycle CI subjects currently **0**).
+
+#### A75.8 Question 7 — releases unassigned (maintainer decision request)
+
+**Evidence at `4497af6`:**
+
+- Frontmatter `targets: []`; every §2 Release cell `TBD`.
+- `CHANGELOG.md` newest entry **6.0.1 (2026-07-29)**; `package.json` still **6.0.1**.
+- On `main` since 6.0.1, unreleased user-visible surface includes at least:
+  - **New top-level commands:** `context`, `cursor`, `gate`, `review`
+  - **New modules:** `src/gates/`, `src/review/`, `src/calibration/`, plus ledger/cursor in
+    `grace-cursor.ts`
+  - **New issue families:** full `review.*` catalog (13), gate refusal codes, ledger/cursor codes,
+    plan-quality / calibration doctor sections
+  - **New artifact elements:** run ledger, run cursor, verdicts, calibration adjudication, review
+    scope attributes, etc.
+
+**Semver reading (options for the maintainer — do not pick in stage 1):**
+
+| Option | Reading |
+|---|---|
+| **6.1.0** | Additive CLI and skills on the 6.x line; no intentional breaking artifact rename |
+| **6.0.2** | Too weak — multi-command surface is not a patch |
+| **7.0.0** | Only if maintainer wants a major for “reliability track complete” marketing; not required by breakage alone if grammar stays `1.0` additive |
+
+**Decision request:** assign `targets` and every §2 Release cell (possibly one shared release for
+Phases 2–11, or split) **before or as part of** step 11.5.4 archive. Archiving with every cell `TBD`
+records a finished track that never says where it shipped. Stage 1 does **not** edit `CHANGELOG.md`
+or pick a version. Finding **197**.
+
+#### A75.9 Question 8 — rule 12 counts (documentation phase)
+
+| Subject | Count at `4497af6` | Notes |
+|---|---|---|
+| Walkthrough claims CI-verified (breaks) | **4** | `BREAKS` in `validate-walkthrough.ts`; all green |
+| Lifecycle steps CI-verified | **0** | |
+| Issue codes: exact / prefix guides / emitted→fallback | **76** / **14** / **34** emitted fallback | See A75.6 |
+| `skillTextLines().total` / skills / `referencesTotal` | **728** / **16** / **1382** | pin in `token-accounting.test.ts` |
+| Scale-ergonomics skill-line pin | **absent** | packaging pins only |
+| Example derived states | archive `apply-gate-record-absent`; active `ready-to-execute` | Full-lifecycle example **should** leave archive with a ledger+verdict so status is not `apply-gate-record-absent` — either fix the archived bundle in the example or teach that absence is the honest pre-track state and demonstrate ledger on the **active** change only |
+
+**Spec must name pin touchpoints:** `src/test-support/token-accounting.test.ts` (728) if any
+`SKILL.md` body changes; `referencesTotal` is not pinned to an exact number today (only
+`> 0`). Mirror paths under `plugins/…` for every explainer edit.
+
+#### A75.10 Question 9 — structural items before archive
+
+1. **`## 15. Final instruction to the executor` is orphaned mid-§14** (currently between A56 and A57,
+   ~line 8683). §14 is append-only; §15 is not an amendment. **Decision: move §15 to the end of the
+   file** (after the last amendment) as a **mechanical relocation** in stage 2 when the plan is
+   archived (or in the same commit as archive). Stage 1 does **not** move it — only records the
+   decision. Finding **198**.
+
+2. **`C-LEDGER-READ-ABSENCE`** remains `status="draft"` (Phase 10 corr 185). It is scheduled work that
+   **outlives this track**. Archiving `RM-AGENT-RELIABILITY` must say so in the archive note / index.
+   **A69.3's "owed list is empty"** is **no longer true as written** once this draft (and any Phase 11
+   follow-ons) exist. Scope audit for Phase 11 will see
+   `.ngrace/changes/active/C-LEDGER-READ-ABSENCE/` and
+   `.ngrace/changes/active/C-ADOPTION-SURFACE/` — declare both: first is out-of-scope pre-existing
+   draft; second is this phase's draft. Finding **199**.
+
+#### A75.11 Line-by-line disposition — §11.5 and §11.6
+
+##### §11.5 Steps
+
+| Step | Disposition | Amended text / home |
+|---|---|---|
+| **11.5.1** Extend example to full lifecycle, CI-verified | **Amend** | Extend **`examples/polyglot/WALKTHROUGH.md`** (not `docs/`). Lifecycle uses **shipped** vocabulary (A75.2). **First** repair the five pre-existing review findings (A75.4) so “pass a detached review” is reachable. Extend `scripts/validate-walkthrough.ts` with lifecycle witnesses (A75.7). Optionally seed `run-ledger` on archive demo or document `apply-gate-record-absent`. |
+| **11.5.2** Publish tier table with measured token costs | **Amend** | Publish shipped-state table (A75.5); method + commit for every number; unmeasured cells labelled; no fabricated per-cell tokens. Host matrix already in README — do not duplicate as if new. |
+| **11.5.3** Recovery documentation | **Amend** | Three procedures remain. Procedure 1 (`lint --explain`) is **blocked on finding 189 fix** in the same bundle. Rebuild-cursor and incomplete-epoch procedures execute on scratch fixtures. Mirror explainer references. |
+| **11.5.4** Update plans index and archive this plan | **Amend** | Requires maintainer **release assignment** (A75.8) before archive is truthful. Move §15 to file end (A75.10). Disposition note for `C-LEDGER-READ-ABSENCE`. Index rules 2, 4, 7. |
+
+##### §11.6 Definition of done
+
+| DoD line | Disposition |
+|---|---|
+| Full lifecycle CI-verified end to end | **Amend** — after 11.5.1 amended lifecycle + witnesses; not the pre-ship imaginary list |
+| Tier table published with real numbers | **Amend** — real **or explicitly unmeasured**; never fabricated |
+| Recovery procedures executed, not merely written | **Build as written** after 189 fixed |
+| Index and status agree | **Build as written** |
+| `bun run validate:ci` green | **Build as written** |
+
+##### §11.7 Review gate (unchanged intent; pre-answers)
+
+1. Walkthrough must not demonstrate `ngrace amend` / `<ScopeAmendment>` / review-verdict `not-run`.
+2. Tier cells must not imply gate skip (already law via §3.3).
+3. Recovery must be run on fixtures.
+
+#### A75.12 Findings index (189–199)
+
+| # | Finding | Disposition |
+|---|---|---|
+| **189** | `lint --explain` synthesizes a drift claim + exit 0 for non-codes (and for emittable codes with no guide, including all `review.*`) | **Fix in `C-ADOPTION-SURFACE`** (blocking for recovery docs) |
+| **190** | §11.4 “scope amendment” names unshipped `ScopeAmendment` / `ngrace amend` | **Amend lifecycle wording**; gap home out-of-track / future `C-SCOPE-AMENDMENT` |
+| **191** | `not-run` is not a review-verdict token | **Amend**; teach `verification-unavailable` / audit status |
+| **192** | §11.3 `docs/` CREATE contradicts existing CI-verified walkthrough | **Amend §11.3** → EDIT `examples/polyglot/WALKTHROUGH.md` |
+| **193** | Polyglot fails `ngrace review` with **5** pre-existing findings | **Fix example in Phase 11** before claiming review pass; do not weaken detectors |
+| **194** | Token instrument is test-support only | **Publish method + commit**; do not import from production |
+| **195** | Plan 7-row vs §5.3 8-row tier tables; Provenance not shipped | **Publish shipped-state table** |
+| **196** | Lifecycle CI subjects = **0** | **Extend validate-walkthrough** with red witnesses |
+| **197** | Releases all `TBD`; Phases 2–10 unreleased on 6.0.1 | **Maintainer decision** before archive |
+| **198** | §15 orphaned mid-§14 | **Move to EOF** at archive (stage 2) |
+| **199** | `C-LEDGER-READ-ABSENCE` outlives track; A69.3 “owed empty” stale | **Name in archive disposition**; leave draft active |
+
+No count in the stage-1 prompt was wrong on Q1 approve/context/review findings, walkthrough line
+counts, or `skillTextLines` 728/16. Prompt implied a skill-line pin in `scale-ergonomics.test.ts` —
+**that pin does not exist at HEAD** (packaging pins only); recorded here.
+
+#### A75.13 What is already decided (not re-opened)
+
+1. §5.1 full-lifecycle on-ramp is a **blocking constraint**, not a chore (A3.1 quality bar applies).
+2. Tiers change **depth, never whether gates run** (§3.3).
+3. Host capability matrix already shipped in README (§5.2) — Phase 11 does not re-litigate it.
+4. D15: selection never compression; toolkit accountable for its own footprint only.
+5. D16 + rules 11–13 bind docs and CI the same as code.
+6. §12.2 skill mirror same commit; `validate:marketplace` enforces.
+7. Stage 1 = re-derive + draft only (A17.3).
+
+#### A75.14 Draft artifact
+
+| Artifact | Path | Status |
+|---|---|---|
+| Change spec | `.ngrace/changes/active/C-ADOPTION-SURFACE/spec.xml` | `status="draft"`; ACs checkable; no production authorization |
+
+#### A75.15 Maintainer decisions required before stage 2 close
+
+1. **Release assignment** for Phases 2–11 (finding 197) — version number(s) and CHANGELOG ownership.
+2. Confirm **example repair** of the five review findings is in Phase 11 (recommended: yes) vs a
+   blocking pre-bundle (not recommended — would strand 11.5.1).
+3. Confirm **unshipped §4.2 amend product** stays out of track (recommended: yes).
+
+Stage 1 stops here.
