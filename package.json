@@ -1,6 +1,6 @@
 {
   "name": "@neograce/cli",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "neo-grace CLI for .ngrace linting, transition gates, run ledger and cursor, mechanized review with deterministic finding ids, task-scoped context slices, status snapshots, module health, and verification queries, with a Bun-powered ngrace binary.",
   "license": "MIT",
   "homepage": "https://github.com/alex-shekhter/neo-grace#readme",

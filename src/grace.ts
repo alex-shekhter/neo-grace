@@ -30,7 +30,7 @@ import { ARTIFACT_DIR } from "./artifact/paths";
 const main = defineCommand({
   meta: {
     name: "ngrace",
-    version: "6.1.0",
+    version: "6.1.1",
     description: `neo-grace CLI for ${ARTIFACT_DIR} linting, transition gates, run ledger and cursor, mechanized review, task-scoped context slices, status snapshots, module health, verification queries, and semantic markup navigation.`,
   },
   subCommands: {
