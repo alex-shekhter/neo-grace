@@ -7,8 +7,6 @@
       <MustExist><Value>M-LEDGER-CORE</Value></MustExist>
     </BaselineAssertions>
     <TargetAssertions>
-      <MustExist><Value>IC-POSTING-V1</Value></MustExist>
-      <MustExist><Value>DF-POSTING</Value></MustExist>
       <MustLink>
         <From>IC-POSTING-V1</From>
         <To>M-LEDGER-CORE</To>

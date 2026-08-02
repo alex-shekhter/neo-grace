@@ -1495,3 +1495,49 @@ export function other() { return 1; }
     expect(issues).toEqual([]);
   });
 });
+
+describe("ngrace lint --explain CLI (Phase 11 / A76)", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+
+  it("exits 0 for exact catalogue codes", () => {
+    const result = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--explain", "ledger.invalid-root-tag"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).toBe(0);
+    const out = Buffer.from(result.stdout).toString("utf8");
+    expect(out).toContain("ledger.invalid-root-tag");
+    expect(out).toContain("Classification: exact");
+    expect(out).not.toMatch(/signals drift/i);
+  });
+
+  it("exits 0 for emittable review codes without claiming drift", () => {
+    const result = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--explain", "review.scope-outside-write-scope"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).toBe(0);
+    const out = Buffer.from(result.stdout).toString("utf8");
+    expect(out).toContain("Classification: emittable-uncatalogued");
+    expect(out).not.toMatch(/signals drift/i);
+    expect(out).toMatch(/ngrace review/i);
+  });
+
+  it("exits non-zero for unknown codes and never claims drift", () => {
+    const result = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--explain", "not.a.real.code"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).toBe(1);
+    const out = Buffer.from(result.stdout).toString("utf8");
+    expect(out).toContain("Classification: unknown");
+    expect(out).toMatch(/does not emit/i);
+    expect(out).not.toMatch(/signals drift/i);
+  });
+});

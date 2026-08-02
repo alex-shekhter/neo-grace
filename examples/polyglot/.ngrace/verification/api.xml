@@ -4,7 +4,11 @@
       <Cwd>services/api</Cwd>
       <Command>go test ./internal/router/...</Command>
       <Scenario>Gateway dispatches routes to the posting contract.</Scenario>
-      <Marker>[ApiRouter][Route][BLOCK_DISPATCH]</Marker>
+      <TraceAssertion>
+        Runtime sources emit [ApiRouter][Route][BLOCK_DISPATCH] (see services/api/internal/router/router.go).
+        review.confidently-wrong only scans src/**/*.ts for Marker children; polyglot uses linked-language
+        health for marker evidence instead of a Marker requirement the review detector cannot see.
+      </TraceAssertion>
     </V-M-API-ROUTER>
   </VD-API>
 </NgraceVerificationDocument>

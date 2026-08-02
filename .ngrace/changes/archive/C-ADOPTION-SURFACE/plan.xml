@@ -1,0 +1,101 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-ADOPTION-SURFACE>
+    <IntentSummary>
+      Phase 11 stage 2 (A75 + corrections 200–204; maintainer rulings 6.1.0, example repair in-phase,
+      §4.2 amend out of track). Adoption surface: honest lint --explain, polyglot review-green,
+      lifecycle walkthrough + CI, tier table with conditioned measurements, recovery docs, archive
+      RM-AGENT-RELIABILITY. Authored with production work on the same branch after stage-1 draft.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-lint.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-walkthrough.ts</Value></MustExist>
+      <MustExist><Value>examples/polyglot/WALKTHROUGH.md</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>skills/ngrace/ngrace-explainer/references/recovery.md</Value></MustExist>
+      <MustPassCommand>
+        <Command>bun test src/lint/catalog.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-walkthrough.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-LINT-CATALOG />
+        <M-LINT-CORE />
+        <M-REVIEW />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-LINT-CATALOG />
+        <V-M-LINT-CORE />
+        <V-M-REVIEW />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/grace-lint.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>scripts/validate-walkthrough.ts</File>
+      <File>examples/polyglot/WALKTHROUGH.md</File>
+      <File>examples/polyglot/README.md</File>
+      <File>examples/polyglot/.ngrace/changes/archive/C-ADD-POSTING-CONTRACT/plan.xml</File>
+      <File>examples/polyglot/.ngrace/verification/api.xml</File>
+      <File>examples/polyglot/.ngrace/verification/core.xml</File>
+      <File>examples/polyglot/.ngrace/verification/ui.xml</File>
+      <File>README.md</File>
+      <File>skills/ngrace/ngrace-explainer/references/recovery.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-explainer/references/recovery.md</File>
+      <File>docs/plans/active/RM-AGENT-RELIABILITY/plan.md</File>
+      <File>docs/plans/archive/RM-AGENT-RELIABILITY/plan.md</File>
+      <File>docs/plans/README.md</File>
+      <File>.ngrace/changes/active/C-ADOPTION-SURFACE/spec.xml</File>
+      <File>.ngrace/changes/active/C-ADOPTION-SURFACE/plan.xml</File>
+      <File>.ngrace/changes/active/C-ADOPTION-SURFACE/run-ledger.xml</File>
+      <File>.ngrace/changes/active/C-ADOPTION-SURFACE/run.xml</File>
+      <File>.ngrace/changes/archive/C-ADOPTION-SURFACE/spec.xml</File>
+      <File>.ngrace/changes/archive/C-ADOPTION-SURFACE/plan.xml</File>
+      <File>.ngrace/changes/archive/C-ADOPTION-SURFACE/run-ledger.xml</File>
+      <File>.ngrace/changes/archive/C-ADOPTION-SURFACE/run.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Explain honesty, example review-green, lifecycle CI, tier table, recovery, archive plan</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-LIFECYCLE-PROSE />
+          <AC-REVIEW-GREEN />
+          <AC-SCOPE-FINDING />
+          <AC-NOT-RUN-SURFACE />
+          <AC-LIFECYCLE-CI />
+          <AC-TIER-TABLE />
+          <AC-EXPLAIN-ABSENCE />
+          <AC-RECOVERY-EXECUTED />
+          <AC-MIRROR-AND-PINS />
+          <AC-ARCHIVE />
+          <AC-VALIDATE-CI />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            All C-ADOPTION-SURFACE ACs satisfied under A75 dispositions and corrections 200–204;
+            plain polyglot review green; validate:ci green; plan archived with targets 6.1.0.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-ADOPTION-SURFACE>
+</NgraceChangePlan>

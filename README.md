@@ -227,6 +227,56 @@ When a spec declares `AC-*` criteria, each id should be referenced by a task
 spec `AffectedAreas` (or justify omissions under `<OutOfPlanScope>` with a
 non-empty `<Reason>`).
 
+## Reliability mechanisms by ceremony tier
+
+Tiers change **depth, never whether gates run**. T0 may not skip honesty or scope recording; it may
+skip depth (adversarial probe, mutation audit, checklist volume).
+
+| Mechanism | T0 hotfix | T1 | T2 | T3 | Footprint note |
+|---|---|---|---|---|---|
+| Honest verdicts / absence values | Full | Full | Full | Full | Always on; not a per-invocation byte switch |
+| Scope recording (ObservedWriteScope + `review.scope-outside-write-scope`) | Full | Full | Full | Full | Plan artifact + review finding; no separate amend command ships |
+| Run ledger & cursor | Full | Full | Full | Full | See measured CLI rows below |
+| Context slices (`ngrace context --task`) | Optional | Default | Default | Default | Measured on polyglot fixture |
+| Detached review | Mechanized only | Mechanized + probe | Full | Full + fixpoint | Mechanized = CLI; detachment = **host** (matrix below) |
+| Coverage attribution (hunk coverage in review) | — | Optional | Default | Default | Inside `ngrace review`; not a separate binary |
+| Doctor / plan-quality / calibration consumers | — | — | Yes | Yes + advisory | Read-only report sections |
+| Provenance (authority axis on anchors) | **Not shipped** | **Not shipped** | **Not shipped** | **Not shipped** | Designed; never built on this track — do not read as Full |
+
+**How numbers below were measured (re-run from a clone):**
+
+- Instrument: `src/test-support/token-accounting.ts` (`skillTextLines`, `commandOutputBytes`) — **not
+  published on npm** (`package.json#files` excludes `src/test-support/`).
+- **Normalization:** drop lines matching `^Root: ` from stdout before counting bytes (absolute path
+  length otherwise depends on clone location).
+- **Subject:** `examples/polyglot` tree (golden path), state as in the repo (one active approved
+  change, one archive without ledger).
+- **Stability:** skill-text lines are stable for a commit; CLI stdout for `status` / `doctor` /
+  `context --skills` is **state-dependent** (moves when the project’s active bundles or skills
+  change). Re-measure after material project changes.
+
+| What | Subject / state | Normalized stdout bytes | Commit field |
+|---|---|---|---|
+| `skillTextLines().total` (16 `SKILL.md`) | package root | **728 lines** (not bytes) | pin in `token-accounting.test.ts` |
+| `skillTextLines().referencesTotal` | package root | **1445 lines** (includes recovery.md) | same instrument |
+| `ngrace lint --path <polyglot>` | polyglot, clean | **~163** | measure at release cut |
+| `ngrace status --path <polyglot>` | polyglot | **~761** (state-dependent) | measure at release cut |
+| `ngrace doctor --path <polyglot>` | polyglot | **~1907** (state-dependent) | measure at release cut |
+| `ngrace context --task T-001 --change C-ADD-KEYBOARD-NAV` | polyglot | **~4013** | measure at release cut |
+| `ngrace context --skills` | polyglot | **~2264** (state-dependent) | measure at release cut |
+| `ngrace review --path <polyglot>` | polyglot, green | **~131** | measure at release cut |
+
+Re-run recipe (from repo root):
+
+```bash
+bun -e 'import { skillTextLines } from "./src/test-support/token-accounting.ts";
+console.log(skillTextLines());'
+# CLI bytes: run the command, strip Root: lines, count utf-8 bytes of remaining stdout.
+```
+
+Recovery procedures (unfamiliar code, lost cursor, incomplete epoch):
+`skills/ngrace/ngrace-explainer/references/recovery.md`.
+
 ## Host capability matrix (conditional guarantees)
 
 Some reliability guarantees depend on the **agent host**, not only on the portable CLI and skills.

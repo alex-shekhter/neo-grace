@@ -1,9 +1,15 @@
 import { describe, expect, it } from "bun:test";
 
 import { PATTERNS } from "../test-support/defect-corpus";
+import { allGateCodes } from "../gates/catalog";
+import { allReviewCodes } from "../review/catalog";
 import {
+  classifyIssueCode,
   getExactLintIssueGuide,
+  getLintIssueGuide,
+  isEmittableIssueCode,
   listAbsenceCatalogCodes,
+  listExactGuideCodes,
   withLintIssueGuide,
   type DefectPatternId,
 } from "./catalog";
@@ -101,6 +107,45 @@ describe("catalog issueClass (A5.1 route 2, A6.1)", () => {
       expect(exact!.derivedFrom).toBeTruthy();
       expect(exact!.proposedBy).toBeTruthy();
       expect(withLintIssueGuide(bare(code)).issueClass).toBeUndefined();
+    }
+  });
+});
+
+describe("lint --explain honesty (Phase 11 / A76 corr 189, 202)", () => {
+  it("classifies exact catalogue entries as exact", () => {
+    expect(classifyIssueCode("ledger.invalid-root-tag")).toBe("exact");
+    expect(getLintIssueGuide("ledger.invalid-root-tag").explanation).toContain("run-ledger.xml");
+    expect(getLintIssueGuide("ledger.invalid-root-tag").explanation).not.toMatch(/signals drift/i);
+  });
+
+  it("classifies review.* and gate.* without exact entries as emittable-uncatalogued, never drift", () => {
+    expect(classifyIssueCode("review.scope-outside-write-scope")).toBe("emittable-uncatalogued");
+    expect(classifyIssueCode("gate.apply.no-verdict")).toBe("emittable-uncatalogued");
+    for (const code of ["review.scope-outside-write-scope", "gate.apply.no-verdict", "health.missing-verification"]) {
+      const guide = getLintIssueGuide(code);
+      expect(guide.explanation).not.toMatch(/signals drift/i);
+      expect(isEmittableIssueCode(code)).toBe(true);
+    }
+  });
+
+  it("classifies garbage strings as unknown and never claims drift", () => {
+    expect(classifyIssueCode("not.a.real.code")).toBe("unknown");
+    expect(isEmittableIssueCode("not.a.real.code")).toBe(false);
+    const guide = getLintIssueGuide("not.a.real.code");
+    expect(guide.explanation).toMatch(/does not emit/i);
+    expect(guide.explanation).not.toMatch(/signals drift/i);
+  });
+
+  it("pins every exact, review, and gate catalogue code into the emittable union (corr 202)", () => {
+    for (const code of listExactGuideCodes()) {
+      expect(isEmittableIssueCode(code)).toBe(true);
+      expect(classifyIssueCode(code)).toBe("exact");
+    }
+    for (const code of allReviewCodes()) {
+      expect(isEmittableIssueCode(code)).toBe(true);
+    }
+    for (const code of allGateCodes()) {
+      expect(isEmittableIssueCode(code)).toBe(true);
     }
   });
 });

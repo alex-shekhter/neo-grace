@@ -1,14 +1,12 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-ADOPTION-SURFACE>
     <Summary>
-      Phase 11 stage 1 draft (A75). Close RM-AGENT-RELIABILITY with an adoption surface that
-      teaches only shipped capabilities: extend the CI-verified polyglot walkthrough to a full
-      lifecycle (approve → slice → scope finding → not-run absence → review pass → fold → archive),
-      repair the five pre-existing review findings that make a green review impossible today,
-      extend validate-walkthrough with lifecycle red witnesses, publish a shipped-state reliability
-      tier table with honest footprint numbers (method + commit), fix lint --explain absence for
-      unknown codes so recovery docs are trustworthy, update explainer references (+ mirrors), then
-      archive the roadmap plan once releases are assigned. Spec only until planned and approved.
+      Phase 11 stage 2 (A75 + corrections 200–204). Close RM-AGENT-RELIABILITY with an adoption
+      surface that teaches only shipped capabilities: extend the CI-verified polyglot walkthrough
+      to a full lifecycle, repair the five pre-existing review findings, extend validate-walkthrough
+      with lifecycle red witnesses, publish a shipped-state reliability tier table with conditioned
+      footprint numbers, fix lint --explain honesty, recovery docs (+ mirrors), archive the plan
+      with targets 6.1.0 (maintainer ruling).
     </Summary>
     <Problem>
       §11 was written in 2026-07 before Phases 2–10. At 4497af6 (A75):
@@ -83,8 +81,7 @@
     </Goals>
     <Constraints>
       <Constraint>
-        Spec only until planned and approved. Does not authorize production code (A17.3). Stage 2
-        implements after plan.xml and ngrace gate approve permit.
+        Stage 2 implements after plan.xml is approved and ngrace gate approve permits.
       </Constraint>
       <Constraint>
         Standing rule 11: every sentence in the walkthrough and tier table must read true aloud for
@@ -106,8 +103,8 @@
         detectors to silence example findings (A67.1).
       </Constraint>
       <Constraint>
-        Do not pick a product version or edit CHANGELOG.md until the maintainer assigns releases
-        (finding 197). Stage 2 may block on that decision for the archive step only.
+        Maintainer release ruling: targets 6.1.0 for the track. Do not bump package.json, write
+        CHANGELOG.md, tag, or publish — maintainer release actions only.
       </Constraint>
       <Constraint>
         C-LEDGER-READ-ABSENCE remains a separate draft; this bundle does not implement it. Scope
@@ -138,7 +135,7 @@
         Replacing the host capability matrix already in README (§5.2).
       </NonGoal>
       <NonGoal>
-        Choosing semver / writing CHANGELOG without maintainer release assignment.
+        Writing CHANGELOG.md or bumping package.json (maintainer release actions).
       </NonGoal>
     </NonGoals>
     <AcceptanceCriteria>
@@ -148,10 +145,10 @@
         negative: a CI prose check fails if those forbidden strings appear as taught commands.
       </AC-LIFECYCLE-PROSE>
       <AC-REVIEW-GREEN>
-        On a scratch copy of examples/polyglot, after gate approve, ngrace review --change
-        C-ADD-KEYBOARD-NAV --changed-files &lt;in-scope file only&gt; reports 0 errors. The five
-        A75.4 findings are gone via example/source fixes, not detector disablement. Discriminating
-        negative: re-introducing MustExist IC-POSTING-V1 as a path claim makes review red again.
+        Plain `ngrace review --path examples/polyglot` (no changed-file argument) reports 0 errors
+        (corr 203). The five A75.4 findings are gone via example-artifact fixes, not detector
+        disablement. Discriminating negative: re-introducing MustExist IC-POSTING-V1 as a path claim
+        makes plain review red again. Scoped review remains only for the scope-finding demo.
       </AC-REVIEW-GREEN>
       <AC-SCOPE-FINDING>
         The walkthrough (and CI) demonstrate review.scope-outside-write-scope for a path outside
@@ -203,17 +200,18 @@
       </AC-VALIDATE-CI>
     </AcceptanceCriteria>
     <AffectedAreas>
-      <M-LINT />
+      <M-LINT-CATALOG />
+      <M-LINT-CORE />
       <M-REVIEW />
     </AffectedAreas>
     <VerificationIntent>
       <ExpectedCommand>bun run validate:ci</ExpectedCommand>
       <ExpectedEvidence>
-        validate-walkthrough lifecycle red witnesses; polyglot review 0 errors on in-scope set;
-        lint --explain unknown code non-zero; mirror check; token pin; root lint 0 errors.
-        Roadmap: RM-AGENT-RELIABILITY Phase 11 (A75). Also touches examples/polyglot, README,
-        docs/plans, scripts/validate-walkthrough.ts, skills/ngrace/ngrace-explainer (+ plugins mirror)
-        — paths outside graph modules; declared here for humans, not as AffectedAreas anchors.
+        validate-walkthrough: 4 breaks + 8 lifecycle steps; plain polyglot review 0 errors;
+        lint --explain unknown code non-zero; mirror check; token pin 728 unchanged (no SKILL.md
+        body edit); root lint 0 errors. Roadmap: RM-AGENT-RELIABILITY Phase 11 (A75/A76).
+        Also touches examples/polyglot, README, docs/plans, scripts/validate-walkthrough.ts,
+        explainer recovery.md (+ plugins mirror) — declared in plan ObservedWriteScope.
       </ExpectedEvidence>
     </VerificationIntent>
   </C-ADOPTION-SURFACE>

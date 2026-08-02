@@ -4,7 +4,11 @@
       <Cwd>crates/core</Cwd>
       <Command>cargo test --lib</Command>
       <Scenario>Ledger posts balanced entries and rejects zero amounts.</Scenario>
-      <Marker>[LedgerCore][post][BLOCK_VALIDATE_BALANCE]</Marker>
+      <TraceAssertion>
+        Runtime sources emit [LedgerCore][post][BLOCK_VALIDATE_BALANCE] (see crates/core/src/lib.rs).
+        Marker requirements are not declared here because review.confidently-wrong only scans
+        src/**/*.ts; Go/Rust emission is visible to module health via linked implementation files.
+      </TraceAssertion>
     </V-M-LEDGER-CORE>
   </VD-CORE>
 </NgraceVerificationDocument>

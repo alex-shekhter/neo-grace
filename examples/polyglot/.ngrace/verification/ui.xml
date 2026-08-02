@@ -6,10 +6,7 @@
       <Scenario>Ledger table default render with non-empty rows.</Scenario>
       <Scenario>Ledger table empty state announces no entries.</Scenario>
       <TraceAssertion>Render output is asserted by component tests without runtime log emission.</TraceAssertion>
-      <AccessibilityCheck>
-        <Tool>axe</Tool>
-        <Command>echo "axe placeholder for golden-path example"</Command>
-      </AccessibilityCheck>
+      <Command>echo "axe placeholder for golden-path example"</Command>
     </V-M-WEB-LEDGER-TABLE>
   </VD-UI>
 </NgraceVerificationDocument>

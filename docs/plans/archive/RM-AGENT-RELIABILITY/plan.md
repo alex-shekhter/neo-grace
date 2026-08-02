@@ -1,12 +1,12 @@
 ---
 id: RM-AGENT-RELIABILITY
 kind: plan
-status: approved
+status: complete
 supersededBy: null
 created: 2026-07-29
 updated: 2026-08-01
 baseline: 6.0.1
-targets: []
+targets: [6.1.0]
 context: ./decisions.md
 ---
 # Agent Reliability Implementation Plan
@@ -367,16 +367,16 @@ Keep this table current. It is the single source of truth for progress.
 
 | # | Phase | Decisions delivered | Release | Status |
 |---|---|---|---|---|
-| 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | TBD | `COMPLETE` |
-| 3 | Run ledger & cursor | D1, D2, D3 | TBD | `COMPLETE` |
-| 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | TBD | `COMPLETE` |
-| 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | TBD | `COMPLETE` |
-| 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | TBD | `COMPLETE` |
-| 7 | Deterministic failure localization | D8 | TBD | `COMPLETE` |
-| 8 | Selection: task slices & skill subsetting | D15, §4.1 | TBD | `COMPLETE` |
-| 9 | Confidence recording & calibration report | D6 (calibration half) | TBD | `COMPLETE` |
-| 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | TBD | `COMPLETE` |
-| 11 | Adoption surface | §5.1, §5.3 | TBD | `IN PROGRESS` |
+| 2 | Absence value & honest verdicts | D5 (vocabulary half), D13 | 6.1.0 | `COMPLETE` |
+| 3 | Run ledger & cursor | D1, D2, D3 | 6.1.0 | `COMPLETE` |
+| 4 | Attempt log, fix budget, escalation | D6 (attempt half), D9 | 6.1.0 | `COMPLETE` |
+| 5 | Gate declarations & transition surface | D5 (gate half), D11, D12, D14 | 6.1.0 | `COMPLETE` |
+| 6 | Detached reviewer & mechanized audits | D4 (gate), §4.3, §5.2 | 6.1.0 | `COMPLETE` |
+| 7 | Deterministic failure localization | D8 | 6.1.0 | `COMPLETE` |
+| 8 | Selection: task slices & skill subsetting | D15, §4.1 | 6.1.0 | `COMPLETE` |
+| 9 | Confidence recording & calibration report | D6 (calibration half) | 6.1.0 | `COMPLETE` |
+| 10 | Plan-quality signal & doctor consumers | D10, §4.9 subset | 6.1.0 | `COMPLETE` |
+| 11 | Adoption surface | §5.1, §5.3 | 6.1.0 | `COMPLETE` |
 
 **Hard sequencing rules** — these are dependencies, not preferences. Each is stated with what
 breaks if violated:
@@ -403,7 +403,7 @@ Phases **7** and **8** may float anywhere after 2 and 3 respectively. **4** may 
 
 **Status:** `COMPLETE`
 **Decisions:** D5 (vocabulary half), D13
-**Release:** TBD
+**Release:** 6.1.0
 
 > **Amended by §14 A3–A6 — read all four before §2.5.** The steps below were written before the evidence
 > existed. A3 re-derives them against HEAD (eight corrections), adds the scope A3.1's quality bar pulls in,
@@ -552,7 +552,7 @@ the validator rule. All additive, so rollback is clean.
 
 **Status:** `COMPLETE`
 **Decisions:** D1, D2, D3
-**Release:** TBD
+**Release:** 6.1.0
 
 > **Amended by §14 A10 and A11 — read both before §3.5.** The steps below were written before the evidence
 > existed. A10 re-derives them against HEAD: §3.1, §3.6 and §3.7 stand; **§3.5 does not**. Eight corrections
@@ -741,7 +741,7 @@ rollback must also remove the companion-tag registration, or state why not.
 
 **Status:** `COMPLETE`
 **Decisions:** D6 (attempt half), D9
-**Release:** TBD
+**Release:** 6.1.0
 
 > **Amended by §14 A18 — read it before §4.4 and §4.5.** §4.4's pseudocode was written before Phases 2
 > and 3 existed and does not survive contact with what they shipped: six corrections (31–36) follow,
@@ -848,7 +848,7 @@ kinds being absent, so older bundles are unaffected.
 
 **Status:** `COMPLETE`
 **Decisions:** D5 (gate half), D11, D12, D14
-**Release:** TBD
+**Release:** 6.1.0
 
 > **Amended by §14 A29 — read it before §5.4 and §5.5.** §5.3's files table and §5.5's step list
 > were written before Phases 2–4 existed and do not survive contact with HEAD: there are no transition
@@ -995,7 +995,7 @@ construction, so nothing in the existing pipeline regresses.
 
 **Status:** `COMPLETE`
 **Decisions:** D4 (gate), §4.3, §5.2
-**Release:** TBD
+**Release:** 6.1.0
 
 > **Amended by §14 A35 — read it before §6.3–§6.5.** The steps below were written before Phases 2–5
 > existed and before the corpus named exact `review.*` codes. A35 re-derives the phase at `e5627ca`
@@ -1141,7 +1141,7 @@ then has no verdict producer — so rollback must also relax that requirement, o
 
 **Status:** `COMPLETE`
 **Decisions:** D8
-**Release:** TBD
+**Release:** 6.1.0
 
 > **Closed after A45 (corr 114).** Amended by §14 A41–A45: observed sequence from caller-supplied
 > log (route 2), requirement/transcript subsequence comparator, absent vs out-of-order discriminator,
@@ -1244,7 +1244,7 @@ Delete the module and revert the two consumers. Purely additive.
 
 **Status:** `COMPLETE`
 **Decisions:** D15, §4.1
-**Release:** TBD
+**Release:** 6.1.0
 
 > **Closed after A49 (corr 135–137).** Amended by §14 A47–A49: A47 re-derived against `7e2eadb`;
 > A48 answered the three decisions and corr 133–134; A49's review gate forced plan-wave metrics
@@ -1379,7 +1379,7 @@ Delete the module and subcommand. Skills fall back to reading artifacts directly
 
 **Status:** `COMPLETE` (A64 — context derived at fold; report bucketed by context class; C-CALIBRATION-CONTEXT archived)
 **Decisions:** D6 (calibration half)
-**Release:** TBD
+**Release:** 6.1.0
 
 ## 9.1 Objective
 
@@ -1469,7 +1469,7 @@ Remove the field, the rule and the report. Nothing consumed it, so nothing break
 
 **Status:** `COMPLETE`
 **Decisions:** D10, §4.9 subset
-**Release:** TBD
+**Release:** 6.1.0
 
 > **Amended by §14 A70–A71.** Stage 1 re-derived at `0a4b1b3` (A70). Stage 2 built `C-PLAN-QUALITY`
 > under accepted P1–P7 with corrections 179–182 (A71). §10.5/§10.6 disposition is in A71.1.
@@ -1571,9 +1571,9 @@ Delete the outcomes module and revert the doctor checks.
 
 # PHASE 11 — Adoption surface
 
-**Status:** `IN PROGRESS` (A75 — stage 1 re-derive + draft `C-ADOPTION-SURFACE`)
+**Status:** `COMPLETE` (A76 — stage 2 built; track archived)
 **Decisions:** §5.1, §5.3
-**Release:** TBD
+**Release:** 6.1.0
 
 ## 11.1 Objective
 
@@ -8680,16 +8680,6 @@ No count in the stage-1 prompt was wrong on the three gaps. Adjudicator Assertio
 
 ---
 
-## 15. Final instruction to the executor
-
-Work one phase at a time. Report in the §0.5 format. Stop after each phase and wait for review.
-
-The failure this plan exists to prevent is not a bug — it is a **confident report about work that
-was not checked**. Every mechanism here is downstream of that. If you find yourself about to
-write "verified" next to something you inferred, that is the moment the whole track is about.
-
-Write the absence value instead. It is always available, and it is never wrong.
-
 ### A57 — 2026-08-01 · Phase 9 stage 1 accepted; the labeled pair is self-adjudicated
 
 A56 was verified at `e4b5f85`. Gaps 1–3 hold, the draft `C-CALIBRATION` spec is 358 lines with twelve
@@ -10615,3 +10605,136 @@ counts, or `skillTextLines` 728/16. Prompt implied a skill-line pin in `scale-er
 3. Confirm **unshipped §4.2 amend product** stays out of track (recommended: yes).
 
 Stage 1 stops here.
+
+### A76 — 2026-08-01 · Phase 11 stage 2 built; C-ADOPTION-SURFACE closes the track
+
+**Built on branch `feat/phase-11-rederive` from stage-1 commit `9cf7d8e`.** Stage 1 (A75) accepted.
+Findings continue from **200**. Corrections 200–204 and maintainer rulings are resolved below.
+Measured production work at HEAD of this close (commit after archive will supersede the SHA in the
+report).
+
+#### A76.1 Maintainer rulings (recorded, dated 2026-08-01)
+
+| Ruling | Decision |
+|---|---|
+| **Releases (finding 197)** | **`6.1.0` for the whole track.** Frontmatter `targets: [6.1.0]`; every §2 Release cell rows 2–11 → `6.1.0`. Additive CLI and skills on the 6.x line; artifact grammar stays `1.0`. **Not** done here: `package.json` bump, `CHANGELOG.md`, tag, publish — maintainer release actions. Phases 0–1 already in 6.0.1 / evidence archive. |
+| **Example repair (A75.15 #2)** | **In Phase 11.** Precondition for 11.5.1. |
+| **§4.2 amend product (A75.15 #3)** | **Out of track.** `C-SCOPE-AMENDMENT` remains a **named gap, not a draft**. §4.2's `<ScopeAmendment>` / `ngrace amend` / `unrequested` were designed and never built; Phase 11 documents the shipped detector (`review.scope-outside-write-scope` + plan `ObservedWriteScope`) instead. |
+
+#### A76.2 Corrections 200–204
+
+| # | Resolution |
+|---|---|
+| **200** | Token table in README states **subject** (`examples/polyglot`), **normalization** (strip `^Root: ` lines), **stability** (skill lines stable; status/doctor/skills state-dependent), re-run recipe, no unlabeled cross-project mix. Re-measured at stage 2 (polyglot fixed-path scratch): lint ~163, status ~761, doctor ~1907, context task ~4013, context skills ~2264, review ~131 (normalized). A75's mixed figures retired. |
+| **201** | Emittable set derived in code: `listExactGuideCodes` / `EXACT_GUIDES`, `PREFIX_GUIDES`, `isReviewIssueCode`, `isGateIssueCode`, plus surface prefixes `health.` / `xml.` / `design-context.` (peer of gate, not a fifth catalogue object). Documented on `isEmittableIssueCode`. |
+| **202** | Three states for `--explain`: exact → exit 0; emittable-uncatalogued → exit 0, never "signals drift"; unknown → **exit non-zero**, "does not emit". No fifth registry. Test pins every exact/review/gate catalogue code into the union. |
+| **203** | `AC-REVIEW-GREEN` asserts **plain** `ngrace review --path examples/polyglot` → 0 errors. Scoped review only for scope demo. Four walkthrough breaks still fire after marker/MustExist/AccessibilityCheck repair. |
+| **204** | Spec `AffectedAreas` fixed to `M-LINT-CATALOG` + `M-LINT-CORE` + `M-REVIEW` (no `M-LINT`). **Rule-12 observation:** with only a draft/approved spec and no plan join of AffectedAreas to the graph, root lint stayed green on the bogus `M-LINT` in stage 1 — nothing caught it until plan DurableScope / human re-read. No new check added this phase. |
+
+#### A76.3 What was built (production + docs)
+
+| Surface | Change |
+|---|---|
+| `src/lint/catalog.ts` + `src/grace-lint.ts` | `classifyIssueCode` / `isEmittableIssueCode` / honest `--explain` |
+| tests | `catalog.test.ts`, `grace-lint.test.ts` CLI explain exits |
+| `examples/polyglot` | Remove path MustExist IC/DF; replace Marker requirements with TraceAssertion notes (review only scans `src/**/*.ts`); replace unthreaded AccessibilityCheck with Command; WALKTHROUGH §2.5 lifecycle |
+| `scripts/validate-walkthrough.ts` | 4 breaks + plain-review green + 8 lifecycle steps + forbidden prose |
+| `README.md` | Shipped-state tier table + conditioned footprint |
+| explainer `recovery.md` + plugins mirror | Three recovery procedures |
+| Plan archive | status complete, targets 6.1.0, §15 to EOF, index updated |
+
+#### A76.4 §11.5 / §11.6 disposition → built
+
+| Item | Evidence |
+|---|---|
+| 11.5.1 lifecycle + CI | WALKTHROUGH §2.5; validate-walkthrough prints `4 documented breaks + 8 lifecycle steps`; wall ~1.13s (was ~0.28s) |
+| 11.5.2 tier table | README section "Reliability mechanisms by ceremony tier"; Provenance "Not shipped" |
+| 11.5.3 recovery | `references/recovery.md`; executed regenerate dry-run + fold refuse on unterminated epoch + explain unknown |
+| 11.5.4 archive | this amendment + directory move + index |
+| DoD | all five lines: lifecycle CI, tier numbers conditioned, recovery run, index agrees, validate:ci |
+
+#### A76.5 Rule-12 counts (before → after)
+
+| Subject | Before (A75) | After (A76) |
+|---|---|---|
+| Walkthrough breaks CI-verified | 4 | **4** (still fire) |
+| Lifecycle steps CI-verified | 0 | **8** |
+| Plain polyglot review errors | 5 | **0** |
+| `--explain` unknown exit | 0 (false green) | **1** |
+| skillTextLines total / skills / refs | 728 / 16 / 1382 | **728 / 16 / 1382+recovery** (SKILL.md body unchanged; pin stays 728) |
+| Emittable union | text scan | **code registries** + union pin test |
+
+#### A76.6 Read-aloud sentences actually emitted
+
+| Surface | Sentence |
+|---|---|
+| `lint --explain not.a.real.code` | `Unknown issue code: this binary does not emit \`not.a.real.code\`. Nothing was checked…` · Classification: unknown · exit 1 |
+| `lint --explain review.scope-outside-write-scope` | emitted by ngrace review… no dedicated lint entry · Classification: emittable-uncatalogued · exit 0 |
+| `review --path examples/polyglot` | `Findings: 0` / `No review findings.` |
+| Tier Provenance row | `Not shipped` × all tiers — not Full |
+| Forbidden walkthrough strings | CI fails if `ngrace amend` / `<ScopeAmendment` / `gate verdict … not-run` appear |
+
+#### A76.7 D16 red witnesses (lifecycle CI)
+
+| Assertion | Mutation that goes red |
+|---|---|
+| approve permit | delete Decision: permit check |
+| context slice | remove LedgerTable expect |
+| scope finding | stop passing out-of-scope path |
+| plain review green | re-add MustExist IC-POSTING-V1 to archive plan |
+| not-run event | omit --verdict not-run |
+| fold | skip terminal → fold refuses |
+| forbidden prose | insert `ngrace amend` into WALKTHROUGH |
+
+(Verified during build: plain review went 5→0 only after example repair; explain unknown exit 0→1 after catalog change; four breaks remained green after router.go untouched anchors.)
+
+#### A76.8 Close evidence (bundle)
+
+- `gate approve` → permit
+- openEpoch + attempt (claimedConfidence medium) + terminal + fold
+- `ngrace review --change C-ADOPTION-SURFACE --changed-files <OWS list>` → Findings: 0 (LEDGER draft not in set; declared if present)
+- `gate verdict --outcome pass --scope bundle`
+- `gate apply` → permit; `gate archive` → permit
+- Bundle moved to `.ngrace/changes/archive/C-ADOPTION-SURFACE/` with status applied
+
+#### A76.9 Plan-quality before/after scoped close verdict
+
+| When | Scoped / total (readable) |
+|---|---|
+| Before this close verdict | 1 scoped / 11 readable (10 scope-not-recorded) |
+| After `gate verdict --scope bundle` on C-ADOPTION-SURFACE | +1 scoped subject (bundle) among readable verdicts |
+
+Exact doctor counts re-measured at close and pasted in the phase report.
+
+#### A76.10 Track closing statement
+
+**What shipped (Phases 2–11, targeting 6.1.0):** absence vocabulary; run ledger & cursor; attempts/budget/escalation; transition gates; mechanized review + process audits; failure localization; task slices & skill subsetting; calibration; plan-quality doctor consumer; adoption surface (walkthrough lifecycle, honest explain, tier table, recovery).
+
+**Deliberately unbuilt:** §4.2 `<ScopeAmendment>` / `ngrace amend` / `unrequested` (named gap only); D5 authority-axis provenance on anchors; judgment-dependent remainder of §4.9.
+
+**Outlives this plan:** `.ngrace/changes/active/C-LEDGER-READ-ABSENCE` (draft, three-exit ledger reads). **A69.3 "owed list is empty" is stale** as of that draft and any later scheduled work — corrected here, not by rewriting A69.
+
+**§15** relocated from mid-§14 to the end of this file (mechanical; finding 198).
+
+#### A76.11 Findings index (200–204)
+
+| # | Finding |
+|---|---|
+| 200 | A75 token figures not reproducible as labeled — fixed in README method |
+| 201 | A75.6 fallback composition incomplete — fixed via code-derived union |
+| 202 | explain three states without fifth registry — built |
+| 203 | AC-REVIEW-GREEN must use plain review — built |
+| 204 | M-LINT did not exist; nothing caught it — fixed + recorded |
+
+---
+
+## 15. Final instruction to the executor
+
+Work one phase at a time. Report in the §0.5 format. Stop after each phase and wait for review.
+
+The failure this plan exists to prevent is not a bug — it is a **confident report about work that
+was not checked**. Every mechanism here is downstream of that. If you find yourself about to
+write "verified" next to something you inferred, that is the moment the whole track is about.
+
+Write the absence value instead. It is always available, and it is never wrong.
+

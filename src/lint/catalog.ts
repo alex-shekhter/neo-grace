@@ -9,14 +9,20 @@
 //
 // START_MODULE_MAP
 //   DefectPatternId
+//   IssueCodeClassification
+//   classifyIssueCode
 //   formatLintExplanation
 //   getExactLintIssueGuide
 //   getLintIssueGuide
+//   isEmittableIssueCode
 //   listAbsenceCatalogCodes
+//   listExactGuideCodes
 //   withLintIssueGuide
 // END_MODULE_MAP
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { ARTIFACT_TAG_PREFIX, skillRef } from "../artifact/types";
+import { isGateIssueCode } from "../gates/catalog";
+import { isReviewIssueCode } from "../review/catalog";
 import { CONFIG_FILE_NAME } from "./config";
 import type { IssueClass, LintIssue } from "./types";
 
@@ -675,6 +681,56 @@ function toTitleFromCode(code: string) {
     .join(" ");
 }
 
+/**
+ * Three-state classification for `ngrace lint --explain` (Phase 11 / A76 corr 189, 202).
+ * Derived from existing registries only — no fifth catalogue.
+ */
+export type IssueCodeClassification = "exact" | "emittable-uncatalogued" | "unknown";
+
+/**
+ * Whether this binary can emit the code.
+ *
+ * Union rule (A76):
+ * 1. keys of EXACT_GUIDES
+ * 2. any PREFIX_GUIDES family match
+ * 3. isReviewIssueCode (review.* surface)
+ * 4. isGateIssueCode (gate.* surface)
+ * 5. health.* namespace — peer of isGateIssueCode; health has only two exact guides
+ * 6. xml.* and design-context.* — emitted by the grammar/XML layer, no dedicated catalog object
+ *
+ * Do not invent a parallel list of codes. Tests pin catalogs into this union.
+ */
+export function isEmittableIssueCode(code: string): boolean {
+  if (Object.prototype.hasOwnProperty.call(EXACT_GUIDES, code)) {
+    return true;
+  }
+  if (PREFIX_GUIDES.some((guide) => code.startsWith(guide.prefix))) {
+    return true;
+  }
+  if (isReviewIssueCode(code) || isGateIssueCode(code)) {
+    return true;
+  }
+  if (code.startsWith("health.") || code.startsWith("xml.") || code.startsWith("design-context.")) {
+    return true;
+  }
+  return false;
+}
+
+export function classifyIssueCode(code: string): IssueCodeClassification {
+  if (Object.prototype.hasOwnProperty.call(EXACT_GUIDES, code)) {
+    return "exact";
+  }
+  if (isEmittableIssueCode(code)) {
+    return "emittable-uncatalogued";
+  }
+  return "unknown";
+}
+
+/** Exact catalogue keys — for tests that pin catalog→union coverage. */
+export function listExactGuideCodes(): string[] {
+  return Object.keys(EXACT_GUIDES).sort();
+}
+
 export function getLintIssueGuide(code: string): LintIssueGuide {
   const exact = EXACT_GUIDES[code];
   if (exact) {
@@ -686,11 +742,58 @@ export function getLintIssueGuide(code: string): LintIssueGuide {
     return { code, ...prefixGuide };
   }
 
+  if (isReviewIssueCode(code)) {
+    return {
+      code,
+      title: toTitleFromCode(code),
+      explanation:
+        `This code is emitted by \`ngrace review\` (${code}) but does not yet have a dedicated `
+        + "lint --explain entry. See the review catalog (src/review/catalog.ts) and the review report message.",
+      remediation: [
+        "Run `ngrace review` for the finding text and deterministic id.",
+        "Do not treat this as a lint-catalogued drift code until an exact entry exists.",
+      ],
+    };
+  }
+
+  if (isGateIssueCode(code)) {
+    return {
+      code,
+      title: toTitleFromCode(code),
+      explanation:
+        `This code is emitted by \`ngrace gate\` (${code}) but does not yet have a dedicated `
+        + "lint --explain entry. See the gate catalog (src/gates/catalog.ts) and the gate decision output.",
+      remediation: [
+        "Re-run the gate command that produced the code and read its requirements list.",
+        "Do not treat this as a lint-catalogued drift code until an exact entry exists.",
+      ],
+    };
+  }
+
+  if (isEmittableIssueCode(code)) {
+    return {
+      code,
+      title: toTitleFromCode(code),
+      explanation:
+        "This issue code is emitted by the neo-grace CLI but does not yet have a dedicated explanation entry. "
+        + "It does not by itself prove project drift — read the emitting surface's message.",
+      remediation: [
+        "Inspect the issue message and the referenced file from the command that emitted the code.",
+        "Repair the smallest relevant artifact or governed section before re-running that command.",
+      ],
+    };
+  }
+
   return {
     code,
     title: toTitleFromCode(code),
-    explanation: "This issue code does not yet have a dedicated explanation entry, but it still signals drift or missing governance metadata.",
-    remediation: ["Inspect the issue message and the referenced file.", "Repair the smallest relevant GRACE artifact or governed file section before rerunning lint."],
+    explanation:
+      `Unknown issue code: this binary does not emit \`${code}\`. `
+      + "Nothing was checked for this string — it is not evidence of drift or missing governance.",
+    remediation: [
+      "Check the spelling of the code you were given.",
+      "Run `ngrace lint`, `ngrace review`, or `ngrace gate` to see codes this binary actually produces.",
+    ],
   };
 }
 
@@ -732,16 +835,19 @@ export function listAbsenceCatalogCodes(): string[] {
 
 export function formatLintExplanation(code: string) {
   const guide = getLintIssueGuide(code);
-  return [
+  const classification = classifyIssueCode(code);
+  const lines = [
     "neo-grace Lint Issue Guide",
     "=".repeat(26),
     `Code: ${guide.code}`,
     `Title: ${guide.title}`,
+    `Classification: ${classification}`,
     "",
     "Explanation",
     guide.explanation,
     "",
     "Remediation",
     ...guide.remediation.map((item) => `- ${item}`),
-  ].join("\n");
+  ];
+  return lines.join("\n");
 }

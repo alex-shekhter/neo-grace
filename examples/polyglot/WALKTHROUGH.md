@@ -225,6 +225,61 @@ Undo it. `ngrace lint --path examples/polyglot` should be green again.
 
 ---
 
+## 2.5 · One complete change lifecycle (5 min)
+
+The breaks above teach *detection*. This section teaches *judgment* on one change —
+using only commands the binary actually ships. Run these against a **scratch copy** of
+`examples/polyglot` if you do not want `run-ledger.xml` written into the repo tree
+(`gate approve` and the cursor commands write).
+
+```bash
+# From a scratch copy of examples/polyglot (or accept local ledger writes):
+ngrace gate approve --change C-ADD-KEYBOARD-NAV --path .
+# → Decision: permit  (writes run-ledger.xml)
+
+ngrace context --task T-001 --change C-ADD-KEYBOARD-NAV --path .
+# → task slice: modules, write scope, verification — selection, never a dump
+
+# Write outside ObservedWriteScope (demo: a path the plan never admitted):
+ngrace review --change C-ADD-KEYBOARD-NAV --path . \
+  --changed-files services/api/internal/router/router.go
+# → review.scope-outside-write-scope
+# Resolution is not a separate "amend" command (none ships). Declare the path in the
+# plan's <ObservedWriteScope> (with human re-approval of the plan when required).
+
+# Absence when verification cannot run — not a review Verdict of not-run:
+ngrace cursor advance --change C-ADD-KEYBOARD-NAV --task T-001 \
+  --openEpoch --worker w0 --from 1 --to 10 --path .
+ngrace cursor verification-unavailable --change C-ADD-KEYBOARD-NAV --task T-001 \
+  --reason "tests unavailable on this machine" --verdict not-run --path .
+# → run event with verdict="not-run"
+# Review outcomes stay pass | fail | unable-to-determine (ngrace gate verdict).
+
+# Plain mechanized review over the project (no out-of-scope file):
+ngrace review --path .
+# → Findings: 0
+
+ngrace cursor advance --change C-ADD-KEYBOARD-NAV --task T-001 --kind terminal --path .
+ngrace cursor fold --change C-ADD-KEYBOARD-NAV --path .
+# → Fold applied
+
+ngrace gate verdict --change C-ADD-KEYBOARD-NAV --outcome pass --scope bundle --path .
+ngrace gate apply --change C-ADD-KEYBOARD-NAV --path .
+# → Decision: permit (requires a recorded verdict; cleanliness is not the gate)
+
+ngrace gate archive --change C-ADD-KEYBOARD-NAV --path .
+# → Decision: permit when there is no open epoch
+# The gate records the decision; moving the bundle to archive/ is still a human/git step.
+```
+
+Detachment (a cold reviewer subagent) is a **host** capability — see the host matrix in the
+repository README. Mechanized `ngrace review` runs anywhere Bun runs.
+
+CI re-runs the lifecycle on a temp copy (`scripts/validate-walkthrough.ts`) and fails if a
+step or its documented token disappears.
+
+---
+
 ## 3 · Read one change end to end (5 min)
 
 Open `.ngrace/changes/active/C-ADD-KEYBOARD-NAV/`. Every governed change is exactly two
@@ -339,11 +394,12 @@ you are missing — before you commit to anything.
 |---|---|
 | `.ngrace/graph/{ui,api,core,contracts}.xml` | Segmented graph — documents split by domain, unified by an index |
 | `.ngrace/graph/contracts.xml` | `DF-POSTING` ordered data flow + `IC-POSTING-V1` interface contract |
-| `.ngrace/verification/{ui,api,core}.xml` | Per-module commands, scenarios, log markers, accessibility checks |
+| `.ngrace/verification/{ui,api,core}.xml` | Per-module commands, scenarios, trace assertions |
 | `.ngrace/context/design-system.xml` | Design tokens, breakpoints, accessibility policy |
 | `.ngrace/context/invariants.xml` | Cross-cutting rules that outlive any single change |
 | `.ngrace/context/technology.xml` | Three `Stack-*` roots — one per language, no forced global stack |
 | `apps/web/.../LedgerTable.tsx` | File-local module contract and semantic blocks |
 
-The breaks in §2 are exercised by `bun run validate:walkthrough`, so the issue codes
-printed above cannot drift from what the tool actually emits.
+The breaks in §2 and the lifecycle in §2.5 are exercised by `bun run ./scripts/validate-walkthrough.ts`
+(via `validate:examples`), so the issue codes and lifecycle tokens printed above cannot drift
+from what the tool actually emits.
