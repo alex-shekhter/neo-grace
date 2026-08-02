@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
   collectPackedContentErrors,
+  collectPublishedContentErrors,
   collectReleaseConsistencyErrors,
   collectReleaseProtectionErrors,
   collectReleaseStateErrors,
@@ -389,6 +390,8 @@ describe("release state and packed content", () => {
       packedFiles: ["package.json", "README.md", "LICENSE", "src/grace.ts", "src/artifact/paths.ts"],
       localPackShasum: "rc-shasum",
       npmPackageShasum: "rc-shasum",
+      localPackContent: { "package.json": "aaa", "src/grace.ts": "bbb" },
+      publishedPackContent: { "package.json": "aaa", "src/grace.ts": "bbb" },
       npmDistTags: { latest: "3.11.0", rc: "4.0.0-rc.2" },
       githubRelease: { tagName: "v4.0.0-rc.2", isPrerelease: true },
     })).toEqual([]);
@@ -401,8 +404,10 @@ describe("release state and packed content", () => {
       originMain: "stable-commit",
       tagCommit: "stable-commit",
       packedFiles: ["package.json", "README.md", "LICENSE", "src/grace.ts", "src/query/index.ts"],
-      localPackShasum: "stable-shasum",
-      npmPackageShasum: "stable-shasum",
+      localPackShasum: "local-framing",
+      npmPackageShasum: "published-framing",
+      localPackContent: { "package.json": "aaa", "src/grace.ts": "bbb" },
+      publishedPackContent: { "package.json": "aaa", "src/grace.ts": "bbb" },
       npmDistTags: { latest: "4.0.0", rc: "4.0.0-rc.2" },
       githubRelease: { tagName: "v4.0.0", isPrerelease: false },
     })).toEqual([]);
@@ -419,12 +424,14 @@ describe("release state and packed content", () => {
       packedFiles: ["package.json", "README.md", "LICENSE", "src/grace.ts"],
       localPackShasum: "local-new-work",
       npmPackageShasum: "published-rc-tarball",
+      localPackContent: { "package.json": "aaa", "src/grace.ts": "changed" },
+      publishedPackContent: { "package.json": "aaa", "src/grace.ts": "bbb" },
       npmDistTags: { latest: "3.11.0", rc: "4.0.0-rc.2" },
       githubRelease: { tagName: "v4.0.0-rc.2", isPrerelease: true },
     });
 
     expect(errors.some((error) => error.includes("workspace contains unreleased code"))).toBe(true);
-    expect(errors.some((error) => error.includes("does not match published"))).toBe(true);
+    expect(errors.some((error) => error.includes("differ in content from this tree"))).toBe(true);
   });
 
   it("rejects off-main or mismatched stable state and wrong publication channels", () => {
@@ -438,6 +445,8 @@ describe("release state and packed content", () => {
       packedFiles: ["scripts/release-bump.ts", "src/grace-lint.test.ts", "src/artifact/test-fixtures.ts"],
       localPackShasum: "local",
       npmPackageShasum: "published",
+      localPackContent: { "package.json": "aaa" },
+      publishedPackContent: { "package.json": "aaa", "src/grace.ts": "bbb" },
       npmDistTags: { latest: "3.11.0" },
       githubRelease: { tagName: "vwrong", isPrerelease: true },
     });
@@ -445,7 +454,7 @@ describe("release state and packed content", () => {
     expect(errors.some((error) => error.includes("collected from main"))).toBe(true);
     expect(errors.some((error) => error.includes("does not equal origin/main"))).toBe(true);
     expect(errors.some((error) => error.includes("does not equal release tag"))).toBe(true);
-    expect(errors.some((error) => error.includes("does not match published"))).toBe(true);
+    expect(errors.some((error) => error.includes("this tree does not pack"))).toBe(true);
     expect(errors.some((error) => error.includes("npm dist-tag latest"))).toBe(true);
     expect(errors.some((error) => error.includes("prerelease flag"))).toBe(true);
     expect(errors.some((error) => error.includes("forbidden"))).toBe(true);
@@ -501,5 +510,50 @@ describe("packed allowlist tracks package.json#files", () => {
       (file) => file.startsWith("src/") && !exact.has(file) && !prefixes.some((prefix) => `${file}/`.startsWith(prefix)),
     );
     expect(unapproved).toEqual([]);
+  });
+});
+
+describe("published tarball content comparison", () => {
+  const published = { "package.json": "aaa", "src/grace.ts": "bbb", "README.md": "ccc" };
+
+  it("passes when every published file matches this tree, whatever the archive digest is", () => {
+    expect(collectPublishedContentErrors({ ...published }, published)).toEqual([]);
+  });
+
+  it("names files whose content differs", () => {
+    const errors = collectPublishedContentErrors({ ...published, "src/grace.ts": "modified" }, published);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("1 published file(s) differ in content");
+    expect(errors[0]).toContain("src/grace.ts");
+  });
+
+  it("names files the published tarball has and this tree does not pack", () => {
+    const local = { "package.json": "aaa", "src/grace.ts": "bbb" };
+    const errors = collectPublishedContentErrors(local, published);
+    expect(errors.some((error) => error.includes("this tree does not pack") && error.includes("README.md"))).toBe(true);
+  });
+
+  it("names files this tree packs that were never published", () => {
+    const local = { ...published, "src/extra.ts": "ddd" };
+    const errors = collectPublishedContentErrors(local, published);
+    expect(errors.some((error) => error.includes("does not contain") && error.includes("src/extra.ts"))).toBe(true);
+  });
+
+  it("truncates long difference lists instead of printing every path", () => {
+    const many: Record<string, string> = {};
+    const changed: Record<string, string> = {};
+    for (let i = 0; i < 9; i += 1) {
+      many[`src/file-${i}.ts`] = "same";
+      changed[`src/file-${i}.ts`] = "different";
+    }
+    const errors = collectPublishedContentErrors(changed, many);
+    expect(errors[0]).toContain("9 published file(s) differ");
+    expect(errors[0]).toContain("and 4 more");
+  });
+
+  it("reports an unread comparison as absence, never as a pass", () => {
+    expect(collectPublishedContentErrors({}, published)[0]).toContain("could not be read");
+    expect(collectPublishedContentErrors({ ...published }, {})[0]).toContain("could not be read");
+    expect(collectPublishedContentErrors({}, {})[0]).toContain("could not be read");
   });
 });

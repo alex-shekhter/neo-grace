@@ -11,16 +11,20 @@
 //
 // START_MODULE_MAP
 //   collectCurrentReleaseState - Executes authoritative read-only release-state collectors.
+//   tarballContentDigests - Extracts one tarball and hashes every file it contains.
 //   main - Prints checklist results and exits nonzero on any missing or inconsistent state.
 // END_MODULE_MAP
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   collectPackedContentErrors,
   collectReleaseProtectionErrors,
   collectReleaseStateErrors,
+  type PackContentDigests,
   type ReleaseProtectionState,
   type ReleaseState,
 } from "./release-check.ts";
@@ -41,6 +45,56 @@ function runCapture(command: string, args: string[], cwd: string): string {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function listFilesRecursive(dir: string, base: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir).sort()) {
+    const full = path.join(dir, entry);
+    if (statSync(full).isDirectory()) {
+      out.push(...listFilesRecursive(full, base));
+    } else {
+      out.push(path.relative(base, full).replaceAll("\\", "/"));
+    }
+  }
+  return out;
+}
+
+/**
+ * Packs one npm spec, extracts it, and returns `path -> sha256` for every file.
+ *
+ * `spec` is either a package spec (`@scope/name@1.2.3`, which downloads the published
+ * tarball) or empty for the working tree. Returns `{}` when packing or extraction
+ * fails, which the validator reports as an unread comparison rather than a pass.
+ */
+export function tarballContentDigests(spec: string, repoRoot: string): PackContentDigests {
+  const workDir = mkdtempSync(path.join(tmpdir(), "ngrace-pack-"));
+  try {
+    const argv = spec
+      ? ["pack", spec, "--pack-destination", workDir, "--silent"]
+      : ["pack", "--pack-destination", workDir, "--silent"];
+    runCapture("npm", argv, repoRoot);
+
+    const tarball = readdirSync(workDir).find((file) => file.endsWith(".tgz"));
+    if (!tarball) return {};
+
+    const extractDir = path.join(workDir, "extracted");
+    execFileSync("mkdir", ["-p", extractDir]);
+    execFileSync("tar", ["-xzf", path.join(workDir, tarball), "-C", extractDir]);
+
+    const packageDir = path.join(extractDir, "package");
+    if (!existsSync(packageDir)) return {};
+
+    const digests: PackContentDigests = {};
+    for (const rel of listFilesRecursive(packageDir, packageDir)) {
+      digests[rel] = createHash("sha256").update(readFileSync(path.join(packageDir, rel))).digest("hex");
+    }
+    return digests;
+  } catch {
+    return {};
+  } finally {
+    rmSync(workDir, { recursive: true, force: true });
+  }
 }
 
 /** Executes the authoritative non-publishing collectors for the current package version. */
@@ -75,8 +129,15 @@ export function collectCurrentReleaseState(repoRoot: string): { state: ReleaseSt
     runCapture("gh", ["release", "view", expectedTag, "--repo", "alex-shekhter/neo-grace", "--json", "tagName,isPrerelease"], repoRoot),
   ) as { tagName: string; isPrerelease: boolean };
 
+  const localPackContent = tarballContentDigests("", repoRoot);
+  const publishedPackContent = tarballContentDigests(`@neograce/cli@${version}`, repoRoot);
+
   return {
-    state: { version, expectedTag, branch, head, originMain, tagCommit, packedFiles, localPackShasum, npmPackageShasum, npmDistTags, githubRelease },
+    state: {
+      version, expectedTag, branch, head, originMain, tagCommit, packedFiles,
+      localPackShasum, npmPackageShasum, localPackContent, publishedPackContent,
+      npmDistTags, githubRelease,
+    },
     packJson,
   };
 }
@@ -215,10 +276,16 @@ export function main(repoRoot = process.cwd()): number {
     const { state, packJson } = collectCurrentReleaseState(repoRoot);
     const stateErrors = collectReleaseStateErrors(state);
     const packErrors = collectPackedContentErrors(packJson);
+    const publishedFileCount = Object.keys(state.publishedPackContent).length;
+    const framingNote = state.localPackShasum && state.npmPackageShasum
+      && state.localPackShasum !== state.npmPackageShasum
+      ? ` Archive digests differ (local ${state.localPackShasum.slice(0, 12)}, published ${state.npmPackageShasum.slice(0, 12)}) — tar/gzip framing is packer-specific and is not compared.`
+      : "";
     checklist.push({
       label: "Git tag, ancestry, npm channel, and GitHub Release state are consistent",
       ok: stateErrors.length === 0,
-      detail: stateErrors.join("; ") || `Validated ${state.expectedTag}.`,
+      detail: stateErrors.join("; ")
+        || `Validated ${state.expectedTag}; ${publishedFileCount} published files match this tree byte for byte.${framingNote}`,
     });
     checklist.push({
       label: "npm pack dry-run contains only approved runtime package files",

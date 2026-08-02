@@ -80,7 +80,7 @@ Stable preparation refuses an existing local or remote target tag or target-vers
 
 The publish workflow fetches full history. Stable tags must resolve to the exact fetched `origin/main` commit, and the stable npm/GitHub job requires approval through the protected `stable-release` environment. Repository settings must keep explicit environment deployment policies for branch `main` and tags `v*`; keep `main` protected with required `validate`, `windows-compatibility`, and `dart-adapter` checks but no mandatory PR approval; and keep an active tag ruleset preventing deletion or non-fast-forward updates of `v*` tags. Prerelease tags remain on their explicit npm identifier channel such as `rc` and create GitHub prereleases.
 
-`bun run release:checklist` validates repository protections as well as post-publication integrity. Run it before promotion to confirm the protected environment/branch/tag controls, and again from the exact published tag commit. The publication-state portion fails when `HEAD` differs from that tag or when the current local `npm pack` shasum differs from the published package shasum, preventing unreleased workspace content from being mistaken for the released artifact.
+`bun run release:checklist` validates repository protections as well as post-publication integrity. Run it before promotion to confirm the protected environment/branch/tag controls, and again from the exact published tag commit. The publication-state portion fails when `HEAD` differs from that tag, or when any file in the published tarball differs in content from what this tree packs — it names the differing paths — preventing unreleased workspace content from being mistaken for the released artifact. Archive digests are not compared: tar/gzip framing differs by platform even at the pinned npm version, so a digest mismatch is reported as a note rather than a failure.
 
 Before running `release:bump`, ensure CI passes:
 
@@ -108,7 +108,7 @@ When a tag matching `v*` is pushed, the `publish.yml` GitHub Actions workflow:
 4. Publishes stable versions to npm with the default dist-tag, and prerelease versions with the prerelease identifier as the dist-tag (for example, `4.0.0-rc.0` publishes with `--tag rc`).
 5. Creates a GitHub Release with the matching changelog block as body.
 
-After both publication steps succeed, check out the exact release tag and run `bun run release:checklist` to verify the tag commit, npm dist-tag, published tarball shasum, and GitHub prerelease flag as one consistent state.
+After both publication steps succeed, check out the exact release tag and run `bun run release:checklist` to verify the tag commit, npm dist-tag, published tarball contents, and GitHub prerelease flag as one consistent state.
 
 ### A green publish run is not evidence of a publish
 
