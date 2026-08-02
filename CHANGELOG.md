@@ -1,3 +1,35 @@
+## <small>6.1.0 (2026-08-02)</small>
+
+### Summary
+
+This prerelease verifies trusted publishing over OIDC from GitHub Actions and removes the hard opencode dependency from the release path.
+
+* feat: give this repository its own thin .ngrace tree, and close the evidence bundle (#16) ([e33d048](https://github.com/alex-shekhter/neo-grace/commit/e33d048)), closes [#16](https://github.com/alex-shekhter/neo-grace/issues/16)
+* feat(reliability): absence values, honest verdicts, and near-miss marker warnings (#20) ([7388d5e](https://github.com/alex-shekhter/neo-grace/commit/7388d5e)), closes [#20](https://github.com/alex-shekhter/neo-grace/issues/20)
+* feat(reliability): adoption surface, and the detectors it caught being wrong (Phase 11) (#34) ([f641334](https://github.com/alex-shekhter/neo-grace/commit/f641334)), closes [#34](https://github.com/alex-shekhter/neo-grace/issues/34)
+* feat(reliability): attempt log, fix budget, and escalation (Phase 4) (#23) ([3c47b25](https://github.com/alex-shekhter/neo-grace/commit/3c47b25)), closes [#23](https://github.com/alex-shekhter/neo-grace/issues/23) [#23](https://github.com/alex-shekhter/neo-grace/issues/23) [#23](https://github.com/alex-shekhter/neo-grace/issues/23)
+* feat(reliability): confidence recording and the calibration report (Phase 9) (#31) ([e8a5c5c](https://github.com/alex-shekhter/neo-grace/commit/e8a5c5c)), closes [#31](https://github.com/alex-shekhter/neo-grace/issues/31)
+* feat(reliability): detached reviewer, mechanized audits, and the corpus scorer (Phase 6) (#27) ([fe3aaa4](https://github.com/alex-shekhter/neo-grace/commit/fe3aaa4)), closes [#27](https://github.com/alex-shekhter/neo-grace/issues/27)
+* feat(reliability): deterministic failure localization (Phase 7) (#28) ([7e2eadb](https://github.com/alex-shekhter/neo-grace/commit/7e2eadb)), closes [#28](https://github.com/alex-shekhter/neo-grace/issues/28)
+* feat(reliability): plan-quality signal and doctor consumer (Phase 10) (#33) ([4497af6](https://github.com/alex-shekhter/neo-grace/commit/4497af6)), closes [#33](https://github.com/alex-shekhter/neo-grace/issues/33)
+* feat(reliability): run ledger, cursor, and the fold protocol (Phase 3) (#22) ([235f0f8](https://github.com/alex-shekhter/neo-grace/commit/235f0f8)), closes [#22](https://github.com/alex-shekhter/neo-grace/issues/22) [#21](https://github.com/alex-shekhter/neo-grace/issues/21)
+* feat(reliability): task slices and skill subsetting (Phase 8) (#29) ([170a0c5](https://github.com/alex-shekhter/neo-grace/commit/170a0c5)), closes [#29](https://github.com/alex-shekhter/neo-grace/issues/29) [package.json#files](https://github.com/package.json/issues/files) [package.json#files](https://github.com/package.json/issues/files)
+* feat(reliability): transition gates, ledger verdicts and decisions, typed clarifications (Phase 5) ( ([e5627ca](https://github.com/alex-shekhter/neo-grace/commit/e5627ca)), closes [#26](https://github.com/alex-shekhter/neo-grace/issues/26)
+* feat(test-support): phase 0 evidence harness for agent reliability (#14) ([583a327](https://github.com/alex-shekhter/neo-grace/commit/583a327)), closes [#14](https://github.com/alex-shekhter/neo-grace/issues/14)
+* fix(checks): give three green checks something to be red about (#32) ([0a4b1b3](https://github.com/alex-shekhter/neo-grace/commit/0a4b1b3)), closes [#32](https://github.com/alex-shekhter/neo-grace/issues/32)
+* fix(graph): describe every source surface and make the reverse edge real (#30) ([4569196](https://github.com/alex-shekhter/neo-grace/commit/4569196)), closes [#30](https://github.com/alex-shekhter/neo-grace/issues/30)
+* docs: archive RM-NAMESPACE-SEPARATION, and record what the 6.0.0 tag taught (#9) ([267dcaf](https://github.com/alex-shekhter/neo-grace/commit/267dcaf)), closes [#9](https://github.com/alex-shekhter/neo-grace/issues/9)
+* docs: split the reliability plan, and ratify D16 (#12) ([1a4afd0](https://github.com/alex-shekhter/neo-grace/commit/1a4afd0)), closes [#12](https://github.com/alex-shekhter/neo-grace/issues/12) [#12](https://github.com/alex-shekhter/neo-grace/issues/12)
+* docs(contributing): make the branch-landed check mechanical (#10) ([e5954bd](https://github.com/alex-shekhter/neo-grace/commit/e5954bd)), closes [#10](https://github.com/alex-shekhter/neo-grace/issues/10)
+* docs(RM-AGENT-RELIABILITY-EVIDENCE): approve for execution (#13) ([20875b3](https://github.com/alex-shekhter/neo-grace/commit/20875b3)), closes [#13](https://github.com/alex-shekhter/neo-grace/issues/13) [package.json#files](https://github.com/package.json/issues/files)
+* docs(RM-AGENT-RELIABILITY-EVIDENCE): give the final-instruction section its own number (#15) ([e61a5c1](https://github.com/alex-shekhter/neo-grace/commit/e61a5c1)), closes [#15](https://github.com/alex-shekhter/neo-grace/issues/15) [#13](https://github.com/alex-shekhter/neo-grace/issues/13)
+* docs(RM-AGENT-RELIABILITY): answer A3.4, and record a ninth Phase 2 correction (#19) ([0085f32](https://github.com/alex-shekhter/neo-grace/commit/0085f32)), closes [#19](https://github.com/alex-shekhter/neo-grace/issues/19)
+* docs(RM-AGENT-RELIABILITY): approve for execution (#17) ([009a3e8](https://github.com/alex-shekhter/neo-grace/commit/009a3e8)), closes [#17](https://github.com/alex-shekhter/neo-grace/issues/17)
+* docs(RM-AGENT-RELIABILITY): fetch before you measure, as a command and a report field (#25) ([6389e3a](https://github.com/alex-shekhter/neo-grace/commit/6389e3a)), closes [#25](https://github.com/alex-shekhter/neo-grace/issues/25) [#23](https://github.com/alex-shekhter/neo-grace/issues/23)
+* docs(RM-AGENT-RELIABILITY): finish the reconciliation my Phase 6 sweep missed (#11) ([37eb1a2](https://github.com/alex-shekhter/neo-grace/commit/37eb1a2)), closes [#11](https://github.com/alex-shekhter/neo-grace/issues/11)
+* docs(RM-AGENT-RELIABILITY): re-derive Phase 2 against HEAD, and set the quality bar (#18) ([3f943b4](https://github.com/alex-shekhter/neo-grace/commit/3f943b4)), closes [#18](https://github.com/alex-shekhter/neo-grace/issues/18)
+* ci: single-source the test timeout in sharded workflow steps (#21) ([9cf1ffd](https://github.com/alex-shekhter/neo-grace/commit/9cf1ffd)), closes [#21](https://github.com/alex-shekhter/neo-grace/issues/21)
+
 ## <small>6.0.1 (2026-07-29)</small>
 
 ### Summary
