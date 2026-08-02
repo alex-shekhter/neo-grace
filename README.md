@@ -255,16 +255,16 @@ skip depth (adversarial probe, mutation audit, checklist volume).
   `context --skills` is **state-dependent** (moves when the project’s active bundles or skills
   change). Re-measure after material project changes.
 
-| What | Subject / state | Normalized stdout bytes | Commit field |
+| What | Subject / state | Normalized stdout bytes | Commit |
 |---|---|---|---|
 | `skillTextLines().total` (16 `SKILL.md`) | package root | **728 lines** (not bytes) | pin in `token-accounting.test.ts` |
 | `skillTextLines().referencesTotal` | package root | **1445 lines** (includes recovery.md) | same instrument |
-| `ngrace lint --path <polyglot>` | polyglot, clean | **~163** | measure at release cut |
-| `ngrace status --path <polyglot>` | polyglot | **~761** (state-dependent) | measure at release cut |
-| `ngrace doctor --path <polyglot>` | polyglot | **~1907** (state-dependent) | measure at release cut |
-| `ngrace context --task T-001 --change C-ADD-KEYBOARD-NAV` | polyglot | **~4013** | measure at release cut |
-| `ngrace context --skills` | polyglot | **~2264** (state-dependent) | measure at release cut |
-| `ngrace review --path <polyglot>` | polyglot, green | **~131** | measure at release cut |
+| `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `d05be5f` (feat/phase-11-rederive after corr 205; release cut updates) |
+| `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |
+| `ngrace doctor --path <polyglot>` | polyglot | **1907** (state-dependent) | same |
+| `ngrace context --task T-001 --change C-ADD-KEYBOARD-NAV` | polyglot | **4012** | same |
+| `ngrace context --skills` | polyglot | **2264** (state-dependent) | same |
+| `ngrace review --path <polyglot>` | polyglot, green (declarations restored) | **131** | same |
 
 Re-run recipe (from repo root):
 

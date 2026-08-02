@@ -42,6 +42,10 @@
 //   SKILL_PREFIX
 //   SemanticAnchorClassification
 //   SemanticAnchorFamily
+//   VERIFICATION_ENTRY_EVIDENCE_TAGS
+//   VERIFICATION_ENTRY_STRUCTURE_TAGS
+//   VERIFICATION_THREADED_CHILD_TAGS
+//   isRegisteredSemanticAnchor
 //   parseClaimedConfidence
 //   skillName
 //   skillRef
@@ -213,6 +217,45 @@ export const ANCHOR_PATTERNS = {
   /** Technology stack ids under NgraceTechnology/Stacks (e.g. Stack-WEB). */
   technologyStack: /^Stack-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
 } as const;
+
+/** True when `value` matches any registered semantic-anchor family (not a disk path). */
+export function isRegisteredSemanticAnchor(value: string): boolean {
+  for (const pattern of Object.values(ANCHOR_PATTERNS)) {
+    if (pattern.test(value)) return true;
+  }
+  return false;
+}
+
+/**
+ * Evidence tags under V-M-* that projections collect and health/assertions consume
+ * (`collectExactEvidence` in projections.ts). Single source for review.unthreaded-construct.
+ */
+export const VERIFICATION_ENTRY_EVIDENCE_TAGS = [
+  "Command",
+  "Scenario",
+  "Marker",
+  "TraceAssertion",
+  "AccessibilityCheck",
+  "VisualCheck",
+] as const;
+
+/** Structural / metadata children of V-M-* that are not free-form unthreaded constructs. */
+export const VERIFICATION_ENTRY_STRUCTURE_TAGS = [
+  "TestFile",
+  "File",
+  "Cwd",
+  "Notes",
+  "Description",
+  "Expected",
+  "Id",
+  "Module",
+] as const;
+
+/** Union: children of V-M-* that review must not flag as unthreaded (corr 205-C). */
+export const VERIFICATION_THREADED_CHILD_TAGS: ReadonlySet<string> = new Set([
+  ...VERIFICATION_ENTRY_EVIDENCE_TAGS,
+  ...VERIFICATION_ENTRY_STRUCTURE_TAGS,
+]);
 
 /** Breaking-change policies allowed on IC-* interface contracts. */
 export const INTERFACE_BREAKING_CHANGE_POLICIES = [

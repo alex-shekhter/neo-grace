@@ -1,0 +1,65 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-REVIEW-LANGUAGE-SCOPE>
+    <Summary>
+      Corr 205: fix three review.confidently-wrong / unthreaded-construct false positives that made
+      the polyglot golden path look defective. Marker scan uses graph-linked implementation files
+      (not src/**/*.ts only); MustExist skips all ANCHOR_PATTERNS ids; verification threaded children
+      include AccessibilityCheck and VisualCheck from the projections evidence set. Restore example
+      declarations. Post-close narrow fix (A77); C-ADOPTION-SURFACE untouched.
+    </Summary>
+    <Problem>
+      Stage 2 of Phase 11 deleted true polyglot declarations after review reported five errors.
+      All five were detector defects: (A) marker scan TypeScript under src/ only; (B) MustExist
+      treated IC/DF as disk paths; (C) KNOWN_VERIFICATION_CHILDREN omitted threaded a11y/visual tags.
+    </Problem>
+    <Goals>
+      <Goal>Markers emitted from Go/Rust linked sources are not review.confidently-wrong; unemitted markers still fire.</Goal>
+      <Goal>MustExist of registered semantic anchors is not a path check; missing real paths still fire.</Goal>
+      <Goal>AccessibilityCheck and VisualCheck do not raise unthreaded-construct; unknown tags still do.</Goal>
+      <Goal>examples/polyglot restores Markers, MustExist IC/DF, AccessibilityCheck; plain review 0 errors.</Goal>
+      <Goal>D4 corpus stays 14/14; validate:determinism green.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Do not edit C-ADOPTION-SURFACE archive. Phase 11 COMPLETE remains.</Constraint>
+      <Constraint>Minimum MustExist fix: anchors not checked as paths. No new graph-resolve check without rule-12 counts.</Constraint>
+      <Constraint>Marker scan preferred source: getModuleImplementationFiles; rejected: src/**/*.ts directory guess.</Constraint>
+      <Constraint>C-LEDGER-READ-ABSENCE remains a separate active draft; declare in scope audit.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Re-opening Phase 11 adoption walkthrough scope beyond example restore.</NonGoal>
+      <NonGoal>Changing self-referential or regex-over-structure detectors language scope (JS-syntax intentional).</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-MARKER-SCAN>
+        Marker scan uses linked implementation files and/or CODE_EXTENSIONS runtime sources, not
+        only TypeScript under src/. Go and Rust emissions silent; missing marker fires.
+      </AC-MARKER-SCAN>
+      <AC-MUSTEXIST-ANCHORS>
+        MustExist values matching ANCHOR_PATTERNS are not checked as disk paths; missing path still fires.
+      </AC-MUSTEXIST-ANCHORS>
+      <AC-THREADED-CHILDREN>
+        AccessibilityCheck and VisualCheck are in VERIFICATION_THREADED_CHILD_TAGS; FutureHook still fires.
+      </AC-THREADED-CHILDREN>
+      <AC-POLYGLOT-GREEN>
+        With declarations restored, ngrace review --path examples/polyglot reports 0 errors.
+      </AC-POLYGLOT-GREEN>
+      <AC-CORPUS>
+        bun run validate:determinism green; 14/14 mustFire.
+      </AC-CORPUS>
+      <AC-VALIDATE-CI>
+        bun run validate:ci green.
+      </AC-VALIDATE-CI>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+      <M-ARTIFACT-TYPES />
+      <M-PROJECT-UTILS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        core.test.ts corr 205 suite; polyglot review 0; corpus 14/14; root lint 0.
+      </ExpectedEvidence>
+    </VerificationIntent>
+  </C-REVIEW-LANGUAGE-SCOPE>
+</NgraceChangeSpec>

@@ -10348,13 +10348,13 @@ ngrace review --change C-ADD-KEYBOARD-NAV --path examples/polyglot
 # Findings: 5 (errors: 5) — Scope audit: not-run (clean tree)
 ```
 
-| # | Code | Subject | Disposition |
+| # | Code | Subject | Disposition (**corrected A77 / corr 205**) |
 |---|---|---|---|
-| 1 | `review.confidently-wrong` | archive plan `MustExist` `DF-POSTING` | **Real example defect.** Detector treats non-`M-`/`V-`/`AC-` MustExist targets as **disk paths** (`src/review/core.ts:350–353`). `DF-POSTING` is a graph anchor in `graph/contracts.xml`, not a file. Fix: drop or replace those MustExist rows (GraphAnchors already name the anchors). **In scope for Phase 11** — required for "pass a detached review." |
-| 2 | `review.confidently-wrong` | archive plan `MustExist` `IC-POSTING-V1` | Same as #1. **In scope.** |
-| 3 | `review.confidently-wrong` | `verification/api.xml` marker `[ApiRouter][Route][BLOCK_DISPATCH]` | **Teaching placeholder that is now load-bearing under review.** Source does not emit the marker. Fix: emit a real marker string from runtime source, or remove the Marker requirement from the golden-path verification. **In scope.** |
-| 4 | `review.confidently-wrong` | `verification/core.xml` marker `[LedgerCore][post][BLOCK_VALIDATE_BALANCE]` | Same as #3. **In scope.** |
-| 5 | `review.unthreaded-construct` | `<AccessibilityCheck>` under `V-M-WEB-LEDGER-TABLE` | **Real example defect.** Construct present, not threaded through health/assertion evaluation. Fix: remove the unthreaded child from the example **or** thread it (product work — out of Phase 11 if it needs new evaluation plumbing). **Default for Phase 11: remove or replace with a threaded form the binary already understands**, so review can be green without a new detector path. |
+| 1 | `review.confidently-wrong` | archive plan `MustExist` `DF-POSTING` | **Detector false positive (205-B), not an example defect.** `DF-POSTING` is a graph anchor at `examples/polyglot/.ngrace/graph/contracts.xml` and `index.xml`. Detector treated non-`M-`/`V-`/`AC-` MustExist as disk paths. **Retracted:** do not delete the declaration. Fix the detector via `isRegisteredSemanticAnchor` / `ANCHOR_PATTERNS` (`C-REVIEW-LANGUAGE-SCOPE`). |
+| 2 | `review.confidently-wrong` | archive plan `MustExist` `IC-POSTING-V1` | Same as #1 — graph anchor at `contracts.xml`. **Retracted.** |
+| 3 | `review.confidently-wrong` | `verification/api.xml` marker `[ApiRouter][Route][BLOCK_DISPATCH]` | **Detector false positive (205-A), not an example defect.** Marker **is** emitted at `services/api/internal/router/router.go:21` (`slog.Info("[ApiRouter][Route][BLOCK_DISPATCH] …")` inside `START_BLOCK_DISPATCH`). Scan was `src/**/*.ts` only. **Retracted:** restore `<Marker>`; fix scan via graph-linked implementation files + `CODE_EXTENSIONS`. |
+| 4 | `review.confidently-wrong` | `verification/core.xml` marker `[LedgerCore][post][BLOCK_VALIDATE_BALANCE]` | **Detector false positive (205-A).** Emitted at `crates/core/src/lib.rs:17`. **Retracted.** |
+| 5 | `review.unthreaded-construct` | `<AccessibilityCheck>` under `V-M-WEB-LEDGER-TABLE` | **Detector false positive (205-C), not an example defect.** Threaded: projections `collectExactEvidence` (`projections.ts:340`), health (`health.ts:182`), assertions (`assertions.ts:425`). `KNOWN_VERIFICATION_CHILDREN` omitted it. **Retracted:** restore element; use `VERIFICATION_THREADED_CHILD_TAGS`. |
 | 6 | `review.scope-outside-write-scope` | induced only | The walkthrough demo finding. Not pre-existing. |
 
 **Do not narrow the review detectors to silence the five** (A67.1). Count stays **5** until the
@@ -10637,7 +10637,7 @@ report).
 |---|---|
 | `src/lint/catalog.ts` + `src/grace-lint.ts` | `classifyIssueCode` / `isEmittableIssueCode` / honest `--explain` |
 | tests | `catalog.test.ts`, `grace-lint.test.ts` CLI explain exits |
-| `examples/polyglot` | Remove path MustExist IC/DF; replace Marker requirements with TraceAssertion notes (review only scans `src/**/*.ts`); replace unthreaded AccessibilityCheck with Command; WALKTHROUGH §2.5 lifecycle |
+| `examples/polyglot` | **Retracted by A77/corr 205:** stage 2 wrongly deleted true declarations to silence detector false positives. Restored Markers / MustExist IC·DF / AccessibilityCheck; detectors fixed in `C-REVIEW-LANGUAGE-SCOPE`. WALKTHROUGH §2.5 lifecycle remains. |
 | `scripts/validate-walkthrough.ts` | 4 breaks + plain-review green + 8 lifecycle steps + forbidden prose |
 | `README.md` | Shipped-state tier table + conditioned footprint |
 | explainer `recovery.md` + plugins mirror | Three recovery procedures |
@@ -10727,6 +10727,52 @@ Exact doctor counts re-measured at close and pasted in the phase report.
 | 204 | M-LINT did not exist; nothing caught it — fixed + recorded |
 
 ---
+
+### A77 — 2026-08-01 · Corrections 205–206 (post-close; detector false positives, not example defects)
+
+Phase 11 stage 2 (A76) closed with polyglot review green by **editing the golden path** after
+`ngrace review` reported five errors. Independent re-measure showed all five were **detector false
+positives**. This is A67.1 one level up: not narrowing the check, but changing the subject until
+the check is green.
+
+**Disposition pattern:** A69 / A72–A74 post-close narrow fix. Phase 11 board row stays `COMPLETE`;
+`C-ADOPTION-SURFACE` stays archived and untouched. Production change lives in **`C-REVIEW-LANGUAGE-SCOPE`**.
+
+#### A77.1 What was actually true (evidence A75.4 misread)
+
+| Finding | Actual truth at HEAD |
+|---|---|
+| api marker not emitted | `examples/polyglot/services/api/internal/router/router.go:21` emits `[ApiRouter][Route][BLOCK_DISPATCH]` |
+| core marker not emitted | `examples/polyglot/crates/core/src/lib.rs:17` emits `[LedgerCore][post][BLOCK_VALIDATE_BALANCE]` |
+| MustExist IC / DF missing on disk | Graph anchors in `examples/polyglot/.ngrace/graph/contracts.xml:3,9` and `index.xml:24–25` |
+| AccessibilityCheck unthreaded | Collected `projections.ts:340`; health `health.ts:182`; assertions `assertions.ts:425` |
+
+#### A77.2 Three detector defects
+
+| Id | Defect | Fix in `C-REVIEW-LANGUAGE-SCOPE` |
+|---|---|---|
+| **205-A** | Marker scan = `src/**/*.ts` only (`review/core.ts`) | Graph-linked implementation files + `CODE_EXTENSIONS` fallback |
+| **205-B** | MustExist only skipped M/V/AC; IC/DF treated as paths | `isRegisteredSemanticAnchor` / full `ANCHOR_PATTERNS` (no new existence check) |
+| **205-C** | `KNOWN_VERIFICATION_CHILDREN` omitted AccessibilityCheck/VisualCheck | `VERIFICATION_THREADED_CHILD_TAGS` shared with projections evidence tags |
+
+#### A77.3 A75.4 / A76 text
+
+A75.4 disposition table and A76.3 polyglot row **retracted** above (archive not yet shipped; edit
+legitimate until merge — rule 1 applies after merge). Example declarations **restored**.
+
+#### A77.4 Correction 206
+
+README footprint table Commit column was `"measure at release cut"` with no SHA. Filled with
+commit `d05be5f` after re-measure (polyglot restore can move review bytes).
+
+#### A77.5 Rule-12 (after fix, declarations restored)
+
+| Subject | Findings |
+|---|---|
+| `ngrace review --path examples/polyglot` | **0** (with Markers, MustExist IC/DF, AccessibilityCheck present) |
+| `ngrace review --path .` | **0** (shape-data exemptions 2) |
+| D4 corpus | **14/14** mustFire; ratchet unchanged |
+
 
 ## 15. Final instruction to the executor
 
