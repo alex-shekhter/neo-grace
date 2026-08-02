@@ -1,3 +1,12 @@
+## <small>6.1.1 (2026-08-02)</small>
+
+### Summary
+
+This prerelease verifies trusted publishing over OIDC from GitHub Actions and removes the hard opencode dependency from the release path.
+
+* fix(release): verify the published tarball by content, not by archive digest (#37) ([d74de5e](https://github.com/alex-shekhter/neo-grace/commit/d74de5e)), closes [#37](https://github.com/alex-shekhter/neo-grace/issues/37)
+* docs: document the 6.1.0 surface, and fix the claims nothing was checking (#36) ([fe967bc](https://github.com/alex-shekhter/neo-grace/commit/fe967bc)), closes [#36](https://github.com/alex-shekhter/neo-grace/issues/36)
+
 ## <small>6.1.0 (2026-08-02)</small>
 
 ### Summary

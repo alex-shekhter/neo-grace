@@ -1,7 +1,7 @@
 {
   "name": "ngrace",
   "description": "Complete GRACE methodology: semantic markup, knowledge graphs, module contracts, a gated change lifecycle with honest verdicts, mechanized review, and log-driven verification for AI-driven engineering",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "author": {
     "name": "alex-shekhter",
     "url": "https://github.com/alex-shekhter"
