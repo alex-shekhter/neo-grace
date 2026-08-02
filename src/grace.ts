@@ -31,7 +31,7 @@ const main = defineCommand({
   meta: {
     name: "ngrace",
     version: "6.1.0",
-    description: `neo-grace CLI for ${ARTIFACT_DIR} linting, status snapshots, module health, verification queries, semantic markup, and artifact navigation.`,
+    description: `neo-grace CLI for ${ARTIFACT_DIR} linting, transition gates, run ledger and cursor, mechanized review, task-scoped context slices, status snapshots, module health, verification queries, and semantic markup navigation.`,
   },
   subCommands: {
     context: contextCommand,

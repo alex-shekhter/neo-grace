@@ -13,7 +13,7 @@ Current packaged version: `6.1.0`
 
 **Two version numbers, independent of each other:**
 
-1. **Product version** (`5.0.1` today; npm / marketplace) — the `neo-grace` release.
+1. **Product version** (the number above; npm / marketplace) — the `neo-grace` release.
 2. **Artifact grammar version** (`1.0`, carried on every root as `graceVersion="1.0"`) — the shape of `.ngrace` XML this CLI validates.
 
 The grammar version is **not comparable** to upstream GRACE's numbering; this line is ours and starts at `1.0` because the grammar has diverged. It is **not** the product version either: a grammar bump means something became *required* (and ships with a migration path), not that the release is larger.
@@ -23,7 +23,7 @@ The grammar version is **not comparable** to upstream GRACE's numbering; this li
 | Start | Time | What it is |
 |---|---|---|
 | [**Visual introduction**](./docs/ngrace-explainer.html) | 5 min | Why GRACE exists and how the pieces relate. Open the file in a browser — it is self-contained. |
-| [**Twenty-minute walkthrough**](./examples/polyglot/WALKTHROUGH.md) | 20 min | A guided tour of a real React + Go + Rust project. You break it on purpose four times and watch the tooling catch you. |
+| [**Twenty-minute walkthrough**](./examples/polyglot/WALKTHROUGH.md) | 20 min | A guided tour of a real React + Go + Rust project. You break it on purpose four times, then run one complete change lifecycle — approve, slice, scope finding, absence, review, verdict, fold, archive. |
 | `ngrace doctor --path .` | 1 min | Run against your own repository first. Reports which of your languages have export verification before you commit to anything. |
 
 Contributing to this repository? See [CONTRIBUTING.md](./CONTRIBUTING.md) for the day-to-day and release workflow.
@@ -53,7 +53,7 @@ neo-grace uses `.ngrace` as the durable project model:
 | `.ngrace/changes/active/C-*` | Active `NgraceChangeSpec` (optional `DesignReferences`), design context, and `NgraceChangePlan` |
 | `.ngrace/changes/archive/C-*` | Applied, rejected, cancelled, or superseded change bundles |
 | Source/test files with GRACE markup | File-local contracts, links, and semantic block anchors |
-| `examples/polyglot/` | Golden-path React + Go + Rust monorepo (CI-linted; see its [walkthrough](./examples/polyglot/WALKTHROUGH.md)) |
+| `examples/polyglot/` | Golden-path React + Go + Rust monorepo (CI-linted, review-green, and its documented breaks plus the full lifecycle are executed by `scripts/validate-walkthrough.ts`; see the [walkthrough](./examples/polyglot/WALKTHROUGH.md)) |
 
 neo-grace does not dual-validate legacy GRACE 3 project docs as current state. Existing GRACE 3 projects use `$ngrace-migrate`; the CLI validates the generated `.ngrace` result but does not convert legacy docs itself.
 
@@ -126,12 +126,13 @@ For a new neo-grace project:
 1. Run `$ngrace-init` to create `.ngrace`.
 2. Fill `.ngrace/context` artifacts with your agent.
 3. Run `$ngrace-spec` for a change.
-4. Run `$ngrace-plan` after spec approval.
+4. Run `$ngrace-plan` after spec approval, then `ngrace gate approve --change C-ID` before the plan is marked approved. Refuse means unresolved clarifications on `IC-*` / `INV-*`.
 5. Before observed writes begin, run the active-baseline preflight: `ngrace lint --path /path/to/project --assertions current`.
 6. Run `ngrace lint --path /path/to/project --change C-ID --assertions baseline` before execution; add `--run-commands` when the baseline declares `MustPassCommand`.
 7. Run `ngrace status --path /path/to/project --json`.
-8. Run `$ngrace-execute` and choose sequential or parallel-safe mode. Parallel-safe mode additionally requires `ngrace lint --path /path/to/project --parallel-preflight`.
+8. Run `$ngrace-execute` and choose sequential or parallel-safe mode. Parallel-safe mode additionally requires `ngrace lint --path /path/to/project --parallel-preflight`. Per task, `ngrace context --task T-NNN --change C-ID` emits the slice; each verification cycle is recorded with `ngrace cursor attempt` (or `ngrace cursor verification-unavailable` when it could not run), and each epoch is closed with `ngrace cursor fold`.
 9. Before apply/archive, run `ngrace lint --path /path/to/project --change C-ID --assertions final`; add `--run-commands` when the target declares `MustPassCommand`.
+10. Run `ngrace review --path /path/to/project --change C-ID` for mechanized findings, form judgment (detached where the host allows it), and record it with `ngrace gate verdict`. Then `ngrace gate apply --change C-ID` and `ngrace gate archive --change C-ID`. Apply requires a recorded verdict of *some* outcome — including `unable-to-determine` with a reason. It is never silently green.
 
 Existing GRACE 3 projects should run `$ngrace-migrate` and review the migration report before writing `.ngrace` artifacts.
 
@@ -154,6 +155,7 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | `ngrace-cli` | Operate the required `ngrace` binary as the lint, gate, and artifact-query layer |
 | `ngrace-explainer` | Explain the GRACE methodology itself |
 | `ngrace-verification` | Build and maintain `.ngrace/verification` entries and evidence |
+| `ngrace-design` | Interview for design-system intent; populate `design-system.xml`, `UI_COMPONENT` states, and a11y/visual evidence |
 | `ngrace-reviewer` | Review semantic integrity, projections, scopes, and verification quality |
 | `ngrace-migrate` | Agent-applied GRACE 3 to neo-grace migration with CLI validation |
 
@@ -173,9 +175,29 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | `ngrace verification find <query> --path <root>` | Search verification projection entries |
 | `ngrace verification show <id-or-module> --path <root>` | Show one verification entry and module context |
 | `ngrace file show <path> --path <root>` | Show file-local `MODULE_CONTRACT`, `MODULE_MAP`, and `CHANGE_SUMMARY` |
-| `ngrace cursor show --change C-ID --path <root>` | Show durable run position (never writes; recovers rather than blocks) |
-| `ngrace cursor regenerate --change C-ID [--apply] --path <root>` | Re-derive `run.xml` from ledger, loose events, and codebase evidence (dry-run by default) |
-| `ngrace cursor advance\|pause\|resume\|fold --change C-ID --path <root>` | Append run events or fold an epoch into `run-ledger.xml` |
+| `ngrace lint --explain <code>` | Explain one issue code without linting. Three answers, never a guess: a catalogued code, a code this binary emits but has no dedicated entry for, or an unknown string — which says so and exits nonzero |
+| `ngrace doctor --path <root>` | Read-only report: adapters, analysis coverage, document size pressure, context gaps, absence issues, calibration, plan quality |
+| `ngrace graph split --by <path-prefix> --path <root>` | Move modules whose `Path` matches a prefix into a new `GD-*` document (dry-run by default; `--apply` to write) |
+
+### Change lifecycle: gates, run ledger, and review
+
+These carry the execute lifecycle. Gates evaluate and record a decision; they never author `status`
+and never move a bundle. `ngrace review` never records a verdict. The separation is the point.
+
+| Command | What It Does |
+| --- | --- |
+| `ngrace gate approve --change C-ID` | Evaluate the approve transition (unresolved `IC-*` / `INV-*` clarifications refuse) and record the decision |
+| `ngrace gate apply --change C-ID` | Evaluate the apply transition — a recorded review verdict of some outcome is required |
+| `ngrace gate archive --change C-ID` | Evaluate the archive transition (an open epoch refuses) |
+| `ngrace gate verdict --change C-ID --outcome pass\|fail\|unable-to-determine` | Record judgment in `run-ledger.xml`; optional `--reason`, `--note`, `--scope task\|wave\|bundle`, `--classification implementation\|plan` |
+| `ngrace review --path <root> [--change C-ID] [--base <ref>]` | Mechanized detectors and process audits with deterministic finding IDs; with `--change`, an `ObservedWriteScope` scope audit |
+| `ngrace cursor show --change C-ID` | Show durable run position (never writes; recovers rather than blocks) |
+| `ngrace cursor regenerate --change C-ID [--apply]` | Re-derive `run.xml` from ledger, loose events, and codebase evidence (dry-run by default) |
+| `ngrace cursor advance\|pause\|resume\|fold --change C-ID` | Append run events, or fold an epoch into `run-ledger.xml` |
+| `ngrace cursor attempt --change C-ID --task T-NNN --outcome pass\|fail` | Record a verification cycle; signature required on fail. Optional `--claimed-confidence` is write-only analysis data no gate reads |
+| `ngrace cursor verification-unavailable --change C-ID --task T-NNN --reason <why>` | Record that verification could not run — an absence, not an attempt, and not counted against the fix budget |
+| `ngrace context --task T-NNN --change C-ID` | Emit a task slice: the modules, files, and verification that task needs. Selection, never compression |
+| `ngrace context --skills [--change C-ID]` | Emit a skill recommendation for the current state. Advisory — the CLI cannot unload a skill from a host |
 
 `MustPassCommand` entries are leaf project evidence such as tests, typecheck, build, format, or package checks. Do not nest `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside plan assertions; selected target/final lint is the external orchestration gate.
 
@@ -183,7 +205,11 @@ Output modes:
 
 - `ngrace lint`: `text`, `json`
 - `ngrace status`: `text`, `json`
-- `ngrace cursor show|regenerate|advance|pause|resume|fold`: `text`, `json`
+- `ngrace doctor`: `text`, `json`
+- `ngrace review`: `text`, `json`
+- `ngrace gate approve|apply|archive|verdict`: `text`, `json`
+- `ngrace context --task|--skills`: `text`, `json`
+- `ngrace cursor show|regenerate|advance|attempt|verification-unavailable|pause|resume|fold`: `text`, `json`
 - `ngrace module find`: `table`, `json`
 - `ngrace module show`: `text`, `json`
 - `ngrace verification find`: `table`, `json`
@@ -257,9 +283,9 @@ skip depth (adversarial probe, mutation audit, checklist volume).
 
 | What | Subject / state | Normalized stdout bytes | Commit |
 |---|---|---|---|
-| `skillTextLines().total` (16 `SKILL.md`) | package root | **728 lines** (not bytes) | pin in `token-accounting.test.ts` |
+| `skillTextLines().total` (16 `SKILL.md`) | package root | **730 lines** (not bytes) | pin in `token-accounting.test.ts` |
 | `skillTextLines().referencesTotal` | package root | **1445 lines** (includes recovery.md) | same instrument |
-| `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `97553ef` (feat/phase-11-rederive after corr 205; release cut updates) |
+| `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `f641334` (the squashed Phase 11 merge; release cut updates) |
 | `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |
 | `ngrace doctor --path <polyglot>` | polyglot | **1907** (state-dependent) | same |
 | `ngrace context --task T-001 --change C-ADD-KEYBOARD-NAV` | polyglot | **4012** | same |
@@ -323,8 +349,11 @@ ngrace gate verdict --change C-ID --outcome pass|fail|unable-to-determine [--rea
 | `src/artifact/*` | neo-grace project detection, XML parsing, grammar, projections, assertions, and scopes |
 | `src/lint/*` | `ngrace lint` implementation |
 | `src/review/*` | `ngrace review` mechanized detectors, scorer, finding IDs |
-| `src/gates/*` | `ngrace gate` transition surface |
+| `src/gates/*` | `ngrace gate` transition surface, run ledger, and recorded verdicts |
+| `src/calibration/*` | Confidence calibration report (`claimedConfidence` is recorded, never gate-consumed) |
 | `src/query/*` | Projection-backed query layer for CLI navigation |
+| `src/test-support/*` | Fixtures, defect corpus, and token accounting — **not published** (`package.json#files` excludes it) |
+| `examples/polyglot/` | Golden-path example, executed by `scripts/validate-walkthrough.ts` |
 | `scripts/validate-marketplace.ts` | Packaging, version, path, and mirror validation |
 | `scripts/validate-determinism.ts` | D4 determinism + corpus ratchet gate |
 | `RELEASING.md` | Manual release checklist and validation commands |

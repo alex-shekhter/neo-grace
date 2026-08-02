@@ -16,6 +16,8 @@ description: Operate the neo-grace CLI for .ngrace linting, status, module navig
 - Cursor: `ngrace cursor show|regenerate|advance|pause|resume|fold --change C-ID --path PROJECT`
 - Navigation: `ngrace module find|show`, `ngrace verification find|show`, and `ngrace file show`.
 - Task slice / skill recommendation: `ngrace context --task T-NNN --change C-ID` or `ngrace context --skills` (selection, not a dump of `.ngrace/context/*`).
+- Gates, review, and read-only report: `ngrace gate approve|apply|archive|verdict --change C-ID`, `ngrace review --path PROJECT [--change C-ID]`, `ngrace doctor --path PROJECT`.
+- Issue code lookup: `ngrace lint --explain CODE` — a catalogued entry, a code the binary emits without a dedicated entry, or an unknown string (says so, exits nonzero). Never infer a meaning it did not print.
 </commands>
 
 <lifecycle_command_contract>`current` evaluates active approved baselines and is not end-state evidence. Keep `MustPassCommand` entries as leaf project checks; do not nest `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside plan assertions. Run selected target/final lint externally.</lifecycle_command_contract>
