@@ -1329,3 +1329,31 @@ reader and invisible to another.
 
 Nothing is blocked. The archive is correct, lint is clean, and the orphan is preserved. What is wrong
 is the sentence each surface tells about it.
+
+### D6.6 — D6.4's restatement path cannot lift a `pending` label, and that forces D8.4 rather than choosing it
+
+Found by the P0.8 derivation, confirmed against the types. **D6.4 names `CalibrationRestatement` as
+the sanctioned path for evidence arriving after fold.** But the type carries no outcome:
+
+```ts
+export type CalibrationRestatement = {
+  changeId; epoch; adjudicatedAt: "backfill"; reason?; authoringChangeId;
+};
+```
+
+A restatement overrides **`adjudicatedAt`**, nothing else, and `report.ts` keeps a pending pair
+pending *"regardless of `adjudicatedAt` (A7.2)"*. So a restatement can move a pair whose stored
+adjudication already holds a boolean into the `backfilled` bucket — which is what happened to
+`C-CALIBRATION` — but it **cannot turn `pending` into `pass`.**
+
+**This does not change D8.4; it explains it.** The three historical pendings are forward-fixed only
+because **no sanctioned mechanism exists to do otherwise**, not merely because relabelling would be
+distasteful. Correction 156's guarantee is enforced by the type, not just by the rule.
+
+**Recorded because D6.4 reads as an available remedy and is not one for this case.** A later author
+reaching for it on a pending pair will find it does nothing, and should find this note first.
+
+**Consequence for P0.8's design, and it is the decisive one:** the fix must ensure evidence exists
+**before** fold adjudicates, because after fold there is no honest path to a boolean. That closes the
+derivation's Q2 by itself — an outcome-carrying restatement would be a new mechanism for moving a
+stored label after the fact, which is precisely what corr 156 forbids.
