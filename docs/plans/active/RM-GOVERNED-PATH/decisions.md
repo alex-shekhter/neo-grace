@@ -1357,3 +1357,49 @@ reaching for it on a pending pair will find it does nothing, and should find thi
 **before** fold adjudicates, because after fold there is no honest path to a boolean. That closes the
 derivation's Q2 by itself — an outcome-carrying restatement would be a new mechanism for moving a
 stored label after the fact, which is precisely what corr 156 forbids.
+
+---
+
+## D10 — Calibration claims are never added after the outcome is known
+
+**Decision.** `claimedConfidence` is recorded during execution, before the outcome is known, or it is
+not recorded at all. **A claim may never be added to an epoch after its work is complete**, including
+to make a new adjudication path exercisable on real data.
+
+**Raised concretely.** `C-CALIBRATION-COMMAND-EVIDENCE` built the fold join that adjudicates from
+recorded command evidence, and its own epoch carries no `claimedConfidence` — so `doctor` still reads
+**2 included, 0 excluded, 3 pending, 1 backfilled**, unchanged, and the new path is exercised only by
+tests. The executor asked whether to add a claim so this epoch would become the first joined
+adjudication.
+
+**Why not.** A calibration corpus is worth exactly what its claims cost to make. A claim written
+after the work is finished and green costs nothing and predicts nothing — it is a record of certainty
+dressed as a forecast. That is Correction 156's harm moved one step earlier: *a corpus whose labels
+move is not a corpus*, and neither is one whose **claims** are backfilled.
+
+The unchanged `2 / 0 / 3 / 1` is the **correct** number. The first real entry arrives when a bundle
+genuinely records confidence before knowing how it turns out, and that is worth waiting for.
+
+**Corollary for future demos:** a new adjudication path is proven by tests over fixtures, never by
+manufacturing corpus entries. If a path cannot be demonstrated without a fabricated claim, it is
+demonstrated by the fixtures and reported as such.
+
+#### F9.8 — A fourth cause of the red-first gap: batched tool calls
+
+`C-CALIBRATION-COMMAND-EVIDENCE` T-001 and T-002 both disclosed that the `fail` attempt was recorded
+**in the same tool batch as the production writes**, so the `WriteEvidence` digests cannot separate
+before from after. The test-runner red was genuinely observed (5 fails, then 6) — the ledger just
+cannot witness it.
+
+This is a **different cause** from F9.6's, and both matter to whoever fixes attribution later:
+
+| Cause | Why the ledger cannot corroborate |
+|---|---|
+| F9.6 — one suite spans several tasks | the red belongs to no single task |
+| **F9.8 — fail event and fix land in one batch** | the digests snapshot after both |
+
+Neither is carelessness, and the disclosure norm has now produced a voluntary admission on **five**
+consecutive occasions. That is the mechanism working. What it also shows is that honest red-first
+recording is **harder than the rule makes it sound**: it requires the attempt to be written in its
+own round trip, before the edit that follows it — an ordering constraint the execution contract never
+states. That belongs with F12's documentation gap in P1.

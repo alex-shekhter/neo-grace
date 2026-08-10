@@ -12,6 +12,7 @@ import { validateNgraceProject } from "./artifact/grammar";
 import { snapshotProjectTree } from "./test-support/fixtures";
 import {
   advanceCursor,
+  appendCommandRunEvent,
   classifyFlakeFromEvidence,
   countTaskAttemptEvents,
   cursorStateForEventKind,
@@ -2330,6 +2331,247 @@ describe("C-RECOVER-FOLDABLE T-003: clean no-terminal E2E (no withTerminal pre-s
     const dead = listLooseEvents(damaged).find((e) => e.id === 19);
     expect(dead?.allocations?.[0]).toEqual({ worker: "w0", from: 1, to: 19 });
     expect(preFixTerminals[0]!.id).toBeGreaterThan(19);
+  });
+});
+
+describe("C-CALIBRATION-COMMAND-EVIDENCE T-002: fold joins command-run evidence", () => {
+  const DEFAULT_WRITE_EVIDENCE: WriteEvidenceSnapshot = {
+    available: true,
+    files: [{ path: "src/example.ts", kind: "content", digest: "a".repeat(64) }],
+  };
+
+  /** Adjudication outcome only — attempt events also carry outcome= attributes. */
+  function adjudicationOutcome(ledger: string): string | undefined {
+    return ledger.match(/<CalibrationAdjudication\b[^>]*\boutcome="([^"]+)"/)?.[1];
+  }
+
+  function adjudicationBlock(ledger: string): string {
+    return ledger.match(/<CalibrationAdjudication\b[^/]*\/>/)?.[0]
+      ?? ledger.match(/<CalibrationAdjudication\b[\s\S]*?<\/CalibrationAdjudication>/)?.[0]
+      ?? "";
+  }
+
+  function seedCalBundle(
+    root: string,
+    changeId: string,
+    command: string,
+  ): string {
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId,
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+      planTargetAssertions:
+        `<MustExist><Value>src/example.ts</Value></MustExist>`
+        + `<MustPassCommand><Command>${command}</Command></MustPassCommand>`,
+    });
+    return path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
+  }
+
+  function openClaimAndTerminal(root: string, changeId: string): void {
+    advanceCursor(root, changeId, { task: "T-001", openEpoch: true });
+    recordAttempt(root, changeId, {
+      task: "T-001",
+      outcome: "pass",
+      claimedConfidence: "medium",
+      writeEvidence: DEFAULT_WRITE_EVIDENCE,
+    });
+  }
+
+  it("red-first: planted matching command-run evidence is joined at fold → pass (pre-fix ignored records → pending)", () => {
+    const root = createProject();
+    const changeId = "C-JOIN-PASS";
+    // Use a non-existent shell command so fold-time spawn (if any) cannot invent a pass.
+    const command = "ngrace-command-run-evidence-marker-xyzzy-never-spawn";
+    seedCalBundle(root, changeId, command);
+    openClaimAndTerminal(root, changeId);
+    appendCommandRunEvent(root, changeId, {
+      command,
+      exitCode: 0,
+      assertionPassed: true,
+      assertionKind: "MustPassCommand",
+      source: "lint-run-commands",
+    });
+    advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+    foldEpoch(root, changeId);
+
+    const ledger = readFileSync(
+      path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run-ledger.xml"),
+      "utf8",
+    );
+    expect(ledger).toContain("CalibrationAdjudication");
+    expect(adjudicationBlock(ledger)).toContain('adjudicatedAt="fold"');
+    // Pre-fix: evaluateTargetComplete(runCommands:false) stored pending and ignored records.
+    // After join: matching assertionPassed=true evidence → pass.
+    expect(adjudicationOutcome(ledger)).toBe("pass");
+  });
+
+  it("matching assertionPassed=false evidence → fold stores fail", () => {
+    const root = createProject();
+    const changeId = "C-JOIN-FAIL";
+    const command = "exit 0";
+    seedCalBundle(root, changeId, command);
+    openClaimAndTerminal(root, changeId);
+    appendCommandRunEvent(root, changeId, {
+      command,
+      exitCode: 1,
+      assertionPassed: false,
+      assertionKind: "MustPassCommand",
+      source: "lint-run-commands",
+    });
+    advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+    foldEpoch(root, changeId);
+
+    const ledger = readFileSync(
+      path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run-ledger.xml"),
+      "utf8",
+    );
+    expect(adjudicationOutcome(ledger)).toBe("fail");
+    expect(adjudicationBlock(ledger)).toContain('adjudicatedAt="fold"');
+  });
+
+  it("no matching recorded evidence → pending with reason naming absent recorded evidence", () => {
+    const root = createProject();
+    const changeId = "C-JOIN-ABSENT";
+    seedCalBundle(root, changeId, "exit 0");
+    openClaimAndTerminal(root, changeId);
+    // No command-run planted.
+    advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+    foldEpoch(root, changeId);
+
+    const ledger = readFileSync(
+      path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run-ledger.xml"),
+      "utf8",
+    );
+    expect(adjudicationOutcome(ledger)).toBe("pending");
+    expect(adjudicationBlock(ledger)).toMatch(/absent recorded evidence/i);
+    expect(adjudicationBlock(ledger)).toContain('adjudicatedAt="fold"');
+  });
+
+  it("match-key edit: evidence for A does not cover plan command B → pending; re-record B → pass", () => {
+    const root = createProject();
+    const changeId = "C-JOIN-EDIT";
+    const commandA = "exit 0";
+    const commandB = "true";
+    seedCalBundle(root, changeId, commandA);
+    openClaimAndTerminal(root, changeId);
+    appendCommandRunEvent(root, changeId, {
+      command: commandA,
+      exitCode: 0,
+      assertionPassed: true,
+      assertionKind: "MustPassCommand",
+      source: "lint-run-commands",
+    });
+    // Edit plan command A → B without new evidence.
+    writeChangeBundleFixture(root, {
+      changeId,
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+      planTargetAssertions:
+        `<MustExist><Value>src/example.ts</Value></MustExist>`
+        + `<MustPassCommand><Command>${commandB}</Command></MustPassCommand>`,
+    });
+    advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+    foldEpoch(root, changeId);
+
+    const ledger1 = readFileSync(
+      path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run-ledger.xml"),
+      "utf8",
+    );
+    expect(adjudicationOutcome(ledger1)).toBe("pending");
+    expect(adjudicationBlock(ledger1)).toMatch(/absent recorded evidence/i);
+
+    // Recovery: open new epoch covering post-fold ids (default from=1 would hole).
+    const bundlePath = path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
+    const maxFolded = listLedgerEvents(bundlePath).reduce((m, e) => Math.max(m, e.id), 0);
+    const from = maxFolded + 1;
+    advanceCursor(root, changeId, {
+      task: "T-001",
+      openEpoch: true,
+      from,
+      to: from + 98,
+    });
+    recordAttempt(root, changeId, {
+      task: "T-001",
+      outcome: "pass",
+      claimedConfidence: "high",
+      writeEvidence: DEFAULT_WRITE_EVIDENCE,
+    });
+    appendCommandRunEvent(root, changeId, {
+      command: commandB,
+      exitCode: 0,
+      assertionPassed: true,
+      assertionKind: "MustPassCommand",
+      source: "lint-run-commands",
+    });
+    advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+    foldEpoch(root, changeId);
+
+    const ledger2 = readFileSync(
+      path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run-ledger.xml"),
+      "utf8",
+    );
+    // Both epochs present: first pending, second pass (append-only).
+    const outcomes = [...ledger2.matchAll(/<CalibrationAdjudication\b[^>]*\boutcome="([^"]+)"/g)].map(
+      (m) => m[1],
+    );
+    expect(outcomes).toEqual(["pending", "pass"]);
+  });
+
+  it("D6.6: fold never spawns — non-existent command with planted pass evidence still folds pass", () => {
+    const root = createProject();
+    const changeId = "C-JOIN-NOSPAWN";
+    const command = "definitely-not-a-real-binary-for-fold-join-test-$$";
+    seedCalBundle(root, changeId, command);
+    openClaimAndTerminal(root, changeId);
+    appendCommandRunEvent(root, changeId, {
+      command,
+      exitCode: 0,
+      assertionPassed: true,
+      assertionKind: "MustPassCommand",
+      source: "lint-run-commands",
+    });
+    advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+    // If fold spawned this command it would fail (non-zero). Join-only must pass.
+    foldEpoch(root, changeId);
+    const ledger = readFileSync(
+      path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run-ledger.xml"),
+      "utf8",
+    );
+    expect(adjudicationOutcome(ledger)).toBe("pass");
+  });
+
+  it("AC-D65: fold still writes CalibrationAdjudication when claimedConfidence exists", () => {
+    const root = createProject();
+    const changeId = "C-JOIN-D65";
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId,
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+      planTargetAssertions: `<MustExist><Value>src/example.ts</Value></MustExist>`,
+    });
+    openClaimAndTerminal(root, changeId);
+    advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+    foldEpoch(root, changeId);
+    const ledger = readFileSync(
+      path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run-ledger.xml"),
+      "utf8",
+    );
+    expect(ledger).toContain("CalibrationAdjudication");
+    expect(adjudicationBlock(ledger)).toContain('adjudicatedAt="fold"');
+    expect(adjudicationOutcome(ledger)).toBe("pass");
+  });
+
+  it("kind=command-run is registered so cursor state does not degrade", () => {
+    const resolved = cursorStateForEventKind("command-run");
+    expect("state" in resolved).toBe(true);
+    if ("state" in resolved) {
+      expect(resolved.state).toBe("in-progress");
+    }
   });
 });
 

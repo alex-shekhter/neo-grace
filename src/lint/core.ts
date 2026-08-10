@@ -16,7 +16,12 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { evaluateAssertion, extractAssertionsWithIssues } from "../artifact/assertions";
+import {
+  evaluateAssertion,
+  extractAssertionsWithIssues,
+  type AssertionContext,
+  type CommandRunRecord,
+} from "../artifact/assertions";
 import { validateNgraceProject } from "../artifact/grammar";
 import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "../artifact/project";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "../artifact/projections";
@@ -30,6 +35,7 @@ import {
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { ARTIFACT_TAG_PREFIX, ANCHOR_PATTERNS, type NgraceIssue, type NgraceProjectPaths } from "../artifact/types";
 import { readGraceXmlArtifact } from "../artifact/xml";
+import { appendCommandRunEvent } from "../grace-cursor";
 import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "../language-registry";
 import {
   analyzeGovernedFile,
@@ -262,8 +268,26 @@ function validateAssertions(
   root: string,
   options: LintOptions,
 ) {
-  const context = { root, graph, verification, runCommands: options.runCommands };
   const assertionMode = options.assertionMode ?? "current";
+  // D6.3(c): record command-run evidence only under explicit runCommands opt-in
+  // with a selected changeId. Layering: callback into grace-cursor; assertions
+  // never import the write surface (avoids assertions → grace-cursor cycle).
+  const commandRunSource =
+    assertionMode === "final" ? "assertions-final" : "lint-run-commands";
+  const onCommandRun =
+    options.runCommands === true && options.changeId
+      ? (record: CommandRunRecord) => {
+          appendCommandRunEvent(root, options.changeId!, record);
+        }
+      : undefined;
+  const context: AssertionContext = {
+    root,
+    graph,
+    verification,
+    runCommands: options.runCommands,
+    commandRunSource,
+    onCommandRun,
+  };
   const selectedPlan = assertionMode === "current" ? null : resolveSelectedApprovedPlan(result, paths, options.changeId);
 
   for (const planFile of planFilesActive) {
@@ -302,7 +326,7 @@ function evaluateSection(
   result: LintResult,
   planFile: string,
   section: "BaselineAssertions" | "TargetAssertions",
-  context: { root: string; graph: GraphProjection; verification: VerificationProjection; runCommands?: boolean },
+  context: AssertionContext,
   evaluateSemantically: boolean,
   includeExtractionIssues = true,
   skipUnevaluatedCommands = false,

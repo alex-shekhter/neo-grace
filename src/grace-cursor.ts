@@ -32,6 +32,7 @@
 //   RecordAttemptResult
 //   WriteEvidenceSnapshot
 //   advanceCursor
+//   appendCommandRunEvent
 //   assertValidEpochBounds
 //   classifyFlakeFromEvidence
 //   countTaskAttemptEvents
@@ -47,6 +48,7 @@
 //   formatCursorPosition
 //   formatFoldResult
 //   lastResolvingResumeId
+//   setEvaluateTargetCompleteThrowProbeForTests
 //   listAccountingEvents
 //   listCalibrationRestatements
 //   listLedgerCalibrationEpochs
@@ -90,6 +92,7 @@ import path from "node:path";
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 
+import { extractAssertionsWithIssues } from "./artifact/assertions";
 import { ARTIFACT_DIR, resolveContainedProjectPath } from "./artifact/paths";
 import { resolveNgracePaths } from "./artifact/project";
 import {
@@ -102,8 +105,8 @@ import {
 } from "./artifact/types";
 import {
   cursorNamedTask,
-  validateRunCursorArtifact,
   validateRunLedgerArtifact,
+  validateRunCursorArtifact,
 } from "./artifact/grammar";
 import { collectActiveChangeScopes, observedWriteScopeContains } from "./artifact/scope";
 import { childText, readGraceXmlArtifact, type GraceXmlNode } from "./artifact/xml";
@@ -267,6 +270,8 @@ const KNOWN_KIND_STATE = {
   resume: "in-progress",
   attempt: "in-progress",
   "verification-unavailable": "in-progress",
+  /** Durable MustPassCommand/Budget evaluation evidence (C-CALIBRATION-COMMAND-EVIDENCE). */
+  "command-run": "in-progress",
   pause: "paused",
   terminal: "complete",
   escalation: "paused-pending-approval",
@@ -1499,6 +1504,20 @@ const COMPLETE_NOT_EVALUABLE = new Set([
 ]);
 
 /**
+ * Test-only throw probe for AC-NO-REPORT-TIME-REEVAL (D6.5 / corr 156).
+ * Production leaves this unset. When set, every evaluateTargetComplete call throws
+ * so report/doctor paths can prove they never invoke it.
+ */
+let evaluateTargetCompleteThrowProbe: (() => void) | undefined;
+
+/** @internal Install or clear the AC-NO-REPORT-TIME-REEVAL throw probe. */
+export function setEvaluateTargetCompleteThrowProbeForTests(
+  probe: (() => void) | undefined,
+): void {
+  evaluateTargetCompleteThrowProbe = probe;
+}
+
+/**
  * Three-valued complete (correction 28). Still uses runCommands: false (A5.2);
  * skipped command evidence becomes absence (not-run), not complete:true or complete:false.
  */
@@ -1506,6 +1525,7 @@ export function evaluateTargetComplete(
   projectRoot: string,
   changeId: string,
 ): { complete?: boolean; completeAbsence?: AbsenceValue } {
+  evaluateTargetCompleteThrowProbe?.();
   const result = lintGraceProject(projectRoot, {
     assertionMode: "target",
     changeId,
@@ -2546,8 +2566,110 @@ function attemptHasClaimedConfidence(event: LooseEvent): boolean {
 }
 
 /**
+ * Fold join: structural target assertions (never spawns) plus exact-string match
+ * against durable command-run events in the epoch (D6.3(c) / D6.6).
+ *
+ * Not an extension of evaluateTargetComplete into a report-reachable spawn path —
+ * doctor never imports this helper. command-not-evaluated alone does not freeze
+ * pending when matching records exist.
+ */
+function completeFromStructuralAndCommandEvidence(
+  projectRoot: string,
+  changeId: string,
+  events: LooseEvent[],
+): { complete?: boolean; completeAbsence?: AbsenceValue } {
+  // Structural only — runCommands always false (D6.3(b) not authorized; D6.6).
+  const result = lintGraceProject(projectRoot, {
+    assertionMode: "target",
+    changeId,
+    runCommands: false,
+  });
+  const assertionErrors = result.issues.filter(
+    (issue) => issue.severity === "error" && issue.code.startsWith("assertion."),
+  );
+
+  const otherNotEvaluable = assertionErrors.filter(
+    (issue) =>
+      COMPLETE_NOT_EVALUABLE.has(issue.code) && issue.code !== "assertion.command-not-evaluated",
+  );
+  if (otherNotEvaluable.length > 0) {
+    const first = otherNotEvaluable[0]!;
+    return {
+      complete: undefined,
+      completeAbsence: {
+        verdict: "unable-to-determine",
+        reason:
+          first.code === "assertion.change-not-approved"
+            ? "selected change is not an active approved bundle; target assertions were not evaluated"
+            : `${first.code}: ${first.message}`,
+      },
+    };
+  }
+
+  // Non-command structural failures → fail. command-not-evaluated is joined via records.
+  const structuralErrors = assertionErrors.filter(
+    (issue) => issue.code !== "assertion.command-not-evaluated",
+  );
+  if (structuralErrors.length > 0) {
+    return { complete: false };
+  }
+
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const planFile = path.join(bundlePath, "plan.xml");
+  const extraction = extractAssertionsWithIssues(planFile, "TargetAssertions");
+  const required: Array<{ command: string; kind: "MustPassCommand" | "MustPassBudget" }> = [];
+  for (const assertion of extraction.assertions) {
+    if (assertion.kind === "MustPassCommand") {
+      for (const command of assertion.values) {
+        required.push({ command, kind: "MustPassCommand" });
+      }
+    } else if (assertion.kind === "MustPassBudget") {
+      const command = assertion.values[0];
+      if (command) required.push({ command, kind: "MustPassBudget" });
+    }
+  }
+
+  // LWW by event id (events sorted ascending by listLooseEvents).
+  const evidenceByCommand = new Map<string, LooseEvent>();
+  for (const event of events) {
+    if (event.kind !== "command-run") continue;
+    const command = event.attributes.command;
+    if (typeof command === "string" && command.length > 0) {
+      evidenceByCommand.set(command, event);
+    }
+  }
+
+  for (const req of required) {
+    const evidence = evidenceByCommand.get(req.command);
+    if (!evidence) {
+      return {
+        complete: undefined,
+        completeAbsence: {
+          verdict: "not-run",
+          reason:
+            `absent recorded evidence for command ${JSON.stringify(req.command)} `
+            + `(ledger gap); complete is not evaluable without a matching command-run record`,
+        },
+      };
+    }
+    const assertionPassed = evidence.attributes.assertionPassed === "true";
+    if (req.kind === "MustPassCommand") {
+      const exitCode = Number(evidence.attributes.exitCode);
+      if (!assertionPassed || (Number.isFinite(exitCode) && exitCode !== 0)) {
+        return { complete: false };
+      }
+    } else if (!assertionPassed) {
+      return { complete: false };
+    }
+  }
+
+  return { complete: true };
+}
+
+/**
  * One adjudication per fold that contains claimedConfidence attempts (corr 155–156).
- * Uses evaluateTargetComplete (three-valued); never the attempt outcome attribute.
+ * Joins structural target assertions with recorded command-run evidence (D6.3(c));
+ * never the attempt outcome attribute; never spawns at fold (D6.6).
  * Derives and stores context class (corr 165) — ignores any authored context on claims.
  */
 function buildCalibrationAdjudicationAtFold(
@@ -2562,7 +2684,12 @@ function buildCalibrationAdjudicationAtFold(
   const claims = claimEvents
     .map((event) => (event.attributes.claimedConfidence ?? "").trim())
     .filter((level) => level.length > 0);
-  const { complete, completeAbsence } = evaluateTargetComplete(projectRoot, changeId);
+  // New join helper — not evaluateTargetComplete with runCommands true (D6.3(b) forbidden).
+  const { complete, completeAbsence } = completeFromStructuralAndCommandEvidence(
+    projectRoot,
+    changeId,
+    events,
+  );
 
   // Context is derived by join; authored attributes on claim events are ignored.
   const context = deriveCalibrationContext({
@@ -2829,6 +2956,41 @@ export function rejectAuthoredContextAttributes(
       );
     }
   }
+}
+
+/**
+ * Append a foldable kind=command-run event under the change's run/ directory
+ * (C-CALIBRATION-COMMAND-EVIDENCE / D6.3(c)). Append-only (D9). Called from
+ * lint/core via callback injection so assertions never import this module.
+ */
+export function appendCommandRunEvent(
+  projectRoot: string,
+  changeId: string,
+  evidence: {
+    command: string;
+    exitCode: number;
+    assertionPassed: boolean;
+    assertionKind: "MustPassCommand" | "MustPassBudget";
+    source: string;
+  },
+  options: { task?: string } = {},
+): void {
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const id = nextEventId(bundlePath);
+  const loose = listLooseEvents(bundlePath);
+  const task = options.task ?? loose[loose.length - 1]?.task ?? "T-000";
+  writeEventFile(bundlePath, {
+    id,
+    task,
+    kind: "command-run",
+    attributes: {
+      command: evidence.command,
+      exitCode: String(evidence.exitCode),
+      assertionPassed: evidence.assertionPassed ? "true" : "false",
+      assertionKind: evidence.assertionKind,
+      source: evidence.source,
+    },
+  });
 }
 
 function writeEventFile(
