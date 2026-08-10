@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-CURSOR-INTEGRITY>
     <Summary>
       RM-GOVERNED-PATH Phase P0 (steps 4, 6, 10) plus D8.8: cursor and ledger honesty —

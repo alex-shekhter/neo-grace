@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-RECOVER-FOLDABLE>
     <Summary>
       Make `ngrace cursor recover --fix` produce a ledger that can actually fold:

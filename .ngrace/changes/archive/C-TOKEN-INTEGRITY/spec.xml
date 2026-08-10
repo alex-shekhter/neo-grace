@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-TOKEN-INTEGRITY>
     <Summary>
       RM-GOVERNED-PATH Phase P0 (steps 1, 2, 3, 5): reject, do not filter — convert every

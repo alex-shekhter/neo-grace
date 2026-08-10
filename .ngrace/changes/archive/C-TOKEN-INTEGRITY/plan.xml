@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-TOKEN-INTEGRITY>
     <IntentSummary>
       Convert all eleven silent authored-input discards under src/artifact/ and

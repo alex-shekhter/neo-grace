@@ -1294,3 +1294,38 @@ apply → author status → archive → move → commit.** It is more commits an
 The underlying defect still belongs to `C-REPORT-HONESTY` (P0.7, P0.9): the scope audit must exclude
 the bundle's own ledger artifacts, which are written by the CLI under the execution contract and are
 not authored work by any reading.
+
+### F15 — Two surfaces disagree about the same directory, and D8.8's fix caused it. **[verified]**
+
+After archiving, `ngrace status` reports `C-TOKEN-INTEGRITY … epochs=1 open=1` — an **archived**
+bundle with an open epoch. The archive gate had just permitted the close with the requirement detail
+`run/ empty`. Both statements describe `archive/C-TOKEN-INTEGRITY/run/`, which contains exactly one
+file.
+
+Two definitions of *loose event*, in two surfaces:
+
+| Surface | Implementation | Sees the orphan? |
+|---|---|---|
+| `evaluateArchiveGate` (`gates/core.ts:354`) | `listLooseEvents` — skips names failing `EVENT_FILENAME` | **no** → `run/ empty` |
+| `countOpenEpochs` (`grace-status.ts`) | `readdirSync().filter(endsWith(".xml"))` | **yes** → `open=1` |
+
+**This is F8's original defect reproduced by the fix for it.** F8 was recorded because `status` said
+`epochs=0` while the cursor said epoch 1 in-progress — *"a corrupt audit trail, and the only surface
+that says so is the one you cannot reach."* D8.8 corrected that by making open epochs visible, and
+the new counter reads the directory raw while every other consumer reads it through `listLooseEvents`.
+The disagreement moved rather than closed.
+
+**The gap is the authority's.** D8.8 was an overrule of the derivation's recommendation to defer, and
+the criterion I wrote — *"status distinguishes folded epoch count from open (unfolded) epochs"* —
+never said **what counts as an open epoch**. The executor picked a reasonable reading; nothing in the
+spec made it agree with the gate. A criterion that names a distinction without defining its terms
+gets two implementations, and this one got exactly that.
+
+**Disposition: `C-REPORT-HONESTY` (P0.7, P0.9), with F11 and F14.** All three are the same family —
+a surface stating something about the ledger that another surface contradicts — and they should be
+fixed as one: **a single definition of loose-event membership, shared by `status`, the archive gate,
+and `recover` diagnose**, with orphans reported as orphans everywhere rather than counted by one
+reader and invisible to another.
+
+Nothing is blocked. The archive is correct, lint is clean, and the orphan is preserved. What is wrong
+is the sentence each surface tells about it.

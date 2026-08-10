@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-RECOVER-FOLDABLE>
     <IntentSummary>
       Close F13 so recover --fix produces a foldable ledger: extend the *effective*
