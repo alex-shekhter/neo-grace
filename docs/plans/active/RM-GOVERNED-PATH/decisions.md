@@ -1546,3 +1546,43 @@ bundle that changes a `SKILL.md` must declare `src/test-support/token-accounting
 `README.md` in `ObservedWriteScope`, and update both with a reason. That belongs in plan review as a
 standing question — **what else states a fact about the thing I am changing?** — which is F16's
 lesson (*an assertion is a claim with a lifetime*) reaching a second surface.
+
+#### F9.9 — A non-`src/` deliverable can never substantiate an attempt pair
+
+`C-EXECUTION-CONTRACT` T-001 raised `review.attempt-pair-unsubstantiated` despite following F9.8's
+ordering exactly: the `fail` was recorded in its own round trip, before any skill edit, and both skill
+trees moved between `fail` and `pass`. The executor's self-check called the pair substantiated. It was
+wrong, and so was the reasoning behind it.
+
+`isSubstantiatingPath` (`review/core.ts`) is:
+
+```ts
+if (isTestPathForAttemptPair(n)) return false;
+return n === "src" || n.startsWith("src/");
+```
+
+**Skill files live under `skills/` and `plugins/`.** They are not substantiating paths, so the only
+one this bundle had was `src/grace-cursor.ts` — which carried the export and was therefore identical
+across the pair, exactly as red-first requires.
+
+**So a bundle whose deliverable is documentation is structurally unsubstantiable**, no matter how
+correctly it is executed. This bundle did everything right and the check still fired.
+
+Fourth blind spot in the same rule, and the enumeration is now complete enough to be useful:
+
+| Case | Detected? |
+|---|---|
+| fail→pass, no production movement | **yes** — the finding works |
+| production moved for unrelated concurrent work | no (F9.5) |
+| pass only, no fail recorded | no (F9.7) |
+| **deliverable outside `src/`** | **false positive** (this) |
+
+The first three are misses. **This one is different in kind: the rule reports a defect that is not
+there.** A miss costs a finding nobody sees; a false positive costs a reviewer's attention and
+teaches them the warning is noise — which is F11's harm arriving by a different road.
+
+**Disposition: clear it as a structural exemption, and do not widen the path rule to chase it.**
+Adding `skills/` would invite `docs/`, and a documentation change moving a documentation file
+substantiates nothing about red-first; it is the same edit either way. The honest fix is for the
+finding's message to say *"no substantiating path exists in this bundle's scope"* rather than implying
+the author skipped a step — a wording change, and it belongs with `C-REPORT-HONESTY`'s family.
