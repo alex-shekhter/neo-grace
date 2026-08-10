@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="draft">
+<NgraceChangePlan graceVersion="1.0" status="approved">
   <C-EXECUTION-CONTRACT>
     <IntentSummary>
       Close D11: export the known cursor event-kind set from grace-cursor (minimal;
