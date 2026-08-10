@@ -1727,3 +1727,25 @@ a check is taught to be noise — the harm F9.9 named, arriving by a different r
 lint error, the error is carried in the commit and named in the commit body. **A documented expected
 error costs less than a live false hard stop**, because the first is a sentence a reader can check
 and the second is an instruction a reader may obey.
+
+### D12.1 — Two corrections to D12, neither of which changes the decision
+
+**`DEPENDS` was cited wrongly.** D12 said hosting the membership body in `paths.ts` would falsify
+*"both the SCOPE line and `DEPENDS`"*. `DEPENDS` does not describe file imports: it lists **M-\***
+graph anchors (`lint/catalog.ts:113` — *"LINKS accepts M-\*, DF-\*, and V-M-\*; DEPENDS accepts M-\*
+only"*), and `src/gates/core.ts` declares `DEPENDS: none` while importing widely. Adding an
+`./artifact/xml` import to `paths.ts` would not have falsified it.
+
+**The SCOPE argument stands alone and is sufficient.** `paths.ts` declares
+`SCOPE: Root tags, companions, anchor patterns, ARTIFACT_DIR`; an XML-reading `run/` inventory is not
+that, and accommodating it means editing the SCOPE line to describe whatever landed. The decision is
+unchanged — `src/artifact/run-membership.ts` — on one true reason instead of one true and one
+invented.
+
+**The out-of-scope importer list was short by one.** D12 and the plan name
+`src/calibration/report.ts` (M-CALIBRATION) as the consumer the re-export protects. Measured, four
+production files import from `grace-cursor`: `gates/core.ts:39`, `review/core.ts:68`,
+`calibration/report.ts:53`, and **`verification/localize.ts:73` (M-LOCALIZE)** — also outside
+`AffectedAreas`. The re-export covers both, and it must carry the **types** (`LooseEvent`,
+`RunOrphan`, `OrphanSkipClass`, `RangeAllocation`), not only the functions, or the out-of-scope
+importers break.
