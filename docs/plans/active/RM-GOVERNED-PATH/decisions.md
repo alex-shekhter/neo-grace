@@ -15,9 +15,14 @@ context: ./review.md
 # Governed path — decision log
 
 > **Non-normative.** The decisions below are *settled* — argued and ratified by the maintainer on
-> 2026-08-09 — but what makes them binding is [plan.md](./plan.md), which encodes them and is still
-> `draft`. This file records what was decided and why, so the plan can be reviewed and executed
-> without re-litigating any of it.
+> 2026-08-09 — but what makes them binding is [plan.md](./plan.md), which encodes them and was
+> **approved for execution on 2026-08-09**. This file records what was decided and why, so the plan
+> can be reviewed and executed without re-litigating any of it.
+>
+> The frontmatter above stays `kind: context` / `normative: false` / `status: draft`, matching the
+> archived `RM-AGENT-RELIABILITY/decisions.md` precedent: a decision log is explanatory, and the
+> plan is the surface that binds. (Raised as contradiction 3 by the P0 derivation pass; the
+> frontmatter is precedent, the sentence above was the genuine staleness and is corrected.)
 >
 > Companion to [review.md](./review.md), which carries the evidence and frames the questions.
 > This file answers them.
@@ -78,6 +83,81 @@ Measured 2026-08-09:
   both.
 
 D5 rests on the second point: it is what makes widening safe rather than a guess.
+
+### F4 — Bundle authoring is necessarily two-stage. **[verified]**
+
+`src/artifact/grammar.ts:1272` raises `change.plan-requires-approved-spec` when
+`location === "active" && planArtifact && specStatus !== "approved"`. **An active `plan.xml` may not
+exist beside a draft `spec.xml`.**
+
+So a bundle cannot be authored in one pass: spec is authored and approved, *then* the plan is
+authored. `.ngrace/changes/active/C-LEDGER-READ-ABSENCE/` — spec only, no plan — is the normal
+intermediate state, not an unfinished one.
+
+**Recorded because the authority got this wrong.** The first authoring task asked for both files in
+one pass and for `lint --path .` to be green with both at `draft`, which the grammar forbids. The
+executor authored both, refused to flip status, probed and restored, and reported — the correct
+behaviour. **Every subsequent bundle in this track is authored in two tasks.**
+
+This is also live evidence for RC-4 (*rules are discovered after they are expensive*): the rule is
+enforced in the grammar, documented nowhere an author would look, and cost a round trip. It is
+exactly what P1.4's generated schema reference and P1.5's valid-by-construction generators exist to
+prevent, encountered by this plan's own execution.
+
+### F5 — `<DependsOn>` silently discards the anchor-child form. **[verified]**
+
+The eleventh silent discard, found while reviewing `C-TOKEN-INTEGRITY` and **missed by the sweep**,
+which classified `grammar.ts:2012` as justified "empty cleanup before validation."
+
+`readTaskDependencies` (`grammar.ts:2010–2013`) builds its candidate list from the section's own text
+plus `dependsOn.children.map((child) => child.text.trim()).filter(Boolean)` — **child text, never
+child tag.** Probed directly:
+
+| Authored form | Parsed dependencies |
+|---|---|
+| `<DependsOn><T-001 /></DependsOn>` | **`[]` — silently nothing** |
+| `<DependsOn><Task>T-001</Task></DependsOn>` | `["T-001"]` |
+| `<DependsOn>T-001</DependsOn>` | `["T-001"]` |
+
+**Why an author writes the broken form.** `<Satisfies>` in the same task reads child **tags**
+(`grammar.ts:1903–1908`) and *raises* for unsupported ones (`:1989–1995`). `DurableScope` and
+`AffectedAreas` are anchor-tag lists too. The shipped template
+(`skills/ngrace/ngrace-plan/references/change-plan-template.xml:40–42`) shows an empty `<DependsOn>`
+directly above `<Satisfies><AC-EXAMPLE-CRITERION /></Satisfies>`. Every neighbouring construct
+teaches the anchor form; `DependsOn` alone means something else by it, and says nothing when given it.
+
+**It is live in this repository's own applied history.** Archived
+`C-GATE-RECORD-ABSENCE/plan.xml:70–72` declares `<DependsOn><T-001 /></DependsOn>` on `T-002`. That
+dependency has never existed. The bundle was gated, applied, and archived with a task-ordering
+constraint that silently did nothing.
+
+**This is the sharpest instance of RC-1 in the corpus**: not a malformed token but a *well-formed
+construct in the shape the surrounding grammar teaches*, discarded in silence, in the repository that
+ships the methodology.
+
+#### F5.1 — The drop silently disables three validation rules, not one declaration
+
+Found by probe while reviewing the site-11 amendment. `validateTaskDependencyGraph`
+(`grammar.ts:2031–2078`) keys `change.task-self-dependency`, `change.task-unknown-dependency`, and
+cycle detection off the set `readTaskDependencies` returns. An empty set means **every one of those
+checks passes vacuously.** Probed through `validateChangeArtifact`:
+
+| Authored | `change.task-*` issues raised |
+|---|---|
+| `<DependsOn><T-999 /></DependsOn>` — unknown task | **NONE** |
+| `<DependsOn><Task>T-999</Task></DependsOn>` — unknown task | `change.task-unknown-dependency` |
+| `<DependsOn><T-001 /></DependsOn>` on `T-001` — self-dependency | **NONE** |
+
+So the anchor form does not merely fail to declare an ordering constraint: it **turns off unknown-task
+detection, self-dependency detection, and cycle detection for that edge**, silently, while lint
+reports green. A plan can declare a dependency on a task that does not exist, or on itself, and the
+grammar will not say so — provided the author used the shape every neighbouring construct teaches.
+
+**Consequence for the fix's verification.** `readTaskDependencies` is not exported, so a test
+asserting "the dependency is present" has no public surface to assert against. The red-first
+regression must go through the **lint surface** instead: assert that `change.task-unknown-dependency`
+fires for `<DependsOn><T-999 /></DependsOn>` and `change.task-self-dependency` for the self case.
+Both are silent today and both must fire after D7. That test proves more and is actually writable.
 
 ---
 
@@ -299,10 +379,131 @@ satisfied by the first clause, because a tree whose module reports zero implemen
 **Consequence: no artifact grammar version bump, and P0 remains a minor release.** The rule
 separates the five that need nothing from the one that already carries its own guard.
 
-### D5.4 — Not a break is still not invisible
+### D5.4 — Not a break is still not invisible (continues below)
 
 A project with a typo'd `LINKS` has green lint today and red lint after. Philosophically that is a
 pre-existing defect surfacing; operationally it is somebody's CI going red on a Tuesday.
 
 Required with P0, therefore: a CHANGELOG entry listing every newly-erroring code, and
 `lint --remediate` coverage wherever the fix is mechanical. Visible, but not a version bump.
+
+### D5.5 — The CHANGELOG entry is written in the commit message, not in the file
+
+**[verified] 2026-08-09.** `CHANGELOG.md` in this repository is **generated**, not authored:
+`scripts/release-bump.ts:345` runs `conventional-changelog -p conventionalcommits -r 1`, and `:279`
+/ `:336` abort the release if the file already contains a block for the target version.
+
+So D5.4's requirement is satisfied by naming every newly-erroring code in the **conventional-commit
+body** of the change that introduces it. A hand-written `CHANGELOG.md` edit would be overwritten at
+the next bump and can collide with the duplicate-block guard — it is not a smaller version of the
+right thing, it is a defect.
+
+**Consequence for every P0 bundle:** `CHANGELOG.md` must **not** appear in `ObservedWriteScope`. The
+newly-erroring codes are listed in the commit body instead, and each bundle carries its own codes
+rather than accumulating them for a phase-end entry.
+
+---
+
+## D7 — `<DependsOn>` accepts the anchor-child form; the fix reads the tag, it does not raise
+
+**Raised by F5. Ratified 2026-08-09. Binds P0.3.**
+
+**Decision.** `readTaskDependencies` reads a child's **tag** when it matches `ANCHOR_PATTERNS.task`,
+its **text** when non-empty, and raises `change.task-invalid-dependency` only when it can resolve
+neither. All three authored forms below become valid and mean the same thing:
+
+```xml
+<DependsOn><T-001 /></DependsOn>          <!-- anchor child: today silently nothing -->
+<DependsOn><Task>T-001</Task></DependsOn> <!-- works today -->
+<DependsOn>T-001, T-002</DependsOn>       <!-- multi-value text: P0.3 / D5.1 -->
+```
+
+**Why accept rather than reject.** The anchor form is not a mistake to be corrected — it is the
+idiomatic GRACE shape, used by `Satisfies`, `DurableScope`, `AffectedAreas`, and every anchor list in
+the grammar. The defect is that `DependsOn` alone does not read it. Rejecting would tell authors that
+the shape the rest of the grammar teaches is wrong here; accepting fixes the one construct that
+disagrees.
+
+**Classified under D5.3 as a repair, not a break.** Under D5.2 a silent failure made loud is not a
+break — but this needs no loudness at all. Today `<T-001 />` declares nothing; after D7 it declares
+what its author always meant. Nothing that worked stops working, and **archived
+`C-GATE-RECORD-ABSENCE` acquires the dependency it has always claimed** rather than lighting up red.
+
+That last point is why the direction matters: raising instead of reading would turn an applied,
+gated, archived bundle into a lint error, which is F1's sixteen-false-positives problem again. The
+permitted direction has no such cost.
+
+**Scope.** This is **site 11**, added to `C-TOKEN-INTEGRITY` T-002 — the same function P0.3 already
+opens. Not deferred, not a follow-up bundle. Fixing at the point of detection is the rule; the
+inventory's classification of `grammar.ts:2012` as justified is **corrected to silent discard**.
+
+---
+
+## D6 — P0.8 re-derives from recorded evidence, never from the current tree
+
+**Raised by the P0 derivation pass**, open question 1. **Ratified 2026-08-09.**
+
+### D6.1 — The conflict
+
+P0.8 says: *"re-derive adjudication from the ledger instead of snapshotting it."* Read literally,
+that breaks a ratified correction from the previous track.
+
+**A59.2 Correction 156** (`../../archive/RM-AGENT-RELIABILITY/plan.md:8906`) is explicit and is
+enforced in code at three places (`src/calibration/report.ts:29–30`, `:169–172`, `:205`):
+
+> Labels and context class are **stored** at fold and never recomputed at report time.
+
+Its argument is load-bearing and survives this plan intact:
+
+> **A corpus whose labels move is not a corpus** — it is a query over present state wearing a
+> corpus's vocabulary. The claim is durable; its label is not.
+
+### D6.2 — The conflict is verbal, and resolves
+
+Correction 156 forbids recomputing a label from the **current tree** — `evaluateTargetComplete`
+running `lintGraceProject` against present state at report time. P0.8 asks to derive from **the
+ledger**, which is recorded, immutable evidence. Those are different operations, and only the first
+is forbidden.
+
+**The real defect P0.8 names is upstream of both.** At fold, `evaluateTargetComplete`
+(`src/grace-cursor.ts:1087`) hardcodes `runCommands: false` per A5.2, so any change carrying a
+`MustPassCommand` adjudicates to `complete: undefined` → `pending`, permanently — even after a
+final `--assertions final --run-commands` succeeded. The command evidence exists; nothing ever
+consults it, and the frozen label cannot be revisited.
+
+### D6.3 — The permitted shapes
+
+Of the four options the derivation pass offered, **(a) is forbidden and (c) is the answer**, with an
+existing mechanism covering the timing gap:
+
+| Option | Verdict |
+|---|---|
+| (a) report-time re-eval, possibly with `runCommands` | **Forbidden.** Exactly what corr 156 exists to stop |
+| (b) fold-time `runCommands` when claims exist | **Permitted but not required.** Changes what fold costs and re-opens A5.2; do not adopt without its own decision |
+| (c) record command-run evidence as durable events; adjudicate from those records | **This is the answer.** Fold consults recorded evidence, not a live query. Labels stay stored and immutable |
+| (d) treat pre-fix pending snapshots as backfilled/excluded | **Already the ratified mechanism** for the timing gap — see D6.4 |
+
+### D6.4 — When evidence lands after fold, restate; do not recompute
+
+If the final `--run-commands` runs after the epoch folded, fold cannot have consulted it. The
+sanctioned path already ships and must be used rather than reinvented:
+
+- **`CalibrationRestatement`** (A61) — a recorded provenance override applied at report time
+  **without mutating archives** (`src/calibration/report.ts:177–179`, `:229–231`).
+- **Correction 161** — restated/backfilled adjudications land in the `backfilled` bucket, which is
+  *visible and never pooled into `included`* (`src/calibration/report.ts:106–109`).
+
+That is the honest shape: the original label stays exactly as recorded, the correction is a separate
+recorded fact, and the corpus never silently absorbs a late-arriving pass as though it had been
+adjudicated on time.
+
+### D6.5 — Binding constraint on P0.8
+
+**P0.8 must not remove or weaken fold-time storage of `CalibrationAdjudication`, and must not
+introduce any report-time call to `evaluateTargetComplete`.** The step's phrase *"instead of
+snapshotting it"* is imprecise and is **corrected here rather than rewritten in place**, per this
+repository's supersede-don't-rewrite discipline: read it as *"the snapshot must be derived from
+recorded command evidence rather than from a `runCommands: false` lint."*
+
+If the bundle's design cannot satisfy P0.8 without touching corr 156's guarantee, **stop and report**
+— that is a wall (`plan.md` §3), not a tradeoff to make during execution.

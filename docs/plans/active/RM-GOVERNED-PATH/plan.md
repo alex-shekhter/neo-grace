@@ -15,18 +15,18 @@ context: ./decisions.md
 
 **Target repository:** `neo-grace` (`@neograce/cli`, 6.1.1 at `f340a98`)
 **Audience:** the maintainer deciding whether to schedule this, then an executor coding agent
-**Authority:** [decisions.md](./decisions.md) records five ratified decisions (D1–D5) and three
-findings (F1–F3); [review.md](./review.md) carries the evidence, the root-cause analysis, and the
+**Authority:** [decisions.md](./decisions.md) records seven ratified decisions (D1–D7) and five
+findings (F1–F5); [review.md](./review.md) carries the evidence, the root-cause analysis, and the
 merge record of the two source consolidations. `review.md` frames the questions, `decisions.md`
 answers them, this plan orders and specifies the work. Where this plan and either companion
 disagree, **this plan wins.**
-**Plan version:** 1.2 · 2026-08-09 (converted from
-[sources/RM-GOVERNED-PATH-merged.md](./sources/RM-GOVERNED-PATH-merged.md); D1–D5 ratified and
-threaded through)
+**Plan version:** 1.4 · 2026-08-09 (converted from
+[sources/RM-GOVERNED-PATH-merged.md](./sources/RM-GOVERNED-PATH-merged.md); D1–D5 ratified; D6–D7 added during P0
+execution)
 
 > ## Approved for execution — 2026-08-09.
 >
-> Approved by the maintainer. All five decisions are ratified (D1–D5,
+> Approved by the maintainer. All decisions are ratified (D1–D7,
 > [decisions.md](./decisions.md)) and no question is open.
 >
 > **What the approval clears.** The objectives, the phase order, the sequencing rules in §1, the
@@ -68,7 +68,7 @@ Keep this table current. It is the single source of truth for progress.
 
 | # | Phase | Root causes addressed | Target (provisional) | Detail | Status |
 |---|---|---|---|---|---|
-| P0 | Reject, don't filter: the integrity cluster | RC-1 | 6.2.0 | steps | `NOT STARTED` |
+| P0 | Reject, don't filter: the integrity cluster | RC-1 | 6.2.0 | steps | `DERIVED` — [p0-derivation.md](./p0-derivation.md) |
 | P1 | The authoring surface: diagnostics, generators, skills | RC-4, RC-7 | 6.3.0 | steps | `NOT STARTED` |
 | P2 | Review honesty: one glob language, one audit universe | RC-2 | 6.3.0 | steps | `NOT STARTED` |
 | P3 | Lifecycle mechanics and evidence honesty | RC-3, RC-5, RC-7 | 6.4.0 | objectives | `NOT STARTED` |
@@ -113,6 +113,23 @@ reported; the sweep finds the ones nobody hit yet.
    `src/artifact/` and `src/project-utils.ts`. Each site is classified in the change bundle
    as *paired-with-an-error-path* (justified) or *silent discard* (converted). The inventory
    is a required deliverable, not a byproduct — it is what makes this a class fix.
+
+   **Delivered by the derivation pass** ([p0-derivation.md](./p0-derivation.md)): 8 paired, 10
+   silent discards, 1 partition companion. Seven of the ten were unknown before the sweep —
+   `<Owns>` children, the `GD-*` and `VD-*` index lists, `parseAllocation` / `parseLedgerEvent`
+   null drops, empty `<EscalatedTask>`, and non-task children under `ImplementationPlan`.
+
+   **Site 11 was found afterwards, in review of the first bundle** — `<DependsOn>`'s anchor-child
+   form (D7 / F5), which the sweep had classified as justified. **Eleven convert.** That the sweep
+   itself missed one is the argument for its own review gate, not against it: the inventory is
+   reviewed as a document precisely because a classification can be wrong.
+
+   **All eleven convert in P0. There is no "leave it silent for now" outcome.** The two
+   classifications are *already raises* and *must be made to raise* — "justified" means a paired
+   error path exists, never that a silent discard is acceptable pending a later phase. A site may
+   only leave the conversion list by being **reclassified on evidence** as already paired, with the
+   raising code named. Deferring a detected silent discard would rebuild, inside the phase that
+   exists to end silent discards, the exact thing it exists to end.
 2. **`LINKS` / `DEPENDS` multi-value.** Accept **`[,;\s]+`** as separator (D5.1 — comma, semicolon,
    whitespace; **the colon is deliberately excluded**) so `LINKS: M-A M-B` works; emit
    `markup.unparsed-link-token` (error) for any token matching no `ANCHOR_PATTERNS` family, naming
@@ -127,7 +144,24 @@ reported; the sweep finds the ones nobody hit yet.
    slip silently work, which is filtering in the phase built to end filtering. See D5.1.
 3. **`<DependsOn>` multi-value** (ag1 F-1). Split the text node on the same `[,;\s]+` set before
    per-token canonical-T validation; `<Task>` children remain the explicit form. Rewrite
-   `change.task-invalid-dependency` to name both accepted shapes.
+   `change.task-invalid-dependency` to name **all three** accepted shapes.
+
+   **Extended by D7 — site 11.** `readTaskDependencies` reads child *text* only, so
+   `<DependsOn><T-001 /></DependsOn>` — the anchor form `Satisfies`, `DurableScope` and
+   `AffectedAreas` all use, and which the shipped plan template sits directly above — **parses to
+   nothing, silently.** It is live in archived `C-GATE-RECORD-ABSENCE`, whose `T-002` has never
+   actually depended on `T-001`. The fix **reads the tag**; it does not raise. That makes it a
+   repair under D5.3: the archived bundle gains the dependency it always claimed instead of turning
+   red. The sweep classified this site as justified "empty cleanup"; **that classification is
+   corrected to silent discard.**
+
+   **F5.1 — the blast radius is three rules, not one declaration.** The empty set makes
+   `change.task-unknown-dependency`, `change.task-self-dependency`, and cycle detection all pass
+   vacuously (`grammar.ts:2031–2078`). Probed: `<DependsOn><T-999 /></DependsOn>` raises **nothing**,
+   while `<DependsOn><Task>T-999</Task></DependsOn>` raises `change.task-unknown-dependency`. A plan
+   may depend on a nonexistent task, or on itself, and lint stays green — if the author used the
+   idiomatic shape. **The regression test must assert through the lint surface**, not an internal
+   dependency set: `readTaskDependencies` is unexported, and the issue codes prove more.
 4. **Numeric epoch bounds.** Validate `--from` / `--to` before `Number()`. The message names
    the accepted form and states that task ids are not event ids — the corpus shows
    `--from T-001` is the intuitive first guess.
@@ -150,6 +184,14 @@ reported; the sweep finds the ones nobody hit yet.
 8. **Calibration backfill** (ag3 §3.10). Doctor must not report archived epochs as pending
    `MustPassCommand` adjudication after a final `--run-commands` succeeded; re-derive
    adjudication from the ledger instead of snapshotting it.
+
+   **Bound by D6 — read it before designing this step.** Taken literally this wording would break
+   ratified Correction 156 (labels are stored at fold, never recomputed at report time; *"a corpus
+   whose labels move is not a corpus"*). D6 corrects the reading: derive the snapshot from **recorded
+   command evidence**, never from a live tree query, and use the existing `CalibrationRestatement` +
+   `backfilled` bucket when evidence lands after fold. **No report-time call to
+   `evaluateTargetComplete` may be introduced.** If the step cannot be built inside that constraint,
+   stop and report — corr 156 is a wall, not a tradeoff.
 9. **Mode-aware lint summary** (ag3 §3.7). When an active change has baseline assertions,
    default text output leads with one line — *"N baseline expectations (expected while C-* is
    in progress)"* — instead of presenting `MustNotExist` failures as generic breakage.
@@ -565,6 +607,7 @@ remains readable alone:
 | **D3** | The base commit lives in the change's `run-ledger.xml`, written by `gate approve`. The repository-scoped half of that question belongs to the adoption boundary | P2.3 |
 | **D4** | Guide collapse is a `C-*` here, and its acceptance test is the bootstrap benchmark — **not** the external guide count | P4.4, §6 |
 | **D5** | `LINKS` / `DEPENDS` split on `[,;\s]+`, colon excluded; unrecognized tokens are errors naming token, separators and families. Plus a standing rule: **making a silent failure loud is not a compatibility break; turning a working state into an error is.** No artifact version bump; P0 stays a minor release | P0.2, P0.3, and the whole track |
+| **D6** | P0.8 derives adjudication from **recorded evidence**, never a current-tree query. Fold-time storage of `CalibrationAdjudication` stays; no report-time `evaluateTargetComplete`. Late evidence uses `CalibrationRestatement` + the `backfilled` bucket. Corrects P0.8's wording, which taken literally would break ratified Correction 156 | P0.8 |
 
 D1 widens the reach of the reliability track's F1 and is recorded as its own decision for that
 reason. It does **not** overturn A29.2, which constrains the gate and is silent on a separate verb —

@@ -12,8 +12,8 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
 
-**`RM-GOVERNED-PATH` is approved for execution as of 2026-08-09** — five ratified decisions
-(D1–D5 in `decisions.md`), no open questions, baseline `6.1.1` at `f340a98`. Its release targets stay
+**`RM-GOVERNED-PATH` is approved for execution as of 2026-08-09** — seven ratified decisions
+(D1–D7 in `decisions.md`), no open questions, baseline `6.1.1` at `f340a98`. Its release targets stay
 provisional; a release commitment is a separate act per phase. Each phase begins with a derivation
 pass against HEAD before any `C-*` bundle is authored — see the plan's header.
 

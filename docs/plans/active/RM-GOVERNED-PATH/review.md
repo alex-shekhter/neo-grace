@@ -188,9 +188,17 @@ Checked, not assumed.
    lint is green.
 3. **Non-numeric epoch bounds.** **[verified]** `src/grace-cursor.ts:2622` —
    `context.args.from ? Number(context.args.from) : undefined`, no validation.
-   `--from T-001` writes `<Allocation from="NaN">`; `fold` then fails with "no Allocation
-   found" and the corpus's recorded remedy is `rm -r run/` — deleting the audit trail to
-   satisfy the audit gate.
+   `--from T-001` writes `<Allocation from="NaN">`, and the corpus's recorded remedy is
+   `rm -r run/` — deleting the audit trail to satisfy the audit gate.
+
+   > **Corrected 2026-08-09 by the P0 derivation pass** ([p0-derivation.md](./p0-derivation.md),
+   > contradiction 1). This entry originally said `fold` then fails with *"no Allocation found"*.
+   > It does not. `listLooseEvents` (`src/grace-cursor.ts:470`) drops any event whose id is not a
+   > positive integer, so the `NaN`-id file is invisible to fold and the actual failure is
+   > *"No loose run/ events to fold for C-*"*. The `"no Allocation found"` message is real
+   > (`:684`) but belongs to a different path — loose events with no opened Allocation, which is
+   > P0.6's subject. **The defect and its remedy are unchanged; the failure mode is worse than
+   > recorded** — a silently skipped orphan file rather than a named missing allocation.
 4. **Fold dead-end.** **[verified]** `src/grace-cursor.ts` `foldEpoch` requires an `opened`
    event with an `Allocation`; no auto-open, no recovery path.
 5. **Scope audit has no lifecycle exclusion.** **[verified]** `auditScopeOutsideWriteScope`
