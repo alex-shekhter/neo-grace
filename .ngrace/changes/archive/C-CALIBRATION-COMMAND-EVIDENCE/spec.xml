@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-CALIBRATION-COMMAND-EVIDENCE>
     <Summary>
       P0.8 (forward path only): record MustPassCommand / MustPassBudget evaluation as

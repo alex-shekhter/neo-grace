@@ -1403,3 +1403,42 @@ consecutive occasions. That is the mechanism working. What it also shows is that
 recording is **harder than the rule makes it sound**: it requires the attempt to be written in its
 own round trip, before the edit that follows it — an ordering constraint the execution contract never
 states. That belongs with F12's documentation gap in P1.
+
+### F16 — `detectConfidentlyWrong` ignores a ratified reading, and calls a true claim false. **[verified]**
+
+`ngrace review` reports a standing **error**:
+
+```
+[error] review.confidently-wrong .ngrace/changes/archive/C-RECOVER-FOLDABLE/plan.xml —
+        MustExist claims .ngrace/changes/active/C-RECOVER-FOLDABLE/spec.xml which is not
+        present on disk.
+```
+
+**The first reading was wrong, and the correction matters.** The authority initially recorded this as
+a plan authoring a claim that becomes false on archive. It is not: **Correction 171 already ratified
+the opposite reading.** `expandScopePathsForArchiveIdentity` (`review/core.ts:846`) states it plainly
+— *when the plan resolved from `archive/<id>/`, declared paths under `active/<id>/…` name the same
+bundle artifacts now living under `archive/<id>/…`*. Under that reading the assertion is **true**: it
+names the bundle's own spec, which exists, at the location the bundle now occupies.
+
+**The defect is entirely in the reader.** Corr 171's expansion is applied to `ObservedWriteScope` and
+**not** to `MustExist` targets, which `detectConfidentlyWrong` (`:391–411`) checks with a bare
+`existsSync`. The same declared path is read one way in one audit and another way in the next.
+
+Measured across the archive: exactly one bundle names its own `active/` path inside `MustExist`,
+`C-RECOVER-FOLDABLE`; the rest name their own files only in `ObservedWriteScope`, where the expansion
+catches them. So the inconsistency was invisible until a plan used the other section — **habit hid a
+reader gap, and the first plan to break the habit exposed it.**
+
+**Disposition — `C-REPORT-HONESTY`, with F11, F14 and F15.** Apply corr 171's expansion to `MustExist`
+targets. That resolves every instance at once, retroactively and without editing a single archived
+file, which is the property that makes it the right fix. Do not edit archives. Do not suppress.
+
+**Consequence for the close in progress:** archiving `C-CALIBRATION-COMMAND-EVIDENCE`, whose plan
+carries the same assertion, adds a second instance of the reader's error — not a second false claim.
+Both clear when the reader is fixed. That is materially different from F8.1's refusal to archive a
+knowingly corrupt ledger, where the artifact itself was wrong, and the close proceeds.
+
+**The authority's error is worth keeping.** Reading a tool's complaint as evidence that the artifact
+is wrong is the natural move, and here it was backwards: a ratified correction said the artifact was
+right and one audit had not been taught it. *A finding names a disagreement, not a culprit.*

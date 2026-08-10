@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-CALIBRATION-COMMAND-EVIDENCE>
     <IntentSummary>
       P0.8 forward path only (D6.3(c)): when MustPassCommand / MustPassBudget evaluates
