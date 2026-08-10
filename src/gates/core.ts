@@ -29,10 +29,10 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
+import { listLooseEvents, listRunOrphans } from "../artifact/run-membership";
 import { ANCHOR_PATTERNS } from "../artifact/types";
 import { readGraceXmlArtifact, walkNodes } from "../artifact/xml";
 import {
-  listLooseEvents,
   listUnresolvedEscalatedTasks,
   listAccountingEvents,
   resolveChangeBundle,
@@ -351,17 +351,35 @@ export function evaluateApplyGate(projectRoot: string, changeId: string): GateEv
 
 export function evaluateArchiveGate(projectRoot: string, changeId: string): GateEvaluation {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  // Predicate: foldable loose membership only (F14). Message must not say "run/ empty"
+  // when orphans remain — same listRunOrphans inventory status uses (D4 / D5).
   const loose = listLooseEvents(bundlePath);
   const open = loose.length > 0;
   const requirements: GateRequirementRecord[] = [];
   const issues: GateIssue[] = [];
+
+  let noOpenDetail: string;
+  if (open) {
+    noOpenDetail = `${loose.length} loose run/ event(s)`;
+  } else {
+    const orphans = listRunOrphans(bundlePath);
+    if (orphans.length > 0) {
+      const named = orphans
+        .map((o) => `${o.name} (${o.class})`)
+        .join(", ");
+      noOpenDetail =
+        `no foldable loose events; ${orphans.length} orphan(s): ${named}`;
+    } else {
+      noOpenDetail = "run/ empty";
+    }
+  }
 
   requirements.push(
     requirement(
       "no-open-epoch",
       true,
       !open,
-      open ? `${loose.length} loose run/ event(s)` : "run/ empty",
+      noOpenDetail,
     ),
   );
   if (open) {

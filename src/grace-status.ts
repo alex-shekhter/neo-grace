@@ -24,6 +24,7 @@ import { lintGraceProject } from "./lint/core";
 import type { AnalysisCoverage, LintIssue } from "./lint/types";
 import { ARTIFACT_DIR, toProjectRelativePath } from "./artifact/paths";
 import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "./artifact/project";
+import { listLooseEvents, listRunOrphans } from "./artifact/run-membership";
 import { skillRef } from "./artifact/types";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./artifact/projections";
 import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope } from "./artifact/scope";
@@ -49,10 +50,16 @@ export type ChangeBundleStatus = {
    */
   epochCount?: number;
   /**
-   * Open (unfolded) epochs: 1 when run/ holds loose event files, else 0 when known.
-   * Distinguishes an in-progress run from a change with no cursor activity (D8.8).
+   * Open (unfolded) epochs: 1 when run/ holds foldable loose events (listLooseEvents),
+   * else 0 when known. Distinguishes an in-progress run from no cursor activity (D8.8).
+   * Orphans (listRunOrphans) do not count as open — see orphanCount (F15 / D5).
    */
   openEpochCount?: number;
+  /**
+   * Count of unrecoverable run/ orphans (listRunOrphans). Surfaced so NaN-style
+   * evidence stays visible without claiming an open foldable epoch (F15 / D5).
+   */
+  orphanCount?: number;
   /** Tasks named in plan.xml ImplementationPlan, when present. */
   taskCount?: number;
   /**
@@ -199,8 +206,13 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
     }
 
     const openEpochCount = countOpenEpochs(bundlePath);
+    const orphanCount = listRunOrphans(bundlePath).length;
     const hasLedger = existsSync(ledgerFile);
     // Folded count only when a ledger exists; still surface open activity without a ledger.
+    // With-ledger path: openEpochCount is independent (foldable loose only). Without ledger:
+    // epochCount=0 when foldable open exists so status can print epochs=0 open=1; undefined
+    // when neither ledger nor open foldable activity (orphan-only without ledger still needs
+    // the orphan signal — see formatStatusText).
     const epochCount = hasLedger
       ? countLedgerEpochs(ledgerFile)
       : openEpochCount > 0
@@ -217,6 +229,7 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       path: relativeBundlePath,
       epochCount,
       openEpochCount: epochCount !== undefined || openEpochCount > 0 ? openEpochCount : undefined,
+      orphanCount: orphanCount > 0 ? orphanCount : undefined,
       taskCount,
       applyGateRecord,
     } satisfies ChangeBundleStatus;
@@ -237,15 +250,12 @@ function countLedgerEpochs(ledgerFile: string): number {
 }
 
 /**
- * Open (unfolded) epoch presence from loose run/ event files.
- * One open epoch at a time; any loose *.xml under run/ means work is in flight.
- * Kept local to status (does not import grace-cursor — avoids a cycle).
+ * Open (unfolded) epoch presence from foldable loose run/ events (F15).
+ * One open epoch at a time; membership is listLooseEvents (shared with archive gate).
+ * Orphans are not open epochs — see orphanCount / listRunOrphans.
  */
 function countOpenEpochs(bundlePath: string): number {
-  const runDir = path.join(bundlePath, "run");
-  if (!existsSync(runDir)) return 0;
-  const loose = readdirSync(runDir).filter((name) => name.endsWith(".xml"));
-  return loose.length > 0 ? 1 : 0;
+  return listLooseEvents(bundlePath).length > 0 ? 1 : 0;
 }
 
 function countPlanTasks(planFile: string): number {
@@ -460,12 +470,15 @@ export function formatStatusText(result: StatusResult) {
     lines.push("- none");
   } else {
     for (const change of result.changes) {
-      // D8.8: print folded epochs and open epochs separately so in-progress runs are visible.
+      // D8.8 / D5: folded epochs, foldable open, and orphan inventory are distinct.
       let epochPart = "";
-      if (change.epochCount !== undefined || (change.openEpochCount ?? 0) > 0) {
+      if (change.epochCount !== undefined || (change.openEpochCount ?? 0) > 0 || (change.orphanCount ?? 0) > 0) {
         const folded = change.epochCount ?? 0;
         const open = change.openEpochCount ?? 0;
         epochPart = open > 0 ? ` epochs=${folded} open=${open}` : ` epochs=${folded}`;
+        if ((change.orphanCount ?? 0) > 0) {
+          epochPart += ` orphans=${change.orphanCount}`;
+        }
       }
       const taskPart = change.taskCount !== undefined ? ` tasks=${change.taskCount}` : "";
       lines.push(

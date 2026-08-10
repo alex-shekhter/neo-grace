@@ -612,6 +612,74 @@ describe("archive gate (A30.1 deadlock)", () => {
     expect(evaluateArchiveGate(root, "C-GATE").decision).toBe("refuse");
     expect(evaluateArchiveGate(root, "C-GATE").issues.some((i) => i.code === "gate.archive.open-epoch")).toBe(true);
   });
+
+  /**
+   * C-REPORT-HONESTY T-002: honest no-open-epoch detail over orphans (F14),
+   * without weakening refuse on real foldable loose events.
+   */
+  it("AC-TOKEN-ORPHAN-TRIPLE (2): orphan-only run/ permits with message not 'run/ empty' and names orphan", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, {
+      changeId: "C-ORPHAN",
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-ORPHAN");
+    mkdirSync(path.join(bundle, "run"), { recursive: true });
+    // Copy shape of live NaN orphan — tests never mutate archive/.
+    const liveNan = path.join(
+      REPO_ROOT,
+      ARTIFACT_DIR,
+      "changes/archive/C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml",
+    );
+    writeFileSync(path.join(bundle, "run", "NaN-T-001-opened.xml"), readFileSync(liveNan));
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+
+    const result = evaluateArchiveGate(root, "C-ORPHAN");
+    expect(result.decision).toBe("permit");
+    const req = result.requirements.find((r) => r.id === "no-open-epoch");
+    expect(req?.present).toBe(true);
+    expect(req?.message).not.toBe("run/ empty");
+    expect(req?.message).toMatch(/no foldable|foldable/i);
+    expect(req?.message).toMatch(/NaN-T-001-opened\.xml/);
+  });
+
+  it("AC-ARCHIVE-STILL-REFUSES-LOOSE: ≥1 foldable loose event refuses no-open-epoch", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, {
+      changeId: "C-LOOSE",
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-LOOSE");
+    mkdirSync(path.join(bundle, "run"), { recursive: true });
+    writeFileSync(
+      path.join(bundle, "run", "3-T-002-progress.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="3" task="T-002" kind="progress"/>`,
+    );
+    expect(listLooseEvents(bundle).length).toBeGreaterThanOrEqual(1);
+
+    const result = evaluateArchiveGate(root, "C-LOOSE");
+    expect(result.decision).toBe("refuse");
+    const req = result.requirements.find((r) => r.id === "no-open-epoch");
+    expect(req?.present).toBe(false);
+    expect(result.issues.some((i) => i.code === "gate.archive.open-epoch")).toBe(true);
+  });
+
+  it("AC-MEMBERSHIP-ONE-DEFINITION: evaluateArchiveGate uses listLooseEvents / listRunOrphans from run-membership", () => {
+    const coreSrc = readFileSync(path.join(REPO_ROOT, "src/gates/core.ts"), "utf8");
+    // Prefer direct import from artifact host (D2 construction).
+    expect(coreSrc).toMatch(/listLooseEvents/);
+    expect(coreSrc).toMatch(/listRunOrphans/);
+    expect(coreSrc).toMatch(/from\s+["']\.\.\/artifact\/run-membership["']/);
+    // Predicate remains listLooseEvents length === 0 (message-only change on permit).
+    const archiveFn = coreSrc.slice(coreSrc.indexOf("export function evaluateArchiveGate"));
+    const body = archiveFn.slice(0, archiveFn.indexOf("\nexport function"));
+    expect(body).toMatch(/listLooseEvents\s*\(/);
+    expect(body).toMatch(/loose\.length\s*[!=]==?\s*0|loose\.length\s*>\s*0|!open/);
+  });
 });
 
 describe("escalated attempt refusal", () => {
