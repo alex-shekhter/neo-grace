@@ -1213,3 +1213,84 @@ staged runs would produce three ledger entries that look better and mean less. T
 each time, is the correct output of the current model. If a later phase wants per-task attempt
 attribution it needs per-task verification scope in `plan.xml` first — a schema change, and the same
 prerequisite F9.5 named.
+
+#### F9.7 — A task with no recorded `fail` is invisible to the check
+
+`ngrace review --change C-RECOVER-FOLDABLE` returns **0 findings**, while two of that bundle's three
+tasks (T-002, T-003) have `pass` attempts and no `fail` at all — the very gap F9.6 describes.
+
+The audit pairs a `fail` with the `pass` that follows it. **No fail, no pair, no finding.** Recording
+only a pass does not defeat the check; it never engages it.
+
+That is not per se wrong — F9.2 chose to leave `cursor` quiet at write time precisely because a task
+may legitimately pass first try, and harassing that case would make the tool a nuisance. But it means
+**a zero-finding review is not evidence that red-first happened.** It is evidence that no recorded
+fail→pass pair lacked production movement, which is a much smaller claim.
+
+**Recorded because the number will be read as a clean bill of health otherwise** — the exact "silence
+read as evidence" failure this track exists to remove. In `C-RECOVER-FOLDABLE`'s case the only record
+that T-002 and T-003 had no red is the executor's voluntary disclosure and F9.6. The tool says
+nothing.
+
+Completing the picture of what P0.10 does and does not see:
+
+| Case | Detected? |
+|---|---|
+| fail→pass, no production movement | **yes** — the finding |
+| fail→pass, production moved for unrelated concurrent work | no (F9.5) |
+| pass only, no fail recorded | no (this) |
+| no attempts at all | no |
+
+Three of four blind. The check is worth having — it caught four real pairs across two bundles — but
+its coverage claim is narrow and now written down.
+
+### F14 — The archive gate reports `run/ empty` when it is not. **[verified]**
+
+`evaluateArchiveGate` (`src/gates/core.ts:352–366`) requires `no-open-epoch`, computed as
+`listLooseEvents(bundlePath).length === 0`, and records the detail string `run/ empty`.
+
+After `C-TOKEN-INTEGRITY` folds, its `run/` will contain exactly one file: `NaN-T-001-opened.xml`.
+`listLooseEvents` cannot see it — the filename fails `EVENT_FILENAME` and is skipped at `:459`, which
+is F8.2's first silent skip. **So the gate will permit, and its recorded requirement detail will say
+`run/ empty` while a file sits in that directory.**
+
+The *outcome* is the one we want: the bundle archives with its corrupt event preserved. But it is
+reached by a blind spot rather than by design, and the durable record will carry a false statement
+about the filesystem into the archive.
+
+**Disposition: proceed, and record the sentence rather than the silence.** The archive is correct;
+the wording is not. `C-REPORT-HONESTY` (P0.7, P0.9) owns diagnostic honesty and takes this: the
+detail should distinguish *no foldable events* from *empty directory*, and should name any orphan it
+is stepping over — `recover` already has that inventory (T-003).
+
+Recorded before it happens so the executor does not stop on it, and so nobody later reads
+`run/ empty` in an archived ledger as a description of the disk.
+
+#### F11.2 — The noise stopped being cosmetic and blocked a close
+
+F11 recorded eight spurious `review.scope-outside-write-scope` errors. During
+`C-TOKEN-INTEGRITY`'s close it produced **23**, and the executor correctly stopped rather than
+record a verdict against a 25-finding review it could not account for.
+
+Every one of the 23 is lifecycle state, not authored work: `run-ledger.xml` and `run.xml` written by
+`cursor fold`, twenty `run/` events *deleted by that same fold*, and one uncommitted authority
+document. The audit reads working-tree porcelain, so a fold — which by design writes the ledger and
+removes the events it folded — guarantees a burst of errors proportional to the epoch's size, in the
+review that immediately precedes the verdict.
+
+**The cost is now concrete.** F11 called this "a review surface that cries wolf about its own
+ledger"; the sharper statement is that **the tool's own required workflow produces errors in the
+audit that gates the next step of that same workflow.**
+
+**Disposition: commit the fold before reviewing.** On a clean tree the same review returns exactly
+the two attempt-pair warnings — verified. So the verdict is recorded against a genuine clean review
+rather than against a note explaining away noise, which was the alternative and the worse one: an
+archived `pass` beside 23 unexplained errors is precisely the unexplained-gap shape this track
+removes.
+
+That makes commit-before-verdict the standing close sequence: **fold → commit → review → verdict →
+apply → author status → archive → move → commit.** It is more commits and each one is legible.
+
+The underlying defect still belongs to `C-REPORT-HONESTY` (P0.7, P0.9): the scope audit must exclude
+the bundle's own ledger artifacts, which are written by the CLI under the execution contract and are
+not authored work by any reading.
