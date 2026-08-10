@@ -519,12 +519,13 @@ describe("catalog exact-guide completeness (C-TOKEN-INTEGRITY T-005 / C-CURSOR-I
     }
   });
 
-  it("F10: scanner sees makeFinding positional codes; all thirteen review codes are guided", () => {
+  it("F10: scanner sees makeFinding positional codes; all review catalog codes are guided", () => {
     const srcRoot = path.join(import.meta.dir, "..");
     const emitted = collectEmittedIssueCodes(srcRoot);
     const reviewEmitted = emitted.filter((c) => c.startsWith("review."));
     // Blind spot closed: makeFinding surface is visible (was zero before T-001).
-    expect(reviewEmitted.length).toBeGreaterThanOrEqual(13);
+    // T-006 adds review.attempt-pair-unsubstantiated → ≥14 codes.
+    expect(reviewEmitted.length).toBeGreaterThanOrEqual(14);
     for (const code of allReviewCodes()) {
       expect(emitted).toContain(code);
       expect(guideFor(code)).toBeDefined();
@@ -540,14 +541,16 @@ describe("catalog exact-guide completeness (C-TOKEN-INTEGRITY T-005 / C-CURSOR-I
     expect(getExactLintIssueGuide(code)).toBeUndefined();
     expect(guideFor(code)).toBeDefined();
     expect(hasExactSurfaceGuide(code)).toBe(true);
-    // And a not-yet-catalogued review code is also not a *lint* orphan — it fails as a
-    // review-surface gap only (T-006 will register attempt-pair; not on F10 backlog).
-    const future = "review.attempt-pair-unsubstantiated";
+    // T-006 registered attempt-pair in REVIEW_CATALOG (exact guide, not F10 allowlist).
+    const registered = "review.attempt-pair-unsubstantiated";
+    expect(getExactLintIssueGuide(registered)).toBeUndefined();
+    expect(guideFor(registered)).toBeDefined();
+    expect(hasExactSurfaceGuide(registered)).toBe(true);
+    expect(REVIEW_PREFIX_COVERED_LEGACY_CODES.includes(registered)).toBe(false);
+    // A still-uncatalogued review code remains a review-surface orphan, not a lint orphan.
+    const future = "review.future-uncatalogued-probe";
     expect(getExactLintIssueGuide(future)).toBeUndefined();
     expect(guideFor(future)).toBeUndefined();
-    expect(PREFIX_COVERED_LEGACY_CODES.includes(future)).toBe(false);
-    // Without REVIEW_CATALOG / review allowlist, surface guide is false — review orphan,
-    // not lint orphan (the pre-fix failure mode demanded lint catalog).
     expect(hasExactSurfaceGuide(future)).toBe(false);
   });
 

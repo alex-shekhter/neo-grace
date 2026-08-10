@@ -18,6 +18,8 @@
 //   ScopeAuditReport
 //   TestFileDiff
 //   allReviewCodes
+//   AttemptPairEvidenceInput
+//   auditAttemptPairWriteEvidence
 //   auditCompatNewErrors
 //   auditHunkCoverage
 //   auditScopeOutsideWriteScope
@@ -55,8 +57,14 @@ import { readGraceXmlArtifact, walkNodes } from "../artifact/xml";
 import { extractObservedWriteScopeFromPlan } from "./scope-helpers";
 import {
   listFilesChangedAgainstBase,
+  listLedgerEvents,
+  listLooseEvents,
   listRepositoryChangedFiles,
+  readAttemptPayload,
+  resolveChangeBundle,
   type AbsenceValue,
+  type LooseEvent,
+  type WriteEvidenceSnapshot,
 } from "../grace-cursor";
 import { CODE_EXTENSIONS } from "../language-registry";
 import {
@@ -977,6 +985,166 @@ export function auditHunkCoverage(hunks: HunkCoverageInput[]): ReviewFinding[] {
 }
 
 // ---------------------------------------------------------------------------
+// Attempt-pair write evidence (P0.10 / F9.3 / C-CURSOR-INTEGRITY T-006)
+// ---------------------------------------------------------------------------
+
+/** One fail→pass pair with WriteEvidence content digests (path → digest). */
+export type AttemptPairEvidenceInput = {
+  changeId: string;
+  /** Plan ObservedWriteScope file paths (normalized). Globs not expanded here — callers pass files. */
+  scopeFiles: string[];
+  pairs: Array<{
+    task: string;
+    failEventId: number;
+    passEventId: number;
+    /** Content digests from fail attempt WriteEvidence (path → digest). */
+    failDigests: Record<string, string>;
+    /** Content digests from pass attempt WriteEvidence (path → digest). */
+    passDigests: Record<string, string>;
+  }>;
+};
+
+/** True when path is a test file excluded from the "must differ" set (F9.3 / derivation). */
+function isTestPathForAttemptPair(filePath: string): boolean {
+  const n = normalizeRel(filePath);
+  return n.endsWith(".test.ts") || n.endsWith(".test.js");
+}
+
+/**
+ * Paths that can *substantiate* a fail→pass pair (F9.3 / p0-cursor-derivation).
+ * Non-test `src/` only. Docs, plan/spec, and .ngrace run artifacts do not clear the
+ * finding — "if only docs change the finding still fires" (derivation §P0.10).
+ */
+function isSubstantiatingPath(filePath: string): boolean {
+  const n = normalizeRel(filePath);
+  if (isTestPathForAttemptPair(n)) return false;
+  return n === "src" || n.startsWith("src/");
+}
+
+/**
+ * Content digests from a WriteEvidence snapshot (available content files only).
+ * Absent/undetermined entries are not comparable substantiation.
+ */
+function contentDigestsFromEvidence(evidence: WriteEvidenceSnapshot | undefined): Record<string, string> {
+  if (!evidence || !evidence.available) return {};
+  const out: Record<string, string> = {};
+  for (const file of evidence.files) {
+    if (file.kind === "content" && file.digest) {
+      out[normalizeRel(file.path)] = file.digest;
+    }
+  }
+  return out;
+}
+
+/**
+ * F9.3: when no non-test ObservedWriteScope path has a WriteEvidence change
+ * across a fail→pass pair, raise a warning finding.
+ *
+ * A non-test OWS path "changes" when:
+ * - content digests differ on both sides, or
+ * - it appears on only one side (e.g. production file written after the fail —
+ *   the textbook red-first shape; that *substantiates* the pair).
+ *
+ * Empty non-test evidence (test-only deliverable) raises — digests cannot read
+ * task intent (F9.3). Does not exempt "honest" gaps from "unsubstantiated" ones.
+ */
+export function auditAttemptPairWriteEvidence(input: AttemptPairEvidenceInput): ReviewFinding[] {
+  const scopeSet = new Set(input.scopeFiles.map(normalizeRel));
+  const findings: ReviewFinding[] = [];
+
+  for (const pair of input.pairs) {
+    const failD = Object.fromEntries(
+      Object.entries(pair.failDigests).map(([p, d]) => [normalizeRel(p), d]),
+    );
+    const passD = Object.fromEntries(
+      Object.entries(pair.passDigests).map(([p, d]) => [normalizeRel(p), d]),
+    );
+
+    let substantiatingSeen = 0;
+    let substantiatingChanged = 0;
+    for (const scopePath of scopeSet) {
+      if (!isSubstantiatingPath(scopePath)) continue;
+      const a = failD[scopePath];
+      const b = passD[scopePath];
+      if (a === undefined && b === undefined) continue;
+      substantiatingSeen += 1;
+      // Differing digests, or presence on only one side (production written after fail).
+      if (a !== b) substantiatingChanged += 1;
+    }
+
+    // Raise when no substantiating src/ non-test path changed (T-005 test-only shape included).
+    if (substantiatingChanged > 0) continue;
+
+    const anchor = `attempt-pair:${pair.task}:${pair.failEventId}->${pair.passEventId}`;
+    const message =
+      `Fail→pass attempt pair ${pair.task} (events ${pair.failEventId}→${pair.passEventId}) `
+      + `has no differing non-test src/ ObservedWriteScope WriteEvidence digest`
+      + (substantiatingSeen === 0
+        ? " (no non-test src/ scope path in WriteEvidence — test-only deliverable or empty set)."
+        : ` (${substantiatingSeen} non-test src/ path(s) seen, all identical across the pair).`)
+      + " Red-first is not corroborated by production-file digests (F9.3).";
+
+    findings.push(
+      makeFinding(
+        "review.attempt-pair-unsubstantiated",
+        `.ngrace/changes/active/${input.changeId}/run`,
+        message,
+        "attempt-pair-write-evidence",
+        anchor,
+      ),
+    );
+  }
+  return findings;
+}
+
+/**
+ * Load fail→pass attempt pairs for a change from loose run/ + folded ledger.
+ * Read-only. Pairs each pass with the most recent prior fail on the same task.
+ */
+function loadAttemptPairsFromBundle(
+  projectRoot: string,
+  changeId: string,
+): AttemptPairEvidenceInput["pairs"] {
+  let bundlePath: string;
+  try {
+    bundlePath = resolveChangeBundle(projectRoot, changeId);
+  } catch {
+    return [];
+  }
+  const events: LooseEvent[] = [
+    ...listLedgerEvents(bundlePath),
+    ...listLooseEvents(bundlePath),
+  ]
+    .filter((e) => e.kind === "attempt")
+    .sort((a, b) => a.id - b.id);
+
+  const lastFailByTask = new Map<string, LooseEvent>();
+  const pairs: AttemptPairEvidenceInput["pairs"] = [];
+
+  for (const event of events) {
+    const payload = readAttemptPayload(event);
+    const outcome = (payload.outcome ?? event.attributes.outcome ?? "").trim();
+    if (outcome === "fail") {
+      lastFailByTask.set(event.task, event);
+      continue;
+    }
+    if (outcome !== "pass") continue;
+    const failEvent = lastFailByTask.get(event.task);
+    if (!failEvent) continue;
+    const failPayload = readAttemptPayload(failEvent);
+    pairs.push({
+      task: event.task,
+      failEventId: failEvent.id,
+      passEventId: event.id,
+      failDigests: contentDigestsFromEvidence(failPayload.writeEvidence),
+      passDigests: contentDigestsFromEvidence(payload.writeEvidence),
+    });
+    lastFailByTask.delete(event.task);
+  }
+  return pairs;
+}
+
+// ---------------------------------------------------------------------------
 // Public entry
 // ---------------------------------------------------------------------------
 
@@ -1072,6 +1240,25 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
     }
     if (options.hunkCoverage) {
       findings.push(...auditHunkCoverage(options.hunkCoverage));
+    }
+
+    // P0.10 / F9.3: fail→pass WriteEvidence audit when reviewing a named change.
+    if (options.changeId) {
+      const changeId = options.changeId;
+      const resolved = resolveChangePlanPath(root, changeId);
+      const scopeFiles = resolved
+        ? extractObservedWriteScopeFromPlan(resolved.planPath, root).files
+        : [];
+      const pairs = loadAttemptPairsFromBundle(root, changeId);
+      if (pairs.length > 0) {
+        findings.push(
+          ...auditAttemptPairWriteEvidence({
+            changeId,
+            scopeFiles,
+            pairs,
+          }),
+        );
+      }
     }
   }
 

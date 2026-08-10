@@ -176,6 +176,28 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
     derivedFrom: "§6.4 hunk coverage",
     family: "process-audit",
   },
+  "review.attempt-pair-unsubstantiated": {
+    code: "review.attempt-pair-unsubstantiated",
+    title: "Fail→Pass Attempt Pair Has No Non-Test WriteEvidence Change",
+    explanation:
+      "A fail→pass cursor attempt pair on the same task shows no differing content digest among "
+      + "non-test files in ObservedWriteScope (WriteEvidence on both events). The ledger records a "
+      + "red-first sequence that digests cannot corroborate as a production fix (F9 / F9.3). "
+      + "Test-only deliverables and honest gaps raise the same finding — digests cannot read task intent. "
+      + "Severity is warning: detection requiring adjudication, not automatic bundle failure. "
+      + "cursor attempt stays quiet at write time.",
+    remediation: [
+      "If the task was genuinely test-only or the red was lost: record a free-text reason on "
+        + "`ngrace gate verdict --change C-ID --outcome … --note \"findingId=<id>: <reason>\"` "
+        + "keyed by this finding's stable findingId (D8.6). A bare \"reviewed\" flag is not enough.",
+      "If the pair should have been substantiated: re-run red-first honestly — do not stage a "
+        + "retrospective red (F9.1). Record a real fail before the production fix lands.",
+      "Do not invent a finding-clearance ledger schema here; gate verdict --note carries the reason.",
+    ],
+    severity: "warning",
+    derivedFrom: "F9 / F9.3 / P0.10 / C-CURSOR-INTEGRITY T-006",
+    family: "process-audit",
+  },
 
   // --- Family B: process-shaped join findings (A34.1 / A36.2) ---
   "review.counterpart-scope-mismatch": {

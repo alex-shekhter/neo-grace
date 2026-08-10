@@ -956,3 +956,77 @@ only the cross-bundle wave that is forbidden, and it was never planned.
 reasoning and been corrected by running it: the `:470` citation (F8.2), the epoch counter (F8.2), and
 this. Every one was cheap to check. The rule this earns: **an authority claim about what the code
 does gets probed before it is written down**, exactly as findings do.
+
+---
+
+### F9.5 — P0.10's check would not have caught F9. **[verified]**
+
+Reported by the T-006 executor, unprompted, and confirmed against the digests. Run against
+`C-TOKEN-INTEGRITY`'s live ledger, the new rule is **silent on the very pair that produced F9**:
+
+| Pair | Non-test scope files across fail→pass | Raises? |
+|---|---|---|
+| T-001 (2→3) | `project-utils.ts` identical | yes |
+| **T-002 (6→7)** | `grammar.ts` identical — but `src/lint/catalog.ts` **changed** (`c60d764c` → `d5453b31`) | **no** |
+| T-005 (16→17) | test-only | yes |
+
+`catalog.ts` is a non-test file in that bundle's `ObservedWriteScope`, so under the rule as specified
+the pair *is* substantiated — by concurrent work having nothing to do with T-002's claim.
+
+**Any concurrent non-test change anywhere in the write scope clears the finding.** On a bundle whose
+tasks are worked in a batch, that is most pairs.
+
+**This is not fixable inside the rule, and must not be papered over.** Attribution would require the
+plan to declare per-task file scope, which it does not; `ObservedWriteScope` is bundle-wide by
+design. So the check detects the *shape* — a pair with no production movement at all — and cannot
+detect the *instance* where movement exists but belongs to different work. That is the same ceiling
+as F9.3, reached from the other side: a digest cannot read a claim, and it cannot read *whose* claim
+a change belongs to either.
+
+**What it is still worth.** It fires on this bundle's own T-001 and T-007 pairs, which is the tool
+auditing its own construction on the day it shipped. It converts an invisible discrepancy into a
+written one wherever the scope is quiet. And the honest statement of its limit is now recorded, so no
+one later reads P0.10 as a guarantee that F9 cannot recur. **It cannot make that promise.** Anyone
+who wants the stronger property needs per-task scope, and that is a plan-schema change, not a check.
+
+### F11 — The scope audit reports the CLI's own ledger writes as violations. **[verified]**
+
+`ngrace review --change C-CURSOR-INTEGRITY` at HEAD `3c3e4fb` returns 11 findings: 2 real warnings,
+1 real error, and **8 errors of the form**
+
+```
+[error] review.scope-outside-write-scope — Changed file
+        .ngrace/changes/active/C-CURSOR-INTEGRITY/run/27-T-006-attempt.xml is outside
+        ObservedWriteScope.
+```
+
+Those files are written by `cursor attempt` — by the tool, as required by the execution contract,
+during the very task being audited. No bundle declares its own `run/` events in `ObservedWriteScope`,
+and none should: the ledger is not authored work. The audit reads working-tree porcelain, so the
+noise appears on every pre-commit review and scales with the number of events recorded.
+
+**Consequence, and why it is worth recording rather than shrugging at.** P0.10's new warnings arrived
+buried under eight spurious errors about the tool's own writes. A review surface that cries wolf
+about its own ledger trains the reader to skim exactly the report this track spent a phase making
+trustworthy. Belongs with `C-REPORT-HONESTY` (P0.7, P0.9), which already owns diagnostic honesty.
+
+### F11.1 — One authorized scope exception, and the process note that goes with it
+
+`src/verification/localize.test.ts` pins `allReviewCodes().length` to a literal (`13`, now `14`) and
+`excludedReviewCodesForLocalization()` to another (`10`, now `11`). Registering
+`review.attempt-pair-unsubstantiated` therefore forces an edit to a file outside this bundle's
+`ObservedWriteScope`, or `validate:ci` fails. The edit is two literals; the exhaustive
+`admitted !== excluded` invariant is untouched, so nothing is weakened.
+
+**Accepted as an authorized exception**, recorded here rather than by superseding an approved plan
+over two integers. `review.scope-outside-write-scope` correctly flags it, and that finding is cleared
+by this record.
+
+**Process note.** Writing outside declared scope is a contradiction between the plan and the work,
+and the standing instruction is to **stop and report before proceeding**, not to proceed and disclose
+after. The disclosure was clear and the write was mechanically forced, so the outcome is fine — but
+the order was wrong, and the same order applied to a less forced edit would not be.
+
+**The underlying brittleness is a real defect, not this bundle's to fix**: a test that hardcodes a
+catalog's cardinality makes every new review code a cross-cutting edit. It should assert the
+partition, not the count.
