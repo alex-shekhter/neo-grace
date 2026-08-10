@@ -1,0 +1,293 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-RECOVER-FOLDABLE>
+    <Summary>
+      Make `ngrace cursor recover --fix` produce a ledger that can actually fold:
+      close F13 (covering allocation with no headroom for a later terminal) and repair
+      the already-damaged live shape on C-TOKEN-INTEGRITY, without deleting the NaN
+      orphan. Completes the fold half of C-CURSOR-INTEGRITY's AC-RECOVER-FIX-PRESERVES-ORPHAN
+      (F13.1); C-CURSOR-INTEGRITY and C-TOKEN-INTEGRITY remain unarchivable until this lands.
+    </Summary>
+    <Problem>
+      C-CURSOR-INTEGRITY shipped `cursor recover` so a corrupt run ledger can be repaired
+      and folded without `rm -r run/`. On the real artifact that motivated the command, the
+      fold half of that promise does not hold.
+
+      F13. `writeCoveringOpened` (grace-cursor.ts:736–751) sets
+      `to = Math.max(options.to, openedId)`, so the covering allocation's ceiling is the
+      covering event's own id. Fold requires a `kind=terminal` event *inside* some
+      allocation (`validateEventsAgainstAllocations:2475–2478`). The terminal is correctly
+      an operator act (F12 / A29.2) and can only be written *after* the fix — so it always
+      lands outside the new allocation. Validation loops **per allocation**, so a second
+      covering opened does not rescue the first: the dead allocation stays unterminated
+      forever. Reproduced:
+
+        fix #1            → w0:[1,4]            blocked: unterminated range for w0
+        terminal at id 5  → outside [1,4]
+        fix #2            → w0:[1,4], w0:[1,6]  still blocked: unterminated range for w0
+
+      Therefore `recover --fix` cannot produce a foldable ledger on any bundle that does
+      not already contain a terminal inside its pre-fix id range. C-CURSOR-INTEGRITY itself
+      is foldable only by luck: its epoch was opened with the CLI default to=from+98, so
+      terminal id 33 sits inside w0:[1,99].
+
+      F13.1 / F12.1. The acceptance test that claimed "fold succeeds" seeded
+      `seedF8Shape(..., { withTerminal: true })`, placing a terminal *inside* the pre-fix
+      valid id set — the one precondition the feature cannot establish for itself. The
+      orphan-survival half of AC-RECOVER-FIX-PRESERVES-ORPHAN holds on the real ledger and
+      is verified. The fold half does not. C-CURSOR-INTEGRITY is therefore not complete
+      and must not archive until this repair lands.
+
+      Live damage. C-TOKEN-INTEGRITY/run/ is already worse than the pre-fix F8 shape.
+      Current diagnosis (authoritative snapshot for this bundle):
+
+        Orphans: 1 — NaN-T-001-opened.xml [event-filename] unrecoverable
+        Loose integer events: 1..20 (count=20)
+        Valid covering allocation: missing (w0:1-19)
+        Fold: blocked (event 20 outside every allocation; unterminated range for w0)
+        Workers: w0
+
+      There is a **dead allocation** w0:[1,19] written by the first `--fix`, containing no
+      terminal and incapable of ever containing one (the terminal is event 20, outside it).
+      A design that only changes what *future* covering allocations look like leaves this
+      ledger permanently unfoldable. The NaN orphan
+      (SHA-1 c0cc8899c264381766a18918e2109b5e05693893) must still survive every repair
+      (D8.3 / F8.1).
+
+      Flag honesty. `--fix` is documented as `extend-allocation`
+      (grace-cursor.ts:3221) and never extends anything — it always writes a new covering
+      opened. A flag whose name asserts behaviour it does not have is the same class of
+      defect this track addresses.
+
+      Sequencing (F13.2). C-TOKEN-INTEGRITY cannot fold until this lands; C-CURSOR-INTEGRITY
+      cannot archive until its own AC holds. Approved C-CURSOR-INTEGRITY plan is immutable
+      with eight complete tasks and no room for a ninth — same precedent as F10 → F10.2
+      (repair in the next bundle with a recorded sequential ObservedWriteScope overlap).
+    </Problem>
+    <Goals>
+      <Goal>
+        After recover --fix on a clean shape with no terminal anywhere, an operator-emitted
+        terminal, and fold, the epoch folds successfully and any unrecoverable orphan survives
+        on disk and in diagnosis (F13 property; D8.3).
+      </Goal>
+      <Goal>
+        Repair the already-damaged live C-TOKEN-INTEGRITY shape (dead allocation w0:[1,19],
+        terminal at 20 outside every allocation, NaN orphan present) so the ledger becomes
+        foldable, folds, and keeps the orphan present and diagnosed — not merely prevent the
+        defect on new ledgers.
+      </Goal>
+      <Goal>
+        Align the --fix operation with its documented name: either the operation extends an
+        allocation, or the documented name says what the operation does (flag honesty).
+      </Goal>
+      <Goal>
+        Replace the withTerminal-seeded "fold succeeds" demonstration with end-to-end
+        regressions that do not supply a pre-fix terminal (F12.1 / F13.1).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding decisions and findings: D8.2, D8.3, A29.2 / F1, F8.1, F10.2 (overlap
+        precedent), F12, F12.1, F13, F13.1, F13.2. Emitting a terminal remains the operator's
+        act — it asserts the work is finished, which is a judgment, not structural state the
+        binary can derive. recover --fix must not emit a terminal.
+      </Constraint>
+      <Constraint>
+        A29.2 — the binary writes only structural state it can derive or is explicitly given,
+        never authored content, and never without an explicit apply. Covering-allocation
+        bounds remain derived from inventory (or explicitly given by the operator); the
+        operator act is the --fix (or equivalent) command. Forbidden: inventing an id for a
+        NaN orphan, fabricating multi-worker partitions, rewriting attempt outcomes, deleting
+        run/ events or the orphan, or hand-editing Allocation attributes outside the
+        recorded recover path.
+      </Constraint>
+      <Constraint>
+        Sequential ObservedWriteScope overlap with C-CURSOR-INTEGRITY on
+        src/grace-cursor.ts and src/grace-cursor.test.ts, authorized under F10.2 precedent
+        and F13.2 disposition. C-CURSOR-INTEGRITY is code-complete (all eight tasks landed);
+        nothing will write those files under that bundle again — the overlap is sequential,
+        not concurrent. Still out of this bundle: every other path in C-CURSOR-INTEGRITY's
+        write scope (src/grace-status.ts|.test.ts, src/review/*, src/lint/catalog.test.ts)
+        and that bundle's plan/spec. Expect ngrace lint to report a second
+        scope.durable-overlap warning once this bundle's plan is approved; that warning is
+        correct and must not be suppressed (F10.2 / F10.3).
+      </Constraint>
+      <Constraint>
+        Do not mutate the live C-TOKEN-INTEGRITY or C-CURSOR-INTEGRITY ledgers as part of
+        implementing this bundle. Those ledgers are evidence. Tests exercise copies of the
+        clean no-terminal shape and of the damaged shape. Applying the repair to the real
+        C-TOKEN-INTEGRITY run/ is a separate authorized act by the authority after this
+        lands — not an implementation task of this change.
+      </Constraint>
+      <Constraint>
+        Spec only in this authoring pass (F4 two-stage authoring). status remains "draft";
+        approval is a human act. Do not author plan.xml until the spec is approved
+        (grammar.ts forbids an active plan beside a non-approved spec). Do not hand-edit
+        CHANGELOG.md (D5.5).
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: TraceAssertion + tests default. Write each regression first,
+        watch it fail on pre-fix code, then fix. Do not seed withTerminal: true to satisfy
+        the fold-succeeds property under test.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        P0.8 calibration backfill / command-run evidence adjudication, any edit under
+        src/calibration/, or fold-time CalibrationAdjudication redesign (D8.1).
+      </NonGoal>
+      <NonGoal>
+        Everything else in C-CURSOR-INTEGRITY's ObservedWriteScope beyond grace-cursor:
+        src/grace-status.ts|.test.ts, src/review/core.ts|.test.ts, src/review/catalog.ts,
+        src/lint/catalog.test.ts, and that bundle's plan/spec.
+      </NonGoal>
+      <NonGoal>
+        The ngrace-execute documentation gap from F12 (terminal never mentioned in
+        SKILL.md). That goes to P1 (authoring/execution surface / RC-4), not this repair.
+      </NonGoal>
+      <NonGoal>
+        Re-litigating F9.3's weakened attempt-pair rule, inventing finding-clearance ledger
+        schema, or reopening C-CURSOR-INTEGRITY's approved plan to add a ninth task
+        (approved plans are immutable; F13.2).
+      </NonGoal>
+      <NonGoal>
+        Deleting, renaming, or hand-editing C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml or
+        any event under that bundle's run/ as part of this change. Hand-editing a dead
+        Allocation attribute outside the recover path is also out of scope.
+      </NonGoal>
+      <NonGoal>
+        Making fold accept an unterminated range, or having recover --fix emit a terminal
+        on the operator's behalf (F12 / A29.2).
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-RECOVER-FIX-FOLDABLE-CLEAN>
+        Given a run/ with loose integer events, no valid covering allocation, and **no
+        terminal event anywhere** (including no withTerminal seed), after `recover --fix`,
+        an operator-emitted `cursor advance --kind terminal`, and `cursor fold`, the epoch
+        **folds successfully**. Any unrecoverable orphan present before the sequence still
+        exists on disk afterward and is still reported by `recover` as an unrecoverable
+        orphan. A design that only prevents the defect on new ledgers but cannot complete
+        this clean-shape sequence fails this criterion. Mechanism (allocation headroom,
+        in-place extend, or validation change) is left to the plan; the property is binding.
+      </AC-RECOVER-FIX-FOLDABLE-CLEAN>
+      <AC-RECOVER-FIX-DAMAGED-SHAPE>
+        Given a **copy** of C-TOKEN-INTEGRITY's **current** ledger shape — loose integer
+        events 1..20, a dead allocation w0:[1,19] with no terminal in range (as written by
+        the first recover --fix), a terminal at id 20 outside every allocation, and the
+        NaN-* orphan (event-filename class, SHA-1 of the live fixture
+        c0cc8899c264381766a18918e2109b5e05693893) — the ledger becomes foldable under the
+        designated recover path, and folds, with the orphan still present on disk and still
+        diagnosed as an unrecoverable orphan. **A design which repairs clean shapes but
+        leaves an existing dead allocation unfoldable fails this criterion.** Preventing
+        the defect on future covering allocations alone is not sufficient: the real artifact
+        already carries a dead allocation and is the subject this criterion judges against.
+        Tests must exercise a copy; they must not mutate the live C-TOKEN-INTEGRITY run/.
+      </AC-RECOVER-FIX-DAMAGED-SHAPE>
+      <AC-FIX-FLAG-HONESTY>
+        The --fix operation and its documented name agree. Today --fix is documented as
+        `extend-allocation` (grace-cursor.ts:3221 / help text) and always writes a new
+        covering opened without extending any existing Allocation. After this change,
+        either (1) the operation actually extends an existing covering allocation when one
+        is present and incomplete (matching the name), or (2) the documented name and help
+        text describe what the operation does (e.g. create-covering) and no longer claim
+        "extend". A criterion or implementation that leaves the name asserting behaviour
+        the code does not perform fails this criterion. Which alternative is the plan's
+        choice; agreement is binding.
+      </AC-FIX-FLAG-HONESTY>
+      <AC-REGRESSION-NO-PRESEEDED-TERMINAL>
+        End-to-end regression coverage includes: (1) the clean shape of
+        AC-RECOVER-FIX-FOLDABLE-CLEAN (no terminal anywhere before --fix), fixed,
+        operator-terminated, folded; (2) the damaged-shape repair of
+        AC-RECOVER-FIX-DAMAGED-SHAPE. **Neither may be satisfied by seeding
+        `withTerminal: true` (or equivalent)** — that option supplies the precondition
+        under test and is the exact fixture defect of F12.1 / F13.1. A test that passes
+        only because a terminal was present inside the pre-fix id range does not satisfy
+        this criterion. Prior AC-RECOVER-FIX-PRESERVES-ORPHAN orphan-survival assertions
+        remain; the fold-succeeds half is proven by the new no-preseeded-terminal paths.
+      </AC-REGRESSION-NO-PRESEEDED-TERMINAL>
+      <AC-CARRIED-ORPHAN-WORKER-A29>
+        Carried constraints, not reopened:
+        (D8.3) recover never deletes unrecoverable orphans; NaN-* stays on disk and
+        diagnosed after --fix and after fold of the valid stream.
+        (D8.2) when more than one distinct worker value appears in ledger∪loose
+        Allocations, recover --fix and auto-open refuse; multi-worker ranges are never
+        fabricated.
+        (A29.2 / F12) recover --fix does not emit a terminal; the operator emits the
+        terminal; the binary writes only structural state it can derive or is explicitly
+        given, with --fix as the explicit apply for the covering allocation path.
+        A change that violates any of these to make fold succeed fails this criterion.
+      </AC-CARRIED-ORPHAN-WORKER-A29>
+      <AC-SUITE-AND-LINT>
+        Suite green for the new regressions and retained recover/orphan/auto-open coverage;
+        bun run validate:ci and bun run ngrace lint --path . are green on this repository
+        (0 errors; scope.durable-overlap warnings against C-CURSOR-INTEGRITY and any
+        continuing C-TOKEN-INTEGRITY overlap are expected and authorized — F10.2 / F10.3 —
+        and must not be suppressed).
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CURSOR />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Unit and CLI regressions under src/grace-cursor.test.ts that fail before the fix
+        and pass after: clean no-terminal fix→terminal→fold; damaged-shape copy of
+        C-TOKEN-INTEGRITY current run/ (dead w0:[1,19], terminal at 20, NaN orphan)
+        repaired and folded with orphan survival; flag-name/docs agreement with behaviour;
+        multi-worker refuse retained; orphan never deleted. Dogfooding ngrace lint --path .
+        at 0 errors (authorized scope.durable-overlap warnings only). TraceAssertion-backed
+        V-M-CURSOR as already declared; no new Marker evidence.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Module ownership confirmed against .ngrace/graph/main.xml: M-CURSOR Path
+        src/grace-cursor.ts (ENTRY_POINT). V-M-CURSOR in .ngrace/verification/main.xml
+        runs bun test src/grace-cursor.test.ts. No invented module ids. grace-cursor.test.ts
+        is the co-located test for M-CURSOR (same pattern as other ENTRY_POINT modules).
+      </Assumption>
+      <Assumption>
+        F13 / F13.1 / F13.2 and F12 / F12.1 in docs/plans/active/RM-GOVERNED-PATH/decisions.md
+        are authoritative for this bundle's under-specifications. C-CURSOR-INTEGRITY
+        AC-RECOVER-FIX-PRESERVES-ORPHAN's fold-succeeds clause is the debt this bundle
+        retires; that plan is not edited.
+      </Assumption>
+      <Assumption>
+        Live C-TOKEN-INTEGRITY diagnosis at authoring (HEAD 585598a family): loose events
+        1..20, allocation w0:[1,19] on 19-T-005-opened.xml, terminal 20-T-005-terminal.xml
+        outside that range, NaN-T-001-opened.xml with SHA-1
+        c0cc8899c264381766a18918e2109b5e05693893, workers w0 only. If the live ledger moves
+        before implementation, AC-RECOVER-FIX-DAMAGED-SHAPE still targets that *shape*
+        (dead closed-ceiling allocation + terminal outside + NaN orphan), not a particular
+        commit's byte-for-byte tree beyond the orphan's fixed SHA.
+      </Assumption>
+      <Assumption>
+        Mechanism is intentionally unspecified in this spec (authority decision §4 A):
+        allocation headroom on the covering opened, in-place extend of an existing
+        Allocation, a validation change that still requires a terminal inside some covering
+        range, or another design that satisfies the properties. The plan chooses; the
+        criteria judge outcomes on clean and damaged shapes.
+      </Assumption>
+      <Assumption>
+        Applying the repair to the *live* C-TOKEN-INTEGRITY run/ (and folding both blocked
+        bundles) remains a separate mechanical act by the authority after this change
+        lands — same separation as C-CURSOR-INTEGRITY's constraint that implementers do not
+        --fix the live fixture during development. This bundle's tests use copies only.
+      </Assumption>
+      <Assumption>
+        C-CURSOR-INTEGRITY remains active and code-complete; its epoch is currently
+        foldable (Fold: ok after terminal 33 inside w0:[1,99]) but archive waits on this
+        AC. Concurrent writes under that bundle to grace-cursor.ts are not expected
+        (F10.2 sequential-overlap premise).
+      </Assumption>
+      <Assumption>
+        If implementation discovers that making a dead prior allocation foldable requires
+        rewriting historical Allocation attributes on an existing opened event (rather than
+        a new ledger-visible recover event), stop and report: whether in-place mutation of
+        a prior event is permitted under A29.2 / audit immutability is the authority's call,
+        not the implementer's.
+      </Assumption>
+    </Assumptions>
+  </C-RECOVER-FOLDABLE>
+</NgraceChangeSpec>

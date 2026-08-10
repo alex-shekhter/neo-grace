@@ -1150,3 +1150,43 @@ an overlap on `src/grace-cursor.ts` with `C-CURSOR-INTEGRITY`, which is code-com
 That is the correct outcome and not a reason to relax anything: the alternative is archiving a bundle
 whose acceptance criterion is known to be false, in the track whose entire subject is that the
 artifact must not lie.
+
+---
+
+## D9 — Ledger repair is append-only; a recorded event is never rewritten
+
+**Decision.** `recover --fix` may **append** records. It may **not** rewrite a recorded event file in
+place. Where a dead allocation must be superseded, the repair records a new, ledger-visible fact that
+supersedes it; it does not edit the old one.
+
+**Why, concretely rather than by taste.** Attempt events digest prior `run/` event files into their
+`<WriteEvidence>` — verified: `C-CURSOR-INTEGRITY` event 28 carries digests for
+`run/26-T-006-progress.xml` and `run/27-T-006-attempt.xml`. **Event files are attested artifacts.**
+A repair that rewrites one falsifies every attestation referencing it, silently, in exactly the
+evidence chain P0.10 was built to read.
+
+**Stated precisely, because the instance does not force the rule.** In `C-TOKEN-INTEGRITY`'s ledger
+today, `19-T-005-opened.xml` is referenced by nothing — the terminal at id 20 carries no
+`WriteEvidence`, and no attempt followed it. Rewriting it would falsify no existing digest *here*.
+The rule is principled, not compelled by this case: the fix must be correct for ledgers where the
+allocation *is* attested, which is the normal shape.
+
+It also sits on the right side of A29.2. Appending a superseding fact is recording; editing a prior
+record is authoring over history.
+
+### D9.1 — `extend-allocation` keeps its name, and becomes true
+
+The flag claims an operation the code does not perform (it always writes a new covering opened, never
+extends). The executor recommended making it genuinely extend, which under D9 cannot mean in-place
+mutation. **It can mean the honest thing: extend the *effective* allocation by appending a superseding
+record.** The logical range extends; the record set only grows.
+
+So the resolution is neither a rename nor a rewrite: **keep `extend-allocation`, and make the
+effective covering range actually extend.** `AC-FIX-FLAG-HONESTY` is satisfied by the name and the
+behaviour agreeing, which this does.
+
+**What the plan still chooses.** How supersession is expressed and how fold derives the effective
+allocation set — a superseding `opened`, an explicit supersedes reference, or a validation rule that
+reads the newest covering allocation as authoritative. **One constraint on that choice:** a design
+that makes fold ignore unterminated ranges generally would delete a real check. The older range must
+stop mattering because it was *superseded*, not because termination stopped being required.
