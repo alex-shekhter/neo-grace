@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -1601,5 +1601,114 @@ describe("digest undetermined is absence not flaky (A21.2 / correction 42)", () 
       passEv(evidencePaths(["src/new.ts"])),
     );
     expect(result.verdict).toBe("retry");
+  });
+});
+
+describe("numeric epoch bounds (C-CURSOR-INTEGRITY T-002 / P0.4)", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+
+  function listRunFiles(root: string, changeId = "C-RUN"): string[] {
+    const runDir = path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run");
+    if (!existsSync(runDir)) return [];
+    return readdirSync(runDir).sort();
+  }
+
+  function cliOpenEpoch(root: string, from: string, to: string) {
+    return Bun.spawnSync({
+      cmd: [
+        process.execPath,
+        "./src/grace.ts",
+        "cursor",
+        "advance",
+        "--change",
+        "C-RUN",
+        "--task",
+        "T-001",
+        "--open-epoch",
+        "--from",
+        from,
+        "--to",
+        to,
+        "--path",
+        root,
+      ],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+  }
+
+  it("AC-EPOCH-BOUNDS-REJECT: CLI --from T-001 --to T-001 exits non-zero and writes no run/*", () => {
+    const root = createProject();
+    seedBundle(root);
+    const result = cliOpenEpoch(root, "T-001", "T-001");
+    const stderr = Buffer.from(result.stderr).toString("utf8");
+    const stdout = Buffer.from(result.stdout).toString("utf8");
+    const combined = `${stdout}\n${stderr}`;
+    expect(result.exitCode).not.toBe(0);
+    expect(combined).toMatch(/positive integer/i);
+    expect(combined).toMatch(/event id/i);
+    expect(combined).toMatch(/task id/i);
+    expect(listRunFiles(root)).toEqual([]);
+    expect(listRunFiles(root).some((f) => f.startsWith("NaN-"))).toBe(false);
+  });
+
+  it("AC-EPOCH-BOUNDS-CLASS: refuses non-integer, zero, negative, float, and from>to via CLI", () => {
+    const cases: Array<[string, string]> = [
+      ["abc", "10"],
+      ["1.5", "10"],
+      ["0", "10"],
+      ["-1", "10"],
+      ["10", "1"],
+    ];
+    for (const [from, to] of cases) {
+      const root = createProject();
+      seedBundle(root);
+      const result = cliOpenEpoch(root, from, to);
+      const combined = `${Buffer.from(result.stdout).toString("utf8")}\n${Buffer.from(result.stderr).toString("utf8")}`;
+      expect(result.exitCode).not.toBe(0);
+      expect(combined).toMatch(/positive integer|event id|from|to/i);
+      expect(listRunFiles(root)).toEqual([]);
+    }
+  });
+
+  it("AC-EPOCH-BOUNDS-LIBRARY: advanceCursor refuses NaN, 0, -1, 1.5, and from>to; writes nothing", () => {
+    const invalid: Array<{ from: number; to: number; label: string }> = [
+      { from: Number("T-001"), to: Number("T-001"), label: "NaN task-id" },
+      { from: NaN, to: 10, label: "NaN from" },
+      { from: 0, to: 10, label: "zero" },
+      { from: -1, to: 10, label: "negative" },
+      { from: 1.5, to: 10, label: "float" },
+      { from: 10, to: 1, label: "from>to" },
+    ];
+    for (const { from, to, label } of invalid) {
+      const root = createProject();
+      seedBundle(root);
+      let threw: Error | undefined;
+      try {
+        advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from, to });
+      } catch (error) {
+        threw = error as Error;
+      }
+      expect(threw, label).toBeDefined();
+      expect(threw!.message, label).toMatch(/positive integer/i);
+      expect(threw!.message, label).toMatch(/event id/i);
+      expect(threw!.message, label).toMatch(/task id/i);
+      expect(listRunFiles(root), label).toEqual([]);
+    }
+  });
+
+  it("valid --from 1 --to 10 still opens (library and CLI)", () => {
+    const root = createProject();
+    seedBundle(root);
+    const position = advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 10 });
+    expect(position.state).toBe("in-progress");
+    expect(listRunFiles(root).some((f) => f.endsWith("-opened.xml"))).toBe(true);
+
+    const root2 = createProject();
+    seedBundle(root2);
+    const result = cliOpenEpoch(root2, "1", "10");
+    expect(result.exitCode).toBe(0);
+    expect(listRunFiles(root2).length).toBeGreaterThan(0);
   });
 });

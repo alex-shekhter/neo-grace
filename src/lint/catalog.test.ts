@@ -3,8 +3,8 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import { PATTERNS } from "../test-support/defect-corpus";
-import { allGateCodes } from "../gates/catalog";
-import { allReviewCodes } from "../review/catalog";
+import { allGateCodes, GATE_CATALOG } from "../gates/catalog";
+import { allReviewCodes, guideFor } from "../review/catalog";
 import {
   classifyIssueCode,
   getExactLintIssueGuide,
@@ -22,8 +22,10 @@ function bare(code: string): LintIssue {
 }
 
 /**
- * C-TOKEN-INTEGRITY T-005 — enumerate issue-code literals emitted from production src/.
- * Scans issue()/markupIssue()/guideIssue() call sites and severity+code object forms.
+ * C-TOKEN-INTEGRITY T-005 / C-CURSOR-INTEGRITY T-001 (F10) — enumerate issue-code
+ * literals emitted from production src/.
+ * Scans issue()/markupIssue()/guideIssue() call sites, makeFinding(code, …)
+ * positional form (review/core.ts), and severity+code object forms.
  * Bound expansions of known dynamic emitters are listed explicitly (not guessed).
  */
 function collectEmittedIssueCodes(srcRoot: string): string[] {
@@ -36,6 +38,8 @@ function collectEmittedIssueCodes(srcRoot: string): string[] {
   const codeLit = /["']([a-z]+(?:\.[a-z0-9][a-z0-9._-]*)+)["']/g;
   const litArg = /\b(?:issue|markupIssue|guideIssue)\(\s*["'](?:error|warning|info)["']\s*,\s*["']([a-z][a-z0-9._-]*)["']/;
   const pushArg = /\bpushIssue\(\s*[^,]+,\s*["'](?:error|warning)["']\s*,\s*["']([a-z][a-z0-9._-]*)["']/;
+  // F10: makeFinding(code, file, message, …) — first positional string is the code.
+  const makeFindingArg = /\bmakeFinding\(\s*["']([a-z][a-z0-9._-]*)["']/;
   const severityCode = /\bseverity:\s*["'](?:error|warning)["']\s*,\s*code:\s*["']([a-z][a-z0-9._-]*)["']/;
   const codeSeverity = /\bcode:\s*["']([a-z][a-z0-9._-]*)["']\s*,\s*severity:\s*["'](?:error|warning)["']/;
 
@@ -51,7 +55,7 @@ function collectEmittedIssueCodes(srcRoot: string): string[] {
       if (!entry.endsWith(".ts") || entry.endsWith(".test.ts")) continue;
       if (skipFiles.has(full)) continue;
       const text = readFileSync(full, "utf8");
-      for (const re of [litArg, pushArg, severityCode, codeSeverity]) {
+      for (const re of [litArg, pushArg, makeFindingArg, severityCode, codeSeverity]) {
         for (const m of text.matchAll(new RegExp(re.source, "g"))) {
           codes.add(m[1]!);
         }
@@ -116,11 +120,13 @@ function collectEmittedIssueCodes(srcRoot: string): string[] {
 }
 
 /**
- * Frozen allowlist of production-emitted codes that resolve only through PREFIX_GUIDES
- * (or peer emittable surfaces) — generic prose, not an exact guide.
+ * Frozen allowlist of production-emitted **lint-namespace** codes that resolve only through
+ * PREFIX_GUIDES (or peer emittable surfaces) — generic prose, not an exact guide.
  * Adding a code here is a visible diff; new emissions must take an exact guide instead.
  * C-TOKEN-INTEGRITY T-005: do not put the eight newly-erroring codes on this list.
- * Count: 164 (frozen 2026-08-10). Authority may shrink this list later by authoring exact guides.
+ * C-CURSOR-INTEGRITY T-001 (F10): review.* and gate.* are **not** on this list — they route
+ * to REVIEW_CATALOG / GATE_CATALOG (see hasExactSurfaceGuide). Count is lint-only.
+ * Count: 156 (frozen 2026-08-10; was 164 before gate.* removal). Authority may shrink later.
  */
 const PREFIX_COVERED_LEGACY_CODES: readonly string[] = [
   // --- analysis.* ---
@@ -215,15 +221,7 @@ const PREFIX_COVERED_LEGACY_CODES: readonly string[] = [
   "design-context.missing-change-id",
   "design-context.missing-grace-version",
   "design-context.unsupported-grace-version",
-  // --- gate.* (gate catalog, not lint exact) ---
-  "gate.apply.clarification-unresolved",
-  "gate.apply.invalid-verdict",
-  "gate.apply.no-plan",
-  "gate.apply.no-verdict",
-  "gate.apply.verdict-host-capability",
-  "gate.approve.clarification-unresolved",
-  "gate.archive.open-epoch",
-  "gate.attempt.escalated",
+  // gate.* codes route to GATE_CATALOG (C-CURSOR-INTEGRITY T-001 / F10) — not listed here.
   // --- graph.* ---
   "graph.duplicate-module-state",
   "graph.index-invalid-documents-section",
@@ -304,6 +302,37 @@ const PREFIX_COVERED_LEGACY_CODES: readonly string[] = [
   "xml.missing-file",
   "xml.parse",
 ];
+
+/**
+ * F10 / C-CURSOR-INTEGRITY T-001 — production-emitted review.* codes without an exact
+ * REVIEW_CATALOG guide. makeFinding visibility surfaces these; do not mass-author guides
+ * here. New codes from later tasks in this bundle (e.g. review.attempt-pair-unsubstantiated
+ * from T-006) must get exact REVIEW_CATALOG guides, not a seat on this list.
+ *
+ * Count: 0 (2026-08-10). All thirteen production review codes already have REVIEW_CATALOG
+ * guides; the allowlist exists so a future pre-existing gap is an explicit diff.
+ */
+const REVIEW_PREFIX_COVERED_LEGACY_CODES: readonly string[] = [
+  // (empty — all makeFinding-visible review.* codes have exact REVIEW_CATALOG guides)
+];
+
+/**
+ * Whether an emitted code has a home on its correct catalog surface (F10 namespace routing).
+ * review.* → REVIEW_CATALOG (guideFor); gate.* → GATE_CATALOG; else lint exact / allowlist.
+ * Never uses getExactLintIssueGuide for review.* or gate.*.
+ */
+function hasExactSurfaceGuide(code: string): boolean {
+  if (code.startsWith("review.")) {
+    return guideFor(code) !== undefined || REVIEW_PREFIX_COVERED_LEGACY_CODES.includes(code);
+  }
+  if (code.startsWith("gate.")) {
+    return Object.prototype.hasOwnProperty.call(GATE_CATALOG, code);
+  }
+  if (getExactLintIssueGuide(code)) {
+    return true;
+  }
+  return PREFIX_COVERED_LEGACY_CODES.includes(code);
+}
 
 describe("catalog issueClass (A5.1 route 2, A6.1)", () => {
   it("DefectPatternId stays in sync with D4 PATTERNS (A7.3 §1)", () => {
@@ -430,7 +459,7 @@ describe("catalog issueClass (A5.1 route 2, A6.1)", () => {
   });
 });
 
-describe("catalog exact-guide completeness (C-TOKEN-INTEGRITY T-005)", () => {
+describe("catalog exact-guide completeness (C-TOKEN-INTEGRITY T-005 / C-CURSOR-INTEGRITY T-001 F10)", () => {
   const tokenIntegrityCodes = [
     "markup.unparsed-link-token",
     "projection.index.owns-text",
@@ -442,20 +471,39 @@ describe("catalog exact-guide completeness (C-TOKEN-INTEGRITY T-005)", () => {
     "change.implementation-plan-invalid-child",
   ] as const;
 
-  it("requires every emitted production code to have an exact guide or appear on the frozen allowlist", () => {
+  it("requires every emitted production code to have an exact surface guide or frozen allowlist seat", () => {
     const srcRoot = path.join(import.meta.dir, "..");
     const emitted = collectEmittedIssueCodes(srcRoot);
     expect(emitted.length).toBeGreaterThan(50);
 
-    const allowlist = new Set(PREFIX_COVERED_LEGACY_CODES);
+    const lintAllowlist = new Set(PREFIX_COVERED_LEGACY_CODES);
+    const reviewAllowlist = new Set(REVIEW_PREFIX_COVERED_LEGACY_CODES);
     const orphaned: string[] = [];
     for (const code of emitted) {
-      const exact = getExactLintIssueGuide(code);
-      if (exact) {
-        expect(allowlist.has(code)).toBe(false);
+      if (code.startsWith("review.")) {
+        // F10: review.* never routes to getExactLintIssueGuide.
+        expect(getExactLintIssueGuide(code)).toBeUndefined();
+        if (guideFor(code)) {
+          expect(reviewAllowlist.has(code)).toBe(false);
+          continue;
+        }
+        if (!reviewAllowlist.has(code)) orphaned.push(code);
         continue;
       }
-      if (!allowlist.has(code)) {
+      if (code.startsWith("gate.")) {
+        // F10: gate.* never routes to getExactLintIssueGuide.
+        expect(getExactLintIssueGuide(code)).toBeUndefined();
+        if (!Object.prototype.hasOwnProperty.call(GATE_CATALOG, code)) {
+          orphaned.push(code);
+        }
+        continue;
+      }
+      const exact = getExactLintIssueGuide(code);
+      if (exact) {
+        expect(lintAllowlist.has(code)).toBe(false);
+        continue;
+      }
+      if (!lintAllowlist.has(code)) {
         orphaned.push(code);
       }
     }
@@ -469,6 +517,51 @@ describe("catalog exact-guide completeness (C-TOKEN-INTEGRITY T-005)", () => {
       expect(allowlist.has(code)).toBe(false);
       expect(classifyIssueCode(code)).toBe("exact");
     }
+  });
+
+  it("F10: scanner sees makeFinding positional codes; all thirteen review codes are guided", () => {
+    const srcRoot = path.join(import.meta.dir, "..");
+    const emitted = collectEmittedIssueCodes(srcRoot);
+    const reviewEmitted = emitted.filter((c) => c.startsWith("review."));
+    // Blind spot closed: makeFinding surface is visible (was zero before T-001).
+    expect(reviewEmitted.length).toBeGreaterThanOrEqual(13);
+    for (const code of allReviewCodes()) {
+      expect(emitted).toContain(code);
+      expect(guideFor(code)).toBeDefined();
+      expect(getExactLintIssueGuide(code)).toBeUndefined();
+      expect(hasExactSurfaceGuide(code)).toBe(true);
+    }
+  });
+
+  it("F10: review.* emission is not a lint-catalog orphan (namespace routing)", () => {
+    // Permanent regression of the F10 probe: a review code without a lint exact guide
+    // is still surface-guided via REVIEW_CATALOG — completeness must not demand lint.
+    const code = "review.scope-outside-write-scope";
+    expect(getExactLintIssueGuide(code)).toBeUndefined();
+    expect(guideFor(code)).toBeDefined();
+    expect(hasExactSurfaceGuide(code)).toBe(true);
+    // And a not-yet-catalogued review code is also not a *lint* orphan — it fails as a
+    // review-surface gap only (T-006 will register attempt-pair; not on F10 backlog).
+    const future = "review.attempt-pair-unsubstantiated";
+    expect(getExactLintIssueGuide(future)).toBeUndefined();
+    expect(guideFor(future)).toBeUndefined();
+    expect(PREFIX_COVERED_LEGACY_CODES.includes(future)).toBe(false);
+    // Without REVIEW_CATALOG / review allowlist, surface guide is false — review orphan,
+    // not lint orphan (the pre-fix failure mode demanded lint catalog).
+    expect(hasExactSurfaceGuide(future)).toBe(false);
+  });
+
+  it("F10 discriminating negative: an unguided lint-namespace code still fails completeness", () => {
+    const invented = "lint.cursor-integrity-unguided-probe";
+    expect(getExactLintIssueGuide(invented)).toBeUndefined();
+    expect(PREFIX_COVERED_LEGACY_CODES.includes(invented)).toBe(false);
+    expect(hasExactSurfaceGuide(invented)).toBe(false);
+    // Simulate completeness: inventing an emission of this code yields an orphan.
+    const orphaned: string[] = [];
+    for (const code of [invented]) {
+      if (!hasExactSurfaceGuide(code)) orphaned.push(code);
+    }
+    expect(orphaned).toEqual([invented]);
   });
 });
 

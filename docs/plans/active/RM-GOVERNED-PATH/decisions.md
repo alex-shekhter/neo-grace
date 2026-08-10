@@ -409,6 +409,35 @@ one task later, before a line of it was built. That is the derivation gate worki
 the argument for keeping proposed rules in this document, where reality can reach them, rather than
 in the bundle where they would have shipped.
 
+#### F9.4 — The disclosure norm produced a voluntary admission at its first opportunity. **[verified]**
+
+`C-CURSOR-INTEGRITY` T-007, 2026-08-10. The executor reported, unprompted, that its own attempt pair
+did not substantiate red-first: the probe against pre-fix code was real and run in a temp project,
+but the `fail` **event** was written after `grace-status.ts` already held the fix. The authority
+confirmed it against the digests rather than the report:
+
+| Pair | fail | pass | Reading |
+|---|---|---|---|
+| T-001 (3→4) | `catalog.test.ts` unmodified | modified | genuine |
+| T-002 (7→8) | test modified, `grace-cursor.ts` **unmodified** | `grace-cursor.ts` modified | **textbook red-first** |
+| T-007 (11→12) | `grace-status.ts` **already modified**, test unmodified | only test modified | the disclosed gap |
+
+`WriteEvidence` lists files modified against `HEAD`, not every scope file — so "absent" means
+unmodified at that moment, which is what makes the T-002 pair readable as a clean red-first and the
+T-007 pair readable as not one.
+
+**Disposition: leave it, per F9.1.** Re-recording would be staging a retrospective red, which is the
+one repair explicitly forbidden. The honest gap costs a sentence; the ledger and this record disagree
+with nothing.
+
+**Two things this earns.** First, the norm works: told that an honest gap costs nothing and a
+contradiction costs the bundle, an executor volunteered the gap before being asked — which is the
+whole mechanism F9.2 was reaching for, obtained without any tooling at all. Second, T-007's pair is a
+**third corpus shape for P0.10**, alongside T-002's suspect pair and T-005's honest test-only pair:
+a pair that looks exactly like T-005's under a digest rule, and is *not* the same thing. It belongs
+in T-006's fixtures precisely because the check cannot tell it from T-005 — that is F9.3's ceiling,
+now with a live example on both sides of it.
+
 ---
 
 ## D1 — The tool is the only sanctioned writer of `approved → applied`

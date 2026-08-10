@@ -507,9 +507,11 @@ describe("ngrace status", () => {
     const result = collectProjectStatus(root);
     const change = result.changes.find((entry) => entry.changeId === "C-EPOCH");
     expect(change?.epochCount).toBe(1);
+    expect(change?.openEpochCount).toBe(0);
     expect(change?.taskCount).toBe(1);
     const text = formatStatusText(result);
     expect(text).toContain("epochs=1");
+    expect(text).not.toMatch(/C-EPOCH[^\n]*open=/);
     expect(text).toContain("tasks=1");
     expect(result.nextAction).toContain("ngrace-execute");
   });
@@ -521,8 +523,62 @@ describe("ngrace status", () => {
     const result = collectProjectStatus(root);
     const change = result.changes.find((entry) => entry.changeId === "C-NOCUR");
     expect(change?.epochCount).toBeUndefined();
+    expect(change?.openEpochCount).toBeUndefined();
     expect(change?.taskCount).toBe(1);
     expect(formatStatusText(result)).toContain("C-NOCUR");
+  });
+
+  it("AC-STATUS-EPOCHS-OPEN-VS-FOLDED: healthy open epoch is not reported as epochs=0 / no activity (D8.8)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-OPEN", { specStatus: "approved", planStatus: "approved" });
+    // Healthy open epoch: from=1 to=10 + progress, no folded Epoch-N.
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-OPEN/run/1-T-001-opened.xml`,
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="10"/></NgraceRunEvent>`,
+    );
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-OPEN/run/2-T-001-progress.xml`,
+      `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="progress"/>`,
+    );
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-OPEN/run.xml`,
+      `<NgraceRunCursor graceVersion="1.0"><C-OPEN><Task>T-001</Task><Epoch>1</Epoch><State>in-progress</State></C-OPEN></NgraceRunCursor>`,
+    );
+
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-OPEN");
+    // Discriminating negative: must not look like a change with no cursor activity.
+    expect(change?.openEpochCount).toBe(1);
+    expect(change?.epochCount).toBe(0);
+    const text = formatStatusText(result);
+    const line = text.split("\n").find((l) => l.includes("C-OPEN")) ?? "";
+    expect(line).toMatch(/open=1/);
+    expect(line).toMatch(/epochs=0/);
+    // Not the pre-fix misreport that omitted open activity entirely.
+    expect(line).not.toMatch(/C-OPEN \[active\] spec=approved plan=approved tasks=1/);
+  });
+
+  it("AC-STATUS-EPOCHS-OPEN-VS-FOLDED: after fold, folded count reflects Epoch-N wrappers", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-FOLD", { specStatus: "approved", planStatus: "approved" });
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-FOLD/run-ledger.xml`,
+      `<NgraceRunLedger graceVersion="1.0"><C-FOLD><Epoch-1><Allocation worker="w0" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="terminal"/></Epoch-1></C-FOLD></NgraceRunLedger>`,
+    );
+    // No loose run/ — fold emptied it.
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-FOLD");
+    expect(change?.epochCount).toBe(1);
+    expect(change?.openEpochCount).toBe(0);
+    const line = formatStatusText(result).split("\n").find((l) => l.includes("C-FOLD")) ?? "";
+    expect(line).toContain("epochs=1");
+    expect(line).not.toMatch(/open=/);
   });
 
   it("correction 69: pre-gate archive without Decisions is apply-gate-record-absent, not violation", () => {

@@ -32,6 +32,7 @@
 //   RecordAttemptResult
 //   WriteEvidenceSnapshot
 //   advanceCursor
+//   assertValidEpochBounds
 //   classifyFlakeFromEvidence
 //   countTaskAttemptEvents
 //   cursorCommand
@@ -55,6 +56,7 @@
 //   listRepositoryChangedFiles
 //   listUnresolvedEscalatedTasks
 //   parseCursorState
+//   parseEpochBoundArg
 //   pauseCursor
 //   readAttemptPayload
 //   recordAttempt
@@ -520,6 +522,60 @@ export function regenerateCursor(
   return { position, dryRun: false, applied: true };
 }
 
+/**
+ * P0.4 / C-CURSOR-INTEGRITY T-002 — epoch allocation bounds are positive integer
+ * event ids, not task ids. Message names the accepted form and the common mistake.
+ */
+const EPOCH_BOUNDS_MESSAGE =
+  "Epoch --from/--to must be positive integer event ids (e.g. 1 and 99). "
+  + "Task ids (T-001) are not event ids.";
+
+/** True when n is a finite positive integer (1, 2, 3, …). */
+function isPositiveIntegerEventId(n: number): boolean {
+  return typeof n === "number" && Number.isFinite(n) && Number.isInteger(n) && n >= 1;
+}
+
+/**
+ * Validate open-epoch from/to at the library boundary (before any run/* write).
+ * Accepts undefined (defaults applied by caller). Rejects NaN, 0, negatives, floats, from>to.
+ */
+export function assertValidEpochBounds(from: number | undefined, to: number | undefined): void {
+  if (from !== undefined && !isPositiveIntegerEventId(from)) {
+    throw new GraceCommandError("invalid-arguments", EPOCH_BOUNDS_MESSAGE);
+  }
+  if (to !== undefined && !isPositiveIntegerEventId(to)) {
+    throw new GraceCommandError("invalid-arguments", EPOCH_BOUNDS_MESSAGE);
+  }
+  if (from !== undefined && to !== undefined && from > to) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `${EPOCH_BOUNDS_MESSAGE} Got from=${from} > to=${to}.`,
+    );
+  }
+}
+
+/**
+ * Parse a CLI --from/--to string as a positive integer event id.
+ * Validates the raw string before Number() so "T-001" and "1.5" never become NaN/float silently.
+ */
+export function parseEpochBoundArg(raw: string, label: "--from" | "--to"): number {
+  const trimmed = raw.trim();
+  if (!/^[1-9][0-9]*$/.test(trimmed)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `${EPOCH_BOUNDS_MESSAGE} Invalid ${label}=${JSON.stringify(raw)}.`,
+    );
+  }
+  const n = Number(trimmed);
+  if (!isPositiveIntegerEventId(n)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `${EPOCH_BOUNDS_MESSAGE} Invalid ${label}=${JSON.stringify(raw)}.`,
+    );
+  }
+  return n;
+}
+
 /** Advance: append an event and update the cursor (writes). */
 export function advanceCursor(
   projectRoot: string,
@@ -541,11 +597,15 @@ export function advanceCursor(
 ): CursorPosition {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const runDir = path.join(bundlePath, "run");
-  mkdirSync(runDir, { recursive: true });
 
   if (options.openEpoch) {
+    // P0.4: refuse invalid bounds before mkdir/write so no run/* is created on failure.
+    assertValidEpochBounds(options.from, options.to);
+    mkdirSync(runDir, { recursive: true });
     const from = options.from ?? 1;
     const to = options.to ?? from + 98;
+    // Re-check after defaults (to may be derived only when from is valid).
+    assertValidEpochBounds(from, to);
     const worker = options.worker ?? "w0";
     const id = nextEventId(bundlePath, from);
     const task = options.task;
@@ -587,6 +647,7 @@ export function advanceCursor(
     return position;
   }
 
+  mkdirSync(runDir, { recursive: true });
   const kind = options.kind ?? "progress";
   const task = options.task;
   if (!ANCHOR_PATTERNS.task.test(task)) {
@@ -2614,13 +2675,25 @@ export const cursorCommand = defineCommand({
         await runGraceCommand(format, () => {
           const model = context.args.executorModel ? String(context.args.executorModel).trim() : "";
           const harness = context.args.executorHarness ? String(context.args.executorHarness).trim() : "";
+          // P0.4: validate raw --from/--to strings before Number() so T-001 never becomes NaN.
+          const fromRaw = context.args.from != null && String(context.args.from).length > 0
+            ? String(context.args.from)
+            : undefined;
+          const toRaw = context.args.to != null && String(context.args.to).length > 0
+            ? String(context.args.to)
+            : undefined;
+          const from = fromRaw !== undefined ? parseEpochBoundArg(fromRaw, "--from") : undefined;
+          const to = toRaw !== undefined ? parseEpochBoundArg(toRaw, "--to") : undefined;
+          if (from !== undefined || to !== undefined) {
+            assertValidEpochBounds(from, to);
+          }
           const position = advanceCursor(String(context.args.path ?? "."), requireChangeId(context.args), {
             task: String(context.args.task),
             kind: context.args.kind ? String(context.args.kind) : undefined,
             openEpoch: Boolean(context.args.openEpoch),
             worker: context.args.worker ? String(context.args.worker) : undefined,
-            from: context.args.from ? Number(context.args.from) : undefined,
-            to: context.args.to ? Number(context.args.to) : undefined,
+            from,
+            to,
             wave: context.args.wave ? String(context.args.wave) : undefined,
             executorIdentity:
               model || harness

@@ -43,8 +43,16 @@ export type ChangeBundleStatus = {
   planStatus?: string;
   derivedStates: string[];
   path: string;
-  /** Closed epochs in run-ledger.xml, when present (Phase 3). */
+  /**
+   * Folded (closed) Epoch-N wrappers in run-ledger.xml, when a ledger is present.
+   * D8.8 / C-CURSOR-INTEGRITY T-007: this is **not** open-epoch activity — see openEpochCount.
+   */
   epochCount?: number;
+  /**
+   * Open (unfolded) epochs: 1 when run/ holds loose event files, else 0 when known.
+   * Distinguishes an in-progress run from a change with no cursor activity (D8.8).
+   */
+  openEpochCount?: number;
   /** Tasks named in plan.xml ImplementationPlan, when present. */
   taskCount?: number;
   /**
@@ -190,7 +198,14 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       }
     }
 
-    const epochCount = existsSync(ledgerFile) ? countLedgerEpochs(ledgerFile) : undefined;
+    const openEpochCount = countOpenEpochs(bundlePath);
+    const hasLedger = existsSync(ledgerFile);
+    // Folded count only when a ledger exists; still surface open activity without a ledger.
+    const epochCount = hasLedger
+      ? countLedgerEpochs(ledgerFile)
+      : openEpochCount > 0
+        ? 0
+        : undefined;
     const taskCount = existsSync(planFile) ? countPlanTasks(planFile) : undefined;
 
     return {
@@ -201,12 +216,14 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       derivedStates: [...new Set(derivedStates)],
       path: relativeBundlePath,
       epochCount,
+      openEpochCount: epochCount !== undefined || openEpochCount > 0 ? openEpochCount : undefined,
       taskCount,
       applyGateRecord,
     } satisfies ChangeBundleStatus;
   });
 }
 
+/** Folded Epoch-N wrappers only — never open/loose run/ activity (D8.8). */
 function countLedgerEpochs(ledgerFile: string): number {
   const artifact = readGraceXmlArtifact(ledgerFile);
   if (!artifact.root) return 0;
@@ -217,6 +234,18 @@ function countLedgerEpochs(ledgerFile: string): number {
     }
   }
   return count;
+}
+
+/**
+ * Open (unfolded) epoch presence from loose run/ event files.
+ * One open epoch at a time; any loose *.xml under run/ means work is in flight.
+ * Kept local to status (does not import grace-cursor — avoids a cycle).
+ */
+function countOpenEpochs(bundlePath: string): number {
+  const runDir = path.join(bundlePath, "run");
+  if (!existsSync(runDir)) return 0;
+  const loose = readdirSync(runDir).filter((name) => name.endsWith(".xml"));
+  return loose.length > 0 ? 1 : 0;
 }
 
 function countPlanTasks(planFile: string): number {
@@ -431,7 +460,13 @@ export function formatStatusText(result: StatusResult) {
     lines.push("- none");
   } else {
     for (const change of result.changes) {
-      const epochPart = change.epochCount !== undefined ? ` epochs=${change.epochCount}` : "";
+      // D8.8: print folded epochs and open epochs separately so in-progress runs are visible.
+      let epochPart = "";
+      if (change.epochCount !== undefined || (change.openEpochCount ?? 0) > 0) {
+        const folded = change.epochCount ?? 0;
+        const open = change.openEpochCount ?? 0;
+        epochPart = open > 0 ? ` epochs=${folded} open=${open}` : ` epochs=${folded}`;
+      }
       const taskPart = change.taskCount !== undefined ? ` tasks=${change.taskCount}` : "";
       lines.push(
         `- ${change.changeId} [${change.location}] spec=${change.specStatus ?? "missing"} plan=${change.planStatus ?? "missing"}${epochPart}${taskPart} states=${change.derivedStates.join(",") || "none"}`,
