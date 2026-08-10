@@ -1,0 +1,301 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-EXECUTION-CONTRACT>
+    <IntentSummary>
+      Close D11: export the known cursor event-kind set from grace-cursor (minimal;
+      no source parse — F10), add a completeness regression that fails until every
+      exported kind has a structural protocol marker in ngrace-execute, then document
+      all nine kinds plus terminal-before-fold (F12) and attempt-ordering (F9.8) in
+      both skill trees, keeping them byte-identical. Completeness check precedes
+      documentation (red is already real).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-EXECUTION-CONTRACT/spec.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/grace-cursor.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>.ngrace/changes/active/C-EXECUTION-CONTRACT/spec.xml</File>
+      <File>.ngrace/changes/active/C-EXECUTION-CONTRACT/plan.xml</File>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers; authority reviews this hardest)
+
+      ─────────────────────────────────────────────────────────────────
+      "Documented" marker — structural, not lexical
+      ─────────────────────────────────────────────────────────────────
+      Choice: a single skill block `&lt;cursor_kinds&gt;` containing one child per kind:
+
+        &lt;cursor_kinds&gt;
+          &lt;kind id="opened"&gt;
+            When: …  Meaning / state: …  How to emit: …
+          &lt;/kind&gt;
+          …
+        &lt;/cursor_kinds&gt;
+
+      Completeness check (T-001): import the exported kind list; read
+      skills/ngrace/ngrace-execute/SKILL.md as text; collect every
+      `&lt;kind id="…"&gt;` attribute value that appears as a descendant of
+      `&lt;cursor_kinds&gt;` … `&lt;/cursor_kinds&gt;` (require a well-formed block; kinds
+      outside the block do not count). Assert every exported kind appears
+      exactly once as `id` on a `&lt;kind&gt;` child. Missing → fail listing the missing
+      set and its size (F12.2: report the count).
+
+      Why incidental English cannot produce this marker:
+      - Ordinary prose already contains the words attempt, pause, resume (measured:
+        substring hits for those words exist today without any protocol block).
+      - Producing `&lt;kind id="pause"&gt;` requires intentional structured markup that
+        matches a fixed tag + attribute shape. No English sentence generates that
+        XML element by accident.
+      - A backticked `pause` or a heading that merely says "pause" does **not**
+        satisfy the check — only `&lt;kind id="KIND"&gt;` inside `&lt;cursor_kinds&gt;`.
+
+      Rejected alternatives:
+      - Substring / backtick of the kind name: scores today's skill 4/9 and is wrong
+        (spec Problem; AC-KIND-COMPLETENESS).
+      - Markdown `### Event kind: opened` alone: easier to forge with a casual
+        heading; still better than substring but weaker than an attribute-bound
+        id that cannot be a free prose phrase.
+      - Free-form JSON/YAML in a fence: workable but foreign to this skill's existing
+        XML-ish sections (`<execution_rules>`, `<preflight>`, …).
+
+      ─────────────────────────────────────────────────────────────────
+      Export shape — minimal (AC-EXPORT-MINIMAL)
+      ─────────────────────────────────────────────────────────────────
+      In src/grace-cursor.ts, beside KNOWN_KIND_STATE:
+
+        export const KNOWN_EVENT_KINDS: readonly KnownEventKind[] = Object.freeze(
+          Object.keys(KNOWN_KIND_STATE) as KnownEventKind[],
+        );
+
+      Or equivalent: a frozen array / function that is definitionally
+      Object.keys(KNOWN_KIND_STATE) — one source of truth, no duplicated string list.
+      Add the export name to MODULE_MAP. Do **not** export new behaviour, rewrite
+      fold/attempt/recover, or move KNOWN_KIND_STATE. Do **not** parse source to
+      discover kinds (F10).
+
+      ─────────────────────────────────────────────────────────────────
+      Check host
+      ─────────────────────────────────────────────────────────────────
+      Host: src/grace-cursor.test.ts (V-M-CURSOR / bun test path already in validate:ci).
+      Reason: the denominator is exported from grace-cursor.ts; M-SKILLS has no Path
+      and no natural test file; co-locating the check with the export keeps import
+      simple and F10-proof (value, not shape). Skill path: resolve relative to repo
+      root (same pattern other tests use for reading fixtures).
+
+      ─────────────────────────────────────────────────────────────────
+      Red-first measurements (plan authoring HEAD; re-measure at execute)
+      ─────────────────────────────────────────────────────────────────
+      Denominator: 9 keys of KNOWN_KIND_STATE (opened, progress, resume, attempt,
+      verification-unavailable, command-run, pause, terminal, escalation).
+      Structural markers `&lt;kind id="…"&gt;` under `&lt;cursor_kinds&gt;` today: **0**
+      (rg / bun measured — none). So the completeness check, once written, fails
+      with **missing = 9 of 9** until documentation lands.
+      Semantic protocol (when/what without structural markers): **2 of 9** present
+      as prose (attempt, verification-unavailable); **7 of 9** lacking protocol
+      (opened, progress, resume, command-run, pause, terminal, escalation) —
+      pause/resume are English-only. The check must not pass on those 2 prose hits.
+
+      ─────────────────────────────────────────────────────────────────
+      Execution discipline (this bundle's own epoch when executed)
+      ─────────────────────────────────────────────────────────────────
+      - Open with cursor advance --open-epoch and **no --from/--to** (never task ids).
+      - Record each cursor attempt in its **own round trip**, before the edit that
+        follows — the F9.8 rule this bundle documents. Do not produce an
+        unsubstantiated fail→pass pair.
+      - Never stage a retrospective red (F9.1). If a red is lost, say so.
+      - Emit kind=terminal before fold (F12) — also documented by this bundle.
+      - Version surfaces and CHANGELOG.md are out of scope (spec Constraint / D5.5).
+      - Finish this bundle before C-REPORT-HONESTY plan is authored (M-CURSOR sequencing).
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Export known-kind set and red completeness check (before skill docs)</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-EXPORT-MINIMAL />
+          <AC-KIND-COMPLETENESS-TIED-TO-CODE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Export: src/grace-cursor.ts exports a runtime known-kind list that is
+            definitionally the keys of KNOWN_KIND_STATE (e.g. KNOWN_EVENT_KINDS =
+            Object.freeze(Object.keys(KNOWN_KIND_STATE) as KnownEventKind[])). A
+            unit assertion shows the export length equals Object.keys(KNOWN_KIND_STATE)
+            and contains every key. No duplicated hand-maintained string array that can
+            drift from the const. MODULE_MAP lists the export. No fold/attempt/recover
+            behaviour change (AC-EXPORT-MINIMAL).
+          </Criterion>
+          <Criterion>
+            Completeness regression in src/grace-cursor.test.ts **imports** the export
+            (does not parse grace-cursor.ts source — F10). It reads
+            skills/ngrace/ngrace-execute/SKILL.md and requires, for every exported kind,
+            a structural marker: `&lt;kind id="KIND"&gt;` as a child of a `&lt;cursor_kinds&gt;`
+            block. Incidental English, backticks, or headings without that element do
+            not count.
+          </Criterion>
+          <Criterion>
+            Red-first and reported count (F12.2): run the completeness test against
+            the current skill **before** T-002 edits the skill. It must **fail**. The
+            failure (or an explicit assertion in the red phase) **reports the missing
+            count and the missing kind ids** — not a bare expect(false). At plan
+            authoring, structural missing is **9 of 9** (measured: zero kind-id markers).
+            Re-measure at execute if the skill changed; do not invent the
+            number. After T-002 documentation, the same test must pass (green in T-003).
+          </Criterion>
+          <Criterion>
+            Discriminating negatives for AC-KIND-COMPLETENESS-TIED-TO-CODE: (1) a test
+            that only asserts the string "terminal" (or a fixed list disconnected from
+            the export) appears in the skill **fails this criterion** as the
+            implementation of the check; (2) a check that discovers kinds by regex/AST
+            parse of grace-cursor.ts **fails this criterion**; (3) after export exists,
+            adding a hypothetical tenth key to KNOWN_KIND_STATE without a skill marker
+            would fail the suite — assert via the export being the sole denominator
+            (document in test comment if a live tenth key is not injected).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Document all nine kinds, terminal-before-fold, and F9.8 attempt ordering</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-KIND-SET-DOCUMENTED />
+          <AC-TERMINAL-BEFORE-FOLD />
+          <AC-ATTEMPT-ORDERING-F98 />
+          <AC-NO-SKILL-REWRITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-001 is binding: documentation lands only after the completeness
+            check exists and has been observed red (T-001). Do not document first and
+            add the check afterward.
+          </Criterion>
+          <Criterion>
+            AC-KIND-SET-DOCUMENTED — all nine exported kinds receive a `&lt;kind id="…"&gt;`
+            entry under `&lt;cursor_kinds&gt;` in skills/ngrace/ngrace-execute/SKILL.md, each
+            stating when to emit the kind and what it means (cursor state / lifecycle).
+            **pause and resume require real protocol documentation** — when to emit
+            `cursor advance --kind pause` / `--kind resume`, what state they enter —
+            not reliance on the English already present in execution_rules ("pause/resume
+            around interruptions"). The completeness test from T-001 must pass against
+            the canonical skill after this task (assert via bun test).
+          </Criterion>
+          <Criterion>
+            AC-TERMINAL-BEFORE-FOLD (verbatim requirement): the skill states that fold
+            requires a terminal event inside the covering allocation (CLI enforces
+            unterminated range otherwise), that the operator emits terminal (e.g.
+            `ngrace cursor advance --kind terminal`) when the epoch's work is finished,
+            and that `recover --fix` does not emit terminal. Reviewer can confirm by
+            reading the skill; agent need not open grace-cursor.ts.
+          </Criterion>
+          <Criterion>
+            AC-ATTEMPT-ORDERING-F98 (verbatim operational rule): the skill states that
+            for honest red-first, write `ngrace cursor attempt --outcome fail` in its
+            **own tool round trip**, then perform the production edit, then record
+            pass — not in the same batched tool call as the fix. It attaches the reason:
+            WriteEvidence digests ObservedWriteScope at attempt time, so a fail attempt
+            batched with the fix cannot corroborate the sequence. It names the failure
+            shape: `review.attempt-pair-unsubstantiated` on fail→pass pairs with no
+            non-test digest movement, and that an honest disclosed gap is cheap while an
+            unsubstantiated contradiction is not. Inserting only the words "round trip"
+            or "F9.8" without the ordering rule, digest reason, and review failure shape
+            fails this criterion.
+          </Criterion>
+          <Criterion>
+            AC-NO-SKILL-REWRITE: preflight, assertion_commands, mode_selection,
+            recovery_decision_table, execution_rules, verdicts, and calibration sections
+            remain; this task **adds** cursor_kinds / protocol text and the F12/F9.8
+            rules without inverting the skill into P1.10 emphasis rewrite or a schema
+            dump. Assert by structure: those section tags still present; no wholesale
+            replacement of execution_rules with a generated catalog.
+          </Criterion>
+          <Criterion>
+            Edit both skill trees in this task (canonical and packaged mirror) so they
+            stay byte-identical after the write (T-003 re-verifies with cmp and
+            validate-marketplace). Editing only one tree fails.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Mirror identity, completeness green, suite and lint close</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-MIRROR-BYTE-IDENTICAL />
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-MIRROR-BYTE-IDENTICAL: skills/ngrace/ngrace-execute/SKILL.md and
+            plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md are byte-identical
+            (`cmp` clean / equal digests). bun run ./scripts/validate-marketplace.ts
+            reports no packaged-vs-canonical skill drift for ngrace-execute.
+          </Criterion>
+          <Criterion>
+            Completeness regression from T-001 is **green** (all exported kinds have
+            structural markers). Report the denominator from the export (expect 9 at
+            current KNOWN_KIND_STATE) and missing count 0.
+          </Criterion>
+          <Criterion>
+            AC-SUITE-AND-LINT: bun test for touched packages green; bun run ngrace lint
+            --path . is 0 errors and 0 warnings; bun run validate:ci green. Version
+            surfaces and CHANGELOG.md were not modified by this bundle. No edits under
+            docs/plans/archive/ or .ngrace/changes/archive/.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-EXECUTION-CONTRACT>
+</NgraceChangePlan>
