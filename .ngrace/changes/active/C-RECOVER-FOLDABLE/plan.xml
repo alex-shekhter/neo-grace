@@ -1,0 +1,305 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-RECOVER-FOLDABLE>
+    <IntentSummary>
+      Close F13 so recover --fix produces a foldable ledger: extend the *effective*
+      covering allocation by appending a superseding opened/Allocation (D9 append-only,
+      D9.1 name stays extend-allocation and becomes true), teach fold/diagnose to validate
+      only live (non-superseded) ranges, repair the damaged C-TOKEN-INTEGRITY shape on a
+      copy, and prove clean and damaged paths end-to-end without a pre-seeded terminal.
+      Emitting terminal remains the operator's act (F12 / A29.2). Live ledgers are not
+      mutated by implementation; authority applies the repair afterward.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-RECOVER-FOLDABLE/spec.xml</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/grace-cursor.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>.ngrace/changes/active/C-RECOVER-FOLDABLE/spec.xml</File>
+      <File>.ngrace/changes/active/C-RECOVER-FOLDABLE/plan.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/plan.md</File>
+    </ObservedWriteScope>
+    <!--
+      Sequential ObservedWriteScope overlap (F10.2 / F13.2): src/grace-cursor.ts and
+      src/grace-cursor.test.ts are also in C-CURSOR-INTEGRITY's ObservedWriteScope.
+      That bundle is code-complete (all eight tasks landed); nothing writes those files
+      under that bundle again. Overlap is sequential, not concurrent. Expect a second
+      scope.durable-overlap warning from ngrace lint once this plan is approved — authorized,
+      do not suppress (F10.2 / F10.3). MODULE_CONTRACT: src/grace-cursor.ts LINKS M-CURSOR
+      (verified); test file is not a non-test src/ path for the catalog.ts:200 rule.
+    -->
+    <ImplementationPlan>
+      <!--
+        DESIGN (binding for implementers; authority reviews this choice)
+
+        Mechanism — append-only effective-range supersession (D9 / D9.1):
+        1. recover --fix always *appends* a new kind=opened event carrying an Allocation
+           for the single controller. It never rewrites an existing event file (D9).
+        2. The new Allocation's [from,to] is derived from the loose integer inventory so the
+           *effective* covering range includes every current loose integer id and the new
+           opened id (the covering requirement). The covering allocation's ceiling is
+           max(covering requirement, openedId + 98), matching the --open-epoch CLI default
+           (to = from + 98). One slot (openedId + 1) is not enough: --fix often runs
+           mid-repair, and progress/attempt events after the covering opened would push a
+           later terminal outside a one-slot ceiling and reintroduce F13 one step later.
+           Ids are not scarce; one shared headroom behaviour beats two. When a terminal
+           already exists outside a dead prior range (damaged path), the covering requirement
+           already includes that terminal id; max(..., openedId + 98) still applies and only
+           widens.
+        3. Supersession expression: last-writer-wins per worker — the whole rule.
+           collectEffectiveAllocations (name illustrative) returns, for each worker, only the
+           Allocation from the highest-id kind=opened event that declares an Allocation for
+           that worker. Older Allocations for the same worker remain on disk as historical
+           Event payload and are *not* members of the effective set used for fold membership,
+           density, or terminal checks. No in-place edit; no new event kind; no self-declaring
+           attribute on the Allocation (an attribute fold does not read would be a second,
+           unchecked account of the truth and free to drift — LWW is derived from the event
+           set alone).
+        4. foldEpoch and recover diagnose call validateEventsAgainstAllocations only with
+           the effective allocation set. Epoch-level Allocation nodes written into
+           run-ledger.xml are the effective set only (so ledger grammar terminal checks do
+           not resurrect dead ranges). Historical Allocation children on superseded opened
+           Events stay as event payload.
+        5. Flag honesty (D9.1 / AC-FIX-FLAG-HONESTY): keep the name extend-allocation; help
+           and library docs state that --fix extends the *effective* covering allocation by
+           appending a superseding opened/Allocation. Behaviour matches the name.
+        6. --fix when the effective covering already includes every loose id and is only
+           blocked for other reasons may still need to run if the effective set is missing
+           or incomplete (events outside, or only superseded/dead ranges present). Do not
+           early-return fixApplied=false solely because *some* Allocation exists (today's
+           bug: dead w0:[1,19] still counts as validAllocations.length > 0 while covering
+           is missing — fix must treat incomplete effective cover as fixable).
+        7. Terminal stays operator-emitted (A29.2 / F12). --fix never writes kind=terminal.
+        8. Multi-worker refuse retained (D8.2). Orphans never deleted (D8.3).
+        9. Shared covering-write behaviour: maybeAutoOpenCoveringAllocation calls
+           writeCoveringOpened (grace-cursor.ts:781). recover --fix uses the same function.
+           Once writeCoveringOpened applies the covering-requirement / openedId+98 ceiling
+           and callers feed collectEffectiveAllocations into validate/fold, auto-open and
+           --fix share one behaviour, headroom included. No auto-open carve-out and no
+           second headroom rule.
+
+        Alternatives rejected:
+        - In-place rewrite of 19-T-005-opened.xml (or any recorded event): violates D9;
+          falsifies WriteEvidence attestations on any ledger where that file is digested.
+        - Headroom-only on future covering opens without supersession: fails
+          AC-RECOVER-FIX-DAMAGED-SHAPE (dead allocation remains unterminated forever).
+        - One-slot headroom (openedId + 1): fails ordinary mid-repair continuation
+          (progress/attempt then terminal lands outside); reintroduces F13 one step later.
+        - Second covering opened under today's per-allocation validation: reproduced F13
+          fix#2 — first range stays unterminated; still blocked.
+        - Making fold ignore unterminated ranges generally: deletes a real check; older
+          range must stop mattering because superseded, not because termination ceased.
+        - Rename flag to create-covering without extending effective range: rejects D9.1
+          (authority chose keep name and make it true).
+        - --fix emits terminal: rejects A29.2 / F12 (judgment, not derived state).
+        - New event kind for "allocation-extend": unnecessary schema surface; opened with
+          Allocation is already the epoch's covering vehicle; LWW on opened id is enough.
+        - Self-declaring extends / supersedes attribute on Allocation: a field nothing
+          reads can drift from LWW truth; audit value is already derivable from the event set.
+        - Explicit supersedes="&lt;prior-event-id&gt;" as the *only* rule: more authored
+          coupling than LWW; rejected in favour of pure last-writer-wins by opened id.
+        - Auto-open headroom carve-out or separate covering-write path: two behaviours to
+          reason about; auto-open already calls writeCoveringOpened and inherits one rule.
+
+        Execution discipline (for this bundle's own epoch when approved and executed):
+        - Open with cursor advance --open-epoch and **no --from/--to** (CLI defaults
+          from=1, to=from+98 — the same headroom writeCoveringOpened must match; never
+          task ids — F8).
+        - Record each cursor attempt at the moment verification runs; no staged
+          retrospective reds (F9.1).
+        - Emit kind=terminal before fold (F12); --fix does not emit it.
+      -->
+      <T-001>
+        <Title>Effective allocation supersession and honest extend-allocation (F13 / D9 / D9.1)</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-FIX-FLAG-HONESTY />
+          <AC-CARRIED-ORPHAN-WORKER-A29 />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: on a temp run/ with loose integer events, no terminal, and either no
+            Allocation or only a dead closed-ceiling Allocation that does not cover a later
+            event, recover --fix today either leaves fold blocked after an operator terminal
+            (F13) or leaves a prior range unterminated under per-allocation validation —
+            capture that failure mode in a regression that fails on pre-fix code (assert via
+            recover diagnosis foldBlocked / foldEpoch throw, not a private helper alone).
+          </Criterion>
+          <Criterion>
+            After fix: recover --fix appends a new kind=opened event with Allocation; it
+            never rewrites any existing run/* event file (D9). The new Allocation's derived
+            bounds make the *effective* covering range include every loose integer id after
+            the write (including the new opened id) — the covering requirement. The ceiling
+            is max(covering requirement, openedId + 98), matching the --open-epoch default
+            (to = from + 98). When a terminal already exists among loose events, the covering
+            requirement includes that terminal id; max(..., openedId + 98) still applies.
+            writeCoveringOpened is the single covering-write path: maybeAutoOpenCoveringAllocation
+            and recover --fix share that function, so auto-open inherits the same headroom
+            and covering-requirement rules with no carve-out.
+          </Criterion>
+          <Criterion>
+            foldEpoch and recover diagnose validate membership, density, and terminal only
+            against the effective allocation set (per worker: Allocation on the highest-id
+            kind=opened that declares one for that worker — last-writer-wins; the whole
+            supersession rule). Superseded (older) Allocations for the same worker are not
+            checked for termination and are not written as Epoch-level Allocation nodes into
+            run-ledger.xml. Discriminating negative: a change that makes fold ignore
+            unterminated ranges for *all* allocations — including a sole live range with no
+            terminal — fails this criterion; termination remains required for every live
+            effective range.
+          </Criterion>
+          <Criterion>
+            Flag honesty (D9.1 / AC-FIX-FLAG-HONESTY): the --fix operation remains named
+            extend-allocation; CLI help and library docs state that it extends the effective
+            covering allocation by appending a superseding opened/Allocation. Behaviour
+            matches that name. Assert via CLI help text or documented option description
+            plus behavioural tests a reviewer can run.
+          </Criterion>
+          <Criterion>
+            Carried constraints (AC-CARRIED-ORPHAN-WORKER-A29) — assert, do not only name:
+            (D8.3) on a fixture that includes an event-filename NaN-* orphan, after recover
+            --fix the orphan still exists on disk and recover still diagnoses it as
+            unrecoverable; after a subsequent successful fold of the valid stream the orphan
+            still exists and is still diagnosed (fold deletes only listLooseEvents members).
+            (D8.2) when more than one distinct worker value appears, recover --fix and
+            auto-open refuse; multi-worker ranges are never fabricated — regression retained
+            or reasserted under effective-allocation rules.
+            (A29.2 / F12) recover --fix does not emit kind=terminal; the operator emits the
+            terminal. A path that writes a terminal from --fix fails this criterion.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Damaged-shape repair: dead allocation + outside terminal + NaN orphan</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-RECOVER-FIX-DAMAGED-SHAPE />
+          <AC-CARRIED-ORPHAN-WORKER-A29 />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: build a *copy* of C-TOKEN-INTEGRITY's current ledger shape — loose
+            integer events 1..20, a dead Allocation w0:[1,19] on an opened event (no terminal
+            in that range), a kind=terminal at id 20 outside every allocation, and a
+            NaN-T-001-opened.xml event-filename orphan (content matching the live fixture
+            shape; live file SHA-1 c0cc8899c264381766a18918e2109b5e05693893 is the reference
+            for the orphan bytes when copying from the live tree). On that copy, before the
+            fix, recover reports fold blocked (event 20 outside; unterminated range for w0)
+            and foldEpoch fails — write that failing regression first.
+          </Criterion>
+          <Criterion>
+            After T-001's mechanism: recover --fix on that copy appends a superseding
+            covering opened (ceiling max(covering requirement, openedId + 98)); effective
+            allocation covers events 1..20 (and the new opened id); foldEpoch succeeds; the
+            NaN-* orphan still exists on disk after --fix and after fold; recover still
+            diagnoses it as an unrecoverable orphan. A design or test that only exercises a
+            clean shape (no dead prior allocation) does not satisfy this criterion —
+            preventing the defect on new ledgers alone fails AC-RECOVER-FIX-DAMAGED-SHAPE.
+          </Criterion>
+          <Criterion>
+            Carried constraints on this path (AC-CARRIED-ORPHAN-WORKER-A29): orphan survival
+            after --fix and after fold as above (D8.3); --fix on this single-worker copy
+            does not emit a terminal (A29.2 / F12) — the fixture already has operator terminal
+            id 20, and --fix must not add another; multi-worker refuse (D8.2) remains true
+            of the shared recover/auto-open path (asserted in T-001; this task must not
+            weaken it). Tests never mutate the live C-TOKEN-INTEGRITY or C-CURSOR-INTEGRITY
+            ledgers. Repairing and folding the real C-TOKEN-INTEGRITY run/ remains a separate
+            authorized act by the authority after this bundle lands — not this task.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Clean no-terminal E2E, suite close, no withTerminal pre-seed</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-RECOVER-FIX-FOLDABLE-CLEAN />
+          <AC-REGRESSION-NO-PRESEEDED-TERMINAL />
+          <AC-CARRIED-ORPHAN-WORKER-A29 />
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first then green: a run/ with loose integer events, no valid covering
+            allocation, and **no terminal event anywhere** (and no withTerminal seed or
+            equivalent), after recover --fix (covering ceiling max(requirement, openedId + 98)),
+            operator cursor advance --kind terminal (and any intervening progress/attempt
+            within that headroom), and cursor fold, the epoch folds successfully; any NaN-*
+            (or event-filename) orphan present before the sequence still exists on disk after
+            --fix and after fold and is still diagnosed. Assert through foldEpoch applied /
+            CLI fold and recover diagnosis, not internal helpers alone. --fix must not have
+            emitted the terminal (A29.2 / F12) — the operator event is required and distinct.
+          </Criterion>
+          <Criterion>
+            AC-REGRESSION-NO-PRESEEDED-TERMINAL: end-to-end coverage includes (1) the clean
+            shape above and (2) the damaged-shape path from T-002. **Neither may be
+            satisfied by seeding withTerminal: true or any equivalent that places a terminal
+            inside the pre-fix id range** — that supplies the precondition under test
+            (F12.1 / F13.1). A test that passes only because a terminal was present before
+            --fix fails this criterion. Prior orphan-survival assertions from
+            C-CURSOR-INTEGRITY remain green; the fold-succeeds half is proven by these
+            no-preseeded-terminal paths.
+          </Criterion>
+          <Criterion>
+            Carried constraints (AC-CARRIED-ORPHAN-WORKER-A29) on the suite surface: orphan
+            non-deletion after --fix and after fold retained; multi-worker refuse for recover
+            --fix and auto-open retained under effective-allocation rules (D8.2); no path
+            under recover --fix emits kind=terminal (A29.2 / F12). Suite: bun test
+            src/grace-cursor.test.ts green; retained recover diagnose and auto-open
+            single-controller behaviour hold under the shared writeCoveringOpened headroom
+            rules. bun run ngrace lint --path . at 0 errors (scope.durable-overlap warnings
+            authorized — F10.2 / F10.3 — must not be suppressed). bun run validate:ci green.
+            RM-GOVERNED-PATH plan.md phase board reflects C-RECOVER-FOLDABLE progress without
+            marking P0 complete (P0.8 still outstanding). Conventional-commit body of any
+            landing commit names new codes if any (D5.5); do not edit CHANGELOG.md. Red-first
+            required on T-001 and T-002; this task fails if either AC regression is missing
+            or green-only.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+          <Command>bun run ngrace lint --path .</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-RECOVER-FOLDABLE>
+</NgraceChangePlan>
