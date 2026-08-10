@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="draft">
+<NgraceChangePlan graceVersion="1.0" status="approved">
   <C-REPORT-HONESTY>
     <IntentSummary>
       Close P0 report honesty: extract one loose-event membership definition under
@@ -15,7 +15,6 @@
       <MustExist><Value>src/lint/core.ts</Value></MustExist>
       <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
       <MustExist><Value>src/artifact/types.ts</Value></MustExist>
-      <MustExist><Value>src/artifact/paths.ts</Value></MustExist>
       <MustExist><Value>.ngrace/changes/active/C-REPORT-HONESTY/spec.xml</Value></MustExist>
       <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md</Value></MustExist>
       <MustExist><Value>.ngrace/changes/archive/C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml</Value></MustExist>
@@ -33,8 +32,8 @@
       <MustVerify><Module>M-ARTIFACT-TYPES</Module></MustVerify>
     </BaselineAssertions>
     <TargetAssertions>
-      <MustExist><Value>src/artifact/paths.ts</Value></MustExist>
-      <MustExist><Value>src/artifact/paths.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/run-membership.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/run-membership.test.ts</Value></MustExist>
       <MustExist><Value>src/grace-status.ts</Value></MustExist>
       <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
       <MustExist><Value>src/gates/core.ts</Value></MustExist>
@@ -58,7 +57,7 @@
       <MustVerify><Module>M-CURSOR</Module></MustVerify>
       <MustVerify><Module>M-ARTIFACT-TYPES</Module></MustVerify>
       <MustPassCommand>
-        <Command>bun test src/artifact/paths.test.ts src/grace-status.test.ts src/gates/core.test.ts src/review/core.test.ts src/lint/core.test.ts src/grace-cursor.test.ts</Command>
+        <Command>bun test src/artifact/run-membership.test.ts src/grace-status.test.ts src/gates/core.test.ts src/review/core.test.ts src/lint/core.test.ts src/grace-cursor.test.ts</Command>
       </MustPassCommand>
       <MustPassCommand>
         <Command>bun run ngrace lint --path .</Command>
@@ -86,8 +85,8 @@
       </VerificationAnchors>
     </DurableScope>
     <ObservedWriteScope>
-      <File>src/artifact/paths.ts</File>
-      <File>src/artifact/paths.test.ts</File>
+      <File>src/artifact/run-membership.ts</File>
+      <File>src/artifact/run-membership.test.ts</File>
       <File>src/grace-cursor.ts</File>
       <File>src/grace-cursor.test.ts</File>
       <File>src/grace-status.ts</File>
@@ -106,37 +105,54 @@
       DESIGN (binding for implementers; authority reviews this hardest)
 
       ─────────────────────────────────────────────────────────────────
-      D1 — Membership host (AC-MEMBERSHIP-ONE-DEFINITION host file)
+      D1 — Membership host (AC-MEMBERSHIP-ONE-DEFINITION host file) — D12
       ─────────────────────────────────────────────────────────────────
-      File: src/artifact/paths.ts  (existing; MODULE_CONTRACT already LINKS M-ARTIFACT-TYPES)
-      Co-located test surface: src/artifact/paths.test.ts (extend)
+      File: src/artifact/run-membership.ts  (new; created as T-001's first production act)
+      MODULE_CONTRACT: LINKS M-ARTIFACT-TYPES, ROLE RUNTIME; SCOPE and DEPENDS must be
+      true of the file on the day it is written (not rewritten after the fact to fit
+      whatever landed). Co-located test: src/artifact/run-membership.test.ts.
 
-      Why paths.ts / M-ARTIFACT-TYPES owns a run-directory membership rule:
-      - M-ARTIFACT-TYPES already owns ARTIFACT_DIR and, via co-located types.ts,
-        NGRACE_CHANGE_BUNDLE_COMPANIONS (run-ledger.xml / run.xml). Foldable-vs-orphan
-        membership is a filesystem inventory rule over the standard `run/` companion
-        of a change bundle — the same ownership as those companions.
-      - paths.ts is already ROLE RUNTIME and already uses existsSync / realpathSync;
-        src/artifact/* broadly uses readdirSync/readFileSync (project, scope, grammar,
-        projections, assertions, xml). A run/ inventory is not foreign.
-      - Hosting in an **existing** governed file keeps draft-plan OWS graph-anchors
-        honest without inventing a seventh module or a pre-stub of a not-yet-created
-        path. A separate run-membership.ts would also LINKS M-ARTIFACT-TYPES but is
-        not required; do not add a new graph module either way.
+      Why M-ARTIFACT-TYPES owns a run-directory membership rule (ownership argument
+      retained): M-ARTIFACT-TYPES already owns ARTIFACT_DIR and, via co-located
+      types.ts, NGRACE_CHANGE_BUNDLE_COMPANIONS (run-ledger.xml / run.xml).
+      Foldable-vs-orphan membership is a filesystem inventory rule over the standard
+      `run/` companion of a change bundle — the same ownership as those companions.
+      src/artifact/* already contains filesystem-reading runtime (project.ts, scope.ts,
+      grammar.ts, projections.ts, assertions.ts, paths.ts, xml.ts). A run/ inventory is
+      not foreign. Not a new graph module. Not M-CURSOR (status must not import
+      grace-cursor). Not M-GRAMMAR (membership is inventory, not XML schema validation).
 
-      Not a new graph module. Not M-CURSOR (status must not import grace-cursor).
-      Not M-GRAMMAR (membership is inventory, not XML schema validation).
+      Why not paths.ts: paths.ts declares SCOPE "Root tags, companions, anchor patterns,
+      ARTIFACT_DIR" and DEPENDS none, and imports only node:fs / node:path. Hosting
+      listLooseEvents there would falsify both SCOPE and DEPENDS, and the "fix" would
+      be rewriting the module contract to describe whatever landed — the defect this
+      bundle exists to fix, committed in its own first task (D12).
 
-      Exports (move into paths.ts, do not rewrite behaviour): listLooseEvents,
-      listRunOrphans, LooseEvent, RunOrphan, OrphanSkipClass — definitions currently
-      in grace-cursor.ts ~255–580. Behaviour byte-stable: EVENT_FILENAME, skip
-      classes, sort order, orphan reasons unchanged. MODULE_MAP on paths.ts gains
-      the new export names.
+      Membership is not filename-only: listLooseEvents prefers the XML id attribute over
+      the filename and drops non-positive-integer ids — precisely the class the NaN
+      orphan belongs to. A filename-only predicate would be a second, disagreeing
+      definition and would reintroduce F15 under a new name. Therefore the XML-reading
+      body moves, and RangeAllocation and parseAllocationNode travel with it.
+
+      Exports (move into run-membership.ts, do not rewrite behaviour): listLooseEvents,
+      listRunOrphans, LooseEvent, RunOrphan, OrphanSkipClass, RangeAllocation,
+      parseAllocationNode (and EVENT_FILENAME as needed, private or exported). Definitions
+      currently in grace-cursor.ts ~255–580 (plus RangeAllocation / parseAllocationNode
+      helpers the loose-event path depends on). Behaviour byte-stable: EVENT_FILENAME,
+      skip classes, sort order, orphan reasons, id-preference over filename unchanged.
+      MODULE_MAP on run-membership.ts names the public exports.
+
+      Lint window (authorized, D12): between this plan naming the path and T-001 creating
+      the file, ngrace lint reports exactly one change.graph-anchors-miss-write-scope on
+      src/artifact/run-membership.ts (linksByPath is built only from files that exist).
+      evaluateApproveGate does not evaluate lint — approval is unaffected. AC-SUITE-AND-LINT
+      requires 0/0 at close (after T-001 creates the file), not throughout. An expected
+      error the plan named in advance is not a surprise (P0.9's distinction). See D6.
 
       ─────────────────────────────────────────────────────────────────
       D2 — Re-export so M-CALIBRATION stays out of AffectedAreas
       ─────────────────────────────────────────────────────────────────
-      Measured consumers of listLooseEvents (rg -l, this HEAD):
+      Measured consumers of listLooseEvents (rg -l):
         grace-cursor.ts (defines), gates/core.ts, review/core.ts,
         calibration/report.ts (M-CALIBRATION — NOT in AffectedAreas),
         plus tests.
@@ -144,8 +160,9 @@
       listRunOrphans: definition + grace-cursor.test.ts only.
 
       Decision: after the move, grace-cursor.ts **re-exports** listLooseEvents,
-      listRunOrphans, LooseEvent, RunOrphan, OrphanSkipClass under the same names
-      (MODULE_MAP keeps the export names). src/calibration/report.ts is **not** in
+      listRunOrphans, LooseEvent, RunOrphan, OrphanSkipClass (and RangeAllocation /
+      parseAllocationNode if they were previously public from cursor) under the same
+      names (MODULE_MAP keeps the export names). src/calibration/report.ts is **not** in
       ObservedWriteScope and **must not be edited**. Assertable: no production import
       site outside AffectedAreas gains a new path; calibration/report.ts still imports
       from "../grace-cursor".
@@ -154,16 +171,16 @@
       re-export takes their place — the module is a consumer/re-export site, exactly
       as the spec Assumption anticipated.
 
-      Status consumes **only** the artifact host (import from ./artifact/paths or the
-      package path that does not pull grace-cursor). Assertable: grace-status.ts
+      Status consumes **only** the artifact host (import from ./artifact/run-membership
+      or the package path that does not pull grace-cursor). Assertable: grace-status.ts
       source has no import of grace-cursor.
 
-      Gates may import membership from artifact/paths directly (preferred for the
-      construction proof) or via the cursor re-export; either way there is only one
+      Gates may import membership from artifact/run-membership directly (preferred for
+      the construction proof) or via the cursor re-export; either way there is only one
       implementation body.
 
       ─────────────────────────────────────────────────────────────────
-      D3 — P0.9 baseline count without M-LINT-TYPES
+      D3 — P0.9 baseline count without M-LINT-TYPES (D13)
       ─────────────────────────────────────────────────────────────────
       LintIssue (lint/types.ts / M-LINT-TYPES) has no section/provenance field.
       Counting assertion.* codes over-counts: in current mode, TargetAssertions still
@@ -174,22 +191,28 @@
         When validateAssertions calls evaluateSection for section === "BaselineAssertions"
         with evaluateSemantically === true, count issues added in that call
         (issues.length delta before/after). Sum across active approved plans evaluated
-        that way. Attach the total as a runtime field on the LintResult object from
-        core only, e.g. (result as LintResult & { baselineExpectationCount?: number })
-        .baselineExpectationCount = N — **not** a LintIssue field, **not** a curated
-        code-list heuristic. formatTextReport reads that field for the lead line.
+        that way. Store N in a **module-private WeakMap&lt;LintResult, number&gt;** in
+        src/lint/core.ts — written during evaluation, read by formatTextReport only.
+        Not a LintIssue field, not a curated code-list heuristic, **not** a cast field
+        on the result object (rejected: grace-lint.ts emits JSON.stringify(result)
+        wholesale, so an undeclared key would appear on a schemaVersion-bearing surface —
+        the bundle's thesis failing on itself; D13).
 
       Why correct, not coincidental: N is definitionally the number of issues the
       BaselineAssertions evaluation path emitted under semantic current-mode evaluation
       — the same path that produces "expected while C-* is in progress" failures.
       TargetAssertions extraction issues are emitted under a different evaluateSection
-      call and are excluded by construction.
+      call and are excluded by construction. WeakMap is keyed per result so concurrent
+      in-process lint runs cannot cross-talk.
 
       Discriminating negatives (required in T-006 tests):
         (1) TargetAssertions-only extraction issue → N does not increase; no false lead.
         (2) Baseline MustNotExist semantic failure → N ≥ 1; lead line present; issue
             remains severity error.
         (3) Counting by code prefix alone without call-site binding fails the criterion.
+        (4) **JSON shape counterweight (D13):** --format json output gains **no** new key
+            relative to pre-change shape (WeakMap must not leak). That test fails under
+            the cast approach and passes under WeakMap.
 
       No M-LINT-TYPES. No severity downgrade. Archived plans stay syntax-only.
 
@@ -198,11 +221,15 @@
       ─────────────────────────────────────────────────────────────────
       Not "status and gate agree on fixtures" alone. Required construction checks:
         (a) Exactly one production definition of listLooseEvents / listRunOrphans body
-            lives under src/artifact/paths.ts (rg for `export function listLooseEvents`
-            across src/ finds that file only; cursor re-exports).
-        (b) grace-status.ts does not contain the deleted predicate shape
+            lives under src/artifact/run-membership.ts. Primary proof of re-export:
+            the symbol imported from ./artifact/run-membership and the symbol imported
+            from ./grace-cursor are the **same function object** (===). A source-text
+            grep for a single `export function listLooseEvents` is acceptable only as a
+            secondary check (a `const` form would evade it — F10 shape).
+        (b) After T-002: grace-status.ts does not contain the deleted predicate shape
             readdirSync(...).filter(name => name.endsWith(".xml")) for open-epoch
-            counting, and does not import grace-cursor.
+            counting, and does not import grace-cursor. (T-001 does not assert status
+            conversion — that is T-002 only.)
         (c) evaluateArchiveGate and status open-epoch both call the shared
             listLooseEvents (import graph), and archive detail when permitting over
             orphans uses listRunOrphans from the same module.
@@ -220,31 +247,45 @@
       solely because of the NaN orphan.
 
       ─────────────────────────────────────────────────────────────────
-      D6 — Pre-fix dogfood (re-measured at plan authoring; re-run at execute)
+      D6 — Pre-fix dogfood, F18, and the authorized lint window
       ─────────────────────────────────────────────────────────────────
-      HEAD at plan authoring: a944430. Commands and results:
+      HEAD at plan authoring (original): a944430; revision pass at 7a59f27. Commands
+      and results (re-measure at execute if the tree moved; F12.2):
 
         bun run ngrace review --path .
           → Findings: 3 (errors: 3, warnings: 0)
           → 3× review.confidently-wrong on archived MustExist active/<same-id>/spec.xml:
              C-CALIBRATION-COMMAND-EVIDENCE, C-EXECUTION-CONTRACT, C-RECOVER-FOLDABLE
+             (ids f70460191abdd885, 315bb859dd2e5a8f, 1bde7fa9b115e843)
           (spec Assumption said 2; C-EXECUTION-CONTRACT has since been archived — same
            F16 class. Denominator from full output, not a truncated match list.)
 
         bun run ngrace status --path .
           → C-TOKEN-INTEGRITY … epochs=1 open=1
 
-        bun run ngrace gate archive --change C-TOKEN-INTEGRITY --record false --path .
+        Gate archive red sentence (observe on a **temp copy** of the C-TOKEN-INTEGRITY
+        run/ shape — never evaluate a gate against the live archived bundle; F18):
           → Decision: permit; no-open-epoch message: "run/ empty"
+          Live bundle is for read-only status and shasum only.
 
-        bun run ngrace lint --path . → 0 errors, 0 warnings
+        bun run ngrace lint --path . → after this plan names run-membership.ts in OWS
+          and before T-001 creates the file: **exactly 1** error
+          change.graph-anchors-miss-write-scope on src/artifact/run-membership.ts
+          (authorized window — D12 / expected prediction, not a surprise). After T-001
+          creates the file with a true MODULE_CONTRACT LINKS M-ARTIFACT-TYPES: 0/0.
 
         shasum .ngrace/changes/archive/C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml
           → c0cc8899c264381766a18918e2109b5e05693893
 
-      Implementer re-measures all five before the first production edit of the epoch
-      and records them on the fail attempt / report (F12.2). Never mutate the live NaN
-      file or anything under archive/.
+      F18 — gate --record tokenization: the form `--record false` is **silently ignored**
+      (citty boolean flag; space-separated value becomes a discarded positional; args.record
+      stays true and the gate **records**). Use **`--record=false`** or **`--no-record`**
+      only. The space form wrote into archive/C-TOKEN-INTEGRITY/run-ledger.xml during plan
+      authoring. Do not repair gates/command.ts in this bundle (own follow-on).
+
+      Implementer re-measures dogfood before the first production edit of the epoch and
+      records them on the fail attempt / report (F12.2). Never mutate the live NaN file
+      or anything under archive/. Red-first gate regressions use **fixture copies only**.
 
       ─────────────────────────────────────────────────────────────────
       D7 — Execution discipline (cite, do not restate at length)
@@ -252,11 +293,12 @@
       skills/ngrace/ngrace-execute/SKILL.md &lt;cursor_kinds&gt; is binding for this
       bundle's own epoch: open-epoch without --from/--to; attempt in its own round
       trip before the edit (F9.8); never stage a retrospective red; terminal before
-      fold; append-only ledger (D9). No fold/gate/commit in the plan-authoring pass.
+      fold; append-only ledger (D9).
 
       Out of scope: F9.9 (isSubstantiatingPath src/ prefix), C-LEDGER-READ-ABSENCE,
-      gate --dry-run, archive Decision rewrites, treating orphans as open epochs,
-      adding run/ to OWS as the F11 "fix", baseline severity downgrade, P0.7 flush.
+      gate --dry-run, F18 flag repair in gates/command.ts, archive Decision rewrites,
+      treating orphans as open epochs, adding run/ to OWS as the F11 "fix", baseline
+      severity downgrade, P0.7 flush.
     -->
     <ImplementationPlan>
       <T-001>
@@ -270,41 +312,53 @@
             Pre-fix dogfood re-measure (before any production edit in this task): run
             and record with their own commands (F12.2) — ngrace review --path . (error
             count and each review.confidently-wrong file/code), ngrace status (C-TOKEN-INTEGRITY
-            open= line), ngrace gate archive --change C-TOKEN-INTEGRITY --record false
-            (no-open-epoch message), ngrace lint --path . (errors/warnings), shasum of
-            archive/C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml. Plan-authoring baseline
-            was 3 / open=1 / "run/ empty" / 0/0 / c0cc8899…; re-measure at execute if the
-            tree moved. These numbers are the red for later dogfood tasks.
+            open= line; live bundle, read-only), gate archive **--record=false** on a
+            **temp copy** of the C-TOKEN-INTEGRITY run/ shape (never the live archived
+            bundle — F18) for the no-open-epoch message, ngrace lint --path . (expect
+            exactly one change.graph-anchors-miss-write-scope on
+            src/artifact/run-membership.ts until this task creates the file — D12),
+            shasum of archive/C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml. Plan-authoring
+            baseline was 3 confidently-wrong / open=1 / "run/ empty" / authorized lint
+            window / c0cc8899…; re-measure at execute if the tree moved. These numbers
+            are the red for later dogfood tasks.
           </Criterion>
           <Criterion>
-            Move the sole production bodies of listLooseEvents and listRunOrphans (and
-            supporting types LooseEvent, RunOrphan, OrphanSkipClass as needed) into
-            src/artifact/paths.ts (already LINKS M-ARTIFACT-TYPES). Behaviour preserved
-            (EVENT_FILENAME, skip classes, sort). Update paths.ts MODULE_MAP. grace-cursor.ts
+            First production act: create src/artifact/run-membership.ts with a
+            MODULE_CONTRACT whose LINKS is M-ARTIFACT-TYPES, ROLE is RUNTIME, and whose
+            SCOPE and DEPENDS are true of the file as written (D12). Create co-located
+            src/artifact/run-membership.test.ts. Then move the sole production bodies of
+            listLooseEvents and listRunOrphans and supporting types/helpers LooseEvent,
+            RunOrphan, OrphanSkipClass, RangeAllocation, parseAllocationNode into that
+            file. Behaviour preserved (EVENT_FILENAME, XML id preference over filename,
+            skip classes, sort). MODULE_MAP lists the public exports. grace-cursor.ts
             re-exports the same names so existing importers keep working.
-            src/calibration/report.ts is not modified.
+            src/calibration/report.ts is not modified. src/artifact/paths.ts is not
+            modified.
           </Criterion>
           <Criterion>
             AC-MEMBERSHIP-ONE-DEFINITION (construction, not output-only): a test a reviewer
-            can run asserts (1) exactly one production `export function listLooseEvents`
-            definition under src/ (paths.ts; cursor re-exports), (2) grace-cursor re-export
-            identity matches the paths export (same function reference or equivalent
-            behavioural contract test), (3) no second EVENT_FILENAME membership predicate
-            remains as an independent open-epoch definition in grace-status (status may
-            still be unconverted until T-002 — this task at least extracts the definition
-            and proves it is single; T-002 deletes countOpenEpochs' readdir filter).
-            Discriminating negative: a check that only compares status vs gate fixture
-            strings without proving a single implementation body fails this criterion.
+            can run asserts (1) the symbol imported from ./artifact/run-membership and the
+            symbol imported from ./grace-cursor for listLooseEvents are the **same function
+            object** (===) — reference identity is the primary re-export proof; a
+            source-text grep for a single `export function listLooseEvents` is secondary
+            only (a `const` form would evade it — F10 shape), (2) the same === identity
+            for listRunOrphans, (3) exactly one production implementation body under
+            src/artifact/run-membership.ts. Discriminating negative: a check that only
+            compares status vs gate fixture strings, or only a "behavioural contract"
+            without ===, fails this criterion. Status conversion (deletion of
+            countOpenEpochs' readdir filter) is **not** asserted here — that is T-002.
           </Criterion>
           <Criterion>
             No import site outside AffectedAreas is rewritten: calibration/report.ts still
             imports listLooseEvents from grace-cursor. Assert by file identity / grep in
-            test or report. M-CURSOR is touched only as re-export site (AC-EXPORT style
-            minimalism — no fold/attempt/recover behaviour change beyond the move).
+            test or report. M-CURSOR is touched only as re-export site (minimalism — no
+            fold/attempt/recover behaviour change beyond the move). After this task
+            creates run-membership.ts with LINKS M-ARTIFACT-TYPES, ngrace lint --path .
+            is 0 errors / 0 warnings for the graph-anchors path (authorized window closed).
           </Criterion>
         </AcceptanceCriteria>
         <Verification>
-          <Command>bun test src/artifact/paths.test.ts src/grace-cursor.test.ts</Command>
+          <Command>bun test src/artifact/run-membership.test.ts src/grace-cursor.test.ts</Command>
         </Verification>
       </T-001>
       <T-002>
@@ -321,12 +375,12 @@
         <AcceptanceCriteria>
           <Criterion>
             DependsOn T-001 is binding: consumers land only after the extracted definition
-            exists. grace-status.ts imports membership from artifact/paths (not
+            exists. grace-status.ts imports membership from artifact/run-membership (not
             grace-cursor). Delete countOpenEpochs' readdirSync endsWith(".xml") predicate;
-            open epoch = listLooseEvents(bundle).length &gt; 0. When listRunOrphans length
-            &gt; 0, status surfaces orphans=N (explicit; see design D5). Assert via
-            formatStatusText / collectProjectStatus and source-level absence of the old
-            filter and of any grace-cursor import.
+            open epoch = listLooseEvents(bundle).length &gt; 0. Assert source-level absence
+            of that readdir/endsWith open-epoch filter and of any grace-cursor import in
+            grace-status.ts. When listRunOrphans length &gt; 0, status surfaces orphans=N
+            (explicit; see design D5). Assert via formatStatusText / collectProjectStatus.
           </Criterion>
           <Criterion>
             evaluateArchiveGate: no-open-epoch remains listLooseEvents.length === 0
@@ -334,23 +388,26 @@
             is **not** the string "run/ empty"; it states no foldable loose events and
             names orphan(s) (name and/or class) via listRunOrphans from the shared module.
             When run/ is truly empty, a truthful empty phrasing is allowed. Red-first:
-            gate archive --record false on C-TOKEN-INTEGRITY (or a temp copy of its run/
-            shape) currently messages "run/ empty" while NaN orphan exists — capture that
-            false sentence in a failing regression before the wording fix.
+            gate archive **--record=false** on a **mandatory temp copy** of the
+            C-TOKEN-INTEGRITY run/ shape (never the live archived bundle — F18) currently
+            messages "run/ empty" while NaN orphan exists — capture that false sentence
+            in a failing regression before the wording fix. Live C-TOKEN-INTEGRITY is for
+            read-only status and shasum only.
           </Criterion>
           <Criterion>
-            AC-TOKEN-ORPHAN-TRIPLE: on this repository or an equivalent fixture copy —
-            (1) live NaN file SHA-1 still c0cc8899c264381766a18918e2109b5e05693893
-            (tests use copies; never mutate the live path); (2) evaluateArchiveGate /
-            gate archive --record false permits with message not "run/ empty" and names
-            the orphan; (3) ngrace status reports open=0 or omits open for
-            C-TOKEN-INTEGRITY and shows an explicit orphan signal. One subject exercises
-            F14 + F15 + counterweights.
+            AC-TOKEN-ORPHAN-TRIPLE: (1) live NaN file SHA-1 still
+            c0cc8899c264381766a18918e2109b5e05693893 (tests use copies; never mutate the
+            live path); (2) evaluateArchiveGate / gate archive **--record=false** on a
+            **temp copy** of the orphan-only run/ shape permits with message not
+            "run/ empty" and names the orphan; (3) ngrace status on the live repository
+            reports open=0 or omits open for C-TOKEN-INTEGRITY and shows an explicit
+            orphan signal. One subject exercises F14 + F15 + counterweights.
           </Criterion>
           <Criterion>
             AC-ARCHIVE-STILL-REFUSES-LOOSE (counterweight, same task): fixture with ≥1
             foldable loose run/ event → evaluateArchiveGate **refuses** no-open-epoch.
-            Honest wording must not permit open foldable epochs.
+            Honest wording must not permit open foldable epochs. Fixture only — never
+            open a real loose epoch on a live archived bundle.
           </Criterion>
           <Criterion>
             AC-STATUS-OPEN-FOLDS-WITH-GATE: orphan-only run/ → status open=0 + orphan
@@ -360,12 +417,13 @@
           </Criterion>
           <Criterion>
             AC-MEMBERSHIP-ONE-DEFINITION complete: status and evaluateArchiveGate both
-            consume the artifact definition; construction checks from T-001 still hold
-            after consumer wiring; grace-status does not import grace-cursor.
+            consume the artifact/run-membership definition; T-001 === re-export proof still
+            holds after consumer wiring; grace-status does not import grace-cursor and no
+            longer owns an independent endsWith(".xml") open-epoch predicate.
           </Criterion>
         </AcceptanceCriteria>
         <Verification>
-          <Command>bun test src/grace-status.test.ts src/gates/core.test.ts src/artifact/paths.test.ts</Command>
+          <Command>bun test src/grace-status.test.ts src/gates/core.test.ts src/artifact/run-membership.test.ts</Command>
         </Verification>
       </T-002>
       <T-003>
@@ -380,9 +438,10 @@
             review.confidently-wrong on archived plans whose MustExist names
             active/&lt;same-id&gt;/spec.xml while the file lives under archive/&lt;same-id&gt;/
             (plan-authoring measure: 3 findings — C-CALIBRATION-COMMAND-EVIDENCE,
-            C-EXECUTION-CONTRACT, C-RECOVER-FOLDABLE). Capture that red with its own
-            command before the edit (F12.2). No DependsOn on membership tasks — this
-            repair is independent.
+            C-EXECUTION-CONTRACT, C-RECOVER-FOLDABLE; ids f70460191abdd885,
+            315bb859dd2e5a8f, 1bde7fa9b115e843). Capture that red with its own command
+            before the edit (F12.2). No DependsOn on membership tasks — this repair is
+            independent.
           </Criterion>
           <Criterion>
             AC-MUSTEXIST-ARCHIVE-IDENTITY: detectConfidentlyWrong applies
@@ -448,11 +507,12 @@
         </Satisfies>
         <AcceptanceCriteria>
           <Criterion>
-            Red-first: evaluateApplyGate / gate apply --record false on an approved plan
-            with no usable Verdicts entry currently yields gate.apply.no-verdict with
-            catalog title only or only "no Verdicts section entry" — capture that thin
-            message. No flush/race work (0 hits / 50 cycles in derivation). Independent
-            of other repairs.
+            Red-first: evaluateApplyGate / gate apply **--record=false** on an approved
+            plan fixture (temp project — never a live archived bundle) with no usable
+            Verdicts entry currently yields gate.apply.no-verdict with catalog title only
+            or only "no Verdicts section entry" — capture that thin message. No flush/race
+            work (0 hits / 50 cycles in derivation). Independent of other repairs. Use
+            --record=false or --no-record only (F18: space form silently records).
           </Criterion>
           <Criterion>
             AC-APPLY-VERDICT-DIAGNOSTICS: refuse path detail names (1) ledger path looked
@@ -482,15 +542,20 @@
             AC-BASELINE-LINT-FRAMING: default text output **leads** with a line stating N
             baseline expectation(s) expected while C-* is in progress (wording may
             normalize whitespace). N is counted by construction at the BaselineAssertions
-            evaluateSection call site (design D3) — not by assertion.* code-prefix over
-            all issues, not by a curated subset. Underlying assertion.* issues remain
+            evaluateSection call site and stored in a module-private
+            WeakMap&lt;LintResult, number&gt; in lint/core.ts (design D3 / D13) — not by
+            assertion.* code-prefix over all issues, not by a curated subset, not by a
+            cast field on the result object. Underlying assertion.* issues remain
             **errors** (not deleted, not downgraded). Removing or skipping baseline
             evaluation fails. Archived plans' baselines stay syntax-only.
           </Criterion>
           <Criterion>
             Counterweight / discriminating negatives in the same task: (1) issues stay
             errors; (2) TargetAssertions extraction issue does not inflate N; (3) no
-            edit to src/lint/types.ts (M-LINT-TYPES not in AffectedAreas).
+            edit to src/lint/types.ts (M-LINT-TYPES not in AffectedAreas); (4) a test
+            asserts the --format json output shape gains **no new key** (WeakMap must not
+            leak onto the schemaVersion-bearing surface — fails under cast approach,
+            passes under WeakMap; D13).
           </Criterion>
         </AcceptanceCriteria>
         <Verification>
@@ -529,11 +594,13 @@
           </Criterion>
           <Criterion>
             AC-SUITE-AND-LINT: red-first regressions from T-001–T-006 remain; bun test for
-            touched packages green; bun run validate:ci green; lint 0/0. No edits under
-            docs/plans/archive/ or .ngrace/changes/archive/. No CHANGELOG.md. No version
-            surfaces. No skills/packaging. RM-GOVERNED-PATH plan.md §1/P0 board reflects
-            C-REPORT-HONESTY execution progress when this task closes. Conventional-commit
-            body of the landing commit lists any new codes (D5.5).
+            touched packages green; bun run validate:ci green; lint 0/0. **Checkable
+            archive cleanliness (F18):** `git status --short` at task close shows **no
+            modification under `.ngrace/changes/archive/` or `docs/plans/archive/`**
+            (not merely a prose claim that archives were not edited). No CHANGELOG.md.
+            No version surfaces. No skills/packaging. RM-GOVERNED-PATH plan.md §1/P0 board
+            reflects C-REPORT-HONESTY execution progress when this task closes.
+            Conventional-commit body of the landing commit lists any new codes (D5.5).
           </Criterion>
           <Criterion>
             Live NaN orphan preserved: shasum still c0cc8899c264381766a18918e2109b5e05693893

@@ -1698,3 +1698,32 @@ this a criterion rather than a preference.
 `M-LINT-TYPES` stays out of `AffectedAreas`. Declaring the field on `LintResult` would be the better
 design in a world where the spec allowed it; it does not, and superseding an approved spec to add one
 optional number is not a trade worth making.
+
+### F19 — Approving a plan makes it look like drift, so approval must be committed immediately. **[verified]**
+
+Authoring `status="approved"` on `C-REPORT-HONESTY/plan.xml` — the approval act itself — put the
+bundle into `states=integrity-issues,approved-contract-drift`, and `ngrace status` printed:
+
+> Hard stop: an approved spec.xml or plan.xml changed. Restore it or supersede and replan through a
+> new C-* bundle.
+
+`collectApprovedContractDrift` (`grace-status.ts:371`) keys on `trackedChangedFiles` from git
+porcelain. `plan.xml` was committed as a draft at `7a59f27`, so writing `approved` into it makes it a
+tracked-modified approved artifact — indistinguishable, to the check, from someone editing an
+approved plan after the fact. The state also strips `ready-to-execute`.
+
+**Not a product defect.** The check cannot observe approval time, and its false window is exactly
+"between authoring the status and committing it" — narrow and self-clearing. Widening it to guess
+intent would weaken the real protection: an approved contract silently edited mid-execution is the
+thing it exists to catch, and that is worth a transient.
+
+**It is a sequencing rule, and it overrides the authority's earlier plan.** The authority had decided
+to hold the approval commit until T-001 created `src/artifact/run-membership.ts`, so that no commit
+in history carried D12's predicted lint error. That plan is wrong: it leaves the executor working
+inside a bundle whose own status says *stop*, and telling an executor to disregard a hard stop is how
+a check is taught to be noise — the harm F9.9 named, arriving by a different road.
+
+**Rule: commit the approval immediately after authoring it.** Where that collides with a predicted
+lint error, the error is carried in the commit and named in the commit body. **A documented expected
+error costs less than a live false hard stop**, because the first is a sentence a reader can check
+and the second is an instruction a reader may obey.
