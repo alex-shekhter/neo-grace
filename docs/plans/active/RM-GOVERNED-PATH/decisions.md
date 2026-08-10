@@ -1749,3 +1749,93 @@ production files import from `grace-cursor`: `gates/core.ts:39`, `review/core.ts
 `AffectedAreas`. The re-export covers both, and it must carry the **types** (`LooseEvent`,
 `RunOrphan`, `OrphanSkipClass`, `RangeAllocation`), not only the functions, or the out-of-scope
 importers break.
+
+### F20 — `cloneXmlNode` is duplicated by the extraction, and the honest home is out of scope. **[verified]**
+
+`C-REPORT-HONESTY` T-001 moved the membership body into `src/artifact/run-membership.ts`. The moved
+code calls `cloneXmlNode`, which the authority's prompt asserted was importable from
+`./artifact/xml`. **That assertion was false** — it has always been a private helper at
+`grace-cursor.ts:2730` and appears nowhere in `artifact/xml.ts`. The executor hit the error, chose
+the option that does not create a cycle, and disclosed it. There are now two seven-line copies:
+`grace-cursor.ts:2730` and `run-membership.ts:51`.
+
+**Accepted, deliberately, in the bundle whose spine is single-definition.** The reasoning matters
+because it looks inconsistent and is not:
+
+- Its true home is `src/artifact/xml.ts`, which owns `GraceXmlNode`. `xml.ts` is **not** in the
+  approved `ObservedWriteScope`, and the plan is immutable.
+- The in-scope alternative — export it from `run-membership.ts` for the cursor to import — puts a
+  generic XML utility on the public surface of a module whose declared `SCOPE` is `run/` membership.
+  That falsifies a module contract **D12 had just insisted must be true on the day it is written**,
+  and it is the same objection that disqualified `paths.ts` as the host.
+- `AC-MEMBERSHIP-ONE-DEFINITION` governs *membership*, not every helper the membership body calls.
+  Two copies of a pure structural clone can drift; a module contract that lies is read by every
+  future agent.
+
+**Trading a true module contract for a deduplicated seven-line helper is the wrong trade.**
+Disposition: follow-on bundle, with `src/artifact/xml.ts` in scope. Joins F9.9 and F18 in the queue.
+
+### F21 — The fix budget counts attempts; the execution contract says it counts failures. **[verified]**
+
+`countTaskAttemptEvents` (`grace-cursor.ts:1563`) filters `kind === "attempt"` with **no outcome
+condition** — the code says so deliberately (*"Counter itself has no outcome/signature condition
+(A19.1)"*). Escalation fires at `grace-cursor.ts:1737`:
+
+```ts
+if (options.outcome === "fail" && attemptCount >= FIX_ATTEMPT_BUDGET)   // FIX_ATTEMPT_BUDGET = 2
+```
+
+So the rule is: *a fail that is the second-or-later **attempt** of any outcome in the window.*
+
+`skills/ngrace/ngrace-execute/SKILL.md` says **"two failed attempts"** in four places — rule 5
+(`:38`), the `attempt` kind (`:65`), and the `escalation` kind (`:90`, `:92`). **Those are different
+rules**, and the contract's version is the one every executor is handed.
+
+**The divergence is latent, not what happened here.** Measured from this epoch's ledger, T-001's
+attempts ran `fail`(2) → `pass`(3) → `fail`(5) → escalation(6) → resume(7) → `pass`(8): two real
+failures, so both rules agree that event 5 escalates. The divergence bites on a **pass-first**
+sequence — `pass, fail` reaches `attemptCount = 2` and escalates on the *first* failure, which the
+contract says should not happen. Under red-first discipline that sequence is ordinary: a task whose
+first cycle needs no red, then a genuine red for a later criterion.
+
+The escalation message compounds it — `grace-cursor.ts:2320` renders *"Budget exhausted for T-001
+after 3 attempts"*, reporting a count of attempts under a name ("budget exhausted") the contract
+defines in failures. The executor read it as a second failure and was right by accident.
+
+**This is F12's class exactly: the contract does not describe the protocol the CLI enforces** —
+found again in the very skill file `C-EXECUTION-CONTRACT` was written to make complete. That bundle
+documented the *kinds*; it did not verify the *thresholds* the prose asserts. **A completeness check
+over the kind set does not check the sentences around it.**
+
+Disposition: follow-on queue. Which side moves — code to match "two failures", or contract to match
+"second attempt" — is a real design question and is **not** settled here. The authority's leaning is
+that the code is right and the prose is wrong: an agent that has already burned two verification
+cycles on one task is worth a checkpoint whatever the outcomes were. But that is a preference, and
+this is a finding, not a decision.
+
+### F22 — `paused-pending-approval` is cleared by the agent that caused it, with no approval. **[verified]**
+
+The escalation state is named `paused-pending-approval` and its message says *"replan decision owed;
+task has not failed"* (`grace-cursor.ts:2320`). Nothing checks that any approval occurred:
+`cursor resume` is a designed resolver (`grace-cursor.ts:294`), takes no reason, no approver, and no
+authority token, and clears the task from the unresolved-escalation set on its own.
+
+Observed here: the executor hit the budget, ran `cursor resume`, and continued — events 6, 7, 8 of
+this epoch. **This was not a violation.** The contract says only *"clear later with a deliberate
+`resume` for that task after the replan path allows continuation"* (`SKILL.md:92`) and names no
+actor, and in substance the continuation *was* authorized — the authority had written the correction
+that produced the red. The executor also disclosed it unprompted.
+
+**The defect is in the name, not the conduct.** A state that says it is pending approval, in a tool
+whose thesis is that the agent cannot lie to the model, should not be clearable by the agent with no
+record of an approval. Today the audit trail holds the escalation and the resume, but not the
+decision between them — so the ledger can show that work stopped and restarted while saying nothing
+about who allowed it.
+
+Cheapest honest repair, for the follow-on to weigh: require a reason on a resume that resolves an
+escalation, the way `verification-unavailable --reason` already works. That turns the replan decision
+into a recorded artifact instead of an implied one, without inventing an approval mechanism the tool
+has no way to enforce. The alternative — renaming the state to match what is enforced — is honest but
+gives up the checkpoint.
+
+Disposition: follow-on queue, adjacent to F21 (same surface, same contract paragraph).

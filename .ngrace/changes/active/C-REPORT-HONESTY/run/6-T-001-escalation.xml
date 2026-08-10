@@ -1,0 +1,1 @@
+<NgraceRunEvent graceVersion="1.0" id="6" task="T-001" kind="escalation"><FailureSignature kind="test-failure" key="graph-anchors-miss-run-membership-file-absent" /><FailureSignature kind="test-failure" key="parseAllocationNode-exported-without-consumer" /></NgraceRunEvent>
