@@ -261,12 +261,29 @@ natural first guess). It is the strongest possible evidence for the item and it 
 | `cursor fold` | **"no Allocation found"** — dead end |
 
 Note the two-way inconsistency: `status` reports **zero epochs** while the cursor reports **epoch 1
-in-progress**, because the corrupt event is invisible to one reader and authoritative for the other.
-A corrupt audit trail, and the only surface that says so is the one you cannot reach.
+in-progress**. A corrupt audit trail, and the only surface that says so is the one you cannot reach.
 
-**Confirms P0.4 and P0.6 as specified, and adds a scope note:** the epoch counter's silent
-disagreement with `run.xml` is a third consumer of the same skipped-id logic
-(`listLooseEvents`, `:470`), and belongs with them in `C-CURSOR-INTEGRITY`.
+**Confirms P0.4 and P0.6 as specified.**
+
+#### F8.2 — Two authority errors in the paragraph above, corrected by the cursor derivation
+
+Both were written by the authority from reasoning rather than reading, and both are corrected here
+rather than rewritten in place. Neither changes the finding; both change where an implementer looks.
+
+1. **The `NaN` file is not dropped at `:470`.** `EVENT_FILENAME` is `/^(\d+)-(T-[0-9]{3})-(.+)\.xml$/`
+   (`grace-cursor.ts:437`), and `NaN-T-001-opened.xml` fails `^(\d+)` — so it is discarded by
+   `if (!match) continue` at **`:459`**, and never reaches the integer guard at `:470`. There are
+   **two distinct silent skips**, not one: the filename regex, and the `id`-attribute guard that
+   catches a well-named file carrying a non-integer `id`. P0.4 must address both; citing only `:470`
+   would leave the one that actually swallowed the live fixture.
+2. **`epochs=0` has nothing to do with the skipped-id logic.** `countLedgerEpochs`
+   (`grace-status.ts:211`) counts `Epoch-N` wrappers in `run-ledger.xml` — that is, **folded** epochs.
+   It reports `0` for *any* unfolded epoch, corrupt or not. The "third consumer of the same skip"
+   claim was wrong.
+
+The scope note it produced survives, for a different and better reason: a field labelled `epochs`
+that silently means *folded epochs* misreports every in-progress run, which is a reporting-honesty
+defect in its own right. It stays in `C-CURSOR-INTEGRITY` — see D8.8.
 
 **Also corrects an authority error.** The derivation's contradiction 1 was accepted too broadly — see
 `review.md` §4.3. Its repro folded immediately after opening, so it hit *"No loose run/ events to
@@ -740,3 +757,82 @@ recorded command evidence rather than from a `runCommands: false` lint."*
 
 If the bundle's design cannot satisfy P0.8 without touching corr 156's guarantee, **stop and report**
 — that is a wall (`plan.md` §3), not a tradeoff to make during execution.
+
+---
+
+## D8 — The cursor derivation is accepted, and its eight open questions are resolved
+
+**Decision.** `p0-cursor-derivation.md` (2026-08-10, measured at `60c752f`) is accepted as the
+derivation gate for P0.4, P0.6, P0.8 and P0.10. It found six plan-vs-code contradictions, two of
+which are authority errors now corrected in F8.2. Every step is *correct but under-specified* — none
+is contradicted at the level of intent, which is why the phase proceeds rather than being re-planned.
+
+### D8.1 — Two bundles, not one
+
+`C-CURSOR-INTEGRITY` takes **P0.4, P0.6, P0.10**; a separate bundle takes **P0.8**. The split is by
+surface and by wall: the first three are cursor and ledger honesty (`grace-cursor.ts`,
+`review/core.ts`) and sit on the critical path for `C-TOKEN-INTEGRITY`'s archive; P0.8 is calibration
+reporting under Correction 156 and is on nobody's critical path. Coupling them would let a schema
+question in the calibration corpus block a repair that an unarchivable bundle is waiting on.
+
+### D8.2 — The auto-open worker condition is unimplementable as written, and is corrected
+
+P0.6 says auto-open requires that **no `--worker` was ever recorded** for the change. It cannot be
+checked: `advanceCursor:549` writes `options.worker ?? "w0"`, so every opened event records a worker
+whether or not the operator passed one. Absence is unobservable.
+
+**Corrected condition: refuse when more than one distinct worker value appears in the ledger.**
+
+The derivation proposed *refuse if worker ≠ w0*, which is over-strict — a run that only ever used
+`w3` is still single-controller, and auto-open across one worker's events fabricates nothing. The
+property that matters is *one controller*, not *the default name*.
+
+**Residual risk, stated rather than papered over:** a genuinely multi-worker run whose second worker
+has not yet emitted looks single-worker, and auto-open would synthesize an allocation that the second
+worker later violates. That failure is loud — the out-of-range event is caught by
+`validateEventsAgainstAllocations` — so the risk is a late error, not a silent fabrication. Acceptable.
+
+### D8.3 — The `NaN` orphan stays on disk after the fix, and stays diagnosed
+
+It cannot be honestly repaired: the event has no recoverable id, so nothing can extend an allocation
+to cover it. `recover` diagnoses it as an unrecoverable orphan, writes a covering allocation for the
+valid ids around it, and leaves the file alone. Deleting it would be `rm -r run/` wearing a better
+name — the antipattern this step exists to retire.
+
+### D8.4 — Historical pending calibration pairs are forward-fixed only
+
+Three folded epochs (`C-ADOPTION-SURFACE`, `C-PLAN-QUALITY`, `C-REVIEW-LANGUAGE-SCOPE`) are pending
+because `MustPassCommand` was never opted into at fold. They stay pending, permanently, and P0.8
+documents that rather than repairing it. Relabelling them is precisely what corr 156 forbids: *a
+corpus whose labels move is not a corpus.* The fix applies to future folds.
+
+### D8.5 — P0.8 takes shape (c). Shape (b) is not a cost-based fallback
+
+D6.3 already ratified **(c)** — record command-run evidence as durable events and adjudicate from
+those records. The derivation's *"(b) is D6-legal if schema cost is high"* misreads it: (b) is
+*permitted but not required*, and D6.3 says explicitly **do not adopt without its own decision**,
+because it changes what fold costs and re-opens A5.2. Cost is not that decision. If (c) proves
+expensive, **stop and report** — the answer may be to accept the cost, and that is the authority's
+call.
+
+### D8.6 — P0.10's clearance is a recorded reason, not a cleared flag
+
+Attaching the finding to the gate verdict note keyed by `findingId`, at **warning** severity, is
+accepted. The binding part is that **the reviewer's reason is recorded, not merely their clearance**
+— a boolean "reviewed" would recreate the hand-written `applied` problem of F1 in a new place. If no
+finding-level record can hold a reason, report that before building; inventing ledger schema is the
+authority's call.
+
+### D8.7 — Orphan discovery is a parallel reader; `listLooseEvents` keeps its contract
+
+`listLooseEvents` is depended on for *ordered, valid* events. Widening it to return orphans would
+push the discrimination into every caller. A separate orphan inventory reads the same directory and
+reports what the ordered reader necessarily drops.
+
+### D8.8 — `status`'s epoch count is in scope now, against the derivation's recommendation
+
+The derivation recommends deferring it to a P3 note. **Overruled.** `countLedgerEpochs`
+(`grace-status.ts:211`) counts folded `Epoch-N` wrappers only, so a field labelled `epochs` reports
+`0` throughout every in-progress run — the misreport that made F8 hard to see. The bundle already
+opens this surface, the fix is small, and deferring a known-misleading report to a later phase is the
+cascade the standing rule exists to prevent. It ships with P0.4.
