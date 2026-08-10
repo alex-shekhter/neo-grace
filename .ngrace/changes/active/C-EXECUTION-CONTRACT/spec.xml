@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-EXECUTION-CONTRACT>
     <Summary>
       Document the cursor event protocol that the CLI already enforces inside
