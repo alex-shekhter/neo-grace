@@ -1045,6 +1045,150 @@ describe("corr 171 archive identity (A68)", () => {
   });
 });
 
+/**
+ * C-REPORT-HONESTY T-003 / AC-MUSTEXIST-ARCHIVE-IDENTITY (F16).
+ * detectConfidentlyWrong must apply Correction 171 to MustExist disk paths —
+ * same expandScopePathsForArchiveIdentity as the scope audit, not a second rule.
+ */
+describe("C-REPORT-HONESTY T-003 MustExist archive identity (F16)", () => {
+  function writeArchivedPlanWithMustExist(
+    root: string,
+    changeId: string,
+    mustExistPath: string,
+    opts?: { alsoWriteSpecAtArchive?: boolean; alsoWriteSpecAtActive?: boolean },
+  ) {
+    const archiveDir = path.join(root, ".ngrace/changes/archive", changeId);
+    mkdirSync(archiveDir, { recursive: true });
+    writeFileSync(
+      path.join(archiveDir, "plan.xml"),
+      `<NgraceChangePlan graceVersion="1.0" status="applied"><${changeId}>
+  <IntentSummary>F16 fixture</IntentSummary>
+  <BaselineAssertions><MustExist><Value>${mustExistPath}</Value></MustExist></BaselineAssertions>
+  <TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions>
+  <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>
+  <ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>
+  <ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+</${changeId}></NgraceChangePlan>`,
+    );
+    if (opts?.alsoWriteSpecAtArchive) {
+      writeFileSync(
+        path.join(archiveDir, "spec.xml"),
+        `<NgraceChangeSpec graceVersion="1.0" status="applied"><${changeId}><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>a</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>echo 1</ExpectedCommand><ExpectedEvidence>e</ExpectedEvidence></VerificationIntent></${changeId}></NgraceChangeSpec>`,
+      );
+    }
+    if (opts?.alsoWriteSpecAtActive) {
+      const activeDir = path.join(root, ".ngrace/changes/active", changeId);
+      mkdirSync(activeDir, { recursive: true });
+      writeFileSync(
+        path.join(activeDir, "spec.xml"),
+        `<NgraceChangeSpec graceVersion="1.0" status="applied"><${changeId}><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>a</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>echo 1</ExpectedCommand><ExpectedEvidence>e</ExpectedEvidence></VerificationIntent></${changeId}></NgraceChangeSpec>`,
+      );
+    }
+  }
+
+  it("archive plan MustExist active/<own-id>/spec.xml is silent when file lives under archive/<own-id>/", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    // Emit default verification marker so marker half does not fire.
+    writeFileSync(
+      path.join(root, "src/example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
+    );
+    writeArchivedPlanWithMustExist(
+      root,
+      "C-ARCH-OWN",
+      ".ngrace/changes/active/C-ARCH-OWN/spec.xml",
+      { alsoWriteSpecAtArchive: true },
+    );
+    const findings = runPatternDetectors(root).filter(
+      (f) =>
+        f.code === "review.confidently-wrong"
+        && f.file.includes("C-ARCH-OWN")
+        && f.message.includes("MustExist"),
+    );
+    expect(findings).toHaveLength(0);
+  });
+
+  it("counterweight: path absent under both active and archive aliases still fires", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeFileSync(
+      path.join(root, "src/example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
+    );
+    writeArchivedPlanWithMustExist(
+      root,
+      "C-ARCH-MISS",
+      ".ngrace/changes/active/C-ARCH-MISS/spec.xml",
+      // neither archive nor active gets the file
+    );
+    const findings = runPatternDetectors(root).filter(
+      (f) =>
+        f.code === "review.confidently-wrong"
+        && f.message.includes(".ngrace/changes/active/C-ARCH-MISS/spec.xml"),
+    );
+    expect(findings.length).toBeGreaterThan(0);
+  });
+
+  it("counterweight: MustExist of a different change id that is absent still fires", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeFileSync(
+      path.join(root, "src/example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
+    );
+    // Own archive has its own spec, but MustExist names a foreign id's active path.
+    writeArchivedPlanWithMustExist(
+      root,
+      "C-ARCH-OWN2",
+      ".ngrace/changes/active/C-FOREIGN/spec.xml",
+      { alsoWriteSpecAtArchive: true },
+    );
+    // Even if foreign exists only under archive, same-id expansion must not clear C-FOREIGN.
+    mkdirSync(path.join(root, ".ngrace/changes/archive/C-FOREIGN"), { recursive: true });
+    writeFileSync(
+      path.join(root, ".ngrace/changes/archive/C-FOREIGN/spec.xml"),
+      `<NgraceChangeSpec graceVersion="1.0" status="applied"><C-FOREIGN><Summary>foreign</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>a</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>echo 1</ExpectedCommand><ExpectedEvidence>e</ExpectedEvidence></VerificationIntent></C-FOREIGN></NgraceChangeSpec>`,
+    );
+    const findings = runPatternDetectors(root).filter(
+      (f) =>
+        f.code === "review.confidently-wrong"
+        && f.message.includes(".ngrace/changes/active/C-FOREIGN/spec.xml"),
+    );
+    // Global active→archive would silence this because archive/C-FOREIGN/spec.xml exists.
+    // Id-scoped Correction 171 must still fire.
+    expect(findings.length).toBeGreaterThan(0);
+  });
+
+  it("counterweight: active plan MustExist of a genuinely missing path still fires", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeFileSync(
+      path.join(root, "src/example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
+    );
+    const activeDir = path.join(root, ".ngrace/changes/active/C-ACTIVE-MISS");
+    mkdirSync(activeDir, { recursive: true });
+    writeFileSync(
+      path.join(activeDir, "plan.xml"),
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-ACTIVE-MISS>
+  <IntentSummary>Active missing</IntentSummary>
+  <BaselineAssertions><MustExist><Value>build/artifacts/genuinely-absent.bin</Value></MustExist></BaselineAssertions>
+  <TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions>
+  <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>
+  <ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>
+  <ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+</C-ACTIVE-MISS></NgraceChangePlan>`,
+    );
+    const findings = runPatternDetectors(root).filter(
+      (f) =>
+        f.code === "review.confidently-wrong"
+        && f.message.includes("build/artifacts/genuinely-absent.bin"),
+    );
+    expect(findings.length).toBeGreaterThan(0);
+  });
+});
+
 function mkdtempSyncSafe(): string {
   const root = path.join(os.tmpdir(), `ngrace-review-${Date.now()}-${Math.random().toString(16).slice(2)}`);
   mkdirSync(root, { recursive: true });

@@ -390,12 +390,15 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
 
   // MustExist targets that do not exist on disk (corr 205-B).
   // Semantic anchors (ANCHOR_PATTERNS) are not disk paths — never check them as files.
+  // Corr 171 / F16: when the plan lives under archive/<id>/, active/<id>/… aliases
+  // archive/<id>/… for that id only — reuse expandScopePathsForArchiveIdentity (no second rule).
   for (const planRel of listFilesRecursive(root, `${ARTIFACT_DIR}/changes`).filter((f) =>
     f.endsWith("plan.xml"),
   )) {
     const abs = path.join(root, planRel);
     const artifact = readGraceXmlArtifact(abs);
     if (!artifact.root) continue;
+    const identity = scopeIdentityFromPlanRel(planRel);
     for (const node of walkNodes(artifact.root)) {
       if (node.tag !== "MustExist") continue;
       const valueNode = node.children.find((c) => c.tag === "Value");
@@ -403,7 +406,9 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
       if (!target || isRegisteredSemanticAnchor(target)) {
         continue;
       }
-      if (!existsSync(path.join(root, target))) {
+      const candidates = expandScopePathsForArchiveIdentity([target], identity);
+      const present = candidates.some((candidate) => existsSync(path.join(root, candidate)));
+      if (!present) {
         findings.push(
           makeFinding(
             "review.confidently-wrong",
@@ -418,6 +423,21 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
   }
 
   return findings;
+}
+
+/** Derive corr-171 identity from plan path `.ngrace/changes/{active|archive}/<id>/plan.xml`. */
+function scopeIdentityFromPlanRel(planRel: string): ScopeAuditIdentity | undefined {
+  const normalized = planRel.replaceAll("\\", "/");
+  const prefix = `${ARTIFACT_DIR}/changes/`;
+  if (!normalized.startsWith(prefix) || !normalized.endsWith("/plan.xml")) return undefined;
+  const middle = normalized.slice(prefix.length, -"/plan.xml".length); // active|archive / changeId
+  const slash = middle.indexOf("/");
+  if (slash <= 0) return undefined;
+  const planLocation = middle.slice(0, slash);
+  const changeId = middle.slice(slash + 1);
+  if (planLocation !== "active" && planLocation !== "archive") return undefined;
+  if (!changeId || changeId.includes("/")) return undefined;
+  return { planLocation, changeId };
 }
 
 function detectSelfReferential(root: string): ReviewFinding[] {
