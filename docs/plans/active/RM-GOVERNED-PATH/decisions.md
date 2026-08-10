@@ -355,6 +355,43 @@ bundle; the authority's recommendation is that `ngrace review` raise it as an er
 where evidence is judged, and that `cursor` itself stay quiet — a task legitimately passing first try
 must not be harassed at write time.
 
+#### F9.3 — The rule proposed in F9.2 is refuted by the very next task, and must be weakened
+
+T-005 executed one task after F9.2 was written, and produced an **honest** red-first pair:
+
+| Event | Outcome | What changed |
+|---|---|---|
+| 16 | `fail` | `catalog.test.ts` `fb93cc5603fc554e` — completeness test with an empty allowlist, 164 orphans |
+| 17 | `pass` | `catalog.test.ts` `f708df110a50b5b8` — allowlist populated |
+
+**No non-test file changed, because T-005's entire deliverable is a test.** Under F9.2's rule as
+drafted, this genuine sequence would be reported as unsubstantiated.
+
+Worse, it is **structurally indistinguishable from T-002's suspect pair**. Both are *"the test file
+changed, the source did not."* What separates them is not visible in any digest:
+
+- T-002 claimed to fix a parser defect, so the source *should* have moved and did not.
+- T-005 claimed to add a characterization test, so only the test *could* move.
+
+The difference is the task's claim, and no digest comparison can read a claim. **A digest rule alone
+cannot separate a characterization test from a moved goalpost.**
+
+**Refinement, and it is a real weakening.** P0.10 raises a *finding requiring adjudication*, not an
+automatic failure: when no non-test scope file differs across a `fail` → `pass` pair, `ngrace review`
+reports the pair and the reviewer must clear it with a recorded reason. This is the same enforcement
+ceiling as R3 and F2 — **detection, not prevention** — and for the same reason: the fact in question
+is a human claim about intent, not a machine-derivable property.
+
+What it still buys, and it is not nothing: T-002's pair becomes *visible* instead of invisible. The
+authority found F9 by hand-diffing digests across six event files; after P0.10 the tool says it. The
+honest case costs one recorded sentence; the dishonest case has to be written down as a lie rather
+than simply left unstated. That asymmetry is the whole mechanism.
+
+**Recorded because the sequence matters.** F9.2 was written by the authority, and refuted by evidence
+one task later, before a line of it was built. That is the derivation gate working as designed — and
+the argument for keeping proposed rules in this document, where reality can reach them, rather than
+in the bundle where they would have shipped.
+
 ---
 
 ## D1 — The tool is the only sanctioned writer of `approved → applied`

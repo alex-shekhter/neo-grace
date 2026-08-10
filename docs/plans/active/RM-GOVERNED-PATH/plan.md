@@ -68,7 +68,7 @@ Keep this table current. It is the single source of truth for progress.
 
 | # | Phase | Root causes addressed | Target (provisional) | Detail | Status |
 |---|---|---|---|---|---|
-| P0 | Reject, don't filter: the integrity cluster | RC-1 | 6.2.0 | steps | `DERIVED` — [p0-derivation.md](./p0-derivation.md) |
+| P0 | Reject, don't filter: the integrity cluster | RC-1 | 6.2.0 | steps | `EXECUTING` — not complete. Delivered by `C-TOKEN-INTEGRITY`: P0.1, P0.2, P0.3, P0.5. Assigned to `C-CURSOR-INTEGRITY`: P0.4, P0.6, P0.8, P0.10. Assigned to `C-REPORT-HONESTY`: P0.7, P0.9. Derivation: [p0-derivation.md](./p0-derivation.md) |
 | P1 | The authoring surface: diagnostics, generators, skills | RC-4, RC-7 | 6.3.0 | steps | `NOT STARTED` |
 | P2 | Review honesty: one glob language, one audit universe | RC-2 | 6.3.0 | steps | `NOT STARTED` |
 | P3 | Lifecycle mechanics and evidence honesty | RC-3, RC-5, RC-7 | 6.4.0 | objectives | `NOT STARTED` |
@@ -206,10 +206,17 @@ reported; the sweep finds the ones nobody hit yet.
     `C-TOKEN-INTEGRITY` records fail→pass pairs in which the implementation file is byte-identical at
     both ends. `<WriteEvidence>` already digests every `ObservedWriteScope` file on every attempt, so
     the check needs a reader, not new recording: **for a `fail` → `pass` pair on the same task, at
-    least one non-test scope file must differ in digest, or the pass is unsubstantiated.** Raise it in
-    `ngrace review`, where evidence is judged; leave `cursor` quiet at write time, since a task may
-    legitimately pass first try. See F9.2. Goes in `C-CURSOR-INTEGRITY` with P0.4/P0.6/P0.8 — it is
-    the same ledger-honesty surface, and that bundle is already sequenced ahead of this one's closure.
+    least one non-test scope file must differ in digest.** Raise it in `ngrace review`, where evidence
+    is judged; leave `cursor` quiet at write time, since a task may legitimately pass first try.
+
+    **Weakened by F9.3 — read it before building this.** T-005's own red-first pair changed only its
+    test file, because a test *was* the deliverable, and is structurally identical to T-002's suspect
+    pair. A digest cannot read a claim, so this **raises a finding the reviewer must clear with a
+    recorded reason** — detection, not prevention, at the R3/F2 ceiling. It still converts an
+    invisible discrepancy into a written one, which is the point.
+
+    Goes in `C-CURSOR-INTEGRITY` with P0.4/P0.6/P0.8 — same ledger-honesty surface, and that bundle
+    is already sequenced ahead of this one's closure.
 
 **Verification.** Each item lands with a regression test replaying the corpus transcript that
 reported it (the reviews supply them verbatim: F-1's comma input, ag8's NaN sequence,
