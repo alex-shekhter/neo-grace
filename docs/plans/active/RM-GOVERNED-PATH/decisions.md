@@ -1030,3 +1030,123 @@ the order was wrong, and the same order applied to a less forced edit would not 
 **The underlying brittleness is a real defect, not this bundle's to fix**: a test that hardcodes a
 catalog's cardinality makes every new review code a cross-cutting edit. It should assert the
 partition, not the count.
+
+---
+
+### F12 — Fold requires a terminal event that the execution contract never mentions. **[verified]**
+
+Found 2026-08-10 by the executor running the live ledger repair, which stopped rather than
+improvising. After `cursor recover --fix` wrote a valid covering allocation over
+`C-TOKEN-INTEGRITY`'s ids 1–19, fold was **still blocked**, with the reason changed from *missing
+valid covering allocation* to **`unterminated range for w0`**.
+
+`validateEventsAgainstAllocations` (`grace-cursor.ts:2476–2478`) requires at least one event with
+`kind === "terminal"` inside the allocation range. Measured:
+
+- **Six of six** archived bundles carrying a `run-ledger.xml` have a terminal event.
+- **`skills/ngrace/ngrace-execute/SKILL.md` mentions "terminal" zero times.**
+- `cursor advance --kind` accepts it (`opened|progress|pause|resume|terminal`), documented only in
+  the CLI help string at `:2993`.
+
+So the event is mandatory to close an epoch, present in every bundle that ever closed, and absent
+from the document agents are handed as their execution contract. **This is the third instance of
+RC-4 in this track** — after F4 (`change.plan-requires-approved-spec` enforced in the grammar and
+documented nowhere an author would look) and the `--from`/`--to` bounds of F8. The pattern is now
+well past coincidence: *the rules of this system are discovered by hitting them.*
+
+**The terminal is correctly not `recover --fix`'s job.** Emitting one asserts that an epoch's work is
+finished, which is a judgment about the work, not structural state the binary can derive — A29.2
+puts it on the authored side. `recover`'s help scopes `--fix` to the covering allocation and is
+accurate. The defect is the missing instruction, not the missing automation.
+
+#### F12.1 — The acceptance test proved "fold succeeds" on a fixture more favourable than the artifact
+
+`AC-RECOVER-FIX-PRESERVES-ORPHAN` promises that after `--fix`, *"fold succeeds for that valid
+stream."* The test asserting it (`grace-cursor.test.ts:1907`) seeds
+`seedF8Shape(root, { validIds: [1, 2, 3], withTerminal: true })`. **The fixture is given a terminal;
+the real ledger it was built to repair has none.** The test is green and the claim does not hold on
+the artifact.
+
+Nothing here is fabricated — `--fix` does exactly what it says, and the orphan-survival
+post-condition (the criterion's hard part) holds on the real ledger. But the criterion's *other*
+clause was demonstrated only under a condition the real case does not satisfy, and **no one checked
+it end-to-end against the artifact the bundle was named for.**
+
+**Including the authority.** After T-003–T-005 landed I ran `recover` against the live ledger, saw a
+correct diagnosis, and reported that `--fix` "would cover ids 1–18, leave the orphan, and unblock
+fold." The first two are true. The third I asserted from the test rather than from the artifact, one
+step short of the check that would have caught it — and one commit after writing F10.3's rule that an
+authority claim about the code gets probed before it is written down.
+
+**The lesson is narrower and sharper than "test against reality":** a fixture option named
+`withTerminal: true` is a *recorded decision that the happy path needs something*, sitting in the
+test file, unexamined. When a fixture takes an option to make an assertion pass, the option is a
+question — *what is true of the fixture that may not be true of the subject?* — and this one had an
+answer nobody asked for.
+
+**Disposition.** No code change. Emitting the terminal is the operator's act, and both bundles get
+one before fold. The documentation gap goes to P1 (the authoring/execution surface), where RC-4 is
+already the phase's subject.
+
+### F13 — `recover --fix` writes an allocation that can never be terminated. **[verified]**
+
+Found 2026-08-10 when the executor emitted the terminal F12 identified and fold was **still** blocked.
+Reproduced by the authority in a temp project rather than reasoned:
+
+```
+fix #1            → allocation w0:[1,4]   blocked: "unterminated range for w0"
+terminal at id 5  → lands outside [1,4]
+fix #2            → allocations w0:[1,4], w0:[1,6]   still blocked: "unterminated range for w0"
+```
+
+**The mechanism.** `writeCoveringOpened` (`grace-cursor.ts:736–751`) sets
+`to = Math.max(options.to, openedId)` — the allocation's upper bound is **the covering event's own
+id**, with no headroom. A terminal must be *inside* an allocation
+(`validateEventsAgainstAllocations:2475–2478`), and it can only be written *after* the fix, so it
+necessarily lands outside. Validation loops **per allocation**, so a second covering opened does not
+help: the first allocation stays unterminated forever.
+
+**Therefore `recover --fix` cannot produce a foldable ledger on any bundle that does not already
+contain a terminal inside its pre-fix id range.** The feature does not do the thing its acceptance
+criterion says it does.
+
+`C-CURSOR-INTEGRITY` is unaffected only by luck: its epoch was opened with the CLI default
+`to = from + 98`, so its terminal at id 33 fell inside `w0:[1,99]`. Headroom is what makes the
+difference, and only the default path has any.
+
+#### F13.1 — What hid it, and what it costs
+
+**`seedF8Shape(..., { withTerminal: true })` places the terminal inside the pre-fix valid id set.**
+The fixture therefore satisfies the one condition that makes `--fix` work, and the assertion
+*"fold succeeds"* passed on the only shape where it could. F12.1 called this "a fixture more
+favourable than the artifact"; that was too gentle. **The option did not merely flatter the test — it
+supplied the precondition the feature cannot establish for itself, which is exactly the thing the
+test existed to prove.**
+
+**`AC-RECOVER-FIX-PRESERVES-ORPHAN` is not met.** Its orphan-survival clause holds on the real ledger
+— that half is genuine and verified. Its *"fold succeeds for that valid stream"* clause does not.
+`C-CURSOR-INTEGRITY` is therefore **not complete**, and must not be applied or archived on the
+current implementation.
+
+**The executor's proposed option (a) — re-run `--fix` — would have failed and left a junk allocation
+in a live ledger.** It stopped and asked instead. Two stops in two turns, both correct, both against
+an instruction that permitted continuing; the standing "stop and report on any deviation" rule is
+earning its cost.
+
+#### F13.2 — Disposition
+
+The remedy is a code change, and the approved plan for `C-CURSOR-INTEGRITY` has eight complete tasks
+and no room for a ninth — approved plans are immutable. **Precedent applies:** when
+`C-TOKEN-INTEGRITY` T-005 shipped a defective completeness check (F10), the repair went into the
+*next* bundle with a recorded `ObservedWriteScope` overlap (F10.2). The same shape holds here.
+
+A small bundle takes the fix — allocation headroom on the covering opened, or an in-place extend that
+matches the `extend-allocation` flag's name — plus the regression the current fixture could not
+provide: **a shape with no terminal anywhere, fixed, terminated, and folded end to end.** It declares
+an overlap on `src/grace-cursor.ts` with `C-CURSOR-INTEGRITY`, which is code-complete.
+
+**Sequencing consequence, and it is a chain.** `C-TOKEN-INTEGRITY` cannot fold until this lands;
+`C-CURSOR-INTEGRITY` cannot archive until its own AC holds. Nothing archives until the fix ships.
+That is the correct outcome and not a reason to relax anything: the alternative is archiving a bundle
+whose acceptance criterion is known to be false, in the track whose entire subject is that the
+artifact must not lie.
