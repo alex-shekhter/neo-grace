@@ -1473,3 +1473,44 @@ six"* and is wrong.
 
 This one was caught by the derivation agent, reading a prompt in which the authority had repeated the
 bad number.
+
+---
+
+## D11 — F12 and F9.8 are not deferred; the P1 assignment was filing, not justification
+
+**Decision.** The two execution-contract documentation gaps get their own small bundle **now**,
+file-disjoint from `C-REPORT-HONESTY`. They are not held for P1.
+
+**The deferral was challenged and did not survive.** The authority assigned F12 (a `terminal` event
+is required to fold and `ngrace-execute/SKILL.md` mentions it zero times) and F9.8 (honest red-first
+requires the `cursor attempt` written in its own round trip, before the edit that follows) to P1
+because P1's heading reads *"the authoring surface: diagnostics, generators, skills."* **That is
+topical filing.** The standing rule is that nothing is deferred without strong justification, and
+adjacency to a phase title is not a justification.
+
+**The one argument that could have justified it fails on reading.** P1.10 says *"skills stop
+restating formats… and spend their words on workflow."* F12 and F9.8 **are** workflow content — P1.10
+is the step that would *add* them, not one that would rewrite them away. There is no rework to avoid.
+
+**Two facts against waiting:**
+
+1. **The gaps are expensive now.** Every executor prompt since their discovery has hand-carried both
+   rules, because the contract the executor is handed does not contain them. That recurring cost is
+   the measurement.
+2. **They are upstream of this phase, not beside it.** F9.8's gap *produces* the unsubstantiated
+   attempt pairs P0.10 was built to detect; F12's gap blocked a live close and cost a round trip.
+   Documenting them removes a defect source. Deferring them keeps generating findings — five
+   disclosed instances of F9.8's gap so far.
+
+**And "P1 will handle it" currently means unscheduled**: P1 has no derivation and no bundle. A
+deferral to an unplanned phase is a deferral to nowhere, which is the shape the standing rule exists
+to refuse.
+
+**No supersede is required.** `C-REPORT-HONESTY`'s approved spec lists them as NonGoals, and that
+stays true — they are out of *that* bundle, in their own. `M-SKILLS` is disjoint from its six
+modules, so both proceed without overlap. The new bundle must also update the packaged mirror under
+`plugins/ngrace/skills/ngrace/`, which `validate-marketplace.ts` checks for drift.
+
+**Recorded as a rule, not just a reversal:** when a finding is assigned to a later phase, the
+justification must be a *dependency or a conflict*, never a topic match. If the later phase would
+have to write the same words anyway, the assignment is a delay with no benefit.
