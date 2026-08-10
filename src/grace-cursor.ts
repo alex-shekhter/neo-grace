@@ -24,6 +24,7 @@
 //   FileContentEvidence
 //   FlakeVerdict
 //   FoldResult
+//   KNOWN_EVENT_KINDS
 //   KnownEventKind
 //   LedgerCalibrationEpoch
 //   LooseEvent
@@ -278,6 +279,14 @@ const KNOWN_KIND_STATE = {
 } as const satisfies Record<string, CursorState>;
 
 export type KnownEventKind = keyof typeof KNOWN_KIND_STATE;
+
+/**
+ * Exhaustive known-kind list, definitionally the keys of KNOWN_KIND_STATE.
+ * Completeness regressions must import this export (not parse source — F10).
+ */
+export const KNOWN_EVENT_KINDS: readonly KnownEventKind[] = Object.freeze(
+  Object.keys(KNOWN_KIND_STATE) as KnownEventKind[],
+);
 
 /**
  * Deliberate resolvers for paused-pending-approval (A21.1 / correction 41).

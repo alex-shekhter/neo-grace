@@ -1514,3 +1514,35 @@ modules, so both proceed without overlap. The new bundle must also update the pa
 **Recorded as a rule, not just a reversal:** when a finding is assigned to a later phase, the
 justification must be a *dependency or a conflict*, never a topic match. If the later phase would
 have to write the same words anyway, the assignment is a delay with no benefit.
+
+### F17 — Skill text has two derived measurements, and no skill-touching plan has ever declared them. **[verified]**
+
+`C-EXECUTION-CONTRACT` added a `<cursor_kinds>` block to `ngrace-execute/SKILL.md` and immediately
+broke two things outside its `ObservedWriteScope`:
+
+| File | What it holds | Blocking? |
+|---|---|---|
+| `src/test-support/token-accounting.test.ts` | D15's skill-line budget, pinned at `730` | **yes** — `validate:ci` fails |
+| `README.md:286` | a published measurements table stating **730 lines** | no — and worse for it |
+
+**The first is not a brittle test and should not be filed with F11.1.** D15's pin is a *deliberate
+budget ledger* for skill footprint, carrying a comment history of every phase that moved the number
+(`636 → 648 → 650 → 651 … → 730`). Bumping it with a reason is the designed workflow, not a
+workaround. The defect is only that the plan did not anticipate a step the repository has taken nine
+times before.
+
+**The second is the one that matters.** A published README table asserting `730 lines` is a claim to
+users, and it is false the moment this bundle lands. It is not CI-blocking, which is precisely why it
+would have survived — *"not blocking"* is how a false number stays published. D11 rejected exactly
+this reasoning one bundle ago: **not-blocking is not a justification, it is a description of who will
+notice.**
+
+**Disposition — both edited now, as authorized scope exceptions** (F11.1's precedent). Neither is
+discretionary: one fails CI, and the other publishes a wrong measurement. Recording the exception is
+honest; leaving either is not.
+
+**The durable rule, which is what this finding is for:** *skill text has derived measurements.* Any
+bundle that changes a `SKILL.md` must declare `src/test-support/token-accounting.test.ts` and
+`README.md` in `ObservedWriteScope`, and update both with a reason. That belongs in plan review as a
+standing question — **what else states a fact about the thing I am changing?** — which is F16's
+lesson (*an assertion is a claim with a lifetime*) reaching a second surface.

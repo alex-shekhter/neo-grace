@@ -22,6 +22,7 @@ import {
   FIX_ATTEMPT_BUDGET,
   foldEpoch,
   formatCursorPosition,
+  KNOWN_EVENT_KINDS,
   lastResolvingResumeId,
   listAccountingEvents,
   listLedgerEvents,
@@ -37,6 +38,7 @@ import {
   resumeCursor,
   showCursor,
   type ChangedFileEvidence,
+  type KnownEventKind,
   type WriteEvidenceSnapshot,
 } from "./grace-cursor";
 import { collectProjectStatus, formatStatusText } from "./grace-status";
@@ -2574,4 +2576,82 @@ describe("C-CALIBRATION-COMMAND-EVIDENCE T-002: fold joins command-run evidence"
     }
   });
 });
+
+/**
+ * Collect `<kind id="…">` values that are children of a `<cursor_kinds>` block.
+ * Kinds outside the block do not count (AC-KIND-COMPLETENESS-TIED-TO-CODE).
+ * Incidental English, backticks, or headings without that element do not match.
+ */
+function parseSkillCursorKindIds(skillMarkdown: string): string[] {
+  const blockMatch = skillMarkdown.match(/<cursor_kinds>([\s\S]*?)<\/cursor_kinds>/);
+  if (!blockMatch) return [];
+  const ids: string[] = [];
+  for (const match of blockMatch[1].matchAll(/<kind\s+id="([^"]+)"\s*>/g)) {
+    ids.push(match[1]!);
+  }
+  return ids;
+}
+
+describe("KNOWN_EVENT_KINDS export and ngrace-execute completeness (C-EXECUTION-CONTRACT)", () => {
+  it("exports a frozen list definitionally tied to KNOWN_KIND_STATE keys", () => {
+    // Import-only: does not parse grace-cursor.ts source (F10 / AC-EXPORT-MINIMAL).
+    expect(Object.isFrozen(KNOWN_EVENT_KINDS)).toBe(true);
+    expect(KNOWN_EVENT_KINDS.length).toBeGreaterThan(0);
+    const seen = new Set<string>();
+    for (const kind of KNOWN_EVENT_KINDS) {
+      expect(seen.has(kind)).toBe(false);
+      seen.add(kind);
+      const resolved = cursorStateForEventKind(kind);
+      expect("state" in resolved).toBe(true);
+    }
+    // Denominator is the export alone — currently 9 keys of KNOWN_KIND_STATE.
+    expect(KNOWN_EVENT_KINDS.length).toBe(9);
+    expect([...KNOWN_EVENT_KINDS]).toEqual([
+      "opened",
+      "progress",
+      "resume",
+      "attempt",
+      "verification-unavailable",
+      "command-run",
+      "pause",
+      "terminal",
+      "escalation",
+    ]);
+  });
+
+  it("ngrace-execute documents every exported kind with a structural <kind id> marker", () => {
+    // Sole denominator: imported KNOWN_EVENT_KINDS (not a fixed string list, not a source parse).
+    // Adding a tenth key to KNOWN_KIND_STATE without a skill marker fails this suite.
+    // A check that only greps for "terminal" or parses grace-cursor.ts would fail AC-KIND-COMPLETENESS-TIED-TO-CODE.
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const skillPath = path.join(repoRoot, "skills/ngrace/ngrace-execute/SKILL.md");
+    const skill = readFileSync(skillPath, "utf8");
+    const documented = parseSkillCursorKindIds(skill);
+    const documentedSet = new Set(documented);
+    const missing = KNOWN_EVENT_KINDS.filter((kind) => !documentedSet.has(kind));
+    const exportSet = new Set<string>(KNOWN_EVENT_KINDS);
+    const extras = documented.filter((id) => !exportSet.has(id));
+    const duplicateIds = documented.filter((id, index) => documented.indexOf(id) !== index);
+
+    // F12.2: report missing count and missing kind ids — not a bare expect(false).
+    expect({
+      missingCount: missing.length,
+      missing,
+      denominator: KNOWN_EVENT_KINDS.length,
+      extras,
+      duplicateIds,
+    }).toEqual({
+      missingCount: 0,
+      missing: [],
+      denominator: KNOWN_EVENT_KINDS.length,
+      extras: [],
+      duplicateIds: [],
+    });
+
+    for (const kind of KNOWN_EVENT_KINDS) {
+      expect(documented.filter((id) => id === kind)).toHaveLength(1);
+    }
+  });
+});
+
 

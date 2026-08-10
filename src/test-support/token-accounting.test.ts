@@ -9,7 +9,7 @@ import {
 } from "./token-accounting";
 
 describe("token-accounting (D15)", () => {
-  it("skillTextLines().total reports 730 for SKILL.md files at HEAD", () => {
+  it("skillTextLines().total reports 779 for SKILL.md files at HEAD", () => {
     // Phase 2: three skills each gained a four-line <verdicts> block (636 → 648).
     // Phase 3: ngrace-cli cursor surface line + ngrace-execute advance/fold rule (648 → 650).
     // Phase 4: ngrace-execute attempt/budget/escalation rule (650 → 651).
@@ -22,8 +22,9 @@ describe("token-accounting (D15)", () => {
     // Phase 8: ngrace-cli context --task/--skills line; execute preflight extended in-place (723 → 724).
     // Phase 9: ngrace-execute claimedConfidence + calibration promotion bar (724 → 728).
     // 6.1.0 docs pass: ngrace-cli gains gate/review/doctor and lint --explain lines (728 → 730).
+    // C-EXECUTION-CONTRACT: ngrace-execute <cursor_kinds> protocol block (730 → 779; measured).
     const measured = skillTextLines();
-    expect(measured.total).toBe(730);
+    expect(measured.total).toBe(779);
     expect(measured.perSkill["ngrace-fix"]).toBe(32);
     expect(Object.keys(measured.perSkill).length).toBe(16);
     // Sanity: known skills present

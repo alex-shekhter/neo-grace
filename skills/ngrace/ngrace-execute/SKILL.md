@@ -44,6 +44,55 @@ Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires
 11. Never edit approved assertions/scopes/tasks in place, bypass stale evidence, or continue through unknown drift.
 </execution_rules>
 
+<cursor_kinds>
+  <kind id="opened">
+    When: open a new epoch at the start of execution (`ngrace cursor advance --task T-NNN --open-epoch`). Do not pass `--from`/`--to` unless you have a measured allocation need; never pass a task id as a bound.
+    Meaning / state: records the epoch open and range allocation; cursor stays `in-progress`.
+    How to emit: `ngrace cursor advance --change C-ID --task T-NNN --open-epoch`.
+  </kind>
+  <kind id="progress">
+    When: mark task start or completion (or other non-terminal structural progress) during the open epoch.
+    Meaning / state: structural progress event; cursor stays `in-progress`. Default kind for `cursor advance` when `--kind` is omitted.
+    How to emit: `ngrace cursor advance --change C-ID --task T-NNN` (optionally `--kind progress`).
+  </kind>
+  <kind id="resume">
+    When: continue after a pause, or clear a per-task unresolved escalation after a replan decision allows work to continue.
+    Meaning / state: cursor returns to `in-progress`. A resume for a task also clears that task from the unresolved-escalation set.
+    How to emit: `ngrace cursor resume --change C-ID --task T-NNN` (or `ngrace cursor advance --change C-ID --task T-NNN --kind resume`).
+  </kind>
+  <kind id="attempt">
+    When: every verification cycle for a task — including intentional red-first runs meant to fail.
+    Meaning / state: records pass|fail against the fix budget; cursor stays `in-progress`. Two failed attempts exhaust the budget and require escalation (not a third attempt).
+    How to emit: `ngrace cursor attempt --change C-ID --task T-NNN --outcome pass|fail` (add `--signature-kind` and `--signature-key` on fail). Do not use `cursor advance --kind attempt`.
+    Ordering for honest red-first (F9.8): write `ngrace cursor attempt --outcome fail` in its **own tool round trip**, then perform the production edit, then record pass — not in the same batched tool call as the fix. Reason: `WriteEvidence` digests `ObservedWriteScope` at attempt command time, so a fail attempt batched with the fix snapshots a tree that already contains the fix and cannot corroborate the sequence. Failure shape: `review.attempt-pair-unsubstantiated` on fail→pass pairs with no non-test digest movement. An honest disclosed gap is cheap; an unsubstantiated contradiction is not. Never stage a retrospective red (`git stash` → record fail → unstash).
+  </kind>
+  <kind id="verification-unavailable">
+    When: verification cannot run (environment, tooling, or other blocker) — not when it ran and failed.
+    Meaning / state: records that evidence could not be collected; does not count against the fix budget; cursor stays `in-progress`.
+    How to emit: `ngrace cursor verification-unavailable --change C-ID --task T-NNN --reason …`. Never an attempt and never silence.
+  </kind>
+  <kind id="command-run">
+    When: durable evidence of a MustPassCommand (or budget) evaluation is recorded by the harness/CLI after opted-in command execution.
+    Meaning / state: command-evaluation evidence event; cursor stays `in-progress`. Agents do not invent this kind by hand for ordinary task progress — it is emitted when command evidence is written into the run stream.
+    How to emit: produced by the CLI/harness path that appends command-run evidence (e.g. lint `--run-commands`); not a substitute for `cursor attempt`.
+  </kind>
+  <kind id="pause">
+    When: work is interrupted and must stop mid-epoch without closing the epoch (await operator, context switch, or other pause).
+    Meaning / state: cursor becomes `paused`. Distinct from escalation's `paused-pending-approval`.
+    How to emit: `ngrace cursor pause --change C-ID --task T-NNN` (or `ngrace cursor advance --change C-ID --task T-NNN --kind pause`). Resume later with kind `resume`.
+  </kind>
+  <kind id="terminal">
+    When: the epoch's work is finished and you are ready to fold. Emit terminal **before** `ngrace cursor fold`.
+    Meaning / state: cursor becomes `complete` for the terminated range. Fold requires a terminal event **inside the covering allocation range**; the CLI blocks fold with an unterminated-range error otherwise.
+    How to emit: the **operator** emits it (`ngrace cursor advance --change C-ID --task T-NNN --kind terminal`) when judging the work finished. Emitting terminal is a judgment about completion, not structural state the binary can derive — `recover --fix` does **not** emit terminal (it only extends covering allocations).
+  </kind>
+  <kind id="escalation">
+    When: two failed attempts have exhausted the fix budget and work must stop for a replan decision.
+    Meaning / state: cursor becomes `paused-pending-approval` — a pause awaiting replan, not a task-failure outcome.
+    How to emit: `ngrace cursor advance --change C-ID --task T-NNN --kind escalation` after the second failed attempt. Clear later with a deliberate `resume` for that task after the replan path allows continuation.
+  </kind>
+</cursor_kinds>
+
 <verdicts>
 Report the value the CLI emitted. Never summarize an absence into a pass. Shared vocabulary: `references/verdicts.md` under ngrace-cli (do not restate tokens here).
 </verdicts>
