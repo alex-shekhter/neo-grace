@@ -889,3 +889,41 @@ commented allowlist, reported to the authority, not mass-authored.
 
 The spec is amended before approval, not after. Its `AC-ATTEMPT-PAIR-FINDING` currently assumes a new
 review code can simply be emitted; that assumption is false at HEAD.
+
+#### F10.3 — The cross-bundle overlap check does exist. F10.2 claimed it did not. **[verified]**
+
+Observed 2026-08-10, the moment `C-CURSOR-INTEGRITY`'s plan was approved. Lint immediately reported:
+
+```
+[warning] scope.durable-overlap — C-TOKEN-INTEGRITY overlaps C-CURSOR-INTEGRITY
+          durable scope: M-LINT-CATALOG, V-M-LINT-CATALOG.
+```
+
+F10.2 justified the carve-out partly on the grounds that *"no cross-bundle `ObservedWriteScope`
+overlap check exists in the tool, so this is a discipline the authority imposed."* **That is wrong,
+and it was wrong when written.** Two checks exist (`src/artifact/scope.ts`):
+
+| Check | Severity | When it runs |
+|---|---|---|
+| `scope.durable-overlap` (`:244`) | warning | routine lint, over every approved pair |
+| `scope.parallel-durable-overlap` (`:260`) plus an `observedWriteOverlaps` test | **error** | `detectUnsafeConcurrentExecution` — explicit parallel preflight only |
+
+So overlap between approved bundles is reported by default, and overlapping *observed writes* are a
+blocking error when two bundles are staged to run concurrently.
+
+**The disposition is unchanged, and better supported than the argument that produced it.** The
+overlap is real, authorized, temporary, and now *visible to the tool* rather than only to a reader of
+this document — which is the shape this whole track prefers: detection at warning severity, cleared
+by a recorded decision. The warning stands until `C-TOKEN-INTEGRITY` archives, and it should stand;
+suppressing it would hide a true statement.
+
+**One operational consequence, which F10.2 missed entirely.** The two bundles must **never** be run
+as an explicit parallel wave — `detectUnsafeConcurrentExecution` would fail on both the durable
+overlap and the shared `src/lint/catalog.test.ts`. Sequential execution is unaffected, and
+parallelism *within* `C-CURSOR-INTEGRITY` (T-001, T-002, T-007 are disjoint) is unaffected. It is
+only the cross-bundle wave that is forbidden, and it was never planned.
+
+**Pattern worth naming.** Three times now the authority has asserted a fact about the tool from
+reasoning and been corrected by running it: the `:470` citation (F8.2), the epoch counter (F8.2), and
+this. Every one was cheap to check. The rule this earns: **an authority claim about what the code
+does gets probed before it is written down**, exactly as findings do.

@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="draft">
+<NgraceChangePlan graceVersion="1.0" status="approved">
   <C-CURSOR-INTEGRITY>
     <IntentSummary>
       RM-GOVERNED-PATH P0.4, P0.6, P0.10 and D8.8: refuse invalid epoch bounds, invent
