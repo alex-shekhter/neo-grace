@@ -1442,3 +1442,34 @@ knowingly corrupt ledger, where the artifact itself was wrong, and the close pro
 **The authority's error is worth keeping.** Reading a tool's complaint as evidence that the artifact
 is wrong is the natural move, and here it was backwards: a ratified correction said the artifact was
 right and one audit had not been taught it. *A finding names a disagreement, not a culprit.*
+
+#### F12.2 — The terminal-event count in F12 was invented, and the authority's error has a shape
+
+F12 claimed *"six of six archived bundles carrying a `run-ledger.xml` have a terminal event."*
+Measured now: **10 of 17**. Seven archived ledgers have no terminal at all.
+
+**How the wrong number was produced.** The authority ran a `grep -c` over archived ledgers, piped it
+through `grep -v ":0" | head`, counted the six rows that printed, and reported them as *six of six*.
+**The denominator was never measured.** A command that lists only matches cannot report a ratio, and
+a `head` makes even the numerator provisional.
+
+**What survives and what does not.** F12's substance stands: a `terminal` is required to fold
+(`validateEventsAgainstAllocations`), the execution contract never mentions it, and the gap was hit
+live, twice, by executors following that contract. **The universality claim does not** — *"present in
+every bundle that ever closed"* is false. The seven without one almost certainly predate the fold
+path or were closed by hand, consistent with F1's finding that 16 of 16 archived bundles carried a
+hand-written `applied` and three had no ledger at all.
+
+**The shape of the authority's errors is now specific enough to act on.** F10.3 already set the rule
+— *an authority claim about what the code does gets probed before it is written down.* Every
+violation since has been the same narrower mistake: **a numerator observed and a denominator
+assumed.** The `:470` citation, the `epochs=0` attribution, the cross-bundle overlap check, the
+pending count, and this one all took a partial listing for a complete population.
+
+**The sharpened rule: never report a ratio, a count, or an "every" from a command whose output was
+filtered or truncated.** Measure the denominator with its own command, or state only what was
+actually seen. A finding that says *"six rows matched"* is worth more than one that says *"six of
+six"* and is wrong.
+
+This one was caught by the derivation agent, reading a prompt in which the authority had repeated the
+bad number.
