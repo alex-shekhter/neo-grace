@@ -15,8 +15,8 @@ context: ./decisions.md
 
 **Target repository:** `neo-grace` (`@neograce/cli`, 6.1.1 at `f340a98`)
 **Audience:** the maintainer deciding whether to schedule this, then an executor coding agent
-**Authority:** [decisions.md](./decisions.md) records seven ratified decisions (D1–D7) and five
-findings (F1–F5); [review.md](./review.md) carries the evidence, the root-cause analysis, and the
+**Authority:** [decisions.md](./decisions.md) records seven ratified decisions (D1–D7) and seven
+findings (F1–F7); [review.md](./review.md) carries the evidence, the root-cause analysis, and the
 merge record of the two source consolidations. `review.md` frames the questions, `decisions.md`
 answers them, this plan orders and specifies the work. Where this plan and either companion
 disagree, **this plan wins.**

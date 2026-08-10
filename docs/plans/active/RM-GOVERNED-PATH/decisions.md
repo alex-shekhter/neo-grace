@@ -159,6 +159,76 @@ regression must go through the **lint surface** instead: assert that `change.tas
 fires for `<DependsOn><T-999 /></DependsOn>` and `change.task-self-dependency` for the self case.
 Both are silent today and both must fire after D7. That test proves more and is actually writable.
 
+### F6 — The gate's own write is reported as unexplained drift, and the fix suggested is a new bundle. **[verified]**
+
+Observed 2026-08-09, seconds after `ngrace gate approve --change C-TOKEN-INTEGRITY` returned
+`permit`. The gate wrote `run-ledger.xml`. `ngrace status` then reported:
+
+```
+Observed Drift
+- Changed files: 1
+- Explained by active approved changes: 0
+- Unexplained: 1
+- unexplained: .ngrace/changes/active/C-TOKEN-INTEGRITY/run-ledger.xml
+
+Suggested Next Action
+- Use $ngrace-refresh to reconcile unexplained repository changes through a new
+  NgraceChangeSpec and NgraceChangePlan.
+```
+
+Two accepted items reproduce here, in this repository, from this plan's own execution:
+
+- **P2.2** — the CLI wrote that file as part of the lifecycle step the operator just ran, and the
+  audit reports it as undeclared. Auditing the CLI's own writes against the agent's declared scope is
+  a category error, and this is the cleanest possible demonstration: the write and the complaint are
+  the same command, one second apart.
+- **P2.6** — the recommended remedy is to open **a new change bundle** to explain a file the tool
+  itself produced while gating the current bundle. Follow it and the result is a reconciliation
+  bundle for nothing. This is the mechanism behind the corpus's *13 mistakes, 8 change bundles,
+  3 reconciliation bundles*, caught in the act rather than reported after the fact.
+
+Recorded because it upgrades P2.2 and P2.6 from corpus testimony to a dated, in-repo reproduction
+with an exact command sequence. **No action now** — both are P2 items and the phase order stands;
+this is evidence, not a schedule change.
+
+### F7 — The approval act is indistinguishable from tampering until it is committed. **[verified]**
+
+Observed 2026-08-09, immediately after setting `plan.xml` to `status="approved"` on maintainer
+approval — the sanctioned authored transition (D1: `draft → approved` stays authored).
+
+`collectApprovedContractDrift` (`src/grace-status.ts:589–597`) flags a bundle when spec **and** plan
+are both `approved` *and* either file appears in the git-tracked changed set. The approval edit is
+itself that change, so `ngrace status` reported:
+
+```
+C-TOKEN-INTEGRITY … states=approved-contract-drift
+
+Suggested Next Action
+- Hard stop: an approved spec.xml or plan.xml changed. Restore it or supersede and
+  replan through a new C-* bundle.
+```
+
+**The rule is right and the timing is wrong.** It exists to catch editing an approved plan in place —
+corpus mistakes #9 and #11, and the incentive `plan amend` (P3.2) is designed to remove. But it
+cannot distinguish *the approval* from *tampering after approval*, so it fires on the legitimate act
+during the window between approving and committing.
+
+**The advice is actively harmful in that window.** An agent following it literally would revert the
+approval it was just given, or open a superseding bundle for a change that has not started. Both
+destroy work; the correct action is simply `git commit`. Verified: committing the approval clears the
+state.
+
+**Two consequences.**
+
+1. *For P2.6.* "Honest nextAction" must not be implemented as a blanket *never recommend committing*.
+   That rule is right for **unexplained drift** and exactly wrong here — for approved-contract-drift
+   arising from the approval itself, committing **is** the honest recommendation. The distinction is
+   the state, not the verb.
+2. *For P3.1 and E6/RC-3.* "Commit immediately after approving, or status will tell you to undo it"
+   is unwritten folklore of precisely the kind `lifecycle finish` exists to eliminate. Approval is
+   not currently in that command's scope; whether it should be is a P3 question, recorded here so it
+   is asked rather than rediscovered.
+
 ---
 
 ## D1 — The tool is the only sanctioned writer of `approved → applied`
