@@ -1190,3 +1190,26 @@ allocation set — a superseding `opened`, an explicit supersedes reference, or 
 reads the newest covering allocation as authoritative. **One constraint on that choice:** a design
 that makes fold ignore unterminated ranges generally would delete a real check. The older range must
 stop mattering because it was *superseded*, not because termination stopped being required.
+
+#### F9.6 — The recurring red-first gap is structural, not carelessness
+
+Third occurrence, `C-RECOVER-FOLDABLE` T-002 and T-003: the executor wrote failing tests for all
+three tasks, ran **one** suite, recorded a single `fail` attempt against T-001, and then had only
+`pass` attempts to record for the other two. Disclosed voluntarily, as in F9.4.
+
+The pattern across three bundles is the same and the cause is now clear. **`cursor attempt` attributes
+an outcome to exactly one task, and a test suite covers many.** When one `bun test` run turns seven
+assertions red across three tasks, the ledger can honestly own that red for one task only. The other
+two are not lazy omissions — there is no honest event to write, because the run that failed was not
+theirs alone.
+
+This is **F9.5's limitation seen from the producer side.** F9.5 found that a bundle-wide
+`ObservedWriteScope` cannot attribute a digest change to a task's claim. The same missing attribution
+appears here: a bundle-wide verification run cannot attribute a failure to a task's claim either.
+Both are the same absent concept — **per-task scope** — and neither is fixable inside the check.
+
+**No disposition beyond recording it.** Fabricating per-task reds by splitting one suite into three
+staged runs would produce three ledger entries that look better and mean less. The honest gap, stated
+each time, is the correct output of the current model. If a later phase wants per-task attempt
+attribution it needs per-task verification scope in `plan.xml` first — a schema change, and the same
+prerequisite F9.5 named.

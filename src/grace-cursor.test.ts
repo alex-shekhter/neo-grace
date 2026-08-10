@@ -2065,3 +2065,271 @@ describe("recover --fix and auto-open (C-CURSOR-INTEGRITY T-005 / P0.6 / D8.2 / 
 function collectAllocationsSafe(bundlePath: string) {
   return listLooseEvents(bundlePath).flatMap((e) => e.allocations ?? []);
 }
+
+// ---------------------------------------------------------------------------
+// C-RECOVER-FOLDABLE T-001 / T-002 / T-003 — F13 effective-range supersession
+// ---------------------------------------------------------------------------
+
+/** Live F13 damaged shape (C-TOKEN-INTEGRITY snapshot): dead w0:[1,19], terminal@20, NaN orphan. */
+function seedDamagedTokenShape(root: string, changeId = "C-RUN"): string {
+  const bundle = seedBundle(root, changeId);
+  const runDir = path.join(bundle, "run");
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(
+    path.join(runDir, "NaN-T-001-opened.xml"),
+    `<NgraceRunEvent graceVersion="1.0" id="NaN" task="T-001" kind="opened"><Allocation worker="w0" from="NaN" to="NaN" /></NgraceRunEvent>`,
+  );
+  for (let id = 1; id <= 18; id += 1) {
+    writeFileSync(
+      path.join(runDir, `${id}-T-001-progress.xml`),
+      `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="progress"/>`,
+    );
+  }
+  // Dead covering opened — closed ceiling, no terminal in range (first --fix under F13).
+  writeFileSync(
+    path.join(runDir, "19-T-005-opened.xml"),
+    `<NgraceRunEvent graceVersion="1.0" id="19" task="T-005" kind="opened"><Allocation worker="w0" from="1" to="19" /></NgraceRunEvent>`,
+  );
+  writeFileSync(
+    path.join(runDir, "20-T-005-terminal.xml"),
+    `<NgraceRunEvent graceVersion="1.0" id="20" task="T-005" kind="terminal"/>`,
+  );
+  return bundle;
+}
+
+describe("C-RECOVER-FOLDABLE T-001: effective allocation supersession (F13 / D9 / D9.1)", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+
+  it("red-first F13: clean no-terminal shape — after --fix + operator terminal, fold was blocked", () => {
+    // Pre-fix property: writeCoveringOpened closed at openedId; terminal lands outside.
+    // After the product fix this test still documents the sequence and expects fold to succeed.
+    const root = createProject();
+    const bundle = seedF8Shape(root, { validIds: [1, 2, 3], withTerminal: false });
+    const nanPath = path.join(bundle, "run", "NaN-T-001-opened.xml");
+    const nanBefore = readFileSync(nanPath, "utf8");
+    const beforeFiles = new Map(
+      readdirSync(path.join(bundle, "run")).map((name) => [
+        name,
+        readFileSync(path.join(bundle, "run", name), "utf8"),
+      ]),
+    );
+
+    const fixed = recoverCursor(root, "C-RUN", { fix: "extend-allocation" });
+    expect(fixed.fixApplied).toBe(true);
+    // D9: no pre-existing run/* event file rewritten.
+    for (const [name, content] of beforeFiles) {
+      expect(readFileSync(path.join(bundle, "run", name), "utf8")).toBe(content);
+    }
+    // --fix must not emit terminal (A29.2 / F12).
+    expect(listLooseEvents(bundle).some((e) => e.kind === "terminal")).toBe(false);
+    const cover = fixed.validAllocations[0]!;
+    expect(cover.from).toBeLessThanOrEqual(1);
+    // Ceiling: max(covering requirement, openedId + 98)
+    const coveringOpened = listLooseEvents(bundle).find((e) => e.kind === "opened");
+    expect(coveringOpened).toBeDefined();
+    const openedId = coveringOpened!.id;
+    expect(cover.to).toBeGreaterThanOrEqual(openedId + 98);
+
+    // Operator terminal (not --fix).
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+    const folded = foldEpoch(root, "C-RUN");
+    expect(folded.applied).toBe(true);
+    expect(existsSync(nanPath)).toBe(true);
+    expect(readFileSync(nanPath, "utf8")).toBe(nanBefore);
+    const afterFold = recoverCursor(root, "C-RUN");
+    expect(afterFold.orphans.some((o) => o.name === "NaN-T-001-opened.xml" && o.recoverable === false)).toBe(true);
+  });
+
+  it("discriminating negative: sole live effective range without terminal still blocks fold", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, "1-T-001-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="99" /></NgraceRunEvent>`,
+    );
+    writeFileSync(
+      path.join(runDir, "2-T-001-progress.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="progress"/>`,
+    );
+    // No terminal — live effective range must still require termination.
+    expect(() => foldEpoch(root, "C-RUN")).toThrow(/unterminated/i);
+  });
+
+  it("D9 / LWW: dead prior allocation is superseded; no rewrite of recorded events", () => {
+    const root = createProject();
+    const bundle = seedDamagedTokenShape(root);
+    const deadPath = path.join(bundle, "run", "19-T-005-opened.xml");
+    const deadBefore = readFileSync(deadPath, "utf8");
+    const fixed = recoverCursor(root, "C-RUN", { fix: "extend-allocation" });
+    expect(fixed.fixApplied).toBe(true);
+    expect(readFileSync(deadPath, "utf8")).toBe(deadBefore);
+    // Effective set is the latest opened only — covering present, fold not blocked for dead range.
+    expect(fixed.coveringAllocation).toBe("present");
+    expect(fixed.foldBlocked).toBe(false);
+    expect(fixed.validAllocations).toHaveLength(1);
+    expect(fixed.validAllocations[0]!.to).toBeGreaterThanOrEqual(20);
+    // Raw stream still has two opened allocations on disk.
+    expect(collectAllocationsSafe(bundle).length).toBeGreaterThanOrEqual(2);
+    const folded = foldEpoch(root, "C-RUN");
+    expect(folded.applied).toBe(true);
+  });
+
+  it("flag honesty: --fix help still says extend-allocation and describes effective extend", () => {
+    const result = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "cursor", "recover", "--help"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const text = `${Buffer.from(result.stdout).toString("utf8")}\n${Buffer.from(result.stderr).toString("utf8")}`;
+    expect(result.exitCode).toBe(0);
+    expect(text).toMatch(/extend-allocation/i);
+    expect(text).toMatch(/effective/i);
+    expect(text).toMatch(/append|supersed/i);
+  });
+
+  it("auto-open shares writeCoveringOpened headroom (no carve-out)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    for (const [id, kind] of [
+      [1, "progress"],
+      [2, "progress"],
+      [3, "terminal"],
+    ] as const) {
+      writeFileSync(
+        path.join(runDir, `${id}-T-001-${kind}.xml`),
+        `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="${kind}"/>`,
+      );
+    }
+    const folded = foldEpoch(root, "C-RUN");
+    expect(folded.applied).toBe(true);
+    // Auto-open wrote a covering opened; its ceiling must include openedId+98 headroom.
+    // After fold, loose events are gone — inspect ledger Epoch Allocation.
+    const ledger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(ledger).toMatch(/Allocation[^>]*to="10[0-9]"|to="9[0-9]"/);
+    // openedId becomes 4 after events 1..3; to >= 4+98 = 102
+    expect(ledger).toMatch(/to="102"/);
+  });
+
+  it("carried D8.2: multi-worker recover --fix still refuses", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, "NaN-T-001-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="NaN" task="T-001" kind="opened"><Allocation worker="wA" from="NaN" to="NaN"/></NgraceRunEvent>`,
+    );
+    writeFileSync(
+      path.join(runDir, "NaN-T-002-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="NaN" task="T-002" kind="opened"><Allocation worker="wB" from="NaN" to="NaN"/></NgraceRunEvent>`,
+    );
+    writeFileSync(
+      path.join(runDir, "1-T-001-progress.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="progress"/>`,
+    );
+    expect(() => recoverCursor(root, "C-RUN", { fix: "extend-allocation" })).toThrow(
+      /multiple workers|multi-worker|explicit epoch/i,
+    );
+    expect(collectAllocationsSafe(bundle).length).toBe(0);
+  });
+
+  it("carried D8.3: orphan survives --fix and fold on clean path", () => {
+    const root = createProject();
+    const bundle = seedF8Shape(root, { validIds: [1, 2], withTerminal: false });
+    const nanPath = path.join(bundle, "run", "NaN-T-001-opened.xml");
+    const nanBefore = readFileSync(nanPath, "utf8");
+    recoverCursor(root, "C-RUN", { fix: "extend-allocation" });
+    expect(existsSync(nanPath)).toBe(true);
+    expect(recoverCursor(root, "C-RUN").orphans.some((o) => o.name.startsWith("NaN-"))).toBe(true);
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+    foldEpoch(root, "C-RUN");
+    expect(existsSync(nanPath)).toBe(true);
+    expect(readFileSync(nanPath, "utf8")).toBe(nanBefore);
+    expect(listRunOrphans(bundle).some((o) => o.name === "NaN-T-001-opened.xml")).toBe(true);
+  });
+});
+
+describe("C-RECOVER-FOLDABLE T-002: damaged-shape repair", () => {
+  it("red-first then green: dead w0:[1,19] + terminal@20 + NaN orphan folds after --fix", () => {
+    const root = createProject();
+    const bundle = seedDamagedTokenShape(root);
+    const nanPath = path.join(bundle, "run", "NaN-T-001-opened.xml");
+    const nanBefore = readFileSync(nanPath, "utf8");
+    const deadBefore = readFileSync(path.join(bundle, "run", "19-T-005-opened.xml"), "utf8");
+
+    const pre = recoverCursor(root, "C-RUN");
+    expect(pre.foldBlocked).toBe(true);
+    expect(pre.coveringAllocation).toBe("missing");
+    expect(pre.foldBlockReasons.some((r) => /outside|unterminated/i.test(r))).toBe(true);
+    expect(pre.orphans.some((o) => o.name === "NaN-T-001-opened.xml")).toBe(true);
+    expect(() => foldEpoch(root, "C-RUN")).toThrow(/outside|unterminated|Allocation/i);
+
+    const fixed = recoverCursor(root, "C-RUN", { fix: "extend-allocation" });
+    expect(fixed.fixApplied).toBe(true);
+    // D9: dead opened file unchanged; --fix did not rewrite it and did not emit another terminal.
+    expect(readFileSync(path.join(bundle, "run", "19-T-005-opened.xml"), "utf8")).toBe(deadBefore);
+    const terminals = listLooseEvents(bundle).filter((e) => e.kind === "terminal");
+    expect(terminals).toHaveLength(1);
+    expect(terminals[0]!.id).toBe(20);
+    expect(fixed.coveringAllocation).toBe("present");
+    expect(fixed.foldBlocked).toBe(false);
+    const cover = fixed.validAllocations[0]!;
+    const newOpened = listLooseEvents(bundle).filter((e) => e.kind === "opened").sort((a, b) => b.id - a.id)[0]!;
+    expect(cover.to).toBeGreaterThanOrEqual(Math.max(20, newOpened.id + 98));
+    expect(existsSync(nanPath)).toBe(true);
+    expect(recoverCursor(root, "C-RUN").orphans.some((o) => o.name === "NaN-T-001-opened.xml")).toBe(true);
+
+    const folded = foldEpoch(root, "C-RUN");
+    expect(folded.applied).toBe(true);
+    expect(existsSync(nanPath)).toBe(true);
+    expect(readFileSync(nanPath, "utf8")).toBe(nanBefore);
+    expect(listRunOrphans(bundle).some((o) => o.name === "NaN-T-001-opened.xml" && o.recoverable === false)).toBe(
+      true,
+    );
+  });
+});
+
+describe("C-RECOVER-FOLDABLE T-003: clean no-terminal E2E (no withTerminal pre-seed)", () => {
+  it("clean shape: --fix → operator terminal (with intervening progress) → fold; orphan survives", () => {
+    const root = createProject();
+    // Explicitly no terminal anywhere — withTerminal must not be used to satisfy this path.
+    const bundle = seedF8Shape(root, { validIds: [1, 2, 3], withTerminal: false });
+    expect(listLooseEvents(bundle).some((e) => e.kind === "terminal")).toBe(false);
+    const nanPath = path.join(bundle, "run", "NaN-T-001-opened.xml");
+    const nanBefore = readFileSync(nanPath, "utf8");
+
+    recoverCursor(root, "C-RUN", { fix: "extend-allocation" });
+    expect(listLooseEvents(bundle).some((e) => e.kind === "terminal")).toBe(false);
+    // Intervening work within headroom, then operator terminal.
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "progress" });
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+    const folded = foldEpoch(root, "C-RUN");
+    expect(folded.applied).toBe(true);
+    expect(existsSync(nanPath)).toBe(true);
+    expect(readFileSync(nanPath, "utf8")).toBe(nanBefore);
+    expect(listRunOrphans(bundle).some((o) => o.name === "NaN-T-001-opened.xml")).toBe(true);
+  });
+
+  it("regression bar: neither clean nor damaged path pre-seeds terminal inside pre-fix range", () => {
+    // Clean path uses withTerminal: false; damaged path places terminal outside dead [1,19].
+    const rootClean = createProject();
+    const clean = seedF8Shape(rootClean, { validIds: [1, 2, 3], withTerminal: false });
+    expect(listLooseEvents(clean).every((e) => e.kind !== "terminal")).toBe(true);
+
+    const rootDamaged = createProject();
+    const damaged = seedDamagedTokenShape(rootDamaged);
+    const preFixTerminals = listLooseEvents(damaged).filter((e) => e.kind === "terminal");
+    expect(preFixTerminals).toHaveLength(1);
+    expect(preFixTerminals[0]!.id).toBe(20);
+    // Terminal is outside the dead allocation [1,19] — not a withTerminal-inside-range seed.
+    const dead = listLooseEvents(damaged).find((e) => e.id === 19);
+    expect(dead?.allocations?.[0]).toEqual({ worker: "w0", from: 1, to: 19 });
+    expect(preFixTerminals[0]!.id).toBeGreaterThan(19);
+  });
+});
+

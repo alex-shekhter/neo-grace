@@ -594,9 +594,10 @@ export type RecoverDiagnosis = {
  * Without fix: never writes. Reports unrecoverable orphans, missing covering
  * allocation, integer loose-event range, and fold blocked reasons (T-004).
  *
- * With fix ("extend-allocation" / true): writes a ledger-visible covering
- * opened/Allocation spanning valid integer ids only; never deletes orphans
- * (D8.3 / F8.1). Multi-worker refuses (D8.2).
+ * With fix ("extend-allocation" / true): extends the *effective* covering
+ * allocation by appending a superseding opened/Allocation (D9 append-only,
+ * D9.1). Never rewrites recorded events; never deletes orphans (D8.3 / F8.1).
+ * Multi-worker refuses (D8.2). Never emits kind=terminal (A29.2 / F12).
  */
 export function recoverCursor(
   projectRoot: string,
@@ -614,7 +615,8 @@ export function recoverCursor(
       looseEventIds.length === 0
         ? null
         : { from: Math.min(...looseEventIds), to: Math.max(...looseEventIds) };
-    const validAllocations = collectAllocations(events);
+    // Effective set only (LWW per worker) — dead superseded ranges do not block.
+    const validAllocations = collectEffectiveAllocations(events);
     const coveringAllocation =
       validAllocations.length > 0
       && events.every((e) => validAllocations.some((a) => e.id >= a.from && e.id <= a.to))
@@ -651,7 +653,7 @@ export function recoverCursor(
     return buildDiagnosis(false);
   }
 
-  // --- --fix path (T-005); diagnose first so multi-worker refuse is loud ---
+  // --- --fix path; diagnose first so multi-worker refuse is loud ---
   const pre = buildDiagnosis(false);
   if (pre.looseEventIds.length === 0) {
     throw new GraceCommandError(
@@ -666,6 +668,8 @@ export function recoverCursor(
         + "multi-worker ranges must not be fabricated (D8.2). Open an explicit epoch with --worker bounds.",
     );
   }
+  // Only skip when the *effective* covering already includes every loose id.
+  // A dead prior allocation that leaves events outside is still fixable (F13).
   if (pre.coveringAllocation === "present") {
     return { ...pre, fixApplied: false };
   }
@@ -729,9 +733,16 @@ export function formatRecoverDiagnosis(diagnosis: RecoverDiagnosis): string {
 }
 
 /**
- * Write a covering opened/Allocation spanning [from, to] expanded to include the
- * new event id. Bounds are derived from inventory; the invocable recover --fix
- * (or auto-open caller) is the explicit apply (A29.2 / F1).
+ * Headroom matching openEpoch default `to = from + 98` (F13 / C-RECOVER-FOLDABLE).
+ * One slot is not enough: --fix often runs mid-repair and intervening events would
+ * push a later terminal outside a closed ceiling.
+ */
+const OPEN_EPOCH_DEFAULT_HEADROOM = 98;
+
+/**
+ * Write a covering opened/Allocation spanning the covering requirement, with ceiling
+ * max(requirement, openedId + 98). Shared by recover --fix and auto-open (no carve-out).
+ * Append-only (D9); never emits terminal (A29.2 / F12).
  */
 function writeCoveringOpened(
   bundlePath: string,
@@ -739,7 +750,8 @@ function writeCoveringOpened(
 ): { id: number; file: string; from: number; to: number } {
   const openedId = nextEventId(bundlePath);
   const from = Math.min(options.from, openedId);
-  const to = Math.max(options.to, openedId);
+  const coveringRequirementTo = Math.max(options.to, openedId);
+  const to = Math.max(coveringRequirementTo, openedId + OPEN_EPOCH_DEFAULT_HEADROOM);
   assertValidEpochBounds(from, to);
   writeEventFile(bundlePath, {
     id: openedId,
@@ -753,8 +765,9 @@ function writeCoveringOpened(
 
 /**
  * Single-controller auto-open (P0.6 / D8.2 / A29.2).
- * When loose integer events exist with no valid allocation and at most one
- * distinct worker value, synthesize a retroactive covering opened.
+ * When loose integer events exist with no *effective* allocation and at most one
+ * distinct worker value, synthesize a retroactive covering opened via writeCoveringOpened
+ * (same headroom as recover --fix — no carve-out).
  * Refuse when more than one worker appears — multi-worker ranges are never fabricated.
  */
 function maybeAutoOpenCoveringAllocation(
@@ -763,7 +776,7 @@ function maybeAutoOpenCoveringAllocation(
   events: LooseEvent[],
 ): void {
   if (events.length === 0) return;
-  if (collectAllocations(events).length > 0) return;
+  if (collectEffectiveAllocations(events).length > 0) return;
   const workers = collectDistinctWorkers(bundlePath, events);
   if (workers.length > 1) {
     throw new GraceCommandError(
@@ -1073,13 +1086,14 @@ export function foldEpoch(
     };
   }
 
-  let allocations = collectAllocations(events);
+  // Effective set only (LWW per worker) — superseded dead ranges do not validate (F13).
+  let allocations = collectEffectiveAllocations(events);
   if (allocations.length === 0) {
     // P0.6 / D8.2: single-controller auto-open — bounds derived from inventory;
     // fold is the explicit apply (A29.2 / F1). Multi-worker refuses.
     maybeAutoOpenCoveringAllocation(bundlePath, changeId, events);
     events = listLooseEvents(bundlePath);
-    allocations = collectAllocations(events);
+    allocations = collectEffectiveAllocations(events);
   }
   if (allocations.length === 0) {
     throw new GraceCommandError(
@@ -1089,6 +1103,7 @@ export function foldEpoch(
   }
 
   // Membership + density before write (fold owns validation — A11.2).
+  // Terminal required on every *live* effective range; not on superseded history.
   const membershipIssues = validateEventsAgainstAllocations(events, allocations);
   if (membershipIssues.length > 0) {
     throw new GraceCommandError("invalid-project", membershipIssues.join(" "));
@@ -2452,6 +2467,28 @@ function collectAllocations(events: LooseEvent[]): RangeAllocation[] {
   return fromOpened;
 }
 
+/**
+ * Effective covering allocations: last-writer-wins per worker (F13 / D9.1).
+ * For each worker, only the Allocation on the highest-id kind=opened that declares
+ * one for that worker participates in fold/recover membership and terminal checks.
+ * Older Allocations remain as historical Event payload and are not rewritten (D9).
+ */
+function collectEffectiveAllocations(events: LooseEvent[]): RangeAllocation[] {
+  const bestByWorker = new Map<string, { openedId: number; allocation: RangeAllocation }>();
+  for (const event of events) {
+    if (event.kind !== "opened" || !event.allocations || event.allocations.length === 0) continue;
+    for (const allocation of event.allocations) {
+      const prev = bestByWorker.get(allocation.worker);
+      if (!prev || event.id > prev.openedId) {
+        bestByWorker.set(allocation.worker, { openedId: event.id, allocation });
+      }
+    }
+  }
+  return [...bestByWorker.values()]
+    .sort((a, b) => a.openedId - b.openedId)
+    .map((entry) => entry.allocation);
+}
+
 function validateEventsAgainstAllocations(events: LooseEvent[], allocations: RangeAllocation[]): string[] {
   const issues: string[] = [];
   for (const event of events) {
@@ -3210,7 +3247,8 @@ export const cursorCommand = defineCommand({
         name: "recover",
         description:
           "Diagnose open-epoch inventory (orphans, covering allocation, fold blockers). "
-          + "Pass --fix to write a covering opened/Allocation for valid integer ids (never deletes orphans).",
+          + "Pass --fix to extend the effective covering allocation by appending a superseding "
+          + "opened/Allocation (extend-allocation; never rewrites recorded events; never deletes orphans).",
       },
       args: {
         path: { type: "string", alias: "p", description: "Project root", default: "." },
@@ -3218,7 +3256,9 @@ export const cursorCommand = defineCommand({
         fix: {
           type: "boolean",
           description:
-            "Write a ledger-visible covering opened/Allocation spanning valid loose integer ids (extend-allocation / create-covering). Never deletes orphans.",
+            "extend-allocation: extend the effective covering allocation by appending a "
+            + "superseding opened/Allocation (last-writer-wins per worker; ceiling "
+            + "max(requirement, openedId+98)). Never rewrites recorded events; never deletes orphans; never emits terminal.",
           default: false,
         },
         format: { type: "string", alias: "f", description: "text or json", default: "text" },
