@@ -54,7 +54,9 @@
 //   listLooseEvents
 //   listFilesChangedAgainstBase
 //   listRepositoryChangedFiles
+//   listRunOrphans
 //   listUnresolvedEscalatedTasks
+//   OrphanSkipClass
 //   parseCursorState
 //   parseEpochBoundArg
 //   pauseCursor
@@ -62,10 +64,14 @@
 //   recordAttempt
 //   recordCalibrationRestatement
 //   recordVerificationUnavailable
+//   RecoverDiagnosis
+//   recoverCursor
+//   formatRecoverDiagnosis
 //   regenerateCursor
 //   rejectAuthoredContextAttributes
 //   resolveChangeBundle
 //   resumeCursor
+//   RunOrphan
 //   showCursor
 //   snapshotWriteEvidence
 //   targetAssertionsClean
@@ -489,6 +495,335 @@ export function listLooseEvents(bundlePath: string): LooseEvent[] {
   return events.sort((a, b) => a.id - b.id);
 }
 
+/**
+ * Silent-skip classes that listLooseEvents drops (F8.2 / D8.7).
+ * - event-filename: name fails EVENT_FILENAME (e.g. NaN-T-001-opened.xml at :459)
+ * - invalid-id: name matches but XML id is non-integer or non-positive (:470)
+ */
+export type OrphanSkipClass = "event-filename" | "invalid-id";
+
+/**
+ * A run/ file that listLooseEvents necessarily drops. Parallel inventory only —
+ * never mixed into the ordered positive-integer primary list (D8.7).
+ */
+export type RunOrphan = {
+  /** Absolute path on disk. */
+  file: string;
+  /** Basename (e.g. NaN-T-001-opened.xml). */
+  name: string;
+  class: OrphanSkipClass;
+  /** Human-readable diagnosis; always unrecoverable as an event id. */
+  reason: string;
+  /** Raw id attribute when readable (invalid-id class). */
+  rawId?: string;
+  /** Always false today — no recoverable positive integer event id (D8.3). */
+  recoverable: false;
+};
+
+/**
+ * Parallel orphan inventory over run/ (D8.7 / F8.2).
+ * Reports both silent-skip classes without changing listLooseEvents' contract.
+ */
+export function listRunOrphans(bundlePath: string): RunOrphan[] {
+  const runDir = path.join(bundlePath, "run");
+  if (!existsSync(runDir)) return [];
+  const orphans: RunOrphan[] = [];
+  for (const name of readdirSync(runDir)) {
+    if (!name.endsWith(".xml")) continue;
+    const file = path.join(runDir, name);
+    const match = EVENT_FILENAME.exec(name);
+    if (!match) {
+      // Class 1 — EVENT_FILENAME miss (F8 live fixture: NaN-T-001-opened.xml).
+      orphans.push({
+        file,
+        name,
+        class: "event-filename",
+        reason:
+          `unrecoverable orphan: filename ${JSON.stringify(name)} does not match `
+          + `{id}-{T-NNN}-{kind}.xml with a positive integer event id; no recoverable event id`,
+        recoverable: false,
+      });
+      continue;
+    }
+    const idFromName = Number(match[1]);
+    const parsed = readGraceXmlArtifact(file);
+    const rawId = parsed.root?.attributes.id;
+    const id = rawId !== undefined && rawId !== "" ? Number(rawId) : idFromName;
+    if (Number.isInteger(id) && id > 0) continue;
+    // Class 2 — well-named file whose XML id fails the positive-integer guard (:470).
+    orphans.push({
+      file,
+      name,
+      class: "invalid-id",
+      reason:
+        `unrecoverable orphan: file ${JSON.stringify(name)} matches EVENT_FILENAME but `
+        + `id=${JSON.stringify(rawId ?? String(id))} is not a positive integer event id; no recoverable event id`,
+      rawId: rawId ?? String(id),
+      recoverable: false,
+    });
+  }
+  return orphans.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Diagnosis (and optional --fix result) for cursor recover (P0.6 / T-004–T-005).
+ * Fields are stable for CLI text and JSON consumers.
+ */
+export type RecoverDiagnosis = {
+  changeId: string;
+  orphans: RunOrphan[];
+  looseEventIds: number[];
+  /** Inclusive range over positive-integer loose events, or null when none. */
+  looseEventRange: { from: number; to: number } | null;
+  validAllocations: RangeAllocation[];
+  /** Whether a valid Allocation covers every loose integer event id. */
+  coveringAllocation: "present" | "missing";
+  foldBlocked: boolean;
+  foldBlockReasons: string[];
+  /** Distinct worker values observed on Allocation nodes (loose + ledger). */
+  workers: string[];
+  /** True only after recover --fix wrote a covering opened. */
+  fixApplied: boolean;
+  /** Path of the covering opened file when fixApplied. */
+  coveringOpenedFile?: string;
+};
+
+/**
+ * Diagnose (default) or repair (fix) a change's open epoch inventory.
+ *
+ * Without fix: never writes. Reports unrecoverable orphans, missing covering
+ * allocation, integer loose-event range, and fold blocked reasons (T-004).
+ *
+ * With fix ("extend-allocation" / true): writes a ledger-visible covering
+ * opened/Allocation spanning valid integer ids only; never deletes orphans
+ * (D8.3 / F8.1). Multi-worker refuses (D8.2).
+ */
+export function recoverCursor(
+  projectRoot: string,
+  changeId: string,
+  options: { fix?: boolean | "extend-allocation" } = {},
+): RecoverDiagnosis {
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const wantFix = options.fix === true || options.fix === "extend-allocation";
+
+  const buildDiagnosis = (fixApplied: boolean, coveringOpenedFile?: string): RecoverDiagnosis => {
+    const orphans = listRunOrphans(bundlePath);
+    const events = listLooseEvents(bundlePath);
+    const looseEventIds = events.map((e) => e.id);
+    const looseEventRange =
+      looseEventIds.length === 0
+        ? null
+        : { from: Math.min(...looseEventIds), to: Math.max(...looseEventIds) };
+    const validAllocations = collectAllocations(events);
+    const coveringAllocation =
+      validAllocations.length > 0
+      && events.every((e) => validAllocations.some((a) => e.id >= a.from && e.id <= a.to))
+        ? "present"
+        : "missing";
+    const reasons: string[] = [];
+    if (events.length === 0) {
+      reasons.push(
+        orphans.length > 0
+          ? "no valid loose integer events (orphans only)"
+          : "no loose run/ events to fold",
+      );
+    } else if (validAllocations.length === 0) {
+      reasons.push("missing valid covering allocation");
+    } else {
+      reasons.push(...validateEventsAgainstAllocations(events, validAllocations));
+    }
+    return {
+      changeId,
+      orphans,
+      looseEventIds,
+      looseEventRange,
+      validAllocations,
+      coveringAllocation,
+      foldBlocked: reasons.length > 0,
+      foldBlockReasons: reasons,
+      workers: collectDistinctWorkers(bundlePath, events),
+      fixApplied,
+      coveringOpenedFile,
+    };
+  };
+
+  if (!wantFix) {
+    return buildDiagnosis(false);
+  }
+
+  // --- --fix path (T-005); diagnose first so multi-worker refuse is loud ---
+  const pre = buildDiagnosis(false);
+  if (pre.looseEventIds.length === 0) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `recover --fix: no valid loose integer events for ${changeId}; cannot derive allocation bounds.`,
+    );
+  }
+  if (pre.workers.length > 1) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `recover --fix refused: multiple workers ${JSON.stringify(pre.workers)} — `
+        + "multi-worker ranges must not be fabricated (D8.2). Open an explicit epoch with --worker bounds.",
+    );
+  }
+  if (pre.coveringAllocation === "present") {
+    return { ...pre, fixApplied: false };
+  }
+
+  const worker = pre.workers[0] ?? "w0";
+  const loose = listLooseEvents(bundlePath);
+  const task = loose[loose.length - 1]?.task ?? "T-001";
+  const covering = writeCoveringOpened(bundlePath, {
+    worker,
+    task,
+    from: pre.looseEventRange!.from,
+    to: pre.looseEventRange!.to,
+  });
+  return buildDiagnosis(true, covering.file);
+}
+
+/** Format recover diagnosis for CLI text output. */
+export function formatRecoverDiagnosis(diagnosis: RecoverDiagnosis): string {
+  const lines: string[] = [
+    "neo-grace cursor recover",
+    `Change: ${diagnosis.changeId}`,
+    `Fix applied: ${diagnosis.fixApplied ? "yes" : "no"}`,
+    "",
+    `Orphans: ${diagnosis.orphans.length}`,
+  ];
+  if (diagnosis.orphans.length === 0) {
+    lines.push("  (none)");
+  } else {
+    for (const orphan of diagnosis.orphans) {
+      lines.push(
+        `  - ${orphan.name} [${orphan.class}] unrecoverable orphan: no recoverable event id`
+        + (orphan.rawId !== undefined ? ` (id=${JSON.stringify(orphan.rawId)})` : ""),
+      );
+      lines.push(`    ${orphan.reason}`);
+    }
+  }
+  lines.push("");
+  if (diagnosis.looseEventRange) {
+    lines.push(
+      `Loose integer events: ${diagnosis.looseEventRange.from}..${diagnosis.looseEventRange.to}`
+      + ` (count=${diagnosis.looseEventIds.length}, ids=${diagnosis.looseEventIds.join(",")})`,
+    );
+  } else {
+    lines.push("Loose integer events: (none)");
+  }
+  lines.push(
+    `Valid covering allocation: ${diagnosis.coveringAllocation}`
+    + (diagnosis.validAllocations.length > 0
+      ? ` (${diagnosis.validAllocations.map((a) => `${a.worker}:${a.from}-${a.to}`).join(", ")})`
+      : " — missing valid covering allocation"),
+  );
+  lines.push(
+    `Fold: ${diagnosis.foldBlocked ? "blocked" : "ok"}`
+    + (diagnosis.foldBlockReasons.length > 0 ? ` (${diagnosis.foldBlockReasons.join("; ")})` : ""),
+  );
+  lines.push(`Workers: ${diagnosis.workers.length > 0 ? diagnosis.workers.join(", ") : "(none)"}`);
+  if (diagnosis.coveringOpenedFile) {
+    lines.push(`Covering opened: ${diagnosis.coveringOpenedFile}`);
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+/**
+ * Write a covering opened/Allocation spanning [from, to] expanded to include the
+ * new event id. Bounds are derived from inventory; the invocable recover --fix
+ * (or auto-open caller) is the explicit apply (A29.2 / F1).
+ */
+function writeCoveringOpened(
+  bundlePath: string,
+  options: { worker: string; task: string; from: number; to: number },
+): { id: number; file: string; from: number; to: number } {
+  const openedId = nextEventId(bundlePath);
+  const from = Math.min(options.from, openedId);
+  const to = Math.max(options.to, openedId);
+  assertValidEpochBounds(from, to);
+  writeEventFile(bundlePath, {
+    id: openedId,
+    task: options.task,
+    kind: "opened",
+    allocations: [{ worker: options.worker, from, to }],
+  });
+  const file = path.join(bundlePath, "run", `${openedId}-${options.task}-opened.xml`);
+  return { id: openedId, file, from, to };
+}
+
+/**
+ * Single-controller auto-open (P0.6 / D8.2 / A29.2).
+ * When loose integer events exist with no valid allocation and at most one
+ * distinct worker value, synthesize a retroactive covering opened.
+ * Refuse when more than one worker appears — multi-worker ranges are never fabricated.
+ */
+function maybeAutoOpenCoveringAllocation(
+  bundlePath: string,
+  changeId: string,
+  events: LooseEvent[],
+): void {
+  if (events.length === 0) return;
+  if (collectAllocations(events).length > 0) return;
+  const workers = collectDistinctWorkers(bundlePath, events);
+  if (workers.length > 1) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Cannot fold ${changeId}: no Allocation found, and auto-open refused — multiple workers `
+        + `${JSON.stringify(workers)}. Multi-worker ranges must not be fabricated (D8.2); `
+        + "open an explicit epoch with --worker bounds, or recover --fix after collapsing to one controller.",
+    );
+  }
+  const worker = workers[0] ?? "w0";
+  const ids = events.map((e) => e.id);
+  const from = Math.min(...ids);
+  const to = Math.max(...ids);
+  const task = events[events.length - 1]?.task ?? "T-001";
+  writeCoveringOpened(bundlePath, { worker, task, from, to });
+}
+
+/** Distinct worker values on Allocation nodes in loose events and folded ledger. */
+function collectDistinctWorkers(bundlePath: string, looseEvents: LooseEvent[]): string[] {
+  const workers = new Set<string>();
+  for (const event of looseEvents) {
+    for (const child of event.children) {
+      if (child.tag !== "Allocation") continue;
+      const w = child.attributes.worker?.trim();
+      if (w) workers.add(w);
+    }
+  }
+  // Also scan orphan opened files for worker attributes (NaN allocation still names w0).
+  for (const orphan of listRunOrphans(bundlePath)) {
+    try {
+      const parsed = readGraceXmlArtifact(orphan.file);
+      if (!parsed.root) continue;
+      for (const child of parsed.root.children) {
+        if (child.tag !== "Allocation") continue;
+        const w = child.attributes.worker?.trim();
+        if (w) workers.add(w);
+      }
+    } catch {
+      // unreadable orphan — skip worker extraction
+    }
+  }
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (existsSync(ledgerPath)) {
+    const artifact = readGraceXmlArtifact(ledgerPath);
+    if (artifact.root) {
+      const walk = (nodes: GraceXmlNode[]) => {
+        for (const node of nodes) {
+          if (node.tag === "Allocation") {
+            const w = node.attributes.worker?.trim();
+            if (w) workers.add(w);
+          }
+          if (node.children.length > 0) walk(node.children);
+        }
+      };
+      walk(artifact.root.children);
+    }
+  }
+  return [...workers].sort();
+}
+
 /** Show position: never writes; recovers rather than blocks (A11.5). */
 export function showCursor(projectRoot: string, changeId: string): CursorPosition {
   const root = path.resolve(projectRoot);
@@ -720,7 +1055,7 @@ export function foldEpoch(
   } = {},
 ): FoldResult {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
-  const events = listLooseEvents(bundlePath);
+  let events = listLooseEvents(bundlePath);
   if (events.length === 0) {
     // Idempotent re-fold: nothing loose → success with last epoch if any.
     const ledgerEpochs = readLedgerEpochNumbers(bundlePath);
@@ -738,11 +1073,18 @@ export function foldEpoch(
     };
   }
 
-  const allocations = collectAllocations(events);
+  let allocations = collectAllocations(events);
+  if (allocations.length === 0) {
+    // P0.6 / D8.2: single-controller auto-open — bounds derived from inventory;
+    // fold is the explicit apply (A29.2 / F1). Multi-worker refuses.
+    maybeAutoOpenCoveringAllocation(bundlePath, changeId, events);
+    events = listLooseEvents(bundlePath);
+    allocations = collectAllocations(events);
+  }
   if (allocations.length === 0) {
     throw new GraceCommandError(
       "invalid-arguments",
-      `Cannot fold ${changeId}: no Allocation found (emit an opened event with Allocation children first).`,
+      `Cannot fold ${changeId}: no Allocation found (emit an opened event with Allocation children first, or recover --fix).`,
     );
   }
 
@@ -2595,7 +2937,7 @@ export const cursorCommand = defineCommand({
   meta: {
     name: "cursor",
     description:
-      "Run ledger and cursor: show, regenerate, advance, attempt, verification-unavailable, pause, resume, fold.",
+      "Run ledger and cursor: show, regenerate, advance, attempt, verification-unavailable, pause, resume, fold, recover.",
   },
   subCommands: {
     show: defineCommand({
@@ -2861,6 +3203,35 @@ export const cursorCommand = defineCommand({
           if (format === "json") process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
           else process.stdout.write(formatFoldResult(result));
         }, "Unable to complete ngrace cursor fold.");
+      },
+    }),
+    recover: defineCommand({
+      meta: {
+        name: "recover",
+        description:
+          "Diagnose open-epoch inventory (orphans, covering allocation, fold blockers). "
+          + "Pass --fix to write a covering opened/Allocation for valid integer ids (never deletes orphans).",
+      },
+      args: {
+        path: { type: "string", alias: "p", description: "Project root", default: "." },
+        change: { type: "string", description: "C-* change id", required: true },
+        fix: {
+          type: "boolean",
+          description:
+            "Write a ledger-visible covering opened/Allocation spanning valid loose integer ids (extend-allocation / create-covering). Never deletes orphans.",
+          default: false,
+        },
+        format: { type: "string", alias: "f", description: "text or json", default: "text" },
+      },
+      async run(context) {
+        const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
+        await runGraceCommand(format, () => {
+          const diagnosis = recoverCursor(String(context.args.path ?? "."), requireChangeId(context.args), {
+            fix: Boolean(context.args.fix) ? "extend-allocation" : false,
+          });
+          if (format === "json") process.stdout.write(`${JSON.stringify(diagnosis, null, 2)}\n`);
+          else process.stdout.write(formatRecoverDiagnosis(diagnosis));
+        }, "Unable to complete ngrace cursor recover.");
       },
     }),
   },

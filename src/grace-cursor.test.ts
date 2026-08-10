@@ -25,11 +25,13 @@ import {
   listAccountingEvents,
   listLedgerEvents,
   listLooseEvents,
+  listRunOrphans,
   listUnresolvedEscalatedTasks,
   parseCursorState,
   readAttemptPayload,
   recordAttempt,
   recordVerificationUnavailable,
+  recoverCursor,
   regenerateCursor,
   resumeCursor,
   showCursor,
@@ -1712,3 +1714,354 @@ describe("numeric epoch bounds (C-CURSOR-INTEGRITY T-002 / P0.4)", () => {
     expect(listRunFiles(root2).length).toBeGreaterThan(0);
   });
 });
+
+/**
+ * F8.1-shaped fixture: NaN-* opened (EVENT_FILENAME :459 class) + valid loose
+ * integer events + optional well-named invalid-id file (:470 class). Temp only.
+ */
+function seedF8Shape(
+  root: string,
+  options: {
+    changeId?: string;
+    withInvalidIdFile?: boolean;
+    withTerminal?: boolean;
+    validIds?: number[];
+  } = {},
+): string {
+  const changeId = options.changeId ?? "C-RUN";
+  const bundle = seedBundle(root, changeId);
+  const runDir = path.join(bundle, "run");
+  mkdirSync(runDir, { recursive: true });
+  // Live F8 shape — no recoverable event id.
+  writeFileSync(
+    path.join(runDir, "NaN-T-001-opened.xml"),
+    `<NgraceRunEvent graceVersion="1.0" id="NaN" task="T-001" kind="opened"><Allocation worker="w0" from="NaN" to="NaN" /></NgraceRunEvent>`,
+  );
+  const validIds = options.validIds ?? [1, 2, 3];
+  for (const id of validIds) {
+    const kind = id === validIds[0] ? "progress" : id === validIds[validIds.length - 1] && options.withTerminal ? "terminal" : "progress";
+    writeFileSync(
+      path.join(runDir, `${id}-T-001-${kind}.xml`),
+      `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="${kind}"/>`,
+    );
+  }
+  if (options.withInvalidIdFile) {
+    // Well-named file (:459 match) whose XML id fails the positive-integer guard (:470).
+    writeFileSync(
+      path.join(runDir, "99-T-001-progress.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="abc" task="T-001" kind="progress"/>`,
+    );
+  }
+  return bundle;
+}
+
+describe("orphan inventory both skip classes (C-CURSOR-INTEGRITY T-003 / D8.7 / F8.2)", () => {
+  it("listLooseEvents alone is blind to NaN-* and to well-named invalid-id files", () => {
+    const root = createProject();
+    const bundle = seedF8Shape(root, { withInvalidIdFile: true, validIds: [1, 2] });
+    const loose = listLooseEvents(bundle);
+    expect(loose.map((e) => e.id)).toEqual([1, 2]);
+    expect(loose.some((e) => String(e.id) === "NaN")).toBe(false);
+    expect(loose.some((e) => e.file.includes("NaN-"))).toBe(false);
+    expect(loose.some((e) => e.file.includes("99-T-001"))).toBe(false);
+  });
+
+  it("AC-ORPHAN-BOTH-SKIPS: listRunOrphans reports EVENT_FILENAME miss (NaN-*) and invalid-id", () => {
+    const root = createProject();
+    const bundle = seedF8Shape(root, { withInvalidIdFile: true, validIds: [1, 2] });
+    const orphans = listRunOrphans(bundle);
+    const byClass = Object.fromEntries(orphans.map((o) => [o.class, o]));
+    expect(orphans.length).toBeGreaterThanOrEqual(2);
+    expect(byClass["event-filename"]).toBeDefined();
+    expect(byClass["event-filename"]!.name).toBe("NaN-T-001-opened.xml");
+    expect(byClass["event-filename"]!.recoverable).toBe(false);
+    expect(byClass["event-filename"]!.reason).toMatch(/event id|filename|recoverable/i);
+    expect(byClass["invalid-id"]).toBeDefined();
+    expect(byClass["invalid-id"]!.name).toBe("99-T-001-progress.xml");
+    expect(byClass["invalid-id"]!.recoverable).toBe(false);
+    expect(byClass["invalid-id"]!.rawId).toBe("abc");
+  });
+
+  it("discriminating negative: :470-only inventory misses NaN-* (event-filename class required)", () => {
+    const root = createProject();
+    const bundle = seedF8Shape(root, { withInvalidIdFile: true, validIds: [1] });
+    const orphans = listRunOrphans(bundle);
+    // A reader that only checked positive-integer id after EVENT_FILENAME match
+    // would report invalid-id but not NaN-*. Both classes must be present.
+    expect(orphans.some((o) => o.class === "event-filename" && o.name.startsWith("NaN-"))).toBe(true);
+    expect(orphans.some((o) => o.class === "invalid-id")).toBe(true);
+  });
+
+  it("discriminating negative: :459-only inventory misses well-named non-integer id", () => {
+    const root = createProject();
+    const bundle = seedF8Shape(root, { withInvalidIdFile: true, validIds: [1] });
+    const orphans = listRunOrphans(bundle);
+    // A reader that only flagged EVENT_FILENAME misses would report NaN-* but not 99-*.
+    expect(orphans.some((o) => o.class === "invalid-id" && o.name === "99-T-001-progress.xml")).toBe(true);
+    expect(orphans.some((o) => o.class === "event-filename")).toBe(true);
+  });
+
+  it("D8.7: listLooseEvents primary list stays ordered positive-integer only (unchanged contract)", () => {
+    const root = createProject();
+    const bundle = seedF8Shape(root, { withInvalidIdFile: true, validIds: [3, 1, 2] });
+    const loose = listLooseEvents(bundle);
+    expect(loose.map((e) => e.id)).toEqual([1, 2, 3]);
+    // Orphans are not mixed into the primary list.
+    for (const event of loose) {
+      expect(Number.isInteger(event.id) && event.id > 0).toBe(true);
+    }
+    const orphanNames = new Set(listRunOrphans(bundle).map((o) => o.name));
+    expect(orphanNames.has("NaN-T-001-opened.xml")).toBe(true);
+    expect(orphanNames.has("99-T-001-progress.xml")).toBe(true);
+    expect(loose.every((e) => !orphanNames.has(path.basename(e.file)))).toBe(true);
+  });
+});
+
+describe("cursor recover diagnose (C-CURSOR-INTEGRITY T-004 / P0.6)", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+
+  function cliRecover(root: string, changeId = "C-RUN", extra: string[] = []) {
+    return Bun.spawnSync({
+      cmd: [
+        process.execPath,
+        "./src/grace.ts",
+        "cursor",
+        "recover",
+        "--change",
+        changeId,
+        "--path",
+        root,
+        ...extra,
+      ],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+  }
+
+  it("AC-RECOVER-DIAGNOSE: subcommand exists and reports F8.1 shape on a temp copy", () => {
+    const root = createProject();
+    seedF8Shape(root, { validIds: [1, 2, 3], withTerminal: false });
+    const result = cliRecover(root);
+    const stdout = Buffer.from(result.stdout).toString("utf8");
+    const stderr = Buffer.from(result.stderr).toString("utf8");
+    const combined = `${stdout}\n${stderr}`;
+    // Diagnose is informational; exit 0 with a report a reviewer can run.
+    expect(result.exitCode).toBe(0);
+    expect(combined).toMatch(/unrecoverable orphan/i);
+    expect(combined).toMatch(/NaN-T-001-opened\.xml/);
+    expect(combined).toMatch(/no recoverable event id/i);
+    expect(combined).toMatch(/missing|no valid|covering allocation/i);
+    expect(combined).toMatch(/1\s*[.…]{1,3}\s*3|from=1.*to=3|1\.\.3|range.*1.*3/i);
+    expect(combined).toMatch(/fold.*block/i);
+  });
+
+  it("AC-RECOVER-DIAGNOSE: library diagnosis fields are stable for JSON consumers", () => {
+    const root = createProject();
+    seedF8Shape(root, { validIds: [1, 2, 3] });
+    const diagnosis = recoverCursor(root, "C-RUN");
+    expect(diagnosis.fixApplied).toBe(false);
+    expect(diagnosis.orphans.some((o) => o.name === "NaN-T-001-opened.xml" && o.recoverable === false)).toBe(true);
+    expect(diagnosis.coveringAllocation).toBe("missing");
+    expect(diagnosis.looseEventRange).toEqual({ from: 1, to: 3 });
+    expect(diagnosis.looseEventIds).toEqual([1, 2, 3]);
+    expect(diagnosis.foldBlocked).toBe(true);
+    expect(diagnosis.foldBlockReasons.some((r) => /allocation/i.test(r))).toBe(true);
+  });
+
+  it("does not mutate the temp run/ on diagnose (and never touches live C-TOKEN)", () => {
+    const root = createProject();
+    const bundle = seedF8Shape(root, { validIds: [1, 2] });
+    const before = readdirSync(path.join(bundle, "run")).sort();
+    const nanBefore = readFileSync(path.join(bundle, "run", "NaN-T-001-opened.xml"), "utf8");
+    recoverCursor(root, "C-RUN");
+    expect(readdirSync(path.join(bundle, "run")).sort()).toEqual(before);
+    expect(readFileSync(path.join(bundle, "run", "NaN-T-001-opened.xml"), "utf8")).toBe(nanBefore);
+  });
+});
+
+describe("recover --fix and auto-open (C-CURSOR-INTEGRITY T-005 / P0.6 / D8.2 / D8.3)", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+
+  function cliRecoverFix(root: string, changeId = "C-RUN") {
+    return Bun.spawnSync({
+      cmd: [
+        process.execPath,
+        "./src/grace.ts",
+        "cursor",
+        "recover",
+        "--change",
+        changeId,
+        "--fix",
+        "--path",
+        root,
+      ],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+  }
+
+  it("AC-RECOVER-FIX-PRESERVES-ORPHAN: --fix covers valid ids; NaN-* stays on disk and diagnosed; fold succeeds", () => {
+    const root = createProject();
+    const bundle = seedF8Shape(root, { validIds: [1, 2, 3], withTerminal: true });
+    const nanPath = path.join(bundle, "run", "NaN-T-001-opened.xml");
+    const nanBefore = readFileSync(nanPath, "utf8");
+
+    // Pre-fix diagnosis: missing covering allocation, orphan visible, fold blocked for allocation.
+    const pre = recoverCursor(root, "C-RUN");
+    expect(pre.coveringAllocation).toBe("missing");
+    expect(pre.foldBlocked).toBe(true);
+    expect(pre.foldBlockReasons.some((r) => /allocation/i.test(r))).toBe(true);
+    expect(pre.orphans.some((o) => o.name === "NaN-T-001-opened.xml")).toBe(true);
+    expect(collectAllocationsSafe(bundle)).toHaveLength(0);
+
+    // --fix writes covering allocation for valid integer stream only (A29.2: derived bounds).
+    const fixed = recoverCursor(root, "C-RUN", { fix: "extend-allocation" });
+    expect(fixed.fixApplied).toBe(true);
+    expect(fixed.coveringAllocation).toBe("present");
+    expect(fixed.validAllocations.length).toBeGreaterThan(0);
+    const cover = fixed.validAllocations[0]!;
+    expect(cover.from).toBeLessThanOrEqual(1);
+    expect(cover.to).toBeGreaterThanOrEqual(3);
+
+    // D8.3 / F8.1: orphan still on disk with identical bytes.
+    expect(existsSync(nanPath)).toBe(true);
+    expect(readFileSync(nanPath, "utf8")).toBe(nanBefore);
+    // And recover still reports it as unrecoverable orphan (deletion would pass a weaker bar).
+    const after = recoverCursor(root, "C-RUN");
+    expect(after.orphans.some((o) => o.name === "NaN-T-001-opened.xml" && o.recoverable === false)).toBe(true);
+    expect(after.orphans.some((o) => o.class === "event-filename")).toBe(true);
+
+    // Valid stream is foldable; fold must not require the orphan as a member.
+    const folded = foldEpoch(root, "C-RUN");
+    expect(folded.applied).toBe(true);
+    expect(folded.eventCount).toBeGreaterThanOrEqual(3);
+    // Orphan survives fold of the valid stream (fold only deletes listLooseEvents files).
+    expect(existsSync(nanPath)).toBe(true);
+    expect(readFileSync(nanPath, "utf8")).toBe(nanBefore);
+  });
+
+  it("AC-RECOVER-FIX: auto-open on fold also leaves NaN-* orphan on disk (F8.1 single-controller)", () => {
+    const root = createProject();
+    const bundle = seedF8Shape(root, { validIds: [1, 2, 3], withTerminal: true });
+    const nanPath = path.join(bundle, "run", "NaN-T-001-opened.xml");
+    const nanBefore = readFileSync(nanPath, "utf8");
+    // F8.1 is single-controller (worker w0 on the NaN allocation only) → fold auto-opens.
+    const folded = foldEpoch(root, "C-RUN");
+    expect(folded.applied).toBe(true);
+    expect(existsSync(nanPath)).toBe(true);
+    expect(readFileSync(nanPath, "utf8")).toBe(nanBefore);
+    expect(listRunOrphans(bundle).some((o) => o.name === "NaN-T-001-opened.xml")).toBe(true);
+  });
+
+  it("AC-RECOVER-FIX-PRESERVES-ORPHAN: CLI --fix leaves NaN-* and still diagnoses it", () => {
+    const root = createProject();
+    const bundle = seedF8Shape(root, { validIds: [1, 2], withTerminal: true });
+    const nanPath = path.join(bundle, "run", "NaN-T-001-opened.xml");
+    const result = cliRecoverFix(root);
+    expect(result.exitCode).toBe(0);
+    const text = `${Buffer.from(result.stdout).toString("utf8")}\n${Buffer.from(result.stderr).toString("utf8")}`;
+    expect(text).toMatch(/Fix applied:\s*yes/i);
+    expect(existsSync(nanPath)).toBe(true);
+    const again = cliRecoverFix(root); // second call: covering already present, still diagnose
+    // Diagnose path (without needing fix) — use library
+    const diag = recoverCursor(root, "C-RUN");
+    expect(diag.orphans.some((o) => o.name.startsWith("NaN-"))).toBe(true);
+    expect(again.exitCode).toBe(0);
+  });
+
+  it("AC-AUTO-OPEN-SINGLE-CONTROLLER: fold synthesizes covering opened when single worker", () => {
+    const root = createProject();
+    // No opened, no NaN — pure loose progress without allocation (single-controller).
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    for (const [id, kind] of [
+      [1, "progress"],
+      [2, "progress"],
+      [3, "terminal"],
+    ] as const) {
+      writeFileSync(
+        path.join(runDir, `${id}-T-001-${kind}.xml`),
+        `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="${kind}"/>`,
+      );
+    }
+    // Pre-fix: fold fails without allocation / auto-open.
+    // After fix: fold auto-opens single-controller covering allocation and succeeds.
+    const folded = foldEpoch(root, "C-RUN");
+    expect(folded.applied).toBe(true);
+    expect(folded.eventCount).toBeGreaterThanOrEqual(3);
+  });
+
+  it("AC-AUTO-OPEN multi-worker: recover --fix refuses when >1 distinct worker", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    // No valid covering allocation; two worker names appear on broken opened-like files
+    // that still contribute worker identity via Allocation attributes.
+    writeFileSync(
+      path.join(runDir, "NaN-T-001-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="NaN" task="T-001" kind="opened"><Allocation worker="wA" from="NaN" to="NaN"/></NgraceRunEvent>`,
+    );
+    writeFileSync(
+      path.join(runDir, "NaN-T-002-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="NaN" task="T-002" kind="opened"><Allocation worker="wB" from="NaN" to="NaN"/></NgraceRunEvent>`,
+    );
+    writeFileSync(
+      path.join(runDir, "1-T-001-progress.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="progress"/>`,
+    );
+    writeFileSync(
+      path.join(runDir, "2-T-001-terminal.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="terminal"/>`,
+    );
+    let threw: Error | undefined;
+    try {
+      recoverCursor(root, "C-RUN", { fix: "extend-allocation" });
+    } catch (error) {
+      threw = error as Error;
+    }
+    expect(threw).toBeDefined();
+    expect(threw!.message).toMatch(/multiple workers|multi-worker|explicit epoch/i);
+    // Valid stream still unallocated.
+    expect(collectAllocationsSafe(bundle).length).toBe(0);
+  });
+
+  it("AC-AUTO-OPEN multi-worker: fold refuses auto-open when >1 distinct worker", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, "NaN-T-001-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="NaN" task="T-001" kind="opened"><Allocation worker="alpha" from="NaN" to="NaN"/></NgraceRunEvent>`,
+    );
+    writeFileSync(
+      path.join(runDir, "NaN-T-002-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="NaN" task="T-002" kind="opened"><Allocation worker="beta" from="NaN" to="NaN"/></NgraceRunEvent>`,
+    );
+    writeFileSync(
+      path.join(runDir, "1-T-001-progress.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="progress"/>`,
+    );
+    writeFileSync(
+      path.join(runDir, "2-T-001-terminal.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="terminal"/>`,
+    );
+    let threw: Error | undefined;
+    try {
+      foldEpoch(root, "C-RUN");
+    } catch (error) {
+      threw = error as Error;
+    }
+    expect(threw).toBeDefined();
+    expect(threw!.message).toMatch(/Allocation|multiple workers|multi-worker|explicit/i);
+  });
+});
+
+/** Test helper: allocations visible to listLooseEvents (valid opened only). */
+function collectAllocationsSafe(bundlePath: string) {
+  return listLooseEvents(bundlePath).flatMap((e) => e.allocations ?? []);
+}
