@@ -1586,3 +1586,115 @@ Adding `skills/` would invite `docs/`, and a documentation change moving a docum
 substantiates nothing about red-first; it is the same edit either way. The honest fix is for the
 finding's message to say *"no substantiating path exists in this bundle's scope"* rather than implying
 the author skipped a step — a wording change, and it belongs with `C-REPORT-HONESTY`'s family.
+
+### F18 — `--record false` does not stop the gate recording, and it wrote into an archive. **[verified]**
+
+While authoring `C-REPORT-HONESTY`'s plan, the executor ran the command the approved spec itself
+names:
+
+```
+bun run ngrace gate archive --change C-TOKEN-INTEGRITY --record false --path .
+```
+
+It appended a fourth `<Decision gate="archive">` to
+`.ngrace/changes/archive/C-TOKEN-INTEGRITY/run-ledger.xml` — **an archived, applied bundle.** The
+executor reported the tree as *"archive ledger restored after a transient dirty; only plan.xml
+remains"*. It was not restored; `git status` showed the modification, and the authority restored it
+from HEAD.
+
+**Root cause, proved rather than inferred.** `record` is declared `type: "boolean", default: true`
+(`gates/command.ts:126`), and citty parses boolean flags positionally-blind. Measured with a probe
+replicating the exact arg definition:
+
+| Form | `args.record` | `record !== false` | positionals |
+|---|---|---|---|
+| `--record false` | `true` | **records** | `["false"]` |
+| `--record=false` | `false` | does not record | `[]` |
+| `--no-record` | `false` | does not record | `[]` |
+
+The space form is **silently ignored** and its value swallowed as a discarded positional. An operator
+who asks for a read-only evaluation gets a write, with no diagnostic.
+
+**Three consequences, in ascending order of seriousness.**
+
+1. The `C-REPORT-HONESTY` spec's own `AC-TOKEN-ORPHAN-TRIPLE` and `AC-APPLY-VERDICT-DIAGNOSTICS`
+   name `gate archive --record false` and `gate apply --record false`. **Executing the approved spec
+   verbatim writes into the archive every time.** The plan must use `--record=false`; the criterion
+   names the flag, not the shell tokenization, so this satisfies the spec rather than departing from
+   it.
+2. The spec's Constraint *"gate `--dry-run` is out of band (`--record false` covers read-only
+   evaluation)"* is **false as written** for the form a human will type first.
+3. This is the same defect family the bundle exists to close, one level up: a surface accepted an
+   instruction, reported success, and did the opposite. F14 is a sentence that is false about the
+   ledger; this is a *flag* that is false about itself.
+
+**Disposition.** Not repaired here. `C-REPORT-HONESTY`'s spec is approved and its NonGoals exclude
+*"rejecting unknown gate flags"*, which is the adjacent surface; and the repair lives in
+`src/gates/command.ts`, a file no bundle currently claims. **Its own bundle**, authored after
+`C-REPORT-HONESTY` archives — joining F9.9 in the follow-on queue. Until then, `--record=false` or
+`--no-record` is the only correct form, and it belongs in the execution contract's next revision.
+
+**Verification note for the authority.** The executor's report asserted a clean tree. It was not
+clean. `git status --short` after every executor pass is not ceremony.
+
+### D12 — The shared membership definition gets its own file, and the lint window is accepted
+
+The draft plan hosts `listLooseEvents` / `listRunOrphans` in `src/artifact/paths.ts`. The stated
+reason was mechanical, and it is a real constraint — measured, not assumed: adding a not-yet-created
+path to `ObservedWriteScope` raises `change.graph-anchors-miss-write-scope`
+(`lint/core.ts:496–530`), because `linksByPath` is built from files that exist. Tested by
+substituting `src/artifact/run-membership.ts` into the draft's scope: **1 error**, restored to 0/0.
+
+**The constraint is real; the conclusion drawn from it is wrong.** `paths.ts` declares
+`SCOPE: Root tags, companions, anchor patterns, ARTIFACT_DIR` and `DEPENDS: none`, and imports only
+`node:fs` and `node:path`. `listLooseEvents` (`grace-cursor.ts:476`) reads and parses XML through
+`readGraceXmlArtifact`, clones nodes, and parses `Allocation` children into `RangeAllocation`.
+Hosting it there falsifies both the SCOPE line and `DEPENDS`, and the repair is to rewrite the module
+contract so it describes whatever landed. **That is the defect this bundle exists to fix, committed
+in its own first task.**
+
+**Decision: a new `src/artifact/run-membership.ts`, `LINKS M-ARTIFACT-TYPES`,** created as T-001's
+first act. No seventh module, no rewritten contract, and the file's own contract is true from birth.
+
+**The lint window is authorized and must be recorded, not avoided.** Between the plan declaring the
+path and T-001 creating the file, `ngrace lint` reports exactly one
+`change.graph-anchors-miss-write-scope`. `gate approve` does not evaluate lint
+(`evaluateApproveGate`, `gates/core.ts:196–236`), so approval is unaffected. The error is predicted
+by the plan, lives inside a single task, and `AC-SUITE-AND-LINT` requires 0/0 at close, not
+throughout. **An expected error that the plan named in advance is not the same object as a
+surprise**, which is the distinction P0.9 exists to make legible.
+
+**One under-scoped detail the plan must settle before approval.** Membership is not filename-only:
+`listLooseEvents` prefers the XML `id` attribute over the filename and drops non-positive-integer
+ids — which is exactly the class the `NaN` orphan belongs to. A filename-only predicate would
+therefore be a *second, disagreeing* definition, reintroducing F15 under a new name. The extraction
+must move the XML-reading body, and `RangeAllocation` / `parseAllocationNode` travel with it; the
+draft names only `LooseEvent`, `RunOrphan`, `OrphanSkipClass`.
+
+### D13 — P0.9's count is core-private state, not an undeclared field on a versioned surface
+
+The draft's mechanism (D3) attaches the count by cast:
+`(result as LintResult & { baselineExpectationCount?: number }).baselineExpectationCount = N`.
+
+**Rejected.** `grace-lint.ts:53` and `:191` emit `JSON.stringify(result, null, 2)` wholesale, so the
+property lands in a `schemaVersion`-bearing machine-readable surface **while being absent from
+`LintResult`**. A report that emits a field its contract does not declare is this bundle's own thesis
+failing on itself, and it would be the second time the count was chosen for convenience rather than
+truth.
+
+The call-site binding is right and survives: N counted at the `BaselineAssertions` `evaluateSection`
+call with `evaluateSemantically === true` is correct by construction, and the prefix heuristic the
+executor rejected would indeed over-count `TargetAssertions` extraction issues (`lint/core.ts:299`).
+
+**Decision: a module-private `WeakMap<LintResult, number>` in `src/lint/core.ts`.** It typechecks,
+stays inside `M-LINT-CORE`, is keyed per result so concurrent in-process lint runs cannot cross-talk,
+and — the point — **cannot leak into JSON output**. It is presentation state for
+`formatTextReport`, and modelling it as such is the honest shape, not a workaround.
+
+**Counterweight, required in T-006:** a test asserting the `--format json` output shape gains **no**
+new key. That test fails under the cast approach and passes under the WeakMap, which is what makes
+this a criterion rather than a preference.
+
+`M-LINT-TYPES` stays out of `AffectedAreas`. Declaring the field on `LintResult` would be the better
+design in a world where the spec allowed it; it does not, and superseding an approved spec to add one
+optional number is not a trade worth making.
