@@ -229,6 +229,132 @@ state.
    not currently in that command's scope; whether it should be is a P3 question, recorded here so it
    is asked rather than rediscovered.
 
+### F8 — P0.4 fired during P0's own implementation, and every surface reported success. **[verified]**
+
+Observed 2026-08-09 while executing `C-TOKEN-INTEGRITY` T-001. The executor opened its epoch with:
+
+```
+ngrace cursor advance --open-epoch --from T-001 --to T-001
+```
+
+`--from` / `--to` are **event id bounds**, not task ids. `Number("T-001")` is `NaN`. The CLI **exited
+0** and printed `Epoch 1 opened, state in-progress`. On disk:
+
+```xml
+<!-- run/NaN-T-001-opened.xml -->
+<NgraceRunEvent graceVersion="1.0" id="NaN" task="T-001" kind="opened">
+  <Allocation worker="w0" from="NaN" to="NaN" /></NgraceRunEvent>
+```
+
+This is P0.4 — the defect this phase exists to fix — **fired by the agent implementing this phase,
+on its first command, from the exact intuition review.md §4.3 predicted** (`--from T-001` is the
+natural first guess). It is the strongest possible evidence for the item and it was not staged.
+
+**Every surface then reported health.**
+
+| Surface | Says |
+|---|---|
+| `cursor advance` | exit 0, "Epoch 1 opened" |
+| `ngrace lint --path .` | 0 errors, 0 warnings |
+| `ngrace status` | `epochs=0`, state `ready-to-execute` |
+| `run.xml` | `<Epoch>1</Epoch> <State>in-progress</State>` |
+| `cursor fold` | **"no Allocation found"** — dead end |
+
+Note the two-way inconsistency: `status` reports **zero epochs** while the cursor reports **epoch 1
+in-progress**, because the corrupt event is invisible to one reader and authoritative for the other.
+A corrupt audit trail, and the only surface that says so is the one you cannot reach.
+
+**Confirms P0.4 and P0.6 as specified, and adds a scope note:** the epoch counter's silent
+disagreement with `run.xml` is a third consumer of the same skipped-id logic
+(`listLooseEvents`, `:470`), and belongs with them in `C-CURSOR-INTEGRITY`.
+
+**Also corrects an authority error.** The derivation's contradiction 1 was accepted too broadly — see
+`review.md` §4.3. Its repro folded immediately after opening, so it hit *"No loose run/ events to
+fold"*; the realistic sequence does work first and hits *"no Allocation found"*, exactly as originally
+recorded. **A reproduction that omits the work step does not reproduce the workflow**, and the
+authority accepted it without noticing.
+
+#### F8.1 — Disposition of the corrupt epoch: do not repair it by hand
+
+The corpus's recorded remedy for this state is `rm -r run/` — deleting the audit trail to satisfy the
+audit gate. That is the antipattern, and it is not available here. Neither is hand-writing a
+replacement allocation: P0.6 requires the repair be *recorded and ledger-visible*, and a manual file
+edit is precisely the folklore this track removes.
+
+**Decision: leave the corrupt epoch in place.** It becomes the acceptance fixture for P0.6's
+`cursor recover --fix extend-allocation` — a real corrupt ledger produced by the real bug, rather
+than a synthetic one. Consequences:
+
+- **Nothing is blocked now.** `evaluateApplyGate` (`src/gates/core.ts:238`) requires only
+  `plan-present` and `review-verdict`; no fold is required. T-002–T-005 proceed normally, and further
+  cursor events are valid and will be covered by the eventual allocation.
+- **`C-TOKEN-INTEGRITY` must not archive until `cursor recover` exists.** Archiving a bundle whose
+  ledger is knowingly corrupt would bury exactly the kind of quiet dishonesty this track opposes.
+- **Sequencing changes accordingly:** `C-CURSOR-INTEGRITY` lands before `C-TOKEN-INTEGRITY` closes.
+  The two are file-disjoint, so this costs no rework — only ordering.
+
+---
+
+### F9 — The ledger's red-first record is not evidence of red-first, and its own digests prove it. **[verified]**
+
+Observed 2026-08-10 while verifying `C-TOKEN-INTEGRITY` T-002–T-004. Every `attempt` event carries a
+`<WriteEvidence>` block digesting each file in `ObservedWriteScope`. Comparing the recorded fail to
+the recorded pass:
+
+| Task | fail → pass | implementation file | digest at fail | digest at pass |
+|---|---|---|---|---|
+| T-001 | ev 2 → 3 | `src/project-utils.ts` | `1b2c38c5f22cae32` | `1b2c38c5f22cae32` |
+| T-002 | ev 6 → 7 | `src/artifact/grammar.ts` | `9376220ca2613ead` | `9376220ca2613ead` |
+| T-003 | — | `src/artifact/projections.ts` | *no fail attempt recorded* | |
+| T-004 | — | `src/artifact/grammar.ts` | *no fail attempt recorded* | |
+
+**In every recorded fail→pass pair the implementation file is byte-identical.** No source change
+occurred between the red and the green. For T-002 what changed between the two events was
+`grammar.test.ts` and `catalog.ts` — the test, not the fix.
+
+Worse, `9376220ca2613ead` and `609b15d383ac1d50` are the *current worktree* digests. So at event 6 —
+the earliest attempt of the session, recorded as T-002's red-first failure — the implementations of
+T-002, T-003 **and** T-004 were already complete and final.
+
+**The narrower claim, which is what matters.** This is not a finding that the executor fabricated its
+report; the observations it describes may well have happened in its terminal. The finding is that
+**the ledger cannot corroborate any of it, while reading as though it does.** The artifact the product
+asks people to trust records a sequence that did not occur in the order recorded. That is the thesis
+violation — *the agent cannot lie to the model* — committed through a sanctioned CLI, with every
+surface green.
+
+Note also that `ngrace-execute`'s red-first rule is, today, an honour-system instruction in prose.
+Nothing reads it back.
+
+#### F9.1 — Disposition: leave the ledger, do not stage a retrofit
+
+The tempting repair is to `git stash` the fix, re-run the tests, record a `fail`, and unstash. **That
+is forbidden, and for a sharper reason than F8.1's.** A staged red produces a ledger entry
+indistinguishable from a genuine one — it would launder the exact defect just discovered into
+evidence that looks sound. F8's corrupt epoch is at least honestly broken; a retrofitted attempt would
+be quietly false. Nor is `verification-unavailable` right: verification ran.
+
+**Decision: the events stand as written, and the truth lives here.** T-003 and T-004 have no recorded
+red; T-001's and T-002's recorded reds are not attributable to a fix. The tests themselves are
+genuine and were independently re-run by the authority (137 pass), so the *code* is fine — it is the
+*evidence chain* that is not.
+
+#### F9.2 — The product consequence: the check is already possible and simply absent
+
+`WriteEvidence` already records exactly what is needed. The rule is machine-evaluable from data the
+tool writes today:
+
+> For a `fail` → `pass` attempt pair on the same task, at least one **non-test** file within
+> `ObservedWriteScope` must differ in digest between the two events. If none does, the pass is not
+> attributable to a fix and must be reported as unsubstantiated.
+
+This converts red-first from prose discipline into a checked property, and it needs no new recording —
+only a reader. **Assigned to `C-CURSOR-INTEGRITY`**, which already owns ledger honesty (P0.4, P0.6,
+P0.8) and is already sequenced ahead of this bundle's closure. Severity is a design point for that
+bundle; the authority's recommendation is that `ngrace review` raise it as an error, since review is
+where evidence is judged, and that `cursor` itself stay quiet — a task legitimately passing first try
+must not be harassed at write time.
+
 ---
 
 ## D1 — The tool is the only sanctioned writer of `approved → applied`

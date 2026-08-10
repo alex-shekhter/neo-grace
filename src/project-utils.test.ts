@@ -249,6 +249,85 @@ describe("governed file analysis", () => {
     expect(noneDepends.dependsModuleIds).toEqual([]);
   });
 
+  // C-TOKEN-INTEGRITY T-001 / RM-GOVERNED-PATH P0.2 — reject, don't filter.
+  describe("LINKS/DEPENDS separators and unparsed-token errors (T-001)", () => {
+    function analyzeLinks(value: string) {
+      const root = mkdtempSync(path.join(os.tmpdir(), "grace-token-integrity-"));
+      const file = path.join(root, "src", "example.ts");
+      const text = contract("NONE").replace("LINKS: M-EXAMPLE", `LINKS: ${value}`);
+      return { record: parseGovernedFile(root, file, text), analysis: analyzeGovernedFile(root, file, text) };
+    }
+
+    function analyzeDepends(value: string) {
+      const root = mkdtempSync(path.join(os.tmpdir(), "grace-token-integrity-"));
+      const file = path.join(root, "src", "example.ts");
+      const text = contract("NONE").replace("DEPENDS: none", `DEPENDS: ${value}`);
+      return { record: parseGovernedFile(root, file, text), analysis: analyzeGovernedFile(root, file, text) };
+    }
+
+    function unparsed(analysis: ReturnType<typeof analyzeGovernedFile>) {
+      return analysis.issues.filter((issue) => issue.code === "markup.unparsed-link-token");
+    }
+
+    it("splits LINKS on whitespace so M-A M-B yields two linked modules", () => {
+      const { record, analysis } = analyzeLinks("M-A M-B");
+      expect(record.linkedModuleIds).toEqual(["M-A", "M-B"]);
+      expect(unparsed(analysis)).toHaveLength(0);
+    });
+
+    it("splits LINKS on semicolon so M-A; M-B yields two linked modules", () => {
+      const { record, analysis } = analyzeLinks("M-A; M-B");
+      expect(record.linkedModuleIds).toEqual(["M-A", "M-B"]);
+      expect(unparsed(analysis)).toHaveLength(0);
+    });
+
+    it("raises markup.unparsed-link-token naming TYPO-BAD in a mixed LINKS list", () => {
+      const { record, analysis } = analyzeLinks("M-A, TYPO-BAD, M-B");
+      expect(record.linkedModuleIds).toEqual(["M-A", "M-B"]);
+      const issues = unparsed(analysis);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]!.message).toContain("TYPO-BAD");
+      expect(issues[0]!.message).toContain("comma, semicolon, or whitespace");
+      expect(issues[0]!.message).toMatch(/colon is not a separator/i);
+      expect(issues[0]!.message).toMatch(/M-\*|DF-\*|V-M-\*/);
+    });
+
+    it("raises on colon-glued token M-A: (D5.1 — colon is not a separator)", () => {
+      const { record, analysis } = analyzeLinks("M-A: M-B");
+      expect(record.linkedModuleIds).toEqual(["M-B"]);
+      const issues = unparsed(analysis);
+      expect(issues.some((issue) => issue.message.includes("M-A:"))).toBe(true);
+      expect(issues.some((issue) => issue.message.includes("M-B"))).toBe(false);
+    });
+
+    it("raises naming postgres when DEPENDS mixes free-text with modules", () => {
+      const { record, analysis } = analyzeDepends("M-DB, postgres");
+      expect(record.dependsModuleIds).toEqual(["M-DB"]);
+      const issues = unparsed(analysis);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]!.message).toContain("postgres");
+      expect(issues[0]!.message).toMatch(/DEPENDS/);
+      expect(issues[0]!.message).toMatch(/M-\*/);
+    });
+
+    it("raises when DEPENDS carries V-M-* (wrong family for that field)", () => {
+      const { record, analysis } = analyzeDepends("V-M-X");
+      expect(record.dependsModuleIds).toEqual([]);
+      const issues = unparsed(analysis);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]!.message).toContain("V-M-X");
+      expect(issues[0]!.message).toMatch(/DEPENDS/);
+    });
+
+    it("preserves none and bracketed lists (F3)", () => {
+      expect(analyzeLinks("none").record.linkedModuleIds).toEqual([]);
+      expect(unparsed(analyzeLinks("none").analysis)).toHaveLength(0);
+      expect(analyzeLinks("[M-A, M-B]").record.linkedModuleIds).toEqual(["M-A", "M-B"]);
+      expect(unparsed(analyzeLinks("[M-A, M-B]").analysis)).toHaveLength(0);
+      expect(analyzeLinks("[none]").record.linkedModuleIds).toEqual([]);
+    });
+  });
+
   it("reports line-addressed missing, reversed, duplicate, mismatched, and overlapping markers", () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "grace-markers-"));
     const file = path.join(root, "broken.ts");

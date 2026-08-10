@@ -85,6 +85,39 @@ describe("catalog issueClass (A5.1 route 2, A6.1)", () => {
     expect(withLintIssueGuide(bare("markup.near-miss-marker")).issueClass).toBeUndefined();
   });
 
+  it("registers markup.unparsed-link-token (C-TOKEN-INTEGRITY T-001 / P0.2)", () => {
+    const exact = getExactLintIssueGuide("markup.unparsed-link-token");
+    expect(exact).toBeDefined();
+    expect(exact!.title).toMatch(/unparsed|unrecognized|token/i);
+    expect(exact!.explanation).toMatch(/LINKS|DEPENDS/);
+    expect(exact!.explanation).toContain("[,;\\s]+");
+    expect(exact!.remediation.length).toBeGreaterThan(0);
+    // Silent free-text DEPENDS is no longer documented as ignored.
+    expect(exact!.explanation).not.toMatch(/free-text.*ignored/i);
+    expect(withLintIssueGuide(bare("markup.unparsed-link-token")).issueClass).toBeUndefined();
+    expect(isEmittableIssueCode("markup.unparsed-link-token")).toBe(true);
+  });
+
+  it("registers C-TOKEN-INTEGRITY T-003/T-004 newly-erroring codes", () => {
+    const codes = [
+      "projection.index.owns-text",
+      "projection.index.invalid-owns-child",
+      "projection.index.invalid-document-child",
+      "ledger.invalid-allocation",
+      "ledger.invalid-event",
+      "cursor.empty-escalated-task",
+      "change.implementation-plan-invalid-child",
+    ];
+    for (const code of codes) {
+      const exact = getExactLintIssueGuide(code);
+      expect(exact).toBeDefined();
+      expect(exact!.title.length).toBeGreaterThan(0);
+      expect(exact!.explanation.length).toBeGreaterThan(0);
+      expect(exact!.remediation.length).toBeGreaterThan(0);
+      expect(isEmittableIssueCode(code)).toBe(true);
+    }
+  });
+
   it("registers all twelve ledger.* and cursor.* codes as defects with justification (A11.3)", () => {
     const codes = [
       "ledger.invalid-root-tag",

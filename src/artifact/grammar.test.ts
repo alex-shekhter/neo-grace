@@ -289,6 +289,66 @@ describe("neo-grace Artifact Grammar", () => {
     expect(validateChangeArtifact(parseGraceXmlArtifact("plan.xml", plan), "active").issues).toHaveLength(0);
   });
 
+  // C-TOKEN-INTEGRITY T-002 / D7 / F5.1 — DependsOn multi-value + anchor-child resolution.
+  describe("DependsOn multi-value and anchor-child (T-002)", () => {
+    function planCodes(...tasks: string[]) {
+      return codes(validateChangeArtifact(parseGraceXmlArtifact("plan.xml", validPlan(tasks.join(""))), "active"));
+    }
+
+    function planIssues(...tasks: string[]) {
+      return validateChangeArtifact(parseGraceXmlArtifact("plan.xml", validPlan(tasks.join(""))), "active").issues;
+    }
+
+    it("raises change.task-unknown-dependency for anchor form naming a missing task (silent today)", () => {
+      // <DependsOn><T-999 /></DependsOn> — F5.1: empty set makes unknown-task pass vacuously today.
+      const result = planCodes(task("T-001"), task("T-002", "<T-999 />"));
+      expect(result).toContain("change.task-unknown-dependency");
+      expect(result).not.toContain("change.task-invalid-dependency");
+    });
+
+    it("raises change.task-self-dependency for anchor form naming its own id (silent today)", () => {
+      const result = planCodes(task("T-001", "<T-001 />"));
+      expect(result).toContain("change.task-self-dependency");
+    });
+
+    it("splits multi-value DependsOn text and raises only for the bad entry (F-1)", () => {
+      // Before fix: whole string "T-001, T-000" → one change.task-invalid-dependency.
+      // After fix: T-001 is a real sibling; T-000 is well-formed T-NNN but unknown.
+      const issues = planIssues(task("T-001"), task("T-002", "T-001, T-000"));
+      expect(issues.some((i) => i.code === "change.task-invalid-dependency" && i.message.includes("T-001, T-000"))).toBe(false);
+      const unknown = issues.filter((i) => i.code === "change.task-unknown-dependency");
+      expect(unknown.some((i) => i.message.includes("T-000"))).toBe(true);
+      expect(unknown.every((i) => !i.message.includes("T-001") || i.message.includes("T-000"))).toBe(true);
+
+      // Non-T-NNN residual in a multi-value list still raises invalid for that token only.
+      const mixed = planIssues(task("T-001"), task("T-002", "T-001, not-a-task"));
+      const invalid = mixed.filter((i) => i.code === "change.task-invalid-dependency");
+      expect(invalid).toHaveLength(1);
+      expect(invalid[0]!.message).toContain("not-a-task");
+      expect(invalid[0]!.message).not.toContain("T-001, not-a-task");
+      expect(mixed.filter((i) => i.code === "change.task-unknown-dependency")).toHaveLength(0);
+    });
+
+    it("accepts valid anchor form naming a real sibling (guard — also green before fix)", () => {
+      const result = planCodes(task("T-001"), task("T-002", "<T-001 />"));
+      expect(result.filter((c) => c.startsWith("change.task-"))).toEqual([]);
+    });
+
+    it("treats Task child, bare text, and anchor child as equivalent when ids are valid (D7)", () => {
+      for (const dep of ["T-001", "<Task>T-001</Task>", "<T-001 />"]) {
+        const result = planCodes(task("T-001"), task("T-002", dep));
+        expect(result.filter((c) => c.startsWith("change.task-"))).toEqual([]);
+      }
+    });
+
+    it("rewrites change.task-invalid-dependency to name accepted shapes", () => {
+      const issues = planIssues(task("T-001", "not-a-task"));
+      const invalid = issues.find((i) => i.code === "change.task-invalid-dependency");
+      expect(invalid).toBeDefined();
+      expect(invalid!.message).toMatch(/T-NNN|Task|anchor/i);
+    });
+  });
+
   it("rejects invalid active and archive change statuses", () => {
     const active = validateChangeArtifact(
       parseGraceXmlArtifact("active/plan.xml", `<NgraceChangePlan graceVersion="1.0" status="applied"><C-EXAMPLE /></NgraceChangePlan>`),
@@ -719,6 +779,46 @@ describe("run ledger and cursor grammar (Phase 3 / A11)", () => {
     );
     const clean = codes(validateNgraceProject(root)).filter((c) => c.startsWith("cursor."));
     expect(clean).toEqual([]);
+  });
+
+  // C-TOKEN-INTEGRITY T-004 — ledger integrity, empty EscalatedTask, ImplementationPlan discards.
+  describe("ledger integrity and plan-shape discards (T-004)", () => {
+    it("raises ledger.invalid-allocation when Allocation cannot parse (silent null drop today)", () => {
+      const result = validateRunLedgerArtifact(
+        parseGraceXmlArtifact(
+          "run-ledger.xml",
+          `<NgraceRunLedger graceVersion="1.0"><C-X><Epoch-1><Allocation worker="w0" from="NaN" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="terminal"/></Epoch-1></C-X></NgraceRunLedger>`,
+        ),
+      );
+      expect(codes(result)).toContain("ledger.invalid-allocation");
+    });
+
+    it("raises ledger.invalid-event when Event cannot parse (silent null drop today)", () => {
+      const result = validateRunLedgerArtifact(
+        parseGraceXmlArtifact(
+          "run-ledger.xml",
+          `<NgraceRunLedger graceVersion="1.0"><C-X><Epoch-1><Allocation worker="w0" from="1" to="10"/><Event id="bad" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="terminal"/></Epoch-1></C-X></NgraceRunLedger>`,
+        ),
+      );
+      expect(codes(result)).toContain("ledger.invalid-event");
+    });
+
+    it("raises cursor.empty-escalated-task for empty EscalatedTask (silent filter today)", () => {
+      const result = validateRunCursorArtifact(
+        parseGraceXmlArtifact(
+          "run.xml",
+          `<NgraceRunCursor graceVersion="1.0"><C-X><Task>T-001</Task><EscalatedTask></EscalatedTask><State>paused-pending-approval</State></C-X></NgraceRunCursor>`,
+        ),
+      );
+      expect(codes(result)).toContain("cursor.empty-escalated-task");
+    });
+
+    it("raises change.implementation-plan-invalid-child for non-task under ImplementationPlan (silent today)", () => {
+      const plan = validPlan(`${task("T-001")}<Note>side comment</Note>`);
+      const result = validateChangeArtifact(parseGraceXmlArtifact("plan.xml", plan), "active");
+      expect(codes(result)).toContain("change.implementation-plan-invalid-child");
+      expect(result.issues.some((i) => i.message.includes("Note"))).toBe(true);
+    });
   });
 
   it("EscalatedTask unknown-task when plan.xml is absent (A26.1 no-plan branch)", () => {

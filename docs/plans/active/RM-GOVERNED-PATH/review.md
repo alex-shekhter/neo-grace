@@ -191,14 +191,26 @@ Checked, not assumed.
    `--from T-001` writes `<Allocation from="NaN">`, and the corpus's recorded remedy is
    `rm -r run/` — deleting the audit trail to satisfy the audit gate.
 
-   > **Corrected 2026-08-09 by the P0 derivation pass** ([p0-derivation.md](./p0-derivation.md),
-   > contradiction 1). This entry originally said `fold` then fails with *"no Allocation found"*.
-   > It does not. `listLooseEvents` (`src/grace-cursor.ts:470`) drops any event whose id is not a
-   > positive integer, so the `NaN`-id file is invisible to fold and the actual failure is
-   > *"No loose run/ events to fold for C-*"*. The `"no Allocation found"` message is real
-   > (`:684`) but belongs to a different path — loose events with no opened Allocation, which is
-   > P0.6's subject. **The defect and its remedy are unchanged; the failure mode is worse than
-   > recorded** — a silently skipped orphan file rather than a named missing allocation.
+   > **Correction, and a correction to that correction — 2026-08-09.**
+   >
+   > The P0 derivation pass ([p0-derivation.md](./p0-derivation.md), contradiction 1) reported that
+   > fold fails with *"No loose run/ events to fold for C-*"* rather than the *"no Allocation found"*
+   > this entry originally claimed, and that correction was accepted. **It was accepted too
+   > broadly.** Live reproduction during T-001 execution shows the original text was right for the
+   > path that matters:
+   >
+   > | State when `fold` runs | Message |
+   > |---|---|
+   > | Only the `NaN`-id opened event exists (open, then fold immediately) | *"No loose run/ events to fold"* |
+   > | Valid loose events exist alongside it (open, **do work**, fold) | *"no Allocation found"* |
+   >
+   > Both are real. `listLooseEvents` (`:470`) drops the non-integer id, so the opened event is
+   > invisible; whether you then hit "nothing to fold" or "no Allocation" depends only on whether
+   > any work happened in between. The derivation's repro was the degenerate case; the realistic
+   > sequence — which is what an executor actually does — produces the original message.
+   >
+   > Recorded rather than silently re-edited: a reproduction that omits the work step is not a
+   > reproduction of the workflow, and the authority accepted it without noticing. See F8.
 4. **Fold dead-end.** **[verified]** `src/grace-cursor.ts` `foldEpoch` requires an `opened`
    event with an `Allocation`; no auto-open, no recovery path.
 5. **Scope audit has no lifecycle exclusion.** **[verified]** `auditScopeOutsideWriteScope`

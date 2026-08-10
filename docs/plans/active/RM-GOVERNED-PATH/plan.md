@@ -15,8 +15,8 @@ context: ./decisions.md
 
 **Target repository:** `neo-grace` (`@neograce/cli`, 6.1.1 at `f340a98`)
 **Audience:** the maintainer deciding whether to schedule this, then an executor coding agent
-**Authority:** [decisions.md](./decisions.md) records seven ratified decisions (D1–D7) and seven
-findings (F1–F7); [review.md](./review.md) carries the evidence, the root-cause analysis, and the
+**Authority:** [decisions.md](./decisions.md) records seven ratified decisions (D1–D7) and nine
+findings (F1–F9); [review.md](./review.md) carries the evidence, the root-cause analysis, and the
 merge record of the two source consolidations. `review.md` frames the questions, `decisions.md`
 answers them, this plan orders and specifies the work. Where this plan and either companion
 disagree, **this plan wins.**
@@ -87,8 +87,14 @@ Keep this table current. It is the single source of truth for progress.
    keys on. The record must exist before anything reports on its absence.
 6. **P3.1 → P3.7, and P3.7 → nothing.** The finding is inert until `lifecycle finish` writes the
    record, and it must never fire on bundles predating it (D1.4, F1).
-7. **P0–P2 → P3's step detail.** The gate to write those steps is stated at the end of §2 P3.
-8. **P1–P3 measurements → P4's open decisions.** Listed in P4.
+7. **`C-CURSOR-INTEGRITY` → `C-TOKEN-INTEGRITY` closure.** F8.1: T-001's execution corrupted
+   C-TOKEN's own epoch via P0.4. That bundle must not archive until P0.6's `cursor recover` can
+   repair its ledger honestly. The two bundles are file-disjoint, so this is ordering only — no
+   rework, and T-002–T-005 proceed meanwhile. **F9 adds a second reason for the same ordering:**
+   this bundle's attempt records cannot substantiate red-first, and P0.10's reader is what makes that
+   detectable rather than a note in a document.
+8. **P0–P2 → P3's step detail.** The gate to write those steps is stated at the end of §2 P3.
+9. **P1–P3 measurements → P4's open decisions.** Listed in P4.
 
 P1 and P2 may run in either order or concurrently; they touch disjoint surfaces (authoring
 diagnostics vs the review audit) and share only the schema-reference dependency in rule 4.
@@ -195,6 +201,15 @@ reported; the sweep finds the ones nobody hit yet.
 9. **Mode-aware lint summary** (ag3 §3.7). When an active change has baseline assertions,
    default text output leads with one line — *"N baseline expectations (expected while C-* is
    in progress)"* — instead of presenting `MustNotExist` failures as generic breakage.
+10. **Attempt-pair write evidence** (F9, discovered while verifying this phase's own T-002–T-004).
+    Red-first is currently prose in `ngrace-execute` that nothing reads back, and the ledger for
+    `C-TOKEN-INTEGRITY` records fail→pass pairs in which the implementation file is byte-identical at
+    both ends. `<WriteEvidence>` already digests every `ObservedWriteScope` file on every attempt, so
+    the check needs a reader, not new recording: **for a `fail` → `pass` pair on the same task, at
+    least one non-test scope file must differ in digest, or the pass is unsubstantiated.** Raise it in
+    `ngrace review`, where evidence is judged; leave `cursor` quiet at write time, since a task may
+    legitimately pass first try. See F9.2. Goes in `C-CURSOR-INTEGRITY` with P0.4/P0.6/P0.8 — it is
+    the same ledger-honesty surface, and that bundle is already sequenced ahead of this one's closure.
 
 **Verification.** Each item lands with a regression test replaying the corpus transcript that
 reported it (the reviews supply them verbatim: F-1's comma input, ag8's NaN sequence,

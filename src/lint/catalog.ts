@@ -105,14 +105,33 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
       + "mistyped a marker got silence instead of feedback (A7.1 / A8).",
     proposedBy: "regex-over-structure",
   },
+  "markup.unparsed-link-token": {
+    title: "Unparsed MODULE_CONTRACT List Token",
+    explanation:
+      "A LINKS or DEPENDS token matches no accepted id family for that field after splitting on "
+      + "[,;\\s]+ (comma, semicolon, or whitespace; colon is not a separator). "
+      + "LINKS accepts M-*, DF-*, and V-M-*; DEPENDS accepts M-* only. "
+      + "Unrecognized tokens used to be dropped silently, leaving IMPL=0 and green lint.",
+    remediation: [
+      "Use only accepted id families for the field (LINKS: M-*, DF-*, V-M-*; DEPENDS: M-*).",
+      "Separate multiple ids with comma, semicolon, or whitespace — not a colon.",
+      "Remove free-text names (e.g. postgres); declare external deps outside DEPENDS anchors.",
+      "For DEPENDS: none or LINKS: none, keep the case-insensitive none sentinel (or [none]).",
+    ],
+    derivedFrom:
+      "parseGovernedFile filtered LINKS/DEPENDS with .filter() and dropped residual tokens "
+      + "while lint stayed green (RM-GOVERNED-PATH P0.2 / C-TOKEN-INTEGRITY T-001).",
+    proposedBy: "confidently-wrong",
+  },
   "markup.unknown-dependency": {
     title: "Unknown MODULE_CONTRACT DEPENDS Anchor",
     explanation:
       "DEPENDS lists an M-* module anchor that does not exist in the knowledge graph. "
-      + "Non-anchor free-text dependency names are ignored; only M-* tokens are validated.",
+      + "Only M-* tokens are valid in DEPENDS; free-text or wrong-family tokens raise "
+      + "markup.unparsed-link-token instead of being ignored.",
     remediation: [
       `Add the missing module to ${ARTIFACT_DIR}/graph or correct the DEPENDS list.`,
-      "Use free-text names (e.g. postgres) for external libraries — only M-* anchors are checked.",
+      "DEPENDS accepts M-* anchors only — not free-text library names or V-M-*/DF-* ids.",
     ],
   },
   "markup.unknown-link": {
@@ -445,6 +464,34 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     remediation: ["Merge stack declarations under a single <Stacks>."],
   },
   // --- Run ledger / cursor (Phase 3, A11.3). All defects; never issueClass "absence". ---
+  "ledger.invalid-allocation": {
+    title: "Invalid Run Ledger Allocation",
+    explanation:
+      "An <Allocation> under a run-ledger Epoch could not be parsed as a worker range "
+      + "(worker plus integer from/to with from <= to). Null parse results used to be dropped "
+      + "silently, leaving a corrupt CLI audit trail with only secondary symptoms.",
+    remediation: [
+      "Ensure each Allocation has worker and integer from/to attributes (from <= to).",
+      "Do not hand-author ledgers; regenerate via the cursor/fold surface when possible.",
+      "Treat a bad Allocation as ledger corruption, not an authoring typo.",
+    ],
+    derivedFrom:
+      "parseAllocation null filtered away in validateLedgerEpoch (RM-GOVERNED-PATH P0 / C-TOKEN-INTEGRITY T-004 site 7).",
+    proposedBy: "confidently-wrong",
+  },
+  "ledger.invalid-event": {
+    title: "Invalid Run Ledger Event",
+    explanation:
+      "An <Event> under a run-ledger Epoch could not be parsed (positive integer id, non-empty task and kind). "
+      + "Null parse results used to be dropped silently.",
+    remediation: [
+      "Ensure each Event has a positive integer id, a task id, and a kind.",
+      "Do not hand-edit event rows; recover through the cursor surface when available.",
+    ],
+    derivedFrom:
+      "parseLedgerEvent null filtered away in validateLedgerEpoch (RM-GOVERNED-PATH P0 / C-TOKEN-INTEGRITY T-004 site 8).",
+    proposedBy: "confidently-wrong",
+  },
   "ledger.invalid-root-tag": {
     title: "Invalid Run Ledger Root Tag",
     explanation: `run-ledger.xml must use root tag ${ARTIFACT_TAG_PREFIX}RunLedger with graceVersion="1.0".`,
@@ -529,6 +576,19 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     derivedFrom: "Invariant 4: Decisions grammar arrives with the validator (A30.2).",
     proposedBy: "unthreaded-construct",
   },
+  "change.implementation-plan-invalid-child": {
+    title: "Invalid ImplementationPlan Child",
+    explanation:
+      "ImplementationPlan admits only direct T-* task elements. Non-task siblings (e.g. <Note>) "
+      + "were filtered silently, so authored structure vanished while lint stayed green.",
+    remediation: [
+      "Move non-task content out of ImplementationPlan.",
+      "Declare work only as <T-NNN>…</T-NNN> task elements.",
+    ],
+    derivedFrom:
+      "ImplementationPlan children filtered to T-* only (RM-GOVERNED-PATH P0 / C-TOKEN-INTEGRITY T-004 site 10).",
+    proposedBy: "confidently-wrong",
+  },
   "change.duplicate-clarifications-section": {
     title: "Duplicate Clarifications Section",
     explanation: "A change spec or plan may contain at most one <Clarifications> section.",
@@ -557,6 +617,19 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     derivedFrom: "Project declaration for missing/host-capability review verdict severity (A29.5).",
     proposedBy: "unthreaded-construct",
   },
+  "cursor.empty-escalated-task": {
+    title: "Empty EscalatedTask Element",
+    explanation:
+      "run.xml contains an <EscalatedTask> with no task id text. Empty elements were filtered "
+      + "silently, so a paused-pending-approval cursor could claim escalation without naming a task.",
+    remediation: [
+      "Name the escalated T-* task inside <EscalatedTask>…</EscalatedTask>.",
+      "Remove the element entirely if no task is escalated.",
+    ],
+    derivedFrom:
+      "cursorEscalatedTasks filtered empty text (RM-GOVERNED-PATH P0 / C-TOKEN-INTEGRITY T-004 site 9).",
+    proposedBy: "confidently-wrong",
+  },
   "cursor.invalid-root-tag": {
     title: "Invalid Run Cursor Root Tag",
     explanation: `run.xml must use root tag ${ARTIFACT_TAG_PREFIX}RunCursor with graceVersion="1.0".`,
@@ -584,6 +657,47 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     remediation: ["Regenerate the cursor from the ledger and plan.", "Do not advance past tasks not in the plan."],
     derivedFrom: "Present-but-inconsistent cursor is an error; absent cursor is silent (D1).",
     proposedBy: "unthreaded-construct",
+  },
+  "projection.index.owns-text": {
+    title: "Owns Section Contains Bare Text",
+    explanation:
+      "A GD-* or VD-* index route lists owned anchors as text inside <Owns> instead of self-closing "
+      + "child tags. Text never enters the owns list, so the author later sees only "
+      + "projection.graph.unlisted-anchor with a remediation about synchronizing index ownership — "
+      + "technically true and useless for this typo.",
+    remediation: [
+      "Rewrite bare text as self-closing anchor children, e.g. <Owns><M-EXAMPLE /></Owns>.",
+      "Do not put free text or comma lists inside <Owns>.",
+    ],
+    derivedFrom:
+      "routeFromOwnerNode collected only Owns children (RM-GOVERNED-PATH P0.5 / C-TOKEN-INTEGRITY T-003).",
+    proposedBy: "confidently-wrong",
+  },
+  "projection.index.invalid-owns-child": {
+    title: "Invalid Owns Child Tag",
+    explanation:
+      "An <Owns> section under a graph or verification index route contains a child tag that is not "
+      + "in the ownership family for that document. Invalid children were filtered silently.",
+    remediation: [
+      "Use only anchors this document may own (graph: M-*/DF-*/IC-*; verification: V-M-*).",
+      "Remove or relocate unsupported child tags.",
+    ],
+    derivedFrom:
+      "Owns children filtered by ownsPredicate with no residual error (RM-GOVERNED-PATH P0 / C-TOKEN-INTEGRITY T-003 site 4).",
+    proposedBy: "confidently-wrong",
+  },
+  "projection.index.invalid-document-child": {
+    title: "Invalid Index Document List Child",
+    explanation:
+      "GraphDocuments admits only GD-* children and VerificationDocuments admits only VD-* children. "
+      + "Other siblings were filtered silently.",
+    remediation: [
+      "Place only GD-* owners under GraphDocuments and only VD-* owners under VerificationDocuments.",
+      "Move notes or other content outside those lists.",
+    ],
+    derivedFrom:
+      "Index document lists filtered by GD-*/VD-* patterns (RM-GOVERNED-PATH P0 / C-TOKEN-INTEGRITY T-003 sites 5–6).",
+    proposedBy: "confidently-wrong",
   },
 };
 
