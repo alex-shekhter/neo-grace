@@ -1,0 +1,354 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-EXECUTION-CONTRACT>
+    <Summary>
+      Document the cursor event protocol that the CLI already enforces inside
+      skills/ngrace/ngrace-execute/SKILL.md (and its packaged mirror): every kind in
+      KNOWN_KIND_STATE, the terminal-before-fold rule (F12), and the attempt
+      ordering constraint for honest red-first WriteEvidence (F9.8) — with a
+      mechanical check against an exported kind set so the contract cannot silently
+      fall behind the code (D11; F10 lesson).
+    </Summary>
+    <Problem>
+      skills/ngrace/ngrace-execute/SKILL.md is the execution contract handed to every
+      coding agent that runs a GRACE change. The CLI enforces a protocol that skill
+      does not fully state. Two gaps have already cost live work; the class is wider.
+
+      F12. Fold requires a terminal event inside each allocation
+      (validateEventsAgainstAllocations in grace-cursor.ts: unterminated range when
+      kind === "terminal" is missing). The skill mentions fold and epoch open, and
+      never names terminal. Executors following the skill hit the wall at fold and
+      paid a round trip. Emitting terminal remains an operator judgment (A29.2);
+      the defect is missing instruction, not missing automation.
+
+      F9.8. Honest red-first recording requires cursor attempt --outcome fail written
+      in its own round trip, before the production edit that follows. recordAttempt
+      snapshots WriteEvidence at command time (snapshotWriteEvidence of
+      ObservedWriteScope digests). An attempt recorded in the same tool batch as the
+      fix digests a tree that already contains the fix, so ngrace review raises
+      review.attempt-pair-unsubstantiated and the ledger cannot corroborate the
+      sequence. The skill never states this ordering. Disclosed five consecutive
+      times by executors who knew red-first was required and still could not satisfy
+      it, because nothing told them how.
+
+      D11 reversed the deferral of both to P1: topical filing is not justification;
+      P1.10 would have written the same workflow words; P1 is unscheduled. They get
+      this small bundle now (skills + a minimal kind-set export; see Constraints).
+
+      Class, not two paragraphs. KNOWN_KIND_STATE (grace-cursor.ts:267–278) defines
+      nine event kinds (measured by parsing the const at HEAD 31d93bb; denominator 9
+      from that definition alone):
+
+        opened, progress, resume, attempt, verification-unavailable,
+        command-run, pause, terminal, escalation
+
+      Semantic re-measure of the skill (not substring counts — F12.2): does the skill
+      tell an agent when to emit each kind and what it means?
+
+        attempt                    — yes: dedicated command, outcomes, signatures,
+                                     claimedConfidence, and ban on advance --kind attempt
+        verification-unavailable   — yes: when verification cannot run; never silence
+        pause, resume              — incidental English only ("pause/resume around
+                                     interruptions"; recovery "resume or revert";
+                                     "paused-pending-approval" as state prose). Not
+                                     named as event kinds with emit protocol.
+        opened, progress,
+        command-run, terminal,
+        escalation                 — absent as protocol (escalation appears only as the
+                                     verb "escalate to paused-pending-approval" after
+                                     two failed attempts, not as kind=escalation)
+
+      **Of the 9 kinds, 2 are documented as protocol** (attempt,
+      verification-unavailable). pause and resume are the incidental-English case:
+      they appear as ordinary words, never as kind protocol. A substring scan finds
+      at most 4 of 9 word hits — that figure is an **upper bound on mentions**, not a
+      documentation score. A completeness check that counted substrings would score
+      this contract 4 and be wrong; that is exactly the failure mode
+      AC-KIND-COMPLETENESS-TIED-TO-CODE exists to make permanent. The contract omits
+      most of the vocabulary it requires, including the kind mandatory to fold
+      (terminal) and the kind that signals paused-pending-approval (escalation).
+      command-run was added by C-CALIBRATION-COMMAND-EVIDENCE and documented nowhere —
+      proof that a string-match "we wrote terminal once" fix will rot on the next kind.
+
+      F9.6 / F9.7 remain context: multi-task suite attribution and pass-only
+      invisibility to the attempt-pair check. This bundle does not fix attribution
+      schema; it documents the operational ordering F9.8 requires so executors can
+      stop producing unsubstantiated pairs by accident.
+    </Problem>
+    <Goals>
+      <Goal>
+        Every kind in the exported known-kind set (lockstep with KNOWN_KIND_STATE) is
+        documented in ngrace-execute as protocol — when to emit it, what it means for
+        cursor state / lifecycle — not merely present as an incidental English word.
+      </Goal>
+      <Goal>
+        Terminal-before-fold is explicit: fold is blocked without a terminal inside
+        the allocation; the operator emits terminal (A29.2); recover --fix does not.
+      </Goal>
+      <Goal>
+        F9.8 ordering is explicit with reason: fail attempt in its own round trip
+        before the edit; digests snapshot at attempt time; batched fail+fix produces
+        an unsubstantiated pair (review.attempt-pair-unsubstantiated); an honest gap
+        disclosed is cheap, a contradiction is not.
+      </Goal>
+      <Goal>
+        A mechanical regression imports the **exported** kind set from grace-cursor
+        (not a source parse) and fails if any kind lacks a non-incidental documentation
+        marker in the skill — so a tenth kind cannot ship silently undocumented.
+        Precedent: C-TOKEN-INTEGRITY T-005 / F10 — parsing source for issue codes missed
+        an entire namespace while looking sound; do not repeat that shape.
+      </Goal>
+      <Goal>
+        Canonical skills/ngrace/ngrace-execute/SKILL.md and packaged
+        plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md remain byte-identical
+        (validate-marketplace drift check continues to pass).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: D11; F12, F12.2, F9.8 (F9.6/F9.7 context only); A29.2 / F1 (binary
+        does not invent terminals); P0.10 attempt-pair detection remains detection,
+        not prevention; D5.5 (CHANGELOG.md is generated — never hand-edited; any
+        release note for a later release act lives in the conventional-commit body).
+      </Constraint>
+      <Constraint>
+        Spec only until planned and approved (F4 two-stage). status remains "draft"
+        in this pass; approval is a human act. Do not author plan.xml until the spec
+        is approved.
+      </Constraint>
+      <Constraint>
+        Documentation of protocol the CLI already enforces, plus a **minimal** runtime
+        export of the known-kind set (or a derived exhaustive list kept in lockstep
+        with KNOWN_KIND_STATE) from src/grace-cursor.ts so the completeness check can
+        import a definition rather than parse source (F10). Do not change cursor, gate,
+        review, or fold behaviour beyond that export. Do not restructure ngrace-execute
+        into a different skill shape (not P1.10 emphasis inversion). The export is as
+        small as it can be — the kind set or derived list, nothing more.
+      </Constraint>
+      <Constraint>
+        Anticipated write scope: skills/ngrace/ngrace-execute/SKILL.md,
+        plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md, src/grace-cursor.ts
+        (export only), and co-located tests that consume the export. AffectedAreas:
+        M-SKILLS and M-CURSOR.
+      </Constraint>
+      <Constraint>
+        Sequencing with C-REPORT-HONESTY: that bundle's spec is already approved and
+        claims M-CURSOR; its plan is not yet authored. This bundle is finished (spec →
+        plan → execute) **before** C-REPORT-HONESTY's plan is authored, so the two
+        never hold approved plans at once and no scope.durable-overlap arises. That
+        ordering is the reason the shared M-CURSOR claim is safe; do not invert it.
+        Do not modify C-REPORT-HONESTY or C-LEDGER-READ-ABSENCE directories.
+      </Constraint>
+      <Constraint>
+        Both skill trees always: edit canonical skills/ngrace/ngrace-execute/SKILL.md
+        and keep plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md synchronized in
+        the same change. CLAUDE.md and scripts/validate-marketplace.ts require
+        packaged-vs-canonical parity.
+      </Constraint>
+      <Constraint>
+        "Documented" for the completeness check must be mechanically checkable against
+        the **exported** kind set and not satisfiable by an incidental English mention
+        of the word "attempt" (or "pause", "resume", etc.). How that is marked (named
+        heading, table row, explicit marker comment, structured block) is the plan's
+        choice; the non-incidental property is binding.
+      </Constraint>
+      <Constraint>
+        This bundle does **not** touch any version surface: not package.json version,
+        README packaged-version marker, openpackage.yml, .claude-plugin/marketplace.json,
+        or plugins/ngrace/.claude-plugin/plugin.json. Version surfaces belong to the
+        deliberate release act (scripts/release-bump.ts takes an explicit semver target
+        and updateVersionSurfaceFiles rewrites every surface at once); they are not
+        derived from commit types and are not owned by change bundles. Hand-bumping
+        here would collide with release:bump and with validate-marketplace's
+        version-sync check. Measured across all 20 archived plans: zero declare
+        marketplace.json, plugin.json, or openpackage.yml in ObservedWriteScope; five
+        declare package.json for script/dependency edits only, not version bumps.
+        CHANGELOG.md remains untouched and generated (D5.5).
+      </Constraint>
+      <Constraint>
+        Do not invent new event kinds. Do not document kinds that are not in
+        KNOWN_KIND_STATE. Do not claim recover --fix emits terminal.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine for the completeness regression: red-first — the check
+        fails on today's skill (missing kinds), then passes after documentation.
+        Measure denominators with their own commands when reporting counts (F12.2).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        P1.10 skill emphasis inversion, approval lexicon, generated schema reference,
+        or any other P1 authoring-surface restructuring. The minimal kind-set export
+        in src/grace-cursor.ts is verification infrastructure for the completeness
+        check only — it is not a license to restructure the skill or rewrite cursor
+        protocol.
+      </NonGoal>
+      <NonGoal>
+        Evidence doctrine rewrites for ngrace-verification, ngrace-plan, or other
+        skills beyond the minimum cross-reference if the plan needs a single pointer
+        from execute to verification.
+      </NonGoal>
+      <NonGoal>
+        Anything in C-REPORT-HONESTY (P0.7, P0.9, F11, F14, F15, F16) or
+        C-LEDGER-READ-ABSENCE (three-exit ledger reads).
+      </NonGoal>
+      <NonGoal>
+        Changing cursor protocol, fold validation, attempt-pair review severity, or
+        fix-budget escalation behaviour. Expanding the grace-cursor export beyond the
+        known-kind set (or a derived exhaustive list lockstep with KNOWN_KIND_STATE).
+      </NonGoal>
+      <NonGoal>
+        Fixing F9.6 (multi-task suite attribution) or F9.7 (pass-only invisibility)
+        — those need per-task scope / schema, not skill prose. Documenting F9.8 only.
+      </NonGoal>
+      <NonGoal>
+        Any product version bump or edit to version surfaces (package.json version,
+        README packaged-version line, openpackage.yml, marketplace.json, plugin.json).
+        Hand-editing CHANGELOG.md (D5.5). Parsing grace-cursor.ts source text to
+        discover kinds (F10).
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-KIND-SET-DOCUMENTED>
+        For every kind in the **exported** known-kind set at implementation HEAD
+        (lockstep with KNOWN_KIND_STATE; currently 9 keys: opened, progress, resume,
+        attempt, verification-unavailable, command-run, pause, terminal, escalation —
+        denominator from the export, not from a skill substring scan), the execution
+        skill documents that kind as protocol: when an agent should emit it and what
+        it means. **A skill that merely contains the English word for a kind (e.g.
+        "attempt", "pause", "resume") without a non-incidental documentation marker
+        for that kind fails this criterion.** A check that scores documentation by
+        counting substrings would accept today's skill at 4 of 9 and is wrong; only
+        protocol markers counted against the exported set satisfy this criterion.
+        After the change, the semantic gaps measured at authoring (**2 of 9** as
+        protocol; pause/resume incidental English; five kinds absent) are closed.
+      </AC-KIND-SET-DOCUMENTED>
+      <AC-KIND-COMPLETENESS-TIED-TO-CODE>
+        A regression in the suite **imports** the exported known-kind set from
+        src/grace-cursor.ts (or a named export that is definitionally the keys of
+        KNOWN_KIND_STATE) and asserts that every kind has a non-incidental
+        documentation marker in skills/ngrace/ngrace-execute/SKILL.md. **Adding a
+        new key to KNOWN_KIND_STATE without updating the skill fails the suite.**
+        **Parsing grace-cursor.ts (or any source file) with regex/AST greps to
+        discover kinds fails this criterion** — that is the F10 shape (C-TOKEN-INTEGRITY
+        T-005 completeness that matched call shapes and missed an entire namespace).
+        A test that only asserts the string "terminal" (or any fixed string list
+        disconnected from the export) appears in the skill also fails this criterion.
+        How the marker is recognized is the plan's choice; coupling to the **exported**
+        kind set without source-parsing is binding.
+      </AC-KIND-COMPLETENESS-TIED-TO-CODE>
+      <AC-TERMINAL-BEFORE-FOLD>
+        The skill states that fold requires a terminal event inside the covering
+        allocation (CLI enforces unterminated range otherwise), that the operator
+        emits terminal (e.g. cursor advance --kind terminal) when the epoch's work
+        is finished, and that recover --fix does not emit terminal. An agent who
+        only read the skill before this change could not know that; after, they can
+        without reading grace-cursor.ts. (F12.)
+      </AC-TERMINAL-BEFORE-FOLD>
+      <AC-ATTEMPT-ORDERING-F98>
+        The skill states the operational ordering for honest red-first: write
+        `ngrace cursor attempt --outcome fail` in its **own tool round trip**, then
+        perform the production edit, then record pass — not in the same batched
+        tool call as the fix. It attaches the reason: WriteEvidence digests
+        ObservedWriteScope at attempt time, so a fail attempt batched with the fix
+        cannot corroborate the sequence. It names the failure shape a reader will
+        see: review.attempt-pair-unsubstantiated on fail→pass pairs with no
+        non-test digest movement, and that an honest disclosed gap is cheap while
+        an unsubstantiated contradiction is not. **A criterion-satisfying edit that
+        only inserts the words "round trip" or "F9.8" without the ordering rule,
+        the digest reason, and the review failure shape fails this criterion.**
+        (F9.8.)
+      </AC-ATTEMPT-ORDERING-F98>
+      <AC-MIRROR-BYTE-IDENTICAL>
+        After the change, skills/ngrace/ngrace-execute/SKILL.md and
+        plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md are byte-identical
+        (cmp / git diff --no-index clean). bun run ./scripts/validate-marketplace.ts
+        reports no packaged-vs-canonical skill drift for ngrace-execute. Editing
+        only one tree fails this criterion.
+      </AC-MIRROR-BYTE-IDENTICAL>
+      <AC-NO-SKILL-REWRITE>
+        The skill remains the execute workflow contract: preflight, assertion
+        commands, mode selection, recovery table, execution rules, verdicts,
+        calibration. This change **adds** protocol documentation (kinds, terminal
+        fold, attempt ordering) and a **minimal** known-kind export in
+        src/grace-cursor.ts for the completeness check. It does not invert skill
+        emphasis into P1.10's "skills stop restating formats", does not replace the
+        skill with a generated schema dump, does not restructure execution_rules into
+        a different product, and does not absorb C-REPORT-HONESTY or other-skill
+        rewrites. Touching src/grace-cursor.ts is not a license to rewrite cursor
+        behaviour. A PR that restructures the skill beyond documenting the cursor
+        protocol, or that expands the export beyond the kind set, fails this criterion.
+      </AC-NO-SKILL-REWRITE>
+      <AC-EXPORT-MINIMAL>
+        The grace-cursor change is limited to exporting the known-kind set (or a
+        derived exhaustive list lockstep with KNOWN_KIND_STATE) and tests of that
+        export / completeness. No fold, attempt, recover, or gate behaviour changes.
+        An implementation that refactors unrelated cursor code under cover of the
+        export fails this criterion.
+      </AC-EXPORT-MINIMAL>
+      <AC-SUITE-AND-LINT>
+        Completeness regression red before documentation, green after; remaining
+        suite green; bun run ngrace lint --path . is 0 errors and 0 warnings;
+        validate-marketplace green for skill mirror and version-surface sync (version
+        surfaces unchanged by this bundle). No edits under docs/plans/archive/ or
+        .ngrace/changes/archive/.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-SKILLS />
+      <M-CURSOR />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        Completeness test imports the exported kind set (not a source parse), red on
+        pre-change skill (missing kinds / missing markers), green after both skill
+        trees updated; cmp identity of canonical and packaged ngrace-execute/SKILL.md;
+        validate-marketplace reports no skill drift and version surfaces still in sync
+        without this bundle having edited them; ngrace lint --path . 0/0. Manual or
+        fixture read of skill sections for terminal-before-fold and attempt-ordering
+        content against AC text. Existing V-M-CURSOR may cover the export test; no
+        new V-M-* required for M-SKILLS (UTILITY without Path).
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        M-SKILLS confirmed in .ngrace/graph/main.xml: Summary "Canonical GRACE skill
+        sources under skills/ngrace/ (packaged mirror is separate).", Type UTILITY,
+        no Path child. M-CURSOR Path src/grace-cursor.ts (ENTRY_POINT). Both in
+        graph index. No other module is claimed.
+      </Assumption>
+      <Assumption>
+        KNOWN_KIND_STATE has 9 keys at authoring HEAD 31d93bb (opened, progress,
+        resume, attempt, verification-unavailable, command-run, pause, terminal,
+        escalation) — measured by reading the const definition in src/grace-cursor.ts
+        (denominator 9 from that block alone). The const is not currently exported;
+        only KnownEventKind and cursorStateForEventKind are. This bundle specifies
+        the export; it does not implement it in this authoring pass.
+      </Assumption>
+      <Assumption>
+        Pre-change mirror: both SKILL.md paths are byte-identical (SHA-1
+        c431d481d61eb9f9e2f4cd46af9c71b508436f9c measured at authoring).
+      </Assumption>
+      <Assumption>
+        Version-surface ownership measured: 20 archived plan.xml files (find … | wc -l);
+        0 declare marketplace.json, plugin.json, or openpackage.yml in plan text;
+        5 mention package.json (script/dependency scope, not release:bump). Confirms
+        version surfaces are not change-bundle territory.
+      </Assumption>
+      <Assumption>
+        Semantic documentation at authoring: **2 of 9** kinds as protocol (attempt,
+        verification-unavailable); pause/resume incidental English; five kinds absent
+        as protocol. Completeness markers must make all nine pass only when
+        non-incidental protocol text exists — the plan owns the marker shape.
+      </Assumption>
+      <Assumption>
+        C-REPORT-HONESTY status=approved, plan not yet present under its active
+        directory (measured: only spec.xml). C-LEDGER-READ-ABSENCE remains draft
+        spec-only. This bundle does not modify those directories. D11 already lists
+        F12/F9.8 as NonGoals of C-REPORT-HONESTY — no supersede of that spec is
+        required. Finishing this bundle before C-REPORT-HONESTY's plan is authored
+        avoids concurrent approved-plan OWS on M-CURSOR.
+      </Assumption>
+    </Assumptions>
+  </C-EXECUTION-CONTRACT>
+</NgraceChangeSpec>
