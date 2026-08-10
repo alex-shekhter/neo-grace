@@ -1,0 +1,314 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-CURSOR-INTEGRITY>
+    <IntentSummary>
+      RM-GOVERNED-PATH P0.4, P0.6, P0.10 and D8.8: refuse invalid epoch bounds, invent
+      orphan inventory and cursor recover without deleting run/, emit attempt-pair
+      write-evidence findings after the F10 catalog-namespace repair, and make status
+      distinguish open from folded epochs. P0.8 is out of scope (D8.1).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/grace-cursor.test.ts src/grace-status.test.ts src/review/core.test.ts src/lint/catalog.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+        <M-STATUS />
+        <M-REVIEW />
+        <M-LINT-CATALOG />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+        <V-M-STATUS />
+        <V-M-REVIEW />
+        <V-M-LINT-CATALOG />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/grace-status.ts</File>
+      <File>src/grace-status.test.ts</File>
+      <File>src/review/core.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>.ngrace/changes/active/C-CURSOR-INTEGRITY/spec.xml</File>
+      <File>.ngrace/changes/active/C-CURSOR-INTEGRITY/plan.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/plan.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Catalog completeness: review/gate namespaces and makeFinding visibility (F10)</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-REVIEW-CATALOG-NAMESPACE />
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: append or inject a production emission of
+            review.attempt-pair-unsubstantiated (object form or makeFinding) without a
+            src/lint/catalog.ts entry; bun test src/lint/catalog.test.ts must fail today
+            (F10 probe). After the fix the same emission stays green without any lint-catalog
+            entry. Assert through the catalog.test surface, not a private helper return value.
+          </Criterion>
+          <Criterion>
+            Completeness routes review.* codes to REVIEW_CATALOG and gate.* codes to the gate
+            catalog — never getExactLintIssueGuide. Discriminating negative: a new review.*
+            code must not be reported as a lint-catalog orphan; a new unguided lint.* code
+            must still fail completeness (lint path unchanged).
+          </Criterion>
+          <Criterion>
+            Scanner recognizes makeFinding(code, file, message, …) positional form so the
+            thirteen existing review codes become visible. Both namespace routing and
+            makeFinding visibility are required; either alone fails this criterion.
+            Expect a backlog of pre-existing review codes without exact REVIEW_CATALOG
+            guides: place them on a frozen, commented allowlist in catalog.test.ts,
+            report the list to the authority, and do not mass-author guides in this task.
+            Newly introduced codes from later tasks in this bundle must not sit on that
+            allowlist (T-005 precedent: new codes get exact guides).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/lint/catalog.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Numeric epoch bounds validation (P0.4)</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-EPOCH-BOUNDS-REJECT />
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: CLI cursor advance --open-epoch --from T-001 --to T-001 (and library
+            advanceCursor with from/to NaN, 0, -1, 1.5, and from&gt;to) exits 0 and writes
+            corrupt run/* today — capture that failure mode in a regression that fails on
+            pre-fix code. After fix: each invalid case exits non-zero, writes no run/* file,
+            and the error message names positive integer event ids and states that task ids
+            are not event ids. Valid --from 1 --to 10 still opens. Assert via CLI/library
+            exit behaviour and absence of written files, not only an internal validator return.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Orphan inventory for both silent-skip classes (D8.7 / F8.2)</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-ORPHAN-BOTH-SKIPS />
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: a temp run/ containing NaN-T-001-opened.xml (EVENT_FILENAME :459 miss)
+            and a well-named file whose XML id is non-integer or non-positive (:470 class)
+            yields empty or incomplete visibility through listLooseEvents alone; the new
+            parallel orphan inventory must report both classes. listLooseEvents remains the
+            ordered positive-integer reader (D8.7) — do not widen it to return orphans in its
+            primary list. Discriminating negatives: :470-only fix leaves NaN-* unreported;
+            :459-only fix leaves non-integer-id well-named files unreported. Assert through
+            the exported orphan inventory API (or recover diagnose once T-004 exists, but this
+            task's unit surface must name both classes before recover lands).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>cursor recover diagnose (no --fix)</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-RECOVER-DIAGNOSE />
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: ngrace cursor recover --change C-ID is absent or non-functional today —
+            regression fails until the subcommand exists. On a *copy* of the F8.1 shape
+            (NaN-* opened with Allocation from="NaN" to="NaN", plus valid loose integer
+            events, no valid allocation — never the live C-TOKEN-INTEGRITY ledger), recover
+            without --fix reports: unrecoverable orphan (no recoverable event id), missing
+            valid covering allocation, the integer loose-event range, and that fold is
+            blocked. Assert via CLI text/exit (or stable JSON fields), consuming the orphan
+            inventory from T-003. Do not mutate C-TOKEN-INTEGRITY/run/.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>recover --fix covering allocation and single-controller auto-open (P0.6)</Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-RECOVER-FIX-PRESERVES-ORPHAN />
+          <AC-AUTO-OPEN-SINGLE-CONTROLLER />
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: on a *copy* of the F8.1 shape, fold fails with no Allocation found
+            before --fix. After recover --fix extend-allocation (or create-covering under
+            the same flag): a recorded ledger-visible opened/Allocation spans the valid
+            integer loose ids and fold succeeds for that stream. After --fix the NaN-*
+            orphan file still exists on disk and recover still reports it as an unrecoverable
+            orphan — a test that only asserts "fold succeeds" without the orphan's continued
+            presence and continued diagnosis fails this criterion (deletion would pass that
+            weaker bar; D8.3 / F8.1). Tests never call --fix on the live
+            C-TOKEN-INTEGRITY ledger; that remains a separate authorized act by the authority.
+          </Criterion>
+          <Criterion>
+            Red-first: loose integer events, no valid open allocation, at most one distinct
+            worker value → fold (or the designated auto-open surface) fails or dead-ends
+            today; after fix it synthesizes a retroactive covering opened (A29.2/F1: bounds
+            derived from inventory; explicit command is the apply). When more than one
+            distinct worker value appears, auto-open refuses and demands explicit epoch open
+            (D8.2). Multi-worker ranges are never silently fabricated. Assert via CLI/library
+            behaviour and resulting Allocation children.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Attempt-pair write evidence finding (P0.10 / F9.3)</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-ATTEMPT-PAIR-FINDING />
+          <AC-ATTEMPT-PAIR-REASON-RECORDED />
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: ngrace review --change C-ID (or runReview with attempt fixtures) on a
+            fail→pass pair whose non-test ObservedWriteScope digests are identical emits no
+            attempt-pair finding today — write that failing regression first. After fix:
+            warning-severity ReviewFinding review.attempt-pair-unsubstantiated (or the agreed
+            code) registered in REVIEW_CATALOG with an exact guide (not on the F10 backlog
+            allowlist). Non-test = paths not ending in .test.ts/.test.js, intersected with
+            plan ObservedWriteScope. Corpus shapes from C-TOKEN event digests (read-only
+            fixtures or copies): T-001 2→3 and T-002 6→7 raise; T-005 16→17 (test-only)
+            also raises (F9.3). cursor attempt stays quiet at write time. Assert through
+            review finding codes/severity, not internal digest helpers alone.
+          </Criterion>
+          <Criterion>
+            Clearing requires a recorded free-text reason, not a boolean flag (D8.6).
+            REVIEW_CATALOG guide instructs the reviewer to record the reason on
+            ngrace gate verdict --note keyed by the finding's stable findingId. Finding
+            emission includes a stable findingId suitable for that note. A path that only
+            marks "reviewed" without reason text fails this criterion. Do not invent a new
+            finding-clearance ledger schema in this task; stop and report if gate verdict
+            notes cannot carry the reason (D8.6).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts src/lint/catalog.test.ts</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>status distinguishes open vs folded epochs (D8.8)</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-STATUS-EPOCHS-OPEN-VS-FOLDED />
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: on a temp project with a healthy open epoch (from=1 to=N, progress
+            recorded, no folded Epoch-N), ngrace status presents bare epochs=0 or omits open
+            activity while cursor show reports Epoch ≥ 1 — capture that misreport in a
+            failing regression. After fix: status distinguishes folded epoch count from open
+            (unfolded) epochs so an in-progress run is not indistinguishable from a change
+            with no cursor activity. After fold, folded count reflects Epoch-N wrappers.
+            Assert via formatStatusText / collectProjectStatus fields a reviewer can print,
+            not only an internal counter rename.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-status.test.ts</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Suite close, plan board, validate:ci</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+          <Task>T-004</Task>
+          <Task>T-005</Task>
+          <Task>T-006</Task>
+          <Task>T-007</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Full suite green: F8 NaN open+work+fold on a temp copy, bounds matrix, both
+            orphan classes, recover diagnose and preserve-orphan --fix, auto-open single-
+            vs multi-worker, attempt-pair T-001/T-002/T-005 shapes, F10 probe, status
+            open-vs-folded. RM-GOVERNED-PATH plan.md P0 board reflects C-CURSOR-INTEGRITY
+            execution progress. Conventional-commit body of the landing commit lists any
+            new review.* (and other) codes (D5.5) — no CHANGELOG.md edit. bun run ngrace
+            lint --path . and bun run validate:ci green. Red-first is already required per
+            prior tasks; this task fails if any prior AC regression is missing or green-only.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-008>
+    </ImplementationPlan>
+  </C-CURSOR-INTEGRITY>
+</NgraceChangePlan>
