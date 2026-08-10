@@ -836,3 +836,56 @@ The derivation recommends deferring it to a P3 note. **Overruled.** `countLedger
 `0` throughout every in-progress run — the misreport that made F8 hard to see. The bundle already
 opens this surface, the fix is small, and deferring a known-misleading report to a later phase is the
 cascade the standing rule exists to prevent. It ships with P0.4.
+
+---
+
+### F10 — T-005's completeness check has a namespace error and a blind spot, and it blocks P0.10. **[verified]**
+
+Found 2026-08-10 while reviewing `C-CURSOR-INTEGRITY`'s draft spec, by probe rather than reading.
+Appending a realistic new review finding to `src/review/core.ts` —
+
+```ts
+findings.push({ severity: "warning", code: "review.attempt-pair-unsubstantiated", file, message: "x" });
+```
+
+— makes T-005's completeness test **fail**, demanding an exact guide in the **lint** catalog for a
+**review** code. Two distinct defects:
+
+1. **Namespace error.** Review findings are not lint issues. They are `ReviewFinding`
+   (`review/core.ts:77–90`) with their own vocabulary in `REVIEW_CATALOG`
+   (`review/catalog.ts:49`, 13 entries), and `catalog.test.ts` already imports `allReviewCodes` and
+   `allGateCodes` to pin the vocabularies apart. The completeness scanner nonetheless routes any
+   `review.*` code it sees to `getExactLintIssueGuide`, where it can never belong.
+2. **Blind spot, and it is the larger of the two.** All 13 existing review codes are **invisible** to
+   the scanner, because `makeFinding(code, file, message, …)` (`review/core.ts:239`) takes the code
+   **positionally**, and the scanner only matches `issue|markupIssue|guideIssue(` spans and
+   `severity:`/`code:` object keys. The check's coverage of the review namespace is zero. It looked
+   sound only because nothing had tripped it.
+
+**This is a defect in the work the authority accepted one commit ago.** The T-005 probe verified that
+an unguided *lint* code fails the test — it did — and that result was generalized to codes as such.
+The generalization was not tested, and it was wrong.
+
+#### F10.1 — Why it blocks, and the circularity it creates
+
+P0.10 must emit a new review finding code. Doing so trips the test, whose only repair sites —
+`src/lint/catalog.test.ts` and `src/lint/catalog.ts` — are inside **`C-TOKEN-INTEGRITY`'s**
+`ObservedWriteScope`. That bundle cannot archive until `C-CURSOR-INTEGRITY` lands (rule 7), and
+`C-CURSOR-INTEGRITY` cannot stay file-disjoint from it while fixing this. The two block each other.
+
+#### F10.2 — Disposition: `C-CURSOR-INTEGRITY` declares the overlap and fixes it
+
+The overlap is **sequential, not concurrent**: all five of `C-TOKEN-INTEGRITY`'s tasks are complete,
+so nothing will write those files under that bundle again. No cross-bundle `ObservedWriteScope`
+overlap check exists in the tool, so this is a discipline the authority imposed for orderability —
+and the honest way to relax it is to record the overlap and its reason, not to author a third bundle
+to route around a scoped fix.
+
+**`C-CURSOR-INTEGRITY` adds `src/lint/catalog.test.ts` to its `ObservedWriteScope`** and repairs both
+defects: route `review.*` to `REVIEW_CATALOG` and `gate.*` to the gate catalog, and teach the scanner
+`makeFinding`'s positional form so the 13 existing review codes become visible. **Expect that second
+repair to surface a backlog** — treat it exactly as T-005 treated the lint backlog: a frozen,
+commented allowlist, reported to the authority, not mass-authored.
+
+The spec is amended before approval, not after. Its `AC-ATTEMPT-PAIR-FINDING` currently assumes a new
+review code can simply be emitted; that assumption is false at HEAD.
