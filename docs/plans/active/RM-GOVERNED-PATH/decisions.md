@@ -2146,3 +2146,47 @@ not for chasing the unreachable ones.
 
 Disposition: applied in `C-LEGIBLE-FAILURE` T-003. Carried as a design rule for any future shared
 renderer: **preserve the cause, or you have built a uniform way of saying nothing.**
+
+---
+
+### F26 — A plan restated a spec criterion and dropped the two words that made it satisfiable. **[verified]**
+
+`C-LEGIBLE-FAILURE`'s spec says:
+
+> `bun run ngrace lint --path .` is 0 errors and 0 warnings **at close**
+
+The plan's T-004 criterion restates it as:
+
+> `bun run ngrace lint --path .` is 0 errors and 0 warnings
+
+`at close` is doing real work. The five outstanding errors are the plan's own `BaselineAssertions` —
+recorded statements about the pre-change world that this change deliberately falsified. They cannot
+return to green while the bundle sits in `active/`; they stop being evaluated when it is archived. So
+as a task-time condition the restatement is **unsatisfiable**, and the only ways to "meet" it are the
+two the plan itself forbids: weakening the baselines, or deleting them.
+
+**The plan contradicts itself, which is what makes this a finding rather than a wording preference.**
+Its own DESIGN comment says of exactly these assertions: *"P0.9's framing line reports the baseline
+delta — do not weaken BaselineAssertions to silence it."* A criterion that can only be satisfied by
+doing the thing the same document prohibits is a defect in the artifact, not a hard task.
+
+**Resolved without amending anything.** The spec governs and is satisfiable as written: T-004 verifies
+the suite, `validate:ci`, review, and the counterweights, and reports lint as baseline-only; the 0/0
+check belongs to the close, after `gate archive` and the `git mv`, which is the authority's step and
+not the executor's. Nothing was rewritten — an approved artifact stays approved, and the reading that
+reconciles them is recorded here instead.
+
+**The class, which is the part worth carrying.** A plan that restates a spec criterion instead of
+referencing it can silently narrow it, and a dropped qualifier is the easiest thing to lose because the
+sentence still reads as true. This is the same failure as F10 (a name claiming more than the body) and
+F23 (an assertion weaker than the criterion), moved up a level: **a restatement that is not equivalent
+to what it restates.** The tell is a restatement that reads as complete on its own.
+
+Two notes on where this does *not* apply. A plan is allowed to be **stricter** than its spec — that is
+ordinary and good. The defect here is strictness that is unachievable, which converts into pressure to
+falsify. And a plan is allowed to **paraphrase** for readability; the requirement is equivalence, not
+identity of wording.
+
+Disposition: recorded, not scheduled. No artifact is amended and no bundle is opened. Carried as
+authoring guidance: when a plan restates a spec criterion, quote the qualifiers verbatim or reference
+the criterion by name rather than paraphrasing it into a task.
