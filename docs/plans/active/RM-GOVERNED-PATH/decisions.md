@@ -1875,7 +1875,30 @@ breaking the implementation and recording what failed — the D13 cast probe, wh
 `baselineExpectationCount` on the JSON contract exactly as predicted, and the double-count probe above.
 Confirming a probe reverted cleanly with `git status --short` is the whole cost.
 
-Disposition: applied in T-006 (committed `74ed4a9`); carried as a review habit, not a follow-on bundle.
+**Recurrence in `C-LEGIBLE-FAILURE` T-002 — the class widens past numbers.** The `AC-THREE-EXITS`
+matrix asserted the unparseable-ledger code with `expect(w.code).toMatch(/xml\.parse|parse/i)` where
+the plan asks for *"exact codes/details where stable"* and its DESIGN comment names `xml.parse` as one
+of the three discriminating codes. Measured: the value is exactly `xml.parse`, so the exactness was
+available and was not taken. The regex accepts any string containing `parse` in any case.
+
+Confirmed empirically the same way as the double-count probe: with the production code mutated to emit
+`ledger.parse-failed`, the loose assertion stayed green (`0 fail`); after tightening to
+`toBe("xml.parse")` the identical mutation reddened it (`1 fail`); reverting restored green and the
+production digest. So the assertion could not have caught the drift it existed to catch.
+
+**F23 therefore is not only about counts.** The general form is: *the assertion is weaker than the
+value the criterion names* — a bound where a number is claimed, a family regex where a contract code is
+claimed. The tell is the same in both cases: name a wrong implementation, and ask whether the test
+would notice.
+
+The counterweight to over-applying this: an adjacent assertion in the same block,
+`expect(w.detail.length).toBeGreaterThan(0)`, was **left loose deliberately**. The `code` is a contract
+value the plan names; the `detail` is passthrough text from the XML parser (`char 'n' is not
+expected.`). Pinning the code is a contract; pinning the parser's wording is coupling to a dependency's
+prose. F23 asks whether the criterion names the value — not whether an assertion could be tighter.
+
+Disposition: applied in T-006 (committed `74ed4a9`); recurrence corrected in `C-LEGIBLE-FAILURE` T-002
+(committed `9181dda`). Carried as a review habit, not a follow-on bundle.
 
 ---
 
