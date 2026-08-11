@@ -426,7 +426,7 @@ describe("review admissibility — closed by name (A42.4 / A41.5)", () => {
 
   it("every REVIEW_CATALOG code is either admissible or excluded (exhaustive)", () => {
     const catalog = allReviewCodes();
-    // C-CURSOR-INTEGRITY T-006 adds review.attempt-pair-unsubstantiated (excluded from localization).
+    // C-SUBSTANTIATION-HONESTY renames attempt-pair code (still excluded from localization).
     expect(catalog.length).toBe(14);
     for (const code of catalog) {
       const admitted = isAdmissibleLocalizationReviewCode(code);

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -23,7 +23,7 @@ import {
   runPatternDetectors,
   runReview,
 } from "./core";
-import { allReviewCodes, guideFor } from "./catalog";
+import { ATTEMPT_PAIR_FINDING_CODE, allReviewCodes, guideFor } from "./catalog";
 
 const tempRoots: string[] = [];
 
@@ -1507,7 +1507,7 @@ export function run() { return 1; }
 });
 
 // ---------------------------------------------------------------------------
-// C-CURSOR-INTEGRITY T-006 / P0.10 / F9.3 — attempt-pair write evidence
+// C-SUBSTANTIATION-HONESTY — identical-tree attempt-pair write evidence
 // ---------------------------------------------------------------------------
 
 /** Build WriteEvidence content digests for auditAttemptPairWriteEvidence. */
@@ -1515,14 +1515,46 @@ function evidenceMap(entries: Array<[string, string]>): Record<string, string> {
   return Object.fromEntries(entries);
 }
 
-describe("attempt-pair write evidence (C-CURSOR-INTEGRITY T-006 / F9.3)", () => {
-  const ows = ["src/impl.ts", "src/impl.test.ts", "src/other.ts"];
+/** Retired code — must never appear in catalog or live findings after the rename. */
+const RETIRED_ATTEMPT_PAIR_CODE = "review.attempt-pair-unsubstantiated";
 
-  it("red-first: identical non-test OWS digests across fail→pass emit no finding today until audit lands", () => {
-    // This test documents the defect: before T-006 the helper must exist and raise.
+/**
+ * Authoring-time archive C-* set (plan D0 / HEAD 098783b). Frozen so a silent
+ * vanish from the corpus is caught; total count is not pinned to 26.
+ */
+const AUTHORING_ARCHIVE_C_IDS = [
+  "C-ABSENCE-VALUE",
+  "C-ADOPTION-SURFACE",
+  "C-ATTEMPT-LOG",
+  "C-CALIBRATION",
+  "C-CALIBRATION-COMMAND-EVIDENCE",
+  "C-CALIBRATION-CONTEXT",
+  "C-CALIBRATION-PROVENANCE",
+  "C-CURSOR-INTEGRITY",
+  "C-ESCALATION-HONESTY",
+  "C-EXECUTION-CONTRACT",
+  "C-FAILURE-LOCALIZATION",
+  "C-FLAG-HONESTY",
+  "C-GATE-RECORD-ABSENCE",
+  "C-GATE-SURFACE",
+  "C-GRAPH-COVERAGE",
+  "C-LEDGER-READ-ABSENCE",
+  "C-LEGIBLE-FAILURE",
+  "C-OBSERVABLE-CHECKS",
+  "C-PLAN-QUALITY",
+  "C-RECOVER-FOLDABLE",
+  "C-REPORT-HONESTY",
+  "C-REVIEW-LANGUAGE-SCOPE",
+  "C-REVIEW-SURFACE",
+  "C-RUN-LEDGER",
+  "C-SELECTION",
+  "C-TOKEN-INTEGRITY",
+] as const;
+
+describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
+  it("identical-tree must raise: pure identical non-.ngrace digests", () => {
     const findings = auditAttemptPairWriteEvidence({
       changeId: "C-PAIR",
-      scopeFiles: ows,
       pairs: [
         {
           task: "T-001",
@@ -1530,54 +1562,81 @@ describe("attempt-pair write evidence (C-CURSOR-INTEGRITY T-006 / F9.3)", () => 
           passEventId: 3,
           failDigests: evidenceMap([
             ["src/impl.ts", "aaa"],
-            ["src/impl.test.ts", "test-red"],
+            ["src/impl.test.ts", "same"],
           ]),
           passDigests: evidenceMap([
             ["src/impl.ts", "aaa"],
-            ["src/impl.test.ts", "test-green"],
+            ["src/impl.test.ts", "same"],
           ]),
         },
       ],
     });
-    expect(findings.some((f) => f.code === "review.attempt-pair-unsubstantiated")).toBe(true);
-    expect(findings.find((f) => f.code === "review.attempt-pair-unsubstantiated")!.severity).toBe("warning");
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.code).toBe(ATTEMPT_PAIR_FINDING_CODE);
+    expect(findings[0]!.severity).toBe("warning");
   });
 
-  it("substantiated pair (non-test OWS digest changes) is silent", () => {
+  it("identical-tree must raise: both sides empty of non-.ngrace content", () => {
     const findings = auditAttemptPairWriteEvidence({
       changeId: "C-PAIR",
-      scopeFiles: ows,
       pairs: [
         {
           task: "T-001",
-          failEventId: 2,
-          passEventId: 3,
+          failEventId: 1,
+          passEventId: 2,
+          failDigests: evidenceMap([]),
+          passDigests: evidenceMap([]),
+        },
+      ],
+    });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.code).toBe(ATTEMPT_PAIR_FINDING_CODE);
+  });
+
+  it("identical-tree must raise: only .ngrace/ paths differ (ledger noise)", () => {
+    const findings = auditAttemptPairWriteEvidence({
+      changeId: "C-PAIR",
+      pairs: [
+        {
+          task: "T-001",
+          failEventId: 1,
+          passEventId: 2,
           failDigests: evidenceMap([
-            ["src/impl.ts", "before"],
-            ["src/impl.test.ts", "t1"],
+            ["src/impl.ts", "x"],
+            [".ngrace/changes/active/C-PAIR/run.xml", "a"],
           ]),
           passDigests: evidenceMap([
-            ["src/impl.ts", "after"],
-            ["src/impl.test.ts", "t2"],
+            ["src/impl.ts", "x"],
+            [".ngrace/changes/active/C-PAIR/run.xml", "b"],
+            [".ngrace/changes/active/C-PAIR/run/1-T-001-attempt.xml", "c"],
           ]),
         },
       ],
     });
-    expect(findings.filter((f) => f.code === "review.attempt-pair-unsubstantiated")).toHaveLength(0);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.code).toBe(ATTEMPT_PAIR_FINDING_CODE);
   });
 
-  it("corpus T-002 shape (production identical, test changes) raises — F9", () => {
-    // Copy of the F9-revealing shape: grammar.ts digest identical; only test moves.
-    // (Live C-TOKEN 6→7 also moved catalog.ts concurrently; pure OWS rule is tested
-    //  on this shape and on live T-001/T-005/T-007 below.)
+  it("silent: test-only movement", () => {
+    const findings = auditAttemptPairWriteEvidence({
+      changeId: "C-PAIR",
+      pairs: [
+        {
+          task: "T-005",
+          failEventId: 16,
+          passEventId: 17,
+          failDigests: evidenceMap([["src/lint/catalog.test.ts", "fb93cc5603fc"]]),
+          passDigests: evidenceMap([["src/lint/catalog.test.ts", "f708df110a50"]]),
+        },
+      ],
+    });
+    expect(findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE)).toHaveLength(0);
+    expect(findings.filter((f) => f.code === RETIRED_ATTEMPT_PAIR_CODE)).toHaveLength(0);
+  });
+
+  it("silent: production identical + test movement (old F9 pure shape)", () => {
     const findings = auditAttemptPairWriteEvidence({
       changeId: "C-TOKEN-INTEGRITY",
-      scopeFiles: [
-        "src/artifact/grammar.ts",
-        "src/artifact/grammar.test.ts",
-        "src/lint/catalog.ts",
-        "src/lint/catalog.test.ts",
-      ],
       pairs: [
         {
           task: "T-002",
@@ -1594,66 +1653,79 @@ describe("attempt-pair write evidence (C-CURSOR-INTEGRITY T-006 / F9.3)", () => 
         },
       ],
     });
-    const hit = findings.filter((f) => f.code === "review.attempt-pair-unsubstantiated");
-    expect(hit.length).toBe(1);
-    expect(hit[0]!.severity).toBe("warning");
-    expect(hit[0]!.message).toMatch(/T-002/);
-    expect(hit[0]!.findingId.length).toBeGreaterThan(8);
+    expect(findings).toHaveLength(0);
   });
 
-  it("corpus T-005 shape (test-only deliverable) raises — F9.3", () => {
+  it("silent: skills-only movement", () => {
     const findings = auditAttemptPairWriteEvidence({
-      changeId: "C-TOKEN-INTEGRITY",
-      scopeFiles: ["src/lint/catalog.ts", "src/lint/catalog.test.ts"],
+      changeId: "C-EXECUTION-CONTRACT",
       pairs: [
         {
-          task: "T-005",
-          failEventId: 16,
-          passEventId: 17,
-          failDigests: evidenceMap([["src/lint/catalog.test.ts", "fb93cc5603fc"]]),
-          passDigests: evidenceMap([["src/lint/catalog.test.ts", "f708df110a50"]]),
+          task: "T-001",
+          failEventId: 2,
+          passEventId: 5,
+          failDigests: evidenceMap([["src/grace-cursor.ts", "same"]]),
+          passDigests: evidenceMap([
+            ["src/grace-cursor.ts", "same"],
+            ["skills/ngrace/ngrace-execute/SKILL.md", "new"],
+            ["plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md", "new"],
+          ]),
         },
       ],
     });
-    expect(findings.some((f) => f.code === "review.attempt-pair-unsubstantiated" && f.message.includes("T-005"))).toBe(true);
+    expect(findings).toHaveLength(0);
   });
 
-  it("corpus T-007 shape (honest gap, production identical) raises — F9.4", () => {
+  it("silent: production content movement (textbook red-first)", () => {
     const findings = auditAttemptPairWriteEvidence({
-      changeId: "C-CURSOR-INTEGRITY",
-      scopeFiles: ["src/grace-status.ts", "src/grace-status.test.ts", "src/grace-cursor.ts"],
+      changeId: "C-PAIR",
       pairs: [
         {
-          task: "T-007",
-          failEventId: 11,
-          passEventId: 12,
+          task: "T-001",
+          failEventId: 2,
+          passEventId: 3,
           failDigests: evidenceMap([
-            ["src/grace-status.ts", "10ac3981559892c8"],
-            ["src/grace-cursor.ts", "2264b94fbf541a2a"],
+            ["src/impl.ts", "before"],
+            ["src/impl.test.ts", "t1"],
           ]),
           passDigests: evidenceMap([
-            ["src/grace-status.ts", "10ac3981559892c8"],
-            ["src/grace-cursor.ts", "2264b94fbf541a2a"],
-            ["src/grace-status.test.ts", "7afcf544e06f"],
+            ["src/impl.ts", "after"],
+            ["src/impl.test.ts", "t2"],
           ]),
         },
       ],
     });
-    expect(findings.some((f) => f.code === "review.attempt-pair-unsubstantiated" && f.message.includes("T-007"))).toBe(true);
+    expect(findings).toHaveLength(0);
   });
 
-  it("live C-TOKEN T-001 2→3 and T-005 16→17 raise; live C-CURSOR T-007 11→12 raises", () => {
+  it("silent: path present only on pass outside .ngrace/", () => {
+    const findings = auditAttemptPairWriteEvidence({
+      changeId: "C-PAIR",
+      pairs: [
+        {
+          task: "T-001",
+          failEventId: 1,
+          passEventId: 2,
+          failDigests: evidenceMap([]),
+          passDigests: evidenceMap([["src/impl.ts", "new"]]),
+        },
+      ],
+    });
+    expect(findings).toHaveLength(0);
+  });
+
+  it("live archive pairs that raised under the old rule are silent under both codes", () => {
     const repoRoot = path.resolve(import.meta.dir, "../..");
-    // Read-only against live ledgers (never mutate C-TOKEN-INTEGRITY).
     const token = runReview(repoRoot, {
       changeId: "C-TOKEN-INTEGRITY",
-      changedFiles: [], // process scope audit over empty set is fine
+      changedFiles: [],
       patterns: false,
       joinEngine: false,
     });
-    const tokenPairs = token.findings.filter((f) => f.code === "review.attempt-pair-unsubstantiated");
-    expect(tokenPairs.some((f) => f.message.includes("T-001"))).toBe(true);
-    expect(tokenPairs.some((f) => f.message.includes("T-005"))).toBe(true);
+    const tokenLive = token.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE);
+    const tokenRetired = token.findings.filter((f) => f.code === RETIRED_ATTEMPT_PAIR_CODE);
+    expect(tokenLive).toHaveLength(0);
+    expect(tokenRetired).toHaveLength(0);
 
     const cursor = runReview(repoRoot, {
       changeId: "C-CURSOR-INTEGRITY",
@@ -1661,18 +1733,101 @@ describe("attempt-pair write evidence (C-CURSOR-INTEGRITY T-006 / F9.3)", () => 
       patterns: false,
       joinEngine: false,
     });
-    const cursorPairs = cursor.findings.filter((f) => f.code === "review.attempt-pair-unsubstantiated");
-    expect(cursorPairs.some((f) => f.message.includes("T-007"))).toBe(true);
+    expect(cursor.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE)).toHaveLength(0);
+    expect(cursor.findings.filter((f) => f.code === RETIRED_ATTEMPT_PAIR_CODE)).toHaveLength(0);
   });
 
-  it("REVIEW_CATALOG registers exact guide; not on F10 backlog allowlist", () => {
-    const guide = guideFor("review.attempt-pair-unsubstantiated");
+  it("archive corpus: zero live and retired findings on every dynamically enumerated C-*", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const archiveDir = path.join(repoRoot, ".ngrace/changes/archive");
+    // Dynamic enumeration — no expect(dirs.length).toBe(26).
+    const dirs = readdirSync(archiveDir).filter((name) => {
+      if (!name.startsWith("C-")) return false;
+      return statSync(path.join(archiveDir, name)).isDirectory();
+    });
+    for (const id of AUTHORING_ARCHIVE_C_IDS) {
+      expect(dirs).toContain(id);
+    }
+    let totalLive = 0;
+    let totalRetired = 0;
+    for (const id of dirs) {
+      const report = runReview(repoRoot, {
+        changeId: id,
+        changedFiles: [],
+        patterns: false,
+        joinEngine: false,
+      });
+      const live = report.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE);
+      const retired = report.findings.filter((f) => f.code === RETIRED_ATTEMPT_PAIR_CODE);
+      expect(live).toHaveLength(0);
+      expect(retired).toHaveLength(0);
+      totalLive += live.length;
+      totalRetired += retired.length;
+    }
+    expect(totalLive).toBe(0);
+    expect(totalRetired).toBe(0);
+  });
+
+  it("archived bundle finding anchors under archive/ not active/", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const findings = auditAttemptPairWriteEvidence({
+      changeId: "C-ESCALATION-HONESTY",
+      projectRoot: repoRoot,
+      pairs: [
+        {
+          task: "T-FORCE",
+          failEventId: 1,
+          passEventId: 2,
+          failDigests: evidenceMap([["src/x.ts", "a"]]),
+          passDigests: evidenceMap([["src/x.ts", "a"]]),
+        },
+      ],
+    });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.code).toBe(ATTEMPT_PAIR_FINDING_CODE);
+    expect(findings[0]!.file.startsWith(".ngrace/changes/archive/C-ESCALATION-HONESTY")).toBe(true);
+    expect(findings[0]!.file.includes("/active/")).toBe(false);
+  });
+
+  it("unscoped review reports attempt-pair audit not-run with reason naming missing --change", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const report = runReview(repoRoot, {
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(report.attemptPairAudit?.status).toBe("not-run");
+    expect(report.attemptPairAudit?.reason).toMatch(/no --change/);
+    const text = formatReviewResult(report);
+    expect(text).toContain("Attempt-pair audit: not-run —");
+    expect(text).toMatch(/no --change/);
+  });
+
+  it("scoped review with zero pairs reports attempt-pair audit ran", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeScopedPlan(root, "C-QUIET", ["src/example.ts", "src/example.test.ts"]);
+    const report = runReview(root, {
+      changeId: "C-QUIET",
+      changedFiles: [],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(report.attemptPairAudit?.status).toBe("ran");
+    expect(report.attemptPairAudit?.pairCount).toBe(0);
+    expect(report.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE)).toHaveLength(0);
+  });
+
+  it("REVIEW_CATALOG registers exact live code; retired code absent; not on F10 allowlist", () => {
+    const guide = guideFor(ATTEMPT_PAIR_FINDING_CODE);
     expect(guide).toBeDefined();
+    expect(guide!.code).toBe(ATTEMPT_PAIR_FINDING_CODE);
     expect(guide!.severity).toBe("warning");
-    expect(guide!.explanation).toMatch(/WriteEvidence|digest|fail|pass/i);
+    expect(guide!.explanation).toMatch(/WriteEvidence|digest|fail|pass|\.ngrace/i);
     expect(guide!.remediation.some((r) => /gate verdict|--note|findingId/i.test(r))).toBe(true);
-    expect(allReviewCodes()).toContain("review.attempt-pair-unsubstantiated");
-    // Completeness: new codes get exact REVIEW_CATALOG guides, not the F10 allowlist.
+    expect(allReviewCodes()).toContain(ATTEMPT_PAIR_FINDING_CODE);
+    expect(allReviewCodes()).not.toContain(RETIRED_ATTEMPT_PAIR_CODE);
+    expect(allReviewCodes()).toHaveLength(14);
+    expect(guideFor(RETIRED_ATTEMPT_PAIR_CODE)).toBeUndefined();
     const catalogTest = readFileSync(
       path.join(import.meta.dir, "../lint/catalog.test.ts"),
       "utf8",
@@ -1681,13 +1836,13 @@ describe("attempt-pair write evidence (C-CURSOR-INTEGRITY T-006 / F9.3)", () => 
       /const REVIEW_PREFIX_COVERED_LEGACY_CODES: readonly string\[\] = \[([\s\S]*?)\];/,
     );
     expect(allowlistBlock).toBeTruthy();
-    expect(allowlistBlock![1]).not.toContain("review.attempt-pair-unsubstantiated");
+    expect(allowlistBlock![1]).not.toContain(ATTEMPT_PAIR_FINDING_CODE);
+    expect(allowlistBlock![1]).not.toContain(RETIRED_ATTEMPT_PAIR_CODE);
   });
 
   it("findingId is stable and suitable for gate verdict --note keying", () => {
     const a = auditAttemptPairWriteEvidence({
       changeId: "C-PAIR",
-      scopeFiles: ["src/impl.ts"],
       pairs: [
         {
           task: "T-009",
@@ -1700,7 +1855,6 @@ describe("attempt-pair write evidence (C-CURSOR-INTEGRITY T-006 / F9.3)", () => 
     });
     const b = auditAttemptPairWriteEvidence({
       changeId: "C-PAIR",
-      scopeFiles: ["src/impl.ts"],
       pairs: [
         {
           task: "T-009",
@@ -1711,24 +1865,8 @@ describe("attempt-pair write evidence (C-CURSOR-INTEGRITY T-006 / F9.3)", () => 
         },
       ],
     });
+    expect(a[0]!.code).toBe(ATTEMPT_PAIR_FINDING_CODE);
     expect(a[0]!.findingId).toBe(b[0]!.findingId);
     expect(a[0]!.findingId).toMatch(/^[a-f0-9]{16}$/);
-  });
-
-  it("cursor attempt stays quiet at write time (no review finding from recordAttempt)", () => {
-    // Contract pin: recordAttempt is a write surface and must not emit review codes.
-    // The check lives only in ngrace review.
-    const root = ensureTempRoot();
-    writeMinimalNgraceProject(root);
-    writeScopedPlan(root, "C-QUIET", ["src/example.ts", "src/example.test.ts"]);
-    // No attempt-pair audit without attempt events — and recordAttempt is not imported here.
-    // Pin that runReview without ledger attempts emits zero attempt-pair findings.
-    const report = runReview(root, {
-      changeId: "C-QUIET",
-      changedFiles: [],
-      patterns: false,
-      joinEngine: false,
-    });
-    expect(report.findings.filter((f) => f.code === "review.attempt-pair-unsubstantiated")).toHaveLength(0);
   });
 });

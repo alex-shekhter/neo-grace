@@ -8,17 +8,19 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   ATTEMPT_PAIR_FINDING_CODE
 //   HunkCoverageInput
 //   JoinProbe
 //   REVIEW_CATALOG
 //   RegexOverStructureScan
 //   ReviewFinding
 //   ReviewOptions
+//   AttemptPairAuditReport
+//   AttemptPairEvidenceInput
 //   ReviewResult
 //   ScopeAuditReport
 //   TestFileDiff
 //   allReviewCodes
-//   AttemptPairEvidenceInput
 //   auditAttemptPairWriteEvidence
 //   auditCompatNewErrors
 //   auditHunkCoverage
@@ -74,6 +76,7 @@ import {
   loadGraceArtifactIndex,
 } from "../query/core";
 import {
+  ATTEMPT_PAIR_FINDING_CODE,
   REVIEW_CATALOG,
   guideFor,
   type ReviewIssueGuide,
@@ -118,6 +121,20 @@ export type ScopeAuditReport = {
   absence?: AbsenceValue;
 };
 
+/**
+ * Attempt-pair audit outcome (F31 / C-SUBSTANTIATION-HONESTY).
+ * Always present when process audits ran — including unscoped review, where
+ * status is not-run with a reason (same honesty bar as ScopeAuditReport).
+ */
+export type AttemptPairAuditReport = {
+  status: "ran" | "not-run" | "unable-to-determine";
+  reason: string;
+  changeId?: string;
+  pairCount?: number;
+  findingCount?: number;
+  absence?: AbsenceValue;
+};
+
 export type ReviewResult = {
   schemaVersion: "1.0.0";
   tool: "ngrace-review";
@@ -130,6 +147,11 @@ export type ReviewResult = {
   shapeDataExemptions: string[];
   /** Present when --change was set and process audits ran. */
   scopeAudit?: ScopeAuditReport;
+  /**
+   * Present when process audits ran. Unscoped review sets status not-run
+   * (reason names missing --change) rather than omitting the audit.
+   */
+  attemptPairAudit?: AttemptPairAuditReport;
   summary: {
     findings: number;
     errors: number;
@@ -1037,14 +1059,27 @@ export function auditHunkCoverage(hunks: HunkCoverageInput[]): ReviewFinding[] {
 }
 
 // ---------------------------------------------------------------------------
-// Attempt-pair write evidence (P0.10 / F9.3 / C-CURSOR-INTEGRITY T-006)
+// Attempt-pair write evidence (C-SUBSTANTIATION-HONESTY / F9.10 / F31 / F32)
+// Identical-tree rule: raise when no non-.ngrace/ content digest differs.
 // ---------------------------------------------------------------------------
 
 /** One fail→pass pair with WriteEvidence content digests (path → digest). */
 export type AttemptPairEvidenceInput = {
   changeId: string;
-  /** Plan ObservedWriteScope file paths (normalized). Globs not expanded here — callers pass files. */
-  scopeFiles: string[];
+  /**
+   * Project root for resolveChangeBundle anchor (F32). When omitted, unit fixtures
+   * get a synthetic anchor that does not hardcode active/ for archived ids.
+   */
+  projectRoot?: string;
+  /**
+   * Optional pre-resolved finding file (posix relative). Wins over projectRoot.
+   */
+  resolvedAnchorFile?: string;
+  /**
+   * Unused by the identical-tree raise condition (OWS is not consulted).
+   * Retained optional for call-site compatibility with older fixtures.
+   */
+  scopeFiles?: string[];
   pairs: Array<{
     task: string;
     failEventId: number;
@@ -1056,21 +1091,16 @@ export type AttemptPairEvidenceInput = {
   }>;
 };
 
-/** True when path is a test file excluded from the "must differ" set (F9.3 / derivation). */
-function isTestPathForAttemptPair(filePath: string): boolean {
-  const n = normalizeRel(filePath);
-  return n.endsWith(".test.ts") || n.endsWith(".test.js");
-}
-
 /**
- * Paths that can *substantiate* a fail→pass pair (F9.3 / p0-cursor-derivation).
- * Non-test `src/` only. Docs, plan/spec, and .ngrace run artifacts do not clear the
- * finding — "if only docs change the finding still fires" (derivation §P0.10).
+ * True when path is a ledger/tool artifact under `.ngrace/`.
+ *
+ * Excluded from identical-tree comparison because the cursor writes `run.xml`
+ * and loose event files on every attempt command — those digests differ across
+ * almost any honest pair and prove nothing about authored work (F9.10 / F11).
  */
-function isSubstantiatingPath(filePath: string): boolean {
+function isNgraceLedgerPath(filePath: string): boolean {
   const n = normalizeRel(filePath);
-  if (isTestPathForAttemptPair(n)) return false;
-  return n === "src" || n.startsWith("src/");
+  return n === ".ngrace" || n.startsWith(".ngrace/");
 }
 
 /**
@@ -1089,20 +1119,62 @@ function contentDigestsFromEvidence(evidence: WriteEvidenceSnapshot | undefined)
 }
 
 /**
- * F9.3: when no non-test ObservedWriteScope path has a WriteEvidence change
- * across a fail→pass pair, raise a warning finding.
+ * Relative finding path for an attempt-pair finding (F32).
+ * Prefer resolveChangeBundle so archived bundles do not point at missing active/.
+ */
+function resolveAttemptPairAnchorFile(
+  changeId: string,
+  projectRoot: string | undefined,
+  resolvedAnchorFile: string | undefined,
+): string {
+  if (resolvedAnchorFile) return normalizeRel(resolvedAnchorFile);
+  if (projectRoot) {
+    try {
+      const bundlePath = resolveChangeBundle(projectRoot, changeId);
+      const relBundle = path.relative(path.resolve(projectRoot), bundlePath).replaceAll("\\", "/");
+      const runDir = path.join(bundlePath, "run");
+      if (existsSync(runDir)) return `${relBundle}/run`;
+      const ledger = path.join(bundlePath, "run-ledger.xml");
+      if (existsSync(ledger)) return `${relBundle}/run-ledger.xml`;
+      return relBundle;
+    } catch {
+      // fall through
+    }
+  }
+  // Unit fixtures without a real bundle — do not invent active/ for archive ids.
+  return `.ngrace/changes/${changeId}/run`;
+}
+
+/**
+ * True when any non-`.ngrace/` content path differs across the pair
+ * (digest change, or presence on only one side).
+ */
+function nonNgraceContentDiffers(
+  failDigests: Record<string, string>,
+  passDigests: Record<string, string>,
+): boolean {
+  const keys = new Set([...Object.keys(failDigests), ...Object.keys(passDigests)]);
+  for (const filePath of keys) {
+    if (isNgraceLedgerPath(filePath)) continue;
+    if (failDigests[filePath] !== passDigests[filePath]) return true;
+  }
+  return false;
+}
+
+/**
+ * Identical-tree audit (C-SUBSTANTIATION-HONESTY): raise when a fail→pass pair
+ * has no non-`.ngrace/` WriteEvidence content difference.
  *
- * A non-test OWS path "changes" when:
- * - content digests differ on both sides, or
- * - it appears on only one side (e.g. production file written after the fail —
- *   the textbook red-first shape; that *substantiates* the pair).
- *
- * Empty non-test evidence (test-only deliverable) raises — digests cannot read
- * task intent (F9.3). Does not exempt "honest" gaps from "unsubstantiated" ones.
+ * Does not consult ObservedWriteScope or production-vs-test path filters.
+ * Production-must-move is retired (F9.10: 100% false-positive rate on archive).
  */
 export function auditAttemptPairWriteEvidence(input: AttemptPairEvidenceInput): ReviewFinding[] {
-  const scopeSet = new Set(input.scopeFiles.map(normalizeRel));
   const findings: ReviewFinding[] = [];
+  const file = resolveAttemptPairAnchorFile(
+    input.changeId,
+    input.projectRoot,
+    input.resolvedAnchorFile,
+  );
 
   for (const pair of input.pairs) {
     const failD = Object.fromEntries(
@@ -1112,34 +1184,20 @@ export function auditAttemptPairWriteEvidence(input: AttemptPairEvidenceInput): 
       Object.entries(pair.passDigests).map(([p, d]) => [normalizeRel(p), d]),
     );
 
-    let substantiatingSeen = 0;
-    let substantiatingChanged = 0;
-    for (const scopePath of scopeSet) {
-      if (!isSubstantiatingPath(scopePath)) continue;
-      const a = failD[scopePath];
-      const b = passD[scopePath];
-      if (a === undefined && b === undefined) continue;
-      substantiatingSeen += 1;
-      // Differing digests, or presence on only one side (production written after fail).
-      if (a !== b) substantiatingChanged += 1;
-    }
-
-    // Raise when no substantiating src/ non-test path changed (T-005 test-only shape included).
-    if (substantiatingChanged > 0) continue;
+    // Raise only when the non-.ngrace/ trees are identical (including both empty).
+    if (nonNgraceContentDiffers(failD, passD)) continue;
 
     const anchor = `attempt-pair:${pair.task}:${pair.failEventId}->${pair.passEventId}`;
     const message =
       `Fail→pass attempt pair ${pair.task} (events ${pair.failEventId}→${pair.passEventId}) `
-      + `has no differing non-test src/ ObservedWriteScope WriteEvidence digest`
-      + (substantiatingSeen === 0
-        ? " (no non-test src/ scope path in WriteEvidence — test-only deliverable or empty set)."
-        : ` (${substantiatingSeen} non-test src/ path(s) seen, all identical across the pair).`)
-      + " Red-first is not corroborated by production-file digests (F9.3).";
+      + "has identical non-.ngrace/ WriteEvidence content digests "
+      + "(no authored path outside .ngrace/ differs across the pair). "
+      + "Red-first is not corroborated by any non-ledger content change (F9.10).";
 
     findings.push(
       makeFinding(
-        "review.attempt-pair-unsubstantiated",
-        `.ngrace/changes/active/${input.changeId}/run`,
+        ATTEMPT_PAIR_FINDING_CODE,
+        file,
         message,
         "attempt-pair-write-evidence",
         anchor,
@@ -1220,6 +1278,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
   }
 
   let scopeAudit: ScopeAuditReport | undefined;
+  let attemptPairAudit: AttemptPairAuditReport | undefined;
 
   if (runProcess) {
     if (options.changeId) {
@@ -1294,22 +1353,45 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
       findings.push(...auditHunkCoverage(options.hunkCoverage));
     }
 
-    // P0.10 / F9.3: fail→pass WriteEvidence audit when reviewing a named change.
-    if (options.changeId) {
+    // C-SUBSTANTIATION-HONESTY: fail→pass identical-tree audit + absence record (F31).
+    if (!options.changeId) {
+      const reason = "no --change supplied";
+      attemptPairAudit = {
+        status: "not-run",
+        reason,
+        absence: { verdict: "not-run", reason },
+      };
+    } else {
       const changeId = options.changeId;
-      const resolved = resolveChangePlanPath(root, changeId);
-      const scopeFiles = resolved
-        ? extractObservedWriteScopeFromPlan(resolved.planPath, root).files
-        : [];
-      const pairs = loadAttemptPairsFromBundle(root, changeId);
-      if (pairs.length > 0) {
-        findings.push(
-          ...auditAttemptPairWriteEvidence({
-            changeId,
-            scopeFiles,
-            pairs,
-          }),
-        );
+      let bundleResolves = true;
+      try {
+        resolveChangeBundle(root, changeId);
+      } catch {
+        bundleResolves = false;
+      }
+      if (!bundleResolves) {
+        const reason = `change bundle ${changeId} not found under active/ or archive/`;
+        attemptPairAudit = {
+          status: "not-run",
+          reason,
+          changeId,
+          absence: { verdict: "not-run", reason },
+        };
+      } else {
+        const pairs = loadAttemptPairsFromBundle(root, changeId);
+        const pairFindings = auditAttemptPairWriteEvidence({
+          changeId,
+          projectRoot: root,
+          pairs,
+        });
+        findings.push(...pairFindings);
+        attemptPairAudit = {
+          status: "ran",
+          reason: `ran over ${pairs.length} fail→pass pair(s) for ${changeId}`,
+          changeId,
+          pairCount: pairs.length,
+          findingCount: pairFindings.length,
+        };
       }
     }
   }
@@ -1328,6 +1410,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
     findings,
     shapeDataExemptions,
     scopeAudit,
+    attemptPairAudit,
     summary: {
       findings: findings.length,
       errors: findings.filter((f) => f.severity === "error").length,
@@ -1417,13 +1500,22 @@ export function formatReviewResult(result: ReviewResult): string {
     lines.push("");
   }
 
+  if (result.attemptPairAudit) {
+    lines.push(formatAttemptPairAuditLine(result.attemptPairAudit));
+    lines.push("");
+  }
+
   if (result.findings.length === 0) {
-    // A66.4 / rule 11: "No review findings" is false when the scope audit did not run.
+    // A66.4 / rule 11 / F31: "No review findings" is false when a process audit did not run.
     const scopeSkipped =
       result.scopeAudit
       && (result.scopeAudit.status === "not-run"
         || result.scopeAudit.status === "unable-to-determine");
-    if (!scopeSkipped) {
+    const attemptPairSkipped =
+      result.attemptPairAudit
+      && (result.attemptPairAudit.status === "not-run"
+        || result.attemptPairAudit.status === "unable-to-determine");
+    if (!scopeSkipped && !attemptPairSkipped) {
       lines.push("No review findings.");
     }
     return lines.join("\n");
@@ -1435,6 +1527,16 @@ export function formatReviewResult(result: ReviewResult): string {
     );
   }
   return lines.join("\n");
+}
+
+function formatAttemptPairAuditLine(audit: AttemptPairAuditReport): string {
+  if (audit.status === "not-run" || audit.status === "unable-to-determine") {
+    return `Attempt-pair audit: ${audit.status} — ${audit.reason}`;
+  }
+  const n = audit.pairCount ?? 0;
+  const f = audit.findingCount ?? 0;
+  const id = audit.changeId ?? "?";
+  return `Attempt-pair audit: ran over ${n} fail→pass pair(s) for ${id} (${f} finding(s)).`;
 }
 
 function formatScopeAuditLine(audit: ScopeAuditReport): string {
@@ -1471,4 +1573,9 @@ function formatScopeAuditLine(audit: ScopeAuditReport): string {
 }
 
 // Re-export catalog helpers used by boundary tests
-export { isReviewIssueCode, allReviewCodes, REVIEW_CATALOG } from "./catalog";
+export {
+  ATTEMPT_PAIR_FINDING_CODE,
+  isReviewIssueCode,
+  allReviewCodes,
+  REVIEW_CATALOG,
+} from "./catalog";

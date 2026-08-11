@@ -8,6 +8,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   ATTEMPT_PAIR_FINDING_CODE
 //   REVIEW_CATALOG
 //   ReviewIssueGuide
 //   ReviewIssueSeverity
@@ -45,6 +46,13 @@ export type ReviewIssueGuide = {
   /** "pattern" | "process-audit" | "join-process" */
   family: "pattern" | "process-audit" | "join-process";
 };
+
+/**
+ * Live fail→pass attempt-pair finding code (C-SUBSTANTIATION-HONESTY).
+ * Single spelling for catalog key, emitter, and skill-agreement tests — do not
+ * re-type the string at call sites.
+ */
+export const ATTEMPT_PAIR_FINDING_CODE = "review.attempt-pair-identical-tree" as const;
 
 export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
   // --- Family A: corpus pattern codes ---
@@ -176,26 +184,27 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
     derivedFrom: "§6.4 hunk coverage",
     family: "process-audit",
   },
-  "review.attempt-pair-unsubstantiated": {
-    code: "review.attempt-pair-unsubstantiated",
-    title: "Fail→Pass Attempt Pair Has No Non-Test WriteEvidence Change",
+  [ATTEMPT_PAIR_FINDING_CODE]: {
+    code: ATTEMPT_PAIR_FINDING_CODE,
+    title: "Fail→Pass Attempt Pair Has Identical Non-.ngrace WriteEvidence Trees",
     explanation:
-      "A fail→pass cursor attempt pair on the same task shows no differing content digest among "
-      + "non-test files in ObservedWriteScope (WriteEvidence on both events). The ledger records a "
-      + "red-first sequence that digests cannot corroborate as a production fix (F9 / F9.3). "
-      + "Test-only deliverables and honest gaps raise the same finding — digests cannot read task intent. "
-      + "Severity is warning: detection requiring adjudication, not automatic bundle failure. "
+      "A fail→pass cursor attempt pair on the same task has no differing content digest among "
+      + "non-`.ngrace/` paths in WriteEvidence on both events. The trees are identical outside "
+      + "ledger artifacts the cursor writes on every command — so the red is not corroborated by "
+      + "any authored content change (F9.10 / C-SUBSTANTIATION-HONESTY). Paths under `.ngrace/` are "
+      + "excluded because they almost always differ and prove nothing. Severity is warning: "
+      + "detection requiring adjudication, not automatic bundle failure. "
       + "cursor attempt stays quiet at write time.",
     remediation: [
-      "If the task was genuinely test-only or the red was lost: record a free-text reason on "
-        + "`ngrace gate verdict --change C-ID --outcome … --note \"findingId=<id>: <reason>\"` "
+      "If the fail was fabricated or nothing outside `.ngrace/` actually changed: record a free-text "
+        + "reason on `ngrace gate verdict --change C-ID --outcome … --note \"findingId=<id>: <reason>\"` "
         + "keyed by this finding's stable findingId (D8.6). A bare \"reviewed\" flag is not enough.",
-      "If the pair should have been substantiated: re-run red-first honestly — do not stage a "
-        + "retrospective red (F9.1). Record a real fail before the production fix lands.",
+      "If the pair should have shown real work: re-run red-first honestly — do not stage a "
+        + "retrospective red (F9.1). Record a real fail before the authored fix lands.",
       "Do not invent a finding-clearance ledger schema here; gate verdict --note carries the reason.",
     ],
     severity: "warning",
-    derivedFrom: "F9 / F9.3 / P0.10 / C-CURSOR-INTEGRITY T-006",
+    derivedFrom: "F9.10 / F31 / F32 / C-SUBSTANTIATION-HONESTY",
     family: "process-audit",
   },
 

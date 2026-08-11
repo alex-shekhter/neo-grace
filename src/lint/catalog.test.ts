@@ -112,6 +112,8 @@ function collectEmittedIssueCodes(srcRoot: string): string[] {
     "design-context.bundle-id-mismatch",
     "analysis.adapter-failed", "analysis.runtime-missing",
     "markup.module-map-mismatch",
+    // makeFinding(ATTEMPT_PAIR_FINDING_CODE, …) in review/core.ts — constant, not a string literal
+    "review.attempt-pair-identical-tree",
   ]) {
     codes.add(code);
   }
@@ -306,8 +308,8 @@ const PREFIX_COVERED_LEGACY_CODES: readonly string[] = [
 /**
  * F10 / C-CURSOR-INTEGRITY T-001 — production-emitted review.* codes without an exact
  * REVIEW_CATALOG guide. makeFinding visibility surfaces these; do not mass-author guides
- * here. New codes from later tasks in this bundle (e.g. review.attempt-pair-unsubstantiated
- * from T-006) must get exact REVIEW_CATALOG guides, not a seat on this list.
+ * here. New codes from later tasks (e.g. review.attempt-pair-identical-tree from
+ * C-SUBSTANTIATION-HONESTY) must get exact REVIEW_CATALOG guides, not a seat on this list.
  *
  * Count: 0 (2026-08-10). All thirteen production review codes already have REVIEW_CATALOG
  * guides; the allowlist exists so a future pre-existing gap is an explicit diff.
@@ -524,7 +526,7 @@ describe("catalog exact-guide completeness (C-TOKEN-INTEGRITY T-005 / C-CURSOR-I
     const emitted = collectEmittedIssueCodes(srcRoot);
     const reviewEmitted = emitted.filter((c) => c.startsWith("review."));
     // Blind spot closed: makeFinding surface is visible (was zero before T-001).
-    // T-006 adds review.attempt-pair-unsubstantiated → ≥14 codes.
+    // C-SUBSTANTIATION-HONESTY renames attempt-pair code; cardinality stays ≥14.
     expect(reviewEmitted.length).toBeGreaterThanOrEqual(14);
     for (const code of allReviewCodes()) {
       expect(emitted).toContain(code);
@@ -541,12 +543,13 @@ describe("catalog exact-guide completeness (C-TOKEN-INTEGRITY T-005 / C-CURSOR-I
     expect(getExactLintIssueGuide(code)).toBeUndefined();
     expect(guideFor(code)).toBeDefined();
     expect(hasExactSurfaceGuide(code)).toBe(true);
-    // T-006 registered attempt-pair in REVIEW_CATALOG (exact guide, not F10 allowlist).
-    const registered = "review.attempt-pair-unsubstantiated";
+    // C-SUBSTANTIATION-HONESTY: live attempt-pair code in REVIEW_CATALOG (exact guide, not F10 allowlist).
+    const registered = "review.attempt-pair-identical-tree";
     expect(getExactLintIssueGuide(registered)).toBeUndefined();
     expect(guideFor(registered)).toBeDefined();
     expect(hasExactSurfaceGuide(registered)).toBe(true);
     expect(REVIEW_PREFIX_COVERED_LEGACY_CODES.includes(registered)).toBe(false);
+    expect(guideFor("review.attempt-pair-unsubstantiated")).toBeUndefined();
     // A still-uncatalogued review code remains a review-surface orphan, not a lint orphan.
     const future = "review.future-uncatalogued-probe";
     expect(getExactLintIssueGuide(future)).toBeUndefined();
