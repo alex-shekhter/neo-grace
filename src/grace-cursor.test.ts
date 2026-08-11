@@ -44,6 +44,7 @@ import {
   type KnownEventKind,
   type WriteEvidenceSnapshot,
 } from "./grace-cursor";
+import { GraceCommandError } from "./query/errors";
 import { collectProjectStatus, formatStatusText } from "./grace-status";
 import { lintGraceProject } from "./lint/core";
 
@@ -1338,7 +1339,9 @@ describe("escalation is sticky until resume (A21.1 / correction 41)", () => {
     const root = createProject();
     seedBundle(root);
     escalate(root);
-    const resumed = resumeCursor(root, "C-RUN", "T-001");
+    const resumed = resumeCursor(root, "C-RUN", "T-001", {
+      reason: "replan after sticky-escalation check",
+    });
     expect(resumed.state).toBe("in-progress");
     expect(showCursor(root, "C-RUN").state).toBe("in-progress");
   });
@@ -1404,8 +1407,10 @@ describe("per-task escalation set (A22.1 / correction 43)", () => {
     expect(resumed.state).toBe("paused-pending-approval");
     expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
 
-    // Only T-001's own resume clears the set.
-    const cleared = resumeCursor(root, "C-RUN", "T-001");
+    // Only T-001's own resume clears the set (reason required for escalation clear).
+    const cleared = resumeCursor(root, "C-RUN", "T-001", {
+      reason: "replan: clear T-001 after plurality check",
+    });
     expect(cleared.state).toBe("in-progress");
     expect(showCursor(root, "C-RUN").state).toBe("in-progress");
   });
@@ -1424,7 +1429,9 @@ describe("per-task escalation set (A22.1 / correction 43)", () => {
     expect(loose.some((e) => e.task === "T-002" && e.kind === "progress")).toBe(true);
 
     // After T-001 resolves, derivation reflects recent activity (progress was not skipped).
-    resumeCursor(root, "C-RUN", "T-001");
+    resumeCursor(root, "C-RUN", "T-001", {
+      reason: "replan: clear T-001 after progress-while-escalated check",
+    });
     expect(showCursor(root, "C-RUN").state).toBe("in-progress");
     expect(showCursor(root, "C-RUN").escalatedTasks).toEqual([]);
   });
@@ -1555,7 +1562,7 @@ describe("prefer-written escalation from stream (A25.1 / correction 47)", () => 
     const root = createProject();
     const bundle = seedBundle(root);
     escalateT001(root);
-    resumeCursor(root, "C-RUN", "T-001");
+    resumeCursor(root, "C-RUN", "T-001", { reason: "replan: resolve before stale-cursor fixture" });
     expect(showCursor(root, "C-RUN").state).toBe("in-progress");
     expect(showCursor(root, "C-RUN").escalatedTasks).toEqual([]);
 
@@ -1608,7 +1615,7 @@ describe("prefer-written escalation from stream (A25.1 / correction 47)", () => 
 
     // Resolve via new epoch + resume, then plant stale cursor.
     advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 100, to: 199 });
-    resumeCursor(root, "C-RUN", "T-001");
+    resumeCursor(root, "C-RUN", "T-001", { reason: "replan: resolve after fold for stale-cursor twin" });
     writeLegacyCursor(bundle, {
       state: "paused-pending-approval",
       task: "T-001",
@@ -1711,7 +1718,7 @@ describe("budget window from resolving resume (A24 / correction 46)", () => {
       { kind: "test", key: "a" },
     ]);
 
-    resumeCursor(root, "C-RUN", "T-001");
+    resumeCursor(root, "C-RUN", "T-001", { reason: "replan: open new budget window after R" });
     expect(showCursor(root, "C-RUN").state).toBe("in-progress");
 
     const third = fail(root, "T-001", "c");
@@ -1771,7 +1778,7 @@ describe("budget window from resolving resume (A24 / correction 46)", () => {
 
     // Resume opens a window; two more same-key fails re-escalate R.
     advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 100, to: 199 });
-    resumeCursor(root, "C-RUN", "T-001");
+    resumeCursor(root, "C-RUN", "T-001", { reason: "replan: open window after fold" });
     fail(root, "T-001", "c");
     const reEsc = fail(root, "T-001", "c");
     expect(reEsc.escalated).toBe(true);
@@ -1795,6 +1802,255 @@ describe("budget window from resolving resume (A24 / correction 46)", () => {
     expect(lastResolvingResumeId(events, "T-001")).toBe(6);
     expect(countTaskAttemptEvents(events, "T-001")).toBe(1); // only id 7
     expect(listUnresolvedEscalatedTasks(events)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-ESCALATION-HONESTY T-002 — resume reason on escalation clear
+// ---------------------------------------------------------------------------
+
+describe("resume reason on escalation clear (C-ESCALATION-HONESTY T-002)", () => {
+  function escalateR(root: string, task = "T-001", key = "a") {
+    advanceCursor(root, "C-RUN", { task, openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task,
+      outcome: "fail",
+      signature: { kind: "test", key },
+      writeEvidence: evidencePaths([]),
+    });
+    const second = recordAttempt(root, "C-RUN", {
+      task,
+      outcome: "fail",
+      signature: { kind: "test", key },
+      writeEvidence: evidencePaths([]),
+    });
+    expect(second.escalated).toBe(true);
+    expect(second.trigger).toBe("R");
+    return second;
+  }
+
+  function reasonFromResumeEvent(event: { kind: string; children: { tag: string; text: string }[] }) {
+    expect(event.kind).toBe("resume");
+    const reasonChild = event.children.find((c) => c.tag === "Reason");
+    expect(reasonChild).toBeDefined();
+    return reasonChild!.text;
+  }
+
+  it("AC-RESUME-REASON-REQUIRED: absent reason refuses before write; task stays escalated (resumeCursor)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    escalateR(root);
+    const before = listLooseEvents(bundle).map((e) => e.id);
+    expect(listUnresolvedEscalatedTasks(listAccountingEvents(bundle))).toEqual(["T-001"]);
+
+    let caught: unknown;
+    try {
+      resumeCursor(root, "C-RUN", "T-001");
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(GraceCommandError);
+    expect((caught as GraceCommandError).code).toBe("invalid-arguments");
+    expect((caught as GraceCommandError).message).toMatch(/--reason/);
+
+    const after = listLooseEvents(bundle);
+    expect(after.map((e) => e.id)).toEqual(before);
+    expect(after.some((e) => e.kind === "resume")).toBe(false);
+    expect(listUnresolvedEscalatedTasks(listAccountingEvents(bundle))).toEqual(["T-001"]);
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
+    expect(showCursor(root, "C-RUN").escalatedTasks).toEqual(["T-001"]);
+  });
+
+  it("AC-RESUME-REASON-REQUIRED: whitespace-only reason refuses before write (resumeCursor)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    escalateR(root);
+    const before = listLooseEvents(bundle).map((e) => e.id);
+
+    let caught: unknown;
+    try {
+      resumeCursor(root, "C-RUN", "T-001", { reason: "   \n\t  " });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(GraceCommandError);
+    expect((caught as GraceCommandError).code).toBe("invalid-arguments");
+    expect((caught as GraceCommandError).message).toMatch(/--reason/);
+
+    expect(listLooseEvents(bundle).map((e) => e.id)).toEqual(before);
+    expect(listLooseEvents(bundle).some((e) => e.kind === "resume")).toBe(false);
+    expect(listUnresolvedEscalatedTasks(listAccountingEvents(bundle))).toEqual(["T-001"]);
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
+  });
+
+  it("AC-RESUME-REASON-REQUIRED: advance --kind resume without reason refuses before write", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    escalateR(root);
+    const before = listLooseEvents(bundle).map((e) => e.id);
+
+    let caught: unknown;
+    try {
+      advanceCursor(root, "C-RUN", { task: "T-001", kind: "resume" });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(GraceCommandError);
+    expect((caught as GraceCommandError).code).toBe("invalid-arguments");
+    expect((caught as GraceCommandError).message).toMatch(/--reason/);
+
+    expect(listLooseEvents(bundle).map((e) => e.id)).toEqual(before);
+    expect(listLooseEvents(bundle).some((e) => e.kind === "resume")).toBe(false);
+    expect(listUnresolvedEscalatedTasks(listAccountingEvents(bundle))).toEqual(["T-001"]);
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
+  });
+
+  it("AC-RESUME-REASON-RECORDED: special-character reason exact toBe on loose event and after fold", () => {
+    // Counterweight: free-text replan prose with XML-significant chars + newline.
+    const specialReason =
+      'replan: use assertX & not assertY; guard <foo> and >bar; quotes "double" and \'single\'\nsecond line';
+    const root = createProject();
+    const bundle = seedBundle(root);
+    escalateR(root);
+
+    const resumed = resumeCursor(root, "C-RUN", "T-001", { reason: specialReason });
+    expect(resumed.state).toBe("in-progress");
+    expect(showCursor(root, "C-RUN").escalatedTasks).toEqual([]);
+
+    const looseResume = listLooseEvents(bundle).find((e) => e.kind === "resume");
+    expect(looseResume).toBeDefined();
+    expect(reasonFromResumeEvent(looseResume!)).toBe(specialReason);
+    // Must be a child element, not attributes.reason (VU's home).
+    expect(looseResume!.attributes.reason).toBeUndefined();
+
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
+    foldEpoch(root, "C-RUN");
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+
+    const ledgerResume = listLedgerEvents(bundle).find((e) => e.kind === "resume");
+    expect(ledgerResume).toBeDefined();
+    expect(reasonFromResumeEvent(ledgerResume!)).toBe(specialReason);
+    expect(ledgerResume!.attributes.reason).toBeUndefined();
+  });
+
+  it("AC-RESUME-REASON-RECORDED: advance --kind resume with reason records Reason child", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    escalateR(root);
+    const reason = "advance-path replan: switch suite order";
+    const resumed = advanceCursor(root, "C-RUN", { task: "T-001", kind: "resume", reason });
+    expect(resumed.state).toBe("in-progress");
+    const looseResume = listLooseEvents(bundle).find((e) => e.kind === "resume");
+    expect(looseResume).toBeDefined();
+    expect(reasonFromResumeEvent(looseResume!)).toBe(reason);
+  });
+
+  it("AC-RESUME-ORDINARY-WITHOUT-REASON: pause then resume without reason still works", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "pause" });
+    expect(showCursor(root, "C-RUN").state).toBe("paused");
+    expect(listUnresolvedEscalatedTasks(listAccountingEvents(bundle))).toEqual([]);
+
+    const resumed = resumeCursor(root, "C-RUN", "T-001");
+    expect(resumed.state).toBe("in-progress");
+    const looseResume = listLooseEvents(bundle).find((e) => e.kind === "resume");
+    expect(looseResume).toBeDefined();
+    expect(looseResume!.children.find((c) => c.tag === "Reason")).toBeUndefined();
+    expect(listUnresolvedEscalatedTasks(listAccountingEvents(bundle))).toEqual([]);
+  });
+
+  it("AC-RESUME-ORDINARY-WITHOUT-REASON: ordinary resume may still record optional reason", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    advanceCursor(root, "C-RUN", { task: "T-001", kind: "pause" });
+    const reason = "optional note on ordinary resume";
+    const resumed = resumeCursor(root, "C-RUN", "T-001", { reason });
+    expect(resumed.state).toBe("in-progress");
+    const looseResume = listLooseEvents(bundle).find((e) => e.kind === "resume");
+    expect(reasonFromResumeEvent(looseResume!)).toBe(reason);
+  });
+
+  it("AC-BUDGET-WINDOW-PRESERVED: escalate → reason-resume → fail(C)×2 escalates R this-window only", () => {
+    const root = createProject();
+    seedBundle(root);
+    escalateR(root, "T-001", "prior-window-a");
+
+    resumeCursor(root, "C-RUN", "T-001", {
+      reason: "replan: abandon prior-window signatures; new approach on C",
+    });
+    expect(showCursor(root, "C-RUN").state).toBe("in-progress");
+
+    const firstC = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test", key: "C" },
+      writeEvidence: evidencePaths([]),
+    });
+    expect(firstC.escalated).toBe(false);
+    expect(firstC.signatures).toEqual([{ kind: "test", key: "C" }]);
+
+    const secondC = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test", key: "C" },
+      writeEvidence: evidencePaths([]),
+    });
+    expect(secondC.escalated).toBe(true);
+    expect(secondC.trigger).toBe("R");
+    expect(secondC.signatures).toEqual([
+      { kind: "test", key: "C" },
+      { kind: "test", key: "C" },
+    ]);
+    // Prior-window signature must not appear in this window's list or message.
+    expect(secondC.signatures.some((s) => s.key === "prior-window-a")).toBe(false);
+    expect(secondC.message).toContain("trigger R");
+    expect(secondC.message).toContain("test:C");
+    expect(secondC.message).not.toContain("prior-window-a");
+    expect(secondC.attemptCount).toBe(2);
+  });
+
+  it("AC-BUDGET-WINDOW-PRESERVED: ordinary non-resolving resume does not reset the window", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    const first = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test", key: "pre" },
+      writeEvidence: evidencePaths([]),
+    });
+    expect(first.escalated).toBe(false);
+
+    resumeCursor(root, "C-RUN", "T-001"); // ordinary — nothing to resolve; no reason required
+    resumeCursor(root, "C-RUN", "T-001");
+
+    const second = recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "test", key: "pre" },
+      writeEvidence: evidencePaths([]),
+    });
+    expect(second.escalated).toBe(true);
+    expect(second.trigger).toBe("R");
+    expect(second.signatures.map((s) => s.key)).toEqual(["pre", "pre"]);
+  });
+
+  it("verification-unavailable attributes.reason is unchanged (NonGoal)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    const vuReason = "harness missing binary & not a Reason child";
+    recordVerificationUnavailable(root, "C-RUN", {
+      task: "T-001",
+      absence: { verdict: "not-run", reason: vuReason },
+    });
+    const vu = listLooseEvents(bundle).find((e) => e.kind === "verification-unavailable");
+    expect(vu).toBeDefined();
+    expect(vu!.attributes.reason).toBe(vuReason);
+    expect(vu!.children.find((c) => c.tag === "Reason")).toBeUndefined();
   });
 });
 

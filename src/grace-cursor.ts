@@ -878,6 +878,12 @@ export function advanceCursor(
      * Unverifiable by ngrace; may be absent. Never invent a default model name.
      */
     executorIdentity?: { model?: string; harness?: string };
+    /**
+     * Free-text replan reason for kind=resume (C-ESCALATION-HONESTY T-002).
+     * Required (trimmed non-empty) when the resume clears an unresolved escalation;
+     * optional otherwise. Stored as a `<Reason>` child element, not an attribute.
+     */
+    reason?: string;
   },
 ): CursorPosition {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
@@ -950,8 +956,41 @@ export function advanceCursor(
           : `kind "escalation" is reserved; it is written by the fix budget (trigger R same-signature or D distinct backstop).`,
     );
   }
+
+  // C-ESCALATION-HONESTY T-002: escalation-clearing resume requires a recorded reason
+  // before any write. Ordinary resume (nothing to clear) keeps reason optional.
+  let resumeChildren: GraceXmlNode[] | undefined;
+  if (kind === "resume") {
+    const unresolved = listUnresolvedEscalatedTasks(listAccountingEvents(bundlePath));
+    const clearingEscalation = unresolved.includes(task);
+    const reasonRaw = options.reason;
+    const reasonTrimmed = typeof reasonRaw === "string" ? reasonRaw.trim() : "";
+    if (clearingEscalation && reasonTrimmed.length === 0) {
+      throw new GraceCommandError(
+        "invalid-arguments",
+        `escalation-clearing resume for ${task} requires --reason (non-empty after trim); refused before write.`,
+      );
+    }
+    if (reasonTrimmed.length > 0) {
+      // Preserve the supplied string (exact round-trip); trim is only the emptiness gate.
+      resumeChildren = [
+        {
+          tag: "Reason",
+          attributes: {},
+          children: [],
+          text: reasonRaw as string,
+        },
+      ];
+    }
+  }
+
   const id = nextEventId(bundlePath);
-  writeEventFile(bundlePath, { id, task, kind });
+  writeEventFile(bundlePath, {
+    id,
+    task,
+    kind,
+    ...(resumeChildren ? { children: resumeChildren } : {}),
+  });
   // A21.1 / A23.1: derive state + escalatedTasks; task drawn from set when non-empty.
   const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
   const position: CursorPosition = {
@@ -974,9 +1013,23 @@ export function pauseCursor(projectRoot: string, changeId: string, task: string)
   return advanceCursor(projectRoot, changeId, { task, kind: "pause" });
 }
 
-/** Resume: write a resume event and set cursor state in-progress. */
-export function resumeCursor(projectRoot: string, changeId: string, task: string): CursorPosition {
-  return advanceCursor(projectRoot, changeId, { task, kind: "resume" });
+/**
+ * Resume: write a resume event and set cursor state in-progress.
+ * When the resume clears an unresolved escalation, `options.reason` is required
+ * (trimmed non-empty) and is recorded as a `<Reason>` child on the event
+ * (C-ESCALATION-HONESTY T-002 / AC-RESUME-REASON-*).
+ */
+export function resumeCursor(
+  projectRoot: string,
+  changeId: string,
+  task: string,
+  options?: { reason?: string },
+): CursorPosition {
+  return advanceCursor(projectRoot, changeId, {
+    task,
+    kind: "resume",
+    reason: options?.reason,
+  });
 }
 
 /**
@@ -3166,6 +3219,11 @@ export const cursorCommand = defineGraceCommand({
           type: "string",
           description: "Optional harness-stated host id on openEpoch (ExecutorIdentity; may be absent)",
         },
+        reason: {
+          type: "string",
+          description:
+            "Replan reason for kind=resume; required when clearing an unresolved escalation (Reason child)",
+        },
         format: { type: "string", alias: "f", description: "text or json", default: "text" },
       },
       async run(context) {
@@ -3185,6 +3243,7 @@ export const cursorCommand = defineGraceCommand({
           if (from !== undefined || to !== undefined) {
             assertValidEpochBounds(from, to);
           }
+          const reasonRaw = context.args.reason != null ? String(context.args.reason) : undefined;
           const position = advanceCursor(String(context.args.path ?? "."), requireChangeId(context.args), {
             task: String(context.args.task),
             kind: context.args.kind ? String(context.args.kind) : undefined,
@@ -3193,6 +3252,7 @@ export const cursorCommand = defineGraceCommand({
             from,
             to,
             wave: context.args.wave ? String(context.args.wave) : undefined,
+            reason: reasonRaw,
             executorIdentity:
               model || harness
                 ? {
@@ -3322,20 +3382,31 @@ export const cursorCommand = defineGraceCommand({
       },
     }),
     resume: defineCommand({
-      meta: { name: "resume", description: "Record a resume event and set cursor in-progress." },
+      meta: {
+        name: "resume",
+        description:
+          "Record a resume event and set cursor in-progress. Clearing an escalation requires --reason (recorded as Reason child).",
+      },
       args: {
         path: { type: "string", alias: "p", default: "." },
         change: { type: "string", required: true },
         task: { type: "string", required: true },
+        reason: {
+          type: "string",
+          description:
+            "Replan reason; required when clearing an unresolved escalation (stored as Reason child, not attribute)",
+        },
         format: { type: "string", alias: "f", default: "text" },
       },
       async run(context) {
         const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
         await runGraceCommand(format, () => {
+          const reasonRaw = context.args.reason != null ? String(context.args.reason) : undefined;
           const position = resumeCursor(
             String(context.args.path ?? "."),
             requireChangeId(context.args),
             String(context.args.task),
+            reasonRaw !== undefined ? { reason: reasonRaw } : undefined,
           );
           if (format === "json") process.stdout.write(`${JSON.stringify(position, null, 2)}\n`);
           else process.stdout.write(formatCursorPosition(position));
