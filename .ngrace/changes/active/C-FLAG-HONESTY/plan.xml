@@ -1,0 +1,584 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-FLAG-HONESTY>
+    <IntentSummary>
+      Refuse citty boolean space-form (`--flag true|false`) with a loud error naming
+      both working forms, class-wide via a defineGraceCommand wrapper hosted under
+      M-QUERY in a new src/query/command.ts with an honest MODULE_CONTRACT — closing
+      F18 (silent ledger write) and F18.1 (space form rebinds free-form positionals)
+      without touching grace.ts / M-CLI, without guessing intent, and with a coverage
+      test that walks live command objects and can be made red by adding a boolean
+      outside the wrapper.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.ts</Value></MustExist>
+      <MustExist><Value>src/grace-module.ts</Value></MustExist>
+      <MustExist><Value>src/grace-file.ts</Value></MustExist>
+      <MustExist><Value>src/grace-graph.ts</Value></MustExist>
+      <MustExist><Value>src/grace-context.ts</Value></MustExist>
+      <MustExist><Value>src/grace-verification.ts</Value></MustExist>
+      <MustExist><Value>src/query/errors.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-query.test.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-FLAG-HONESTY/spec.xml</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-LOCALIZE</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-CONTEXT</Value></MustExist>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-LOCALIZE</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-CONTEXT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/query/command.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.ts</Value></MustExist>
+      <MustExist><Value>src/grace-module.ts</Value></MustExist>
+      <MustExist><Value>src/grace-file.ts</Value></MustExist>
+      <MustExist><Value>src/grace-graph.ts</Value></MustExist>
+      <MustExist><Value>src/grace-context.ts</Value></MustExist>
+      <MustExist><Value>src/grace-verification.ts</Value></MustExist>
+      <MustExist><Value>src/grace-query.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/errors.ts</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-LOCALIZE</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-CONTEXT</Value></MustExist>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-LOCALIZE</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-CONTEXT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/query/command.test.ts src/gates/core.test.ts src/grace-query.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GATES />
+        <M-CURSOR />
+        <M-STATUS />
+        <M-QUERY />
+        <M-LOCALIZE />
+        <M-LINT-CORE />
+        <M-CONTEXT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GATES />
+        <V-M-CURSOR />
+        <V-M-STATUS />
+        <V-M-QUERY />
+        <V-M-LOCALIZE />
+        <V-M-LINT-CORE />
+        <V-M-CONTEXT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/query/command.ts</File>
+      <File>src/query/command.test.ts</File>
+      <File>src/gates/command.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-status.ts</File>
+      <File>src/grace-lint.ts</File>
+      <File>src/grace-module.ts</File>
+      <File>src/grace-file.ts</File>
+      <File>src/grace-graph.ts</File>
+      <File>src/grace-context.ts</File>
+      <File>src/grace-verification.ts</File>
+      <File>src/grace-query.test.ts</File>
+      <File>.ngrace/changes/active/C-FLAG-HONESTY/plan.xml</File>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers; authority reviews this hardest)
+
+      ─────────────────────────────────────────────────────────────────
+      D1 — Mechanism choice (spec left this open; plan decides)
+      ─────────────────────────────────────────────────────────────────
+      Chosen: a defineGraceCommand wrapper around citty's defineCommand, plus a pure
+      refuse helper it always calls. Host under M-QUERY in a **new** file
+      src/query/command.ts with its own honest MODULE_CONTRACT (see D2). Co-located
+      test: src/query/command.test.ts. src/query/errors.ts is **not** edited.
+
+      Why not (1) a shared helper called manually at the top of each run(context):
+      every future boolean-hosting leaf must remember the call. AC-CLASS-COVERAGE's
+      failure condition — "a new type:boolean under src/ can ship without the loud
+      refusal" — becomes a discipline failure, not a red test, unless every call site
+      is also listed. A wrapper makes the definition site the only discipline, and a
+      brand on the wrapped command object makes missing the wrapper detectable.
+
+      Why not (3) a single entry-point guard before citty dispatches in grace.ts:
+      src/grace.ts declares LINKS M-CLI, and M-CLI is **not** in the approved
+      AffectedAreas. Editing grace.ts to install a root guard, export main, or change
+      dispatch contradicts the closed list and is a stop-and-report. The in-scope path
+      is the exported command objects (see D3) — no grace.ts edit.
+
+      Why defineGraceCommand rather than only pure helper:
+        - At run time re-read def.args for every arg whose type is "boolean" (same
+          object the command declares — a new boolean key is covered without re-wrap).
+        - Prepend refuseBooleanSpaceForm(context.rawArgs, names) before the original run.
+        - Recursively wrap subCommands so factories like gateSubCommand("approve") that
+          return defineGraceCommand({...}) protect each leaf without three copy-pastes.
+        - Stamp a well-known brand (exported constant or Symbol.for(
+          "ngrace.booleanSpaceGuard")) set true on the command def so the coverage test
+          can detect "has boolean args but not wrapped".
+
+      Pure helper responsibilities (export for unit test and for the wrapper):
+        collectBooleanFlagNames(argsDef) → string[] of arg keys with type === "boolean"
+        flagArgvTokens(name) → long forms an operator may type: --name and
+          --kebab-case(name) when distinct (citty aliases camel/kebab for every arg —
+          measured in citty parseArgs). No short aliases on booleans at plan time
+          (re-check at execute; if an alias appears, include it for that flag only).
+        refuseBooleanSpaceForm(rawArgs, flagNames):
+          Scan rawArgs left-to-right. When token i is a long form of a declared boolean
+          flag **without** `=` (e.g. `--record`, not `--record=false`), and token i+1
+          is exactly the case-sensitive ASCII string `true` or `false`, throw
+          GraceCommandError("invalid-arguments", message) — import GraceCommandError
+          from ./errors; reuse existing code; no new lint/gate catalog entry.
+          Message **must** name both working forms for that flag: equals
+          (`--flag=true` / `--flag=false`) and the citty negation / bare forms
+          (`--no-flag` and bare `--flag` means true). Do not guess intent and proceed.
+          Do not rewrite argv and continue.
+        Not an error: `--flag=true`, `--flag=false`, bare `--flag`, `--no-flag`, or a
+        bare true/false whose previous token is not a boolean flag form (positionals,
+        subcommands, string values).
+
+      citty fact the guard depends on (measured, not assumed): _isValueFlag treats only
+      string/enum as consuming the next token; boolean flags do not, so space-form
+      true/false becomes a positional. That is F18 / F18.1. The guard inspects rawArgs
+      before side effects; it does not re-parse with a forked citty.
+
+      ─────────────────────────────────────────────────────────────────
+      D2 — Host file: new src/query/command.ts (D12; not errors.ts)
+      ─────────────────────────────────────────────────────────────────
+      **Do not put the guard in src/query/errors.ts.** That file declares:
+
+        PURPOSE: Artifact query and navigation CLI
+        SCOPE: Module, file, graph, and verification resolution
+
+      defineGraceCommand wraps **every** CLI command (gate, cursor, status, lint,
+      context, …). None of those are module/file/graph/verification resolution.
+      Hosting there falsifies the declared SCOPE — a module contract that does not
+      describe what the module holds is the defect class this track exists to remove.
+
+      This is **D12 again, one file over.** D12 rejected src/artifact/paths.ts as host
+      for listLooseEvents / listRunOrphans on exactly this ground (paths.ts SCOPE is
+      root tags / companions / ARTIFACT_DIR; membership is XML-reading inventory) and
+      put the definition in its own file with a contract true from birth
+      (decisions.md D12; C-REPORT-HONESTY plan D1). Same shape here.
+
+      **Authorized lint window (D12).** Adding a not-yet-created path to
+      ObservedWriteScope raises change.graph-anchors-miss-write-scope
+      (lint/core.ts:496–530 / isModuleOwnableWritePath) because linksByPath is built
+      only from files that exist. D12 authorized that window: between plan authoring
+      and T-001 creating the file, ngrace lint reports **exactly one** such error on
+      the new production path. evaluateApproveGate (gates/core.ts:196–236) does **not**
+      evaluate lint, so approval is unaffected. AC-SUITE-AND-LINT requires 0/0 at
+      close (after T-001 creates the file with a true MODULE_CONTRACT), not throughout.
+      An expected error the plan named in advance is not a surprise (P0.9's distinction).
+      Optimizing around this window by falsifying errors.ts SCOPE is rejected.
+
+      **New file MODULE_CONTRACT (verbatim shape for T-001; adjust only if execute
+      discovers a truer DEPENDS line):**
+
+        // START_MODULE_CONTRACT
+        //   PURPOSE: Citty CLI argument-form guard
+        //   SCOPE: Boolean space-form refusal and defineGraceCommand wrapper
+        //   DEPENDS: none
+        //   LINKS: M-QUERY
+        //   ROLE: RUNTIME
+        //   MAP_MODE: EXPORTS
+        // END_MODULE_CONTRACT
+
+      Imports: GraceCommandError from ./errors; defineCommand from citty. Does **not**
+      import any CLI command module (leaf relative to command trees). Command modules
+      import defineGraceCommand from ./query/command or ../query/command.
+
+      Co-located src/query/command.test.ts (test paths are not module-ownable for
+      graph-anchors; no MODULE_CONTRACT required). Do **not** add exports to
+      errors.ts; its MAP_MODE EXPORTS map and SCOPE stay unchanged.
+
+      **M-QUERY is the best host the approved AffectedAreas allows, not a natural
+      one.** M-QUERY's graph summary is "Artifact query and navigation: module, file,
+      graph, and verification resolution", yet it already hosts runGraceCommand and
+      GraceCommandError (thirteen files import them CLI-wide). The module has already
+      accreted cross-cutting CLI infrastructure beyond its stated scope; this guard
+      adds to that accretion. The honest home would be a CLI-infrastructure module;
+      creating one needs a new graph anchor the approved AffectedAreas does not grant.
+      Recorded as a finding for the authority — not repaired in this bundle. Stop-and-
+      report only if execute concludes M-QUERY cannot host even with an honest file-
+      local contract (it can: LINKS M-QUERY on command.ts is allowed; the graph
+      summary drift is module-level, not a blocker for a new co-located file).
+
+      ─────────────────────────────────────────────────────────────────
+      D3 — Coverage from live command objects (not source text — anti-F10)
+      ─────────────────────────────────────────────────────────────────
+      Denominator is derived by walking the **exported command objects**, not by
+      grepping `type: "boolean"` in source (F10 shape: a regex standing in for a
+      property). Import and walk:
+
+        gateCommand, cursorCommand, statusCommand, lintCommand,
+        moduleCommand, fileCommand, graphCommand, contextCommand,
+        verificationCommand, reviewCommand, doctorCommand
+
+      For each node: for each entry in cmd.args where def.type === "boolean", record
+      { path, name, default }. Recurse cmd.subCommands. citty's defineCommand is
+      identity (returns the def) — args and subCommands are live on the object
+      (probed at plan authoring: gate approve.args.record.type === "boolean").
+
+      **24 vs 22 (two numbers, two measures — neither is a typo):**
+
+        Live-object walk at plan authoring HEAD 4bf483c (full list, not head):
+          **24 boolean flag sites** on the composed command tree.
+          gate approve/apply/archive each carry --record (3) because gateSubCommand
+          is a factory invoked three times; plus 21 other live sites on cursor,
+          status, lint, module, file, graph, context, verification.
+
+        Source-text count `rg -n 'type: "boolean"' src/`:
+          **22 declarations** in nine files. gateSubCommand contains **one** source
+          declaration of record reused for three subcommands — a grep cannot see the
+          factory expansion. The two numbers measure different things: source
+          declarations vs live command-object sites. Class coverage is over **live
+          sites** (what runs), which is 24.
+
+      Re-measure at execute with the same walker; pin the exact count with toBe
+      (F23 — never toBeGreaterThanOrEqual). If the tree moved, update the expected
+      count from the walk output, not from memory.
+
+      Brand check (structural half of AC-CLASS-COVERAGE): every command node that
+      declares ≥1 boolean arg must carry the defineGraceCommand brand. A node with
+      booleans and no brand fails the test. After T-002 only gate leaves are branded;
+      full brand-all is T-003. The walker count (24) is available from T-001; the
+      brand assertion for all 24 is T-003.
+
+      Behavioral half: pure refuseBooleanSpaceForm tests for every flag name collected
+      by the walker (synthetic rawArgs `--name false` / `--name true` each throw;
+      `--name=false` does not). Plus CLI integrations for the incident shapes (D4)
+      split across T-002 (gate --record) and T-003 (class + F18.1 positionals).
+
+      Discrimination protocol (T-003, required once per bundle, record in attempt notes):
+        Temporarily add a type:"boolean" flag to a composed command **using citty
+        defineCommand directly** (or strip the brand / skip the wrapper) so the flag
+        is outside the guard; run the coverage brand test; confirm it goes red;
+        revert; confirm git status --short is clean of that probe. A coverage test
+        nobody has ever seen fail is a claim, not a check.
+
+      Honest coverage gap (named trade, not silent): the composed roots list is at the
+      **command** level. A brand-new top-level command added only in grace.ts and not
+      to the test roots array would escape the walk. A new **flag** on any existing
+      exported command is caught. Closing the top-level gap would require editing
+      grace.ts (M-CLI) — **out of AffectedAreas**. This plan accepts the command-level
+      denominator and names the gap.
+
+      reviewCommand and doctorCommand are in the walk (zero booleans today). They stay
+      unedited unless a boolean appears; the walk still includes them so a future
+      boolean on either without the brand is red.
+
+      ─────────────────────────────────────────────────────────────────
+      D4 — F18 incident and F18.1 positional corruption
+      ─────────────────────────────────────────────────────────────────
+      F18: `ngrace gate <approve|apply|archive> --change C-* --record false` parses
+      record:true and **writes** run-ledger.xml. Working forms: --record=false,
+      --no-record. Tests must use fixture bundles only — never write into
+      .ngrace/changes/archive/* (F18 live incident was an archive write).
+
+      T-002 owns the incident shape on gates/command.ts only: red-first then fix for
+      AC-SPACE-FORM-FAILS-LOUD (Decision count unchanged, exact toBe — F23), bare
+      --record still true, and the **default-true half** of
+      AC-WORKING-FORMS-BOTH-DEFAULTS (--record=false / --record=true / --no-record).
+
+      F18.1 (authority review): `ngrace module find --json true` binds true to the
+      query positional, returns [] exit 0. Rejecting both spellings is honest D5.
+      T-003 owns F18.1 and AC-LEGITIMATE-POSITIONALS (positionals live in module /
+      verification / file, all wired in the class rollout).
+
+      Gate subcommand resolution (A31.4): parent gate run still short-circuits when
+      first non-dash token is approve|apply|archive|verdict. Counterweight in T-002:
+      gate approve still evaluates with --record=false for read-only probes.
+
+      ─────────────────────────────────────────────────────────────────
+      D5 — Task split and wiring map
+      ─────────────────────────────────────────────────────────────────
+      T-001: create src/query/command.ts + command.test.ts (primitive, wrapper, pure
+      refuse tests, live inventory walker toBe(24)). No CLI command wiring. errors.ts
+      untouched. Closes the D12 lint window for command.ts.
+
+      T-002 — incident shape, one command file:
+        Wire defineGraceCommand only in src/gates/command.ts (gateSubCommand leaves
+        that host --record; parent gate may stay on defineCommand if it has no
+        booleans). Tests in src/gates/core.test.ts (+ pure tests already in
+        command.test.ts). Files: gates/command.ts, gates/core.test.ts.
+
+      T-003 — the class:
+        Wire the remaining eight CLI files:
+          grace-cursor.ts, grace-status.ts, grace-lint.ts, grace-module.ts,
+          grace-file.ts, grace-graph.ts, grace-context.ts, grace-verification.ts
+        Prove AC-CLASS-COVERAGE (brand all 24 live sites + discrimination probe),
+        AC-LEGITIMATE-POSITIONALS, default-false half of AC-WORKING-FORMS-BOTH-DEFAULTS
+        (e.g. cursor regenerate --apply or module --json), F18.1. Tests in
+        command.test.ts and grace-query.test.ts. Do not edit review/command.ts or
+        grace-doctor.ts unless they gain booleans. Do not edit grace.ts.
+
+      T-004 — dogfood close (suite, lint 0/0, review 0, validate:ci, hygiene).
+
+      AC-WORKING-FORMS-BOTH-DEFAULTS **spans T-002 and T-003** because the two defaults
+      live in different files (default-true --record only on gate; default-false flags
+      on cursor/module/…). Both tasks list it under Satisfies; neither pretends to
+      complete both halves alone. The criterion is satisfied when both halves are green.
+
+      Why not keep a single large T-002: five ACs × nine production files under a
+      two-attempt fix budget yields a red that does not identify which criterion failed
+      and WriteEvidence digests spanning nine files — opposite of red-first. The split
+      is honest: T-002 is independently verifiable (gate --record alone proves F18);
+      T-003 does not require gate working forms beyond the class brand still holding on
+      gate leaves after T-002.
+
+      ─────────────────────────────────────────────────────────────────
+      D6 — C-LEDGER-READ-ABSENCE sequencing (M-GATES overlap)
+      ─────────────────────────────────────────────────────────────────
+      C-LEDGER-READ-ABSENCE is active draft, no plan, AffectedAreas M-GATES + M-REVIEW.
+      This bundle's ObservedWriteScope includes src/gates/command.ts and
+      src/gates/core.test.ts (M-GATES surface). No live OWS overlap today because
+      C-LEDGER-READ-ABSENCE has no plan. If both are later planned concurrently with
+      overlapping gates/* paths, sequential execution is required (F10.2 style) —
+      never an explicit parallel wave on shared files. This bundle does not absorb
+      three-exit ledger reads (gates/ledger.ts stays out of OWS).
+
+      ─────────────────────────────────────────────────────────────────
+      D7 — Evidence doctrine and non-goals restated for implementers
+      ─────────────────────────────────────────────────────────────────
+      Red-first every task. Exact pins for counts, exit codes, Decision append
+      absence (F23). F12.2: re-measure inventory with the walker, not a remembered
+      number. No CHANGELOG.md (D5.5 — commit body). No version / marketplace /
+      openpackage. No skills/ or plugins/. No archives. No new graph module, no new
+      V-M-*. No flag default changes. No equals-form ban. No citty fork. Prefer throw
+      at the very start of run before any ledger/query work.
+
+      Execution discipline when the epoch opens: skills/ngrace/ngrace-execute cursor
+      kinds; attempt before edit (F9.8); no retrospective red; terminal before fold.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Boolean space-form primitive and defineGraceCommand in query/command.ts</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first (before the production file exists): tests that import
+            refuseBooleanSpaceForm / defineGraceCommand / collectBooleanFlagNames from
+            src/query/command.ts fail to resolve or fail assertions. Capture that red
+            with bun test src/query/command.test.ts and record the command output (F12.2).
+          </Criterion>
+          <Criterion>
+            First production act: create src/query/command.ts with MODULE_CONTRACT true
+            of the file as written (design D2 verbatim shape: PURPOSE Citty CLI
+            argument-form guard; SCOPE Boolean space-form refusal and defineGraceCommand
+            wrapper; DEPENDS none; LINKS M-QUERY; ROLE RUNTIME; MAP_MODE EXPORTS).
+            Create co-located src/query/command.test.ts. Export collectBooleanFlagNames,
+            refuseBooleanSpaceForm, defineGraceCommand, the brand constant/symbol, and
+            listBooleanFlags(commands) walker used by tests (design D1–D3).
+            defineGraceCommand wraps citty defineCommand: brand the def, wrap run to
+            call refuseBooleanSpaceForm on context.rawArgs with boolean names re-read
+            from def.args at run time, recursively wrap subCommands. refuse throws
+            GraceCommandError from ./errors with code invalid-arguments; message names
+            equals and --no-/bare forms for the flag involved. **src/query/errors.ts is
+            not modified** (no new exports, no MAP_MODE churn, no SCOPE rewrite).
+          </Criterion>
+          <Criterion>
+            Pure refuse tests (exact pins, F23): for a synthetic flag name, `--flag false`
+            and `--flag true` each throw; message includes both equals and --no-/bare
+            forms; `--flag=false`, `--flag=true`, bare `--flag`, and `--no-flag` do not
+            throw; bare `false` as sole token does not throw; `--json true` with
+            flagNames including json throws (F18.1 shape); argv `["true"]` alone does
+            not throw. **Counterweight:** a naive "any bare true/false is an error"
+            implementation fails the positional-only cases.
+          </Criterion>
+          <Criterion>
+            Live inventory (anti-F10): a test imports the eleven exported command roots
+            (design D3), walks args + subCommands, and asserts type==="boolean" site
+            count with expect(n).toBe(EXPECTED) re-measured at execute. Plan-authoring
+            measure HEAD 4bf483c: **24** live sites (source-text declarations are 22 —
+            different measure; see DESIGN D3). No toBeGreaterThanOrEqual. review and
+            doctor included (0 booleans). Brand-all-boolean-nodes is T-003, not T-001.
+          </Criterion>
+          <Criterion>
+            After command.ts exists with LINKS M-QUERY, the authorized
+            change.graph-anchors-miss-write-scope window for that path is closed.
+            ngrace lint need not be fully 0/0 until T-004, but the missing-file
+            graph-anchors error for src/query/command.ts must be gone.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/query/command.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Wire gate only: F18 --record space form loud; bare and default-true working forms</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SPACE-FORM-FAILS-LOUD />
+          <AC-BARE-FLAG-STILL-TRUE />
+          <AC-WORKING-FORMS-BOTH-DEFAULTS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-001 is binding. Wire defineGraceCommand **only** in
+            src/gates/command.ts (boolean-hosting leaves from gateSubCommand for
+            approve/apply/archive --record). Do not edit the other eight CLI files, and
+            do not edit grace.ts / errors.ts / review / doctor. Production file scope
+            for this task is gates/command.ts; tests in gates/core.test.ts.
+          </Criterion>
+          <Criterion>
+            Red-first for F18 (temp fixture only — never a live archived bundle): show
+            that gate apply|archive|approve with `--record false` still appends a
+            Decision (or otherwise fails the post-fix contract). After wiring: space
+            form exits non-zero; message names `--record=false` and `--no-record` (and
+            bare `--record` as true); Decision count on the fixture run-ledger.xml is
+            unchanged (exact before/after toBe — F23). Inferring false and proceeding,
+            or rewriting argv and continuing, fails this criterion.
+            AC-SPACE-FORM-FAILS-LOUD is proven for the incident class member; full class
+            rollout is T-003.
+          </Criterion>
+          <Criterion>
+            AC-BARE-FLAG-STILL-TRUE on `--record`: bare `--record` still means true
+            (recording may proceed when the gate otherwise permits). **Counterweight:**
+            bare flag is not an error and is not forced false.
+          </Criterion>
+          <Criterion>
+            Default-true half of AC-WORKING-FORMS-BOTH-DEFAULTS (this task owns only
+            this half; default-false is T-003 — the AC spans two tasks because the two
+            defaults live in different files): `--record=false` does not write a
+            Decision; `--record=true` and `--no-record` behave correctly. **Counterweight:**
+            equals form must not be rejected. Gate approve|apply|archive|verdict still
+            resolve (A31.4) under --record=false probes.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/query/command.test.ts src/gates/core.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Wire remaining CLI class: coverage, positionals, default-false working forms</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-CLASS-COVERAGE />
+          <AC-LEGITIMATE-POSITIONALS />
+          <AC-WORKING-FORMS-BOTH-DEFAULTS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Wire defineGraceCommand through the remaining eight boolean-hosting CLI
+            files: grace-cursor.ts, grace-status.ts, grace-lint.ts, grace-module.ts,
+            grace-file.ts, grace-graph.ts, grace-context.ts, grace-verification.ts.
+            Do not edit grace.ts, errors.ts, review/command.ts, or grace-doctor.ts
+            (unless a boolean appears on the last two — none at plan time).
+          </Criterion>
+          <Criterion>
+            AC-CLASS-COVERAGE: every live boolean site from the D3 walker (24 at plan
+            authoring; re-measure) sits on a command node carrying the
+            defineGraceCommand brand; count remains exact (toBe). Pure refuse tests
+            cover every collected flag name for space true and space false.
+            **Discrimination (required once, record in attempt notes):** temporarily
+            introduce a boolean outside the wrapper on a composed command, confirm the
+            brand coverage test goes red, revert, confirm clean git status --short for
+            that probe. Hand-maintained flag-name lists that can drift from the walker
+            without a red test fail this criterion.
+          </Criterion>
+          <Criterion>
+            Red-first for F18.1 then fix: `module find --json true` currently exits 0
+            with empty-result shape (true bound as query). After wiring: non-zero exit
+            and boolean space-form message; must not silently return [] as a successful
+            search for "true". Same class for `--json false`.
+          </Criterion>
+          <Criterion>
+            AC-LEGITIMATE-POSITIONALS (counterweight; positionals live in module /
+            verification / file, wired in this task): (1) gate subcommands still resolve
+            after T-002 wiring remains green; (2) `module find true` does not raise the
+            boolean space-form error; (3) a bare true/false not immediately after a
+            boolean flag token is not rejected solely for its spelling. A naive "any
+            bare true/false is an error" implementation fails this criterion.
+          </Criterion>
+          <Criterion>
+            Default-false half of AC-WORKING-FORMS-BOTH-DEFAULTS (completes the AC
+            with T-002's default-true half): on at least one default-false flag (e.g.
+            cursor regenerate `--apply` or module `--json`): `--flag=false` /
+            `--flag=true` / `--no-flag` (where citty exposes it) behave correctly;
+            bare `--flag` still means true. **Counterweight:** equals form must not be
+            rejected; bare flag not forced false.
+          </Criterion>
+          <Criterion>
+            Tests: brand + walker + pure refuse in src/query/command.test.ts; F18.1 +
+            module positional counterweight + default-false CLI forms in
+            src/grace-query.test.ts (and/or command.test.ts / gates tests as needed).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/query/command.test.ts src/gates/core.test.ts src/grace-query.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Dogfood close: suite, lint 0/0, review 0, validate:ci, archive hygiene</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-SUITE-AND-LINT: red-first regressions from T-001–T-003 remain green;
+            bun test for touched packages green; bun run validate:ci green; bun run
+            ngrace lint --path . is 0 errors and 0 warnings; ngrace review --path . is
+            0 findings on a clean tree. **Checkable archive cleanliness:** git status
+            --short at task close shows no modification under
+            .ngrace/changes/archive/ or docs/plans/archive/. No CHANGELOG.md. No
+            version / marketplace / openpackage surface. No skills/ or plugins/
+            skill-text edits. No new V-M-* or graph modules. errors.ts still unchanged
+            from pre-bundle content for this change's purposes (no guard exports).
+          </Criterion>
+          <Criterion>
+            Counterweight / clean-by-looking-away ban: suite green is not achieved by
+            deleting the coverage test, skipping boolean flags, or disabling lint/review
+            checks. Assert by: brand + walker tests still pass; F18 Decision non-append
+            still passes; F18.1 still fails loud on `--json true`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-FLAG-HONESTY>
+</NgraceChangePlan>
