@@ -2190,3 +2190,108 @@ identity of wording.
 Disposition: recorded, not scheduled. No artifact is amended and no bundle is opened. Carried as
 authoring guidance: when a plan restates a spec criterion, quote the qualifiers verbatim or reference
 the criterion by name rather than paraphrasing it into a task.
+
+---
+
+### D14 — Error reporting invariant: fail fast **with** context, and preserve the cause as an object
+
+Raised by the maintainer from [F25.1](#f251), which recorded the erasure the F25 repair introduced.
+F25.1 is the observation; this is the rule that binds future work. Scope: **this repository's CLI and
+internal surfaces.** It is deliberately *not* GRACE skill text — the principle is general software
+engineering rather than contract-first methodology, and shipping it as product would widen the
+methodology's remit without argument. Revisit that if the skills ever grow an observability section.
+
+**Principle.** A fallback message is not an error report. Broad execution surfaces must fail fast *with
+full diagnostic context*. Catch-all wrappers that flatten distinct error states into uniform strings
+are prohibited.
+
+#### 1. Preserve the cause as an object, not as a copied string
+
+When a boundary converts an unexpected error into a declared error type, it must **attach the original
+error** (ES2022 `cause`), not merely copy its message. A copied string loses the original's type
+identity, its custom properties, and any nested causes, and the new error's `.stack` then points at the
+conversion site rather than the throw site — a stack that is confidently wrong about where the failure
+came from.
+
+**Channel split, which is the part that keeps this compatible with a machine contract.** Stdout is the
+machine contract; stderr is the human diagnostic. The stack goes to stderr in *both* text and JSON
+mode, because a JSON surface's entire stdout must parse. Putting a stack *inside* the envelope is a
+different proposal — it is a `schemaVersion` change to `GraceCommandErrorEnvelope` and must be decided
+deliberately, never implied by this rule.
+
+Note the existing tension this rule does **not** silently override: `runQueryCommand`'s doc comment
+promises failures rendered *"without stack traces."* That sentence is about **stdout**, and stays true
+under the split above. Any future reading that puts stacks on stdout contradicts it and needs its own
+decision.
+
+Deliberately **not** adopted: the maintainer's original wording said *unredacted*. Rejected as an
+absolute — error messages can carry tokens or credentials lifted from a URL or environment variable,
+and a rule that forbids ever redacting one is a hostage to fortune. The requirement is that context is
+**unsummarized**, which is what the clause is actually protecting.
+
+#### 2. Anti-flattening
+
+A catch-all handler must never map heterogeneous failures onto a static string literal (`"Unable to
+complete the GRACE command."` was the live instance). Converting varied failure modes into uniform
+output sanitizes the reporting layer and manufactures an illusion of controlled execution while
+destroying observability. `ok: false` is honest, the exit code is right, and the one thing the reader
+needs is gone.
+
+**One carve-out, because the code already reaches it:** when the thrown value genuinely carries no
+information (`throw undefined`, a non-`Error` rejection), a synthesized message is permitted — and must
+be **distinguishable** from a real one, so the carve-out cannot quietly become the rule again.
+
+#### 3. Fail fast means halt the work, not bubble the exception
+
+The maintainer's original third clause required unexpected failures to *"halt immediately and bubble up
+the unredacted context, rather than swallowing the state."* **Adopted in substance, rewritten in
+mechanism, because as literally worded it re-opens F25.** `runGraceCommand` deliberately catches,
+renders, and sets `process.exitCode` instead of letting the exception escape; that is exactly what
+produces the parsable envelope and the error-supplied exit code. Bubbling instead means citty prints a
+stack and a `--format json` consumer gets nothing to parse — the defect `C-LEGIBLE-FAILURE` closed.
+
+Two things were being conflated:
+
+- **Halting the work** — no continuation, no inferred intent, no partial write. **Mandatory.**
+- **Letting the exception cross the process boundary unrendered** — **not** required, and at the
+  outermost boundary not permitted.
+
+Restated: *halt immediately; never continue, infer, or perform partial work. The outermost boundary may
+convert the exception into the declared error contract, provided it preserves the cause per clause 1.*
+An error boundary exists to turn an exception into a contract; forbidding that forbids having an error
+contract at all.
+
+#### 4. Unwinding, which is where the mechanism gets subtle
+
+- **`finally` still runs.** Catching at a boundary does not skip intermediate cleanup — the engine
+  unwinds through `finally` on the way to the catch. Arguments for propagation based on resource safety
+  do not apply.
+- **Unwinding stops at the innermost boundary, and there are now two.** Leaf commands wrap their own
+  bodies in `runGraceCommand`; `C-LEGIBLE-FAILURE` T-003 added an outer wrap around the whole run. When
+  a leaf catches internally it renders and returns *normally*, so the outer boundary sees no exception
+  and cannot distinguish success from already-reported failure. The only available signal is
+  `process.exitCode`, which the plan forbade polling for good reason. Benign today because the inner
+  boundary consumes the error and nothing double-renders; **not** benign the moment an outer boundary
+  needs to act conditionally on failure. Nested boundaries need a protocol, and there is none.
+- **Async stacks truncate.** Across `await` the captured stack frequently omits the logical caller
+  chain, so "capture the stack" delivers less than the phrase promises — a further reason clause 1
+  requires an object chain rather than a string.
+- **Unawaited rejections escape every boundary.** `await originalRun(context)` catches rejections of the
+  awaited promise. A promise created inside a leaf and never awaited rejects *after* the boundary has
+  returned. Verified at `cae1e61`: there is no `unhandledRejection` or `uncaughtException` handler
+  anywhere in `src/`. So the process can exit **0** with an error that was never reported — the loudest
+  form of the failure this rule exists to prevent, caught by neither the envelope nor the exit code.
+
+#### Compliance: the rule ships with its own repairs scheduled
+
+The rule is not retroactively satisfied. Two gaps are measured, not speculative, and both sit on the
+same seam (`src/query/errors.ts` plus the process entry point), so they are **one bundle**:
+
+1. `GraceCommandError`'s constructor takes `{ exitCode?, issues? }` and has **no `cause`**. Clause 1 is
+   therefore currently unsatisfiable by construction; `C-LEGIBLE-FAILURE` T-003 copies the message
+   because attaching the cause was not available to it.
+2. No `unhandledRejection` / `uncaughtException` handler exists, per clause 4.
+
+Sequenced **after** Bundle B (`C-ESCALATION-HONESTY`), which is in flight — not displacing it. Recorded
+here rather than as an aspiration so the rule arrives with its compliance already owed, which is the
+same standard [F25.1](#f251) applied to the repair that raised it.
