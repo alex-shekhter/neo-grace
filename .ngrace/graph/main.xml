@@ -79,6 +79,11 @@
       <Path>src/query/core.ts</Path>
       <Type>CORE_LOGIC</Type>
     </M-QUERY>
+    <M-CLI-INFRA>
+      <Summary>Shared CLI infrastructure: GraceCommandError, error envelope, runGraceCommand, and defineGraceCommand (boolean space-form guard).</Summary>
+      <Path>src/query/errors.ts</Path>
+      <Type>CORE_LOGIC</Type>
+    </M-CLI-INFRA>
     <M-CONTEXT>
       <Summary>Context selection surface: task slices, skill subsetting, and selectedBytes measurement.</Summary>
       <Path>src/grace-context.ts</Path>

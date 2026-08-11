@@ -2,7 +2,7 @@
 //   PURPOSE: Citty CLI argument-form guard
 //   SCOPE: Boolean space-form refusal and defineGraceCommand wrapper
 //   DEPENDS: none
-//   LINKS: M-QUERY
+//   LINKS: M-CLI-INFRA
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -23,8 +23,7 @@
  * true and leaves bare `false` as a positional (F18 / F18.1). Working forms are
  * `--flag=false` / `--flag=true`, bare `--flag`, and `--no-flag`.
  *
- * Hosted under M-QUERY as the best host the approved AffectedAreas allows (F24),
- * not as a natural fit for "artifact query and navigation."
+ * Hosted under M-CLI-INFRA (F24 repair): shared CLI infrastructure, not query resolution.
  */
 
 import { defineCommand, type ArgsDef, type CommandDef, type Resolvable } from "citty";

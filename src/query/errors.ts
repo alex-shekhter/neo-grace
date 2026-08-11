@@ -1,8 +1,8 @@
 // START_MODULE_CONTRACT
-//   PURPOSE: Artifact query and navigation CLI
-//   SCOPE: Module, file, graph, and verification resolution
+//   PURPOSE: Shared CLI command error surface
+//   SCOPE: GraceCommandError, error envelope, runGraceCommand, and runQueryCommand
 //   DEPENDS: none
-//   LINKS: M-QUERY
+//   LINKS: M-CLI-INFRA
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT

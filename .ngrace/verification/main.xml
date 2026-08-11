@@ -80,6 +80,11 @@
       <Scenario>Module and file query resolve graph Path and linked governed files.</Scenario>
       <TraceAssertion>grace-query integration tests pin JSON shapes for module and file resolution.</TraceAssertion>
     </V-M-QUERY>
+    <V-M-CLI-INFRA>
+      <Command>bun test src/query/command.test.ts</Command>
+      <Scenario>Shared CLI infrastructure renders GraceCommandError through runGraceCommand and refuses boolean space-form via defineGraceCommand without stack traces.</Scenario>
+      <TraceAssertion>query/command unit tests exercise defineGraceCommand brand, refuseBooleanSpaceForm, and live boolean inventory over the composed command tree.</TraceAssertion>
+    </V-M-CLI-INFRA>
     <V-M-CONTEXT>
       <Command>bun test src/grace-context.test.ts</Command>
       <Scenario>Task slices project GraphAnchors modules with Linked Files from governed LINKS.</Scenario>

@@ -1,0 +1,1 @@
+<NgraceRunEvent graceVersion="1.0" id="4" task="T-001" kind="escalation"><FailureSignature kind="missing-module" key="M-CLI-INFRA-not-in-graph" /><FailureSignature kind="false-contract" key="LINKS-M-QUERY-and-no-M-CLI-INFRA" /></NgraceRunEvent>
