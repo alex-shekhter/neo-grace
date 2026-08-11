@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-FLAG-HONESTY>
     <Summary>
       Make citty boolean flags refuse the space-separated true/false form
