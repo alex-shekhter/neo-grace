@@ -2715,3 +2715,74 @@ honest, instead of in a criterion, where it becomes a claim about a moment that 
 
 Disposition: recorded, not scheduled. No artifact is amended — the plan's widening already resolved it
 and the verdict discloses it. This is authoring guidance, like F26's.
+
+---
+
+#### F27.1 — Measured: the comparison exists, reads the wrong source, and one breach went undisclosed
+
+[F27](#f27) said *"nothing in the toolchain compares the declared write scope against what was actually
+written."* That is very slightly wrong in a way that matters for the repair, and the correction makes the
+finding stronger rather than weaker.
+
+**A comparison does exist.** `review.scope-outside-write-scope` — *"mechanized §0.7.1 scope audit"* —
+calls `auditScopeOutsideWriteScope(changedFiles, scopeFiles, scopeGlobs, identity)`. Its input is
+`changedFiles`, sourced `explicit | base | porcelain`: the git working tree.
+
+**It is blind at exactly the moment it is needed.** At close everything is committed, the tree is clean,
+and with no `--base` or `--changed-files` the audit reports:
+
+```
+Scope audit: not-run — no changed files available (working tree clean; supply --base or --changed-files)
+```
+
+That line appeared on `C-SUBSTANTIATION-HONESTY`'s own close verdict. The check does not fail to exist —
+it declines to run, honestly, at the one moment a verdict is being formed.
+
+**The durable record is never consulted.** `snapshotWriteEvidence` calls
+`listRepositoryChangedFiles(projectRoot)` — the whole repository's changed set — and digests each path.
+It is **tool-generated** (`git status`), per attempt, and it survives fold and archive. It is exactly the
+kind of evidence [F9.10.1](#f9101) says can constrain an agent, as against a declaration the agent
+authors. Nothing reads it for scope.
+
+#### The measurement
+
+Comparing every archived bundle's `WriteEvidence` paths against its plan's `ObservedWriteScope`,
+excluding `.ngrace/` ledger artifacts:
+
+| | |
+|---|---|
+| bundles scanned | 27 |
+| bundles with ≥1 undeclared write | 3 |
+| undeclared path instances | 5 |
+| bundles with **no evidence to compare** | 11 (4 missing `run-ledger.xml`, 7 with zero `WriteEvidence`) |
+
+| bundle | undeclared path | what it is |
+| --- | --- | --- |
+| `C-ESCALATION-HONESTY` | `src/gates/core.test.ts` | the breach F27 was recorded from — disclosed, adjudicated |
+| `C-ESCALATION-HONESTY` | `docs/plans/…/decisions.md` | **authority-owned**; I edited it while the bundle was open |
+| `C-TOKEN-INTEGRITY` | `docs/plans/…/decisions.md` | authority-owned |
+| `C-TOKEN-INTEGRITY` | `docs/plans/…/review.md` | authority-owned |
+| `C-EXECUTION-CONTRACT` | `src/test-support/token-accounting.test.ts` | **a real breach nobody ever disclosed** |
+
+**The last row is the finding inside the finding.** `C-EXECUTION-CONTRACT` declared six files; its ledger
+digests `src/test-support/token-accounting.test.ts` at `5cbcb415…`. No report mentioned it, no verdict
+adjudicated it, and it surfaced only by running the comparison F27 says does not happen. Every automated
+surface was silent, and unlike the `core.test.ts` case there was no disclosure to be silent *against*.
+
+Worth stating next to [F9.10](#f910): that check had 8 firings and 0 true positives across its whole
+history. This one has, on its first measurement, found a real undisclosed breach. **That is the
+difference between a rule keyed to what an agent must do and a rule keyed to what the tool observed.**
+
+#### What the measurement constrains in the repair
+
+- **Three of five instances are authority-owned roadmap docs and must not fire.** The authority editing
+  `decisions.md` while a bundle is open is ordinary and correct. A check that reports it is F9.10's harm
+  arriving again. There is precedent for a path-class exclusion: `isCliLifecyclePath` already exempts
+  tool-owned lifecycle paths (F11).
+- **Eleven of twenty-seven bundles have nothing to compare.** They predate the evidence. The check must
+  say so rather than scoring them clean — [F31](#f31) is the entire lesson, one report away.
+- **Any exception mechanism must not be agent-authored** ([F9.10.1](#f9101)). A per-bundle "accepted
+  out-of-scope" list in `plan.xml` fails that test on sight.
+- **Two true positives will stand after the doc exclusion**, one adjudicated and one not. Whether the
+  check fires retroactively on archived bundles is a real decision, not a detail: a permanently-red check
+  teaches its own audience to ignore it, which is the harm F11 named.
