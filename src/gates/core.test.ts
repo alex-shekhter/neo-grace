@@ -586,6 +586,139 @@ describe("apply gate", () => {
   });
 });
 
+/**
+ * C-REPORT-HONESTY T-005 / AC-APPLY-VERDICT-DIAGNOSTICS (P0.7).
+ * Apply refuse on missing/unusable verdict must name path, count, and why newest failed —
+ * not catalog title alone or bare "no Verdicts section entry".
+ */
+describe("C-REPORT-HONESTY T-005 apply verdict diagnostics (P0.7)", () => {
+  function reviewVerdictReq(result: ReturnType<typeof evaluateApplyGate>) {
+    return result.requirements.find((r) => r.id === "review-verdict");
+  }
+  function noVerdictIssue(result: ReturnType<typeof evaluateApplyGate>) {
+    return result.issues.find((i) => i.code === "gate.apply.no-verdict");
+  }
+  function combinedDiagText(result: ReturnType<typeof evaluateApplyGate>): string {
+    const req = reviewVerdictReq(result)?.message ?? "";
+    const issue = noVerdictIssue(result)?.message ?? "";
+    const invalid = result.issues.find((i) => i.code === "gate.apply.invalid-verdict")?.message ?? "";
+    return `${req}\n${issue}\n${invalid}`;
+  }
+
+  it("no run-ledger.xml: refuse names missing ledger path and count 0", () => {
+    const root = tempProject();
+    activeBundle(root);
+    // Fixture creates no ledger until a writer runs.
+    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes/active/C-GATE/run-ledger.xml"))).toBe(false);
+
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(noVerdictIssue(result)).toBeDefined();
+    const text = combinedDiagText(result);
+    // Must not be catalog-title-only or bare "no Verdicts section entry".
+    expect(text).not.toBe("Apply Requires A Recorded Review Verdict");
+    expect(text.trim()).not.toBe("no Verdicts section entry");
+    expect(text).toMatch(/run-ledger\.xml/);
+    expect(text).toMatch(/missing|not found|absent/i);
+    expect(text).toMatch(/count\s*=\s*0|0\s*Verdict|Verdict child count=0/i);
+    // Path looked at (bundle ledger location).
+    expect(text).toMatch(/C-GATE/);
+  });
+
+  it("ledger present, no Verdicts section: refuse names path and count 0", () => {
+    const root = tempProject();
+    activeBundle(root);
+    // Create ledger without Verdicts (approve Decision only).
+    recordGateDecision(root, "C-GATE", {
+      gate: "approve",
+      decision: "permit",
+      requirements: [],
+    });
+    const ledger = readFileSync(
+      path.join(root, ARTIFACT_DIR, "changes/active/C-GATE/run-ledger.xml"),
+      "utf8",
+    );
+    expect(ledger).not.toContain("<Verdicts");
+
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(noVerdictIssue(result)).toBeDefined();
+    const text = combinedDiagText(result);
+    expect(text).not.toBe("Apply Requires A Recorded Review Verdict");
+    expect(text.trim()).not.toBe("no Verdicts section entry");
+    expect(text).toMatch(/run-ledger\.xml|looked at/i);
+    expect(text).toMatch(/C-GATE/);
+    expect(text).toMatch(/count\s*=\s*0|0\s*Verdict|Verdict child count=0/i);
+  });
+
+  it("Verdicts present but empty: refuse names path and count 0", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    writeFileSync(
+      path.join(bundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-GATE><Verdicts></Verdicts></C-GATE></NgraceRunLedger>`,
+    );
+
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(noVerdictIssue(result)).toBeDefined();
+    const text = combinedDiagText(result);
+    expect(text).not.toBe("Apply Requires A Recorded Review Verdict");
+    expect(text.trim()).not.toBe("no Verdicts section entry");
+    expect(text).toMatch(/run-ledger\.xml|looked at/i);
+    expect(text).toMatch(/C-GATE/);
+    expect(text).toMatch(/count\s*=\s*0|0\s*Verdict|Verdict child count=0/i);
+  });
+
+  it("newest entry unreadable: refuse names path, code, and reason", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    writeFileSync(
+      path.join(bundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-GATE><Verdicts><Verdict outcome="failed"/></Verdicts></C-GATE></NgraceRunLedger>`,
+    );
+
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(result.issues.some((i) => i.code === "gate.apply.invalid-verdict")).toBe(true);
+    const text = combinedDiagText(result);
+    expect(text).toMatch(/run-ledger\.xml|looked at/i);
+    expect(text).toMatch(/C-GATE/);
+    expect(text).toMatch(/ledger\.invalid-verdict/);
+    expect(text).toMatch(/outcome=failed|unreadable|did not qualify|invalid/i);
+  });
+
+  it("unparseable ledger: no-verdict names path and reason; count is not claimed as 0", () => {
+    // wrapperFromLedger nulls on parse failure → latest absent; surface is unreadable.
+    // Count is undetermined — not 0 (third exit, not absence).
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    writeFileSync(path.join(bundle, "run-ledger.xml"), "not xml at all <<<");
+
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(noVerdictIssue(result)).toBeDefined();
+    const text = combinedDiagText(result);
+    expect(text).toMatch(/run-ledger\.xml|looked at/i);
+    expect(text).toMatch(/C-GATE/);
+    expect(text).toMatch(/unreadable|xml\.parse|not expected|parse/i);
+    // Must not assert a determined zero when nothing was counted.
+    expect(text).not.toMatch(/Verdict child count=0/);
+    expect(text).toMatch(/count\s*=\s*unknown|count unknown|undetermined|unreadable/i);
+  });
+
+  it("immediate evaluateApplyGate after recordReviewVerdict permits (no flush)", () => {
+    const root = tempProject();
+    activeBundle(root);
+    expect(evaluateApplyGate(root, "C-GATE").decision).toBe("refuse");
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    // Immediate — no re-read loop, no delay, no flush.
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("permit");
+    expect(result.verdict?.outcome).toBe("pass");
+  });
+});
+
 describe("archive gate (A30.1 deadlock)", () => {
   it("permits with recorded apply decision and verdict when run/ empty", () => {
     const root = tempProject();

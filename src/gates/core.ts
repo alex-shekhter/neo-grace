@@ -43,9 +43,11 @@ import { GATE_CATALOG, type GateIssueGuide } from "./catalog";
 import {
   readPermittingDecision,
   readLatestReviewVerdict,
+  readLedgerVerdictsSurface,
   type GateDecisionRecord,
   type GateId,
   type GateRequirementRecord,
+  type LedgerVerdictsSurface,
   type ReviewVerdictRecord,
 } from "./ledger";
 
@@ -90,6 +92,62 @@ function requirement(
 ): GateRequirementRecord {
   const blocking = required && !present;
   return { id, required, present, blocking, message };
+}
+
+/** Project-relative path of the ledger the apply gate looked at (diagnostics only). */
+function applyLedgerPathLookedAt(projectRoot: string, changeId: string): string {
+  try {
+    const bundlePath = resolveChangeBundle(projectRoot, changeId);
+    const abs = path.join(bundlePath, "run-ledger.xml");
+    const rel = path.relative(path.resolve(projectRoot), abs);
+    return rel.split(path.sep).join("/") || abs;
+  } catch {
+    return `run-ledger.xml (bundle ${changeId} unresolved)`;
+  }
+}
+
+/**
+ * P0.7: enrich gate.apply.no-verdict detail from readLedgerVerdictsSurface.
+ * Must not influence decision — caller already branched on readLatestReviewVerdict absent.
+ */
+function formatApplyNoVerdictDetail(projectRoot: string, changeId: string): string {
+  const ledgerPath = applyLedgerPathLookedAt(projectRoot, changeId);
+  const surface: LedgerVerdictsSurface = readLedgerVerdictsSurface(projectRoot, changeId);
+  if (surface.state === "absent-no-file") {
+    return (
+      `run-ledger.xml missing at ${ledgerPath}; Verdict child count=0; `
+      + `newest did not qualify: absent (ledger file missing)`
+    );
+  }
+  if (surface.state === "unreadable") {
+    // Count is undetermined — the file did not parse; 0 would be a false determined fact (F14 class).
+    return (
+      `looked at ${ledgerPath}; Verdict child count=unknown (ledger unreadable); `
+      + `newest did not qualify: absent; surface ${surface.code}: ${surface.detail}`
+    );
+  }
+  // ok — includes no Verdicts section and empty Verdicts (both count 0).
+  return (
+    `looked at ${ledgerPath}; Verdict child count=${surface.verdicts.length}; `
+    + `newest did not qualify: absent (no usable Verdict entry)`
+  );
+}
+
+/**
+ * P0.7: enrich gate.apply.invalid-verdict with the ledger path looked at.
+ * Decision still comes solely from readLatestReviewVerdict invalid.
+ */
+function formatApplyInvalidVerdictDetail(
+  projectRoot: string,
+  changeId: string,
+  code: string,
+  detail: string,
+): string {
+  const ledgerPath = applyLedgerPathLookedAt(projectRoot, changeId);
+  return (
+    `looked at ${ledgerPath}; ${code}: newest entry unreadable (${detail}); `
+    + `newest did not qualify: invalid`
+  );
 }
 
 /** Project gateFailOn; default errors (missing verdict fatal) aligned with D11 honesty. */
@@ -268,28 +326,22 @@ export function evaluateApplyGate(projectRoot: string, changeId: string): GateEv
   }
 
   // A31.2: newest entry governs; unreadable newest is absence with ledger.invalid-verdict.
+  // Decision always from readLatestReviewVerdict; surface enriches detail only (P0.7 / F16 class).
   const latest = readLatestReviewVerdict(projectRoot, changeId);
   let verdict: ReviewVerdictRecord | undefined;
   if (latest.state === "absent") {
-    requirements.push(
-      requirement("review-verdict", true, false, "no Verdicts section entry"),
-    );
-    issues.push(guideIssue("gate.apply.no-verdict"));
+    const detail = formatApplyNoVerdictDetail(projectRoot, changeId);
+    requirements.push(requirement("review-verdict", true, false, detail));
+    issues.push(guideIssue("gate.apply.no-verdict", detail));
   } else if (latest.state === "invalid") {
-    requirements.push(
-      requirement(
-        "review-verdict",
-        true,
-        false,
-        `${latest.code}: newest entry unreadable (${latest.detail})`,
-      ),
+    const detail = formatApplyInvalidVerdictDetail(
+      projectRoot,
+      changeId,
+      latest.code,
+      latest.detail,
     );
-    issues.push(
-      guideIssue(
-        "gate.apply.invalid-verdict",
-        `${latest.code}: ${latest.detail}`,
-      ),
-    );
+    requirements.push(requirement("review-verdict", true, false, detail));
+    issues.push(guideIssue("gate.apply.invalid-verdict", detail));
   } else {
     verdict = latest.verdict;
     requirements.push(
