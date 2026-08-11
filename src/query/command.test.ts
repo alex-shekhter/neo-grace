@@ -19,7 +19,44 @@ import {
   defineGraceCommand,
   listBooleanFlags,
   refuseBooleanSpaceForm,
+  resolveErrorFormat,
 } from "./command";
+
+/** Capture process.stdout.write chunks for the duration of `fn`. */
+function captureStdout(fn: () => void | Promise<void>): Promise<string> {
+  const chunks: string[] = [];
+  const original = process.stdout.write.bind(process.stdout);
+  process.stdout.write = ((chunk: string | Uint8Array, ...rest: unknown[]) => {
+    chunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+    return true;
+  }) as typeof process.stdout.write;
+  return Promise.resolve(fn()).finally(() => {
+    process.stdout.write = original;
+  }).then(() => chunks.join(""));
+}
+
+/** Capture process.stderr.write chunks for the duration of `fn`. */
+function captureStderr(fn: () => void | Promise<void>): Promise<string> {
+  const chunks: string[] = [];
+  const original = process.stderr.write.bind(process.stderr);
+  process.stderr.write = ((chunk: string | Uint8Array, ...rest: unknown[]) => {
+    chunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+    return true;
+  }) as typeof process.stderr.write;
+  return Promise.resolve(fn()).finally(() => {
+    process.stderr.write = original;
+  }).then(() => chunks.join(""));
+}
+
+/** Read process.exitCode without control-flow narrowing to the prior assignment. */
+function readExitCode(): number | string | null | undefined {
+  return process.exitCode;
+}
+
+/** Restore exitCode; Bun treats an uncleared non-zero as the process exit even when tests pass. */
+function restoreExitCode(previous: number | string | null | undefined): void {
+  process.exitCode = previous === undefined || previous === null ? 0 : previous;
+}
 
 /**
  * C-FLAG-HONESTY T-001 — pure refuse primitive + live inventory walker.
@@ -136,7 +173,9 @@ describe("collectBooleanFlagNames", () => {
 });
 
 describe("defineGraceCommand", () => {
-  it("brands the command def and refuses space-form via wrapped run", async () => {
+  it("brands the command def; space-form skips original run (control flow, not rethrow)", async () => {
+    // After C-LEGIBLE-FAILURE T-003, runGraceCommand swallows the throw.
+    // Assert ran===false + rendered channel, not cmd.run rejection.
     let ran = false;
     const cmd = defineGraceCommand({
       args: {
@@ -149,15 +188,24 @@ describe("defineGraceCommand", () => {
 
     expect((cmd as Record<symbol, unknown>)[BOOLEAN_SPACE_GUARD_BRAND]).toBe(true);
 
-    await expect(
-      cmd.run!({
+    const previousExit = process.exitCode;
+    process.exitCode = undefined;
+    const stderr = await captureStderr(async () => {
+      await cmd.run!({
         rawArgs: ["--record", "false"],
         args: { record: true, _: ["false"] },
         cmd,
-      } as never),
-    ).rejects.toBeInstanceOf(GraceCommandError);
+      } as never);
+    });
+    const refusedExit = readExitCode();
+    restoreExitCode(previousExit);
     expect(ran).toBe(false);
+    expect(refusedExit).toBe(1);
+    expect(stderr).toContain("--record=false");
+    expect(stderr).toContain("--no-record");
+    expect(stderr).not.toMatch(/at refuseBooleanSpaceForm/);
 
+    ran = false;
     await cmd.run!({
       rawArgs: ["--record=false"],
       args: { record: false, _: [] },
@@ -166,27 +214,278 @@ describe("defineGraceCommand", () => {
     expect(ran).toBe(true);
   });
 
-  it("re-reads boolean names from def.args at run time", async () => {
+  it("re-reads boolean names from def.args at run time and skips original run", async () => {
     const args: ArgsDef = {
       apply: { type: "boolean", default: false },
     };
+    let ran = false;
     const cmd = defineGraceCommand({
       get args() {
         return args;
       },
-      async run() {},
+      async run() {
+        ran = true;
+      },
     });
 
     // Add a boolean after wrap — run-time re-read must see it.
     args.fix = { type: "boolean", default: false };
 
-    await expect(
-      cmd.run!({
+    const previousExit = process.exitCode;
+    process.exitCode = undefined;
+    await captureStderr(async () => {
+      await cmd.run!({
         rawArgs: ["--fix", "true"],
         args: { apply: false, fix: true, _: ["true"] },
         cmd,
-      } as never),
-    ).rejects.toBeInstanceOf(GraceCommandError);
+      } as never);
+    });
+    const refusedExit = readExitCode();
+    restoreExitCode(previousExit);
+    expect(ran).toBe(false);
+    expect(refusedExit).toBe(1);
+  });
+});
+
+describe("resolveErrorFormat (Trap 2)", () => {
+  it("honours --format json and --json; text otherwise", () => {
+    expect(resolveErrorFormat({ format: "json" })).toBe("json");
+    expect(resolveErrorFormat({ json: true, format: "text" })).toBe("json");
+    expect(resolveErrorFormat({ json: false, format: "text" })).toBe("text");
+    expect(resolveErrorFormat({ format: "text" })).toBe("text");
+    expect(resolveErrorFormat({})).toBe("text");
+    expect(resolveErrorFormat(undefined)).toBe("text");
+  });
+});
+
+describe("C-LEGIBLE-FAILURE T-003 channel criteria", () => {
+  it("AC-CHANNEL-JSON-ENVELOPE: --format json space-form → entire stdout is envelope", async () => {
+    let ran = false;
+    const cmd = defineGraceCommand({
+      args: {
+        record: { type: "boolean", default: true },
+        format: { type: "string", default: "text" },
+      },
+      async run() {
+        ran = true;
+      },
+    });
+
+    const previousExit = process.exitCode;
+    process.exitCode = undefined;
+    const stdout = await captureStdout(async () => {
+      await cmd.run!({
+        rawArgs: ["--record", "false", "--format", "json"],
+        args: { record: true, format: "json", _: ["false"] },
+        cmd,
+      } as never);
+    });
+    const refusedExit = readExitCode();
+    restoreExitCode(previousExit);
+    expect(ran).toBe(false);
+    expect(refusedExit).toBe(1);
+    // Entire stdout must parse as the envelope — not a prefix/suffix around a stack.
+    const body = JSON.parse(stdout);
+    expect(body.schemaVersion).toBe("1.0.0");
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("invalid-arguments");
+    expect(typeof body.error.message).toBe("string");
+    expect(body.error.message).toContain("--record=false");
+    expect(stdout).not.toMatch(/at refuseBooleanSpaceForm|GraceCommandError:/);
+  });
+
+  it("AC-CHANNEL-JSON-ENVELOPE Trap 2: --json convention (not only --format) yields envelope", async () => {
+    // status/module/context/file/verification use --json; reading only args.format
+    // would leave the envelope missing on those five. Pin the --json path.
+    let ran = false;
+    const cmd = defineGraceCommand({
+      args: {
+        json: { type: "boolean", default: false },
+        format: { type: "string", default: "text" },
+      },
+      async run() {
+        ran = true;
+      },
+    });
+
+    const previousExit = process.exitCode;
+    process.exitCode = undefined;
+    const stdout = await captureStdout(async () => {
+      // citty shape for `--json false`: json presence true, bare false positional.
+      // format stays default "text" — only Boolean(args.json) selects JSON.
+      await cmd.run!({
+        rawArgs: ["--json", "false"],
+        args: { json: true, format: "text", _: ["false"] },
+        cmd,
+      } as never);
+    });
+    const refusedExit = readExitCode();
+    restoreExitCode(previousExit);
+    expect(ran).toBe(false);
+    expect(refusedExit).toBe(1);
+    const body = JSON.parse(stdout);
+    expect(body.schemaVersion).toBe("1.0.0");
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("invalid-arguments");
+    expect(typeof body.error.message).toBe("string");
+  });
+
+  it("AC-CHANNEL-TEXT-LEGIBLE: single stderr message, no stack, names working forms", async () => {
+    let ran = false;
+    const cmd = defineGraceCommand({
+      args: {
+        record: { type: "boolean", default: true },
+      },
+      async run() {
+        ran = true;
+      },
+    });
+
+    const previousExit = process.exitCode;
+    process.exitCode = undefined;
+    const stderr = await captureStderr(async () => {
+      await cmd.run!({
+        rawArgs: ["--record", "false"],
+        args: { record: true, _: ["false"] },
+        cmd,
+      } as never);
+    });
+    const refusedExit = readExitCode();
+    restoreExitCode(previousExit);
+    expect(ran).toBe(false);
+    expect(refusedExit).toBe(1);
+    // Single message line (trailing newline from renderer is fine).
+    const lines = stderr.replace(/\n$/, "").split("\n");
+    expect(lines.length).toBe(1);
+    expect(lines[0]).toContain("--record=false");
+    expect(lines[0]).toContain("--record=true");
+    expect(lines[0]).toContain("--no-record");
+    // Actual refuseBooleanSpaceForm wording (not a family of plausible paraphrases).
+    expect(lines[0]).toContain("bare `--record` means true");
+    expect(stderr).not.toMatch(/at refuseBooleanSpaceForm|at async runCommand|GraceCommandError:/);
+  });
+
+  it("AC-EXIT-CODE-FROM-ERROR: GraceCommandError exitCode 2 through same render path → toBe(2)", async () => {
+    // Discriminating probe: non-default exitCode 2 must reach process.exitCode.
+    // A test that only checks !== 0 would miss a hard-coded 1 regression.
+    let ran = false;
+    const cmd = defineGraceCommand({
+      args: {
+        record: { type: "boolean", default: true },
+      },
+      async run() {
+        ran = true;
+        throw new GraceCommandError("invalid-arguments", "exit-code probe", { exitCode: 2 });
+      },
+    });
+
+    const previousExit = process.exitCode;
+    process.exitCode = undefined;
+    await captureStderr(async () => {
+      await cmd.run!({
+        rawArgs: ["--record=true"],
+        args: { record: true, _: [] },
+        cmd,
+      } as never);
+    });
+    const probeExit = readExitCode();
+    restoreExitCode(previousExit);
+    expect(ran).toBe(true);
+    expect(probeExit).toBe(2);
+  });
+
+  it("AC-CHANNEL-SIDE-EFFECT-HELD (unit): original run never executes on space-form refuse", async () => {
+    // Infer-and-continue / rewrite-argv-and-continue would set ran true.
+    // Control-flow short-circuit leaves ran false; Decision pins live in core.test.ts.
+    let ran = false;
+    let sideEffect = 0;
+    const cmd = defineGraceCommand({
+      args: {
+        record: { type: "boolean", default: true },
+      },
+      async run() {
+        ran = true;
+        sideEffect += 1;
+      },
+    });
+
+    const previousExit = process.exitCode;
+    process.exitCode = undefined;
+    await captureStderr(async () => {
+      await cmd.run!({
+        rawArgs: ["--record", "false"],
+        args: { record: true, _: ["false"] },
+        cmd,
+      } as never);
+    });
+    restoreExitCode(previousExit);
+    expect(ran).toBe(false);
+    expect(sideEffect).toBe(0);
+  });
+
+  it("unexpected TypeError message reaches operator in text and json (cause preserved)", async () => {
+    // Class-wide runGraceCommand would erase non-GraceCommandError to a fixed fallback.
+    // Pin the actual cause text so a silent erasure fails this test.
+    const cause = "cannot read property 'wrapper' of null";
+    const cmd = defineGraceCommand({
+      args: {
+        format: { type: "string", default: "text" },
+      },
+      async run() {
+        throw new TypeError(cause);
+      },
+    });
+
+    const previousExit = process.exitCode;
+
+    process.exitCode = undefined;
+    const textStderr = await captureStderr(async () => {
+      await cmd.run!({
+        rawArgs: [],
+        args: { format: "text", _: [] },
+        cmd,
+      } as never);
+    });
+    restoreExitCode(previousExit);
+    expect(textStderr).toContain(cause);
+    expect(textStderr).not.toBe("Unable to complete the GRACE command.\n");
+
+    process.exitCode = undefined;
+    let jsonStdout = "";
+    let jsonStderr = "";
+    const outChunks: string[] = [];
+    const errChunks: string[] = [];
+    const origOut = process.stdout.write.bind(process.stdout);
+    const origErr = process.stderr.write.bind(process.stderr);
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      outChunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+      return true;
+    }) as typeof process.stdout.write;
+    process.stderr.write = ((chunk: string | Uint8Array) => {
+      errChunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+      return true;
+    }) as typeof process.stderr.write;
+    try {
+      await cmd.run!({
+        rawArgs: ["--format", "json"],
+        args: { format: "json", _: [] },
+        cmd,
+      } as never);
+    } finally {
+      process.stdout.write = origOut;
+      process.stderr.write = origErr;
+    }
+    jsonStdout = outChunks.join("");
+    jsonStderr = errChunks.join("");
+    restoreExitCode(previousExit);
+
+    const body = JSON.parse(jsonStdout);
+    expect(body.schemaVersion).toBe("1.0.0");
+    expect(body.ok).toBe(false);
+    expect(body.error.message).toBe(cause);
+    // Stack is diagnostic on stderr; stdout stays pure envelope.
+    expect(jsonStderr).toContain(cause);
+    expect(jsonStdout).not.toContain("at ");
   });
 });
 

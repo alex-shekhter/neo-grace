@@ -925,16 +925,64 @@ describe("C-FLAG-HONESTY T-002 — gate --record space form (F18)", () => {
         [gate, "--change", "C-GATE", "--path", root, "--record", "false"],
         root,
       );
-      // Non-zero exit is necessary; the Decision-count pin is the write proof (F23).
-      expect(result.status).not.toBe(0);
-      const combined = `${result.stdout}\n${result.stderr}`;
-      expect(combined).toContain("--record=false");
-      expect(combined).toContain("--no-record");
-      expect(combined).toMatch(/bare `--record`|`--record` means true|--record means true/i);
+      // Exit code is GraceCommandError.exitCode (default 1) via runGraceCommand — exact pin.
+      expect(result.status).toBe(1);
+      // C-LEGIBLE-FAILURE T-003: message is the single stderr line (not a stack).
+      const lines = result.stderr.replace(/\n$/, "").split("\n");
+      expect(lines.length).toBe(1);
+      expect(lines[0]).toContain("--record=false");
+      expect(lines[0]).toContain("--no-record");
+      // Actual refuseBooleanSpaceForm wording (not a family of plausible paraphrases).
+      expect(lines[0]).toContain("bare `--record` means true");
+      expect(result.stderr).not.toMatch(/at refuseBooleanSpaceForm|at async runCommand/);
       expect(countDecisionElements(ledgerPath)).toBe(before);
     }
     // Bundle path still only the seeded Decision (no archive write, no second Decision).
     expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(true);
+  });
+
+  it("AC-CHANNEL-JSON-ENVELOPE: --format json + space-form → entire stdout is GraceCommandErrorEnvelope", () => {
+    const root = tempProject();
+    activeBundle(root);
+    const ledgerPath = fixtureLedgerPath(root);
+    expect(countDecisionElements(ledgerPath)).toBe(0);
+
+    const result = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record", "false", "--format", "json"],
+      root,
+    );
+    expect(result.status).toBe(1);
+    // Entire stdout must parse — no stack prefix/suffix.
+    const body = JSON.parse(result.stdout);
+    expect(body.schemaVersion).toBe("1.0.0");
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("invalid-arguments");
+    expect(typeof body.error.message).toBe("string");
+    expect(body.error.message).toContain("--record=false");
+    expect(result.stdout).not.toMatch(/at refuseBooleanSpaceForm|GraceCommandError:/);
+    // AC-CHANNEL-SIDE-EFFECT-HELD: no ledger created when none existed.
+    expect(existsSync(ledgerPath)).toBe(false);
+    expect(countDecisionElements(ledgerPath)).toBe(0);
+  });
+
+  it("AC-CHANNEL-SIDE-EFFECT-HELD: Decision count toBe before/after on space-form refuse", () => {
+    const root = tempProject();
+    activeBundle(root);
+    const ledgerPath = fixtureLedgerPath(root);
+    recordGateDecision(root, "C-GATE", {
+      gate: "approve",
+      decision: "permit",
+      requirements: [{ id: "no-unresolved-ic-inv-clarification", required: true, present: true, blocking: false }],
+    });
+    const before = countDecisionElements(ledgerPath);
+    expect(before).toBe(1);
+
+    const result = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record", "false"],
+      root,
+    );
+    expect(result.status).toBe(1);
+    expect(countDecisionElements(ledgerPath)).toBe(before);
   });
 
   it("AC-BARE-FLAG-STILL-TRUE: bare --record still records (means true)", () => {

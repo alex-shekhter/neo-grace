@@ -1,6 +1,7 @@
 // START_MODULE_CONTRACT
-//   PURPOSE: Citty CLI argument-form guard
-//   SCOPE: Boolean space-form refusal and defineGraceCommand wrapper
+//   PURPOSE: Citty CLI argument-form guard and error-channel routing
+//   SCOPE: Boolean space-form refusal, resolveErrorFormat, and defineGraceCommand
+//          wrapper that routes refusal through runGraceCommand
 //   DEPENDS: none
 //   LINKS: M-CLI-INFRA
 //   ROLE: RUNTIME
@@ -14,21 +15,25 @@
 //   defineGraceCommand
 //   listBooleanFlags
 //   refuseBooleanSpaceForm
+//   resolveErrorFormat
 // END_MODULE_MAP
 
 /**
- * Citty boolean space-form guard (C-FLAG-HONESTY).
+ * Citty boolean space-form guard (C-FLAG-HONESTY) + error channel (C-LEGIBLE-FAILURE).
  *
  * citty treats `type: "boolean"` as presence-only: `--flag false` sets the flag
  * true and leaves bare `false` as a positional (F18 / F18.1). Working forms are
  * `--flag=false` / `--flag=true`, bare `--flag`, and `--no-flag`.
+ *
+ * defineGraceCommand routes the refusal through runGraceCommand so JSON envelope
+ * and text one-line rendering apply (honouring both --format and --json).
  *
  * Hosted under M-CLI-INFRA (F24 repair): shared CLI infrastructure, not query resolution.
  */
 
 import { defineCommand, type ArgsDef, type CommandDef, type Resolvable } from "citty";
 
-import { GraceCommandError } from "./errors";
+import { GraceCommandError, runGraceCommand } from "./errors";
 
 /** Brand stamped on every command def produced by defineGraceCommand. */
 export const BOOLEAN_SPACE_GUARD_BRAND = Symbol.for("ngrace.booleanSpaceGuard");
@@ -157,9 +162,25 @@ function wrapSubCommandsObject(
 }
 
 /**
+ * Resolve text vs JSON error rendering from parsed args.
+ * Trap 2: two JSON conventions exist — `--format json` only on some commands,
+ * and both `--format` and `--json` on others. Honour either.
+ */
+export function resolveErrorFormat(args: Record<string, unknown> | undefined | null): "text" | "json" {
+  if (!args) return "text";
+  return Boolean(args.json) || String(args.format ?? "") === "json" ? "json" : "text";
+}
+
+/**
  * citty defineCommand wrapper that always refuses boolean space-form on rawArgs
  * before the original run, re-reading boolean names from def.args at run time.
+ * Refusal (and any GraceCommandError from the operation) routes through
+ * runGraceCommand so the declared envelope / one-line text path applies.
  * Recursively wraps subCommands and stamps BOOLEAN_SPACE_GUARD_BRAND.
+ *
+ * Trap 1: refuse and originalRun are sequential steps inside one runGraceCommand
+ * operation — the throw short-circuits originalRun by control flow, not by
+ * polling process.exitCode.
  */
 export function defineGraceCommand<const T extends ArgsDef = ArgsDef>(def: CommandDef<T>): CommandDef<T> {
   const originalRun = def.run;
@@ -169,10 +190,36 @@ export function defineGraceCommand<const T extends ArgsDef = ArgsDef>(def: Comma
     async run(context) {
       const argsDef = (await resolveValue(def.args ?? ({} as T))) as ArgsDef;
       const names = collectBooleanFlagNames(argsDef);
-      refuseBooleanSpaceForm(context.rawArgs, names);
-      if (originalRun) {
-        return originalRun(context);
-      }
+      const format = resolveErrorFormat(context.args as Record<string, unknown>);
+      await runGraceCommand(
+        format,
+        async () => {
+          refuseBooleanSpaceForm(context.rawArgs, names);
+          if (!originalRun) return;
+          try {
+            await originalRun(context);
+          } catch (error) {
+            // GraceCommandError is already the renderable channel — rethrow as-is.
+            if (error instanceof GraceCommandError) throw error;
+            // Class-wide wrap must not erase unexpected causes to the fixed fallback.
+            // Preserve the original message on a GraceCommandError; write the original
+            // stack to stderr (stdout stays pure envelope in JSON mode).
+            const message =
+              error instanceof Error && error.message.length > 0
+                ? error.message
+                : String(error);
+            const stack =
+              error instanceof Error && error.stack
+                ? error.stack
+                : `${message}`;
+            process.stderr.write(`${stack}\n`);
+            // Union has no "internal"/"unexpected": invalid-project is the same code
+            // runGraceCommand already used for non-GraceCommandError fallbacks.
+            throw new GraceCommandError("invalid-project", message);
+          }
+        },
+        "Unable to complete the GRACE command.",
+      );
     },
   };
 
