@@ -1876,3 +1876,44 @@ breaking the implementation and recording what failed — the D13 cast probe, wh
 Confirming a probe reverted cleanly with `git status --short` is the whole cost.
 
 Disposition: applied in T-006 (committed `74ed4a9`); carried as a review habit, not a follow-on bundle.
+
+---
+
+### F19.1 — The close window raises three errors, and not the ones F19 predicted. **[verified]**
+
+F19 recorded that authoring a status attribute on a committed governed artifact leaves the tree in a
+state the checks reject until the change is committed, and drew the rule: **commit the status
+authoring immediately.** That rule held at the close of `C-REPORT-HONESTY`. The *diagnosis* did not.
+
+I predicted `approved-contract-drift` in the close instructions. What actually fired between authoring
+`status="applied"` and the archive commit was a different family — three errors:
+
+```
+change.plan-requires-approved-spec   An active plan may exist only beside an approved spec.
+change.invalid-active-status         Active change artifacts cannot use status 'applied'.  (plan)
+change.invalid-active-status         Active change artifacts cannot use status 'applied'.  (spec)
+```
+
+The mechanism is the mirror image of F19's. `approved-contract-drift` fires when an artifact that is
+*still approved* changes after its approval was recorded. Here the artifacts **leave** `approved`, so
+that check goes quiet and the active-directory status validator speaks instead: `applied` is not a
+legal status under `active/`, and a plan beside a non-approved spec is not a legal pair. Same class,
+opposite trigger.
+
+**The underlying fact is that the honest intermediate state is unrepresentable.** Between step 7
+(author `applied`) and step 9 (`git mv` to `archive/`) the bundle genuinely *is* applied and genuinely
+*is* still under `active/`, and the artifact grammar has no way to say so. The errors are the tree
+correctly reporting a state that should not persist — they are the checks working, not failing.
+
+**This is recorded, not scheduled, and that is deliberate rather than a deferral (D11).** The window
+is two commands wide and closes on the commit. The only repairs available are worse than the
+symptom: teaching the gate to move the bundle would break the invariant that **the gate never authors
+status and never moves bundles**, which is load-bearing precisely because it keeps the tool from
+laundering a decision it did not make. A tolerated three-error window inside a documented sequence
+costs less than a gate that mutates the tree.
+
+**Operational rule, unchanged from F19 and now correctly grounded:** run steps 7–10 straight through
+to the commit, expect these three, and report them rather than repairing them. The close prompt should
+name these codes so an executor meeting them does not mistake an expected state for a broken one — an
+undocumented expected error is the thing that teaches a reader to ignore errors generally, which is
+F11's harm arriving by another road.
