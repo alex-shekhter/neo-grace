@@ -2376,3 +2376,92 @@ digests against `ObservedWriteScope`, at the same severity as the existing `scop
 open question of whether it fires per attempt or only at fold. Natural companion to the D14 repairs
 (`cause` support and the unhandled-rejection handler) — both are gaps between a declared contract and
 what is actually enforced, which is this roadmap's whole subject.
+
+---
+
+### F28 — The agreement test's positive clause asserts a string that was already true. **[verified]**
+
+`C-ESCALATION-HONESTY` T-003 added a second agreement test titled *"both skill trees document
+escalation-clearing resume requires `--reason`; ordinary resume does not."* Its body:
+
+```ts
+expect(text).toContain("cursor resume");
+expect(text).toContain("--reason");
+expect(text).toMatch(/ordinary resume|does not clear an escalation/i);
+expect(text).toMatch(/without `--reason`|without --reason/i);
+```
+
+`--reason` was **already present at HEAD**, twice, on an unrelated command: rule 5 and the
+`verification-unavailable` kind both read `ngrace cursor verification-unavailable … --reason …`. So the
+assertion carrying the test's positive claim is information-free — it passes on the file the test exists
+to change. Only the two carve-out matchers discriminate, and they discriminate by accident of phrasing:
+they happen to live in the same sentence as the command form.
+
+**Probed rather than argued.** Stripping ` --reason "…"` from both command forms in **both** skill trees,
+leaving every explanatory sentence intact:
+
+```
+bun test src/grace-cursor.test.ts -t "fix-budget skill prose agrees"
+→ 3 pass, 0 fail
+```
+
+Reverted; digests back to `9c552269…` on both paths, matching the ledger's recorded pass attempt.
+
+So the skill can ship
+
+    `ngrace cursor resume --change C-ID --task T-NNN`
+
+— the exact form T-002 now refuses — while still explaining, one clause later, that a reason is required.
+The prose would contradict the command printed beside it, and the suite would be green.
+
+This is [F23](#f23) in its widened form: the assertion is weaker than the value the criterion names. The
+criterion names *"clearing an escalation requires a recorded reason"*; the test measures whether the
+seven characters `--reason` occur anywhere in an eleven-thousand-character file. It is also the failure
+this bundle exists to remove, reproduced inside the bundle's own enforcement — contract text with no
+check binding it.
+
+**What makes the difference discriminating:** the claim is a **co-occurrence**, so the assertion must be
+one. Both documented entry paths (`cursor resume` and `cursor advance --kind resume`) carry `--reason` in
+the command form itself. Pinning co-occurrence rather than the full literal keeps the test alive across
+placeholder renames while still reddening under the probe above.
+
+Disposition: **fixed in T-003**, which is still open — no `terminal`, no commit. Not a spec or plan
+defect: the approved AC requires the resume kind to *document* the reason, and the skill does. The
+defect is enforcement strength, and the file is in `ObservedWriteScope`.
+
+---
+
+### F29 — The footprint metric counts lines, so the text agents load grew 9% and it read zero. **[verified]**
+
+`src/test-support/token-accounting.test.ts` pins `skillTextLines().total` with `toBe(779)`, described in
+the module contract as *token-accounting helpers* and in the code comment as *the D15 baseline number*.
+`skillTextLines` sums `wc -l` over `skills/ngrace/*/SKILL.md`.
+
+T-003 rewrote four budget sites and the resume kind in `ngrace-execute`:
+
+```
+HEAD  10890 chars / 103 lines
+now   11852 chars / 103 lines      (+962 chars, +8.8%)
+```
+
+The pin did not move, because in a file whose kind entries are one line per field, a rewrite that doubles
+a sentence's length is line-neutral by construction. The metric is insensitive along the only axis that
+was changed.
+
+Two consequences, and the second is the worse one. First, `779` gives false assurance: a reader checking
+whether the skill grew sees an unchanged number against a 9% increase in what every executing agent
+actually loads. Second — and this landed on me — I wrote T-003's prompt instructing the executor *"do not
+compress a sentence to keep 779 green,"* framing the pin as a real constraint on prose. It was not one;
+the discipline was sound and vacuous. The plan's own criterion said *"do not compress sentences to
+preserve a line count"* and was more accurate than my restatement of it.
+
+[F10](#f10) class: the name claims more than the body measures. `skillTextLines` is honestly named; the
+module `token-accounting` and the phrase *baseline* are not, and the pin is consumed as a footprint
+figure in phase reports.
+
+Disposition: **follow-on queue**, with the D14 repairs and [F27](#f27)'s `scope.observed-write-undeclared`
+check. Not folded into `C-ESCALATION-HONESTY`: the fix changes `skillTextLines`'s measurement semantics,
+which the module comment says *"do not change … without updating every phase report that cites them"* —
+that is a real dependency on a survey this bundle has no mandate to run, which is the kind of
+justification [D11](#d11) asks for before anything is deferred. The likely shape is a character or
+token-estimate field reported alongside lines, not in place of them, so existing citations stay readable.

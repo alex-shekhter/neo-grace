@@ -22,6 +22,7 @@ import {
   expectedLedgerEventAttributes,
   FIX_DISTINCT_SIGNATURE_BUDGET,
   FIX_SIGNATURE_REPEAT_BUDGET,
+  fixBudgetSkillRequiredSubstrings,
   foldEpoch,
   formatCursorPosition,
   KNOWN_EVENT_KINDS,
@@ -3075,6 +3076,108 @@ function parseSkillCursorKindIds(skillMarkdown: string): string[] {
   }
   return ids;
 }
+
+// ---------------------------------------------------------------------------
+// C-ESCALATION-HONESTY T-003 — skill prose agrees with live threshold constants
+// ---------------------------------------------------------------------------
+
+/**
+ * Stale attempt-count budget claims (F21). Any match means the skill still
+ * teaches "any two fails exhaust the budget" (or "after the second fail")
+ * instead of triggers R/D. One sweep covers the four measured sites and any
+ * fifth residual of the same family — not four hand-written exact strings
+ * that TargetAssertions MustNotContain only partially cover.
+ *
+ * Sites measured at plan-authoring:
+ *   rule 5            "Two failed attempts exhaust the fix budget…"
+ *   attempt Meaning   "Two failed attempts exhaust the budget…"
+ *   escalation When   "two failed attempts have exhausted…"
+ *   escalation How    "…after the second failed attempt"
+ */
+const STALE_ATTEMPT_COUNT_BUDGET_CLAIM =
+  /two failed attempts exhaust|two failed attempts have exhausted|second failed attempt|failed attempts exhaust the (?:fix )?budget/i;
+
+const NGRACE_EXECUTE_SKILL_PATHS = [
+  "skills/ngrace/ngrace-execute/SKILL.md",
+  "plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md",
+] as const;
+
+describe("fix-budget skill prose agrees with constants (C-ESCALATION-HONESTY T-003 / AC-PROSE-ENFORCEMENT-AGREE)", () => {
+  /**
+   * Bidirectional agreement (both skill trees):
+   * - Mutate FIX_DISTINCT_SIGNATURE_BUDGET (or REPEAT) without skill → required
+   *   substring becomes e.g. "5 distinct failing signatures" → skill still has
+   *   "4 …" → toContain fails (code→skill direction).
+   * - Mutate a skill sentence (drop "4 distinct failing signatures" or restore
+   *   a stale attempt-count claim) while constants stay → toContain / stale
+   *   sweep fails (skill→code direction).
+   * - Edit only canonical → packaged fails its loop iteration; parity also fails
+   *   validate-marketplace (AC-SKILL-MIRROR-IDENTICAL is separate).
+   * Kind-set completeness alone does not satisfy this AC (C-EXECUTION-CONTRACT trap).
+   */
+  it("both skill trees contain live threshold substrings and no stale attempt-count claim", () => {
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const required = fixBudgetSkillRequiredSubstrings();
+    // Pins the helper shape the skill must match (digits mid-sentence, not English words).
+    expect([...required]).toEqual([
+      `${FIX_SIGNATURE_REPEAT_BUDGET} failed attempts of the same signature`,
+      `${FIX_DISTINCT_SIGNATURE_BUDGET} distinct failing signatures`,
+    ]);
+
+    for (const rel of NGRACE_EXECUTE_SKILL_PATHS) {
+      const text = readFileSync(path.join(repoRoot, rel), "utf8");
+      for (const sub of required) {
+        expect({ path: rel, missing: sub, present: text.includes(sub) }).toEqual({
+          path: rel,
+          missing: sub,
+          present: true,
+        });
+      }
+      // Plan TargetAssertions MustNotContain only the rule-5 sentence; this
+      // sweep also catches attempt Meaning / escalation When / How residues.
+      const stale = STALE_ATTEMPT_COUNT_BUDGET_CLAIM.exec(text);
+      expect({ path: rel, staleMatch: stale?.[0] ?? null }).toEqual({
+        path: rel,
+        staleMatch: null,
+      });
+    }
+  });
+
+  it("both skill trees document escalation-clearing resume requires --reason; ordinary resume does not", () => {
+    // T-002 contract surface: F22 replan reason on escalation clear only.
+    // Co-occurrence (not bare toContain): "--reason" alone matches verification-unavailable
+    // and rule 5; "cursor resume" alone matches the pre-T-002 How form that T-002 refuses.
+    // The claim is that each documented resume entry path's command form itself carries
+    // --reason. A full-literal pin of the entire command would also catch a stripped flag
+    // but would redden on a harmless placeholder rename (C-ID → CHANGE-ID).
+    const resumeCmdHasReason = /ngrace cursor resume\b[^`\n]*--reason/;
+    const advanceResumeCmdHasReason = /ngrace cursor advance\b[^`\n]*--kind resume[^`\n]*--reason/;
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    for (const rel of NGRACE_EXECUTE_SKILL_PATHS) {
+      const text = readFileSync(path.join(repoRoot, rel), "utf8");
+      expect({
+        path: rel,
+        resumeCmdHasReason: resumeCmdHasReason.test(text),
+        advanceResumeCmdHasReason: advanceResumeCmdHasReason.test(text),
+      }).toEqual({
+        path: rel,
+        resumeCmdHasReason: true,
+        advanceResumeCmdHasReason: true,
+      });
+      // Ordinary non-clearing resume must remain allowed without reason.
+      expect(text).toMatch(/ordinary resume|does not clear an escalation/i);
+      expect(text).toMatch(/without `--reason`|without --reason/i);
+    }
+  });
+
+  it("canonical and packaged ngrace-execute skill bodies are byte-identical", () => {
+    // AC-SKILL-MIRROR-IDENTICAL — same check validate-marketplace uses directionally.
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const a = readFileSync(path.join(repoRoot, NGRACE_EXECUTE_SKILL_PATHS[0]));
+    const b = readFileSync(path.join(repoRoot, NGRACE_EXECUTE_SKILL_PATHS[1]));
+    expect(Buffer.compare(a, b)).toBe(0);
+  });
+});
 
 describe("KNOWN_EVENT_KINDS export and ngrace-execute completeness (C-EXECUTION-CONTRACT)", () => {
   it("exports a frozen list definitionally tied to KNOWN_KIND_STATE keys", () => {

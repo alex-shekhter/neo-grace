@@ -23,6 +23,9 @@ describe("token-accounting (D15)", () => {
     // Phase 9: ngrace-execute claimedConfidence + calibration promotion bar (724 → 728).
     // 6.1.0 docs pass: ngrace-cli gains gate/review/doctor and lint --explain lines (728 → 730).
     // C-EXECUTION-CONTRACT: ngrace-execute <cursor_kinds> protocol block (730 → 779; measured).
+    // C-ESCALATION-HONESTY T-003: rewrite ngrace-execute R/D + resume --reason prose first,
+    // then re-measure — total stayed 779 (in-place line-neutral rewrite of four budget sites
+    // + resume How; not a target written toward). Pin remains exact toBe of that measure.
     const measured = skillTextLines();
     expect(measured.total).toBe(779);
     expect(measured.perSkill["ngrace-fix"]).toBe(32);
