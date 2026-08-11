@@ -50,6 +50,7 @@ import path from "node:path";
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { resolveNgracePaths } from "../artifact/project";
 import {
+  ANCHOR_PATTERNS,
   isRegisteredSemanticAnchor,
   VERIFICATION_THREADED_CHILD_TAGS,
 } from "../artifact/types";
@@ -885,6 +886,35 @@ export function expandScopePathsForArchiveIdentity(
   return [...out].sort();
 }
 
+/**
+ * CLI lifecycle porcelain under a real change bundle (F11 / F11.2).
+ * Matches, for any canonical C-* id (ANCHOR_PATTERNS.change):
+ *   .ngrace/changes/{active|archive}/<C-ID>/run/**
+ *   .ngrace/changes/{active|archive}/<C-ID>/run.xml
+ *   .ngrace/changes/{active|archive}/<C-ID>/run-ledger.xml
+ * Path-only (covers fold deletions). Not keyed on the reviewed change id (cross-bundle).
+ * Does not match plan.xml / spec.xml or non-canonical directory names (e.g. scratch/).
+ */
+function isCliLifecyclePath(rel: string): boolean {
+  const n = normalizeRel(rel);
+  const prefix = `${ARTIFACT_DIR}/changes/`;
+  if (!n.startsWith(prefix)) return false;
+  const rest = n.slice(prefix.length); // active|archive / <id> / …
+  const firstSlash = rest.indexOf("/");
+  if (firstSlash <= 0) return false;
+  const location = rest.slice(0, firstSlash);
+  if (location !== "active" && location !== "archive") return false;
+  const afterLocation = rest.slice(firstSlash + 1);
+  const secondSlash = afterLocation.indexOf("/");
+  if (secondSlash <= 0) return false;
+  const changeId = afterLocation.slice(0, secondSlash);
+  if (!ANCHOR_PATTERNS.change.test(changeId)) return false;
+  const leaf = afterLocation.slice(secondSlash + 1);
+  if (leaf === "run.xml" || leaf === "run-ledger.xml") return true;
+  if (leaf === "run" || leaf.startsWith("run/")) return true;
+  return false;
+}
+
 export function auditScopeOutsideWriteScope(
   changedFiles: string[],
   scopeFiles: string[],
@@ -896,6 +926,8 @@ export function auditScopeOutsideWriteScope(
   const expandedGlobs = expandScopePathsForArchiveIdentity(scopeGlobs, identity);
   const fileSet = new Set(expandedFiles);
   for (const changed of changedFiles.map(normalizeRel)) {
+    // F11: tool-owned lifecycle paths are not agent out-of-scope work (any C-*, any source).
+    if (isCliLifecyclePath(changed)) continue;
     if (fileSet.has(changed)) continue;
     const globHit = expandedGlobs.some((glob) => matchSimpleGlob(glob, changed));
     if (globHit) continue;

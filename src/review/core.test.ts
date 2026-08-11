@@ -4,7 +4,9 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
+import { validateRunLedgerArtifact } from "../artifact/grammar";
 import { writeMinimalNgraceProject } from "../artifact/test-fixtures";
+import { parseGraceXmlArtifact } from "../artifact/xml";
 import { byPattern, corpus } from "../test-support/defect-corpus";
 import {
   auditAttemptPairWriteEvidence,
@@ -1186,6 +1188,121 @@ describe("C-REPORT-HONESTY T-003 MustExist archive identity (F16)", () => {
         && f.message.includes("build/artifacts/genuinely-absent.bin"),
     );
     expect(findings.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * C-REPORT-HONESTY T-004 / AC-SCOPE-LIFECYCLE-EXCLUSION + AC-LEDGER-INVALID-STILL-CATCHES (F11).
+ * CLI lifecycle paths are tool-owned; scope audit must not cry wolf on them.
+ * Assert via auditScopeOutsideWriteScope directly (not live porcelain).
+ */
+describe("C-REPORT-HONESTY T-004 scope lifecycle exclusion (F11)", () => {
+  const ows = ["src/in-scope.ts"];
+  const lifecyclePaths = [
+    ".ngrace/changes/active/C-A/run/1-T-001-opened.xml",
+    ".ngrace/changes/active/C-A/run/2-T-001-attempt.xml",
+    ".ngrace/changes/active/C-A/run.xml",
+    ".ngrace/changes/active/C-A/run-ledger.xml",
+    ".ngrace/changes/archive/C-B/run/9-T-003-progress.xml",
+    ".ngrace/changes/archive/C-B/run.xml",
+    ".ngrace/changes/archive/C-B/run-ledger.xml",
+  ];
+
+  it("AC-SCOPE-LIFECYCLE-EXCLUSION: lifecycle-only paths for any C-* yield zero findings", () => {
+    // Empty OWS for lifecycle would also skip via empty-scope short-circuit; declare
+    // real OWS so silence is from the lifecycle exclusion, not the empty-scope guard.
+    const findings = auditScopeOutsideWriteScope(lifecyclePaths, ows, [], {
+      changeId: "C-REVIEW",
+      planLocation: "active",
+    });
+    expect(findings.filter((f) => f.code === "review.scope-outside-write-scope")).toHaveLength(0);
+  });
+
+  it("AC-SCOPE-LIFECYCLE-EXCLUSION: cross-bundle — fold of A does not error a review of B", () => {
+    // Porcelain from C-A lifecycle while reviewing C-B; identity is C-B, not C-A.
+    const foldOfA = [
+      ".ngrace/changes/active/C-A/run/1-T-001-opened.xml",
+      ".ngrace/changes/active/C-A/run/2-T-001-terminal.xml",
+      ".ngrace/changes/active/C-A/run-ledger.xml",
+      ".ngrace/changes/active/C-A/run.xml",
+    ];
+    const findings = auditScopeOutsideWriteScope(foldOfA, ows, [], {
+      changeId: "C-B",
+      planLocation: "active",
+    });
+    expect(findings).toHaveLength(0);
+  });
+
+  it("AC-SCOPE-LIFECYCLE-EXCLUSION: fold deletions (run/** paths as deleted porcelain) yield zero findings", () => {
+    // auditScopeOutsideWriteScope sees paths only — deleted and modified look the same.
+    const deletedEvents = [
+      ".ngrace/changes/active/C-FOLD/run/1-T-001-opened.xml",
+      ".ngrace/changes/active/C-FOLD/run/2-T-001-attempt.xml",
+      ".ngrace/changes/active/C-FOLD/run/3-T-001-terminal.xml",
+      ".ngrace/changes/active/C-FOLD/run-ledger.xml",
+    ];
+    const findings = auditScopeOutsideWriteScope(deletedEvents, ows, []);
+    expect(findings).toHaveLength(0);
+  });
+
+  it("AC-SCOPE-LIFECYCLE-EXCLUSION: plan.xml and spec.xml are not excluded", () => {
+    const findings = auditScopeOutsideWriteScope(
+      [
+        ".ngrace/changes/active/C-A/plan.xml",
+        ".ngrace/changes/active/C-A/spec.xml",
+        ...lifecyclePaths,
+      ],
+      ows,
+      [],
+    );
+    const codes = findings.filter((f) => f.code === "review.scope-outside-write-scope");
+    expect(codes.some((f) => f.file === ".ngrace/changes/active/C-A/plan.xml")).toBe(true);
+    expect(codes.some((f) => f.file === ".ngrace/changes/active/C-A/spec.xml")).toBe(true);
+    // Lifecycle companions must still be silent.
+    expect(codes.some((f) => f.file.includes("/run"))).toBe(false);
+  });
+
+  it("AC-SCOPE-LIFECYCLE-EXCLUSION counterweight: src/secret.ts alongside lifecycle still fires", () => {
+    const findings = auditScopeOutsideWriteScope(
+      [...lifecyclePaths, "src/secret.ts"],
+      ows,
+      [],
+    );
+    expect(findings.some((f) => f.file === "src/secret.ts" && f.code === "review.scope-outside-write-scope")).toBe(
+      true,
+    );
+    expect(findings.filter((f) => f.file !== "src/secret.ts")).toHaveLength(0);
+  });
+
+  it("AC-SCOPE-LIFECYCLE-EXCLUSION: non-canonical id (scratch) is not treated as lifecycle", () => {
+    // ANCHOR_PATTERNS.change must gate the id segment — bare "any directory" would silence this.
+    const findings = auditScopeOutsideWriteScope(
+      [".ngrace/changes/active/scratch/run.xml", ".ngrace/changes/active/scratch/run/1.xml"],
+      ows,
+      [],
+    );
+    expect(findings.some((f) => f.file === ".ngrace/changes/active/scratch/run.xml")).toBe(true);
+    expect(findings.some((f) => f.file === ".ngrace/changes/active/scratch/run/1.xml")).toBe(true);
+  });
+
+  it("AC-LEDGER-INVALID-STILL-CATCHES: malformed Allocation still raises ledger.invalid-allocation", () => {
+    const result = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        `<NgraceRunLedger graceVersion="1.0"><C-X><Epoch-1><Allocation worker="w0" from="NaN" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="terminal"/></Epoch-1></C-X></NgraceRunLedger>`,
+      ),
+    );
+    expect(result.issues.some((i) => i.code === "ledger.invalid-allocation")).toBe(true);
+  });
+
+  it("AC-LEDGER-INVALID-STILL-CATCHES: malformed Event still raises ledger.invalid-event", () => {
+    const result = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        `<NgraceRunLedger graceVersion="1.0"><C-X><Epoch-1><Allocation worker="w0" from="1" to="10"/><Event id="bad" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="terminal"/></Epoch-1></C-X></NgraceRunLedger>`,
+      ),
+    );
+    expect(result.issues.some((i) => i.code === "ledger.invalid-event")).toBe(true);
   });
 });
 
