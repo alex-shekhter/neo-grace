@@ -2465,3 +2465,50 @@ which the module comment says *"do not change … without updating every phase r
 that is a real dependency on a survey this bundle has no mandate to run, which is the kind of
 justification [D11](#d11) asks for before anything is deferred. The likely shape is a character or
 token-estimate field reported alongside lines, not in place of them, so existing citations stay readable.
+
+---
+
+### F30 — A commit-body criterion is unsatisfiable by the first commit in a multi-task change. **[verified]**
+
+`C-ESCALATION-HONESTY`'s `AC-COMMIT-BODY-PROTOCOL` says:
+
+> every git commit that introduces the skill and/or CLI protocol change (paths include
+> `skills/ngrace/ngrace-execute/SKILL.md` and/or `src/grace-cursor.ts` in that commit's diff) has a
+> **commit message body** … that names both thresholds by value — same-signature repeat **2** and
+> distinct-signature backstop **4** — and the resume-reason requirement for escalation clear.
+
+The trigger is path inclusion and the obligation is distributive: **every** such commit. Three commits
+qualify, and as originally written two failed.
+
+| commit | 2 | 4 | resume reason |
+| --- | --- | --- | --- |
+| `338047b` T-001 | absent | "four", spelled | **absent** |
+| `25f1a46` T-002 | absent | absent | present |
+| `711987c` T-003 | present | present | present |
+
+The executor's T-004 check read the same three bodies independently and reached the same table, which is
+why this is recorded as measured rather than argued.
+
+**The thresholds were repairable. The resume-reason clause at T-001 was not.** At `338047b` that
+requirement did not exist in the tree — T-002 introduced it. Satisfying the clause there means one of:
+
+- **squashing** the three task commits, which destroys the per-task granularity the run ledger's events
+  are written against; or
+- **writing into T-001's body a claim about behaviour the code did not yet have** — which is precisely
+  [F21](#f21), the defect this bundle exists to remove, committed into the audit record that is supposed
+  to be the defence against it.
+
+A criterion satisfiable only by the act it condemns is defective, in the same family as [F26](#f26): a
+statement that reads as complete and is unachievable as written.
+
+**Disposition: partial compliance, disclosed.** `338047b` and `25f1a46` were amended — nothing was
+pushed, so this is local — to name **2** and **4** by value, which is honest at both since the constants
+land in T-001. `338047b` still carries no resume-reason clause, and now says so in its own body with the
+reason. The gate verdict records the residual rather than the history being quietly reshaped to look
+compliant. The alternative — squashing — was declined by the maintainer and by me for the same reason.
+
+**Carried as authoring guidance, which is the reusable part.** A commit-body criterion in a multi-task
+change must scope its clauses to the commits that can honestly carry them: *"the commit introducing the
+resume-reason requirement states it; the commits introducing the thresholds state them by value."* A
+flat "every commit states everything" is unachievable the moment the change has more than one task, and
+its failure mode is pressure to backdate a claim.
