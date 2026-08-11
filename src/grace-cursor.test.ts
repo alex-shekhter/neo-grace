@@ -16,10 +16,12 @@ import {
   classifyFlakeFromEvidence,
   countTaskAttemptEvents,
   cursorStateForEventKind,
+  decideFixBudgetEscalation,
   deriveAttemptOrdinal,
   deriveStateFromEvents,
   expectedLedgerEventAttributes,
-  FIX_ATTEMPT_BUDGET,
+  FIX_DISTINCT_SIGNATURE_BUDGET,
+  FIX_SIGNATURE_REPEAT_BUDGET,
   foldEpoch,
   formatCursorPosition,
   KNOWN_EVENT_KINDS,
@@ -29,6 +31,7 @@ import {
   listLooseEvents,
   listRunOrphans,
   listUnresolvedEscalatedTasks,
+  listWindowFailSignatures,
   parseCursorState,
   readAttemptPayload,
   recordAttempt,
@@ -665,11 +668,11 @@ describe("attempt events (AC-ATTEMPT-EVENTS / AC-THREE-VALUED-OUTCOME)", () => {
       signature: { kind: "a", key: "1" },
       writeEvidence: evidencePaths([]),
     });
-    // Second fail escalates — still has attempt events.
+    // Second same-signature fail escalates R — still has attempt events.
     recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
-      signature: { kind: "b", key: "2" },
+      signature: { kind: "a", key: "1" },
       writeEvidence: evidencePaths([]),
     });
     const loose = listLooseEvents(bundle);
@@ -706,40 +709,259 @@ describe("attempt events (AC-ATTEMPT-EVENTS / AC-THREE-VALUED-OUTCOME)", () => {
   });
 });
 
-describe("dumb counter and escalation (AC-DUMB-COUNTER / AC-ESCALATION / AC-KIND-STATE-MAP)", () => {
-  it("two failures with DIFFERENT signatures still exhaust the budget (§4.5.2 verbatim)", () => {
-    expect(FIX_ATTEMPT_BUDGET).toBe(2);
+describe("signature fix budget R/D (C-ESCALATION-HONESTY / AC-SIGNATURE-BUDGET-SEQUENCES)", () => {
+  const A = { kind: "k", key: "a" };
+  const B = { kind: "k", key: "b" };
+  const C = { kind: "k", key: "c" };
+  const D = { kind: "k", key: "d" };
+
+  function failSig(
+    root: string,
+    signature: { kind: string; key: string },
+    task = "T-001",
+  ) {
+    return recordAttempt(root, "C-RUN", {
+      task,
+      outcome: "fail",
+      signature,
+      writeEvidence: evidencePaths([]),
+    });
+  }
+
+  it("constants pin R=2 and D=4 exactly (F23)", () => {
+    expect(FIX_SIGNATURE_REPEAT_BUDGET).toBe(2);
+    expect(FIX_DISTINCT_SIGNATURE_BUDGET).toBe(4);
+  });
+
+  it("fail(A) does not escalate", () => {
     const root = createProject();
     seedBundle(root);
     advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
-    const first = recordAttempt(root, "C-RUN", {
-      task: "T-001",
-      outcome: "fail",
-      signature: { kind: "test-failure", key: "suite-a" },
-      writeEvidence: evidencePaths([]),
-    });
-    expect(first.escalated).toBe(false);
-    expect(first.attemptCount).toBe(1);
+    const r = failSig(root, A);
+    expect(r.escalated).toBe(false);
+    expect(r.trigger).toBeUndefined();
+  });
 
-    const second = recordAttempt(root, "C-RUN", {
-      task: "T-001",
-      outcome: "fail",
-      signature: { kind: "typecheck", key: "suite-b" },
-      writeEvidence: evidencePaths(["src/x.ts"]),
-    });
+  it("fail(A), fail(A) escalates with trigger R", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    expect(failSig(root, A).escalated).toBe(false);
+    const second = failSig(root, A);
     expect(second.escalated).toBe(true);
-    expect(second.attemptCount).toBe(2);
-    expect(second.signatures).toEqual([
-      { kind: "test-failure", key: "suite-a" },
-      { kind: "typecheck", key: "suite-b" },
-    ]);
+    expect(second.trigger).toBe("R");
     expect(second.position.state).toBe("paused-pending-approval");
-    // Escalation output names both signatures and does not claim the task failed.
-    expect(second.message).toContain("suite-a");
-    expect(second.message).toContain("suite-b");
+    expect(second.message).toContain("trigger R");
+    expect(second.message).toContain("k:a");
     expect(second.message).toContain("paused-pending-approval");
     expect(second.message).toMatch(/has not failed|decision owed/i);
     expect(second.message).not.toMatch(/task failed/i);
+    expect(second.message).not.toMatch(/after \d+ attempts/);
+  });
+
+  it("fail(A), fail(B) does not escalate (different signatures — red-first progress)", () => {
+    // Consequence of approved rule, not accommodation: two distinct reds are not thrash.
+    // Replaces the pre-C-ESCALATION-HONESTY §4.5.2 pin that treated any two fails as thrash.
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    expect(failSig(root, A).escalated).toBe(false);
+    const second = failSig(root, B);
+    expect(second.escalated).toBe(false);
+    expect(second.trigger).toBeUndefined();
+    expect(second.position.state).not.toBe("paused-pending-approval");
+  });
+
+  it("fail(A), pass, fail(B) does not escalate", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, A);
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "pass",
+      writeEvidence: evidencePaths(["src/x.ts"]),
+    });
+    const third = failSig(root, B);
+    expect(third.escalated).toBe(false);
+    expect(third.trigger).toBeUndefined();
+  });
+
+  it("fail(A), pass, fail(A) escalates with trigger R (intervening pass ignored for R)", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, A);
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "pass",
+      writeEvidence: evidencePaths(["src/x.ts"]),
+    });
+    const third = failSig(root, A);
+    expect(third.escalated).toBe(true);
+    expect(third.trigger).toBe("R");
+  });
+
+  it("pass, fail(A) does not escalate (attempt-count rule regression)", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "pass",
+      writeEvidence: evidencePaths([]),
+    });
+    const second = failSig(root, A);
+    expect(second.escalated).toBe(false);
+    expect(second.trigger).toBeUndefined();
+  });
+
+  it("fail(A), fail(B), fail(A) escalates with R not D (distinct=2)", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, A);
+    failSig(root, B);
+    const third = failSig(root, A);
+    expect(third.escalated).toBe(true);
+    expect(third.trigger).toBe("R");
+    expect(third.message).toContain("trigger R");
+    expect(third.message).not.toContain("trigger D");
+  });
+
+  it("fail(A), fail(B), fail(C) does not escalate (backstop not at 3)", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, A);
+    failSig(root, B);
+    const third = failSig(root, C);
+    expect(third.escalated).toBe(false);
+    expect(third.trigger).toBeUndefined();
+  });
+
+  it("fail(A), fail(B), pass, fail(C) does not escalate", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, A);
+    failSig(root, B);
+    recordAttempt(root, "C-RUN", {
+      task: "T-001",
+      outcome: "pass",
+      writeEvidence: evidencePaths(["src/x.ts"]),
+    });
+    const fourth = failSig(root, C);
+    expect(fourth.escalated).toBe(false);
+  });
+
+  it("fail(A), fail(B), fail(C), fail(D) escalates with trigger D on the fourth", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    expect(failSig(root, A).escalated).toBe(false);
+    expect(failSig(root, B).escalated).toBe(false);
+    expect(failSig(root, C).escalated).toBe(false);
+    const fourth = failSig(root, D);
+    expect(fourth.escalated).toBe(true);
+    expect(fourth.trigger).toBe("D");
+    expect(fourth.message).toContain("trigger D");
+    expect(fourth.message).toContain(String(FIX_DISTINCT_SIGNATURE_BUDGET));
+    expect(fourth.message).toContain("distinct unresolved failures");
+    expect(fourth.message).not.toMatch(/after \d+ attempts/);
+    expect(fourth.message).toContain("k: a");
+    expect(fourth.message).toContain("k: d");
+  });
+
+  it("verification-unavailable ×2 does not exhaust the budget", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordVerificationUnavailable(root, "C-RUN", {
+      task: "T-001",
+      absence: { verdict: "not-run", reason: "first skip" },
+    });
+    recordVerificationUnavailable(root, "C-RUN", {
+      task: "T-001",
+      absence: { verdict: "not-run", reason: "second skip" },
+    });
+    expect(showCursor(root, "C-RUN").state).not.toBe("paused-pending-approval");
+    const after = failSig(root, A);
+    expect(after.escalated).toBe(false);
+  });
+
+  it("same kind different key is not a repeat of each other", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, { kind: "test", key: "one" });
+    const second = failSig(root, { kind: "test", key: "two" });
+    expect(second.escalated).toBe(false);
+  });
+
+  it("different kind same key is not a repeat of each other", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, { kind: "alpha", key: "shared" });
+    const second = failSig(root, { kind: "beta", key: "shared" });
+    expect(second.escalated).toBe(false);
+  });
+
+  it("equality is exact (case-sensitive): K vs k does not count as repeat", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, { kind: "Test", key: "X" });
+    const second = failSig(root, { kind: "test", key: "x" });
+    expect(second.escalated).toBe(false);
+  });
+
+  it("decideFixBudgetEscalation unit: R before D; empty → no escalate", () => {
+    expect(decideFixBudgetEscalation([])).toEqual({ escalate: false });
+    expect(decideFixBudgetEscalation([A])).toEqual({ escalate: false });
+    expect(decideFixBudgetEscalation([A, A])).toEqual({
+      escalate: true,
+      trigger: "R",
+      repeated: A,
+    });
+    expect(decideFixBudgetEscalation([A, B, C])).toEqual({ escalate: false });
+    const d = decideFixBudgetEscalation([A, B, C, D]);
+    expect(d.escalate).toBe(true);
+    if (d.escalate) {
+      expect(d.trigger).toBe("D");
+      if (d.trigger === "D") expect(d.distinctCount).toBe(4);
+    }
+    // Interaction: third is repeat of A → R, even though distinct would grow
+    expect(decideFixBudgetEscalation([A, B, A])).toEqual({
+      escalate: true,
+      trigger: "R",
+      repeated: A,
+    });
+  });
+
+  it("R message names repeated signature; D message names distinct backstop (wrong-trigger ban)", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, A);
+    const r = failSig(root, A);
+    expect(r.trigger).toBe("R");
+    expect(r.message).toContain("repeated failure signature k:a");
+    expect(r.message).toContain("trigger R");
+    expect(r.message).not.toContain("trigger D");
+
+    const root2 = createProject();
+    seedBundle(root2);
+    advanceCursor(root2, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root2, A);
+    failSig(root2, B);
+    failSig(root2, C);
+    const d = failSig(root2, D);
+    expect(d.trigger).toBe("D");
+    expect(d.message).toContain("trigger D");
+    expect(d.message).not.toContain("trigger R");
+    expect(d.message).not.toContain("repeated failure signature");
   });
 
   it("two verification-unavailable events do NOT exhaust the budget and both survive fold", () => {
@@ -776,7 +998,7 @@ describe("dumb counter and escalation (AC-DUMB-COUNTER / AC-ESCALATION / AC-KIND
     recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
-      signature: { kind: "b", key: "2" },
+      signature: { kind: "a", key: "1" }, // R: same signature twice
       writeEvidence: evidencePaths([]),
     });
     expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
@@ -842,7 +1064,7 @@ describe("cursor state parsed (AC-CURSOR-STATE-PARSED)", () => {
     recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
-      signature: { kind: "b", key: "2" },
+      signature: { kind: "a", key: "1" },
       writeEvidence: evidencePaths([]),
     });
     const written = readFileSync(path.join(bundle, "run.xml"), "utf8");
@@ -913,7 +1135,7 @@ describe("flake classification (AC-FLAKE-CLASSIFICATION / A19.3)", () => {
 // ---------------------------------------------------------------------------
 
 describe("budget survives fold (A20.1 / correction 37 / standing rule 9)", () => {
-  it("post-fold second fail escalates — budget does not reset (folded twin)", () => {
+  it("post-fold second same-signature fail escalates R — budget does not reset (folded twin)", () => {
     const root = createProject();
     const bundle = seedBundle(root);
     // Epoch 1: fail T-001, terminal on a *different* task so the range can fold
@@ -934,20 +1156,21 @@ describe("budget survives fold (A20.1 / correction 37 / standing rule 9)", () =>
     expect(listLooseEvents(bundle)).toHaveLength(0);
     expect(listLedgerEvents(bundle).filter((e) => e.kind === "attempt" && e.task === "T-001")).toHaveLength(1);
 
-    // Epoch 2: open and fail T-001 again — must count the ledger attempt.
+    // Epoch 2: same signature again — R across fold (window not reset by fold).
     advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 100, to: 199, wave: "2" });
     const second = recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
-      signature: { kind: "typecheck", key: "suite-b" },
+      signature: { kind: "test-failure", key: "suite-a" },
       writeEvidence: evidencePaths(["src/x.ts"]),
     });
     expect(second.attemptCount).toBe(2);
     expect(second.escalated).toBe(true);
+    expect(second.trigger).toBe("R");
     expect(second.position.state).toBe("paused-pending-approval");
   });
 
-  it("post-fold escalation still surfaces BOTH signatures (folded twin)", () => {
+  it("post-fold R escalation lists this-window same-signature fails (folded twin)", () => {
     const root = createProject();
     seedBundle(root);
     advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
@@ -964,21 +1187,22 @@ describe("budget survives fold (A20.1 / correction 37 / standing rule 9)", () =>
     const second = recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
-      signature: { kind: "typecheck", key: "suite-b" },
+      signature: { kind: "test-failure", key: "suite-a" },
       writeEvidence: evidencePaths([]),
     });
     expect(second.escalated).toBe(true);
+    expect(second.trigger).toBe("R");
     expect(second.signatures).toEqual([
       { kind: "test-failure", key: "suite-a" },
-      { kind: "typecheck", key: "suite-b" },
+      { kind: "test-failure", key: "suite-a" },
     ]);
     expect(second.message).toContain("suite-a");
-    expect(second.message).toContain("suite-b");
-    // Accounting events merge ledger + loose
+    expect(second.message).toContain("trigger R");
     const accounting = listAccountingEvents(
       path.join(root, ARTIFACT_DIR, "changes", "active", "C-RUN"),
     );
     expect(countTaskAttemptEvents(accounting, "T-001")).toBe(2);
+    expect(listWindowFailSignatures(accounting, "T-001")).toHaveLength(2);
   });
 });
 
@@ -1066,10 +1290,11 @@ describe("escalation is sticky until resume (A21.1 / correction 41)", () => {
     const second = recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
-      signature: { kind: "typecheck", key: "suite-b" },
+      signature: { kind: "test-failure", key: "suite-a" }, // R
       writeEvidence: evidencePaths([]),
     });
     expect(second.escalated).toBe(true);
+    expect(second.trigger).toBe("R");
     expect(second.position.state).toBe("paused-pending-approval");
     return second;
   }
@@ -1146,19 +1371,21 @@ describe("per-task escalation set (A22.1 / correction 43)", () => {
     if (open) {
       advanceCursor(root, "C-RUN", { task, openEpoch: true, from: 1, to: 99 });
     }
+    const sig = { kind: "test-failure", key: `${task}-repeat` };
     recordAttempt(root, "C-RUN", {
       task,
       outcome: "fail",
-      signature: { kind: "test-failure", key: `${task}-a` },
+      signature: sig,
       writeEvidence: evidencePaths([]),
     });
     const second = recordAttempt(root, "C-RUN", {
       task,
       outcome: "fail",
-      signature: { kind: "typecheck", key: `${task}-b` },
+      signature: sig, // R: same signature twice
       writeEvidence: evidencePaths([]),
     });
     expect(second.escalated).toBe(true);
+    expect(second.trigger).toBe("R");
     expect(second.position.state).toBe("paused-pending-approval");
     return second;
   }
@@ -1244,7 +1471,7 @@ describe("fold derives unresolved escalation (A22.2 / correction 44)", () => {
     recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
-      signature: { kind: "typecheck", key: "suite-b" },
+      signature: { kind: "test-failure", key: "suite-a" },
       writeEvidence: evidencePaths([]),
     });
     expect(showCursor(root, "C-RUN").state).toBe("paused-pending-approval");
@@ -1285,7 +1512,7 @@ describe("prefer-written escalation from stream (A25.1 / correction 47)", () => 
     recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
-      signature: { kind: "test", key: "b" },
+      signature: { kind: "test", key: "a" }, // R
       writeEvidence: evidencePaths([]),
     });
   }
@@ -1414,7 +1641,7 @@ describe("escalatedTasks on CursorPosition (A23.1 / correction 45)", () => {
     recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
-      signature: { kind: "test", key: "b" },
+      signature: { kind: "test", key: "a" },
       writeEvidence: evidencePaths([]),
     });
     advanceCursor(root, "C-RUN", { task: "T-002", kind: "terminal" });
@@ -1448,7 +1675,7 @@ describe("escalatedTasks on CursorPosition (A23.1 / correction 45)", () => {
     recordAttempt(root, "C-RUN", {
       task: "T-001",
       outcome: "fail",
-      signature: { kind: "b", key: "2" },
+      signature: { kind: "a", key: "1" },
       writeEvidence: evidencePaths([]),
     });
     expect(showCursor(root, "C-RUN").escalatedTasks).toEqual(["T-001"]);
@@ -1469,18 +1696,19 @@ describe("budget window from resolving resume (A24 / correction 46)", () => {
     });
   }
 
-  it("window: escalate, resume, two more fails — second escalation reports 2 and this-round signatures", () => {
+  it("window: escalate R, resume, two more same-key fails — re-escalate R this-window only", () => {
     const root = createProject();
     seedBundle(root);
     advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
     const first = fail(root, "T-001", "a");
     expect(first.escalated).toBe(false);
-    const second = fail(root, "T-001", "b");
+    const second = fail(root, "T-001", "a"); // R
     expect(second.escalated).toBe(true);
+    expect(second.trigger).toBe("R");
     expect(second.attemptCount).toBe(2);
     expect(second.signatures).toEqual([
       { kind: "test", key: "a" },
-      { kind: "test", key: "b" },
+      { kind: "test", key: "a" },
     ]);
 
     resumeCursor(root, "C-RUN", "T-001");
@@ -1490,25 +1718,23 @@ describe("budget window from resolving resume (A24 / correction 46)", () => {
     expect(third.escalated).toBe(false);
     expect(third.attemptCount).toBe(1); // window after resolving resume
 
-    const fourth = fail(root, "T-001", "d");
+    const fourth = fail(root, "T-001", "c"); // R again in new window
     expect(fourth.escalated).toBe(true);
+    expect(fourth.trigger).toBe("R");
     expect(fourth.attemptCount).toBe(2); // not 4
     expect(fourth.signatures).toEqual([
       { kind: "test", key: "c" },
-      { kind: "test", key: "d" },
+      { kind: "test", key: "c" },
     ]);
-    expect(fourth.message).toMatch(/after 2 attempts/);
-    expect(fourth.message).not.toMatch(/after 4 attempts/);
-    expect(fourth.message).toContain("test: c");
-    expect(fourth.message).toContain("test: d");
+    expect(fourth.message).toContain("trigger R");
+    expect(fourth.message).toContain("test:c");
     expect(fourth.message).not.toContain("test: a");
-    expect(fourth.message).not.toContain("test: b");
-    // Message lists only this-round signatures (count in list = 2)
+    expect(fourth.message).not.toMatch(/test: a\b/);
     expect(fourth.message).toMatch(/Signatures \(2\)/);
   });
 
-  it("negative: two resumes on a never-escalated task do not extend its budget (§4.5.2 form)", () => {
-    // If any resume opened a window, fail-after-resume would count as 1 and not escalate.
+  it("negative: two ordinary resumes do not open a budget window; same-key pair still escalates R", () => {
+    // Ordinary resumes do not resolve an escalation → window start stays 0.
     const root = createProject();
     seedBundle(root);
     advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
@@ -1519,10 +1745,11 @@ describe("budget window from resolving resume (A24 / correction 46)", () => {
     resumeCursor(root, "C-RUN", "T-001"); // ordinary — nothing to resolve
     resumeCursor(root, "C-RUN", "T-001"); // still ordinary
 
-    const second = fail(root, "T-001", "post");
+    const second = fail(root, "T-001", "pre"); // same key → R
     expect(second.attemptCount).toBe(2); // full history still counted
     expect(second.escalated).toBe(true);
-    expect(second.signatures.map((s) => s.key)).toEqual(["pre", "post"]);
+    expect(second.trigger).toBe("R");
+    expect(second.signatures.map((s) => s.key)).toEqual(["pre", "pre"]);
   });
 
   it("transition: window + escalatedTasks hold after fold", () => {
@@ -1532,7 +1759,7 @@ describe("budget window from resolving resume (A24 / correction 46)", () => {
     const bundle = seedBundle(root);
     advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
     fail(root, "T-001", "a");
-    fail(root, "T-001", "b");
+    fail(root, "T-001", "a"); // R
     advanceCursor(root, "C-RUN", { task: "T-002", kind: "terminal" });
     foldEpoch(root, "C-RUN");
 
@@ -1542,15 +1769,16 @@ describe("budget window from resolving resume (A24 / correction 46)", () => {
     expect(afterFold.escalatedTasks).toEqual(["T-001"]);
     expect(listLooseEvents(bundle)).toHaveLength(0);
 
-    // Resume opens a window; two more fails re-escalate at measured 2.
+    // Resume opens a window; two more same-key fails re-escalate R.
     advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 100, to: 199 });
     resumeCursor(root, "C-RUN", "T-001");
     fail(root, "T-001", "c");
-    const reEsc = fail(root, "T-001", "d");
+    const reEsc = fail(root, "T-001", "c");
     expect(reEsc.escalated).toBe(true);
+    expect(reEsc.trigger).toBe("R");
     expect(reEsc.attemptCount).toBe(2);
-    expect(reEsc.signatures.map((s) => s.key)).toEqual(["c", "d"]);
-    expect(reEsc.message).toMatch(/after 2 attempts/);
+    expect(reEsc.signatures.map((s) => s.key)).toEqual(["c", "c"]);
+    expect(reEsc.message).toContain("trigger R");
     expect(reEsc.message).toMatch(/Signatures \(2\)/);
   });
 

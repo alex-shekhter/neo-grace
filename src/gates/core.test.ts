@@ -879,7 +879,7 @@ describe("escalated attempt refusal", () => {
     recordAttempt(root, "C-GATE", {
       task: "T-001",
       outcome: "fail",
-      signature: { kind: "test", key: "b" },
+      signature: { kind: "test", key: "a" }, // R: same signature (C-ESCALATION-HONESTY)
     });
     const position = showCursor(root, "C-GATE");
     expect(position.escalatedTasks).toContain("T-001");

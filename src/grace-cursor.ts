@@ -19,9 +19,11 @@
 //   ChangedFileEvidence
 //   CursorPosition
 //   CursorState
-//   FIX_ATTEMPT_BUDGET
+//   FIX_DISTINCT_SIGNATURE_BUDGET
+//   FIX_SIGNATURE_REPEAT_BUDGET
 //   FailureSignature
 //   FileContentEvidence
+//   FixBudgetDecision
 //   FlakeVerdict
 //   FoldResult
 //   KNOWN_EVENT_KINDS
@@ -39,12 +41,14 @@
 //   countTaskAttemptEvents
 //   cursorCommand
 //   cursorStateForEventKind
+//   decideFixBudgetEscalation
 //   deriveAttemptOrdinal
 //   derivePosition
 //   deriveStateFromEvents
 //   digestProjectFile
 //   evaluateTargetComplete
 //   expectedLedgerEventAttributes
+//   fixBudgetSkillRequiredSubstrings
 //   foldEpoch
 //   formatCursorPosition
 //   formatFoldResult
@@ -59,6 +63,7 @@
 //   listRepositoryChangedFiles
 //   listRunOrphans
 //   listUnresolvedEscalatedTasks
+//   listWindowFailSignatures
 //   OrphanSkipClass
 //   parseCursorState
 //   parseEpochBoundArg
@@ -166,10 +171,39 @@ export const CURSOR_STATES: readonly CursorState[] = [
 ] as const;
 
 /**
- * D9: judgment, not derived. Two fix attempts per task before escalation to replan.
- * The counter counts attempt events and inspects nothing (A19.1).
+ * Trigger R: escalate when the same FailureSignature (kind + key, exact equality)
+ * appears this many times in the current budget window (C-ESCALATION-HONESTY).
  */
-export const FIX_ATTEMPT_BUDGET = 2;
+export const FIX_SIGNATURE_REPEAT_BUDGET = 2;
+
+/**
+ * Trigger D: escalate when this many distinct failing signatures accumulate in
+ * the current budget window (backstop for signature-key churn / confusion).
+ */
+export const FIX_DISTINCT_SIGNATURE_BUDGET = 4;
+
+/** Escalation decision for the fail path (R before D; at most one fires). */
+export type FixBudgetDecision =
+  | { escalate: false }
+  | { escalate: true; trigger: "R"; repeated: FailureSignature }
+  | {
+      escalate: true;
+      trigger: "D";
+      distinctCount: number;
+      signatures: FailureSignature[];
+    };
+
+/** Skill contract substrings built from live threshold constants (AC-PROSE-ENFORCEMENT-AGREE). */
+export function fixBudgetSkillRequiredSubstrings(): readonly string[] {
+  return Object.freeze([
+    `${FIX_SIGNATURE_REPEAT_BUDGET} failed attempts of the same signature`,
+    `${FIX_DISTINCT_SIGNATURE_BUDGET} distinct failing signatures`,
+  ]);
+}
+
+function failureSignaturesEqual(a: FailureSignature, b: FailureSignature): boolean {
+  return a.kind === b.kind && a.key === b.key;
+}
 
 /** Authority of a regenerated or shown position field (A11.5). */
 export type PositionSource = "ledger" | "events" | "inferred" | "cursor" | "none";
@@ -913,7 +947,7 @@ export function advanceCursor(
         ? `kind "attempt" is reserved; use ngrace cursor attempt --outcome … (and --signature-kind/--signature-key on fail).`
         : kind === "verification-unavailable"
           ? `kind "verification-unavailable" is reserved; use ngrace cursor verification-unavailable --reason ….`
-          : `kind "escalation" is reserved; it is written by the fix budget on the second failed attempt.`,
+          : `kind "escalation" is reserved; it is written by the fix budget (trigger R same-signature or D distinct backstop).`,
     );
   }
   const id = nextEventId(bundlePath);
@@ -1556,11 +1590,10 @@ export function listFilesChangedAgainstBase(
 }
 
 /**
- * Dumb counter (D9 / A19.1 / A24): counts attempt events for a task **inside the
- * current budget window**. Window start is the last resume that resolved an
- * escalation for that task (not every resume). Inspects nothing on each attempt —
- * no signature, no outcome, no content condition. The ledger keeps full history;
- * windowing is a read, never a rewrite (D1).
+ * Display/ordinal counter only: counts attempt events for a task inside the
+ * current budget window (A24). Does **not** gate escalation — that uses
+ * listWindowFailSignatures + decideFixBudgetEscalation (C-ESCALATION-HONESTY).
+ * Window start is the last resume that resolved an escalation for that task.
  */
 export function countTaskAttemptEvents(
   events: ReadonlyArray<{ id: number; task: string; kind: string }>,
@@ -1570,6 +1603,48 @@ export function countTaskAttemptEvents(
   return events.filter(
     (event) => event.task === task && event.kind === "attempt" && event.id > windowStart,
   ).length;
+}
+
+/**
+ * Fail-attempt FailureSignatures in the current budget window (A24), ascending id.
+ * Walks LooseEvent[] only (parsed artifact) — never string-scrapes ledger XML.
+ * Single definition used for both message listing and budget decision.
+ */
+export function listWindowFailSignatures(events: LooseEvent[], task: string): FailureSignature[] {
+  const windowStart = lastResolvingResumeId(events, task);
+  const signatures: FailureSignature[] = [];
+  for (const event of events) {
+    if (event.task !== task || event.kind !== "attempt") continue;
+    if (event.id <= windowStart) continue;
+    if (event.attributes.outcome !== "fail") continue;
+    const payload = readAttemptPayload(event);
+    if (payload.signature) signatures.push(payload.signature);
+  }
+  return signatures;
+}
+
+/**
+ * Decide whether the current fail (last entry in windowFails) exhausts the budget.
+ * R first (same signature count ≥ FIX_SIGNATURE_REPEAT_BUDGET), else D (distinct
+ * set size ≥ FIX_DISTINCT_SIGNATURE_BUDGET). Exact kind+key equality.
+ */
+export function decideFixBudgetEscalation(windowFails: FailureSignature[]): FixBudgetDecision {
+  if (windowFails.length === 0) return { escalate: false };
+  const current = windowFails[windowFails.length - 1]!;
+  const sameCount = windowFails.filter((sig) => failureSignaturesEqual(sig, current)).length;
+  if (sameCount >= FIX_SIGNATURE_REPEAT_BUDGET) {
+    return { escalate: true, trigger: "R", repeated: current };
+  }
+  const distinctKeys = new Set(windowFails.map((sig) => `${sig.kind}\0${sig.key}`));
+  if (distinctKeys.size >= FIX_DISTINCT_SIGNATURE_BUDGET) {
+    return {
+      escalate: true,
+      trigger: "D",
+      distinctCount: distinctKeys.size,
+      signatures: windowFails,
+    };
+  }
+  return { escalate: false };
 }
 
 /** Derived ordinal: 1-based count of this task's attempts with id <= eventId (A18.3). */
@@ -1650,6 +1725,8 @@ export type RecordAttemptResult = {
   eventId: number;
   attemptCount: number;
   escalated: boolean;
+  /** Which budget trigger fired when escalated (C-ESCALATION-HONESTY). */
+  trigger?: "R" | "D";
   signatures: FailureSignature[];
   /** Human-readable escalation or progress message (shown verbatim on exhaustion). */
   message: string;
@@ -1657,8 +1734,8 @@ export type RecordAttemptResult = {
 
 /**
  * Record one verification-cycle attempt (D6). Immediate write — advance precedent (A18.7).
- * On the second failed attempt (attempt count >= FIX_ATTEMPT_BUDGET after a fail),
- * writes an escalation event and transitions to paused-pending-approval (A19.2).
+ * On fail, escalates via decideFixBudgetEscalation (R same-signature, D distinct
+ * backstop) and transitions to paused-pending-approval (A19.2 / C-ESCALATION-HONESTY).
  */
 export function recordAttempt(
   projectRoot: string,
@@ -1729,44 +1806,47 @@ export function recordAttempt(
     children,
   });
 
-  // Standing rule 9 / A20.1 / A24: count from durable+loose inside the resolution window.
+  // Standing rule 9 / A20.1 / A24: accounting from durable+loose inside resolution window.
   const accounting = listAccountingEvents(bundlePath);
   const attemptCount = countTaskAttemptEvents(accounting, task);
-  const signatures = collectFailureSignatures(accounting, task);
+  const signatures = listWindowFailSignatures(accounting, task);
 
-  // Escalation only on the fail path when the dumb attempt count hits the budget.
-  // Counter itself has no outcome/signature condition (A19.1); window is recording-side (A24).
-  if (options.outcome === "fail" && attemptCount >= FIX_ATTEMPT_BUDGET) {
-    const escalationId = nextEventId(bundlePath);
-    writeEventFile(bundlePath, {
-      id: escalationId,
-      task,
-      kind: "escalation",
-      children: signatures.map(failureSignatureNode),
-    });
-    // A22.3 / A23.1: every write path derives — escalatedTasks + task from set.
-    const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
-    const position: CursorPosition = {
-      changeId,
-      bundlePath,
-      epoch: currentOpenEpochHint(bundlePath),
-      task: derived.task ?? task,
-      state: derived.state ?? "paused-pending-approval",
-      escalatedTasks: derived.escalatedTasks,
-      sources: { epoch: "events", task: "events", state: "events" },
-      inferred: false,
-      degradation: derived.degradation,
-    };
-    writeCursorFile(bundlePath, position);
-    const message = formatEscalationMessage(task, attemptCount, signatures);
-    return {
-      position,
-      eventId: id,
-      attemptCount,
-      escalated: true,
-      signatures,
-      message,
-    };
+  // Escalation on fail only: R then D (C-ESCALATION-HONESTY). Never attempt-count.
+  if (options.outcome === "fail") {
+    const decision = decideFixBudgetEscalation(signatures);
+    if (decision.escalate) {
+      const escalationId = nextEventId(bundlePath);
+      writeEventFile(bundlePath, {
+        id: escalationId,
+        task,
+        kind: "escalation",
+        children: signatures.map(failureSignatureNode),
+      });
+      // A22.3 / A23.1: every write path derives — escalatedTasks + task from set.
+      const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
+      const position: CursorPosition = {
+        changeId,
+        bundlePath,
+        epoch: currentOpenEpochHint(bundlePath),
+        task: derived.task ?? task,
+        state: derived.state ?? "paused-pending-approval",
+        escalatedTasks: derived.escalatedTasks,
+        sources: { epoch: "events", task: "events", state: "events" },
+        inferred: false,
+        degradation: derived.degradation,
+      };
+      writeCursorFile(bundlePath, position);
+      const message = formatEscalationMessage(task, decision, signatures);
+      return {
+        position,
+        eventId: id,
+        attemptCount,
+        escalated: true,
+        trigger: decision.trigger,
+        signatures,
+        message,
+      };
+    }
   }
 
   const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
@@ -1797,7 +1877,7 @@ export function recordAttempt(
 
 /**
  * Verification could not run — record verification-unavailable, never an attempt (A19.1).
- * Does not count against FIX_ATTEMPT_BUDGET.
+ * Does not count against the signature fix budget (R/D).
  */
 export function recordVerificationUnavailable(
   projectRoot: string,
@@ -2295,31 +2375,18 @@ function parseWriteEvidenceNode(node: GraceXmlNode): WriteEvidenceSnapshot {
   return { available: true, files };
 }
 
-/**
- * Failure signatures on fail-attempts in the current budget window (A24).
- * Same window as countTaskAttemptEvents — current round only, full history stays in the ledger.
- */
-function collectFailureSignatures(events: LooseEvent[], task: string): FailureSignature[] {
-  const windowStart = lastResolvingResumeId(events, task);
-  const signatures: FailureSignature[] = [];
-  for (const event of events) {
-    if (event.task !== task || event.kind !== "attempt") continue;
-    if (event.id <= windowStart) continue;
-    if (event.attributes.outcome !== "fail") continue;
-    const payload = readAttemptPayload(event);
-    if (payload.signature) signatures.push(payload.signature);
-  }
-  return signatures;
-}
-
-/** Measured attemptCount, not FIX_ATTEMPT_BUDGET (correction 46). */
+/** Escalation message names which trigger fired and that trigger's unit (not attempt count). */
 function formatEscalationMessage(
   task: string,
-  attemptCount: number,
+  decision: Extract<FixBudgetDecision, { escalate: true }>,
   signatures: FailureSignature[],
 ): string {
+  const head =
+    decision.trigger === "R"
+      ? `Budget exhausted for ${task}: repeated failure signature ${decision.repeated.kind}:${decision.repeated.key} (trigger R) — paused-pending-approval (replan decision owed; task has not failed).`
+      : `Budget exhausted for ${task}: ${FIX_DISTINCT_SIGNATURE_BUDGET} distinct unresolved failures (trigger D, distinctCount=${decision.distinctCount}) — paused-pending-approval (replan decision owed; task has not failed).`;
   const lines = [
-    `Budget exhausted for ${task} after ${attemptCount} attempts — paused-pending-approval (replan decision owed; task has not failed).`,
+    head,
     `Signatures (${signatures.length}):`,
     ...signatures.map((signature, index) => `  ${index + 1}. ${signature.kind}: ${signature.key}`),
   ];
