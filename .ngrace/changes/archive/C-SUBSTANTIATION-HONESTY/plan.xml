@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-SUBSTANTIATION-HONESTY>
     <IntentSummary>
       Close F9.10, F31, and F32: replace production-must-move attempt-pair audit

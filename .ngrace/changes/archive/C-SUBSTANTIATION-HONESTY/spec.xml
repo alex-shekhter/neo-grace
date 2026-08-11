@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-SUBSTANTIATION-HONESTY>
     <Summary>
       Close F9.10, F31, and F32 on the attempt-pair review surface: replace the
