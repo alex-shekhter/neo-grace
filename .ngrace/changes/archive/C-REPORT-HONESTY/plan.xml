@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-REPORT-HONESTY>
     <IntentSummary>
       Close P0 report honesty: extract one loose-event membership definition under

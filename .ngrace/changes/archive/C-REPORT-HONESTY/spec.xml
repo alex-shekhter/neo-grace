@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-REPORT-HONESTY>
     <Summary>
       Make the tool's own report surfaces agree about facts on disk: one shared
