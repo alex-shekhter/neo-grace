@@ -1870,3 +1870,61 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     expect(a[0]!.findingId).toMatch(/^[a-f0-9]{16}$/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// C-SUBSTANTIATION-HONESTY T-002 — skill failure-shape prose agreement
+// ---------------------------------------------------------------------------
+
+/** Both trees; AC-SKILL-MIRROR-IDENTICAL requires byte identity after the edit. */
+const NGRACE_EXECUTE_SKILL_PATHS = [
+  "skills/ngrace/ngrace-execute/SKILL.md",
+  "plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md",
+] as const;
+
+const RETIRED_FAILURE_SHAPE_PHRASE = "no non-test digest movement";
+
+describe("ngrace-execute attempt-pair failure-shape prose (C-SUBSTANTIATION-HONESTY T-002)", () => {
+  /**
+   * AC-PROSE-ENFORCEMENT-AGREE: positive presence of the live code (bound to
+   * ATTEMPT_PAIR_FINDING_CODE, not a re-typed literal) and negative absence of
+   * the retired code and the retired condition phrase — both skill trees.
+   *
+   * HEAD-before-edit behavior (proves the red is real, not an F28 trap):
+   * - toContain(ATTEMPT_PAIR_FINDING_CODE) fails: skills still name the retired code
+   * - not.toContain(RETIRED_ATTEMPT_PAIR_CODE) fails: retired code is still present
+   * - not.toContain(RETIRED_FAILURE_SHAPE_PHRASE) fails: retired phrase is still present
+   * Kind-set completeness alone does not satisfy this AC.
+   */
+  it("both skill trees contain ATTEMPT_PAIR_FINDING_CODE and lack retired failure-shape prose", () => {
+    // core.test.ts lives in src/review/ — two levels up is the package root.
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    // Pin the constant spelling so a catalog rename without skill prose reddens.
+    expect(ATTEMPT_PAIR_FINDING_CODE).toBe("review.attempt-pair-identical-tree");
+
+    for (const rel of NGRACE_EXECUTE_SKILL_PATHS) {
+      const text = readFileSync(path.join(repoRoot, rel), "utf8");
+      expect({ path: rel, hasLiveCode: text.includes(ATTEMPT_PAIR_FINDING_CODE) }).toEqual({
+        path: rel,
+        hasLiveCode: true,
+      });
+      expect({ path: rel, hasRetiredCode: text.includes(RETIRED_ATTEMPT_PAIR_CODE) }).toEqual({
+        path: rel,
+        hasRetiredCode: false,
+      });
+      expect({
+        path: rel,
+        hasRetiredPhrase: text.includes(RETIRED_FAILURE_SHAPE_PHRASE),
+      }).toEqual({
+        path: rel,
+        hasRetiredPhrase: false,
+      });
+    }
+  });
+
+  it("canonical and packaged ngrace-execute skill bodies are byte-identical", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const a = readFileSync(path.join(repoRoot, NGRACE_EXECUTE_SKILL_PATHS[0]));
+    const b = readFileSync(path.join(repoRoot, NGRACE_EXECUTE_SKILL_PATHS[1]));
+    expect(Buffer.compare(a, b)).toBe(0);
+  });
+});
