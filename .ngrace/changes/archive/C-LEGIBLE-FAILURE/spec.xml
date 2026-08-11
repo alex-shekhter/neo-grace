@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-LEGIBLE-FAILURE>
     <Summary>
       When the tool cannot do what was asked, the caller must be able to tell

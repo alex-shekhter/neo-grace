@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-LEGIBLE-FAILURE>
     <IntentSummary>
       Close the legibility class with two instances and one enabling home: (1) ledger
