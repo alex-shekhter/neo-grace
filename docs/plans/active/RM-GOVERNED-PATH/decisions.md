@@ -1990,3 +1990,53 @@ host the approved scope allows, not a natural one** — the deepening is disclos
 Disposition: follow-on queue, alongside F9.9 / F20 / F21 / F22. The repair is a graph edit plus two
 contract rewrites, and it should be weighed together with whatever the next bundle needs from the CLI
 surface rather than done on its own.
+
+---
+
+### F25 — The refusal is correct and lands outside the CLI's own error rendering. **[verified]**
+
+`defineGraceCommand` calls `refuseBooleanSpaceForm` **before** the original `run`, which is what makes
+it safe — the write never happens. But `gates/command.ts` wraps its body in `runGraceCommand`, so a
+throw from the guard escapes *outside* that try/catch and is handled by citty's `runMain` instead of
+this repository's error renderer. Measured after T-002, on a temp fixture:
+
+```
+$ ngrace gate approve --change C-PROBE --path <fixture> --record false
+exit 1 ; no run-ledger.xml created
+stderr: a source excerpt and stack frame, then
+  GraceCommandError: Boolean flag `--record` does not accept a space-separated value
+  (`--record false`). Use the equals form … or the citty forms …
+```
+
+**The criterion is met and the defect is fixed.** `AC-SPACE-FORM-FAILS-LOUD` asks for a non-zero exit,
+a message naming both working forms, and no flagged side effect; all three hold, and the ledger is not
+merely unmodified but never created. What remains is presentation, and it has two parts:
+
+1. **The message arrives wearing a stack trace.** Legible, complete, and noisy for what is a usage
+   error.
+2. **`--format json` emits no JSON.** `runGraceCommand` renders a `GraceCommandErrorEnvelope` on
+   failure; a throw that never reaches it produces empty stdout and unparseable stderr. A machine
+   consumer of `gate apply --format json` gets exit 1 and nothing to parse.
+
+Point 2 is the one worth weighing. It is defensible — a malformed argument is a usage error raised
+before the command runs, and plenty of CLIs answer those on stderr regardless of `--format` — but it is
+a surface behaving unlike its declared output contract in one branch.
+
+**A clean in-scope repair exists and was deliberately not taken.** The wrapper could route the refusal
+through `runGraceCommand` using the already-exported symbol, reading `context.args.format`, giving
+clean stderr text or a proper envelope without editing `errors.ts` at all. The obstacle is not
+capability: the approved plan assigns `src/query/command.ts` to **T-001 only**, and T-002's criterion
+states its production scope is `gates/command.ts`. Editing the wrapper in T-002 or T-003 contradicts an
+approved plan, and amending one means superseding it.
+
+**Deferred, with the conflict D11 requires.** Superseding an approved plan mid-execution to improve the
+presentation of a refusal that already prevents the write is disproportionate — and the alternative,
+quietly widening a task's scope because the fix is small, is the failure mode the plan contract exists
+to prevent. The executor did the right thing: it reported the cost and did not patch across the
+boundary.
+
+Worth noting for the follow-on: fixing it in the wrapper fixes all 24 sites at once, and T-003 wires
+the remaining eight files on this same channel, so the cost of waiting is breadth rather than depth.
+
+Disposition: follow-on queue, alongside F9.9 / F20 / F21 / F22 / F24. Natural companion to F24 — both
+are repairs to the same CLI-infrastructure seam, and both want a host the current graph does not name.
