@@ -2786,3 +2786,52 @@ difference between a rule keyed to what an agent must do and a rule keyed to wha
 - **Two true positives will stand after the doc exclusion**, one adjudicated and one not. Whether the
   check fires retroactively on archived bundles is a real decision, not a detail: a permanently-red check
   teaches its own audience to ignore it, which is the harm F11 named.
+
+---
+
+#### F27.2 — Adjudicating the two historical breaches, and the rule that would have prevented both
+
+**Neither archived bundle is amended.** `archive/` is immutable, and more to the point neither write was
+wrong — only undeclared.
+
+| bundle | write | why it happened |
+| --- | --- | --- |
+| `C-EXECUTION-CONTRACT` | `src/test-support/token-accounting.test.ts` | its deliverable added the `<cursor_kinds>` block to `ngrace-execute`, moving the skill line total 730 → 779; the pin **had** to move |
+| `C-ESCALATION-HONESTY` | `src/gates/core.test.ts` | its approved rule change made a two-different-signature fixture stop escalating; the fixture **had** to change |
+
+Both are self-documenting in the code they touched — `// C-EXECUTION-CONTRACT: ngrace-execute
+<cursor_kinds> protocol block (730 → 779; measured)` and `// R: same signature (C-ESCALATION-HONESTY)`.
+A reader of either file learns which change made the edit and why. **Nothing was concealed; the defect is
+in the declaration, not in the change.** Reverting or re-opening either would damage a correct tree to
+tidy a record, which is the wrong trade — the same proportionality argument F25 and F27 already made in
+both directions.
+
+Disposition: **adjudicated here, closed, not scheduled.** The `C-EXECUTION-CONTRACT` instance is hereby
+disclosed — it never was, and that gap is now closed by this entry rather than by touching the archive.
+
+#### The prevention half, which matters more than the detection half
+
+Look at the two "why it happened" cells. They are the **same shape**:
+
+> A change's own approved deliverable forced an edit to a pin or fixture that the plan did not list.
+
+Not a slip, not carelessness, and not something a executor could have avoided at execute time — by then
+the edit is forced and the only choices are breach the scope or fail the task. **Both were decidable at
+plan-authoring time**, and in both cases the plan author (me, approving) had the information needed to
+foresee them:
+
+- a plan that changes **skill text** must declare the skill-footprint pin;
+- a plan that changes a **rule** must declare the fixtures that construct instances of that rule.
+
+`C-ESCALATION-HONESTY`'s successor bundles show this works: from `C-SUBSTANTIATION-HONESTY` onward,
+`token-accounting.test.ts` is declared **whether or not the pin moves**, and it did not move — the
+declaration was still correct.
+
+So `C-DECLARED-WRITES` should carry **both halves of one finding**: the check that detects an undeclared
+write from `WriteEvidence`, and a plan-authoring rule in `ngrace-plan` that prevents this class before it
+is written. Detection tells you afterwards; the rule stops it happening. Shipping only the detector would
+leave every future plan free to make the same omission and merely learn about it at close.
+
+The scope cost is two files (`skills/ngrace/ngrace-plan/SKILL.md` and its packaged mirror), declared
+honestly — which is exactly what the bundle is arguing for, and a better dogfood than a bundle that keeps
+its scope small by leaving half the finding unfixed.
