@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-ESCALATION-HONESTY>
     <IntentSummary>
       Close F21/F22 on the fix-budget / resume seam: replace the attempt-count
