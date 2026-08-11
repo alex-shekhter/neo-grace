@@ -1,0 +1,341 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-FLAG-HONESTY>
+    <Summary>
+      Make citty boolean flags refuse the space-separated true/false form
+      (`--flag false`) with a loud error that names the two working forms, so a
+      surface cannot silently invert operator intent — fixing F18 as a class across
+      every boolean flag in the CLI, not as a one-off for gate `--record`.
+    </Summary>
+    <Problem>
+      RM-GOVERNED-PATH P0 is blocked from COMPLETE by, among other findings, F18:
+      a flag surface that accepts an instruction, reports success, and does the
+      opposite. That is the product's honesty thesis turned against its own argv.
+
+      Verified defect (decisions.md F18). citty parses `type: "boolean"` flags
+      positionally-blind. The space form `--record false` yields `record: true`
+      and swallows bare `false` as a discarded positional. Working forms are
+      `--record=false` (equals) and `--no-record`. Measured table from the
+      finding:
+
+      | Form | args.record | effect |
+      | `--record false` | true | records (writes run-ledger.xml) |
+      | `--record=false` | false | does not record |
+      | `--no-record` | false | does not record |
+
+      Live consequence: `ngrace gate archive --change C-TOKEN-INTEGRITY --record false`
+      appended a Decision to an **archived** bundle's run-ledger.xml during what the
+      operator believed was a read-only probe. No error, no warning, mutated ledger.
+      The danger is silence, not the parser quirk.
+
+      This is not a documentation gap. A skill note that says "use the equals form"
+      leaves the trap armed for every operator who does not read it. The wrong form
+      must become loud.
+
+      The instance is `--record`; the class is every citty boolean flag. Measured
+      at authoring HEAD by `rg -n 'type: "boolean"' src/` (denominator and per-file
+      counts taken from that full listing, not a truncated match head — F12.2):
+
+      **22 boolean flags in 9 files:**
+      grace-cursor.ts 4, grace-verification.ts 3, grace-module.ts 3, grace-lint.ts 3,
+      grace-file.ts 3, grace-graph.ts 2, grace-context.ts 2, grace-status.ts 1,
+      gates/command.ts 1.
+
+      Of those 22, **exactly one defaults to true:** gate `--record` (default true).
+      The other 21 default false. The space form still forces the flag **true**
+      (presence of `--flag` sets true; the bare token is not the value), so
+      `--apply false` silently enables a write path the operator believed they
+      disabled. Default-true is the sharpest edge (silent write when asked not to);
+      default-false still silently inverts "I meant false" into true.
+
+      A fix that repairs only `--record` and leaves twenty-one live instances has
+      fixed a symptom. This bundle specifies the class.
+    </Problem>
+    <Goals>
+      <Goal>
+        The space-separated boolean form (`--&lt;flag&gt; true` / `--&lt;flag&gt; false`)
+        fails loudly for every citty boolean flag in the CLI: non-zero exit and a
+        message that names both working forms (equals assignment and the
+        `--no-&lt;flag&gt;` / bare-flag forms as applicable), without performing the
+        flagged side effect.
+      </Goal>
+      <Goal>
+        Working forms continue to work: `--flag=true` / `--flag=false`,
+        `--no-flag` where citty provides it, and the bare `--flag` (presence means
+        true). Proven on at least one default-true flag and one default-false flag.
+      </Goal>
+      <Goal>
+        Legitimate positionals and subcommand tokens are not broken — including a
+        free-form positional whose value is literally the word true or false, and
+        `ngrace gate &lt;approve|apply|archive|verdict&gt;` subcommand resolution via
+        rawArgs (A31.4).
+      </Goal>
+      <Goal>
+        Coverage is the class of all boolean flags declared under src/ (inventory
+        re-derived from code at implementation time, not a hand-maintained name
+        list that drifts). A one-flag special case for `--record` alone fails the
+        goals.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: decisions.md F18 (defect), F12.2 (measure denominators; do not
+        invent counts), F10 / F10.3 (probe claims about the code before writing
+        them), F23 (when a surface or criterion reports a number, pin it exactly —
+        not a lower bound). plan.md §1 P0 board: F18 is one of five open findings
+        blocking COMPLETE. Spec only in this authoring pass; status remains
+        "draft"; do not author plan.xml until the spec is approved (F4 two-stage).
+      </Constraint>
+      <Constraint>
+        Behaviour, not mechanism. Feasibility note only: context.rawArgs is already
+        reachable inside a citty run(context) and is already used at
+        gates/command.ts:326 (A31.4 subcommand detection). Whether the guard lives
+        in a shared helper, a defineCommand wrapper, or per-command wiring is a
+        **plan-level** decision. The plan must not invent a new graph module or new
+        V-M-* without a stop-and-report; prefer an existing M-* host (see
+        Assumptions).
+      </Constraint>
+      <Constraint>
+        Which bare token is an error: a bare token equal to true or false
+        (case-sensitive ASCII) that is the **intended value of a boolean flag** —
+        i.e. appears in raw argv immediately after a token that is a declared
+        boolean flag in long form without an equals value (`--record` then `false`),
+        not any bare true/false anywhere. Subcommand names, free-form positionals,
+        and unrelated string args must keep working.
+      </Constraint>
+      <Constraint>
+        Refuse, do not guess. On the forbidden form the process must exit non-zero
+        **without** performing the side effect the flag controls (for `--record`,
+        no Decision append to run-ledger.xml). Inferring the operator meant false
+        and proceeding, or silently rewriting the argv and continuing, both fail —
+        that is the original defect with better manners.
+      </Constraint>
+      <Constraint>
+        Class coverage. The inventory of 22 flags / 9 files is the measured
+        denominator at authoring; the plan and tests re-derive the count from
+        `type: "boolean"` declarations under src/ at implementation time (F12.2).
+        A hand-maintained list of flag names that drifts from the code fails the
+        class criterion. Adding a new boolean flag after this lands must fall under
+        the same guard without a second special-case patch — the plan chooses how.
+      </Constraint>
+      <Constraint>
+        AffectedAreas is a closed list and binds the plan (change.plan-scope-exceeds-spec).
+        A plan that needs a module not named here is a stop-and-report, not a silent
+        expansion. Under-declaring costs a re-spec; over-declaring grants scope
+        nobody reviewed.
+      </Constraint>
+      <Constraint>
+        Overlap note: C-LEDGER-READ-ABSENCE (active draft, no plan) declares
+        AffectedAreas M-GATES and M-REVIEW. This bundle also names M-GATES. If both
+        are planned with overlapping ObservedWriteScope on gates/*, sequential OWS
+        (F10.2 style) is required — known now rather than discovered at plan time.
+        Do not absorb C-LEDGER-READ-ABSENCE subject matter (three-exit ledger reads).
+      </Constraint>
+      <Constraint>
+        Archives under .ngrace/changes/archive/ and docs/plans/archive/ are never
+        edited. No CHANGELOG.md edit (D5.5 — new surface text in commit body). No
+        package version / marketplace / openpackage version surface change. No
+        skills/ or plugins/ skill-text change in this bundle.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first regressions for each AC. Where a criterion
+        asserts a count (flag inventory, exit code, decision-append absence), tests
+        pin exact values (F23: toBe / exact absence, not toBeGreaterThanOrEqual).
+        Measure inventory denominators with their own full-listing commands (F12.2).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Changing any flag's default (including gate record default true). The defect
+        is silent mis-parse of the space form, not the default policy.
+      </NonGoal>
+      <NonGoal>
+        Renaming, removing, or adding boolean flags; introducing gate --dry-run;
+        rejecting unknown flags beyond the space-form boolean trap.
+      </NonGoal>
+      <NonGoal>
+        Migrating off citty, forking citty, or making the equals form (`--flag=false`)
+        an error. Equals and --no-flag remain first-class working forms.
+      </NonGoal>
+      <NonGoal>
+        A documentation-only or skills/-only "fix" (skill text is a product change
+        and would belong in its own bundle). Leaving the trap armed while telling
+        operators to avoid it fails the goals.
+      </NonGoal>
+      <NonGoal>
+        C-LEDGER-READ-ABSENCE scope: three-exit ledger reads (absent / unreadable /
+        ok) for wrapperFromLedger and related gates/ledger.ts surfaces.
+      </NonGoal>
+      <NonGoal>
+        Other open P0 findings (F9.9 attempt-pair wording, F20 cloneXmlNode home,
+        F21 fix-budget attempts vs failures, F22 paused-pending-approval self-clear).
+      </NonGoal>
+      <NonGoal>
+        New graph modules, new V-M-* verification anchors, CHANGELOG.md edits,
+        version bumps, marketplace/plugin packaging changes.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SPACE-FORM-FAILS-LOUD>
+        Given any citty boolean flag declared under src/, invoking the CLI with the
+        space-separated form `--&lt;flag&gt; false` or `--&lt;flag&gt; true` (two argv tokens:
+        the long flag without `=`, then bare true/false) exits non-zero and emits a
+        message that names **both** working forms: (1) the equals form
+        `--&lt;flag&gt;=false` / `--&lt;flag&gt;=true` and (2) the negation or bare form as
+        citty provides (`--no-&lt;flag&gt;` and/or bare `--&lt;flag&gt;`). The process must
+        **not** perform the side effect controlled by that flag. For the F18
+        incident shape specifically: `ngrace gate apply|archive|approve --change C-*
+        --record false` must not append a Decision to run-ledger.xml.
+        **Failure conditions:** exit 0; exit non-zero without naming both working
+        forms; silent proceed with inferred intent (including rewriting to equals
+        and continuing); recording or other flagged side effect still occurring;
+        a message that only says "invalid arguments" with no usable forms.
+      </AC-SPACE-FORM-FAILS-LOUD>
+      <AC-WORKING-FORMS-BOTH-DEFAULTS>
+        On a flag that defaults **true** (gate `--record`) and on a flag that
+        defaults **false** (e.g. cursor regenerate `--apply` or graph split
+        `--apply`): (1) `--flag=false` yields false behaviour; (2) `--flag=true`
+        yields true behaviour; (3) `--no-flag` (where citty exposes it) yields false
+        behaviour. Gate with `--record=false` must not write a Decision; with
+        `--record=true` or default it may write when the gate otherwise permits.
+        **Failure conditions:** either default class broken; equals form rejected;
+        `--no-record` rejected; gate still writes under `--record=false`.
+      </AC-WORKING-FORMS-BOTH-DEFAULTS>
+      <AC-BARE-FLAG-STILL-TRUE>
+        The bare flag without a value still means true: `--record` alone keeps
+        default-true recording behaviour; `--apply` alone keeps enable-write
+        behaviour on a default-false apply flag. **Failure conditions:** bare flag
+        becomes an error; bare flag is treated as false; bare flag requires equals.
+      </AC-BARE-FLAG-STILL-TRUE>
+      <AC-LEGITIMATE-POSITIONALS>
+        Legitimate non-flag tokens keep working after the change:
+        (1) `ngrace gate approve|apply|archive|verdict …` still resolves the
+        subcommand (A31.4 rawArgs first non-dash token; parent does not print bare
+        usage when a known subcommand ran);
+        (2) free-form citty positionals that can be the literal words true or false
+        still work when they are **not** the value of a boolean flag — measured
+        inventory of type: "positional" at authoring: 7 declarations
+        (grace-module.ts query/target×2, grace-verification.ts query/target×2,
+        grace-file.ts target) — e.g. `ngrace module find true` treats true as the
+        search query (may return empty/not-found, but must not raise the boolean
+        space-form error);
+        (3) a bare true/false that is not immediately after a boolean flag token is
+        not rejected solely for being the word true/false.
+        **Failure conditions:** gate subcommands fail to resolve; module/verification/
+        file positionals with value true or false are rejected with the boolean-form
+        error; a naive "any bare true/false is an error" rule that breaks positionals.
+      </AC-LEGITIMATE-POSITIONALS>
+      <AC-CLASS-COVERAGE>
+        The guard applies to the **class** of all citty boolean flags under src/, not
+        only `--record`. At implementation close, the measured count of
+        `type: "boolean"` declarations under src/ (full listing; F12.2) is the
+        coverage denominator; every declaration is subject to AC-SPACE-FORM-FAILS-LOUD.
+        Proof may be a shared guard plus a structural/inventory test that fails when
+        a new boolean flag is added outside the guard, or exhaustive per-flag
+        coverage — plan chooses. **Failure conditions:** only gates/command.ts
+        `--record` is fixed; a new `type: "boolean"` under src/ can ship without the
+        loud refusal; coverage is a hand-maintained name list that can drift from
+        `rg -n 'type: "boolean"' src/` without a red test.
+      </AC-CLASS-COVERAGE>
+      <AC-SUITE-AND-LINT>
+        Red-first regressions cover each AC above with exact assertions where a
+        number or presence/absence is claimed (F23 — no toBeGreaterThanOrEqual on
+        inventory counts, exit codes, or Decision append counts). bun test for
+        touched packages green; bun run validate:ci green; bun run ngrace lint
+        --path . is 0 errors and 0 warnings; ngrace review --path . is 0 findings
+        on a clean tree after the change. No edits under docs/plans/archive/ or
+        .ngrace/changes/archive/; no CHANGELOG.md; no version / marketplace /
+        openpackage version surface; no skills/ or plugins/ skill-text edits.
+        **Failure conditions:** suite red; lint or review dirty by design silence
+        (disabling checks); archive or changelog or version edits; skills changed
+        in this bundle.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GATES />
+      <M-CURSOR />
+      <M-STATUS />
+      <M-QUERY />
+      <M-LOCALIZE />
+      <M-LINT-CORE />
+      <M-CONTEXT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Red-first CLI/unit regressions: space form `--record false` and at least one
+        default-false boolean exit non-zero, name equals and --no-/bare forms, and
+        (for record) leave run-ledger.xml without a new Decision; equals and
+        --no-record / bare --record keep working on default-true and default-false;
+        gate approve|apply|archive|verdict still resolve; free-form positional
+        `true`/`false` on module find (or equivalent) does not raise the boolean
+        space-form error; class-coverage / inventory test tied to
+        `type: "boolean"` under src/ (exact count at close, F12.2/F23). Existing
+        V-M-GATES, V-M-CURSOR, V-M-STATUS, V-M-QUERY, V-M-LOCALIZE, V-M-LINT-CORE,
+        V-M-CONTEXT command surfaces; no new V-M-*. Dogfood: ngrace lint --path .
+        0/0; ngrace review --path . 0 findings; validate:ci green.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Module ids confirmed against .ngrace/graph/main.xml and file-local LINKS
+        contracts (measured, not invented): M-GATES Path src/gates/core.ts with
+        co-located src/gates/command.ts (LINKS M-GATES; hosts --record);
+        M-CURSOR Path src/grace-cursor.ts (4 flags); M-STATUS Path
+        src/grace-status.ts (1 flag); M-QUERY Path src/query/core.ts with
+        co-located query/errors.ts (runGraceCommand) and CLI files
+        grace-module.ts / grace-file.ts / grace-graph.ts (LINKS M-QUERY);
+        M-LOCALIZE Path covers grace-verification.ts (LINKS M-LOCALIZE; 3 flags);
+        M-LINT-CORE covers grace-lint.ts (LINKS M-LINT-CORE; 3 flags);
+        M-CONTEXT Path src/grace-context.ts (2 flags). No invented module ids.
+      </Assumption>
+      <Assumption>
+        Preferred host for a shared guard (if the plan chooses one): M-QUERY via
+        src/query/errors.ts or a new src/query/* file with LINKS M-QUERY — already
+        imported by gate, cursor, status, lint, context, and query CLIs through
+        runGraceCommand / GraceCommandError. A new graph module or new V-M-* is a
+        stop-and-report. Per-command wiring without a shared helper is allowed if
+        AC-CLASS-COVERAGE still holds.
+      </Assumption>
+      <Assumption>
+        Boolean inventory at authoring (re-run `rg -n 'type: "boolean"' src/` before
+        closing): 22 total — grace-cursor 4 (apply, allowDirty, openEpoch, fix),
+        grace-verification 3 (json×3), grace-module 3 (json×3), grace-lint 3
+        (remediate, runCommands, parallelPreflight), grace-file 3 (contracts,
+        blocks, json), grace-graph 2 (apply, allowDirty), grace-context 2 (skills,
+        json), grace-status 1 (json), gates/command 1 (record). Defaults true:
+        record only. Defaults false: the other 21. No boolean flags in
+        review/command.ts or grace-doctor.ts at authoring.
+      </Assumption>
+      <Assumption>
+        Positional inventory at authoring (`type: "positional"` under src/): 7 —
+        module find query; module show target; module health target; verification
+        find query; verification show target; verification localize target; file
+        show target. All free-form (search string, module/file/verification target,
+        or path) and **can** legitimately be the words true or false. Additionally,
+        gate parent run() reads context.rawArgs for first non-dash token as
+        subcommand name (approve|apply|archive|verdict) — not a citty positional
+        declaration, but a real consumer of bare tokens. No other rawArgs consumers
+        under src/ at authoring.
+      </Assumption>
+      <Assumption>
+        citty space-form behaviour for booleans (presence ⇒ true; following bare
+        true/false is not the flag value) is the defect under test; the working
+        forms equals and --no-* are citty's supported boolean spelling. No boolean
+        flag currently declares an alias at authoring.
+      </Assumption>
+      <Assumption>
+        C-LEDGER-READ-ABSENCE remains draft/spec-only during this authoring; future
+        DurableScope overlap on M-GATES is recorded under Constraints. This bundle
+        does not claim M-REVIEW.
+      </Assumption>
+      <Assumption>
+        Exact error string templates and exit-code channel (stderr text vs JSON
+        envelope via runGraceCommand) are left to the plan; required information
+        content (both working forms named) and non-zero exit are binding.
+        GraceCommandError code may reuse invalid-arguments or a plan-chosen stable
+        code — plan decides without expanding AffectedAreas unless a new catalog
+        module is required (stop-and-report if so).
+      </Assumption>
+    </Assumptions>
+  </C-FLAG-HONESTY>
+</NgraceChangeSpec>
