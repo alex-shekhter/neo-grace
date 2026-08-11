@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-FLAG-HONESTY>
     <IntentSummary>
       Refuse citty boolean space-form (`--flag true|false`) with a loud error naming
