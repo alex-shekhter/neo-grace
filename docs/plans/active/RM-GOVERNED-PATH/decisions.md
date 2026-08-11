@@ -1917,3 +1917,42 @@ to the commit, expect these three, and report them rather than repairing them. T
 name these codes so an executor meeting them does not mistake an expected state for a broken one — an
 undocumented expected error is the thing that teaches a reader to ignore errors generally, which is
 F11's harm arriving by another road.
+
+---
+
+### F18.1 — The swallowed token is not discarded; it binds to a positional and answers wrongly. **[verified]**
+
+F18 recorded that `--record false` parses as `record: true` with `false` *"swallowed as a positional"*.
+That description is right about the flag and wrong about the token's fate on any command that
+**declares** a positional. Measured at HEAD `3f3547c`:
+
+```
+$ ngrace module find --json true
+[]                                  exit 0
+$ ngrace module find --json M-QUERY
+[ { "module": { "id": "M-QUERY", …   exit 0
+```
+
+The bare `true` did not vanish. It **bound to the `query` positional**, so the command searched the
+module graph for the string `"true"`, found nothing, and reported an empty result with exit 0. The
+operator asked for JSON output and got a confident, well-formed, *wrong* answer.
+
+Seven positional declarations are exposed to this (module find/show/health, verification
+find/show/localize, file show), and all seven take free-form values, so none of them can reject
+`"true"` as obviously-not-a-query.
+
+**This is a worse failure than the one F18 named.** F18's shape is *the flag was ignored* — bad, but
+the command still did its declared job. F18.1's shape is *the flag was ignored and the query was
+silently replaced*, which produces a wrong answer wearing the exact costume of a right one. An empty
+result is indistinguishable from a real negative.
+
+**It also settles a design question the spec would otherwise have to argue.** `C-FLAG-HONESTY` rejects
+`--flag true` as well as `--flag false`, which by the letter of D5's standing rule — *"making a silent
+failure loud is not a compatibility break; turning a working state into an error is"* — looks like it
+converts a working state into an error, since `--json true` happens to produce `json: true`. The probe
+shows it is not a working state. The flag lands correctly **by coincidence** while the positional is
+silently corrupted, and the coincidence does not hold for the seven commands that read one. Rejecting
+both spellings is the honest reading of D5, not an exception to it.
+
+Disposition: evidence for `C-FLAG-HONESTY` (spec `3f3547c`). Recorded during authority review of the
+spec, before approval, so the criteria could rest on a measurement rather than on my prediction.
