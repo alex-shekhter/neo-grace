@@ -13,6 +13,7 @@
 import { defineCommand } from "citty";
 
 import { findModules, loadGraceArtifactIndex, resolveModule } from "./query/core";
+import { defineGraceCommand } from "./query/command";
 import { GraceCommandError, runQueryCommand } from "./query/errors";
 import { buildModuleHealth, resolveModuleHealth } from "./query/health";
 import { formatModuleFindTable, formatModuleHealthText, formatModuleText } from "./query/render";
@@ -32,7 +33,7 @@ function resolveFormat(format: unknown, json: unknown, allowed: string[], defaul
   return resolved;
 }
 
-export const moduleCommand = defineCommand({
+export const moduleCommand = defineGraceCommand({
   meta: {
     name: "module",
     description: "Query shared neo-grace module artifacts.",

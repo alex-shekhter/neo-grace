@@ -93,6 +93,8 @@ import path from "node:path";
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 
+import { defineGraceCommand } from "./query/command";
+
 import { extractAssertionsWithIssues } from "./artifact/assertions";
 import { ARTIFACT_DIR, resolveContainedProjectPath } from "./artifact/paths";
 import { resolveNgracePaths } from "./artifact/project";
@@ -3020,7 +3022,7 @@ function requireChangeId(args: { change?: unknown }): string {
   return changeId;
 }
 
-export const cursorCommand = defineCommand({
+export const cursorCommand = defineGraceCommand({
   meta: {
     name: "cursor",
     description:

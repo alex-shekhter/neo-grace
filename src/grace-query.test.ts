@@ -806,3 +806,79 @@ const marker$Other = "[ProviderConfigPersistence][getProviderConfig][other]";`,
     expect(gatewayMissing.warnings.map((w) => w.code)).not.toContain("health.verification-command-does-not-reference-test-file");
   });
 });
+
+/**
+ * C-FLAG-HONESTY T-003 — F18.1, positionals counterweight, default-false working forms.
+ * Uses the real CLI entry (src/grace.ts) against this repo root for module graph.
+ */
+const REPO_ROOT = path.resolve(import.meta.dir, "..");
+const GRACE_BIN = path.join(REPO_ROOT, "src/grace.ts");
+
+function runNgrace(args: string[]) {
+  return Bun.spawnSync({
+    cmd: ["bun", "run", GRACE_BIN, ...args],
+    cwd: REPO_ROOT,
+    stdout: "pipe",
+    stderr: "pipe",
+    env: process.env,
+  });
+}
+
+describe("C-FLAG-HONESTY T-003 — F18.1 and positionals", () => {
+  it("F18.1: module find --json true exits non-zero with space-form message (not empty search)", () => {
+    const result = runNgrace(["module", "find", "--json", "true", "--path", REPO_ROOT]);
+    expect(result.exitCode).not.toBe(0);
+    const combined = `${result.stdout.toString()}\n${result.stderr.toString()}`;
+    // Must not be the silent empty-result success shape.
+    expect(combined.trim()).not.toBe("[]");
+    expect(combined).toContain("--json=false");
+    expect(combined).toContain("--json=true");
+    expect(combined).toContain("--no-json");
+  });
+
+  it("F18.1: module find --json false also refuses (not a search for false)", () => {
+    const result = runNgrace(["module", "find", "--json", "false", "--path", REPO_ROOT]);
+    expect(result.exitCode).not.toBe(0);
+    const combined = `${result.stdout.toString()}\n${result.stderr.toString()}`;
+    expect(combined.trim()).not.toBe("[]");
+    expect(combined).toMatch(/--json=false|--json=true/);
+  });
+
+  it("AC-LEGITIMATE-POSITIONALS: module find true treats true as search query, not boolean error", () => {
+    const result = runNgrace(["module", "find", "true", "--path", REPO_ROOT]);
+    // Empty-or-not is fine; must not raise the boolean space-form error.
+    const combined = `${result.stdout.toString()}\n${result.stderr.toString()}`;
+    expect(combined).not.toMatch(/does not accept a space-separated value/);
+    // Pre-wiring measured exit 0 with "No modules found." — still a successful search shape.
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("AC-LEGITIMATE-POSITIONALS: bare false as module find query is not the space-form error", () => {
+    const result = runNgrace(["module", "find", "false", "--path", REPO_ROOT]);
+    const combined = `${result.stdout.toString()}\n${result.stderr.toString()}`;
+    expect(combined).not.toMatch(/does not accept a space-separated value/);
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("AC-WORKING-FORMS default-false half: module --json equals and --no-json and bare --json", () => {
+    // --json=true → JSON array (may be empty if query absent → still json shape)
+    const eqTrue = runNgrace(["module", "find", "--json=true", "--path", REPO_ROOT]);
+    expect(eqTrue.exitCode).toBe(0);
+    expect(() => JSON.parse(eqTrue.stdout.toString())).not.toThrow();
+
+    // --json=false → text table path, not rejected
+    const eqFalse = runNgrace(["module", "find", "--json=false", "--path", REPO_ROOT]);
+    expect(eqFalse.exitCode).toBe(0);
+    expect(eqFalse.stdout.toString()).not.toMatch(/does not accept a space-separated value/);
+
+    // --no-json → false behaviour
+    const noJson = runNgrace(["module", "find", "--no-json", "--path", REPO_ROOT]);
+    expect(noJson.exitCode).toBe(0);
+    expect(noJson.stdout.toString()).not.toMatch(/does not accept a space-separated value/);
+
+    // bare --json means true
+    const bare = runNgrace(["module", "find", "--json", "--path", REPO_ROOT]);
+    expect(bare.exitCode).toBe(0);
+    expect(() => JSON.parse(bare.stdout.toString())).not.toThrow();
+  });
+});

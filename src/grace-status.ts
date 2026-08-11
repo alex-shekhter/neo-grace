@@ -20,6 +20,8 @@ import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { defineCommand, type CommandDef, runMain } from "citty";
 
+import { defineGraceCommand } from "./query/command";
+
 import { lintGraceProject } from "./lint/core";
 import type { AnalysisCoverage, LintIssue } from "./lint/types";
 import { ARTIFACT_DIR, toProjectRelativePath } from "./artifact/paths";
@@ -668,7 +670,7 @@ function shouldFail(result: StatusResult, failOn: string) {
   return errorCount > 0;
 }
 
-export const statusCommand = defineCommand({
+export const statusCommand = defineGraceCommand({
   meta: {
     name: "status",
     description: "Show neo-grace durable health, active/archive changes, derived states, and next action.",

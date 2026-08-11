@@ -271,3 +271,66 @@ describe("listBooleanFlags live inventory (anti-F10)", () => {
     }
   });
 });
+
+/** Eleven exported roots used by coverage / inventory (design D3). */
+function elevenRoots() {
+  return [
+    { name: "gate", command: gateCommand },
+    { name: "cursor", command: cursorCommand },
+    { name: "status", command: statusCommand },
+    { name: "lint", command: lintCommand },
+    { name: "module", command: moduleCommand },
+    { name: "file", command: fileCommand },
+    { name: "graph", command: graphCommand },
+    { name: "context", command: contextCommand },
+    { name: "verification", command: verificationCommand },
+    { name: "review", command: reviewCommand },
+    { name: "doctor", command: doctorCommand },
+  ] as const;
+}
+
+function commandAtPath(
+  roots: ReadonlyArray<{ name: string; command: (typeof gateCommand) }>,
+  path: string,
+) {
+  const [rootName, ...rest] = path.split(".");
+  const root = roots.find((r) => r.name === rootName);
+  if (!root) throw new Error(`unknown root ${rootName}`);
+  let cmd: { subCommands?: Record<string, unknown>; args?: unknown } = root.command as never;
+  for (const part of rest) {
+    const subs = cmd.subCommands as Record<string, typeof cmd> | undefined;
+    if (!subs || !(part in subs)) throw new Error(`missing command at ${path}`);
+    cmd = subs[part] as typeof cmd;
+  }
+  return cmd;
+}
+
+describe("AC-CLASS-COVERAGE (T-003)", () => {
+  it("every live boolean site sits on a defineGraceCommand-branded node (exact count)", () => {
+    const roots = elevenRoots();
+    const sites = listBooleanFlags([...roots]);
+    // Re-measure at execute (F12.2). Plan authoring: 24. F23: exact pin.
+    expect(sites.length).toBe(24);
+
+    for (const site of sites) {
+      const node = commandAtPath(roots as never, site.path);
+      expect(
+        (node as Record<symbol, unknown>)[BOOLEAN_SPACE_GUARD_BRAND],
+        `boolean ${site.name} at ${site.path} must carry BOOLEAN_SPACE_GUARD_BRAND`,
+      ).toBe(true);
+    }
+  });
+
+  it("pure refuse covers every collected live flag name for space true and space false", () => {
+    const sites = listBooleanFlags([...elevenRoots()]);
+    expect(sites.length).toBe(24);
+    const names = [...new Set(sites.map((s) => s.name))];
+    for (const name of names) {
+      const long = `--${name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/_/g, "-").toLowerCase()}`;
+      expect(() => refuseBooleanSpaceForm([long, "false"], [name])).toThrow(GraceCommandError);
+      expect(() => refuseBooleanSpaceForm([long, "true"], [name])).toThrow(GraceCommandError);
+      // Counterweight: equals form is not refused.
+      expect(() => refuseBooleanSpaceForm([`${long}=false`], [name])).not.toThrow();
+    }
+  });
+});

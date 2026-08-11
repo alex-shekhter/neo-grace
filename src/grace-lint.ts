@@ -27,6 +27,8 @@
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 
+import { defineGraceCommand } from "./query/command";
+
 import { classifyIssueCode, formatLintExplanation, getLintIssueGuide } from "./lint/catalog";
 import { formatTextReport, isValidTextFormat, lintGraceProject } from "./lint/core";
 import type { LintAssertionMode, LintOptions, LintProfile, LintResult } from "./lint/types";
@@ -95,7 +97,7 @@ function shouldFail(result: LintResult, failOn: string) {
   return result.summary.errors > 0;
 }
 
-export const lintCommand = defineCommand({
+export const lintCommand = defineGraceCommand({
   meta: {
     name: "lint",
     description: "Lint neo-grace artifacts, XML tag conventions, semantic markup, and role-aware module maps.",
