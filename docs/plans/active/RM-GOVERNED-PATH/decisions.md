@@ -1956,3 +1956,37 @@ both spellings is the honest reading of D5, not an exception to it.
 
 Disposition: evidence for `C-FLAG-HONESTY` (spec `3f3547c`). Recorded during authority review of the
 spec, before approval, so the criteria could rest on a measurement rather than on my prediction.
+
+---
+
+### F24 — M-QUERY has quietly become the CLI-infrastructure module. **[verified]**
+
+`M-QUERY`'s graph entry summarises it as *"Artifact query and navigation: module, file, graph, and
+verification resolution"* (`.ngrace/graph/main.xml`), and `src/query/errors.ts` repeats that as its
+file-local `SCOPE`. Neither describes what the module actually holds.
+
+`runGraceCommand` and `GraceCommandError` live in `query/errors.ts`, and thirteen files import from
+it — `gates/command.ts`, `gates/ledger.ts`, `review/command.ts`, `grace-cursor.ts`, `grace-status.ts`,
+`grace-lint.ts`, `grace-context.ts`, `grace-doctor.ts` among them. None of those are module, file,
+graph or verification resolution. The error envelope, the exit-code channel and the command wrapper
+are **CLI-wide infrastructure** sitting inside a module whose contract says it resolves queries.
+
+Nothing here is broken at runtime. What is wrong is that two contracts describe a module that no
+longer matches them, so a reader deciding where a new cross-cutting CLI concern belongs gets no honest
+answer — and the answer they will reach by imitation is "put it in query", which deepens the drift.
+`C-FLAG-HONESTY` reached exactly that point: its `defineGraceCommand` wrapper is CLI-wide, and
+`M-QUERY` is the only host the approved `AffectedAreas` allows.
+
+**Deferred, with the justification D11 requires — a conflict, not a topic match.** The honest repair is
+a CLI-infrastructure module (`M-CLI-INFRA` or widening `M-QUERY`'s summary to match), and both are
+graph changes: the first needs an anchor the approved `C-FLAG-HONESTY` spec does not grant, and
+re-speccing mid-plan to repair a drift that bundle did not cause is disproportionate. It is also not
+`M-CLI` — that anchor belongs to `src/grace.ts`, the dispatch root, and hosting a guard file under
+`src/query/` against it would put the file and its module in different places.
+
+So `C-FLAG-HONESTY` proceeds on `M-QUERY` and **records in its DESIGN comment that M-QUERY is the best
+host the approved scope allows, not a natural one** — the deepening is disclosed rather than silent.
+
+Disposition: follow-on queue, alongside F9.9 / F20 / F21 / F22. The repair is a graph edit plus two
+contract rewrites, and it should be weighed together with whatever the next bundle needs from the CLI
+surface rather than done on its own.
