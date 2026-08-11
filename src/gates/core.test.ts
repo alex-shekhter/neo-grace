@@ -847,3 +847,133 @@ describe("escalated attempt refusal", () => {
     ).toThrow(/gate\.attempt\.escalated/);
   });
 });
+
+/**
+ * C-FLAG-HONESTY T-002 — F18 gate --record space form.
+ * Temp fixtures only; never a live or archived bundle.
+ */
+function countDecisionElements(ledgerPath: string): number {
+  if (!existsSync(ledgerPath)) return 0;
+  return (readFileSync(ledgerPath, "utf8").match(/<Decision\b/g) ?? []).length;
+}
+
+function fixtureLedgerPath(root: string, changeId = "C-GATE"): string {
+  return path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run-ledger.xml");
+}
+
+describe("C-FLAG-HONESTY T-002 — gate --record space form (F18)", () => {
+  it("AC-SPACE-FORM-FAILS-LOUD: --record false exits non-zero, names both working forms, Decision count unchanged", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    const ledgerPath = fixtureLedgerPath(root);
+    // Seed one Decision so "unchanged" is a real equality, not absence→absence.
+    recordGateDecision(root, "C-GATE", {
+      gate: "approve",
+      decision: "permit",
+      requirements: [{ id: "no-unresolved-ic-inv-clarification", required: true, present: true, blocking: false }],
+    });
+    const before = countDecisionElements(ledgerPath);
+    expect(before).toBe(1);
+
+    for (const gate of ["approve", "apply", "archive"] as const) {
+      const result = runGateCli(
+        [gate, "--change", "C-GATE", "--path", root, "--record", "false"],
+        root,
+      );
+      // Non-zero exit is necessary; the Decision-count pin is the write proof (F23).
+      expect(result.status).not.toBe(0);
+      const combined = `${result.stdout}\n${result.stderr}`;
+      expect(combined).toContain("--record=false");
+      expect(combined).toContain("--no-record");
+      expect(combined).toMatch(/bare `--record`|`--record` means true|--record means true/i);
+      expect(countDecisionElements(ledgerPath)).toBe(before);
+    }
+    // Bundle path still only the seeded Decision (no archive write, no second Decision).
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(true);
+  });
+
+  it("AC-BARE-FLAG-STILL-TRUE: bare --record still records (means true)", () => {
+    const root = tempProject();
+    activeBundle(root);
+    const ledgerPath = fixtureLedgerPath(root);
+    expect(countDecisionElements(ledgerPath)).toBe(0);
+
+    const result = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record"],
+      root,
+    );
+    expect(result.status).toBe(0);
+    expect(countDecisionElements(ledgerPath)).toBe(1);
+    expect(`${result.stdout}\n${result.stderr}`).not.toMatch(/does not accept a space-separated value/);
+  });
+
+  it("AC-WORKING-FORMS default-true half: --record=false writes no Decision", () => {
+    const root = tempProject();
+    activeBundle(root);
+    const ledgerPath = fixtureLedgerPath(root);
+    expect(countDecisionElements(ledgerPath)).toBe(0);
+
+    const result = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=false"],
+      root,
+    );
+    // Counterweight: equals form must not be rejected as the space-form error.
+    expect(result.status).toBe(0);
+    expect(result.stdout).toMatch(/Decision:\s*permit|decision.*permit/i);
+    expect(countDecisionElements(ledgerPath)).toBe(0);
+  });
+
+  it("AC-WORKING-FORMS default-true half: --record=true records a Decision", () => {
+    const root = tempProject();
+    activeBundle(root);
+    const ledgerPath = fixtureLedgerPath(root);
+    expect(countDecisionElements(ledgerPath)).toBe(0);
+
+    const result = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+      root,
+    );
+    expect(result.status).toBe(0);
+    expect(countDecisionElements(ledgerPath)).toBe(1);
+  });
+
+  it("AC-WORKING-FORMS default-true half: --no-record writes no Decision", () => {
+    const root = tempProject();
+    activeBundle(root);
+    const ledgerPath = fixtureLedgerPath(root);
+    expect(countDecisionElements(ledgerPath)).toBe(0);
+
+    const result = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--no-record"],
+      root,
+    );
+    expect(result.status).toBe(0);
+    expect(countDecisionElements(ledgerPath)).toBe(0);
+  });
+
+  it("A31.4: gate approve|apply|archive|verdict still resolve under --record=false", () => {
+    const root = tempProject();
+    activeBundle(root);
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+
+    for (const gate of ["approve", "apply", "archive"] as const) {
+      const result = runGateCli(
+        [gate, "--change", "C-GATE", "--path", root, "--record=false", "--format", "json"],
+        root,
+      );
+      expect(result.status).toBe(0);
+      const body = JSON.parse(result.stdout);
+      expect(body.ok).toBe(true);
+      expect(body.gate).toBe(gate);
+      // Must not be the bare parent usage text.
+      expect(result.stdout).not.toMatch(/Usage:\s*ngrace gate/);
+    }
+
+    const verdict = runGateCli(
+      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root, "--format", "json"],
+      root,
+    );
+    expect(verdict.status).toBe(0);
+    expect(JSON.parse(verdict.stdout).ok).toBe(true);
+  });
+});
