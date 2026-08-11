@@ -1,5 +1,6 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
   <C-LEDGER-READ-ABSENCE>
+    <Replacement>C-LEGIBLE-FAILURE</Replacement>
     <Summary>
       Give every ledger read path three exits (absent / unreadable / ok) instead of collapsing
       no-file, parse failure, and missing wrapper into null (inherited Phase 5 conflation;
