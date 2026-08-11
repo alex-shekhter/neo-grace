@@ -1,1 +1,0 @@
-<NgraceRunEvent graceVersion="1.0" id="24" task="T-005" kind="escalation"><FailureSignature kind="test" key="t005-apply-verdict-diagnostics-red" /><FailureSignature kind="test" key="t005-unreadable-count-unknown-red" /></NgraceRunEvent>
