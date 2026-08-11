@@ -2512,3 +2512,133 @@ change must scope its clauses to the commits that can honestly carry them: *"the
 resume-reason requirement states it; the commits introducing the thresholds state them by value."* A
 flat "every commit states everything" is unachievable the moment the change has more than one task, and
 its failure mode is pressure to backdate a claim.
+
+---
+
+#### F9.10 — The attempt-pair rule has never once fired on a real defect. **[verified]**
+
+[F9.9](#f99) enumerated four blind spots and called the list *"complete enough to be useful."* It was
+not, and the correction is not another row — it is a measurement that changes what the rule is.
+
+Running the change-scoped review over **all 26 archived bundles**:
+
+```
+bun run ngrace review --path . --change <C-ID>     # for each bundle
+```
+
+| | |
+|---|---|
+| bundles scanned | 26 |
+| bundles raising `review.attempt-pair-unsubstantiated` | 6 |
+| findings raised | 8 |
+| findings that are real red-first violations | **0** |
+
+Every one of the eight was classified from the ledger's own `WriteEvidence`, comparing the fail event's
+digests against the pass event's:
+
+| bundle / task | what moved between fail and pass |
+| --- | --- |
+| `C-CALIBRATION-COMMAND-EVIDENCE` T-002 | `grace-cursor.test.ts` only |
+| `C-CURSOR-INTEGRITY` T-001 | `lint/catalog.test.ts` only |
+| `C-CURSOR-INTEGRITY` T-007 | `grace-status.test.ts` only |
+| `C-ESCALATION-HONESTY` T-003 | both `SKILL.md` trees + `token-accounting.test.ts` |
+| `C-EXECUTION-CONTRACT` T-001 | both `SKILL.md` trees only |
+| `C-LEGIBLE-FAILURE` T-002 | `gates/core.test.ts` only |
+| `C-TOKEN-INTEGRITY` T-001 | `lint/catalog.test.ts`, `project-utils.test.ts` |
+| `C-TOKEN-INTEGRITY` T-005 | `lint/catalog.test.ts` + `docs/plans/.../plan.md` |
+
+**In all eight, no non-test file under `src/` changed — and in all eight it should not have.** The
+failure signatures say so in the agents' own words: `loose-assertion`,
+`T-005-red-first-catalog-completeness`, `T-001-red-first-unparsed-link-token`, `catalog-f10-namespace`.
+These are tasks whose *deliverable is a test or a document*. `C-LEGIBLE-FAILURE` T-002 is the sharpest:
+the production digest `af58dfca…` is byte-identical across the pair **because the defect was that the
+assertion was too weak** — the production code was already correct. Production moving would have been
+the bug.
+
+So the fifth blind spot is **a task whose deliverable is a strengthened assertion**, and it is
+structurally unfixable by widening the path rule: test paths are excluded from the substantiating set
+*by design* (F9.3), so the correct fix for a weak-assertion task can never substantiate its own pair.
+
+**The rule's premise is that the deliverable is production code.** That premise is false for at least
+three legitimate task classes — documentation/skills, test strengthening, and roadmap prose — and the
+corpus says those classes are not the exception. Six of twenty-six bundles, eight of eight findings.
+
+**A warning with a 100% false-positive rate over its entire operating history is not a check. It is a
+budget on the reviewer's attention with nothing purchased.** That is precisely the harm F9.9 predicted
+and could not yet measure.
+
+**This supersedes F9.9's disposition.** F9.9 said the honest fix is a wording change — say *"no
+substantiating path exists in this bundle's scope"* rather than implying a skipped step. The
+measurement says wording is not enough: a reworded warning that fires on every documentation and
+test-strengthening task is still noise, just politer noise. The rule must learn the deliverable class
+before it may raise, and the plan's per-task declaration is where that information already lives.
+Deliberately **not** adopted: widening `isSubstantiatingPath` to include `skills/` — F9.9's argument
+against it stands and this measurement does not touch it.
+
+One caution for whoever writes the repair. The finding's own parenthetical does **not** identify the
+cause: `C-EXECUTION-CONTRACT` (a skills deliverable) and `C-LEGIBLE-FAILURE` (a test-strengthening
+deliverable) both present as *"N non-test src/ path(s) seen, all identical."* Classifying by that
+string produces a wrong taxonomy. Classify from `WriteEvidence` digests.
+
+Disposition: **next bundle**, with [F31](#f31) and [F32](#f32) — one surface, one repair.
+
+---
+
+### F31 — One audit in the report declares its absence; the other skips in silence. **[verified]**
+
+`auditAttemptPairWriteEvidence` runs only inside `if (options.changeId)` (`review/core.ts:1296`). Invoked
+as `ngrace review --path .`, with no `--change`, the entire attempt-pair audit **does not run**, and the
+report says nothing about it. The same command on the same tree:
+
+```
+bun run ngrace review --path .                             → Findings: 0
+bun run ngrace review --path . --change C-ESCALATION-HONESTY → Findings: 1 (warning)
+```
+
+`Findings: 0` is indistinguishable from *"the audit ran and found nothing."*
+
+**What makes this a finding rather than an option's consequence is the asymmetry inside one report.**
+The scope audit in the same output prints `Scope audit: not-run — no changed files available (working
+tree clean; supply --base or --changed-files)`. It has a full absence vocabulary —
+`status: "ran" | "not-run" | "unable-to-determine"` with a `reason` — built by the same track, for the
+same purpose. The attempt-pair audit has none. Two audits, one report, one of them honest about not
+having looked.
+
+**The procedural half is mine and is recorded because the tool made it invisible.** `ngrace-execute`
+rule 9 is explicit: *"Before setting `applied` or archiving: run `ngrace review --path . --change
+C-ID`."* Through this bundle's close I ran the unscoped form. The contract was right, I was wrong, and
+nothing in the output could have told me — which is the whole argument for the absence vocabulary. The
+verdict recorded for `C-ESCALATION-HONESTY` was formed from a review that could not have raised this
+class at all. It stands on the merits ([F9.10](#f910) shows the one finding is a false positive), but it
+claimed more scrutiny than it received, and that is disclosed rather than left to be discovered.
+
+Disposition: **next bundle**, with F9.10 and F32. The repair is an absence record for the attempt-pair
+audit on the same shape as the scope audit's, so an unscoped review reports `not-run — no --change
+supplied` instead of nothing.
+
+---
+
+### F32 — The finding points at a path that does not exist. **[verified]**
+
+`auditAttemptPairWriteEvidence` anchors every finding at a hardcoded string:
+
+```ts
+`.ngrace/changes/active/${input.changeId}/run`
+```
+
+For an archived bundle that path is gone. All six raising bundles are archived, so **all eight findings
+name a file that is not there** — including one emitted minutes after `C-ESCALATION-HONESTY` was moved
+to `archive/`:
+
+```
+[warning] review.attempt-pair-unsubstantiated .ngrace/changes/active/C-ESCALATION-HONESTY/run — …
+$ ls -d .ngrace/changes/active/C-ESCALATION-HONESTY/run
+ls: No such file or directory
+```
+
+Small, and worth fixing with the rest rather than alone: the codebase already has `resolveChangeBundle`,
+which the archive gate uses to find a bundle in either location. The finding builder does not call it.
+A reviewer following the path finds nothing and has no way to tell whether the bundle moved or the
+finding is stale.
+
+Disposition: **next bundle**, with F9.10 and F31.
