@@ -1,0 +1,688 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-SUBSTANTIATION-HONESTY>
+    <IntentSummary>
+      Close F9.10, F31, and F32: replace production-must-move attempt-pair audit
+      with identical-tree (exclude `.ngrace/`), rename the finding to
+      `review.attempt-pair-identical-tree`, report attempt-pair absence when
+      unscoped, anchor findings via `resolveChangeBundle`, surgically rewrite
+      ngrace-execute failure-shape prose on both skill trees so code and contract
+      agree, pin archive corpus zero dynamically (not a stale 26), and keep
+      positive fixtures as the counterweight to silence.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-SUBSTANTIATION-HONESTY/spec.xml</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>review.attempt-pair-unsubstantiated</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.attempt-pair-unsubstantiated</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>isSubstantiatingPath</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>review.attempt-pair-unsubstantiated</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>review.attempt-pair-unsubstantiated</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>no non-test digest movement</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>no non-test digest movement</Text>
+      </MustContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>review.attempt-pair-identical-tree</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.attempt-pair-identical-tree</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>review.attempt-pair-identical-tree</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>review.attempt-pair-identical-tree</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>review.attempt-pair-unsubstantiated</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.attempt-pair-unsubstantiated</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>review.attempt-pair-unsubstantiated</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>review.attempt-pair-unsubstantiated</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>no non-test digest movement</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>no non-test digest movement</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>isSubstantiatingPath</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/lint/catalog.test.ts src/verification/localize.test.ts src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/verification/localize.test.ts</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>.ngrace/changes/active/C-SUBSTANTIATION-HONESTY/plan.xml</File>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers; authority reviews this hardest)
+
+      Plan-authoring HEAD: 098783b (branch docs/rm-governed-path). Spec is
+      approved and immutable — do not edit it. Re-measure every count at execute
+      (F12.2). Spec rule (identical-tree, exclude .ngrace/, code rename, F31/F32)
+      is fixed; do not re-open.
+
+      ─────────────────────────────────────────────────────────────────
+      D0 — AC-ARCHIVE-CORPUS-ZERO: 26-vs-27 (plan widening; explicit)
+      ─────────────────────────────────────────────────────────────────
+      Spec text pins "26" from authoring measurement. At this bundle's close the
+      archive will hold **27** dirs because C-SUBSTANTIATION-HONESTY archives into
+      its own corpus. A hardcoded expect(dirs.length).toBe(26) fails at close and
+      on every future archive.
+
+      **Resolution (widening — allowed for a plan; satisfies and is stricter):**
+
+        1. Enumerate dynamically:
+             readdirSync(".ngrace/changes/archive")
+               .filter(name => /^C-/.test(name) && isDirectory(...))
+           Do **not** hardcode 26 as the only denominator.
+
+        2. For **every** enumerated bundle id, runReview({ changeId, patterns:false,
+           joinEngine:false, ... }) and assert **exactly 0** findings whose code is
+           `review.attempt-pair-identical-tree` **and** 0 whose code is the retired
+           `review.attempt-pair-unsubstantiated`. Aggregate across the full set is 0.
+           Soft bounds (toBeLessThan, "fewer than 8") are forbidden (spec AC).
+
+        3. Freeze the authoring set as a constant (plan-authoring measurement):
+             AUTHORING_ARCHIVE_C_IDS = the 26 ids from
+             `ls -1d .ngrace/changes/archive/C-*` at HEAD 098783b:
+             C-ABSENCE-VALUE, C-ADOPTION-SURFACE, C-ATTEMPT-LOG, C-CALIBRATION,
+             C-CALIBRATION-COMMAND-EVIDENCE, C-CALIBRATION-CONTEXT,
+             C-CALIBRATION-PROVENANCE, C-CURSOR-INTEGRITY, C-ESCALATION-HONESTY,
+             C-EXECUTION-CONTRACT, C-FAILURE-LOCALIZATION, C-FLAG-HONESTY,
+             C-GATE-RECORD-ABSENCE, C-GATE-SURFACE, C-GRAPH-COVERAGE,
+             C-LEDGER-READ-ABSENCE, C-LEGIBLE-FAILURE, C-OBSERVABLE-CHECKS,
+             C-PLAN-QUALITY, C-RECOVER-FOLDABLE, C-REPORT-HONESTY,
+             C-REVIEW-LANGUAGE-SCOPE, C-REVIEW-SURFACE, C-RUN-LEDGER,
+             C-SELECTION, C-TOKEN-INTEGRITY
+           Assert the enumerated set **contains every** AUTHORING_ARCHIVE_C_IDS
+           entry (a silent vanish shrinks the denominator — catch it).
+
+        4. Do **not** pin suite total to 26. Optional: expect(dirs.length).toBeGreaterThanOrEqual(26)
+           is weaker than containment of the frozen set; prefer containment alone
+           (or both). Never expect(dirs.length).toBe(26).
+
+        5. **At close** (T-003, after gate archive of this change): re-measure
+           `ls -1d .ngrace/changes/archive/C-* | wc -l` and expect **27** (F12.2).
+           Re-run the zero-findings scan including C-SUBSTANTIATION-HONESTY.
+           Zero over 27 subsumes zero over 26.
+
+      This is **not** licence to loosen the zero pin. Spec supersede is not
+      required: widening the enumeration is proportional (F25/F27).
+
+      ─────────────────────────────────────────────────────────────────
+      D1 — Identical-tree rule (AC-IDENTICAL-TREE-RULE) — (a)
+      ─────────────────────────────────────────────────────────────────
+      Chosen: rewrite auditAttemptPairWriteEvidence to compare WriteEvidence
+      content digests on the pair directly; drop OWS + isSubstantiatingPath as
+      the raise gate.
+
+        Raise when, after excluding every path with prefix `.ngrace/` (and path
+        exactly `.ngrace` if present), no content path differs:
+          - same path, different digest → differs
+          - path only on fail or only on pass → differs
+          - undetermined / non-content → not comparable; ignore for raise
+        Raise cases: both non-.ngrace maps empty; maps equal; only .ngrace/**
+        paths differ.
+        Silent cases: any non-.ngrace content change (test-only, skills-only,
+        production, docs).
+
+      Delete isSubstantiatingPath and isTestPathForAttemptPair if unused after
+      rewrite (TargetAssertions MustNotContain isSubstantiatingPath on core.ts).
+      scopeFiles on AttemptPairEvidenceInput may become unused — drop from the
+      call site in runReview if the type allows, or leave ignored with a comment
+      that identical-tree does not consult OWS (spec Assumptions).
+
+      Export a single code constant (catalog key and emitter must match):
+
+        // catalog.ts and core.ts — one spelling
+        "review.attempt-pair-identical-tree"
+
+      Prefer:
+
+        export const ATTEMPT_PAIR_FINDING_CODE =
+          "review.attempt-pair-identical-tree" as const;
+
+      in catalog.ts (or core.ts) and use it from makeFinding + skill agreement
+      helper so the string cannot drift (AC-PROSE-ENFORCEMENT-AGREE binding).
+
+      Message: describe identical non-.ngrace WriteEvidence trees / uncorroborated
+      red-first — not "no non-test src/ production movement". Severity warning.
+
+      ─────────────────────────────────────────────────────────────────
+      D2 — Rename + catalog pins (AC-FINDING-CODE-RENAME) — (b)
+      ─────────────────────────────────────────────────────────────────
+      REVIEW_CATALOG: replace entry key/code/title/explanation for the new code;
+      remove old key entirely. Severity warning. Remediation still gate verdict
+      –note + findingId.
+
+      Pins to rewrite (measured hits; rename-not-add → catalog length stays 14):
+        src/review/catalog.ts
+        src/review/core.ts (emitter)
+        src/review/core.test.ts (all attempt-pair suite pins)
+        src/lint/catalog.test.ts (registered string; comment about T-006; ≥14 stays)
+        src/verification/localize.test.ts (comment; catalog.length toBe(14);
+          excluded length 11 unchanged if new code remains non-admissible —
+          isAdmissibleLocalizationReviewCode is closed-by-name ADMISSIBLE_SET;
+          new code is excluded by not being admissible; partition still holds)
+
+      ─────────────────────────────────────────────────────────────────
+      D3 — Anchor path (AC-ANCHOR-RESOLVED-BUNDLE) — (c)
+      ─────────────────────────────────────────────────────────────────
+      makeFinding file argument:
+
+        const bundlePath = resolveChangeBundle(projectRoot, changeId);
+        // prefer run/ if exists, else bundlePath, else join(bundlePath, "run-ledger.xml")
+        const file = existsSync(join(bundlePath, "run"))
+          ? posix join of relative `.ngrace/changes/{active|archive}/${id}/run`
+          : relative path to bundle or run-ledger.xml
+
+      runReview must pass projectRoot into the audit (or pre-resolve the relative
+      anchor). Never hardcode `active/`. Pin: synthetic raise for archived
+      C-ESCALATION-HONESTY (or force via unit input that sets changeId and uses
+      real resolve) → file starts with
+      `.ngrace/changes/archive/C-ESCALATION-HONESTY`.
+
+      Note: auditAttemptPairWriteEvidence today only receives changeId string.
+      Extend input with projectRoot or resolvedAnchorFile.
+
+      ─────────────────────────────────────────────────────────────────
+      D4 — Absence record (AC-ABSENCE-RECORD) — (d)
+      ─────────────────────────────────────────────────────────────────
+      Mirror ScopeAuditReport shape on ReviewResult:
+
+        export type AttemptPairAuditReport = {
+          status: "ran" | "not-run" | "unable-to-determine";
+          reason: string;
+          changeId?: string;
+          pairCount?: number;
+          findingCount?: number;
+          absence?: AbsenceValue;
+        };
+
+      When process audits enabled:
+        - no options.changeId → status not-run, reason names missing –change
+          (machine-checkable substring e.g. "no –change")
+        - changeId present and bundle resolves → status ran (pairCount may be 0)
+        - changeId present but unresolvable → not-run or unable-to-determine with reason
+
+      formatReviewResult: always print a line when process audits ran, e.g.
+        `Attempt-pair audit: not-run — no –change supplied`
+        `Attempt-pair audit: ran over N pair(s) …`
+      Suppress false "No review findings" clean epilogue when attempt-pair is
+      not-run (same pattern as scopeSkipped). JSON includes attemptPairAudit.
+
+      ─────────────────────────────────────────────────────────────────
+      D5 — Fixtures + discrimination (AC-FIXTURES-REWRITTEN) — (e)
+      ─────────────────────────────────────────────────────────────────
+      Rewrite describe("attempt-pair write evidence …") in core.test.ts:
+
+      **Must raise** (code exact toBe "review.attempt-pair-identical-tree"):
+        - pure identical non-.ngrace digests (same path same digest both sides)
+        - both sides empty of non-.ngrace content
+        - only .ngrace/** paths differ (ledger noise)
+
+      **Must not raise:**
+        - test-only movement (old T-005 golden → silent)
+        - production identical + test movement (old F9 pure T-002 shape → silent)
+        - skills-only movement
+        - production movement (substantiated textbook red-first)
+        - path only on pass outside .ngrace (add)
+
+      Live archive read-only tests that expected raises on C-TOKEN T-001/T-005 and
+      C-CURSOR T-007 → expect **0** for both old and new codes.
+
+      **Corpus test** (AC-ARCHIVE-CORPUS-ZERO): see D0.
+
+      **Relationship (spec):** corpus zero alone is satisfied by a detector broken
+      into silence. Positive raise fixtures are required. Both ACs map to T-001.
+
+      **Discrimination probe (execute, record in task notes / PR body — not a
+      permanent red test):**
+        1. sha256 src/review/core.ts (pre).
+        2. Temporarily break auditAttemptPairWriteEvidence to always return []
+           (or always skip raise).
+        3. bun test -t "identical-tree must raise" (or the pure-identical it name)
+           → **must fail** (fixtures redden).
+        4. Revert the break; sha256 matches pre; suite green.
+      A check nobody has seen fail is a claim (F28 class). Do not leave the break
+      committed. Optional: second break that drops .ngrace exclusion so honest
+      pairs with only ledger noise silence incorrectly — then .ngrace-only-diff
+      fixture reddens if it expected raise… actually without exclusion, .ngrace
+      diffs count as movement → .ngrace-only fixture goes silent → red. Same probe
+      family. Prefer the always-silent break (clearest).
+
+      ─────────────────────────────────────────────────────────────────
+      D6 — Skill prose (AC-PROSE-ENFORCEMENT-AGREE, AC-SKILL-MIRROR-IDENTICAL)
+      ─────────────────────────────────────────────────────────────────
+      Surgical edit only — both trees, same bytes after:
+
+      Line 67 failure-shape clause today:
+        Failure shape: `review.attempt-pair-unsubstantiated` on fail→pass pairs
+        with no non-test digest movement.
+
+      Replace with (exact wording may vary slightly; must include live code and
+      identical-tree condition; must not include retired code or
+      "no non-test digest movement"):
+        Failure shape: `review.attempt-pair-identical-tree` on fail→pass pairs
+        with no non-`.ngrace/` WriteEvidence content change.
+
+      **Stays true (do not rewrite):** WriteEvidence digests ObservedWriteScope at
+      attempt command time; fail in its own round trip; honest disclosed gap is
+      cheap; never stage a retrospective red (git stash …).
+
+      Agreement tests (core.test.ts or co-located), bound to catalog constant:
+
+        for both skill paths:
+          expect(text).toContain(ATTEMPT_PAIR_FINDING_CODE); // exact
+          expect(text).not.toContain("review.attempt-pair-unsubstantiated");
+          expect(text).not.toContain("no non-test digest movement");
+        expect(canonical).toBe(packaged); // or validate-marketplace
+
+      Mutation that must redden: change catalog constant without skill → toContain
+      fails; skill keeps old code → not.toContain fails; edit only one tree →
+      mirror / second path fails.
+
+      ─────────────────────────────────────────────────────────────────
+      D7 — token-accounting (F29 / F27)
+      ─────────────────────────────────────────────────────────────────
+      File is in ObservedWriteScope always. Order: write skill prose first
+      (both trees), then re-measure skillTextLines().total, then pin exact toBe
+      to the measured value (today 779 at plan-authoring — do not update pin in
+      the plan-authoring pass). If total stays 779, leave pin and record
+      "re-measured; unchanged" in the task report. Never compress prose to hit a
+      target count.
+
+      ─────────────────────────────────────────────────────────────────
+      D8 — Task split, contract window, lint window
+      ─────────────────────────────────────────────────────────────────
+      T-001 — Rule + rename + fixtures + corpus + absence + anchor + catalog pins
+            Satisfies: AC-IDENTICAL-TREE-RULE, AC-FINDING-CODE-RENAME,
+              AC-ARCHIVE-CORPUS-ZERO, AC-ABSENCE-RECORD, AC-ANCHOR-RESOLVED-BUNDLE,
+              AC-FIXTURES-REWRITTEN
+            DependsOn: empty
+            Files: src/review/core.ts, catalog.ts, core.test.ts,
+              src/lint/catalog.test.ts, src/verification/localize.test.ts
+
+      T-002 — Skill failure-shape clause both trees + agreement + mirror + token pin
+            Satisfies: AC-PROSE-ENFORCEMENT-AGREE, AC-SKILL-MIRROR-IDENTICAL
+            DependsOn: T-001 (live code constant and CLI rename must exist so
+              agreement binds to the real code; skill must not invent a code the
+              catalog lacks)
+            Files: both SKILL.md; core.test.ts (agreement tests); token-accounting
+
+      T-003 — Dogfood close (AC-SUITE-AND-LINT **at close** — F26 qualifier kept)
+            Satisfies: AC-SUITE-AND-LINT
+            DependsOn: T-001, T-002
+            No product edits beyond re-measure / report; may re-run suite only.
+
+      **Why T-001 is not split further (six ACs, one task).** Everything it
+      lands is in `src/review/core.ts` and `src/review/catalog.ts` (plus the
+      co-located test/pin files that name the same code). The rename, the
+      identical-tree comparison, the absence record, and the anchor path all
+      touch the same audit entry point and the same catalog declaration —
+      each change is a few lines on one surface. Splitting would manufacture a
+      dependency chain through a single file for edits that cannot ship
+      independently without a mid-chain catalog/emitter mismatch (new code
+      without absence line, or new rule still emitting the retired code). The
+      skill/contract boundary (T-002) is the real seam; inside review/, the
+      seam is not.
+
+      **Accepted cost:** one fail→pass pair covers six criteria, so the ledger
+      records that *T-001* was red-first, not that F32's anchor repair (or F31's
+      absence line, or the corpus pin) had its own red. Anyone later asking
+      whether F32's repair specifically was red-first will find the answer is
+      "inside T-001's". That loss of per-finding red granularity is accepted
+      rather than inventing four tasks that only re-open the same two files.
+
+      **Window between T-001 and T-002 (honest residual):** after T-001 the CLI
+      and catalog emit `review.attempt-pair-identical-tree`; skill trees still
+      name `review.attempt-pair-unsubstantiated` and "no non-test digest
+      movement". That is an F21-class lie for any executor that only reads the
+      skill. **Do not archive, ship, or claim AC-PROSE / AC-SUITE-AND-LINT in
+      that window.** T-002 is mandatory and DependsOn T-001. Why not merge: red
+      for the rule matrix must not be confounded with skill/mirror failures;
+      discrimination probe is on core.ts only. Why not skill-first: prose would
+      document a code the catalog does not emit yet (F12).
+
+      No commit-body criterion (spec does not require one; F30 risk if added
+      flatly across multi-task commits — omit).
+
+      ─────────────────────────────────────────────────────────────────
+      D9 — ObservedWriteScope derivation (measured, not assumed)
+      ─────────────────────────────────────────────────────────────────
+      Command at plan-authoring HEAD 098783b:
+
+        rg -n 'attempt-pair-unsubstantiated|no non-test digest' . \
+          –glob '!.ngrace/changes/archive/**'
+
+      Hits that **must change** → in OWS:
+        src/review/core.ts
+        src/review/catalog.ts
+        src/review/core.test.ts
+        src/lint/catalog.test.ts
+        src/verification/localize.test.ts
+        skills/ngrace/ngrace-execute/SKILL.md
+        plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md
+
+      Plus declared always (F27/F29; pin may or may not move):
+        src/test-support/token-accounting.test.ts
+
+      Plus this plan file:
+        .ngrace/changes/active/C-SUBSTANTIATION-HONESTY/plan.xml
+
+      Hits **deliberately excluded** (authority-owned history; do not rewrite):
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md
+        docs/plans/active/RM-GOVERNED-PATH/plan.md
+        docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md
+      Reason: they record when the old code was live. Editing them to match the
+      new rule is historical erasure; out of scope per authority.
+
+      No defect-corpus.ts hit; not in OWS unless execute discovers a forced pin.
+
+      ─────────────────────────────────────────────────────────────────
+      D10 — Predicted lint window (do not weaken BaselineAssertions)
+      ─────────────────────────────────────────────────────────────────
+      Draft plan + approved spec (this authoring): expect **0** assertion.* from
+      this plan (draft baselines not enforced). Measure after write.
+
+      After plan **approval**, before tasks: BaselineAssertions green (old strings
+      present). TargetAssertions fail (new code/skill missing; MustNotContain old
+      strings fail while old remains). Framing may show target delta — do not
+      weaken baselines.
+
+      After **T-001** only:
+        Baseline failures expected (old production strings gone):
+          MustContain core.ts unsubstantiated → fail
+          MustContain catalog.ts unsubstantiated → fail
+          MustContain isSubstantiatingPath → fail
+        Skill baselines still green (old skill text remains).
+        Target: core/catalog new code present; skill Target still red; skill
+        MustNotContain old still red.
+        Predicted baseline assertion.* count **3** (the three core/catalog
+        MustContain above — arithmetic on BaselineAssertions, not an estimate).
+        Executor: flag if N ≠ 3 without explanation.
+
+      After **T-002**:
+        Additional baseline failures:
+          MustContain both skills unsubstantiated (2)
+          MustContain both skills "no non-test digest movement" (2)
+        Predicted cumulative baseline assertion.* **7**
+        (3 from T-001 + 4 skill — arithmetic on BaselineAssertions, not an
+        estimate). Executor: flag if N ≠ 7 without explanation.
+        MustExist / MustVerify baselines stay green.
+        TargetAssertions green for skill/code strings.
+
+      After **T-003 / close**: AC-SUITE-AND-LINT **at close** — lint 0/0 after
+      apply/archive (spec qualifier). Re-measure archive C-* count → **27**;
+      corpus zero includes self. validate:ci green; validate-marketplace green;
+      unscoped review prints Attempt-pair audit not-run. No archive content
+      edits; no decisions.md; no version surfaces; no CHANGELOG.md.
+
+      Non-goals restated: no per-task deliverable declaration; no skills/ path
+      substantiation widening; no staged-red detector; no version bump.
+
+      Execution discipline: ngrace-execute cursor kinds; red-first attempt before
+      edit (F9.8); terminal before fold; discrimination probe during T-001.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Identical-tree rule, rename, fixtures, corpus, absence, anchor</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-IDENTICAL-TREE-RULE />
+          <AC-FINDING-CODE-RENAME />
+          <AC-ARCHIVE-CORPUS-ZERO />
+          <AC-ABSENCE-RECORD />
+          <AC-ANCHOR-RESOLVED-BUNDLE />
+          <AC-FIXTURES-REWRITTEN />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first (F12.2): before edits, record that production-must-move still
+            fires — e.g. `bun run ngrace review --path . --change C-ESCALATION-HONESTY`
+            yields review.attempt-pair-unsubstantiated; pure helper call with
+            identical non-test src digests raises today. Capture output.
+          </Criterion>
+          <Criterion>
+            Implement design D1–D4 in src/review/core.ts and catalog.ts: identical-tree
+            raise rule excluding `.ngrace/`; code
+            `review.attempt-pair-identical-tree` only; delete or stop using
+            isSubstantiatingPath as raise gate; AttemptPairAuditReport always set
+            when process audits run; finding file via resolveChangeBundle (never
+            hardcoded active/). Export ATTEMPT_PAIR_FINDING_CODE (or equivalent)
+            for skill agreement binding.
+          </Criterion>
+          <Criterion>
+            AC-IDENTICAL-TREE-RULE + AC-FIXTURES-REWRITTEN: suite pins exact
+            raise/silent matrix (F23 toBe on code string). Must raise: pure
+            identical non-.ngrace; empty non-.ngrace both sides; .ngrace-only
+            diffs. Must not raise: test-only; skills-only; production change;
+            old F9 pure shape. Live archive pairs that raised under the old rule
+            expect 0 for both old and new codes. Positive raise fixtures are the
+            counterweight to corpus zero (spec relationship).
+          </Criterion>
+          <Criterion>
+            AC-ARCHIVE-CORPUS-ZERO (plan widening D0): dynamically enumerate
+            archive C-*; assert set contains all 26 AUTHORING_ARCHIVE_C_IDS;
+            assert exactly 0 findings for review.attempt-pair-identical-tree and
+            for review.attempt-pair-unsubstantiated on **every** enumerated
+            bundle; aggregate 0. No expect(length).toBe(26). No toBeLessThan.
+            Do not scan only the six formerly-raising bundles.
+          </Criterion>
+          <Criterion>
+            AC-ABSENCE-RECORD: unscoped runReview/report shows attempt-pair
+            status not-run with reason naming missing --change (text + JSON).
+            Scoped change with zero pairs is status ran. Clean epilogue does not
+            claim full audit when not-run.
+          </Criterion>
+          <Criterion>
+            AC-ANCHOR-RESOLVED-BUNDLE: any raised finding for an archived changeId
+            has file under `.ngrace/changes/archive/…`, not active/. Pin
+            C-ESCALATION-HONESTY shape if a raise is forced via fixture using that id.
+          </Criterion>
+          <Criterion>
+            AC-FINDING-CODE-RENAME: old code absent from REVIEW_CATALOG and
+            emitters; new code guided; catalog length remains 14 (rename-not-add);
+            localize partition still exhaustive; lint catalog.test pins updated
+            (exact registered string, not family regex — F23).
+          </Criterion>
+          <Criterion>
+            Discrimination probe (D5): break rule to always-silent → positive
+            identical-tree fixture red → revert → file digest matches pre-break.
+            Record commands and outcomes in the task report. Do not leave the
+            break committed.
+          </Criterion>
+          <Criterion>
+            Window honesty: after this task, skill trees still name the retired
+            code. Do not claim AC-PROSE-ENFORCEMENT-AGREE or AC-SUITE-AND-LINT
+            (at close). T-002 is required next.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts src/verification/localize.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>ngrace-execute failure-shape prose (both trees) and agreement tests</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-PROSE-ENFORCEMENT-AGREE />
+          <AC-SKILL-MIRROR-IDENTICAL />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-001 is binding (ATTEMPT_PAIR_FINDING_CODE / CLI rename must
+            exist). Red-first: agreement test against current skill fails (missing
+            live code; retired code and "no non-test digest movement" still
+            present). Record bun test failure (F12.2).
+          </Criterion>
+          <Criterion>
+            Surgical edit only (D6) on both
+            skills/ngrace/ngrace-execute/SKILL.md and
+            plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md: replace the
+            failure-shape clause; leave F9.8 ordering rationale, WriteEvidence
+            timing, disclosed-gap, and stash ban unchanged.
+          </Criterion>
+          <Criterion>
+            AC-PROSE-ENFORCEMENT-AGREE: both trees contain
+            review.attempt-pair-identical-tree (exact, bound to catalog constant);
+            neither contains review.attempt-pair-unsubstantiated; neither contains
+            "no non-test digest movement". Positive presence and negative absence
+            on both paths. Mutation of constant or either tree must redden.
+          </Criterion>
+          <Criterion>
+            AC-SKILL-MIRROR-IDENTICAL: git diff --no-index clean between the two
+            SKILL.md paths; bun run ./scripts/validate-marketplace.ts green for
+            packaged-vs-canonical.
+          </Criterion>
+          <Criterion>
+            token-accounting.test.ts: after prose lands, re-measure
+            skillTextLines().total; pin exact toBe to measured value (F23/F29).
+            If unchanged at 779, leave pin and report "re-measured; unchanged".
+            File remains in OWS either way (F27).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Dogfood close: suite, lint at close, archive count 27, corpus zero including self</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-SUITE-AND-LINT **at close** (qualifier required — F26): after this
+            change is applied/archived, `bun run ngrace lint --path .` is 0 errors
+            and 0 warnings; do not claim 0/0 for mid-change dirty trees or while
+            baseline framing lists expected assertion.* from deliberate Baseline
+            falsification during the window.
+          </Criterion>
+          <Criterion>
+            bun test for touched packages green; bun run validate:ci green;
+            bun run ./scripts/validate-marketplace.ts green.
+          </Criterion>
+          <Criterion>
+            Re-measure archive (F12.2): `ls -1d .ngrace/changes/archive/C-* | wc -l`
+            is **27** after this bundle archives (was 26 at plan-authoring).
+            Dynamic corpus scan still yields exactly 0 findings for both live and
+            retired attempt-pair codes over **every** enumerated bundle, including
+            C-SUBSTANTIATION-HONESTY.
+          </Criterion>
+          <Criterion>
+            Unscoped `ngrace review --path .` prints Attempt-pair audit not-run
+            (AC-ABSENCE-RECORD still holds at close). No edits under
+            docs/plans/archive/ or .ngrace/changes/archive/ content (other than
+            the legitimate archive move of this bundle); decisions.md untouched;
+            no CHANGELOG.md; no version-surface edits.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-SUBSTANTIATION-HONESTY>
+</NgraceChangePlan>
