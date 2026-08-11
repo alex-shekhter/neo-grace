@@ -51,6 +51,13 @@ import type { AnalysisCoverage, AnalysisCoverageEntry, LintIssue, LintOptions, L
 
 const TEXT_FORMAT_OPTIONS = new Set(["text", "json"]);
 
+/**
+ * Module-private count of baseline-sourced lint issues for text framing (P0.9 / D13).
+ * Written only when evaluateSection runs BaselineAssertions with evaluateSemantically === true;
+ * read only by formatTextReport. Not on LintResult — JSON.stringify must not gain a key.
+ */
+const baselineExpectationCounts = new WeakMap<LintResult, number>();
+
 function emptyAnalysisCoverage(): AnalysisCoverage {
   return { adapterBacked: [], unverified: [], governedFiles: 0 };
 }
@@ -332,6 +339,11 @@ function evaluateSection(
   skipUnevaluatedCommands = false,
   skipActivePhaseIssues = false,
 ) {
+  // Call-site binding (D3): only BaselineAssertions under semantic evaluation contribute to N.
+  // Excludes TargetAssertions (any site) and archived / non-approved plans (evaluateSemantically false).
+  const countBaselineDelta = section === "BaselineAssertions" && evaluateSemantically === true;
+  const issuesBefore = countBaselineDelta ? result.issues.length : 0;
+
   const extraction = extractAssertionsWithIssues(planFile, section);
   if (includeExtractionIssues) {
     for (const issue of extraction.issues) {
@@ -353,6 +365,13 @@ function evaluateSection(
       for (const issue of evaluateAssertion(assertion, context)) {
         addNgraceIssue(result, issue);
       }
+    }
+  }
+
+  if (countBaselineDelta) {
+    const delta = result.issues.length - issuesBefore;
+    if (delta > 0) {
+      baselineExpectationCounts.set(result, (baselineExpectationCounts.get(result) ?? 0) + delta);
     }
   }
 }
@@ -534,6 +553,15 @@ export function isValidTextFormat(format: string) {
 }
 
 export function formatTextReport(result: LintResult, options: { remediate?: boolean } = {}) {
+  // Lead computed before early return so empty-issue and non-empty paths cannot diverge (AC-BASELINE-LINT-FRAMING).
+  const n = baselineExpectationCounts.get(result) ?? 0;
+  const lead =
+    n > 0
+      ? n === 1
+        ? `Baseline expectation: 1 expected while a C-* change is in progress (assertion.* errors below).`
+        : `Baseline expectations: ${n} expected while a C-* change is in progress (assertion.* errors below).`
+      : null;
+
   const lines = [
     "neo-grace Lint Report",
     "=".repeat(21),
@@ -548,7 +576,8 @@ export function formatTextReport(result: LintResult, options: { remediate?: bool
 
   if (result.issues.length === 0) {
     lines.push("", "No issues found.");
-    return lines.join("\n");
+    const body = lines.join("\n");
+    return lead ? `${lead}\n${body}` : body;
   }
 
   lines.push("", "Issues");
@@ -560,5 +589,6 @@ export function formatTextReport(result: LintResult, options: { remediate?: bool
     }
   }
 
-  return lines.join("\n");
+  const body = lines.join("\n");
+  return lead ? `${lead}\n${body}` : body;
 }
