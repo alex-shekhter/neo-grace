@@ -2675,3 +2675,43 @@ one costs a reviewer's attention on every documentation and test-strengthening t
 costs nothing until something is actually wrong — a good argument, and not evidence of detection. A
 staged retrospective red (`git stash` → record fail → unstash) defeats both, and nothing in the planned
 bundle addresses it.
+
+---
+
+### F33 — A criterion measured at authoring, evaluated at close, is false in between. **[verified]**
+
+`C-SUBSTANTIATION-HONESTY`'s `AC-ARCHIVE-CORPUS-ZERO` read:
+
+> Against repository archives **at the change's close tree**: for each of the **26** directories
+> `.ngrace/changes/archive/C-*` … Aggregate finding count … over the **26** bundles is **0**.
+
+Twenty-six was correct when the spec was written and wrong when the criterion is evaluated, because the
+bundle archives itself into the corpus it measures. At close there were **27**. I approved it and did not
+catch it; I found it while writing the plan prompt.
+
+It was satisfiable — a plan may be stricter than its spec, so the plan widened to dynamic enumeration
+with zero asserted across every bundle found, plus a frozen containment check for the 26 known at
+authoring so the denominator cannot quietly shrink. Zero over 27 subsumes zero over 26 and nothing was
+loosened. **A literal `expect(dirs.length).toBe(26)` would have failed at the exact moment the criterion
+was meant to be verified**, and on every future bundle after that.
+
+**The class, which is the point of recording it.** Three findings now share one shape:
+
+| | what was written | why it was false at evaluation |
+| --- | --- | --- |
+| [F26](#f26) | a plan restated "0 errors" and dropped **at close** | unsatisfiable while the bundle is active |
+| [F30](#f30) | every commit names the resume-reason requirement | the first commit predates the requirement |
+| F33 | the corpus holds **26** bundles | the bundle archives itself, making 27 |
+
+**A criterion is a statement about a future moment, written in the present tense.** Each of these reads
+as complete and self-evidently true when authored, and each is false precisely when it is checked. The
+tell is a criterion containing a **count, a status, or a qualifier that the change itself will alter**.
+
+Authoring guidance, carried forward: when a criterion names a measured quantity, state **when** it is
+measured and whether the change moves it. If the change moves it, write the criterion against the
+invariant (*"zero findings across every archived bundle"*) rather than the measurement (*"zero across the
+26"*). Keep the measurement as a recorded observation in `Assumptions`, where being a snapshot is
+honest, instead of in a criterion, where it becomes a claim about a moment that has not happened yet.
+
+Disposition: recorded, not scheduled. No artifact is amended — the plan's widening already resolved it
+and the verdict discloses it. This is authoring guidance, like F26's.
