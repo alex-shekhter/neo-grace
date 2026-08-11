@@ -1,0 +1,512 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-ESCALATION-HONESTY>
+    <Summary>
+      Close F21 and F22 on the fix-budget / resume seam: enforce a thrash rule that
+      does not fire on honest red-first discipline (same-signature repeat), plus a
+      distinct-signature backstop so a confused executor that never reuses a key
+      still hits a checkpoint; make the skill prose and the CLI enforce both
+      thresholds; record the replan decision on every resume that clears an
+      escalation — so the ledger cannot show stop-and-restart with silence between them.
+    </Summary>
+    <Problem>
+      Two verified findings on one seam (decisions.md F21, F22): the fix budget in
+      `src/grace-cursor.ts` and the paragraph that describes it in
+      `skills/ngrace/ngrace-execute/SKILL.md`.
+
+      **F21 — the budget counts attempts; the contract says it counts failures.**
+      `countTaskAttemptEvents` filters `kind === "attempt"` with no outcome condition.
+      Escalation fires when `options.outcome === "fail" &amp;&amp; attemptCount &gt;= 2`
+      (`FIX_ATTEMPT_BUDGET = 2`). The enforced rule is therefore: *a fail that is the
+      second-or-later attempt of any outcome in the budget window.* The skill says
+      **"two failed attempts"** in four places (rule 5; attempt kind; escalation kind
+      When and How). Those are different rules; the contract's version is what every
+      executor is handed. The escalation message compounds it — *"Budget exhausted
+      for T-001 after N attempts"* reports a count of attempts under a name the
+      contract defines in failures. F21 is F12's class again: the contract does not
+      describe the protocol the CLI enforces. `C-EXECUTION-CONTRACT` verified that
+      every *kind* was documented; it did not verify the *thresholds* the sentences
+      assert. A completeness check over a set does not check the claims made about
+      the set.
+
+      Measured divergence that bites under ordinary red-first: `pass, fail` reaches
+      `attemptCount = 2` and escalates on the *first* failure, which "two failed
+      attempts" forbids. Two different-signature fails also escalate under today's
+      code (and under a pure failure-count rule) — the suite even pins that as
+      deliberate ("two failures with DIFFERENT signatures still exhaust the budget").
+      That collides with required red-first discipline (F9.8): a red recorded in its
+      own tool round trip *before* the fix is compliance, not thrash. Counting reds
+      (or any-attempt cycles) as budget consumption is a category error when the
+      methodology requires those reds. It is not hypothetical — the budget fired on
+      deliberate reds the authority had already written and approved, each requiring
+      `cursor resume` to continue.
+
+      **Signature keys are agent-authored.** A same-signature-only rule protects when
+      the executor recognizes a repeated problem. An executor that does *not*
+      understand its failure — the common thrash case — invents a new key each time
+      (or inherits non-deterministic detail into the key). Without a second trigger,
+      escalation would fire least when most needed. That is not "adversarial gaming";
+      it is ordinary confusion. A deferred review detector for key churn arrives after
+      the loop has burned the cycles and is not an acceptable residual for this project.
+
+      **F22 — `paused-pending-approval` is cleared by the agent that caused it.**
+      The state is named for an approval; its message says *"replan decision owed;
+      task has not failed."* Nothing checks that any approval or decision occurred:
+      `cursor resume` takes no reason, no approver, and no token, and clears the
+      unresolved-escalation set on its own. Observed executor conduct (escalate →
+      resume → continue) was **not** a violation — the contract names no actor and
+      the continuation was in substance authorized. The defect is in the *name and
+      the gap*, not the conduct: the audit trail holds the escalation and the resume
+      but not the decision between them, so the ledger can show work stopped and
+      restarted while saying nothing about who allowed it or why.
+    </Problem>
+    <Goals>
+      <Goal>
+        Enforce **two** escalation triggers in the current budget window (window =
+        last resume that resolved an escalation for the task — A24; full history
+        stays in the ledger). Signature equality = exact `kind` and exact `key`
+        string match. Passes never escalate and never clear signature history inside
+        the window. `verification-unavailable` still does not count.
+
+        **Trigger R (repeat):** escalate when a fail carries a FailureSignature that
+        already appears on a prior fail in the window. Threshold **2** (second
+        occurrence of the same signature). Refinement of the contract sentence:
+        "two failed attempts" → "two failed attempts of the same signature."
+
+        **Trigger D (distinct backstop):** escalate when the window's set of distinct
+        failing signatures reaches **4** after adding the current fail's signature
+        (regardless of repeats). N=4 is justified in Assumptions from measured
+        ledger usage (max observed distinct fails per task = 2; 2× headroom).
+      </Goal>
+      <Goal>
+        On each fail event, evaluate **R before D**. At most one trigger applies to
+        a given event (a signature cannot be both a repeat and newly N-th distinct).
+        The escalation message **names which trigger fired** with the correct unit
+        (repeated signature vs four distinct unresolved failures).
+      </Goal>
+      <Goal>
+        Skill prose and CLI enforcement agree on **both** thresholds in every place
+        the budget is described (the four current "two failed attempts" sites and
+        any residual sentence that states a threshold). Agreement is checked by
+        tests that fail when prose and enforcement diverge on either number — not
+        by a kind-set completeness check alone. Leaving either threshold unpinned
+        reproduces F21.
+      </Goal>
+      <Goal>
+        A resume that clears a task from the unresolved-escalation set **requires**
+        a non-empty reason (after trim), refused before any write when absent; that
+        reason is **recorded on the resume event** in the durable/loose event stream
+        so the ledger holds the replan decision between escalation and continuation.
+        Ordinary resume that does not resolve an escalation remains allowed without
+        a reason. Both `ngrace cursor resume` and `ngrace cursor advance --kind resume`
+        enforce the same rule.
+      </Goal>
+      <Goal>
+        State name `paused-pending-approval` is retained: the recorded reason makes
+        the "decision owed" real as an artifact rather than an implied one.
+      </Goal>
+      <Goal>
+        Canonical `skills/ngrace/ngrace-execute/SKILL.md` and packaged
+        `plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md` remain byte-identical
+        after the skill edit, checked by `bun run ./scripts/validate-marketplace.ts`
+        (not by eye).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: decisions.md F21, F22 (subject); F12 / F12.2 (contract describes
+        protocol; measure denominators); F9.8 (honest red-first ordering — reds are
+        required acts); F10 (tests check what their names claim); F23 (exact pins,
+        not weaker bounds — sequence outcomes, threshold constants, and reason
+        presence are `toBe` / exact refuse, not "non-zero" or family regex for
+        codes); D5.5 (CHANGELOG.md is generated — never hand-edited); D13
+        (schemaVersion / recorded surfaces stay honest — a reason flag that is
+        accepted and dropped fails the goals). Spec only in this authoring pass;
+        status remains `"draft"`; do not author plan.xml until the spec is approved
+        (F4 two-stage).
+      </Constraint>
+      <Constraint>
+        **Escalation rules are decided in this spec, not deferred to the plan.** The
+        plan may choose mechanism (function names, whether `countTaskAttemptEvents`
+        is replaced or narrowed, how the skill marks the rule) but must not re-open
+        which sequences escalate or the values of the two thresholds (R=2, D=4).
+      </Constraint>
+      <Constraint>
+        Exact sequences (budget window from last resolving resume; signature equality
+        = exact `kind` and exact `key`; evaluate trigger R then trigger D):
+
+        | Sequence in window | Escalates? | Trigger |
+        | `fail(A)` | no | — |
+        | `fail(A), fail(A)` | **yes** on second | R (repeat A) |
+        | `fail(A), fail(B)` | no | — |
+        | `fail(A), pass, fail(B)` | no | — |
+        | `fail(A), pass, fail(A)` | **yes** on second `fail(A)` | R |
+        | `pass, fail(A)` | no | — |
+        | `fail(A), fail(B), fail(A)` | **yes** on third | R (not D; distinct=2) |
+        | `fail(A), fail(B), fail(C)` | no | — (distinct=3 &lt; 4) |
+        | `fail(A), fail(B), pass, fail(C)` | no | — |
+        | `fail(A), fail(B), fail(C), fail(D)` | **yes** on fourth | D (distinct=4) |
+        | `verification-unavailable` ×2 (no fails) | no | — |
+        | two fails with same kind different key | no (as a *pair*) | — |
+        | two fails with different kind same key | no (as a *pair*) | — |
+
+        A, B, C, D are four pairwise-distinct (kind, key) pairs. Fail still requires
+        a signature (existing refuse). Trigger R threshold = **2** same-signature
+        occurrences. Trigger D threshold = **4** distinct failing signatures in the
+        window. Neither is a total-fail count of 2 (rejected option 1).
+      </Constraint>
+      <Constraint>
+        AffectedAreas is a closed list and binds the plan
+        (change.plan-scope-exceeds-spec). A plan that needs a module not named
+        here is a stop-and-report. Over-declaring grants unreviewed scope;
+        under-declaring costs a re-spec.
+      </Constraint>
+      <Constraint>
+        Both skill trees always: edit canonical
+        `skills/ngrace/ngrace-execute/SKILL.md` and keep
+        `plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md` synchronized in the
+        same change. `scripts/validate-marketplace.ts` requires packaged-vs-canonical
+        parity via `git diff --no-index`.
+      </Constraint>
+      <Constraint>
+        This bundle does **not** touch any product version surface: not
+        `package.json` version, README packaged-version marker, `openpackage.yml`,
+        `.claude-plugin/marketplace.json`, or
+        `plugins/ngrace/.claude-plugin/plugin.json`. Version surfaces belong to the
+        deliberate release act (`scripts/release-bump.ts` / `release:bump` rewrites
+        every surface at once). Hand-bumping here would collide with that act and
+        with validate-marketplace's version-sync check. Repository practice (measured
+        in C-EXECUTION-CONTRACT): version surfaces are not change-bundle territory.
+        CHANGELOG.md remains unedited and generated (D5.5). The commit-body release
+        note for this protocol change is a **named acceptance criterion**
+        (AC-COMMIT-BODY-PROTOCOL), not an unchecked NonGoal paragraph.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first regressions for each AC. Sequence criteria pin
+        exact escalate true/false and which trigger per sequence above (F23).
+        Reason-refuse tests pin that no resume event is written and the task remains
+        in the unresolved set when reason is absent on an escalation-clearing resume.
+        Prose/enforcement agreement must fail under a deliberate mutation of either
+        side (skill still saying bare "two failed attempts" as the budget rule, skill
+        omitting the distinct backstop of 4, code re-introducing attempt-count
+        escalation, or either threshold constant drifting without the skill and tests
+        noticing).
+      </Constraint>
+      <Constraint>
+        Archives under `.ngrace/changes/archive/` and `docs/plans/archive/` are never
+        edited. decisions.md is not amended — F21/F22 remain the authority's record;
+        this bundle cites and closes them.
+      </Constraint>
+      <Constraint>
+        **No deferred residual** for signature-key churn. Trigger D is the in-band
+        backstop. A later review detector for churn may still be useful as
+        diagnostics but is not this bundle's safety property and must not substitute
+        for D.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        **Rejected escalation option 1 — count failures only at 2** (`outcome === "fail"`
+        count ≥ 2, any signatures). Still treats two honest red-first cycles for
+        *different* criteria as thrash. Collides with F9.8 discipline; would still
+        have escalated the authority-approved reds that motivated this bundle. A
+        total-fail threshold **at 2** is the bug; a **distinct-signature** backstop
+        **at 4** is not the same thing and is a Goal.
+      </NonGoal>
+      <NonGoal>
+        **Rejected escalation option 2 — move the contract to match "second attempt"**
+        (authority's recorded leaning in F21). An agent that has burned two
+        verification cycles is not automatically thrashing when one cycle was a
+        deliberate red and another a pass, or when two reds drive different criteria.
+        Matching the current code preserves the latent `pass, fail` false positive
+        and the category error of counting required reds as budget consumption.
+      </NonGoal>
+      <NonGoal>
+        **Rejected F22 alternative — rename `paused-pending-approval`** to match
+        what is enforced today (self-clearable pause with no recorded decision).
+        Honest about current mechanism but gives up the checkpoint the name encodes.
+        Prefer requiring a recorded reason so the name becomes true enough: a pause
+        that holds until a deliberate, auditable replan decision is written.
+      </NonGoal>
+      <NonGoal>
+        Inventing a multi-party approval mechanism, approver identity, or authority
+        token the tool cannot enforce. Reason-on-resume is the cheapest honest repair
+        F22 names; it is not a cryptographically binding approval.
+      </NonGoal>
+      <NonGoal>
+        Changing gate policy (apply / approve / archive), fold ordering, attempt-pair
+        review (`review.attempt-pair-unsubstantiated`), flake classification, or
+        claimedConfidence semantics.
+      </NonGoal>
+      <NonGoal>
+        New event kinds. Resume remains the sole escalation resolver kind
+        (`ESCALATION_RESOLVER_KINDS`); only its payload and CLI args gain reason
+        when resolving.
+      </NonGoal>
+      <NonGoal>
+        Closed vocabulary or schema validation of FailureSignature kind/key values
+        beyond non-empty existing requirements. Signature honesty stays agent-authored;
+        Trigger D bounds the damage when keys vary.
+      </NonGoal>
+      <NonGoal>
+        Any product version bump or edit to version surfaces (package.json version,
+        README packaged-version line, openpackage.yml, marketplace.json, plugin.json).
+        Hand-editing CHANGELOG.md (D5.5). Release notes for the protocol land via
+        conventional-commit body (AC-COMMIT-BODY-PROTOCOL) and generated CHANGELOG
+        at the next `release:bump`.
+      </NonGoal>
+      <NonGoal>
+        Broader skill rewrites (P1.10 emphasis inversion, other skills beyond
+        ngrace-execute minimum cross-reference if a single pointer is needed).
+        README CLI table rows beyond what is required for resume --reason honesty
+        if the plan discovers a false command synopsis — prefer skill contract as
+        the agent-facing source of truth.
+      </NonGoal>
+      <NonGoal>
+        Other open findings not F21/F22. Do not amend decisions.md.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SIGNATURE-BUDGET-SEQUENCES>
+        Under a fresh budget window, the CLI enforces the sequence table in Constraints
+        exactly for **both** triggers. **Repeat (R=2):** `fail(A), fail(A)` escalates
+        on the second event with trigger R; `fail(A), fail(B)`, `fail(A), pass, fail(B)`,
+        and `pass, fail(A)` do **not** escalate; `fail(A), pass, fail(A)` and
+        `fail(A), fail(B), fail(A)` **do** escalate on the repeated signature (R), not
+        on distinct count. **Backstop (D=4):** `fail(A), fail(B), fail(C)` does **not**
+        escalate; `fail(A), fail(B), pass, fail(C)` does **not**; `fail(A), fail(B),
+        fail(C), fail(D)` **does** escalate on the fourth with trigger D. VU does not
+        consume budget; same-kind/different-key and different-kind/same-key pairs are
+        not repeats of each other. **Values named:** escalate boolean per sequence;
+        trigger id R|D when yes; signature equality = exact `kind` and exact `key`;
+        constants R=2 and D=4. **Failure conditions:** attempt-count rule still fires
+        on `pass, fail`; total-fail-at-2 still fires on `fail(A), fail(B)`; backstop
+        fires at 3 distinct; backstop never fires at 4; R ignores intervening pass;
+        equality case-folded or compares only one of kind/key; suite still pins
+        "different signatures still exhaust the budget" as desired at two fails;
+        either threshold untested.
+      </AC-SIGNATURE-BUDGET-SEQUENCES>
+      <AC-BUDGET-WINDOW-PRESERVED>
+        Resolving resume still opens a new budget window (A24): after escalate →
+        reason-bearing resume → `fail(C)`, `fail(C)` escalates on the second C with
+        trigger R and this-window signatures only (prior-window signatures must not
+        count toward R or D). Ordinary resume that did not clear an escalation does
+        not reset the window. **Failure conditions:** window counts pre-resume fails
+        toward the new round; ordinary resume clears signature history incorrectly;
+        reason-bearing resume fails to clear unresolved set.
+      </AC-BUDGET-WINDOW-PRESERVED>
+      <AC-ESCALATION-MESSAGE-HONEST>
+        On escalation, the user-visible message names **which trigger fired** and
+        uses that trigger's unit: for R, the repeated FailureSignature (`kind:key`);
+        for D, that four distinct unresolved failures exhausted the backstop (and
+        may list the distinct signatures). Must not claim exhaustion in a unit the
+        firing rule does not use (e.g. only "after N attempts", or naming R when D
+        fired, or D when R fired). Still states `paused-pending-approval` and that
+        the task has not failed / replan decision is owed. **Failure conditions:**
+        message reports raw attempt count as the sole exhaustion metric; wrong
+        trigger named; message omits the repeated signature on R; message claims
+        the task failed.
+      </AC-ESCALATION-MESSAGE-HONEST>
+      <AC-PROSE-ENFORCEMENT-AGREE>
+        `skills/ngrace/ngrace-execute/SKILL.md` states **both** budget thresholds in
+        every place that describes when the fix budget escalates — including
+        execution rule 5 and the `attempt` / `escalation` kind entries (the four F21
+        sites, rewritten): (1) two failed attempts **of the same signature** (R=2);
+        (2) four distinct failing signatures in the window (D=4). Not bare "two
+        failed attempts" and not "second attempt of any outcome." The resume kind
+        documents that clearing an escalation requires a recorded reason. **How
+        checked:** regressions that (a) drive the sequence matrix against the CLI
+        for both triggers and (b) fail if the skill omits either threshold value,
+        still claims the old bare rule, or if skill and code can mutate either
+        constant independently without a test failing. A kind-set completeness
+        check alone does **not** satisfy this AC (C-EXECUTION-CONTRACT trap).
+        **Failure conditions:** skill omits D=4; skill still says "two failed
+        attempts exhaust" without same-signature qualification; skill and code
+        disagree on any matrix row or either constant; only kind inventory is asserted.
+      </AC-PROSE-ENFORCEMENT-AGREE>
+      <AC-RESUME-REASON-REQUIRED-ON-ESCALATION-CLEAR>
+        When a task is in the unresolved-escalation set, `ngrace cursor resume` and
+        `ngrace cursor advance --kind resume` for that task refuse with a non-zero
+        exit / `GraceCommandError` (`invalid-arguments` or equally stable coded refuse)
+        if `--reason` is absent or whitespace-only — **before** writing a resume event
+        and **without** clearing the unresolved set. When `--reason` is non-empty,
+        resume writes, clears that task from the set, and returns to `in-progress` (or
+        retains `paused-pending-approval` if other tasks remain escalated — plurality
+        unchanged). **Failure conditions:** reason optional on escalation clear;
+        refuse after write; clear without reason; only one of the two entry paths enforces.
+      </AC-RESUME-REASON-REQUIRED-ON-ESCALATION-CLEAR>
+      <AC-RESUME-REASON-RECORDED>
+        The non-empty reason on an escalation-clearing resume is present on the resume
+        event in the accounting stream (loose and, after fold, ledger) as a durable
+        field (attribute or child — plan mechanism) readable without re-deriving from
+        agent memory. Round-trip: write → show/list/fold → reason still equal to the
+        supplied string (exact `toBe`). **Failure conditions:** `--reason` accepted and
+        dropped; reason only on stderr/stdout and not on the event; lost across fold.
+      </AC-RESUME-REASON-RECORDED>
+      <AC-RESUME-ORDINARY-WITHOUT-REASON>
+        A resume for a task that is **not** in the unresolved-escalation set still
+        succeeds without `--reason` (pause → resume path unchanged for agents that
+        never escalated). Optional reason, if supplied, may be recorded but is not
+        required. **Failure conditions:** all resumes require reason; pause/resume
+        broken for non-escalated tasks.
+      </AC-RESUME-ORDINARY-WITHOUT-REASON>
+      <AC-SKILL-MIRROR-IDENTICAL>
+        After the change, `skills/ngrace/ngrace-execute/SKILL.md` and
+        `plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md` are byte-identical
+        (`git diff --no-index` clean / validate-marketplace packaged-vs-canonical
+        check green). **Failure conditions:** only canonical edited; drift left for a
+        later cleanup; eye-check claimed without validator.
+      </AC-SKILL-MIRROR-IDENTICAL>
+      <AC-COMMIT-BODY-PROTOCOL>
+        At close, every git commit that introduces the skill and/or CLI protocol
+        change (paths include `skills/ngrace/ngrace-execute/SKILL.md` and/or
+        `src/grace-cursor.ts` in that commit's diff) has a **commit message body**
+        (text after the subject line) that names both thresholds by value — same-
+        signature repeat **2** and distinct-signature backstop **4** — and the
+        resume-reason requirement for escalation clear. Checked at close by
+        inspecting `git log` for those paths in the change's commit range (exact
+        substring or equivalent machine check — plan may script it; F23: assert the
+        required phrases are present, not merely that a body is non-empty).
+        `CHANGELOG.md` is not edited (D5.5). **Failure conditions:** only subject
+        line carries the note; either threshold value absent from the body; resume
+        reason omitted; CHANGELOG.md hand-edited as a substitute; criterion treated
+        as optional prose.
+      </AC-COMMIT-BODY-PROTOCOL>
+      <AC-SUITE-AND-LINT>
+        Red-first regressions cover each AC above with exact assertions (F23).
+        `bun test` green for touched packages; `bun run validate:ci` green;
+        `bun run ngrace lint --path .` is 0 errors and 0 warnings at close;
+        `ngrace review --path .` is 0 findings on a clean tree after the change.
+        No edits under `docs/plans/archive/` or `.ngrace/changes/archive/`; no
+        CHANGELOG.md; no version / marketplace / openpackage version surface edits.
+        If skill line count changes, `src/test-support/token-accounting.test.ts` pin
+        is re-measured and updated (D15) — not left red. **Failure conditions:** suite
+        red; lint/review dirty by design silence; archive or decisions.md edits;
+        version surfaces hand-bumped; token pin left at pre-change total while skill
+        lines moved.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CURSOR />
+      <M-SKILLS />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/grace-cursor.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        Sequence matrix both triggers: fail(A)×2 escalates R; fail(A),fail(B) no;
+        fail(A),fail(B),fail(C) no; fail(A),fail(B),fail(C),fail(D) escalates D;
+        fail(A),fail(B),fail(A) escalates R not D; fail(A),pass,fail(B) no;
+        fail(A),pass,fail(A) R; pass,fail no; VU×2 no; window after reason-resume
+        resets both counters; message names correct trigger; resume without reason
+        on escalated task refuses with no event and set uncleared; reason round-trips
+        through fold; ordinary resume without reason still works; skill prose states
+        R=2 same-signature and D=4 distinct (not bare two failed attempts); commit
+        body names both thresholds + resume reason; validate-marketplace green
+        (mirror identical, version surfaces untouched and still in sync at 6.1.1);
+        token-accounting pin re-measured if skill lines change; ngrace lint --path .
+        0/0; ngrace review --path . 0 findings; validate:ci green.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Primary rule: same-signature repeat (Trigger R, threshold 2).** Refines the
+        contract's "two failed attempts" rather than inventing a third unrelated
+        sentence: two failed attempts *of the same signature*. Rationale for not
+        counting all fails or all attempts: `--outcome fail` under red-first is often
+        a required compliance act (F9.8). Two reds with *different* signatures are
+        two criteria driven red-first (progress); two with the *same* signature are
+        thrash. The CLI already requires `--signature-kind` / `--signature-key` on
+        fail and lists signatures on escalation — the machinery exists; the counter
+        was ignoring it (A19.1 "dumb counter"). Reopened here because F21 + red-first
+        evidence show the dumb counter is the wrong thrash detector.
+      </Assumption>
+      <Assumption>
+        **Backstop: distinct failing signatures (Trigger D, threshold N=4).**
+
+        **Measured at authoring HEAD** by parsing every archived `run-ledger.xml`
+        under `.ngrace/changes/archive/` for `kind=attempt` `outcome=fail` events
+        and their FailureSignature (kind:key), grouped by change id and task.
+        Parser must handle self-closing Event tags (`&lt;Event … /&gt;`); a
+        `…&gt;…&lt;/Event&gt;`-only match swallows fails that follow a resume and
+        undercounts (first draft of this table had that bug).
+
+        Six tasks reached the observed ceiling (2 fails / 2 distinct each):
+
+        | Bundle / task | fail attempts | distinct signatures |
+        | C-REPORT-HONESTY / T-005 | 2 | 2 |
+        | C-REPORT-HONESTY / T-001 | 2 | 2 |
+        | C-LEGIBLE-FAILURE / T-003 | 2 | 2 |
+        | C-LEGIBLE-FAILURE / T-002 | 2 | 2 |
+        | C-LEGIBLE-FAILURE / T-001 | 2 | 2 |
+        | C-FLAG-HONESTY / T-001 | 2 | 2 |
+
+        Every other archived task with any fail has 1 fail and 1 distinct signature
+        (21 such tasks at re-derivation). No task has 3 or more fails or 3 or more
+        distinct signatures.
+
+        **Maximum: 2 fails and 2 distinct signatures on any single task, across
+        every archived bundle.** Never 3. Six independent observations at that
+        ceiling (not two).
+
+        **N = 4 = 2 × measured max.** Headroom for a larger task to drive three
+        legitimate red-first criteria without checkpoint, while still stopping a
+        task that has produced four different unresolved failures — labels
+        notwithstanding. N=3 is only +1 over observed max and is tight for a
+        three-criterion red-first wave; N=5 lengthens the confusion loop without
+        ledger evidence that honest work needs four distinct reds. Rejected: no
+        backstop (inverts incentive — confused agents loop, careful agents stop).
+        Rejected: total-fail count at 2 (option 1). Rejected: deferring to a later
+        review detector for key churn.
+      </Assumption>
+      <Assumption>
+        **Evaluation order R then D.** On one fail event at most one trigger applies:
+        if the signature was already present, R fires and distinct count does not
+        grow via a "new" slot; if it is new and the set size becomes 4, D fires.
+        Interaction sequence `fail(A), fail(B), fail(A)` therefore escalates on R
+        at the third event (distinct count is 2, not 4). Message must report R, not D.
+      </Assumption>
+      <Assumption>
+        **F22 repair chosen: require reason on escalation-clearing resume**, recorded
+        on the event. Model: `verification-unavailable --reason` (required, persisted
+        on the event attributes). Rejected rename of the state (NonGoals).
+      </Assumption>
+      <Assumption>
+        Module ownership from `.ngrace/graph/main.xml` at authoring HEAD:
+        **M-CURSOR** — Path `src/grace-cursor.ts` (budget + resume + tests co-located
+        as `src/grace-cursor.test.ts`);
+        **M-SKILLS** — Summary "Canonical GRACE skill sources under skills/ngrace/
+        (packaged mirror is separate)"; Type UTILITY; **no Path element** — owns
+        canonical skill text; packaged mirror is explicitly *separate* and has **no
+        owning graph module** of its own. That is not a new defect of this bundle;
+        packaging parity is enforced by `scripts/validate-marketplace.ts`, not by a
+        graph Path. This change still writes both trees in lockstep.
+        **M-TEST-SUPPORT** — token-accounting pin under `src/test-support/` if skill
+        line totals change (D15).
+        No other modules. If implement discovers grammar or CLI-infra must change for
+        reason persistence, stop-and-report and re-spec — do not silently expand.
+      </Assumption>
+      <Assumption>
+        Anticipated write scope (plan OWS must not exceed without re-spec):
+        `src/grace-cursor.ts`, `src/grace-cursor.test.ts`,
+        `skills/ngrace/ngrace-execute/SKILL.md`,
+        `plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md`,
+        and if measured skill line total moves,
+        `src/test-support/token-accounting.test.ts` (pin only).
+      </Assumption>
+      <Assumption>
+        **Version bump: NonGoal for this bundle.** Product content (skill protocol +
+        CLI behaviour) changes here; the four version surfaces move together only
+        under `release:bump` when a release is cut. Current packaged version at
+        authoring: **6.1.1** (README / package.json / openpackage / marketplace /
+        plugin.json).
+      </Assumption>
+      <Assumption>
+        Existing suite tests that pin "two failures with DIFFERENT signatures still
+        exhaust the budget" and attempt-count escalation are **wrong under the new
+        rules** and must be rewritten to the sequence matrix — not preserved as
+        goldens of the defect. Under the new rules, two different signatures do
+        **not** escalate; four distinct do.
+      </Assumption>
+    </Assumptions>
+  </C-ESCALATION-HONESTY>
+</NgraceChangeSpec>
