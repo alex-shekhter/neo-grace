@@ -2099,3 +2099,50 @@ What the successor owes, so the reasoning is not re-derived: route the refusal t
 `runGraceCommand` with `format` read from `context.args`, so the envelope and the error-supplied exit
 code both apply; and pin the exit code explicitly, since today's agreement at `1` is a coincidence
 rather than a guarantee.
+
+---
+
+### F25.1 — Routing everything through the renderer erased every unexpected cause. **[verified]**
+
+The successor did exactly what F25 asked, and the repair had a consequence F25 did not anticipate.
+`runGraceCommand` converts anything that is not already a `GraceCommandError` into
+`new GraceCommandError("invalid-project", fallbackMessage)`, **discarding the original message and
+stack**. That was contained while it wrapped individual leaf bodies. T-003 put it around every
+command's entire `run`, so the conversion became universal.
+
+Measured on the wrapper directly, before and after the repair, with a `TypeError` thrown from
+`originalRun`:
+
+| | before | after |
+|---|---|---|
+| text | `TypeError: cannot read property 'wrapper' of null` + stack at the throw site | `Unable to complete the GRACE command.` |
+| json | no envelope at all | envelope whose `message` is `Unable to complete the GRACE command.` |
+
+The envelope is the win. The erasure is not: every unexpected failure anywhere in the CLI would have
+reached the operator as one fixed sentence with no message, no file, and no line.
+
+**The general form is worth carrying past this bundle: a fallback message is not an error report.**
+Wrapping a broad surface in a narrow renderer converts *coverage* into *uniformity*, and uniformity
+reads as success at the reporting layer — the contract is satisfied, `ok: false` is honest, the exit
+code is right, and the one thing a reader needs is gone. It is the same shape as F10 one level up: the
+envelope's *name* promises an error report while its *body* carries a constant.
+
+**Repaired inside T-003**, in `src/query/command.ts` alone. A `GraceCommandError` rethrows untouched;
+anything else is converted to one **carrying the original message**, with the original stack written to
+stderr. Stdout stays pure envelope — the spec requires the entire stdout to parse — so in JSON mode the
+machine gets the contract on stdout and the human gets the stack on stderr. That split is the one the
+maintainer named when rejecting the original "defensible" framing: parsable structure first, stderr as
+the diagnostic channel beside it, not instead of it.
+
+**Why this was fixed in-task rather than deferred (D11).** The task created the regression; the repair
+sits inside the task's own declared `ObservedWriteScope`; and no NonGoal covers it — the nearest,
+*"rewriting `runGraceCommand`'s success path"*, is untouched, and `errors.ts` was never edited.
+Deferring would have shipped a legibility regression inside the bundle named `C-LEGIBLE-FAILURE`.
+
+**Residue, recorded rather than scheduled.** Errors thrown outside the operation callback —
+`collectBooleanFlagNames`, or citty's own argument parsing — still escape raw, exactly as before. That
+is the genuine bootstrap residue F25 already named, and it argues for making reachable errors conform,
+not for chasing the unreachable ones.
+
+Disposition: applied in `C-LEGIBLE-FAILURE` T-003. Carried as a design rule for any future shared
+renderer: **preserve the cause, or you have built a uniform way of saying nothing.**
