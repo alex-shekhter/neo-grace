@@ -1839,3 +1839,40 @@ has no way to enforce. The alternative — renaming the state to match what is e
 gives up the checkpoint.
 
 Disposition: follow-on queue, adjacent to F21 (same surface, same contract paragraph).
+
+---
+
+### F23 — A lower bound is not a count: the assertion was weaker than the claim under test. **[verified]**
+
+T-006's tests all pinned N with `toBeGreaterThanOrEqual` — `>= 1` for one failing baseline
+assertion, `>= 2` for two, `>= shapeIssues.length` for the malformed section. Every one passed, and
+every one would still have passed under an implementation that **doubled** the count: the lead line
+would have printed `Baseline expectations: 2` for a single failing assertion and no test would have
+noticed. Confirmed empirically — with `+ delta * 2` in place, the loose assertions stayed green and
+only the tightened ones failed.
+
+That matters because `AC-BASELINE-LINT-FRAMING`'s stated failure condition is printing the line
+*"without correctly counting baseline-sourced issues"*, and the line reports a specific number to a
+reader who has no independent way to check it. A test that admits any number ≥ the right one does not
+verify the only thing the surface claims.
+
+**This is the second distinct test-weakness class in this bundle, and it is not the F10 shape.** F10
+is a test whose *name* claims more than its body checks (T-004's "grammar.ts is not modified", deleted;
+T-006's "byte-identical" report test, renamed). F23 is a test whose name and body agree, but whose
+*assertion* is weaker than the property the criterion names. F10 is caught by reading the name against
+the body; F23 is caught only by asking what a wrong implementation would do and checking that the test
+would fail.
+
+**Standing rule:** when a surface reports a number, a criterion about that number is verified by
+`toBe`, never by a bound — and where the exact value is not obvious, measure it against the fixture
+before writing the assertion rather than reaching for `>=`. Where wording encodes the value (here the
+singular branch is reachable only at exactly 1), assert the wording too; it is a second independent
+pin on the same fact.
+
+The general form, which cost nothing both times it was applied here: **a test that passes under the
+correct implementation proves nothing on its own.** Both of T-006's real proofs came from temporarily
+breaking the implementation and recording what failed — the D13 cast probe, which surfaced
+`baselineExpectationCount` on the JSON contract exactly as predicted, and the double-count probe above.
+Confirming a probe reverted cleanly with `git status --short` is the whole cost.
+
+Disposition: applied in T-006 (committed `74ed4a9`); carried as a review habit, not a follow-on bundle.
