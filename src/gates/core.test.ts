@@ -21,6 +21,8 @@ import {
   listReviewVerdicts,
   readGateDecisions,
   readLatestReviewVerdict,
+  readLedgerVerdictsSurface,
+  readLedgerWrapper,
   readPermittingDecision,
   recordGateDecision,
   recordReviewVerdict,
@@ -153,8 +155,10 @@ describe("ledger Verdicts and Decisions (A30)", () => {
     const evaluation = evaluateGate(root, "C-GATE", "apply");
     expect(evaluation.decision).toBe("refuse");
     expect(evaluation.requirements.some((r) => r.id === "review-verdict" && r.blocking)).toBe(true);
-    // Legacy read still collapses to absent (empty list), not a throw.
-    expect(listReviewVerdicts(root, "C-GATE")).toEqual([]);
+    // Honest classification: unreadable is invalid, not collapsed empty list.
+    // listReviewVerdicts throws on invalid (existing contract); gate path stays refuse.
+    expect(readLatestReviewVerdict(root, "C-GATE").state).toBe("invalid");
+    expect(() => listReviewVerdicts(root, "C-GATE")).toThrow(/xml\.parse|unreadable|Invalid/i);
   });
 
   it("survives fold of a later epoch without losing sections (A30 probe)", () => {
@@ -688,23 +692,64 @@ describe("C-REPORT-HONESTY T-005 apply verdict diagnostics (P0.7)", () => {
     expect(text).toMatch(/outcome=failed|unreadable|did not qualify|invalid/i);
   });
 
-  it("unparseable ledger: no-verdict names path and reason; count is not claimed as 0", () => {
-    // wrapperFromLedger nulls on parse failure → latest absent; surface is unreadable.
-    // Count is undetermined — not 0 (third exit, not absence).
+  it("unparseable ledger: invalid-verdict names path and reason; decision stays refuse", () => {
+    // Honest classification: unreadable maps to invalid (not collapsed absent/no-verdict).
+    // Decision remains refuse (AC-GATE-COMPAT). Count is undetermined — not 0.
     const root = tempProject();
     const bundle = activeBundle(root);
     writeFileSync(path.join(bundle, "run-ledger.xml"), "not xml at all <<<");
 
     const result = evaluateApplyGate(root, "C-GATE");
     expect(result.decision).toBe("refuse");
-    expect(noVerdictIssue(result)).toBeDefined();
+    expect(result.issues.some((i) => i.code === "gate.apply.invalid-verdict")).toBe(true);
+    expect(noVerdictIssue(result)).toBeUndefined();
     const text = combinedDiagText(result);
     expect(text).toMatch(/run-ledger\.xml|looked at/i);
     expect(text).toMatch(/C-GATE/);
     expect(text).toMatch(/unreadable|xml\.parse|not expected|parse/i);
     // Must not assert a determined zero when nothing was counted.
     expect(text).not.toMatch(/Verdict child count=0/);
-    expect(text).toMatch(/count\s*=\s*unknown|count unknown|undetermined|unreadable/i);
+  });
+
+  it("wrong change wrapper: invalid-verdict with ledger.bundle-id-mismatch; decision refuse", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    writeFileSync(
+      path.join(bundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-OTHER><Verdicts><Verdict outcome="pass"/></Verdicts></C-OTHER></NgraceRunLedger>`,
+    );
+
+    const surface = readLedgerVerdictsSurface(root, "C-GATE");
+    const latest = readLatestReviewVerdict(root, "C-GATE");
+    expect(surface).toEqual(
+      expect.objectContaining({ state: "unreadable", code: "ledger.bundle-id-mismatch" }),
+    );
+    expect(latest).toEqual(
+      expect.objectContaining({ state: "invalid", code: "ledger.bundle-id-mismatch" }),
+    );
+
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(result.issues.some((i) => i.code === "gate.apply.invalid-verdict")).toBe(true);
+    expect(noVerdictIssue(result)).toBeUndefined();
+  });
+
+  it("corrupt ledger: deliberate regression would permit or throw — refuse holds (AC-GATE-COMPAT)", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    writeFileSync(path.join(bundle, "run-ledger.xml"), "not xml at all <<<");
+
+    let threw = false;
+    let result: ReturnType<typeof evaluateApplyGate> | undefined;
+    try {
+      result = evaluateApplyGate(root, "C-GATE");
+    } catch {
+      threw = true;
+    }
+    expect(threw).toBe(false);
+    expect(result!.decision).toBe("refuse");
+    // Not a silent pass / permit on unreadable content.
+    expect(result!.decision).not.toBe("permit");
   });
 
   it("immediate evaluateApplyGate after recordReviewVerdict permits (no flush)", () => {
@@ -975,5 +1020,101 @@ describe("C-FLAG-HONESTY T-002 — gate --record space form (F18)", () => {
     );
     expect(verdict.status).toBe(0);
     expect(JSON.parse(verdict.stdout).ok).toBe(true);
+  });
+});
+
+describe("C-LEGIBLE-FAILURE T-002 — three exits and single classification", () => {
+  it("construction: sole readLedgerWrapper export; former null-collapse helper absent from production source", async () => {
+    const src = await Bun.file(path.join(import.meta.dir, "ledger.ts")).text();
+    expect(src).not.toMatch(/\bwrapperFromLedger\b/);
+    expect(src.match(/\bexport function readLedgerWrapper\b/g)?.length).toBe(1);
+    // Shared prefix only — surface must not re-implement existsSync on the ledger path.
+    const surfaceBody = src.slice(src.indexOf("export function readLedgerVerdictsSurface"));
+    const untilNextExport = surfaceBody.slice(0, surfaceBody.indexOf("\nexport function", 1));
+    expect(untilNextExport).toContain("readLedgerWrapper");
+    expect(untilNextExport).not.toMatch(/existsSync\s*\(/);
+  });
+
+  it("AC-THREE-EXITS matrix: missing / unparseable / wrong-wrapper / clean", () => {
+    // missing → absent-no-file
+    {
+      const root = tempProject();
+      const bundle = activeBundle(root);
+      expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+      const w = readLedgerWrapper(bundle, "C-GATE");
+      expect(w).toEqual({ state: "absent-no-file" });
+      expect(readLedgerVerdictsSurface(root, "C-GATE")).toEqual({ state: "absent-no-file" });
+      expect(readLatestReviewVerdict(root, "C-GATE")).toEqual({ state: "absent" });
+    }
+
+    // unparseable → unreadable, not absent
+    {
+      const root = tempProject();
+      const bundle = activeBundle(root);
+      writeFileSync(path.join(bundle, "run-ledger.xml"), "not xml at all <<<");
+      const w = readLedgerWrapper(bundle, "C-GATE");
+      expect(w.state).toBe("unreadable");
+      if (w.state === "unreadable") {
+        // Exact code, not a parse-family regex: a drift to another parse code is a
+        // contract change and must redden here (plan: "exact codes/details where stable").
+        expect(w.code).toBe("xml.parse");
+        expect(w.detail.length).toBeGreaterThan(0);
+      }
+      const surface = readLedgerVerdictsSurface(root, "C-GATE");
+      expect(surface.state).toBe("unreadable");
+      const latest = readLatestReviewVerdict(root, "C-GATE");
+      expect(latest.state).toBe("invalid");
+      // Discriminating: unreadable is not collapsed to absent.
+      expect(latest.state).not.toBe("absent");
+    }
+
+    // wrong wrapper → unreadable ledger.bundle-id-mismatch, not absent
+    {
+      const root = tempProject();
+      const bundle = activeBundle(root);
+      writeFileSync(
+        path.join(bundle, "run-ledger.xml"),
+        `<NgraceRunLedger graceVersion="1.0"><C-OTHER><Verdicts><Verdict outcome="pass"/></Verdicts></C-OTHER></NgraceRunLedger>`,
+      );
+      const w = readLedgerWrapper(bundle, "C-GATE");
+      expect(w).toEqual(
+        expect.objectContaining({ state: "unreadable", code: "ledger.bundle-id-mismatch" }),
+      );
+      expect(readLedgerVerdictsSurface(root, "C-GATE")).toEqual(
+        expect.objectContaining({ state: "unreadable", code: "ledger.bundle-id-mismatch" }),
+      );
+      expect(readLatestReviewVerdict(root, "C-GATE")).toEqual(
+        expect.objectContaining({ state: "invalid", code: "ledger.bundle-id-mismatch" }),
+      );
+      const decisions = readGateDecisions(root, "C-GATE");
+      expect(decisions).toEqual(
+        expect.objectContaining({ state: "invalid", code: "ledger.bundle-id-mismatch" }),
+      );
+    }
+
+    // clean → ok
+    {
+      const root = tempProject();
+      const bundle = activeBundle(root);
+      recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+      const w = readLedgerWrapper(bundle, "C-GATE");
+      expect(w.state).toBe("ok");
+      if (w.state === "ok") {
+        expect(w.wrapper.tag).toBe("C-GATE");
+      }
+      expect(readLatestReviewVerdict(root, "C-GATE")).toEqual(
+        expect.objectContaining({ state: "present" }),
+      );
+      expect(evaluateApplyGate(root, "C-GATE").decision).toBe("permit");
+    }
+  });
+
+  it("AC-GATE-COMPAT: green fixture permit/refuse decisions are exact toBe pins", () => {
+    const root = tempProject();
+    activeBundle(root);
+    expect(evaluateApplyGate(root, "C-GATE").decision).toBe("refuse");
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    expect(evaluateApplyGate(root, "C-GATE").decision).toBe("permit");
+    expect(evaluateApproveGate(root, "C-GATE").decision).toBe("permit");
   });
 });

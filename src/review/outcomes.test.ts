@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import { ARTIFACT_DIR } from "../artifact/paths";
-import { recordReviewVerdict } from "../gates/ledger";
+import { readLedgerWrapper, recordReviewVerdict } from "../gates/ledger";
 import {
   PLAN_QUALITY_PROXY_CAVEAT,
   collectPlanQualityReport,
@@ -568,5 +568,39 @@ describe("plan-quality report (D10 / Phase 10)", () => {
     }
     // No silent shrink: every unreadable case is named
     expect(report.unreadable.length).toBe(cases.filter((c) => c.expectUnreadable).length);
+  });
+
+  it("C-LEGIBLE-FAILURE T-002: plan-quality and gate share readLedgerWrapper classification", () => {
+    const root = createRoot();
+    writeMinimalProject(root);
+    writeBundle(root, "C-MISMATCH");
+    const ledgerPath = path.join(
+      root,
+      ARTIFACT_DIR,
+      "changes",
+      "active",
+      "C-MISMATCH",
+      "run-ledger.xml",
+    );
+    writeFileSync(
+      ledgerPath,
+      `<NgraceRunLedger graceVersion="1.0"><C-OTHER><Verdicts><Verdict outcome="pass" /></Verdicts></C-OTHER></NgraceRunLedger>`,
+    );
+    const bundle = path.dirname(ledgerPath);
+    const shared = readLedgerWrapper(bundle, "C-MISMATCH");
+    expect(shared).toEqual(
+      expect.objectContaining({ state: "unreadable", code: "ledger.bundle-id-mismatch" }),
+    );
+    const report = collectPlanQualityReport(root);
+    expect(report.unreadable).toEqual([
+      expect.objectContaining({
+        changeId: "C-MISMATCH",
+        code: "ledger.bundle-id-mismatch",
+      }),
+    ]);
+    // Same code the shared classifier produced — not a parallel invent-on-the-spot path.
+    if (shared.state === "unreadable") {
+      expect(report.unreadable[0]?.code).toBe(shared.code);
+    }
   });
 });

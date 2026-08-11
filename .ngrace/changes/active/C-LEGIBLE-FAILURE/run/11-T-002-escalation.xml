@@ -1,0 +1,1 @@
+<NgraceRunEvent graceVersion="1.0" id="11" task="T-002" kind="escalation"><FailureSignature kind="dual-classification" key="wrong-wrapper-surface-unreadable-latest-absent" /><FailureSignature kind="loose-assertion" key="three-exits-parse-code-regex-accepts-drift" /></NgraceRunEvent>

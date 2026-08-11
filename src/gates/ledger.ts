@@ -16,6 +16,7 @@
 //   LEDGER_NON_EPOCH_SECTIONS
 //   LatestReviewVerdict
 //   LedgerVerdictsSurface
+//   LedgerWrapperSurface
 //   PermittingDecisionStatus
 //   ResolutionClassification
 //   ReviewVerdictOutcome
@@ -30,6 +31,7 @@
 //   readGateDecisions
 //   readLatestReviewVerdict
 //   readLedgerVerdictsSurface
+//   readLedgerWrapper
 //   readPermittingDecision
 //   recordGateDecision
 //   recordReviewVerdict
@@ -112,13 +114,13 @@ export type GateDecisionRecord = {
 /** Newest-governs read of the Verdicts section (A31.2). Invalid is never skipped. */
 export type LatestReviewVerdict =
   | { state: "absent" }
-  | { state: "invalid"; code: "ledger.invalid-verdict"; detail: string }
+  | { state: "invalid"; code: string; detail: string }
   | { state: "present"; verdict: ReviewVerdictRecord };
 
 /** Newest-governs scan of Decisions; any unreadable entry is invalid, never skipped (A31.2 / A32.1). */
 export type DecisionListResult =
   | { state: "ok"; decisions: GateDecisionRecord[]; sectionPresent: boolean }
-  | { state: "invalid"; code: "ledger.invalid-decision"; detail: string };
+  | { state: "invalid"; code: string; detail: string };
 
 /**
  * Permit lookup with reason (A32.1 / A33.1).
@@ -130,7 +132,7 @@ export type PermittingDecisionStatus =
   | { state: "permit" }
   | { state: "absent"; reason: "no-decisions-section" }
   | { state: "no-permit" }
-  | { state: "invalid"; code: "ledger.invalid-decision"; detail: string };
+  | { state: "invalid"; code: string; detail: string };
 
 const LEDGER_BUNDLE_SECTIONS = new Set(["Verdicts", "Decisions"]);
 
@@ -366,43 +368,22 @@ export function recordGateDecision(
 }
 
 /**
- * Legacy collapse for gate paths (Phase 5). Maps no-file / unparseable / missing-wrapper
- * to null. Gate consumers fail closed; plan-quality must use readLedgerVerdictsSurface (corr 185).
- * Full three-exit replacement is scheduled as C-LEDGER-READ-ABSENCE.
- */
-function wrapperFromLedger(bundlePath: string, changeId: string): GraceXmlNode | null {
-  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
-  if (!existsSync(ledgerPath)) return null;
-  const artifact = readGraceXmlArtifact(ledgerPath);
-  if (!artifact.root) return null;
-  return artifact.root.children.find((child) => child.tag === changeId) ?? null;
-}
-
-/**
- * Distinguishes absent-no-file vs unreadable vs ok for plan-quality and other consumers
- * that must not shrink a corpus silently (corr 185–187 / A31.2 / D5).
+ * Sole three-exit classification for run-ledger.xml → change wrapper
+ * (C-LEGIBLE-FAILURE / AC-SINGLE-CLASSIFICATION).
  *
- * Validation chain: exists → regular file → parses → correct root → wrapper →
- * Verdicts section → children. Any failed link is unreadable (or absent-no-file), never ok.
- *
- * Does not change readLatestReviewVerdict or gate behaviour.
+ * exists → regular file → parses → correct root → wrapper for changeId.
+ * No second production definition of this chain may exist.
  */
-export type LedgerVerdictsSurface =
+export type LedgerWrapperSurface =
   | { state: "absent-no-file" }
   | { state: "unreadable"; code: string; detail: string }
-  | { state: "ok"; verdicts: ReviewVerdictRecord[] };
+  | { state: "ok"; wrapper: GraceXmlNode };
 
-export function readLedgerVerdictsSurface(
-  projectRoot: string,
-  changeId: string,
-): LedgerVerdictsSurface {
-  let bundlePath: string;
-  try {
-    bundlePath = resolveChangeBundle(projectRoot, changeId);
-  } catch {
-    return { state: "absent-no-file" };
-  }
-
+/**
+ * Classify ledger file presence and the change-id wrapper under the ledger root.
+ * Callers map exits into their own result types; they must not re-implement this chain.
+ */
+export function readLedgerWrapper(bundlePath: string, changeId: string): LedgerWrapperSurface {
   const ledgerPath = path.join(bundlePath, "run-ledger.xml");
   if (!existsSync(ledgerPath)) {
     return { state: "absent-no-file" };
@@ -465,6 +446,41 @@ export function readLedgerVerdictsSurface(
     };
   }
 
+  return { state: "ok", wrapper };
+}
+
+/**
+ * Distinguishes absent-no-file vs unreadable vs ok for plan-quality and other consumers
+ * that must not shrink a corpus silently (corr 185–187 / A31.2 / D5).
+ *
+ * Shared prefix (exists → parse → wrapper) is readLedgerWrapper only. This function
+ * continues with Verdicts section → children after ok(wrapper).
+ */
+export type LedgerVerdictsSurface =
+  | { state: "absent-no-file" }
+  | { state: "unreadable"; code: string; detail: string }
+  | { state: "ok"; verdicts: ReviewVerdictRecord[] };
+
+export function readLedgerVerdictsSurface(
+  projectRoot: string,
+  changeId: string,
+): LedgerVerdictsSurface {
+  let bundlePath: string;
+  try {
+    bundlePath = resolveChangeBundle(projectRoot, changeId);
+  } catch {
+    return { state: "absent-no-file" };
+  }
+
+  const classified = readLedgerWrapper(bundlePath, changeId);
+  if (classified.state === "absent-no-file") {
+    return { state: "absent-no-file" };
+  }
+  if (classified.state === "unreadable") {
+    return { state: "unreadable", code: classified.code, detail: classified.detail };
+  }
+
+  const { wrapper } = classified;
   const selected = selectUniqueSection(wrapper, "Verdicts");
   if (selected.state === "absent") {
     return { state: "ok", verdicts: [] };
@@ -593,8 +609,16 @@ function selectUniqueSection(
  */
 export function readLatestReviewVerdict(projectRoot: string, changeId: string): LatestReviewVerdict {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
-  const wrapper = wrapperFromLedger(bundlePath, changeId);
-  if (!wrapper) return { state: "absent" };
+  const classified = readLedgerWrapper(bundlePath, changeId);
+  if (classified.state === "absent-no-file") return { state: "absent" };
+  if (classified.state === "unreadable") {
+    return {
+      state: "invalid",
+      code: classified.code,
+      detail: classified.detail,
+    };
+  }
+  const { wrapper } = classified;
   const selected = selectUniqueSection(wrapper, "Verdicts");
   if (selected.state === "absent") return { state: "absent" };
   if (selected.state === "invalid") {
@@ -646,9 +670,9 @@ export function listReviewVerdicts(projectRoot: string, changeId: string): Revie
   if (read.state === "absent") return [];
   // Re-walk for the full list (section already known clean via readLatest).
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
-  const wrapper = wrapperFromLedger(bundlePath, changeId);
-  if (!wrapper) return [];
-  const selected = selectUniqueSection(wrapper, "Verdicts");
+  const classified = readLedgerWrapper(bundlePath, changeId);
+  if (classified.state !== "ok") return [];
+  const selected = selectUniqueSection(classified.wrapper, "Verdicts");
   if (selected.state !== "ok") return [];
   return selected.section.children.map((child) => {
     const parsed = parseVerdictNode(child);
@@ -675,9 +699,18 @@ export function latestReviewVerdict(
 /** All recorded gate decisions with no silent skip of unreadable entries (A31.2 / A32.1). */
 export function readGateDecisions(projectRoot: string, changeId: string): DecisionListResult {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
-  const wrapper = wrapperFromLedger(bundlePath, changeId);
-  if (!wrapper) return { state: "ok", decisions: [], sectionPresent: false };
-  const selected = selectUniqueSection(wrapper, "Decisions");
+  const classified = readLedgerWrapper(bundlePath, changeId);
+  if (classified.state === "absent-no-file") {
+    return { state: "ok", decisions: [], sectionPresent: false };
+  }
+  if (classified.state === "unreadable") {
+    return {
+      state: "invalid",
+      code: classified.code,
+      detail: classified.detail,
+    };
+  }
+  const selected = selectUniqueSection(classified.wrapper, "Decisions");
   if (selected.state === "absent") return { state: "ok", decisions: [], sectionPresent: false };
   if (selected.state === "invalid") {
     return {
