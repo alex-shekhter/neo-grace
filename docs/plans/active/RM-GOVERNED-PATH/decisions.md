@@ -2018,9 +2018,36 @@ merely unmodified but never created. What remains is presentation, and it has tw
    failure; a throw that never reaches it produces empty stdout and unparseable stderr. A machine
    consumer of `gate apply --format json` gets exit 1 and nothing to parse.
 
-Point 2 is the one worth weighing. It is defensible — a malformed argument is a usage error raised
-before the command runs, and plenty of CLIs answer those on stderr regardless of `--format` — but it is
-a surface behaving unlike its declared output contract in one branch.
+**Point 2 was first recorded here as defensible, on the grounds that a malformed argument is a usage
+error and plenty of CLIs answer those on stderr regardless of `--format`. That was too generous, and
+the maintainer was right to push back.** Revised, with the stronger reading:
+
+This is not a surface that lacks an error contract. It **has** one — `GraceCommandErrorEnvelope`, with
+`schemaVersion`, `ok: false`, and a coded `error` object — and `runQueryCommand`'s own doc comment
+says it *"renders stable text or JSON failures **without stack traces**."* So the defect is not a
+missing convention; it is a **declared contract with a reachable hole**, which is a strictly worse
+thing to ship and exactly the class `D13` refused when it kept an undeclared key off the lint result:
+a `schemaVersion`-bearing surface must not emit something its schema does not describe.
+
+Three points settle it:
+
+- **The "usage error, raised before the command runs" distinction is an implementation artifact.** From
+  the caller's side `ngrace gate apply --format json --record false` is one invocation. Making the
+  output *shape* depend on how far execution got before failing leaks internal timing through a
+  contract whose purpose is to hide it.
+- **The consumers of this CLI are coding agents.** An unparseable error is a surface the model cannot
+  read at all — in a tool whose thesis is that the agent cannot lie to the model, that is arguably
+  worse than a wrong-but-structured answer, because the reader has nothing to check and may retry or
+  paraphrase instead of reporting.
+- **`--format` is knowable at guard time**, so the usual bootstrap objection does not apply here. There
+  is a genuine residue — a failure while parsing `--format` itself, or a crash, will always escape —
+  but that argues for making the *reachable* errors conform, not for leaving a reachable one outside.
+
+**A third part, latent today:** `runGraceCommand` sets `process.exitCode = commandError.exitCode`, so
+the repository's contract is that the exit code comes from the error object. The guard path never
+reaches that line and takes citty's default instead. Both are `1` today — `GraceCommandError` defaults
+`exitCode` to 1 and no production error sets another value — so the divergence is invisible. It stops
+being invisible the first time an error wants a different code, and nothing currently pins it.
 
 **A clean in-scope repair exists and was deliberately not taken.** The wrapper could route the refusal
 through `runGraceCommand` using the already-exported symbol, reading `context.args.format`, giving
@@ -2038,5 +2065,14 @@ boundary.
 Worth noting for the follow-on: fixing it in the wrapper fixes all 24 sites at once, and T-003 wires
 the remaining eight files on this same channel, so the cost of waiting is breadth rather than depth.
 
-Disposition: follow-on queue, alongside F9.9 / F20 / F21 / F22 / F24. Natural companion to F24 — both
-are repairs to the same CLI-infrastructure seam, and both want a host the current graph does not name.
+Disposition: **first item of the follow-on queue**, ahead of F9.9 / F20 / F21 / F22, and a natural
+companion to F24 — both are repairs to the same CLI-infrastructure seam. Reframing this from
+presentation to a contract hole raises its priority but does **not** change the decision to finish
+`C-FLAG-HONESTY` as approved first: the repair needs `src/query/command.ts`, which the plan assigns to
+T-001, and superseding an approved plan mid-execution when a clean successor bundle is two tasks away
+trades a small delay for the precedent that scope may be widened whenever the fix looks small.
+
+What the successor owes, so the reasoning is not re-derived: route the refusal through
+`runGraceCommand` with `format` read from `context.args`, so the envelope and the error-supplied exit
+code both apply; and pin the exit code explicitly, since today's agreement at `1` is a coincidence
+rather than a guarantee.
