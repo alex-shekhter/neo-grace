@@ -325,6 +325,15 @@ done.
     active bundles, or warns with the archive grandfathered, or immutability is re-examined —
     argued, not assumed, since a check that excludes the files that motivated it is its own F28.
     Sequence with step 12: both are artifact-validity repairs under `src/artifact/`.
+14. **`assertion.MustContain` withholds the text it asked for** (F40, added 2026-08-12 during
+    P1's first bundle). `src/artifact/assertions.ts:361` renders `${fileValue} must contain
+    requested text.` and never interpolates the text, which is in scope at that line. Approving
+    a plan whose `MustContain` subject is one file seven times produces seven identical lines
+    and an empty `detail` in `--format json`; the executor must read the plan and bisect by
+    hand. This is P1's objective failing in its purest form — the diagnostic knows the answer
+    and declines to print it — and the same class as P0.7 and `C-LEGIBLE-FAILURE` on a surface
+    neither reached. Include the requested text, the file, and for `MustNotContain` the offset
+    of the first hit. Sequence with steps 12–13: all three are `src/artifact/` repairs.
 
 **Verification.** Golden-file tests per generator (generate → lint → green); a review-replay
 fixture running each corpus authoring failure against the new messages, asserting the fix

@@ -3393,3 +3393,49 @@ files that motivated it would be its own [F28](#f28).
 **Home: P1.13**, sequenced with [F38](#f38)'s P1.12. Both are artifact-validity repairs under
 `src/artifact/`, and both must not be interleaved with the `lint --explain` bundle in flight, whose
 declared scope stops at `src/lint/*`.
+
+---
+
+### F40 — `assertion.MustContain` names the file and withholds the text. **[verified]**
+
+Approving `C-EXPLAIN-COVERAGE`'s plan turned lint red, which is correct — `TargetAssertions`
+describe the post-implementation state. The report was this, twice, verbatim:
+
+```
+- [error] assertion.MustContain .../plan.xml — src/lint/catalog.ts must contain requested text.
+- [error] assertion.MustContain .../plan.xml — src/lint/catalog.ts must contain requested text.
+```
+
+Two identical lines. `src/lint/catalog.ts` is the subject of **seven** `MustContain` assertions in
+that plan, and the `detail` field is empty in `--format json` too. Nothing in the output says which
+text was requested, so the executor cannot act on it without reading the plan and bisecting by hand.
+
+`src/artifact/assertions.ts:361` is the whole story:
+
+```ts
+return [assertionIssue(assertion, shouldContain ? `${fileValue} must contain requested text.` : …)];
+```
+
+The requested text is in scope at that line and is not interpolated.
+
+**Why this belongs to P1 and not to general polish.** P1's objective is *"when it gets something
+wrong, learns the fix from the error."* This is the failure in its purest form: the diagnostic
+knows the answer and declines to print it. It is the same class as P0.7 (the apply gate's
+no-verdict diagnostics gained path, count and reason) and `C-LEGIBLE-FAILURE`, on a surface those
+bundles did not reach.
+
+**Related but distinct — the defect the red actually caught.** The two failing assertions name
+`` This code is emitted by `ngrace review` `` with plain backticks, while `catalog.ts:864` holds
+`` This code is emitted by \`ngrace review\` `` — backslash-escaped inside a template literal. The
+assertion subject does not exist as written. The baseline half failed loudly, which is the system
+working. The **target** half is the hazard: `MustNotContain` on that same string is vacuously true
+at HEAD *and at close*, so the boilerplate this bundle exists to delete could survive and the
+assertion would still pass — [F35.1](#f351) exactly. Repaired in the plan before execution by
+binding to byte-accurate, branch-unique, backtick-free substrings (`See the review catalog
+(src/review/catalog.ts)`, `See the gate catalog (src/gates/catalog.ts)`), not by loosening the
+assertion. This is a second instance of [F36](#f36)'s family: an assertion whose subject was never
+pinned to what the file actually contains.
+
+**Home: P1.14**, with [P1.12](#f38) and [P1.13](#f39). Assertion evaluation lives in
+`src/artifact/assertions.ts`, outside `C-EXPLAIN-COVERAGE`'s `AffectedAreas`, whose NonGoals
+require a re-spec before it is touched — a conflict, not a queue.
