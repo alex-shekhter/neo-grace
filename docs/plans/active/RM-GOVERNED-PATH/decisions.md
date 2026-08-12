@@ -2970,6 +2970,63 @@ Disposition: recorded before `C-CONTRACT-DEBT` T-004 is dispatched, and folded i
 rather than deferred. No artifact is amended: the spec's criterion is met by a handler that clears the
 higher bar, so nothing needs superseding.
 
+#### F34.1 — Three corrections from the implementation, two of which are mine
+
+**1. The continuation defect is not specific to `uncaughtException`.** F34 measured that
+`process.exitCode = 1` inside an `uncaughtException` handler leaves the process running, and inferred
+nothing about the rejection half. The T-004 executor measured the other half and I re-measured it:
+
+```
+process.on("unhandledRejection", (r) => { …; process.exitCode = 1; });
+Promise.reject(new Error("timer-reject"));
+setTimeout(() => console.log("STILL ALIVE AFTER REJECTION"), 30);
+
+→ handler saw: timer-reject
+  STILL ALIVE AFTER REJECTION
+  exit=1
+```
+
+So both kinds continue, and `AC-PROCESS-HANDLERS-AT-CLI-ENTRY`'s permissive *"exit code **or**
+`process.exit` non-zero"* is too weak for **both**, not just one. `process.exit` is required either
+way. Recorded because F34 published half a measurement and read as though it were the whole one.
+
+**2. The handler does not clear F34's bar on every axis, and the bar was stated absolutely.** F34 set it
+at *"at least as informative as the default it displaces."* Measured against Bun v1.3.14's default:
+
+| axis | default | the shipped handler |
+| --- | --- | --- |
+| exit code | 1 | 1 |
+| cause-chain depth | all levels | all levels |
+| halts | yes | yes |
+| fault kind named | **no** — both print `error:` | **yes** |
+| inline source excerpts | **yes** | **no** |
+
+Installing a listener replaces Bun's printer, so its source-line echo is unrecoverable while a listener
+exists, and the criterion requires listeners for both kinds — the trade is forced, not chosen. What is
+lost is a rendering affordance: `Error.stack` still carries `file:line:col` for every frame, so a reader
+can still navigate to the fault. What is gained is a kind label the default lacks, and an unpinned
+runtime default becoming a tested guarantee.
+
+**Shipped, with the shortfall disclosed rather than absorbed.** The honest statement is *not* "the bar
+was met" — it is that the bar was met in substance on the axes that carry information and traded on one
+that carries presentation. Writing a second, prettier renderer to chase Bun's printer would be building
+a dependency on the very default the handler exists to stop depending on, and would have duplicated the
+chain walker the same bundle had just deduplicated.
+
+**3. My discrimination objection was wrong.** The T-004 prompt claimed a listener-count test "may pass
+even if the install were moved outside the `import.meta.main` guard", because `import.meta.main` is false
+under `bun test`. That is backwards. A top-level `process.on` runs on **module evaluation**, guard or no
+guard, so a test that imports `grace.ts` in a subprocess and compares listener counts catches exactly
+that regression — demonstrated by the probe that put a top-level `process.on` in `errors.ts` and moved
+the count `0 → 1`. The real limit is the opposite one: the test cannot prove the **positive**, that the
+CLI-as-main path *does* install, and that is carried by the source pin and the `TargetAssertions`. The
+executor named the test for what it pins rather than for what it sounds like, which is the right
+resolution and the reverse of the [F10](#f10) failure.
+
+Three tasks in this bundle have now returned a correction to the authority's own prompt. The rate is not
+the point; the mechanism is — each was found because the prompt asked for the objection in writing rather
+than asking whether the work was done.
+
 ---
 
 ### F35 — F20's remedy is identifier-shaped, and a third copy survives it under another name. **[verified]**
