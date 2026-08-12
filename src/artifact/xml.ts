@@ -1,6 +1,6 @@
 // START_MODULE_CONTRACT
-//   PURPOSE: Artifact grammar, XML, and project layout
-//   SCOPE: Validation of .ngrace artifacts and path resolution
+//   PURPOSE: GraceXmlNode model, artifact XML parse/read, and node utilities
+//   SCOPE: Parse and read .ngrace XML into GraceXmlNode; traverse, clone, and inspect nodes
 //   DEPENDS: none
 //   LINKS: M-GRAMMAR
 //   ROLE: RUNTIME
@@ -12,6 +12,7 @@
 //   ParsedGraceXmlArtifact
 //   childNodes
 //   childText
+//   cloneXmlNode
 //   createGraceXmlParser
 //   hasForbiddenAttributes
 //   parseGraceXmlArtifact
@@ -154,6 +155,16 @@ export function* walkNodes(node: GraceXmlNode): Iterable<GraceXmlNode> {
   for (const child of node.children) {
     yield* walkNodes(child);
   }
+}
+
+/** Deep structural clone: tag, text, shallow-copied attributes, recursive children. */
+export function cloneXmlNode(node: GraceXmlNode): GraceXmlNode {
+  return {
+    tag: node.tag,
+    attributes: { ...node.attributes },
+    children: node.children.map(cloneXmlNode),
+    text: node.text,
+  };
 }
 
 /** Returns true when the node has any attributes other than the allowed list. */

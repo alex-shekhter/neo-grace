@@ -117,7 +117,7 @@ import {
   validateRunCursorArtifact,
 } from "./artifact/grammar";
 import { collectActiveChangeScopes, observedWriteScopeContains } from "./artifact/scope";
-import { childText, readGraceXmlArtifact, type GraceXmlNode } from "./artifact/xml";
+import { childText, cloneXmlNode, readGraceXmlArtifact, type GraceXmlNode } from "./artifact/xml";
 import {
   listLooseEvents,
   listRunOrphans,
@@ -2845,15 +2845,6 @@ function payloadFingerprint(attributes: Record<string, string>, children: GraceX
   const attrPart = keys.map((key) => `${key}=${attributes[key] ?? ""}`).join("\0");
   const childPart = children.map((child) => serializeGraceXmlNode(child)).join("");
   return `${attrPart}\n${childPart}`;
-}
-
-function cloneXmlNode(node: GraceXmlNode): GraceXmlNode {
-  return {
-    tag: node.tag,
-    attributes: { ...node.attributes },
-    children: node.children.map(cloneXmlNode),
-    text: node.text,
-  };
 }
 
 function appendEpochToLedger(bundlePath: string, changeId: string, epochNode: GraceXmlNode): GraceXmlNode {

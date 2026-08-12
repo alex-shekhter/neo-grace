@@ -19,7 +19,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { childText, readGraceXmlArtifact, type GraceXmlNode } from "./xml";
+import { childText, cloneXmlNode, readGraceXmlArtifact, type GraceXmlNode } from "./xml";
 
 export type RangeAllocation = { worker: string; from: number; to: number };
 
@@ -46,15 +46,6 @@ export type LooseEvent = {
  * steals the kind's hyphens (A19.1).
  */
 const EVENT_FILENAME = /^(\d+)-(T-[0-9]{3})-(.+)\.xml$/;
-
-function cloneXmlNode(node: GraceXmlNode): GraceXmlNode {
-  return {
-    tag: node.tag,
-    attributes: { ...node.attributes },
-    children: node.children.map(cloneXmlNode),
-    text: node.text,
-  };
-}
 
 function parseAllocationNode(node: GraceXmlNode): RangeAllocation | null {
   const worker = node.attributes.worker?.trim() || childText(node, "Worker")?.trim();
