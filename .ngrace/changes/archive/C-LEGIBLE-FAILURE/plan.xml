@@ -1,0 +1,591 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-LEGIBLE-FAILURE>
+    <IntentSummary>
+      Close the legibility class with two instances and one enabling home: (1) ledger
+      reads share one three-exit classification by construction (delete
+      wrapperFromLedger; extract readLedgerWrapper as the sole definition), (2) boolean
+      space-form refusal routes through runGraceCommand so the declared envelope and
+      error.exitCode apply (honouring both --format and --json conventions), (3)
+      M-CLI-INFRA + V-M-CLI-INFRA exist with re-LINKS on errors.ts/command.ts and no
+      directory move — closing F24 as enabling, F25 as the channel hole, and the
+      absorbed C-LEDGER-READ-ABSENCE three-exit conflation.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/query/errors.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/outcomes.ts</Value></MustExist>
+      <MustExist><Value>src/review/outcomes.test.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/graph/main.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/graph/index.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/verification/main.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/verification/index.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-LEGIBLE-FAILURE/spec.xml</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustNotExist><Value>M-CLI-INFRA</Value></MustNotExist>
+      <MustNotExist><Value>V-M-CLI-INFRA</Value></MustNotExist>
+      <MustContain>
+        <File>src/query/errors.ts</File>
+        <Text>LINKS: M-QUERY</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>LINKS: M-QUERY</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>wrapperFromLedger</Text>
+      </MustContain>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/query/errors.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/outcomes.ts</Value></MustExist>
+      <MustExist><Value>src/review/outcomes.test.ts</Value></MustExist>
+      <MustExist><Value>M-CLI-INFRA</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>V-M-CLI-INFRA</Value></MustExist>
+      <MustExist><Value>V-M-QUERY</Value></MustExist>
+      <MustExist><Value>V-M-GATES</Value></MustExist>
+      <MustExist><Value>V-M-REVIEW</Value></MustExist>
+      <MustContain>
+        <File>src/query/errors.ts</File>
+        <Text>LINKS: M-CLI-INFRA</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>LINKS: M-CLI-INFRA</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>readLedgerWrapper</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>wrapperFromLedger</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/query/errors.ts</File>
+        <Text>LINKS: M-QUERY</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/query/command.ts</File>
+        <Text>LINKS: M-QUERY</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-CLI-INFRA</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/query/command.test.ts src/gates/core.test.ts src/review/outcomes.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI-INFRA />
+        <M-QUERY />
+        <M-GATES />
+        <M-REVIEW />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI-INFRA />
+        <V-M-QUERY />
+        <V-M-GATES />
+        <V-M-REVIEW />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.ngrace/graph/main.xml</File>
+      <File>.ngrace/graph/index.xml</File>
+      <File>.ngrace/verification/main.xml</File>
+      <File>.ngrace/verification/index.xml</File>
+      <File>src/query/errors.ts</File>
+      <File>src/query/command.ts</File>
+      <File>src/query/command.test.ts</File>
+      <File>src/gates/ledger.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/review/outcomes.test.ts</File>
+      <File>.ngrace/changes/active/C-LEGIBLE-FAILURE/plan.xml</File>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers; authority reviews this hardest)
+
+      Plan-authoring HEAD: d113f6a (branch docs/rm-governed-path). Spec is approved
+      and immutable. Re-measure every count at execute (F12.2).
+
+      ─────────────────────────────────────────────────────────────────
+      D1 — Single classification (AC-SINGLE-CLASSIFICATION) — decision (a)
+      ─────────────────────────────────────────────────────────────────
+      Chosen: extract **readLedgerWrapper(bundlePath, changeId)** as the sole
+      production definition of the three-exit for ledger-file → change wrapper:
+
+        absent-no-file
+          | unreadable { code, detail }
+          | ok { wrapper: GraceXmlNode }
+
+      Delete **wrapperFromLedger** entirely (no private remnant, no deprecated
+      null-returning alias). Every former caller becomes a consumer of
+      readLedgerWrapper:
+
+        readLedgerVerdictsSurface
+          → readLedgerWrapper for the shared prefix (exists / regular-file / parse /
+            root tag / wrapper id), then continues with Verdicts-section walk exactly
+            as today for the section-specific half. It must not re-implement the
+            prefix chain beside the shared function.
+        readLatestReviewVerdict
+          → readLedgerWrapper; map absent-no-file → { state: "absent" };
+            unreadable → { state: "invalid", code, detail };
+            ok → existing Verdicts walk on wrapper.
+        listReviewVerdicts / readGateDecisions
+          → same mapping; Decisions walk stays on ok.wrapper.
+
+      Why this surface is the definition (not "upgrade wrapperFromLedger in place"
+      alone): readLedgerVerdictsSurface already owns the discriminating codes
+      (xml.parse, ledger.invalid-root-tag, ledger.bundle-id-mismatch). wrapperFromLedger
+      never checked the root tag and collapsed all three exits to null. Making the
+      null helper return a result type while leaving the surface as a parallel
+      re-implementation is the defect in remission — two chains that can still
+      disagree on e.g. invalid-root-tag.
+
+      Why not force gates through readLedgerVerdictsSurface itself: that API's ok
+      payload is Verdicts[], not a wrapper, and cannot serve Decisions. The shared
+      primitive is the wrapper-classification prefix; section walks stay local.
+
+      Proof **by construction** (C-REPORT-HONESTY AC-MEMBERSHIP-ONE-DEFINITION shape;
+      not "both agree on fixtures"):
+        (1) wrapperFromLedger is absent from src/ (MustNotContain + source search).
+        (2) Exactly one production function classifies exists→parse→wrapper for run
+            ledgers: readLedgerWrapper (export it so tests import the same binding
+            gates and surface use).
+        (3) Discrimination: a test that monkeypatches / temporarily shadows
+            readLedgerWrapper makes **both** plan-quality (outcomes / surface) and
+            gate ledger tests red — not only one side. Fixture agreement alone does
+            not satisfy AC-SINGLE-CLASSIFICATION.
+        (4) Secondary: readLedgerVerdictsSurface source does not call existsSync /
+            readGraceXmlArtifact for the ledger path independently of
+            readLedgerWrapper (no second prefix).
+
+      AC-THREE-EXITS matrix (red-first unit/integration in gates/core.test.ts and
+      outcomes.test.ts — exact pins F23):
+        missing run-ledger.xml     → absent-no-file (not unreadable)
+        truncated / non-XML file   → unreadable (not absent); code stable
+        wrong wrapper id           → unreadable code ledger.bundle-id-mismatch
+                                     (must not remain collapsed to absent)
+        clean wrapper              → ok
+
+      AC-GATE-COMPAT counterweight (real assertions, not restatement):
+        - Existing green suite fixtures: permit/refuse decisions **unchanged**
+          (toBe on evaluation.decision for the same fixture setups already in
+          gates/core.test.ts).
+        - Deliberate regression: a test that would turn fail-closed refuse on
+          corrupt ledger into throw-out-of-band or permit must fail. Unreadable
+          remains refuse.
+        - Diagnostic honesty side-effect (expected, not a policy change): today's
+          unparseable path takes latest=absent → gate.apply.no-verdict while the
+          surface separately says unreadable (core.test.ts "unparseable ledger:
+          no-verdict…" documents the dual path). After the fix that case is
+          latest=invalid → gate.apply.invalid-verdict with the shared code. Update
+          that test to pin invalid-verdict; decision stays refuse. Do not "preserve"
+          the collapsed no-verdict code — that would re-arm the dual path.
+
+      outcomes.ts production source: **no edit required** if collectPlanQualityReport
+      continues to call readLedgerVerdictsSurface and that function consumes
+      readLedgerWrapper. M-REVIEW stays in GraphAnchors (AffectedAreas); outcomes.ts
+      is not in OWS. outcomes.test.ts is the construction/discrimination host and is
+      in OWS. If execute discovers outcomes must change, stop-and-report only if the
+      change needs a module outside AffectedAreas (it should not).
+
+      gates/core.ts production: no edit required for the decision branch (already
+      handles absent vs invalid). formatApplyNoVerdictDetail's unreadable branch
+      becomes largely unreachable for parse failures after the fix; leave it unless
+      a cleanup is free inside the same ledger task — not a separate scope claim.
+
+      ─────────────────────────────────────────────────────────────────
+      D2 — Channel repair (F25) — decision (b)
+      ─────────────────────────────────────────────────────────────────
+      Chosen: inside defineGraceCommand's wrapped run, call **runGraceCommand**
+      with a single operation that (1) refuseBooleanSpaceForm then (2) invokes
+      originalRun. Import runGraceCommand from ./errors (same package; no path move).
+
+      Trap 1 — runGraceCommand swallows the throw:
+        Do **not** detect refusal by reading process.exitCode (unreliable; can be set
+        for unrelated reasons). Do **not** set a module-level "refused" flag as the
+        primary control.
+        **Deliberate answer:** control-flow short-circuit. refuseBooleanSpaceForm and
+        originalRun are sequential statements inside the same runGraceCommand
+        operation callback. When refuse throws, runGraceCommand catches, renders,
+        sets process.exitCode from the error, and returns — originalRun is never
+        reached because the throw aborted the callback. Proof: existing
+        "ran === false" counterweight stays, but after the change the wrapper **does
+        not rethrow** (runGraceCommand swallows). Update unit tests that currently
+        expect cmd.run to reject: they must observe ran===false, process.exitCode
+        set, and (json mode) a valid envelope on stdout instead of a rejection.
+
+        Nested runGraceCommand: many leaves already wrap their bodies in
+        runGraceCommand / runQueryCommand. Nesting is harmless because the inner
+        call also swallows — outer operation completes after one render. Do not
+        rewrite leaf success paths (NonGoal).
+
+      Trap 2 — two JSON conventions (measured at plan authoring; re-check at execute):
+        --format only:        gate, lint, cursor, graph, review, doctor
+        --format and --json:  status, module, context, file, verification
+
+        resolveErrorFormat(args) used by the wrapper (same predicate the leaves
+        already use for errorFormat):
+
+          Boolean(args.json) || String(args.format ?? "") === "json"
+            ? "json" : "text"
+
+        Reading only args.format leaves the envelope missing on the five
+        --json commands — a hole in a criterion whose point is no holes. Both
+        conventions are honoured from context.args (available at guard time).
+        No rawArgs re-parse for format (format is not the space-form defect).
+
+      Exit code (AC-EXIT-CODE-FROM-ERROR):
+        runGraceCommand already does process.exitCode = commandError.exitCode.
+        After routing, the guard path uses that line — not citty's process.exit(1)
+        alone. Pin with a discriminating probe: construct GraceCommandError with
+        exitCode: 2 (non-default), drive it through the **same** render path the
+        guard uses (runGraceCommand via defineGraceCommand-wrapped run, or the
+        shared operation path), observe process.exitCode === 2 (toBe, not
+        non-zero). A test that only checks !== 0 would not notice a regression to
+        hard-coded 1.
+
+      AC-CHANNEL-JSON-ENVELOPE: gate (or any --format command) with
+        --format json --record false → exit non-zero; entire stdout JSON.parse as
+        GraceCommandErrorEnvelope (schemaVersion "1.0.0", ok:false, error.code,
+        error.message); no stack frame on stdout.
+      AC-CHANNEL-TEXT-LEGIBLE: text mode → single stderr message, no stack, still
+        names equals and --no-/bare forms.
+      AC-CHANNEL-SIDE-EFFECT-HELD: Decision count toBe before/after on temp fixture
+        only (reuse C-FLAG-HONESTY F18 fixtures; never archived bundles).
+      AC-CHANNEL-CLASS-COVERAGE: repair lives in defineGraceCommand → all live
+        boolean sites under the brand inherit it. Re-measure listBooleanFlags at
+        close — **24** at plan-authoring HEAD d113f6a (bun -e walker over eleven
+        roots). Pin toBe(24) or re-measured exact. Not a gate-only special case.
+        Counterweight: a branded site still must refuse; no citty stack path for
+        space-form on a live site.
+
+      errors.ts: T-001 rewrites MODULE_CONTRACT (PURPOSE/SCOPE/LINKS) true of what
+      it holds; no new envelope schema; no success-path rewrite. Prefer keeping
+      resolveErrorFormat in command.ts (or a tiny helper there) so errors.ts MAP
+      stays stable unless exporting the helper is cleaner — plan-level either way;
+      binding is the format predicate above.
+
+      ─────────────────────────────────────────────────────────────────
+      D3 — M-CLI-INFRA atomic home (AC-INFRA-HOME-TRUE) — decision (c)
+      ─────────────────────────────────────────────────────────────────
+      **T-001 alone.** One task writes, in this order (minimise intermediate lint):
+
+        1. .ngrace/graph/main.xml — add M-CLI-INFRA:
+             Summary: Shared CLI infrastructure: GraceCommandError, error envelope,
+             runGraceCommand, and defineGraceCommand (boolean space-form guard).
+             Path: src/query/errors.ts
+             Type: CORE_LOGIC
+           (Path is the primary graph pointer; command.ts also LINKS the same
+           module — directory≠module precedent: grace-verification.ts → M-LOCALIZE
+           while Path is src/verification/localize.ts.)
+        2. .ngrace/graph/index.xml — Owns gains M-CLI-INFRA
+        3. .ngrace/verification/main.xml — add V-M-CLI-INFRA with Command
+             `bun test src/query/command.test.ts` (and Scenario/TraceAssertion true
+             of infra), preserving 19→20 modules with 19→20 V-M-* (one-to-one).
+        4. .ngrace/verification/index.xml — Owns gains V-M-CLI-INFRA
+        5. src/query/errors.ts — LINKS: M-CLI-INFRA; PURPOSE/SCOPE rewritten true
+             of error types + runGraceCommand (not "query resolution")
+        6. src/query/command.ts — LINKS: M-CLI-INFRA; PURPOSE/SCOPE remain true of
+             the guard (already honest file-local text; only LINKS changes if SCOPE
+             already matches — re-read at execute and fix if still false)
+
+      No import-path rewrites. No file moves. M-QUERY graph Summary is **not**
+      edited — once the two files re-LINKS away it becomes true as written.
+
+      Predicted lint window (so the executor recognises it; does not "repair" it by
+      falsifying contracts):
+
+        **At plan draft alone (this authoring):** GraphAnchors may name M-CLI-INFRA
+        before the graph entry exists. ObservedWriteScope src/ paths still LINKS
+        M-QUERY, and M-QUERY is in GraphAnchors, so
+        change.graph-anchors-miss-write-scope should **not** fire for errors.ts /
+        command.ts. Semantic BaselineAssertions run only when plan status is
+        approved — draft plan → expect **0 errors** from inventing M-CLI-INFRA in
+        GraphAnchors (AffectedAreas tags / GraphAnchors are not graph-resolved as
+        existence checks at draft). Measure with bun run ngrace lint --path .
+        after authoring and report.
+
+        **After plan approval, before T-001 completes:** BaselineAssertions that
+        record pre-state (MustNotExist M-CLI-INFRA; MustContain LINKS: M-QUERY on
+        the two files; MustContain wrapperFromLedger) are expected to evaluate when
+        status=approved; some stay green until their task flips them. Target
+        MustExist M-CLI-INFRA fails until T-001. P0.9's framing line reports the
+        baseline delta — do not weaken BaselineAssertions to silence it.
+
+        **Inside T-001 if order is violated:** re-LINKS to M-CLI-INFRA before the
+        graph entry exists →
+          `MODULE_CONTRACT LINKS references M-CLI-INFRA, which does not exist in the graph.`
+        (lint/core.ts module-link validation). That is the predicted same-task
+        window. **Order graph (and index) first, then re-LINKS.** If even correct
+        order is unworkable (e.g. GraphAnchors unknown-module error that cannot be
+        closed in the same task), **stop-and-report** — not a licence to widen
+        M-QUERY Summary or leave LINKS false.
+
+        **After T-001:** M-CLI-INFRA exists; both files LINKS it; V-M-CLI-INFRA
+        exists; module count equals V-M count; graph-anchors-miss-write-scope for
+        those paths is closed (LINKS match GraphAnchors). Full 0/0 is T-004.
+
+      Accepted residual (spec Constraint): src/query/ holds two modules. Do not
+      "fix" by moving files in this bundle.
+
+      ─────────────────────────────────────────────────────────────────
+      D4 — Task split
+      ─────────────────────────────────────────────────────────────────
+      T-001 — M-CLI-INFRA home (graph, verification, re-LINKS). Satisfies
+        AC-INFRA-HOME-TRUE. DependsOn empty. Files: graph/main+index,
+        verification/main+index, errors.ts, command.ts (contracts only).
+
+      T-002 — Ledger three exits + single classification. Satisfies
+        AC-THREE-EXITS, AC-GATE-COMPAT, AC-SINGLE-CLASSIFICATION. DependsOn empty
+        (parallel-safe with T-001: no shared production files). Files: ledger.ts,
+        core.test.ts, outcomes.test.ts.
+
+      T-003 — Channel repair in defineGraceCommand. Satisfies
+        AC-CHANNEL-JSON-ENVELOPE, AC-CHANNEL-TEXT-LEGIBLE,
+        AC-CHANNEL-SIDE-EFFECT-HELD, AC-EXIT-CODE-FROM-ERROR,
+        AC-CHANNEL-CLASS-COVERAGE. DependsOn T-001 (same production file
+        command.ts; home must exist before further edits). Files: command.ts,
+        command.test.ts, core.test.ts (CLI integration for envelope / Decision).
+
+      T-004 — Dogfood close. Satisfies AC-SUITE-AND-LINT. DependsOn T-001,T-002,T-003.
+
+      Why not merge T-001 into T-003: the lint window for a not-yet-created module
+      must be as short as the plan can make it; channel tests are a separate red
+      that must identify channel criteria, not "module missing."
+      Why not merge T-002 into anything: three ACs with construction proof need a
+      red that names ledger classification, not channel noise.
+
+      ─────────────────────────────────────────────────────────────────
+      D5 — Evidence doctrine and non-goals (restated for implementers)
+      ─────────────────────────────────────────────────────────────────
+      Red-first every task. Exact pins (F23). F12.2: re-measure listBooleanFlags
+      and any inventory. No CHANGELOG.md (D5.5). No version/marketplace/openpackage.
+      No skills/ or plugins/. No archives (including archived C-LEDGER-READ-ABSENCE).
+      No physical move of errors.ts/command.ts. No M-CLI as host. No gate policy
+      change. No citty fork. No second error envelope schema.
+      No cursor events until execution epoch opens.
+
+      Execution discipline when the epoch opens: ngrace-execute cursor kinds;
+      attempt before edit (F9.8); no retrospective red; terminal before fold.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>M-CLI-INFRA graph+V-M home and re-LINKS of errors.ts/command.ts</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-INFRA-HOME-TRUE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first (record command output, F12.2): before edits, M-CLI-INFRA is
+            absent from .ngrace/graph/main.xml; errors.ts and command.ts still contain
+            `LINKS: M-QUERY`; V-M-CLI-INFRA is absent from verification. Capture e.g.
+            `rg -n 'M-CLI-INFRA|LINKS: M-QUERY' src/query/errors.ts src/query/command.ts .ngrace/graph/main.xml .ngrace/verification/main.xml`.
+          </Criterion>
+          <Criterion>
+            Write order (design D3): (1) graph/main.xml M-CLI-INFRA entry with Summary
+            true of shared CLI infrastructure, Path src/query/errors.ts, Type
+            CORE_LOGIC; (2) graph/index.xml Owns; (3) verification/main.xml
+            V-M-CLI-INFRA (Command bun test src/query/command.test.ts; Scenario and
+            TraceAssertion true of this module); (4) verification/index.xml Owns;
+            (5) errors.ts LINKS M-CLI-INFRA and PURPOSE/SCOPE rewritten true of what
+            the file holds; (6) command.ts LINKS M-CLI-INFRA (PURPOSE/SCOPE true).
+            No file moves; no import-path rewrites across the fourteen production
+            importers. Do not edit M-QUERY's graph Summary.
+          </Criterion>
+          <Criterion>
+            AC-INFRA-HOME-TRUE: both files declare LINKS: M-CLI-INFRA; graph Summary
+            describes GraceCommandError / envelope / runGraceCommand /
+            defineGraceCommand; V-M-CLI-INFRA exists. Directory placement is not a
+            criterion. **Counterweight:** paths remain src/query/errors.ts and
+            src/query/command.ts; a "fix" that moves files or rewrites fourteen
+            imports fails this task's scope (NonGoal / re-LINKS-only).
+          </Criterion>
+          <Criterion>
+            One-to-one invariant: module count equals V-M-* count after the add
+            (was 19/19 at plan authoring). No module without a V-M-* mate.
+          </Criterion>
+          <Criterion>
+            If lint errors on unknown GraphAnchors / dangling LINKS even with the
+            prescribed order inside this task, stop-and-report — do not falsify
+            SCOPE or leave LINKS pointing at M-QUERY for CLI-infra-only files.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run ngrace lint --path .</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Ledger readLedgerWrapper single classification; three exits; gate compat</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-THREE-EXITS />
+          <AC-GATE-COMPAT />
+          <AC-SINGLE-CLASSIFICATION />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: show dual classification still live — e.g. wrong-wrapper or
+            unparseable path where readLedgerVerdictsSurface is unreadable /
+            ledger.bundle-id-mismatch while readLatestReviewVerdict (or apply) still
+            collapses toward absent/no-verdict. Record bun test output that pins the
+            collapsed behaviour before the edit (F12.2).
+          </Criterion>
+          <Criterion>
+            Implement design D1: add exported readLedgerWrapper as the sole
+            three-exit definition; delete wrapperFromLedger; wire
+            readLedgerVerdictsSurface, readLatestReviewVerdict, listReviewVerdicts,
+            and readGateDecisions as consumers. No second exists→parse→wrapper chain.
+            Production scope: src/gates/ledger.ts. Tests: src/gates/core.test.ts and
+            src/review/outcomes.test.ts. Do not edit outcomes.ts unless the shared
+            surface export shape forces it (report shape is a NonGoal).
+          </Criterion>
+          <Criterion>
+            AC-THREE-EXITS matrix with discriminating negatives (exact codes/details
+            where stable): missing file → absent-no-file; truncated/non-XML →
+            unreadable not absent; wrong wrapper id → unreadable
+            ledger.bundle-id-mismatch not absent; clean → ok.
+          </Criterion>
+          <Criterion>
+            AC-GATE-COMPAT: permit/refuse on existing suite fixtures unchanged
+            (toBe on decision). Fail-closed refuse on corrupt ledger remains refuse
+            (not throw-out-of-band, not permit). **Counterweight:** a deliberate
+            regression that would permit or throw on corrupt content fails a test.
+            Update the unparseable-ledger test that currently expects no-verdict to
+            expect invalid-verdict (honest classification); decision remains refuse.
+          </Criterion>
+          <Criterion>
+            AC-SINGLE-CLASSIFICATION by construction (design D1 proof): 
+            wrapperFromLedger gone; one readLedgerWrapper; discrimination that
+            breaking the shared function reddens plan-quality **and** gate tests.
+            Not fixture agreement alone.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts src/review/outcomes.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Route defineGraceCommand refusal through runGraceCommand; pin exitCode</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-CHANNEL-JSON-ENVELOPE />
+          <AC-CHANNEL-TEXT-LEGIBLE />
+          <AC-CHANNEL-SIDE-EFFECT-HELD />
+          <AC-EXIT-CODE-FROM-ERROR />
+          <AC-CHANNEL-CLASS-COVERAGE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-001 is binding (command.ts already re-LINKS M-CLI-INFRA).
+            Red-first: `ngrace gate approve --change C-* --path fixture --record false`
+            still shows stack on stderr; with `--format json` stdout is empty /
+            unparseable (no GraceCommandErrorEnvelope). Capture output (F12.2).
+          </Criterion>
+          <Criterion>
+            Implement design D2 in defineGraceCommand: resolveErrorFormat from
+            context.args (Boolean(args.json) || format === "json"); runGraceCommand
+            wraps an operation that refuseBooleanSpaceForm then originalRun —
+            control-flow short-circuit (Trap 1). No process.exitCode polling to skip
+            originalRun. Production scope: src/query/command.ts (and command.test.ts;
+            gate CLI assertions in gates/core.test.ts). Do not edit grace.ts or the
+            fourteen leaf import paths. Do not rewrite leaf success paths.
+          </Criterion>
+          <Criterion>
+            AC-CHANNEL-JSON-ENVELOPE: --format json + space-form → non-zero exit;
+            entire stdout JSON.parse as envelope (schemaVersion 1.0.0, ok:false,
+            error.code, error.message); no stack on stdout.
+          </Criterion>
+          <Criterion>
+            AC-CHANNEL-TEXT-LEGIBLE: text mode → non-zero; single stderr message; no
+            stack as primary form; still names equals and --no-/bare working forms.
+          </Criterion>
+          <Criterion>
+            AC-CHANNEL-SIDE-EFFECT-HELD: temp fixture only; Decision count toBe
+            before/after; no ledger created when none existed for the F18 incident
+            shape. Infer-and-continue / rewrite-argv-and-continue fail this criterion.
+          </Criterion>
+          <Criterion>
+            AC-EXIT-CODE-FROM-ERROR: probe GraceCommandError with exitCode 2 through
+            the same render path; process.exitCode toBe(2). Not merely non-zero.
+          </Criterion>
+          <Criterion>
+            AC-CHANNEL-CLASS-COVERAGE: repair is in defineGraceCommand (class-wide).
+            Re-measure listBooleanFlags → exact toBe (24 at plan authoring HEAD
+            d113f6a). Update unit tests that expected cmd.run to reject on refuse:
+            after the change the throw is swallowed by runGraceCommand; assert
+            ran===false and rendered output / exitCode instead.
+          </Criterion>
+          <Criterion>
+            Trap 2 counterweight: at least one --json convention command (e.g.
+            module or status) space-form with --json (or --json true refused before
+            run) yields JSON envelope when the guard fires under json mode — not
+            only --format json on gate. Reading only args.format is insufficient.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/query/command.test.ts src/gates/core.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Dogfood close: suite, lint 0/0, review 0, validate:ci, hygiene</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-SUITE-AND-LINT: red-first regressions from T-001–T-003 remain green;
+            bun test for touched packages green; bun run validate:ci green;
+            bun run ngrace lint --path . is 0 errors and 0 warnings; ngrace review
+            --path . is 0 findings on a clean tree. git status --short shows no
+            modification under .ngrace/changes/archive/ or docs/plans/archive/.
+            No CHANGELOG.md; no version/marketplace/openpackage; no skills/ or
+            plugins/ skill-text edits.
+          </Criterion>
+          <Criterion>
+            Counterweight / clean-by-looking-away ban: suite green is not achieved
+            by deleting three-exit tests, channel envelope tests, the exitCode-2
+            probe, or by reintroducing wrapperFromLedger. Assert by: those tests
+            still pass; M-CLI-INFRA and V-M-CLI-INFRA still exist; LINKS on the two
+            files still name M-CLI-INFRA.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-LEGIBLE-FAILURE>
+</NgraceChangePlan>

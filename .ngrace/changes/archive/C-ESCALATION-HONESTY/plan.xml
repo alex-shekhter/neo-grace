@@ -1,0 +1,625 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-ESCALATION-HONESTY>
+    <IntentSummary>
+      Close F21/F22 on the fix-budget / resume seam: replace the attempt-count
+      escalator with trigger R (same FailureSignature twice, threshold 2) and
+      trigger D (four distinct failing signatures), evaluate R before D, name the
+      firing trigger in the escalation message; require and persist a replan reason
+      on escalation-clearing resume; rewrite ngrace-execute contract prose (both
+      trees) so both thresholds agree with the code constants by construction; leave
+      version surfaces and CHANGELOG.md untouched.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-ESCALATION-HONESTY/spec.xml</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>FIX_ATTEMPT_BUDGET</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>countTaskAttemptEvents</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>two failures with DIFFERENT signatures still exhaust the budget</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>Two failed attempts exhaust the fix budget</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>Two failed attempts exhaust the fix budget</Text>
+      </MustContain>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>FIX_SIGNATURE_REPEAT_BUDGET</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>FIX_DISTINCT_SIGNATURE_BUDGET</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>fixBudgetSkillRequiredSubstrings</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>failed attempts of the same signature</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>distinct failing signatures</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>failed attempts of the same signature</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>distinct failing signatures</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>Two failed attempts exhaust the fix budget</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>Two failed attempts exhaust the fix budget</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>two failures with DIFFERENT signatures still exhaust the budget</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/grace-cursor.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>.ngrace/changes/active/C-ESCALATION-HONESTY/plan.xml</File>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers; authority reviews this hardest)
+
+      Plan-authoring HEAD: d8d8638 (branch docs/rm-governed-path). Spec is approved
+      and immutable. Re-measure every count at execute (F12.2). Spec thresholds R=2
+      and D=4 are fixed; do not re-open them.
+
+      ─────────────────────────────────────────────────────────────────
+      D1 — Trigger evaluation (spec Goals; AC-SIGNATURE-BUDGET-SEQUENCES) — (a)
+      ─────────────────────────────────────────────────────────────────
+      Chosen: one window summary + one decision on the fail path.
+
+      Replace the escalation use of countTaskAttemptEvents (dumb attempt count) with:
+
+        export const FIX_SIGNATURE_REPEAT_BUDGET = 2;   // Trigger R
+        export const FIX_DISTINCT_SIGNATURE_BUDGET = 4; // Trigger D
+
+      Stop using FIX_ATTEMPT_BUDGET for escalation. Prefer deleting the export if no
+      remaining production callers after the edit; if tests or comments still need a
+      name for "2", use FIX_SIGNATURE_REPEAT_BUDGET only (no dual-constant drift).
+      Update MODULE_MAP accordingly.
+
+      Window boundary (A24, unchanged source): lastResolvingResumeId(events, task)
+      — walks the accounting stream (listAccountingEvents = durable+loose by id),
+      tracks unresolved escalations, records the id of a resume that removes this
+      task from that set. Ordinary resume that does not clear an escalation does
+      not move the window. Returns 0 when never resolved.
+
+      Single walk for the window's fail signatures (after the current fail is
+      written, so the current signature is included):
+
+        function listWindowFailSignatures(
+          events: LooseEvent[], // or ReadonlyArray with payload
+          task: string,
+        ): FailureSignature[]
+          // for each event with id > windowStart, task match, kind===attempt,
+          // attributes.outcome===fail: read FailureSignature via readAttemptPayload
+          // (exact kind + exact key). Pass attempts and VU are skipped.
+          // Order: ascending event id.
+
+      Decision (evaluate R then D; at most one fires):
+
+        function decideFixBudgetEscalation(
+          windowFails: FailureSignature[],
+        ): { escalate: false }
+          | { escalate: true; trigger: "R"; repeated: FailureSignature }
+          | { escalate: true; trigger: "D"; distinctCount: number; signatures: FailureSignature[] }
+
+        R: let cur = last signature in windowFails; if count of equals(cur) in
+           windowFails >= FIX_SIGNATURE_REPEAT_BUDGET → R (repeated = cur).
+        D: else if size of distinct (kind\0key) set >= FIX_DISTINCT_SIGNATURE_BUDGET
+           → D.
+        else no escalate.
+
+      Equality: exact string equality on kind and on key (no case-fold).
+
+      recordAttempt on fail path: write attempt → listAccountingEvents →
+      listWindowFailSignatures → decideFixBudgetEscalation → maybe write escalation
+      + formatEscalationMessage(trigger, …).
+
+      formatEscalationMessage must branch on trigger:
+        R: name repeated kind:key (not "after N attempts" as the unit).
+        D: name four distinct unresolved failures (use the constant, not a hard-coded
+           English "four" that can drift); may list signatures.
+        Both: paused-pending-approval; task has not failed / replan owed.
+
+      countTaskAttemptEvents may remain for non-escalation attemptCount display
+      ("Attempt N for task") if useful; it must not gate escalation. Prefer leaving
+      it with a comment that it is display/ordinal only, or narrowing its callers
+      so a reader cannot mistake it for the budget.
+
+      collectFailureSignatures: either become listWindowFailSignatures or call it —
+      one definition of "fails in window", not two walks that can disagree.
+
+      ── Self-closing Event trap (measured on C-LEGIBLE-FAILURE run-ledger) ──
+      Production budget code does **not** re-parse ledger text with a
+      `>…</Event>` regex. It walks LooseEvent[] from listLooseEvents /
+      listLedgerEvents / listAccountingEvents, which use readGraceXmlArtifact
+      (real XML tree). A self-closing `<Event … kind="resume" />` is already one
+      complete node; the next attempt is a sibling — never swallowed.
+
+      Binding mechanism (not "we remember"):
+        (1) Escalation decision inputs are only LooseEvent[] / FailureSignature[]
+            from the existing parse path — no new string scrape of run-ledger.xml.
+        (2) lastResolvingResumeId continues to use event.kind on that stream.
+        (3) Any test that uses archived ledgers as fixtures must load them via
+            listLedgerEvents (or the recordAttempt API), never a hand-rolled Event
+            regex. The six tasks at 2 fails / 2 distinct are optional goldens for
+            a listWindowFailSignatures fixture test if cheap; not required if the
+            sequence matrix already covers R and D.
+
+      ─────────────────────────────────────────────────────────────────
+      D2 — Resume reason storage (AC-RESUME-REASON-*) — (b)
+      ─────────────────────────────────────────────────────────────────
+      Chosen: **child element** `<Reason>…text…</Reason>` on the resume event
+      (loose file and folded ledger Event), not a root attribute.
+
+      Why not attribute (despite verification-unavailable using attributes.reason):
+        Operator replan prose is free text: quotes, `&`, `<>`, and newlines are
+        normal. Attribute values are a narrower channel (whitespace normalization
+        risk; exact toBe on multiline is fragile). Element text uses escapeText /
+        parser decode the same path as other free-text children; fold verify's
+        payloadFingerprint serializes children via serializeGraceXmlNode, so a
+        Reason child is in the fingerprint without special-casing attributes.
+        Spec authoring hit bare `&&` → xml.parse; that is the class of free-text
+        hazard attributes make worse for multi-line reasons.
+
+      Write path:
+        resumeCursor(projectRoot, changeId, task, options?: { reason?: string })
+        advanceCursor(..., { kind: "resume", reason?: string })
+        Before write, if listUnresolvedEscalatedTasks includes task:
+          require reason trimmed non-empty; else GraceCommandError invalid-arguments
+          (stable message naming --reason); do not writeEventFile; set uncleared.
+        If not escalated: reason optional; if provided, still record Reason child.
+        writeEventFile with children: [{ tag: "Reason", attributes: {}, children: [],
+          text: reason }] when reason present.
+
+      CLI: ngrace cursor resume gains --reason (string). advance --kind resume must
+      accept the same flag (wire both entry paths). Refuse path before write.
+
+      Read / round-trip (AC-RESUME-REASON-RECORDED):
+        After write, listLooseEvents finds Reason child text exact toBe.
+        After fold, listLedgerEvents same exact toBe (decode after serialize).
+        Counterweight: reason with `&`, quotes, and a newline survives fold toBe.
+
+      Do not put reason only on stdout/message. Do not use attributes.reason for
+      resume (avoid two homes). VU attribute reason is unchanged (NonGoal).
+
+      ─────────────────────────────────────────────────────────────────
+      D3 — Prose/enforcement agreement (AC-PROSE-ENFORCEMENT-AGREE) — (c)
+      ─────────────────────────────────────────────────────────────────
+      Chosen: constants are the source of threshold numbers; skill must contain
+      substrings **built from those constants**; both skill trees are checked.
+
+        export function fixBudgetSkillRequiredSubstrings(): readonly string[] {
+          return Object.freeze([
+            // Digits from live constants — not English "two"/"four" alone, and not
+            // a bare "4" that matches any stray digit in the skill.
+            `${FIX_SIGNATURE_REPEAT_BUDGET} failed attempts of the same signature`,
+            `${FIX_DISTINCT_SIGNATURE_BUDGET} distinct failing signatures`,
+          ]);
+        }
+
+      Skill prose (both copies) must include those exact phrases at the four F21
+      sites (rule 5; attempt Meaning; escalation When; escalation How) or in prose
+      that still covers every site — each budget description site must state both
+      triggers. Prefer Arabic numerals matching the constants so the helper can
+      build the expectation without a separate number→word table that can drift.
+      Resume kind: document that clearing an escalation requires recorded --reason.
+
+      Test (src/grace-cursor.test.ts), red-first before skill edit then green after:
+
+        const paths = [
+          skills/ngrace/ngrace-execute/SKILL.md,
+          plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md,
+        ];
+        for (const p of paths) {
+          const text = readFileSync(p, "utf8");
+          for (const sub of fixBudgetSkillRequiredSubstrings()) {
+            expect(text).toContain(sub); // exact substring from constants
+          }
+          // Old bare claim must not remain as the budget rule:
+          expect(text).not.toMatch(
+            /Two failed attempts exhaust the fix budget(?! of the same)/,
+          );
+          // tighten if needed so qualified sentence is allowed
+        }
+
+      What each mutation reddens (document in test comments; F23 probe optional):
+        - Code: change FIX_DISTINCT_SIGNATURE_BUDGET to 5 → required substring
+          becomes "5 distinct failing signatures" → skill still has "4 …" → red.
+        - Skill: change "4 distinct failing signatures" to "3 …" while constant is
+          4 → toContain fails → red.
+        - Same for REPEAT constant / "2 failed attempts of the same signature".
+        - Edit only canonical → packaged fails its loop iteration; parity also fails
+          validate-marketplace.
+        - Kind-set completeness alone does not satisfy this AC (C-EXECUTION-CONTRACT
+          trap) — keep existing kind markers test; this is an additional suite.
+
+      T-001 exports constants + helper. T-003 writes skill + agreement tests.
+      Agreement tests cannot pass until both constants (T-001) and prose (T-003)
+      exist — DependsOn T-001 on T-003.
+
+      ─────────────────────────────────────────────────────────────────
+      D4 — Existing suite pin of the old rule — (d)
+      ─────────────────────────────────────────────────────────────────
+      Locate: src/grace-cursor.test.ts
+        it("two failures with DIFFERENT signatures still exhaust the budget (§4.5.2 verbatim)", …)
+        ~line 710 under describe("dumb counter and escalation …").
+
+      That name and expectation encode the **pre-spec** §4.5.2 rule (any two fails
+      escalate). Under the approved rule, fail(A), fail(B) must **not** escalate
+      (distinct=2 < D; no repeat). Keeping the old test green would re-arm F21's
+      false thrash detector.
+
+      Replacement (consequence of the rule, not accommodation of code):
+        it("two failures with DIFFERENT signatures do not exhaust the budget (R needs same signature; D needs 4 distinct)", …)
+        expect first.escalated false, second.escalated false, attemptCount display
+        whatever still accurate; signatures both present; state not PPA.
+        Add sibling cases from the matrix in the same describe (or adjacent):
+          fail(A),fail(A) → R; fail(A..D) → D; fail(A),fail(B),fail(A) → R not D;
+          fail(A),fail(B),fail(C) → no; pass,fail → no; message names trigger.
+
+      Other tests that assert second.different-sig escalates (post-fold twins ~916,
+      950; window ~1472; etc.) must be rewritten to the new matrix in T-001 — same
+      consequence: they asserted the old rule as desired. Grep at execute:
+        escalated\).toBe\(true\) near different signatures / suite-a / suite-b.
+
+      ─────────────────────────────────────────────────────────────────
+      D5 — AC-COMMIT-BODY-PROTOCOL — (e)
+      ─────────────────────────────────────────────────────────────────
+      This criterion cannot be satisfied by a production edit inside a task. Commits
+      are authored by the authority (or under authority direction) outside the
+      moment the suite turns green. Putting it in T-001–T-003 AcceptanceCriteria
+      would be F26: a task claiming a fact that does not exist while the task runs.
+
+      Placement: **authority close obligation**, checked in T-004 as a dogfood gate
+      that does not invent commits:
+
+        T-004 Criterion: after implementation commits exist for this change, run
+          git log for paths skills/ngrace/ngrace-execute/SKILL.md and
+          src/grace-cursor.ts in the change's commit range; every such commit's
+          **body** (not subject alone) must contain both threshold values as
+          substrings of the live constants (e.g. the digits from
+          FIX_SIGNATURE_REPEAT_BUDGET and FIX_DISTINCT_SIGNATURE_BUDGET) and the
+          resume-reason requirement. If no commits yet, or bodies fail the check:
+          **stop-and-report to the authority** — do not hand-edit CHANGELOG.md
+          (D5.5), do not fabricate a commit message as a test side-effect.
+
+      AC-COMMIT-BODY-PROTOCOL appears only on T-004 Satisfies. It is not "suite
+      green implies commit body." The executor verifies when commits are present;
+      the authority owns writing those bodies.
+
+      ─────────────────────────────────────────────────────────────────
+      D6 — Task split, scope, lint window
+      ─────────────────────────────────────────────────────────────────
+      T-001 — Triggers R/D, matrix, message, rewrite old suite pins.
+            Satisfies: AC-SIGNATURE-BUDGET-SEQUENCES, AC-ESCALATION-MESSAGE-HONEST
+            (window half of AC-BUDGET-WINDOW can wait for reason-bearing resume).
+            DependsOn: empty.
+            Files: src/grace-cursor.ts, src/grace-cursor.test.ts.
+            Export FIX_* constants + fixBudgetSkillRequiredSubstrings + decision API.
+
+      T-002 — Resume reason refuse/record/fold; AC-BUDGET-WINDOW with reason-bearing
+            resume; ordinary resume without reason.
+            Satisfies: AC-RESUME-REASON-REQUIRED-ON-ESCALATION-CLEAR,
+              AC-RESUME-REASON-RECORDED, AC-RESUME-ORDINARY-WITHOUT-REASON,
+              AC-BUDGET-WINDOW-PRESERVED.
+            DependsOn: T-001 (needs R/D escalator and matrix green; window reset
+              tests escalate then resume).
+            Files: same two src files (resume CLI + advance path).
+
+      T-003 — Skill prose both trees + bidirectional agreement tests + mirror +
+            token-accounting pin update.
+            Satisfies: AC-PROSE-ENFORCEMENT-AGREE, AC-SKILL-MIRROR-IDENTICAL.
+            DependsOn: T-001 (constants + helper must exist so agreement derives
+              from code). Skill text describes the real rule; rule lands in T-001.
+            Files: both SKILL.md paths; grace-cursor.test.ts (agreement tests);
+              src/test-support/token-accounting.test.ts (pin only, after prose).
+
+      T-004 — Dogfood close + commit-body authority check.
+            Satisfies: AC-SUITE-AND-LINT, AC-COMMIT-BODY-PROTOCOL.
+            DependsOn: T-001, T-002, T-003.
+
+      Why not merge T-001+T-002: red for budget sequences must not be confounded
+      with resume-reason refuse. Why not skill before code: prose would document a
+      rule the CLI does not yet enforce (F12 class). Why T-003 after T-001 only
+      (not T-002): resume reason is in skill prose but agreement AC is about budget
+      thresholds; resume sentence can land in T-003 with the rest of the skill edit.
+
+      token-accounting.test.ts: **in ObservedWriteScope, owned by T-003.** Write the
+      skill prose the contract deserves first (both trees) — never compress
+      sentences to preserve a line count. Then measure skillTextLines().total and
+      set the pin to that measured value with exact toBe (F23) — never choose a
+      target total first and write prose toward it; a pin picked in advance is a
+      target the prose gets bent to hit. Plan-authoring HEAD still pins 779; do
+      not update the pin in this plan-authoring pass. GraphAnchors: M-CURSOR,
+      M-SKILLS, M-TEST-SUPPORT (spec AffectedAreas already grants M-TEST-SUPPORT).
+
+      Predicted lint window:
+        **Draft plan + approved spec (this authoring):** expect 0 errors / 0 warnings
+        (semantic BaselineAssertions evaluate when plan is approved, not draft).
+        Measure after write and report.
+        **After plan approval, before tasks complete:** BaselineAssertions stay
+        green (they record pre-state: old skill phrase, FIX_ATTEMPT_BUDGET, old
+        test name). TargetAssertions fail until tasks land (missing new constants,
+        still-old skill, MustNotContain old bare skill sentence and old test name
+        fail while those strings remain). P0.9 framing line may report
+        baseline/target delta — do not weaken BaselineAssertions to silence it.
+        **After T-001:** old test name gone; new constants present; skill still old
+        → Target skill MustContain still red; MustNotContain bare phrase still red;
+        agreement tests if already added red.
+        **After T-003:** skill phrases present; bare claim gone on both paths;
+        mirror identical; pin measured and exact toBe.
+        **After T-004:** lint 0/0, review 0, validate:ci green.
+
+      Non-goals restated: no version surfaces; no CHANGELOG.md; no archives; no
+      decisions.md; no new event kinds; no gate policy; no closed signature vocab.
+      No cursor events until execution epoch opens.
+
+      Execution discipline: ngrace-execute cursor kinds; red-first attempt before
+      edit (F9.8); resume --reason when clearing escalation after this lands;
+      terminal before fold.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Signature budget triggers R/D, sequence matrix, honest escalation message</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-SIGNATURE-BUDGET-SEQUENCES />
+          <AC-ESCALATION-MESSAGE-HONEST />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first (record output, F12.2): before edits, show current behaviour —
+            fail(A),fail(B) escalates; pass then fail escalates on first fail; message
+            contains "after N attempts". Capture e.g.
+            `bun test src/grace-cursor.test.ts -t "DIFFERENT signatures"` failing or
+            passing under old pin, and note FIX_ATTEMPT_BUDGET attempt-count path.
+          </Criterion>
+          <Criterion>
+            Implement design D1 in src/grace-cursor.ts: FIX_SIGNATURE_REPEAT_BUDGET=2,
+            FIX_DISTINCT_SIGNATURE_BUDGET=4; listWindowFailSignatures +
+            decideFixBudgetEscalation (R then D); wire recordAttempt fail path;
+            formatEscalationMessage names trigger R or D with the correct unit.
+            Export fixBudgetSkillRequiredSubstrings() built from the two constants.
+            Remove escalation use of attempt-count / FIX_ATTEMPT_BUDGET.
+            Production counter walks LooseEvent[] only (D1 self-closing note).
+          </Criterion>
+          <Criterion>
+            AC-SIGNATURE-BUDGET-SEQUENCES: suite pins exact escalate true/false and
+            trigger id for the Constraints matrix (R and D), including
+            fail(A),fail(B) does **not** escalate; fail(A),fail(A) → R;
+            fail(A..D) → D; fail(A),fail(B),fail(A) → R not D;
+            fail(A),fail(B),fail(C) no; pass,fail no; VU does not count;
+            same-kind/different-key not a repeat. Exact toBe / escalate flags (F23).
+          </Criterion>
+          <Criterion>
+            AC-ESCALATION-MESSAGE-HONEST: R message names repeated kind:key; D names
+            distinct backstop (constant value); neither uses attempt count as the
+            sole exhaustion unit; no "task failed"; still PPA / replan owed.
+            Counterweight: wrong-trigger name fails a test.
+          </Criterion>
+          <Criterion>
+            Replace it("two failures with DIFFERENT signatures still exhaust the budget
+            (§4.5.2 verbatim)") with a test that asserts different signatures do **not**
+            exhaust (design D4). Grep and rewrite other suite pins that treat two
+            different-sig fails as escalate=true. **Counterweight:** that old title
+            string is absent; MustNotContain-equivalent in suite. This is a
+            consequence of the approved rule, not weakening coverage.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Resume reason required on escalation clear; fold round-trip; window reset</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-RESUME-REASON-REQUIRED-ON-ESCALATION-CLEAR />
+          <AC-RESUME-REASON-RECORDED />
+          <AC-RESUME-ORDINARY-WITHOUT-REASON />
+          <AC-BUDGET-WINDOW-PRESERVED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-001 is binding (escalation path must already use R/D).
+            Red-first: resume after escalate succeeds with no reason and clears PPA;
+            no Reason child on the resume event. Record that before the edit.
+          </Criterion>
+          <Criterion>
+            Implement design D2: Reason child element on resume events; require
+            non-empty --reason when clearing unresolved escalation (resume and
+            advance --kind resume); refuse before write; ordinary resume without
+            reason still works; optional reason recorded if supplied.
+          </Criterion>
+          <Criterion>
+            AC-RESUME-REASON-REQUIRED-ON-ESCALATION-CLEAR: absent/whitespace reason
+            → invalid-arguments; no resume event; task stays unresolved. Both CLI
+            entry paths. Exact refuse, not merely non-zero (F23).
+          </Criterion>
+          <Criterion>
+            AC-RESUME-REASON-RECORDED: reason text exact toBe on loose event and
+            after fold on ledger event. Counterweight: reason containing `&amp;`,
+            quotes, and a newline survives fold exact toBe (not attribute-only path).
+          </Criterion>
+          <Criterion>
+            AC-RESUME-ORDINARY-WITHOUT-REASON: pause → resume without reason succeeds
+            when task is not escalated.
+          </Criterion>
+          <Criterion>
+            AC-BUDGET-WINDOW-PRESERVED: escalate → reason-bearing resume → fail(C)
+            then fail(C) escalates on R with this-window signatures only; prior
+            window signatures do not count. Ordinary non-resolving resume does not
+            reset the window.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>ngrace-execute contract prose (both trees) and bidirectional agreement tests</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-PROSE-ENFORCEMENT-AGREE />
+          <AC-SKILL-MIRROR-IDENTICAL />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-001 is binding (fixBudgetSkillRequiredSubstrings and
+            threshold constants must exist). Red-first: agreement test against
+            current skill fails (missing substrings built from constants; bare
+            "Two failed attempts exhaust the fix budget" still present). Record
+            bun test failure (F12.2).
+          </Criterion>
+          <Criterion>
+            Rewrite skills/ngrace/ngrace-execute/SKILL.md at all four F21 sites plus
+            resume kind: both triggers in prose using the exact substrings from
+            fixBudgetSkillRequiredSubstrings(); resume documents reason on
+            escalation clear. Write the prose the contract deserves — do not compress
+            sentences to preserve a line count. Copy byte-identical to
+            plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md in the same task.
+          </Criterion>
+          <Criterion>
+            After both skill copies are written, measure skillTextLines().total (and
+            perSkill ngrace-execute if useful) with the live helper; update
+            src/test-support/token-accounting.test.ts so the pin is exact toBe of
+            that measured total (F23 — never a range or lower bound). The new number
+            must be measured after the prose exists, never chosen first and written
+            toward. Do not update the 779 pin before the skill text is final.
+          </Criterion>
+          <Criterion>
+            AC-PROSE-ENFORCEMENT-AGREE (design D3): for **both** skill paths, every
+            substring from fixBudgetSkillRequiredSubstrings() is present; old bare
+            threshold claim is gone (TargetAssertions MustNotContain the baseline
+            sentence on both paths). Comment in test what mutating the constant
+            vs the skill reddens. Kind-set completeness test remains separate and
+            insufficient alone.
+          </Criterion>
+          <Criterion>
+            AC-SKILL-MIRROR-IDENTICAL: git diff --no-index clean between the two
+            SKILL.md paths; bun run ./scripts/validate-marketplace.ts green for
+            packaged-vs-canonical (version surfaces still 6.1.1, untouched).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Dogfood close: suite, lint 0/0, review 0, validate:ci; commit-body check</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SUITE-AND-LINT />
+          <AC-COMMIT-BODY-PROTOCOL />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-SUITE-AND-LINT: bun test (touched packages) green; bun run validate:ci
+            green; bun run ngrace lint --path . is 0 errors and 0 warnings;
+            ngrace review --path . is 0 findings on a clean tree. No edits under
+            archive/ or decisions.md; no CHANGELOG.md; no version/marketplace/
+            openpackage surfaces. skillTextLines pin (updated in T-003 to the
+            measured post-prose total) still exact toBe and green.
+          </Criterion>
+          <Criterion>
+            Counterweight: suite green is not achieved by deleting the sequence
+            matrix, agreement tests, resume-reason refuse tests, or by restoring
+            attempt-count escalation / the old DIFFERENT-signatures-exhaust pin.
+          </Criterion>
+          <Criterion>
+            AC-COMMIT-BODY-PROTOCOL (design D5 — authority-owned commits): inspect
+            git log for commits touching skills/ngrace/ngrace-execute/SKILL.md and/or
+            src/grace-cursor.ts in this change's range. Every such commit **body**
+            must name both live threshold values and resume-reason on escalation
+            clear. If commits are missing or bodies fail: stop-and-report to the
+            authority; do not invent commits; do not hand-edit CHANGELOG.md.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-ESCALATION-HONESTY>
+</NgraceChangePlan>

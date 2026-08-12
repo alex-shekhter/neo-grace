@@ -6,16 +6,29 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 
 | ID | Title | Status | Baseline | Targets | Plan |
 |---|---|---|---|---|---|
+| `RM-GOVERNED-PATH` | Make the governed path the path of least resistance | `approved` | 6.1.1 | 6.2.0 · 6.3.0 · 6.4.0 _(provisional)_ | [plan.md](./active/RM-GOVERNED-PATH/plan.md) · [decisions.md](./active/RM-GOVERNED-PATH/decisions.md) · [review.md](./active/RM-GOVERNED-PATH/review.md) |
 | `RM-LANGUAGE-EXTENSIBILITY` | Language bundles, conformance fixtures, and parser strategy | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-LANGUAGE-EXTENSIBILITY/review.md) |
+| `RM-GITLESS-INTEGRITY` | Gitless artifact integrity: what the tool knows about what it approved | `draft` | — | — | _not written_ — see [review.md](./active/RM-GITLESS-INTEGRITY/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
 
-**No roadmap track is currently approved for execution.** `RM-AGENT-RELIABILITY` completed on
+**`RM-GOVERNED-PATH` is approved for execution as of 2026-08-09** — seven ratified decisions
+(D1–D7 in `decisions.md`), no open questions, baseline `6.1.1` at `f340a98`. Its release targets stay
+provisional; a release commitment is a separate act per phase. Each phase begins with a derivation
+pass against HEAD before any `C-*` bundle is authored — see the plan's header.
+
+`RM-AGENT-RELIABILITY` completed on
 2026-08-01 and is archived (targets `6.1.0` for Phases 2–11; product release actions remain the
 maintainer's). `RM-AGENT-RELIABILITY-EVIDENCE` completed on 2026-07-30. Surviving scheduled work
 from that track includes the draft change bundle `C-LEDGER-READ-ABSENCE` under
 `.ngrace/changes/active/` (not a roadmap plan).
+
+`RM-GITLESS-INTEGRITY` is backlog, recorded 2026-08-10: `gate approve` records no fingerprint of the
+artifact it approved, so integrity depends on git and cannot survive an edit-and-commit. **Not
+scheduled before the release after `RM-GOVERNED-PATH`'s next target**, and it must replace
+`approved-contract-drift`'s git reading rather than run beside it — two surfaces answering the same
+question from two sources is the defect `C-REPORT-HONESTY` exists to remove.
 
 **Execution order (historical).** `RM-NAMESPACE-SEPARATION` ran first and is complete — shipped
 2026-07-29 as `@neograce/cli` 6.0.1. `RM-AGENT-RELIABILITY` (with its evidence sibling) followed and

@@ -364,8 +364,22 @@ function readGraphRoutes(paths: NgraceProjectPaths, issues: NgraceIssue[]): Owne
     return [];
   }
 
-  return artifact.root.children
-    .flatMap((node) => (node.tag === "GraphDocuments" ? node.children : []))
+  const documentChildren = artifact.root.children
+    .flatMap((node) => (node.tag === "GraphDocuments" ? node.children : []));
+  // C-TOKEN-INTEGRITY T-003 site 5: non-GD siblings were filtered silently.
+  for (const node of documentChildren) {
+    if (!ANCHOR_PATTERNS.graphDocument.test(node.tag)) {
+      issues.push(
+        issue(
+          "error",
+          "projection.index.invalid-document-child",
+          paths.graphIndex,
+          `GraphDocuments does not allow child <${node.tag}>; only GD-* document owners are permitted.`,
+        ),
+      );
+    }
+  }
+  return documentChildren
     .filter((node) => ANCHOR_PATTERNS.graphDocument.test(node.tag))
     .map((node) => routeFromOwnerNode(paths.graceDir, paths.graphDir, paths.graphIndex, node, (anchor) => isGraphAnchor(anchor), issues));
 }
@@ -377,8 +391,22 @@ function readVerificationRoutes(paths: NgraceProjectPaths, issues: NgraceIssue[]
     return [];
   }
 
-  return artifact.root.children
-    .flatMap((node) => (node.tag === "VerificationDocuments" ? node.children : []))
+  const documentChildren = artifact.root.children
+    .flatMap((node) => (node.tag === "VerificationDocuments" ? node.children : []));
+  // C-TOKEN-INTEGRITY T-003 site 6: non-VD siblings were filtered silently.
+  for (const node of documentChildren) {
+    if (!ANCHOR_PATTERNS.verificationDocument.test(node.tag)) {
+      issues.push(
+        issue(
+          "error",
+          "projection.index.invalid-document-child",
+          paths.verificationIndex,
+          `VerificationDocuments does not allow child <${node.tag}>; only VD-* document owners are permitted.`,
+        ),
+      );
+    }
+  }
+  return documentChildren
     .filter((node) => ANCHOR_PATTERNS.verificationDocument.test(node.tag))
     .map((node) => routeFromOwnerNode(paths.graceDir, paths.verificationDir, paths.verificationIndex, node, (anchor) => ANCHOR_PATTERNS.verification.test(anchor), issues));
 }
@@ -413,10 +441,35 @@ function routeFromOwnerNode(
     }
   }
 
-  const owns = node.children
-    .flatMap((child) => (child.tag === "Owns" ? child.children : []))
-    .filter((child) => ownsPredicate(child.tag))
-    .map((child) => child.tag);
+  // C-TOKEN-INTEGRITY T-003 / P0.5: diagnose Owns text and invalid children instead of silent drop.
+  const owns: string[] = [];
+  for (const ownsNode of node.children.filter((child) => child.tag === "Owns")) {
+    const ownsText = ownsNode.text.trim();
+    if (ownsText) {
+      issues.push(
+        issue(
+          "error",
+          "projection.index.owns-text",
+          indexFile,
+          `${node.tag} <Owns> contains text ${JSON.stringify(ownsText)}; list owned anchors as self-closing child tags (e.g. <M-EXAMPLE />), not bare text.`,
+        ),
+      );
+    }
+    for (const child of ownsNode.children) {
+      if (!ownsPredicate(child.tag)) {
+        issues.push(
+          issue(
+            "error",
+            "projection.index.invalid-owns-child",
+            indexFile,
+            `${node.tag} <Owns> does not allow child <${child.tag}>; use anchors matching this document's ownership family.`,
+          ),
+        );
+        continue;
+      }
+      owns.push(child.tag);
+    }
+  }
 
   return {
     owner: node.tag,

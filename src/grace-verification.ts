@@ -14,6 +14,7 @@ import { defineCommand } from "citty";
 import { existsSync, readFileSync } from "node:fs";
 
 import { findVerifications, loadGraceArtifactIndex, resolveVerification } from "./query/core";
+import { defineGraceCommand } from "./query/command";
 import { GraceCommandError, runQueryCommand } from "./query/errors";
 import { formatVerificationFindTable, formatVerificationText } from "./query/render";
 import type { GraceArtifactIndex } from "./query/types";
@@ -74,7 +75,7 @@ function readLocalizeLog(logArg: string | undefined): { text: string } | { absen
   }
 }
 
-export const verificationCommand = defineCommand({
+export const verificationCommand = defineGraceCommand({
   meta: {
     name: "verification",
     description:

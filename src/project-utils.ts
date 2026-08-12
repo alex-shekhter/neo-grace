@@ -536,6 +536,30 @@ export function analyzeGovernedFile(
       }
     }
     issues.push(...validateDuplicateContractFields(filePath, text, contract.startLine));
+    // C-TOKEN-INTEGRITY T-001: residual / wrong-family tokens raise here — not in
+    // parseGovernedFile — so query surfaces keep a pure FileMarkupRecord.
+    for (const token of splitList(contract.fields.LINKS)) {
+      if (!isAcceptedLinkToken(token)) {
+        issues.push(markupIssue(
+          "error",
+          "markup.unparsed-link-token",
+          filePath,
+          contract.startLine,
+          unparsedLinkTokenMessage("LINKS", token),
+        ));
+      }
+    }
+    for (const token of splitList(contract.fields.DEPENDS)) {
+      if (!isAcceptedDependsToken(token)) {
+        issues.push(markupIssue(
+          "error",
+          "markup.unparsed-link-token",
+          filePath,
+          contract.startLine,
+          unparsedLinkTokenMessage("DEPENDS", token),
+        ));
+      }
+    }
   }
 
   const role = parseRole(contract?.fields.ROLE);
@@ -681,12 +705,37 @@ function parseBlocks(text: string): FileBlockRecord[] {
   return blocks.sort((left, right) => left.startLine - right.startLine || left.endLine - right.endLine);
 }
 
+/** Split multi-value MODULE_CONTRACT list fields on comma, semicolon, or whitespace (D5.1). Colon is not a separator. */
 function splitList(text?: string): string[] {
   const authored = (text ?? "").trim();
   const normalized = authored.startsWith("[") && authored.endsWith("]")
     ? authored.slice(1, -1).trim()
     : authored;
-  return normalized.split(",").map((item) => item.trim()).filter((item) => item && item.toLowerCase() !== "none");
+  return normalized.split(/[,;\s]+/).map((item) => item.trim()).filter((item) => item && item.toLowerCase() !== "none");
+}
+
+/** Accepted id families for LINKS (M-*, DF-*, V-M-*) vs DEPENDS (M-* only). Residual tokens raise. */
+function isAcceptedLinkToken(token: string): boolean {
+  return ANCHOR_PATTERNS.module.test(token)
+    || ANCHOR_PATTERNS.dataFlow.test(token)
+    || ANCHOR_PATTERNS.verification.test(token);
+}
+
+function isAcceptedDependsToken(token: string): boolean {
+  return ANCHOR_PATTERNS.module.test(token);
+}
+
+const LIST_SEPARATORS_PROSE = "comma, semicolon, or whitespace (colon is not a separator)";
+const LINKS_FAMILIES = "M-*, DF-*, V-M-*";
+const DEPENDS_FAMILIES = "M-*";
+
+function unparsedLinkTokenMessage(field: "LINKS" | "DEPENDS", token: string): string {
+  const families = field === "LINKS" ? LINKS_FAMILIES : DEPENDS_FAMILIES;
+  return (
+    `${field} token '${token}' matches no accepted family. `
+    + `Accepted separators: ${LIST_SEPARATORS_PROSE}. `
+    + `Accepted families for ${field}: ${families}.`
+  );
 }
 
 type MarkerEvent = { direction: "start" | "end"; family: string; name: string; key: string; line: number };

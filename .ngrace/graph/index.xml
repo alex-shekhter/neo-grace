@@ -19,6 +19,7 @@
         <M-REVIEW />
         <M-LOCALIZE />
         <M-QUERY />
+        <M-CLI-INFRA />
         <M-CONTEXT />
         <M-TEST-SUPPORT />
         <M-CALIBRATION />

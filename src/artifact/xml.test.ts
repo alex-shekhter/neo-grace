@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
-import { childText, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes } from "./xml";
+import { childText, cloneXmlNode, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
 describe("neo-grace XML parser adapter", () => {
   it("returns xml.parse diagnostics for malformed XML instead of throwing", () => {
@@ -61,5 +61,61 @@ describe("neo-grace XML parser adapter", () => {
 
     expect(childText(readGraceXmlArtifact(file).root!, "Runtime")).toBe("Bun");
     expect(readGraceXmlArtifact(path.join(root, "missing.xml")).issues[0]?.code).toBe("xml.missing-file");
+  });
+});
+
+describe("cloneXmlNode", () => {
+  function sampleTree(): GraceXmlNode {
+    return {
+      tag: "Parent",
+      attributes: { a: "1" },
+      children: [
+        {
+          tag: "Child",
+          attributes: { k: "v" },
+          children: [{ tag: "Grandchild", attributes: { g: "2" }, children: [], text: "leaf" }],
+          text: "hello",
+        },
+      ],
+      text: "parent-text",
+    };
+  }
+
+  it("returns a recursive structural clone, not a shared tree", () => {
+    const input = sampleTree();
+    const grandchild = input.children[0]!.children[0]!;
+    const cloned = cloneXmlNode(input);
+
+    // identity: returned node is not the input
+    expect(cloned).not.toBe(input);
+    // children recursively cloned (grandchild identity is the recursive check)
+    expect(cloned.children).not.toBe(input.children);
+    expect(cloned.children[0]).not.toBe(input.children[0]);
+    expect(cloned.children[0]!.children[0]).not.toBe(grandchild);
+    // attribute records shallow-copied at every level
+    expect(cloned.attributes).not.toBe(input.attributes);
+    expect(cloned.children[0]!.attributes).not.toBe(input.children[0]!.attributes);
+    expect(cloned.children[0]!.children[0]!.attributes).not.toBe(grandchild.attributes);
+    // tag and text preserved
+    expect(cloned.tag).toBe("Parent");
+    expect(cloned.text).toBe("parent-text");
+    expect(cloned.children[0]!.tag).toBe("Child");
+    expect(cloned.children[0]!.text).toBe("hello");
+    expect(cloned.children[0]!.children[0]!.tag).toBe("Grandchild");
+    expect(cloned.children[0]!.children[0]!.text).toBe("leaf");
+    expect(cloned.attributes).toEqual({ a: "1" });
+    expect(cloned.children[0]!.attributes).toEqual({ k: "v" });
+    expect(cloned.children[0]!.children[0]!.attributes).toEqual({ g: "2" });
+
+    cloned.attributes.a = "mutated";
+    cloned.children[0]!.attributes.k = "mutated";
+    cloned.children[0]!.text = "mutated-text";
+    cloned.children[0]!.children[0]!.text = "mutated-leaf";
+    cloned.children.push({ tag: "New", attributes: {}, children: [], text: "" });
+    expect(input.attributes.a).toBe("1");
+    expect(input.children[0]!.attributes.k).toBe("v");
+    expect(input.children[0]!.text).toBe("hello");
+    expect(grandchild.text).toBe("leaf");
+    expect(input.children).toHaveLength(1);
   });
 });

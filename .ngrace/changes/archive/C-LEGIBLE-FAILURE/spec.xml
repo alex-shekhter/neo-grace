@@ -1,0 +1,469 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-LEGIBLE-FAILURE>
+    <Summary>
+      When the tool cannot do what was asked, the caller must be able to tell
+      exactly what happened — fixing two independent collapses of that distinction
+      (ledger read three-into-null, and CLI error channel that abandons its declared
+      envelope) as one class, with M-QUERY's CLI-infrastructure drift repaired as
+      the enabling home for the shared error surface. Absorbs C-LEDGER-READ-ABSENCE.
+    </Summary>
+    <Problem>
+      RM-GOVERNED-PATH P0 and its follow-on queue hold findings where a surface
+      accepts a situation and reports less than it knows. Two live instances of the
+      same thesis sit on unrelated code paths:
+
+      **Instance 1 — ledger read (C-LEDGER-READ-ABSENCE / Phase 5 conflation).**
+      `wrapperFromLedger` (`src/gates/ledger.ts`) returns bare `null` when:
+      (1) there is no `run-ledger.xml`, (2) the file exists and does not parse, or
+      (3) it parses but holds no wrapper for the change id. Callers that treat
+      `null` as *"no ledger yet"* are told something the function never determined.
+      Measured call graph at authoring HEAD: only `readLatestReviewVerdict`,
+      `listReviewVerdicts` (re-walk), and `readGateDecisions` call
+      `wrapperFromLedger` directly; each maps `!wrapper` to **absent** (or empty
+      decisions with `sectionPresent: false`). So a truncated/corrupt ledger and a
+      missing file produce the same gate branch as "no Verdicts yet."
+      `C-REPORT-HONESTY` T-005 hit this: apply's refusal had to say
+      `Verdict child count=unknown (ledger unreadable)` because the underlying
+      decision path could not distinguish absence from corruption — detail is
+      enriched separately via `readLedgerVerdictsSurface` (P0.7), while the
+      decision still comes from `readLatestReviewVerdict`'s collapsed read.
+
+      **Instance 2 — CLI error channel (F25).** `defineGraceCommand` refuses the
+      boolean space form *before* the original `run`, which is what makes the
+      refusal safe — but the throw escapes outside `runGraceCommand`, so citty's
+      `runMain` handles it. Measured (C-FLAG-HONESTY T-002/T-004; re-check at
+      implement):
+
+      | Invocation | exit | stdout | stderr |
+      | `gate … --record false` | 1 | empty | stack + GraceCommandError message |
+      | `… --format json --record false` | 1 | empty | same stack — **no JSON envelope** |
+
+      citty `runMain` `process.exit(1)`s on non-CLIError throws after
+      `console.error(error)`. The repository **declares**
+      `GraceCommandErrorEnvelope` (`schemaVersion: "1.0.0"`, `ok: false`, coded
+      `error`) and `runQueryCommand`'s doc promises failures *"without stack
+      traces."* A reachable branch that honours neither is the D13 class: a
+      `schemaVersion`-bearing surface must not answer in a shape its schema does
+      not describe. Latent third part: `runGraceCommand` sets
+      `process.exitCode = commandError.exitCode`; the guard path never reaches
+      that line and takes citty's hard `process.exit(1)`. Both are `1` today
+      (`GraceCommandError` defaults `exitCode` to 1; no production error sets
+      another value), so the divergence is invisible until something needs a
+      different code — nothing pins the contract.
+
+      **Two independent instances make this a class, not a one-off.** A repair that
+      fixes the ledger read and leaves the CLI channel (or the reverse) has not
+      addressed the thesis.
+
+      **Enabling drift (F24) — not the same defect, required for instance 2.**
+      `M-QUERY` is summarised in `.ngrace/graph/main.xml` as *"Artifact query and
+      navigation: module, file, graph, and verification resolution,"* and
+      `src/query/errors.ts` repeats that as file-local `SCOPE`. What it holds is
+      `runGraceCommand`, `GraceCommandError`, the envelope, and (since
+      C-FLAG-HONESTY) `defineGraceCommand` in `src/query/command.ts`. Measured
+      production importers of `query/errors` / `./errors` at authoring HEAD
+      (F12.2; full listing, not truncated): **14 files** —
+
+      gates/command.ts, gates/ledger.ts, review/command.ts, grace-cursor.ts,
+      grace-status.ts, grace-lint.ts, grace-context.ts, grace-doctor.ts,
+      grace-module.ts, grace-file.ts, grace-graph.ts, grace-verification.ts,
+      query/core.ts, query/command.ts.
+
+      Most of those are not query resolution. Fixing instance 2 *in place* under
+      M-QUERY deepens exactly the drift F24 records. F24 is therefore the
+      **enabling change** for a home that can honestly host the shared error
+      surface — not a third instance of the legibility thesis.
+    </Problem>
+    <Goals>
+      <Goal>
+        Ledger reads expose a discriminated three-exit result for every consumer
+        that currently collapses through `wrapperFromLedger` null:
+        `absent-no-file | unreadable(code, detail) | ok(wrapper)` — not bare null
+        interpreted as "no ledger yet."
+      </Goal>
+      <Goal>
+        `readLatestReviewVerdict`, `listReviewVerdicts`, and
+        `readGateDecisions` (and any successor wrappers) consume that three-exit
+        surface without changing gate permit/refuse outcomes on currently green
+        fixtures (compat). Unreadable never becomes a silent pass at any gate.
+      </Goal>
+      <Goal>
+        Plan-quality and other read-only consumers use the **same** classification
+        surface as gates — no dual parse classification beside a still-collapsing
+        gate path. `readLedgerVerdictsSurface` becomes (or is merged into) the
+        single read, not a second definition that can disagree with
+        `wrapperFromLedger`.
+      </Goal>
+      <Goal>
+        CLI boolean-space refusal (and any other `GraceCommandError` thrown from
+        `defineGraceCommand`'s pre-run path) is rendered through the repository's
+        declared error channel: text mode is a single stderr message without a
+        stack trace; `--format json` yields a parseable `GraceCommandErrorEnvelope`
+        on stdout; exit code comes from `GraceCommandError.exitCode` (pinned
+        exactly, F23), not from citty's hard-coded exit alone.
+      </Goal>
+      <Goal>
+        The space-form refusal continues to prevent the flagged side effect
+        (for `--record false`: no Decision append; no ledger created when none
+        existed). Improving the message while letting the command run fails the
+        goals.
+      </Goal>
+      <Goal>
+        The error-channel repair covers the **class** of live boolean sites under
+        the guard (re-derived via `listBooleanFlags` at implement — **24** at
+        authoring HEAD), not a one-command special case.
+      </Goal>
+      <Goal>
+        Shared CLI infrastructure (`GraceCommandError`, envelope, `runGraceCommand`,
+        `defineGraceCommand`) lives under graph module `M-CLI-INFRA` with matching
+        `V-M-CLI-INFRA`, and the file-local `LINKS` / graph Summary for
+        `src/query/errors.ts` and `src/query/command.ts` describe what those files
+        hold (F24 repair — enabling, disclosed; re-LINKS in place, no directory move).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: decisions.md F24 (enabling home), F25 (channel hole), D12
+        (honest new-file/module windows), D13 (schemaVersion surface honesty),
+        F12.2 (measure denominators; do not invent counts), F23 (exact pins, not
+        lower bounds), F10 (tests check what their names claim). Spec only in this
+        authoring pass; status remains `"draft"`; do not author plan.xml until the
+        spec is approved (F4 two-stage).
+      </Constraint>
+      <Constraint>
+        Additive / fail-closed only for ledger reads. Existing projects without
+        `run-ledger.xml` stay green. Unreadable never becomes a silent pass at any
+        gate. Gate policy is unchanged (D11: apply still requires a recorded
+        verdict when the ledger is readable).
+      </Constraint>
+      <Constraint>
+        Instance 2 must not weaken C-FLAG-HONESTY: space-form still refuses with
+        both working forms named; bare flag, equals form, and `--no-flag` still
+        work; legitimate positionals still work. The refusal rule is not reopened.
+      </Constraint>
+      <Constraint>
+        Behaviour, not full mechanism. Feasibility notes: `runGraceCommand` and
+        `GraceCommandErrorEnvelope` already exist; routing the guard through them
+        (or a shared renderer they call) is plan-level. Whether `wrapperFromLedger`
+        is replaced, returns a result type, or is deleted once
+        `readLedgerVerdictsSurface` is the sole classification is plan-level —
+        the binding property is **one** classification definition, not two that
+        can disagree.
+      </Constraint>
+      <Constraint>
+        AffectedAreas is a closed list and binds the plan
+        (change.plan-scope-exceeds-spec). A plan that needs a module not named
+        here is a stop-and-report. Over-declaring grants unreviewed scope;
+        under-declaring costs a re-spec.
+      </Constraint>
+      <Constraint>
+        Superseding C-LEDGER-READ-ABSENCE is the **authority's** act — after this
+        spec is **approved**, **before any plan is authored** for this bundle
+        (`status="superseded"`, a Replacement element naming C-LEGIBLE-FAILURE,
+        move to `archive/`). It cannot happen sooner
+        (`change.superseded-replacement-not-found` requires the replacement to
+        exist); waiting for plan approval
+        would leave two active bundles holding live claims on the same subject.
+        Spec-authoring and plan/execute must not edit, move, or delete that draft.
+        Absorb its substance here.
+      </Constraint>
+      <Constraint>
+        F24 repair is **re-LINKS in place**, not a physical move. `src/query/errors.ts`
+        and `src/query/command.ts` keep their paths; their `MODULE_CONTRACT` headers
+        change `LINKS: M-QUERY` → `LINKS: M-CLI-INFRA`, and the graph gains an
+        `M-CLI-INFRA` entry true of what those files hold. No import-path rewrites
+        across the fourteen production importers. Directory layout is not the
+        contract surface — this repository already separates directory from module
+        (`src/grace-verification.ts` declares `LINKS: M-LOCALIZE` while that
+        module's graph `Path` is `src/verification/localize.ts`). Consequence:
+        once the two files link elsewhere, `M-QUERY`'s existing Summary becomes
+        true as written with no edit to it.
+      </Constraint>
+      <Constraint>
+        Accepted residual cost of re-LINKS without move: `src/query/` will hold
+        files belonging to two modules (`M-QUERY` and `M-CLI-INFRA`), so a reader
+        browsing directories rather than contract headers still gets no signal and
+        may imitate by adding the next cross-cutting concern to `query/`. That is
+        a **smaller** harm than F24's original — a header now answers the question
+        correctly — and a physical relocation is a purely mechanical follow-on if
+        it is ever wanted. Legibility is this bundle's subject; layout tidiness is
+        not. A fourteen-file import rewrite on top of the three-exit ledger repair,
+        the channel repair, the exit-code pin, and a new module would make this the
+        largest bundle in the track, which is where quality slips.
+      </Constraint>
+      <Constraint>
+        `V-M-CLI-INFRA` is **required**, not optional and not "plan-justified
+        alternative home." Lint does not enforce module→verification pairing, but
+        the repository has **19 modules and 19 `V-M-*` anchors, one-to-one**. An
+        invariant like that does not die by being repealed; it dies by acquiring
+        its first exception. A module with no verification anchor is also one that
+        nothing can `MustVerify` against, which would leave this bundle's own
+        assertions pointing at nothing.
+      </Constraint>
+      <Constraint>
+        Archives under `.ngrace/changes/archive/` and `docs/plans/archive/` are
+        never edited. No CHANGELOG.md edit (D5.5 — new surface text in commit
+        body if any). No package / marketplace / openpackage version surface
+        change unless the plan explicitly requires a graph/verification anchor
+        addition (allowed under AffectedAreas; version bumps still out unless
+        required). No skills/ or plugins/ skill-text change in this bundle.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first regressions for each AC. Where a criterion
+        asserts a count (boolean inventory, exit code, Decision append absence),
+        tests pin exact values (F23 — `toBe` / exact absence, not
+        `toBeGreaterThanOrEqual`). Re-measure inventory with `listBooleanFlags`
+        (live objects), not a remembered number or source-text grep alone (F10 /
+        F12.2).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Changing gate policy (apply still requires a recorded verdict when
+        readable; approve/archive requirements unchanged).
+      </NonGoal>
+      <NonGoal>
+        Changing any flag's default, the boolean space-form refusal *rule*, or
+        citty's equals / `--no-` working forms — C-FLAG-HONESTY is archived and
+        stays.
+      </NonGoal>
+      <NonGoal>
+        Migrating off citty, forking citty, or making the equals form
+        (`--flag=false`) an error.
+      </NonGoal>
+      <NonGoal>
+        Rewriting `runGraceCommand`'s success path, or inventing a second parallel
+        error envelope schema.
+      </NonGoal>
+      <NonGoal>
+        Changing plan-quality's report shape beyond consuming the shared three-exit
+        API (no redesign of plan-quality rows).
+      </NonGoal>
+      <NonGoal>
+        skills/ or plugins/ skill-text changes; documentation-only "fix" that
+        leaves either collapse armed.
+      </NonGoal>
+      <NonGoal>
+        Other open findings (F9.9 attempt-pair wording, F20 cloneXmlNode home,
+        F21 fix-budget attempts vs failures, F22 paused-pending-approval
+        self-clear) — each has or will have its own bundle.
+      </NonGoal>
+      <NonGoal>
+        Choosing `M-CLI` as the infrastructure home — that anchor is
+        `src/grace.ts` (dispatch root), not shared CLI infrastructure.
+      </NonGoal>
+      <NonGoal>
+        Physical relocation of `src/query/errors.ts` / `src/query/command.ts` (or
+        any of their fourteen production importers' import paths). F24 is repaired
+        by graph entry + re-LINKS; a move is a mechanical follow-on if ever wanted,
+        not this bundle's subject.
+      </NonGoal>
+      <NonGoal>
+        Widening M-QUERY's Summary/SCOPE to absorb CLI infrastructure instead of
+        introducing `M-CLI-INFRA` — rejected so the name keeps predicting contents.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-THREE-EXITS>
+        Ledger read distinguishes `absent-no-file`, `unreadable` (with stable
+        `code` and `detail`), and `ok` (wrapper available / section walkable).
+        **Discriminating negatives:** a truncated or non-parseable file is
+        **unreadable, not absent**; a missing file is **absent, not unreadable**;
+        a parseable ledger with no wrapper for the change id is **unreadable**
+        with code `ledger.bundle-id-mismatch` (already used by
+        `readLedgerVerdictsSurface` — must not remain collapsed to absent via
+        `wrapperFromLedger` null). **Failure conditions:** bare null still
+        returned to gate consumers; two competing classifications that can
+        disagree for the same path; unreadable reported as absent.
+      </AC-THREE-EXITS>
+      <AC-GATE-COMPAT>
+        Gate apply / approve / archive outcomes on the existing suite fixtures are
+        unchanged. Fail-closed refuse on corrupt or invalid ledger content remains
+        refuse (not throw-out-of-band, not permit). **Discriminating negative:** a
+        deliberate regression that turns a fail-closed refuse into throw-or-permit
+        fails a test. **Failure conditions:** green fixture suite flips permit ↔
+        refuse; unreadable becomes silent pass.
+      </AC-GATE-COMPAT>
+      <AC-SINGLE-CLASSIFICATION>
+        Plan-quality (`collectPlanQualityReport` / `readLedgerVerdictsSurface`
+        consumers) and gate decision paths share **one** ledger-parse
+        classification definition. No private re-implementation of
+        absent/unreadable/ok beside a collapsing `wrapperFromLedger`.
+        **Discriminating negative:** removing or breaking the shared surface makes
+        plan-quality **and** gate ledger tests red, not only one side.
+        **Failure conditions:** dual APIs that can classify the same file
+        differently; plan-quality still special-casing while gates keep null
+        collapse.
+      </AC-SINGLE-CLASSIFICATION>
+      <AC-CHANNEL-JSON-ENVELOPE>
+        For any boolean space-form refusal under a command that declares
+        `--format` (or otherwise supports JSON error mode), invoking with
+        `--format json` and the space form exits non-zero and writes a **valid**
+        `GraceCommandErrorEnvelope` to stdout (`schemaVersion: "1.0.0"`,
+        `ok: false`, `error.code`, `error.message`) — assert by `JSON.parse` of
+        entire stdout, not substring. No stack frame on stdout. **Failure
+        conditions:** empty stdout; unparseable stdout; envelope missing required
+        fields; stack-only stderr with empty stdout counted as success.
+      </AC-CHANNEL-JSON-ENVELOPE>
+      <AC-CHANNEL-TEXT-LEGIBLE>
+        In text mode, the same refusal exits non-zero with a single stderr message
+        (no stack trace) that still names both working forms for the flag
+        involved (equals and `--no-`/bare), matching C-FLAG-HONESTY information
+        content. **Failure conditions:** stack dump as the primary user-visible
+        form; message that omits working forms; exit 0.
+      </AC-CHANNEL-TEXT-LEGIBLE>
+      <AC-CHANNEL-SIDE-EFFECT-HELD>
+        Space-form refusal still prevents the flagged side effect. For the F18
+        incident shape on a **temp fixture only**: `ngrace gate apply|archive|approve
+        --change C-* --record false` creates no new Decision and does not create
+        a ledger when none existed (exact Decision count `toBe` before/after —
+        F23). **Failure conditions:** Decision append; ledger created; infer-and-
+        continue; rewrite-argv-and-continue.
+      </AC-CHANNEL-SIDE-EFFECT-HELD>
+      <AC-EXIT-CODE-FROM-ERROR>
+        Process exit status for a rendered `GraceCommandError` equals
+        `error.exitCode` from the thrown object (default 1 today), not an
+        unrelated hard-coded path that merely coincides. **Pin exactly (F23).**
+        **Discriminating proof:** a test (or fixture) that constructs a
+        `GraceCommandError` with a non-default `exitCode` (e.g. 2) and drives it
+        through the same render path used by the guard must observe that exit
+        code. **Failure conditions:** exit always 1 regardless of
+        `error.exitCode`; only "non-zero" asserted.
+      </AC-EXIT-CODE-FROM-ERROR>
+      <AC-CHANNEL-CLASS-COVERAGE>
+        The error-channel repair applies to the class of live boolean sites under
+        `defineGraceCommand` (re-measure with `listBooleanFlags` at close — **24**
+        at authoring HEAD). Not a one-leaf special case for gate `--record`.
+        **Failure conditions:** only gate leaves render the envelope; a live
+        branded site still hits citty's stack path for space-form.
+      </AC-CHANNEL-CLASS-COVERAGE>
+      <AC-INFRA-HOME-TRUE>
+        After the change, `src/query/errors.ts` and `src/query/command.ts` declare
+        `LINKS: M-CLI-INFRA`, and `.ngrace/graph/main.xml` has an `M-CLI-INFRA`
+        entry whose Summary describes shared CLI infrastructure (`GraceCommandError`,
+        envelope, `runGraceCommand`, `defineGraceCommand`) — **true of what those
+        files hold**. Matching `V-M-CLI-INFRA` exists (one-to-one with modules).
+        Directory placement is **not** a criterion: re-LINKS in place satisfies this
+        AC; a physical move is neither required nor in scope.
+        **Failure conditions:** either file still `LINKS: M-QUERY` while holding
+        CLI infra; `M-CLI-INFRA` graph entry missing or with a false Summary/SCOPE
+        (D12 class); `V-M-CLI-INFRA` missing; criterion treated as requiring a
+        directory move or import-path rewrite.
+      </AC-INFRA-HOME-TRUE>
+      <AC-SUITE-AND-LINT>
+        Red-first regressions cover each AC above with exact assertions where a
+        number or presence/absence is claimed (F23). `bun test` for touched
+        packages green; `bun run validate:ci` green; `bun run ngrace lint --path .`
+        is 0 errors and 0 warnings at close; `ngrace review --path .` is 0
+        findings on a clean tree after the change. No edits under
+        `docs/plans/archive/` or `.ngrace/changes/archive/`; no CHANGELOG.md; no
+        version / marketplace / openpackage version surface unless required for a
+        new graph/V-M-* anchor declared in the plan; no skills/ or plugins/
+        skill-text edits. **Failure conditions:** suite red; lint or review dirty
+        by design silence; archive edits; dual active specs both claiming the
+        ledger repair after authority supersession is complete.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI-INFRA />
+      <M-QUERY />
+      <M-GATES />
+      <M-REVIEW />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Red-first: three-exit matrix (absent / unreadable / ok) with discriminating
+        negatives (truncated ≠ absent; missing ≠ unreadable; wrong wrapper id →
+        ledger.bundle-id-mismatch); gate outcomes unchanged on green fixtures and
+        still fail-closed on corrupt ledger; plan-quality and gates share one
+        classification; space-form --record false still writes no Decision (exact
+        count); --format json space-form parses as GraceCommandErrorEnvelope;
+        text mode no stack, names working forms; exitCode from error object pinned
+        with a non-default exitCode probe; listBooleanFlags count exact at close
+        (24 at authoring) and channel covers branded sites; errors.ts and
+        command.ts LINKS M-CLI-INFRA; graph M-CLI-INFRA Summary true of what they
+        hold; V-M-CLI-INFRA present (19↔19 preserved). Dogfood: ngrace lint
+        --path . 0/0; ngrace review --path . 0 findings; validate:ci green.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        F24 decision **chosen: new module `M-CLI-INFRA`** — id fixed, not
+        provisional; does not collide with `M-CLI` (`src/grace.ts`, dispatch root).
+        Cost: graph anchor + **required** `V-M-CLI-INFRA` (19 modules / 19 `V-M-*`
+        one-to-one; no first exception), and re-LINKS of `src/query/errors.ts` and
+        `src/query/command.ts` to `M-CLI-INFRA` (no directory move; no import-path
+        rewrites). Rejected alternative: widen M-QUERY Summary/SCOPE only —
+        cheaper and immediately true, but the name stops predicting contents and
+        future cross-cutting CLI concerns still land by imitation. Rejected
+        alternative: physical move of the two files plus fourteen importer rewrites
+        — layout tidiness, not legibility, and bundle-size risk. Not M-CLI.
+      </Assumption>
+      <Assumption>
+        Lint window for a not-yet-created module id in AffectedAreas: at **spec
+        draft alone**, lint does not require graph membership of AffectedAreas
+        tags (coverage is plan DurableScope vs spec; AffectedAreas tags are not
+        graph-resolved at spec stage). Measured expectation while this draft has
+        no plan.xml: **0 errors from the invented anchor alone**. When a plan is
+        authored, DurableScope GraphAnchors must name M-CLI-INFRA and the graph
+        entry must exist before LINKS resolve — that is a **plan/execute** window,
+        not a silent falsification of SCOPE. D12 authorized the analogous window
+        for a **not-yet-created file** on OWS (change.graph-anchors-miss-write-scope
+        until the file exists with true LINKS). Same reasoning holds for a
+        **not-yet-created module** between plan authoring and the task that writes
+        the graph entry + re-LINKS on the two files: predicted, short-lived, must
+        be 0/0 at close. If execute discovers the window is unworkable (e.g. lint
+        errors on unknown GraphAnchors before the graph file is written in the
+        same task), stop-and-report rather than falsify contracts.
+      </Assumption>
+      <Assumption>
+        Module ids in AffectedAreas, measured against graph and file-local LINKS
+        at authoring (closed list of four):
+        **M-CLI-INFRA** — new host: `src/query/errors.ts`, `src/query/command.ts`
+        (re-LINKS; does not exist yet);
+        **M-QUERY** — loses those two files' LINKS (Summary stays true as written;
+        Path remains `src/query/core.ts`);
+        **M-GATES** — `gates/ledger.ts` three exits, and the gate consumers
+        (`readLatestReviewVerdict`, `readGateDecisions`, gate command path);
+        **M-REVIEW** — `listReviewVerdicts`, and `review/outcomes.ts` plan-quality
+        sharing the classification.
+        Seven former candidates dropped: channel repair lives entirely inside
+        `defineGraceCommand` (`src/query/command.ts`), so no CLI entry point is
+        edited; `src/grace-doctor.ts` only consumes `collectPlanQualityReport`,
+        whose report shape is a NonGoal. If a plan later cannot proceed without a
+        dropped module, that is a stop-and-report and a re-spec.
+      </Assumption>
+      <Assumption>
+        `readLedgerVerdictsSurface` already implements the three-way distinction
+        for Verdicts (corr 185 / C-REPORT-HONESTY) without changing gate
+        behaviour. The work is making that classification **the** read for gate
+        decision paths too (or a shared primitive both call), not inventing a
+        third API. Wrong-wrapper already codes `ledger.bundle-id-mismatch` on
+        the surface path; wrapperFromLedger still returns null for that case.
+      </Assumption>
+      <Assumption>
+        Live boolean sites via listBooleanFlags at authoring HEAD: **24** (factory
+        expansion of gate --record ×3 + 21 other live sites). Channel coverage
+        is over that live set.
+      </Assumption>
+      <Assumption>
+        C-LEDGER-READ-ABSENCE remains draft under active/ and byte-identical until
+        the authority supersedes it **after this spec is approved and before any
+        plan for this bundle is authored**. This bundle claims its substance; dual
+        concurrent active bundles holding live claims on the same subject must not
+        persist past approval (and dual concurrent plans on the same OWS must not
+        execute in parallel — F10.2 style sequencing). Spec authoring does not
+        touch that directory.
+      </Assumption>
+      <Assumption>
+        File layout under `src/query/` is **decided**: errors.ts and command.ts
+        stay where they are; only LINKS (and their file-local SCOPE/PURPOSE if
+        currently false) and the new graph/`V-M-CLI-INFRA` entries change. Whether
+        `defineGraceCommand` routes through `runGraceCommand` by shared renderer
+        or by wrapping is plan-level mechanism. Binding: contracts true of the
+        files as written; channel criteria above; no import-path rewrites.
+      </Assumption>
+    </Assumptions>
+  </C-LEGIBLE-FAILURE>
+</NgraceChangeSpec>

@@ -19,11 +19,14 @@
 //   ChangedFileEvidence
 //   CursorPosition
 //   CursorState
-//   FIX_ATTEMPT_BUDGET
+//   FIX_DISTINCT_SIGNATURE_BUDGET
+//   FIX_SIGNATURE_REPEAT_BUDGET
 //   FailureSignature
 //   FileContentEvidence
+//   FixBudgetDecision
 //   FlakeVerdict
 //   FoldResult
+//   KNOWN_EVENT_KINDS
 //   KnownEventKind
 //   LedgerCalibrationEpoch
 //   LooseEvent
@@ -32,20 +35,25 @@
 //   RecordAttemptResult
 //   WriteEvidenceSnapshot
 //   advanceCursor
+//   appendCommandRunEvent
+//   assertValidEpochBounds
 //   classifyFlakeFromEvidence
 //   countTaskAttemptEvents
 //   cursorCommand
 //   cursorStateForEventKind
+//   decideFixBudgetEscalation
 //   deriveAttemptOrdinal
 //   derivePosition
 //   deriveStateFromEvents
 //   digestProjectFile
 //   evaluateTargetComplete
 //   expectedLedgerEventAttributes
+//   fixBudgetSkillRequiredSubstrings
 //   foldEpoch
 //   formatCursorPosition
 //   formatFoldResult
 //   lastResolvingResumeId
+//   setEvaluateTargetCompleteThrowProbeForTests
 //   listAccountingEvents
 //   listCalibrationRestatements
 //   listLedgerCalibrationEpochs
@@ -53,17 +61,25 @@
 //   listLooseEvents
 //   listFilesChangedAgainstBase
 //   listRepositoryChangedFiles
+//   listRunOrphans
 //   listUnresolvedEscalatedTasks
+//   listWindowFailSignatures
+//   OrphanSkipClass
 //   parseCursorState
+//   parseEpochBoundArg
 //   pauseCursor
 //   readAttemptPayload
 //   recordAttempt
 //   recordCalibrationRestatement
 //   recordVerificationUnavailable
+//   RecoverDiagnosis
+//   recoverCursor
+//   formatRecoverDiagnosis
 //   regenerateCursor
 //   rejectAuthoredContextAttributes
 //   resolveChangeBundle
 //   resumeCursor
+//   RunOrphan
 //   showCursor
 //   snapshotWriteEvidence
 //   targetAssertionsClean
@@ -82,6 +98,9 @@ import path from "node:path";
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 
+import { defineGraceCommand } from "./query/command";
+
+import { extractAssertionsWithIssues } from "./artifact/assertions";
 import { ARTIFACT_DIR, resolveContainedProjectPath } from "./artifact/paths";
 import { resolveNgracePaths } from "./artifact/project";
 import {
@@ -94,12 +113,32 @@ import {
 } from "./artifact/types";
 import {
   cursorNamedTask,
-  validateRunCursorArtifact,
   validateRunLedgerArtifact,
+  validateRunCursorArtifact,
 } from "./artifact/grammar";
 import { collectActiveChangeScopes, observedWriteScopeContains } from "./artifact/scope";
-import { childText, readGraceXmlArtifact, type GraceXmlNode } from "./artifact/xml";
+import { childText, cloneXmlNode, readGraceXmlArtifact, type GraceXmlNode } from "./artifact/xml";
+import {
+  listLooseEvents,
+  listRunOrphans,
+  type LooseEvent,
+  type OrphanSkipClass,
+  type RangeAllocation,
+  type RunOrphan,
+} from "./artifact/run-membership";
 import { serializeGraceXmlDocument, serializeGraceXmlNode } from "./artifact/xml-serialize";
+
+// Re-exports: membership definition lives in artifact/run-membership (C-REPORT-HONESTY T-001).
+// Out-of-scope importers (calibration/report, verification/localize) keep importing here.
+// parseAllocationNode stays private inside run-membership (was private pre-extract).
+export {
+  listLooseEvents,
+  listRunOrphans,
+  type LooseEvent,
+  type OrphanSkipClass,
+  type RangeAllocation,
+  type RunOrphan,
+};
 import {
   AUTHORED_CONTEXT_ATTRIBUTE_NAMES,
   deriveCalibrationContext,
@@ -132,10 +171,39 @@ export const CURSOR_STATES: readonly CursorState[] = [
 ] as const;
 
 /**
- * D9: judgment, not derived. Two fix attempts per task before escalation to replan.
- * The counter counts attempt events and inspects nothing (A19.1).
+ * Trigger R: escalate when the same FailureSignature (kind + key, exact equality)
+ * appears this many times in the current budget window (C-ESCALATION-HONESTY).
  */
-export const FIX_ATTEMPT_BUDGET = 2;
+export const FIX_SIGNATURE_REPEAT_BUDGET = 2;
+
+/**
+ * Trigger D: escalate when this many distinct failing signatures accumulate in
+ * the current budget window (backstop for signature-key churn / confusion).
+ */
+export const FIX_DISTINCT_SIGNATURE_BUDGET = 4;
+
+/** Escalation decision for the fail path (R before D; at most one fires). */
+export type FixBudgetDecision =
+  | { escalate: false }
+  | { escalate: true; trigger: "R"; repeated: FailureSignature }
+  | {
+      escalate: true;
+      trigger: "D";
+      distinctCount: number;
+      signatures: FailureSignature[];
+    };
+
+/** Skill contract substrings built from live threshold constants (AC-PROSE-ENFORCEMENT-AGREE). */
+export function fixBudgetSkillRequiredSubstrings(): readonly string[] {
+  return Object.freeze([
+    `${FIX_SIGNATURE_REPEAT_BUDGET} failed attempts of the same signature`,
+    `${FIX_DISTINCT_SIGNATURE_BUDGET} distinct failing signatures`,
+  ]);
+}
+
+function failureSignaturesEqual(a: FailureSignature, b: FailureSignature): boolean {
+  return a.kind === b.kind && a.key === b.key;
+}
 
 /** Authority of a regenerated or shown position field (A11.5). */
 export type PositionSource = "ledger" | "events" | "inferred" | "cursor" | "none";
@@ -234,24 +302,6 @@ export type FoldResult = {
   applied: boolean;
 };
 
-export type RangeAllocation = { worker: string; from: number; to: number };
-
-/**
- * Loose run/ event. Payload (attributes beyond id/task/kind, and children) must
- * survive fold (A18.2 / correction 31). listLooseEvents is the A5.4 inventory site.
- */
-export type LooseEvent = {
-  id: number;
-  task: string;
-  kind: string;
-  file: string;
-  allocations?: RangeAllocation[];
-  /** Root attributes from the loose file (includes id/task/kind; may include outcome, …). */
-  attributes: Record<string, string>;
-  /** Root children (Allocation, FailureSignature, WriteEvidence, Wave, …). */
-  children: GraceXmlNode[];
-};
-
 /** Known event kinds with exhaustive kind→state mapping (A18.5 / A19.2). */
 const KNOWN_KIND_STATE = {
   opened: "in-progress",
@@ -259,12 +309,22 @@ const KNOWN_KIND_STATE = {
   resume: "in-progress",
   attempt: "in-progress",
   "verification-unavailable": "in-progress",
+  /** Durable MustPassCommand/Budget evaluation evidence (C-CALIBRATION-COMMAND-EVIDENCE). */
+  "command-run": "in-progress",
   pause: "paused",
   terminal: "complete",
   escalation: "paused-pending-approval",
 } as const satisfies Record<string, CursorState>;
 
 export type KnownEventKind = keyof typeof KNOWN_KIND_STATE;
+
+/**
+ * Exhaustive known-kind list, definitionally the keys of KNOWN_KIND_STATE.
+ * Completeness regressions must import this export (not parse source — F10).
+ */
+export const KNOWN_EVENT_KINDS: readonly KnownEventKind[] = Object.freeze(
+  Object.keys(KNOWN_KIND_STATE) as KnownEventKind[],
+);
 
 /**
  * Deliberate resolvers for paused-pending-approval (A21.1 / correction 41).
@@ -428,14 +488,6 @@ export function parseCursorState(
   return { invalid: value };
 }
 
-/**
- * Loose event filenames: `{id}-{task}-{kind}.xml`.
- * Task is always T-NNN (no internal hyphens after the T-digits form); kind may contain
- * hyphens (`verification-unavailable`). Do not use a fully free-form middle group — it
- * steals the kind's hyphens (A19.1).
- */
-const EVENT_FILENAME = /^(\d+)-(T-[0-9]{3})-(.+)\.xml$/;
-
 /** Resolve a C-* bundle under active or archive. */
 export function resolveChangeBundle(projectRoot: string, changeId: string): string {
   if (!ANCHOR_PATTERNS.change.test(changeId)) {
@@ -450,41 +502,276 @@ export function resolveChangeBundle(projectRoot: string, changeId: string): stri
   throw new GraceCommandError("not-found", `Change bundle ${changeId} not found under ${ARTIFACT_DIR}/changes.`);
 }
 
-/** List loose run/ events ordered by allocated id (never by mtime). */
-export function listLooseEvents(bundlePath: string): LooseEvent[] {
-  const runDir = path.join(bundlePath, "run");
-  if (!existsSync(runDir)) return [];
-  const events: LooseEvent[] = [];
-  for (const name of readdirSync(runDir)) {
-    const match = EVENT_FILENAME.exec(name);
-    if (!match) continue;
-    const file = path.join(runDir, name);
-    const idFromName = Number(match[1]);
-    const taskFromName = match[2]!;
-    const kindFromName = match[3]!;
-    const parsed = readGraceXmlArtifact(file);
-    // Prefer XML attributes when present (authoritative payload); filename is discovery.
-    const id = parsed.root?.attributes.id ? Number(parsed.root.attributes.id) : idFromName;
-    const task = (parsed.root?.attributes.task ?? taskFromName).trim() || taskFromName;
-    const kind = (parsed.root?.attributes.kind ?? kindFromName).trim() || kindFromName;
-    if (!Number.isInteger(id) || id <= 0) continue;
-    const attributes: Record<string, string> = parsed.root
-      ? { ...parsed.root.attributes }
-      : { id: String(id), task, kind };
-    attributes.id = String(id);
-    attributes.task = task;
-    attributes.kind = kind;
-    const children = parsed.root ? parsed.root.children.map(cloneXmlNode) : [];
-    const allocations =
-      kind === "opened"
-        ? children
-            .filter((child) => child.tag === "Allocation")
-            .map(parseAllocationNode)
-            .filter((entry): entry is RangeAllocation => entry !== null)
-        : undefined;
-    events.push({ id, task, kind, file, allocations, attributes, children });
+/**
+ * Diagnosis (and optional --fix result) for cursor recover (P0.6 / T-004–T-005).
+ * Fields are stable for CLI text and JSON consumers.
+ */
+export type RecoverDiagnosis = {
+  changeId: string;
+  orphans: RunOrphan[];
+  looseEventIds: number[];
+  /** Inclusive range over positive-integer loose events, or null when none. */
+  looseEventRange: { from: number; to: number } | null;
+  validAllocations: RangeAllocation[];
+  /** Whether a valid Allocation covers every loose integer event id. */
+  coveringAllocation: "present" | "missing";
+  foldBlocked: boolean;
+  foldBlockReasons: string[];
+  /** Distinct worker values observed on Allocation nodes (loose + ledger). */
+  workers: string[];
+  /** True only after recover --fix wrote a covering opened. */
+  fixApplied: boolean;
+  /** Path of the covering opened file when fixApplied. */
+  coveringOpenedFile?: string;
+};
+
+/**
+ * Diagnose (default) or repair (fix) a change's open epoch inventory.
+ *
+ * Without fix: never writes. Reports unrecoverable orphans, missing covering
+ * allocation, integer loose-event range, and fold blocked reasons (T-004).
+ *
+ * With fix ("extend-allocation" / true): extends the *effective* covering
+ * allocation by appending a superseding opened/Allocation (D9 append-only,
+ * D9.1). Never rewrites recorded events; never deletes orphans (D8.3 / F8.1).
+ * Multi-worker refuses (D8.2). Never emits kind=terminal (A29.2 / F12).
+ */
+export function recoverCursor(
+  projectRoot: string,
+  changeId: string,
+  options: { fix?: boolean | "extend-allocation" } = {},
+): RecoverDiagnosis {
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const wantFix = options.fix === true || options.fix === "extend-allocation";
+
+  const buildDiagnosis = (fixApplied: boolean, coveringOpenedFile?: string): RecoverDiagnosis => {
+    const orphans = listRunOrphans(bundlePath);
+    const events = listLooseEvents(bundlePath);
+    const looseEventIds = events.map((e) => e.id);
+    const looseEventRange =
+      looseEventIds.length === 0
+        ? null
+        : { from: Math.min(...looseEventIds), to: Math.max(...looseEventIds) };
+    // Effective set only (LWW per worker) — dead superseded ranges do not block.
+    const validAllocations = collectEffectiveAllocations(events);
+    const coveringAllocation =
+      validAllocations.length > 0
+      && events.every((e) => validAllocations.some((a) => e.id >= a.from && e.id <= a.to))
+        ? "present"
+        : "missing";
+    const reasons: string[] = [];
+    if (events.length === 0) {
+      reasons.push(
+        orphans.length > 0
+          ? "no valid loose integer events (orphans only)"
+          : "no loose run/ events to fold",
+      );
+    } else if (validAllocations.length === 0) {
+      reasons.push("missing valid covering allocation");
+    } else {
+      reasons.push(...validateEventsAgainstAllocations(events, validAllocations));
+    }
+    return {
+      changeId,
+      orphans,
+      looseEventIds,
+      looseEventRange,
+      validAllocations,
+      coveringAllocation,
+      foldBlocked: reasons.length > 0,
+      foldBlockReasons: reasons,
+      workers: collectDistinctWorkers(bundlePath, events),
+      fixApplied,
+      coveringOpenedFile,
+    };
+  };
+
+  if (!wantFix) {
+    return buildDiagnosis(false);
   }
-  return events.sort((a, b) => a.id - b.id);
+
+  // --- --fix path; diagnose first so multi-worker refuse is loud ---
+  const pre = buildDiagnosis(false);
+  if (pre.looseEventIds.length === 0) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `recover --fix: no valid loose integer events for ${changeId}; cannot derive allocation bounds.`,
+    );
+  }
+  if (pre.workers.length > 1) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `recover --fix refused: multiple workers ${JSON.stringify(pre.workers)} — `
+        + "multi-worker ranges must not be fabricated (D8.2). Open an explicit epoch with --worker bounds.",
+    );
+  }
+  // Only skip when the *effective* covering already includes every loose id.
+  // A dead prior allocation that leaves events outside is still fixable (F13).
+  if (pre.coveringAllocation === "present") {
+    return { ...pre, fixApplied: false };
+  }
+
+  const worker = pre.workers[0] ?? "w0";
+  const loose = listLooseEvents(bundlePath);
+  const task = loose[loose.length - 1]?.task ?? "T-001";
+  const covering = writeCoveringOpened(bundlePath, {
+    worker,
+    task,
+    from: pre.looseEventRange!.from,
+    to: pre.looseEventRange!.to,
+  });
+  return buildDiagnosis(true, covering.file);
+}
+
+/** Format recover diagnosis for CLI text output. */
+export function formatRecoverDiagnosis(diagnosis: RecoverDiagnosis): string {
+  const lines: string[] = [
+    "neo-grace cursor recover",
+    `Change: ${diagnosis.changeId}`,
+    `Fix applied: ${diagnosis.fixApplied ? "yes" : "no"}`,
+    "",
+    `Orphans: ${diagnosis.orphans.length}`,
+  ];
+  if (diagnosis.orphans.length === 0) {
+    lines.push("  (none)");
+  } else {
+    for (const orphan of diagnosis.orphans) {
+      lines.push(
+        `  - ${orphan.name} [${orphan.class}] unrecoverable orphan: no recoverable event id`
+        + (orphan.rawId !== undefined ? ` (id=${JSON.stringify(orphan.rawId)})` : ""),
+      );
+      lines.push(`    ${orphan.reason}`);
+    }
+  }
+  lines.push("");
+  if (diagnosis.looseEventRange) {
+    lines.push(
+      `Loose integer events: ${diagnosis.looseEventRange.from}..${diagnosis.looseEventRange.to}`
+      + ` (count=${diagnosis.looseEventIds.length}, ids=${diagnosis.looseEventIds.join(",")})`,
+    );
+  } else {
+    lines.push("Loose integer events: (none)");
+  }
+  lines.push(
+    `Valid covering allocation: ${diagnosis.coveringAllocation}`
+    + (diagnosis.validAllocations.length > 0
+      ? ` (${diagnosis.validAllocations.map((a) => `${a.worker}:${a.from}-${a.to}`).join(", ")})`
+      : " — missing valid covering allocation"),
+  );
+  lines.push(
+    `Fold: ${diagnosis.foldBlocked ? "blocked" : "ok"}`
+    + (diagnosis.foldBlockReasons.length > 0 ? ` (${diagnosis.foldBlockReasons.join("; ")})` : ""),
+  );
+  lines.push(`Workers: ${diagnosis.workers.length > 0 ? diagnosis.workers.join(", ") : "(none)"}`);
+  if (diagnosis.coveringOpenedFile) {
+    lines.push(`Covering opened: ${diagnosis.coveringOpenedFile}`);
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+/**
+ * Headroom matching openEpoch default `to = from + 98` (F13 / C-RECOVER-FOLDABLE).
+ * One slot is not enough: --fix often runs mid-repair and intervening events would
+ * push a later terminal outside a closed ceiling.
+ */
+const OPEN_EPOCH_DEFAULT_HEADROOM = 98;
+
+/**
+ * Write a covering opened/Allocation spanning the covering requirement, with ceiling
+ * max(requirement, openedId + 98). Shared by recover --fix and auto-open (no carve-out).
+ * Append-only (D9); never emits terminal (A29.2 / F12).
+ */
+function writeCoveringOpened(
+  bundlePath: string,
+  options: { worker: string; task: string; from: number; to: number },
+): { id: number; file: string; from: number; to: number } {
+  const openedId = nextEventId(bundlePath);
+  const from = Math.min(options.from, openedId);
+  const coveringRequirementTo = Math.max(options.to, openedId);
+  const to = Math.max(coveringRequirementTo, openedId + OPEN_EPOCH_DEFAULT_HEADROOM);
+  assertValidEpochBounds(from, to);
+  writeEventFile(bundlePath, {
+    id: openedId,
+    task: options.task,
+    kind: "opened",
+    allocations: [{ worker: options.worker, from, to }],
+  });
+  const file = path.join(bundlePath, "run", `${openedId}-${options.task}-opened.xml`);
+  return { id: openedId, file, from, to };
+}
+
+/**
+ * Single-controller auto-open (P0.6 / D8.2 / A29.2).
+ * When loose integer events exist with no *effective* allocation and at most one
+ * distinct worker value, synthesize a retroactive covering opened via writeCoveringOpened
+ * (same headroom as recover --fix — no carve-out).
+ * Refuse when more than one worker appears — multi-worker ranges are never fabricated.
+ */
+function maybeAutoOpenCoveringAllocation(
+  bundlePath: string,
+  changeId: string,
+  events: LooseEvent[],
+): void {
+  if (events.length === 0) return;
+  if (collectEffectiveAllocations(events).length > 0) return;
+  const workers = collectDistinctWorkers(bundlePath, events);
+  if (workers.length > 1) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Cannot fold ${changeId}: no Allocation found, and auto-open refused — multiple workers `
+        + `${JSON.stringify(workers)}. Multi-worker ranges must not be fabricated (D8.2); `
+        + "open an explicit epoch with --worker bounds, or recover --fix after collapsing to one controller.",
+    );
+  }
+  const worker = workers[0] ?? "w0";
+  const ids = events.map((e) => e.id);
+  const from = Math.min(...ids);
+  const to = Math.max(...ids);
+  const task = events[events.length - 1]?.task ?? "T-001";
+  writeCoveringOpened(bundlePath, { worker, task, from, to });
+}
+
+/** Distinct worker values on Allocation nodes in loose events and folded ledger. */
+function collectDistinctWorkers(bundlePath: string, looseEvents: LooseEvent[]): string[] {
+  const workers = new Set<string>();
+  for (const event of looseEvents) {
+    for (const child of event.children) {
+      if (child.tag !== "Allocation") continue;
+      const w = child.attributes.worker?.trim();
+      if (w) workers.add(w);
+    }
+  }
+  // Also scan orphan opened files for worker attributes (NaN allocation still names w0).
+  for (const orphan of listRunOrphans(bundlePath)) {
+    try {
+      const parsed = readGraceXmlArtifact(orphan.file);
+      if (!parsed.root) continue;
+      for (const child of parsed.root.children) {
+        if (child.tag !== "Allocation") continue;
+        const w = child.attributes.worker?.trim();
+        if (w) workers.add(w);
+      }
+    } catch {
+      // unreadable orphan — skip worker extraction
+    }
+  }
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (existsSync(ledgerPath)) {
+    const artifact = readGraceXmlArtifact(ledgerPath);
+    if (artifact.root) {
+      const walk = (nodes: GraceXmlNode[]) => {
+        for (const node of nodes) {
+          if (node.tag === "Allocation") {
+            const w = node.attributes.worker?.trim();
+            if (w) workers.add(w);
+          }
+          if (node.children.length > 0) walk(node.children);
+        }
+      };
+      walk(artifact.root.children);
+    }
+  }
+  return [...workers].sort();
 }
 
 /** Show position: never writes; recovers rather than blocks (A11.5). */
@@ -520,6 +807,60 @@ export function regenerateCursor(
   return { position, dryRun: false, applied: true };
 }
 
+/**
+ * P0.4 / C-CURSOR-INTEGRITY T-002 — epoch allocation bounds are positive integer
+ * event ids, not task ids. Message names the accepted form and the common mistake.
+ */
+const EPOCH_BOUNDS_MESSAGE =
+  "Epoch --from/--to must be positive integer event ids (e.g. 1 and 99). "
+  + "Task ids (T-001) are not event ids.";
+
+/** True when n is a finite positive integer (1, 2, 3, …). */
+function isPositiveIntegerEventId(n: number): boolean {
+  return typeof n === "number" && Number.isFinite(n) && Number.isInteger(n) && n >= 1;
+}
+
+/**
+ * Validate open-epoch from/to at the library boundary (before any run/* write).
+ * Accepts undefined (defaults applied by caller). Rejects NaN, 0, negatives, floats, from>to.
+ */
+export function assertValidEpochBounds(from: number | undefined, to: number | undefined): void {
+  if (from !== undefined && !isPositiveIntegerEventId(from)) {
+    throw new GraceCommandError("invalid-arguments", EPOCH_BOUNDS_MESSAGE);
+  }
+  if (to !== undefined && !isPositiveIntegerEventId(to)) {
+    throw new GraceCommandError("invalid-arguments", EPOCH_BOUNDS_MESSAGE);
+  }
+  if (from !== undefined && to !== undefined && from > to) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `${EPOCH_BOUNDS_MESSAGE} Got from=${from} > to=${to}.`,
+    );
+  }
+}
+
+/**
+ * Parse a CLI --from/--to string as a positive integer event id.
+ * Validates the raw string before Number() so "T-001" and "1.5" never become NaN/float silently.
+ */
+export function parseEpochBoundArg(raw: string, label: "--from" | "--to"): number {
+  const trimmed = raw.trim();
+  if (!/^[1-9][0-9]*$/.test(trimmed)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `${EPOCH_BOUNDS_MESSAGE} Invalid ${label}=${JSON.stringify(raw)}.`,
+    );
+  }
+  const n = Number(trimmed);
+  if (!isPositiveIntegerEventId(n)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `${EPOCH_BOUNDS_MESSAGE} Invalid ${label}=${JSON.stringify(raw)}.`,
+    );
+  }
+  return n;
+}
+
 /** Advance: append an event and update the cursor (writes). */
 export function advanceCursor(
   projectRoot: string,
@@ -537,15 +878,25 @@ export function advanceCursor(
      * Unverifiable by ngrace; may be absent. Never invent a default model name.
      */
     executorIdentity?: { model?: string; harness?: string };
+    /**
+     * Free-text replan reason for kind=resume (C-ESCALATION-HONESTY T-002).
+     * Required (trimmed non-empty) when the resume clears an unresolved escalation;
+     * optional otherwise. Stored as a `<Reason>` child element, not an attribute.
+     */
+    reason?: string;
   },
 ): CursorPosition {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const runDir = path.join(bundlePath, "run");
-  mkdirSync(runDir, { recursive: true });
 
   if (options.openEpoch) {
+    // P0.4: refuse invalid bounds before mkdir/write so no run/* is created on failure.
+    assertValidEpochBounds(options.from, options.to);
+    mkdirSync(runDir, { recursive: true });
     const from = options.from ?? 1;
     const to = options.to ?? from + 98;
+    // Re-check after defaults (to may be derived only when from is valid).
+    assertValidEpochBounds(from, to);
     const worker = options.worker ?? "w0";
     const id = nextEventId(bundlePath, from);
     const task = options.task;
@@ -587,6 +938,7 @@ export function advanceCursor(
     return position;
   }
 
+  mkdirSync(runDir, { recursive: true });
   const kind = options.kind ?? "progress";
   const task = options.task;
   if (!ANCHOR_PATTERNS.task.test(task)) {
@@ -601,11 +953,44 @@ export function advanceCursor(
         ? `kind "attempt" is reserved; use ngrace cursor attempt --outcome … (and --signature-kind/--signature-key on fail).`
         : kind === "verification-unavailable"
           ? `kind "verification-unavailable" is reserved; use ngrace cursor verification-unavailable --reason ….`
-          : `kind "escalation" is reserved; it is written by the fix budget on the second failed attempt.`,
+          : `kind "escalation" is reserved; it is written by the fix budget (trigger R same-signature or D distinct backstop).`,
     );
   }
+
+  // C-ESCALATION-HONESTY T-002: escalation-clearing resume requires a recorded reason
+  // before any write. Ordinary resume (nothing to clear) keeps reason optional.
+  let resumeChildren: GraceXmlNode[] | undefined;
+  if (kind === "resume") {
+    const unresolved = listUnresolvedEscalatedTasks(listAccountingEvents(bundlePath));
+    const clearingEscalation = unresolved.includes(task);
+    const reasonRaw = options.reason;
+    const reasonTrimmed = typeof reasonRaw === "string" ? reasonRaw.trim() : "";
+    if (clearingEscalation && reasonTrimmed.length === 0) {
+      throw new GraceCommandError(
+        "invalid-arguments",
+        `escalation-clearing resume for ${task} requires --reason (non-empty after trim); refused before write.`,
+      );
+    }
+    if (reasonTrimmed.length > 0) {
+      // Preserve the supplied string (exact round-trip); trim is only the emptiness gate.
+      resumeChildren = [
+        {
+          tag: "Reason",
+          attributes: {},
+          children: [],
+          text: reasonRaw as string,
+        },
+      ];
+    }
+  }
+
   const id = nextEventId(bundlePath);
-  writeEventFile(bundlePath, { id, task, kind });
+  writeEventFile(bundlePath, {
+    id,
+    task,
+    kind,
+    ...(resumeChildren ? { children: resumeChildren } : {}),
+  });
   // A21.1 / A23.1: derive state + escalatedTasks; task drawn from set when non-empty.
   const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
   const position: CursorPosition = {
@@ -628,9 +1013,23 @@ export function pauseCursor(projectRoot: string, changeId: string, task: string)
   return advanceCursor(projectRoot, changeId, { task, kind: "pause" });
 }
 
-/** Resume: write a resume event and set cursor state in-progress. */
-export function resumeCursor(projectRoot: string, changeId: string, task: string): CursorPosition {
-  return advanceCursor(projectRoot, changeId, { task, kind: "resume" });
+/**
+ * Resume: write a resume event and set cursor state in-progress.
+ * When the resume clears an unresolved escalation, `options.reason` is required
+ * (trimmed non-empty) and is recorded as a `<Reason>` child on the event
+ * (C-ESCALATION-HONESTY T-002 / AC-RESUME-REASON-*).
+ */
+export function resumeCursor(
+  projectRoot: string,
+  changeId: string,
+  task: string,
+  options?: { reason?: string },
+): CursorPosition {
+  return advanceCursor(projectRoot, changeId, {
+    task,
+    kind: "resume",
+    reason: options?.reason,
+  });
 }
 
 /**
@@ -659,7 +1058,7 @@ export function foldEpoch(
   } = {},
 ): FoldResult {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
-  const events = listLooseEvents(bundlePath);
+  let events = listLooseEvents(bundlePath);
   if (events.length === 0) {
     // Idempotent re-fold: nothing loose → success with last epoch if any.
     const ledgerEpochs = readLedgerEpochNumbers(bundlePath);
@@ -677,15 +1076,24 @@ export function foldEpoch(
     };
   }
 
-  const allocations = collectAllocations(events);
+  // Effective set only (LWW per worker) — superseded dead ranges do not validate (F13).
+  let allocations = collectEffectiveAllocations(events);
+  if (allocations.length === 0) {
+    // P0.6 / D8.2: single-controller auto-open — bounds derived from inventory;
+    // fold is the explicit apply (A29.2 / F1). Multi-worker refuses.
+    maybeAutoOpenCoveringAllocation(bundlePath, changeId, events);
+    events = listLooseEvents(bundlePath);
+    allocations = collectEffectiveAllocations(events);
+  }
   if (allocations.length === 0) {
     throw new GraceCommandError(
       "invalid-arguments",
-      `Cannot fold ${changeId}: no Allocation found (emit an opened event with Allocation children first).`,
+      `Cannot fold ${changeId}: no Allocation found (emit an opened event with Allocation children first, or recover --fix).`,
     );
   }
 
   // Membership + density before write (fold owns validation — A11.2).
+  // Terminal required on every *live* effective range; not on superseded history.
   const membershipIssues = validateEventsAgainstAllocations(events, allocations);
   if (membershipIssues.length > 0) {
     throw new GraceCommandError("invalid-project", membershipIssues.join(" "));
@@ -1081,6 +1489,20 @@ const COMPLETE_NOT_EVALUABLE = new Set([
 ]);
 
 /**
+ * Test-only throw probe for AC-NO-REPORT-TIME-REEVAL (D6.5 / corr 156).
+ * Production leaves this unset. When set, every evaluateTargetComplete call throws
+ * so report/doctor paths can prove they never invoke it.
+ */
+let evaluateTargetCompleteThrowProbe: (() => void) | undefined;
+
+/** @internal Install or clear the AC-NO-REPORT-TIME-REEVAL throw probe. */
+export function setEvaluateTargetCompleteThrowProbeForTests(
+  probe: (() => void) | undefined,
+): void {
+  evaluateTargetCompleteThrowProbe = probe;
+}
+
+/**
  * Three-valued complete (correction 28). Still uses runCommands: false (A5.2);
  * skipped command evidence becomes absence (not-run), not complete:true or complete:false.
  */
@@ -1088,6 +1510,7 @@ export function evaluateTargetComplete(
   projectRoot: string,
   changeId: string,
 ): { complete?: boolean; completeAbsence?: AbsenceValue } {
+  evaluateTargetCompleteThrowProbe?.();
   const result = lintGraceProject(projectRoot, {
     assertionMode: "target",
     changeId,
@@ -1220,11 +1643,10 @@ export function listFilesChangedAgainstBase(
 }
 
 /**
- * Dumb counter (D9 / A19.1 / A24): counts attempt events for a task **inside the
- * current budget window**. Window start is the last resume that resolved an
- * escalation for that task (not every resume). Inspects nothing on each attempt —
- * no signature, no outcome, no content condition. The ledger keeps full history;
- * windowing is a read, never a rewrite (D1).
+ * Display/ordinal counter only: counts attempt events for a task inside the
+ * current budget window (A24). Does **not** gate escalation — that uses
+ * listWindowFailSignatures + decideFixBudgetEscalation (C-ESCALATION-HONESTY).
+ * Window start is the last resume that resolved an escalation for that task.
  */
 export function countTaskAttemptEvents(
   events: ReadonlyArray<{ id: number; task: string; kind: string }>,
@@ -1234,6 +1656,48 @@ export function countTaskAttemptEvents(
   return events.filter(
     (event) => event.task === task && event.kind === "attempt" && event.id > windowStart,
   ).length;
+}
+
+/**
+ * Fail-attempt FailureSignatures in the current budget window (A24), ascending id.
+ * Walks LooseEvent[] only (parsed artifact) — never string-scrapes ledger XML.
+ * Single definition used for both message listing and budget decision.
+ */
+export function listWindowFailSignatures(events: LooseEvent[], task: string): FailureSignature[] {
+  const windowStart = lastResolvingResumeId(events, task);
+  const signatures: FailureSignature[] = [];
+  for (const event of events) {
+    if (event.task !== task || event.kind !== "attempt") continue;
+    if (event.id <= windowStart) continue;
+    if (event.attributes.outcome !== "fail") continue;
+    const payload = readAttemptPayload(event);
+    if (payload.signature) signatures.push(payload.signature);
+  }
+  return signatures;
+}
+
+/**
+ * Decide whether the current fail (last entry in windowFails) exhausts the budget.
+ * R first (same signature count ≥ FIX_SIGNATURE_REPEAT_BUDGET), else D (distinct
+ * set size ≥ FIX_DISTINCT_SIGNATURE_BUDGET). Exact kind+key equality.
+ */
+export function decideFixBudgetEscalation(windowFails: FailureSignature[]): FixBudgetDecision {
+  if (windowFails.length === 0) return { escalate: false };
+  const current = windowFails[windowFails.length - 1]!;
+  const sameCount = windowFails.filter((sig) => failureSignaturesEqual(sig, current)).length;
+  if (sameCount >= FIX_SIGNATURE_REPEAT_BUDGET) {
+    return { escalate: true, trigger: "R", repeated: current };
+  }
+  const distinctKeys = new Set(windowFails.map((sig) => `${sig.kind}\0${sig.key}`));
+  if (distinctKeys.size >= FIX_DISTINCT_SIGNATURE_BUDGET) {
+    return {
+      escalate: true,
+      trigger: "D",
+      distinctCount: distinctKeys.size,
+      signatures: windowFails,
+    };
+  }
+  return { escalate: false };
 }
 
 /** Derived ordinal: 1-based count of this task's attempts with id <= eventId (A18.3). */
@@ -1314,6 +1778,8 @@ export type RecordAttemptResult = {
   eventId: number;
   attemptCount: number;
   escalated: boolean;
+  /** Which budget trigger fired when escalated (C-ESCALATION-HONESTY). */
+  trigger?: "R" | "D";
   signatures: FailureSignature[];
   /** Human-readable escalation or progress message (shown verbatim on exhaustion). */
   message: string;
@@ -1321,8 +1787,8 @@ export type RecordAttemptResult = {
 
 /**
  * Record one verification-cycle attempt (D6). Immediate write — advance precedent (A18.7).
- * On the second failed attempt (attempt count >= FIX_ATTEMPT_BUDGET after a fail),
- * writes an escalation event and transitions to paused-pending-approval (A19.2).
+ * On fail, escalates via decideFixBudgetEscalation (R same-signature, D distinct
+ * backstop) and transitions to paused-pending-approval (A19.2 / C-ESCALATION-HONESTY).
  */
 export function recordAttempt(
   projectRoot: string,
@@ -1393,44 +1859,47 @@ export function recordAttempt(
     children,
   });
 
-  // Standing rule 9 / A20.1 / A24: count from durable+loose inside the resolution window.
+  // Standing rule 9 / A20.1 / A24: accounting from durable+loose inside resolution window.
   const accounting = listAccountingEvents(bundlePath);
   const attemptCount = countTaskAttemptEvents(accounting, task);
-  const signatures = collectFailureSignatures(accounting, task);
+  const signatures = listWindowFailSignatures(accounting, task);
 
-  // Escalation only on the fail path when the dumb attempt count hits the budget.
-  // Counter itself has no outcome/signature condition (A19.1); window is recording-side (A24).
-  if (options.outcome === "fail" && attemptCount >= FIX_ATTEMPT_BUDGET) {
-    const escalationId = nextEventId(bundlePath);
-    writeEventFile(bundlePath, {
-      id: escalationId,
-      task,
-      kind: "escalation",
-      children: signatures.map(failureSignatureNode),
-    });
-    // A22.3 / A23.1: every write path derives — escalatedTasks + task from set.
-    const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
-    const position: CursorPosition = {
-      changeId,
-      bundlePath,
-      epoch: currentOpenEpochHint(bundlePath),
-      task: derived.task ?? task,
-      state: derived.state ?? "paused-pending-approval",
-      escalatedTasks: derived.escalatedTasks,
-      sources: { epoch: "events", task: "events", state: "events" },
-      inferred: false,
-      degradation: derived.degradation,
-    };
-    writeCursorFile(bundlePath, position);
-    const message = formatEscalationMessage(task, attemptCount, signatures);
-    return {
-      position,
-      eventId: id,
-      attemptCount,
-      escalated: true,
-      signatures,
-      message,
-    };
+  // Escalation on fail only: R then D (C-ESCALATION-HONESTY). Never attempt-count.
+  if (options.outcome === "fail") {
+    const decision = decideFixBudgetEscalation(signatures);
+    if (decision.escalate) {
+      const escalationId = nextEventId(bundlePath);
+      writeEventFile(bundlePath, {
+        id: escalationId,
+        task,
+        kind: "escalation",
+        children: signatures.map(failureSignatureNode),
+      });
+      // A22.3 / A23.1: every write path derives — escalatedTasks + task from set.
+      const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
+      const position: CursorPosition = {
+        changeId,
+        bundlePath,
+        epoch: currentOpenEpochHint(bundlePath),
+        task: derived.task ?? task,
+        state: derived.state ?? "paused-pending-approval",
+        escalatedTasks: derived.escalatedTasks,
+        sources: { epoch: "events", task: "events", state: "events" },
+        inferred: false,
+        degradation: derived.degradation,
+      };
+      writeCursorFile(bundlePath, position);
+      const message = formatEscalationMessage(task, decision, signatures);
+      return {
+        position,
+        eventId: id,
+        attemptCount,
+        escalated: true,
+        trigger: decision.trigger,
+        signatures,
+        message,
+      };
+    }
   }
 
   const derived = positionProjectionFromBundle(bundlePath, { preferredTask: task });
@@ -1461,7 +1930,7 @@ export function recordAttempt(
 
 /**
  * Verification could not run — record verification-unavailable, never an attempt (A19.1).
- * Does not count against FIX_ATTEMPT_BUDGET.
+ * Does not count against the signature fix budget (R/D).
  */
 export function recordVerificationUnavailable(
   projectRoot: string,
@@ -1959,31 +2428,18 @@ function parseWriteEvidenceNode(node: GraceXmlNode): WriteEvidenceSnapshot {
   return { available: true, files };
 }
 
-/**
- * Failure signatures on fail-attempts in the current budget window (A24).
- * Same window as countTaskAttemptEvents — current round only, full history stays in the ledger.
- */
-function collectFailureSignatures(events: LooseEvent[], task: string): FailureSignature[] {
-  const windowStart = lastResolvingResumeId(events, task);
-  const signatures: FailureSignature[] = [];
-  for (const event of events) {
-    if (event.task !== task || event.kind !== "attempt") continue;
-    if (event.id <= windowStart) continue;
-    if (event.attributes.outcome !== "fail") continue;
-    const payload = readAttemptPayload(event);
-    if (payload.signature) signatures.push(payload.signature);
-  }
-  return signatures;
-}
-
-/** Measured attemptCount, not FIX_ATTEMPT_BUDGET (correction 46). */
+/** Escalation message names which trigger fired and that trigger's unit (not attempt count). */
 function formatEscalationMessage(
   task: string,
-  attemptCount: number,
+  decision: Extract<FixBudgetDecision, { escalate: true }>,
   signatures: FailureSignature[],
 ): string {
+  const head =
+    decision.trigger === "R"
+      ? `Budget exhausted for ${task}: repeated failure signature ${decision.repeated.kind}:${decision.repeated.key} (trigger R) — paused-pending-approval (replan decision owed; task has not failed).`
+      : `Budget exhausted for ${task}: ${FIX_DISTINCT_SIGNATURE_BUDGET} distinct unresolved failures (trigger D, distinctCount=${decision.distinctCount}) — paused-pending-approval (replan decision owed; task has not failed).`;
   const lines = [
-    `Budget exhausted for ${task} after ${attemptCount} attempts — paused-pending-approval (replan decision owed; task has not failed).`,
+    head,
     `Signatures (${signatures.length}):`,
     ...signatures.map((signature, index) => `  ${index + 1}. ${signature.kind}: ${signature.key}`),
   ];
@@ -2036,17 +2492,31 @@ export function formatFoldResult(result: FoldResult): string {
 // Internals
 // ---------------------------------------------------------------------------
 
-function parseAllocationNode(node: GraceXmlNode): RangeAllocation | null {
-  const worker = node.attributes.worker?.trim() || childText(node, "Worker")?.trim();
-  const from = Number(node.attributes.from ?? childText(node, "From"));
-  const to = Number(node.attributes.to ?? childText(node, "To"));
-  if (!worker || !Number.isInteger(from) || !Number.isInteger(to) || from > to) return null;
-  return { worker, from, to };
-}
-
 function collectAllocations(events: LooseEvent[]): RangeAllocation[] {
   const fromOpened = events.flatMap((event) => event.allocations ?? []);
   return fromOpened;
+}
+
+/**
+ * Effective covering allocations: last-writer-wins per worker (F13 / D9.1).
+ * For each worker, only the Allocation on the highest-id kind=opened that declares
+ * one for that worker participates in fold/recover membership and terminal checks.
+ * Older Allocations remain as historical Event payload and are not rewritten (D9).
+ */
+function collectEffectiveAllocations(events: LooseEvent[]): RangeAllocation[] {
+  const bestByWorker = new Map<string, { openedId: number; allocation: RangeAllocation }>();
+  for (const event of events) {
+    if (event.kind !== "opened" || !event.allocations || event.allocations.length === 0) continue;
+    for (const allocation of event.allocations) {
+      const prev = bestByWorker.get(allocation.worker);
+      if (!prev || event.id > prev.openedId) {
+        bestByWorker.set(allocation.worker, { openedId: event.id, allocation });
+      }
+    }
+  }
+  return [...bestByWorker.values()]
+    .sort((a, b) => a.openedId - b.openedId)
+    .map((entry) => entry.allocation);
 }
 
 function validateEventsAgainstAllocations(events: LooseEvent[], allocations: RangeAllocation[]): string[] {
@@ -2106,8 +2576,110 @@ function attemptHasClaimedConfidence(event: LooseEvent): boolean {
 }
 
 /**
+ * Fold join: structural target assertions (never spawns) plus exact-string match
+ * against durable command-run events in the epoch (D6.3(c) / D6.6).
+ *
+ * Not an extension of evaluateTargetComplete into a report-reachable spawn path —
+ * doctor never imports this helper. command-not-evaluated alone does not freeze
+ * pending when matching records exist.
+ */
+function completeFromStructuralAndCommandEvidence(
+  projectRoot: string,
+  changeId: string,
+  events: LooseEvent[],
+): { complete?: boolean; completeAbsence?: AbsenceValue } {
+  // Structural only — runCommands always false (D6.3(b) not authorized; D6.6).
+  const result = lintGraceProject(projectRoot, {
+    assertionMode: "target",
+    changeId,
+    runCommands: false,
+  });
+  const assertionErrors = result.issues.filter(
+    (issue) => issue.severity === "error" && issue.code.startsWith("assertion."),
+  );
+
+  const otherNotEvaluable = assertionErrors.filter(
+    (issue) =>
+      COMPLETE_NOT_EVALUABLE.has(issue.code) && issue.code !== "assertion.command-not-evaluated",
+  );
+  if (otherNotEvaluable.length > 0) {
+    const first = otherNotEvaluable[0]!;
+    return {
+      complete: undefined,
+      completeAbsence: {
+        verdict: "unable-to-determine",
+        reason:
+          first.code === "assertion.change-not-approved"
+            ? "selected change is not an active approved bundle; target assertions were not evaluated"
+            : `${first.code}: ${first.message}`,
+      },
+    };
+  }
+
+  // Non-command structural failures → fail. command-not-evaluated is joined via records.
+  const structuralErrors = assertionErrors.filter(
+    (issue) => issue.code !== "assertion.command-not-evaluated",
+  );
+  if (structuralErrors.length > 0) {
+    return { complete: false };
+  }
+
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const planFile = path.join(bundlePath, "plan.xml");
+  const extraction = extractAssertionsWithIssues(planFile, "TargetAssertions");
+  const required: Array<{ command: string; kind: "MustPassCommand" | "MustPassBudget" }> = [];
+  for (const assertion of extraction.assertions) {
+    if (assertion.kind === "MustPassCommand") {
+      for (const command of assertion.values) {
+        required.push({ command, kind: "MustPassCommand" });
+      }
+    } else if (assertion.kind === "MustPassBudget") {
+      const command = assertion.values[0];
+      if (command) required.push({ command, kind: "MustPassBudget" });
+    }
+  }
+
+  // LWW by event id (events sorted ascending by listLooseEvents).
+  const evidenceByCommand = new Map<string, LooseEvent>();
+  for (const event of events) {
+    if (event.kind !== "command-run") continue;
+    const command = event.attributes.command;
+    if (typeof command === "string" && command.length > 0) {
+      evidenceByCommand.set(command, event);
+    }
+  }
+
+  for (const req of required) {
+    const evidence = evidenceByCommand.get(req.command);
+    if (!evidence) {
+      return {
+        complete: undefined,
+        completeAbsence: {
+          verdict: "not-run",
+          reason:
+            `absent recorded evidence for command ${JSON.stringify(req.command)} `
+            + `(ledger gap); complete is not evaluable without a matching command-run record`,
+        },
+      };
+    }
+    const assertionPassed = evidence.attributes.assertionPassed === "true";
+    if (req.kind === "MustPassCommand") {
+      const exitCode = Number(evidence.attributes.exitCode);
+      if (!assertionPassed || (Number.isFinite(exitCode) && exitCode !== 0)) {
+        return { complete: false };
+      }
+    } else if (!assertionPassed) {
+      return { complete: false };
+    }
+  }
+
+  return { complete: true };
+}
+
+/**
  * One adjudication per fold that contains claimedConfidence attempts (corr 155–156).
- * Uses evaluateTargetComplete (three-valued); never the attempt outcome attribute.
+ * Joins structural target assertions with recorded command-run evidence (D6.3(c));
+ * never the attempt outcome attribute; never spawns at fold (D6.6).
  * Derives and stores context class (corr 165) — ignores any authored context on claims.
  */
 function buildCalibrationAdjudicationAtFold(
@@ -2122,7 +2694,12 @@ function buildCalibrationAdjudicationAtFold(
   const claims = claimEvents
     .map((event) => (event.attributes.claimedConfidence ?? "").trim())
     .filter((level) => level.length > 0);
-  const { complete, completeAbsence } = evaluateTargetComplete(projectRoot, changeId);
+  // New join helper — not evaluateTargetComplete with runCommands true (D6.3(b) forbidden).
+  const { complete, completeAbsence } = completeFromStructuralAndCommandEvidence(
+    projectRoot,
+    changeId,
+    events,
+  );
 
   // Context is derived by join; authored attributes on claim events are ignored.
   const context = deriveCalibrationContext({
@@ -2270,15 +2847,6 @@ function payloadFingerprint(attributes: Record<string, string>, children: GraceX
   return `${attrPart}\n${childPart}`;
 }
 
-function cloneXmlNode(node: GraceXmlNode): GraceXmlNode {
-  return {
-    tag: node.tag,
-    attributes: { ...node.attributes },
-    children: node.children.map(cloneXmlNode),
-    text: node.text,
-  };
-}
-
 function appendEpochToLedger(bundlePath: string, changeId: string, epochNode: GraceXmlNode): GraceXmlNode {
   const ledgerPath = path.join(bundlePath, "run-ledger.xml");
   if (!existsSync(ledgerPath)) {
@@ -2389,6 +2957,41 @@ export function rejectAuthoredContextAttributes(
       );
     }
   }
+}
+
+/**
+ * Append a foldable kind=command-run event under the change's run/ directory
+ * (C-CALIBRATION-COMMAND-EVIDENCE / D6.3(c)). Append-only (D9). Called from
+ * lint/core via callback injection so assertions never import this module.
+ */
+export function appendCommandRunEvent(
+  projectRoot: string,
+  changeId: string,
+  evidence: {
+    command: string;
+    exitCode: number;
+    assertionPassed: boolean;
+    assertionKind: "MustPassCommand" | "MustPassBudget";
+    source: string;
+  },
+  options: { task?: string } = {},
+): void {
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const id = nextEventId(bundlePath);
+  const loose = listLooseEvents(bundlePath);
+  const task = options.task ?? loose[loose.length - 1]?.task ?? "T-000";
+  writeEventFile(bundlePath, {
+    id,
+    task,
+    kind: "command-run",
+    attributes: {
+      command: evidence.command,
+      exitCode: String(evidence.exitCode),
+      assertionPassed: evidence.assertionPassed ? "true" : "false",
+      assertionKind: evidence.assertionKind,
+      source: evidence.source,
+    },
+  });
 }
 
 function writeEventFile(
@@ -2530,11 +3133,11 @@ function requireChangeId(args: { change?: unknown }): string {
   return changeId;
 }
 
-export const cursorCommand = defineCommand({
+export const cursorCommand = defineGraceCommand({
   meta: {
     name: "cursor",
     description:
-      "Run ledger and cursor: show, regenerate, advance, attempt, verification-unavailable, pause, resume, fold.",
+      "Run ledger and cursor: show, regenerate, advance, attempt, verification-unavailable, pause, resume, fold, recover.",
   },
   subCommands: {
     show: defineCommand({
@@ -2607,6 +3210,11 @@ export const cursorCommand = defineCommand({
           type: "string",
           description: "Optional harness-stated host id on openEpoch (ExecutorIdentity; may be absent)",
         },
+        reason: {
+          type: "string",
+          description:
+            "Replan reason for kind=resume; required when clearing an unresolved escalation (Reason child)",
+        },
         format: { type: "string", alias: "f", description: "text or json", default: "text" },
       },
       async run(context) {
@@ -2614,14 +3222,28 @@ export const cursorCommand = defineCommand({
         await runGraceCommand(format, () => {
           const model = context.args.executorModel ? String(context.args.executorModel).trim() : "";
           const harness = context.args.executorHarness ? String(context.args.executorHarness).trim() : "";
+          // P0.4: validate raw --from/--to strings before Number() so T-001 never becomes NaN.
+          const fromRaw = context.args.from != null && String(context.args.from).length > 0
+            ? String(context.args.from)
+            : undefined;
+          const toRaw = context.args.to != null && String(context.args.to).length > 0
+            ? String(context.args.to)
+            : undefined;
+          const from = fromRaw !== undefined ? parseEpochBoundArg(fromRaw, "--from") : undefined;
+          const to = toRaw !== undefined ? parseEpochBoundArg(toRaw, "--to") : undefined;
+          if (from !== undefined || to !== undefined) {
+            assertValidEpochBounds(from, to);
+          }
+          const reasonRaw = context.args.reason != null ? String(context.args.reason) : undefined;
           const position = advanceCursor(String(context.args.path ?? "."), requireChangeId(context.args), {
             task: String(context.args.task),
             kind: context.args.kind ? String(context.args.kind) : undefined,
             openEpoch: Boolean(context.args.openEpoch),
             worker: context.args.worker ? String(context.args.worker) : undefined,
-            from: context.args.from ? Number(context.args.from) : undefined,
-            to: context.args.to ? Number(context.args.to) : undefined,
+            from,
+            to,
             wave: context.args.wave ? String(context.args.wave) : undefined,
+            reason: reasonRaw,
             executorIdentity:
               model || harness
                 ? {
@@ -2751,20 +3373,31 @@ export const cursorCommand = defineCommand({
       },
     }),
     resume: defineCommand({
-      meta: { name: "resume", description: "Record a resume event and set cursor in-progress." },
+      meta: {
+        name: "resume",
+        description:
+          "Record a resume event and set cursor in-progress. Clearing an escalation requires --reason (recorded as Reason child).",
+      },
       args: {
         path: { type: "string", alias: "p", default: "." },
         change: { type: "string", required: true },
         task: { type: "string", required: true },
+        reason: {
+          type: "string",
+          description:
+            "Replan reason; required when clearing an unresolved escalation (stored as Reason child, not attribute)",
+        },
         format: { type: "string", alias: "f", default: "text" },
       },
       async run(context) {
         const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
         await runGraceCommand(format, () => {
+          const reasonRaw = context.args.reason != null ? String(context.args.reason) : undefined;
           const position = resumeCursor(
             String(context.args.path ?? "."),
             requireChangeId(context.args),
             String(context.args.task),
+            reasonRaw !== undefined ? { reason: reasonRaw } : undefined,
           );
           if (format === "json") process.stdout.write(`${JSON.stringify(position, null, 2)}\n`);
           else process.stdout.write(formatCursorPosition(position));
@@ -2788,6 +3421,38 @@ export const cursorCommand = defineCommand({
           if (format === "json") process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
           else process.stdout.write(formatFoldResult(result));
         }, "Unable to complete ngrace cursor fold.");
+      },
+    }),
+    recover: defineCommand({
+      meta: {
+        name: "recover",
+        description:
+          "Diagnose open-epoch inventory (orphans, covering allocation, fold blockers). "
+          + "Pass --fix to extend the effective covering allocation by appending a superseding "
+          + "opened/Allocation (extend-allocation; never rewrites recorded events; never deletes orphans).",
+      },
+      args: {
+        path: { type: "string", alias: "p", description: "Project root", default: "." },
+        change: { type: "string", description: "C-* change id", required: true },
+        fix: {
+          type: "boolean",
+          description:
+            "extend-allocation: extend the effective covering allocation by appending a "
+            + "superseding opened/Allocation (last-writer-wins per worker; ceiling "
+            + "max(requirement, openedId+98)). Never rewrites recorded events; never deletes orphans; never emits terminal.",
+          default: false,
+        },
+        format: { type: "string", alias: "f", description: "text or json", default: "text" },
+      },
+      async run(context) {
+        const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
+        await runGraceCommand(format, () => {
+          const diagnosis = recoverCursor(String(context.args.path ?? "."), requireChangeId(context.args), {
+            fix: Boolean(context.args.fix) ? "extend-allocation" : false,
+          });
+          if (format === "json") process.stdout.write(`${JSON.stringify(diagnosis, null, 2)}\n`);
+          else process.stdout.write(formatRecoverDiagnosis(diagnosis));
+        }, "Unable to complete ngrace cursor recover.");
       },
     }),
   },

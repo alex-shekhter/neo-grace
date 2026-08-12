@@ -8,19 +8,27 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   ATTEMPT_PAIR_FINDING_CODE
+//   WRITE_EVIDENCE_SCOPE_FINDING_CODE
 //   HunkCoverageInput
 //   JoinProbe
 //   REVIEW_CATALOG
 //   RegexOverStructureScan
 //   ReviewFinding
 //   ReviewOptions
+//   AttemptPairAuditReport
+//   AttemptPairEvidenceInput
+//   WriteEvidenceScopeAuditReport
+//   WriteEvidenceScopeAuditInput
 //   ReviewResult
 //   ScopeAuditReport
 //   TestFileDiff
 //   allReviewCodes
+//   auditAttemptPairWriteEvidence
 //   auditCompatNewErrors
 //   auditHunkCoverage
 //   auditScopeOutsideWriteScope
+//   auditWriteEvidenceOutsideScope
 //   auditTestWeakening
 //   expandScopePathsForArchiveIdentity
 //   findingId
@@ -48,6 +56,7 @@ import path from "node:path";
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { resolveNgracePaths } from "../artifact/project";
 import {
+  ANCHOR_PATTERNS,
   isRegisteredSemanticAnchor,
   VERIFICATION_THREADED_CHILD_TAGS,
 } from "../artifact/types";
@@ -55,8 +64,14 @@ import { readGraceXmlArtifact, walkNodes } from "../artifact/xml";
 import { extractObservedWriteScopeFromPlan } from "./scope-helpers";
 import {
   listFilesChangedAgainstBase,
+  listLedgerEvents,
+  listLooseEvents,
   listRepositoryChangedFiles,
+  readAttemptPayload,
+  resolveChangeBundle,
   type AbsenceValue,
+  type LooseEvent,
+  type WriteEvidenceSnapshot,
 } from "../grace-cursor";
 import { CODE_EXTENSIONS } from "../language-registry";
 import {
@@ -65,6 +80,8 @@ import {
   loadGraceArtifactIndex,
 } from "../query/core";
 import {
+  ATTEMPT_PAIR_FINDING_CODE,
+  WRITE_EVIDENCE_SCOPE_FINDING_CODE,
   REVIEW_CATALOG,
   guideFor,
   type ReviewIssueGuide,
@@ -109,6 +126,35 @@ export type ScopeAuditReport = {
   absence?: AbsenceValue;
 };
 
+/**
+ * Attempt-pair audit outcome (F31 / C-SUBSTANTIATION-HONESTY).
+ * Always present when process audits ran — including unscoped review, where
+ * status is not-run with a reason (same honesty bar as ScopeAuditReport).
+ */
+export type AttemptPairAuditReport = {
+  status: "ran" | "not-run" | "unable-to-determine";
+  reason: string;
+  changeId?: string;
+  pairCount?: number;
+  findingCount?: number;
+  absence?: AbsenceValue;
+};
+
+/**
+ * WriteEvidence-vs-ObservedWriteScope audit outcome (F27 / C-DECLARED-WRITES).
+ * Always present when process audits ran — including unscoped review, where
+ * status is not-run with a reason (same honesty bar as ScopeAuditReport / F31).
+ * Distinct from porcelain ScopeAuditReport (tree input vs ledger input).
+ */
+export type WriteEvidenceScopeAuditReport = {
+  status: "ran" | "not-run" | "unable-to-determine";
+  reason: string;
+  changeId?: string;
+  pathCount?: number;
+  findingCount?: number;
+  absence?: AbsenceValue;
+};
+
 export type ReviewResult = {
   schemaVersion: "1.0.0";
   tool: "ngrace-review";
@@ -121,6 +167,16 @@ export type ReviewResult = {
   shapeDataExemptions: string[];
   /** Present when --change was set and process audits ran. */
   scopeAudit?: ScopeAuditReport;
+  /**
+   * Present when process audits ran. Unscoped review sets status not-run
+   * (reason names missing --change) rather than omitting the audit.
+   */
+  attemptPairAudit?: AttemptPairAuditReport;
+  /**
+   * Present when process audits ran. Ledger WriteEvidence vs OWS (F27).
+   * Unscoped → not-run; empty/missing WriteEvidence → unable-to-determine.
+   */
+  writeEvidenceScopeAudit?: WriteEvidenceScopeAuditReport;
   summary: {
     findings: number;
     errors: number;
@@ -382,12 +438,15 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
 
   // MustExist targets that do not exist on disk (corr 205-B).
   // Semantic anchors (ANCHOR_PATTERNS) are not disk paths — never check them as files.
+  // Corr 171 / F16: when the plan lives under archive/<id>/, active/<id>/… aliases
+  // archive/<id>/… for that id only — reuse expandScopePathsForArchiveIdentity (no second rule).
   for (const planRel of listFilesRecursive(root, `${ARTIFACT_DIR}/changes`).filter((f) =>
     f.endsWith("plan.xml"),
   )) {
     const abs = path.join(root, planRel);
     const artifact = readGraceXmlArtifact(abs);
     if (!artifact.root) continue;
+    const identity = scopeIdentityFromPlanRel(planRel);
     for (const node of walkNodes(artifact.root)) {
       if (node.tag !== "MustExist") continue;
       const valueNode = node.children.find((c) => c.tag === "Value");
@@ -395,7 +454,9 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
       if (!target || isRegisteredSemanticAnchor(target)) {
         continue;
       }
-      if (!existsSync(path.join(root, target))) {
+      const candidates = expandScopePathsForArchiveIdentity([target], identity);
+      const present = candidates.some((candidate) => existsSync(path.join(root, candidate)));
+      if (!present) {
         findings.push(
           makeFinding(
             "review.confidently-wrong",
@@ -410,6 +471,21 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
   }
 
   return findings;
+}
+
+/** Derive corr-171 identity from plan path `.ngrace/changes/{active|archive}/<id>/plan.xml`. */
+function scopeIdentityFromPlanRel(planRel: string): ScopeAuditIdentity | undefined {
+  const normalized = planRel.replaceAll("\\", "/");
+  const prefix = `${ARTIFACT_DIR}/changes/`;
+  if (!normalized.startsWith(prefix) || !normalized.endsWith("/plan.xml")) return undefined;
+  const middle = normalized.slice(prefix.length, -"/plan.xml".length); // active|archive / changeId
+  const slash = middle.indexOf("/");
+  if (slash <= 0) return undefined;
+  const planLocation = middle.slice(0, slash);
+  const changeId = middle.slice(slash + 1);
+  if (planLocation !== "active" && planLocation !== "archive") return undefined;
+  if (!changeId || changeId.includes("/")) return undefined;
+  return { planLocation, changeId };
 }
 
 function detectSelfReferential(root: string): ReviewFinding[] {
@@ -857,6 +933,35 @@ export function expandScopePathsForArchiveIdentity(
   return [...out].sort();
 }
 
+/**
+ * CLI lifecycle porcelain under a real change bundle (F11 / F11.2).
+ * Matches, for any canonical C-* id (ANCHOR_PATTERNS.change):
+ *   .ngrace/changes/{active|archive}/<C-ID>/run/**
+ *   .ngrace/changes/{active|archive}/<C-ID>/run.xml
+ *   .ngrace/changes/{active|archive}/<C-ID>/run-ledger.xml
+ * Path-only (covers fold deletions). Not keyed on the reviewed change id (cross-bundle).
+ * Does not match plan.xml / spec.xml or non-canonical directory names (e.g. scratch/).
+ */
+function isCliLifecyclePath(rel: string): boolean {
+  const n = normalizeRel(rel);
+  const prefix = `${ARTIFACT_DIR}/changes/`;
+  if (!n.startsWith(prefix)) return false;
+  const rest = n.slice(prefix.length); // active|archive / <id> / …
+  const firstSlash = rest.indexOf("/");
+  if (firstSlash <= 0) return false;
+  const location = rest.slice(0, firstSlash);
+  if (location !== "active" && location !== "archive") return false;
+  const afterLocation = rest.slice(firstSlash + 1);
+  const secondSlash = afterLocation.indexOf("/");
+  if (secondSlash <= 0) return false;
+  const changeId = afterLocation.slice(0, secondSlash);
+  if (!ANCHOR_PATTERNS.change.test(changeId)) return false;
+  const leaf = afterLocation.slice(secondSlash + 1);
+  if (leaf === "run.xml" || leaf === "run-ledger.xml") return true;
+  if (leaf === "run" || leaf.startsWith("run/")) return true;
+  return false;
+}
+
 export function auditScopeOutsideWriteScope(
   changedFiles: string[],
   scopeFiles: string[],
@@ -868,6 +973,8 @@ export function auditScopeOutsideWriteScope(
   const expandedGlobs = expandScopePathsForArchiveIdentity(scopeGlobs, identity);
   const fileSet = new Set(expandedFiles);
   for (const changed of changedFiles.map(normalizeRel)) {
+    // F11: tool-owned lifecycle paths are not agent out-of-scope work (any C-*, any source).
+    if (isCliLifecyclePath(changed)) continue;
     if (fileSet.has(changed)) continue;
     const globHit = expandedGlobs.some((glob) => matchSimpleGlob(glob, changed));
     if (globHit) continue;
@@ -883,6 +990,126 @@ export function auditScopeOutsideWriteScope(
     );
   }
   return findings;
+}
+
+/**
+ * Authority roadmap tree (F27.1 / C-DECLARED-WRITES).
+ * Hole this exclusion wrongly permits: an agent (or anyone) editing under
+ * docs/plans/ (roadmap, decisions, review notes) without this finding firing.
+ * Those paths are authority-owned concurrent work in this repo's model; the
+ * residual is process + git history, not this audit. Does not swallow src/,
+ * skills/, or non-lifecycle .ngrace/ paths.
+ */
+function isDocsPlansPath(rel: string): boolean {
+  const n = normalizeRel(rel);
+  return n === "docs/plans" || n.startsWith("docs/plans/");
+}
+
+export type WriteEvidenceScopeAuditInput = {
+  changeId: string;
+  /** Union of WriteEvidence content paths (already normalized preferred). */
+  writeEvidencePaths: string[];
+  scopeFiles: string[];
+  scopeGlobs: string[];
+  identity?: ScopeAuditIdentity;
+};
+
+/**
+ * Ledger-backed scope audit (C-DECLARED-WRITES / F27): raise when a WriteEvidence
+ * content path is outside ObservedWriteScope after lifecycle + docs/plans/
+ * exclusions. Distinct code from porcelain auditScopeOutsideWriteScope.
+ *
+ * Non-lifecycle .ngrace/ paths (spec.xml, plan.xml, graph, verification) raise
+ * when undeclared — approved-artifact immutability.
+ */
+export function auditWriteEvidenceOutsideScope(
+  input: WriteEvidenceScopeAuditInput,
+): ReviewFinding[] {
+  const findings: ReviewFinding[] = [];
+  const expandedFiles = expandScopePathsForArchiveIdentity(input.scopeFiles, input.identity);
+  const expandedGlobs = expandScopePathsForArchiveIdentity(input.scopeGlobs, input.identity);
+  const fileSet = new Set(expandedFiles);
+  const seen = new Set<string>();
+
+  for (const raw of input.writeEvidencePaths) {
+    const changed = normalizeRel(raw);
+    if (seen.has(changed)) continue;
+    seen.add(changed);
+    // F11: tool-owned lifecycle only (run.xml / run-ledger.xml / run/**) — not
+    // spec.xml or plan.xml.
+    if (isCliLifecyclePath(changed)) continue;
+    // F27.1: authority concurrent roadmap — hole named on isDocsPlansPath.
+    if (isDocsPlansPath(changed)) continue;
+    if (fileSet.has(changed)) continue;
+    const globHit = expandedGlobs.some((glob) => matchSimpleGlob(glob, changed));
+    if (globHit) continue;
+    findings.push(
+      makeFinding(
+        WRITE_EVIDENCE_SCOPE_FINDING_CODE,
+        changed,
+        `WriteEvidence path ${changed} is outside ObservedWriteScope (ledger).`,
+        "write-evidence-outside-scope",
+        `file:${changed}`,
+      ),
+    );
+  }
+  return findings;
+}
+
+/**
+ * Union of content paths from WriteEvidence on all ledger + loose events.
+ * Empty union with no evidence → no-evidence; missing bundle → no-bundle.
+ */
+function loadWriteEvidencePathsFromBundle(
+  projectRoot: string,
+  changeId: string,
+): { kind: "paths"; paths: string[] } | { kind: "no-bundle" } | { kind: "no-evidence"; reason: string } {
+  let bundlePath: string;
+  try {
+    bundlePath = resolveChangeBundle(projectRoot, changeId);
+  } catch {
+    return { kind: "no-bundle" };
+  }
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  const hasLedger = existsSync(ledgerPath);
+  const events: LooseEvent[] = [
+    ...listLedgerEvents(bundlePath),
+    ...listLooseEvents(bundlePath),
+  ];
+  const pathSet = new Set<string>();
+  let sawWriteEvidenceNode = false;
+  for (const event of events) {
+    const payload = readAttemptPayload(event);
+    if (!payload.writeEvidence) continue;
+    sawWriteEvidenceNode = true;
+    const digests = contentDigestsFromEvidence(payload.writeEvidence);
+    for (const p of Object.keys(digests)) pathSet.add(normalizeRel(p));
+  }
+  if (pathSet.size > 0) {
+    return { kind: "paths", paths: [...pathSet].sort() };
+  }
+  if (!hasLedger && events.length === 0) {
+    return {
+      kind: "no-evidence",
+      reason: `no run-ledger.xml and no WriteEvidence for ${changeId}`,
+    };
+  }
+  if (!hasLedger) {
+    return {
+      kind: "no-evidence",
+      reason: `no run-ledger.xml for ${changeId}`,
+    };
+  }
+  if (!sawWriteEvidenceNode) {
+    return {
+      kind: "no-evidence",
+      reason: `no WriteEvidence in ledger for ${changeId}`,
+    };
+  }
+  return {
+    kind: "no-evidence",
+    reason: `WriteEvidence present but no content digests for ${changeId}`,
+  };
 }
 
 /** Minimal glob: `**` / `*` only, for process-audit tests and plan globs. */
@@ -977,6 +1204,202 @@ export function auditHunkCoverage(hunks: HunkCoverageInput[]): ReviewFinding[] {
 }
 
 // ---------------------------------------------------------------------------
+// Attempt-pair write evidence (C-SUBSTANTIATION-HONESTY / F9.10 / F31 / F32)
+// Identical-tree rule: raise when no non-.ngrace/ content digest differs.
+// ---------------------------------------------------------------------------
+
+/** One fail→pass pair with WriteEvidence content digests (path → digest). */
+export type AttemptPairEvidenceInput = {
+  changeId: string;
+  /**
+   * Project root for resolveChangeBundle anchor (F32). When omitted, unit fixtures
+   * get a synthetic anchor that does not hardcode active/ for archived ids.
+   */
+  projectRoot?: string;
+  /**
+   * Optional pre-resolved finding file (posix relative). Wins over projectRoot.
+   */
+  resolvedAnchorFile?: string;
+  /**
+   * Unused by the identical-tree raise condition (OWS is not consulted).
+   * Retained optional for call-site compatibility with older fixtures.
+   */
+  scopeFiles?: string[];
+  pairs: Array<{
+    task: string;
+    failEventId: number;
+    passEventId: number;
+    /** Content digests from fail attempt WriteEvidence (path → digest). */
+    failDigests: Record<string, string>;
+    /** Content digests from pass attempt WriteEvidence (path → digest). */
+    passDigests: Record<string, string>;
+  }>;
+};
+
+/**
+ * True when path is a ledger/tool artifact under `.ngrace/`.
+ *
+ * Excluded from identical-tree comparison because the cursor writes `run.xml`
+ * and loose event files on every attempt command — those digests differ across
+ * almost any honest pair and prove nothing about authored work (F9.10 / F11).
+ */
+function isNgraceLedgerPath(filePath: string): boolean {
+  const n = normalizeRel(filePath);
+  return n === ".ngrace" || n.startsWith(".ngrace/");
+}
+
+/**
+ * Content digests from a WriteEvidence snapshot (available content files only).
+ * Absent/undetermined entries are not comparable substantiation.
+ */
+function contentDigestsFromEvidence(evidence: WriteEvidenceSnapshot | undefined): Record<string, string> {
+  if (!evidence || !evidence.available) return {};
+  const out: Record<string, string> = {};
+  for (const file of evidence.files) {
+    if (file.kind === "content" && file.digest) {
+      out[normalizeRel(file.path)] = file.digest;
+    }
+  }
+  return out;
+}
+
+/**
+ * Relative finding path for an attempt-pair finding (F32).
+ * Prefer resolveChangeBundle so archived bundles do not point at missing active/.
+ */
+function resolveAttemptPairAnchorFile(
+  changeId: string,
+  projectRoot: string | undefined,
+  resolvedAnchorFile: string | undefined,
+): string {
+  if (resolvedAnchorFile) return normalizeRel(resolvedAnchorFile);
+  if (projectRoot) {
+    try {
+      const bundlePath = resolveChangeBundle(projectRoot, changeId);
+      const relBundle = path.relative(path.resolve(projectRoot), bundlePath).replaceAll("\\", "/");
+      const runDir = path.join(bundlePath, "run");
+      if (existsSync(runDir)) return `${relBundle}/run`;
+      const ledger = path.join(bundlePath, "run-ledger.xml");
+      if (existsSync(ledger)) return `${relBundle}/run-ledger.xml`;
+      return relBundle;
+    } catch {
+      // fall through
+    }
+  }
+  // Unit fixtures without a real bundle — do not invent active/ for archive ids.
+  return `.ngrace/changes/${changeId}/run`;
+}
+
+/**
+ * True when any non-`.ngrace/` content path differs across the pair
+ * (digest change, or presence on only one side).
+ */
+function nonNgraceContentDiffers(
+  failDigests: Record<string, string>,
+  passDigests: Record<string, string>,
+): boolean {
+  const keys = new Set([...Object.keys(failDigests), ...Object.keys(passDigests)]);
+  for (const filePath of keys) {
+    if (isNgraceLedgerPath(filePath)) continue;
+    if (failDigests[filePath] !== passDigests[filePath]) return true;
+  }
+  return false;
+}
+
+/**
+ * Identical-tree audit (C-SUBSTANTIATION-HONESTY): raise when a fail→pass pair
+ * has no non-`.ngrace/` WriteEvidence content difference.
+ *
+ * Does not consult ObservedWriteScope or production-vs-test path filters.
+ * Production-must-move is retired (F9.10: 100% false-positive rate on archive).
+ */
+export function auditAttemptPairWriteEvidence(input: AttemptPairEvidenceInput): ReviewFinding[] {
+  const findings: ReviewFinding[] = [];
+  const file = resolveAttemptPairAnchorFile(
+    input.changeId,
+    input.projectRoot,
+    input.resolvedAnchorFile,
+  );
+
+  for (const pair of input.pairs) {
+    const failD = Object.fromEntries(
+      Object.entries(pair.failDigests).map(([p, d]) => [normalizeRel(p), d]),
+    );
+    const passD = Object.fromEntries(
+      Object.entries(pair.passDigests).map(([p, d]) => [normalizeRel(p), d]),
+    );
+
+    // Raise only when the non-.ngrace/ trees are identical (including both empty).
+    if (nonNgraceContentDiffers(failD, passD)) continue;
+
+    const anchor = `attempt-pair:${pair.task}:${pair.failEventId}->${pair.passEventId}`;
+    const message =
+      `Fail→pass attempt pair ${pair.task} (events ${pair.failEventId}→${pair.passEventId}) `
+      + "has identical non-.ngrace/ WriteEvidence content digests "
+      + "(no authored path outside .ngrace/ differs across the pair). "
+      + "Red-first is not corroborated by any non-ledger content change (F9.10).";
+
+    findings.push(
+      makeFinding(
+        ATTEMPT_PAIR_FINDING_CODE,
+        file,
+        message,
+        "attempt-pair-write-evidence",
+        anchor,
+      ),
+    );
+  }
+  return findings;
+}
+
+/**
+ * Load fail→pass attempt pairs for a change from loose run/ + folded ledger.
+ * Read-only. Pairs each pass with the most recent prior fail on the same task.
+ */
+function loadAttemptPairsFromBundle(
+  projectRoot: string,
+  changeId: string,
+): AttemptPairEvidenceInput["pairs"] {
+  let bundlePath: string;
+  try {
+    bundlePath = resolveChangeBundle(projectRoot, changeId);
+  } catch {
+    return [];
+  }
+  const events: LooseEvent[] = [
+    ...listLedgerEvents(bundlePath),
+    ...listLooseEvents(bundlePath),
+  ]
+    .filter((e) => e.kind === "attempt")
+    .sort((a, b) => a.id - b.id);
+
+  const lastFailByTask = new Map<string, LooseEvent>();
+  const pairs: AttemptPairEvidenceInput["pairs"] = [];
+
+  for (const event of events) {
+    const payload = readAttemptPayload(event);
+    const outcome = (payload.outcome ?? event.attributes.outcome ?? "").trim();
+    if (outcome === "fail") {
+      lastFailByTask.set(event.task, event);
+      continue;
+    }
+    if (outcome !== "pass") continue;
+    const failEvent = lastFailByTask.get(event.task);
+    if (!failEvent) continue;
+    const failPayload = readAttemptPayload(failEvent);
+    pairs.push({
+      task: event.task,
+      failEventId: failEvent.id,
+      passEventId: event.id,
+      failDigests: contentDigestsFromEvidence(failPayload.writeEvidence),
+      passDigests: contentDigestsFromEvidence(payload.writeEvidence),
+    });
+    lastFailByTask.delete(event.task);
+  }
+  return pairs;
+}
+
+// ---------------------------------------------------------------------------
 // Public entry
 // ---------------------------------------------------------------------------
 
@@ -1000,6 +1423,8 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
   }
 
   let scopeAudit: ScopeAuditReport | undefined;
+  let attemptPairAudit: AttemptPairAuditReport | undefined;
+  let writeEvidenceScopeAudit: WriteEvidenceScopeAuditReport | undefined;
 
   if (runProcess) {
     if (options.changeId) {
@@ -1073,6 +1498,108 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
     if (options.hunkCoverage) {
       findings.push(...auditHunkCoverage(options.hunkCoverage));
     }
+
+    // C-SUBSTANTIATION-HONESTY: fail→pass identical-tree audit + absence record (F31).
+    if (!options.changeId) {
+      const reason = "no --change supplied";
+      attemptPairAudit = {
+        status: "not-run",
+        reason,
+        absence: { verdict: "not-run", reason },
+      };
+    } else {
+      const changeId = options.changeId;
+      let bundleResolves = true;
+      try {
+        resolveChangeBundle(root, changeId);
+      } catch {
+        bundleResolves = false;
+      }
+      if (!bundleResolves) {
+        const reason = `change bundle ${changeId} not found under active/ or archive/`;
+        attemptPairAudit = {
+          status: "not-run",
+          reason,
+          changeId,
+          absence: { verdict: "not-run", reason },
+        };
+      } else {
+        const pairs = loadAttemptPairsFromBundle(root, changeId);
+        const pairFindings = auditAttemptPairWriteEvidence({
+          changeId,
+          projectRoot: root,
+          pairs,
+        });
+        findings.push(...pairFindings);
+        attemptPairAudit = {
+          status: "ran",
+          reason: `ran over ${pairs.length} fail→pass pair(s) for ${changeId}`,
+          changeId,
+          pairCount: pairs.length,
+          findingCount: pairFindings.length,
+        };
+      }
+    }
+
+    // C-DECLARED-WRITES: WriteEvidence paths vs ObservedWriteScope (F27 / F31 absence).
+    if (!options.changeId) {
+      const reason = "no --change supplied";
+      writeEvidenceScopeAudit = {
+        status: "not-run",
+        reason,
+        absence: { verdict: "not-run", reason },
+      };
+    } else {
+      const changeId = options.changeId;
+      const resolved = resolveChangePlanPath(root, changeId);
+      if (!resolved) {
+        const reason = `no plan found for ${changeId} under active/ or archive/`;
+        writeEvidenceScopeAudit = {
+          status: "not-run",
+          reason,
+          changeId,
+          absence: { verdict: "not-run", reason },
+        };
+      } else {
+        const loaded = loadWriteEvidencePathsFromBundle(root, changeId);
+        if (loaded.kind === "no-bundle") {
+          const reason = `change bundle ${changeId} not found under active/ or archive/`;
+          writeEvidenceScopeAudit = {
+            status: "unable-to-determine",
+            reason,
+            changeId,
+            absence: { verdict: "unable-to-determine", reason },
+          };
+        } else if (loaded.kind === "no-evidence") {
+          writeEvidenceScopeAudit = {
+            status: "unable-to-determine",
+            reason: loaded.reason,
+            changeId,
+            absence: { verdict: "unable-to-determine", reason: loaded.reason },
+          };
+        } else {
+          const extracted = extractObservedWriteScopeFromPlan(resolved.planPath, root);
+          const weFindings = auditWriteEvidenceOutsideScope({
+            changeId,
+            writeEvidencePaths: loaded.paths,
+            scopeFiles: extracted.files,
+            scopeGlobs: extracted.globs,
+            identity: { changeId, planLocation: resolved.location },
+          });
+          findings.push(...weFindings);
+          writeEvidenceScopeAudit = {
+            status: "ran",
+            reason:
+              weFindings.length === 0
+                ? `ran over ${loaded.paths.length} WriteEvidence path(s) for ${changeId}; no out-of-scope paths`
+                : `ran over ${loaded.paths.length} WriteEvidence path(s) for ${changeId}; ${weFindings.length} out-of-scope`,
+            changeId,
+            pathCount: loaded.paths.length,
+            findingCount: weFindings.length,
+          };
+        }
+      }
+    }
   }
 
   findings.sort(
@@ -1089,6 +1616,8 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
     findings,
     shapeDataExemptions,
     scopeAudit,
+    attemptPairAudit,
+    writeEvidenceScopeAudit,
     summary: {
       findings: findings.length,
       errors: findings.filter((f) => f.severity === "error").length,
@@ -1178,13 +1707,31 @@ export function formatReviewResult(result: ReviewResult): string {
     lines.push("");
   }
 
+  if (result.writeEvidenceScopeAudit) {
+    lines.push(formatWriteEvidenceScopeAuditLine(result.writeEvidenceScopeAudit));
+    lines.push("");
+  }
+
+  if (result.attemptPairAudit) {
+    lines.push(formatAttemptPairAuditLine(result.attemptPairAudit));
+    lines.push("");
+  }
+
   if (result.findings.length === 0) {
-    // A66.4 / rule 11: "No review findings" is false when the scope audit did not run.
+    // A66.4 / rule 11 / F31: "No review findings" is false when a process audit did not run.
     const scopeSkipped =
       result.scopeAudit
       && (result.scopeAudit.status === "not-run"
         || result.scopeAudit.status === "unable-to-determine");
-    if (!scopeSkipped) {
+    const attemptPairSkipped =
+      result.attemptPairAudit
+      && (result.attemptPairAudit.status === "not-run"
+        || result.attemptPairAudit.status === "unable-to-determine");
+    const writeEvidenceScopeSkipped =
+      result.writeEvidenceScopeAudit
+      && (result.writeEvidenceScopeAudit.status === "not-run"
+        || result.writeEvidenceScopeAudit.status === "unable-to-determine");
+    if (!scopeSkipped && !attemptPairSkipped && !writeEvidenceScopeSkipped) {
       lines.push("No review findings.");
     }
     return lines.join("\n");
@@ -1196,6 +1743,26 @@ export function formatReviewResult(result: ReviewResult): string {
     );
   }
   return lines.join("\n");
+}
+
+function formatAttemptPairAuditLine(audit: AttemptPairAuditReport): string {
+  if (audit.status === "not-run" || audit.status === "unable-to-determine") {
+    return `Attempt-pair audit: ${audit.status} — ${audit.reason}`;
+  }
+  const n = audit.pairCount ?? 0;
+  const f = audit.findingCount ?? 0;
+  const id = audit.changeId ?? "?";
+  return `Attempt-pair audit: ran over ${n} fail→pass pair(s) for ${id} (${f} finding(s)).`;
+}
+
+function formatWriteEvidenceScopeAuditLine(audit: WriteEvidenceScopeAuditReport): string {
+  if (audit.status === "not-run" || audit.status === "unable-to-determine") {
+    return `WriteEvidence scope audit: ${audit.status} — ${audit.reason}`;
+  }
+  const n = audit.pathCount ?? 0;
+  const f = audit.findingCount ?? 0;
+  const id = audit.changeId ?? "?";
+  return `WriteEvidence scope audit: ran over ${n} path(s) for ${id} (${f} finding(s)).`;
 }
 
 function formatScopeAuditLine(audit: ScopeAuditReport): string {
@@ -1232,4 +1799,10 @@ function formatScopeAuditLine(audit: ScopeAuditReport): string {
 }
 
 // Re-export catalog helpers used by boundary tests
-export { isReviewIssueCode, allReviewCodes, REVIEW_CATALOG } from "./catalog";
+export {
+  ATTEMPT_PAIR_FINDING_CODE,
+  WRITE_EVIDENCE_SCOPE_FINDING_CODE,
+  isReviewIssueCode,
+  allReviewCodes,
+  REVIEW_CATALOG,
+} from "./catalog";

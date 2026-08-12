@@ -27,6 +27,7 @@ import {
   type ReviewVerdictOutcome,
   type ReviewVerdictRecord,
 } from "./ledger";
+import { defineGraceCommand } from "../query/command";
 import { GraceCommandError, runGraceCommand } from "../query/errors";
 import { computeConstituentTasksPassed } from "../review/outcomes";
 
@@ -102,7 +103,8 @@ function parseOutcome(value: unknown): ReviewVerdictOutcome {
 }
 
 function gateSubCommand(gate: GateId) {
-  return defineCommand({
+  // defineGraceCommand: refuse --record true|false space form before any ledger write (F18).
+  return defineGraceCommand({
     meta: {
       name: gate,
       description: `Evaluate the ${gate} transition gate and record the decision (does not change status).`,

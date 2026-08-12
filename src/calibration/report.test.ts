@@ -7,10 +7,13 @@ import { ARTIFACT_DIR } from "../artifact/paths";
 import { parseClaimedConfidence, CLAIMED_CONFIDENCE_LEVELS } from "../artifact/types";
 import {
   advanceCursor,
+  evaluateTargetComplete,
   foldEpoch,
   recordAttempt,
   recordCalibrationRestatement,
+  setEvaluateTargetCompleteThrowProbeForTests,
 } from "../grace-cursor";
+import { collectDoctorReport, formatDoctorText } from "../grace-doctor";
 import {
   ADJUDICATOR_TARGET_ASSERTIONS,
   CONTEXT_CLASS_NOT_STORED,
@@ -700,6 +703,74 @@ describe("collectCalibrationReport (per-epoch pairs, fold-time labels)", () => {
     expect(report.summary).toContain("By context class: (none — N included is 0)");
     expect(formatCalibrationText(report)).toContain("by context class:");
     expect(formatCalibrationText(report)).toContain("(none — N included is 0)");
+  });
+});
+
+describe("C-CALIBRATION-COMMAND-EVIDENCE T-003: no report-time re-eval; historical pendings", () => {
+  afterEach(() => {
+    setEvaluateTargetCompleteThrowProbeForTests(undefined);
+  });
+
+  it("AC-NO-REPORT-TIME-REEVAL: evaluateTargetComplete throw probe — doctor still emits calibration from stored pairs", () => {
+    // Instrument: any evaluateTargetComplete call throws (not merely "no call asserted").
+    setEvaluateTargetCompleteThrowProbeForTests(() => {
+      throw new Error(
+        "evaluateTargetComplete must not run at report/doctor time (AC-NO-REPORT-TIME-REEVAL / D6.5)",
+      );
+    });
+    // Sanity: the instrumented surface actually throws when invoked.
+    expect(() => evaluateTargetComplete(path.resolve(import.meta.dir, "../.."), "C-CALIBRATION-CONTEXT")).toThrow(
+      /must not run at report/,
+    );
+
+    // Real repository: doctor and collectCalibrationReport must still emit calibration.
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const report = collectCalibrationReport(repoRoot);
+    expect(report.summary).toMatch(/Calibration report/i);
+    expect(report.pairs.length).toBeGreaterThan(0);
+    expect(formatCalibrationText(report)).toContain("included (fold-adjudicated epochs):");
+
+    const doctor = collectDoctorReport(repoRoot);
+    expect(doctor.calibration).toBeDefined();
+    const doctorText = formatDoctorText(doctor);
+    expect(doctorText).toMatch(/Calibration/i);
+    expect(doctorText).toMatch(/pending/);
+
+    // Source graph: report.ts and grace-doctor.ts must not import or call evaluateTargetComplete
+    // (comments may name it; dead code still reachable from doctor fails this criterion).
+    const stripComments = (src: string): string =>
+      src
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/^\s*\/\/.*$/gm, "");
+    const reportSrc = stripComments(readFileSync(path.join(import.meta.dir, "report.ts"), "utf8"));
+    const doctorSrc = stripComments(readFileSync(path.join(import.meta.dir, "../grace-doctor.ts"), "utf8"));
+    for (const src of [reportSrc, doctorSrc]) {
+      expect(src).not.toMatch(/import\s*\{[^}]*\bevaluateTargetComplete\b/);
+      expect(src).not.toMatch(/\bevaluateTargetComplete\s*\(/);
+    }
+  });
+
+  it("AC-HISTORICAL-PENDING-UNCHANGED: flipping C-ADOPTION-SURFACE / C-PLAN-QUALITY / C-REVIEW-LANGUAGE-SCOPE Epoch-1 to pass is the failure mode", () => {
+    // Read-only over this repository's archives (D8.4 / corr 156). Do not mutate run-ledger.xml.
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const report = collectCalibrationReport(repoRoot);
+    const historical = [
+      "C-ADOPTION-SURFACE",
+      "C-PLAN-QUALITY",
+      "C-REVIEW-LANGUAGE-SCOPE",
+    ] as const;
+
+    for (const changeId of historical) {
+      const pair = report.pairs.find((p) => p.changeId === changeId && p.epoch === 1);
+      expect(pair).toBeDefined();
+      // Discriminating negative: included/pass would fail this criterion (helpful "cleanup" is out of scope).
+      expect(pair!.bucket).toBe("pending");
+      expect(pair!.adjudicatedOutcome).toBeUndefined();
+      expect(pair!.adjudicatedAt).toBe("fold");
+    }
+
+    // Corpus still counts them as pending, not as labeled included.
+    expect(report.pending).toBeGreaterThanOrEqual(3);
   });
 });
 

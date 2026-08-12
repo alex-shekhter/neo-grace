@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -5,6 +6,14 @@ import { describe, expect, it } from "bun:test";
 
 import { ARTIFACT_DIR } from "./artifact/paths";
 import { collectProjectStatus, formatStatusText } from "./grace-status";
+
+const REPO_ROOT = path.resolve(import.meta.dir, "..");
+const LIVE_NAN_ORPHAN = path.join(
+  REPO_ROOT,
+  ARTIFACT_DIR,
+  "changes/archive/C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml",
+);
+const LIVE_NAN_SHA1 = "c0cc8899c264381766a18918e2109b5e05693893";
 
 function createProject() {
   return mkdtempSync(path.join(os.tmpdir(), "grace-status-"));
@@ -507,9 +516,11 @@ describe("ngrace status", () => {
     const result = collectProjectStatus(root);
     const change = result.changes.find((entry) => entry.changeId === "C-EPOCH");
     expect(change?.epochCount).toBe(1);
+    expect(change?.openEpochCount).toBe(0);
     expect(change?.taskCount).toBe(1);
     const text = formatStatusText(result);
     expect(text).toContain("epochs=1");
+    expect(text).not.toMatch(/C-EPOCH[^\n]*open=/);
     expect(text).toContain("tasks=1");
     expect(result.nextAction).toContain("ngrace-execute");
   });
@@ -521,8 +532,62 @@ describe("ngrace status", () => {
     const result = collectProjectStatus(root);
     const change = result.changes.find((entry) => entry.changeId === "C-NOCUR");
     expect(change?.epochCount).toBeUndefined();
+    expect(change?.openEpochCount).toBeUndefined();
     expect(change?.taskCount).toBe(1);
     expect(formatStatusText(result)).toContain("C-NOCUR");
+  });
+
+  it("AC-STATUS-EPOCHS-OPEN-VS-FOLDED: healthy open epoch is not reported as epochs=0 / no activity (D8.8)", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-OPEN", { specStatus: "approved", planStatus: "approved" });
+    // Healthy open epoch: from=1 to=10 + progress, no folded Epoch-N.
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-OPEN/run/1-T-001-opened.xml`,
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="10"/></NgraceRunEvent>`,
+    );
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-OPEN/run/2-T-001-progress.xml`,
+      `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="progress"/>`,
+    );
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-OPEN/run.xml`,
+      `<NgraceRunCursor graceVersion="1.0"><C-OPEN><Task>T-001</Task><Epoch>1</Epoch><State>in-progress</State></C-OPEN></NgraceRunCursor>`,
+    );
+
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-OPEN");
+    // Discriminating negative: must not look like a change with no cursor activity.
+    expect(change?.openEpochCount).toBe(1);
+    expect(change?.epochCount).toBe(0);
+    const text = formatStatusText(result);
+    const line = text.split("\n").find((l) => l.includes("C-OPEN")) ?? "";
+    expect(line).toMatch(/open=1/);
+    expect(line).toMatch(/epochs=0/);
+    // Not the pre-fix misreport that omitted open activity entirely.
+    expect(line).not.toMatch(/C-OPEN \[active\] spec=approved plan=approved tasks=1/);
+  });
+
+  it("AC-STATUS-EPOCHS-OPEN-VS-FOLDED: after fold, folded count reflects Epoch-N wrappers", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-FOLD", { specStatus: "approved", planStatus: "approved" });
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-FOLD/run-ledger.xml`,
+      `<NgraceRunLedger graceVersion="1.0"><C-FOLD><Epoch-1><Allocation worker="w0" from="1" to="10"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="terminal"/></Epoch-1></C-FOLD></NgraceRunLedger>`,
+    );
+    // No loose run/ — fold emptied it.
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-FOLD");
+    expect(change?.epochCount).toBe(1);
+    expect(change?.openEpochCount).toBe(0);
+    const line = formatStatusText(result).split("\n").find((l) => l.includes("C-FOLD")) ?? "";
+    expect(line).toContain("epochs=1");
+    expect(line).not.toMatch(/open=/);
   });
 
   it("correction 69: pre-gate archive without Decisions is apply-gate-record-absent, not violation", () => {
@@ -621,5 +686,102 @@ describe("ngrace status", () => {
     expect(tsText).toContain("Analysis Coverage");
     expect(tsText).not.toContain("Unverified");
     expect(tsOnly.analysisCoverage?.unverified).toEqual([]);
+  });
+});
+
+/**
+ * C-REPORT-HONESTY T-002: status consumes shared run membership (F15 / D4 / D5).
+ * Construction proof, not "status and gate happen to agree on fixtures alone".
+ */
+describe("C-REPORT-HONESTY T-002 status membership", () => {
+  it("AC-TOKEN-ORPHAN-TRIPLE (1): live NaN orphan SHA-1 is preserved evidence (read-only)", () => {
+    const body = readFileSync(LIVE_NAN_ORPHAN);
+    const sha1 = createHash("sha1").update(body).digest("hex");
+    expect(sha1).toBe(LIVE_NAN_SHA1);
+  });
+
+  it("AC-TOKEN-ORPHAN-TRIPLE (3) / AC-STATUS-OPEN-FOLDS-WITH-GATE: orphan-only run/ → open=0 + orphans=N", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-TOKEN-ORPHAN", {
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    // Folded epoch in ledger (mirrors C-TOKEN-INTEGRITY shape).
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/archive/C-TOKEN-ORPHAN/run-ledger.xml`,
+      `<NgraceRunLedger graceVersion="1.0"><C-TOKEN-ORPHAN><Epoch-1><Allocation worker="w0" from="1" to="5"/><Event id="1" task="T-001" kind="opened"/><Event id="2" task="T-001" kind="terminal"/></Epoch-1></C-TOKEN-ORPHAN></NgraceRunLedger>`,
+    );
+    // Orphan only — not foldable (EVENT_FILENAME miss). Content matches live SHA subject.
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/archive/C-TOKEN-ORPHAN/run/NaN-T-001-opened.xml`,
+      readFileSync(LIVE_NAN_ORPHAN, "utf8"),
+    );
+
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-TOKEN-ORPHAN");
+    expect(change?.openEpochCount ?? 0).toBe(0);
+    expect(change?.orphanCount).toBe(1);
+    const line = formatStatusText(result).split("\n").find((l) => l.includes("C-TOKEN-ORPHAN")) ?? "";
+    expect(line).toMatch(/orphans=1/);
+    expect(line).not.toMatch(/open=[1-9]/);
+    // open= omitted or open=0 is fine; open=1 is the F15 defect.
+    expect(line).not.toMatch(/open=1/);
+  });
+
+  it("no-ledger orphan-only run/ still surfaces orphans=1 (not open=1)", () => {
+    // Covers the hasLedger===false branch of epochCount derivation: orphan is not foldable,
+    // so openEpochCount=0 and epochCount stays undefined — orphan signal must still print.
+    // Shape mirrors pre-fold C-TOKEN-INTEGRITY (NaN orphan, no ledger yet).
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-NOLEDGER", { specStatus: "approved", planStatus: "approved" });
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-NOLEDGER/run/NaN-T-001-opened.xml`,
+      readFileSync(LIVE_NAN_ORPHAN, "utf8"),
+    );
+    // Explicit: no run-ledger.xml (do not write one).
+
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-NOLEDGER");
+    expect(change?.openEpochCount ?? 0).toBe(0);
+    expect(change?.orphanCount).toBe(1);
+    const line = formatStatusText(result).split("\n").find((l) => l.includes("C-NOLEDGER")) ?? "";
+    expect(line).toMatch(/orphans=1/);
+    expect(line).not.toMatch(/open=1/);
+  });
+
+  it("AC-STATUS-OPEN-FOLDS-WITH-GATE: real foldable loose event → open≥1", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-LOOSE", { specStatus: "approved", planStatus: "approved" });
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-LOOSE/run/1-T-001-opened.xml`,
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="10"/></NgraceRunEvent>`,
+    );
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-LOOSE");
+    expect(change?.openEpochCount).toBeGreaterThanOrEqual(1);
+    const line = formatStatusText(result).split("\n").find((l) => l.includes("C-LOOSE")) ?? "";
+    expect(line).toMatch(/open=[1-9]/);
+  });
+
+  it("AC-MEMBERSHIP-ONE-DEFINITION: grace-status has no endsWith(.xml) open-epoch filter and no grace-cursor import", () => {
+    const statusSrc = readFileSync(path.join(REPO_ROOT, "src/grace-status.ts"), "utf8");
+    // Deleted predicate shape (T-002): readdirSync(...).filter(name => name.endsWith(".xml")).
+    expect(statusSrc).not.toMatch(
+      /readdirSync\s*\([^)]*\)\s*\.filter\s*\(\s*(?:\([^)]*\)|[a-zA-Z_$][\w$]*)\s*=>\s*[a-zA-Z_$][\w$]*\.endsWith\s*\(\s*["']\.xml["']\s*\)/,
+    );
+    expect(statusSrc).not.toMatch(/from\s+["']\.\/grace-cursor["']/);
+    expect(statusSrc).not.toMatch(/from\s+["']\.\.\/grace-cursor["']/);
+    // Consumers call the shared module (construction, not output agreement alone).
+    expect(statusSrc).toMatch(/from\s+["']\.\/artifact\/run-membership["']/);
+    expect(statusSrc).toMatch(/listLooseEvents/);
+    expect(statusSrc).toMatch(/listRunOrphans/);
   });
 });

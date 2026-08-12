@@ -13,6 +13,7 @@
 import { defineCommand } from "citty";
 
 import { loadGraceArtifactIndex, resolveGovernedFile } from "./query/core";
+import { defineGraceCommand } from "./query/command";
 import { GraceCommandError, runQueryCommand } from "./query/errors";
 import { formatFileText } from "./query/render";
 import type { GraceArtifactIndex } from "./query/types";
@@ -31,7 +32,7 @@ function resolveFormat(format: unknown, json: unknown) {
   return resolved;
 }
 
-export const fileCommand = defineCommand({
+export const fileCommand = defineGraceCommand({
   meta: {
     name: "file",
     description: "Query file-local neo-grace markup and private implementation context.",

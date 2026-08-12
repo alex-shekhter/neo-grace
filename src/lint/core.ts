@@ -16,7 +16,12 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { evaluateAssertion, extractAssertionsWithIssues } from "../artifact/assertions";
+import {
+  evaluateAssertion,
+  extractAssertionsWithIssues,
+  type AssertionContext,
+  type CommandRunRecord,
+} from "../artifact/assertions";
 import { validateNgraceProject } from "../artifact/grammar";
 import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "../artifact/project";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "../artifact/projections";
@@ -30,6 +35,7 @@ import {
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { ARTIFACT_TAG_PREFIX, ANCHOR_PATTERNS, type NgraceIssue, type NgraceProjectPaths } from "../artifact/types";
 import { readGraceXmlArtifact } from "../artifact/xml";
+import { appendCommandRunEvent } from "../grace-cursor";
 import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "../language-registry";
 import {
   analyzeGovernedFile,
@@ -44,6 +50,13 @@ import { documentSizeIssues } from "./document-size";
 import type { AnalysisCoverage, AnalysisCoverageEntry, LintIssue, LintOptions, LintProfile, LintResult } from "./types";
 
 const TEXT_FORMAT_OPTIONS = new Set(["text", "json"]);
+
+/**
+ * Module-private count of baseline-sourced lint issues for text framing (P0.9 / D13).
+ * Written only when evaluateSection runs BaselineAssertions with evaluateSemantically === true;
+ * read only by formatTextReport. Not on LintResult — JSON.stringify must not gain a key.
+ */
+const baselineExpectationCounts = new WeakMap<LintResult, number>();
 
 function emptyAnalysisCoverage(): AnalysisCoverage {
   return { adapterBacked: [], unverified: [], governedFiles: 0 };
@@ -262,8 +275,26 @@ function validateAssertions(
   root: string,
   options: LintOptions,
 ) {
-  const context = { root, graph, verification, runCommands: options.runCommands };
   const assertionMode = options.assertionMode ?? "current";
+  // D6.3(c): record command-run evidence only under explicit runCommands opt-in
+  // with a selected changeId. Layering: callback into grace-cursor; assertions
+  // never import the write surface (avoids assertions → grace-cursor cycle).
+  const commandRunSource =
+    assertionMode === "final" ? "assertions-final" : "lint-run-commands";
+  const onCommandRun =
+    options.runCommands === true && options.changeId
+      ? (record: CommandRunRecord) => {
+          appendCommandRunEvent(root, options.changeId!, record);
+        }
+      : undefined;
+  const context: AssertionContext = {
+    root,
+    graph,
+    verification,
+    runCommands: options.runCommands,
+    commandRunSource,
+    onCommandRun,
+  };
   const selectedPlan = assertionMode === "current" ? null : resolveSelectedApprovedPlan(result, paths, options.changeId);
 
   for (const planFile of planFilesActive) {
@@ -302,12 +333,17 @@ function evaluateSection(
   result: LintResult,
   planFile: string,
   section: "BaselineAssertions" | "TargetAssertions",
-  context: { root: string; graph: GraphProjection; verification: VerificationProjection; runCommands?: boolean },
+  context: AssertionContext,
   evaluateSemantically: boolean,
   includeExtractionIssues = true,
   skipUnevaluatedCommands = false,
   skipActivePhaseIssues = false,
 ) {
+  // Call-site binding (D3): only BaselineAssertions under semantic evaluation contribute to N.
+  // Excludes TargetAssertions (any site) and archived / non-approved plans (evaluateSemantically false).
+  const countBaselineDelta = section === "BaselineAssertions" && evaluateSemantically === true;
+  const issuesBefore = countBaselineDelta ? result.issues.length : 0;
+
   const extraction = extractAssertionsWithIssues(planFile, section);
   if (includeExtractionIssues) {
     for (const issue of extraction.issues) {
@@ -329,6 +365,13 @@ function evaluateSection(
       for (const issue of evaluateAssertion(assertion, context)) {
         addNgraceIssue(result, issue);
       }
+    }
+  }
+
+  if (countBaselineDelta) {
+    const delta = result.issues.length - issuesBefore;
+    if (delta > 0) {
+      baselineExpectationCounts.set(result, (baselineExpectationCounts.get(result) ?? 0) + delta);
     }
   }
 }
@@ -510,6 +553,15 @@ export function isValidTextFormat(format: string) {
 }
 
 export function formatTextReport(result: LintResult, options: { remediate?: boolean } = {}) {
+  // Lead computed before early return so empty-issue and non-empty paths cannot diverge (AC-BASELINE-LINT-FRAMING).
+  const n = baselineExpectationCounts.get(result) ?? 0;
+  const lead =
+    n > 0
+      ? n === 1
+        ? `Baseline expectation: 1 expected while a C-* change is in progress (assertion.* errors below).`
+        : `Baseline expectations: ${n} expected while a C-* change is in progress (assertion.* errors below).`
+      : null;
+
   const lines = [
     "neo-grace Lint Report",
     "=".repeat(21),
@@ -524,7 +576,8 @@ export function formatTextReport(result: LintResult, options: { remediate?: bool
 
   if (result.issues.length === 0) {
     lines.push("", "No issues found.");
-    return lines.join("\n");
+    const body = lines.join("\n");
+    return lead ? `${lead}\n${body}` : body;
   }
 
   lines.push("", "Issues");
@@ -536,5 +589,6 @@ export function formatTextReport(result: LintResult, options: { remediate?: bool
     }
   }
 
-  return lines.join("\n");
+  const body = lines.join("\n");
+  return lead ? `${lead}\n${body}` : body;
 }

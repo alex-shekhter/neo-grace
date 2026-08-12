@@ -1,0 +1,381 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-CURSOR-INTEGRITY>
+    <Summary>
+      RM-GOVERNED-PATH Phase P0 (steps 4, 6, 10) plus D8.8: cursor and ledger honesty —
+      refuse non-numeric epoch bounds, recover corrupt loose ledgers without deleting
+      run/, surface fail→pass attempt pairs whose non-test ObservedWriteScope digests
+      do not move, and make status distinguish folded from open epochs. Calibration
+      backfill (P0.8) is a separate bundle (D8.1).
+    </Summary>
+    <Problem>
+      The product thesis is that the agent cannot lie to the model. Three live defects
+      invert that for the run ledger and its reports, all verified during P0's own
+      execution of C-TOKEN-INTEGRITY.
+
+      P0.4 / F8. Cursor advance --open-epoch accepts --from T-001 / --to T-001:
+      Number("T-001") is NaN, the CLI exits 0, and disk holds
+      run/NaN-T-001-opened.xml with Allocation from="NaN" to="NaN". The same path
+      also accepts 0, negatives, floats, and from &gt; to. Two silent readers then
+      hide the damage (F8.2): EVENT_FILENAME at grace-cursor.ts:437 drops names that
+      fail ^(\d+) at :459 (the live NaN-* file never reaches the id guard), and the
+      integer/positive id guard at :470 drops well-named files whose XML id is not a
+      positive integer. Lint stays green; fold dead-ends with "no Allocation found"
+      once work events exist beside the orphan.
+
+      P0.6 / F8.1. There is no cursor recover command and no auto-open for
+      single-controller loose runs. The corpus remedy is rm -r run/ — deleting the
+      audit trail to satisfy the audit gate. The real corrupt ledger
+      (C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml, Allocation worker="w0" from="NaN"
+      to="NaN") is preserved as the acceptance fixture: the NaN orphan has no
+      recoverable id (D8.3), so nothing can extend an allocation to cover it.
+
+      P0.10 / F9 / F9.3. Every cursor attempt already digests WriteEvidence. On
+      C-TOKEN-INTEGRITY, recorded fail→pass pairs for T-001 and T-002 have
+      byte-identical implementation files; T-005's honest pair changed only a test
+      file and is structurally indistinguishable. Red-first is prose in
+      ngrace-execute that nothing reads back. The rule is detection, not prevention:
+      raise a finding the reviewer clears with a recorded reason; do not fail the
+      bundle (F9.3 weakens F9.2).
+
+      D8.8 / F8.2. status's epochs field counts folded Epoch-N wrappers only
+      (countLedgerEpochs, grace-status.ts:211), so it reports 0 (or omits) throughout
+      every in-progress open epoch. That misreport made F8 hard to see; it ships
+      here, not deferred (D8.8 overrules the derivation's P3 deferral).
+
+      Sequencing (plan.md §1 rule 7): C-TOKEN-INTEGRITY must not archive until this
+      work lands — its ledger carries the corrupt epoch (F8.1) and its attempt
+      records cannot substantiate red-first (F9 / F9.3).
+
+      F10 / P0.10 pre-condition. Emitting a new review.* finding code at HEAD trips
+      T-005's catalog completeness test, which demands an exact *lint* guide for a
+      *review* code. Two defects: (1) namespace — review.* is routed to
+      getExactLintIssueGuide instead of REVIEW_CATALOG; (2) blind spot —
+      makeFinding(code, …) is positional and invisible to the scanner, so all 13
+      existing review codes have zero coverage. The only repair site for the test
+      is src/lint/catalog.test.ts, inside C-TOKEN-INTEGRITY's ObservedWriteScope.
+      F10.2: this bundle declares a sequential overlap on that file and repairs
+      both defects so AC-ATTEMPT-PAIR-FINDING is satisfiable.
+    </Problem>
+    <Goals>
+      <Goal>
+        Validate --from / --to (and library openEpoch bounds) as positive integers
+        with from ≤ to before any write; refuse task ids and the wider invalid
+        matrix; error text names the accepted form and that task ids are not event
+        ids (P0.4).
+      </Goal>
+      <Goal>
+        Surface both silent-skip classes for orphan discovery without widening
+        listLooseEvents' ordered-valid contract (D8.7): filename-regex misses
+        (EVENT_FILENAME :437 / :459) and non-positive / non-integer XML ids (:470).
+      </Goal>
+      <Goal>
+        Auto-open a covering opened/Allocation for single-controller loose runs
+        (one distinct worker value in the ledger∪loose inventory — D8.2); refuse
+        when more than one distinct worker appears and demand an explicit epoch.
+      </Goal>
+      <Goal>
+        cursor recover --change C-ID diagnoses loose events, unterminated ranges,
+        out-of-allocation events, and unrecoverable orphans; --fix extend-allocation
+        writes a recorded covering allocation for valid integer ids, leaves
+        unrecoverable orphans on disk, and makes fold succeed for the valid stream
+        (P0.6 / D8.3). Deleting run/ stops being the documented recovery.
+      </Goal>
+      <Goal>
+        Repair the catalog completeness scanner so review.* and gate.* codes are
+        routed to their own catalogs (never getExactLintIssueGuide), and so
+        makeFinding's positional code argument is visible to the scanner (F10);
+        then ngrace review raises a warning-severity finding when a fail→pass
+        attempt pair on the same task has no non-test ObservedWriteScope file with
+        a differing digest; the reviewer clears it with a recorded reason (F9.3 /
+        D8.6). cursor attempt stays quiet at write time.
+      </Goal>
+      <Goal>
+        status reports distinguish folded epoch count from open (unfolded) epochs
+        so an in-progress run is not labelled epochs=0 (D8.8).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding decisions: D8.1 (P0.8 out of this bundle), D8.2 (worker condition =
+        more than one distinct worker value), D8.3 (NaN orphan stays), D8.6
+        (clearance is a recorded reason, not a cleared flag), D8.7 (orphan reader
+        parallel to listLooseEvents), D8.8 (status epochs in scope), F8 / F8.1 /
+        F8.2 / F9 / F9.3 / F10 / F10.2.
+      </Constraint>
+      <Constraint>
+        A29.2 / F1 — the binary writes only structural state it can derive or is
+        explicitly given, never authored content, and never without an explicit
+        apply. Cursor advance / attempt already write on command invocation
+        (regenerate is the dry-run/--apply cousin). Auto-open and recover --fix
+        extend-allocation sit on the permitted side: allocation bounds are derived
+        from the integer loose-event inventory; the operator act is the write
+        command or explicit --fix. Forbidden: inventing an id for a NaN orphan,
+        fabricating multi-worker partitions, rewriting attempt outcomes, deleting
+        run/ events, or hand-editing Allocation attributes.
+      </Constraint>
+      <Constraint>
+        File-disjoint from active C-TOKEN-INTEGRITY ObservedWriteScope except the
+        single sequential overlap authorized by F10.2: this bundle's write scope
+        includes src/lint/catalog.test.ts so the completeness scanner can be
+        repaired. That path is also listed in C-TOKEN-INTEGRITY's ObservedWriteScope;
+        the overlap is safe because all five of that bundle's tasks are complete
+        (nothing writes those files under that bundle again), no cross-bundle
+        ObservedWriteScope check exists in the tool, and disjointness was an
+        authority discipline being explicitly and narrowly relaxed — not missed.
+        Still out of this bundle: src/lint/catalog.ts, src/project-utils.ts,
+        src/artifact/projections.ts, src/artifact/grammar.ts and their other tests,
+        and C-TOKEN-INTEGRITY's plan/spec and plan.md. recover and bounds validation
+        raise GraceCommandError (or equivalent command errors), not new
+        src/lint/catalog.ts codes. New review.* codes belong in REVIEW_CATALOG
+        (src/review/catalog.ts), not the lint catalog.
+      </Constraint>
+      <Constraint>
+        Do not edit or --fix the live C-TOKEN-INTEGRITY ledger as part of
+        implementing this bundle. That ledger is evidence and the P0.6 acceptance
+        fixture (F8.1). Tests exercise a copy of the corrupt shape. Applying
+        recover --fix to the real C-TOKEN-INTEGRITY run/ is a separate authorized
+        act by the authority before that bundle archives — not an implementation
+        task of this change.
+      </Constraint>
+      <Constraint>
+        F9.3 — do not re-strengthen the attempt-pair check into an error that fails
+        the bundle or refuses cursor attempt. T-005's honest test-only pair is
+        structurally identical to T-002's suspect pair; a digest cannot read a
+        claim. Detection, not prevention (R3 / F2 ceiling).
+      </Constraint>
+      <Constraint>
+        Do not set status="approved" in this authoring pass; approval is a human
+        act. This deliverable is spec.xml only (F4 two-stage authoring); plan.xml
+        is a later task after approval. Do not hand-edit CHANGELOG.md (D5.5).
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: TraceAssertion + tests default; Marker only for runtime
+        trajectory. Write each regression test first, watch it fail on pre-fix
+        code, then fix.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        P0.8 calibration backfill / command-run evidence adjudication, any edit
+        under src/calibration/, or fold-time CalibrationAdjudication redesign
+        (D8.1; separate bundle; bound by D6 / corr 156).
+      </NonGoal>
+      <NonGoal>
+        Any file in C-TOKEN-INTEGRITY's ObservedWriteScope except the F10.2 carve-out
+        src/lint/catalog.test.ts: src/project-utils.ts|.test.ts,
+        src/artifact/projections.ts|.test.ts, src/artifact/grammar.ts|.test.ts,
+        src/lint/catalog.ts (production catalog — not the completeness test), that
+        bundle's plan/spec, docs/plans/active/RM-GOVERNED-PATH/plan.md.
+      </NonGoal>
+      <NonGoal>
+        Mass-authoring exact REVIEW_CATALOG guides for every pre-existing review.*
+        code the makeFinding scanner will newly surface (F10). Those land on a
+        frozen commented allowlist and are reported to the authority, same treatment
+        as T-005's lint backlog — not scoped as guide-authoring work here.
+      </NonGoal>
+      <NonGoal>
+        Deleting, renaming, or hand-editing C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml
+        or any event under that bundle's run/ as part of this change.
+      </NonGoal>
+      <NonGoal>
+        Relabelling historical fail→pass attempt digests on C-TOKEN-INTEGRITY
+        (F9.1 forbids staged reds); inventing a new finding-clearance ledger schema
+        without an authority decision (D8.6).
+      </NonGoal>
+      <NonGoal>
+        P0.7 verdict diagnostics, P0.9 mode-aware lint summary (C-REPORT-HONESTY);
+        NGRACE_ARTIFACT_VERSION bump; widening listLooseEvents to return orphans
+        in its primary ordered list (D8.7).
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-EPOCH-BOUNDS-REJECT>
+        cursor advance --open-epoch with --from / --to set to a task id (T-001), a
+        non-integer string, a float (1.5), zero, a negative, or from &gt; to exits
+        non-zero, writes no run/* file, and the error message names positive integer
+        event ids as the accepted form and states that task ids are not event ids.
+        Valid --from 1 --to 10 still opens. advanceCursor({ openEpoch, from, to })
+        refuses the same invalid matrix at the library boundary, not only the CLI.
+      </AC-EPOCH-BOUNDS-REJECT>
+      <AC-ORPHAN-BOTH-SKIPS>
+        A parallel orphan inventory (D8.7) reports both silent-skip classes without
+        changing listLooseEvents' ordered positive-integer contract: (1) run/*
+        names that fail EVENT_FILENAME (grace-cursor.ts:437), including the live
+        NaN-T-001-opened.xml shape dropped at :459; (2) files whose name matches
+        EVENT_FILENAME but whose XML id fails the integer/positive guard at :470.
+        A criterion or fix that only addresses :470 leaves the live F8 defect in
+        place and fails this AC.
+      </AC-ORPHAN-BOTH-SKIPS>
+      <AC-RECOVER-DIAGNOSE>
+        cursor recover --change C-ID on a copy of the F8.1 shape (NaN-* opened with
+        Allocation from="NaN" to="NaN", plus valid loose integer events, no valid
+        allocation) reports: unrecoverable orphan (no recoverable event id), missing
+        valid covering allocation, the integer loose-event range, and that fold is
+        blocked. No recover subcommand absence remains.
+      </AC-RECOVER-DIAGNOSE>
+      <AC-RECOVER-FIX-PRESERVES-ORPHAN>
+        On that same copy, recover --fix extend-allocation (or create-covering
+        under the same flag) writes a recorded, ledger-visible opened/Allocation
+        spanning the valid integer loose ids; subsequent fold succeeds for that
+        valid stream. After --fix: the NaN-* orphan file still exists on disk,
+        recover still reports it as an unrecoverable orphan, and no implementation
+        path deletes run/ or the orphan to make fold succeed. A test that only
+        asserts "fold succeeds" without asserting the orphan's continued presence
+        and continued diagnosis does not satisfy this criterion — deletion would
+        pass that weaker bar and is the folklore this step retires (D8.3 / F8.1).
+      </AC-RECOVER-FIX-PRESERVES-ORPHAN>
+      <AC-AUTO-OPEN-SINGLE-CONTROLLER>
+        With loose integer events, no valid open allocation, and at most one
+        distinct worker value in ledger∪loose Allocations (including default w0,
+        and including a single non-default worker such as only-w3 — D8.2), fold or
+        the designated auto-open surface synthesizes a retroactive covering opened
+        spanning those ids. When more than one distinct worker value appears,
+        auto-open refuses and demands an explicit epoch open; multi-worker ranges
+        are never silently fabricated.
+      </AC-AUTO-OPEN-SINGLE-CONTROLLER>
+      <AC-ATTEMPT-PAIR-FINDING>
+        Depends on AC-REVIEW-CATALOG-NAMESPACE: at HEAD, emitting a new review.*
+        code trips the lint-catalog completeness test (F10); this criterion is
+        unsatisfiable until that repair lands. After the namespace repair: for a
+        fail→pass attempt pair on the same task, when no non-test file in
+        ObservedWriteScope differs in WriteEvidence digest between the two events,
+        ngrace review --change C-ID emits a warning-severity ReviewFinding
+        (illustrative code review.attempt-pair-unsubstantiated) registered in
+        REVIEW_CATALOG — not in the lint catalog — that does not fail the bundle.
+        Non-test means paths not ending in .test.ts or .test.js, intersected with
+        the plan's ObservedWriteScope. Corpus shapes: C-TOKEN T-001 events 2→3 and
+        T-002 events 6→7 raise the finding; T-005 events 16→17 (test-only digest
+        change) also raise it (F9.3 — honest case still costs a recorded sentence).
+        cursor attempt does not refuse or warn at write time when digests match.
+        Do not re-strengthen past F9.3 into an error or write-time refusal.
+      </AC-ATTEMPT-PAIR-FINDING>
+      <AC-REVIEW-CATALOG-NAMESPACE>
+        Catalog completeness (src/lint/catalog.test.ts) routes review.* codes to
+        REVIEW_CATALOG and gate.* codes to the gate catalog — never to
+        getExactLintIssueGuide. The completeness scanner recognizes makeFinding's
+        positional code argument (review/core.ts makeFinding(code, file, message,
+        …)), so the thirteen existing review codes become visible to the check
+        rather than invisible to it. Both defects must be fixed; a criterion or
+        change that only re-routes namespaces without teaching makeFinding leaves
+        the blind spot in place, and the reverse leaves the namespace error.
+        Expect the makeFinding repair to surface a backlog of pre-existing review
+        codes without exact REVIEW_CATALOG guides — treat exactly as T-005 treated
+        the lint backlog: a frozen, commented allowlist, reported to the authority,
+        not mass-authored. Regression of the F10 probe: emitting a new review.*
+        code (e.g. review.attempt-pair-unsubstantiated via makeFinding or an
+        equivalent object form) must not require a src/lint/catalog.ts entry;
+        bun test src/lint/catalog.test.ts stays green without one.
+      </AC-REVIEW-CATALOG-NAMESPACE>
+      <AC-ATTEMPT-PAIR-REASON-RECORDED>
+        Clearing the attempt-pair finding requires a recorded free-text reason, not
+        a boolean "reviewed" flag (D8.6). Until a finding-level ledger schema
+        exists, the reason is recorded on ngrace gate verdict --note keyed by the
+        finding's stable findingId (see Assumptions). A clearance path that records
+        only that the finding was dismissed, without the reviewer's reason text,
+        fails this criterion.
+      </AC-ATTEMPT-PAIR-REASON-RECORDED>
+      <AC-STATUS-EPOCHS-OPEN-VS-FOLDED>
+        ngrace status distinguishes folded epoch count from open (unfolded) epochs
+        for an active change with an in-progress open epoch and no folded Epoch-N
+        yet: the report does not present a bare epochs=0 (or equivalent) as if no
+        epoch activity exists while run.xml / cursor show report an open epoch.
+        After fold, folded count reflects Epoch-N wrappers. Discriminating
+        negative: a healthy open epoch (from=1 to=N, progress recorded) must not
+        be indistinguishable in the epochs field from a change with no cursor
+        activity at all.
+      </AC-STATUS-EPOCHS-OPEN-VS-FOLDED>
+      <AC-REGRESSION-AND-SUITE>
+        Every conversion has a regression that fails on pre-fix code; suite includes
+        the F8 NaN open+work+fold sequence on a temp copy, bounds matrix, orphan
+        both-skips, recover preserve-orphan, auto-open single- vs multi-worker,
+        attempt-pair T-001/T-002/T-005 shapes, F10 catalog-namespace / makeFinding
+        probe (new review.* without lint-catalog entry), and status open-vs-folded;
+        bun run validate:ci and bun run ngrace lint --path . are green on this
+        repository.
+      </AC-REGRESSION-AND-SUITE>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CURSOR />
+      <M-STATUS />
+      <M-REVIEW />
+      <M-LINT-CATALOG />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Unit and CLI regressions under src/grace-cursor.test.ts, src/grace-status.test.ts,
+        src/review/core.test.ts, and src/lint/catalog.test.ts (F10 scanner repair) that
+        fail before the fix and pass after; dogfooding ngrace lint --path . green;
+        validate:ci green. TraceAssertion-backed verification for M-CURSOR, M-STATUS,
+        M-REVIEW as needed; no new Marker evidence. Recover and bounds paths proven via
+        command errors, not new src/lint/catalog.ts production codes. New attempt-pair
+        code has a REVIEW_CATALOG entry (and exact guide or documented allowlist
+        treatment only if required after the scanner sees it).
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Module ownership confirmed against .ngrace/graph/main.xml and MODULE_CONTRACT
+        LINKS: M-CURSOR Path src/grace-cursor.ts; M-STATUS Path src/grace-status.ts;
+        M-REVIEW Path src/review/core.ts (src/review/catalog.ts also LINKS M-REVIEW);
+        M-LINT-CATALOG owns src/lint/catalog.ts and src/lint/catalog.test.ts (F10.2
+        write scope is the test file only). No invented module ids.
+      </Assumption>
+      <Assumption>
+        p0-cursor-derivation.md (measured at 60c752f) plus D8.1–D8.8 are authoritative
+        for this bundle's under-specifications; F8.2 corrects the :470-only and
+        status-as-skip-consumer mis-cites. F10 / F10.2 amend the P0.10 emission path
+        and the former "file-disjoint with C-TOKEN" premise.
+      </Assumption>
+      <Assumption>
+        Refuted and corrected (F10): the draft assumption that a new review.* finding
+        code can be emitted without catalog-test work, and that review.* codes live
+        solely under M-REVIEW with no interaction with src/lint/catalog.test.ts, is
+        false at HEAD. Emitting review.attempt-pair-unsubstantiated (object form or
+        otherwise) fails catalog exact-guide completeness until the scanner routes
+        review.* to REVIEW_CATALOG and sees makeFinding's positional codes. P0.10
+        therefore depends on AC-REVIEW-CATALOG-NAMESPACE; the new code is registered
+        in REVIEW_CATALOG (src/review/catalog.ts), not src/lint/catalog.ts.
+      </Assumption>
+      <Assumption>
+        Finding-level clearance schema does not exist today. D8.6 accepts attaching the
+        P0.10 finding to the gate verdict note keyed by findingId at warning severity,
+        with the binding property that the reviewer's reason text is recorded. If
+        implementation discovers that gate verdict notes cannot carry a stable
+        findingId key or free-text reason, stop and report — inventing ledger schema
+        is the authority's call, not the implementer's (D8.6).
+      </Assumption>
+      <Assumption>
+        Non-test path rule for P0.10 is path suffix .test.ts / .test.js only (aligned
+        with review/core.ts:418). Paths under src/test-support/ are not treated as
+        tests unless they use those suffixes. Plan/spec/docs in ObservedWriteScope
+        are non-test; a docs-only fail→pass pair still raises the finding and needs
+        a recorded reason.
+      </Assumption>
+      <Assumption>
+        WriteEvidence today digests git porcelain changed files; the attempt-pair
+        check intersects those digests with the plan's ObservedWriteScope (same
+        expansion family as the scope audit), not the full dirty tree alone.
+      </Assumption>
+      <Assumption>
+        C-TOKEN-INTEGRITY remains active and unarchived until this bundle lands and
+        the authority separately authorizes recover --fix on that real ledger
+        (rule 7; F8.1; F9). This bundle's tests never mutate that path. Per F10.2,
+        sequential overlap on src/lint/catalog.test.ts is declared and justified;
+        C-TOKEN's five tasks are complete so concurrent writes under that bundle
+        are not expected.
+      </Assumption>
+      <Assumption>
+        Explicit --worker w0 remains indistinguishable from default w0 (D8.2 residual);
+        multi-worker refuse uses distinct worker values, not "was the flag passed".
+      </Assumption>
+      <Assumption>
+        After makeFinding becomes visible to the scanner, some or all of the thirteen
+        pre-existing review.* codes may lack exact REVIEW_CATALOG guides and will need
+        a frozen allowlist entry (F10). The new attempt-pair code itself must have an
+        exact REVIEW_CATALOG guide (not sit on that backlog allowlist), matching
+        T-005's rule that newly-erroring codes are never allowlisted.
+      </Assumption>
+    </Assumptions>
+  </C-CURSOR-INTEGRITY>
+</NgraceChangeSpec>

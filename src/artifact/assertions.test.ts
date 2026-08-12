@@ -354,3 +354,100 @@ describe("neo-grace assertions", () => {
     expect(evaluateAssertion(assertion("MustCoverStates", ["M-WEB"]), context(root))).toHaveLength(0);
   });
 });
+
+describe("C-CALIBRATION-COMMAND-EVIDENCE T-001: command-run evidence recorder", () => {
+  it("red-first: successful MustPassCommand with runCommands calls onCommandRun (not discard-only)", () => {
+    const root = createProject();
+    writeProjectionFixture(root);
+    const records: Array<{
+      command: string;
+      exitCode: number;
+      assertionPassed: boolean;
+      assertionKind: string;
+      source: string;
+    }> = [];
+    const ctx = {
+      ...context(root),
+      runCommands: true,
+      commandRunSource: "lint-run-commands",
+      onCommandRun: (record: (typeof records)[number]) => {
+        records.push(record);
+      },
+    };
+    const issues = evaluateAssertion(assertion("MustPassCommand", ["exit 0"]), ctx);
+    expect(issues).toHaveLength(0);
+    // Discriminating negative: today's path returns [] without durable evidence.
+    // After fix, the recorder must fire with exitCode 0 / assertionPassed true.
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      command: "exit 0",
+      exitCode: 0,
+      assertionPassed: true,
+      assertionKind: "MustPassCommand",
+      source: "lint-run-commands",
+    });
+  });
+
+  it("records failed MustPassCommand with assertionPassed false and non-zero exitCode", () => {
+    const root = createProject();
+    writeProjectionFixture(root);
+    const records: Array<{ exitCode: number; assertionPassed: boolean }> = [];
+    const ctx = {
+      ...context(root),
+      runCommands: true,
+      onCommandRun: (record: { exitCode: number; assertionPassed: boolean }) => {
+        records.push(record);
+      },
+    };
+    const issues = evaluateAssertion(assertion("MustPassCommand", ["exit 7"]), ctx);
+    expect(issues).toHaveLength(1);
+    expect(records).toHaveLength(1);
+    expect(records[0]?.exitCode).not.toBe(0);
+    expect(records[0]?.assertionPassed).toBe(false);
+  });
+
+  it("MustPassBudget metric fail with exitCode 0 records assertionPassed false", () => {
+    const root = createProject();
+    writeProjectionFixture(root);
+    const records: Array<{
+      command: string;
+      exitCode: number;
+      assertionPassed: boolean;
+      assertionKind: string;
+    }> = [];
+    const cmd = process.platform === "win32" ? "echo p99=61" : "printf 'p99=61\\n'";
+    const ctx = {
+      ...context(root),
+      runCommands: true,
+      commandRunSource: "lint-run-commands",
+      onCommandRun: (record: (typeof records)[number]) => {
+        records.push(record);
+      },
+    };
+    const issues = evaluateAssertion(assertion("MustPassBudget", [cmd, "p99", "lt", "50", "ms"]), ctx);
+    expect(issues[0]?.code).toBe("assertion.MustPassBudget");
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      command: cmd,
+      exitCode: 0,
+      assertionPassed: false,
+      assertionKind: "MustPassBudget",
+    });
+  });
+
+  it("when runCommands is false, does not invent command-run evidence", () => {
+    const root = createProject();
+    writeProjectionFixture(root);
+    const records: unknown[] = [];
+    const ctx = {
+      ...context(root),
+      runCommands: false,
+      onCommandRun: (record: unknown) => {
+        records.push(record);
+      },
+    };
+    const issues = evaluateAssertion(assertion("MustPassCommand", ["exit 0"]), ctx);
+    expect(issues[0]?.code).toBe("assertion.command-not-evaluated");
+    expect(records).toHaveLength(0);
+  });
+});

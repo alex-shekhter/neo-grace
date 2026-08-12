@@ -1,0 +1,191 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-TOKEN-INTEGRITY>
+    <Summary>
+      RM-GOVERNED-PATH Phase P0 (steps 1, 2, 3, 5): reject, do not filter — convert every
+      silent discard of authored input under src/artifact/ and src/project-utils.ts so
+      unrecognized tokens raise, and lint no longer stays green while intent is dropped.
+    </Summary>
+    <Problem>
+      The parser discards authored input the grammar does not recognize, and lint stays green
+      while it happens. This is a class defect (RC-1), not three isolated incidents.
+
+      Documented instances include LINKS: M-A M-B linking nothing, comma multi-value DependsOn
+      rejected as one bad token, and text inside GD-*/VD-* Owns surfacing only as
+      projection.graph.unlisted-anchor. The P0 derivation inventory
+      (docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md) found ten silent .filter() discards
+      in scope — seven unknown before the sweep — spanning MODULE_CONTRACT lists, index Owns
+      and document routes, ledger Allocation/Event parse nulls, empty EscalatedTask, and
+      non-task children under ImplementationPlan.
+
+      Site 11 was found in review after the sweep classified grammar.ts:2012 as justified
+      empty cleanup: readTaskDependencies keeps child text only and never the child tag, so
+      &lt;DependsOn&gt;&lt;T-001 /&gt;&lt;/DependsOn&gt; parses to zero dependencies while
+      &lt;Task&gt; text and bare text forms work. Neighbouring constructs (Satisfies, DurableScope)
+      teach the anchor-tag form; an applied archived bundle in this repository carries that
+      form as a no-op. The inventory count is now eleven.
+
+      The product thesis is that the agent cannot lie to the model; these paths invert it —
+      the model silently drops what the agent authored. Turning each silent failure loud is
+      not a compatibility break (D5.2/D5.3): no NGRACE_ARTIFACT_VERSION bump. Newly-erroring
+      codes are named in the conventional-commit body (D5.5), not by hand-editing CHANGELOG.md.
+    </Problem>
+    <Goals>
+      <Goal>
+        Complete the P0.1 inventory as a class fix: every silent-discard site in
+        src/artifact/ and src/project-utils.ts either raises or is reclassified on evidence
+        as already paired (raising code named). No leave-silent justification.
+      </Goal>
+      <Goal>
+        LINKS and DEPENDS split on [,;\s]+ (D5.1; colon excluded); preserve [..] stripping
+        and none handling (F3); emit markup.unparsed-link-token naming token, accepted
+        separators, and accepted families for the field.
+      </Goal>
+      <Goal>
+        DependsOn text nodes split on the same separator set before per-token T-NNN
+        validation; Task children and anchor-tag children (T-NNN) remain valid and equivalent
+        (D7); change.task-invalid-dependency names accepted shapes and fires only when neither
+        tag nor text resolves.
+      </Goal>
+      <Goal>
+        Owns text-vs-tag diagnosis when text appears where self-closing anchors belong;
+        invalid Owns children and invalid GD-*/VD-* index list children raise instead of
+        filtering.
+      </Goal>
+      <Goal>
+        Malformed Allocation and Event under run-ledger.xml raise ledger-integrity errors
+        (corrupt audit trail), never silent null drops and never markup.* codes.
+      </Goal>
+      <Goal>
+        Empty EscalatedTask and non-task ImplementationPlan children raise; every conversion
+        has a regression test that fails on pre-fix code.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding decisions: D5.1 separator set; D5.2/D5.3 silent-failure-made-loud (no
+        NGRACE_ARTIFACT_VERSION bump); D5.4/D5.5 newly-erroring codes in conventional-commit
+        body; F3 preserve bracket and none handling.
+      </Constraint>
+      <Constraint>
+        Scope is exactly P0 steps 1, 2, 3, 5 and the eleven inventory silent discards. Do not
+        touch src/grace-cursor.ts, src/calibration/, or gate/lint-summary surfaces belonging
+        to C-CURSOR-INTEGRITY and C-REPORT-HONESTY.
+      </Constraint>
+      <Constraint>
+        D7 — DependsOn anchor children: readTaskDependencies resolves a child tag when it
+        matches ANCHOR_PATTERNS.task, child text when non-empty, and raises
+        change.task-invalid-dependency only when neither resolves. Do not raise solely because
+        the author used the anchor form; archived bundles use &lt;T-NNN /&gt; children and must
+        acquire the dependency they claimed (repair under D5.3). Do not edit archive history.
+      </Constraint>
+      <Constraint>
+        Ledger parse-null conversions stay in grammar.ts as ledger.* integrity codes; they
+        do not migrate to the cursor bundle.
+      </Constraint>
+      <Constraint>
+        Do not hand-edit CHANGELOG.md (D5.5). Do not set status to approved in this authoring
+        pass; approval is a human act.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: TraceAssertion + tests default; Marker only for runtime trajectory.
+        Write each regression test first, watch it fail on pre-fix code, then fix.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Cursor recovery, auto-open, listLooseEvents NaN skip, numeric --from/--to validation
+        (P0.4, P0.6 — C-CURSOR-INTEGRITY).
+      </NonGoal>
+      <NonGoal>
+        Calibration backfill / P0.8 and any edit under src/calibration/ or grace-cursor
+        adjudication (bound by D6 / corr 156).
+      </NonGoal>
+      <NonGoal>
+        Verdict diagnostics gate.apply.no-verdict rewrite (P0.7) and mode-aware lint summary
+        (P0.9 — C-REPORT-HONESTY).
+      </NonGoal>
+      <NonGoal>
+        NGRACE_ARTIFACT_VERSION bump or migration of legitimate working states into errors.
+      </NonGoal>
+      <NonGoal>
+        Hand-written CHANGELOG.md edits; sibling bundle files for C-CURSOR-INTEGRITY and
+        C-REPORT-HONESTY.
+      </NonGoal>
+      <NonGoal>
+        Accepting colon as a LINKS/DEPENDS separator (explicitly excluded by D5.1).
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-INVENTORY-COMPLETE>
+        The eleven silent-discard sites (ten from p0-derivation.md plus site 11,
+        grammar.ts:2012 DependsOn child-tag drop) are each converted or repaired per their
+        class (or reclassified on evidence as already paired with the raising code named).
+        No silent discard remains in the inventory scope without a written reclassification.
+      </AC-INVENTORY-COMPLETE>
+      <AC-LINKS-DEPENDS-INTEGRITY>
+        LINKS: M-A M-B and LINKS: M-A; M-B parse to two module links; any token matching no
+        accepted family for the field raises markup.unparsed-link-token naming token,
+        separators [,;\s]+, and accepted families; none and [..] handling still work (F3).
+      </AC-LINKS-DEPENDS-INTEGRITY>
+      <AC-DEPENDSON-MULTI>
+        DependsOn text T-001, T-002 (and semicolon/whitespace forms) yields two dependencies
+        when both are valid T-NNN ids; change.task-invalid-dependency names accepted shapes
+        (multi-value text list and Task children) and fires only when a candidate resolves
+        neither as a task tag nor as non-empty task text. Task children remain valid.
+      </AC-DEPENDSON-MULTI>
+      <AC-DEPENDSON-ANCHOR-CHILD>
+        All three authored forms parse to the same dependency set when ids are valid:
+        &lt;DependsOn&gt;T-001&lt;/DependsOn&gt;,
+        &lt;DependsOn&gt;&lt;Task&gt;T-001&lt;/Task&gt;&lt;/DependsOn&gt;, and
+        &lt;DependsOn&gt;&lt;T-001 /&gt;&lt;/DependsOn&gt;. change.task-invalid-dependency
+        fires only when neither child tag nor child text resolves (D7 read-the-tag repair).
+      </AC-DEPENDSON-ANCHOR-CHILD>
+      <AC-OWNS-DIAGNOSIS>
+        Text inside Owns where self-closing anchors belong raises a direct Owns diagnosis,
+        not only projection.graph.unlisted-anchor; invalid Owns children raise rather than
+        filter.
+      </AC-OWNS-DIAGNOSIS>
+      <AC-INDEX-AND-PLAN-DISCARD>
+        Non-GD children under GraphDocuments, non-VD under VerificationDocuments, empty
+        EscalatedTask, and non-task ImplementationPlan children each raise a dedicated error.
+      </AC-INDEX-AND-PLAN-DISCARD>
+      <AC-LEDGER-INTEGRITY>
+        Unparseable Allocation and Event under run-ledger.xml raise ledger-integrity codes
+        (ledger.invalid-allocation / ledger.invalid-event class), not markup codes and not
+        silent null drops with only secondary event-outside-allocation symptoms.
+      </AC-LEDGER-INTEGRITY>
+      <AC-REGRESSION-AND-SUITE>
+        Every conversion has a regression test that fails on pre-fix code; corpus replays
+        include F-1 comma DependsOn, LINKS: M-A M-B, and Owns text; bun run validate:ci and
+        bun run ngrace lint --path . are green on this repository.
+      </AC-REGRESSION-AND-SUITE>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-PROJECT-UTILS />
+      <M-GRAMMAR />
+      <M-LINT-CATALOG />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Unit regressions in project-utils, projections, grammar, and catalog tests that fail
+        before the fix and pass after; dogfooding ngrace lint --path . green; validate:ci green.
+        TraceAssertion-backed verification entries for the three modules; no new Marker evidence.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        DurableScope ownership: src/project-utils.ts and src/artifact/projections.ts both
+        LINKS M-PROJECT-UTILS (graph Path for M-PROJECT-UTILS is src/project-utils.ts;
+        projections is LINKS-owned). src/artifact/grammar.ts LINKS M-GRAMMAR.
+        src/lint/catalog.ts LINKS M-LINT-CATALOG. Resolved from .ngrace/graph/main.xml and
+        each file MODULE_CONTRACT.
+      </Assumption>
+      <Assumption>
+        P0 derivation inventory at docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md is the
+        authoritative site list for this bundle; re-open the inventory only if a conversion
+        attempt reclassifies a site as already paired.
+      </Assumption>
+    </Assumptions>
+  </C-TOKEN-INTEGRITY>
+</NgraceChangeSpec>

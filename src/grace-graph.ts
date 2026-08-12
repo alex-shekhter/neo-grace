@@ -25,6 +25,8 @@ import path from "node:path";
 
 import { defineCommand, type CommandDef, runMain } from "citty";
 
+import { defineGraceCommand } from "./query/command";
+
 import { ARTIFACT_DIR } from "./artifact/paths";
 import { detectGraceProjectKind, resolveNgracePaths } from "./artifact/project";
 import { buildGraphProjection } from "./artifact/projections";
@@ -340,7 +342,7 @@ export function extractAnchorSerialization(file: string, anchorId: string): stri
   return null;
 }
 
-export const graphCommand = defineCommand({
+export const graphCommand = defineGraceCommand({
   meta: {
     name: "graph",
     description: "Graph maintenance helpers (split oversized GD-* documents).",

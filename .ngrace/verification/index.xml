@@ -19,6 +19,7 @@
         <V-M-REVIEW />
         <V-M-LOCALIZE />
         <V-M-QUERY />
+        <V-M-CLI-INFRA />
         <V-M-CONTEXT />
         <V-M-TEST-SUPPORT />
         <V-M-CALIBRATION />

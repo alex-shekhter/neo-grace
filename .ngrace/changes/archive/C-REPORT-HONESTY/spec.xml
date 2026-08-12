@@ -1,0 +1,381 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-REPORT-HONESTY>
+    <Summary>
+      Make the tool's own report surfaces agree about facts on disk: one shared
+      loose-event membership for status and the archive gate (F14/F15), Correction 171
+      archive-identity reading for MustExist (F16), lifecycle-path exclusion from the
+      scope audit (F11/F11.2), richer apply-gate absence diagnostics (P0.7), and a
+      mode-aware lint framing line for baseline expectations (P0.9) — without silencing
+      true complaints and without rewriting archives.
+    </Summary>
+    <Problem>
+      RM-GOVERNED-PATH phase P0's remaining work and four findings recorded during P0's
+      own execution are one defect family: a surface states something about the ledger
+      or the bundle that another surface contradicts. That is the product's thesis —
+      the agent cannot lie to the model — turned inward. Measured at HEAD of the
+      derivation (and re-checked for this authoring pass):
+
+      F14. evaluateArchiveGate (gates/core.ts) computes no-open-epoch from
+      listLooseEvents and records the detail string "run/ empty". On this repository,
+      archive/C-TOKEN-INTEGRITY/run/ contains NaN-T-001-opened.xml (SHA-1
+      c0cc8899c264381766a18918e2109b5e05693893). listLooseEvents correctly skips it
+      (EVENT_FILENAME / orphan class); the *permit* is right; the *sentence* is false.
+      The same false sentence is already durable in that bundle's archived Decisions.
+
+      F15. ngrace status reports the same archived bundle as open=1. countOpenEpochs
+      (grace-status.ts) uses readdirSync().filter(endsWith(".xml")). Two definitions of
+      loose-event membership, disagreeing about one directory. D8.8 made open epochs
+      visible; the counter never shared listLooseEvents' membership rule.
+
+      F16. detectConfidentlyWrong (review/core.ts) checks MustExist with bare
+      existsSync. expandScopePathsForArchiveIdentity (Correction 171) applies to
+      ObservedWriteScope only. Archived plans that MustExist their own
+      active/&lt;id&gt;/… artifacts are true under corr 171 and false under the bare check.
+      Measured on this repository: ngrace review reports exactly two
+      review.confidently-wrong errors — C-RECOVER-FOLDABLE and
+      C-CALIBRATION-COMMAND-EVIDENCE MustExist of their own active/spec.xml paths.
+
+      F11 / F11.2. The scope audit raises review.scope-outside-write-scope for the
+      CLI's own lifecycle writes (run/*, run-ledger.xml, run.xml). Fold deletes the
+      events it folds, so porcelain lists deletions too. Measured at 23 errors during
+      one close — enough to block the pre-verdict review. Commit-before-review is a
+      process workaround; the audit still misclassifies tool-owned ledger state as
+      agent out-of-scope work.
+
+      P0.7. gate.apply.no-verdict reports neither where it looked, how many Verdict
+      entries it found, nor why the newest did not qualify. The plan allowed a race
+      fix; the derivation reproduced 50 write-then-apply cycles with zero race hits.
+      This is a diagnostics rewrite only — no flush.
+
+      P0.9. When an active approved plan carries failing BaselineAssertions (e.g.
+      MustNotExist while the thing still exists), default lint text presents them as
+      generic errors with no lead line that they are expected while C-* is in progress.
+
+      The membership split is the spine: a repair that makes status and the archive
+      gate *happen* to agree while still computing membership in two places has not
+      fixed F14/F15 — it is the defect in remission. One definition with two consumers
+      is required, extracted so grace-status never imports grace-cursor.
+    </Problem>
+    <Goals>
+      <Goal>
+        One extracted loose-event membership definition (foldable loose events +
+        parallel orphan inventory, D8.7) consumed by both ngrace status and
+        evaluateArchiveGate (and available to recover, which already uses the
+        listLooseEvents / listRunOrphans pair today).
+      </Goal>
+      <Goal>
+        Archive-gate no-open-epoch detail is honest: never "run/ empty" when run/ has
+        orphans; still refuse when foldable loose events remain; name orphans when
+        permitting over an orphan-only run/.
+      </Goal>
+      <Goal>
+        status reports open=0 for orphan-only run/ and an explicit orphan signal so the
+        orphan does not become invisible; open≥1 when foldable loose events exist.
+      </Goal>
+      <Goal>
+        detectConfidentlyWrong applies Correction 171 archive-identity expansion to
+        MustExist disk paths (same-id active↔archive only), clearing true claims on
+        archived plans without editing archives.
+      </Goal>
+      <Goal>
+        Scope audit excludes any bundle's CLI lifecycle artifacts
+        (.ngrace/changes/{active,archive}/C-*/run/**, run.xml, run-ledger.xml) from
+        review.scope-outside-write-scope, including cross-bundle porcelain (fold of A
+        must not error a review of B), while real out-of-scope authored paths still fire.
+      </Goal>
+      <Goal>
+        Apply-gate absence diagnostics name path looked at, entry count, and why the
+        newest did not qualify (P0.7). Mode-aware lint text leads with a baseline
+        expectations framing line while baseline assertion failures remain errors (P0.9).
+      </Goal>
+      <Goal>
+        On this repository after the change, ngrace review on a clean tree is genuinely
+        clean of the F16 confidently-wrong pair, and status no longer shows
+        C-TOKEN-INTEGRITY open=1 solely for the NaN orphan — without silencing checks.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: p0-report-honesty-derivation.md (accepted derivation); decisions.md
+        F11, F11.2, F14, F15, F16; plan.md P0.7 and P0.9; Correction 171; D8.7; D8.8
+        (open vs folded distinction retained, membership fixed); A29.2 / F1; D9
+        (ledger writes append-only — nothing here rewrites a recorded event file);
+        D5.5 (CHANGELOG.md not in scope — new codes named in the commit body).
+      </Constraint>
+      <Constraint>
+        One bundle. gates/core, review/core, and the membership extract each carry two
+        items; splitting costs more coordination than it saves. Spec only in this
+        authoring pass (F4 two-stage). status remains "draft"; approval is a human act.
+        Do not author plan.xml until the spec is approved.
+      </Constraint>
+      <Constraint>
+        Shared membership definition is extracted into an existing src/artifact/*
+        module so grace-status does not import grace-cursor. Prefer M-ARTIFACT-TYPES
+        (already imported by status and gates via artifact/paths|types; Path today
+        src/artifact/types.ts / co-located paths helpers) as the host LINKS target —
+        a new source file under src/artifact/ is allowed if it declares LINKS to an
+        existing graph module. **No new graph module, no new .ngrace/graph/ entry, and
+        no new V-M-* anchor.** If the plan concludes a new module is required, stop
+        and report rather than invent graph/verification ownership.
+      </Constraint>
+      <Constraint>
+        P0.7 is diagnostics only. Do not spec a write-then-read flush; the race was
+        not reproduced (0 hits / 50 cycles in the derivation).
+      </Constraint>
+      <Constraint>
+        Baseline assertions stay errors. P0.9 changes framing only; severity and
+        evaluation of BaselineAssertions under current mode are not weakened.
+      </Constraint>
+      <Constraint>
+        Historical archive Decision strings that already say "run/ empty" are not
+        rewritten. Archives under .ngrace/changes/archive/ and docs/plans/archive/
+        are never edited. The NaN orphan at
+        archive/C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml (SHA-1
+        c0cc8899c264381766a18918e2109b5e05693893) is preserved evidence — tests use
+        copies; never mutate the live file.
+      </Constraint>
+      <Constraint>
+        F11 exclusion covers **any** bundle's lifecycle artifacts under
+        .ngrace/changes/{active,archive}/C-*/(run/**|run.xml|run-ledger.xml), not only
+        the reviewed change id. Do not exclude plan.xml, spec.xml, or arbitrary
+        .ngrace/changes/** paths.
+      </Constraint>
+      <Constraint>
+        gate --dry-run is out of band (--record false covers read-only evaluation).
+        C-LEDGER-READ-ABSENCE (draft, no plan) owns three-exit ledger reads in
+        gates/ledger.ts territory — do not absorb that work here.
+      </Constraint>
+      <Constraint>
+        Overlap note: C-LEDGER-READ-ABSENCE declares AffectedAreas M-GATES and
+        M-REVIEW but has no plan, so no DurableScope exists and no
+        scope.durable-overlap warning arises today. If that bundle is later planned
+        with overlapping write scope on gates/* or review/*, a collision is expected
+        and must be recorded then (sequential OWS / F10.2 style) — known now rather
+        than discovered at plan time.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first regressions for each AC. Measure denominators
+        with their own commands when reporting counts or ratios (F12.2). Do not hand-edit
+        CHANGELOG.md (D5.5).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        F12 — documenting that fold requires a terminal event in ngrace-execute
+        SKILL.md (and packaged mirror). Execution-contract documentation; P1 / RC-4.
+      </NonGoal>
+      <NonGoal>
+        F9.8 — documenting that honest red-first requires cursor attempt in its own
+        round trip before the production edit. Same P1 documentation surface as F12.
+      </NonGoal>
+      <NonGoal>
+        C-LEDGER-READ-ABSENCE scope: three-exit ledger reads (absent / unreadable / ok)
+        for wrapperFromLedger and related gates/ledger.ts surfaces.
+      </NonGoal>
+      <NonGoal>
+        Implementing gate --dry-run, rejecting unknown gate flags, or changing default
+        record=true behaviour.
+      </NonGoal>
+      <NonGoal>
+        Rewriting historical archived Decision detail strings (including "run/ empty"
+        on C-TOKEN-INTEGRITY); deleting, renaming, or hand-editing the NaN orphan or
+        any other archived run/ file.
+      </NonGoal>
+      <NonGoal>
+        Treating orphans as open epochs (would reverse F8.1 archive-with-orphan
+        preservation). Silencing review.confidently-wrong globally. Adding run/ to
+        ObservedWriteScope as the "fix" for F11. Downgrading baseline assertion
+        severity to satisfy P0.9. Flush/race "fix" for P0.7.
+      </NonGoal>
+      <NonGoal>
+        New graph modules, new V-M-* verification anchors, or CHANGELOG.md edits (D5.5).
+        Skills/plugin packaging changes.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-MEMBERSHIP-ONE-DEFINITION>
+        Foldable loose-event membership and parallel orphan inventory are defined in
+        **exactly one** implementation (the extracted shared definition under
+        src/artifact/, re-exported or imported by consumers). Both ngrace status
+        (open-epoch / orphan reporting) and evaluateArchiveGate (no-open-epoch) consume
+        that definition — they do not each maintain a separate membership predicate.
+        **A repair that leaves status and the archive gate computing membership
+        separately has not fixed F14/F15, even if both surfaces currently agree on
+        every fixture.** Agreement of independent copies is the defect in remission,
+        not the repair. Proof is by construction (shared import / single module under
+        test), not solely by comparing outputs. grace-status must not import
+        grace-cursor to obtain membership.
+      </AC-MEMBERSHIP-ONE-DEFINITION>
+      <AC-TOKEN-ORPHAN-TRIPLE>
+        On this repository (or an equivalent fixture copy that preserves the shape),
+        after the change: (1) archive/C-TOKEN-INTEGRITY/run/ still contains
+        NaN-T-001-opened.xml with SHA-1 c0cc8899c264381766a18918e2109b5e05693893;
+        (2) evaluateArchiveGate / gate archive --record false permits no-open-epoch and
+        the requirement **message is not** the string "run/ empty" — it states that
+        there are no foldable loose events and names the orphan (name and/or class);
+        (3) ngrace status reports open=0 (or omits open) for C-TOKEN-INTEGRITY **and**
+        surfaces an explicit orphan signal for that bundle (count and/or name) so the
+        orphan is not invisible. This single subject exercises F14, F15, and their
+        counterweights together. Tests must not mutate the live NaN file.
+      </AC-TOKEN-ORPHAN-TRIPLE>
+      <AC-ARCHIVE-STILL-REFUSES-LOOSE>
+        Given ≥1 foldable loose run/ event (positive-integer EVENT_FILENAME membership),
+        evaluateArchiveGate **refuses** with no-open-epoch unsatisfied. Honest wording
+        must not weaken the gate into permitting open foldable epochs. (F14 counterweight.)
+      </AC-ARCHIVE-STILL-REFUSES-LOOSE>
+      <AC-STATUS-OPEN-FOLDS-WITH-GATE>
+        A fixture with only orphan xml under run/ → status open=0 plus orphan signal.
+        A fixture with a real foldable loose event → status open≥1. Status and
+        evaluateArchiveGate agree on whether an open *foldable* epoch exists, via the
+        shared definition in AC-MEMBERSHIP-ONE-DEFINITION. (F15.)
+      </AC-STATUS-OPEN-FOLDS-WITH-GATE>
+      <AC-MUSTEXIST-ARCHIVE-IDENTITY>
+        For a plan resolved under archive/&lt;C-ID&gt;/ whose MustExist names
+        .ngrace/changes/active/&lt;C-ID&gt;/&lt;artifact&gt; and that artifact exists under
+        archive/&lt;C-ID&gt;/, detectConfidentlyWrong / ngrace review does **not** emit
+        review.confidently-wrong for that claim (Correction 171). The same check **still
+        emits** review.confidently-wrong when the path is genuinely absent under both
+        active and archive aliases for that id, or when the path names a different
+        change id whose file is absent. A global active→archive string replace for
+        unrelated change ids fails this criterion. No archive file content is edited
+        to clear the finding. (F16 + counterweight.)
+      </AC-MUSTEXIST-ARCHIVE-IDENTITY>
+      <AC-SCOPE-LIFECYCLE-EXCLUSION>
+        Given porcelain (or --changed-files) that includes only lifecycle paths matching
+        .ngrace/changes/{active,archive}/C-*/(run/**|run.xml|run-ledger.xml) for **any**
+        change id(s), and ObservedWriteScope that does not list them, the scope audit
+        reports **zero** review.scope-outside-write-scope on those paths — including when
+        the reviewed --change id differs from the bundle whose lifecycle files appear
+        (fold of A must not error a review of B). Given an additional out-of-scope
+        production or docs path (e.g. src/secret.ts), that path **still** raises
+        scope-outside. Excluding all of .ngrace/changes/**, or requiring run/ in
+        ObservedWriteScope to pass, fails this criterion. (F11 / F11.2 + counterweight
+        for real out-of-scope authored work.)
+      </AC-SCOPE-LIFECYCLE-EXCLUSION>
+      <AC-LEDGER-INVALID-STILL-CATCHES>
+        F11's lifecycle exclusion does not suppress structural ledger validation.
+        A deliberately malformed run-ledger.xml Allocation or Event that today raises
+        ledger.invalid-allocation or ledger.invalid-event (grammar / lint catalog) still
+        raises that code after the change. Scope-audit silence on lifecycle *paths* is
+        not silence on ledger *content* integrity. (F11 counterweight for hand-edited
+        ledger corruption.)
+      </AC-LEDGER-INVALID-STILL-CATCHES>
+      <AC-APPLY-VERDICT-DIAGNOSTICS>
+        Given plan status=approved and no usable Verdicts entry (no ledger, missing
+        Verdicts section, or empty Verdicts), evaluateApplyGate / gate apply --record
+        false refuses with gate.apply.no-verdict and the requirement or issue detail
+        names (1) the ledger path looked at or that run-ledger.xml is missing, (2) how
+        many Verdict children were found (0 for absence), and (3) why the newest did
+        not qualify (absent vs invalid with reason). A message that is only the catalog
+        title ("Apply Requires A Recorded Review Verdict") or only "no Verdicts section
+        entry" fails this criterion. After recordReviewVerdict and immediate
+        evaluateApplyGate, decision is permit when other requirements hold — no flush
+        required. (P0.7.)
+      </AC-APPLY-VERDICT-DIAGNOSTICS>
+      <AC-BASELINE-LINT-FRAMING>
+        Given an active approved plan whose BaselineAssertions include a failing
+        MustNotExist (or other baseline assertion) and default text lint output,
+        formatTextReport **leads** with a line stating N baseline expectation(s)
+        expected while C-* is in progress (wording may normalize whitespace). The
+        underlying assertion.* issues remain present as **errors** (not deleted, not
+        downgraded to warning or zero). A fix that removes or skips baseline evaluation,
+        or prints the line without correctly counting baseline-sourced issues, fails
+        this criterion. Archived plans' baselines stay syntax-only. (P0.9 + counterweight.)
+      </AC-BASELINE-LINT-FRAMING>
+      <AC-DOGFOOD-REVIEW-CLEAN>
+        After the change, on this repository at a clean working tree: (1) ngrace review
+        --path . reports **no** review.confidently-wrong findings for the two archived
+        MustExist active/spec claims (C-RECOVER-FOLDABLE,
+        C-CALIBRATION-COMMAND-EVIDENCE) — measured pre-fix at 2 errors / 2 findings of
+        that code; (2) ngrace status does not report C-TOKEN-INTEGRITY open=1 solely
+        because of the NaN orphan, and does surface the orphan; (3) bun run ngrace lint
+        --path . is 0 errors and 0 warnings. **A result that is "clean" only because
+        checks were disabled, globally suppressed, or taught to ignore the claims
+        without applying Correction 171 / the shared membership definition fails this
+        criterion.** Clean by looking away is not clean.
+      </AC-DOGFOOD-REVIEW-CLEAN>
+      <AC-SUITE-AND-LINT>
+        Red-first regressions cover each AC above; bun test for touched packages green;
+        bun run validate:ci green; bun run ngrace lint --path . remains 0 errors and
+        0 warnings. No edits under docs/plans/archive/ or .ngrace/changes/archive/
+        (except normal append-only Decision recording on active work if a gate is run
+        during verification — not required for this bundle's product criteria).
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GATES />
+      <M-STATUS />
+      <M-REVIEW />
+      <M-LINT-CORE />
+      <M-CURSOR />
+      <M-ARTIFACT-TYPES />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Unit and CLI regressions that fail before the fix and pass after: shared
+        membership single-definition construction; C-TOKEN-INTEGRITY orphan triple
+        (archive detail honest, status open=0 + orphan signal, NaN SHA preserved on
+        copies); archive refuse with real loose events; MustExist archive-identity
+        silence vs genuine absence still fires; scope audit lifecycle exclusion for
+        any C-* including cross-bundle porcelain, with real out-of-scope still firing;
+        ledger.invalid-allocation / ledger.invalid-event still raised on corrupt
+        ledger content; apply no-verdict diagnostics path/count/reason; baseline lint
+        framing line with errors retained. Dogfood: ngrace review --path . clean of
+        the two F16 confidently-wrong errors; status honest on C-TOKEN-INTEGRITY;
+        ngrace lint --path . 0/0. Existing V-M-GATES, V-M-STATUS, V-M-REVIEW,
+        V-M-LINT-CORE, V-M-CURSOR, V-M-ARTIFACT-TYPES command surfaces; no new V-M-*.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Module ids confirmed against .ngrace/graph/main.xml (measured: 19 M-* modules
+        under GD-MAIN): M-GATES Path src/gates/core.ts; M-STATUS Path
+        src/grace-status.ts; M-REVIEW Path src/review/core.ts; M-LINT-CORE Path
+        src/lint/core.ts; M-CURSOR Path src/grace-cursor.ts; M-ARTIFACT-TYPES Path
+        src/artifact/types.ts (co-located artifact helpers such as paths.ts already
+        LINKS M-ARTIFACT-TYPES). No invented module ids. M-LINT-TYPES is intentionally
+        not claimed unless the plan adds a LintIssue provenance field there — framing
+        can live entirely in M-LINT-CORE.
+      </Assumption>
+      <Assumption>
+        Prefer hosting the shared membership definition under M-ARTIFACT-TYPES (new or
+        existing src/artifact/* file with LINKS M-ARTIFACT-TYPES). M-GRAMMAR remains an
+        alternate host if the plan finds types/paths unsuitable; either is an existing
+        module. A new graph module is a stop-and-report, not a silent add.
+      </Assumption>
+      <Assumption>
+        Pre-fix dogfood measured for this authoring: ngrace review --path . → Findings: 2
+        (errors: 2), both review.confidently-wrong on the two archived MustExist
+        active/spec paths; ngrace status shows C-TOKEN-INTEGRITY epochs=1 open=1;
+        ngrace lint --path . → 0 errors, 0 warnings; NaN orphan SHA-1
+        c0cc8899c264381766a18918e2109b5e05693893. Denominators for review finding codes
+        were read from the full command output (not a truncated match list).
+      </Assumption>
+      <Assumption>
+        listLooseEvents and listRunOrphans currently live in src/grace-cursor.ts
+        (M-CURSOR). Extracting them (or their membership core) into src/artifact/* means
+        M-CURSOR becomes a consumer/re-export site — hence M-CURSOR is in AffectedAreas
+        even though the long-term home is artifact.
+      </Assumption>
+      <Assumption>
+        ledger.invalid-allocation and ledger.invalid-event are already raised by
+        grammar validation of run-ledger.xml (src/artifact/grammar.ts; lint catalog
+        entries exist). The F11 counterweight relies on that surface remaining live;
+        this bundle does not invent a new hand-edit detector if grammar already covers
+        the malformed-ledger case.
+      </Assumption>
+      <Assumption>
+        Exact status orphan signal shape (orphans=N vs named list vs both) is left to
+        the plan; the property "explicit and visible in status output" is binding.
+        Exact diagnostic string templates for P0.7 and F14 are left to the plan; the
+        required information content is binding.
+      </Assumption>
+      <Assumption>
+        C-LEDGER-READ-ABSENCE remains draft/spec-only during this work; its future
+        DurableScope is assumed to touch M-GATES / M-REVIEW and would overlap if planned
+        concurrently — recorded in Constraints.
+      </Assumption>
+    </Assumptions>
+  </C-REPORT-HONESTY>
+</NgraceChangeSpec>

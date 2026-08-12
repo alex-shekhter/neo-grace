@@ -1,0 +1,210 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-TOKEN-INTEGRITY>
+    <IntentSummary>
+      Convert all eleven silent authored-input discards under src/artifact/ and
+      src/project-utils.ts (RM-GOVERNED-PATH P0 steps 1, 2, 3, 5): widen LINKS/DEPENDS and
+      DependsOn separators, resolve DependsOn anchor-tag children (D7), diagnose Owns text and
+      index/plan/ledger silent filters, register new error codes, and land regression tests
+      that fail on pre-fix code.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/project-utils.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/projections.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md</Value></MustExist>
+      <MustExist><Value>M-PROJECT-UTILS</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustVerify><Module>M-PROJECT-UTILS</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/project-utils.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/projections.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>M-PROJECT-UTILS</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustVerify><Module>M-PROJECT-UTILS</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/project-utils.test.ts src/artifact/projections.test.ts src/artifact/grammar.test.ts src/lint/catalog.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-PROJECT-UTILS />
+        <M-GRAMMAR />
+        <M-LINT-CATALOG />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-PROJECT-UTILS />
+        <V-M-GRAMMAR />
+        <V-M-LINT-CATALOG />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/project-utils.ts</File>
+      <File>src/project-utils.test.ts</File>
+      <File>src/artifact/projections.ts</File>
+      <File>src/artifact/projections.test.ts</File>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>.ngrace/changes/active/C-TOKEN-INTEGRITY/spec.xml</File>
+      <File>.ngrace/changes/active/C-TOKEN-INTEGRITY/plan.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/plan.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>LINKS/DEPENDS separators and unparsed-token errors (P0.2, sites 1–3)</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-INVENTORY-COMPLETE />
+          <AC-LINKS-DEPENDS-INTEGRITY />
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            splitList accepts [,;\s]+ (colon excluded); preserves [..] strip and none (F3).
+            parseGovernedFile no longer silent-filters LINKS/DEPENDS tokens: residual and
+            field-wrong-family tokens raise markup.unparsed-link-token naming token,
+            separators, and accepted families (LINKS: M/DF/V-M; DEPENDS: M only). Catalog
+            entry + tests: write failing regression for LINKS: M-A M-B and typo token first,
+            then fix. Update catalog text that currently documents free-text DEPENDS as ignored.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/project-utils.test.ts src/lint/catalog.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>DependsOn multi-value split, anchor-child resolution, message rewrite (P0.3 + site 11 / D7)</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-DEPENDSON-MULTI />
+          <AC-DEPENDSON-ANCHOR-CHILD />
+          <AC-INVENTORY-COMPLETE />
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            validatePlanTask / readTaskDependencies splits DependsOn text on [,;\s]+ before
+            per-token T-NNN checks; Task children remain valid. change.task-invalid-dependency
+            message names accepted shapes and fires only when neither tag nor text resolves.
+            Regression: F-1 comma input T-001, T-000 (or equivalent) fails before fix for the
+            right reason after fix (invalid id only, not the whole string). Write failing test
+            first.
+          </Criterion>
+          <Criterion>
+            Site 11 / D7: resolve a DependsOn child tag when it matches ANCHOR_PATTERNS.task
+            (do not raise solely for the anchor form). Assert through lint issue codes — not
+            dependency counts — because readTaskDependencies is unexported and
+            validateTaskDependencyGraph keys unknown-task, self-dependency, and cycle checks
+            on that set, so an empty set makes those codes pass vacuously (F5.1); the three
+            codes prove more than a presence count. Red-first: T-002 with
+            &lt;DependsOn&gt;&lt;T-999 /&gt;&lt;/DependsOn&gt; must raise
+            change.task-unknown-dependency (today: nothing). Red-first: a task with
+            &lt;DependsOn&gt;&lt;T-00N /&gt;&lt;/DependsOn&gt; naming its own id must raise
+            change.task-self-dependency (today: nothing). Green path: valid
+            &lt;DependsOn&gt;&lt;T-001 /&gt;&lt;/DependsOn&gt; naming a real sibling raises
+            no change.task-* issue and matches the &lt;Task&gt; and bare-text forms (D7
+            equivalence in AC-DEPENDSON-ANCHOR-CHILD). Archived shape: a plan fragment using
+            C-GATE-RECORD-ABSENCE's exact form lints clean after the fix (D5.3 repair);
+            do not edit archive/. Write failing tests first.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Owns text diagnosis and index silent discards (P0.5, sites 4–6)</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-OWNS-DIAGNOSIS />
+          <AC-INDEX-AND-PLAN-DISCARD />
+          <AC-INVENTORY-COMPLETE />
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            routeFromOwnerNode: text in Owns raises a direct Owns diagnosis (not only
+            unlisted-anchor); invalid Owns children raise projection.index.invalid-owns-child
+            (or agreed code) instead of filter at projections.ts:418. Non-GD under
+            GraphDocuments and non-VD under VerificationDocuments raise
+            projection.index.invalid-document-child (or agreed pair) instead of filter at
+            :369/:382. Corpus Owns-text case as regression written red first.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/projections.test.ts src/lint/catalog.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Ledger, EscalatedTask, and ImplementationPlan silent discards (sites 7–10)</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-LEDGER-INTEGRITY />
+          <AC-INDEX-AND-PLAN-DISCARD />
+          <AC-INVENTORY-COMPLETE />
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            parseAllocation/parseLedgerEvent null results raise ledger.invalid-allocation and
+            ledger.invalid-event (ledger-integrity class — corrupt CLI audit trail, not markup).
+            Empty EscalatedTask raises cursor.empty-escalated-task. Non-task children under
+            ImplementationPlan raise change.implementation-plan-invalid-child (or plan-invalid
+            shape code). Each has a red-first regression. Do not edit grace-cursor.ts.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/grammar.test.ts src/lint/catalog.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Catalog completeness, commit-body codes, suite and phase board</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+          <Task>T-004</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-INVENTORY-COMPLETE />
+          <AC-REGRESSION-AND-SUITE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Every newly-erroring code has a catalog guide (title, explanation, remediation);
+            lint --remediate coverage only where a fix is mechanical (most sites are diagnostic
+            only). Conventional-commit body of the landing commit lists every new code (D5.5) —
+            no CHANGELOG.md edit. RM-GOVERNED-PATH plan.md P0 board reflects execution progress.
+            bun run ngrace lint --path . and bun run validate:ci green.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-TOKEN-INTEGRITY>
+</NgraceChangePlan>

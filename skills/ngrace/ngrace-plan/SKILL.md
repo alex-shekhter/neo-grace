@@ -35,7 +35,7 @@ Produce `plan.xml` from `references/change-plan-template.xml` as draft unless th
 | 3 | Non-empty machine-checkable `BaselineAssertions`. |
 | 4 | Non-empty machine-checkable `TargetAssertions`. |
 | 5 | Explicit `DurableScope` (or `<None />` when there are no durable writes). |
-| 6 | Explicit `ObservedWriteScope` (or `<None />` when there are no observed writes). |
+| 6 | Explicit `ObservedWriteScope` (or `<None />` when there are no observed writes). Scope covers what the deliverable forces, not only the files it targets: a skill-text change declares the skill-footprint pin; a rule change declares the fixtures that construct that rule. If the approved deliverable makes an edit inevitable, list that path at plan time — never leave the executor choosing between a scope breach and a failed task. Failure shape: `review.write-evidence-outside-scope`. |
 | 7 | A scope with no writes must use an explicit `<None />` marker; prose such as "none" is invalid. |
 | 8 | Unique acyclic `T-NNN` tasks under `ImplementationPlan`. |
 | 9 | Every task has exactly one `Title`. |

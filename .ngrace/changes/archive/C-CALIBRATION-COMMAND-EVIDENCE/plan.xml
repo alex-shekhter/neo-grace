@@ -1,0 +1,505 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-CALIBRATION-COMMAND-EVIDENCE>
+    <IntentSummary>
+      P0.8 forward path only (D6.3(c)): when MustPassCommand / MustPassBudget evaluates
+      under explicit runCommands opt-in, each evaluation appends a durable foldable
+      run/ event (kind=command-run) with command identity, exitCode, assertion outcome,
+      and source. Fold adjudicates CalibrationAdjudication from structural target
+      assertions plus a new join helper over those records — never by spawning at fold
+      (D6.3(b) not authorized) and never by report-time evaluateTargetComplete (D6.5 /
+      corr 156). Evidence must exist before fold (D6.6). The three historical pending
+      pairs stay pending permanently (D8.4). No migration, no outcome-carrying
+      restatement, no NGRACE_ARTIFACT_VERSION bump for this additive event kind (D5.2).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/artifact/assertions.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/calibration/report.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-CALIBRATION-COMMAND-EVIDENCE/spec.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value></MustExist>
+      <MustExist><Value>M-ASSERTIONS</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-CALIBRATION</Value></MustExist>
+      <MustVerify><Module>M-ASSERTIONS</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-CALIBRATION</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/artifact/assertions.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>M-ASSERTIONS</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-CALIBRATION</Value></MustExist>
+      <MustVerify><Module>M-ASSERTIONS</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-CALIBRATION</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/artifact/assertions.test.ts src/lint/core.test.ts src/grace-cursor.test.ts src/calibration/report.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ngrace lint --path .</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-ASSERTIONS />
+        <M-LINT-CORE />
+        <M-CURSOR />
+        <M-CALIBRATION />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-ASSERTIONS />
+        <V-M-LINT-CORE />
+        <V-M-CURSOR />
+        <V-M-CALIBRATION />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/assertions.ts</File>
+      <File>src/artifact/assertions.test.ts</File>
+      <File>src/lint/core.ts</File>
+      <File>src/lint/core.test.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/calibration/report.test.ts</File>
+      <File>.ngrace/changes/active/C-CALIBRATION-COMMAND-EVIDENCE/spec.xml</File>
+      <File>.ngrace/changes/active/C-CALIBRATION-COMMAND-EVIDENCE/plan.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/plan.md</File>
+    </ObservedWriteScope>
+    <!--
+      ObservedWriteScope notes (plan-time verification, not assumptions):
+
+      MODULE_CONTRACT LINKS (catalog.ts:200 rule — non-test src/ only):
+        src/artifact/assertions.ts  → LINKS: M-ASSERTIONS   (verified header)
+        src/lint/core.ts            → LINKS: M-LINT-CORE    (verified header)
+        src/grace-cursor.ts         → LINKS: M-CURSOR       (verified header)
+      Test files and non-src paths are not subject to the LINKS rule.
+
+      M-LINT-CORE STAYS. evaluateMustPassCommand lives in assertions.ts, but
+      AssertionContext today has no changeId / recorder. The only production site
+      that sets runCommands is lintGraceProject (lint/core.ts). Wiring a durable
+      write requires plumbing changeId + an onCommandRun (or equivalent) recorder
+      into that context — so lint/core.ts is a real write, not an optional touch.
+      A pure-assertions write that imported grace-cursor would cycle
+      (grace-cursor → lint/core → assertions → grace-cursor). Implement via
+      callback injection from lint/core and/or a cycle-free append helper; if the
+      grammar forces more than an additive event kind / attributes, stop and report
+      (D5.2 / authority Q5) — do not bump NGRACE_ARTIFACT_VERSION.
+
+      src/calibration/report.ts is intentionally NOT in ObservedWriteScope:
+      collectCalibrationReport already reads stored CalibrationAdjudication only
+      (corr 156). Criteria naming doctor/report are satisfied by report.test.ts
+      (and optionally doctor-facing tests) without editing report.ts. M-CALIBRATION
+      remains in DurableScope/GraphAnchors because the approved spec lists it under
+      AffectedAreas and the throw-instrumented / historical-pending regressions
+      live under the calibration test surface. If implementation discovers a true
+      production edit to report.ts is required, stop and re-declare OWS rather than
+      writing it silently.
+
+      C-LEDGER-READ-ABSENCE (confirmed at plan time): draft spec only, no plan,
+      no ObservedWriteScope; AffectedAreas M-GATES / M-REVIEW; targets
+      gates/ledger.ts. File-disjoint from this OWS. No scope.durable-overlap
+      expected while it remains plan-less.
+
+      CHANGELOG.md is not in scope (D5.5 — new codes in commit body only).
+    -->
+    <ImplementationPlan>
+      <!--
+        DESIGN (binding for implementers; authority reviews this choice)
+
+        ═══════════════════════════════════════════════════════════
+        EVENT KIND — command-run (foldable run/ event)
+        ═══════════════════════════════════════════════════════════
+
+        Shape (illustrative XML; exact attribute names free within these fields):
+
+          run/{id}-{task}-command-run.xml
+          <NgraceRunEvent graceVersion="1.0" id="N" task="T-00K" kind="command-run"
+            command="bun test …"
+            exitCode="0"
+            assertionPassed="true"
+            assertionKind="MustPassCommand"
+            source="lint-run-commands" />
+
+        Why a new kind, not a ledger section or a child of attempt:
+        - Authority answer (1): foldable run/ event, append-only, digested into
+          WriteEvidence on later attempts, subject to epoch membership/density.
+        - Grammar already accepts any non-empty kind on Event / NgraceRunEvent
+          (parseLedgerEvent only requires id, task, kind). Additive kind needs no
+          NGRACE_ARTIFACT_VERSION bump (D5.2).
+        - Must register kind "command-run" in KNOWN_KIND_STATE → "in-progress"
+          (grace-cursor.ts) so cursor show does not degrade to
+          "unrecognized event kind" when a command-run is the latest event
+          (cursorStateForEventKind). That registration is a one-line allowlist
+          addition, not a compatibility break.
+        - Not a run-ledger-only section: companion sections skip density and are
+          easier to orphan from the epoch under audit.
+        - Not piggybacked on kind=attempt: attempt carries outcome/claimedConfidence
+          and WriteEvidence for fix-budget semantics; mixing command evaluation into
+          attempt would conflate two adjudicator surfaces and break pair checks.
+
+        Minimum recorded fields (AC-COMMAND-EVIDENCE-RECORDED + budget honesty):
+          command          — exact command text as spawned (match key; see below)
+          exitCode         — numeric exit of the spawn just performed
+          assertionPassed  — "true"|"false": whether the assertion evaluation
+                             treated this command as a pass (for MustPassCommand
+                             this equals exitCode===0; for MustPassBudget it is
+                             the full budget comparison result, so exit 0 with a
+                             failed metric is assertionPassed=false)
+          assertionKind    — MustPassCommand | MustPassBudget
+          source           — e.g. "lint-run-commands" | "assertions-final"
+        Optional (do not block v1): evaluatedAt ISO, stderr digest truncated.
+
+        Why assertionPassed beyond exitCode: AC text keys pass on exitCode 0, but
+        MustPassBudget can fail the metric with exit 0. Recording only exitCode
+        would label a metric-fail epoch "pass". assertionPassed is additive and
+        keeps the AC's spirit (durable evaluation result) without a schema bump.
+        Fold treats assertionPassed=true as the command-side pass signal;
+        exitCode remains mandatory for audit.
+
+        Writer sites:
+          - evaluateMustPassCommand / evaluateMustPassBudget in assertions.ts:
+            after every spawn under runCommands true (success and failure), invoke
+            optional context.onCommandRun?.(payload). Discriminating negative: a
+            path that returns [] on success without calling the recorder fails
+            AC-COMMAND-EVIDENCE-RECORDED (today's discard).
+          - lint/core.ts: when options.runCommands and options.changeId are set,
+            supply onCommandRun that appends the event under the change's run/
+            directory. When runCommands is false, commands are not executed and
+            no evidence events are invented.
+          - Layering: assertions must not import grace-cursor (cycle). Prefer
+            callback injection; if a shared appendRunEvent helper is extracted to
+            break the cycle, keep it additive. Stop and report only if a version
+            bump is forced.
+
+        Task attribute on the event: active cursor task for the change when known;
+        otherwise T-000. Fold join does not use task for matching assertions.
+
+        When no open epoch / covering allocation: still append when changeId +
+        runCommands (operator act). Fold membership rules apply as for any loose
+        event — evidence outside every Allocation is a fold error, not a silent
+        ignore. Operators run --run-commands inside an open epoch.
+
+        ═══════════════════════════════════════════════════════════
+        MATCH KEY — exact command string equality
+        ═══════════════════════════════════════════════════════════
+
+        Fold joins each TargetAssertions MustPassCommand / MustPassBudget
+        Command value to command-run events in the epoch being folded by
+        **exact string equality** of the `command` attribute.
+
+        Alternatives considered and rejected for v1:
+
+        1. Normalized string (trim / collapse whitespace / reorder flags)
+           Rejected: normalization can hide intentional flag or argument changes
+           and invents a second "true" command string that nothing in the plan
+           authored. Failures become invisible again — the class of defect this
+           phase exists to eliminate.
+
+        2. Assertion identity (file + section + index, or stable assertion id)
+           Rejected for v1 as *primary* key: plan grammar has no stable assertion
+           ids today; index identity silently remaps when assertions are reordered
+           or inserted; matching by index while ignoring command text can accept
+           old evidence for a *rewritten* command (false pass). Adding assertion
+           ids is a plan-schema change outside this bundle.
+
+        3. Recorded reference written at evaluation that names the assertion
+           rather than the text (opaque token / plan path + ordinal stored on
+           evidence, fold matches token only)
+           Rejected as *sole* key for the same false-pass risk: after a plan edit
+           replaces command A with command B at the same ordinal, token-only join
+           would treat evidence for A as covering B. A recorded reference may be
+           stored as an *optional* documentary attribute later; it must not be
+           the adjudicator's sole match key without an authority decision.
+
+        Chosen: exact command string equality (aligns with approved-spec
+        Assumption on matching; documents the edit failure mode as an AC).
+
+        When a command is edited between evaluation and fold:
+          - Append-only evidence for the old command string remains on disk.
+          - Fold looks up the *current* TargetAssertions command text.
+          - Old evidence does not match → that required command has **absent
+            recorded evidence** → CalibrationAdjudication outcome="pending"
+            with a reason that names the ledger gap (not a live re-spawn).
+          - Operator re-runs with --run-commands to record evidence for the new
+            text, then folds. No silent orphaning, no false pass.
+        This behaviour is pinned by AC criteria on T-002 (not an accident).
+
+        Multiple command-run events for the same command: last-writer-wins by
+        event id within the epoch (highest id). Re-runs after a fix are honest.
+
+        ═══════════════════════════════════════════════════════════
+        D6.5 — forbidden report-time path stays UNREACHABLE
+        ═══════════════════════════════════════════════════════════
+
+        - collectCalibrationReport continues to read only stored
+          CalibrationAdjudication (existing corr-156 contract).
+        - Fold uses a **new helper** (name illustrative:
+          completeFromStructuralAndCommandEvidence / joinCommandRunEvidence)
+          called only from buildCalibrationAdjudicationAtFold.
+        - evaluateTargetComplete remains the structural three-valued core with
+          runCommands: false hardcoded. Fold may still call it for *non-command*
+          structural target issues, then join command-run records for
+          MustPassCommand / MustPassBudget — or the new helper composes both.
+          Either way: fold must **not** set runCommands true (D6.3(b) not
+          authorized; D8.5 forbids cost-based slide to (b)).
+        - evaluateTargetComplete is **not** extended with a report-reachable
+          spawn path or a "use recorded evidence" mode that doctor could call.
+          Unreachable in practice is not enough: the join lives on a function
+          doctor does not import; dead code still reachable from doctor fails
+          AC-NO-REPORT-TIME-REEVAL.
+        - Fold still writes one CalibrationAdjudication with adjudicatedAt=fold
+          when claimedConfidence attempts exist (AC-D65-FOLD-STILL-STORES).
+
+        ═══════════════════════════════════════════════════════════
+        D6.6 — evidence before fold (settled by types)
+        ═══════════════════════════════════════════════════════════
+
+        CalibrationRestatement carries no outcome; report keeps pending pending
+        regardless of adjudicatedAt. After fold there is no honest path to a
+        boolean. Therefore:
+          - Recording runs at evaluation time (lint --run-commands / assertion
+            opt-in), which is before fold.
+          - Fold only joins existing records; it never spawns and never invents.
+          - No outcome-carrying restatement is proposed or implemented.
+          - Late evidence after fold is documentary only for v1 (D8.4 / D6.6).
+
+        ═══════════════════════════════════════════════════════════
+        FOLD JOIN SEMANTICS (completeFrom records)
+        ═══════════════════════════════════════════════════════════
+
+        Given claimedConfidence attempts on the epoch:
+          1. Structural target evaluation with runCommands false (or equivalent
+             that never spawns). Non-command assertion errors → complete false
+             → outcome fail. command-not-evaluated alone does **not** freeze
+             pending if matching records exist.
+          2. For each MustPassCommand / MustPassBudget Command on
+             TargetAssertions: find matching command-run evidence (exact
+             command string; LWW by id).
+             - no match → complete undefined → pending; reason names **absent
+               recorded evidence** (ledger gap), not "not opted in at this process"
+               alone when the defect is missing records.
+             - match with assertionPassed=false (or non-zero exitCode for
+               MustPassCommand) → complete false → fail.
+             - all required commands matched with assertionPassed=true, and
+               structural clean → complete true → pass.
+          3. Always write CalibrationAdjudication adjudicatedAt=fold when claims
+             exist (D6.5).
+
+        ═══════════════════════════════════════════════════════════
+        EXECUTION DISCIPLINE (this bundle's own epoch when approved)
+        ═══════════════════════════════════════════════════════════
+
+        - Open with cursor advance --open-epoch and **no --from/--to** (defaults
+          give covering headroom; never pass task ids to those flags — F8).
+        - Record each cursor attempt **at the moment** verification runs; every
+          attempt digests ObservedWriteScope into WriteEvidence. A fix written
+          before the fail is recorded shows as an unchanged production digest
+          across the pair (F9).
+        - Never stage a retrospective red (git stash → record fail → unstash) —
+          forbidden by F9.1. If a red is lost, say so; an honest gap is accepted.
+        - Folding requires a terminal event (cursor advance --kind terminal).
+          Mandatory; present in every closed bundle; not mentioned in the
+          execution skill — hence written here.
+        - Red-first on every task: write the failing regression against pre-fix
+          code, watch it fail, then implement.
+      -->
+      <T-001>
+        <Title>Record command-run evidence on opt-in evaluation (D6.3(c) writer)</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-COMMAND-EVIDENCE-RECORDED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: with runCommands true, evaluateMustPassCommand (and
+            MustPassBudget) today spawns, checks exitCode, and on success returns
+            an empty issue list with **no durable run/ write** (assertions.ts).
+            Capture that discard in a regression that fails on pre-fix code —
+            assert via absence of any kind=command-run (or agreed kind) file /
+            listable record after a successful opt-in evaluation against a temp
+            project, not via prose alone.
+          </Criterion>
+          <Criterion>
+            After fix: when ngrace lint (or the designated assertion surface that
+            sets runCommands) evaluates MustPassCommand / MustPassBudget with
+            explicit opt-in and a selected changeId, each evaluated command leaves
+            a durable foldable run/ event kind=command-run under that change's
+            run/ directory, recording at least command (exact text), exitCode,
+            assertionPassed, assertionKind, and source. Both success and failure
+            paths write a record (non-zero exitCode still produces an event with
+            assertionPassed=false). Events are append-only (D9) — never rewrite
+            a prior run/* file.
+          </Criterion>
+          <Criterion>
+            Discriminating negative (AC-COMMAND-EVIDENCE-RECORDED): a path that
+            runs the command and returns only lint issues (empty list on success)
+            without writing a durable run/ event **fails this criterion** — that
+            is today's behaviour and must not remain the sole outcome. Assert by
+            keeping a regression that would pass under discard-only evaluation.
+          </Criterion>
+          <Criterion>
+            When runCommands is false, commands are still not executed (A5.2) and
+            no command-run evidence events are invented. Assert with a case that
+            would fail if the writer fabricated records from plan text alone.
+          </Criterion>
+          <Criterion>
+            M-LINT-CORE plumbing: lintGraceProject passes changeId and a recorder
+            into assertion evaluation so the write is reachable from the CLI
+            --run-commands path. Layering must not introduce
+            assertions→grace-cursor import cycle; use callback injection and/or a
+            cycle-free append helper. If implementation requires more than an
+            additive event kind / attributes (forced NGRACE_ARTIFACT_VERSION bump),
+            stop and report — do not ship the bump in this task.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/assertions.test.ts src/lint/core.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Fold joins recorded command-run evidence; still stores adjudication (D6.3(c) / D6.5)</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-FOLD-ADJUDICATES-FROM-RECORDS />
+          <AC-D65-FOLD-STILL-STORES />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: with claimedConfidence attempts and TargetAssertions that
+            include MustPassCommand, fold today calls evaluateTargetComplete with
+            runCommands false, stores outcome=pending, and ignores any command-run
+            files even if planted. Write a regression that plants matching
+            command-run evidence (exitCode 0 / assertionPassed true) plus clean
+            structural targets and asserts pre-fix fold still yields pending
+            (or otherwise fails to pass) — proving the join is absent.
+          </Criterion>
+          <Criterion>
+            After fix: new fold join helper (not an extension of
+            evaluateTargetComplete into a report-reachable spawn path). Given
+            claimedConfidence attempts, durable command-run evidence covering
+            every MustPassCommand / MustPassBudget on TargetAssertions with
+            assertionPassed true (and exitCode 0 for MustPassCommand), and
+            structural target assertions otherwise clean, fold writes
+            CalibrationAdjudication outcome="pass" adjudicatedAt="fold".
+          </Criterion>
+          <Criterion>
+            Given at least one matching recorded command with assertionPassed
+            false (or non-zero exitCode for MustPassCommand), fold writes
+            outcome="fail" adjudicatedAt="fold".
+          </Criterion>
+          <Criterion>
+            Given a required TargetAssertions command with **no** matching
+            recorded evidence (exact command string equality), fold writes
+            outcome="pending" with a reason that names **absent recorded
+            evidence** (ledger gap), not a live re-spawn. Fold must not set
+            runCommands true to spawn shells (D6.3(b) not authorized). A fold
+            path that only calls evaluateTargetComplete with runCommands false
+            and ignores existing evidence events fails this criterion.
+          </Criterion>
+          <Criterion>
+            Match-key edit behaviour (exact string equality — pinned, not
+            accidental): plant command-run evidence for command string A; change
+            TargetAssertions to command string B (A ≠ B) without new evidence;
+            fold must write pending (absent matching evidence for B), not pass
+            on orphaned evidence for A, and not fail solely because A exists.
+            Re-recording evidence for B then yields pass when structural targets
+            are clean. This is the operator-visible recovery after a plan command
+            edit between evaluation and fold.
+          </Criterion>
+          <Criterion>
+            AC-D65-FOLD-STILL-STORES — assert, do not only name: fold still writes
+            CalibrationAdjudication when claimedConfidence attempts exist;
+            collectCalibrationReport still refuses to invent labels when the
+            section is absent (pending/excluded paths unchanged in spirit). A
+            "fix" that removes fold-time storage and recomputes labels at report
+            time fails this criterion. Register kind=command-run in
+            KNOWN_KIND_STATE as in-progress so cursor position does not degrade
+            solely because the latest event is command evidence.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>No report-time re-eval; historical pendings stay; suite close</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-NO-REPORT-TIME-REEVAL />
+          <AC-HISTORICAL-PENDING-UNCHANGED />
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-NO-REPORT-TIME-REEVAL — red-first suite form, not prose: instrument
+            evaluateTargetComplete so that any call throws. collectCalibrationReport
+            (as consumed by ngrace doctor) must still emit the calibration section
+            from stored pairs without invoking the throw. Pre-fix this is already
+            true; the regression must stay green after T-001/T-002 land and must
+            fail if a future change re-introduces report-time evaluateTargetComplete
+            or only "avoids" it via dead code still reachable from doctor. Unreachable
+            in practice is not unreachable: assert import/call graph or the throw
+            probe, not a comment.
+          </Criterion>
+          <Criterion>
+            AC-HISTORICAL-PENDING-UNCHANGED — after this change, ngrace doctor
+            (or collectCalibrationReport over this repository) still reports
+            C-ADOPTION-SURFACE Epoch-1, C-PLAN-QUALITY Epoch-1, and
+            C-REVIEW-LANGUAGE-SCOPE Epoch-1 as pending (bucket pending,
+            adjudicatedAt=fold or equivalent durable pending presentation). Tests
+            must not mutate those three archives' run-ledger.xml (read-only;
+            temp copies only if a fixture needs a pending shape). Discriminating
+            negative: a change that flips any of those three to included/pass
+            (or rewrites their stored CalibrationAdjudication outcome) **fails
+            this criterion**. Helpful "cleanup" of the three permanent pendings
+            is out of scope and fails the bar (D8.4 / corr 156 / D6.6). State in
+            the test name or message that flipping them to pass is the failure
+            mode, so a later agent does not "fix" them.
+          </Criterion>
+          <Criterion>
+            AC-SUITE-AND-LINT — suite green for red-first regressions covering:
+            (1) run-with-opt-in writes evidence events (T-001);
+            (2) fold pass/fail/pending from records including command-edit → pending
+                (T-002);
+            (3) throw-instrumented AC-NO-REPORT-TIME-REEVAL (this task);
+            (4) historical three still pending (this task).
+            bun run ngrace lint --path . is 0 errors and 0 warnings (no authorized
+            scope.durable-overlap expected vs plan-less C-LEDGER-READ-ABSENCE).
+            bun run validate:ci green. Red-first required; a green-only
+            demonstration of any AC fails this criterion. RM-GOVERNED-PATH plan.md
+            phase board may note C-CALIBRATION-COMMAND-EVIDENCE progress without
+            claiming P0 complete if other P0 steps remain. Conventional-commit body
+            of any landing commit names new codes if any (D5.5); do not edit
+            CHANGELOG.md.
+          </Criterion>
+          <Criterion>
+            Carried non-goals asserted by absence of implementation, not by
+            Satisfies alone: no outcome-carrying CalibrationRestatement; no
+            migration of the three historical pendings; no fold-time runCommands
+            spawn; no NGRACE_ARTIFACT_VERSION bump. If a task or PR introduces any
+            of these, this close task fails.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/assertions.test.ts src/lint/core.test.ts src/grace-cursor.test.ts src/calibration/report.test.ts</Command>
+          <Command>bun run ngrace lint --path .</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-CALIBRATION-COMMAND-EVIDENCE>
+</NgraceChangePlan>

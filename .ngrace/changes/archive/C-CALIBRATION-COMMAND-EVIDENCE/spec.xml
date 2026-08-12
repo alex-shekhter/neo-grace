@@ -1,0 +1,285 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-CALIBRATION-COMMAND-EVIDENCE>
+    <Summary>
+      P0.8 (forward path only): record MustPassCommand / MustPassBudget evaluation as
+      durable foldable run/ events, and have fold adjudicate CalibrationAdjudication from
+      those records — not from a live runCommands spawn and never from report-time
+      evaluateTargetComplete. No migration of the three historical pending pairs (D8.4).
+    </Summary>
+    <Problem>
+      The product thesis is that the agent cannot lie to the model. Calibration pairs are
+      meant to be durable labels stored at fold (Correction 156): *"a corpus whose labels
+      move is not a corpus."* Today, any change that carries claimedConfidence and a
+      MustPassCommand on TargetAssertions freezes outcome="pending" at fold, permanently,
+      because fold never has durable command evidence to consult.
+
+      Measured at HEAD (p0-calibration-derivation.md, doctor): 2 included, 0 excluded,
+      3 pending, 1 backfilled. The three pending archives — C-ADOPTION-SURFACE,
+      C-PLAN-QUALITY, C-REVIEW-LANGUAGE-SCOPE — each store CalibrationAdjudication
+      outcome="pending" adjudicatedAt="fold" with reason:
+        "MustPassCommand or MustPassBudget evidence was not executed (command execution
+         not opted in); complete is not evaluable from structural target assertions alone"
+
+      That reason is not a report-time invention. buildCalibrationAdjudicationAtFold
+      (grace-cursor.ts) calls evaluateTargetComplete, which hardcodes runCommands: false
+      (grace-cursor.ts:1512). evaluateMustPassCommand (artifact/assertions.ts:287–301)
+      then emits assertion.command-not-evaluated; complete becomes undefined; fold stores
+      pending. When runCommands *is* true (ngrace lint --run-commands), the same helper
+      spawns the shell, checks exitCode, and on success returns an empty issue list —
+      **the evidence is discarded at the moment it exists.** No CommandRun /
+      CommandEvidence type exists in src/ or under .ngrace/.
+
+      P0.8's plan wording describes pending after a final --run-commands *succeeded*.
+      The derivation established **there is no such case in this repository**: no durable
+      record that those three bundles' commands ever passed. The work is therefore
+      **purely forward-looking**. Relabelling the three historical pendings would violate
+      D8.4 and Correction 156. Doctor is an honest reader of an incomplete fold-time
+      snapshot — the defect is a **recorder** gap, not a reader gap.
+
+      D6.6 (and the types) close the late-evidence door: CalibrationRestatement carries
+      no outcome, and report.ts keeps pending pairs pending regardless of adjudicatedAt
+      (A7.2). After fold there is no honest path from pending to a boolean without a new
+      mechanism that moves labels after the fact — which Correction 156 forbids. Evidence
+      must exist **before** fold adjudicates.
+    </Problem>
+    <Goals>
+      <Goal>
+        When MustPassCommand / MustPassBudget is evaluated with explicit runCommands
+        opt-in, each evaluation leaves a durable foldable run/ event recording at least
+        command identity, exitCode, and evaluation source (D6.3(c)).
+      </Goal>
+      <Goal>
+        At fold, when claimedConfidence attempts exist, adjudicate complete from structural
+        target assertions plus matching recorded command-run evidence via a **new fold
+        join helper** — not by extending evaluateTargetComplete into a report-reachable
+        spawn path, and not by setting runCommands true at fold (D6.3(b) not authorized).
+        Still write one CalibrationAdjudication with adjudicatedAt=fold (D6.5).
+      </Goal>
+      <Goal>
+        Keep collectCalibrationReport / doctor free of evaluateTargetComplete and free of
+        command spawning (D6.5 / corr 156). Prove it with a regression that instruments
+        evaluateTargetComplete to throw.
+      </Goal>
+      <Goal>
+        Leave the three historical pending pairs pending; document forward-only scope
+        (D8.4). Do not invent outcome-carrying restatements (D6.6).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding decisions: D6.1–D6.6, D8.1, D8.4, D8.5, D5.2; Correction 156 / 161;
+        A5.2 (default lint does not execute command assertions); A29.2 / F1 (binary writes
+        structural state with explicit apply — the --run-commands / assertion opt-in is
+        the operator act; exit codes are derived from the spawn just performed).
+      </Constraint>
+      <Constraint>
+        D6.5 — must not remove or weaken fold-time storage of CalibrationAdjudication;
+        must not introduce any report-time call to evaluateTargetComplete.
+      </Constraint>
+      <Constraint>
+        D6.3(c) only. (a) report-time re-evaluation is forbidden. (b) fold-time
+        runCommands spawn is not authorized by this bundle; if (c) proves expensive,
+        stop and report (D8.5) — cost is not a licence to slide to (b).
+      </Constraint>
+      <Constraint>
+        D6.6 — command-run evidence must exist before fold adjudicates. Do not propose
+        or implement an outcome-carrying CalibrationRestatement. Restatement remains
+        adjudicatedAt/provenance only.
+      </Constraint>
+      <Constraint>
+        Evidence is a **foldable run/ event** (not a run-ledger-only section): append-only,
+        digestable into WriteEvidence, subject to epoch membership/density with other loose
+        events. Event kind / payload shape is the plan's choice within additive grammar
+        (D5.2: no NGRACE_ARTIFACT_VERSION bump for additive records). If the grammar forces
+        more than an additive tag, stop and report.
+      </Constraint>
+      <Constraint>
+        Spec only in this authoring pass (F4 two-stage authoring). status remains "draft";
+        approval is a human act. Do not author plan.xml until the spec is approved. Do not
+        hand-edit CHANGELOG.md (D5.5).
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: TraceAssertion + tests default. Write each regression first,
+        watch it fail on pre-fix code, then fix. Red-first includes the throw-instrumented
+        report path and the "ran but recorded nothing" discriminating negative.
+      </Constraint>
+      <Constraint>
+        No durable-scope overlap expected with active C-LEDGER-READ-ABSENCE (draft spec,
+        no plan, no ObservedWriteScope; targets gates/ledger three-exit under M-GATES /
+        M-REVIEW). Confirm at plan time; do not expand this bundle into gates/ledger.ts.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Migration, repair, restatement, or re-label of C-ADOPTION-SURFACE,
+        C-PLAN-QUALITY, or C-REVIEW-LANGUAGE-SCOPE Epoch-1 pending pairs (D8.4 / corr 156 /
+        D6.6). They stay pending permanently.
+      </NonGoal>
+      <NonGoal>
+        Fold-time command spawning (D6.3 shape (b)) — not authorized; D8.5 forbids
+        adopting it as a cost fallback.
+      </NonGoal>
+      <NonGoal>
+        Doctor-side or report-time re-evaluation of target assertions or MustPassCommand
+        (D6.3(a) / D6.5).
+      </NonGoal>
+      <NonGoal>
+        Outcome-carrying CalibrationRestatement or any mechanism that moves a stored
+        pending label to pass/fail after fold (D6.6 / corr 156).
+      </NonGoal>
+      <NonGoal>
+        Making claimedConfidence gate-consumed; changing calibration promotion bars;
+        redesign of CalibrationAdjudication schema beyond what fold must write for (c).
+      </NonGoal>
+      <NonGoal>
+        C-REPORT-HONESTY territory: P0.7, P0.9, and findings F11, F14, F15 (and related
+        review porcelain / archive wording work).
+      </NonGoal>
+      <NonGoal>
+        C-LEDGER-READ-ABSENCE (wrapperFromLedger three-exit); edits under
+        src/gates/ledger.ts or plan-quality read classification.
+      </NonGoal>
+      <NonGoal>
+        NGRACE_ARTIFACT_VERSION bump for additive evidence records (D5.2). If a bump is
+        forced by grammar shape, stop and report rather than ship it silently.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-COMMAND-EVIDENCE-RECORDED>
+        When ngrace lint (or the designated assertion surface that sets runCommands) evaluates
+        a plan's MustPassCommand / MustPassBudget with explicit command-execution opt-in, each
+        evaluated command leaves a durable foldable run/ event (CommandRunEvidence or the
+        plan's agreed kind) recording at least: command identity (text or stable assertion
+        reference), exitCode, and evaluation source. Both success (exitCode 0) and failure
+        (non-zero) must be recorded. Discriminating negative: a path that runs the command
+        and returns only lint issues (empty issue list on success) without writing a durable
+        run/ event **fails this criterion** — that is today's behaviour
+        (evaluateMustPassCommand discarding the spawn result) and must not remain the sole
+        outcome. When runCommands is false, commands are still not executed and no evidence
+        events are invented.
+      </AC-COMMAND-EVIDENCE-RECORDED>
+      <AC-FOLD-ADJUDICATES-FROM-RECORDS>
+        Given claimedConfidence attempts on an open epoch and durable command-run evidence
+        covering every MustPassCommand / MustPassBudget on TargetAssertions with exitCode 0,
+        and structural target assertions otherwise clean, fold writes CalibrationAdjudication
+        outcome="pass" adjudicatedAt="fold". Given at least one recorded non-zero exitCode for
+        a required command, fold writes outcome="fail". Given a required command with **no**
+        matching recorded evidence, fold writes outcome="pending" with a reason that names
+        **absent recorded evidence** (ledger gap), not a live re-spawn. Adjudication uses a
+        **new fold join helper**; it must not set runCommands true to spawn shells at fold
+        (unless D6.3(b) is separately authorized — it is not in this bundle). A fold path that
+        only calls evaluateTargetComplete with runCommands false and ignores existing evidence
+        events fails this criterion.
+      </AC-FOLD-ADJUDICATES-FROM-RECORDS>
+      <AC-NO-REPORT-TIME-REEVAL>
+        collectCalibrationReport and ngrace doctor calibration output do not call
+        evaluateTargetComplete and do not spawn MustPassCommand / MustPassBudget. Regression
+        required in suite form (not merely asserted in prose): with evaluateTargetComplete
+        **instrumented to throw**, doctor (or collectCalibrationReport as consumed by doctor)
+        must still emit the calibration section from stored pairs without invoking the
+        throw. A change that re-introduces report-time evaluateTargetComplete, or that only
+        "avoids" it by dead code still reachable from doctor, fails this criterion.
+      </AC-NO-REPORT-TIME-REEVAL>
+      <AC-HISTORICAL-PENDING-UNCHANGED>
+        After this change lands, ngrace doctor still reports C-ADOPTION-SURFACE Epoch-1,
+        C-PLAN-QUALITY Epoch-1, and C-REVIEW-LANGUAGE-SCOPE Epoch-1 as pending (bucket
+        pending, adjudicatedAt=fold or equivalent durable pending presentation). Product
+        text may document them as permanent forward-fixed pendings (D8.4). A change that
+        flips any of those three to included/pass (or otherwise rewrites their stored
+        CalibrationAdjudication outcome) **fails this criterion** — there is no honest
+        mechanism to do so (D8.4, corr 156, D6.6). Helpful "cleanup" of the three pendings
+        is out of scope and fails the bar.
+      </AC-HISTORICAL-PENDING-UNCHANGED>
+      <AC-D65-FOLD-STILL-STORES>
+        Fold still writes CalibrationAdjudication when claimedConfidence attempts exist;
+        collectCalibrationReport still refuses to invent labels when the section is absent
+        (pending/excluded paths unchanged in spirit). A "fix" that removes fold-time storage
+        and recomputes labels at report time fails this criterion (D6.5).
+      </AC-D65-FOLD-STILL-STORES>
+      <AC-SUITE-AND-LINT>
+        Suite green for red-first regressions covering: (1) run-with-opt-in writes evidence
+        events; (2) fold pass/fail/pending from records as in AC-FOLD-ADJUDICATES-FROM-RECORDS;
+        (3) throw-instrumented AC-NO-REPORT-TIME-REEVAL; (4) historical three still pending.
+        bun run ngrace lint --path . is 0 errors and 0 warnings unless an authorized
+        scope.durable-overlap is declared at plan approval (none expected vs
+        C-LEDGER-READ-ABSENCE while it remains plan-less). bun run validate:ci green.
+        Red-first is required; a green-only demonstration of any AC fails this criterion.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-ASSERTIONS />
+      <M-LINT-CORE />
+      <M-CURSOR />
+      <M-CALIBRATION />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Unit and CLI regressions under src/artifact/assertions.test.ts (and/or related
+        assertion tests), src/lint or grace-lint paths for --run-commands write-through,
+        src/grace-cursor.test.ts for fold join from evidence events, and
+        src/calibration/report.test.ts (and/or doctor-facing tests) for the
+        throw-instrumented no-report-time-reeval bar and historical pending stability.
+        Dogfooding: bun run ngrace lint --path . at 0 errors / 0 warnings (or authorized
+        overlap only); bun run ngrace doctor --path . still lists the three historical
+        pendings; validate:ci green. TraceAssertion-backed verification for M-ASSERTIONS,
+        M-CURSOR, M-CALIBRATION, M-LINT-CORE as already declared; no new Marker evidence.
+        No report-time evaluateTargetComplete. No NGRACE_ARTIFACT_VERSION bump unless
+        authority-authorized after a stop-and-report.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Module ownership confirmed against .ngrace/graph/main.xml and MODULE_CONTRACT
+        LINKS: M-ASSERTIONS Path src/artifact/assertions.ts; M-LINT-CORE Path
+        src/lint/core.ts; M-CURSOR Path src/grace-cursor.ts; M-CALIBRATION Path
+        src/calibration/report.ts. M-LINT-CORE is claimed because --run-commands plumbing
+        and context that reach evaluateMustPassCommand today flow through lintGraceProject
+        (lint/core.ts); if the plan finds the write can live solely in assertions.ts with
+        no lint/core change, M-LINT-CORE may drop at plan time with an explicit note —
+        do not silently omit it without re-checking call paths.
+      </Assumption>
+      <Assumption>
+        M-DOCTOR is not claimed: doctor only consumes collectCalibrationReport. Criteria
+        that name doctor are satisfied by testing collectCalibrationReport and/or doctor
+        without editing grace-doctor.ts. If implementation must change doctor output
+        shape, stop and report (new module surface).
+      </Assumption>
+      <Assumption>
+        M-GRAMMAR / M-ARTIFACT-TYPES are not claimed a priori: evidence is an additive
+        run/ event kind under existing EVENT_FILENAME (id-task-kind.xml). If grammar
+        validation rejects unknown kinds and requires types.ts / grammar.ts edits beyond
+        an additive allowlist entry, that remains in scope only as far as D5.2 allows
+        without a version bump; otherwise stop and report (authority Q5).
+      </Assumption>
+      <Assumption>
+        p0-calibration-derivation.md (measured at a4b9ce7 family) plus D6.1–D6.6, D8.1,
+        D8.4, D8.5 are authoritative for this bundle's under-specifications. P0.8 plan.md
+        wording is read through D6, not literally as retroactive doctor repair.
+      </Assumption>
+      <Assumption>
+        C-LEDGER-READ-ABSENCE remains draft-spec with no plan and no ObservedWriteScope at
+        authoring; no durable overlap is expected. If that bundle later claims
+        grace-cursor.ts or assertions.ts, sequential F10.2-style overlap must be declared
+        then — not assumed now.
+      </Assumption>
+      <Assumption>
+        Exact XML tag/attribute names for the evidence event (e.g. kind="command-run" vs
+        CommandRunEvidence payload) are left to the plan within the foldable run/ event
+        constraint. Spec criteria speak to properties (durable, exitCode, source, fold
+        join), not a frozen schema string.
+      </Assumption>
+      <Assumption>
+        Matching evidence to plan MustPassCommand values is by command string equality
+        unless the plan documents a stabler id; if command strings are rewritten between
+        plan edit and evidence write, fold may pending — acceptable; do not invent fuzzy
+        match without an authority decision.
+      </Assumption>
+      <Assumption>
+        The three historical pendings' run-ledger.xml files are not modified by this
+        bundle's implementation or tests (read-only fixtures or copies in temp projects
+        only when a test needs a pending shape).
+      </Assumption>
+    </Assumptions>
+  </C-CALIBRATION-COMMAND-EVIDENCE>
+</NgraceChangeSpec>

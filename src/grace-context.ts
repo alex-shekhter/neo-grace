@@ -62,6 +62,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { defineCommand } from "citty";
 
+import { defineGraceCommand } from "./query/command";
+
 import { ARTIFACT_DIR } from "./artifact/paths";
 import { ANCHOR_PATTERNS } from "./artifact/types";
 import { readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./artifact/xml";
@@ -1100,7 +1102,7 @@ function resolveFormat(format: unknown, json: unknown): "text" | "json" {
   return resolved;
 }
 
-export const contextCommand = defineCommand({
+export const contextCommand = defineGraceCommand({
   meta: {
     name: "context",
     description:

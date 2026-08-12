@@ -9,7 +9,7 @@ import {
 } from "./token-accounting";
 
 describe("token-accounting (D15)", () => {
-  it("skillTextLines().total reports 730 for SKILL.md files at HEAD", () => {
+  it("skillTextLines().total reports 779 for SKILL.md files at HEAD", () => {
     // Phase 2: three skills each gained a four-line <verdicts> block (636 → 648).
     // Phase 3: ngrace-cli cursor surface line + ngrace-execute advance/fold rule (648 → 650).
     // Phase 4: ngrace-execute attempt/budget/escalation rule (650 → 651).
@@ -22,8 +22,12 @@ describe("token-accounting (D15)", () => {
     // Phase 8: ngrace-cli context --task/--skills line; execute preflight extended in-place (723 → 724).
     // Phase 9: ngrace-execute claimedConfidence + calibration promotion bar (724 → 728).
     // 6.1.0 docs pass: ngrace-cli gains gate/review/doctor and lint --explain lines (728 → 730).
+    // C-EXECUTION-CONTRACT: ngrace-execute <cursor_kinds> protocol block (730 → 779; measured).
+    // C-ESCALATION-HONESTY T-003: rewrite ngrace-execute R/D + resume --reason prose first,
+    // then re-measure — total stayed 779 (in-place line-neutral rewrite of four budget sites
+    // + resume How; not a target written toward). Pin remains exact toBe of that measure.
     const measured = skillTextLines();
-    expect(measured.total).toBe(730);
+    expect(measured.total).toBe(779);
     expect(measured.perSkill["ngrace-fix"]).toBe(32);
     expect(Object.keys(measured.perSkill).length).toBe(16);
     // Sanity: known skills present
@@ -31,6 +35,22 @@ describe("token-accounting (D15)", () => {
     expect(measured.perSkill["ngrace-migrate"]).toBeGreaterThan(0);
     // References are counted separately so skill-body deltas stay comparable
     expect(measured.referencesTotal).toBeGreaterThan(0);
+  });
+
+  it("skillTextLines().totalBytes is UTF-8 byte sum of SKILL.md files (C-CONTRACT-DEBT T-001)", () => {
+    // Measured after instrument landed (not written toward):
+    //   bun -e 'import { skillTextLines } from "./src/test-support/token-accounting.ts";
+    //           console.log(skillTextLines().totalBytes);'
+    // → 53771. Line total stays 779 (frozen semantics; archived reports cite it).
+    const measured = skillTextLines();
+    expect(measured.total).toBe(779);
+    expect(measured.totalBytes).toBe(53771);
+    const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
+    expect(sumBytes).toBe(measured.totalBytes);
+    expect(Object.keys(measured.perSkillBytes).length).toBe(16);
+    expect(Object.keys(measured.perSkillBytes).sort()).toEqual(
+      Object.keys(measured.perSkill).sort(),
+    );
   });
 
   it("skillTextLines is deterministic for the same root", () => {

@@ -8,6 +8,8 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   ATTEMPT_PAIR_FINDING_CODE
+//   WRITE_EVIDENCE_SCOPE_FINDING_CODE
 //   REVIEW_CATALOG
 //   ReviewIssueGuide
 //   ReviewIssueSeverity
@@ -45,6 +47,21 @@ export type ReviewIssueGuide = {
   /** "pattern" | "process-audit" | "join-process" */
   family: "pattern" | "process-audit" | "join-process";
 };
+
+/**
+ * Live fail→pass attempt-pair finding code (C-SUBSTANTIATION-HONESTY).
+ * Single spelling for catalog key, emitter, and skill-agreement tests — do not
+ * re-type the string at call sites.
+ */
+export const ATTEMPT_PAIR_FINDING_CODE = "review.attempt-pair-identical-tree" as const;
+
+/**
+ * Live WriteEvidence-vs-ObservedWriteScope finding code (C-DECLARED-WRITES).
+ * Single spelling for catalog key, emitter, suite pins, and skill agreement —
+ * do not re-type the string at call sites.
+ */
+export const WRITE_EVIDENCE_SCOPE_FINDING_CODE =
+  "review.write-evidence-outside-scope" as const;
 
 export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
   // --- Family A: corpus pattern codes ---
@@ -174,6 +191,48 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
     ],
     severity: "warning",
     derivedFrom: "§6.4 hunk coverage",
+    family: "process-audit",
+  },
+  [ATTEMPT_PAIR_FINDING_CODE]: {
+    code: ATTEMPT_PAIR_FINDING_CODE,
+    title: "Fail→Pass Attempt Pair Has Identical Non-.ngrace WriteEvidence Trees",
+    explanation:
+      "A fail→pass cursor attempt pair on the same task has no differing content digest among "
+      + "non-`.ngrace/` paths in WriteEvidence on both events. The trees are identical outside "
+      + "ledger artifacts the cursor writes on every command — so the red is not corroborated by "
+      + "any authored content change (F9.10 / C-SUBSTANTIATION-HONESTY). Paths under `.ngrace/` are "
+      + "excluded because they almost always differ and prove nothing. Severity is warning: "
+      + "detection requiring adjudication, not automatic bundle failure. "
+      + "cursor attempt stays quiet at write time.",
+    remediation: [
+      "If the fail was fabricated or nothing outside `.ngrace/` actually changed: record a free-text "
+        + "reason on `ngrace gate verdict --change C-ID --outcome … --note \"findingId=<id>: <reason>\"` "
+        + "keyed by this finding's stable findingId (D8.6). A bare \"reviewed\" flag is not enough.",
+      "If the pair should have shown real work: re-run red-first honestly — do not stage a "
+        + "retrospective red (F9.1). Record a real fail before the authored fix lands.",
+      "Do not invent a finding-clearance ledger schema here; gate verdict --note carries the reason.",
+    ],
+    severity: "warning",
+    derivedFrom: "F9.10 / F31 / F32 / C-SUBSTANTIATION-HONESTY",
+    family: "process-audit",
+  },
+  [WRITE_EVIDENCE_SCOPE_FINDING_CODE]: {
+    code: WRITE_EVIDENCE_SCOPE_FINDING_CODE,
+    title: "WriteEvidence Path Outside ObservedWriteScope",
+    explanation:
+      "A path recorded in durable WriteEvidence (tool-generated git digests on cursor attempts) is "
+      + "not covered by the plan's ObservedWriteScope. Distinct from review.scope-outside-write-scope, "
+      + "which reads the working tree (porcelain/base/explicit) and is blind on a clean close tree. "
+      + "Lifecycle run artifacts and docs/plans/ authority paths are excluded by path class (F11 / F27.1). "
+      + "Non-lifecycle .ngrace/ paths (e.g. undeclared edits to approved spec.xml) raise.",
+    remediation: [
+      "Add the path to ObservedWriteScope at plan time (including what the deliverable forces — "
+        + "skill-footprint pin, rule fixtures), or revert the out-of-scope write.",
+      "Do not widen ObservedWriteScope semantics to swallow the breach; do not author an exception "
+        + "list in plan.xml (F9.10.1).",
+    ],
+    severity: "error",
+    derivedFrom: "F27 / F27.1 / F27.2 / C-DECLARED-WRITES",
     family: "process-audit",
   },
 

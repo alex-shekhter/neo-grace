@@ -17,6 +17,7 @@
 //   AssertionSchema
 //   BUDGET_OPERATORS
 //   BudgetOperator
+//   CommandRunRecord
 //   GraceAssertion
 //   compileSafeAssertionPattern
 //   evaluateAssertion
@@ -66,6 +67,27 @@ export type GraceAssertion = {
   values: string[];
 };
 
+/**
+ * Durable evidence payload for one MustPassCommand / MustPassBudget spawn
+ * (C-CALIBRATION-COMMAND-EVIDENCE / D6.3(c)). Written via optional onCommandRun;
+ * assertions never import the cursor write surface (layering).
+ */
+export type CommandRunRecord = {
+  /** Exact command text as spawned (fold match key). */
+  command: string;
+  /** Numeric exit of the spawn just performed. */
+  exitCode: number;
+  /**
+   * Whether assertion evaluation treated this command as a pass.
+   * For MustPassCommand equals exitCode===0; for MustPassBudget is the full
+   * budget comparison (exit 0 with failed metric → false).
+   */
+  assertionPassed: boolean;
+  assertionKind: "MustPassCommand" | "MustPassBudget";
+  /** Evaluation source, e.g. lint-run-commands | assertions-final. */
+  source: string;
+};
+
 /** Context required to evaluate a neo-grace assertion. */
 export type AssertionContext = {
   root: string;
@@ -73,6 +95,16 @@ export type AssertionContext = {
   verification: VerificationProjection;
   /** Commands run only when an explicit target-verification path opts in. */
   runCommands?: boolean;
+  /**
+   * Optional source tag for command-run evidence (defaults to "assertions"
+   * when onCommandRun is supplied without an explicit source).
+   */
+  commandRunSource?: string;
+  /**
+   * Called after every spawn under runCommands true (success and failure).
+   * Supplied by lint/core (or tests); assertions must not write run/ files.
+   */
+  onCommandRun?: (record: CommandRunRecord) => void;
 };
 
 export type AssertionExtractionResult = {
@@ -291,13 +323,22 @@ function evaluateMustPassCommand(assertion: GraceAssertion, context: AssertionCo
 
   return assertion.values.flatMap((command) => {
     const result = spawnShellCommand(command, context.root);
+    const exitCode = result.exitCode ?? 1;
+    const assertionPassed = exitCode === 0;
+    context.onCommandRun?.({
+      command,
+      exitCode,
+      assertionPassed,
+      assertionKind: "MustPassCommand",
+      source: context.commandRunSource ?? "assertions",
+    });
 
-    if (result.exitCode === 0) {
+    if (assertionPassed) {
       return [];
     }
 
     const stderr = new TextDecoder().decode(result.stderr).trim();
-    return [assertionIssue(assertion, `Command failed (${result.exitCode}): ${command}${stderr ? `: ${stderr}` : ""}`)];
+    return [assertionIssue(assertion, `Command failed (${exitCode}): ${command}${stderr ? `: ${stderr}` : ""}`)];
   });
 }
 
@@ -545,22 +586,36 @@ function evaluateMustPassBudget(assertion: GraceAssertion, context: AssertionCon
   }
 
   const result = spawnShellCommand(command, context.root);
+  const exitCode = result.exitCode ?? 1;
   const stdout = new TextDecoder().decode(result.stdout);
   const stderr = new TextDecoder().decode(result.stderr).trim();
+  const source = context.commandRunSource ?? "assertions";
 
-  if (result.exitCode !== 0) {
+  const recordBudget = (assertionPassed: boolean) => {
+    context.onCommandRun?.({
+      command,
+      exitCode,
+      assertionPassed,
+      assertionKind: "MustPassBudget",
+      source,
+    });
+  };
+
+  if (exitCode !== 0) {
+    recordBudget(false);
     return [
       issue(
         "error",
         "assertion.budget-command-failed",
         assertion.file,
-        `Budget command failed (${result.exitCode}): ${command}${stderr ? `: ${stderr}` : ""}`,
+        `Budget command failed (${exitCode}): ${command}${stderr ? `: ${stderr}` : ""}`,
       ),
     ];
   }
 
   const match = compiled.pattern.exec(stdout);
   if (!match || match[1] == null) {
+    recordBudget(false);
     return [
       issue(
         "error",
@@ -573,6 +628,7 @@ function evaluateMustPassBudget(assertion: GraceAssertion, context: AssertionCon
 
   const measured = Number(match[1]);
   if (!Number.isFinite(measured)) {
+    recordBudget(false);
     return [
       issue(
         "error",
@@ -584,6 +640,7 @@ function evaluateMustPassBudget(assertion: GraceAssertion, context: AssertionCon
   }
 
   const ok = compareBudget(measured, operator as BudgetOperator, threshold);
+  recordBudget(ok);
   if (ok) {
     return [];
   }

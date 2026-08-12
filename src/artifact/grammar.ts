@@ -956,6 +956,20 @@ export function validateRunCursorArtifact(artifact: ParsedGraceXmlArtifact): Art
         `${ARTIFACT_TAG_PREFIX}RunCursor must identify its bundle through exactly one canonical C-* wrapper.`,
       ),
     );
+  } else {
+    // C-TOKEN-INTEGRITY T-004 site 9: empty EscalatedTask was filtered silently.
+    for (const child of identity.wrapper.children.filter((node) => node.tag === "EscalatedTask")) {
+      if (!child.text.trim()) {
+        issues.push(
+          issue(
+            "error",
+            "cursor.empty-escalated-task",
+            artifact.file,
+            "EscalatedTask must name a non-empty T-* task id; empty elements are not silent placeholders.",
+          ),
+        );
+      }
+    }
   }
 
   return { file: artifact.file, rootTag: root.tag, graceVersion: root.attributes.graceVersion, issues };
@@ -1022,15 +1036,40 @@ function companionChangeIdentity(root: GraceXmlNode): CompanionIdentity {
 
 function validateLedgerEpoch(file: string, epoch: GraceXmlNode): NgraceIssue[] {
   const issues: NgraceIssue[] = [];
-  const allocations = epoch.children
-    .filter((child) => child.tag === "Allocation")
-    .map((node) => parseAllocation(node))
-    .filter((entry): entry is RangeAllocation => entry !== null);
+  // C-TOKEN-INTEGRITY T-004: null parse is a corrupt audit trail — raise, never silent drop.
+  const allocations: RangeAllocation[] = [];
+  for (const node of epoch.children.filter((child) => child.tag === "Allocation")) {
+    const parsed = parseAllocation(node);
+    if (!parsed) {
+      issues.push(
+        issue(
+          "error",
+          "ledger.invalid-allocation",
+          file,
+          `Allocation under ${epoch.tag} is not a valid range: require worker and integer from/to with from <= to.`,
+        ),
+      );
+    } else {
+      allocations.push(parsed);
+    }
+  }
 
-  const events = epoch.children
-    .filter((child) => child.tag === "Event")
-    .map((node) => parseLedgerEvent(node))
-    .filter((entry): entry is LedgerEventRecord => entry !== null);
+  const events: LedgerEventRecord[] = [];
+  for (const node of epoch.children.filter((child) => child.tag === "Event")) {
+    const parsed = parseLedgerEvent(node);
+    if (!parsed) {
+      issues.push(
+        issue(
+          "error",
+          "ledger.invalid-event",
+          file,
+          `Event under ${epoch.tag} is not a valid ledger event: require positive integer id, non-empty task, and kind.`,
+        ),
+      );
+    } else {
+      events.push(parsed);
+    }
+  }
 
   for (const event of events) {
     const inAllocation = allocations.some((allocation) => event.id >= allocation.from && event.id <= allocation.to);
@@ -1431,7 +1470,22 @@ function validateImplementationTasks(file: string, wrapper: GraceXmlNode, issues
     return;
   }
 
-  const tasks = implementationPlan.children.filter((child) => ANCHOR_PATTERNS.task.test(child.tag));
+  // C-TOKEN-INTEGRITY T-004 site 10: non-task children were filtered silently.
+  const tasks: GraceXmlNode[] = [];
+  for (const child of implementationPlan.children) {
+    if (ANCHOR_PATTERNS.task.test(child.tag)) {
+      tasks.push(child);
+    } else {
+      issues.push(
+        issue(
+          "error",
+          "change.implementation-plan-invalid-child",
+          file,
+          `ImplementationPlan does not allow child <${child.tag}>; only direct T-* task elements are permitted.`,
+        ),
+      );
+    }
+  }
   if (tasks.length === 0) {
     issues.push(issue("error", "change.plan-missing-task", file, "ImplementationPlan must contain at least one direct T-* task."));
     return;
@@ -2007,24 +2061,63 @@ function validatePlanTask(file: string, task: GraceXmlNode, issues: NgraceIssue[
     return [];
   }
 
-  const dependencyValues = [
-    ...(dependsOn.text.trim() ? [dependsOn.text.trim()] : []),
-    ...dependsOn.children.map((child) => child.text.trim()).filter(Boolean),
-  ];
+  return readTaskDependencies(file, task.tag, dependsOn, issues);
+}
+
+/**
+ * Resolve DependsOn candidates (C-TOKEN-INTEGRITY T-002 / D7 / P0.3).
+ * Section text splits on [,;\s]+. Children: tag when T-NNN, else non-empty text, else invalid.
+ */
+function readTaskDependencies(
+  file: string,
+  taskId: string,
+  dependsOn: GraceXmlNode,
+  issues: NgraceIssue[],
+): string[] {
   const dependencies: string[] = [];
   const seen = new Set<string>();
-  for (const dependency of dependencyValues) {
+  const invalidMessage = (token: string) =>
+    `${taskId} dependency '${token}' is not a valid task reference. `
+    + "Accepted shapes: multi-value text list of T-NNN ids (comma, semicolon, or whitespace), "
+    + "<Task>T-NNN</Task> children, or self-closing <T-NNN /> anchor children.";
+
+  const addDependency = (dependency: string) => {
     if (!ANCHOR_PATTERNS.task.test(dependency)) {
-      issues.push(issue("error", "change.task-invalid-dependency", file, `${task.tag} dependency '${dependency}' must be a canonical T-NNN identifier.`));
-      continue;
+      issues.push(issue("error", "change.task-invalid-dependency", file, invalidMessage(dependency)));
+      return;
     }
     if (seen.has(dependency)) {
-      issues.push(issue("error", "change.task-duplicate-dependency", file, `${task.tag} repeats dependency ${dependency}.`));
-      continue;
+      issues.push(issue("error", "change.task-duplicate-dependency", file, `${taskId} repeats dependency ${dependency}.`));
+      return;
     }
     seen.add(dependency);
     dependencies.push(dependency);
+  };
+
+  const authoredText = dependsOn.text.trim();
+  if (authoredText) {
+    for (const token of authoredText.split(/[,;\s]+/).map((item) => item.trim()).filter(Boolean)) {
+      addDependency(token);
+    }
   }
+
+  for (const child of dependsOn.children) {
+    if (ANCHOR_PATTERNS.task.test(child.tag)) {
+      // D7: read the tag — do not raise solely for the anchor form.
+      addDependency(child.tag);
+      continue;
+    }
+    const childText = child.text.trim();
+    if (childText) {
+      for (const token of childText.split(/[,;\s]+/).map((item) => item.trim()).filter(Boolean)) {
+        addDependency(token);
+      }
+      continue;
+    }
+    // Neither tag nor text resolves.
+    issues.push(issue("error", "change.task-invalid-dependency", file, invalidMessage(child.tag || "(empty)")));
+  }
+
   return dependencies;
 }
 

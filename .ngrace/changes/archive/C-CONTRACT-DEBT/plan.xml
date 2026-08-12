@@ -1,0 +1,702 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-CONTRACT-DEBT>
+    <IntentSummary>
+      Close F29 / F29.1, F20, and D14 as one contract-debt bundle: additive
+      UTF-8 byte skill footprint (`totalBytes` / `perSkillBytes`) beside frozen
+      line `total` with pin + README; single exported `cloneXmlNode` on
+      `artifact/xml.ts` deleting both private copies; ES2022 object `cause` on
+      `GraceCommandError` at every conversion boundary with channel split
+      preserved; process-level unhandledRejection / uncaughtException handlers
+      at the CLI entry only — tested without suite-global install side effects.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/test-support/token-accounting.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>src/artifact/xml.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/xml.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/run-membership.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/query/errors.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-CONTRACT-DEBT/spec.xml</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-ARTIFACT-TYPES</Value></MustExist>
+      <MustExist><Value>M-CLI-INFRA</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <!-- Pre-change world (F28: each MustNotContain / dual-private MustContain is true at plan-authoring HEAD e0e0e75). -->
+      <MustContain>
+        <File>src/test-support/token-accounting.ts</File>
+        <Text>skillTextLines</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.ts</File>
+        <Text>Fixed measurement format</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>toBe(779)</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>779 lines</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>GraceXmlNode</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>function cloneXmlNode</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/run-membership.ts</File>
+        <Text>function cloneXmlNode</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/errors.ts</File>
+        <Text>options: { exitCode?: number; issues?: string[] } = {}</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/errors.ts</File>
+        <Text>super(message);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/errors.ts</File>
+        <Text>new GraceCommandError("invalid-project", fallbackMessage);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>throw new GraceCommandError("invalid-project", message);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace.ts</File>
+        <Text>import.meta.main</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/test-support/token-accounting.ts</File>
+        <Text>totalBytes</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>totalBytes</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>README.md</File>
+        <Text>totalBytes</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>cloneXmlNode</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace.ts</File>
+        <Text>unhandledRejection</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace.ts</File>
+        <Text>uncaughtException</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-ARTIFACT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-CLI-INFRA</Module></MustVerify>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/test-support/token-accounting.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>src/artifact/xml.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/xml.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/run-membership.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/query/errors.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-ARTIFACT-TYPES</Value></MustExist>
+      <MustExist><Value>M-CLI-INFRA</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustContain>
+        <File>src/test-support/token-accounting.ts</File>
+        <Text>totalBytes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.ts</File>
+        <Text>perSkillBytes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>totalBytes</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>totalBytes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>cloneXmlNode</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>cloneXmlNode</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/run-membership.ts</File>
+        <Text>cloneXmlNode</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>function cloneXmlNode</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/run-membership.ts</File>
+        <Text>function cloneXmlNode</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/query/errors.ts</File>
+        <Text>cause</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>cause</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace.ts</File>
+        <Text>unhandledRejection</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace.ts</File>
+        <Text>uncaughtException</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.ts</File>
+        <Text>skillTextLines</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/test-support/token-accounting.ts</File>
+        <Text>Fixed measurement format</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-ARTIFACT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-CLI-INFRA</Module></MustVerify>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/xml.test.ts src/query/command.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-TEST-SUPPORT />
+        <M-GRAMMAR />
+        <M-CURSOR />
+        <M-ARTIFACT-TYPES />
+        <M-CLI-INFRA />
+        <M-CLI />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-TEST-SUPPORT />
+        <V-M-GRAMMAR />
+        <V-M-CURSOR />
+        <V-M-ARTIFACT-TYPES />
+        <V-M-CLI-INFRA />
+        <V-M-CLI />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/test-support/token-accounting.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+      <File>src/artifact/xml.ts</File>
+      <File>src/artifact/xml.test.ts</File>
+      <File>src/artifact/run-membership.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/query/errors.ts</File>
+      <File>src/query/command.ts</File>
+      <File>src/query/command.test.ts</File>
+      <File>src/grace.ts</File>
+      <File>.ngrace/changes/active/C-CONTRACT-DEBT/plan.xml</File>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers; authority reviews this hardest)
+
+      Plan-authoring HEAD: e0e0e75 (branch docs/rm-governed-path). Spec is
+      approved and immutable — do not edit it. Re-measure every count at execute
+      (F12.2). Spec rules (additive bytes, clone home xml.ts, object cause,
+      channel split, handlers at CLI entry only) are fixed; do not re-open.
+
+      ─────────────────────────────────────────────────────────────────
+      D0 — Task decomposition (main design decision)
+      ─────────────────────────────────────────────────────────────────
+      Four independent production tasks + one dogfood close. F29, F20, and the
+      two D14 repairs share a *subject* (declared contract unmet) but **no
+      surface dependency**. Empty DependsOn on T-001..T-004 so each gets its
+      own honest red (fail attempt) rather than one pair covering sixteen ACs.
+
+      | Task | Surface | Satisfies (primary) |
+      | T-001 | footprint instrument | six F29 ACs including AC-HEAD-RED |
+      | T-002 | cloneXmlNode home | three F20 ACs including AC-CLONE-HEAD-RED |
+      | T-003 | cause + conversion + channel | three D14 (i) ACs |
+      | T-004 | process handlers at entry | AC-PROCESS-HANDLERS-AT-CLI-ENTRY |
+      | T-005 | dogfood close | AC-SUITE-AND-LINT, AC-NO-ARCHIVE-OR-ROADMAP-EDITS,
+                         AC-D14-HEAD-RED (full post-change proof) |
+
+      **Cost of this split (recorded deliberately):**
+      - Five cursor task advances; four honest reds (T-001..T-004) + no honest
+        red on T-005 if already green.
+      - Window after T-003 only: object cause works; unawaited rejection can
+        still exit 0 silent — AC-PROCESS-HANDLERS / full AC-D14-HEAD-RED not
+        claimable. Do not archive or claim D14 complete in that window.
+      - Window after T-004 only (if T-003 not done): handlers report raw faults;
+        conversion sites still message-copy without object cause —
+        AC-CAUSE-* not claimable. Do not claim D14 complete.
+      - Window after any single production task: other families' Baseline
+        MustNotContain still green; see D8 for exact N.
+
+      **Why not one mega-task:** confounds reds across three mechanisms; a
+      fail signature would not localize. Why not merge T-003+T-004: different
+      files and different HEAD-RED measurements (constructor vs process.on);
+      independent empty DependsOn matches the independence the authority
+      asked us to weigh. AC-D14-HEAD-RED is fully Satisfied only on T-005
+      after both land; T-003/T-004 each record their half of the pre-edit
+      measurement in their own red-first round trip.
+
+      ─────────────────────────────────────────────────────────────────
+      D1 — F29 additive bytes (T-001; AC-HEAD-RED)
+      ─────────────────────────────────────────────────────────────────
+      Keep total / perSkill / referencesTotal as line counts. Extend
+      skillTextLines() return with totalBytes + perSkillBytes = UTF-8
+      Buffer.byteLength of the same SKILL.md files. Pin totalBytes with exact
+      toBe after re-measure (authoring snapshot 53771 at e0e0e75 — F33: not a
+      criterion pin). Rewrite module comment: total frozen for archived cites;
+      additive fields; survey via rg -ln 'skillTextLines'. Update README
+      measurements table to publish totalBytes (or equivalent byte figure)
+      beside lines. Red-first: write agreement/pin tests that fail because
+      totalBytes absent; record fail; then implement; re-measure pin.
+
+      ─────────────────────────────────────────────────────────────────
+      D2 — F20 cloneXmlNode (T-002; AC-CLONE-HEAD-RED)
+      ─────────────────────────────────────────────────────────────────
+      Export cloneXmlNode from src/artifact/xml.ts (behaviour = current
+      private body). MODULE_MAP on xml.ts lists cloneXmlNode. Delete both
+      function cloneXmlNode privates; import from xml at cursor +
+      run-membership. Donors do NOT export it. Red-first measurement (own
+      round trip before product edit):
+
+        rg -n 'function cloneXmlNode' src/
+        → exactly grace-cursor.ts and run-membership.ts (two defs)
+        → xml.ts has no cloneXmlNode
+
+      After: exactly one definition, in xml.ts. xml.test.ts gains behavioural
+      clone tests (forced by AC-CLONE-HEAD-RED / suite proof).
+
+      ─────────────────────────────────────────────────────────────────
+      D3 — D14 cause (T-003)
+      ─────────────────────────────────────────────────────────────────
+      GraceCommandError constructor accepts ES2022 cause (object). Attach at:
+        (1) command.ts defineGraceCommand catch (F25.1 site)
+        (2) errors.ts runGraceCommand wrap of non-GraceCommandError
+      Channel split: stack/cause chain → stderr in text and JSON; envelope
+      schemaVersion unchanged; no stack field in envelope. Suite: object
+      identity error.cause === original (not message equality alone) —
+      AC-D14-HEAD-RED / AC-CAUSE language. Red-first: assert constructor has
+      no usable cause path / conversion lacks cause (pre-edit HEAD).
+
+      ─────────────────────────────────────────────────────────────────
+      D4 — D14 process handlers (T-004) + testability without global install
+      ─────────────────────────────────────────────────────────────────
+      Install unhandledRejection + uncaughtException only under
+      import.meta.main in src/grace.ts (already the CLI entry gate), before
+      runMain. Handlers write error + cause chain to stderr and exit non-zero.
+
+      **Trap failure conditions (must not):** exit 0; swallow; fixed fallback
+      string alone; stack in JSON stdout envelope; install on library import.
+
+      **Handler testability (no suite-global process.on side effect):**
+      1. Pure reporting helper (format/write fault + cause chain) lives where
+         tests can call it without registering listeners — prefer a named
+         function in grace.ts that is **not** invoked on import, or a tiny
+         pure helper co-located and only wired from import.meta.main.
+      2. Unit tests call the pure reporter with mock sinks (stderrWrite, exit)
+         and assert cause-chain text + non-zero exit callback.
+      3. Install itself is only invoked when import.meta.main is true — so
+         `bun test` importing grace modules must not register process listeners.
+         Prove with a test that loads query/errors and/or grace.ts as a module
+         and asserts process.listenerCount('unhandledRejection') is unchanged
+         (or zero added), and/or a subprocess that imports the library path.
+      4. Source pin: grace.ts contains unhandledRejection and uncaughtException
+         under the main path (TargetAssertions).
+      Do **not** put process.on in errors.ts or command.ts.
+
+      ─────────────────────────────────────────────────────────────────
+      D5 — HEAD-RED ownership (three criteria)
+      ─────────────────────────────────────────────────────────────────
+      | Spec AC | Owner task | Pre-edit measurement (own tool round trip) |
+      | AC-HEAD-RED | T-001 | bun test for totalBytes pin/agreement fails
+        (property absent); or read skillTextLines() lacks totalBytes |
+      | AC-CLONE-HEAD-RED | T-002 | rg -n 'function cloneXmlNode' src/ shows
+        two private defs; xml.ts has no cloneXmlNode |
+      | AC-D14-HEAD-RED | T-003 (cause half) + T-004 (handler half);
+        full Satisfies on T-005 | T-003: constructor options lack cause;
+        process.on empty is T-004's red; after both, suite proves object
+        identity cause + handlers at entry |
+
+      Ordering: red recorded **before** the production edit that makes the
+      check pass; fail attempt on ledger; never retrospective red via stash.
+
+      ─────────────────────────────────────────────────────────────────
+      D6 — ObservedWriteScope derivation (measured at e0e0e75)
+      ─────────────────────────────────────────────────────────────────
+      Commands and hits:
+
+        rg -n 'function cloneXmlNode' src/
+          → defs at grace-cursor.ts:2850, run-membership.ts:50
+          → call sites only those two files
+        sed MODULE_MAP xml.ts → no cloneXmlNode (export + MAP forced)
+        rg -n 'process\.on\(' src/ → none
+        rg -n 'totalBytes' src/ README.md → none
+        README.md:286 → 779 lines (not bytes) — byte figure forced
+        rg -n 'GraceCommandError|runGraceCommand|defineGraceCommand' \
+          src/query/command.test.ts → error-surface tests forced
+        ls src/artifact/xml.test.ts → exists; clone behaviour tests forced
+        rg -n 'super\(message\)' src/query/errors.ts → cause path forced
+
+      Forced OWS (final list):
+        src/test-support/token-accounting.ts
+        src/test-support/token-accounting.test.ts
+        README.md
+        src/artifact/xml.ts
+        src/artifact/xml.test.ts
+        src/artifact/run-membership.ts
+        src/grace-cursor.ts
+        src/query/errors.ts
+        src/query/command.ts
+        src/query/command.test.ts
+        src/grace.ts
+        .ngrace/changes/active/C-CONTRACT-DEBT/plan.xml
+
+      Deliberately excluded:
+        docs/plans/** — authority concurrent; F29 archive cites stay history
+        .ngrace/changes/archive/** — immutable
+        skills/** / plugins/** — no skill prose in this bundle
+        version surfaces, CHANGELOG.md — stay 6.1.1
+        .ngrace/graph/** — Summary not forced unless implementer finds
+          overclaim after contract edit (stop and declare if so)
+        New process-fault module path — avoid unless pure helper cannot live
+          in grace.ts without MAP_MODE pain; if created, stop and re-spec OWS
+
+      ─────────────────────────────────────────────────────────────────
+      D7 — Counts
+      ─────────────────────────────────────────────────────────────────
+      Determinism ratchet: **expect 14** caught keys (no new review code).
+      If validate:ci reports otherwise → **stop and report**, do not adjust.
+
+      Pins that move by design:
+        - total (lines): re-measure; exact toBe; meaning frozen (AC-TOTAL-*)
+        - totalBytes (new): re-measure after instrument; exact toBe
+          (AC-PIN-TOTAL-BYTES). Authoring snapshot 53771 — not a criterion pin.
+
+      ─────────────────────────────────────────────────────────────────
+      D8 — Baseline assertion.* count predictions (exact; flag if N ≠ n)
+      ─────────────────────────────────────────────────────────────────
+      Load-bearing Baseline falsifiers (MustNotContain / dual-private
+      MustContain that flip):
+
+        A  MustNotContain token-accounting.ts totalBytes
+        B  MustNotContain token-accounting.test.ts totalBytes
+        C  MustNotContain README.md totalBytes
+        D  MustContain token-accounting.ts "Fixed measurement format"
+           (becomes false when comment rewritten — counted as assertion error)
+        E  MustNotContain xml.ts cloneXmlNode
+        F  MustContain grace-cursor.ts "function cloneXmlNode"
+        G  MustContain run-membership.ts "function cloneXmlNode"
+        H  MustContain errors.ts options type without cause
+           (exact text: options: { exitCode?: number; issues?: string[] } = {})
+        I  MustContain errors.ts super(message);
+        J  MustContain errors.ts new GraceCommandError("invalid-project", fallbackMessage);
+           (exact 2-arg call with trailing ");" — F28: without the semicolon a
+           3-arg call would still substring-match)
+        K  MustContain command.ts throw new GraceCommandError("invalid-project", message);
+        L  MustNotContain grace.ts unhandledRejection
+        M  MustNotContain grace.ts uncaughtException
+
+      Note: D, H, I, J, K are MustContain of pre-change shapes that **fail after
+      the edit** (same arithmetic as MustNotContain of post-change strings).
+      Count every assertion.* error from BaselineAssertions that fires.
+
+      Stages (assuming tasks land in numeric order; if parallel, sum the
+      families that have landed):
+
+        After plan approval, before any task:
+          N = **0**. Flag if N ≠ 0.
+
+        After **T-001** only (F29: A,B,C,D):
+          N = **4**. Flag if N ≠ 4.
+
+        After **T-001 + T-002** ( + E,F,G):
+          N = **7**. Flag if N ≠ 7.
+
+        After **T-001 + T-002 + T-003** ( + H,I,J,K):
+          N = **11**. Flag if N ≠ 11.
+
+        After **T-001..T-004** ( + L,M):
+          N = **13**. Flag if N ≠ 13.
+
+        After **T-005 / apply-archive** (AC-SUITE-AND-LINT **at close**):
+          lint 0 errors and 0 warnings — not claimed mid-change (F26).
+
+      Never weaken a BaselineAssertion to reduce N.
+
+      ─────────────────────────────────────────────────────────────────
+      D9 — Discrimination probes (must see red once)
+      ─────────────────────────────────────────────────────────────────
+      1. total redefined to byteLength while tests still name total as lines
+         → AC-TOTAL / line pin reddens
+      2. Drop totalBytes field but leave pin → pin red
+      3. Token-estimate totalBytes → determinism or exact pin red (forbid)
+      4. Leave private cloneXmlNode in one donor → dual-def / import red
+      5. Export clone from run-membership instead of xml → SCOPE/MAP red
+      6. Conversion attaches message only (no object cause) → identity red
+      7. Stack written to JSON stdout → channel-split red
+      8. Handler installed on import of errors.ts → listenerCount / side-effect red
+      9. Handler exits 0 or fixed fallback only → process-handler red
+
+      Record verbatim when run; do not leave a break committed.
+
+      ─────────────────────────────────────────────────────────────────
+      D10 — Execution discipline
+      ─────────────────────────────────────────────────────────────────
+      One open epoch. Red-first per T-001..T-004 in own tool round trips.
+      T-005: no manufactured red if green. Terminal / fold / gate / commit are
+      operator steps after T-005 unless authority says otherwise. No version
+      bump. No docs/plans or archive edits.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Additive skillTextLines totalBytes / perSkillBytes, pin, comment, README</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-TOTAL-LINE-SEMANTICS-FROZEN />
+          <AC-ADDITIVE-BYTE-FOOTPRINT />
+          <AC-PIN-TOTAL-BYTES />
+          <AC-COMMENT-AND-CONTRACT />
+          <AC-README-PUBLISHED-FIGURE />
+          <AC-HEAD-RED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (ordering load-bearing): before production edits, in its
+            own tool round trip, show that totalBytes is absent from
+            skillTextLines() / the pin test would fail (F28). Record cursor fail.
+            Then implement. After, exact toBe pin matches re-measure.
+          </Criterion>
+          <Criterion>
+            skillTextLines keeps total/perSkill/referencesTotal as line counts
+            with pre-change semantics. Add totalBytes and perSkillBytes as UTF-8
+            byte lengths of the same SKILL.md set; sum(perSkillBytes) === totalBytes;
+            deterministic same-root deep equal. Not a token estimate.
+          </Criterion>
+          <Criterion>
+            token-accounting.test.ts pins totalBytes with exact toBe of
+            post-edit re-measure (F23; F33: do not freeze authoring 53771 in the
+            criterion). total line pin remains exact toBe of re-measured lines
+            (authoring 779 if unchanged). Synthetic or unit proof: line-stable
+            content growth moves totalBytes.
+          </Criterion>
+          <Criterion>
+            Module comment removes "Fixed measurement format / update every
+            phase report"; states frozen total, additive fields, and
+            rg -ln 'skillTextLines' survey. PURPOSE/SCOPE honest about line and
+            byte footprint (not tokens the code does not count). MODULE_MAP if
+            exports change.
+          </Criterion>
+          <Criterion>
+            README measurements table publishes the byte figure (totalBytes or
+            equivalent) beside lines; re-run recipe documents both. Version line
+            stays 6.1.1.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Export cloneXmlNode from artifact/xml.ts; delete both private copies</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-CLONE-XML-SINGLE-HOME />
+          <AC-CLONE-CALL-SITES-AND-CONTRACTS />
+          <AC-CLONE-HEAD-RED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-CLONE-HEAD-RED: before product edits, own round trip —
+            `rg -n 'function cloneXmlNode' src/` shows defs only in
+            grace-cursor.ts and run-membership.ts; xml.ts has no cloneXmlNode.
+            Record fail. After edit: exactly one function cloneXmlNode, in xml.ts.
+          </Criterion>
+          <Criterion>
+            Export cloneXmlNode from src/artifact/xml.ts with current private
+            semantics (tag, shallow attributes copy, recursive children, text).
+            MODULE_MAP lists cloneXmlNode. Donors import it and contain no local
+            function cloneXmlNode. run-membership does not export it.
+          </Criterion>
+          <Criterion>
+            xml.test.ts covers clone behaviour (structural independence of
+            children/attributes). lint has zero markup.module-map-mismatch **at
+            close** for these files (mid-task MAP may be briefly dirty until MAP
+            updated in the same edit).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+          <Command>rg -n 'function cloneXmlNode' src/</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>GraceCommandError object cause at constructor and conversion boundaries</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-CAUSE-OBJECT-ON-GRACE-COMMAND-ERROR />
+          <AC-CAUSE-AT-CONVERSION-BOUNDARIES />
+          <AC-CHANNEL-SPLIT-PRESERVED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first (cause half of AC-D14-HEAD-RED): before product edits,
+            constructor options are `{ exitCode?: number; issues?: string[] }`
+            only and super(message) has no cause path; conversion sites throw
+            without object cause. Record fail for this half.
+          </Criterion>
+          <Criterion>
+            GraceCommandError accepts optional ES2022 cause (object). When set,
+            error.cause is the original value (object identity in tests — not
+            message equality alone). exitCode and issues remain.
+          </Criterion>
+          <Criterion>
+            command.ts defineGraceCommand catch and errors.ts runGraceCommand
+            wrap attach the original as cause. Re-thrown GraceCommandError
+            untouched.
+          </Criterion>
+          <Criterion>
+            Channel split preserved: stack/cause diagnostics on stderr in text
+            and JSON; JSON stdout remains parseable GraceCommandErrorEnvelope
+            with unchanged schemaVersion and no stack field inside the envelope.
+          </Criterion>
+          <Criterion>
+            Window honesty: after this task alone, process handlers may still be
+            absent — do not claim AC-PROCESS-HANDLERS-AT-CLI-ENTRY or full
+            AC-D14-HEAD-RED complete.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/query/command.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>CLI-entry unhandledRejection and uncaughtException handlers</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-PROCESS-HANDLERS-AT-CLI-ENTRY />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first (handler half of AC-D14-HEAD-RED): before product edits,
+            `rg -n 'process\.on\(' src/` is empty and grace.ts has no
+            unhandledRejection / uncaughtException. Record fail.
+          </Criterion>
+          <Criterion>
+            Install unhandledRejection and uncaughtException only from the CLI
+            entry path in src/grace.ts under import.meta.main (before or with
+            runMain). Not as import side effect of errors.ts, command.ts, or
+            other library modules.
+          </Criterion>
+          <Criterion>
+            On fault: stderr carries the error and cause chain (not a fixed
+            fallback alone); process exits non-zero. Must not: exit 0; swallow;
+            stack inside JSON stdout envelope.
+          </Criterion>
+          <Criterion>
+            Testability: pure reporter / handler body unit-tested with mock
+            sinks without registering process listeners for the whole suite;
+            prove importing library modules does not install handlers
+            (listenerCount or equivalent). Source contains the process.on
+            registrations under the main entry path.
+          </Criterion>
+          <Criterion>
+            Window honesty: if T-003 is not yet done, conversion sites may still
+            lack object cause — do not claim AC-CAUSE-* or full AC-D14-HEAD-RED.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>rg -n 'process\.on\(' src/</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Dogfood close: suite, lint at close, full D14 HEAD-RED proof, archive untouched</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+          <Task>T-004</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SUITE-AND-LINT />
+          <AC-NO-ARCHIVE-OR-ROADMAP-EDITS />
+          <AC-D14-HEAD-RED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-SUITE-AND-LINT **at close** (F26 qualifier): after apply/archive,
+            `bun run ngrace lint --path .` is 0 errors and 0 warnings — do not
+            claim 0/0 mid-change while Baseline falsifiers are expected red
+            (predicted N = 13 after T-001..T-004).
+          </Criterion>
+          <Criterion>
+            bun test for touched packages green; bun run validate:ci green with
+            determinism ratchet still **14** caught keys — if not 14, stop and
+            report; never drop keys to keep 14.
+          </Criterion>
+          <Criterion>
+            AC-D14-HEAD-RED post-change: constructor + conversion attach object
+            cause (identity); process handlers present at grace.ts entry;
+            JSON stdout parses; stderr carries diagnostics. Pre-edit reds were
+            recorded on T-003 and T-004 (not manufactured at close).
+          </Criterion>
+          <Criterion>
+            AC-NO-ARCHIVE-OR-ROADMAP-EDITS: no writes under docs/plans/** or
+            .ngrace/changes/archive/**; archived 636/723 citations untouched;
+            no CHANGELOG; no version surfaces (6.1.1).
+          </Criterion>
+          <Criterion>
+            Integration re-check: rg function cloneXmlNode → one hit in xml.ts;
+            skillTextLines exposes totalBytes; OWS dogfood — this bundle's
+            WriteEvidence scope audit 0 findings if OWS was honest.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts src/artifact/xml.test.ts src/query/command.test.ts</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-CONTRACT-DEBT>
+</NgraceChangePlan>

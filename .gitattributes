@@ -1,0 +1,16 @@
+# Normalize every text file to LF in the working tree on all platforms.
+#
+# Not cosmetic. This repository's integrity model hashes file bytes:
+# run-ledger WriteEvidence digests, the determinism ratchet, the packed-CLI
+# smoke, and the preserved-evidence SHA-1 pinned over the live NaN orphan at
+# .ngrace/changes/archive/C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml.
+#
+# A CRLF-converting checkout changes those bytes and therefore those digests —
+# the orphan is 135 bytes / c0cc8899… as LF and 136 bytes / bab374c4… as CRLF.
+# Pinning a digest over a committed file is only meaningful if every platform
+# checks out the same bytes.
+#
+# No tracked file currently contains CRLF and no binary files are tracked, so
+# this normalizes nothing that exists today; it fixes what a Windows checkout
+# would otherwise produce.
+* text=auto eol=lf

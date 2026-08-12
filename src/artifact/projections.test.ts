@@ -398,4 +398,101 @@ describe("neo-grace graph and verification projections", () => {
     expect(issueCodes(verification.issues)).toContain("projection.verification.invalid-cwd");
     expect(issueCodes(verification.issues).filter((code) => code === "projection.verification.invalid-test-file")).toHaveLength(2);
   });
+
+  // C-TOKEN-INTEGRITY T-003 / P0.5 — Owns text diagnosis and index silent discards.
+  describe("Owns diagnosis and index list discards (T-003)", () => {
+    it("raises a direct Owns diagnosis for text where self-closing anchors belong (silent as unlisted-anchor only today)", () => {
+      const root = createProject();
+      // Index owns M-EXAMPLE as bare text, not a child tag — owns list empty → unlisted-anchor today.
+      writeProjectFile(
+        root,
+        `${ARTIFACT_DIR}/graph/index.xml`,
+        `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns>M-EXAMPLE</Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      );
+      writeProjectFile(
+        root,
+        `${ARTIFACT_DIR}/graph/main.xml`,
+        `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Example.</Summary></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
+      );
+      writeProjectFile(root, `${ARTIFACT_DIR}/verification/index.xml`, `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments /></NgraceVerificationIndex>`);
+      writeProjectFile(root, `${ARTIFACT_DIR}/verification/main.xml`, `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN /></NgraceVerificationDocument>`);
+
+      const graph = buildGraphProjection(resolveNgracePaths(root));
+      const ownsText = graph.issues.filter((i) => i.code === "projection.index.owns-text");
+      expect(ownsText.length).toBeGreaterThanOrEqual(1);
+      expect(ownsText[0]!.message).toMatch(/Owns|self-closing|text/i);
+      // Must not be only the useless unlisted-anchor path.
+      expect(ownsText[0]!.code).not.toBe("projection.graph.unlisted-anchor");
+    });
+
+    it("raises projection.index.invalid-owns-child for non-anchor Owns children (silent filter today)", () => {
+      const root = createProject();
+      writeProjectFile(
+        root,
+        `${ARTIFACT_DIR}/graph/index.xml`,
+        `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /><NotAnAnchor /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      );
+      writeProjectFile(
+        root,
+        `${ARTIFACT_DIR}/graph/main.xml`,
+        `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Example.</Summary></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
+      );
+      writeProjectFile(root, `${ARTIFACT_DIR}/verification/index.xml`, `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments /></NgraceVerificationIndex>`);
+
+      const graph = buildGraphProjection(resolveNgracePaths(root));
+      const invalid = graph.issues.filter((i) => i.code === "projection.index.invalid-owns-child");
+      expect(invalid.length).toBeGreaterThanOrEqual(1);
+      expect(invalid.some((i) => i.message.includes("NotAnAnchor"))).toBe(true);
+    });
+
+    it("raises projection.index.invalid-document-child for non-GD under GraphDocuments (silent today)", () => {
+      const root = createProject();
+      writeProjectFile(
+        root,
+        `${ARTIFACT_DIR}/graph/index.xml`,
+        `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><Note>oops</Note><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      );
+      writeProjectFile(
+        root,
+        `${ARTIFACT_DIR}/graph/main.xml`,
+        `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Example.</Summary></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
+      );
+      writeProjectFile(root, `${ARTIFACT_DIR}/verification/index.xml`, `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments /></NgraceVerificationIndex>`);
+
+      const graph = buildGraphProjection(resolveNgracePaths(root));
+      const invalid = graph.issues.filter((i) => i.code === "projection.index.invalid-document-child");
+      expect(invalid.length).toBeGreaterThanOrEqual(1);
+      expect(invalid.some((i) => i.message.includes("Note"))).toBe(true);
+    });
+
+    it("raises projection.index.invalid-document-child for non-VD under VerificationDocuments (silent today)", () => {
+      const root = createProject();
+      writeProjectFile(
+        root,
+        `${ARTIFACT_DIR}/graph/index.xml`,
+        `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-EXAMPLE /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+      );
+      writeProjectFile(
+        root,
+        `${ARTIFACT_DIR}/graph/main.xml`,
+        `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Example.</Summary><V-M-EXAMPLE /></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
+      );
+      writeProjectFile(
+        root,
+        `${ARTIFACT_DIR}/verification/index.xml`,
+        `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><Note>oops</Note><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-EXAMPLE /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+      );
+      writeProjectFile(
+        root,
+        `${ARTIFACT_DIR}/verification/main.xml`,
+        `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-EXAMPLE><Command>bun test</Command><Scenario>ok</Scenario></V-M-EXAMPLE></VD-MAIN></NgraceVerificationDocument>`,
+      );
+
+      const graph = buildGraphProjection(resolveNgracePaths(root));
+      const verification = buildVerificationProjection(resolveNgracePaths(root), graph);
+      const invalid = verification.issues.filter((i) => i.code === "projection.index.invalid-document-child");
+      expect(invalid.length).toBeGreaterThanOrEqual(1);
+      expect(invalid.some((i) => i.message.includes("Note"))).toBe(true);
+    });
+  });
 });

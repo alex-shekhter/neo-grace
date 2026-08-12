@@ -20,10 +20,13 @@ import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { defineCommand, type CommandDef, runMain } from "citty";
 
+import { defineGraceCommand } from "./query/command";
+
 import { lintGraceProject } from "./lint/core";
 import type { AnalysisCoverage, LintIssue } from "./lint/types";
 import { ARTIFACT_DIR, toProjectRelativePath } from "./artifact/paths";
 import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "./artifact/project";
+import { listLooseEvents, listRunOrphans } from "./artifact/run-membership";
 import { skillRef } from "./artifact/types";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./artifact/projections";
 import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope } from "./artifact/scope";
@@ -43,8 +46,22 @@ export type ChangeBundleStatus = {
   planStatus?: string;
   derivedStates: string[];
   path: string;
-  /** Closed epochs in run-ledger.xml, when present (Phase 3). */
+  /**
+   * Folded (closed) Epoch-N wrappers in run-ledger.xml, when a ledger is present.
+   * D8.8 / C-CURSOR-INTEGRITY T-007: this is **not** open-epoch activity — see openEpochCount.
+   */
   epochCount?: number;
+  /**
+   * Open (unfolded) epochs: 1 when run/ holds foldable loose events (listLooseEvents),
+   * else 0 when known. Distinguishes an in-progress run from no cursor activity (D8.8).
+   * Orphans (listRunOrphans) do not count as open — see orphanCount (F15 / D5).
+   */
+  openEpochCount?: number;
+  /**
+   * Count of unrecoverable run/ orphans (listRunOrphans). Surfaced so NaN-style
+   * evidence stays visible without claiming an open foldable epoch (F15 / D5).
+   */
+  orphanCount?: number;
   /** Tasks named in plan.xml ImplementationPlan, when present. */
   taskCount?: number;
   /**
@@ -190,7 +207,19 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       }
     }
 
-    const epochCount = existsSync(ledgerFile) ? countLedgerEpochs(ledgerFile) : undefined;
+    const openEpochCount = countOpenEpochs(bundlePath);
+    const orphanCount = listRunOrphans(bundlePath).length;
+    const hasLedger = existsSync(ledgerFile);
+    // Folded count only when a ledger exists; still surface open activity without a ledger.
+    // With-ledger path: openEpochCount is independent (foldable loose only). Without ledger:
+    // epochCount=0 when foldable open exists so status can print epochs=0 open=1; undefined
+    // when neither ledger nor open foldable activity (orphan-only without ledger still needs
+    // the orphan signal — see formatStatusText).
+    const epochCount = hasLedger
+      ? countLedgerEpochs(ledgerFile)
+      : openEpochCount > 0
+        ? 0
+        : undefined;
     const taskCount = existsSync(planFile) ? countPlanTasks(planFile) : undefined;
 
     return {
@@ -201,12 +230,15 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       derivedStates: [...new Set(derivedStates)],
       path: relativeBundlePath,
       epochCount,
+      openEpochCount: epochCount !== undefined || openEpochCount > 0 ? openEpochCount : undefined,
+      orphanCount: orphanCount > 0 ? orphanCount : undefined,
       taskCount,
       applyGateRecord,
     } satisfies ChangeBundleStatus;
   });
 }
 
+/** Folded Epoch-N wrappers only — never open/loose run/ activity (D8.8). */
 function countLedgerEpochs(ledgerFile: string): number {
   const artifact = readGraceXmlArtifact(ledgerFile);
   if (!artifact.root) return 0;
@@ -217,6 +249,15 @@ function countLedgerEpochs(ledgerFile: string): number {
     }
   }
   return count;
+}
+
+/**
+ * Open (unfolded) epoch presence from foldable loose run/ events (F15).
+ * One open epoch at a time; membership is listLooseEvents (shared with archive gate).
+ * Orphans are not open epochs — see orphanCount / listRunOrphans.
+ */
+function countOpenEpochs(bundlePath: string): number {
+  return listLooseEvents(bundlePath).length > 0 ? 1 : 0;
 }
 
 function countPlanTasks(planFile: string): number {
@@ -431,7 +472,16 @@ export function formatStatusText(result: StatusResult) {
     lines.push("- none");
   } else {
     for (const change of result.changes) {
-      const epochPart = change.epochCount !== undefined ? ` epochs=${change.epochCount}` : "";
+      // D8.8 / D5: folded epochs, foldable open, and orphan inventory are distinct.
+      let epochPart = "";
+      if (change.epochCount !== undefined || (change.openEpochCount ?? 0) > 0 || (change.orphanCount ?? 0) > 0) {
+        const folded = change.epochCount ?? 0;
+        const open = change.openEpochCount ?? 0;
+        epochPart = open > 0 ? ` epochs=${folded} open=${open}` : ` epochs=${folded}`;
+        if ((change.orphanCount ?? 0) > 0) {
+          epochPart += ` orphans=${change.orphanCount}`;
+        }
+      }
       const taskPart = change.taskCount !== undefined ? ` tasks=${change.taskCount}` : "";
       lines.push(
         `- ${change.changeId} [${change.location}] spec=${change.specStatus ?? "missing"} plan=${change.planStatus ?? "missing"}${epochPart}${taskPart} states=${change.derivedStates.join(",") || "none"}`,
@@ -620,7 +670,7 @@ function shouldFail(result: StatusResult, failOn: string) {
   return errorCount > 0;
 }
 
-export const statusCommand = defineCommand({
+export const statusCommand = defineGraceCommand({
   meta: {
     name: "status",
     description: "Show neo-grace durable health, active/archive changes, derived states, and next action.",
