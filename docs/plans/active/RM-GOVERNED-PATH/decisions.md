@@ -2835,3 +2835,57 @@ leave every future plan free to make the same omission and merely learn about it
 The scope cost is two files (`skills/ngrace/ngrace-plan/SKILL.md` and its packaged mirror), declared
 honestly — which is exactly what the bundle is arguing for, and a better dogfood than a bundle that keeps
 its scope small by leaving half the finding unfixed.
+
+---
+
+#### F29.1 — The dependency that justified deferring F29 does not exist
+
+[F29](#f29) was recorded with disposition *follow-on queue*, and the justification was explicit:
+
+> Not folded into `C-ESCALATION-HONESTY`: the fix changes `skillTextLines`'s measurement semantics,
+> which the module comment says *"do not change … without updating every phase report that cites them"*
+> — that is a real dependency on a survey this bundle has no mandate to run, which is the kind of
+> justification [D11](#d11) asks for before anything is deferred.
+
+**I never ran the survey.** Running it takes one command:
+
+```
+rg -ln 'skillTextLines' src/ scripts/ docs/
+```
+
+The citing documents are `docs/plans/archive/RM-AGENT-RELIABILITY/plan.md` and
+`docs/plans/archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md`. Both are `status: complete` and **under
+`archive/`, which is never edited.** They cite `skillTextLines().total` as **636** and **723** — neither
+is today's **779**.
+
+So the instruction is unsatisfiable in the direction it points, and unnecessary in the direction that
+matters:
+
+- **Unsatisfiable:** archived plans are immutable. "Updating every phase report that cites them" cannot
+  be done for the only reports that cite them.
+- **Unnecessary:** those citations are already numerically stale and *correct*, because they record what
+  the measurement said at a past commit. A historical report citing a historical value is history, not
+  drift.
+
+**This dissolves the deferral.** D11 says nothing is deferred without a dependency or a conflict. The
+dependency I named was a survey I had not run, and running it shows there is nothing to survey. The
+deferral was not justified, and F29 has been sitting in the queue on a reason that evaporates on
+contact.
+
+Recorded plainly because it is the second time today I stated a number or a condition without running
+the command behind it — the other being a commit count I tracked mentally instead of measuring. Both are
+the standard I put at the top of every executor prompt, applied outward and not inward.
+
+#### What it constrains in the repair
+
+The comment is right about one thing even though its instruction cannot be followed: **`total`'s meaning
+must not change.** Archived reports pin 636 and 723 against it, and redefining the field would silently
+falsify two completed roadmaps.
+
+So the fix is **additive, not a redefinition**: keep `total` as the line count it has always been, and
+report a character or token-estimate figure **alongside** it. Every historical citation stays true, the
+current pin stays meaningful, and the footprint number stops reading zero when the text agents load
+grows by 9%.
+
+The module comment itself should be corrected in the same change — an instruction that cannot be
+followed is worse than no instruction, because the next reader defers on it exactly as I did.
