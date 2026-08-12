@@ -898,3 +898,150 @@ describe("AC-CLASS-COVERAGE (T-003)", () => {
     }
   });
 });
+
+describe("process-fault reporter (D14 clause 4 / T-004)", () => {
+  it("HEAD-RED: reportProcessFault is a function on the CLI entry module", async () => {
+    const mod = await import("../grace");
+    expect(typeof mod.reportProcessFault).toBe("function");
+  });
+
+  it("HEAD-RED: grace.ts source pins process.on for both fault kinds after import.meta.main", async () => {
+    const source = await Bun.file(new URL("../grace.ts", import.meta.url)).text();
+    const mainIdx = source.indexOf("import.meta.main");
+    expect(mainIdx).toBeGreaterThan(-1);
+    // Kind names also appear on reportProcessFault's parameter type, which precedes the
+    // guard. Pin the registrations themselves, in the suffix after import.meta.main.
+    const afterMain = source.slice(mainIdx);
+    expect(afterMain).toMatch(/process\.on\(\s*["']unhandledRejection["']/);
+    expect(afterMain).toMatch(/process\.on\(\s*["']uncaughtException["']/);
+  });
+
+  it("three-deep cause chain prints every level and both Caused-by links (not only the top)", async () => {
+    const { reportProcessFault } = await import("../grace");
+    const inner = new Error("t004-inner");
+    const mid = new Error("t004-mid", { cause: inner });
+    const outer = new Error("t004-outer", { cause: mid });
+    let stderr = "";
+    let exitCode: number | undefined;
+    reportProcessFault("unhandledRejection", outer, {
+      writeStderr: (text) => {
+        stderr += text;
+      },
+      exit: (code) => {
+        exitCode = code;
+      },
+    });
+    expect(stderr).toContain("t004-outer");
+    expect(stderr).toContain("t004-mid");
+    expect(stderr).toContain("t004-inner");
+    // toContain(top) alone would pass on erasure; both causal links must appear.
+    expect(countOccurrences(stderr, "Caused by: ")).toBe(2);
+    expect(countOccurrences(stderr, outer.stack!)).toBe(1);
+    expect(countOccurrences(stderr, mid.stack!)).toBe(1);
+    expect(countOccurrences(stderr, inner.stack!)).toBe(1);
+    expect(exitCode).toBe(1);
+    expect(stderr).not.toBe("Unable to complete the GRACE command.\n");
+    expect(stderr).not.toBe("Unable to complete the GRACE command.");
+  });
+
+  it("kind is visible: the same error is reported as rejection vs exception", async () => {
+    const { reportProcessFault } = await import("../grace");
+    const err = new Error("t004-kind");
+    let rejection = "";
+    let exception = "";
+    reportProcessFault("unhandledRejection", err, {
+      writeStderr: (text) => {
+        rejection += text;
+      },
+      exit: () => {},
+    });
+    reportProcessFault("uncaughtException", err, {
+      writeStderr: (text) => {
+        exception += text;
+      },
+      exit: () => {},
+    });
+    expect(rejection).toContain("unhandledRejection");
+    expect(rejection).not.toContain("uncaughtException");
+    expect(exception).toContain("uncaughtException");
+    expect(exception).not.toContain("unhandledRejection");
+    expect(rejection).not.toBe(exception);
+    expect(rejection).toContain("t004-kind");
+    expect(exception).toContain("t004-kind");
+  });
+
+  it("calls the exit sink with 1 (not 0; not exitCode-only)", async () => {
+    const { reportProcessFault } = await import("../grace");
+    const calls: number[] = [];
+    reportProcessFault("uncaughtException", new Error("t004-exit"), {
+      writeStderr: () => {},
+      exit: (code) => {
+        calls.push(code);
+      },
+    });
+    expect(calls).toEqual([1]);
+  });
+
+  it("writes the chain to the stderr sink and nothing to a stdout sink", async () => {
+    const { reportProcessFault } = await import("../grace");
+    const original = new TypeError("t004-channel");
+    let stderr = "";
+    let stdout = "";
+    reportProcessFault("unhandledRejection", original, {
+      writeStderr: (text) => {
+        stderr += text;
+      },
+      exit: () => {},
+    });
+    // Reporter has no stdout sink; pin that the rendered text is not JSON-envelope shaped.
+    expect(stdout).toBe("");
+    expect(stderr).toContain("t004-channel");
+    expect(() => JSON.parse(stderr)).toThrow();
+    expect(stderr).not.toMatch(/"schemaVersion"\s*:/);
+  });
+
+  it("reuses exported formatCauseChain rather than a second walker", async () => {
+    const { formatCauseChain } = await import("./errors");
+    const { reportProcessFault } = await import("../grace");
+    const inner = new Error("t004-reuse-inner");
+    const outer = new Error("t004-reuse-outer", { cause: inner });
+    let stderr = "";
+    reportProcessFault("unhandledRejection", outer, {
+      writeStderr: (text) => {
+        stderr += text;
+      },
+      exit: () => {},
+    });
+    expect(stderr).toContain(formatCauseChain(outer));
+  });
+
+  it("a subprocess importing grace.ts, errors.ts, and command.ts does not register process-fault listeners", async () => {
+    // Pins: evaluating these modules as imports (import.meta.main === false) must not
+    // call process.on. Does not prove the CLI-as-main path installs handlers — that
+    // is the source pin plus the two process.on lines under import.meta.main.
+    const script = `
+      const r0 = process.listenerCount("unhandledRejection");
+      const e0 = process.listenerCount("uncaughtException");
+      await import(${JSON.stringify(new URL("../grace.ts", import.meta.url).href)});
+      await import(${JSON.stringify(new URL("./errors.ts", import.meta.url).href)});
+      await import(${JSON.stringify(new URL("./command.ts", import.meta.url).href)});
+      const r1 = process.listenerCount("unhandledRejection");
+      const e1 = process.listenerCount("uncaughtException");
+      process.stdout.write(JSON.stringify({ r0, e0, r1, e1 }));
+    `;
+    const proc = Bun.spawn({
+      cmd: ["bun", "-e", script],
+      cwd: import.meta.dir,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const stdout = await new Response(proc.stdout).text();
+    const stderr = await new Response(proc.stderr).text();
+    const exit = await proc.exited;
+    expect(exit).toBe(0);
+    expect(stderr).toBe("");
+    const counts = JSON.parse(stdout) as { r0: number; e0: number; r1: number; e1: number };
+    expect(counts.r1).toBe(counts.r0);
+    expect(counts.e1).toBe(counts.e0);
+  });
+});

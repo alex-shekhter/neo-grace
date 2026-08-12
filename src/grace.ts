@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // START_MODULE_CONTRACT
 //   PURPOSE: CLI entry point
-//   SCOPE: Register ngrace subcommands on the process entry
+//   SCOPE: Register ngrace subcommands on the process entry and install process-fault handlers
 //   DEPENDS: none
 //   LINKS: M-CLI
 //   ROLE: SCRIPT
@@ -10,6 +10,7 @@
 //
 // START_MODULE_MAP
 //   main
+//   reportProcessFault
 // END_MODULE_MAP
 
 import { defineCommand, type CommandDef, runMain } from "citty";
@@ -26,6 +27,7 @@ import { statusCommand } from "./grace-status";
 import { verificationCommand } from "./grace-verification";
 import { reviewCommand } from "./review/command";
 import { ARTIFACT_DIR } from "./artifact/paths";
+import { formatCauseChain } from "./query/errors";
 
 const main = defineCommand({
   meta: {
@@ -48,6 +50,32 @@ const main = defineCommand({
   },
 });
 
+/** Report a process-level fault to stderr and halt. Sinks are injectable for tests. */
+export function reportProcessFault(
+  kind: "unhandledRejection" | "uncaughtException",
+  error: unknown,
+  sinks: {
+    writeStderr: (text: string) => void;
+    exit: (code: number) => void;
+  } = {
+    writeStderr: (text) => {
+      process.stderr.write(text);
+    },
+    exit: (code) => {
+      process.exit(code);
+    },
+  },
+): void {
+  sinks.writeStderr(`${kind}: ${formatCauseChain(error)}\n`);
+  sinks.exit(1);
+}
+
 if (import.meta.main) {
+  process.on("unhandledRejection", (reason) => {
+    reportProcessFault("unhandledRejection", reason);
+  });
+  process.on("uncaughtException", (error) => {
+    reportProcessFault("uncaughtException", error);
+  });
   await runMain(main as CommandDef);
 }

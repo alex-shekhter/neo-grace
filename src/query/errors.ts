@@ -1,6 +1,6 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Shared CLI command error surface
-//   SCOPE: GraceCommandError, error envelope, asGraceCommandError, runGraceCommand, and runQueryCommand
+//   SCOPE: GraceCommandError, error envelope, asGraceCommandError, runGraceCommand, runQueryCommand, and formatCauseChain
 //   DEPENDS: none
 //   LINKS: M-CLI-INFRA
 //   ROLE: RUNTIME
@@ -12,6 +12,7 @@
 //   GraceCommandErrorCode
 //   GraceCommandErrorEnvelope
 //   asGraceCommandError
+//   formatCauseChain
 //   runGraceCommand
 //   runQueryCommand
 // END_MODULE_MAP
@@ -70,7 +71,7 @@ function synthesizedDiagnostic(value: unknown): string {
 }
 
 /** Format a foreign error and its `.cause` chain for stderr. */
-function formatCauseChain(error: unknown): string {
+export function formatCauseChain(error: unknown): string {
   if (!(error instanceof Error)) {
     return synthesizedDiagnostic(error);
   }
