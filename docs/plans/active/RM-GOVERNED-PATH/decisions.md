@@ -3044,3 +3044,41 @@ does not validate `.ngrace` artifacts (`grammar.ts` does) and does not resolve p
 `node:path` at all — verified). It was an overclaim, which is F20's own defect, sitting on F20's
 destination module. Leaving it would have closed F20 by reproducing F20 one file over. Corrected in
 T-002 to describe the parse / read / traverse / clone / inspect surface the module actually has.
+
+#### F35.1 — The same defect, one artifact down: a TargetAssertion that is already true at HEAD
+
+Found in the same pass, checking what would actually prove D14 clause (i) before dispatching T-003.
+`C-CONTRACT-DEBT`'s plan declares:
+
+```xml
+<MustContain><File>src/query/errors.ts</File><Text>cause</Text></MustContain>
+<MustContain><File>src/query/command.ts</File><Text>cause</Text></MustContain>
+```
+
+Measured at `d917691`:
+
+```
+rg -n 'cause' src/query/errors.ts    → (none)
+rg -n 'cause' src/query/command.ts   → 204: // Class-wide wrap must not erase unexpected causes …
+```
+
+The `errors.ts` assertion discriminates. **The `command.ts` one does not** — it is satisfied by a
+comment `C-LEGIBLE-FAILURE` wrote when it *declined* to attach an object cause, which is the exact
+condition T-003 exists to end. The assertion passes on the file it exists to change.
+
+That is [F28](#f28) verbatim, and [F23](#f23) in its general form: the criterion names an ES2022 object
+`cause` on a conversion boundary; the assertion measures whether five letters occur anywhere in a
+297-line file, comments included.
+
+**Not amended, and nothing is blocked.** The plan is approved and immutable, `TargetAssertions` are
+evaluated at close rather than as task evidence, and the criterion that actually binds T-003 —
+`AC-D14-HEAD-RED`, which requires the cause asserted by **object identity** — is not weakened by a weak
+sibling. The disposition is to say so here and to tell the executor plainly that the target assertion is
+information-free, so nobody reads its green as evidence.
+
+**The pattern across F35 and F35.1 is worth naming, because it is now three artifacts deep.** A spec's
+survey ranged over an identifier; a spec's acceptance criterion counted an identifier; a plan's target
+assertion counts a substring. Each is a *text* measurement standing in for a *behavioural* claim, and
+each goes green across the gap. The cheap discipline that catches all three: when an artifact states a
+post-condition as a grep, ask what a wrong implementation that satisfies the grep would look like. If one
+exists and is plausible, the grep is documentation, not evidence.
