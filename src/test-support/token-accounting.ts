@@ -17,8 +17,13 @@
 /**
  * Token / footprint measurements for the agent-reliability track (D15).
  *
- * Fixed measurement format — do not change the semantics of these three
- * functions without updating every phase report that cites them.
+ * `skillTextLines().total` (and `perSkill`) are frozen line-count semantics:
+ * completed archived phase reports cite exact totals (636, 723) against them.
+ * Those archives are never edited, so redefining `total` would silently
+ * falsify them. New footprint fields are additive only — do not rename or
+ * repurpose `total` / `perSkill` / `referencesTotal`.
+ *
+ * Citer survey (when considering further changes): `rg -ln 'skillTextLines'`.
  *
  * Not published: package.json#files does not enumerate src/test-support/.
  */
@@ -62,23 +67,36 @@ function countLines(filePath: string): number {
   return trailingEmpty ? parts.length - 1 : parts.length;
 }
 
+/** UTF-8 byte length of a file's contents — matches `wc -c`, not JS string length. */
+function countUtf8Bytes(filePath: string): number {
+  const text = readFileSync(filePath, "utf8");
+  return Buffer.byteLength(text, "utf8");
+}
+
 /**
- * Counts lines across skills/ngrace/*\/SKILL.md and references/**
+ * Counts lines and UTF-8 bytes across skills/ngrace/*\/SKILL.md and references/**
  * under the canonical skill tree (not the plugins mirror).
  *
- * `total` is the sum of every SKILL.md line count (the D15 baseline number).
+ * `total` is the sum of every SKILL.md line count (the D15 baseline number;
+ * frozen semantics — archived reports cite exact values against it).
  * `perSkill` is keyed by skill directory name (e.g. `ngrace-init`).
+ * `totalBytes` / `perSkillBytes` are UTF-8 byte lengths of the same SKILL.md
+ * set (`Buffer.byteLength`, matching `wc -c`). `sum(perSkillBytes) === totalBytes`.
  * `referencesTotal` is lines under all `references/` trees (reported separately
  * so skill-body deltas are not confounded by reference growth).
  */
 export function skillTextLines(root: string = packageRoot()): {
   total: number;
   perSkill: Record<string, number>;
+  totalBytes: number;
+  perSkillBytes: Record<string, number>;
   referencesTotal: number;
 } {
   const skillsRoot = path.join(root, "skills", "ngrace");
   const perSkill: Record<string, number> = {};
+  const perSkillBytes: Record<string, number> = {};
   let total = 0;
+  let totalBytes = 0;
   let referencesTotal = 0;
 
   const skillDirs = readdirSync(skillsRoot)
@@ -90,8 +108,11 @@ export function skillTextLines(root: string = packageRoot()): {
     const skillMd = path.join(skillDir, "SKILL.md");
     if (statSync(skillMd, { throwIfNoEntry: false })?.isFile()) {
       const lines = countLines(skillMd);
+      const bytes = countUtf8Bytes(skillMd);
       perSkill[skill] = lines;
+      perSkillBytes[skill] = bytes;
       total += lines;
+      totalBytes += bytes;
     }
 
     const referencesDir = path.join(skillDir, "references");
@@ -100,7 +121,7 @@ export function skillTextLines(root: string = packageRoot()): {
     }
   }
 
-  return { total, perSkill, referencesTotal };
+  return { total, perSkill, totalBytes, perSkillBytes, referencesTotal };
 }
 
 export type CommandOutputMeasurement = {

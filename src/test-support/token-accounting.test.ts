@@ -37,6 +37,22 @@ describe("token-accounting (D15)", () => {
     expect(measured.referencesTotal).toBeGreaterThan(0);
   });
 
+  it("skillTextLines().totalBytes is UTF-8 byte sum of SKILL.md files (C-CONTRACT-DEBT T-001)", () => {
+    // Measured after instrument landed (not written toward):
+    //   bun -e 'import { skillTextLines } from "./src/test-support/token-accounting.ts";
+    //           console.log(skillTextLines().totalBytes);'
+    // → 53771. Line total stays 779 (frozen semantics; archived reports cite it).
+    const measured = skillTextLines();
+    expect(measured.total).toBe(779);
+    expect(measured.totalBytes).toBe(53771);
+    const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
+    expect(sumBytes).toBe(measured.totalBytes);
+    expect(Object.keys(measured.perSkillBytes).length).toBe(16);
+    expect(Object.keys(measured.perSkillBytes).sort()).toEqual(
+      Object.keys(measured.perSkill).sort(),
+    );
+  });
+
   it("skillTextLines is deterministic for the same root", () => {
     const a = skillTextLines(packageRoot());
     const b = skillTextLines(packageRoot());
