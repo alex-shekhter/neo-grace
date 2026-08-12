@@ -181,6 +181,20 @@ Checked, not assumed.
    `DependsOn` text node as one token; `:2018` reports `change.task-invalid-dependency`
    asserting the value "must be a canonical T-NNN identifier" — misleading, since `T-001`
    *is* canonical and the comma is the problem.
+
+   > **Half closed — 2026-08-12.** P0.3 fixed the emission side. Comma, semicolon and
+   > whitespace lists are now accepted, and `invalidMessage`
+   > (`src/artifact/grammar.ts:2079`, not the `:2005`/`:2018` cited above) names all three
+   > accepted shapes explicitly. What survives is the **explanation** side, and it is worse
+   > than the original complaint: `ngrace lint --explain change.task-invalid-dependency`
+   > returns the `change.*` family guide — title *"neo-grace Change Lifecycle Issue"*,
+   > remediation *"keep draft and approved bundles under `.ngrace/changes/active`"* — so an
+   > agent that reads the message learns the fix and an agent that reads the guide is sent to
+   > move directories. The same archive-placement remediation ships for
+   > `change.task-unknown-dependency`, `change.task-self-dependency`,
+   > `change.task-dependency-cycle` and `change.task-duplicate-dependency`. Owned by P1.2 via
+   > `C-EXPLAIN-COVERAGE`. Line numbers in this item are stale and left as written: they
+   > record where the defect was when the review was taken.
 2. **Silent token drop in `LINKS` / `DEPENDS`.** **[verified]** `splitList`
    (`src/project-utils.ts:684`) splits on `,` only; `parseGovernedFile` (`:503–509`) then
    `.filter()`s tokens against `ANCHOR_PATTERNS` and raises nothing for the rest. `LINKS:

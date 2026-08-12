@@ -3317,7 +3317,22 @@ exist, so the gate can never fire. `C-GATE-SURFACE`'s own `AC-TYPED-CLARIFICATIO
 AC the approve gate is vacuous."* The AC shipped; the gate is vacuous.
 
 **Footprint of the repair.** `src/artifact/grammar.ts` (shape + validator), `src/gates/core.ts:181–182`
-(the approve-gate reader), the skill text that teaches the element, and the packaged mirror.
+(the approve-gate reader), and **six** skill/template sites across both trees that teach the broken
+form — measured, not estimated:
+
+```
+skills/ngrace/ngrace-spec/SKILL.md:54,55
+skills/ngrace/ngrace-spec/references/change-spec-template.xml:36
+skills/ngrace/ngrace-plan/SKILL.md:48
+skills/ngrace/ngrace-plan/references/change-plan-template.xml:55
+  … each mirrored under plugins/ngrace/skills/ngrace/
+```
+
+Two of those are `.xml` **templates**, shipped for an agent to copy verbatim. The product distributes a
+spec template and a plan template that cannot lint. `ngrace-plan` rule 16 states the broken form as a
+numbered rule. This is the P1 objective — *"an agent can author a valid artifact without reading the
+TypeScript source"* — failing on the product's own worked example, which is why the repair is not
+complete without the skill and template halves in the same commit.
 
 **Fix direction — child anchor tag, not an attribute exemption.** Exempting `Clarification/@target` is
 the cheap repair and it is the wrong one: it punches a hole in the wall §3.5 principle that makes anchors
