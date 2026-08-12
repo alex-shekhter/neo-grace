@@ -10,10 +10,12 @@
 // START_MODULE_MAP
 //   DefectPatternId
 //   IssueCodeClassification
+//   LintIssueGuideResolution
 //   classifyIssueCode
 //   formatLintExplanation
 //   getExactLintIssueGuide
 //   getLintIssueGuide
+//   getLintIssueGuideResolution
 //   isEmittableIssueCode
 //   listAbsenceCatalogCodes
 //   listExactGuideCodes
@@ -970,6 +972,21 @@ function toTitleFromCode(code: string) {
 export type IssueCodeClassification = "exact" | "emittable-uncatalogued" | "unknown";
 
 /**
+ * Which `getLintIssueGuide` branch produced the guide. Observed separately from
+ * the guide object so `withLintIssueGuide` and `--explain --format json` cannot
+ * grow a resolution field (they spread / serialize `LintIssueGuide` fields).
+ */
+export type LintIssueGuideResolution =
+  | "exact"
+  | "prefix"
+  | "review-catalog"
+  | "gate-catalog"
+  | "review-unregistered"
+  | "gate-unregistered"
+  | "emittable-fallback"
+  | "unknown";
+
+/**
  * Whether this binary can emit the code.
  *
  * Union rule (A76):
@@ -1013,37 +1030,43 @@ export function listExactGuideCodes(): string[] {
   return Object.keys(EXACT_GUIDES).sort();
 }
 
-export function getLintIssueGuide(code: string): LintIssueGuide {
+function resolveLintIssueGuide(code: string): { guide: LintIssueGuide; resolution: LintIssueGuideResolution } {
   const exact = EXACT_GUIDES[code];
   if (exact) {
-    return { code, ...exact };
+    return { guide: { code, ...exact }, resolution: "exact" };
   }
 
   const prefixGuide = PREFIX_GUIDES.find((guide) => code.startsWith(guide.prefix));
   if (prefixGuide) {
-    return { code, ...prefixGuide };
+    return { guide: { code, ...prefixGuide }, resolution: "prefix" };
   }
 
   if (isReviewIssueCode(code)) {
     const reviewGuide = guideFor(code);
     if (reviewGuide) {
       return {
-        code,
-        title: reviewGuide.title,
-        explanation: reviewGuide.explanation,
-        remediation: reviewGuide.remediation,
+        guide: {
+          code,
+          title: reviewGuide.title,
+          explanation: reviewGuide.explanation,
+          remediation: reviewGuide.remediation,
+        },
+        resolution: "review-catalog",
       };
     }
     return {
-      code,
-      title: toTitleFromCode(code),
-      explanation:
-        `\`${code}\` is not a registered review finding code. `
-        + "The review surface does not emit this string.",
-      remediation: [
-        "Check the spelling of the code you were given.",
-        "Run `ngrace review` to see codes this binary actually produces.",
-      ],
+      guide: {
+        code,
+        title: toTitleFromCode(code),
+        explanation:
+          `\`${code}\` is not a registered review finding code. `
+          + "The review surface does not emit this string.",
+        remediation: [
+          "Check the spelling of the code you were given.",
+          "Run `ngrace review` to see codes this binary actually produces.",
+        ],
+      },
+      resolution: "review-unregistered",
     };
   }
 
@@ -1051,50 +1074,71 @@ export function getLintIssueGuide(code: string): LintIssueGuide {
     const gateGuide = GATE_CATALOG[code];
     if (gateGuide) {
       return {
-        code,
-        title: gateGuide.title,
-        explanation: gateGuide.explanation,
-        remediation: gateGuide.remediation,
+        guide: {
+          code,
+          title: gateGuide.title,
+          explanation: gateGuide.explanation,
+          remediation: gateGuide.remediation,
+        },
+        resolution: "gate-catalog",
       };
     }
     return {
-      code,
-      title: toTitleFromCode(code),
-      explanation:
-        `\`${code}\` is not a registered gate finding code. `
-        + "The gate surface does not emit this string.",
-      remediation: [
-        "Check the spelling of the code you were given.",
-        "Run `ngrace gate` to see codes this binary actually produces.",
-      ],
+      guide: {
+        code,
+        title: toTitleFromCode(code),
+        explanation:
+          `\`${code}\` is not a registered gate finding code. `
+          + "The gate surface does not emit this string.",
+        remediation: [
+          "Check the spelling of the code you were given.",
+          "Run `ngrace gate` to see codes this binary actually produces.",
+        ],
+      },
+      resolution: "gate-unregistered",
     };
   }
 
   if (isEmittableIssueCode(code)) {
     return {
-      code,
-      title: toTitleFromCode(code),
-      explanation:
-        `This string matches an emittable prefix but is not a constructed code this binary documents. `
-        + `\`${code}\` is not evidence that a dedicated explanation is missing, and it is not evidence of project drift.`,
-      remediation: [
-        "Check the spelling of the code you were given.",
-        "Run `ngrace lint`, `ngrace review`, or `ngrace gate` to see codes this binary actually produces.",
-      ],
+      guide: {
+        code,
+        title: toTitleFromCode(code),
+        explanation:
+          `This string matches an emittable prefix but is not a constructed code this binary documents. `
+          + `\`${code}\` is not evidence that a dedicated explanation is missing, and it is not evidence of project drift.`,
+        remediation: [
+          "Check the spelling of the code you were given.",
+          "Run `ngrace lint`, `ngrace review`, or `ngrace gate` to see codes this binary actually produces.",
+        ],
+      },
+      resolution: "emittable-fallback",
     };
   }
 
   return {
-    code,
-    title: toTitleFromCode(code),
-    explanation:
-      `Unknown issue code: this binary does not emit \`${code}\`. `
-      + "Nothing was checked for this string — it is not evidence of drift or missing governance.",
-    remediation: [
-      "Check the spelling of the code you were given.",
-      "Run `ngrace lint`, `ngrace review`, or `ngrace gate` to see codes this binary actually produces.",
-    ],
+    guide: {
+      code,
+      title: toTitleFromCode(code),
+      explanation:
+        `Unknown issue code: this binary does not emit \`${code}\`. `
+        + "Nothing was checked for this string — it is not evidence of drift or missing governance.",
+      remediation: [
+        "Check the spelling of the code you were given.",
+        "Run `ngrace lint`, `ngrace review`, or `ngrace gate` to see codes this binary actually produces.",
+      ],
+    },
+    resolution: "unknown",
   };
+}
+
+export function getLintIssueGuide(code: string): LintIssueGuide {
+  return resolveLintIssueGuide(code).guide;
+}
+
+/** Branch that produced the guide. Not a field on the guide object. */
+export function getLintIssueGuideResolution(code: string): LintIssueGuideResolution {
+  return resolveLintIssueGuide(code).resolution;
 }
 
 /**

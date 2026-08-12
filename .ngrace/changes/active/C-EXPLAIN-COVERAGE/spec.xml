@@ -51,7 +51,7 @@
       A completeness test already exists (`catalog.test.ts`,
       `collectEmittedIssueCodes` + `hasExactSurfaceGuide`). **It is green at
       HEAD.** It answers "exact guide or frozen allowlist seat", not "the
-      `--explain` body is surface-specific". Reusing it as P1.2's coverage
+      resolution path is surface-specific". Reusing it as P1.2's coverage
       test is F28 / F35.1.
 
       Constructed codes that today resolve to the dedicated-entry boilerplate
@@ -102,8 +102,9 @@
       </Goal>
       <Goal>
         **P1.2.** A coverage test iterates `collectEmittedIssueCodes` and
-        asserts each universe member's `--explain` body is not the
-        dedicated-entry boilerplate and not the unknown text. Written and
+        asserts each universe member's resolution path is exact, prefix,
+        review-catalog, or gate-catalog — not emittable-fallback and not
+        unknown. Written and
         recorded red **before** the wire. After the wire it still fails on
         constructed codes that hit the emittable fallback; those are
         authored. Separately, the five `change.task-*dependency*` codes
@@ -112,7 +113,7 @@
         own priority. `markup.unparsed-link-token` is already green on
         fix-shape and is the discrimination anchor, not new work.
         Review, gate, and health corpus-priority codes are not this
-        claim: they remain in the boilerplate delta / the P1.1 wire.
+        claim: they remain in the constructed-code delta / the P1.1 wire.
         Guide counts are not named in criteria.
       </Goal>
       <Goal>
@@ -133,8 +134,10 @@
       <Constraint>
         Binding: RM-GOVERNED-PATH P1 steps 1, 2, 3 and hard sequencing rule 3
         (wire → let the coverage test report the gap → author only the
-        delta). Decisions.md F10 / F35 (bind the check to the guide **body**,
-        not a resolver identifier); F28 / F35.1 (a check already green at
+        delta). Decisions.md F10 / F35 / F41 (do not bind the check to a
+        name for the behaviour — neither a function identifier nor the
+        rendered --explain string; bind the resolution path, the analogue
+        of F35's identifier-insensitive AST shape match); F28 / F35.1 (a check already green at
         HEAD is not evidence); F23 (exact pins where the criterion names a
         value); F26 / F30 / F33 (do not freeze authoring counts; lint 0/0 is
         **at close**); F27 / F27.2 (`ObservedWriteScope` covers what this
@@ -224,7 +227,7 @@
       <NonGoal>
         **Rejected — treat the existing completeness test as P1.2's coverage
         test.** It is green at HEAD. It accepts `PREFIX_COVERED_LEGACY_CODES`
-        and does not read `--explain` bodies.
+        and does not observe the resolution path.
       </NonGoal>
       <NonGoal>
         **Rejected — mass-author exact guides for every
@@ -300,25 +303,31 @@
       </AC-COVERAGE-UNIVERSE>
       <AC-COVERAGE-NO-BOILERPLATE>
         That coverage test asserts: for every universe code, the
-        `--explain` body (`getLintIssueGuide` / `formatLintExplanation`) is
-        not the dedicated-entry boilerplate and not the unknown-code text.
-        After the P1.1 wire, the test is still red on every remaining
-        constructed code that still hits the emittable fallback; those
-        codes are authored as exact guides. This predicate does **not**
-        prove fix-shape: a family prefix guide passes it. Discrimination
-        is proven: restore the boilerplate for one registered review code
-        and the test reddens; omit one constructed `xml.*` /
-        `design-context.*` / unguided `health.*` code from the
-        boilerplate-delta and the test stays red.
+        resolution path (`getLintIssueGuideResolution`) is exact,
+        prefix, review-catalog, or gate-catalog — not
+        emittable-fallback and not unknown. After the P1.1 wire, the
+        test is still red on every remaining constructed code that
+        still hits the emittable fallback; those codes are authored
+        as exact guides. This predicate does **not** prove fix-shape:
+        a family prefix guide passes it. Discrimination is proven by
+        probe, not by a fail-to-pass attempt pair (all 23 constructed
+        guides already exist after the delta; do not delete one to
+        manufacture a red): remove the exact guide for `xml.parse`
+        and the test reddens (no `xml.` family prefix matches
+        `xml.parse`; `xml.generic-` does not); restore. Leave the
+        five `change.task-*dependency*` codes on family text
+        (resolution prefix) and the test stays green.
         **HEAD today:** the predicate fails on review, gate, `xml.parse`,
         `xml.missing-file`, every `design-context.*` literal, and every
         `health.*` literal except the two exact UI-state guides. It
         **passes** all five `change.task-*dependency*` codes (family
-        text, not boilerplate).
+        text, not fallback).
         **Failure conditions:** count pins; only review/gate sampled after
-        the wire so the test goes green before the boilerplate-delta;
-        `hasExactSurfaceGuide` reused as the predicate; this predicate
-        treated as proof of P1.2 fix-shape.
+        the wire so the test goes green before the constructed-code
+        delta; `hasExactSurfaceGuide` reused as the predicate; this
+        predicate treated as proof of P1.2 fix-shape; predicate that
+        matches deleted boilerplate sentences and is green
+        unconditionally.
       </AC-COVERAGE-NO-BOILERPLATE>
       <AC-FIX-SHAPE>
         Fixture-bound membership, closed by identity (not a count this
@@ -374,7 +383,7 @@
         Residual (disclosure, not a NonGoal):
         `review.scope-outside-write-scope`, `gate.apply.no-verdict`,
         and `health.required-log-marker-not-found` remain in
-        `AC-COVERAGE-NO-BOILERPLATE`'s boilerplate delta and still
+        `AC-COVERAGE-NO-BOILERPLATE`'s constructed-code delta and still
         get real guides. This bundle asserts the P1.1 wire, not the
         quality of the review and gate catalogs' own remediation
         text. Health is not emitted through lint, so a lint fixture
@@ -495,8 +504,9 @@
       <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
       <ExpectedEvidence>
         Integration (T1): coverage test red on `collectEmittedIssueCodes`
-        before the wire, still red on remaining boilerplate after the
-        wire, green only after that delta; `getLintIssueGuide` field-equal
+        before the wire, still red on remaining constructed codes that
+        hit emittable-fallback after the wire, green only after that
+        delta; `getLintIssueGuide` field-equal
         to review and gate catalog objects; CLI `--explain` for
         `review.scope-outside-write-scope` prints that catalog title
         (Changed File Outside ObservedWriteScope) and no dedicated-entry
@@ -563,8 +573,8 @@
         invisible until listed — the F10 class the scanner was born from.
         `PREFIX_COVERED_LEGACY_CODES` is a frozen allowlist derived from
         that scanner; using it as the coverage universe would still
-        accept family-prefix seats as success and would not read
-        `--explain` bodies.
+        accept family-prefix seats as success and would not observe
+        the resolution path.
       </Assumption>
       <Assumption>
         **Finding (not this bundle) — option 2.** `xml.*`,

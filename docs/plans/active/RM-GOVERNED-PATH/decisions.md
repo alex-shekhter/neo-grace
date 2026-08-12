@@ -3493,3 +3493,35 @@ output fragment — never an identifier that comments, docs or commit messages m
 **Not promoted to `ngrace-plan` yet, deliberately.** One worked instance, and [D16](#d16)'s reason
 applies unchanged: this roadmap has shipped a rule from a single instance and had the next task
 refute it. Promote once a second plan trips the same wire. That is a dependency, not a queue.
+
+---
+
+### D17 — An acceptance-criterion id is an evidence anchor, and freezes the moment a run event cites it.
+
+Raised by the executor after [F41](#f41)'s repair: `AC-COVERAGE-NO-BOILERPLATE` no longer describes
+its own predicate. The check stopped hunting boilerplate sentences and now binds the resolution
+path, so the id names the mechanism the criterion was **repaired away from** — F41's own defect,
+sitting in the contract's identifier. The executor was right to raise it, and right not to act.
+
+**Measured before deciding.** The id appears in `spec.xml` (4), `plan.xml` (8), `catalog.test.ts`
+(2) — all editable — **and in two immutable recorded run events**:
+`run/2-T-001-attempt.xml`, whose fail signature is `test:AC-COVERAGE-NO-BOILERPLATE`, and
+`run/4-T-001-escalation.xml`.
+
+Renaming would orphan a citation inside recorded evidence. That is [F37](#f37) exactly: the
+adjudication survives, the ability to *re-derive* it does not, because the subject it names no
+longer resolves. A rename buys an accurate label and pays with an unverifiable attempt pair — and
+the attempt pair is the thing this roadmap spent P0 making trustworthy.
+
+**Decision.** The id is frozen. The criterion **body** carries the mechanism, states plainly that
+the id names the historical one, and the failure conditions name the deleted-sentence hunt as a
+defect. A label is not a contract; the body is.
+
+**The forward rule this yields — the only part that generalizes.** Name an acceptance criterion for
+the **property** it protects, never for the mechanism that happens to implement it. Mechanisms are
+exactly what review replaces; properties are what survive. `AC-COVERAGE-SURFACE-SPECIFIC` would
+have survived this repair unchanged. This applies at authoring time, when the id is still free —
+after the first `cursor attempt`, it is not.
+
+**Promotion held.** Same reason as [D16](#d16): one worked instance. `ngrace-plan` gets it when a
+second bundle names a criterion after a mechanism and pays for it.

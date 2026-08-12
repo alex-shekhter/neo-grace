@@ -2,13 +2,15 @@
   <C-EXPLAIN-COVERAGE>
     <IntentSummary>
       Deliver RM-GOVERNED-PATH P1 steps 1–3 only: write a coverage test whose
-      universe is collectEmittedIssueCodes and whose predicate rejects
-      dedicated-entry boilerplate; record that red; then wire review and gate
-      catalog objects into getLintIssueGuide; then author only the constructed
-      codes the test still reports red, plus five change.task-*dependency*
-      exact guides each bound to its own emitted message from a distinct
-      plant; then append (ngrace lint --explain &lt;code&gt;) once per
-      distinct error code on text lint, suppressed under --format json.
+      universe is collectEmittedIssueCodes and whose predicate binds the
+      resolution path (exact / prefix / review-catalog / gate-catalog pass;
+      emittable-fallback and unknown fail); record that red; then wire review
+      and gate catalog objects into getLintIssueGuide; then author only the
+      constructed codes the test still reports red, plus five
+      change.task-*dependency* exact guides each bound to its own emitted
+      message from a distinct plant; then append (ngrace lint --explain
+      &lt;code&gt;) once per distinct error code on text lint, suppressed
+      under --format json.
     </IntentSummary>
     <BaselineAssertions>
       <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
@@ -196,13 +198,17 @@
       DESIGN (binding for implementers; authority reviews the fixture hardest)
 
       Plan-authoring HEAD: 12d897a (branch feat/explain-coverage).
-      Spec is approved and immutable. Re-measure every count at execute (F33).
+      Spec is approved. Amendment of AC-COVERAGE-NO-BOILERPLATE and the
+      F35 citation is authorized so those sentences describe the
+      resolution-path predicate; do not otherwise rewrite claims.
+      Re-measure every count at execute (F33).
       Do not pin EXACT_GUIDES size, allowlist length, or catalog cardinalities.
-      Do not edit the spec. Do not touch grammar.ts, xml.ts, query/health.ts,
+      Do not touch grammar.ts, xml.ts, query/health.ts,
       skills, packaged mirrors, docs/plans, CHANGELOG, or version surfaces.
 
       Why four tasks, not six. The coverage predicate
-      (expect(boilerplateHits).toEqual([])) is red at HEAD and stays red
+      (expect(fallbackHits).toEqual([]), hits = universe members whose
+      resolution is emittable-fallback or unknown) is red at HEAD and stays red
       after the wire. bun test src/lint/catalog.test.ts therefore cannot
       go green until the constructed-code delta lands. A red-only T-001
       whose Verification is that command can never close. The product's
@@ -228,7 +234,7 @@
       T-003 has empty DependsOn: core.ts is file-disjoint from T-001/T-002.
       T-002 DependsOn T-001 because both write EXACT_GUIDES and because
       T-001 must not author the five dependency guides (they pass the
-      no-boilerplate predicate at HEAD).
+      resolution-path predicate at HEAD via the change. family prefix).
 
       ─────────────────────────────────────────────────────────────────
       D1 — Sequencing (hard rule 3; T-001 internal)
@@ -237,13 +243,12 @@
       src/lint/catalog.test.ts. Universe = collectEmittedIssueCodes
       (reuse the existing function; do not extract unless a compile
       constraint forces it). Predicate: for every universe code,
-      getLintIssueGuide / formatLintExplanation body is not any of the
-      three dedicated-entry boilerplate explanations and not the
-      unknown-code text. Identify boilerplate by those explanation
-      strings (the body), not by resolver identifiers (not guideFor,
-      not GATE_CATALOG, not hasExactSurfaceGuide). Family prefix
-      guides pass this predicate. Record cursor fail. Do not edit
-      catalog.ts.
+      getLintIssueGuideResolution is exact, prefix, review-catalog,
+      or gate-catalog; emittable-fallback and unknown fail. Observe
+      the path via that dedicated accessor, not by matching lint-explain
+      prose and not by grepping guideFor / GATE_CATALOG /
+      hasExactSurfaceGuide. Family prefix guides pass this predicate.
+      Record cursor fail. Do not land the P1.1 wire in this round trip.
 
       HEAD today: the function exists and only feeds allowlist
       completeness, which passes. No test uses it as an explain
@@ -251,7 +256,7 @@
       GATE_CATALOG code, xml.parse, xml.missing-file, every
       design-context.* literal, and every health.* literal except the
       two exact UI-state guides. It PASSES all five
-      change.task-*dependency* codes (family text, not boilerplate).
+      change.task-*dependency* codes (family prefix, not fallback).
 
       Round trip 2 (test only). Write AC-WIRE field-equality tests:
       for every key of REVIEW_CATALOG and every key of GATE_CATALOG,
@@ -292,11 +297,14 @@
       dedicated explanation entry" is F10. Invented xml.foo stays
       classified emittable and must not claim this binary emits a
       constructed code we forgot to document. Prefix rule 6 stays.
-      Coverage test goes green. Discrimination: restore the
-      boilerplate explanation for one registered review code and
-      the test reddens; omit one constructed xml.* /
-      design-context.* / unguided health.* exact guide and the test
-      stays red. Record probes verbatim; revert.
+      Coverage test goes green. Discrimination (probe, not a
+      fail-then-pass attempt pair; all 23 guides already exist):
+      remove the exact guide for xml.parse and the test reddens
+      with [xml.parse] (no xml. family prefix matches xml.parse;
+      xml.generic- does not); restore. Leave the five
+      change.task-*dependency* codes on family text (resolution
+      prefix) and the test stays green. Record probes verbatim;
+      revert.
 
       Never fail and pass in one tool call. Never a red backed only
       by a grep. Never a retrospective red via stash.
@@ -420,10 +428,10 @@
           does not raise change.graph-anchors-miss-write-scope)
         .ngrace/changes/active/C-EXPLAIN-COVERAGE/plan.xml
 
-      spec.xml is already committed at 12d897a. ngrace status
-      reports 0 changed files and 0 unexplained drift. Putting
-      spec.xml in OWS would claim a write the spec forbids
-      (immutable). Omitted.
+      spec.xml is not in ObservedWriteScope (omitted at plan
+      authoring because the spec was then treated as immutable).
+      This sweep amends the coverage-predicate restatement in
+      spec.xml without expanding OWS.
 
       Deliberately excluded: grammar.ts, xml.ts, query/health.ts,
       skills, plugins, docs/plans, archive, CHANGELOG, version
@@ -470,10 +478,11 @@
       ─────────────────────────────────────────────────────────────────
       D8 — Discrimination probes (must see red once)
       ─────────────────────────────────────────────────────────────────
-      1. Restore dedicated-entry boilerplate for one registered
-         review code → coverage test reddens.
-      2. Omit one constructed xml.* / design-context.* / unguided
-         health.* exact guide → coverage stays red.
+      1. Remove the exact guide for xml.parse → coverage test
+         reddens with [xml.parse] (no xml. family prefix matches
+         xml.parse; xml.generic- does not). Restore.
+      2. Leave the five change.task-*dependency* codes on family
+         text (resolution prefix) → coverage test stays green.
       3. Universe = Object.keys of any guide table → must not ship.
       4. One fixture asserting a shared string, or five guides that
          all name invalid's three DependsOn shapes → AC-FIX-SHAPE
@@ -509,25 +518,27 @@
         </Satisfies>
         <AcceptanceCriteria>
           <Criterion>
-            AC-HEAD-RED (coverage half): before any catalog.ts production
-            edit, in its own tool round trip, write a coverage test in
+            AC-HEAD-RED (coverage half): before the P1.1 wire, in its
+            own tool round trip, write a coverage test in
             src/lint/catalog.test.ts whose universe is
             collectEmittedIssueCodes (reused or extracted) and whose
-            predicate asserts each universe member's getLintIssueGuide /
-            formatLintExplanation body is not the dedicated-entry
-            boilerplate and not the unknown-code text. HEAD today: no
+            predicate asserts each universe member's
+            getLintIssueGuideResolution is exact, prefix,
+            review-catalog, or gate-catalog — not emittable-fallback
+            and not unknown. Observe the path via that dedicated
+            accessor, not by matching --explain prose. HEAD today: no
             test uses collectEmittedIssueCodes as an explain universe;
             the predicate fails on review, gate, xml.parse,
             xml.missing-file, every design-context.* literal, and every
             health.* literal except the two exact UI-state guides; it
             PASSES all five change.task-*dependency* codes (family
-            text). Record cursor fail. Never a red backed only by a
+            prefix). Record cursor fail. Never a red backed only by a
             grep; never fail and pass in one tool call; never a
             retrospective red via stash. Failure conditions: universe =
             Object.keys of any guide table; universe =
             isEmittableIssueCode over a handmade prefix expansion;
             completeness test renamed and reused; green at pre-change
-            HEAD; catalog.ts edited in this round trip.
+            HEAD; P1.1 wire landed in this round trip.
           </Criterion>
           <Criterion>
             AC-HEAD-RED (wire half): before the wire, in its own tool
@@ -568,21 +579,38 @@
             Author exact guides only for constructed universe members
             the coverage test still reports red after the wire. Do not
             author the five change.task-*dependency* codes (they
-            already pass the predicate). Do not mass-author
-            PREFIX_COVERED_LEGACY_CODES. Rewrite or delete the
-            isEmittableIssueCode fallback so no reachable
+            already pass via the change. PREFIX_GUIDES family;
+            remediation quality is AC-FIX-SHAPE / T-002). Do not
+            mass-author PREFIX_COVERED_LEGACY_CODES. Rewrite or delete
+            the isEmittableIssueCode fallback so no reachable
             getLintIssueGuide branch claims a dedicated-entry coverage
             gap; invented prefix matches, if still classified
             emittable, must not say the entry is merely unwritten.
-            Prefix rule 6 stays. The coverage test goes green.
-            Discrimination: restore boilerplate for one registered
-            review code and the test reddens; omit one constructed
-            xml.* / design-context.* / unguided health.* guide and the
-            test stays red. Failure conditions: count pins; this
+            Prefix rule 6 stays. The coverage predicate binds to the
+            resolution path, not to --explain prose: every
+            collectEmittedIssueCodes member must resolve via exact
+            guide, review catalog, gate catalog, or a matching
+            PREFIX_GUIDES family; a member that falls through to the
+            generic emittable fallback or to unknown fails. Observe
+            the path via a dedicated exported accessor, not a new
+            field on the guide object (withLintIssueGuide spreads
+            guide fields onto lint issues and --format json). The
+            three dedicated-entry sentences are gone after
+            AC-FALLBACK-HONEST and cannot be the predicate.
+            Discrimination is substantiated by probe, not by a
+            fail→pass attempt pair (all 23 constructed guides already
+            exist; do not delete one to manufacture a red): (1)
+            remove the exact guide for xml.parse and the coverage
+            test reddens (no xml. family prefix matches xml.parse;
+            xml.generic- does not); restore. (2) leave the five
+            change.task-*dependency* codes on family text and the
+            test stays green. Failure conditions: count pins; this
             predicate treated as proof of AC-FIX-SHAPE; fallback left
-            in place because "it is unreachable for registered codes";
-            five dependency codes given invalidMessage's three
-            DependsOn shapes here.
+            in place because "it is unreachable for registered
+            codes"; five dependency codes given invalidMessage's
+            three DependsOn shapes here; predicate that matches
+            deleted boilerplate sentences and is green
+            unconditionally.
           </Criterion>
         </AcceptanceCriteria>
         <Verification>

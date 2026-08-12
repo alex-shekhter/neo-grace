@@ -7,14 +7,15 @@ import { allGateCodes, GATE_CATALOG } from "../gates/catalog";
 import { allReviewCodes, guideFor, REVIEW_CATALOG } from "../review/catalog";
 import {
   classifyIssueCode,
-  formatLintExplanation,
   getExactLintIssueGuide,
   getLintIssueGuide,
+  getLintIssueGuideResolution,
   isEmittableIssueCode,
   listAbsenceCatalogCodes,
   listExactGuideCodes,
   withLintIssueGuide,
   type DefectPatternId,
+  type LintIssueGuideResolution,
 } from "./catalog";
 import type { LintIssue } from "./types";
 
@@ -594,32 +595,35 @@ describe("lint --explain honesty (Phase 11 / A76 corr 189, 202)", () => {
  * AC-COVERAGE-UNIVERSE + AC-COVERAGE-NO-BOILERPLATE (C-EXPLAIN-COVERAGE T-001).
  * Universe is collectEmittedIssueCodes (production emission sites; skips the
  * three catalog files). Residual: a new emission form the scanner does not
- * see is invisible until listed. Predicate binds the --explain body, not a
- * resolver identifier.
+ * see is invisible until listed. Predicate binds to the resolution path
+ * (which branch produced the guide), not to --explain prose. Family prefix
+ * guides pass; remediations of the five change.task-*dependency* codes are
+ * a later task, not this predicate.
  */
+const SURFACE_SPECIFIC_RESOLUTIONS = new Set<LintIssueGuideResolution>([
+  "exact",
+  "prefix",
+  "review-catalog",
+  "gate-catalog",
+]);
+
 describe("AC-COVERAGE-NO-BOILERPLATE (C-EXPLAIN-COVERAGE T-001)", () => {
-  const dedicatedEntryBodies = [
-    "does not yet have a dedicated lint --explain entry. See the review catalog (src/review/catalog.ts)",
-    "does not yet have a dedicated lint --explain entry. See the gate catalog (src/gates/catalog.ts)",
-    "This issue code is emitted by the neo-grace CLI but does not yet have a dedicated explanation entry.",
-  ] as const;
-  const unknownCodeBody = "Unknown issue code: this binary does not emit";
-
-  function explainBodyIsBoilerplateOrUnknown(code: string): boolean {
-    const guide = getLintIssueGuide(code);
-    const rendered = formatLintExplanation(code);
-    const body = `${guide.explanation}\n${rendered}`;
-    return (
-      dedicatedEntryBodies.some((fragment) => body.includes(fragment))
-      || body.includes(unknownCodeBody)
-    );
-  }
-
-  it("every collectEmittedIssueCodes member has a non-boilerplate, non-unknown --explain body", () => {
+  it("every collectEmittedIssueCodes member resolves via a surface-specific guide path", () => {
     const srcRoot = path.join(import.meta.dir, "..");
     const universe = collectEmittedIssueCodes(srcRoot);
-    const boilerplateHits = universe.filter(explainBodyIsBoilerplateOrUnknown);
-    expect(boilerplateHits).toEqual([]);
+    const fallbackHits = universe.filter((code) => {
+      return !SURFACE_SPECIFIC_RESOLUTIONS.has(getLintIssueGuideResolution(code));
+    });
+    expect(fallbackHits).toEqual([]);
+  });
+
+  it("does not put the resolution path on the guide object or lint issue payload", () => {
+    const code = "xml.parse";
+    const guide = getLintIssueGuide(code);
+    const issue = withLintIssueGuide(bare(code));
+    expect("resolution" in guide).toBe(false);
+    expect("resolution" in issue).toBe(false);
+    expect(JSON.stringify(issue)).not.toContain("resolution");
   });
 });
 
