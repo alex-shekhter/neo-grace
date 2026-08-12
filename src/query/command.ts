@@ -33,7 +33,7 @@
 
 import { defineCommand, type ArgsDef, type CommandDef, type Resolvable } from "citty";
 
-import { GraceCommandError, runGraceCommand } from "./errors";
+import { asGraceCommandError, GraceCommandError, runGraceCommand } from "./errors";
 
 /** Brand stamped on every command def produced by defineGraceCommand. */
 export const BOOLEAN_SPACE_GUARD_BRAND = Symbol.for("ngrace.booleanSpaceGuard");
@@ -202,20 +202,15 @@ export function defineGraceCommand<const T extends ArgsDef = ArgsDef>(def: Comma
             // GraceCommandError is already the renderable channel — rethrow as-is.
             if (error instanceof GraceCommandError) throw error;
             // Class-wide wrap must not erase unexpected causes to the fixed fallback.
-            // Preserve the original message on a GraceCommandError; write the original
-            // stack to stderr (stdout stays pure envelope in JSON mode).
+            // Preserve the original message; attach the original object as cause.
+            // asGraceCommandError writes the cause chain to stderr once.
             const message =
               error instanceof Error && error.message.length > 0
                 ? error.message
                 : String(error);
-            const stack =
-              error instanceof Error && error.stack
-                ? error.stack
-                : `${message}`;
-            process.stderr.write(`${stack}\n`);
             // Union has no "internal"/"unexpected": invalid-project is the same code
             // runGraceCommand already used for non-GraceCommandError fallbacks.
-            throw new GraceCommandError("invalid-project", message);
+            throw asGraceCommandError(error, message);
           }
         },
         "Unable to complete the GRACE command.",
