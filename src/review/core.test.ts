@@ -2175,3 +2175,61 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     expect(text).toMatch(/WriteEvidence scope audit: ran over \d+ path\(s\) for C-EXECUTION-CONTRACT/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// C-DECLARED-WRITES T-002 — ngrace-plan forced-scope prose agreement
+// ---------------------------------------------------------------------------
+
+/** Both trees; AC-SKILL-MIRROR-IDENTICAL requires byte identity after the edit. */
+const NGRACE_PLAN_SKILL_PATHS = [
+  "skills/ngrace/ngrace-plan/SKILL.md",
+  "plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md",
+] as const;
+
+describe("ngrace-plan forced-scope prose (C-DECLARED-WRITES T-002)", () => {
+  /**
+   * AC-PROSE-ENFORCEMENT-AGREE: both trees contain the live finding code bound
+   * to WRITE_EVIDENCE_SCOPE_FINDING_CODE (not a re-typed literal) and forced-
+   * scope substance phrases that were absent at pre-T-002 HEAD (F28).
+   *
+   * HEAD-before-edit behavior (proves the red is real):
+   * - toContain(WRITE_EVIDENCE_SCOPE_FINDING_CODE) fails: skills omit the code
+   * - toContain("deliverable forces") fails: phrase absent from both trees
+   * - toContain("skill-footprint") fails: phrase absent from both trees
+   * - toContain("fixtures that construct") fails: phrase absent from both trees
+   */
+  it("both skill trees contain WRITE_EVIDENCE_SCOPE_FINDING_CODE and forced-scope substance", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    // Pin constant spelling so a catalog rename without skill prose reddens.
+    expect(WRITE_EVIDENCE_SCOPE_FINDING_CODE).toBe("review.write-evidence-outside-scope");
+
+    for (const rel of NGRACE_PLAN_SKILL_PATHS) {
+      const text = readFileSync(path.join(repoRoot, rel), "utf8");
+      expect({ path: rel, hasLiveCode: text.includes(WRITE_EVIDENCE_SCOPE_FINDING_CODE) }).toEqual({
+        path: rel,
+        hasLiveCode: true,
+      });
+      // Substance: OWS covers what the deliverable forces (not only targets).
+      expect({ path: rel, hasDeliverableForces: text.includes("deliverable forces") }).toEqual({
+        path: rel,
+        hasDeliverableForces: true,
+      });
+      // Skill-text → footprint pin; rule change → constructing fixtures.
+      expect({ path: rel, hasSkillFootprint: text.includes("skill-footprint") }).toEqual({
+        path: rel,
+        hasSkillFootprint: true,
+      });
+      expect({ path: rel, hasFixturesConstruct: text.includes("fixtures that construct") }).toEqual({
+        path: rel,
+        hasFixturesConstruct: true,
+      });
+    }
+  });
+
+  it("canonical and packaged ngrace-plan skill bodies are byte-identical", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const a = readFileSync(path.join(repoRoot, NGRACE_PLAN_SKILL_PATHS[0]));
+    const b = readFileSync(path.join(repoRoot, NGRACE_PLAN_SKILL_PATHS[1]));
+    expect(Buffer.compare(a, b)).toBe(0);
+  });
+});
