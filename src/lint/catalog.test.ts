@@ -4,9 +4,10 @@ import { describe, expect, it } from "bun:test";
 
 import { PATTERNS } from "../test-support/defect-corpus";
 import { allGateCodes, GATE_CATALOG } from "../gates/catalog";
-import { allReviewCodes, guideFor } from "../review/catalog";
+import { allReviewCodes, guideFor, REVIEW_CATALOG } from "../review/catalog";
 import {
   classifyIssueCode,
+  formatLintExplanation,
   getExactLintIssueGuide,
   getLintIssueGuide,
   isEmittableIssueCode,
@@ -130,7 +131,7 @@ function collectEmittedIssueCodes(srcRoot: string): string[] {
  * C-TOKEN-INTEGRITY T-005: do not put the eight newly-erroring codes on this list.
  * C-CURSOR-INTEGRITY T-001 (F10): review.* and gate.* are **not** on this list — they route
  * to REVIEW_CATALOG / GATE_CATALOG (see hasExactSurfaceGuide). Count is lint-only.
- * Count: 156 (frozen 2026-08-10; was 164 before gate.* removal). Authority may shrink later.
+ * Count is not a pin. Authority may shrink when constructed codes graduate to exact guides.
  */
 const PREFIX_COVERED_LEGACY_CODES: readonly string[] = [
   // --- analysis.* ---
@@ -204,9 +205,6 @@ const PREFIX_COVERED_LEGACY_CODES: readonly string[] = [
   "change.task-self-dependency",
   "change.task-unknown-dependency",
   "change.unexpected-file",
-  // --- config.* ---
-  "config.invalid-code-extensions",
-  "config.invalid-ignored-dirs",
   // --- context.* ---
   "context.applicability-duplicate",
   "context.applicability-invalid",
@@ -215,32 +213,12 @@ const PREFIX_COVERED_LEGACY_CODES: readonly string[] = [
   "context.not-applicable-reason-missing",
   "context.unexpected-root-tag",
   "context.ux-not-applicable-reason-insufficient",
-  // --- design-context.* ---
-  "design-context.ambiguous-change-id",
-  "design-context.bundle-id-mismatch",
-  "design-context.forbidden-root-attribute",
-  "design-context.forbidden-status",
-  "design-context.invalid-change-id",
-  "design-context.invalid-root-tag",
-  "design-context.missing-change-id",
-  "design-context.missing-grace-version",
-  "design-context.unsupported-grace-version",
   // gate.* codes route to GATE_CATALOG (C-CURSOR-INTEGRITY T-001 / F10) — not listed here.
   // --- graph.* ---
   "graph.duplicate-module-state",
   "graph.index-invalid-documents-section",
   "graph.invalid-document-wrapper",
   "graph.invalid-module-state",
-  // --- health.* ---
-  "health.missing-implementation-files",
-  "health.missing-verification",
-  "health.required-log-marker-block-not-found",
-  "health.required-log-marker-not-found",
-  "health.verification-command-does-not-reference-test-file",
-  "health.verification-missing-commands",
-  "health.verification-missing-evidence",
-  "health.verification-missing-scenarios",
-  "health.verification-test-file-missing-on-disk",
   // --- markup.* ---
   "markup.duplicate-contract-field",
   "markup.duplicate-marker",
@@ -299,12 +277,6 @@ const PREFIX_COVERED_LEGACY_CODES: readonly string[] = [
   "scope.none-with-entries",
   "scope.parallel-durable-overlap",
   "scope.unsupported-glob",
-  // --- verification.* ---
-  "verification.index-invalid-documents-section",
-  "verification.invalid-document-wrapper",
-  // --- xml.* ---
-  "xml.missing-file",
-  "xml.parse",
 ];
 
 /**
@@ -614,6 +586,74 @@ describe("lint --explain honesty (Phase 11 / A76 corr 189, 202)", () => {
     }
     for (const code of allGateCodes()) {
       expect(isEmittableIssueCode(code)).toBe(true);
+    }
+  });
+});
+
+/**
+ * AC-COVERAGE-UNIVERSE + AC-COVERAGE-NO-BOILERPLATE (C-EXPLAIN-COVERAGE T-001).
+ * Universe is collectEmittedIssueCodes (production emission sites; skips the
+ * three catalog files). Residual: a new emission form the scanner does not
+ * see is invisible until listed. Predicate binds the --explain body, not a
+ * resolver identifier.
+ */
+describe("AC-COVERAGE-NO-BOILERPLATE (C-EXPLAIN-COVERAGE T-001)", () => {
+  const dedicatedEntryBodies = [
+    "does not yet have a dedicated lint --explain entry. See the review catalog (src/review/catalog.ts)",
+    "does not yet have a dedicated lint --explain entry. See the gate catalog (src/gates/catalog.ts)",
+    "This issue code is emitted by the neo-grace CLI but does not yet have a dedicated explanation entry.",
+  ] as const;
+  const unknownCodeBody = "Unknown issue code: this binary does not emit";
+
+  function explainBodyIsBoilerplateOrUnknown(code: string): boolean {
+    const guide = getLintIssueGuide(code);
+    const rendered = formatLintExplanation(code);
+    const body = `${guide.explanation}\n${rendered}`;
+    return (
+      dedicatedEntryBodies.some((fragment) => body.includes(fragment))
+      || body.includes(unknownCodeBody)
+    );
+  }
+
+  it("every collectEmittedIssueCodes member has a non-boilerplate, non-unknown --explain body", () => {
+    const srcRoot = path.join(import.meta.dir, "..");
+    const universe = collectEmittedIssueCodes(srcRoot);
+    const boilerplateHits = universe.filter(explainBodyIsBoilerplateOrUnknown);
+    expect(boilerplateHits).toEqual([]);
+  });
+});
+
+/**
+ * AC-WIRE-CATALOG-GUIDES (C-EXPLAIN-COVERAGE T-001). Field equality against
+ * the catalog objects themselves. Classification stays emittable-uncatalogued;
+ * none of these codes is an EXACT_GUIDES key.
+ */
+describe("AC-WIRE-CATALOG-GUIDES (C-EXPLAIN-COVERAGE T-001)", () => {
+  it("copies REVIEW_CATALOG title, explanation, and remediation for every registered review code", () => {
+    const reviewCodes = Object.keys(REVIEW_CATALOG);
+    expect(reviewCodes).toContain("review.scope-outside-write-scope");
+    for (const code of reviewCodes) {
+      const catalog = REVIEW_CATALOG[code]!;
+      const guide = getLintIssueGuide(code);
+      expect(guide.title).toBe(catalog.title);
+      expect(guide.explanation).toBe(catalog.explanation);
+      expect(guide.remediation).toEqual(catalog.remediation);
+      expect(classifyIssueCode(code)).toBe("emittable-uncatalogued");
+      expect(getExactLintIssueGuide(code)).toBeUndefined();
+    }
+  });
+
+  it("copies GATE_CATALOG title, explanation, and remediation for every registered gate code", () => {
+    const gateCodes = Object.keys(GATE_CATALOG);
+    expect(gateCodes).toContain("gate.apply.no-verdict");
+    for (const code of gateCodes) {
+      const catalog = GATE_CATALOG[code]!;
+      const guide = getLintIssueGuide(code);
+      expect(guide.title).toBe(catalog.title);
+      expect(guide.explanation).toBe(catalog.explanation);
+      expect(guide.remediation).toEqual(catalog.remediation);
+      expect(classifyIssueCode(code)).toBe("emittable-uncatalogued");
+      expect(getExactLintIssueGuide(code)).toBeUndefined();
     }
   });
 });

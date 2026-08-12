@@ -1524,7 +1524,7 @@ describe("ngrace lint --explain CLI (Phase 11 / A76)", () => {
     const out = Buffer.from(result.stdout).toString("utf8");
     expect(out).toContain("Classification: emittable-uncatalogued");
     expect(out).not.toMatch(/signals drift/i);
-    expect(out).toMatch(/ngrace review/i);
+    expect(out).toContain("Changed File Outside ObservedWriteScope");
   });
 
   it("exits non-zero for unknown codes and never claims drift", () => {
