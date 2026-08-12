@@ -114,6 +114,8 @@ function collectEmittedIssueCodes(srcRoot: string): string[] {
     "markup.module-map-mismatch",
     // makeFinding(ATTEMPT_PAIR_FINDING_CODE, …) in review/core.ts — constant, not a string literal
     "review.attempt-pair-identical-tree",
+    // makeFinding(WRITE_EVIDENCE_SCOPE_FINDING_CODE, …) — constant, not a string literal
+    "review.write-evidence-outside-scope",
   ]) {
     codes.add(code);
   }
@@ -550,6 +552,12 @@ describe("catalog exact-guide completeness (C-TOKEN-INTEGRITY T-005 / C-CURSOR-I
     expect(hasExactSurfaceGuide(registered)).toBe(true);
     expect(REVIEW_PREFIX_COVERED_LEGACY_CODES.includes(registered)).toBe(false);
     expect(guideFor("review.attempt-pair-unsubstantiated")).toBeUndefined();
+    // C-DECLARED-WRITES: write-evidence-outside-scope guided (add, not rename).
+    const weScope = "review.write-evidence-outside-scope";
+    expect(getExactLintIssueGuide(weScope)).toBeUndefined();
+    expect(guideFor(weScope)).toBeDefined();
+    expect(hasExactSurfaceGuide(weScope)).toBe(true);
+    expect(REVIEW_PREFIX_COVERED_LEGACY_CODES.includes(weScope)).toBe(false);
     // A still-uncatalogued review code remains a review-surface orphan, not a lint orphan.
     const future = "review.future-uncatalogued-probe";
     expect(getExactLintIssueGuide(future)).toBeUndefined();

@@ -426,14 +426,14 @@ describe("review admissibility — closed by name (A42.4 / A41.5)", () => {
 
   it("every REVIEW_CATALOG code is either admissible or excluded (exhaustive)", () => {
     const catalog = allReviewCodes();
-    // C-SUBSTANTIATION-HONESTY renames attempt-pair code (still excluded from localization).
-    expect(catalog.length).toBe(14);
+    // C-DECLARED-WRITES adds write-evidence-outside-scope (excluded from localization by omission).
+    expect(catalog.length).toBe(15);
     for (const code of catalog) {
       const admitted = isAdmissibleLocalizationReviewCode(code);
       const excluded = excludedReviewCodesForLocalization().includes(code);
       expect(admitted !== excluded).toBe(true);
     }
-    expect(excludedReviewCodesForLocalization()).toHaveLength(11);
+    expect(excludedReviewCodesForLocalization()).toHaveLength(12);
   });
 
   it("filter keeps only the three; never invents a divergence index", () => {

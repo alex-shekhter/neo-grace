@@ -13,6 +13,7 @@ import {
   auditCompatNewErrors,
   auditHunkCoverage,
   auditScopeOutsideWriteScope,
+  auditWriteEvidenceOutsideScope,
   auditTestWeakening,
   expandScopePathsForArchiveIdentity,
   findingId,
@@ -23,7 +24,12 @@ import {
   runPatternDetectors,
   runReview,
 } from "./core";
-import { ATTEMPT_PAIR_FINDING_CODE, allReviewCodes, guideFor } from "./catalog";
+import {
+  ATTEMPT_PAIR_FINDING_CODE,
+  WRITE_EVIDENCE_SCOPE_FINDING_CODE,
+  allReviewCodes,
+  guideFor,
+} from "./catalog";
 
 const tempRoots: string[] = [];
 
@@ -772,7 +778,10 @@ describe("C-OBSERVABLE-CHECKS scope audit (A66)", () => {
     const text = formatReviewResult(silent);
     expect(text).toContain("Scope audit: ran over 1 changed file(s)");
     expect(text).toContain("No out-of-scope paths");
-    expect(text).toContain("No review findings");
+    // C-DECLARED-WRITES: fixture has no ledger WriteEvidence → unable-to-determine,
+    // so the clean epilogue is suppressed (F31 honesty). Porcelain scope still ran clean.
+    expect(text).toMatch(/WriteEvidence scope audit: unable-to-determine/);
+    expect(text).not.toMatch(/^No review findings\.$/m);
   });
 
   it("empty porcelain without flags is not-run (corr 169 false clean), not a silent pass", () => {
@@ -818,7 +827,9 @@ describe("C-OBSERVABLE-CHECKS scope audit (A66)", () => {
     const text = formatReviewResult(result);
     expect(text).toContain("caller-supplied empty set");
     expect(text).toContain("No out-of-scope paths");
-    expect(text).toContain("No review findings");
+    // Ledger audit is unable-to-determine without WriteEvidence; do not claim full clean.
+    expect(text).toMatch(/WriteEvidence scope audit: unable-to-determine/);
+    expect(text).not.toMatch(/^No review findings\.$/m);
   });
 
   it("no plan under active/ or archive/ is not-run (state 4)", () => {
@@ -1826,7 +1837,8 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     expect(guide!.remediation.some((r) => /gate verdict|--note|findingId/i.test(r))).toBe(true);
     expect(allReviewCodes()).toContain(ATTEMPT_PAIR_FINDING_CODE);
     expect(allReviewCodes()).not.toContain(RETIRED_ATTEMPT_PAIR_CODE);
-    expect(allReviewCodes()).toHaveLength(14);
+    // C-DECLARED-WRITES adds write-evidence-outside-scope (14 → 15).
+    expect(allReviewCodes()).toHaveLength(15);
     expect(guideFor(RETIRED_ATTEMPT_PAIR_CODE)).toBeUndefined();
     const catalogTest = readFileSync(
       path.join(import.meta.dir, "../lint/catalog.test.ts"),
@@ -1926,5 +1938,240 @@ describe("ngrace-execute attempt-pair failure-shape prose (C-SUBSTANTIATION-HONE
     const a = readFileSync(path.join(repoRoot, NGRACE_EXECUTE_SKILL_PATHS[0]));
     const b = readFileSync(path.join(repoRoot, NGRACE_EXECUTE_SKILL_PATHS[1]));
     expect(Buffer.compare(a, b)).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-DECLARED-WRITES T-001 — WriteEvidence vs ObservedWriteScope
+// ---------------------------------------------------------------------------
+
+/** Authoring product ratchet (AC-ARCHIVE-RATCHET); suite-side freeze, not agent-authored. */
+const WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET: ReadonlyArray<readonly [string, string]> = [
+  ["C-ESCALATION-HONESTY", "src/gates/core.test.ts"],
+  ["C-EXECUTION-CONTRACT", "src/test-support/token-accounting.test.ts"],
+];
+
+describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
+  it("raise: product path outside OWS", () => {
+    // At HEAD before this change: helper absent — this test would not exist / fail import.
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: ["src/secret.ts", "src/ok.ts"],
+      scopeFiles: ["src/ok.ts"],
+      scopeGlobs: [],
+    });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.code).toBe(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
+    expect(findings[0]!.severity).toBe("error");
+    expect(findings[0]!.file).toBe("src/secret.ts");
+  });
+
+  it("raise: undeclared non-lifecycle .ngrace/ path (approved-spec shape)", () => {
+    // Never occurred live in 27 archives — synthetic only; highest-severity shape.
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: [
+        ".ngrace/changes/active/C-X/spec.xml",
+        "src/ok.ts",
+      ],
+      scopeFiles: ["src/ok.ts"],
+      scopeGlobs: [],
+    });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.code).toBe(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
+    expect(findings[0]!.file).toBe(".ngrace/changes/active/C-X/spec.xml");
+  });
+
+  it("silent: every non-excluded path is in OWS", () => {
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: ["src/a.ts", "src/b.ts"],
+      scopeFiles: ["src/a.ts", "src/b.ts"],
+      scopeGlobs: [],
+    });
+    expect(findings).toHaveLength(0);
+  });
+
+  it("silent: only lifecycle WriteEvidence extras", () => {
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: [
+        "src/ok.ts",
+        ".ngrace/changes/active/C-X/run.xml",
+        ".ngrace/changes/active/C-X/run-ledger.xml",
+        ".ngrace/changes/active/C-X/run/1-T-001-attempt.xml",
+      ],
+      scopeFiles: ["src/ok.ts"],
+      scopeGlobs: [],
+    });
+    expect(findings).toHaveLength(0);
+  });
+
+  it("silent: only docs/plans/ extras (authority concurrent-edit hole)", () => {
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: [
+        "src/ok.ts",
+        "docs/plans/active/RM-GOVERNED-PATH/decisions.md",
+        "docs/plans/active/RM-GOVERNED-PATH/review.md",
+      ],
+      scopeFiles: ["src/ok.ts"],
+      scopeGlobs: [],
+    });
+    expect(findings).toHaveLength(0);
+  });
+
+  it("dedupes the same path across multiple WriteEvidence appearances", () => {
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: ["src/secret.ts", "src/secret.ts", "src/secret.ts"],
+      scopeFiles: ["src/ok.ts"],
+      scopeGlobs: [],
+    });
+    expect(findings).toHaveLength(1);
+  });
+
+  it("does not emit porcelain code for ledger-only paths", () => {
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: ["src/secret.ts"],
+      scopeFiles: [],
+      scopeGlobs: [],
+    });
+    expect(findings.every((f) => f.code === WRITE_EVIDENCE_SCOPE_FINDING_CODE)).toBe(true);
+    expect(findings.some((f) => f.code === "review.scope-outside-write-scope")).toBe(false);
+  });
+
+  it("unscoped review: WriteEvidence scope audit not-run naming missing --change", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const report = runReview(repoRoot, { patterns: false, joinEngine: false });
+    expect(report.writeEvidenceScopeAudit?.status).toBe("not-run");
+    expect(report.writeEvidenceScopeAudit?.reason).toMatch(/no --change/i);
+    const text = formatReviewResult(report);
+    expect(text).toContain("WriteEvidence scope audit: not-run");
+    expect(text).toMatch(/no --change/i);
+  });
+
+  it("live C-EXECUTION-CONTRACT raises on token-accounting.test.ts (AC-HEAD-RED after)", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const report = runReview(repoRoot, {
+      changeId: "C-EXECUTION-CONTRACT",
+      changedFiles: [],
+      patterns: false,
+      joinEngine: false,
+    });
+    const hits = report.findings.filter(
+      (f) =>
+        f.code === WRITE_EVIDENCE_SCOPE_FINDING_CODE
+        && f.file === "src/test-support/token-accounting.test.ts",
+    );
+    expect(hits).toHaveLength(1);
+    expect(hits[0]!.severity).toBe("error");
+    expect(report.writeEvidenceScopeAudit?.status).toBe("ran");
+  });
+
+  it("live C-ESCALATION-HONESTY raises on gates/core.test.ts and not on docs/plans", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const report = runReview(repoRoot, {
+      changeId: "C-ESCALATION-HONESTY",
+      changedFiles: [],
+      patterns: false,
+      joinEngine: false,
+    });
+    const we = report.findings.filter((f) => f.code === WRITE_EVIDENCE_SCOPE_FINDING_CODE);
+    expect(we.some((f) => f.file === "src/gates/core.test.ts")).toBe(true);
+    expect(we.every((f) => !f.file.startsWith("docs/plans/"))).toBe(true);
+  });
+
+  it("archive ratchet: exact product multiset of two pairs; non-lifecycle .ngrace/ exactly 0", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const archiveDir = path.join(repoRoot, ".ngrace/changes/archive");
+    // Dynamic enumeration — no expect(dirs.length).toBe(N) (F33).
+    const dirs = readdirSync(archiveDir).filter((name) => {
+      if (!name.startsWith("C-")) return false;
+      return statSync(path.join(archiveDir, name)).isDirectory();
+    });
+
+    const productPairs: Array<[string, string]> = [];
+    let nonLifecycleNgraceFindings = 0;
+    /** Bundles with no comparable WriteEvidence (F27.1 "11" class — not scored clean ran). */
+    const AUTHORING_UNEVALUABLE = [
+      "C-ABSENCE-VALUE",
+      "C-ATTEMPT-LOG",
+      "C-FAILURE-LOCALIZATION",
+      "C-GATE-RECORD-ABSENCE",
+      "C-GATE-SURFACE",
+      "C-GRAPH-COVERAGE",
+      "C-LEDGER-READ-ABSENCE",
+      "C-OBSERVABLE-CHECKS",
+      "C-REVIEW-SURFACE",
+      "C-RUN-LEDGER",
+      "C-SELECTION",
+    ] as const;
+    const statusById = new Map<string, string>();
+
+    for (const id of dirs) {
+      const report = runReview(repoRoot, {
+        changeId: id,
+        changedFiles: [],
+        patterns: false,
+        joinEngine: false,
+      });
+      const audit = report.writeEvidenceScopeAudit;
+      expect(audit).toBeDefined();
+      statusById.set(id, audit!.status);
+      if (audit!.status === "unable-to-determine" || audit!.status === "not-run") {
+        expect(audit!.reason.length).toBeGreaterThan(0);
+        continue;
+      }
+      expect(audit!.status).toBe("ran");
+      for (const f of report.findings.filter((x) => x.code === WRITE_EVIDENCE_SCOPE_FINDING_CODE)) {
+        if (f.file.startsWith("docs/plans/")) {
+          throw new Error(`docs/plans finding must not raise: ${id} ${f.file}`);
+        }
+        const isNgrace = f.file === ".ngrace" || f.file.startsWith(".ngrace/");
+        // Lifecycle would not have been emitted; any .ngrace finding is non-lifecycle.
+        if (isNgrace) {
+          nonLifecycleNgraceFindings += 1;
+        } else {
+          productPairs.push([id, f.file]);
+        }
+      }
+    }
+
+    productPairs.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+    const expected = [...WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET].map(([c, p]) => [c, p] as [string, string]);
+    expected.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+    expect(productPairs).toEqual(expected);
+    expect(nonLifecycleNgraceFindings).toBe(0);
+    // Unevaluable authoring set must not score as clean ran (F31).
+    for (const id of AUTHORING_UNEVALUABLE) {
+      expect(dirs).toContain(id);
+      expect(statusById.get(id)).not.toBe("ran");
+    }
+  });
+
+  it("REVIEW_CATALOG registers write-evidence code at error; length 15", () => {
+    const guide = guideFor(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
+    expect(guide).toBeDefined();
+    expect(guide!.code).toBe(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
+    expect(guide!.severity).toBe("error");
+    expect(allReviewCodes()).toContain(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
+    expect(allReviewCodes()).toHaveLength(15);
+    // Porcelain sibling still distinct.
+    expect(guideFor("review.scope-outside-write-scope")!.severity).toBe("error");
+  });
+
+  it("formatReviewResult prints WriteEvidence scope line beside Scope audit", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const report = runReview(repoRoot, {
+      changeId: "C-EXECUTION-CONTRACT",
+      changedFiles: [],
+      patterns: false,
+      joinEngine: false,
+    });
+    const text = formatReviewResult(report);
+    expect(text).toMatch(/Scope audit:/);
+    expect(text).toMatch(/WriteEvidence scope audit: ran over \d+ path\(s\) for C-EXECUTION-CONTRACT/);
   });
 });
