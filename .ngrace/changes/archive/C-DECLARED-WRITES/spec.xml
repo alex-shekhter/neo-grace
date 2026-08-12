@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-DECLARED-WRITES>
     <Summary>
       Close F27 / F27.1 / F27.2: compare each change's durable WriteEvidence paths
