@@ -303,6 +303,17 @@ done.
     `V-M-*` permanently `blocked` (ag9 §2, mistakes #8). Rebalance so `TraceAssertion` reads
     as the default. Keep the example linted in CI and add a check that skills' claimed shapes
     resolve against it.
+12. **`<Clarification>` is unauthorable — repair the shape and un-vacate the approve gate**
+    (F38, added 2026-08-12 during P1's first bundle). `grammar.ts:1623/1637` requires a
+    `target` attribute holding a canonical `IC-*` / `INV-*` / `AC-*` anchor;
+    `grammar.ts:257–265` rejects any canonical anchor in any attribute value. All three
+    advertised families were probed and all three error, so the element cannot be authored at
+    all, and D12's approve gate — which reads `node.attributes.target` at
+    `src/gates/core.ts:181` — can never fire. Move the target to a self-closing anchor **child**,
+    matching `<AffectedAreas><M-X /></AffectedAreas>`; do **not** exempt the attribute from
+    anchor discipline, which would trade wall §3.5's grep-stable anchors for one element's
+    convenience. Carries a gate-side reader change and the skill text that teaches the element.
+    Sequence with step 9: same file, same class of change.
 
 **Verification.** Golden-file tests per generator (generate → lint → green); a review-replay
 fixture running each corpus authoring failure against the new messages, asserting the fix

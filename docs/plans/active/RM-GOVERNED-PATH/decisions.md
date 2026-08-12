@@ -3271,3 +3271,63 @@ single instance gets weakened by the next one — [F9.3](#f93) was refuted by th
 was written. It is recorded here as binding on this repository now, and promoted to product once a second
 bundle has authored a criterion under it. That is a dependency, not a queue: the promotion is blocked on
 evidence that does not yet exist.
+
+---
+
+### F38 — `<Clarification>` cannot be authored in any legal form; the gate that depends on it is vacuous. **[verified]**
+
+Found by an executor doing the ordinary thing: it needed to record a gated hole in a spec, read the
+grammar's own instruction, and wrote what that instruction told it to write.
+
+**Two rules in one file, mutually exclusive.**
+
+| site | rule |
+|---|---|
+| `src/artifact/grammar.ts:1615` | the error text *instructs* `<Clarification target="IC-*\|INV-*\|AC-*">` |
+| `src/artifact/grammar.ts:1623` | `<Clarification>` **requires** a non-empty `target` attribute |
+| `src/artifact/grammar.ts:1637` | that target **must** be a canonical `IC-*`, `INV-*`, or `AC-*` anchor |
+| `src/artifact/grammar.ts:257–265` | any canonical anchor appearing in **any** attribute value is `artifact.semantic-anchor-attribute` |
+
+Every value satisfying the first three violates the fourth. Probed directly against
+`validateSemanticAnchorDiscipline` on a minimal spec, all three advertised families:
+
+```
+AC-FOO    -> artifact.semantic-anchor-attribute: Semantic anchor 'AC-FOO' appears in attribute 'target' on <Clarification>
+IC-FOO    -> artifact.semantic-anchor-attribute: Semantic anchor 'IC-FOO' appears in attribute 'target' on <Clarification>
+INV-FOO   -> artifact.semantic-anchor-attribute: Semantic anchor 'INV-FOO' appears in attribute 'target' on <Clarification>
+```
+
+There is no authorable Clarification. Not a narrow family gap — the element is dead.
+
+**Why lint is 0/0 and nobody noticed.** Zero instances exist. `C-GATE-SURFACE` specified the feature and
+its spec mentions it only in prose; no bundle in the archive has ever authored one. The element shipped
+and was never exercised.
+
+**Why the test did not catch it.** `src/artifact/grammar.test.ts:692` does run the fully composed
+`validateNgraceProject`, so both validators fire on its fixture. It asserts
+`expect(codes(...)).not.toContain("change.invalid-clarification-target")`. The document is
+*simultaneously* emitting `artifact.semantic-anchor-attribute`, and the test never looks. A negative
+assertion on one code, read as "this shape is valid." This is the [F23](#f23) family — an assertion
+weaker than the value its name implies — and it is the reason to prefer *document is clean* over
+*this code is absent* whenever a test's subject is a shape rather than a specific diagnostic.
+
+**Consequence, and the irony.** D12's approve gate refuses on an unresolved Clarification targeting
+`IC-*` or `INV-*` (`src/gates/core.ts:181–182` reads `node.attributes.target`). No Clarification can
+exist, so the gate can never fire. `C-GATE-SURFACE`'s own `AC-TYPED-CLARIFICATION` reads *"Without this
+AC the approve gate is vacuous."* The AC shipped; the gate is vacuous.
+
+**Footprint of the repair.** `src/artifact/grammar.ts` (shape + validator), `src/gates/core.ts:181–182`
+(the approve-gate reader), the skill text that teaches the element, and the packaged mirror.
+
+**Fix direction — child anchor tag, not an attribute exemption.** Exempting `Clarification/@target` is
+the cheap repair and it is the wrong one: it punches a hole in the wall §3.5 principle that makes anchors
+grep-stable tags, for a single element's convenience. The consistent shape already exists everywhere else
+in the product — `<AffectedAreas><M-LINT-CATALOG /></AffectedAreas>` — so a Clarification should carry its
+target the same way, as a self-closing anchor child. That is a grammar change with a gate-side reader
+change, not a validator exemption. Settling it belongs to the bundle, not to this entry.
+
+**Home: P1's grammar bundle, alongside `<OptionalContext>` (P1.9), as [P1.12](./plan.md).** The dependency
+is real rather than a queue: it is the same file, the same class of change (an artifact-shape delta with a
+consumer on the other side), and it must not be interleaved with the `lint --explain` bundle already in
+flight, whose declared write scope stops at `src/lint/*` and whose NonGoals require a re-spec before
+`grammar.ts` is touched.
