@@ -3439,3 +3439,57 @@ pinned to what the file actually contains.
 **Home: P1.14**, with [P1.12](#f38) and [P1.13](#f39). Assertion evaluation lives in
 `src/artifact/assertions.ts`, outside `C-EXPLAIN-COVERAGE`'s `AffectedAreas`, whose NonGoals
 require a re-spec before it is touched — a conflict, not a queue.
+
+---
+
+### F41 — F35 was carried into a new context by a word that changed meaning. **[verified]**
+
+`C-EXPLAIN-COVERAGE`'s spec Constraints cite *"F10 / F35 (bind the check to the guide **body**, not
+a resolver identifier)"*. The plan obeyed it literally and built a predicate that searched the
+`--explain` prose for three boilerplate sentences. The same task then deleted those three sentences
+from the product, and the predicate became unconditionally green — a test that cannot fail, in the
+one place P1 step 1 specifies *"so this cannot regress."*
+
+**The principle was right; the transcription equivocated.** In [F35](#f35) *body* meant **function
+body** — the clone helper's third copy was caught by an AST shape match with the binder as a hole,
+precisely because an identifier is a name and the claim was about substance. Carried here, *body*
+was read as **message body**: prose. Prose is a name for behaviour in the same way an identifier is
+a name for a function. F35 forbids binding to either.
+
+The honest analogue of F35's AST shape match is the resolution **path**: which branch of
+`getLintIssueGuide` produced the answer. Verified reachable in both directions —
+`xml.something-unlisted → emittable-fallback`, `totally.made-up → unknown`, against
+`exact` / `prefix` / `review-catalog` / `gate-catalog` for covered codes — via a dedicated
+`getLintIssueGuideResolution` accessor, so `LintIssue` payloads and `--format json` are unchanged.
+
+**Why record it rather than just fix it.** This roadmap already knows that a rule promoted from one
+instance can be refuted by the next ([F9.3](#f93)), which is why [D16](#d16) is deliberately held
+back from skill text. F41 is a different failure of the same family and a worse one: the rule was
+not refuted, it was **restated in a word that had shifted meaning**, and the restatement passed
+three reviews — mine included — because it still sounded like the rule. When a finding is cited in
+a new artifact, the citation must name the *mechanism* it forbids, not reuse its vocabulary.
+
+Repaired in-task: the plan criterion now binds the resolution path and names two probes as its
+discrimination evidence. The spec sentence that caused it is repaired by the consistency sweep that
+follows, not left standing as the contract.
+
+### F42 — A baseline `MustNotContain` needle that documentation may legitimately mention turns prose into a tripwire. **[verified]**
+
+`C-EXPLAIN-COVERAGE`'s plan asserts, as a **baseline**, that `src/lint/catalog.test.ts` must not
+contain `AC-FIX-SHAPE` — the pair whose target half requires it once T-002 lands. During T-001 the
+executor wrote a comment mentioning `AC-FIX-SHAPE` to explain why the five dependency codes were
+deliberately *not* being given exact guides. Lint went from 5 to 6. The comment was reworded.
+
+The assertion behaved exactly as written, and that is the problem. The needle is an **acceptance
+criterion id**, and ids appear in prose — that is what they are for. So the baseline reports
+"T-002 has started" when what actually happened is "someone explained why T-002 has not started."
+The available fix, deleting the explanation, makes the codebase less legible in order to keep a
+state detector honest. That trade is backwards.
+
+**The rule this argues for:** a baseline/target `MustNotContain` needle should be a string only the
+**implementation** can introduce — a symbol the code must define, an exported name, a rendered
+output fragment — never an identifier that comments, docs or commit messages may legitimately cite.
+
+**Not promoted to `ngrace-plan` yet, deliberately.** One worked instance, and [D16](#d16)'s reason
+applies unchanged: this roadmap has shipped a rule from a single instance and had the next task
+refute it. Promote once a second plan trips the same wire. That is a dependency, not a queue.
