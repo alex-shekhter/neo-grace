@@ -30,6 +30,22 @@ scheduled before the release after `RM-GOVERNED-PATH`'s next target**, and it mu
 `approved-contract-drift`'s git reading rather than run beside it — two surfaces answering the same
 question from two sources is the defect `C-REPORT-HONESTY` exists to remove.
 
+**First worked instance, 2026-08-12 — no contrivance required.** `C-EXPLAIN-COVERAGE`'s plan was
+approved, `gate approve` recorded `permit` into `run-ledger.xml`, and the plan was then edited to
+repair four assertion subjects (F40). Re-running the gate appended a **second** `<Decision>` that is
+byte-identical to the first — no timestamp, no artifact digest, only `gate`, `decision` and the
+requirement list:
+
+```xml
+<Decision gate="approve" decision="permit"><Requirement id="no-unresolved-ic-inv-clarification" … /></Decision>
+<Decision gate="approve" decision="permit"><Requirement id="no-unresolved-ic-inv-clarification" … /></Decision>
+```
+
+So the ledger cannot distinguish the approval of the pre-repair plan from the approval of the
+repaired one, and a reader cannot order them. The edit was legitimate and the re-run was
+voluntary — which is the point: the gap is invisible inside one bundle's ordinary lifecycle, so it
+will not announce itself when it matters.
+
 **Execution order (historical).** `RM-NAMESPACE-SEPARATION` ran first and is complete — shipped
 2026-07-29 as `@neograce/cli` 6.0.1. `RM-AGENT-RELIABILITY` (with its evidence sibling) followed and
 is complete. `RM-LANGUAGE-EXTENSIBILITY` remains exploration only.
