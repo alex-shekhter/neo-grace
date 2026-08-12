@@ -3346,3 +3346,50 @@ is real rather than a queue: it is the same file, the same class of change (an a
 consumer on the other side), and it must not be interleaved with the `lint --explain` bundle already in
 flight, whose declared write scope stops at `src/lint/*` and whose NonGoals require a re-spec before
 `grammar.ts` is touched.
+
+---
+
+### F39 — Lint reports 118 artifacts clean; 8 of them are not well-formed XML. **[verified]**
+
+Found the same way as [F38](#f38): an executor doing the ordinary thing, reporting a workaround it
+did not have to mention. Authoring `C-EXPLAIN-COVERAGE`'s plan it wrote `--explain` inside the
+`DESIGN` comment block, noticed the artifact still linted clean, removed the `--` sequences anyway
+because they are not well-formed, and said so in one line of its report.
+
+**Measured across the whole artifact tree:**
+
+```
+artifacts scanned: 118        (ngrace lint: "XML artifacts checked: 117, Errors: 0")
+rejected by expat: 8
+  C-FLAG-HONESTY/plan.xml       C-EXECUTION-CONTRACT/plan.xml
+  C-RECOVER-FOLDABLE/plan.xml   C-LEGIBLE-FAILURE/plan.xml
+  C-DECLARED-WRITES/plan.xml    C-REPORT-HONESTY/plan.xml
+  C-CALIBRATION-COMMAND-EVIDENCE/plan.xml
+  C-ESCALATION-HONESTY/plan.xml
+```
+
+Cause is uniform: `--` inside an XML comment. XML 1.0 §2.5 forbids it; `fast-xml-parser` accepts it
+and expat rejects it. The three sites checked are `--name`, `recover --fix`, and `--format only:` —
+CLI flags, in comments, in a repository whose entire subject is a CLI.
+
+**Why this is systemic rather than incidental.** The plan convention in this roadmap is a binding
+`DESIGN` comment block, and the thing being designed is a command-line tool. Every flag is a `--`.
+The collision is guaranteed by the two conventions meeting, and it has already happened in **eight
+of the archive's plans** without one error.
+
+**The defect is the honesty of the report, not data loss.** The product's own parser reads these
+files correctly; nothing is broken today. What is false is the line `XML artifacts checked: 117 /
+Errors: 0`, which claims a validity that was never checked. Any other consumer — `xmllint`, an
+editor, a CI validator, a parser in another language — rejects them. That is [F10](#f10)'s shape at
+the tool level: a name claiming more than the body verifies.
+
+**Open question the repair must settle, recorded because it shapes the bundle.** Adding a
+well-formedness check turns eight **archived** artifacts red, and archived bundles are immutable in
+this repository. So the check cannot simply be switched on: it must be scoped to active bundles, or
+emitted as a warning with the archive grandfathered, or the archive's immutability re-examined.
+Whichever is chosen must be argued rather than assumed — a check that quietly excludes the eight
+files that motivated it would be its own [F28](#f28).
+
+**Home: P1.13**, sequenced with [F38](#f38)'s P1.12. Both are artifact-validity repairs under
+`src/artifact/`, and both must not be interleaved with the `lint --explain` bundle in flight, whose
+declared scope stops at `src/lint/*`.
