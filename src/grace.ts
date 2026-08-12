@@ -32,7 +32,7 @@ import { formatCauseChain } from "./query/errors";
 const main = defineCommand({
   meta: {
     name: "ngrace",
-    version: "6.1.1",
+    version: "6.2.0",
     description: `neo-grace CLI for ${ARTIFACT_DIR} linting, transition gates, run ledger and cursor, mechanized review, task-scoped context slices, status snapshots, module health, verification queries, and semantic markup navigation.`,
   },
   subCommands: {

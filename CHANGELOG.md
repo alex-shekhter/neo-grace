@@ -1,3 +1,13 @@
+## <small>6.2.0 (2026-08-12)</small>
+
+### Summary
+
+This release is the integrity cluster: fourteen change bundles whose single subject is that a surface must not report success while the thing it names is absent. The CLI now refuses the boolean space form that silently inverted intent, so a flag written with a space no longer rebinds its value to a positional and proceeds; failures render as the declared JSON envelope with the exit code taken from the error object rather than coinciding at one; and unexpected errors keep their original message and their cause chain instead of collapsing into a fixed sentence, with the stack on stderr so machine-readable output stays parseable. Process-level unhandled rejections and uncaught exceptions are now reported at the CLI entry and exit non-zero rather than depending on an unpinned runtime default. The fix budget escalates on repeated failing signatures and on distinct-signature breadth instead of counting raw attempts, so an honest red-first cycle is no longer charged as thrash, and clearing an escalation requires a recorded reason that survives fold. Run-ledger and cursor handling gained epoch bounds, an orphan inventory, and an append-only recovery path that never rewrites a recorded event. Declared write scope is now compared against what a task actually wrote, using evidence the tool generates rather than a working-tree query that silently declines to run on a clean tree. The red-first substantiation check was rebuilt after measurement showed it had raised eight findings across the archive with no true positives among them. Reporting surfaces were corrected where they disagreed with each other or with the artifacts they describe, and the published skill-text footprint is now reported in bytes alongside lines, because a line count registered a nine percent growth in the text agents load as no change at all.
+
+* docs(ngrace): record F37 and D16, evidence must live in an artifact (#41) ([29ccc13](https://github.com/alex-shekhter/neo-grace/commit/29ccc13)), closes [#41](https://github.com/alex-shekhter/neo-grace/issues/41)
+* fix(artifact): verify one clone definition by body, not by identifier (#40) ([ee1e1b0](https://github.com/alex-shekhter/neo-grace/commit/ee1e1b0)), closes [#40](https://github.com/alex-shekhter/neo-grace/issues/40)
+* feat(governed-path): reject, don't filter — the P0 integrity cluster (#39) ([74ef83d](https://github.com/alex-shekhter/neo-grace/commit/74ef83d)), closes [#39](https://github.com/alex-shekhter/neo-grace/issues/39)
+
 ## <small>6.1.1 (2026-08-02)</small>
 
 ### Summary
