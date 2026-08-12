@@ -1,0 +1,662 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-DECLARED-WRITES>
+    <Summary>
+      Close F27 / F27.1 / F27.2: compare each change's durable WriteEvidence paths
+      to its plan ObservedWriteScope at review time (distinct from the porcelain
+      scope audit); raise on undeclared non-excluded writes including non-lifecycle
+      `.ngrace/` paths; report absence when the ledger has nothing to compare;
+      pin the archive ratchet (exactly two historical raises, exactly zero
+      undeclared non-lifecycle `.ngrace/` paths); and prevent the forced-pin /
+      forced-fixture omission class by teaching `ngrace-plan` that ObservedWriteScope
+      covers what the deliverable forces, not only what it targets.
+    </Summary>
+    <Problem>
+      **F27 / F27.1 — ObservedWriteScope is declared and digested, but the durable
+      record is never compared to the declaration** (decisions.md).
+
+      A comparison already exists. `review.scope-outside-write-scope` /
+      `auditScopeOutsideWriteScope` is the mechanized §0.7.1 scope audit. Its
+      input is the **git working tree** (`explicit | base | porcelain`). At close
+      everything is committed, the tree is clean, and with no `--base` or
+      `--changed-files` the audit reports:
+
+      ```
+      Scope audit: not-run — no changed files available (working tree clean; supply --base or --changed-files)
+      ```
+
+      That line appeared on `C-SUBSTANTIATION-HONESTY`'s own close. The check does
+      not fail to exist — it declines to run, honestly, at the moment a verdict
+      is formed.
+
+      Meanwhile `snapshotWriteEvidence` calls `listRepositoryChangedFiles` (the
+      whole repository's changed set), digests every path, and records the result
+      **per attempt**. The record is tool-generated (`git status`), survives fold
+      and archive, and is exactly the evidence class F9.10.1 says can constrain an
+      agent. **Nothing reads it for scope.**
+
+      Independent re-measure at this authoring HEAD (27 archived `C-*` bundles;
+      union of WriteEvidence `File` paths vs plan `ObservedWriteScope` File/Path
+      entries; exclude `.ngrace/**` for the F27.1 table only):
+
+      | metric | value |
+      | bundles scanned | 27 |
+      | bundles with ≥1 undeclared write | 3 |
+      | undeclared path instances | 5 |
+      | bundles with no evidence to compare | 11 (4 missing `run-ledger.xml`, 7 ledger with zero WriteEvidence) |
+
+      | bundle | undeclared path | class |
+      | `C-ESCALATION-HONESTY` | `src/gates/core.test.ts` | true positive — disclosed and adjudicated (F27 / F27.2) |
+      | `C-ESCALATION-HONESTY` | `docs/plans/…/decisions.md` | authority concurrent edit |
+      | `C-TOKEN-INTEGRITY` | `docs/plans/…/decisions.md` | authority concurrent edit |
+      | `C-TOKEN-INTEGRITY` | `docs/plans/…/review.md` | authority concurrent edit |
+      | `C-EXECUTION-CONTRACT` | `src/test-support/token-accounting.test.ts` | true positive — undisclosed until F27.2 |
+
+      Matches F27.1's table exactly. Command and full enumeration live in
+      Assumptions.
+
+      **Non-lifecycle `.ngrace/` (not in F27.1's table).** F27.1 excluded every
+      `.ngrace/` path and never looked. Independent re-measure comparing
+      WriteEvidence paths under `.ngrace/` that are **not**
+      `isCliLifecyclePath` matches against OWS (with active↔archive identity):
+
+      ```
+      undeclared non-lifecycle .ngrace/ writes across 27 archived bundles: 0
+      ```
+
+      Twenty-two non-lifecycle `.ngrace/` WriteEvidence paths exist in the
+      corpus (plan.xml, spec.xml, graph/verification files); every one is in
+      OWS. That is a held immutability / declaration discipline, not an empty
+      set. An approved `spec.xml` is immutable and must never appear in
+      WriteEvidence as an undeclared edit — if it does, that is among the most
+      serious violations this methodology has. Pinning **exactly 0** undeclared
+      non-lifecycle `.ngrace/` findings over the archive converts that intention
+      into a regression.
+
+      **F27.2 — both historical breaches share one preventable shape.** Neither
+      write was wrong, only undeclared. `C-EXECUTION-CONTRACT` changed skill text
+      and forced the skill-footprint pin to move; `C-ESCALATION-HONESTY` changed
+      a rule and forced a fixture that constructed that rule to change. By
+      execute time the edit is forced — breach scope or fail the task. Both were
+      decidable at plan-authoring time. A detector alone leaves every future plan
+      free to make the same omission and merely learn at close. **Prevention
+      belongs in `ngrace-plan`**, where ObservedWriteScope is authored — not in
+      `ngrace-execute`, which obeys the declaration.
+    </Problem>
+    <Goals>
+      <Goal>
+        Add a **ledger-backed** scope comparison: for a resolved change, take the
+        **union** of content paths recorded in WriteEvidence across the change's
+        run ledger (folded events and any loose `run/` events still present),
+        exclude the path classes named in Constraints, and raise one finding per
+        remaining path that is **not** covered by the plan's ObservedWriteScope
+        (File/Path exact membership and existing Glob matching —
+        `observedWriteScopeContains` / the same expansion rules the porcelain
+        audit uses, including archive-identity expansion for
+        active↔archive plan paths when applicable).
+      </Goal>
+      <Goal>
+        **Distinct from the porcelain audit (decided).** Same declared-scope
+        question, different evidence source. Finding code **locked** (exact
+        string, F23): **`review.write-evidence-outside-scope`**. Export a single
+        catalog constant (e.g. `WRITE_EVIDENCE_SCOPE_FINDING_CODE`) used by the
+        emitter, catalog entry, suite pins, and skill agreement tests — do not
+        re-type the string at call sites. Do **not** overload
+        `review.scope-outside-write-scope` or silently feed WriteEvidence into
+        `auditScopeOutsideWriteScope` as a second input that shares one code —
+        when the two disagree the operator must tell which said what. Shared
+        path-coverage helpers are fine; shared finding identity is not.
+      </Goal>
+      <Goal>
+        **Always report whether the ledger audit ran** (F31 class). Same
+        vocabulary as scope / attempt-pair:
+        `status: "ran" | "not-run" | "unable-to-determine"` with a reason.
+        Unscoped review (no `--change`) → `not-run` (reason names missing
+        `--change`). Change resolved but no comparable WriteEvidence (missing
+        ledger, or ledger with zero WriteEvidence File digests) →
+        **`unable-to-determine`**, never "clean." Change with at least one
+        comparable path → `ran` (including zero findings). Text and JSON both
+        surface the status; Findings: 0 must not read as "ledger scope audited
+        clean" when status is `not-run` or `unable-to-determine`.
+      </Goal>
+      <Goal>
+        **Path-class exclusions (tool-defined, not agent-authored lists):**
+        (1) CLI lifecycle paths already covered by `isCliLifecyclePath` (F11) —
+        `run/**`, `run.xml`, `run-ledger.xml` under any canonical C-* bundle —
+        **not** `spec.xml` or `plan.xml`;
+        (2) **authority roadmap tree:** any path with prefix `docs/plans/`.
+        Both are path-class rules, not per-bundle allowlists.
+      </Goal>
+      <Goal>
+        **Non-lifecycle `.ngrace/` paths raise when undeclared.** Approved
+        artifacts (`spec.xml`, `plan.xml`) and other non-lifecycle `.ngrace/`
+        paths that appear in WriteEvidence outside OWS are findings. Archive
+        ratchet includes **exactly 0** such findings over every enumerated
+        archive bundle (authoring measurement: 0; pin the invariant, not a
+        directory count).
+      </Goal>
+      <Goal>
+        **Retroactive archive behaviour (decided):** the check runs for any
+        resolved bundle — active **or** archive — that has comparable
+        WriteEvidence. After exclusions, the authoring corpus yields **exactly
+        two** raise instances on non-`.ngrace/` product paths (the two true
+        positives) and **exactly zero** undeclared non-lifecycle `.ngrace/`
+        raises. The suite pins those exact multisets as a **tool-side ratchet**
+        (authored in tests by the check's implementers, not by the bundle under
+        audit — passes F9.10.1). It does **not** pin "zero findings over the
+        archive" for the product-path code. Permanent red on
+        `ngrace review --change C-EXECUTION-CONTRACT` is accepted forensic
+        honesty, not a close-time tax: **closes are change-scoped**, so the two
+        historical findings never appear at any future close and the F11
+        "permanently red teaches ignore" harm does not apply.
+      </Goal>
+      <Goal>
+        **Severity error (decided).** An undeclared write that can reach archive
+        undisclosed is not a style nit. Matches
+        `review.scope-outside-write-scope` severity. Belongs on the **review**
+        process-audit surface (visible at close), not the lint family.
+      </Goal>
+      <Goal>
+        Positive fixtures prove raise and silence independently of the archive
+        ratchet (counterweight: a detector broken into permanent silence fails
+        fixtures even if a soft corpus pin passed).
+      </Goal>
+      <Goal>
+        **Prevention half (F27.2):** surgically extend
+        `skills/ngrace/ngrace-plan/SKILL.md` and its packaged mirror so plan
+        authors declare ObservedWriteScope for what the deliverable **forces**,
+        not only what it targets. Name the live finding code (bound to the
+        catalog constant) as the failure shape. Canonical and packaged remain
+        byte-identical. This is product change on the skill that authors the
+        declaration — not on `ngrace-execute`.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: decisions.md F27, F27.1, F27.2 (subject); F9.10.1 (incentive
+        test — tool evidence may constrain the agent; agent-authored exception
+        lists may not; suite ratchet is tool-side); F11 / F11.2
+        (`isCliLifecyclePath`); F12 / F21 (skill prose and enforcement agree on
+        the live finding code); F23 (exact pins); F26 / F30 / F33 (criteria name
+        invariants; measurements in Assumptions); F28 (no criterion green for the
+        wrong reason at HEAD); F31 (absence vocabulary); F4 (this authoring pass
+        is **spec only**, `status="draft"`; do not author `plan.xml` until the
+        spec is approved).
+      </Constraint>
+      <Constraint>
+        **The rule is decided in this spec, not deferred to the plan.** The plan
+        may choose function names, report field names, and test layout, but must
+        not re-open: distinct finding code
+        `review.write-evidence-outside-scope` (locked — no rename); review
+        surface not lint family; the `docs/plans/` exclusion class; non-lifecycle
+        `.ngrace/` raises; absence statuses for missing/empty WriteEvidence;
+        retroactive fire on archive with exact two-path product ratchet plus
+        exact-zero non-lifecycle `.ngrace/` ratchet rather than corpus-zero
+        silence; rejection of plan.xml allowlists and verdict-note silence;
+        severity error; prevention half in `ngrace-plan` (not execute).
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T2 (cross-cutting)** — consequence of skill trees
+        entering scope alongside the review check (F27.2), not a separate
+        judgement. Full sections; multi-module AffectedAreas (`M-REVIEW`,
+        `M-SKILLS`, and `M-TEST-SUPPORT` for the skill-footprint pin file);
+        integration evidence in VerificationIntent (CLI matrix + skill prose
+        presence/absence + marketplace mirror parity).
+      </Constraint>
+      <Constraint>
+        AffectedAreas is a closed list and binds the plan
+        (`change.plan-scope-exceeds-spec`). Anticipated write surface:
+        `src/review/core.ts`, `src/review/catalog.ts`, `src/review/core.test.ts`,
+        `skills/ngrace/ngrace-plan/SKILL.md`,
+        `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md`,
+        `src/test-support/token-accounting.test.ts` (**declared always** —
+        skill text change may move the line pin; F27 / F27.2 discipline: declare
+        whether or not the pin moves; re-measure after prose, exact `toBe`),
+        and as forced by catalog/cardinality pins:
+        `src/lint/catalog.test.ts`, `src/verification/localize.test.ts` if
+        REVIEW_CATALOG length / partition pins require an add update.
+        **Stop and re-spec** rather than silent expansion into execute skills,
+        docs, or unrelated modules.
+      </Constraint>
+      <Constraint>
+        Both ngrace-plan skill trees always: edit canonical
+        `skills/ngrace/ngrace-plan/SKILL.md` and keep
+        `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md` synchronized in the
+        same change. `scripts/validate-marketplace.ts` requires
+        packaged-vs-canonical parity via `git diff --no-index`.
+      </Constraint>
+      <Constraint>
+        **Do not widen ObservedWriteScope semantics** so fewer paths count as
+        undeclared. The finding is closed by comparing declaration to record, not
+        by redefining declaration to swallow the breach.
+      </Constraint>
+      <Constraint>
+        **Do not fold in F20, F29 (as a product rewrite), or D14 repairs.**
+        Queued separately. Token-accounting appears here only as a **declared
+        pin file** that skill-line measurement may update — not as a rewrite of
+        what the pin measures (F29's residual stays open).
+      </Constraint>
+      <Constraint>
+        **Do not edit** `docs/plans/**`, `.ngrace/changes/archive/**` content,
+        CHANGELOG.md, or any version surface (`package.json`, README packaged
+        version, `openpackage.yml`, marketplace/plugin manifests). decisions.md
+        remains the authority's record; this bundle cites F27 / F27.1 / F27.2
+        and closes the gap they name.
+      </Constraint>
+      <Constraint>
+        **Exclusion hole must stay named.** The `docs/plans/` class exclusion
+        wrongly permits roadmap edits under `docs/plans/` without this check
+        firing. Accepted because those paths are authority-owned concurrent work;
+        the hole's shape is "roadmap prose under `docs/plans/` is invisible to
+        declared-write audit," not "any path the agent lists." Production, test,
+        skill, and non-lifecycle `.ngrace/` paths remain fully visible.
+      </Constraint>
+      <Constraint>
+        **Incentive test is binding.** Rejected (see NonGoals): per-bundle
+        accepted-path lists in `plan.xml` or `spec.xml`; agent-authored
+        suppressions. Verdict-note silence is **rejected for v1** (weakness:
+        `gate verdict` is available to whoever runs it, so a silence channel
+        keyed to it is only as strong as the convention that the authority runs
+        it). Historical ratchet lives in **suite pins** (tool-side measurement
+        freeze authored with the check, not by the change under audit) — that
+        distinction is load-bearing for F9.10.1.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first for each AC. Pins exact (F23). Mutation
+        probes required for: feeding WriteEvidence through the porcelain code
+        only; scoring empty WriteEvidence as clean `ran`; dropping the
+        `docs/plans/` exclusion; expanding the historical product ratchet without
+        intentional test edit; introducing an undeclared non-lifecycle `.ngrace/`
+        path into a fixture that expected 0; skill omitting the live code or
+        still unbound from the constant; only one skill tree updated.
+      </Constraint>
+      <Constraint>
+        No product version bump. Packaged version at authoring: **6.1.1**.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        **Rejected — overload `review.scope-outside-write-scope` / feed
+        WriteEvidence into `auditScopeOutsideWriteScope` as a silent second
+        input with one code.** Porcelain and ledger answer different questions
+        and can disagree (clean tree + dirty ledger at close is the motivating
+        case). One code collapses the disagreement. (Design disagreement with
+        early F27 "lint family" disposition — **accepted as decided:** review
+        surface, sibling code.)
+      </NonGoal>
+      <NonGoal>
+        **Rejected — per-bundle "accepted out-of-scope paths" in plan.xml or
+        spec.xml.** Fails F9.10.1 on sight: authored by the party under audit.
+      </NonGoal>
+      <NonGoal>
+        **Rejected for v1 — silence historical findings via gate verdict
+        `--note`.** Candidate considered: authority records a note keyed by
+        findingId at close. Weakness: the command is available to whoever runs
+        the gate, including the executor under pressure; a silence channel keyed
+        to it is only as strong as the convention that the authority runs it.
+        Forensic raise on the two historical true positives remains correct;
+        suite ratchet freezes them as known rather than erasing them.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — corpus zero over archives for product-path undeclared
+        writes.** Would require permanent detector silence on real breaches or
+        an exception channel. Pin the exact known raise multiset of two instead.
+        (Design disagreement on retroactivity — **accepted as decided:** fire on
+        archive; change-scoped closes do not re-pay historical debt.)
+      </NonGoal>
+      <NonGoal>
+        **Rejected — widen ObservedWriteScope meaning** (globs that swallow
+        `src/**`, implicit test inclusion, "adjacent files are fine"). Solves
+        F27 by deleting it.
+      </NonGoal>
+      <NonGoal>
+        Changing WriteEvidence schema, `snapshotWriteEvidence` input set, fold
+        ordering, gate policy, attempt-pair rules, or cursor event kinds.
+      </NonGoal>
+      <NonGoal>
+        **Rewrites of `ngrace-execute`.** Prevention belongs in `ngrace-plan`
+        (where OWS is authored). Execute already requires stop-and-report before
+        undeclared writes; this bundle does not tax the execute skill trees.
+      </NonGoal>
+      <NonGoal>
+        F20 (`cloneXmlNode` home), F29 residual (what the footprint pin
+        measures), D14 (`cause` / unhandledRejection). Separate queue.
+      </NonGoal>
+      <NonGoal>
+        Editing `docs/plans/**` or archive bundle content to "clear" historical
+        raises. History stays; the check reads it. F27.2 adjudication of the two
+        breaches is authority-owned prose in decisions.md, not an archive edit.
+      </NonGoal>
+      <NonGoal>
+        Any product version bump or hand-edit of CHANGELOG.md.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-LEDGER-SCOPE-RULE>
+        When a change is resolved and comparable WriteEvidence exists, review
+        raises **`review.write-evidence-outside-scope`** (severity **error**) for
+        each path that (1) appears as a WriteEvidence content File path in the
+        union across that change's ledger events, (2) is not an
+        `isCliLifecyclePath` match, (3) does not have prefix `docs/plans/`, and
+        (4) is not covered by the plan ObservedWriteScope under the same
+        coverage rules the porcelain audit uses (exact File/Path, globs,
+        archive-identity expansion). Lifecycle exclusion is **only**
+        `run.xml` / `run-ledger.xml` / `run/**` under a valid C-* bundle —
+        **not** `spec.xml`, `plan.xml`, graph, or verification paths.
+        Non-lifecycle `.ngrace/` paths that appear in WriteEvidence outside OWS
+        **raise**. Deduplicate by path: one finding per undeclared path per
+        change, not one per attempt. **Values named:** code string
+        `review.write-evidence-outside-scope`; severity error;
+        union-not-per-attempt; exclusions lifecycle + `docs/plans/` only.
+        **Failure conditions:** porcelain code reused for ledger hits; warning
+        severity; per-attempt spam for the same path; lifecycle or `docs/plans/`
+        paths raised; non-lifecycle `.ngrace/` undeclared path silent; OWS
+        coverage ignored; only last-attempt intersection consulted.
+      </AC-LEDGER-SCOPE-RULE>
+      <AC-DISTINCT-FROM-PORCELAIN>
+        `review.scope-outside-write-scope` continues to mean **working-tree /
+        explicit / base** changed files only. Ledger hits use only
+        `review.write-evidence-outside-scope`. Report lines name the audit so an
+        operator can see both: existing Scope audit line unchanged in meaning;
+        new WriteEvidence-scope audit line (exact label plan-owned; must be
+        human-visible and present in JSON). A clean tree at close may show
+        Scope audit `not-run` while WriteEvidence-scope audit `ran`. **Failure
+        conditions:** single merged finding code; Scope audit line claims it
+        consulted WriteEvidence; ledger-only breach reported under the porcelain
+        code.
+      </AC-DISTINCT-FROM-PORCELAIN>
+      <AC-ABSENCE-RECORD>
+        Process-audit review results always carry WriteEvidence-scope audit
+        status. **no `--change`:** `not-run` with reason naming missing
+        `--change`. **`--change` present, bundle unresolved:** `not-run` or
+        `unable-to-determine` with reason (plan-owned; machine-checkable).
+        **`--change` present, bundle resolved, zero comparable WriteEvidence
+        File digests** (missing `run-ledger.xml` / unreadable ledger, or ledger
+        present but no WriteEvidence paths): **`unable-to-determine`** with
+        reason that states there is no WriteEvidence to compare — **not** `ran`
+        with zero findings presented as clean. **`--change` present, ≥1
+        comparable path after lifecycle strip (exclusions may remove some):**
+        `ran` (findingCount may be 0). Text and JSON both expose status.
+        Unscoped Findings: 0 must not read as ledger-scope clean when status is
+        `not-run` / `unable-to-determine` (same honesty bar as attempt-pair /
+        scope). **Failure conditions:** eleven predating archive bundles score
+        as clean `ran`; unscoped omits the audit entirely; empty WE reported as
+        successful clean audit without absence.
+      </AC-ABSENCE-RECORD>
+      <AC-EXCLUSION-DOCS-PLANS>
+        No finding with code `review.write-evidence-outside-scope` has a `file`
+        (or primary path) under prefix `docs/plans/`. Suite proves: authority
+        paths from the authoring measurement
+        (`…/decisions.md`, `…/review.md` on the measured bundles) do **not**
+        raise; removing the exclusion in a mutation probe reintroduces them.
+        **Failure conditions:** `docs/plans/` path appears in findings; exclusion
+        implemented as a one-off list of the three measured files only (must be
+        the prefix class); exclusion accidentally swallows `src/`, skills, or
+        non-lifecycle `.ngrace/`.
+      </AC-EXCLUSION-DOCS-PLANS>
+      <AC-ARCHIVE-RATCHET>
+        Against repository archives **at evaluation time** (dynamic enumeration
+        of `.ngrace/changes/archive/C-*` — **no** `expect(dirs.length).toBe(N)`
+        for authoring N; F33): for every enumerated bundle with status `ran`,
+        the set of `review.write-evidence-outside-scope` findings equals the
+        set difference (WriteEvidence paths − OWS − exclusions).
+
+        **Product / non-docs ratchet — exact multiset of `(changeId, path)`:**
+
+        - (`C-ESCALATION-HONESTY`, `src/gates/core.test.ts`)
+        - (`C-EXECUTION-CONTRACT`, `src/test-support/token-accounting.test.ts`)
+
+        **No other pairs** among non-lifecycle, non-`docs/plans/` paths.
+
+        **Non-lifecycle `.ngrace/` ratchet — exact count 0:** over every
+        enumerated archive bundle, the number of findings whose code is
+        `review.write-evidence-outside-scope` and whose path is under `.ngrace/`
+        and is **not** an `isCliLifecyclePath` match is **exactly 0**. Authoring
+        measurement (independent of F27.1's full-tree exclude): 0 undeclared
+        non-lifecycle `.ngrace/` WriteEvidence paths across 27 bundles. This pin
+        is a **regression on approved-artifact immutability / declaration**, not
+        a directory-count pin. The day an undeclared edit to an approved
+        `spec.xml` (or other non-lifecycle `.ngrace/` path) appears in archive
+        WriteEvidence, this assertion goes red.
+
+        Bundles with `unable-to-determine` contribute zero findings and must
+        appear in the audit status breakdown (not counted as clean rule passes).
+        Ratchet pins are **suite-authored tool-side freezes** (F9.10.1 pass), not
+        declarations inside the audited bundles. **Failure conditions:** product
+        corpus asserted as zero findings; soft `toBeLessThan`; only dirty
+        bundles scanned; product ratchet grows without intentional test edit;
+        non-lifecycle `.ngrace/` count not pinned to exact 0; `toBe(27)` /
+        `toBe(28)` on directory count; unable-to-determine omitted from status
+        accounting.
+      </AC-ARCHIVE-RATCHET>
+      <AC-FIXTURES>
+        Synthetic fixtures (not only live archive): **must raise** when
+        WriteEvidence union contains `src/secret.ts` (or similar) and OWS does
+        not; **must raise** when WriteEvidence contains an undeclared
+        non-lifecycle `.ngrace/` path (e.g. active bundle `spec.xml` not in OWS);
+        **must not raise** when every non-excluded WriteEvidence path is in OWS;
+        **must not raise** when the only extras are lifecycle paths or
+        `docs/plans/**`; **must** mark `unable-to-determine` when WE is empty.
+        Positive raise fixtures are required as counterweight to both archive
+        ratchets. **Failure conditions:** archive ratchet alone treated as proof;
+        no forced raise for product path; no forced raise for undeclared
+        non-lifecycle `.ngrace/`; empty WE fixture claims `ran` clean.
+      </AC-FIXTURES>
+      <AC-HEAD-RED>
+        At implementation red-first (before product edits): change-scoped review
+        of `C-EXECUTION-CONTRACT` does **not** yet emit
+        `review.write-evidence-outside-scope` for
+        `src/test-support/token-accounting.test.ts` (code absent). After the
+        change, that review **does** emit exactly that finding (among any
+        others the rule requires for that bundle). Proves the check is not
+        already green on the unmodified tree for the load-bearing case (F28).
+        **Failure conditions:** only synthetic fixtures prove raise; live
+        undisclosed breach still silent after the change; test that would pass
+        at pre-change HEAD.
+      </AC-HEAD-RED>
+      <AC-PLAN-FORCED-SCOPE>
+        Both `skills/ngrace/ngrace-plan/SKILL.md` and
+        `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md` state a plan-authoring
+        rule, in substance:
+
+        ObservedWriteScope must cover what the change's deliverable **forces**,
+        not only the files it targets. A plan that alters **skill text** declares
+        the skill-footprint pin (`src/test-support/token-accounting.test.ts` in
+        this repository's layout, or the project's equivalent pin). A plan that
+        alters a **rule** declares the fixtures that construct instances of that
+        rule. More generally: if the approved deliverable makes an edit
+        inevitable, that path is in ObservedWriteScope at plan time — an
+        executor must not be left choosing between scope breach and task failure.
+
+        Failure shape for violating the duty the check enforces:
+        **`review.write-evidence-outside-scope`**, bound to the exported catalog
+        constant (presence via the constant / required substring built from it —
+        not a free-typed literal that can drift). **How checked:** agreement
+        tests (positive presence of live code from constant; negative absence of
+        any retired/wrong code if introduced; substance of forced-scope rule
+        present on **both** trees). Kind-set completeness alone does not satisfy
+        this AC. **Failure conditions:** only execute skill edited; only
+        canonical updated; code named as a retyped literal that can drift from
+        catalog; rule stated without the failure-shape code; "declare what you
+        target" left as the only OWS guidance.
+      </AC-PLAN-FORCED-SCOPE>
+      <AC-PROSE-ENFORCEMENT-AGREE>
+        Both ngrace-plan skill trees contain the live finding code via the
+        catalog constant binding (same pattern as
+        `ATTEMPT_PAIR_FINDING_CODE` / C-SUBSTANTIATION-HONESTY T-002). Mutating
+        the constant without the skill reddens; mutating either skill tree
+        without the constant reddens; positive presence **and** negative
+        absence (if any stale code is defined) on **both** paths. **Failure
+        conditions:** only one tree checked; only presence or only absence;
+        literal string in tests that would pass if the constant renamed and
+        skill left stale.
+      </AC-PROSE-ENFORCEMENT-AGREE>
+      <AC-SKILL-MIRROR-IDENTICAL>
+        After the change, `skills/ngrace/ngrace-plan/SKILL.md` and
+        `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md` are byte-identical
+        (`git diff --no-index` clean / validate-marketplace packaged-vs-canonical
+        green). **Failure conditions:** only canonical edited; drift left for
+        later cleanup; eye-check without validator.
+      </AC-SKILL-MIRROR-IDENTICAL>
+      <AC-SUITE-AND-LINT>
+        Red-first regressions cover each AC with exact assertions (F23).
+        `bun test` green for touched packages; `bun run validate:ci` green
+        (determinism ratchet cardinality only moves if a new review catch is
+        intentionally added — do not silently drop keys);
+        `bun run ./scripts/validate-marketplace.ts` green;
+        `bun run ngrace lint --path .` is 0 errors and 0 warnings **at close**
+        (after apply/archive — not claimed mid-change). No edits under
+        `docs/plans/` or `.ngrace/changes/archive/`; no CHANGELOG.md; no version
+        surfaces. Catalog cardinality pins updated for **add** of one review
+        code if they assert an exact count (measured at plan time).
+        `src/test-support/token-accounting.test.ts`: after skill prose lands,
+        re-measure `skillTextLines().total`; pin exact `toBe` to measured value
+        (F29 line-count honesty). If unchanged, leave pin and report
+        re-measured; unchanged — file remains in OWS either way (F27).
+        **Failure conditions:** suite red; lint 0/0 claimed mid-window; archive
+        or decisions.md edits; version bump; new code unregistered; skill pin
+        moved while total pin left stale; token-accounting left undeclared in
+        plan OWS.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+      <M-SKILLS />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace review --path . --change C-EXECUTION-CONTRACT</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace review --path . --change C-ESCALATION-HONESTY</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace review --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): C-EXECUTION-CONTRACT raises
+        review.write-evidence-outside-scope on
+        src/test-support/token-accounting.test.ts; C-ESCALATION-HONESTY raises
+        on src/gates/core.test.ts and not on docs/plans paths; unscoped review
+        shows WriteEvidence-scope audit not-run; synthetic fixtures cover
+        product raise, non-lifecycle .ngrace/ raise, silence, unable-to-determine;
+        archive product ratchet exactly two pairs; archive non-lifecycle .ngrace/
+        findings exactly 0; both ngrace-plan trees contain live code bound to
+        constant and forced-scope rule substance; git diff --no-index /
+        validate-marketplace green; token-accounting pin re-measured; validate:ci
+        green; lint 0/0 at close only.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Measurement reproduced at authoring HEAD `8da2c80` (F27.1 table).**
+        Method: for each `.ngrace/changes/archive/C-*` directory, parse
+        `plan.xml` ObservedWriteScope File/Path entries; parse all WriteEvidence
+        File paths from `run-ledger.xml` and any residual `run/*.xml`; compare
+        unique paths excluding prefix `.ngrace/`.
+
+        ```
+        bundles scanned: 27
+        bundles with ≥1 undeclared write: 3
+        undeclared path instances: 5
+        bundles with no evidence to compare: 11
+          missing run-ledger.xml (4):
+            C-ABSENCE-VALUE, C-ATTEMPT-LOG, C-LEDGER-READ-ABSENCE, C-RUN-LEDGER
+          ledger but zero WriteEvidence (7):
+            C-FAILURE-LOCALIZATION, C-GATE-RECORD-ABSENCE, C-GATE-SURFACE,
+            C-GRAPH-COVERAGE, C-OBSERVABLE-CHECKS, C-REVIEW-SURFACE, C-SELECTION
+        undeclared detail:
+          C-ESCALATION-HONESTY   src/gates/core.test.ts
+          C-ESCALATION-HONESTY   docs/plans/active/RM-GOVERNED-PATH/decisions.md
+          C-TOKEN-INTEGRITY      docs/plans/active/RM-GOVERNED-PATH/decisions.md
+          C-TOKEN-INTEGRITY      docs/plans/active/RM-GOVERNED-PATH/review.md
+          C-EXECUTION-CONTRACT   src/test-support/token-accounting.test.ts
+        ```
+
+        Digests: `src/gates/core.test.ts` on C-ESCALATION-HONESTY prefix
+        `1195e0928966`; `src/test-support/token-accounting.test.ts` on
+        C-EXECUTION-CONTRACT prefix `5cbcb415` (matches F27.1). **Row-level
+        match to F27.1: exact.** After `docs/plans/` exclusion: **2** product
+        raises.
+      </Assumption>
+      <Assumption>
+        **Non-lifecycle `.ngrace/` measurement (folded in; not in F27.1 table).**
+        Same archive enumeration; WriteEvidence paths under `.ngrace/` that fail
+        `isCliLifecyclePath` (lifecycle = `run.xml` / `run-ledger.xml` / `run/**`
+        only); compare to OWS with active↔archive identity.
+
+        ```
+        undeclared non-lifecycle .ngrace/ writes across 27 archived bundles: 0
+        non-lifecycle .ngrace/ WE paths present (all in OWS): 22
+          (plan.xml, spec.xml, graph/*, verification/* on various bundles)
+        ```
+
+        This is the authoring snapshot for the exact-0 ratchet in
+        AC-ARCHIVE-RATCHET. F33: do not pin directory count 27; pin the
+        invariant (0 undeclared non-lifecycle `.ngrace/` findings under dynamic
+        enumeration).
+      </Assumption>
+      <Assumption>
+        **F33 / corpus growth.** Authoring archive count is **27**. When this
+        bundle archives, directory count becomes **28**. Criteria use dynamic
+        enumeration + exact `(changeId,path)` product ratchet + exact-0
+        non-lifecycle `.ngrace/` ratchet — stable across a clean self-archive.
+        If this bundle itself records an undeclared WriteEvidence path, the
+        product ratchet rightly grows (dogfood failure).
+      </Assumption>
+      <Assumption>
+        **Design decisions locked (including accepted disagreements with early
+        F27 disposition and open questions):**
+        (a) distinct review check + locked code
+        `review.write-evidence-outside-scope` (not lint family; not porcelain
+        overload); (b) exclude prefix `docs/plans/` + lifecycle only; (c)
+        `unable-to-determine` for the eleven; (d) fire retroactively; product
+        ratchet of two; non-lifecycle `.ngrace/` ratchet of zero; suite pins are
+        tool-side (F9.10.1) and change-scoped closes avoid F11 permanent-red
+        harm; (e) reject plan allowlists and verdict-note silence for v1; (f)
+        severity error; (g) prevention half in ngrace-plan (F27.2), not execute.
+      </Assumption>
+      <Assumption>
+        **What the `docs/plans/` exclusion wrongly permits:** any edit under
+        `docs/plans/` that appears in WriteEvidence will not raise this finding.
+        Residual risk: agent rewrites roadmap history without a declared-write
+        finding — visible to authority review of `docs/plans/` and git history,
+        not to this check.
+      </Assumption>
+      <Assumption>
+        **Porcelain audit remains valuable.** Mid-change dirty trees still get
+        immediate `review.scope-outside-write-scope` feedback without reading
+        the ledger. Ledger audit covers close and archive. Both stay.
+      </Assumption>
+      <Assumption>
+        Module ownership from `.ngrace/graph/main.xml` at authoring HEAD:
+        **M-REVIEW** — Path `src/review/core.ts` (audit + runReview + report;
+        catalog co-located); **M-SKILLS** — Summary covers canonical skill
+        sources under `skills/ngrace/` (packaged mirror parity via
+        validate-marketplace); this change writes both ngrace-plan trees;
+        **M-TEST-SUPPORT** — token-accounting pin under `src/test-support/`.
+        REVIEW_CATALOG add of one process-audit code moves cardinality pins if
+        they assert exact length (measured at plan time; post-C-SUBSTANTIATION
+        length was 14 at that close — re-measure, do not assume).
+      </Assumption>
+      <Assumption>
+        Packaged version **6.1.1**. ngrace-plan skill body currently **92** lines
+        both trees (byte-identical). skillTextLines total pin is **779**. Skill
+        prose addition will likely move the total — re-measure after write; never
+        write toward a target count (F29).
+      </Assumption>
+      <Assumption>
+        C-EXECUTION-CONTRACT OWS (6 files) does **not** include
+        `src/test-support/token-accounting.test.ts`; C-ESCALATION-HONESTY OWS
+        (6 files) does **not** include `src/gates/core.test.ts` but does include
+        `token-accounting.test.ts`. C-TOKEN-INTEGRITY OWS lists
+        `docs/plans/…/plan.md` but not decisions.md or review.md.
+      </Assumption>
+      <Assumption>
+        **Prevention-half contract prose (destined for ngrace-plan; implementer
+        may tighten wording, not dilute duty):** see AC-PLAN-FORCED-SCOPE. Place
+        near existing ObservedWriteScope must_do guidance (item 6), not in
+        execute. Failure shape names `review.write-evidence-outside-scope`
+        bound to the exported constant.
+      </Assumption>
+    </Assumptions>
+  </C-DECLARED-WRITES>
+</NgraceChangeSpec>
