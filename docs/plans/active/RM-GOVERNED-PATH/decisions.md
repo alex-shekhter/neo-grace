@@ -3029,6 +3029,61 @@ than asking whether the work was done.
 
 ---
 
+### F36 — A byte digest was pinned over a committed file with nothing pinning the bytes. **[verified]**
+
+`C-REPORT-HONESTY` added a preserved-evidence check at `src/grace-status.test.ts:697`:
+
+```ts
+const body = readFileSync(LIVE_NAN_ORPHAN);
+expect(createHash("sha1").update(body).digest("hex")).toBe(LIVE_NAN_SHA1);
+```
+
+The subject is the live `NaN` orphan that [D8.3](#d83) deliberately leaves on disk
+(`.ngrace/changes/archive/C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml`). The assertion is right and the
+intent is right: the orphan is evidence, and evidence is bytes.
+
+**The repository had no `.gitattributes`.** So the bytes a checkout produces were platform-dependent, and
+the pin held only on the platforms that happen to check out LF. Measured:
+
+| checkout | size | sha1 |
+| --- | --- | --- |
+| LF | 135 | `c0cc8899…` — the pinned value |
+| CRLF | 136 | `bab374c4…` |
+
+The file carries exactly one newline, and that one byte is the whole difference. Windows CI failed on the
+first pull request that reached it, in `validate:cli`, having passed every earlier step in the same job.
+
+**Two things make this worth recording rather than just fixing.**
+
+First, it is this roadmap's own subject one level down. The phase exists to stop surfaces reporting
+success while the thing they name is absent; here a check asserted *byte preservation* while nothing in
+the repository preserved the bytes. The assertion was not weaker than its name — it was as strong as its
+name and rested on an unstated environmental assumption, which is a different failure from
+[F23](#f23)/[F35](#f35) and worth distinguishing: **not an assertion that measures too little, but one
+whose subject is not pinned.**
+
+Second, the blast radius is larger than the one test. This repository hashes file bytes in at least four
+places — run-ledger `WriteEvidence` digests, the determinism ratchet, the packed-CLI smoke, and this pin.
+Only this one reads a **committed** file, which is why only this one broke; the others hash fixtures
+written at runtime and therefore carry the ambient line ending. The single failing test was the visible
+edge of an unpinned invariant, not a local defect.
+
+**Fixed at the root, not at the assertion.** `.gitattributes` with `* text=auto eol=lf`. Normalizing the
+assertion instead — reading as text and stripping `\r` — would have made the check pass by removing the
+property it exists to verify, which is [F35](#f35)'s defect with the sign flipped. Verified before
+committing: no tracked file contains CRLF and no binary files are tracked, so the change renormalizes
+nothing that exists today and `git status` shows only the new file.
+
+**Owed, and scheduled rather than dropped.** The failure message was a bare hex mismatch, which says
+nothing about *why* the bytes differ; asserting `body.length` alongside the digest would have reported
+`136` against `135` and named line endings immediately. That is a `src/` edit, and this repository's own
+position is that an ungoverned `src/` change is the failure mode (R4). It goes into the [F35](#f35)
+follow-on bundle, which already has a governed reason to exist and already touches source. The
+`.gitattributes` fix ships alone because it touches no governed surface and the pull request is blocked
+on it.
+
+---
+
 ### F35 — F20's remedy is identifier-shaped, and a third copy survives it under another name. **[verified]**
 
 `AC-CLONE-XML-SINGLE-HOME` states the post-condition as a grep:
