@@ -2969,3 +2969,78 @@ checked. A rule that ships with its compliance owed should also ship with its pr
 Disposition: recorded before `C-CONTRACT-DEBT` T-004 is dispatched, and folded into that task's bar
 rather than deferred. No artifact is amended: the spec's criterion is met by a handler that clears the
 higher bar, so nothing needs superseding.
+
+---
+
+### F35 — F20's remedy is identifier-shaped, and a third copy survives it under another name. **[verified]**
+
+`AC-CLONE-XML-SINGLE-HOME` states the post-condition as a grep:
+
+> After the change, `rg -n 'function cloneXmlNode' src/` reports **exactly one** definition, and it is in
+> `xml.ts`.
+
+That criterion is now satisfied, and the duplication it exists to remove is not gone. Found by the
+`C-CONTRACT-DEBT` T-002 executor when the prompt asked whether `cloneXmlNode` was the *only* duplicated
+`GraceXmlNode` helper — a question the spec never asked. Verified independently from the tree:
+
+```
+src/gates/ledger.ts:165   function cloneNode(node: GraceXmlNode): GraceXmlNode
+src/gates/ledger.ts:192     return cloneNode(artifact.root);
+```
+
+Same algorithm, byte-for-byte apart from the identifier: `tag`, `{ ...attributes }`, recursive
+`children.map`, `text`. 196 bytes against `cloneXmlNode`'s 202 — the difference is exactly the six
+characters the shorter name saves across its declaration and its recursive call.
+
+**The spec's own survey could never have found it.** The Assumption recorded at authoring HEAD is
+
+```
+rg -n 'function cloneXmlNode' src/
+→ src/grace-cursor.ts:2850
+→ src/artifact/run-membership.ts:50
+```
+
+and it concludes *"No third definition."* That conclusion is false, and it was false when written. The
+command scoped the search to one **identifier**, and the finding is about a **body**. A survey that
+ranges over a name cannot substantiate a claim about an algorithm.
+
+**This is [F10](#f10) landing on an acceptance criterion rather than on a function or a test.** The
+criterion's name — `SINGLE-HOME` — claims that the codebase holds one structural clone. Its body counts
+occurrences of a string. The gap between the two is exactly the third copy, and the criterion goes green
+across it. [F23](#f23) is the same shape one level down; this is the first time in this roadmap it has
+been found in a spec's post-condition instead of in a test.
+
+Two things it costs, stated plainly:
+
+- **`C-CONTRACT-DEBT` closes F20 in name.** It genuinely fixes the two copies F20 named, and the export
+  now exists in the right module, so the third copy's repair is a two-line import. But *"zero remaining
+  `function cloneXmlNode` definitions outside `xml.ts`"* — the Goal's wording — is a weaker statement
+  than the single-definition thesis the bundle is arguing for, and only the weaker one is true at close.
+- **The open-findings count does not reach zero at this bundle's close.** That expectation was stated
+  before this survey ran, on the same reasoning F29.1 already caught me on: a count asserted without the
+  command behind it.
+
+**Disposition: follow-on bundle, with the D11 conflict named.** `src/gates/ledger.ts` is not in
+`C-CONTRACT-DEBT`'s `ObservedWriteScope`, and that plan is approved and immutable — the identical
+constraint that produced F20 in the first place, which is worth noticing rather than being annoyed by.
+Widening a task's scope because the fix looks small is the failure the plan contract exists to prevent,
+and the executor was right to report it rather than take it. The successor is small: delete `cloneNode`,
+import `cloneXmlNode` from `../artifact/xml`, and state the post-condition as a body-shaped check rather
+than an identifier-shaped one.
+
+**Residual carried with it, not scheduled separately.** `appendEpochToLedger`
+(`src/grace-cursor.ts:2871`) inlines a **one-level** copy — `{ ...child.attributes }` and
+`children: [...child.children]` — so grandchild node objects are shared with the source tree. Benign
+today: the shared level is never mutated, and the array the function does mutate is freshly allocated. It
+is an inconsistency rather than a bug, and it sits directly beside the restatement path at `:2272` that
+uses the deep helper. The successor should unify them or record why not.
+
+**Two authority errors the same executor corrected, recorded because the pattern is mine.** The T-002
+prompt said `cloneXmlNode` had four call sites in `grace-cursor.ts`; it had five — `2077`, `2123`,
+`2272`, `2794`, and the `writeEventFile` path at `3029`. And the prompt's reading of the `xml.ts`
+contract — that its `SCOPE` *"under-describes rather than overclaims"* — was wrong in the half that
+mattered. `SCOPE: Validation of .ngrace artifacts and path resolution` was not merely narrow: `xml.ts`
+does not validate `.ngrace` artifacts (`grammar.ts` does) and does not resolve paths (it imports no
+`node:path` at all — verified). It was an overclaim, which is F20's own defect, sitting on F20's
+destination module. Leaving it would have closed F20 by reproducing F20 one file over. Corrected in
+T-002 to describe the parse / read / traverse / clone / inspect surface the module actually has.
