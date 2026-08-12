@@ -49,7 +49,7 @@ import path from "node:path";
 
 import { validateRunLedgerArtifact } from "../artifact/grammar";
 import { ARTIFACT_TAG_PREFIX, NGRACE_ARTIFACT_VERSION } from "../artifact/types";
-import { readGraceXmlArtifact, type GraceXmlNode } from "../artifact/xml";
+import { cloneXmlNode, readGraceXmlArtifact, type GraceXmlNode } from "../artifact/xml";
 import { serializeGraceXmlDocument } from "../artifact/xml-serialize";
 import { resolveChangeBundle } from "../grace-cursor";
 import { GraceCommandError } from "../query/errors";
@@ -162,15 +162,6 @@ export function parseResolutionClassification(value: string): ResolutionClassifi
   return value as ResolutionClassification;
 }
 
-function cloneNode(node: GraceXmlNode): GraceXmlNode {
-  return {
-    tag: node.tag,
-    attributes: { ...node.attributes },
-    children: node.children.map(cloneNode),
-    text: node.text,
-  };
-}
-
 function emptyLedgerRoot(changeId: string): GraceXmlNode {
   return {
     tag: `${ARTIFACT_TAG_PREFIX}RunLedger`,
@@ -189,7 +180,7 @@ function loadOrCreateLedgerRoot(bundlePath: string, changeId: string): GraceXmlN
   if (!artifact.root) {
     throw new GraceCommandError("invalid-project", `Existing run-ledger.xml at ${ledgerPath} is unreadable.`);
   }
-  return cloneNode(artifact.root);
+  return cloneXmlNode(artifact.root);
 }
 
 function ensureWrapper(root: GraceXmlNode, changeId: string): GraceXmlNode {

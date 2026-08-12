@@ -2871,12 +2871,7 @@ function appendEpochToLedger(bundlePath: string, changeId: string, epochNode: Gr
   const root: GraceXmlNode = {
     tag: existing.root.tag,
     attributes: { ...existing.root.attributes },
-    children: existing.root.children.map((child) => ({
-      tag: child.tag,
-      attributes: { ...child.attributes },
-      children: [...child.children],
-      text: child.text,
-    })),
+    children: existing.root.children.map(cloneXmlNode),
     text: existing.root.text,
   };
   let wrapper = root.children.find((c) => c.tag === changeId);
