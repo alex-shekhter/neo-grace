@@ -1,0 +1,564 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-CONTRACT-DEBT>
+    <Summary>
+      Close the remaining contract-debt items that take this roadmap's open
+      findings to zero: F29 / F29.1 (additive UTF-8 byte skill footprint beside
+      frozen line `total`); F20 (single exported `cloneXmlNode` on
+      `artifact/xml.ts`, delete both private copies); and D14 compliance
+      (ES2022 `cause` on `GraceCommandError` at every conversion boundary,
+      process-level unhandled-rejection / uncaught-exception handlers at the
+      CLI entry that preserve the cause chain on stderr and exit non-zero).
+    </Summary>
+    <Problem>
+      **Shared subject.** Four gaps, one shape: a **declared contract the code
+      does not satisfy**. There is no dependency between them and no conflict;
+      keeping them in a follow-on queue was deferral without a D11 reason.
+      Closing them together is one bundle, not a laundry list.
+
+      | item | declaration | reality |
+      | F29 | module / pin treated as footprint baseline | counts **lines**; +962-byte rewrite moved pin by zero |
+      | F20 | `GraceXmlNode` lives in `artifact/xml.ts` | `cloneXmlNode` private in two files, byte-identical |
+      | D14 (i) | boundary attaches original error as object `cause` | `GraceCommandError` has no `cause`; bare `super(message)` |
+      | D14 (ii) | unawaited rejection must not exit 0 silent | no `process.on(` anywhere in `src/` |
+
+      ---
+
+      **F29 / F29.1 — dishonest footprint metric** (decisions.md; draft design
+      accepted).
+
+      `src/test-support/token-accounting.ts` is described as *token-accounting
+      helpers* and `skillTextLines().total` is the D15 baseline number used as
+      skill footprint. It sums `wc -l`-style line counts over
+      `skills/ngrace/*/SKILL.md`.
+
+      Independent re-measure of the F29 witness
+      (`C-ESCALATION-HONESTY` T-003 commit `86583b6` vs its parent), counting
+      **UTF-8 byte length** of `skills/ngrace/ngrace-execute/SKILL.md` (the
+      numbers F29 published match `Buffer.byteLength` / `wc -c`, not JS string
+      length; decisions.md corrected at `ac73b1e`):
+
+      ```
+      command: git show 86583b6^:skills/ngrace/ngrace-execute/SKILL.md | wc -c
+               # and line count via the same wc -l semantics as countLines()
+      before (86583b6^): 10890 bytes / 103 lines
+      after  (86583b6):  11852 bytes / 103 lines
+      delta:             +962 bytes, +0 lines  (+8.8%)
+      ```
+
+      JS string length on the same revisions: 10860 → 11806 (+946). Different
+      unit (F23 shape if reported under a mismatched name).
+
+      The line pin stayed at **779**. A markdown file whose fields are one
+      line each is line-neutral under an in-place rewrite that lengthens
+      sentences. The metric is blind on the axis the change moved.
+
+      F10 class: `skillTextLines` is honestly named; the module label
+      *token-accounting* and the consumption of `total` as a *footprint /
+      baseline* figure are not.
+
+      **F29.1.** The module comment says not to change measurement semantics
+      without updating every phase report that cites them. Survey (Assumptions):
+      only citers under `docs/` are two **completed, archived** plans citing
+      **636** and **723**, not today's **779**. Archive is never edited. The
+      instruction is unsatisfiable and unnecessary; a past measurement in a
+      completed report is history. **`total`'s meaning must not change** —
+      redefining it would falsify those roadmaps. Repair is **additive**. The
+      comment must be corrected in the same change.
+
+      ---
+
+      **F20 — `cloneXmlNode` duplicated; honest home was out of a prior
+      bundle's scope** (decisions.md).
+
+      `C-REPORT-HONESTY` extracted membership into
+      `src/artifact/run-membership.ts`, which needed `cloneXmlNode`. The helper
+      was never exported from `artifact/xml.ts` (owner of `GraceXmlNode`); it
+      was private on the cursor. The executor duplicated it rather than
+      falsifying `run-membership`'s SCOPE or writing outside OWS. Verified at
+      this authoring HEAD (`rg -n 'function cloneXmlNode' src/`):
+
+      ```
+      src/grace-cursor.ts:2850
+      src/artifact/run-membership.ts:50
+      ```
+
+      Bodies are **byte-identical** (sha256 of the seven-line function text
+      matches; 202 bytes each). Call sites exist only in those two files.
+      No third definition. This bundle has no OWS constraint forbidding
+      `xml.ts` — put the export where `GraceXmlNode` lives and delete both
+      privates.
+
+      ---
+
+      **D14 — ratified error-reporting invariant; two measured compliance
+      gaps** (decisions.md). **Not re-litigated:** clauses bind; this bundle
+      implements them.
+
+      **(i) Cause as object.** When a boundary converts an unexpected error
+      into a declared type, it must attach the original as ES2022 `cause`, not
+      copy its message. A copy loses type identity, custom properties, nested
+      causes, and points `.stack` at the conversion site.
+
+      `GraceCommandError` constructor takes `{ exitCode?, issues? }` and calls
+      bare `super(message)` (`src/query/errors.ts:31`) — **no `cause`**.
+      Clause 1 is unsatisfiable by construction.
+
+      Live conversion site that copies the message only:
+      `src/query/command.ts` (~218) — catches unexpected errors, writes stack
+      to stderr, throws `new GraceCommandError("invalid-project", message)`
+      without attaching the original object. That site is *why* the clause
+      exists (F25.1). `runGraceCommand` likewise wraps non-`GraceCommandError`
+      as `new GraceCommandError("invalid-project", fallbackMessage)` without
+      cause.
+
+      **Channel split (part of D14 — must not drift):** stdout is the machine
+      contract; stderr is the human diagnostic. Stack goes to **stderr in both
+      text and JSON mode** so JSON stdout remains wholly parseable. **Putting
+      a stack inside `GraceCommandErrorEnvelope` is a different proposal**
+      (`schemaVersion` change) and is **not** this change.
+
+      **(ii) Unhandled rejection / uncaught exception.** D14 mechanics:
+      `finally` still runs; nested boundaries lack a protocol; async stacks
+      truncate; an **unawaited** rejection escapes every `await` boundary.
+      Verified: **no** `process.on(` in `src/`. Process can exit **0** with an
+      error never reported — loudest form of the failure the rule prevents.
+
+      **Trap:** a handler that swallows and exits 0, or prints only a fixed
+      fallback string, reproduces F25.1 *inside* the F25.1 repair. D14's own
+      principle: **a fallback message is not an error report.** The handler
+      preserves the cause chain on stderr and exits non-zero. Install at the
+      **CLI entry point** (`src/grace.ts`), not as an import side effect of a
+      library module tests load.
+    </Problem>
+    <Goals>
+      <Goal>
+        **F29.** Keep `skillTextLines().total` (and line `perSkill`,
+        `referencesTotal`) as line counts with today's semantics. **Add**
+        deterministic UTF-8 **byte** footprint `totalBytes` / `perSkillBytes`
+        over the same SKILL.md set. Pin `totalBytes` with exact `toBe` after
+        re-measure. Correct the module comment to the real rule (frozen
+        `total`; additive fields; survey via `rg -ln 'skillTextLines'`). Honest
+        MODULE_CONTRACT PURPOSE/SCOPE for line+byte helpers. Update `README.md`
+        published measurements so the footprint figure is not lines-only.
+      </Goal>
+      <Goal>
+        **F20.** Export a single `cloneXmlNode` from `src/artifact/xml.ts`
+        (home of `GraceXmlNode`). Delete both private copies. All call sites
+        import the export. MODULE_MAP on `xml.ts` lists the export; consumer
+        contracts stay true (run-membership does **not** export a generic XML
+        util). Zero remaining `function cloneXmlNode` definitions outside
+        `xml.ts`.
+      </Goal>
+      <Goal>
+        **D14 (i).** `GraceCommandError` accepts and attaches ES2022 `cause`
+        (object). Every boundary that converts a non-`GraceCommandError` into
+        one attaches the original as `cause` — including `defineGraceCommand`'s
+        catch in `command.ts` and `runGraceCommand`'s wrap in `errors.ts`.
+        Channel split preserved: stack / cause chain on **stderr** in text and
+        JSON; stdout envelope unchanged in schema (no stack field).
+      </Goal>
+      <Goal>
+        **D14 (ii).** At CLI process entry (`src/grace.ts` / `M-CLI` only),
+        install `unhandledRejection` and `uncaughtException` handlers that
+        write the error (and cause chain) to stderr and set a non-zero exit
+        (or `process.exit` non-zero after write). Not installed by importing
+        library modules. Failure conditions for the trap are normative (see
+        AcceptanceCriteria).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: decisions.md F29, F29.1, F20, D14 (ratified — implement, do
+        not re-open clauses), F10, F23, F25.1 (cause site), F26 (`at close` on
+        lint), F28, F33, F4 (this pass is **spec only**, `status="draft"`; no
+        `plan.xml` until approved); F27 / F27.2 / C-DECLARED-WRITES
+        (ObservedWriteScope covers what the deliverable **forces**, including
+        MODULE_MAP / DEPENDS and footprint pin / README).
+      </Constraint>
+      <Constraint>
+        **Rules decided here, not deferred to the plan.** Plan may choose
+        helper names and test layout, but must not re-open: additive F29
+        (bytes, not redefine `total`); F20 home `artifact/xml.ts`; D14 object
+        `cause` (not message copy); channel split (stderr stack, no envelope
+        stack / no `schemaVersion` bump); process handlers at CLI entry only;
+        no archive or `docs/plans/**` edits.
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T2 (cross-cutting)** — multi-module AffectedAreas
+        (`M-TEST-SUPPORT`, `M-GRAMMAR` / xml surface, `M-CURSOR`,
+        `M-ARTIFACT-TYPES` / run-membership, `M-CLI-INFRA`, `M-CLI`);
+        integration evidence in VerificationIntent (CLI JSON stdout remains
+        parseable while stderr carries diagnostics; single cloneXmlNode
+        definition; footprint pin + README).
+      </Constraint>
+      <Constraint>
+        AffectedAreas is closed and binds the plan. Anticipated write surface
+        (forced edits bold):
+        **F29:** `src/test-support/token-accounting.ts`,
+        `src/test-support/token-accounting.test.ts`, `README.md`;
+        **F20:** `src/artifact/xml.ts` (export + MODULE_MAP),
+        `src/grace-cursor.ts` (delete private; import),
+        `src/artifact/run-membership.ts` (delete private; import);
+        **D14:** `src/query/errors.ts` (constructor `cause`; wrap sites;
+        MODULE_MAP if surface changes), `src/query/command.ts` (attach cause),
+        `src/grace.ts` (handlers at entry); co-located tests as forced by
+        red-first criteria (`src/query/command.test.ts`,
+        `src/query/errors` tests if present, `src/artifact` / cursor tests if
+        clone behaviour is pinned). Graph Summary edits only if a module
+        Summary would otherwise overclaim — declare if touched. **Stop and
+        re-spec** rather than silent expansion into skills, review catalog, or
+        version surfaces.
+      </Constraint>
+      <Constraint>
+        **F29 maintenance cost (plain).** Skill-text payload growth reddens
+        `totalBytes` even when line `total` is flat — intentional. Exact pins
+        only.
+      </Constraint>
+      <Constraint>
+        **D14 channel split is non-negotiable in this bundle.** Stdout =
+        machine contract; stderr = human diagnostic including stacks/causes in
+        both text and JSON modes. No `GraceCommandErrorEnvelope` shape change.
+        If a stack-in-envelope design is desired later, that is a separate
+        `schemaVersion` decision — stop and report; do not slide it in.
+      </Constraint>
+      <Constraint>
+        **Process handlers must not be import side effects** of
+        `query/errors.ts`, `query/command.ts`, or other library modules. Suite
+        imports must not install global handlers.
+      </Constraint>
+      <Constraint>
+        **Do not edit** `docs/plans/**` (including decisions.md),
+        `.ngrace/changes/archive/**`, CHANGELOG.md, or version surfaces.
+        Packaged version at authoring: **6.1.1**. Archived 636 / 723 citations
+        stay as written.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first per AC. Exact pins (F23). Mutation probes:
+        redefine `total` as bytes; drop `totalBytes`; token estimate; third
+        private `cloneXmlNode`; export clone from run-membership instead of
+        xml; message-only wrap without `cause`; stack inside JSON envelope;
+        handler exits 0 or prints only a fixed fallback; handler installed on
+        library import.
+      </Constraint>
+      <Constraint>
+        No product version bump.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        **Rejected — redefine `total` to bytes/chars/tokens.** Additive only
+        (F29.1).
+      </NonGoal>
+      <NonGoal>
+        **Rejected — estimated token count as the new pin.** Determinism and
+        modelling risk.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — put stack/cause inside `GraceCommandErrorEnvelope`.**
+        Requires deliberate `schemaVersion` change; not this bundle (D14).
+      </NonGoal>
+      <NonGoal>
+        **Rejected — export `cloneXmlNode` from `run-membership.ts`.** Would
+        falsify membership SCOPE (the trade F20 correctly refused).
+      </NonGoal>
+      <NonGoal>
+        Renaming `token-accounting.ts` path; skill tree rewrites; D14 as GRACE
+        skill methodology text; nested-boundary protocol redesign (D14 names
+        the gap; fixing nested protocol is separate unless forced).
+      </NonGoal>
+      <NonGoal>
+        Editing archived plans or decisions.md. Changing `commandOutputBytes` /
+        `selectionRatio`. Default NonGoal: `referencesTotal` byte sibling
+        (F29 body-text defect).
+      </NonGoal>
+      <NonGoal>
+        Any product version bump or hand-edit of CHANGELOG.md.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <!-- ========== F29 (eight criteria carried as authored) ========== -->
+      <AC-TOTAL-LINE-SEMANTICS-FROZEN>
+        `skillTextLines().total` remains the sum of `wc -l`-compatible line
+        counts over canonical `skills/ngrace/*/SKILL.md` (same membership and
+        counting rules as pre-change HEAD). `perSkill` values remain line
+        counts. Existing suite pin of `total` continues as exact `toBe` of a
+        re-measured line total (authoring HEAD: **779** — F33: criteria do not
+        freeze 779; implementation re-measures). **Failure conditions:** `total`
+        redefined to bytes/chars/tokens; double-counting packaged mirror;
+        references folded into `total`.
+      </AC-TOTAL-LINE-SEMANTICS-FROZEN>
+      <AC-ADDITIVE-BYTE-FOOTPRINT>
+        `skillTextLines()` (or a co-exported pure helper documented as the
+        footprint API and covered by the same tests — plan may choose shape,
+        **meanings locked**) exposes:
+        - `totalBytes`: sum of UTF-8 byte lengths of the same SKILL.md files
+          that contribute to `total`;
+        - `perSkillBytes`: per-skill-directory map of those byte lengths;
+        and `Object.values(perSkillBytes).reduce((a,b)=>a+b,0) === totalBytes`.
+        Deterministic: two calls on the same root deep-equal. **Not** a token
+        estimate. **Failure conditions:** only lines reported; token heuristic;
+        byte field counts references or plugins mirror; non-determinism;
+        `perSkillBytes` missing while claiming attributable footprint.
+      </AC-ADDITIVE-BYTE-FOOTPRINT>
+      <AC-PIN-TOTAL-BYTES>
+        `src/test-support/token-accounting.test.ts` pins `totalBytes` with
+        exact `toBe(&lt;re-measured integer&gt;)` after implementation — never
+        a range, never `toBeGreaterThan`. Comment history may note the
+        authoring measurement (Assumptions: **53771** at HEAD `c0de2c5`) but
+        the pin is whatever re-measure produces post-edit. **Maintenance cost
+        is accepted:** skill-text payload growth reddens this pin even when
+        `total` lines are unchanged. **Failure conditions:** no pin; soft
+        bound; pin written toward a pre-chosen number without measure;
+        only `total` lines pinned.
+      </AC-PIN-TOTAL-BYTES>
+      <AC-COMMENT-AND-CONTRACT>
+        The unsatisfiable "update every phase report that cites them"
+        instruction is removed. Replacement rule in the module comment (and
+        aligned JSDoc), in substance:
+        (1) `total` line semantics are frozen because archived reports cite
+        that field; (2) new footprint fields are additive; (3) survey citers
+        with `rg -ln 'skillTextLines'` before claiming a documentation
+        dependency. MODULE_CONTRACT PURPOSE/SCOPE (and MODULE_MAP if exports
+        change) do not claim "token" measurement the code does not perform;
+        they describe skill-text **line and byte** footprint helpers (plus
+        existing command/selection helpers). **Failure conditions:** old
+        instruction remains; contract still reads as token counting only;
+        MAP_MODE EXPORTS list stale after a new export.
+      </AC-COMMENT-AND-CONTRACT>
+      <AC-README-PUBLISHED-FIGURE>
+        `README.md` measurements table (or equivalent published figure) no
+        longer presents **only** `skillTextLines().total` lines as the skill
+        footprint number without a byte figure or an explicit "lines only —
+        not payload size" qualification paired with the new byte field.
+        Re-run recipe documents how to print both. **Failure conditions:**
+        table still shows only 779 lines as the footprint; byte field
+        implemented but unpublished; version line edited.
+      </AC-README-PUBLISHED-FIGURE>
+      <AC-HEAD-RED>
+        At implementation red-first (before product edits): the suite does
+        **not** yet assert `totalBytes` presence/pin (property absent or
+        unpinned at pre-change HEAD). After the change, the pin exists and
+        matches re-measure. A unit or fixture case proves line-stable
+        content growth changes `totalBytes` (synthetic file or controlled
+        fixture under the helper — not only "suite green"). **Failure
+        conditions:** only green suite without a check that would have failed
+        at F29's line-neutral rewrite; tests that pass on pre-change HEAD
+        while claiming to prove the new field.
+      </AC-HEAD-RED>
+      <AC-NO-ARCHIVE-OR-ROADMAP-EDITS>
+        No writes under `docs/plans/**` or `.ngrace/changes/archive/**`.
+        Archived citations of 636 and 723 remain byte-identical. **Failure
+        conditions:** decisions.md or archive plan edited to "fix" citations.
+      </AC-NO-ARCHIVE-OR-ROADMAP-EDITS>
+      <AC-SUITE-AND-LINT>
+        Red-first regressions cover each AC with exact assertions (F23).
+        `bun test` green for touched packages; `bun run validate:ci` green
+        (determinism ratchet cardinality does not drop keys);
+        `bun run ngrace lint --path .` is 0 errors and 0 warnings **at close**
+        (after apply/archive — not claimed mid-change). No CHANGELOG.md; no
+        version surfaces. ObservedWriteScope on the plan includes every path
+        the deliverable forces (instrument, pin test, README; graph only if
+        touched). **Failure conditions:** suite red; lint 0/0 claimed
+        mid-window; archive or docs/plans edits; version bump; pin undeclared
+        in plan OWS.
+      </AC-SUITE-AND-LINT>
+
+      <!-- ========== F20 ========== -->
+      <AC-CLONE-XML-SINGLE-HOME>
+        `cloneXmlNode` is **exported** from `src/artifact/xml.ts` (same module
+        that exports `GraceXmlNode`). Behaviour: deep structural clone of tag,
+        attributes (shallow copy of the attribute record), children (recursive),
+        and text — same semantics as the two current private bodies. After the
+        change, `rg -n 'function cloneXmlNode' src/` reports **exactly one**
+        definition, and it is in `xml.ts`. **Failure conditions:** private
+        copies remain; third definition appears; export lives on
+        `run-membership.ts` or `grace-cursor.ts`; behaviour drifts from
+        recursive structural clone.
+      </AC-CLONE-XML-SINGLE-HOME>
+      <AC-CLONE-CALL-SITES-AND-CONTRACTS>
+        `src/grace-cursor.ts` and `src/artifact/run-membership.ts` import
+        `cloneXmlNode` from `./artifact/xml` / `./xml` and contain **no** local
+        `function cloneXmlNode`. `xml.ts` MODULE_MAP lists `cloneXmlNode`.
+        run-membership MODULE_MAP does **not** list it as an export (SCOPE
+        remains run/ membership). Cursor MODULE_MAP does not claim it as a
+        local export of a new public API surface unless it already did (it
+        does not). `bun run ngrace lint --path .` has zero
+        `markup.module-map-mismatch` (and related module-contract) errors **at
+        close**. **Failure conditions:** import cycle introduced without
+        resolution; MODULE_MAP stale after export move; run-membership SCOPE
+        rewritten to "XML utilities" to excuse a wrong home; lint module-map
+        error left for later.
+      </AC-CLONE-CALL-SITES-AND-CONTRACTS>
+      <AC-CLONE-HEAD-RED>
+        At red-first before product edits: `function cloneXmlNode` appears in
+        both `grace-cursor.ts` and `run-membership.ts`, and not as an export of
+        `xml.ts` (authoring HEAD). After the change, the dual-private shape is
+        gone and the export exists. Suite or lint-backed check would fail on
+        pre-change tree if run as a target assertion. **Failure conditions:**
+        only a green suite after the fact with no proof the pre-change dual
+        definition is gone; eye-check without automation.
+      </AC-CLONE-HEAD-RED>
+
+      <!-- ========== D14 (i) cause ========== -->
+      <AC-CAUSE-OBJECT-ON-GRACE-COMMAND-ERROR>
+        `GraceCommandError` constructor accepts an optional cause (ES2022
+        `Error` options / `cause` object — not a copied message string as the
+        sole preservation mechanism). When provided, `error.cause` is the
+        original value. Options retain `exitCode` and `issues`. **Failure
+        conditions:** only a string field named cause; cause dropped; constructor
+        still only `super(message)` with no path to attach an object cause.
+      </AC-CAUSE-OBJECT-ON-GRACE-COMMAND-ERROR>
+      <AC-CAUSE-AT-CONVERSION-BOUNDARIES>
+        Every site that converts a non-`GraceCommandError` into
+        `GraceCommandError` attaches the original as `cause`, including at
+        minimum:
+        (1) `src/query/command.ts` defineGraceCommand catch (the F25.1 site that
+        today copies `error.message` and throws without cause);
+        (2) `src/query/errors.ts` `runGraceCommand` wrap of unexpected errors.
+        Re-thrown `GraceCommandError` instances remain untouched. **Failure
+        conditions:** message copy without object cause; only one of the two
+        sites fixed; cause attached only in tests.
+      </AC-CAUSE-AT-CONVERSION-BOUNDARIES>
+      <AC-CHANNEL-SPLIT-PRESERVED>
+        Stdout remains the machine contract; stderr the human diagnostic.
+        Stack and/or cause-chain diagnostics go to **stderr in both text and
+        JSON modes**. JSON stdout remains a parseable
+        `GraceCommandErrorEnvelope` with **unchanged** `schemaVersion` and
+        **no** stack field added inside the envelope. `runQueryCommand`'s
+        "without stack traces" promise remains true for **stdout**. **Failure
+        conditions:** stack printed on stdout in JSON mode; envelope schema
+        bumped or extended with stack; stderr silent while only message copy
+        survives; channel split inverted.
+      </AC-CHANNEL-SPLIT-PRESERVED>
+
+      <!-- ========== D14 (ii) process handlers ========== -->
+      <AC-PROCESS-HANDLERS-AT-CLI-ENTRY>
+        `unhandledRejection` and `uncaughtException` handlers are installed
+        only from the CLI process entry (`src/grace.ts` / the `M-CLI` entry
+        path), before or as part of starting `runMain`, not as a side effect of
+        importing `query/errors`, `query/command`, or other library modules.
+        After install, an unhandled rejection or uncaught exception results in
+        diagnostic output on **stderr** that preserves the error and cause
+        chain (not a fixed fallback string alone) and a **non-zero** process
+        exit (exit code or `process.exit` non-zero). **Failure conditions
+        (trap — must not):** swallow and continue; exit **0**; report only a
+        static fallback with no original error/cause; put the stack inside the
+        JSON stdout envelope; install handlers on library import so
+        `bun test` loading modules registers process listeners as a side
+        effect; handlers absent from `src/` entirely.
+      </AC-PROCESS-HANDLERS-AT-CLI-ENTRY>
+      <AC-D14-HEAD-RED>
+        At red-first: `GraceCommandError` has no usable object-cause path;
+        `rg -n 'process\\.on\\(' src/` is empty; command.ts conversion lacks
+        cause. After the change: constructor + conversion sites attach cause;
+        process handlers exist at entry; suite proves cause identity
+        (`error.cause` is the original Error instance or value) and proves
+        JSON stdout still parses while stderr carries diagnostics. **Failure
+        conditions:** checks that pass on pre-change HEAD; handler untested;
+        cause asserted only as message equality without object identity.
+      </AC-D14-HEAD-RED>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-TEST-SUPPORT />
+      <M-GRAMMAR />
+      <M-CURSOR />
+      <M-ARTIFACT-TYPES />
+      <M-CLI-INFRA />
+      <M-CLI />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/query/</ExpectedCommand>
+      <ExpectedCommand>rg -n 'function cloneXmlNode' src/</ExpectedCommand>
+      <ExpectedCommand>rg -n 'process\.on\(' src/</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2):
+        (F29) total still lines; totalBytes/perSkillBytes pinned; README
+        publishes bytes; line-neutral growth moves bytes;
+        (F20) exactly one function cloneXmlNode in src/, exported from xml.ts;
+        cursor and run-membership import it; MODULE_MAP clean;
+        (D14) GraceCommandError.cause is original object at command.ts and
+        runGraceCommand conversion; JSON mode stdout parseable envelope without
+        stack field; stderr carries stack/cause in text and json; process.on
+        handlers present under grace.ts entry path only; unhandled rejection
+        path exits non-zero with cause on stderr (or equivalent suite proof);
+        no docs/plans or archive edits; lint 0/0 **at close** only;
+        validate:ci green with determinism ratchet keys preserved.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **F29 witness** (bytes) at prior authoring; still valid at `ac73b1e`:
+        86583b6^ → 86583b6 on ngrace-execute SKILL.md: 10890 → 11852 bytes,
+        103 → 103 lines (+962, +0). JS length 10860 → 11806 (+946).
+      </Assumption>
+      <Assumption>
+        **F29 citer survey** (`rg -ln 'skillTextLines' src/ scripts/ docs/`):
+        instrument, pin test, decisions.md, two archived complete plans
+        (636 / 723). README publishes 779 lines. scripts/: none.
+      </Assumption>
+      <Assumption>
+        **F29 authoring measure:** total 779 lines; totalBytes ~53771 (re-measure
+        at implement). F33: not criterion pins.
+      </Assumption>
+      <Assumption>
+        **F20 survey at authoring HEAD `ac73b1e`:**
+
+        ```
+        rg -n 'function cloneXmlNode' src/
+        → src/grace-cursor.ts:2850
+        → src/artifact/run-membership.ts:50
+        ```
+
+        Function bodies byte-identical (hash match). Call sites only in those
+        two files. `xml.ts` MODULE_MAP has GraceXmlNode but not cloneXmlNode.
+        Both consumers already import other symbols from xml.
+      </Assumption>
+      <Assumption>
+        **D14 survey at authoring HEAD:**
+
+        ```
+        rg -n 'process\.on\(' src/   → no matches
+        GraceCommandError constructor: super(message) only (errors.ts:31)
+        command.ts ~218: new GraceCommandError("invalid-project", message)
+          without cause option
+        runGraceCommand: wraps with fallbackMessage, no cause
+        ```
+
+        CLI entry: `src/grace.ts` `runMain(main)` — correct install site.
+      </Assumption>
+      <Assumption>
+        **Graph anchors (actual ids — no `M-ARTIFACT` / informal `M-QUERY` for
+        these files):** xml.ts LINKS **M-GRAMMAR**; run-membership LINKS
+        **M-ARTIFACT-TYPES**; grace-cursor **M-CURSOR**; errors.ts + command.ts
+        **M-CLI-INFRA**; grace.ts **M-CLI**; token-accounting **M-TEST-SUPPORT**.
+        M-QUERY Path is `query/core.ts` and is not a required write for D14
+        unless a conversion site appears there (none required by current gaps).
+      </Assumption>
+      <Assumption>
+        **ObservedWriteScope (plan anticipation, F27 forced set):**
+        `src/test-support/token-accounting.ts`,
+        `src/test-support/token-accounting.test.ts`,
+        `README.md`,
+        `src/artifact/xml.ts`,
+        `src/artifact/run-membership.ts`,
+        `src/grace-cursor.ts`,
+        `src/query/errors.ts`,
+        `src/query/command.ts`,
+        `src/grace.ts`,
+        plus test files the red-first criteria force
+        (at least `src/query/command.test.ts`; others if pins live there).
+        No `docs/plans/**`. No archive content. No skill trees expected for
+        this bundle.
+      </Assumption>
+      <Assumption>
+        Packaged version **6.1.1**. Draft renamed from C-HONEST-FOOTPRINT to
+        C-CONTRACT-DEBT before any approval; not a supersede of an approved
+        bundle.
+      </Assumption>
+    </Assumptions>
+  </C-CONTRACT-DEBT>
+</NgraceChangeSpec>
