@@ -2894,3 +2894,78 @@ grows by 9%.
 
 The module comment itself should be corrected in the same change — an instruction that cannot be
 followed is worse than no instruction, because the next reader defers on it exactly as I did.
+
+---
+
+### F34 — D14 clause 4's premise is false on Bun, and the handler it mandates is a regression unless it beats the default. **[verified]**
+
+[D14](#d14) clause 4 justifies the process-fault handlers with this:
+
+> Verified at `cae1e61`: there is no `unhandledRejection` or `uncaughtException` handler anywhere in
+> `src/`. So the process can exit **0** with an error that was never reported — the loudest form of the
+> failure this rule exists to prevent, caught by neither the envelope nor the exit code.
+
+The absence is real. **The consequence drawn from it is not.** Measured on Bun v1.3.14, the runtime this
+CLI ships on, with no handler installed:
+
+| shape | exit | stderr |
+| --- | --- | --- |
+| `Promise.reject(new Error("boom"))` | **1** | error, source excerpt, stack frame |
+| unawaited rejection settling *after* `main()` returned | **1** | same, and the return value still printed |
+| `throw` inside a `setTimeout` callback | **1** | same, and the process **halts** |
+| three-deep `cause` chain | **1** | **all three levels printed**, each with its own excerpt and frame |
+
+So the failure D14 describes — exit 0 with an error never reported — **does not occur today**. Bun's
+default already exits non-zero, already reports, and already walks the `cause` chain, which is more than
+clause 1 asks of the conversion boundaries.
+
+**The sharper half.** Installing a listener *replaces* that default. The naive handler — the one D14's
+own trap paragraph warns about — was measured, not imagined:
+
+```ts
+process.on("unhandledRejection", () => {
+  process.stderr.write("Unable to complete the GRACE command.\n");
+});
+```
+
+```
+Unable to complete the GRACE command.
+exit=0
+```
+
+and its `uncaughtException` twin printed the same fixed sentence, exited **0**, and then ran the next
+timer — `STILL ALIVE AFTER FAULT`. Against the no-handler baseline that is a loss on every axis at once:
+the exit code goes 1 → 0, the cause chain goes fully printed → erased, and execution goes halted →
+continuing after a fault.
+
+**This is F25.1 exactly, one level out.** F25.1 was a broad surface wrapped in a narrow renderer that
+converted coverage into uniformity. Here the broad surface is the runtime's own reporter and the narrow
+renderer is the handler written to satisfy the rule that F25.1 produced. The repair for the erasure
+reproduces the erasure, and it does so *by default* — a handler is a strictly worse reporter than no
+handler until it is deliberately made better.
+
+**What this does and does not change.**
+
+- It does **not** cancel `AC-PROCESS-HANDLERS-AT-CLI-ENTRY`. The spec is approved and immutable, and the
+  criterion is still worth meeting: Bun's behaviour is an unpinned runtime default, not a contract this
+  repository owns, and nothing in the suite would notice if a future Bun changed it. An explicit handler
+  converts a lucky default into a stated guarantee.
+- It **does** set the bar. The criterion says "not a fixed fallback string alone" and "non-zero exit";
+  the measurement says that clears nothing, because the default already delivers both plus the chain.
+  The real bar is **at least as informative as the runtime default it displaces**: every level of the
+  cause chain, and a halt rather than a continuation.
+- It **does** settle the exit mechanism. `process.exitCode = 1` inside an `uncaughtException` handler
+  leaves the process running — measured above — which violates clause 3's *halt the work: no
+  continuation, no inferred intent, no partial write*. The handler must `process.exit` non-zero. The
+  criterion's permissive "exit code **or** `process.exit` non-zero" is too weak for
+  `uncaughtException`, and the stronger reading is the one that applies.
+
+**The class, which is the part worth carrying.** D14 clause 4 asserted a consequence ("the process can
+exit 0") from an observation ("no handler exists") without running the observation's consequence. That is
+the same shape as [F29.1](#f291) two findings earlier — a condition stated instead of measured — and the
+same shape as [F26](#f26)/[F30](#f30)/[F33](#f33): a sentence true when authored about a world nobody
+checked. A rule that ships with its compliance owed should also ship with its premise measured.
+
+Disposition: recorded before `C-CONTRACT-DEBT` T-004 is dispatched, and folded into that task's bar
+rather than deferred. No artifact is amended: the spec's criterion is met by a handler that clears the
+higher bar, so nothing needs superseding.
