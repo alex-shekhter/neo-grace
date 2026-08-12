@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-CONTRACT-DEBT>
     <IntentSummary>
       Close F29 / F29.1, F20, and D14 as one contract-debt bundle: additive

@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-CONTRACT-DEBT>
     <Summary>
       Close the remaining contract-debt items that take this roadmap's open
