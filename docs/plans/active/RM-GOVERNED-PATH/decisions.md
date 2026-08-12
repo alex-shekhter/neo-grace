@@ -2440,9 +2440,14 @@ the module contract as *token-accounting helpers* and in the code comment as *th
 T-003 rewrote four budget sites and the resume kind in `ngrace-execute`:
 
 ```
-HEAD  10890 chars / 103 lines
-now   11852 chars / 103 lines      (+962 chars, +8.8%)
+HEAD  10890 bytes / 103 lines
+now   11852 bytes / 103 lines      (+962 bytes, +8.8%)
 ```
+
+Unit corrected after the fact: these are `wc -c` output, which is **UTF-8 bytes**, not characters. JS
+string length over the same two revisions is 10860 → 11806 (+946). The conclusion is unchanged and the
+distinction is small, but labelling bytes as characters is the same imprecision this roadmap keeps
+finding in assertions ([F23](#f23)) — a value reported under a name defined differently.
 
 The pin did not move, because in a file whose kind entries are one line per field, a rewrite that doubles
 a sentence's length is line-neutral by construction. The metric is insensitive along the only axis that
