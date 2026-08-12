@@ -1,0 +1,631 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-DECLARED-WRITES>
+    <IntentSummary>
+      Close F27 / F27.1 / F27.2: add ledger-backed WriteEvidence-vs-ObservedWriteScope
+      audit as `review.write-evidence-outside-scope` (distinct from porcelain
+      `review.scope-outside-write-scope`), with absence record, docs/plans +
+      lifecycle exclusions, archive ratchet of exactly two product pairs and
+      exactly zero undeclared non-lifecycle `.ngrace/` findings, synthetic
+      fixtures including the never-seen approved-spec breach, and ngrace-plan
+      prose that ObservedWriteScope covers what the deliverable forces — bound
+      to the exported catalog constant on both skill trees.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-DECLARED-WRITES/spec.xml</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>auditScopeOutsideWriteScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>isCliLifecyclePath</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.scope-outside-write-scope</Text>
+      </MustContain>
+      <!--
+        Pre-change world: live code string is absent from catalog; audit entry
+        point name is absent from core (core will import the constant and may
+        never retype the string — pin the function name so baseline falsifies
+        after T-001). Skills omit the finding code. F28: all four are true at HEAD.
+      -->
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>auditWriteEvidenceOutsideScope</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.write-evidence-outside-scope</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>review.write-evidence-outside-scope</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>review.write-evidence-outside-scope</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>auditWriteEvidenceOutsideScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.write-evidence-outside-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>WRITE_EVIDENCE_SCOPE_FINDING_CODE</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>review.write-evidence-outside-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>review.write-evidence-outside-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>deliverable</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>deliverable</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>auditScopeOutsideWriteScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.scope-outside-write-scope</Text>
+      </MustContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/lint/catalog.test.ts src/verification/localize.test.ts src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/verification/localize.test.ts</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>.ngrace/changes/active/C-DECLARED-WRITES/plan.xml</File>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers; authority reviews this hardest)
+
+      Plan-authoring HEAD: ae87231 (branch docs/rm-governed-path). Spec is
+      approved and immutable — do not edit it. Re-measure every count at execute
+      (F12.2). Spec rule (ledger vs OWS, locked code, exclusions, ratchets,
+      prevention in ngrace-plan) is fixed; do not re-open.
+
+      ─────────────────────────────────────────────────────────────────
+      D0 — Finding code + constant (locked)
+      ─────────────────────────────────────────────────────────────────
+      Exact string (F23; no rename):
+
+        export const WRITE_EVIDENCE_SCOPE_FINDING_CODE =
+          "review.write-evidence-outside-scope" as const;
+
+      in catalog.ts; use from makeFinding, REVIEW_CATALOG entry, suite pins, and
+      skill agreement helpers. Severity **error**. Family process-audit.
+      Title/explanation: WriteEvidence path outside ObservedWriteScope (ledger),
+      not porcelain tree language. Remediation: declare the path in OWS or
+      revert; do not widen OWS semantics to swallow the breach.
+
+      Porcelain sibling `review.scope-outside-write-scope` unchanged in meaning.
+
+      ─────────────────────────────────────────────────────────────────
+      D1 — Audit algorithm (AC-LEDGER-SCOPE-RULE)
+      ─────────────────────────────────────────────────────────────────
+      New pure helper **named** `auditWriteEvidenceOutsideScope` (TargetAssertions
+      pin this exact identifier — do not rename without re-spec):
+
+        input: changeId, projectRoot, OWS files/globs, union of WriteEvidence
+               content paths from the resolved bundle ledger (+ loose run/
+               events if still present — same load surface as attempt-pair)
+        for each unique path in the union:
+          skip if isCliLifecyclePath(path)   // run.xml, run-ledger.xml, run/**
+          skip if path has prefix docs/plans/
+          skip if covered by OWS (same as porcelain: exact File/Path, globs,
+               expandScopePathsForArchiveIdentity)
+          else emit WRITE_EVIDENCE_SCOPE_FINDING_CODE (error), file=path,
+               anchor via resolveChangeBundle (active|archive), one finding
+               per path (dedupe)
+
+      Non-lifecycle .ngrace/ paths (spec.xml, plan.xml, graph, verification)
+      are NOT skipped by lifecycle — they raise when undeclared.
+
+      Wire into runReview processAudits:
+        - always set writeEvidenceScopeAudit (or equivalent) status
+        - no --change → not-run, reason names missing --change
+        - change unresolved → not-run / unable-to-determine with reason
+        - change resolved, zero WriteEvidence File digests → unable-to-determine
+          (must NOT score as clean ran)
+        - else ran with pathCount / findingCount
+
+      formatReviewResult: print a dedicated line, e.g.
+        `WriteEvidence scope audit: ran over N path(s) …`
+        `WriteEvidence scope audit: not-run — no --change supplied`
+        `WriteEvidence scope audit: unable-to-determine — no WriteEvidence …`
+      Suppress false "full audit clean" epilogue when this audit is not-run or
+      unable-to-determine (same honesty bar as attempt-pair / scope).
+
+      Do NOT feed WriteEvidence into auditScopeOutsideWriteScope as a second
+      input sharing one code (AC-DISTINCT-FROM-PORCELAIN).
+
+      ─────────────────────────────────────────────────────────────────
+      D2 — AC-HEAD-RED ordering (T-001 owns it)
+      ─────────────────────────────────────────────────────────────────
+      T-001 criterion, first step of the task, **before any production edit**,
+      in its **own tool round trip** (F9.8 / AC-HEAD-RED):
+
+        bun run ngrace review --path . --change C-EXECUTION-CONTRACT
+
+      Record output. At plan-authoring HEAD this is Findings: 0 and no line
+      containing review.write-evidence-outside-scope (verified at ae87231).
+      That silence is the red: the live undisclosed breach is invisible.
+
+      After the production edit (same task), re-run the same command and require
+      a finding with code WRITE_EVIDENCE_SCOPE_FINDING_CODE and file
+      src/test-support/token-accounting.test.ts (exact).
+
+      A test that only uses synthetic digests does not satisfy AC-HEAD-RED.
+      Cursor: record fail attempt after the pre-edit review (signature e.g.
+      assertion-miss / write-evidence-scope-code-absent), then implement, then
+      pass. Do not batch fail with the edit.
+
+      ─────────────────────────────────────────────────────────────────
+      D3 — Fixture matrix (AC-FIXTURES) — includes the never-seen shape
+      ─────────────────────────────────────────────────────────────────
+      Synthetic (helper or runReview on temp bundles), code exact toBe constant:
+
+      **Must raise**
+        1. product path outside OWS (e.g. src/secret.ts in WE, not in OWS)
+        2. undeclared non-lifecycle .ngrace/ path (e.g. WE lists
+           .ngrace/changes/active/C-X/spec.xml and OWS does not cover it)
+           — **never occurred in 27 archives; highest-severity shape; required**
+
+      **Must not raise**
+        3. every non-excluded WE path in OWS
+        4. only lifecycle extras (run/, run.xml, run-ledger.xml)
+        5. only docs/plans/** extras
+
+      **Absence**
+        6. empty / missing WriteEvidence → status unable-to-determine (not ran clean)
+
+      Live archive pins (read-only):
+        - C-EXECUTION-CONTRACT → finding on token-accounting.test.ts
+        - C-ESCALATION-HONESTY → finding on src/gates/core.test.ts; zero
+          docs/plans findings for this code
+        - any of the 11 unevaluable → unable-to-determine (or aggregate
+          accounting in corpus test)
+
+      ─────────────────────────────────────────────────────────────────
+      D4 — AC-ARCHIVE-RATCHET (dynamic; F33)
+      ─────────────────────────────────────────────────────────────────
+      Enumerate:
+        readdirSync(".ngrace/changes/archive")
+          .filter(name => /^C-/.test(name) && isDirectory(...))
+      **No** expect(dirs.length).toBe(27) or toBe(28).
+
+      For every id with comparable WE (status ran): findings for
+      WRITE_EVIDENCE_SCOPE_FINDING_CODE equal set difference after exclusions.
+
+      Aggregate product multiset of (changeId, path) **exactly**:
+        ("C-ESCALATION-HONESTY", "src/gates/core.test.ts")
+        ("C-EXECUTION-CONTRACT", "src/test-support/token-accounting.test.ts")
+      No other product pairs. Zero docs/plans paths.
+
+      Aggregate non-lifecycle .ngrace/ findings for this code: **exactly 0**.
+
+      unable-to-determine bundles counted in status breakdown (not silent clean).
+
+      **This bundle's predicted contribution to the product ratchet: 0 pairs.**
+      If OWS is honest, C-DECLARED-WRITES archives with no undeclared
+      WriteEvidence path outside exclusions; multiset stays at two. A third
+      pair at close is a **loud failure** (dogfood breach) — do not quietly
+      expand the expected set. Re-measure at close; if self appears with a
+      finding, stop and report rather than editing the pin to match.
+
+      ─────────────────────────────────────────────────────────────────
+      D5 — Catalog cardinality (add, not rename)
+      ─────────────────────────────────────────────────────────────────
+      Authoring HEAD catalog length: **14** (measured:
+        bun -e 'import { allReviewCodes } from "./src/review/catalog.ts"; …').
+
+      After add: **15**. Pins that say toBe(14) on allReviewCodes() /
+      catalog.length must become toBe(15) (core.test.ts, localize.test.ts).
+      excludedReviewCodesForLocalization length: today **11**; new code is
+      process-audit / not localization-admissible → excluded becomes **12**
+      if partition is exhaustive by set difference; re-measure and pin exact.
+      lint catalog.test.ts: ≥14 stays valid; add exact guide pin for the new
+      code (not F10 allowlist).
+
+      ─────────────────────────────────────────────────────────────────
+      D6 — Determinism / defect-corpus ratchet (stays 14)
+      ─────────────────────────────────────────────────────────────────
+      validate:ci "ratchet ok (14 caught keys)" keys are defect-corpus
+      mustFire:true hits (pattern surface), not every REVIEW_CATALOG code.
+      This finding is ledger process-audit evidence — **do not** add a corpus
+      seed unless execute discovers a natural fit that does not weaken the
+      ratchet. **Predicted determinism ratchet: remains 14.** If it moves to 15
+      because a seed was intentionally added, say so in the task report with
+      the seed id. **Never drop a key to keep 14.** Unexpected movement →
+      stop and report.
+
+      ─────────────────────────────────────────────────────────────────
+      D7 — Skill prevention half (T-002; AC-PLAN-FORCED-SCOPE)
+      ─────────────────────────────────────────────────────────────────
+      Surgical add to both ngrace-plan trees (byte-identical), near must_do
+      item 6 / ObservedWriteScope guidance — not a rewrite of the whole skill.
+
+      Substance (implementer may tighten wording, not dilute):
+        ObservedWriteScope covers what the deliverable **forces**, not only
+        what it targets. Skill-text changes declare the skill-footprint pin;
+        rule changes declare fixtures that construct that rule.
+        Failure shape: `review.write-evidence-outside-scope` (live code from
+        WRITE_EVIDENCE_SCOPE_FINDING_CODE — do not retype a drifting literal).
+
+      Agreement tests in core.test.ts (or co-located): both paths include
+      constant; both state forced-scope substance (e.g. forces / skill-footprint
+      / fixtures — choose phrases that fail at HEAD; F28). Mutation: constant
+      without skill reddens; skill without constant reddens; one tree only fails
+      mirror.
+
+      Token pin: write prose first, re-measure skillTextLines().total, exact
+      toBe. Authoring total **779**; ngrace-plan **92** lines — prose will
+      almost certainly move the total; never write toward a target count.
+
+      ─────────────────────────────────────────────────────────────────
+      D8 — Task split, contract window, lint window
+      ─────────────────────────────────────────────────────────────────
+      T-001 — Ledger scope audit, catalog, fixtures, archive ratchet, absence,
+              HEAD-RED, discrimination probe
+            Satisfies: AC-LEDGER-SCOPE-RULE, AC-DISTINCT-FROM-PORCELAIN,
+              AC-ABSENCE-RECORD, AC-EXCLUSION-DOCS-PLANS, AC-ARCHIVE-RATCHET,
+              AC-FIXTURES, AC-HEAD-RED
+            DependsOn: empty
+            Files: src/review/core.ts, catalog.ts, core.test.ts,
+              src/lint/catalog.test.ts, src/verification/localize.test.ts
+
+      T-002 — ngrace-plan forced-scope prose (both trees) + agreement + mirror
+              + token pin
+            Satisfies: AC-PLAN-FORCED-SCOPE, AC-PROSE-ENFORCEMENT-AGREE,
+              AC-SKILL-MIRROR-IDENTICAL
+            DependsOn: T-001 (constant and CLI must exist before skill names them)
+            Files: both ngrace-plan SKILL.md; core.test.ts (agreement);
+              token-accounting.test.ts
+
+      T-003 — Dogfood close (AC-SUITE-AND-LINT **at close** — F26 qualifier)
+            Satisfies: AC-SUITE-AND-LINT
+            DependsOn: T-001, T-002
+            No product edits beyond re-measure / report; may re-run suite only.
+            Confirm product ratchet still exactly two pairs (self contributed 0);
+            non-lifecycle .ngrace/ still 0; lint 0/0 only after apply/archive
+            (authority); unscoped review shows WriteEvidence-scope not-run.
+
+      **Why not merge T-001 and T-002.** Rule matrix red must not be confounded
+      with skill/mirror failures; discrimination probe is on core.ts only. Why
+      not skill-first: prose would document a code the catalog does not emit
+      (F12). Why not split T-001 further: one emitter + catalog + runReview
+      wiring; mid-chain splits manufacture catalog/absence mismatches.
+
+      **Window between T-001 and T-002 (honest residual):** after T-001 the CLI
+      and catalog emit review.write-evidence-outside-scope; ngrace-plan trees
+      still omit the code and forced-scope rule. That is an F21-class gap for
+      any planner who only reads the skill. **Do not archive, ship, or claim
+      AC-PLAN-FORCED-SCOPE / AC-PROSE / AC-SKILL-MIRROR / AC-SUITE-AND-LINT in
+      that window.** T-002 is mandatory and DependsOn T-001.
+
+      No commit-body criterion (spec does not require one; F30 risk — omit).
+
+      ─────────────────────────────────────────────────────────────────
+      D9 — ObservedWriteScope derivation (measured at ae87231)
+      ─────────────────────────────────────────────────────────────────
+      Command:
+
+        rg -n 'scope-outside-write-scope|auditScopeOutsideWriteScope|isCliLifecyclePath' src/
+
+      Hits that **must change** or host the new audit → in OWS:
+        src/review/core.ts          (audit + runReview + report + isCliLifecyclePath)
+        src/review/catalog.ts       (new catalog entry + constant)
+        src/review/core.test.ts     (fixtures, ratchet, HEAD-RED, agreement)
+        src/lint/catalog.test.ts    (registered string / ≥14 / guide pin)
+        src/verification/localize.test.ts  (catalog.length 14→15; excluded 11→12)
+
+      Forced by deliverable (F27.2 / this bundle's own rule):
+        skills/ngrace/ngrace-plan/SKILL.md
+        plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md
+        src/test-support/token-accounting.test.ts   # always — pin may move
+
+      Plus this plan file:
+        .ngrace/changes/active/C-DECLARED-WRITES/plan.xml
+
+      Hits **not** requiring product edit (leave out of OWS unless forced):
+        src/grace-lint.test.ts — only --explain porcelain string; no change
+        src/verification/localize.ts — closed ADMISSIBLE set; new code excluded
+          by omission (no file edit if partition is derived from catalog)
+        src/test-support/defect-corpus.ts — no seed (D6)
+
+      **Deliberately excluded:**
+        docs/plans/**  — authority concurrent edits (spec exclusion; F27.1);
+          authority will edit decisions.md while this bundle is open
+        .ngrace/changes/archive/** — immutable history
+        skills/ngrace/ngrace-execute/** — prevention is plan, not execute
+        version surfaces, CHANGELOG.md
+
+      ─────────────────────────────────────────────────────────────────
+      D10 — Predicted lint baseline window (arithmetic on BaselineAssertions)
+      ─────────────────────────────────────────────────────────────────
+      Baseline uses four MustNotContain of the live code (core, catalog, both
+      ngrace-plan trees) plus MustContain porcelain anchors that stay true.
+
+      After plan **approval**, before tasks:
+        Baseline green (code absent). Target red (code missing). Flag if
+        baseline assertion.* N ≠ **0**.
+
+      After **T-001** only:
+        MustNotContain core.ts new code → fail
+        MustNotContain catalog.ts new code → fail
+        MustNotContain both skills → still green (skills unchanged)
+        Predicted baseline assertion.* **2**. Flag if N ≠ 2.
+
+      After **T-002**:
+        Both skill MustNotContain → fail
+        Predicted cumulative baseline assertion.* **4**. Flag if N ≠ 4.
+        Target skill/code strings green.
+
+      After **T-003 / close**: AC-SUITE-AND-LINT **at close** — lint 0 errors
+      and 0 warnings after apply/archive (spec qualifier; not mid-change).
+      validate:ci green; ratchet 14 (unless intentional seed); marketplace green;
+      unscoped WriteEvidence-scope audit not-run; product ratchet still exactly
+      two pairs; non-lifecycle .ngrace/ findings still 0.
+
+      Never weaken a BaselineAssertion to reduce the count.
+
+      ─────────────────────────────────────────────────────────────────
+      D11 — Discrimination probe (T-001; required)
+      ─────────────────────────────────────────────────────────────────
+      Coverage claim is structural. After green fixtures:
+
+        1. sha256 src/review/core.ts (pre)
+        2. Temporarily force the new audit to return [] (or make lifecycle
+           exclusion swallow all paths)
+        3. bun test -t "…write-evidence…" (raise fixtures + archive ratchet)
+           → **must fail** (positive fixtures and/or ratchet redden)
+        4. Revert; sha256 matches pre; suite green
+
+      Record commands and outcomes in the task report. Do not leave the break
+      committed. A check nobody has seen fail is a claim.
+
+      ─────────────────────────────────────────────────────────────────
+      D12 — Execution discipline
+      ─────────────────────────────────────────────────────────────────
+      ngrace-execute cursor kinds; one open epoch; red-first for T-001 (HEAD-RED
+      measurement) and T-002 (agreement red before skill edit); T-003 has no
+      honest red if verification is already green. Terminal / fold / gate /
+      commit are operator steps after T-003 unless authority says otherwise.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>WriteEvidence scope audit, fixtures, archive ratchet, absence, HEAD-RED</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-LEDGER-SCOPE-RULE />
+          <AC-DISTINCT-FROM-PORCELAIN />
+          <AC-ABSENCE-RECORD />
+          <AC-EXCLUSION-DOCS-PLANS />
+          <AC-ARCHIVE-RATCHET />
+          <AC-FIXTURES />
+          <AC-HEAD-RED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (ordering is load-bearing): before any production edit,
+            in its own tool round trip, run
+            `bun run ngrace review --path . --change C-EXECUTION-CONTRACT` and
+            record that Findings do not include
+            `review.write-evidence-outside-scope`. Then implement. After the
+            edit, the same command raises that code on
+            `src/test-support/token-accounting.test.ts` (exact). Cursor fail
+            attempt records the pre-edit silence; pass after green suite for
+            this task's verification commands.
+          </Criterion>
+          <Criterion>
+            Implement D0–D1 in src/review/core.ts and catalog.ts: export
+            WRITE_EVIDENCE_SCOPE_FINDING_CODE =
+            "review.write-evidence-outside-scope"; catalog entry severity error;
+            audit unions WriteEvidence paths vs OWS with lifecycle + docs/plans/
+            exclusions; non-lifecycle .ngrace/ raises when undeclared; distinct
+            from porcelain code; WriteEvidenceScopeAudit status always set when
+            process audits run (not-run / unable-to-determine / ran).
+          </Criterion>
+          <Criterion>
+            AC-FIXTURES: synthetic matrix — raise on product undeclared; raise on
+            undeclared non-lifecycle .ngrace/ (approved-spec shape — never seen
+            live; required); silent on full OWS coverage; silent on lifecycle-only
+            and docs/plans-only extras; unable-to-determine on empty WE. Code
+            pinned with exact toBe(WRITE_EVIDENCE_SCOPE_FINDING_CODE).
+          </Criterion>
+          <Criterion>
+            AC-ARCHIVE-RATCHET: dynamic C-* enumeration; product multiset exactly
+            the two pairs named in the spec; non-lifecycle .ngrace/ findings
+            exactly 0; no toBe(dirs.length); unable-to-determine accounted.
+            Predict this bundle contributes 0 product pairs if OWS is honest.
+          </Criterion>
+          <Criterion>
+            AC-EXCLUSION-DOCS-PLANS: live C-TOKEN-INTEGRITY / C-ESCALATION-HONESTY
+            docs/plans paths do not raise for this code; mutation dropping the
+            exclusion reddens those pins (probe or temporary).
+          </Criterion>
+          <Criterion>
+            AC-ABSENCE-RECORD: unscoped review shows WriteEvidence-scope audit
+            not-run with reason naming missing --change; empty-WE archive
+            bundles are unable-to-determine not clean ran.
+          </Criterion>
+          <Criterion>
+            Catalog add: allReviewCodes length 15; localize exhaustive partition
+            holds; new code guided not F10-allowlisted; porcelain code still
+            present and still means tree-only.
+          </Criterion>
+          <Criterion>
+            Discrimination probe (D11): break audit → fixtures and/or ratchet
+            red → revert → digest match. Record verbatim. Do not leave the break.
+          </Criterion>
+          <Criterion>
+            Window honesty: after this task ngrace-plan still omits the live
+            code. Do not claim AC-PLAN-FORCED-SCOPE, AC-PROSE-ENFORCEMENT-AGREE,
+            AC-SKILL-MIRROR-IDENTICAL, or AC-SUITE-AND-LINT. T-002 is required.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts src/verification/localize.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>ngrace-plan forced-scope prose (both trees), agreement, token pin</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-PLAN-FORCED-SCOPE />
+          <AC-PROSE-ENFORCEMENT-AGREE />
+          <AC-SKILL-MIRROR-IDENTICAL />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-001 is binding (WRITE_EVIDENCE_SCOPE_FINDING_CODE must
+            exist). Red-first: agreement test against current ngrace-plan skills
+            fails (missing live code / forced-scope substance). Record bun test
+            failure before prose edit (F12.2 / F28).
+          </Criterion>
+          <Criterion>
+            Surgical edit both skills/ngrace/ngrace-plan/SKILL.md and
+            plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md: ObservedWriteScope
+            covers what the deliverable forces (skill-text → footprint pin;
+            rule change → constructing fixtures); failure shape names
+            review.write-evidence-outside-scope bound for agreement tests to the
+            catalog constant. Do not rewrite unrelated must_do rows.
+          </Criterion>
+          <Criterion>
+            AC-PROSE-ENFORCEMENT-AGREE: both trees contain the live code via
+            constant binding; mutation of constant or either tree reddens.
+            Positive presence and substance on both paths.
+          </Criterion>
+          <Criterion>
+            AC-SKILL-MIRROR-IDENTICAL: git diff --no-index clean between the two
+            SKILL.md paths; bun run ./scripts/validate-marketplace.ts green.
+          </Criterion>
+          <Criterion>
+            token-accounting.test.ts: after prose lands, re-measure
+            skillTextLines().total; pin exact toBe to measured value. If
+            unchanged, leave pin and report re-measured; unchanged. File stays
+            in OWS either way (F27).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Dogfood close: suite, lint at close, ratchet still two pairs, self contributed zero</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-SUITE-AND-LINT **at close** (qualifier required — F26): after this
+            change is applied/archived, `bun run ngrace lint --path .` is 0
+            errors and 0 warnings; do not claim 0/0 for mid-change dirty trees
+            or while baseline framing lists expected assertion.* from deliberate
+            Baseline falsification (predicted 4 after T-002).
+          </Criterion>
+          <Criterion>
+            bun test for touched packages green; bun run validate:ci green with
+            determinism ratchet still **14** caught keys unless an intentional
+            corpus seed was added and reported; never silent key drop;
+            bun run ./scripts/validate-marketplace.ts green.
+          </Criterion>
+          <Criterion>
+            Archive ratchet re-check (dynamic): product multiset still exactly
+            the two historical pairs; this bundle contributed **0** new pairs
+            (if a third appears, stop and report — dogfood OWS failure);
+            non-lifecycle .ngrace/ findings still exactly 0.
+          </Criterion>
+          <Criterion>
+            Unscoped `ngrace review --path .` prints WriteEvidence-scope audit
+            not-run (AC-ABSENCE-RECORD still holds). No edits under docs/plans/
+            or .ngrace/changes/archive/ content (other than legitimate archive
+            move of this bundle); decisions.md untouched by this bundle; no
+            CHANGELOG.md; no version-surface edits.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-DECLARED-WRITES>
+</NgraceChangePlan>
