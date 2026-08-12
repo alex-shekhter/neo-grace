@@ -3241,4 +3241,18 @@ describe("KNOWN_EVENT_KINDS export and ngrace-execute completeness (C-EXECUTION-
   });
 });
 
+describe("appendEpochToLedger structural clone pin (C-SUBSTANCE-OVER-NAME)", () => {
+  it("rebuilds children with .map(cloneXmlNode), not an inline one-level copy", () => {
+    // Structural pin; no behavioural discriminator exists — the shared grandchild
+    // level is never mutated, so a clone-isolation test would pass on the pre-change code.
+    const source = readFileSync(path.join(import.meta.dir, "grace-cursor.ts"), "utf8");
+    const start = source.indexOf("function appendEpochToLedger");
+    expect(start).toBeGreaterThanOrEqual(0);
+    const nextFn = source.indexOf("\nfunction ", start + 1);
+    const slice = source.slice(start, nextFn === -1 ? undefined : nextFn);
+    expect(slice).not.toContain("children: [...child.children]");
+    expect(slice).toContain(".map(cloneXmlNode)");
+  });
+});
+
 

@@ -696,8 +696,42 @@ describe("ngrace status", () => {
 describe("C-REPORT-HONESTY T-002 status membership", () => {
   it("AC-TOKEN-ORPHAN-TRIPLE (1): live NaN orphan SHA-1 is preserved evidence (read-only)", () => {
     const body = readFileSync(LIVE_NAN_ORPHAN);
+    expect(body.byteLength).toBe(135);
     const sha1 = createHash("sha1").update(body).digest("hex");
     expect(sha1).toBe(LIVE_NAN_SHA1);
+  });
+
+  it("orphan digest test asserts byteLength before LIVE_NAN_SHA1 (ordering pin)", () => {
+    // HEAD-RED is this source order, not expect(body.byteLength).toBe(135) —
+    // that expect already passes on the live 135-byte file.
+    const source = readFileSync(path.join(import.meta.dir, "grace-status.test.ts"), "utf8");
+    const start = source.indexOf('it("AC-TOKEN-ORPHAN-TRIPLE (1)');
+    expect(start).toBeGreaterThanOrEqual(0);
+    const nextIt = source.indexOf("\n  it(", start + 1);
+    const slice = source.slice(start, nextIt === -1 ? undefined : nextIt);
+    const byteLengthAt = slice.indexOf("byteLength");
+    const digestAt = slice.indexOf("LIVE_NAN_SHA1");
+    expect(byteLengthAt).toBeGreaterThanOrEqual(0);
+    expect(digestAt).toBeGreaterThan(byteLengthAt);
+  });
+
+  it("CRLF copy of the orphan fails on byteLength first and names 136 against 135", () => {
+    const body = readFileSync(LIVE_NAN_ORPHAN);
+    const crlf = Buffer.from(body.toString("utf8").replaceAll("\n", "\r\n"));
+    let reachedDigest = false;
+    let error: unknown;
+    try {
+      expect(crlf.byteLength).toBe(135);
+      reachedDigest = true;
+      const sha1 = createHash("sha1").update(crlf).digest("hex");
+      expect(sha1).toBe(LIVE_NAN_SHA1);
+    } catch (caught) {
+      error = caught;
+    }
+    expect(reachedDigest).toBe(false);
+    const message = error instanceof Error ? error.message : String(error);
+    expect(message).toContain("136");
+    expect(message).toContain("135");
   });
 
   it("AC-TOKEN-ORPHAN-TRIPLE (3) / AC-STATUS-OPEN-FOLDS-WITH-GATE: orphan-only run/ → open=0 + orphans=N", () => {

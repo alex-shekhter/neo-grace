@@ -1,7 +1,8 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
+import ts from "typescript";
 
 import { childText, cloneXmlNode, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
@@ -117,5 +118,235 @@ describe("cloneXmlNode", () => {
     expect(input.children[0]!.text).toBe("hello");
     expect(grandchild.text).toBe("leaf");
     expect(input.children).toHaveLength(1);
+  });
+});
+
+/**
+ * Body-shaped single-definition scan (C-SUBSTANCE-OVER-NAME T-001).
+ * Binders are holes: the function's own name is never part of the match.
+ * Collection does not filter by identifier; a copy named anything is a hit.
+ */
+type StructuralCloneHit = {
+  file: string;
+  binder: string;
+  exported: boolean;
+};
+
+function unwrapExpr(node: ts.Expression): ts.Expression {
+  while (
+    ts.isParenthesizedExpression(node) ||
+    ts.isAsExpression(node) ||
+    ts.isTypeAssertionExpression(node) ||
+    ts.isSatisfiesExpression(node) ||
+    ts.isNonNullExpression(node)
+  ) {
+    node = node.expression;
+  }
+  return node;
+}
+
+function isIdent(node: ts.Node, name: string): boolean {
+  return ts.isIdentifier(node) && node.text === name;
+}
+
+function isParamProp(node: ts.Expression, param: string, prop: string): boolean {
+  const expr = unwrapExpr(node);
+  return ts.isPropertyAccessExpression(expr) && isIdent(expr.expression, param) && expr.name.text === prop;
+}
+
+function isSpreadOfParamAttributes(node: ts.Expression, param: string): boolean {
+  const expr = unwrapExpr(node);
+  if (!ts.isObjectLiteralExpression(expr) || expr.properties.length !== 1) return false;
+  const only = expr.properties[0];
+  return only !== undefined && ts.isSpreadAssignment(only) && isParamProp(only.expression, param, "attributes");
+}
+
+function isSelfCall(node: ts.Expression, self: string, argName: string): boolean {
+  const expr = unwrapExpr(node);
+  return (
+    ts.isCallExpression(expr) &&
+    expr.arguments.length === 1 &&
+    isIdent(expr.expression, self) &&
+    isIdent(expr.arguments[0]!, argName)
+  );
+}
+
+function isChildrenMapOfSelf(node: ts.Expression, param: string, self: string): boolean {
+  const expr = unwrapExpr(node);
+  if (!ts.isCallExpression(expr) || expr.arguments.length !== 1) return false;
+  const callee = unwrapExpr(expr.expression);
+  if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== "map") return false;
+  if (!isParamProp(callee.expression, param, "children")) return false;
+  const arg = unwrapExpr(expr.arguments[0]!);
+  if (isIdent(arg, self)) return true;
+  if (!ts.isArrowFunction(arg) || arg.parameters.length !== 1) return false;
+  const paramName = arg.parameters[0]!.name;
+  if (!ts.isIdentifier(paramName)) return false;
+  if (ts.isBlock(arg.body)) {
+    if (arg.body.statements.length !== 1) return false;
+    const stmt = arg.body.statements[0]!;
+    return ts.isReturnStatement(stmt) && stmt.expression !== undefined && isSelfCall(stmt.expression, self, paramName.text);
+  }
+  return isSelfCall(arg.body, self, paramName.text);
+}
+
+function objectLiteralFromBody(body: ts.ConciseBody | undefined): ts.ObjectLiteralExpression | undefined {
+  if (!body) return undefined;
+  if (ts.isBlock(body)) {
+    if (body.statements.length !== 1) return undefined;
+    const stmt = body.statements[0]!;
+    if (!ts.isReturnStatement(stmt) || !stmt.expression) return undefined;
+    const returned = unwrapExpr(stmt.expression);
+    return ts.isObjectLiteralExpression(returned) ? returned : undefined;
+  }
+  const expr = unwrapExpr(body);
+  return ts.isObjectLiteralExpression(expr) ? expr : undefined;
+}
+
+function propertyNameText(name: ts.PropertyName): string | undefined {
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) return name.text;
+  return undefined;
+}
+
+function matchesCloneShape(obj: ts.ObjectLiteralExpression, param: string, self: string): boolean {
+  if (obj.properties.length !== 4) return false;
+  const seen = new Set<string>();
+  for (const prop of obj.properties) {
+    if (!ts.isPropertyAssignment(prop)) return false;
+    const key = propertyNameText(prop.name);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    switch (key) {
+      case "tag":
+        if (!isParamProp(prop.initializer, param, "tag")) return false;
+        break;
+      case "attributes":
+        if (!isSpreadOfParamAttributes(prop.initializer, param)) return false;
+        break;
+      case "children":
+        if (!isChildrenMapOfSelf(prop.initializer, param, self)) return false;
+        break;
+      case "text":
+        if (!isParamProp(prop.initializer, param, "text")) return false;
+        break;
+      default:
+        return false;
+    }
+  }
+  return seen.has("tag") && seen.has("attributes") && seen.has("children") && seen.has("text");
+}
+
+function soleParamName(params: readonly ts.ParameterDeclaration[]): string | undefined {
+  if (params.length !== 1) return undefined;
+  const name = params[0]!.name;
+  return ts.isIdentifier(name) ? name.text : undefined;
+}
+
+function functionLikeMatches(
+  node: ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction | ts.MethodDeclaration,
+  self: string,
+): boolean {
+  const param = soleParamName(node.parameters);
+  if (!param) return false;
+  const obj = objectLiteralFromBody(node.body);
+  return obj !== undefined && matchesCloneShape(obj, param, self);
+}
+
+function hasExportKeyword(node: ts.Node): boolean {
+  return (ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined)?.some(
+    (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
+  ) ?? false;
+}
+
+function collectFromText(file: string, text: string): StructuralCloneHit[] {
+  const sourceFile = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const hits: StructuralCloneHit[] = [];
+
+  function consider(
+    node: ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction | ts.MethodDeclaration,
+    binder: string | undefined,
+    exported: boolean,
+  ) {
+    if (!binder) return;
+    if (functionLikeMatches(node, binder)) {
+      hits.push({ file, binder, exported });
+    }
+  }
+
+  function visit(node: ts.Node) {
+    if (ts.isFunctionDeclaration(node)) {
+      consider(node, node.name?.text, hasExportKeyword(node));
+    } else if (ts.isMethodDeclaration(node)) {
+      const name = ts.isIdentifier(node.name) ? node.name.text : undefined;
+      consider(node, name, false);
+    } else if (ts.isVariableStatement(node)) {
+      const exported = hasExportKeyword(node);
+      for (const decl of node.declarationList.declarations) {
+        if (!ts.isIdentifier(decl.name) || !decl.initializer) continue;
+        const init = unwrapExpr(decl.initializer);
+        if (ts.isFunctionExpression(init) || ts.isArrowFunction(init)) {
+          consider(init, decl.name.text, exported);
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return hits;
+}
+
+function listSrcTsFiles(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...listSrcTsFiles(full));
+    } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+function collectFromSrc(): StructuralCloneHit[] {
+  const srcRoot = path.resolve(import.meta.dir, "..");
+  const hits: StructuralCloneHit[] = [];
+  for (const file of listSrcTsFiles(srcRoot)) {
+    hits.push(...collectFromText(file, readFileSync(file, "utf8")));
+  }
+  return hits;
+}
+
+describe("structural-clone single definition (body-shaped)", () => {
+  it("collectFromText is identifier-insensitive: cloneXmlNode and duplicateNode are both hits", () => {
+    const text = `
+      function cloneXmlNode(node) {
+        return {
+          tag: node.tag,
+          attributes: { ...node.attributes },
+          children: node.children.map(cloneXmlNode),
+          text: node.text,
+        };
+      }
+      const duplicateNode = (node) => ({
+        tag: node.tag,
+        attributes: { ...node.attributes },
+        children: node.children.map(duplicateNode),
+        text: node.text,
+      });
+    `;
+    const hits = collectFromText("synthetic.ts", text);
+    expect(hits).toHaveLength(2);
+    expect(hits.map((hit) => hit.binder).sort()).toEqual(["cloneXmlNode", "duplicateNode"]);
+  });
+
+  it("src/ contains exactly one structural-clone definition, the export in xml.ts", () => {
+    const hits = collectFromSrc();
+    expect(hits).toHaveLength(1);
+    expect(hits[0]!.file.replaceAll("\\", "/")).toMatch(/src\/artifact\/xml\.ts$/);
+    expect(hits[0]!.exported).toBe(true);
+    expect(hits[0]!.binder).toBe("cloneXmlNode");
   });
 });

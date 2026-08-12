@@ -1,0 +1,711 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-SUBSTANCE-OVER-NAME>
+    <IntentSummary>
+      Close F35 and the two items it dragged with it: delete the private
+      `cloneNode` in `src/gates/ledger.ts` and import `cloneXmlNode`; pin
+      single-definition by an identifier-insensitive AST shape scan over
+      `src/` (not a name list); replace `appendEpochToLedger`'s inline
+      one-level copy with the shared helper, declared structural; assert the
+      preserved-evidence orphan's byte length before its SHA-1 so a CRLF
+      conversion names 136 against 135.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/xml.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/xml.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-SUBSTANCE-OVER-NAME/spec.xml</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <!-- Pre-change world (F28: each load-bearing MustNotContain / MustContain below is true at plan-authoring HEAD 2fac2a7). -->
+      <MustContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>cloneXmlNode</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>function cloneNode</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>readGraceXmlArtifact</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>function appendEpochToLedger</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>children: [...child.children]</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>c0cc8899c264381766a18918e2109b5e05693893</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>cloneXmlNode</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/xml.test.ts</File>
+        <Text>duplicateNode</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>[...child.children]</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>byteLength</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/xml.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/xml.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>cloneXmlNode</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>function cloneNode</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/artifact/xml.test.ts</File>
+        <Text>duplicateNode</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>children: [...child.children]</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>[...child.children]</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>byteLength</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>c0cc8899c264381766a18918e2109b5e05693893</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>cloneXmlNode</Text>
+      </MustContain>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/artifact/xml.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/gates/core.test.ts src/grace-cursor.test.ts src/grace-status.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GATES />
+        <M-CURSOR />
+        <M-GRAMMAR />
+        <M-STATUS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GATES />
+        <V-M-CURSOR />
+        <V-M-GRAMMAR />
+        <V-M-STATUS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/gates/ledger.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/xml.test.ts</File>
+      <File>src/grace-status.test.ts</File>
+      <File>.ngrace/changes/active/C-SUBSTANCE-OVER-NAME/plan.xml</File>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers; authority reviews this hardest)
+
+      Plan-authoring HEAD: 2fac2a7 (branch fix/single-definition-subject).
+      Spec is approved and immutable — do not edit it. Re-measure every count
+      at execute (F12.2 / F33). Spec rules (body-shaped single-definition
+      check, home stays xml.ts, clone semantics unchanged, appendEpoch
+      repair is structural, SHA-1 pin unchanged) are fixed; do not re-open.
+
+      ─────────────────────────────────────────────────────────────────
+      D0 — Task decomposition
+      ─────────────────────────────────────────────────────────────────
+      Three independent production tasks + one dogfood close. They share a
+      *subject* (a check or copy bound to a name instead of to the thing)
+      but **no surface dependency**. Empty DependsOn on T-001..T-003 so
+      each gets its own honest red.
+
+      | Task | Surface | Satisfies (primary) |
+      | T-001 | AST scan + ledger import | AC-CLONE-ONE-DEFINITION-BY-BODY,
+                 AC-LEDGER-IMPORTS-SHARED-CLONE |
+      | T-002 | appendEpochToLedger residual | AC-APPEND-EPOCH-USES-ONE-DEFINITION |
+      | T-003 | orphan length-before-digest | AC-DIGEST-FAILURE-NAMES-ITS-CAUSE |
+      | T-004 | dogfood close | AC-SUITE-AND-LINT (at close),
+                 AC-NO-ARCHIVE-OR-ROADMAP-EDITS, AC-HEAD-RED (full) |
+
+      **Why scan + ledger import are one task, not two.** The scan's live
+      assertion is `hits.length === 1` with the survivor in xml.ts. That
+      assertion is red at HEAD because `cloneNode` exists. It cannot go
+      green without deleting `cloneNode`. Splitting "write the scan" from
+      "delete the copy" with empty DependsOn would leave T-scan permanently
+      red, or tempt a weak `toBeGreaterThanOrEqual(1)` that is itself a
+      failure condition. The scan is the test; the deletion is the fix.
+      One red → one green.
+
+      **Why not merge T-002 into T-001.** Different files, different
+      HEAD-RED (two recursive bodies vs one inline one-level copy), and
+      the residual is *not* a hit of the scan (see D1: the one-level
+      arrow does not match the recursive-self shape). Separate reds
+      localize. Empty DependsOn is honest: T-002 does not need the scan
+      to land first.
+
+      **Why not merge T-003.** Unrelated surface and unrelated red
+      (`byteLength` absent, and a length expect on the live file would
+      *pass* at HEAD — see D3).
+
+      **Why T-004 exists.** AC-SUITE-AND-LINT is 0/0 **at close** only
+      (F26). AC-HEAD-RED is fully Satisfied only after all three
+      production reds have been recorded. Do not manufacture a red on
+      T-004 if already green.
+
+      Cost: four cursor advances; three honest reds + no manufactured
+      red on T-004. Window after any single production task: the other
+      families' Baseline falsifiers still hold; see D8 for N.
+
+      ─────────────────────────────────────────────────────────────────
+      D1 — Scan mechanism (the hard part; AC-CLONE-ONE-DEFINITION-BY-BODY)
+      ─────────────────────────────────────────────────────────────────
+      Home: local helpers in `src/artifact/xml.test.ts`. Not exported
+      from `xml.ts` (T1: no new public API). Not moved to test-support
+      (M-TEST-SUPPORT is not in AffectedAreas). `typescript` is already
+      a dependency (the TS lint adapter).
+
+      **Collection criterion — AST shape, identifier-insensitive.**
+
+      Walk every `src/**/*.ts` file (including tests). Do not pass a
+      hardcoded file list. Parse with `ts.createSourceFile`. Collect
+      every function-like (FunctionDeclaration, FunctionExpression,
+      ArrowFunction, MethodDeclaration — including `export` / `const`
+      bindings) whose body is a single `return` of an object literal
+      whose properties, **order-independent**, are exactly:
+
+        tag        ← <p>.tag
+        attributes ← { ...<p>.attributes }     (spread of <p>.attributes)
+        children   ← <p>.children.map(<self>)  (or .map(x => <self>(x)))
+        text       ← <p>.text
+
+      where <p> is the function's sole parameter and <self> is the
+      function's own binder (declaration name or const name). Anonymous
+      arrows have no <self> and do not match — so the inline objects in
+      grace-cursor.ts that `.map(cloneXmlNode)` (call the helper, not
+      themselves) are not hits, and neither is appendEpoch's one-level
+      `[...child.children]` arrow.
+
+      That is the "normalized function body" the spec asked for, stated
+      as a shape rather than as a string hash: binders are holes, trivia
+      and type annotations are ignored, property order is ignored. A
+      copy named `duplicateNode` (or anything else) with this body is a
+      hit. The live suite assertion is:
+
+        hits.length === 1
+        hits[0].file ends with src/artifact/xml.ts
+        hits[0].exported === true
+
+      Do **not** filter the collection by the identifier `cloneXmlNode`
+      / `cloneNode` / any name list. The survivor's name may be pinned
+      as the identity of the known home (`cloneXmlNode`), never as the
+      collection filter.
+
+      Permanent discrimination inside the suite (not a one-shot probe):
+      `collectFromText` on a synthetic source that defines `cloneXmlNode`
+      and `duplicateNode` with the same shape must return **two** hits.
+      `toContain("cloneXmlNode")` on that output would pass on erasure
+      of `duplicateNode`; assert `length === 2` and that both binders
+      appear. This is why Baseline/Target pin the string `duplicateNode`
+      in xml.test.ts.
+
+      Executor probe (run, record verbatim, revert; do not leave a
+      break): add `function duplicateNode` with the same body to a
+      production file under `src/` (not only a comment), run
+      `bun test src/artifact/xml.test.ts`, confirm the live
+      `hits.length === 1` assertion reddens, revert.
+
+      **Wrong implementations that would still pass — do not ship these.**
+
+      1. `rg -n 'function cloneXmlNode|function cloneNode'`. A copy
+         named `duplicateNode` is invisible. This is F35 restated.
+      2. String-compare of bodies that does **not** substitute the
+         function's own binder. `cloneXmlNode`'s body contains the
+         token `cloneXmlNode`; `duplicateNode`'s contains
+         `duplicateNode`; they look different; the required probe
+         stays green. Identifier-insensitivity is the whole point.
+      3. Scan only `xml.ts` and `ledger.ts` (known-file enumeration).
+         A copy in any other `src/` file stays green. Failure
+         condition in the AC.
+      4. Collect only `FunctionDeclaration`.
+         `const duplicateNode = (n) => ({...})` stays green.
+      5. Assert `hits.length >= 1` or omit the location/exported pin.
+         Count-without-location is a failure condition.
+      6. Put the matcher in `xml.ts` as a new export. New public API,
+         rejected by the spec's T1 constraint.
+
+      Honest limitation, stated so it is not later sold as full
+      semantic equivalence: a rewrite that preserves the algorithm but
+      not this shape (`Object.assign`, destructuring, a helper for
+      attributes, a two-parameter function) is a different body and
+      will not be a hit. Detecting every imaginable deep clone is a
+      repo-wide duplicate-code detector, which is a NonGoal. The check
+      catches the algorithm **as this repository writes it**, under any
+      name.
+
+      Re-measure at execute. Authoring HEAD `2fac2a7`:
+        rg -n 'function cloneXmlNode' src/  → src/artifact/xml.ts:161
+        rg -n 'function cloneNode' src/     → src/gates/ledger.ts:165
+      The scan must report both as hits before the deletion.
+
+      Ledger repair in the same task: delete `function cloneNode`;
+      add `cloneXmlNode` to the existing `../artifact/xml` import;
+      `loadOrCreateLedgerRoot` returns `cloneXmlNode(artifact.root)`.
+      MODULE_MAP must **not** gain `cloneXmlNode` (private import, not
+      an export). SCOPE stays as written. `bun test src/gates/core.test.ts`
+      green. Clone semantics unchanged.
+
+      ─────────────────────────────────────────────────────────────────
+      D2 — appendEpochToLedger residual (structural only)
+      ─────────────────────────────────────────────────────────────────
+      `src/grace-cursor.ts` already imports `cloneXmlNode`. Replace the
+      inline one-level child map in `appendEpochToLedger` with
+      `existing.root.children.map(cloneXmlNode)`, matching the sibling
+      restatement path at :2271. Do not rewrite the root as
+      `cloneXmlNode(existing.root)` unless the sibling is rewritten the
+      same way in this task — the claim is "both ledger-tree paths use
+      one definition", and the sibling's shape is the one to match.
+
+      **No behavioural test.** The shared grandchild level is never
+      mutated; a test that claims to prove isolation would pass on the
+      pre-change code. That is the defect this bundle repairs. The pin
+      is structural:
+
+        - TargetAssertion MustNotContain
+          `children: [...child.children]` in grace-cursor.ts
+          (unique in src/ at authoring HEAD).
+        - Suite pin in `src/grace-cursor.test.ts`: read
+          `appendEpochToLedger`'s source and assert that substring is
+          absent, and that `.map(cloneXmlNode)` is present in the
+          root-rebuild. Comment in the test: structural pin; no
+          behavioural discriminator exists.
+
+      HEAD-RED: that suite pin fails at HEAD because the substring is
+      present. A red backed only by `rg` is forbidden (AC-HEAD-RED);
+      the failing test must be written first so WriteEvidence carries
+      it. This is why `grace-cursor.test.ts` is in ObservedWriteScope
+      even though the spec's anticipation listed only
+      `grace-cursor.ts` — see D6.
+
+      Probe: restore the inline one-level copy, confirm the structural
+      assertion reddens, revert, record verbatim.
+
+      ─────────────────────────────────────────────────────────────────
+      D3 — F36 owed (length before digest)
+      ─────────────────────────────────────────────────────────────────
+      In `src/grace-status.test.ts` AC-TOKEN-ORPHAN-TRIPLE (1), assert
+      `body.byteLength` with exact `toBe(<re-measured>)` **before**
+      `expect(sha1).toBe(LIVE_NAN_SHA1)`. Do not change the SHA-1
+      value. Authoring re-measure at `2fac2a7`: 135 bytes, one LF, sha1
+      `c0cc8899c264381766a18918e2109b5e05693893`. F33: the criterion
+      does not freeze 135; implementation re-measures.
+
+      Use `byteLength`, not `.length`, so the Baseline MustNotContain
+      is unique (`byteLength` is absent from this file; `.length` is
+      not) and so the pin names bytes (F23).
+
+      **HEAD-RED trap.** `expect(body.byteLength).toBe(135)` **passes
+      at HEAD** — the file is 135 bytes. A check that passes on
+      pre-change HEAD while claiming to prove the new property is an
+      AC-HEAD-RED failure condition. The red is a source pin: the
+      orphan test's source must contain `byteLength` at a smaller
+      index than the `LIVE_NAN_SHA1` expect. That pin fails at HEAD
+      because `byteLength` is absent.
+
+      Permanent discrimination: a test that builds a CRLF `Buffer`
+      from the live orphan (`\n` → `\r\n`; one newline ⇒ 136 bytes)
+      and runs the same ordered expects must fail on the length pin
+      first, and the assertion message must name both lengths. Do not
+      reach the digest expect on that fixture. Keep this test; it is
+      not a one-shot probe.
+
+      Executor probe (run, revert, record): delete the length
+      assertion, run the CRLF fixture, confirm the first failure is
+      again an opaque hex mismatch, restore.
+
+      The Target MustContain of the SHA-1 hex is an **invariance** pin
+      (already true at HEAD). It is not offered as evidence the length
+      assertion landed (F35.1). The landing proof is MustContain
+      `byteLength`.
+
+      ─────────────────────────────────────────────────────────────────
+      D4 — HEAD-RED ownership
+      ─────────────────────────────────────────────────────────────────
+      | Spec AC | Owner task | Pre-edit measurement (own tool round trip) |
+      | AC-CLONE-ONE-DEFINITION-BY-BODY
+        + AC-LEDGER-IMPORTS-SHARED-CLONE | T-001
+        | scan reports two hits (xml.ts + ledger.ts); toHaveLength(1) fails |
+      | AC-APPEND-EPOCH-USES-ONE-DEFINITION | T-002
+        | structural pin in grace-cursor.test.ts fails; inline copy present |
+      | AC-DIGEST-FAILURE-NAMES-ITS-CAUSE | T-003
+        | source pin: byteLength does not precede LIVE_NAN_SHA1 |
+      | AC-HEAD-RED (full) | T-004 Satisfies; reds recorded on T-001..T-003 |
+
+      Red recorded **before** the production edit that makes the check
+      pass; fail attempt on the ledger; never retrospective red via
+      stash; never fail and pass in one tool call.
+
+      ─────────────────────────────────────────────────────────────────
+      D5 — ObservedWriteScope derivation (measured at 2fac2a7)
+      ─────────────────────────────────────────────────────────────────
+      Commands and hits:
+
+        rg -n 'function cloneNode' src/
+          → src/gates/ledger.ts:165  (delete + import forced)
+        rg -n 'cloneXmlNode' src/gates/ledger.ts
+          → none  (import token forced)
+        rg -n 'children: \[\.\.\.child\.children\]' src/
+          → src/grace-cursor.ts:2877  (replace forced)
+        rg -n 'cloneXmlNode' src/grace-cursor.ts
+          → already imported (line 120); no new import
+        rg -n 'byteLength' src/grace-status.test.ts
+          → none  (length assertion forced)
+        ls src/artifact/xml.test.ts
+          → exists; body-shaped scan forced by
+            AC-CLONE-ONE-DEFINITION-BY-BODY / AC-HEAD-RED
+        rg -n 'appendEpochToLedger|\[\.\.\.child\.children\]' src/grace-cursor.test.ts
+          → none  (structural pin forced by AC-HEAD-RED:
+            "never a red backed only by a grep"; "failing test
+            written first")
+        ls src/gates/core.test.ts
+          → exists; already imports ./ledger; behaviour unchanged
+            → **not** forced
+
+      Forced OWS (final list):
+        src/gates/ledger.ts
+        src/grace-cursor.ts
+        src/grace-cursor.test.ts
+        src/artifact/xml.test.ts
+        src/grace-status.test.ts
+        .ngrace/changes/active/C-SUBSTANCE-OVER-NAME/plan.xml
+
+      Deliberately excluded:
+        src/artifact/xml.ts — cloneXmlNode already exported; no new API
+        src/gates/core.test.ts — coverage exists; semantics unchanged
+        src/test-support/** — scanner stays in xml.test.ts (M-TEST-SUPPORT
+          is not in AffectedAreas)
+        docs/plans/** — authority concurrent; F35 cites stay history
+        .ngrace/changes/archive/** — immutable
+        .ngrace/graph/** — no overclaim after these contract edits
+        .gitattributes — already fixed at 9badb10; NonGoal
+        version surfaces, CHANGELOG.md — stay 6.1.1
+        skills/** / plugins/** — no skill prose
+
+      Spec anticipation missed `grace-cursor.test.ts`. That is a forced
+      write (F27.2 / AC-HEAD-RED), not a silent expansion into the
+      stop-and-re-spec set (skills, review catalog, graph, versions).
+      Declared here rather than invented at execute.
+
+      ─────────────────────────────────────────────────────────────────
+      D6 — Counts
+      ─────────────────────────────────────────────────────────────────
+      Determinism ratchet: **expect 14** caught keys (no new review
+      code). If validate:ci reports otherwise → **stop and report**,
+      do not adjust.
+
+      Orphan length pin: re-measure; exact toBe; authoring snapshot
+      135 — not a criterion pin.
+
+      ─────────────────────────────────────────────────────────────────
+      D7 — Baseline assertion.* count predictions (exact; flag if N ≠ n)
+      ─────────────────────────────────────────────────────────────────
+      Load-bearing Baseline falsifiers (MustNotContain / MustContain
+      that flip):
+
+        A  MustContain    ledger.ts           "function cloneNode"
+        B  MustNotContain ledger.ts           "cloneXmlNode"
+        C  MustNotContain xml.test.ts         "duplicateNode"
+        D  MustContain    grace-cursor.ts     "children: [...child.children]"
+        E  MustNotContain grace-cursor.test.ts "[...child.children]"
+        F  MustNotContain grace-status.test.ts "byteLength"
+
+      Non-falsifying Baseline MustContain (xml.ts cloneXmlNode,
+      ledger.ts readGraceXmlArtifact, grace-cursor.ts
+      function appendEpochToLedger, grace-status.test.ts SHA-1 hex)
+      stay true and are **not** in N.
+
+      Note: A and D are MustContain of pre-change shapes that fail
+      after the edit (same arithmetic as MustNotContain of post-change
+      strings). Count every assertion.* error from BaselineAssertions
+      that fires.
+
+      Stages (numeric order; if parallel, sum the families that have
+      landed):
+
+        After plan approval, before any task:
+          N = **0**. Flag if N ≠ 0.
+
+        After **T-001** only (A, B, C):
+          N = **3**. Flag if N ≠ 3.
+
+        After **T-001 + T-002** (+ D, E):
+          N = **5**. Flag if N ≠ 5.
+
+        After **T-001 + T-002 + T-003** (+ F):
+          N = **6**. Flag if N ≠ 6.
+
+        After **T-004 / apply-archive** (AC-SUITE-AND-LINT **at close**):
+          lint 0 errors and 0 warnings — not claimed mid-change (F26).
+
+      Never weaken a BaselineAssertion to reduce N.
+
+      ─────────────────────────────────────────────────────────────────
+      D8 — Discrimination probes (must see red once)
+      ─────────────────────────────────────────────────────────────────
+      1. Add `function duplicateNode` (same shape, fresh name) under
+         src/ → live scan `hits.length === 1` reddens.
+      2. Collector that greps `cloneXmlNode|cloneNode` (or that
+         string-compares bodies without substituting <self>) →
+         synthetic `duplicateNode` test stays green. Forbidden; the
+         suite synthetic is the guard.
+      3. Restore the inline one-level copy in appendEpochToLedger →
+         structural pin reddens.
+      4. Delete the `byteLength` assertion, keep the SHA-1 pin → CRLF
+         fixture fails on hex mismatch and no longer names 136/135.
+      5. Assert length *after* the digest → CRLF fixture still fails
+         first on hex; order pin reddens.
+
+      Record verbatim when run; do not leave a break committed.
+
+      ─────────────────────────────────────────────────────────────────
+      D9 — Execution discipline
+      ─────────────────────────────────────────────────────────────────
+      One open epoch. Red-first per T-001..T-003 in own tool round
+      trips. T-004: no manufactured red if green. Terminal / fold /
+      gate / commit are operator steps after T-004 unless authority
+      says otherwise. No version bump. No docs/plans, archive, or
+      .gitattributes edits. Packaged version stays 6.1.1.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Body-shaped single-definition scan; ledger imports cloneXmlNode</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-CLONE-ONE-DEFINITION-BY-BODY />
+          <AC-LEDGER-IMPORTS-SHARED-CLONE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (scan + ledger half): before product edits, in its
+            own tool round trip, write the identifier-insensitive scan in
+            src/artifact/xml.test.ts. At authoring HEAD it must report two
+            hits (xml.ts cloneXmlNode and ledger.ts cloneNode) so
+            expect(hits).toHaveLength(1) fails (F28). Record cursor fail.
+            Never a red backed only by a grep; never fail and pass in one
+            tool call.
+          </Criterion>
+          <Criterion>
+            The scan walks src/**/*.ts (not a known-file list), compares
+            AST shape identifier-insensitively (sole param; return of
+            {tag, attributes: spread, children: map of self, text};
+            function declarations, const/function-expression/arrows, and
+            methods). A copy named anything is a hit. Live assertion:
+            exactly one hit, file is src/artifact/xml.ts, exported.
+            Permanent synthetic: cloneXmlNode + duplicateNode in one
+            string ⇒ two hits. Failure conditions from the spec apply:
+            the check greps for cloneXmlNode or any fixed list of names;
+            a renamed copy passes; the scan enumerates known files
+            rather than scanning src/; the check asserts a count without
+            asserting the surviving definition's location.
+          </Criterion>
+          <Criterion>
+            src/gates/ledger.ts contains no local structural-clone
+            function and imports cloneXmlNode from ../artifact/xml.
+            loadOrCreateLedgerRoot returns a tree with the same
+            semantics as before (deep structural clone of the parsed
+            root). M-GATES MODULE_CONTRACT and MODULE_MAP stay true —
+            the helper was private, so MAP_MODE: EXPORTS parity does not
+            change, and the map must not gain cloneXmlNode. bun test
+            src/gates/core.test.ts green. Failure conditions: map gains
+            an imported symbol; ledger re-exports the helper; SCOPE
+            rewritten to accommodate it; clone semantics altered at this
+            call site.
+          </Criterion>
+          <Criterion>
+            Discrimination probe: add function duplicateNode (same
+            shape) under src/, confirm the live scan reddens, revert,
+            record verbatim. Window honesty: appendEpoch may still
+            inline a one-level copy and the orphan may still lack
+            byteLength — do not claim AC-APPEND-EPOCH-USES-ONE-DEFINITION
+            or AC-DIGEST-FAILURE-NAMES-ITS-CAUSE.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+          <Command>bun test src/gates/core.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>appendEpochToLedger clones through the shared helper (structural)</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-APPEND-EPOCH-USES-ONE-DEFINITION />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (structural half): before product edits, own
+            tool round trip — write a source pin in
+            src/grace-cursor.test.ts that appendEpochToLedger no longer
+            contains children: [...child.children]. That pin fails at
+            HEAD. Record fail. Never a red backed only by a grep.
+          </Criterion>
+          <Criterion>
+            appendEpochToLedger (src/grace-cursor.ts) no longer builds
+            children with an inline one-level copy; it clones through
+            the shared helper (existing.root.children.map(cloneXmlNode)),
+            so both ledger-tree paths in that file use one definition.
+            This criterion is structural and must be declared as such —
+            no behavioural test discriminates, because the shared level
+            is never mutated. A TargetAssertion over the source is the
+            honest pin. Fold behaviour is unchanged: the cursor suite
+            stays green and a fold still round-trips. Failure
+            conditions: a test is written that claims to prove isolation
+            but would pass on the pre-change code; the criterion is
+            reported as behaviourally verified; fold output changes.
+          </Criterion>
+          <Criterion>
+            Probe: restore the inline one-level copy, confirm the
+            structural assertion reddens, revert, record verbatim.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Preserved-evidence check asserts byte length before SHA-1</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-DIGEST-FAILURE-NAMES-ITS-CAUSE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (length half): before product edits, own round
+            trip — a source pin that the orphan digest test asserts
+            byteLength before LIVE_NAN_SHA1 fails at HEAD because
+            byteLength is absent. Do not use expect(body.byteLength)
+            alone as the red: that expect passes on the live 135-byte
+            file at HEAD. Record fail.
+          </Criterion>
+          <Criterion>
+            The preserved-evidence check at src/grace-status.test.ts
+            asserts the orphan's byte length before its SHA-1, with an
+            exact toBe of the re-measured length (authoring HEAD: 135 —
+            F33: implementation re-measures, the criterion does not
+            freeze it). The pinned SHA-1 value is unchanged. Proven
+            discriminating: against a CRLF copy of the same content the
+            length assertion fails first and names 136 against 135.
+            Failure conditions: length asserted after the digest, so
+            the digest still fails first; a range or toBeGreaterThan;
+            the SHA-1 pin weakened, normalized, or removed; the probe
+            not run.
+          </Criterion>
+          <Criterion>
+            Probe: delete the length assertion, confirm a CRLF fixture
+            no longer names its cause (hex mismatch only), restore,
+            record verbatim.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-status.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Dogfood close: suite, lint at close, full HEAD-RED proof, archive untouched</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SUITE-AND-LINT />
+          <AC-NO-ARCHIVE-OR-ROADMAP-EDITS />
+          <AC-HEAD-RED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-SUITE-AND-LINT **at close** (F26 qualifier): after apply
+            and archive, bun run ngrace lint --path . is 0 errors and 0
+            warnings — do not claim 0/0 mid-change while Baseline
+            falsifiers are expected red (predicted N = 6 after
+            T-001..T-003).
+          </Criterion>
+          <Criterion>
+            bun test green; bun run validate:ci green with the
+            determinism ratchet cardinality unchanged (authoring HEAD:
+            14 caught keys — re-measure, do not adjust). If validate:ci
+            reports otherwise, stop and report; never drop keys to keep
+            14. ObservedWriteScope covers every path the deliverable
+            forces. Failure conditions: suite red; lint 0/0 claimed
+            mid-window; ratchet keys dropped to keep a number; writes
+            outside declared scope.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED post-change: the body-shaped scan reports one
+            hit in xml.ts; ledger imports rather than defines; the
+            structural pin shows appendEpoch uses the shared helper;
+            byteLength precedes the unchanged SHA-1. Pre-edit reds were
+            recorded on T-001, T-002, and T-003 (not manufactured at
+            close).
+          </Criterion>
+          <Criterion>
+            AC-NO-ARCHIVE-OR-ROADMAP-EDITS: no writes under
+            docs/plans/**, .ngrace/changes/archive/**, CHANGELOG.md,
+            .gitattributes, or any version surface (stays 6.1.1).
+            Failure conditions: the P0 board edited from inside the
+            bundle; the orphan file itself edited to make a digest
+            agree.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+          <Command>bun test src/artifact/xml.test.ts src/gates/core.test.ts src/grace-cursor.test.ts src/grace-status.test.ts</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-SUBSTANCE-OVER-NAME>
+</NgraceChangePlan>
