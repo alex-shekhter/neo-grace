@@ -1,0 +1,337 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-SUBSTANCE-OVER-NAME>
+    <Summary>
+      Close F35 and the two items it dragged with it: one structural-clone
+      definition in `src/` verified by **body** rather than by identifier
+      (`cloneNode` at `gates/ledger.ts:165` survived a criterion that counted
+      the name `cloneXmlNode`); `appendEpochToLedger`'s inlined one-level copy
+      replaced by the shared helper; and the preserved-evidence digest check
+      made to name its own failure cause (F36's owed half). Takes the P0 open
+      count from one to zero.
+    </Summary>
+    <Problem>
+      **Shared shape.** Three sites where a check or a copy is bound to a
+      **name** instead of to the **thing the name means**, so the binding holds
+      while the meaning drifts.
+
+      | item | what it says | what it is bound to |
+      | F35 | one structural clone in the codebase | occurrences of one identifier |
+      | residual | clone the ledger tree | an inline literal that copies one level |
+      | F36 owed | these bytes are preserved | a digest, with no statement of the length |
+
+      ---
+
+      **F35 — the criterion counted an identifier.**
+      `C-CONTRACT-DEBT` `AC-CLONE-XML-SINGLE-HOME` states its post-condition as
+
+      ```
+      rg -n 'function cloneXmlNode' src/   → exactly one definition, in xml.ts
+      ```
+
+      That is true at `74ef83d` and the duplication it exists to remove is not
+      gone. Measured at this authoring HEAD:
+
+      ```
+      rg -n 'cloneNode' src/
+      → src/gates/ledger.ts:165  function cloneNode(node: GraceXmlNode): GraceXmlNode {
+      → src/gates/ledger.ts:169    children: node.children.map(cloneNode),
+      → src/gates/ledger.ts:192    return cloneNode(artifact.root);
+      ```
+
+      Same algorithm — tag, `{ ...attributes }`, recursive children, text —
+      differing from the exported `cloneXmlNode` only by the six characters the
+      shorter identifier saves (196 bytes against 202). The spec's own survey
+      could not have found it: it ranged over a **name** while the claim was
+      about a **body**.
+
+      `gates/ledger.ts` already imports `readGraceXmlArtifact` and the
+      `GraceXmlNode` type from `../artifact/xml`, so the repair is one import
+      token and a deletion. It was out of `C-CONTRACT-DEBT`'s approved
+      `ObservedWriteScope` — the same constraint that produced F20 — which is
+      why it is here rather than folded in.
+
+      **The repair owes a check that would have caught it.** A post-condition
+      re-stated as "one occurrence of `cloneNode` too" is the same defect with
+      a longer list. The check must be able to fail on a copy nobody has named
+      yet.
+
+      ---
+
+      **Residual — `appendEpochToLedger` inlines a shallower copy.**
+      `src/grace-cursor.ts:2871` builds the ledger root by hand:
+
+      ```ts
+      children: existing.root.children.map((child) => ({
+        tag: child.tag,
+        attributes: { ...child.attributes },
+        children: [...child.children],     // grandchild nodes shared
+        text: child.text,
+      })),
+      ```
+
+      Its sibling at `:2271` clones the same shape with the deep helper.
+
+      **Stated honestly, because it changes what may be claimed:** this is a
+      latent hazard, **not** an observable defect. The shared level is never
+      mutated — the array is freshly allocated, and `existing` is discarded
+      after the write — so **no behavioural test discriminates the fixed
+      version from the current one.** The repair removes a trap for the next
+      writer who mutates that tree; the assertion that it landed is structural,
+      and this spec requires it to be declared as structural rather than
+      dressed as behavioural.
+
+      ---
+
+      **F36 owed half — the digest failure could not name its cause.**
+      `src/grace-status.test.ts:697` pins the live `NaN` orphan's SHA-1. When a
+      CRLF checkout moved those bytes, the failure printed two hex strings and
+      nothing else; diagnosis took a byte-level comparison. The file carries
+      exactly one newline: **135** bytes as LF, **136** as CRLF. Asserting the
+      length beside the digest turns the next occurrence into a one-line read.
+      The root cause is already fixed (`.gitattributes`, `9badb10`); this is the
+      legibility half, deferred then because it is a `src/` edit and an
+      ungoverned `src/` change is this repository's stated failure mode.
+    </Problem>
+    <Goals>
+      <Goal>
+        **F35.** `src/gates/ledger.ts` holds no local structural clone; it
+        imports `cloneXmlNode` from `../artifact/xml`. After the change exactly
+        **one** structural-clone definition exists in `src/`, and that fact is
+        pinned by a check that compares **function bodies**, so a copy under
+        any new identifier fails it.
+      </Goal>
+      <Goal>
+        **Residual.** `appendEpochToLedger` uses the shared helper instead of an
+        inline one-level copy, so both ledger-tree paths in `grace-cursor.ts`
+        clone by the same definition. Declared as a structural repair with no
+        behavioural discriminator.
+      </Goal>
+      <Goal>
+        **F36 owed.** The preserved-evidence check asserts the orphan's byte
+        length before its digest, so a line-ending conversion reports a length
+        mismatch that names the cause instead of an opaque hex mismatch.
+      </Goal>
+      <Goal>
+        **P0.** With F35 closed, `RM-GOVERNED-PATH` P0's open-finding count
+        reaches zero and the phase may move `EXECUTING → COMPLETE`, which is the
+        gate on the 6.2.0 release. The board update is the authority's act, not
+        a task here.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: decisions.md F35, F35.1, F36, F20, F23, F10 (a name claiming
+        more than the body verifies), F26 (`at close` on lint), F27/F27.2
+        (`ObservedWriteScope` covers what the deliverable **forces**), F33
+        (criteria do not freeze counts measured at authoring), F4 (this pass is
+        **spec only**, `status="draft"`; no `plan.xml` until approved).
+      </Constraint>
+      <Constraint>
+        **Decided here, not deferred to the plan.** The plan may choose the
+        scan's mechanism, its home, and test layout, but must not re-open:
+        clone semantics stay exactly as `cloneXmlNode` implements them today;
+        the single home stays `src/artifact/xml.ts`; the single-definition check
+        is **body-shaped**, never a list of known identifiers; the
+        `appendEpochToLedger` repair is declared structural; the orphan's pinned
+        SHA-1 value is not changed.
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T1** — single subject, three small surfaces, no
+        cross-cutting protocol change and no new public API.
+      </Constraint>
+      <Constraint>
+        AffectedAreas is closed and binds the plan. Anticipated write surface:
+        `src/gates/ledger.ts` (delete local clone; import),
+        `src/grace-cursor.ts` (residual),
+        `src/artifact/xml.test.ts` (body-shaped single-definition check),
+        `src/grace-status.test.ts` (length assertion),
+        `src/gates/core.test.ts` (only if the ledger change forces coverage
+        there — it already imports from `./ledger`). **Stop and re-spec**
+        rather than expanding into skills, review catalog, graph, or version
+        surfaces.
+      </Constraint>
+      <Constraint>
+        **Do not edit** `docs/plans/**` (including decisions.md),
+        `.ngrace/changes/archive/**`, CHANGELOG.md, `.gitattributes`, or any
+        version surface. Packaged version at authoring: **6.1.1**. No product
+        version bump — 6.2.0 is a separate release act gated on P0.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first per AC, each red in its own tool round trip
+        before the production edit. Exact pins (F23). Mutation probes: rename a
+        clone copy and confirm the scan still fails; delete the length
+        assertion and confirm a CRLF fixture no longer names its cause; restore
+        the inline one-level copy and confirm the structural assertion fails.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        **Rejected — re-state the post-condition as "no `cloneNode` either".**
+        A longer list of identifiers is F35 with more rows.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — a behavioural test for the `appendEpochToLedger` repair.**
+        None discriminates; claiming one would be the defect this bundle is
+        about. Declared structural instead.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — changing `cloneXmlNode`'s semantics**, exporting it from a
+        second module, or generalising it (deep-freeze, structuredClone).
+        This is a move and a deletion.
+      </NonGoal>
+      <NonGoal>
+        De-duplicating any other helper family; a repo-wide duplicate-code
+        detector; changing the orphan's pinned digest; editing `.gitattributes`;
+        F37's disposition (recorded as authoring guidance by the authority, not
+        implemented here).
+      </NonGoal>
+      <NonGoal>
+        Any product version bump, CHANGELOG edit, or P0 board edit.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-CLONE-ONE-DEFINITION-BY-BODY>
+        A check in the suite proves that `src/` contains exactly **one**
+        structural-clone-over-`GraceXmlNode` definition and that it is the
+        export in `src/artifact/xml.ts`. The check compares **normalized
+        function bodies** — identifier-insensitive, so a copy named anything
+        fails it. Discrimination is proven, not asserted: adding a copy under a
+        fresh name (for example `duplicateNode`) reddens the check, and the
+        probe output is recorded verbatim. **Failure conditions:** the check
+        greps for `cloneXmlNode` or any fixed list of names; a renamed copy
+        passes; the scan enumerates known files rather than scanning `src/`;
+        the check asserts a count without asserting the surviving definition's
+        location.
+      </AC-CLONE-ONE-DEFINITION-BY-BODY>
+      <AC-LEDGER-IMPORTS-SHARED-CLONE>
+        `src/gates/ledger.ts` contains no local structural-clone function and
+        imports `cloneXmlNode` from `../artifact/xml`. `loadOrCreateLedgerRoot`
+        returns a tree with the same semantics as before (deep structural clone
+        of the parsed root). `M-GATES`' MODULE_CONTRACT and MODULE_MAP stay
+        true — the helper was private, so `MAP_MODE: EXPORTS` parity does not
+        change, and the map must **not** gain `cloneXmlNode`. Existing gate
+        behaviour is unchanged: `bun test src/gates/core.test.ts` green.
+        **Failure conditions:** map gains an imported symbol; ledger re-exports
+        the helper; `SCOPE` rewritten to accommodate it; clone semantics
+        altered at this call site.
+      </AC-LEDGER-IMPORTS-SHARED-CLONE>
+      <AC-APPEND-EPOCH-USES-ONE-DEFINITION>
+        `appendEpochToLedger` (`src/grace-cursor.ts`) no longer builds children
+        with an inline one-level copy; it clones through the shared helper, so
+        both ledger-tree paths in that file use one definition. **This
+        criterion is structural and must be declared as such** — the plan and
+        the executor state plainly that no behavioural test discriminates,
+        because the shared level is never mutated. A `TargetAssertion` over the
+        source is the honest pin. Fold behaviour is unchanged: the cursor suite
+        stays green and a fold still round-trips. **Failure conditions:** a test
+        is written that claims to prove isolation but would pass on the
+        pre-change code; the criterion is reported as behaviourally verified;
+        fold output changes.
+      </AC-APPEND-EPOCH-USES-ONE-DEFINITION>
+      <AC-DIGEST-FAILURE-NAMES-ITS-CAUSE>
+        The preserved-evidence check at `src/grace-status.test.ts` asserts the
+        orphan's **byte length** before its SHA-1, with an exact `toBe` of the
+        re-measured length (authoring HEAD: **135** — F33: implementation
+        re-measures, the criterion does not freeze it). The pinned SHA-1 value
+        is unchanged. Proven discriminating: against a CRLF copy of the same
+        content the length assertion fails **first** and names 136 against 135.
+        **Failure conditions:** length asserted after the digest, so the digest
+        still fails first; a range or `toBeGreaterThan`; the SHA-1 pin
+        weakened, normalized, or removed; the probe not run.
+      </AC-DIGEST-FAILURE-NAMES-ITS-CAUSE>
+      <AC-HEAD-RED>
+        Each criterion above has a red recorded **before** its production edit,
+        in its own tool round trip, with the failing test written first so the
+        fail event's `WriteEvidence` carries it (never a red backed only by a
+        grep, and never a retrospective red via stash). At authoring HEAD the
+        reds are available: the body-shaped scan does not exist;
+        `gates/ledger.ts:165` defines `cloneNode`; `grace-cursor.ts:2871`
+        inlines the one-level copy; the length assertion is absent. **Failure
+        conditions:** a check that passes on pre-change HEAD while claiming to
+        prove the new property; fail and pass attempts recorded in one tool
+        call.
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-LINT>
+        `bun test` green; `bun run validate:ci` green with the determinism
+        ratchet cardinality unchanged (authoring HEAD: **14** caught keys —
+        re-measure, do not adjust); `bun run ngrace lint --path .` is 0 errors
+        and 0 warnings **at close** (after apply and archive — not claimed
+        mid-change, where the plan's own `BaselineAssertions` are expected red).
+        `ObservedWriteScope` covers every path the deliverable forces.
+        **Failure conditions:** suite red; lint 0/0 claimed mid-window;
+        ratchet keys dropped to keep a number; writes outside declared scope.
+      </AC-SUITE-AND-LINT>
+      <AC-NO-ARCHIVE-OR-ROADMAP-EDITS>
+        No writes under `docs/plans/**`, `.ngrace/changes/archive/**`,
+        `CHANGELOG.md`, `.gitattributes`, or any version surface (stays 6.1.1).
+        **Failure conditions:** the P0 board edited from inside the bundle; the
+        orphan file itself edited to make a digest agree.
+      </AC-NO-ARCHIVE-OR-ROADMAP-EDITS>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GATES />
+      <M-CURSOR />
+      <M-GRAMMAR />
+      <M-STATUS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/artifact/xml.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/gates/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-status.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-cursor.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T1): exactly one structural-clone body in `src/`, located
+        in `artifact/xml.ts`, proven by an identifier-insensitive scan whose
+        discrimination probe (a copy under a fresh name) is recorded verbatim;
+        `gates/ledger.ts` importing rather than defining, with `M-GATES` map
+        unchanged; `appendEpochToLedger` cloning through the shared helper with
+        the structural-only nature of that claim stated; the orphan length
+        assertion failing first against a CRLF fixture; lint 0/0 **at close**
+        only; validate:ci green with ratchet keys preserved.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **F35 survey at authoring HEAD `74ef83d`:**
+
+        ```
+        rg -n 'function cloneXmlNode' src/  → src/artifact/xml.ts:161 (exported)
+        rg -n 'cloneNode' src/              → src/gates/ledger.ts:165, :169, :192
+        ```
+
+        Bodies identical apart from the identifier; 196 bytes against 202.
+        `gates/ledger.ts` already imports `readGraceXmlArtifact` and the
+        `GraceXmlNode` type from `../artifact/xml`. `cloneNode` is private, so
+        `MAP_MODE: EXPORTS` parity on `M-GATES` does not change.
+      </Assumption>
+      <Assumption>
+        **Test homes measured, not assumed:** `src/gates/core.test.ts` already
+        imports from `./ledger` (line 29), so ledger coverage has an existing
+        home and no new test file is forced. `src/artifact/xml.test.ts` owns
+        `cloneXmlNode`'s behavioural coverage from `C-CONTRACT-DEBT` T-002 and
+        is the natural home for the single-definition scan.
+        `src/docs-claims.test.ts` is the precedent for a test that reads
+        repository files and asserts a claim about them.
+      </Assumption>
+      <Assumption>
+        **Residual site:** `src/grace-cursor.ts:2871` — inline copy with
+        `children: [...child.children]`, sharing grandchild node objects; the
+        sibling deep clone is at `:2271`. No caller mutates the shared level,
+        which is why the repair has no behavioural discriminator.
+      </Assumption>
+      <Assumption>
+        **F36 subject:** `.ngrace/changes/archive/C-TOKEN-INTEGRITY/run/NaN-T-001-opened.xml`
+        — 135 bytes, one newline, SHA-1 `c0cc8899…` as LF; 136 bytes and
+        `bab374c4…` as CRLF. Root cause fixed at `9badb10` (`.gitattributes`,
+        `* text=auto eol=lf`); this bundle adds only the length assertion.
+      </Assumption>
+      <Assumption>
+        Counts at authoring HEAD: lint 0 errors / 0 warnings; determinism
+        ratchet 14 caught keys; archive holds 29 bundles; `active/` is empty
+        before this bundle. F33: implementation re-measures all of these.
+      </Assumption>
+    </Assumptions>
+  </C-SUBSTANCE-OVER-NAME>
+</NgraceChangeSpec>
