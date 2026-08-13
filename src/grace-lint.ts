@@ -29,6 +29,7 @@ import { defineCommand, type CommandDef, runMain } from "citty";
 
 import { defineGraceCommand } from "./query/command";
 
+import { isRegisteredSchemaShape, renderSchemaShape, SCHEMA_SHAPE_REGISTRY } from "./artifact/schema-reference";
 import { classifyIssueCode, formatLintExplanation, getLintIssueGuide } from "./lint/catalog";
 import { formatTextReport, isValidTextFormat, lintGraceProject } from "./lint/core";
 import type { LintAssertionMode, LintOptions, LintProfile, LintResult } from "./lint/types";
@@ -167,6 +168,29 @@ export const lintCommand = defineGraceCommand({
 
       if (context.args.explain) {
         const code = String(context.args.explain);
+        if (isRegisteredSchemaShape(code)) {
+          if (format === "json") {
+            process.stdout.write(
+              `${JSON.stringify({ kind: "shape", shape: code, body: renderSchemaShape(code) }, null, 2)}\n`,
+            );
+          } else {
+            process.stdout.write(`Shape reference: ${code}\n${renderSchemaShape(code)}\n`);
+          }
+          process.exitCode = 0;
+          return;
+        }
+        if (!code.includes(".")) {
+          const registered = Object.keys(SCHEMA_SHAPE_REGISTRY);
+          if (format === "json") {
+            process.stdout.write(
+              `${JSON.stringify({ kind: "unknown-shape", token: code, registered }, null, 2)}\n`,
+            );
+          } else {
+            process.stdout.write(`Unknown shape: ${code}\n\nRegistered shapes: ${registered.join(", ")}.\n`);
+          }
+          process.exitCode = 1;
+          return;
+        }
         const classification = classifyIssueCode(code);
         const guide = getLintIssueGuide(code);
         if (format === "json") {

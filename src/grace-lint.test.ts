@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import { ARTIFACT_DIR } from "./artifact/paths";
+import { SCHEMA_SHAPE_REGISTRY, renderSchemaShape } from "./artifact/schema-reference";
 import { lintGraceProject } from "./grace-lint";
 import { getLintIssueGuide } from "./lint/catalog";
 
@@ -1576,5 +1577,112 @@ describe("AC-POINTER-JSON CLI (C-EXPLAIN-COVERAGE)", () => {
     });
     const textOut = Buffer.from(textRun.stdout).toString("utf8");
     expect(textOut).toContain(pointer);
+  });
+});
+
+const SHAPE_HEADING_PREFIX = "Shape reference: ";
+
+function spawnLintExplain(args: string[]) {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+  return Bun.spawnSync({
+    cmd: [process.execPath, "./src/grace.ts", "lint", ...args],
+    cwd: repoRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+}
+
+describe("AC-EXPLAIN-SHAPES", () => {
+  for (const shape of ["change-spec", "assertion"] as const) {
+    it(`explains ${shape} as a shape reference with renderer body`, () => {
+      const result = spawnLintExplain(["--explain", shape]);
+      expect(result.exitCode).toBe(0);
+      const out = Buffer.from(result.stdout).toString("utf8");
+      const heading = `${SHAPE_HEADING_PREFIX}${shape}`;
+      expect(out.split("\n")[0]).toBe(heading);
+      expect(out).not.toContain("neo-grace Lint Issue Guide");
+      expect(out.slice(heading.length + 1)).toBe(`${renderSchemaShape(shape)}\n`);
+    });
+
+    it(`explains ${shape} as JSON kind shape without classification`, () => {
+      const result = spawnLintExplain(["--explain", shape, "--format", "json"]);
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(Buffer.from(result.stdout).toString("utf8")) as Record<string, unknown>;
+      expect(parsed.kind).toBe("shape");
+      expect(parsed).not.toHaveProperty("classification");
+      expect(parsed.body).toBe(renderSchemaShape(shape));
+    });
+  }
+});
+
+describe("AC-SHAPE-CODE-SPLIT", () => {
+  it("explains an undotted unregistered token as unknown shape without Classification", () => {
+    const result = spawnLintExplain(["--explain", "graph-module"]);
+    expect(result.exitCode).toBe(1);
+    const out = Buffer.from(result.stdout).toString("utf8");
+    expect(out).toContain("graph-module");
+    expect(out).not.toMatch(/Classification/);
+    expect(out).not.toContain("neo-grace Lint Issue Guide");
+    for (const name of Object.keys(SCHEMA_SHAPE_REGISTRY)) {
+      expect(out).toContain(name);
+    }
+  });
+
+  it("explains an undotted unregistered token as JSON without classification", () => {
+    const result = spawnLintExplain(["--explain", "module-contract", "--format", "json"]);
+    expect(result.exitCode).toBe(1);
+    const parsed = JSON.parse(Buffer.from(result.stdout).toString("utf8")) as Record<string, unknown>;
+    expect(parsed).not.toHaveProperty("classification");
+    expect(JSON.stringify(parsed)).toContain("module-contract");
+    for (const name of Object.keys(SCHEMA_SHAPE_REGISTRY)) {
+      expect(JSON.stringify(parsed)).toContain(name);
+    }
+  });
+
+  it("keeps today's exact dotted issue-code explain", () => {
+    const result = spawnLintExplain(["--explain", "ledger.invalid-root-tag"]);
+    expect(result.exitCode).toBe(0);
+    const out = Buffer.from(result.stdout).toString("utf8");
+    expect(out.split("\n")[0]).toBe("neo-grace Lint Issue Guide");
+    expect(out).toContain("Classification: exact");
+    expect(out).toContain("ledger.invalid-root-tag");
+  });
+
+  it("keeps today's unknown dotted issue-code explain", () => {
+    const result = spawnLintExplain(["--explain", "not.a.real.code"]);
+    expect(result.exitCode).toBe(1);
+    const out = Buffer.from(result.stdout).toString("utf8");
+    expect(out.split("\n")[0]).toBe("neo-grace Lint Issue Guide");
+    expect(out).toContain("Classification: unknown");
+  });
+
+  it("does not change lint-result JSON schemaVersion", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const result = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--format", "json"],
+      cwd: path.resolve(import.meta.dir, ".."),
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(Buffer.from(result.stdout).toString("utf8")) as { schemaVersion: string };
+    expect(parsed.schemaVersion).toBe("1.0.0");
+  });
+
+  it("leaves docs markdown outside the lint artifact universe", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeProjectFile(root, "docs/schema-reference.md", "# not an xml artifact\n");
+    const result = lintGraceProject(root);
+    expect(result.issues.every((issue) => !issue.file.endsWith(".md"))).toBe(true);
+    expect(result.summary.errors).toBe(0);
+  });
+
+  it("keeps scripts in ignoredDirs", () => {
+    const config = JSON.parse(
+      readFileSync(path.resolve(import.meta.dir, "..", ".ngrace-lint.json"), "utf8"),
+    ) as { ignoredDirs: string[] };
+    expect(config.ignoredDirs).toContain("scripts");
   });
 });

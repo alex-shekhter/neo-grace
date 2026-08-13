@@ -4127,3 +4127,140 @@ Tag every branch tip **before** the first rebase in the stack, not before deleti
 count does not match the bundle's commit count is using the wrong base — check the count before
 resolving a single conflict, because the conflicts are a symptom and resolving them would quietly
 duplicate merged work.
+
+### F60 — The product implements glob matching twice, the two disagree on zero-depth `**`, and the weaker copy governs the scope audit. **[verified]**
+
+Measured at `1de1d92` while deriving P1.4, running both implementations on the case P2.1 pins:
+
+```
+glob             x file                  review  scope   AGREE?
+web/js/**/*.js   x web/js/app.js        false   true    ** NO **
+web/js/**/*.js   x web/js/sub/app.js    true    true    yes
+src/**/*.ts      x src/a.ts             false   true    ** NO **
+src/**/*.ts      x src/x/a.ts           true    true    yes
+src/**           x src/a.ts             true    true    yes
+```
+
+Two homes:
+
+- **Canonical.** `src/artifact/scope.ts` — `parseScopeGlob` / `observedWriteScopeContains`,
+  segment-based, globstar must occupy a whole path segment, exported, and it **already admits
+  zero-depth `**`** (git/minimatch semantics).
+- **Duplicate.** `src/review/core.ts:1116` `matchSimpleGlob`, private, commented *"Minimal glob:
+  `**` / `*` only"*, built by regex substitution: `**` → `.*`, `*` → `[^/]*`. Because the literal
+  `/` between `**` and the next segment survives the substitution, `**` requires **at least one**
+  intervening segment.
+
+**The live consequence is a false positive in a governance audit.** `auditScopeOutsideWriteScope`
+(`src/review/core.ts:979`) tests changed files against plan globs with the duplicate. A plan that
+declares `Glob src/**/*.ts` and writes `src/a.ts` is **inside** its approved `ObservedWriteScope` by
+the canonical parser and gets reported `review.scope-outside-write-scope` by the audit. Every bundle
+this roadmap has closed used explicit `<File>` entries plus a `run/**` glob, where zero-depth never
+arises — so the audit's 0-findings results are true, and they are not evidence this path works.
+
+**What it does to P1.4.** The roadmap orders P1.4 → P2.1 so *"the schema reference must state
+zero-depth `**` before review changes behaviour."* That framing assumes one semantics with review
+lagging. There are two semantics **now**, and a reference generated from the grammar would document
+the canonical one while a shipped code path contradicts it. A generated document cannot be the
+single truth about a rule the product implements two ways.
+
+**The rule.** A semantic named in generated documentation must have exactly one implementation. Where
+a second private copy exists, the repair is to delete the copy and call the canonical parser — not to
+teach both. Before documenting any behaviour as canonical, grep for a second implementation of it;
+`matchSimpleGlob` is private and would not surface in an export survey.
+
+**Home:** P2.1 already owns the zero-depth change and its release note. This finding narrows it: the
+work is *deleting the duplicate*, not changing a semantic. This is the same class as
+[F46](#f46) / [F49](#f49) / [F52](#f52) — a check whose blast radius and whose name have drifted
+apart — and the same class as [D16](#d16)'s concern that a claim must be anchored to what actually
+runs.
+
+### F61 — The comment well-formedness check makes CLI flags unwritable inside XML artifacts. **[verified]**
+
+`C-ARTIFACT-VALIDITY` shipped `xml.comment-not-well-formed`, which errors when an XML **comment body**
+holds two adjacent ASCII hyphens. Every artifact authored after that bundle is subject to it, and the
+frozen path allowlist covers only nine archived files.
+
+**The consequence nobody stated when the check shipped: a dashed long flag cannot be named in a
+`DESIGN` comment.** `C-SCHEMA-REFERENCE`'s spec calls for a writer "check mode", and the authoring
+prompt described it as a *check-mode flag*. Writing that flag the way a user types it puts the
+sequence into the comment body and turns the artifact red at lint. The executor caught this at
+authoring and routed around it: the plan specifies the bare argv token `check` plus an exported
+`checkSchemaReference(root)`, and never writes a dashed form.
+
+**This is correct behaviour, not a defect** — the sequence genuinely cannot appear in a conformant XML
+comment, and the check is enforcing the XML specification rather than a house rule. But it is a
+standing authoring constraint that will recur on every bundle whose subject is a CLI surface, which
+in this repository is most of them.
+
+**The rule.** When an artifact must refer to a dashed CLI flag, name the underlying argv token or the
+exported function instead, and put the dashed form only in `src/**/*.test.ts`, where it is code rather
+than comment prose. This is the same move [F43](#f43) requires for XML-inside-XML: **bind the semantic
+in the artifact, assert the literal bytes in a test.** Scan comment bodies — not delimiters, which
+always contain the sequence — before reporting an artifact clean.
+
+### F62 — The authority's prompts keep asserting a lint expectation the authority has not measured. **[verified]**
+
+The plan-authoring prompt for `C-SCHEMA-REFERENCE` told the executor that a draft plan beside an
+approved spec "is syntax-checked only, so the expected result is 0 errors / 0 warnings". Measured
+after authoring: **1 error**, `change.graph-anchors-miss-write-scope`, because `ObservedWriteScope`
+lists `src/artifact/schema-reference.ts` before that file exists. `linksByPath` is built from files on
+disk, so the check cannot resolve a path the change has not yet created.
+
+**This is the second instance of the same error class in this roadmap.** The first told an executor
+that bare `ngrace lint` would emit `assertion.change-not-approved` for a draft plan; it does not,
+because the default assertion mode evaluates approved baselines only. Both times the prompt asserted a
+lint outcome the authority had not run for that artifact shape, and both times the executor measured
+and corrected it.
+
+**Neither claim was harmless.** A prompt that names the wrong expected result teaches an executor
+either to manufacture the predicted number or to distrust the prompt. `D12` had already authorized
+exactly this window and [F19](#f19) had already ruled that the approval commit carries the predicted
+error and names it in the body — so the correct instruction existed in the ledger and the prompt
+contradicted it.
+
+**The rule.** A prompt may state an expected lint result only when the authority has run that exact
+command against that exact artifact shape, or when the ledger already rules on the window. Otherwise
+state the window and ask the executor to measure. **The general form is the standing one — measure,
+do not estimate — and it applies hardest to the authority's own instructions**, which an executor
+reads as settled fact.
+
+### F21 correction — the attempt budget was renamed and narrowed, not deleted. **[verified]**
+
+**This entry was itself wrong on first writing, and the corrected text is below.** The first version
+claimed `FIX_ATTEMPT_BUDGET` was simply gone and that `FIX_DISTINCT_SIGNATURE_BUDGET = 4` was the
+only budget and the only escalation site. That was produced by a grep for the old name and the
+distinct-signature name — **neither of which could match the constant that actually replaced it.**
+
+**What the product does, measured at `6335e3f`.** `src/grace-cursor.ts` declares **two** budgets:
+
+```
+FIX_SIGNATURE_REPEAT_BUDGET   = 2   (:177)
+FIX_DISTINCT_SIGNATURE_BUDGET = 4   (:183)
+```
+
+`decideFixBudgetEscalation` (`:1683`) evaluates **trigger R before trigger D**: R fires when the
+current signature has occurred `>= 2` times in the window under **exact kind plus key equality**; D
+fires when the window holds `>= 4` distinct signatures.
+
+**So [F21](#f21)'s substance holds and its constant does not.** F21's real finding was that the
+counter was *outcome-blind and signature-blind* — any second attempt in the window, of any outcome,
+armed the escalation. That behaviour is genuinely gone: the repeat budget now requires the **same**
+signature. What survives is a repeat budget of 2, which the first correction erased.
+
+**Consequence for planning, and it cuts the other way from [F56](#f56).** F56 caps *distinct* reds
+per task at 3. Trigger R adds a second, independent cap: **a task may never plan the same
+signatureKey twice in one window.** Two reds in a task are safe only because their keys differ —
+which is exactly why `C-SCHEMA-REFERENCE`'s `T-001` and `T-003` executed without an escalation.
+A plan that reddened the same criterion twice would pause on the second fail.
+
+**`ngrace-execute/SKILL.md` is accurate on all of this** and always has been. Lines 38, 65 and 90
+state both triggers, and line 65 explicitly rules out "any two fails regardless of signature".
+Canonical and packaged are byte-identical. An executor has now reported this file as stale on the fix
+budget **twice**, both times wrongly; the likely cause is that the sentence leads with "2 failed
+attempts" and the qualifying clause reads as droppable.
+
+**The rule, sharpened.** A finding that quotes a constant is a measurement with an expiry date — but
+re-measuring by grepping *the name the finding used* only proves that name is absent. **A rename is
+indistinguishable from a deletion under that grep.** Verify the behaviour at its decision site
+(`decideFixBudgetEscalation` here), not the identifier, before reporting a mechanism gone.
