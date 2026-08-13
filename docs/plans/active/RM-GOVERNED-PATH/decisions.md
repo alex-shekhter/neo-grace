@@ -4127,3 +4127,50 @@ Tag every branch tip **before** the first rebase in the stack, not before deleti
 count does not match the bundle's commit count is using the wrong base — check the count before
 resolving a single conflict, because the conflicts are a symptom and resolving them would quietly
 duplicate merged work.
+
+### F60 — The product implements glob matching twice, the two disagree on zero-depth `**`, and the weaker copy governs the scope audit. **[verified]**
+
+Measured at `1de1d92` while deriving P1.4, running both implementations on the case P2.1 pins:
+
+```
+glob             x file                  review  scope   AGREE?
+web/js/**/*.js   x web/js/app.js        false   true    ** NO **
+web/js/**/*.js   x web/js/sub/app.js    true    true    yes
+src/**/*.ts      x src/a.ts             false   true    ** NO **
+src/**/*.ts      x src/x/a.ts           true    true    yes
+src/**           x src/a.ts             true    true    yes
+```
+
+Two homes:
+
+- **Canonical.** `src/artifact/scope.ts` — `parseScopeGlob` / `observedWriteScopeContains`,
+  segment-based, globstar must occupy a whole path segment, exported, and it **already admits
+  zero-depth `**`** (git/minimatch semantics).
+- **Duplicate.** `src/review/core.ts:1116` `matchSimpleGlob`, private, commented *"Minimal glob:
+  `**` / `*` only"*, built by regex substitution: `**` → `.*`, `*` → `[^/]*`. Because the literal
+  `/` between `**` and the next segment survives the substitution, `**` requires **at least one**
+  intervening segment.
+
+**The live consequence is a false positive in a governance audit.** `auditScopeOutsideWriteScope`
+(`src/review/core.ts:979`) tests changed files against plan globs with the duplicate. A plan that
+declares `Glob src/**/*.ts` and writes `src/a.ts` is **inside** its approved `ObservedWriteScope` by
+the canonical parser and gets reported `review.scope-outside-write-scope` by the audit. Every bundle
+this roadmap has closed used explicit `<File>` entries plus a `run/**` glob, where zero-depth never
+arises — so the audit's 0-findings results are true, and they are not evidence this path works.
+
+**What it does to P1.4.** The roadmap orders P1.4 → P2.1 so *"the schema reference must state
+zero-depth `**` before review changes behaviour."* That framing assumes one semantics with review
+lagging. There are two semantics **now**, and a reference generated from the grammar would document
+the canonical one while a shipped code path contradicts it. A generated document cannot be the
+single truth about a rule the product implements two ways.
+
+**The rule.** A semantic named in generated documentation must have exactly one implementation. Where
+a second private copy exists, the repair is to delete the copy and call the canonical parser — not to
+teach both. Before documenting any behaviour as canonical, grep for a second implementation of it;
+`matchSimpleGlob` is private and would not surface in an export survey.
+
+**Home:** P2.1 already owns the zero-depth change and its release note. This finding narrows it: the
+work is *deleting the duplicate*, not changing a semantic. This is the same class as
+[F46](#f46) / [F49](#f49) / [F52](#f52) — a check whose blast radius and whose name have drifted
+apart — and the same class as [D16](#d16)'s concern that a claim must be anchored to what actually
+runs.
