@@ -8,6 +8,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   formatFileExportsText
 //   formatFileText
 //   formatModuleFindTable
 //   formatModuleHealthTable
@@ -125,6 +126,35 @@ export function formatModuleText(moduleRecord: ModuleRecord, options: { withVeri
   }
   if (options.health) {
     lines.push("", "Health", `- State: ${options.health.state}`, `- Implementation Files: ${options.health.implementationFiles.join(", ") || "none"}`, `- Verification Test Files: ${options.health.verificationTestFiles.join(", ") || "none"}`, `- Blockers: ${options.health.blockers.length}`, `- Warnings: ${options.health.warnings.length}`, `- Next Action: ${options.health.nextAction}`);
+  }
+  return lines.join("\n");
+}
+
+export function formatFileExportsText(view: {
+  path: string;
+  moduleId: string | null;
+  adapterId: string | null;
+  exportConfidence: string | null;
+  exports: string[];
+}) {
+  const lines = [
+    "neo-grace File Exports",
+    "=".repeat(22),
+    `Path: ${view.path}`,
+    view.moduleId ? `Module: ${view.moduleId}` : "Module none",
+  ];
+  if (view.adapterId) {
+    lines.push(`Adapter: ${view.adapterId}`, `exportConfidence: ${view.exportConfidence ?? "none"}`);
+    if (view.exports.length === 0) {
+      lines.push("Exports:");
+    } else {
+      lines.push("Exports", ...view.exports.map((name) => `- ${name}`));
+    }
+  } else {
+    lines.push(
+      "Adapter none",
+      "contracts and health work; MODULE_MAP parity unverified",
+    );
   }
   return lines.join("\n");
 }

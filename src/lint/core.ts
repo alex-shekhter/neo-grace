@@ -36,7 +36,7 @@ import { ARTIFACT_DIR } from "../artifact/paths";
 import { ARTIFACT_TAG_PREFIX, ANCHOR_PATTERNS, type NgraceIssue, type NgraceProjectPaths } from "../artifact/types";
 import { readGraceXmlArtifact } from "../artifact/xml";
 import { appendCommandRunEvent } from "../grace-cursor";
-import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "../language-registry";
+import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS, isGovernedCodeExtension } from "../language-registry";
 import {
   analyzeGovernedFile,
   collectCodeFiles,
@@ -47,7 +47,7 @@ import {
 import { withLintIssueGuide } from "./catalog";
 import { loadGraceLintConfig } from "./config";
 import { documentSizeIssues } from "./document-size";
-import type { AnalysisCoverage, AnalysisCoverageEntry, LintIssue, LintOptions, LintProfile, LintResult } from "./types";
+import type { AnalysisCoverage, AnalysisCoverageEntry, GraceLintConfig, LintIssue, LintOptions, LintProfile, LintResult } from "./types";
 
 const TEXT_FORMAT_OPTIONS = new Set(["text", "json"]);
 
@@ -178,11 +178,17 @@ function validateGovernedFiles(result: LintResult, root: string): FileMarkupReco
  * Validate DEPENDS/LINKS anchors against graph and verification projections (G-10, G-11).
  * Unknown anchors are errors; modules with Path but no linking file are warnings.
  */
+function toPosixRelative(root: string, file: string) {
+  const relative = path.isAbsolute(file) ? path.relative(root, file) : file;
+  return relative.replaceAll(path.sep, "/");
+}
+
 function validateFileHeaderReferences(
   result: LintResult,
   records: FileMarkupRecord[],
   graph: GraphProjection,
   verification: VerificationProjection,
+  config: GraceLintConfig | null,
 ): void {
   const knownModules = new Set(graph.modules.keys());
   const knownFlows = new Set(graph.dataFlows.keys());
@@ -231,6 +237,13 @@ function validateFileHeaderReferences(
     }
   }
 
+  const noAdapterPaths = new Set(
+    result.issues
+      .filter((issue) => issue.code === "analysis.no-adapter")
+      .map((issue) => toPosixRelative(result.root, issue.file)),
+  );
+  const unverifiedLanguages = new Set(config?.unverifiedLanguages ?? []);
+
   for (const [moduleId, moduleRecord] of graph.modules) {
     if (moduleRecord.path && (linkedModuleCount.get(moduleId) ?? 0) === 0) {
       addIssue(result, {
@@ -240,6 +253,33 @@ function validateFileHeaderReferences(
         message: `${moduleId} declares a Path but no governed file declares LINKS: ${moduleId}.`,
       });
     }
+
+    const authoredPath = moduleRecord.path?.trim() ?? "";
+    if (!authoredPath) {
+      continue;
+    }
+    const extension = path.extname(authoredPath);
+    if (!isGovernedCodeExtension(extension, config?.codeExtensions)) {
+      continue;
+    }
+    if (ADAPTER_BACKED_EXTENSIONS.has(extension)) {
+      continue;
+    }
+    if (unverifiedLanguages.has(extension)) {
+      continue;
+    }
+    const normalizedPath = authoredPath.replaceAll(path.sep, "/");
+    if (noAdapterPaths.has(normalizedPath)) {
+      continue;
+    }
+    addIssue(result, {
+      severity: "warning",
+      code: "graph.path-no-adapter",
+      file: moduleRecord.file,
+      message:
+        `${moduleId} Path ${authoredPath} (${extension}): contracts and health work; `
+        + "MODULE_MAP parity unverified; not an error because tier-1 is legitimate.",
+    });
   }
 }
 
@@ -475,7 +515,7 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
     addIssue(result, issue);
   }
 
-  validateFileHeaderReferences(result, governedRecords, graph, verification);
+  validateFileHeaderReferences(result, governedRecords, graph, verification, config);
 
   const activeScopes = collectActiveChangeScopes(paths);
   const ownership = createDurableOwnershipIndex(graph, verification);

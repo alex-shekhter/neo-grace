@@ -14,6 +14,7 @@
 //   collectBooleanFlagNames
 //   defineGraceCommand
 //   listBooleanFlags
+//   listLiveInvocations
 //   refuseBooleanSpaceForm
 //   resolveErrorFormat
 // END_MODULE_MAP
@@ -289,4 +290,47 @@ export function listBooleanFlags(
     walk(root.name, root.command);
   }
   return sites;
+}
+
+/**
+ * Walk the same composed command objects listBooleanFlags walks and list every
+ * live invocation: a root with no subCommands is one `{ root, sub: null }`;
+ * a root with subCommands yields one invocation per sub name.
+ *
+ * Throws on lazy args / subCommands / a sub entry the same way listBooleanFlags does.
+ */
+export function listLiveInvocations(
+  roots: ReadonlyArray<{ name: string; command: CommandDef<any> }>,
+): { root: string; sub: string | null }[] {
+  const invocations: { root: string; sub: string | null }[] = [];
+
+  function assertReadable(path: string, kind: "args" | "subCommands" | "subCommand", value: unknown): void {
+    if (isLazyResolvable(value)) {
+      throw new Error(
+        `listLiveInvocations: cannot read ${kind} at \`${path}\` (function or promise Resolvable). ` +
+          `Refuse to under-count; make ${kind} a plain object or resolve before walking.`,
+      );
+    }
+  }
+
+  for (const root of roots) {
+    assertReadable(root.name, "args", root.command.args);
+    const subs = root.command.subCommands;
+    if (subs !== undefined && subs !== null) {
+      assertReadable(root.name, "subCommands", subs);
+      if (typeof subs === "object") {
+        const entries = Object.entries(subs as Record<string, unknown>);
+        if (entries.length > 0) {
+          for (const [subName, sub] of entries) {
+            const childPath = `${root.name}.${subName}`;
+            assertReadable(childPath, "subCommand", sub);
+            invocations.push({ root: root.name, sub: subName });
+          }
+          continue;
+        }
+      }
+    }
+    invocations.push({ root: root.name, sub: null });
+  }
+  return invocations;
 }

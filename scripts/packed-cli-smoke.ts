@@ -170,6 +170,7 @@ export async function runPackedCliSmoke(repoRoot: string): Promise<void> {
       { name: "module show", args: ["module", "show", "M-EXAMPLE", "--path", project, "--json"], expectedExitCode: 0, assertStdout: (out) => { if (!out.includes("runExample")) throw new Error("module show missed file-local symbol"); } },
       { name: "verification show", args: ["verification", "show", "V-M-EXAMPLE", "--path", project, "--json"], expectedExitCode: 0, assertStdout: (out) => { if (!out.includes("V-M-EXAMPLE")) throw new Error("verification show missed entry"); } },
       { name: "file show", args: ["file", "show", "src/example.ts", "--path", project, "--json"], expectedExitCode: 0, assertStdout: (out) => { if (!out.includes("runExample")) throw new Error("file show missed module map"); } },
+      { name: "file exports", args: ["file", "exports", "src/example.ts", "--path", project, "--json"], expectedExitCode: 0, assertStdout: (out) => { if (!out.includes("runExample")) throw new Error("file exports missed adapter export"); } },
       { name: "structured error", args: ["module", "show", "M-MISSING", "--path", project, "--json"], expectedExitCode: 1, assertStdout: (out) => { const value = jsonObject(out); if (value.ok !== false) throw new Error("structured error did not set ok=false"); } },
     ];
     for (const testCase of cases) execute(testCase);

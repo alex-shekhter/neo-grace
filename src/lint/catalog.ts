@@ -165,6 +165,23 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
       "Or remove the Path until the module is implemented, if the graph entry is only a placeholder.",
     ],
   },
+  "graph.path-no-adapter": {
+    title: "Graph Path Has No Language Adapter",
+    explanation:
+      "A graph module Path has a governed extension with no language adapter. "
+      + "Contracts and health still work; MODULE_MAP parity is unverified. "
+      + "This is a warning because a Path without an adapter is a legitimate working state.",
+    remediation: [
+      "Inspect the Path with ngrace file exports to see the named adapter absence.",
+      "Prefer MAP_MODE: SUMMARY when GRACE cannot verify exports.",
+      `Acknowledge the extension deliberately with ${CONFIG_FILE_NAME} { \"unverifiedLanguages\": [\".ext\"] } `
+        + "so the silence is a recorded decision rather than an accident.",
+    ],
+    issueClass: "absence",
+    derivedFrom:
+      "A SUMMARY Path with a governed unbacked extension stayed lint-green while MODULE_MAP parity was unverified.",
+    proposedBy: "confidently-wrong",
+  },
   "analysis.adapter-failed": {
     title: "Language Adapter Failed",
     explanation: "The file-level export analysis adapter failed, so exact export/local parity could not be validated for this governed file.",

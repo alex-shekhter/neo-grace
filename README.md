@@ -172,9 +172,13 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | `ngrace module find <query> --path <root>` | Search graph projection modules by id, path, text, dependency, or verification id |
 | `ngrace module show <id-or-path> --path <root>` | Show graph projection context and linked file-local markup |
 | `ngrace module show <id> --with verification --path <root>` | Include matching deterministic `V-M-*` verification entries |
+| `ngrace module health <id> --path <root>` | Show health, autonomy readiness, and remediation hints for one module |
 | `ngrace verification find <query> --path <root>` | Search verification projection entries |
 | `ngrace verification show <id-or-module> --path <root>` | Show one verification entry and module context |
+| `ngrace verification localize <id-or-module> --path <root>` | Localize a verification failure against a caller-supplied log; read-only, never runs tests |
 | `ngrace file show <path> --path <root>` | Show file-local `MODULE_CONTRACT`, `MODULE_MAP`, and `CHANGE_SUMMARY` |
+| `ngrace file exports <path> --path <root>` | Print the first matching language adapter's exports and exportConfidence for a named file |
+| `ngrace file exports --module <id> --path <root>` | Print adapter exports for a module's authored graph Path only |
 | `ngrace lint --explain <code>` | Explain one issue code without linting. Three answers, never a guess: a catalogued code, a code this binary emits but has no dedicated entry for, or an unknown string — which says so and exits nonzero |
 | `ngrace doctor --path <root>` | Read-only report: adapters, analysis coverage, document size pressure, context gaps, absence issues, calibration, plan quality |
 | `ngrace graph split --by <path-prefix> --path <root>` | Move modules whose `Path` matches a prefix into a new `GD-*` document (dry-run by default; `--apply` to write) |
@@ -196,7 +200,11 @@ and never move a bundle. `ngrace review` never records a verdict. The separation
 | `ngrace review --path <root> [--change C-ID] [--base <ref>]` | Mechanized detectors and process audits with deterministic finding IDs; with `--change`, an `ObservedWriteScope` scope audit |
 | `ngrace cursor show --change C-ID` | Show durable run position (never writes; recovers rather than blocks) |
 | `ngrace cursor regenerate --change C-ID [--apply]` | Re-derive `run.xml` from ledger, loose events, and codebase evidence (dry-run by default) |
-| `ngrace cursor advance\|pause\|resume\|fold --change C-ID` | Append run events, or fold an epoch into `run-ledger.xml` |
+| `ngrace cursor advance --change C-ID` | Append a structural run event and keep the epoch in progress |
+| `ngrace cursor pause --change C-ID` | Pause the open epoch without closing it |
+| `ngrace cursor resume --change C-ID` | Resume a paused epoch; clearing an escalation requires `--reason` |
+| `ngrace cursor fold --change C-ID` | Fold a terminated epoch into `run-ledger.xml` |
+| `ngrace cursor recover --change C-ID` | Diagnose (and optionally `--fix`) an unreadable or incomplete cursor |
 | `ngrace cursor attempt --change C-ID --task T-NNN --outcome pass\|fail` | Record a verification cycle; signature required on fail. Optional `--claimed-confidence` is write-only analysis data no gate reads |
 | `ngrace cursor verification-unavailable --change C-ID --task T-NNN --reason <why>` | Record that verification could not run — an absence, not an attempt, and not counted against the fix budget |
 | `ngrace context --task T-NNN --change C-ID` | Emit a task slice: the modules, files, and verification that task needs. Selection, never compression |
@@ -218,6 +226,7 @@ Output modes:
 - `ngrace verification find`: `table`, `json`
 - `ngrace verification show`: `text`, `json`
 - `ngrace file show`: `text`, `json`
+- `ngrace file exports`: `text`, `json`
 
 Lint, status, and projection-backed navigation fail closed: invalid options, invalid grammar, malformed active assertions/scopes, duplicate ownership, missing routed files, or ambiguous targets produce structured results or a nonzero error envelope. JSON command failures emit one stable `{ "schemaVersion": "1.0.0", "ok": false, "error": { ... } }` envelope on stdout; text failures emit one concise actionable line without a stack trace.
 
@@ -286,7 +295,7 @@ skip depth (adversarial probe, mutation audit, checklist volume).
 
 | What | Subject / state | Normalized stdout bytes | Commit |
 |---|---|---|---|
-| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **806 lines** / **55040 UTF-8 bytes** | pin in `token-accounting.test.ts` |
+| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **806 lines** / **55043 UTF-8 bytes** | pin in `token-accounting.test.ts` |
 | `skillTextLines().referencesTotal` | package root | **1433 lines** (includes recovery.md) | same instrument |
 | `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `f641334` (the squashed Phase 11 merge; release cut updates) |
 | `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |

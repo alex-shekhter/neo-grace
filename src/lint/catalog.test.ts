@@ -323,11 +323,12 @@ describe("catalog issueClass (A5.1 route 2, A6.1)", () => {
     expect([...catalogPatterns].sort()).toEqual([...PATTERNS].sort());
   });
 
-  it("classifies the three shipped absence codes from exact entries", () => {
+  it("classifies the shipped absence codes from exact entries", () => {
     expect(listAbsenceCatalogCodes()).toEqual([
       "analysis.no-adapter",
       "analysis.runtime-missing",
       "assertion.command-not-evaluated",
+      "graph.path-no-adapter",
     ]);
     for (const code of listAbsenceCatalogCodes()) {
       const guided = withLintIssueGuide(bare(code));
