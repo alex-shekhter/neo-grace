@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-SCHEMA-REFERENCE>
     <Summary>
       Deliver RM-GOVERNED-PATH P1 step 4 only: generate a committed

@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-SCHEMA-REFERENCE>
     <IntentSummary>
       Deliver RM-GOVERNED-PATH P1 step 4 only: export GRAMMAR_INVENTORIES
