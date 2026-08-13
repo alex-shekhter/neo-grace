@@ -3311,14 +3311,16 @@ assertion on one code, read as "this shape is valid." This is the [F23](#f23) fa
 weaker than the value its name implies — and it is the reason to prefer *document is clean* over
 *this code is absent* whenever a test's subject is a shape rather than a specific diagnostic.
 
-**Consequence, and the irony.** D12's approve gate refuses on an unresolved Clarification targeting
+**Consequence, and the irony.** `RM-AGENT-RELIABILITY` D12's approve gate (bare "D12" in this
+roadmap resolves to a different decision — see [F47](#f47)) refuses on an unresolved Clarification targeting
 `IC-*` or `INV-*` (`src/gates/core.ts:181–182` reads `node.attributes.target`). No Clarification can
 exist, so the gate can never fire. `C-GATE-SURFACE`'s own `AC-TYPED-CLARIFICATION` reads *"Without this
 AC the approve gate is vacuous."* The AC shipped; the gate is vacuous.
 
 **Footprint of the repair.** `src/artifact/grammar.ts` (shape + validator), `src/gates/core.ts:181–182`
-(the approve-gate reader), and **six** skill/template sites across both trees that teach the broken
-form — measured, not estimated:
+(the approve-gate reader), and **eight** skill/template files across both trees that teach the broken
+form — corrected 2026-08-12 from "six", which counted grep output lines rather than distinct files
+(`ngrace-spec/SKILL.md` carries two mentions). Four canonical files, each mirrored:
 
 ```
 skills/ngrace/ngrace-spec/SKILL.md:54,55
@@ -3631,3 +3633,53 @@ and exempt that half from the red-first universal, exactly as `AC-SUITE-AND-LINT
 Otherwise the universal is falsified by the bundle's own honest execution. Due in **P1.5**, whose
 acceptance test — *"generated output passes lint when committed unmodified"* — is the same shape:
 a generator that works has nothing to redden once written.
+
+---
+
+### F46 — The templates the product ships for agents to copy are outside every validation surface. **[verified]**
+
+This is **why [F38](#f38) survived**. `skills/ngrace/ngrace-spec/references/change-spec-template.xml`
+and `.../ngrace-plan/references/change-plan-template.xml` are shipped as copy-sources: an agent is
+told to start from them. Both teach `<Clarification target="IC-*">`, a form that cannot lint.
+
+Measured: the templates return **0** hits in `ngrace lint`'s artifact universe. They live outside
+`.ngrace/`, hold `$PLACEHOLDER` text rather than real content, and are not change bundles — so no
+surface checks them. `validate:marketplace` compares the canonical tree to the packaged mirror, so
+it confirms the two trees **agree**; when both teach a broken form it is green, which is
+[F28](#f28) at the packaging level.
+
+So the product distributes an authoring template that its own linter would reject, and every
+validation surface reports success. An agent that does exactly what the skill says produces an
+artifact that fails.
+
+**Bounding the repair honestly.** These files cannot simply be added to `ngrace lint` — a
+placeholder template is not a valid bundle and would fail for reasons that are correct. The
+checkable property is narrower: *the shapes a template teaches must lint when the template is
+filled in.* That is close to P1.11's *"add a check that skills' claimed shapes resolve against
+[the polyglot example]"*, generalized from one example to the templates, and it is the honest form
+of the "templates lint" requirement — which, stated flatly, is unsatisfiable and would have shipped
+as an unclosable criterion had the executor not named it at spec time.
+
+**Home: P1.11**, which already owns "skills' claimed shapes resolve." Widen it there rather than
+opening a fifteenth step; `C-GRAMMAR-SEAM` fixes the two templates' content now, and P1.11 builds
+the check that would have caught them.
+
+### F47 — Decision ids are roadmap-scoped, and two roadmaps both have a D12. **[verified]**
+
+`RM-GOVERNED-PATH/decisions.md:1640` — *D12: the shared membership definition gets its own file.*
+`RM-AGENT-RELIABILITY/plan.md:1737` — *D12: Clarifications block; assumptions do not.*
+
+[F38](#f38) and the `C-GRAMMAR-SEAM` brief both cite "D12's approve gate", meaning the second. An
+implementer who greps **this** roadmap's `decisions.md` for D12 — the obvious move, since it is the
+active roadmap — binds the run-membership decision and finds nothing about gates.
+
+Caught by the executor at spec-authoring, before it reached a plan.
+
+**Same family as [F41](#f41):** a citation that reads as precise and resolves to the wrong thing.
+F41 was a word whose meaning had shifted; this is an identifier whose namespace was assumed global.
+Both survive review because the citation *looks* checkable.
+
+**The rule.** Cite a decision from another roadmap as `<ROADMAP> D<n>` — `RM-AGENT-RELIABILITY D12`,
+never bare `D12`. Bare ids are reserved for the roadmap the citing artifact lives in. Corrected at
+F38's citation site below; not swept across the archive, since archived roadmaps are immutable and
+their internal citations resolve correctly within their own file.
