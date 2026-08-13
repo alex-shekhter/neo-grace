@@ -3901,3 +3901,83 @@ and rewriting them would edit the account of what happened rather than the pract
 **The rule.** Cite a bundle by its **archive path**, never by commit. Where a commit genuinely must
 be named — a release tag, a revert target — tag the branch tip before deleting it, and cite the
 tag. Tags survive; branch tips do not.
+
+### F54 — A closed path allowlist cannot be exact at a parse site that never learns the project root. **[verified]**
+
+`C-ARTIFACT-VALIDITY` decides archive treatment as **option 3**: a frozen, closed allowlist of the
+nine current offender paths, every other path erroring. The spec also pins the emission home inside
+`parseGraceXmlArtifact`, which is the correct coverage decision — it is the one function every
+`readGraceXmlArtifact` caller funnels through, so no artifact escapes the check.
+
+Those two correct decisions are in tension, and the tension only appears at plan time.
+
+`parseGraceXmlArtifact(file, text)` receives **no project root**. Measured at `ce451dc`, the `file`
+argument is not in one form:
+
+- `resolveNgracePaths` calls `path.resolve` on the project root, so the production lint path reads
+  archived plans as **absolute** `path.join` results;
+- `src/review/core.ts` passes a variable named `abs`;
+- unit tests pass **bare relative** names such as `plan.xml`.
+
+So `allowlist.has(file)` against project-relative entries misses **every listed file on the exact
+path that protects this repository's `0/0` close bar**. A naive implementation does not fail loudly;
+it turns nine archived plans red and looks like the check working.
+
+The plan settles a normalize-then-suffix rule: slashes normalized, a leading `./` stripped, and a
+file admits iff its normalized form equals a listed entry or ends with `/` + entry.
+
+**The residual is real and is not a rounding error.** Any path ending in a listed entry is admitted
+— including an identically named archived plan in a *different project tree*. A downstream GRACE
+project that archives its own `C-DECLARED-WRITES/plan.xml` containing the forbidden sequence is
+silently admitted by this repository's allowlist. That is the shape the spec rejected as "option 1
+wearing a list", reappearing across project boundaries rather than across directories.
+
+**Why it ships anyway.** Exact project-relative identity requires threading a project root through
+`readGraceXmlArtifact` and its call sites — roughly eighty of them across `src/`. That is outside
+the spec's forced write surface and is a re-spec, not an implementation response. [D11](#d11) is
+satisfied: this is a genuine conflict, not filing.
+
+**The rule.** When a check compares a path against project-relative product data, establish *at
+authoring time* what path form the emission site actually receives, and in how many forms. A
+constant that reads as project-relative is not evidence that its consumer ever sees that form. Where
+exactness is unreachable, the artifact states the false-admit surface in prose — an undisclosed
+loose match is [F46](#f46) / [F52](#f52): a check whose name claims more than its body compares.
+
+**Home:** the residual is scheduled against a project-root parameter for `readGraceXmlArtifact`, not
+against this bundle. Not yet assigned to a phase.
+
+### F55 — `assertion.command-not-evaluated` withholds its subject exactly as the containment codes do. **[verified]**
+
+Measured at plan-approval time for `C-ARTIFACT-VALIDITY`, running the plan's own target assertions:
+
+```
+ngrace lint --path . --change C-ARTIFACT-VALIDITY --assertions target
+```
+
+Fifteen errors. Eleven are the containment codes this bundle repairs. The other four are:
+
+```
+- [error] assertion.command-not-evaluated … — MustPassCommand requires explicit command execution opt-in.
+- [error] assertion.command-not-evaluated … — MustPassCommand requires explicit command execution opt-in.
+- [error] assertion.command-not-evaluated … — MustPassCommand requires explicit command execution opt-in.
+- [error] assertion.command-not-evaluated … — MustPassCommand requires explicit command execution opt-in.
+```
+
+Four `MustPassCommand` entries naming four different commands, four byte-identical messages. The
+evaluator holds the command string and does not say it. This is [F40](#f40)'s class exactly — the
+product knows a fact and declines to say it on an agent-facing surface — on a code
+`C-ARTIFACT-VALIDITY` does not touch.
+
+The same run also demonstrates the defect the bundle *does* repair, on the bundle's own plan:
+`src/artifact/xml.ts must contain requested text.` printed twice for two different pinned texts.
+The withheld-subject class is not one site; it is a habit in this layer.
+
+**Not folded in.** The spec confines P1.14 to `evaluateTextContainment`'s containment-failure path
+and its NonGoals reject opening the catalog for codes the deliverable does not need. Repairing
+`assertion.command-not-evaluated` here would be scope the spec closed. [D11](#d11) is satisfied by a
+genuine conflict, not by filing.
+
+**Home:** P1's remaining steps, as a sibling of P1.14. Any bundle that opens
+`src/artifact/assertions.ts` for message work should sweep the file's other withheld subjects rather
+than repair one code at a time — the one-code-at-a-time shape is what left this instance standing
+after `C-LEGIBLE-FAILURE` and P0.7 both passed through the same layer.
