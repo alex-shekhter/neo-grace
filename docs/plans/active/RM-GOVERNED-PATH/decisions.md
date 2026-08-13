@@ -3683,3 +3683,35 @@ Both survive review because the citation *looks* checkable.
 never bare `D12`. Bare ids are reserved for the roadmap the citing artifact lives in. Corrected at
 F38's citation site below; not swept across the archive, since archived roadmaps are immutable and
 their internal citations resolve correctly within their own file.
+
+---
+
+### F48 — Enumerating diagnostics by their HEAD triggers orphans a code when the repair moves the trigger. **[verified]**
+
+`AC-ERROR-TEACHES-WORKING-FORM` names its members as *"the two `change.invalid-clarification`
+messages and the `change.invalid-clarification-target` message that element emits today"* — codes
+identified by code **and HEAD trigger**, deliberately, so the criterion would not freeze
+`grammar.ts` line numbers ([F33](#f33)).
+
+The repair moved the mapping underneath that enumeration. At HEAD, `target="NOT-AN-ANCHOR"`
+produced `change.invalid-clarification-target`. Afterwards a leftover `target` attribute is simply
+an illegal attribute and produces `change.invalid-clarification`; reading its *value* as the target
+would be the dual-read the spec forbids. So the trigger the criterion named for `-target` no longer
+produces `-target`.
+
+Left alone, the criterion would have been satisfied by tests covering two codes while `-target`
+kept both its guide and its production emission site (`grammar.ts:1642`, a self-closing child whose
+tag is not a family anchor) and lost its test. **A guide and an emission with no coverage between
+them** — the same shape as the `xml.generic-` prefix guide with zero emission sites noted during
+`C-EXPLAIN-COVERAGE`.
+
+Caught by the executor, which planted a fourth case — a non-family self-closing child — so the code
+retains a live post-change fixture, and reported the divergence rather than quietly treating two
+codes as three.
+
+**The rule.** When a criterion enumerates diagnostics by their current triggers, and the change
+alters emission logic, re-derive the trigger→code mapping **after** the repair and confirm every
+named code still has a reachable trigger. Naming codes by trigger is right — it avoids F33 — but it
+is a claim about a mapping, and a repair is exactly the thing that moves mappings. Due in
+**P1.13** and **P1.14**, both of which rewrite diagnostics, and in **P1.4**, where a generated
+schema reference will enumerate shapes the grammar can move.

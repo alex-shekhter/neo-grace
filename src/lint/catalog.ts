@@ -818,15 +818,20 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
   },
   "change.invalid-clarification": {
     title: "Invalid Clarification Element",
-    explanation: "Clarifications admits only <Clarification target=\"…\"> children with a non-empty target.",
-    remediation: ["Use the schema element, never a prose [NEEDS CLARIFICATION] marker (anti-pattern 3)."],
+    explanation: "A Clarification takes exactly one self-closing IC-*, INV-*, or AC-* child.",
+    remediation: [
+      "Use exactly one self-closing IC-*, INV-*, or AC-* child.",
+      "Use the schema element, never a prose [NEEDS CLARIFICATION] marker (anti-pattern 3).",
+    ],
     derivedFrom: "Phase 5 typed hole (A29.4); prose markers are not a detection path.",
     proposedBy: "regex-over-structure",
   },
   "change.invalid-clarification-target": {
     title: "Invalid Clarification Target Anchor",
-    explanation: "Clarification target must be a canonical IC-*, INV-*, or AC-* anchor (D12).",
-    remediation: ["Point target at a real contract, invariant, or acceptance criterion id."],
+    explanation: "A Clarification takes exactly one self-closing IC-*, INV-*, or AC-* child.",
+    remediation: [
+      "Use a self-closing IC-*, INV-*, or AC-* child whose tag is a real contract, invariant, or acceptance criterion id.",
+    ],
     derivedFrom: "Gate tables key on IC/INV/AC families; free-text targets cannot be evaluated.",
     proposedBy: "unthreaded-construct",
   },
