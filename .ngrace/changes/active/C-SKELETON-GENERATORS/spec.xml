@@ -201,6 +201,15 @@
         on AC-LINT-PROPERTIES and AC-HEAD-RED. The generator
         does not write a state lint would reject.
       </Goal>
+      <Goal>
+        **README names the new commands and cannot
+        drift from the live root list.** The CLI
+        Overview table lists every registered
+        command root. A check bound to
+        liveCommandRoots fails when a root is
+        absent from that table. examples/ stays
+        a named NonGoal owned by P1.11.
+      </Goal>
     </Goals>
     <Constraints>
       <Constraint>
@@ -217,8 +226,10 @@
         string appears); F45 (name HEAD-true and
         by-construction halves and exempt them); F46 (spec
         and plan templates leave the unchecked-copy class);
-        F51 (no SKILL.md, so no token-accounting or README
-        pin; F63 is resolved without paying this cost);
+        F51 (no SKILL.md, so no token-accounting pin;
+        F63 is resolved without paying that cost;
+        README.md is in scope as the user-visible
+        command table, not as an F51 skill-byte pin);
         F52 (change.plan-scope-exceeds-spec compares
         DurableScope anchors at warning and does not look at
         file paths); F56 (see the signature-key Constraint);
@@ -237,7 +248,9 @@
         renderer with skeleton and teaching emissions +
         moving the markup renderer out of test-support +
         regenerating four template files from the teaching
-        emission + CI stale-check). P1.6 as-state, P1.7
+        emission + CI stale-check + README command table
+        bound to the live root list + the three CI pins
+        the deliverable falsifies). P1.6 as-state, P1.7
         export view, P1.8 no-adapter preflight, P1.10 skill
         inversion, and P1.11 polyglot plus the remaining
         templates are out of implementation.
@@ -540,8 +553,19 @@
         scripts/generate-skeleton-templates.ts;
         scripts/generate-skeleton-templates.test.ts;
         the four spec/plan template files named above;
-        this bundle's spec.xml and plan.xml. No
-        SKILL.md. **Stop and re-spec** rather than
+        this bundle's spec.xml and plan.xml;
+        src/grace-cursor.test.ts (writeFileSync /
+        mkdirSync inventory pin);
+        scripts/release-check.ts (packed-files
+        allowlist that release-check.test.ts
+        parses from source);
+        scripts/skill-contracts.test.ts (template
+        criterion pin);
+        README.md (CLI Overview table and
+        numbered walkthrough). scripts/
+        release-check.test.ts only if the
+        allowlist edit is not sufficient.
+        No SKILL.md. **Stop and re-spec** rather than
         touching src/artifact/grammar.ts validators,
         src/review/**, src/lint/catalog.ts,
         src/lint/core.ts, src/gates/**, skills/**/SKILL.md,
@@ -625,6 +649,15 @@
         home. This bundle's check is byte-identity of
         the four spec/plan templates to the teaching
         emission, which is a different property.
+      </NonGoal>
+      <NonGoal>
+        examples/ including examples/polyglot.
+        Owned by P1.11. That tree holds its own
+        change bundles; new CLI verbs do not
+        alter them. README.md is in scope as
+        the user-visible command surface;
+        examples/ is the named NonGoal for
+        the docs-and-examples pair.
       </NonGoal>
       <NonGoal>
         **Rejected — copy the current templates into
@@ -938,10 +971,11 @@
         Each of AC-SPEC-NEW, AC-PLAN-NEW,
         AC-SCAFFOLD-EMIT, AC-LIVE-INVENTORY,
         AC-SINGLE-MARKUP-RENDERER,
-        AC-TEMPLATES-GENERATED, and
+        AC-TEMPLATES-GENERATED,
         AC-LINT-PROPERTIES (the temp-project
         generate-then-lint path, not the
-        construction half) has a red recorded
+        construction half), and
+        AC-README-COMMANDS has a red recorded
         before its production edit, in its own
         tool round trip, with the failing test
         written first. Never a red backed only
@@ -949,7 +983,9 @@
         red via stash. **Exempt from this
         universal (F45, named at authoring):**
         AC-SUITE-AND-LINT (green at HEAD;
-        close-time bar); placeholder
+        close-time bar; the validate:ci half
+        already has a recorded fail on T-005
+        with key validate-ci); placeholder
         meaningfulness; None-is-meaningful in
         the two scope sections; a draft spec
         with placeholder text already linting
@@ -971,15 +1007,44 @@
         templates hand-written (teaching
         present, File placeholder also
         present); no template check in
-        validate:ci. **Failure
+        validate:ci; README CLI Overview omits
+        spec, plan, and scaffold and has no
+        live-root completeness check.
+        **Failure
         conditions:** a check that passes on
         pre-change HEAD sold as new
         behaviour; fail and pass in one tool
         call; AC-SUITE-AND-LINT required to
         be red at HEAD; construction half
         reddened; boolean flag added only to
-        create a red.
+        create a red; T-001 through T-004
+        re-recorded.
       </AC-HEAD-RED>
+      <AC-README-COMMANDS>
+        README.md CLI Overview table rows
+        (command cells in both tables under
+        CLI Overview, not Output modes or
+        other prose in that section) contain
+        an ngrace plus root token for every
+        name returned by liveCommandRoots in
+        src/query/command.test.ts. The numbered
+        neo-grace Quick Start walkthrough names
+        spec new, plan new, and scaffold.
+        examples/ is untouched. A check in
+        src/query/command.test.ts bound to
+        liveCommandRoots fails when any live
+        root is absent from that table.
+        **HEAD today:** the table names the
+        pre-generator roots and omits spec,
+        plan, and scaffold; no completeness
+        check exists. **Failure conditions:**
+        rows added with no check; check walks
+        the whole README so a mention outside
+        the table satisfies it; check hardcodes
+        a count or a copied name list;
+        liveCommandRoots renamed or forked;
+        examples/ edited.
+      </AC-README-COMMANDS>
       <AC-SUITE-AND-LINT>
         bun test green for touched packages
         (src/artifact/skeletons.test.ts,
@@ -1003,11 +1068,16 @@
         project-utils.ts, fixtures.ts,
         command.test.ts, package.json, the
         writer script, the four templates,
-        and this bundle's spec.xml / plan.xml.
-        No SKILL.md, so no F51 pin files. No
+        this bundle's spec.xml / plan.xml,
+        src/grace-cursor.test.ts,
+        scripts/release-check.ts,
+        scripts/skill-contracts.test.ts, and
+        README.md. No SKILL.md, so no F51
+        token-accounting pin files. No
         edits under docs/plans/ or
         .ngrace/changes/archive/; no
-        CHANGELOG.md; no version surfaces.
+        CHANGELOG.md; no version surfaces;
+        no examples/.
         **HEAD today:** lint is 0/0 and
         validate:ci is green — that green is
         the baseline, not this change's
@@ -1062,7 +1132,11 @@
         from the teaching emission and
         validate:ci invokes it; SKILL.md
         unchanged; live-root walk includes the
-        new commands; suite green; marketplace
+        new commands; README CLI Overview lists
+        every live root and the Quick Start
+        names spec new, plan new, and scaffold;
+        the three CI pins assert the new true
+        state; suite green; marketplace
         green; lint 0/0 at close only. Evidence
         is the suite and the ledger fail/pass
         pairs on the non-exempt criteria, not a
@@ -1139,7 +1213,10 @@
         two write-from-template lines still
         point at files that show DesignReferences,
         Clarifications (working form), and
-        OutOfPlanScope. F51 cost is not paid.
+        OutOfPlanScope. F51 skill-byte cost is
+        not paid. README.md is in scope as the
+        command table, which is a different
+        pin from F51.
       </Assumption>
       <Assumption>
         **F61 on current teaching comments,

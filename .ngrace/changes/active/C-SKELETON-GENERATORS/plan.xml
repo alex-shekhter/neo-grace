@@ -9,7 +9,9 @@
       scaffold commands from src/grace-generate.ts; regenerate
       the four spec/plan templates from the teaching emission;
       fail validate:ci when those templates differ from that
-      emission.
+      emission; update the three CI pins the deliverable
+      falsifies; name the three commands on README.md and
+      bind that table to liveCommandRoots.
     </IntentSummary>
     <BaselineAssertions>
       <MustExist><Value>src/grace.ts</Value></MustExist>
@@ -136,6 +138,30 @@
         <File>package.json</File>
         <Text>generate-skeleton-templates</Text>
       </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>ngrace spec new</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>ngrace plan new</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>ngrace scaffold</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.test.ts</File>
+        <Text>README CLI Overview lists every live command root</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>src/grace-generate.ts:</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/release-check.ts</File>
+        <Text>"src/grace-generate.ts"</Text>
+      </MustContain>
       <MustNotContain>
         <File>src/test-support/fixtures.ts</File>
         <Text>function renderModuleContract</Text>
@@ -207,6 +233,10 @@
       <File>skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
       <File>plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
       <File>plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>scripts/release-check.ts</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>README.md</File>
       <File>.ngrace/changes/active/C-SKELETON-GENERATORS/spec.xml</File>
       <File>.ngrace/changes/active/C-SKELETON-GENERATORS/plan.xml</File>
       <File>.ngrace/changes/active/C-SKELETON-GENERATORS/run.xml</File>
@@ -217,7 +247,11 @@
       DESIGN (binding for implementers)
 
       Plan-authoring HEAD: 416a437 (branch feat/skeleton-generators).
-      Spec is approved and immutable. Do not re-open its
+      User-directed in-place amendment after T-004: the
+      approved write scope missed three CI pins and
+      never decided README.md. This is a disclosed
+      departure from approved plan immutability, not a
+      silent refresh. Do not re-open the original
       decisions: one bundle three verbs; live-inventory
       renderer and probe mutation; two emissions (F63);
       markup renderer moves to project-utils.ts; scaffold
@@ -226,6 +260,8 @@
       ObservedWriteScope as None in generated plans;
       DurableScope and Satisfies seeded from the approved
       spec; F45 exemptions on AC-HEAD-RED; no SKILL.md.
+      The amendment adds only the three pins, README.md,
+      AC-README-COMMANDS, and T-005 criteria for those.
       Re-measure every count at execute (F33). Do not pin
       line numbers, artifact counts, boolean-site counts,
       or lint 0/0 mid-change. Packaged version stays 6.2.0.
@@ -291,9 +327,13 @@
           composition only)
         | AC-TEMPLATES-GENERATED
         | 1: test:checkSkeletonTemplates |
-      | T-005 | dogfood close
-        | AC-HEAD-RED, AC-SUITE-AND-LINT
-        | 0 manufactured reds |
+      | T-005 | pin repairs, README
+          table plus completeness
+          check, dogfood close
+        | AC-HEAD-RED, AC-SUITE-AND-LINT,
+          AC-README-COMMANDS
+        | 2: validate-ci (already
+          recorded), test:readme-commands |
 
       T-001 does not write the four templates and does not
       write the writer. If it did, T-004's stale-template
@@ -310,10 +350,14 @@
       exists. T-004 DependsOn T-001 and T-002: writer
       calls the teaching emission, and T-002 already
       owns the package.json files-list edit, so T-004's
-      validate:ci composition cannot race it. Do not
-      expand ObservedWriteScope in place (F50).
+      validate:ci composition cannot race it. F50
+      forbids a plan instructing its own amendment;
+      the OWS expansion below is a user-directed
+      exception recorded here, not an executor
+      refresh.
 
-      T-005 DependsOn T-003 and T-004.
+      T-005 DependsOn T-003 and T-004. Do not
+      re-run or re-record T-001 through T-004.
 
       Signature keys the executor must record (kind test):
         T-001  test:renderChangeSpec
@@ -323,9 +367,11 @@
         T-003  test:scaffold
         T-003  test:lint-properties
         T-004  test:checkSkeletonTemplates
+        T-005  test:validate-ci (already recorded)
+        T-005  test:readme-commands
 
       Per-task counts: T-001 2, T-002 2, T-003 2, T-004 1,
-      T-005 0. No key repeats inside a task. No task has
+      T-005 2. No key repeats inside a task. No task has
       more than three. The three unknown-command keys are
       spec, plan, scaffold.
 
@@ -481,12 +527,19 @@
         | T-004 test:checkSkeletonTemplates
         | writer absent; templates hand-written
           with File placeholder |
+      | AC-README-COMMANDS
+        | T-005 test:readme-commands
+        | README omits spec, plan, scaffold;
+          no live-root table check |
       | AC-HEAD-RED + AC-SUITE-AND-LINT
-        | T-005 Satisfies; reds on T-001 to T-004 |
+        | T-005 Satisfies; reds on T-001 to T-004
+          plus readme-commands; validate-ci
+          fail already recorded on T-005 |
 
       Never a red backed only by a grep. Never a
       retrospective red via stash. Never fail and pass
-      in one tool call.
+      in one tool call. Do not re-record T-001
+      through T-004.
 
       ────────────────────────────────────────────────────────────
       D6 — ObservedWriteScope
@@ -498,8 +551,11 @@
       pair both matchers agreed on in F60. Cursor
       companions are audit-exempt via isCliLifecyclePath
       and are still listed so OWS is complete at
-      authoring (F50). Do not add a note that tells a
-      later executor to expand this list in place.
+      authoring (F50). User-directed amendment added
+      the three CI pin files and README.md after T-004
+      because the approved deliverable falsifies them
+      (F64). That is the exception, not a standing
+      licence to refresh OWS.
 
       Predicted lint window: listing
       src/artifact/skeletons.ts and
@@ -512,11 +568,14 @@
       scripts/ is in ignoredDirs. AC-SUITE-AND-LINT is
       0/0 at close, not throughout.
 
-      Deliberately excluded: SKILL.md, F51 pin files,
-      docs/plans, archive, CHANGELOG, version surfaces,
-      grammar validators, catalog.ts, review/**,
-      design-context / design-system / migration-report
-      templates.
+      Deliberately excluded: SKILL.md, F51
+      token-accounting pin files, docs/plans, archive,
+      CHANGELOG, version surfaces, grammar validators,
+      catalog.ts, review/**, design-context /
+      design-system / migration-report templates,
+      examples/, scripts/release-check.test.ts
+      unless the allowlist edit is not sufficient.
+      README.md is in scope (command table, not F51).
 
       ────────────────────────────────────────────────────────────
       D7 — Baseline assertion.* count predictions
@@ -582,11 +641,14 @@
       three (spec unknown, plan unknown, then
       production). T-003 three (scaffold unknown,
       generate-then-lint red, then production). T-004
-      two (check-mode red, then production). T-005: no
-      manufactured red if green. Terminal / fold / gate
+      two (check-mode red, then production). T-005:
+      readme-commands red in its own round trip, then
+      pin repairs plus README production; validate-ci
+      fail already recorded. Terminal / fold / gate
       / commit are operator steps after T-005 unless
       authority says otherwise. Never fail and pass in
       one tool call. Never a retrospective red via stash.
+      Do not re-run T-001 through T-004.
 
       Newly visible commands are named in the
       conventional commit body (D5.5), not in
@@ -838,7 +900,7 @@
         </Verification>
       </T-004>
       <T-005>
-        <Title>Close: suite, marketplace, and lint at archive only</Title>
+        <Title>Repair the three CI pins, bind README to live command roots, then close</Title>
         <DependsOn>
           <Task>T-003</Task>
           <Task>T-004</Task>
@@ -846,13 +908,55 @@
         <Satisfies>
           <AC-HEAD-RED />
           <AC-SUITE-AND-LINT />
+          <AC-README-COMMANDS />
         </Satisfies>
         <AcceptanceCriteria>
           <Criterion>
             AC-HEAD-RED (full): every non-exempt criterion
             has a recorded fail then pass on T-001 through
-            T-004 as in D5. No manufactured red in this
-            task. F45 exemptions stay unreddened.
+            T-004 as in D5. Do not re-run or re-record
+            those tasks. F45 exemptions stay unreddened.
+            Pin-repair red is the already-recorded
+            validate-ci fail on this task. README
+            completeness is new behaviour: record fail,
+            signature kind test key readme-commands, in
+            its own tool round trip, before the README
+            production edit. Never a retrospective red
+            via stash. Failure conditions: re-recording
+            T-001 through T-004; manufactured validate-ci
+            red; README rows landed in the same round
+            trip as the readme-commands fail.
+          </Criterion>
+          <Criterion>
+            Pin repairs (own production trip after the
+            readme-commands red): update the three pins
+            to the new true state without weakening them.
+            grace-cursor.test.ts writer inventory gains
+            grace-generate.ts as a required member of the
+            closed prefix set. scripts/release-check.ts
+            PACK_ALLOWED_EXACT gains src/grace-generate.ts.
+            skill-contracts template pins assert
+            AC-SKELETON in both spec and plan templates.
+            Do not delete a pin, loosen a matcher, or
+            replace an exact assertion with a substring
+            one. Do not edit release-check.test.ts unless
+            the allowlist edit is not sufficient.
+            Failure conditions: pin deleted; matcher
+            loosened; inventory becomes a lower bound;
+            AC-EXAMPLE-CRITERION kept as an alternate.
+          </Criterion>
+          <Criterion>
+            AC-README-COMMANDS: README CLI Overview
+            table rows list every liveCommandRoots name as
+            an ngrace plus root token. Numbered Quick
+            Start walkthrough names spec new, plan new,
+            and scaffold. Completeness check in
+            command.test.ts is bound to liveCommandRoots
+            and fails when a live root is missing from
+            that table. examples/ untouched. Failure
+            conditions: rows without a check; check
+            uses a copied name list; examples/ edited;
+            SKILL.md edited.
           </Criterion>
           <Criterion>
             AC-SUITE-AND-LINT: bun test green for the
@@ -861,7 +965,8 @@
             is 0 errors and 0 warnings at close only (after
             apply and archive, not claimed mid-change).
             ObservedWriteScope covers every path the
-            deliverable forced. No SKILL.md. No docs/plans
+            deliverable forced, including the three pin
+            files and README.md. No SKILL.md. No docs/plans
             or archive edits. No CHANGELOG. No version
             surfaces. Re-measure ratchet cardinality; do
             not drop keys. Failure conditions: suite red;
@@ -875,7 +980,11 @@
           <Command>bun test src/grace-generate.test.ts</Command>
           <Command>bun test src/project-utils.test.ts</Command>
           <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test src/grace-cursor.test.ts</Command>
           <Command>bun test scripts/generate-skeleton-templates.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test scripts/release-check.test.ts</Command>
+          <Command>bun run validate:marketplace</Command>
           <Command>bun run validate:ci</Command>
         </Verification>
       </T-005>
