@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 import ts from "typescript";
 
-import { childText, cloneXmlNode, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
+import { childText, cloneXmlNode, COMMENT_WELL_FORMED_PATH_ALLOWLIST, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
 describe("neo-grace XML parser adapter", () => {
   it("returns xml.parse diagnostics for malformed XML instead of throwing", () => {
@@ -62,6 +62,137 @@ describe("neo-grace XML parser adapter", () => {
 
     expect(childText(readGraceXmlArtifact(file).root!, "Runtime")).toBe("Bun");
     expect(readGraceXmlArtifact(path.join(root, "missing.xml")).issues[0]?.code).toBe("xml.missing-file");
+  });
+});
+
+const ADJACENT_HYPHENS = "--";
+
+function xmlComment(body: string): string {
+  return `<!--${body}-->`;
+}
+
+function planDocument(inner: string): string {
+  return `<NgraceChangePlan graceVersion="1.0" status="draft"><C-EXAMPLE>${inner}<Summary>ok</Summary></C-EXAMPLE></NgraceChangePlan>`;
+}
+
+function requirementsDocument(inner: string): string {
+  return `<NgraceRequirements graceVersion="1.0">${inner}<ProjectName>demo</ProjectName></NgraceRequirements>`;
+}
+
+describe("C-ARTIFACT-VALIDITY T-001 comment-body well-formedness", () => {
+  it("emits xml.comment-not-well-formed at error on a plan and a non-plan, keeps a root, and does not emit xml.parse", () => {
+    const plantedComment = xmlComment(` note ${ADJACENT_HYPHENS} inside `);
+    const plan = parseGraceXmlArtifact("plan.xml", planDocument(plantedComment));
+    const requirements = parseGraceXmlArtifact("requirements.xml", requirementsDocument(plantedComment));
+
+    for (const result of [plan, requirements]) {
+      expect(result.root).not.toBeNull();
+      expect(result.issues.map((issue) => issue.code)).not.toContain("xml.parse");
+      const commentIssue = result.issues.find((issue) => issue.code === "xml.comment-not-well-formed");
+      expect(commentIssue).toBeDefined();
+      expect(commentIssue?.severity).toBe("error");
+    }
+  });
+
+  it("does not emit xml.comment-not-well-formed when comments omit the sequence", () => {
+    const result = parseGraceXmlArtifact("plan.xml", planDocument(xmlComment(" a legal comment with one - hyphen ")));
+    expect(result.root).not.toBeNull();
+    expect(result.issues.map((issue) => issue.code)).not.toContain("xml.comment-not-well-formed");
+  });
+
+  it("does not emit xml.comment-not-well-formed for two adjacent hyphen characters in element text", () => {
+    const result = parseGraceXmlArtifact(
+      "requirements.xml",
+      requirementsDocument(`<Note>legal ${ADJACENT_HYPHENS} in text</Note>`),
+    );
+    expect(result.root).not.toBeNull();
+    expect(result.issues.map((issue) => issue.code)).not.toContain("xml.comment-not-well-formed");
+  });
+
+  it("does not emit xml.comment-not-well-formed for CDATA that merely resembles a comment", () => {
+    const result = parseGraceXmlArtifact(
+      "plan.xml",
+      planDocument(`<Snippet><![CDATA[${xmlComment(` ${ADJACENT_HYPHENS} `)}]]></Snippet>`),
+    );
+    expect(result.root).not.toBeNull();
+    expect(result.issues.map((issue) => issue.code)).not.toContain("xml.comment-not-well-formed");
+  });
+});
+
+const SPEC_COMMENT_WELL_FORMED_PATH_ALLOWLIST = [
+  ".ngrace/changes/archive/C-CALIBRATION-COMMAND-EVIDENCE/plan.xml",
+  ".ngrace/changes/archive/C-DECLARED-WRITES/plan.xml",
+  ".ngrace/changes/archive/C-ESCALATION-HONESTY/plan.xml",
+  ".ngrace/changes/archive/C-EXECUTION-CONTRACT/plan.xml",
+  ".ngrace/changes/archive/C-FLAG-HONESTY/plan.xml",
+  ".ngrace/changes/archive/C-GRAMMAR-SEAM/plan.xml",
+  ".ngrace/changes/archive/C-LEGIBLE-FAILURE/plan.xml",
+  ".ngrace/changes/archive/C-RECOVER-FOLDABLE/plan.xml",
+  ".ngrace/changes/archive/C-REPORT-HONESTY/plan.xml",
+] as const;
+
+describe("C-ARTIFACT-VALIDITY T-001 closed path allowlist", () => {
+  const planted = planDocument(xmlComment(` note ${ADJACENT_HYPHENS} inside `));
+  const listedRelative = SPEC_COMMENT_WELL_FORMED_PATH_ALLOWLIST[5];
+  const unlistedRelative = ".ngrace/changes/archive/C-NOT-ALLOWLISTED/plan.xml";
+
+  it("exports COMMENT_WELL_FORMED_PATH_ALLOWLIST equal to the spec list", () => {
+    expect([...COMMENT_WELL_FORMED_PATH_ALLOWLIST]).toEqual([...SPEC_COMMENT_WELL_FORMED_PATH_ALLOWLIST]);
+  });
+
+  it("emits xml.comment-not-well-formed for an unlisted archived path under relative and absolute file strings", () => {
+    const relative = parseGraceXmlArtifact(unlistedRelative, planted);
+    const absolute = parseGraceXmlArtifact(path.join("/var/tmp/neo-grace", unlistedRelative), planted);
+
+    for (const result of [relative, absolute]) {
+      expect(result.root).not.toBeNull();
+      const commentIssue = result.issues.find((issue) => issue.code === "xml.comment-not-well-formed");
+      expect(commentIssue).toBeDefined();
+      expect(commentIssue?.severity).toBe("error");
+    }
+  });
+
+  it("admits a listed path under relative, absolute, and backslash file strings", () => {
+    const relative = parseGraceXmlArtifact(listedRelative, planted);
+    const absolute = parseGraceXmlArtifact(path.join("/var/tmp/neo-grace", listedRelative), planted);
+    const backslash = parseGraceXmlArtifact(listedRelative.replaceAll("/", "\\"), planted);
+
+    for (const result of [relative, absolute, backslash]) {
+      expect(result.root).not.toBeNull();
+      expect(result.issues.map((issue) => issue.code)).not.toContain("xml.comment-not-well-formed");
+    }
+  });
+});
+
+const COMMENT_ERROR_SHAPES = [
+  "XML comment",
+  "two adjacent hyphen characters",
+  "rewrite the comment body",
+] as const;
+
+function assertCommentErrorTeaches(message: string): void {
+  const indices = COMMENT_ERROR_SHAPES.map((shape) => {
+    const idx = message.indexOf(shape);
+    expect(idx).toBeGreaterThanOrEqual(0);
+    return idx;
+  });
+  expect(indices[0]).toBeLessThan(indices[1]!);
+  expect(indices[1]).toBeLessThan(indices[2]!);
+  const before = message.slice(0, indices[0]);
+  expect(before.toLowerCase()).not.toContain("failed to parse");
+  expect(before.toLowerCase()).not.toContain("unreadable");
+  expect(before.toLowerCase()).not.toContain("could not be parsed");
+}
+
+describe("C-ARTIFACT-VALIDITY T-001 comment error teaches", () => {
+  it("emitted xml.comment-not-well-formed message names comment location, the forbidden sequence, and the repair first", () => {
+    const result = parseGraceXmlArtifact(
+      "plan.xml",
+      planDocument(xmlComment(` note ${ADJACENT_HYPHENS} inside `)),
+    );
+    const commentIssue = result.issues.find((issue) => issue.code === "xml.comment-not-well-formed");
+    expect(commentIssue).toBeDefined();
+    assertCommentErrorTeaches(commentIssue!.message);
   });
 });
 

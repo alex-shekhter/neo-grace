@@ -8,6 +8,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   COMMENT_WELL_FORMED_PATH_ALLOWLIST
 //   GraceXmlNode
 //   ParsedGraceXmlArtifact
 //   childNodes
@@ -28,6 +29,27 @@ const ATTRIBUTE_NODE = ":@";
 const ATTRIBUTE_PREFIX = "@_";
 const TEXT_NODE = "#text";
 const CDATA_NODE = "#cdata";
+const CDATA_OPEN = "<![CDATA[";
+const CDATA_CLOSE = "]]>";
+const COMMENT_OPEN = "<!--";
+const COMMENT_CLOSE = "-->";
+const ADJACENT_HYPHENS = "--";
+
+/** Frozen closed path allowlist for xml.comment-not-well-formed (option 3). */
+export const COMMENT_WELL_FORMED_PATH_ALLOWLIST = [
+  ".ngrace/changes/archive/C-CALIBRATION-COMMAND-EVIDENCE/plan.xml",
+  ".ngrace/changes/archive/C-DECLARED-WRITES/plan.xml",
+  ".ngrace/changes/archive/C-ESCALATION-HONESTY/plan.xml",
+  ".ngrace/changes/archive/C-EXECUTION-CONTRACT/plan.xml",
+  ".ngrace/changes/archive/C-FLAG-HONESTY/plan.xml",
+  ".ngrace/changes/archive/C-GRAMMAR-SEAM/plan.xml",
+  ".ngrace/changes/archive/C-LEGIBLE-FAILURE/plan.xml",
+  ".ngrace/changes/archive/C-RECOVER-FOLDABLE/plan.xml",
+  ".ngrace/changes/archive/C-REPORT-HONESTY/plan.xml",
+] as const;
+
+const COMMENT_NOT_WELL_FORMED_MESSAGE =
+  "XML comment is not well-formed: the comment body contains two adjacent hyphen characters; rewrite the comment body so it does not contain that sequence.";
 
 type OrderedXmlEntry = Record<string, unknown>;
 
@@ -102,7 +124,7 @@ export function parseGraceXmlArtifact(file: string, text: string): ParsedGraceXm
       };
     }
 
-    return { file, root, issues: [] };
+    return { file, root, issues: collectCommentWellFormednessIssues(file, text) };
   } catch (error) {
     return {
       file,
@@ -117,6 +139,62 @@ export function parseGraceXmlArtifact(file: string, text: string): ParsedGraceXm
       ],
     };
   }
+}
+
+function normalizeAllowlistPath(file: string): string {
+  const slashes = file.replaceAll("\\", "/");
+  return slashes.startsWith("./") ? slashes.slice(2) : slashes;
+}
+
+function isCommentWellFormedAllowlisted(file: string): boolean {
+  const n = normalizeAllowlistPath(file);
+  return COMMENT_WELL_FORMED_PATH_ALLOWLIST.some((entry) => {
+    const e = normalizeAllowlistPath(entry);
+    return n === e || n.endsWith(`/${e}`);
+  });
+}
+
+function collectCommentWellFormednessIssues(file: string, text: string): NgraceIssue[] {
+  if (isCommentWellFormedAllowlisted(file)) {
+    return [];
+  }
+
+  let index = 0;
+  while (index < text.length) {
+    const cdataAt = text.indexOf(CDATA_OPEN, index);
+    const commentAt = text.indexOf(COMMENT_OPEN, index);
+    if (cdataAt === -1 && commentAt === -1) {
+      break;
+    }
+    if (cdataAt !== -1 && (commentAt === -1 || cdataAt < commentAt)) {
+      const cdataClose = text.indexOf(CDATA_CLOSE, cdataAt + CDATA_OPEN.length);
+      if (cdataClose === -1) {
+        break;
+      }
+      index = cdataClose + CDATA_CLOSE.length;
+      continue;
+    }
+
+    const bodyStart = commentAt + COMMENT_OPEN.length;
+    const commentClose = text.indexOf(COMMENT_CLOSE, bodyStart);
+    if (commentClose === -1) {
+      break;
+    }
+    const body = text.slice(bodyStart, commentClose);
+    if (body.includes(ADJACENT_HYPHENS)) {
+      return [
+        {
+          severity: "error",
+          code: "xml.comment-not-well-formed",
+          file,
+          message: COMMENT_NOT_WELL_FORMED_MESSAGE,
+        },
+      ];
+    }
+    index = commentClose + COMMENT_CLOSE.length;
+  }
+
+  return [];
 }
 
 /** Reads and parses one XML artifact from disk. Missing files produce a validation issue. */

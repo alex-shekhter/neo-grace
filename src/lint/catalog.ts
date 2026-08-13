@@ -465,6 +465,15 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
       "Re-run the command that loaded the file after the document parses.",
     ],
   },
+  "xml.comment-not-well-formed": {
+    title: "XML Comment Not Well-Formed",
+    explanation:
+      "XML comment is not well-formed: the comment body contains two adjacent hyphen characters; rewrite the comment body so it does not contain that sequence.",
+    remediation: [
+      "rewrite the comment body so it does not contain two adjacent hyphen characters.",
+      "This code is not a parse failure: the document still has a root.",
+    ],
+  },
   "xml.missing-file": {
     title: "XML Artifact File Missing",
     explanation: "A required XML artifact path does not exist on disk.",

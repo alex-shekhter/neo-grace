@@ -451,3 +451,41 @@ describe("C-CALIBRATION-COMMAND-EVIDENCE T-001: command-run evidence recorder", 
     expect(records).toHaveLength(0);
   });
 });
+
+describe("C-ARTIFACT-VALIDITY T-002 containment failure messages", () => {
+  it("interpolates requested text; MustNotContain names first-hit offset last", () => {
+    const root = createProject();
+    writeProjectionFixture(root);
+    const ctx = context(root);
+    const subject = "src/example.ts";
+    const missing = "alpha-missing";
+    const present = "fresh";
+    const fileText = "export const marker = 'fresh';\n";
+
+    const containIssues = evaluateAssertion(assertion("MustContain", [subject, missing]), ctx);
+    expect(containIssues).toHaveLength(1);
+    expect(containIssues[0]?.code).toBe("assertion.MustContain");
+    expect(containIssues[0]?.message).toBe(`${subject} must contain ${JSON.stringify(missing)}.`);
+    expect(containIssues[0]?.message.includes("(first hit at offset")).toBe(false);
+
+    const offset = fileText.indexOf(present);
+    const notContainIssues = evaluateAssertion(assertion("MustNotContain", [subject, present]), ctx);
+    expect(notContainIssues).toHaveLength(1);
+    expect(notContainIssues[0]?.code).toBe("assertion.MustNotContain");
+    expect(notContainIssues[0]?.message).toBe(
+      `${subject} must not contain ${JSON.stringify(present)} (first hit at offset ${offset}).`,
+    );
+  });
+
+  it("two texts pinned on one file produce distinguishable MustContain messages", () => {
+    const root = createProject();
+    writeProjectionFixture(root);
+    const ctx = context(root);
+    const subject = "src/example.ts";
+    const first = evaluateAssertion(assertion("MustContain", [subject, "alpha-missing"]), ctx)[0]?.message;
+    const second = evaluateAssertion(assertion("MustContain", [subject, "beta-missing"]), ctx)[0]?.message;
+    expect(first).toBe(`${subject} must contain ${JSON.stringify("alpha-missing")}.`);
+    expect(second).toBe(`${subject} must contain ${JSON.stringify("beta-missing")}.`);
+    expect(first).not.toBe(second);
+  });
+});
