@@ -4225,19 +4225,42 @@ state the window and ask the executor to measure. **The general form is the stan
 do not estimate — and it applies hardest to the authority's own instructions**, which an executor
 reads as settled fact.
 
-### F21 correction — `FIX_ATTEMPT_BUDGET` no longer exists in the product. **[verified]**
+### F21 correction — the attempt budget was renamed and narrowed, not deleted. **[verified]**
 
-[F21](#f21) recorded that escalation fires at `grace-cursor.ts:1737` on
-`options.outcome === "fail" && attemptCount >= FIX_ATTEMPT_BUDGET`, with the budget at 2, and that
-the counter ignores outcome. **Measured at `cd8d885`, that constant is gone.** `grace-cursor.ts`
-declares only `FIX_DISTINCT_SIGNATURE_BUDGET = 4` (`:183`), and the single escalation site is
-`distinctKeys.size >= FIX_DISTINCT_SIGNATURE_BUDGET` (`:1692`).
+**This entry was itself wrong on first writing, and the corrected text is below.** The first version
+claimed `FIX_ATTEMPT_BUDGET` was simply gone and that `FIX_DISTINCT_SIGNATURE_BUDGET = 4` was the
+only budget and the only escalation site. That was produced by a grep for the old name and the
+distinct-signature name — **neither of which could match the constant that actually replaced it.**
 
-**Why this needed checking rather than reading.** `C-SCHEMA-REFERENCE`'s plan schedules two
-consecutive `fail` attempts inside `T-001` and again inside `T-003`. Under F21 as written, the second
-`fail` in each window would have been the second attempt and would have tripped escalation, pausing
-both tasks — the [F56](#f56) trap arriving through a different door. Under the product as it actually
-stands, two distinct signatures is well under four and the plan is safe.
+**What the product does, measured at `6335e3f`.** `src/grace-cursor.ts` declares **two** budgets:
 
-**The rule.** A finding that quotes a constant is a measurement with an expiry date. Re-grep the
-constant before relying on the finding, especially when the reliance is "this plan is safe".
+```
+FIX_SIGNATURE_REPEAT_BUDGET   = 2   (:177)
+FIX_DISTINCT_SIGNATURE_BUDGET = 4   (:183)
+```
+
+`decideFixBudgetEscalation` (`:1683`) evaluates **trigger R before trigger D**: R fires when the
+current signature has occurred `>= 2` times in the window under **exact kind plus key equality**; D
+fires when the window holds `>= 4` distinct signatures.
+
+**So [F21](#f21)'s substance holds and its constant does not.** F21's real finding was that the
+counter was *outcome-blind and signature-blind* — any second attempt in the window, of any outcome,
+armed the escalation. That behaviour is genuinely gone: the repeat budget now requires the **same**
+signature. What survives is a repeat budget of 2, which the first correction erased.
+
+**Consequence for planning, and it cuts the other way from [F56](#f56).** F56 caps *distinct* reds
+per task at 3. Trigger R adds a second, independent cap: **a task may never plan the same
+signatureKey twice in one window.** Two reds in a task are safe only because their keys differ —
+which is exactly why `C-SCHEMA-REFERENCE`'s `T-001` and `T-003` executed without an escalation.
+A plan that reddened the same criterion twice would pause on the second fail.
+
+**`ngrace-execute/SKILL.md` is accurate on all of this** and always has been. Lines 38, 65 and 90
+state both triggers, and line 65 explicitly rules out "any two fails regardless of signature".
+Canonical and packaged are byte-identical. An executor has now reported this file as stale on the fix
+budget **twice**, both times wrongly; the likely cause is that the sentence leads with "2 failed
+attempts" and the qualifying clause reads as droppable.
+
+**The rule, sharpened.** A finding that quotes a constant is a measurement with an expiry date — but
+re-measuring by grepping *the name the finding used* only proves that name is absent. **A rename is
+indistinguishable from a deletion under that grep.** Verify the behaviour at its decision site
+(`decideFixBudgetEscalation` here), not the identifier, before reporting a mechanism gone.
