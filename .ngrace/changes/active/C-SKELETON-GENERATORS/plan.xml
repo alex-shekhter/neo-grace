@@ -1,0 +1,884 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-SKELETON-GENERATORS>
+    <IntentSummary>
+      Deliver RM-GOVERNED-PATH P1 step 5 only: render spec and
+      plan skeletons from live GRAMMAR_INVENTORIES in
+      src/artifact/skeletons.ts (one required core, skeleton and
+      teaching emissions); move the MODULE_CONTRACT renderer
+      into src/project-utils.ts; register spec, plan, and
+      scaffold commands from src/grace-generate.ts; regenerate
+      the four spec/plan templates from the teaching emission;
+      fail validate:ci when those templates differ from that
+      emission.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>src/project-utils.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/fixtures.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/references/change-spec-template.xml</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/references/change-plan-template.xml</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-SKELETON-GENERATORS/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-SKELETON-GENERATORS/plan.xml</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-PROJECT-UTILS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>M-CLI-INFRA</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustNotExist><Value>src/artifact/skeletons.ts</Value></MustNotExist>
+      <MustNotExist><Value>src/artifact/skeletons.test.ts</Value></MustNotExist>
+      <MustNotExist><Value>src/grace-generate.ts</Value></MustNotExist>
+      <MustNotExist><Value>src/grace-generate.test.ts</Value></MustNotExist>
+      <MustNotExist><Value>scripts/generate-skeleton-templates.ts</Value></MustNotExist>
+      <MustNotExist><Value>scripts/generate-skeleton-templates.test.ts</Value></MustNotExist>
+      <MustContain>
+        <File>src/grace.ts</File>
+        <Text>verification: verificationCommand</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/project-utils.ts</File>
+        <Text>function inferRole</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/fixtures.ts</File>
+        <Text>function renderModuleContract</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.test.ts</File>
+        <Text>function elevenRoots</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace.ts</File>
+        <Text>from "./grace-generate"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/project-utils.ts</File>
+        <Text>export function renderModuleContract</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/query/command.test.ts</File>
+        <Text>function liveCommandRoots</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>package.json</File>
+        <Text>generate-skeleton-templates</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-PROJECT-UTILS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustVerify><Module>M-CLI-INFRA</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/skeletons.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/skeletons.test.ts</Value></MustExist>
+      <MustExist><Value>src/project-utils.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/fixtures.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/generate-skeleton-templates.ts</Value></MustExist>
+      <MustExist><Value>scripts/generate-skeleton-templates.test.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-PROJECT-UTILS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>M-CLI-INFRA</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustContain>
+        <File>src/grace.ts</File>
+        <Text>from "./grace-generate"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-generate.ts</File>
+        <Text>export const specCommand</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/skeletons.ts</File>
+        <Text>export function renderChangeSpec</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/skeletons.ts</File>
+        <Text>export function renderChangePlan</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/project-utils.ts</File>
+        <Text>export function renderModuleContract</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/project-utils.ts</File>
+        <Text>export function commentPrefixForExtension</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/generate-skeleton-templates.ts</File>
+        <Text>export function checkSkeletonTemplates</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.test.ts</File>
+        <Text>function liveCommandRoots</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>generate-skeleton-templates</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/test-support/fixtures.ts</File>
+        <Text>function renderModuleContract</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/query/command.test.ts</File>
+        <Text>function elevenRoots</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-PROJECT-UTILS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustVerify><Module>M-CLI-INFRA</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/artifact/skeletons.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-generate.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/project-utils.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/query/command.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/generate-skeleton-templates.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:marketplace</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-GRAMMAR />
+        <M-PROJECT-UTILS />
+        <M-TEST-SUPPORT />
+        <M-CLI-INFRA />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-GRAMMAR />
+        <V-M-PROJECT-UTILS />
+        <V-M-TEST-SUPPORT />
+        <V-M-CLI-INFRA />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace.ts</File>
+      <File>src/grace-generate.ts</File>
+      <File>src/grace-generate.test.ts</File>
+      <File>src/artifact/skeletons.ts</File>
+      <File>src/artifact/skeletons.test.ts</File>
+      <File>src/project-utils.ts</File>
+      <File>src/project-utils.test.ts</File>
+      <File>src/test-support/fixtures.ts</File>
+      <File>src/query/command.test.ts</File>
+      <File>package.json</File>
+      <File>scripts/generate-skeleton-templates.ts</File>
+      <File>scripts/generate-skeleton-templates.test.ts</File>
+      <File>skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
+      <File>skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+      <File>.ngrace/changes/active/C-SKELETON-GENERATORS/spec.xml</File>
+      <File>.ngrace/changes/active/C-SKELETON-GENERATORS/plan.xml</File>
+      <File>.ngrace/changes/active/C-SKELETON-GENERATORS/run.xml</File>
+      <File>.ngrace/changes/active/C-SKELETON-GENERATORS/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-SKELETON-GENERATORS/run/**</Glob>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: 416a437 (branch feat/skeleton-generators).
+      Spec is approved and immutable. Do not re-open its
+      decisions: one bundle three verbs; live-inventory
+      renderer and probe mutation; two emissions (F63);
+      markup renderer moves to project-utils.ts; scaffold
+      refuses rather than guessing a MODULE_MAP; plan new
+      refuses to write beside a non-approved spec;
+      ObservedWriteScope as None in generated plans;
+      DurableScope and Satisfies seeded from the approved
+      spec; F45 exemptions on AC-HEAD-RED; no SKILL.md.
+      Re-measure every count at execute (F33). Do not pin
+      line numbers, artifact counts, boolean-site counts,
+      or lint 0/0 mid-change. Packaged version stays 6.2.0.
+      No Clarifications section.
+
+      Ceremony tier T2. Stop and re-spec rather than
+      touching src/artifact/grammar.ts validators,
+      src/review/**, src/lint/catalog.ts, src/lint/core.ts,
+      src/gates/**, skills/**/SKILL.md, plugins/**/SKILL.md,
+      the three non-spec-plan templates, docs/plans/**,
+      .ngrace/changes/archive/**, CHANGELOG.md, or any
+      version surface.
+
+      ────────────────────────────────────────────────────────────
+      D0 — Task decomposition and F56 budget
+      ────────────────────────────────────────────────────────────
+      Seven non-exempt criteria, each with its own red.
+      Cap: at most three distinct kind-plus-key pairs per
+      task (FIX_DISTINCT_SIGNATURE_BUDGET is 4). A task
+      must not record the same key twice
+      (FIX_SIGNATURE_REPEAT_BUDGET is 2). Unknown-command
+      keys must include the command argv token.
+
+      | Task | Surface | Satisfies | Planned distinct reds |
+      | T-001 | skeletons.ts (new),
+          skeletons.test.ts,
+          project-utils.ts (export
+          renderers + prefix),
+          project-utils.test.ts,
+          fixtures.ts (delete copies,
+          import production)
+        | AC-LIVE-INVENTORY,
+          AC-SINGLE-MARKUP-RENDERER
+        | 2: test:renderChangeSpec,
+          test:renderModuleContract |
+      | T-002 | grace-generate.ts (new;
+          spec and plan only),
+          grace-generate.test.ts,
+          grace.ts (register spec and
+          plan), command.test.ts
+          (liveCommandRoots + spec
+          and plan), package.json
+          (files list only)
+        | AC-SPEC-NEW, AC-PLAN-NEW
+        | 2: test:spec, test:plan |
+      | T-003 | grace-generate.ts
+          (scaffold), grace.ts
+          (register scaffold),
+          grace-generate.test.ts
+          (scaffold + generate-then-
+          lint), command.test.ts
+          (scaffold root)
+        | AC-SCAFFOLD-EMIT,
+          AC-LINT-PROPERTIES
+        | 2: test:scaffold,
+          test:lint-properties |
+      | T-004 | generate-skeleton-
+          templates.ts (new),
+          generate-skeleton-
+          templates.test.ts,
+          four spec/plan templates,
+          package.json (validate:ci
+          composition only)
+        | AC-TEMPLATES-GENERATED
+        | 1: test:checkSkeletonTemplates |
+      | T-005 | dogfood close
+        | AC-HEAD-RED, AC-SUITE-AND-LINT
+        | 0 manufactured reds |
+
+      T-001 does not write the four templates and does not
+      write the writer. If it did, T-004's stale-template
+      check would be green the moment it was written.
+
+      T-002 does not register scaffold. If it did, T-003's
+      unknown-command red for scaffold would have to be
+      manufactured.
+
+      T-002 DependsOn T-001: spec/plan CLI calls
+      renderChangeSpec / renderChangePlan.
+      T-003 DependsOn T-001 and T-002: scaffold calls the
+      production markup renderer; command module already
+      exists. T-004 DependsOn T-001 and T-002: writer
+      calls the teaching emission, and T-002 already
+      owns the package.json files-list edit, so T-004's
+      validate:ci composition cannot race it. Do not
+      expand ObservedWriteScope in place (F50).
+
+      T-005 DependsOn T-003 and T-004.
+
+      Signature keys the executor must record (kind test):
+        T-001  test:renderChangeSpec
+        T-001  test:renderModuleContract
+        T-002  test:spec
+        T-002  test:plan
+        T-003  test:scaffold
+        T-003  test:lint-properties
+        T-004  test:checkSkeletonTemplates
+
+      Per-task counts: T-001 2, T-002 2, T-003 2, T-004 1,
+      T-005 0. No key repeats inside a task. No task has
+      more than three. The three unknown-command keys are
+      spec, plan, scaffold.
+
+      ────────────────────────────────────────────────────────────
+      D1 — Renderer core (T-001)
+      ────────────────────────────────────────────────────────────
+      New file src/artifact/skeletons.ts LINKS M-GRAMMAR.
+      Not a new graph module. MAP_MODE EXPORTS.
+
+      Exports (tests bind these symbols, not rendered prose):
+
+        export function renderChangeSpec(
+          changeId: string,
+          options?: { teaching?: boolean },
+        ): string
+        export function renderChangePlan(
+          changeId: string,
+          specXml?: string,
+          options?: { teaching?: boolean },
+        ): string
+
+      Required core is one walk of the live
+      GRAMMAR_INVENTORIES lists, used by both emissions.
+      graceVersion is NGRACE_ARTIFACT_VERSION, not a second
+      literal. Probe mutation of SPEC_REQUIRED_SECTIONS,
+      PLAN_REQUIRED_SECTIONS, and TASK_REQUIRED_SECTIONS
+      changes both emissions; restore in finally.
+
+      Skeleton emission (teaching false / default): spec
+      new / plan new shape from the spec Constraints.
+      Teaching emission (teaching true): same required
+      core plus the closed appendix. Teaching Clarification
+      comments interpolate the live
+      CLARIFICATION_WORKING_FORM constant. Teaching
+      DesignReferences children come from live
+      DESIGN_REFERENCE_CHILD_TAGS. Do not copy those
+      member lists.
+
+      Do not write the four template files in T-001.
+      Do not write the writer in T-001.
+
+      Markup move, same task, second red: export
+      renderModuleContract, renderModuleMap, and
+      commentPrefixForExtension from project-utils.ts.
+      fixtures.ts deletes the local function bodies and
+      imports the production bindings (same references).
+      commentPrefixForExtension(".pyi") is hash. InferRole
+      and defaultMapMode stay the single implementation;
+      scaffold (T-003) will call them, not copy them.
+      TypeScript AST scan of src/ finds one function that
+      builds a START_MODULE_CONTRACT header
+      (C-SUBSTANCE-OVER-NAME shape, not an identifier
+      grep). Update MODULE_MAP on both files.
+
+      ────────────────────────────────────────────────────────────
+      D2 — spec new and plan new (T-002)
+      ────────────────────────────────────────────────────────────
+      New file src/grace-generate.ts LINKS M-CLI. Not a new
+      graph module. Export specCommand and planCommand.
+      grace.ts registers spec and plan only (not scaffold).
+      package.json files list gains grace-generate.ts. No
+      version field. No boolean args. defineGraceCommand
+      wraps both. Errors use the existing
+      GraceCommandError code union only.
+
+      Rename elevenRoots to liveCommandRoots in
+      command.test.ts and include spec and plan. Re-measure
+      the boolean-site cardinality; do not rewrite it. It
+      must not move if no boolean args are added.
+
+      argv token new is the subcommand. argv token path
+      (alias p) is the project root. Change id must already
+      match ANCHOR_PATTERNS.change. Do not prepend C-.
+      Refuse if active or archive directory exists.
+
+      spec new writes the skeleton emission. First stdout
+      line is the project-relative path. plan new refuses
+      when the spec is missing or not approved, naming the
+      spec path and the approved-spec rule; writes the
+      skeleton emission beside an approved spec, with
+      ObservedWriteScope None and DurableScope / Satisfies
+      seeded from that spec.
+
+      ────────────────────────────────────────────────────────────
+      D3 — scaffold and generate-then-lint (T-003)
+      ────────────────────────────────────────────────────────────
+      Register scaffold on grace.ts. Export scaffoldCommand
+      from grace-generate.ts. argv token module is
+      required. Stdout only; do not write the Path file.
+      Add scaffold to liveCommandRoots.
+
+      Refuse: unknown module (not-found); no Path
+      (invalid-arguments); missing Path file (not-found);
+      extension not in ADAPTER_BACKED_EXTENSIONS
+      (invalid-arguments); empty required symbol set
+      (invalid-arguments). Plant all four plus the happy
+      path. Do not emit a guessed MODULE_MAP entry.
+
+      AC-LINT-PROPERTIES generate-then-lint tests live in
+      grace-generate.test.ts: spec new then lint of a temp
+      project is 0/0; plan new beside an approved spec
+      then lint is 0/0; plan new beside a draft spec
+      writes nothing; scaffold stdout prepended to a
+      fixture body has 0 markup errors. Write the
+      generate-then-lint test before scaffold production
+      so the scaffold half is the recorded red
+      (test:lint-properties). After T-002 the spec/plan
+      halves may already pass; do not record those as
+      this task's reds.
+
+      ────────────────────────────────────────────────────────────
+      D4 — Templates and check mode (T-004)
+      ────────────────────────────────────────────────────────────
+      scripts/generate-skeleton-templates.ts writes the
+      four spec/plan template files from the teaching
+      emission (C-CHANGE-ID; plan seeded from that spec).
+      export function checkSkeletonTemplates(root): number
+      returns non-zero when any of the four is missing or
+      differs from the teaching emission, zero when all
+      four match. Argv token check (not a dashed flag).
+      Check mode must not write. Isolated-root missing-file
+      test so the red stays valid after the files are
+      regenerated.
+
+      validate:ci invokes that check by composition
+      (package.json scripts only; no version field).
+      validate:marketplace stays green because both trees
+      change together. SKILL.md is not edited. The File
+      placeholder is not in either emission. Teaching
+      comments contain no two adjacent hyphens. No
+      generated banner inside the XML.
+
+      ────────────────────────────────────────────────────────────
+      D5 — HEAD-RED ownership
+      ────────────────────────────────────────────────────────────
+      | Spec AC | Owner | Pre-edit measurement |
+      | AC-LIVE-INVENTORY | T-001 test:renderChangeSpec
+        | skeletons.ts absent |
+      | AC-SINGLE-MARKUP-RENDERER
+        | T-001 test:renderModuleContract
+        | export missing; fixtures still has
+          the private body; .pyi is slash-slash |
+      | AC-SPEC-NEW | T-002 test:spec
+        | citty unknown command spec |
+      | AC-PLAN-NEW | T-002 test:plan
+        | citty unknown command plan |
+      | AC-SCAFFOLD-EMIT | T-003 test:scaffold
+        | citty unknown command scaffold |
+      | AC-LINT-PROPERTIES | T-003 test:lint-properties
+        | generate-then-lint scaffold path
+          cannot be produced |
+      | AC-TEMPLATES-GENERATED
+        | T-004 test:checkSkeletonTemplates
+        | writer absent; templates hand-written
+          with File placeholder |
+      | AC-HEAD-RED + AC-SUITE-AND-LINT
+        | T-005 Satisfies; reds on T-001 to T-004 |
+
+      Never a red backed only by a grep. Never a
+      retrospective red via stash. Never fail and pass
+      in one tool call.
+
+      ────────────────────────────────────────────────────────────
+      D6 — ObservedWriteScope
+      ────────────────────────────────────────────────────────────
+      Forced by the spec (F27.2), listed as File entries
+      (F60: no src glob). The one Glob is
+      .ngrace/changes/active/C-SKELETON-GENERATORS/run/**
+      which is the same shape as src/** x src/a.ts, a
+      pair both matchers agreed on in F60. Cursor
+      companions are audit-exempt via isCliLifecyclePath
+      and are still listed so OWS is complete at
+      authoring (F50). Do not add a note that tells a
+      later executor to expand this list in place.
+
+      Predicted lint window: listing
+      src/artifact/skeletons.ts and
+      src/grace-generate.ts raises
+      change.graph-anchors-miss-write-scope until those
+      files exist with LINKS M-GRAMMAR and LINKS M-CLI.
+      Do not omit the paths. Do not host the renderer
+      inside an existing file to dodge the check.
+      isModuleOwnableWritePath excludes *.test.ts.
+      scripts/ is in ignoredDirs. AC-SUITE-AND-LINT is
+      0/0 at close, not throughout.
+
+      Deliberately excluded: SKILL.md, F51 pin files,
+      docs/plans, archive, CHANGELOG, version surfaces,
+      grammar validators, catalog.ts, review/**,
+      design-context / design-system / migration-report
+      templates.
+
+      ────────────────────────────────────────────────────────────
+      D7 — Baseline assertion.* count predictions
+      ────────────────────────────────────────────────────────────
+      Load-bearing flips (Baseline that become false):
+
+        A  MustNotExist skeletons.ts
+        B  MustNotExist skeletons.test.ts
+        C  MustNotExist grace-generate.ts
+        D  MustNotExist grace-generate.test.ts
+        E  MustNotExist generate-skeleton-templates.ts
+        F  MustNotExist generate-skeleton-templates.test.ts
+        G  MustNotContain grace.ts
+             from "./grace-generate"
+        H  MustNotContain project-utils.ts
+             export function renderModuleContract
+        J  MustNotContain command.test.ts
+             function liveCommandRoots
+             (this is a Target MustContain; Baseline
+             MustNotContain. Flip when T-002 renames.)
+        K  MustNotContain package.json
+             generate-skeleton-templates
+        L  MustContain fixtures.ts
+             function renderModuleContract
+             (Baseline true; Target MustNotContain)
+
+      Stay-true: verification: verificationCommand;
+      function inferRole; "version": "6.2.0";
+      function elevenRoots until T-002 renames it
+      (that one does flip: Baseline MustContain
+      elevenRoots becomes false at T-002).
+      All MustExist of pre-existing paths and modules;
+      all MustVerify.
+
+      Measure with bun run ngrace lint, path ., change
+      C-SKELETON-GENERATORS, assertions baseline.
+
+      Bare ngrace lint with path . evaluates approved
+      baselines only. Immediately after plan approval
+      and before any task, N must be 0.
+
+        After plan approval, before any task: N = 0.
+        After T-001 test writes (B): N = 1.
+        After T-001 production (A, H, L): N grows.
+        After T-002 (C, D, G, elevenRoots / J): N grows.
+        After T-003: no new Baseline flips if scaffold
+          lands in files T-002 already created.
+        After T-004 (E, F, K): N grows.
+        After T-005 / apply-archive: lint 0/0 at close
+          only. Until T-001 and T-002 create the two
+          ownable src files, root lint also carries
+          the graph-anchors-miss-write-scope window.
+          That issue is not in N.
+
+      Re-measure N at execute (F33). Never weaken a
+      BaselineAssertion to reduce N.
+
+      ────────────────────────────────────────────────────────────
+      D8 — Execution discipline
+      ────────────────────────────────────────────────────────────
+      One open epoch. T-001 three round trips (renderer
+      red, markup-export red, then production). T-002
+      three (spec unknown, plan unknown, then
+      production). T-003 three (scaffold unknown,
+      generate-then-lint red, then production). T-004
+      two (check-mode red, then production). T-005: no
+      manufactured red if green. Terminal / fold / gate
+      / commit are operator steps after T-005 unless
+      authority says otherwise. Never fail and pass in
+      one tool call. Never a retrospective red via stash.
+
+      Newly visible commands are named in the
+      conventional commit body (D5.5), not in
+      CHANGELOG.md. Name argv tokens in any later
+      comment; leave dashed forms to *.test.ts (F61).
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Render spec/plan skeletons from live inventories and move the markup renderer into production</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-LIVE-INVENTORY />
+          <AC-SINGLE-MARKUP-RENDERER />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (inventory half): before any
+            skeletons.ts production edit, in its own tool
+            round trip, write tests in
+            src/artifact/skeletons.test.ts that
+            renderChangeSpec and renderChangePlan exist;
+            that both emissions share one required-core
+            walk; that probe mutation of
+            SPEC_REQUIRED_SECTIONS, PLAN_REQUIRED_SECTIONS,
+            and TASK_REQUIRED_SECTIONS changes both
+            emissions and restores in finally; and that
+            rendered graceVersion equals the live
+            NGRACE_ARTIFACT_VERSION constant. HEAD today:
+            skeletons.ts and this test file are absent.
+            The asserts fail. Record cursor fail, outcome
+            fail, signature kind test key renderChangeSpec.
+            Do not land production in this round trip.
+            Never a red backed only by a grep; never fail
+            and pass in one tool call; never a retrospective
+            red via stash. Failure conditions: this round
+            trip also lands production; section names
+            hardcoded; probe left unreverted; graceVersion
+            copied as a second literal; templates or writer
+            written in this task.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (markup half): before any
+            project-utils.ts or fixtures.ts production
+            edit, in its own tool round trip, write tests
+            in src/project-utils.test.ts that
+            renderModuleContract, renderModuleMap, and
+            commentPrefixForExtension are exported from
+            project-utils.ts; that
+            commentPrefixForExtension of .pyi and .py is
+            hash; that a TypeScript extension is
+            slash-slash; and that a TypeScript AST scan of
+            src/ finds one START_MODULE_CONTRACT header
+            builder. HEAD today: the three functions live
+            in fixtures.ts; only commentPrefixForExtension
+            is exported; .pyi defaults to slash-slash. The
+            export asserts fail. Record fail, signature
+            kind test key renderModuleContract. Do not land
+            production in this round trip. Failure
+            conditions: identifier-only grep sold as the
+            AST scan; this round trip also lands
+            production; .pyi reddened by adding a prefix
+            only to delete it later without moving the
+            function.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the two
+            reds): add src/artifact/skeletons.ts as in D1,
+            linking M-GRAMMAR. Move the three markup
+            functions to project-utils.ts and export them.
+            fixtures.ts deletes local copies and imports
+            the production bindings. Update both MODULE_MAP
+            blocks. Do not write the four templates. Do
+            not write the writer. Do not edit SKILL.md.
+            Do not add a graph module. Failure conditions:
+            second markup renderer left in fixtures;
+            barrel copied rather than read; teaching
+            emission omitted so T-004 has nothing to
+            check against; templates regenerated here so
+            T-004's red cannot be recorded.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/skeletons.test.ts</Command>
+          <Command>bun test src/project-utils.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Register spec new and plan new against the skeleton emission</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SPEC-NEW />
+          <AC-PLAN-NEW />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (spec command): before any
+            grace-generate.ts or grace.ts production edit,
+            in its own tool round trip, write tests in
+            src/grace-generate.test.ts that invoke the spec
+            new path and fail because the command is not
+            registered. HEAD today: citty reports an
+            unknown command. Record fail, signature kind
+            test key spec. Do not land production in this
+            round trip. Failure conditions: key reused as
+            plan or scaffold; this round trip also lands
+            production; fail and pass in one call.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (plan command): before any
+            grace-generate.ts or grace.ts production edit,
+            in its own tool round trip, write tests that
+            invoke the plan new path and fail because the
+            command is not registered. Record fail,
+            signature kind test key plan. Do not land
+            production in this round trip. Failure
+            conditions: key equals spec; this round trip
+            also lands production.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the two
+            reds): add src/grace-generate.ts exporting
+            specCommand and planCommand (D2). Register
+            spec and plan on grace.ts. Do not register
+            scaffold. Add grace-generate.ts to package.json
+            files. Rename elevenRoots to liveCommandRoots
+            and include spec and plan. Re-measure boolean
+            site cardinality. Implement refuse and write
+            behaviour from the spec Constraints (skeleton
+            emission only). Failure conditions: scaffold
+            registered here; teaching emission written by
+            spec new; File placeholder in ObservedWriteScope;
+            plan new writes beside a draft spec; version
+            field edited; SKILL.md edited.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-generate.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Register scaffold and prove generate-then-lint on a temp project</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SCAFFOLD-EMIT />
+          <AC-LINT-PROPERTIES />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (scaffold command): before any
+            scaffold production edit, in its own tool
+            round trip, write tests that invoke scaffold
+            and fail because the command is not registered.
+            HEAD today: citty reports an unknown command.
+            Record fail, signature kind test key scaffold.
+            Do not land production in this round trip.
+            Failure conditions: key equals spec or plan;
+            this round trip also lands production.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (generate-then-lint path): before
+            scaffold production, in its own tool round
+            trip, write the AC-LINT-PROPERTIES temp-project
+            tests (D3). The scaffold half fails because
+            scaffold is not registered. Spec/plan halves
+            may already pass after T-002; do not record
+            those as this red. Record fail, signature kind
+            test key lint-properties. Do not land
+            production in this round trip. Failure
+            conditions: construction half reddened; this
+            repository's tree sold as the temp-project
+            proof; this round trip also lands production;
+            key repeats scaffold.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the two
+            reds): export scaffoldCommand; register
+            scaffold on grace.ts; add scaffold to
+            liveCommandRoots; implement D3 refuse and
+            stdout emit using the production markup
+            renderer and inferRole / defaultMapMode /
+            analyze. Path file bytes unchanged. Failure
+            conditions: writes the Path file; second
+            renderer; guessed MODULE_MAP; ROLE invented
+            beyond inferRole; boolean write flag added;
+            SKILL.md edited.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-generate.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Regenerate spec/plan templates from the teaching emission and fail CI when they drift</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-TEMPLATES-GENERATED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (template check): before any writer,
+            package.json script, or template-file production
+            edit, in its own tool round trip, write tests in
+            scripts/generate-skeleton-templates.test.ts that
+            checkSkeletonTemplates returns non-zero when a
+            template is missing under an isolated root or
+            differs from the teaching emission, and returns
+            zero when all four match. HEAD today: the writer
+            and this test file are absent; the four files
+            are hand-written; the plan template still has
+            the File placeholder; validate:ci does not
+            invoke a check. The asserts fail. Record fail,
+            signature kind test key checkSkeletonTemplates.
+            Do not land production in this round trip.
+            Failure conditions: check compares skeleton
+            bytes; check compares a fixture copy; this
+            round trip also lands production; missing-file
+            case uses this repository root so it dies after
+            regeneration.
+          </Criterion>
+          <Criterion>
+            Production: add
+            scripts/generate-skeleton-templates.ts (D4).
+            Write the four templates from the teaching
+            emission; do not hand-edit them. Compose the
+            check into validate:ci. validate:marketplace
+            stays green. SKILL.md is byte-identical to
+            HEAD. Teaching comments have no two adjacent
+            hyphens. File placeholder is gone. Failure
+            conditions: templates equal the skeleton and
+            drop the teaching; only one tree updated;
+            version field edited; SKILL.md edited; other
+            templates edited; generated banner inside the
+            XML.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/generate-skeleton-templates.test.ts</Command>
+          <Command>bun run validate:marketplace</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Close: suite, marketplace, and lint at archive only</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+          <Task>T-004</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-HEAD-RED />
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (full): every non-exempt criterion
+            has a recorded fail then pass on T-001 through
+            T-004 as in D5. No manufactured red in this
+            task. F45 exemptions stay unreddened.
+          </Criterion>
+          <Criterion>
+            AC-SUITE-AND-LINT: bun test green for the
+            touched test files; validate:ci green;
+            validate:marketplace green; ngrace lint path .
+            is 0 errors and 0 warnings at close only (after
+            apply and archive, not claimed mid-change).
+            ObservedWriteScope covers every path the
+            deliverable forced. No SKILL.md. No docs/plans
+            or archive edits. No CHANGELOG. No version
+            surfaces. Re-measure ratchet cardinality; do
+            not drop keys. Failure conditions: suite red;
+            lint 0/0 claimed mid-window; writes outside
+            declared scope; HEAD-green lint cited as proof
+            the generators landed.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/skeletons.test.ts</Command>
+          <Command>bun test src/grace-generate.test.ts</Command>
+          <Command>bun test src/project-utils.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test scripts/generate-skeleton-templates.test.ts</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-SKELETON-GENERATORS>
+</NgraceChangePlan>
