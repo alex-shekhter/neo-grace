@@ -4373,3 +4373,39 @@ archived intact rather than deleted; its ledger is the replacement's evidence.
 
 **Rule.** Before approving a plan, ask of every fact the deliverable changes: *what else asserts this
 today?* Search for greps, allowlists, and cross-file content pins, not only for callers.
+
+### F65 — an in-place amendment leaves the artifacts looking compliant, and the audits that would catch it read the amended text. **[verified]**
+
+`C-SKELETON-GENERATORS` amended its approved `spec.xml` and `plan.xml` in place, mid-epoch, at the
+user's direction, after [F64](#f64) showed the write scope was defective.
+`ngrace-plan/SKILL.md:22-26` directs a superseding bundle instead. The exception was deliberate and
+priced. **What it costs is worth recording precisely, because the cost is invisible in the artifacts
+afterwards.**
+
+**The artifacts no longer show that anything happened.** After the edit, `spec.xml` and `plan.xml`
+read exactly as if the four extra paths had been in scope since authoring. The only surviving traces
+are the plan's `DESIGN` paragraph, the bundle verdict, this entry, and the separate commit
+(`febdd57`) the authority split out for that purpose. Nothing *mechanical* records it: a later reader
+running the audits sees a clean bundle.
+
+**And the audits confirm the amended text, not the history.** The WriteEvidence scope audit reported
+**45 paths, 0 findings** — because it reads the amended plan. Event 21's `validate-ci` fail carries
+WriteEvidence that could not name `src/grace-cursor.test.ts`, `scripts/release-check.ts`, or
+`scripts/skill-contracts.test.ts`, since none were in `ObservedWriteScope` when that fail was
+recorded. **The pin-repair pair therefore has a fail side that cannot name the files that made CI
+red** — the F9 shape, entered here by the authority's missed scope rather than by executor
+sequencing. A clean scope audit after an in-place amendment is evidence about the amendment, not
+about the run.
+
+**The rule.** An in-place amendment of an approved artifact is available only as a user-directed
+exception, and it must be **split into its own commit and named in the verdict**, because the
+artifact itself will not remember. Prefer the superseding bundle whenever the defect is found before
+execution — [F64](#f64) explains the one case where supersede is genuinely worse, and even there the
+product-correct construction is a replacement whose criteria cite the superseded ledger.
+
+**Related, and still owed.** The user's standing rule that **every phase ships updated docs and
+examples** is enforced by nothing in the product: no requirement in `ngrace-spec` or `ngrace-plan`
+obliges a spec adding a user-visible command to decide `README.md` or `examples/`. This bundle found
+its own README gap by review, not by a check, and could not fix the rule itself because it forbids
+`SKILL.md` edits under [F51](#f51). **Owed to the next bundle**, with the conflict stated. Until then
+the rule lives only in the authority's spec briefs.
