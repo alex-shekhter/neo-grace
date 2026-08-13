@@ -7,8 +7,9 @@
       two filename constants; make Clarification authorable by moving its
       target to a self-closing IC-*, INV-*, or AC-* child (not an attribute
       exemption); retarget the approve and apply readers onto that child;
-      and teach the working form in both skill trees and both shipped
-      XML templates in the same commit.
+      and teach the working form in the two exact guides for this
+      element's shape, and in both skill trees and both shipped XML
+      templates (canonical and packaged trees in the same commit).
     </Summary>
     <Problem>
       **Shared shape.** Two P1 items are the same class of change in the
@@ -56,6 +57,20 @@
       template, each mirrored under `plugins/ngrace/skills/ngrace/`.
       Two of those are XML templates for verbatim copying, and they
       do not lint.
+
+      The same two codes already have exact guides.
+      `ngrace lint --explain` classifies
+      `change.invalid-clarification` and
+      `change.invalid-clarification-target` as exact; both
+      instruct a target attribute (measured at 7e8b7de: 1 and
+      4 rendered lines mention target). Landing the emitted-
+      message rewrite without those guides would leave
+      `--explain` teaching the form that cannot lint — two
+      teaching surfaces contradicting, which is worse than
+      one wrong surface. The
+      `change.duplicate-clarifications-section` exact guide
+      is not about this element's shape (0 rendered lines
+      mention target).
 
       **Fix direction is settled and is not reopened here:** the
       target becomes a self-closing anchor child, matching
@@ -111,9 +126,11 @@
         ContextArtifact list. The two constants stay separate.
       </Goal>
       <Goal>
-        **Teaching.** Both skill trees and both XML templates teach
-        the child-anchor form and do not teach the attribute form.
-        `bun run validate:marketplace` is green after that edit.
+        **Teaching.** Both skill trees, both XML templates, and
+        the two exact guides for this element's shape teach
+        the child-anchor form and do not teach the attribute
+        form. `bun run validate:marketplace` is green after
+        the skill edit.
       </Goal>
     </Goals>
     <Constraints>
@@ -135,12 +152,12 @@
         deliverable forces, including this bundle's own artifacts);
         D16 (evidence lives in an artifact); D11 (nothing deferred
         without a dependency or a conflict); D17 (AC ids name the
-        property). Authoring history (not a live constraint): this
-        spec is draft with no plan.xml until approved (F4).
+        property). This amendment keeps spec status approved
+        and plan status draft.
       </Constraint>
       <Constraint>
         Ceremony tier **T2** (grammar shape + gate reader + both
-        skill trees). P1.4 schema generation, P1.5 generators,
+        skill trees + two exact guides). P1.4 schema generation, P1.5 generators,
         P1.6 `--as`, P1.10 skill inversion, P1.11 polyglot, P1.13
         well-formedness, and P1.14 MustContain text are out of
         implementation.
@@ -193,10 +210,19 @@
         the authorable shape and must run lint on that document);
         both trees of `ngrace-spec` / `ngrace-plan` SKILL.md and
         both `references/*.xml` templates (eight teaching files);
-        this bundle's `spec.xml` and, when authored, `plan.xml`.
-        **Stop and re-spec** rather than touching `docs/plans/**`,
+        `src/lint/catalog.ts` (only the exact guides for
+        `change.invalid-clarification` and
+        `change.invalid-clarification-target`);
+        `src/lint/catalog.test.ts` (tests of those two guides
+        only); this bundle's `spec.xml` and `plan.xml`.
+        **Narrow admission, not a blanket `src/lint` opening:**
+        those two exact-guide entries and their test are in.
+        **Stop and re-spec** rather than touching any other
+        path under `src/lint/**` (no catalog restructuring,
+        no resolution-path predicate, no exact guide
+        `C-EXPLAIN-COVERAGE` authored), `docs/plans/**`,
         `.ngrace/changes/archive/**`, CHANGELOG.md, version
-        surfaces, P1.4's generator, or `src/lint/**`.
+        surfaces, or P1.4's generator.
       </Constraint>
       <Constraint>
         **Do not edit** `docs/plans/**`, `.ngrace/changes/archive/**`,
@@ -223,6 +249,10 @@
         `src/**/*.test.ts` assert the literal bytes. The same rule
         applies to OptionalContext: this spec names the bucket and
         the two filenames; the test asserts the tagged form.
+        The same rule applies to the two exact guides: this
+        spec binds the working-form shape and forbids a
+        target-attribute instruction; the test asserts the
+        rendered guide bytes.
       </Constraint>
     </Constraints>
     <NonGoals>
@@ -254,6 +284,15 @@
         this bundle exists *before* P1.4, not why it should start
         P1.4. P1.13 sequences with this step as a later
         artifact-validity repair; it is not this deliverable.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — any other `src/lint/**` edit.** No catalog
+        restructuring, no resolution-path predicate, no rewrite
+        of exact guides `C-EXPLAIN-COVERAGE` authored, no
+        `src/lint/core.ts` / emission-patterns / adapters.
+        Conflict: those surfaces are P1.1–3's, already shipped.
+        This bundle may touch only the two named exact guides
+        and the test of those two guides.
       </NonGoal>
       <NonGoal>
         `docs/plans/**` board edits, CHANGELOG, product version
@@ -356,8 +395,10 @@
         that element emits today; any diagnostic added on
         this element's shape is under the same rule. The
         duplicate-Clarifications-section diagnostic is not
-        a member. This criterion binds that semantic
-        content; the test asserts the literal bytes. **HEAD today:** one
+        a member. The exact-guide half of those same two
+        members is AC-GUIDE-TEACHES-WORKING-FORM. This
+        criterion binds that semantic content; the test
+        asserts the literal bytes. **HEAD today:** one
         `change.invalid-clarification` instructs a target
         attribute holding an IC-*/INV-*/AC-* token as the
         repair; the other requires a non-empty target
@@ -371,6 +412,61 @@
         attribute; this criterion treated as a quoted-byte
         bind; attribute form still named as the repair.
       </AC-ERROR-TEACHES-WORKING-FORM>
+      <AC-GUIDE-TEACHES-WORKING-FORM>
+        The `lint --explain` guide surface teaches the
+        working form. Named for the surface it binds, in
+        parallel with AC-ERROR-TEACHES-WORKING-FORM: the
+        umbrella property — every surface that teaches this
+        element's shape agrees — is the conjunction of this
+        criterion, that one, and AC-SKILL-AND-TEMPLATE, and
+        is not claimed by any one of them alone (F10).
+        This criterion's required members are the exact guides for
+        `change.invalid-clarification` and
+        `change.invalid-clarification-target` — the same
+        two members AC-ERROR-TEACHES-WORKING-FORM binds
+        on the emitted-message side. Each of those guides
+        names the working form — exactly one self-closing
+        IC-*, INV-*, or AC-* child — as the first shape
+        it names, and does not instruct a target
+        attribute. A later mention of the child after an
+        attribute instruction does not satisfy (F44).
+        This criterion binds that semantic content; the
+        test asserts the literal bytes. The
+        `change.duplicate-clarifications-section` exact
+        guide is not a member. Emitted messages are
+        AC-ERROR-TEACHES-WORKING-FORM; skills and
+        templates are AC-SKILL-AND-TEMPLATE. **HEAD today
+        (measured at 7e8b7de via the rendered exact
+        guide):** both members classify as exact.
+        `change.invalid-clarification` explanation admits
+        only Clarification children that carry a
+        non-empty target attribute (1 rendered line
+        mentions target). `change.invalid-clarification-target`
+        explanation requires the target value to be a
+        canonical IC-*, INV-*, or AC-* anchor, and its
+        remediation says to point target at a real
+        contract, invariant, or acceptance criterion id
+        (4 rendered lines mention target: the code
+        token, the title, the explanation, and the
+        remediation). Neither names the self-closing
+        anchor child as the first shape.
+        `change.duplicate-clarifications-section` is
+        exact and mentions target on 0 rendered lines.
+        The code token and the existing title are
+        identifiers, not repair instructions — they are
+        not this bind, and they will still contain the
+        word target after the repair. **Failure
+        conditions:** only one of the two guides
+        rewritten; working form named after an attribute
+        instruction; emitted message cited while the
+        exact guide still instructs a target attribute;
+        this criterion treated as a quoted-byte bind;
+        the duplicate-section guide rewritten as if it
+        were a member; the code or title renamed to
+        move a word-count; catalog restructured; the
+        resolution-path predicate edited; an exact
+        guide C-EXPLAIN-COVERAGE authored rewritten.
+      </AC-GUIDE-TEACHES-WORKING-FORM>
       <AC-OPTIONAL-CONTEXT-ADMITS>
         A DurableScope may contain an OptionalContext child.
         That bucket admits entries whose text is `design-system.xml`
@@ -438,6 +534,7 @@
         Each of AC-CLARIFICATION-AUTHORABLE, AC-APPROVE-GATE-FIRES
         (IC and INV, not one family), AC-APPLY-GATE-FIRES,
         AC-ERROR-TEACHES-WORKING-FORM,
+        AC-GUIDE-TEACHES-WORKING-FORM,
         AC-OPTIONAL-CONTEXT-ADMITS, the new half of
         AC-OPTIONAL-CONTEXT-REJECTS, and AC-SKILL-AND-TEMPLATE
         has a red recorded before its production edit, in its own
@@ -453,6 +550,7 @@
         form refuse tests must not carry any of these reds. **HEAD
         today:** child-form lint is red; child-form approve is
         permit (invisible target); Clarification diagnostics
+        instruct a target attribute; the two exact guides
         instruct a target attribute; OptionalContext is a
         rejected DurableScope child; skills teach the
         attribute. **Failure conditions:** a check that
@@ -463,7 +561,8 @@
       </AC-HEAD-RED>
       <AC-SUITE-AND-LINT>
         `bun test` green for touched packages (`src/artifact/grammar.test.ts`,
-        `src/artifact/scope.test.ts`, `src/gates`);
+        `src/artifact/scope.test.ts`, `src/lint/catalog.test.ts`,
+        `src/gates`);
         `bun run validate:ci` green (determinism ratchet
         cardinality only moves if a catch is intentionally added —
         re-measure, do not drop keys);
@@ -474,6 +573,7 @@
         deliverable forces, including both skill trees, both
         template files, `src/gates/core.test.ts`,
         `src/artifact/grammar.test.ts`, `src/artifact/scope.ts`,
+        `src/lint/catalog.ts`, `src/lint/catalog.test.ts`,
         and this bundle's `spec.xml` / `plan.xml`. No edits under
         `docs/plans/` or `.ngrace/changes/archive/`; no CHANGELOG;
         no version surfaces. **HEAD today:** lint is 0/0 and
@@ -488,10 +588,12 @@
       <M-GRAMMAR />
       <M-GATES />
       <M-SKILLS />
+      <M-LINT-CATALOG />
     </AffectedAreas>
     <VerificationIntent>
       <ExpectedCommand>bun test src/artifact/grammar.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test src/artifact/scope.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/lint/catalog.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test src/gates</ExpectedCommand>
       <ExpectedCommand>bun run validate:marketplace</ExpectedCommand>
       <ExpectedCommand>bun run validate:ci</ExpectedCommand>
@@ -504,7 +606,9 @@
         unresolved Satisfied AC-* refuses apply and resolves
         to not emit that code; attribute form remains an error;
         Clarification-shape diagnostics lead with the child
-        form and do not instruct a target attribute;
+        form and do not instruct a target attribute; the
+        two exact guides for those same codes lead with the
+        child form and do not instruct a target attribute;
         OptionalContext admits the two optional filenames and
         rejects required and unknown names; ContextArtifact
         still rejects the optional names; extractDurableScope
@@ -545,13 +649,25 @@
         `grammar.test.ts` "validates Clarification targets"
         asserts a one-code negative. Approve-gate tests plant
         `target="IC-EXAMPLE"` and never lint that document.
+        Amendment measured at 7e8b7de: both shape-member
+        exact guides classify as exact and instruct a
+        target attribute (1 and 4 rendered lines mention
+        target); `change.duplicate-clarifications-section`
+        mentions target on 0.
       </Assumption>
       <Assumption>
         **Module ownership.** M-GRAMMAR → `src/artifact/grammar.ts`
         (and linked `scope.ts`); M-GATES → `src/gates/core.ts`;
         M-SKILLS covers canonical `skills/ngrace/*` (packaged
         mirror is the marketplace pair, not a second graph
-        Path). Test files are ungoverned and ride
+        Path); M-LINT-CATALOG → `src/lint/catalog.ts`
+        (verified: `.ngrace/graph/main.xml` Path, and
+        `LINKS: M-LINT-CATALOG` on that file).
+        `src/lint/catalog.test.ts` is ungoverned and rides
+        ObservedWriteScope as a path.
+        `src/lint/emission-patterns.ts` also LINKS
+        M-LINT-CATALOG and is not in this write set.
+        Test files are ungoverned and ride
         ObservedWriteScope as paths. M-ARTIFACT-TYPES is not
         in AffectedAreas: this bundle reads
         `NGRACE_OPTIONAL_CONTEXT_ARTIFACTS` and must not edit

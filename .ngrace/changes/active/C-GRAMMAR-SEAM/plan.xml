@@ -1,0 +1,1174 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-GRAMMAR-SEAM>
+    <IntentSummary>
+      Deliver RM-GOVERNED-PATH P1 steps 9 and 12 only: make Clarification
+      authorable as exactly one self-closing IC-*, INV-*, or AC-* child
+      (attribute form rejected, not aliased); rewrite the three
+      Clarification-shape diagnostics so they lead with that working form
+      and do not instruct a target attribute; retarget the approve and
+      apply readers onto the child tag so a lint-clean unresolved
+      IC-*/INV-* refuses approve and a lint-clean unresolved Satisfied
+      AC-* refuses apply; admit OptionalContext as a DurableScope bucket
+      whose members are the live NGRACE_OPTIONAL_CONTEXT_ARTIFACTS list,
+      extract those names for overlap, and reject required and unknown
+      names without widening ContextArtifact; rewrite the two
+      Clarification-shape exact guides so they lead with that
+      working form and do not instruct a target attribute; teach
+      the child form in both skill trees and both shipped XML
+      templates in the same commit.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/references/change-spec-template.xml</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/references/change-plan-template.xml</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-GRAMMAR-SEAM/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-GRAMMAR-SEAM/plan.xml</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <!-- Pre-change world (F28: each load-bearing MustNotContain / MustContain below is true at plan-authoring HEAD 7e8b7de). -->
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>function validateClarificationsSection</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>function listClarifications</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>no-unresolved-ic-inv-clarification</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>const CONTEXT_ARTIFACT_NAMES = new Set</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>function extractDurableScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>requires a non-empty target attribute</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>target="IC-*|INV-*|AC-*"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.test.ts</File>
+        <Text>validates Clarification targets on change specs</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>node.attributes.target</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.test.ts</File>
+        <Text>Clarification target=</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>Clarification target=</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
+        <Text>Clarification target=</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>Clarification target=</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+        <Text>Clarification target=</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>Clarification target=</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
+        <Text>Clarification target=</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>Clarification target=</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+        <Text>Clarification target=</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/core.test.ts</File>
+        <Text>validateNgraceProject</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>optionalContextArtifacts</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>"OptionalContext"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/scope.test.ts</File>
+        <Text>NGRACE_OPTIONAL_CONTEXT_ARTIFACTS</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>children with a non-empty target</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>Clarification target must be a canonical</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>Point target at a real contract</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/lint/catalog.test.ts</File>
+        <Text>change.invalid-clarification-target</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/catalog.test.ts</File>
+        <Text>change.invalid-clarification"</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/references/change-spec-template.xml</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/references/change-plan-template.xml</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>function validateClarificationsSection</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>function listClarifications</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>no-unresolved-ic-inv-clarification</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>const CONTEXT_ARTIFACT_NAMES = new Set</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>function extractDurableScope</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>requires a non-empty target attribute</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>target="IC-*|INV-*|AC-*"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/grammar.test.ts</File>
+        <Text>validates Clarification targets on change specs</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/core.ts</File>
+        <Text>node.attributes.target</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/core.test.ts</File>
+        <Text>Clarification target=</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>Clarification target=</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
+        <Text>Clarification target=</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>Clarification target=</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+        <Text>Clarification target=</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>Clarification target=</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
+        <Text>Clarification target=</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>Clarification target=</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+        <Text>Clarification target=</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/gates/core.test.ts</File>
+        <Text>validateNgraceProject</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>optionalContextArtifacts</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>"OptionalContext"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.test.ts</File>
+        <Text>NGRACE_OPTIONAL_CONTEXT_ARTIFACTS</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>children with a non-empty target</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>Clarification target must be a canonical</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>Point target at a real contract</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/lint/catalog.test.ts</File>
+        <Text>change.invalid-clarification-target</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.test.ts</File>
+        <Text>change.invalid-clarification"</Text>
+      </MustContain>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/artifact/grammar.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/scope.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/lint/catalog.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/gates</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:marketplace</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+        <M-GATES />
+        <M-SKILLS />
+        <M-LINT-CATALOG />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GRAMMAR />
+        <V-M-GATES />
+        <V-M-SKILLS />
+        <V-M-LINT-CATALOG />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/artifact/scope.ts</File>
+      <File>src/artifact/scope.test.ts</File>
+      <File>src/gates/core.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+      <File>.ngrace/changes/active/C-GRAMMAR-SEAM/plan.xml</File>
+      <File>.ngrace/changes/active/C-GRAMMAR-SEAM/spec.xml</File>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers; authority reviews the gate fixture hardest)
+
+      Plan-authoring HEAD: 7e8b7de (branch feat/grammar-seam).
+      Spec is approved (re-spec amendment landed; status stays
+      approved). Do not re-open its decisions. Re-measure every
+      count at execute (F33). Do not pin grammar.ts line numbers,
+      teaching-file counts, or lint 0/0 mid-change. Packaged
+      version stays 6.2.0.
+
+      No Clarifications section on this plan: at HEAD the element
+      cannot be authored in any legal form (F38). This bundle is
+      the repair. Do not add one.
+
+      ─────────────────────────────────────────────────────────────────
+      D0 — Task decomposition
+      ─────────────────────────────────────────────────────────────────
+      Two deliverables. Step 12 has three layers that fail differently
+      (grammar shape, gate readers, teaching text). Step 9 has two
+      (grammar admission, scope.ts extraction). Split:
+
+      | Task | Surface | Satisfies |
+      | T-001 | grammar.ts, grammar.test.ts,
+          catalog.ts (two exact guides only),
+          catalog.test.ts (those two guides only)
+        | AC-CLARIFICATION-AUTHORABLE,
+          AC-ERROR-TEACHES-WORKING-FORM,
+          AC-GUIDE-TEACHES-WORKING-FORM,
+          AC-ATTRIBUTE-FORM-REJECTED |
+      | T-002 | gates/core.ts, gates/core.test.ts
+        | AC-APPROVE-GATE-FIRES, AC-APPLY-GATE-FIRES |
+      | T-003 | grammar.ts, scope.ts, scope.test.ts
+        | AC-OPTIONAL-CONTEXT-ADMITS,
+          AC-OPTIONAL-CONTEXT-REJECTS |
+      | T-004 | eight teaching files; copy-fixture
+          test in grammar.test.ts
+        | AC-SKILL-AND-TEMPLATE |
+      | T-005 | dogfood close
+        | AC-SUITE-AND-LINT, AC-HEAD-RED (full) |
+
+      Why five, not three. Gate-reader work is not in T-001 because
+      the gate red depends on a lint-clean fixture that only exists
+      once the shape lands (D1). Skill/template teaching is not in
+      T-001 because the copy-template lint-clean assert would keep
+      T-001 red until the eight files move, and those files are a
+      different surface. The two exact guides ARE in T-001: landing
+      the emitted-message rewrite without them leaves --explain
+      teaching the form that cannot lint. OptionalContext is not
+      in T-001 because it is a second deliverable with its own
+      reds; it DependsOn T-001 only because both write grammar.ts
+      (same-file, not a logical dependency of the bucket on
+      Clarification).
+
+      T-002, T-003, and T-004 are pairwise file-disjoint after T-001
+      (OptionalContext tests live in scope.test.ts, not
+      grammar.test.ts, so T-003 does not append to the file T-004
+      uses for the copy-fixture). T-005 DependsOn T-002, T-003, T-004.
+
+      ─────────────────────────────────────────────────────────────────
+      D1 — Shape before gate red (not arbitrary)
+      ─────────────────────────────────────────────────────────────────
+      AC-APPROVE-GATE-FIRES requires a lint-clean fixture. At repo
+      HEAD a child-only Clarification emits
+      change.invalid-clarification ("requires a non-empty target
+      attribute") and is therefore not lint-clean. A test written
+      at repo HEAD that asserts "document clean AND approve refuses"
+      fails on the lint-clean half. That red is unreachable as a
+      gate measurement: the fixture the gate is supposed to see
+      does not yet exist.
+
+      After T-001, the same child-only fixture is lint-clean and
+      listClarifications still reads node.attributes.target, skips
+      empty, and approve PERMITS. That permit on a clean document
+      is the first genuine refusal-shaped red and the proof F38
+      is closable. Record AC-APPROVE-GATE-FIRES and
+      AC-APPLY-GATE-FIRES reds only after T-001 is closed.
+
+      Same wire-then-measure shape as the last bundle's sequencing
+      rule 3. Getting it wrong produces a red that was never
+      reachable (dirty document, not a firing gate).
+
+      Existing gates/core.test.ts plants
+      Clarification target="IC-EXAMPLE" (and AC-OTHER), never runs
+      lint, and asserts approve refuse. That green is F28. It must
+      not carry this red. Rewrite those plants to the child form
+      in T-002; do not keep them as the evidence.
+
+      ─────────────────────────────────────────────────────────────────
+      D2 — Gate fixture (T-002; review this hardest)
+      ─────────────────────────────────────────────────────────────────
+      Home: src/gates/core.test.ts. Reuse tempProject /
+      writeMinimalNgraceProject / writeChangeBundleFixture /
+      activeBundle already in that file.
+
+      Build, do not invent a second fixture stack:
+
+        1. tempProject() then activeBundle() (approved spec + plan).
+        2. Patch the spec (or plan) Clarifications section: one
+           Clarification whose target is exactly one self-closing
+           child whose tag is the family id. No target attribute.
+        3. Families, required set, not one sample:
+             approve IC  : child tag IC-EXAMPLE
+             approve INV : child tag INV-AUTH
+             apply AC    : child tag AC-SAMPLE, and the plan
+                           T-001 Satisfies AC-SAMPLE (add that
+                           AC-* to the fixture spec so Satisfies
+                           names a real criterion).
+        4. On THAT same document, before any gate call:
+             codes = validateNgraceProject(root)
+             assert it does not contain
+               artifact.semantic-anchor-attribute
+               change.invalid-clarification
+               change.invalid-clarification-target
+           Import validateNgraceProject from artifact/grammar.
+           This import is the load-bearing proof the fixture is
+           lint-clean. Do not substitute lintGraceProject. Do not
+           skip this call. HEAD: core.test.ts does not contain
+           the identifier validateNgraceProject.
+        5. Then evaluateApproveGate / evaluateApplyGate.
+
+      Approve live asserts (one lint-clean fixture per IC and INV):
+        unresolved → decision refuse, issues include
+          gate.approve.clarification-unresolved,
+          no-unresolved-ic-inv-clarification present=false
+        same fixture with resolved="true" → permit,
+          that requirement present=true
+        unresolved AC-SAMPLE does not by itself refuse approve
+
+      Apply live asserts (one lint-clean Satisfied AC-SAMPLE):
+        Hold other apply requirements aside so this issue is
+        visible: recordReviewVerdict with a permitting outcome
+        before evaluateApplyGate (otherwise no-verdict hides it).
+        unresolved → issues include
+          gate.apply.clarification-unresolved,
+          no-unresolved-satisfied-ac-clarification present=false
+        resolved="true" → that code is not emitted
+        unresolved AC that no task Satisfies → that code is not
+        emitted
+
+      Reader: listClarifications obtains the target from the
+      Clarification's unique self-closing child tag. It does not
+      consult attributes.target (no dual-read, no leftover-attribute
+      fallback). resolved="true" / status="resolved" stay attributes.
+
+      HEAD today: listClarifications reads attributes.target and
+      skips empty, so a child-only Clarification is invisible
+      (approve permits). There is no apply-gate test that plants
+      a Satisfied AC Clarification at all.
+
+      Failure conditions: only the old attribute-form test kept;
+      only IC planted; refuse asserted without a lint-clean
+      document; dual-read of the attribute; AC treated as an
+      approve blocker; approve-only evidence cited as apply;
+      Satisfies omitted so the apply filter cannot fire.
+
+      ─────────────────────────────────────────────────────────────────
+      D3 — Clarification grammar (T-001)
+      ─────────────────────────────────────────────────────────────────
+      Home: src/artifact/grammar.ts validateClarificationsSection
+      and src/artifact/grammar.test.ts; plus src/lint/catalog.ts
+      (only the two exact guides) and src/lint/catalog.test.ts
+      (tests of those two guides). Use
+      writeMinimalNgraceProject + writeChangeBundleFixture.
+
+      Authorable shape (F44): exactly one self-closing IC-*, INV-*,
+      or AC-* child of Clarification. Not an attribute, not text
+      content. Cardinality closed: zero target children errors;
+      two or more error; a non-IC/INV/AC child errors; a leftover
+      target attribute errors even when a valid child is also
+      present. resolved="true" and status="resolved" remain legal
+      attributes.
+
+      Prove once per family, on a change spec AND a change plan.
+      One sample does not satisfy the set. Replacement for the
+      F23 test ("validates Clarification targets on change specs"):
+      assert the document is clean (none of the three codes), not
+      that one code is absent.
+
+      Diagnostics (AC-ERROR-TEACHES-WORKING-FORM): every diagnostic
+      on this element's shape names the working form (exactly one
+      self-closing IC-*/INV-*/AC-* child) as the FIRST shape in the
+      message, and does not instruct a target attribute. Required
+      members are the two change.invalid-clarification SITES and
+      the change.invalid-clarification-target site that exist at
+      HEAD (non-Clarification child of Clarifications; Clarification
+      with no target; target that is not a canonical IC/INV/AC id).
+      A single shared message serving both invalid-clarification
+      triggers satisfies; do not count strings. The
+      duplicate-Clarifications-section diagnostic is not a member.
+      Bind semantic content in the test's expected-shape list;
+      assert literal bytes in the test. Do not quote product markup
+      in this plan. A later mention of the child after an attribute
+      instruction does not satisfy (F44). lint explain is not a
+      substitute.
+
+      AC-ATTRIBUTE-FORM-REJECTED is already true at HEAD via
+      artifact.semantic-anchor-attribute (F45: exempt from
+      AC-HEAD-RED). Write the regression assert (all three families;
+      both-attribute-and-child still errors). It passes the moment
+      it is written. Do not record it as a fail. Do not exempt the
+      attribute from semantic-anchor discipline.
+
+      AC-GUIDE-TEACHES-WORKING-FORM (same two members, exact-guide
+      half): each of those two exact guides names the working
+      form as the first shape and does not instruct a target
+      attribute. The duplicate-Clarifications-section guide is
+      not a member. Bind semantic content in the test; assert
+      literal bytes there. Do not quote product markup in this
+      plan. The code token and the existing title are
+      identifiers, not this bind — do not rename them to move
+      a word-count. Production of the two guides lands in the
+      same tool round trip as the emitted-message rewrite.
+      Do not restructure the catalog. Do not touch the
+      resolution-path predicate. Do not rewrite exact guides
+      C-EXPLAIN-COVERAGE authored.
+
+      ─────────────────────────────────────────────────────────────────
+      D4 — OptionalContext (T-003)
+      ─────────────────────────────────────────────────────────────────
+      Storage (this plan's decision, as the spec allows): add
+      optionalContextArtifacts: string[] to the DurableScope object
+      in scope.ts. Required names stay on contextArtifacts.
+      optional-vs-optional overlap is intersection of
+      optionalContextArtifacts. Do not merge the two constants.
+      Do not add optional names to CONTEXT_ARTIFACT_NAMES.
+      Do not edit src/artifact/types.ts.
+
+      Grammar: add the quoted tag "OptionalContext" to
+      DURABLE_SCOPE_DIRECT_TAGS so DurableScope admits the bucket.
+      It is a bucket, not a leaf: it contains the same
+      filename-text entry tags already used for required context
+      (ContextArtifact / Context / Artifact). Membership of those
+      entries is NGRACE_OPTIONAL_CONTEXT_ARTIFACTS, imported from
+      types.ts, not a copied list.
+
+      Extraction: extractDurableScope must see OptionalContext and
+      push admitted names onto optionalContextArtifacts.
+      durableOverlaps and dedupeDurableScope must include the new
+      field. emptyScope() literals in scope.test.ts gain the field.
+
+      Tests live in scope.test.ts (import validateNgraceProject
+      and the two filename constants). Do not append OptionalContext
+      tests to grammar.test.ts: that file is T-001/T-004. Tests read
+      filenames from NGRACE_OPTIONAL_CONTEXT_ARTIFACTS (and
+      NGRACE_CONTEXT_ARTIFACTS for the required-name reject). Do
+      not hardcode design-system.xml / invariants.xml /
+      requirements.xml in the test.
+
+      HEAD today: OptionalContext as a DurableScope child is
+      change.plan-invalid-section-shape; extractDurableScope
+      reports scope.invalid-durable-shape for the same tag.
+      There is no OptionalContext path to reject through.
+      ContextArtifact of an optional name already errors
+      (scope.invalid-context-artifact) — that half is F45-exempt
+      from AC-HEAD-RED; write it as regression; do not record it
+      as a fail.
+
+      Failure conditions: only grammar admits the tag and
+      extraction ignores it (F10); filenames hardcoded; bucket
+      implemented by widening the required list; constants merged;
+      only the already-green ContextArtifact half asserted.
+
+      ─────────────────────────────────────────────────────────────────
+      D5 — Teaching (T-004)
+      ─────────────────────────────────────────────────────────────────
+      Eight files, both trees, same commit (this task):
+
+        skills/ngrace/ngrace-spec/SKILL.md
+        skills/ngrace/ngrace-spec/references/change-spec-template.xml
+        skills/ngrace/ngrace-plan/SKILL.md
+        skills/ngrace/ngrace-plan/references/change-plan-template.xml
+        and the four packaged mirrors under
+        plugins/ngrace/skills/ngrace/
+
+      They describe the child-anchor form and do not instruct a
+      target attribute holding an IC-*/INV-*/AC-* token.
+      ngrace-plan numbered rule 16 states the child form.
+
+      Copy-fixture (the checkable property; F46): a test in
+      grammar.test.ts copies each template's Clarification example
+      into an otherwise-valid writeChangeBundleFixture bundle,
+      fills placeholders, and asserts validateNgraceProject emits
+      none of the three Clarification-shape codes. The raw
+      placeholder file is not required to pass ngrace lint (it
+      cannot). This test cannot live in T-001: T-001's
+      Verification is grammar.test.ts, and a copy of today's
+      templates cannot go clean until the templates move.
+
+      bun run validate:marketplace is green after the edit.
+      Marketplace-green at pre-change HEAD is not this criterion
+      (both trees currently agree on the broken form).
+
+      Do not mention the attribute assignment as a worked example
+      (the MustNotContain needle Clarification target= will trip).
+      Say "target attribute" if you need to name the rejected form.
+
+      ─────────────────────────────────────────────────────────────────
+      D6 — HEAD-RED ownership
+      ─────────────────────────────────────────────────────────────────
+      | Spec AC | Owner | Pre-edit measurement |
+      | AC-CLARIFICATION-AUTHORABLE | T-001 RT1
+        | child-form spec and plan emit
+          change.invalid-clarification |
+      | AC-ERROR-TEACHES-WORKING-FORM | T-001 RT2
+        | three sites instruct / require a target attribute;
+          none names the child form first |
+      | AC-GUIDE-TEACHES-WORKING-FORM | T-001 RT3
+        | both exact guides instruct a target attribute;
+          neither names the child form first.
+          duplicate-clarifications-section is not a member |
+      | AC-ATTRIBUTE-FORM-REJECTED | T-001 live assert
+        | already errors at HEAD; F45 exempt; NOT a red |
+      | AC-APPROVE-GATE-FIRES | T-002 RT1 (after T-001)
+        | lint-clean IC and INV: approve PERMITS
+          (invisible target). Attribute-form refuse is not
+          this red |
+      | AC-APPLY-GATE-FIRES | T-002 RT2 (after T-001)
+        | lint-clean Satisfied AC: apply does not emit
+          gate.apply.clarification-unresolved |
+      | AC-OPTIONAL-CONTEXT-ADMITS | T-003 RT1
+        | plan-invalid-section-shape and
+          scope.invalid-durable-shape |
+      | AC-OPTIONAL-CONTEXT-REJECTS new half | T-003 RT2
+        | no OptionalContext path. ContextArtifact half
+          already green; F45 exempt |
+      | AC-SKILL-AND-TEMPLATE | T-004 RT1
+        | eight files instruct Clarification target=;
+          copy-fixture dirty |
+      | AC-HEAD-RED (full) + AC-SUITE-AND-LINT | T-005 Satisfies;
+        reds recorded on T-001..T-004
+        (T-001 now includes the exact-guide red) |
+
+      Never a red backed only by a grep. Never a retrospective
+      red via stash. Never fail and pass in one tool call.
+      Failing tests are written before the fail attempt is
+      recorded, in a separate tool round trip, so that event's
+      WriteEvidence carries the test.
+
+      ─────────────────────────────────────────────────────────────────
+      D7 — ObservedWriteScope (measured at 7e8b7de)
+      ─────────────────────────────────────────────────────────────────
+      Forced by the spec (F27.2):
+        src/artifact/grammar.ts
+        src/artifact/grammar.test.ts   (ungoverned; OWS as a path)
+        src/artifact/scope.ts          (LINKS M-GRAMMAR; extractor
+                                       is forced or admission is F10)
+        src/artifact/scope.test.ts     (ungoverned; OWS as a path)
+        src/gates/core.ts
+        src/gates/core.test.ts         (ungoverned; OWS as a path)
+        src/lint/catalog.ts            (LINKS M-LINT-CATALOG;
+                                       only the two exact guides)
+        src/lint/catalog.test.ts       (ungoverned; OWS as a path;
+                                       tests of those two guides)
+        eight teaching files (four canonical, four mirrors)
+        this bundle's spec.xml and plan.xml
+
+      Deliberately excluded: docs/plans, archive, CHANGELOG,
+      version surfaces, every other src/lint/** path
+      (resolution-path predicate, C-EXPLAIN-COVERAGE guides,
+      catalog structure, emission-patterns.ts), types.ts
+      (constant lists are read, not edited), run-ledger.xml /
+      run.xml (execution companions; expand OWS at execute if
+      the cursor writes them).
+
+      M-SKILLS has no Path; skill writes ride OWS as paths.
+      M-LINT-CATALOG Path is src/lint/catalog.ts.
+      isModuleOwnableWritePath excludes *.test.ts.
+
+      ─────────────────────────────────────────────────────────────────
+      D8 — Baseline assertion.* count predictions
+      ─────────────────────────────────────────────────────────────────
+      Load-bearing flips (Baseline that become false):
+
+        A  MustContain    grammar.ts       requires a non-empty target attribute
+        B  MustContain    grammar.ts       target="IC-*|INV-*|AC-*"
+        C  MustContain    grammar.test.ts  validates Clarification targets on change specs
+        R  MustContain    catalog.ts       children with a non-empty target
+        S  MustContain    catalog.ts       Clarification target must be a canonical
+        T  MustContain    catalog.ts       Point target at a real contract
+        U  MustNotContain catalog.test.ts  change.invalid-clarification-target
+        V  MustNotContain catalog.test.ts  change.invalid-clarification"
+        D  MustContain    core.ts          node.attributes.target
+        E  MustContain    core.test.ts     Clarification target=
+        F  MustNotContain core.test.ts     validateNgraceProject
+        G  MustNotContain scope.ts         optionalContextArtifacts
+        H  MustNotContain grammar.ts       "OptionalContext"
+        I  MustNotContain scope.test.ts    NGRACE_OPTIONAL_CONTEXT_ARTIFACTS
+        J–Q MustContain   eight teaching files  Clarification target=
+
+      Stay-true (not in N): validateClarificationsSection,
+      listClarifications, no-unresolved-ic-inv-clarification,
+      CONTEXT_ARTIFACT_NAMES = new Set, extractDurableScope;
+      all MustExist / MustVerify.
+
+        After plan approval, before any task: N = 0. Flag if N ≠ 0.
+        After T-001 (A–C, R–V): N = 8. Flag if N ≠ 8.
+        After T-001 + T-002 (D–F): N = 11. Flag if N ≠ 11.
+        After T-001 + T-003 (G–I): N = 11. Flag if N ≠ 11.
+        After T-001 + T-004 (J–Q): N = 16. Flag if N ≠ 16.
+        After T-001 + T-002 + T-003: N = 14.
+        After T-001 + T-002 + T-004: N = 19.
+        After T-001 + T-003 + T-004: N = 19.
+        After T-001..T-004: N = 22. Flag if N ≠ 22.
+        After T-005 / apply-archive: lint 0/0 at close only (F26).
+
+      Never weaken a BaselineAssertion to reduce N.
+
+      ─────────────────────────────────────────────────────────────────
+      D9 — Execution discipline
+      ─────────────────────────────────────────────────────────────────
+      One open epoch. T-001 four round trips (authorable red,
+      diagnostic red, exact-guide red, production of grammar
+      messages and the two exact guides in the same RT). T-002
+      three (approve red, apply red, reader). T-003 three
+      (admits red, rejects-new red, production). T-004 two
+      (teaching red, eight-file edit). T-005: no manufactured
+      red if green. Terminal / fold / gate / commit are
+      operator steps after T-005 unless authority says
+      otherwise. Canonical and packaged skill trees change
+      in the same commit. No Clarifications section.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Authorable Clarification child shape, teaching diagnostics, and matching exact guides</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-CLARIFICATION-AUTHORABLE />
+          <AC-ERROR-TEACHES-WORKING-FORM />
+          <AC-GUIDE-TEACHES-WORKING-FORM />
+          <AC-ATTRIBUTE-FORM-REJECTED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (authorable half): before any grammar.ts
+            production edit, in its own tool round trip, write tests
+            in src/artifact/grammar.test.ts that plant a Clarifications
+            section with one Clarification per family (exactly one
+            self-closing IC-* child, one INV-* child, and one AC-*
+            child on three separate Clarification elements) on a
+            change spec AND on a change plan, and assert
+            validateNgraceProject emits none of
+            artifact.semantic-anchor-attribute,
+            change.invalid-clarification, and
+            change.invalid-clarification-target. Also plant zero
+            target children, two or more target children, a
+            non-IC/INV/AC child, and a leftover target attribute
+            (with and without a valid child) and assert each errors.
+            resolved="true" and status="resolved" remain legal.
+            HEAD today: the attribute form of each family emits
+            artifact.semantic-anchor-attribute; a Clarification with
+            only a child and no target attribute emits
+            change.invalid-clarification ("requires a non-empty
+            target attribute"); grammar.test.ts is green on a
+            one-code negative ("validates Clarification targets on
+            change specs") while the fixture is dirty. The new
+            document-clean asserts fail. Record cursor fail. Do not
+            land the shape in this round trip. Never a red backed
+            only by a grep; never fail and pass in one tool call;
+            never a retrospective red via stash. Failure conditions:
+            only IC sampled; document-clean claimed because one code
+            is absent; this round trip also lands production;
+            attribute exemption; target accepted as text content.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (diagnostic half): before any grammar.ts
+            production edit, in its own tool round trip, write tests
+            that plant the three HEAD triggers (non-Clarification
+            child of Clarifications; Clarification with no target;
+            target that is not a canonical IC/INV/AC id) and assert
+            each emitted message names the working form (exactly one
+            self-closing IC-*/INV-*/AC-* child) as the first shape
+            and does not instruct a target attribute. A single
+            shared message serving both change.invalid-clarification
+            sites satisfies; do not count strings. Bind a closed
+            expected-shape list in the test; assert literal bytes
+            there. HEAD today: one change.invalid-clarification
+            instructs a target attribute holding an IC-*/INV-*/AC-*
+            token as the repair; the other requires a non-empty
+            target attribute; change.invalid-clarification-target
+            requires the target value to be a canonical IC-*, INV-*,
+            or AC-* anchor. None names the child form. The asserts
+            fail. Record fail. Do not land production in this round
+            trip. Failure conditions: only one of the three sites
+            asserted; working form named after an attribute
+            instruction treated as enough; lint explain cited as
+            the bind; this criterion treated as a quoted-byte bind
+            in the plan; this round trip also lands production.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (exact-guide half): before any catalog.ts
+            production edit, in its own tool round trip, write
+            tests in src/lint/catalog.test.ts that the exact
+            guides for change.invalid-clarification and
+            change.invalid-clarification-target each name the
+            working form (exactly one self-closing IC-*/INV-*/AC-*
+            child) as the first shape and do not instruct a
+            target attribute. Bind a closed expected-shape list
+            in the test; assert literal bytes there. The
+            change.duplicate-clarifications-section guide is not
+            a member and is not asserted. Do not rewrite
+            PREFIX_COVERED_LEGACY_CODES, the resolution-path
+            tests, or the AC-FIX-SHAPE describe. HEAD today
+            (measured at 7e8b7de): both members classify as
+            exact; the first explanation admits only Clarification
+            children that carry a non-empty target attribute
+            (1 rendered line mentions target); the second
+            explanation requires the target value to be a
+            canonical IC-*/INV-*/AC-* anchor and its remediation
+            says to point target at a real contract (4 rendered
+            lines mention target, including the code token and
+            title). Neither names the child form first. The
+            asserts fail. Record fail. Do not land production
+            in this round trip. Failure conditions: only one of
+            the two guides asserted; working form named after
+            an attribute instruction treated as enough; emitted
+            message cited as a substitute; this criterion
+            treated as a quoted-byte bind; this round trip also
+            lands production; the code or title renamed to move
+            a word-count.
+          </Criterion>
+          <Criterion>
+            Production (same edit, own tool round trip after the
+            three reds): Clarification with exactly one self-closing
+            IC-*/INV-*/AC-* child lints clean per family on a spec
+            and a plan. Cardinality is closed. The F23 test name
+            "validates Clarification targets on change specs" is
+            gone; its replacement asserts the document is clean,
+            not that one code is absent. Every diagnostic on this
+            element's shape leads with the working form and does
+            not instruct a target attribute. The two
+            change.invalid-clarification sites may share one
+            string. The duplicate-Clarifications-section diagnostic
+            is not a member and is not rewritten to name the child.
+            In the same tool round trip, rewrite only the exact
+            guides for change.invalid-clarification and
+            change.invalid-clarification-target so each names
+            the working form as the first shape and does not
+            instruct a target attribute. Do not restructure the
+            catalog, touch the resolution-path predicate, or
+            rewrite any other exact guide. Failure conditions:
+            only IC sampled; one-code negative kept as the clean
+            proof; attribute exemption; dual-read; only one
+            diagnostic site rewritten; only one exact guide
+            rewritten; emitted message used as a substitute for
+            the guide, or the reverse; catalog files other than
+            those two entries and their test edited.
+          </Criterion>
+          <Criterion>
+            AC-ATTRIBUTE-FORM-REJECTED (F45 exempt from AC-HEAD-RED):
+            a Clarification that still declares a target attribute
+            whose value is a canonical IC-*, INV-*, or AC-* anchor
+            remains an error after the child form lands. A document
+            that has both the attribute and a valid child is still
+            an error. This half is already true at HEAD via
+            artifact.semantic-anchor-attribute. Write the assert;
+            it passes the moment it is written. Do not record it as
+            a fail. Do not make the attribute form lint-clean.
+            Failure conditions: attribute form accepted as an alias;
+            exemption; this green-at-HEAD negative recorded as the
+            HEAD-RED for P1.12.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Approve and apply readers fire on lint-clean child-form fixtures</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-APPROVE-GATE-FIRES />
+          <AC-APPLY-GATE-FIRES />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (approve half): after T-001 is closed and
+            before any gates/core.ts production edit, in its own
+            tool round trip, write the D2 fixtures in
+            src/gates/core.test.ts for IC-EXAMPLE and INV-AUTH.
+            Each test calls validateNgraceProject on the planted
+            document and asserts it is clean of the three
+            Clarification-shape codes, then calls
+            evaluateApproveGate. HEAD today (post T-001): the
+            fixture is lint-clean and approve PERMITS because
+            listClarifications reads attributes.target and skips
+            empty. The refuse / present=false asserts fail. Record
+            fail for both families. Existing attribute-form refuse
+            tests must not carry this red (F28). Do not record this
+            red at repo HEAD (the lint-clean half is then
+            unreachable). Never a red backed only by a grep; never
+            fail and pass in one tool call. Failure conditions:
+            red recorded before T-001; only IC planted; refuse
+            asserted without validateNgraceProject on that
+            document; attribute-form green cited as this red;
+            this round trip also lands the reader.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (apply half): after T-001, before the
+            reader edit, in its own tool round trip, write the D2
+            apply fixture (AC-SAMPLE child, plan Satisfies
+            AC-SAMPLE, recordReviewVerdict so no-verdict does not
+            hide the issue). validateNgraceProject is clean, then
+            evaluateApplyGate. HEAD today (post T-001): the
+            fixture is lint-clean and apply does not emit
+            gate.apply.clarification-unresolved (same
+            attributes.target skip). Record fail. Failure
+            conditions: approve-only evidence cited as apply;
+            Satisfies omitted; attribute-form plant; other apply
+            requirements left failing so this issue is invisible;
+            this round trip also lands the reader.
+          </Criterion>
+          <Criterion>
+            Production: listClarifications obtains the target from
+            the Clarification's unique self-closing child tag and
+            does not consult attributes.target. On the lint-clean
+            IC and INV fixtures, unresolved refuses approve with
+            gate.approve.clarification-unresolved and
+            no-unresolved-ic-inv-clarification present=false;
+            resolved="true" permits and that requirement is
+            present=true. Unresolved AC-SAMPLE does not by itself
+            refuse approve. On the lint-clean Satisfied AC-SAMPLE
+            fixture, unresolved apply issues include
+            gate.apply.clarification-unresolved and
+            no-unresolved-satisfied-ac-clarification is
+            present=false; resolved="true" does not emit that
+            code; an unresolved AC that no task Satisfies does
+            not emit it. Rewrite the existing attribute-form
+            plants so core.test.ts no longer contains
+            Clarification target=. Failure conditions: dual-read;
+            only IC; refuse without a lint-clean document; AC
+            treated as an approve blocker; old attribute-form
+            test kept as the only evidence.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>OptionalContext bucket admitted, extracted, and membership-closed</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-OPTIONAL-CONTEXT-ADMITS />
+          <AC-OPTIONAL-CONTEXT-REJECTS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (admits half): before any OptionalContext
+            production edit, in its own tool round trip, write tests
+            in scope.test.ts that plant a
+            DurableScope OptionalContext bucket whose entries are
+            the live members of NGRACE_OPTIONAL_CONTEXT_ARTIFACTS
+            (imported; not a copied list) and assert
+            validateNgraceProject does not emit
+            change.plan-invalid-section-shape for OptionalContext,
+            extractDurableScope surfaces those names on
+            optionalContextArtifacts, and two plans declaring the
+            same optional member overlap. HEAD today: OptionalContext
+            as a DurableScope child is
+            change.plan-invalid-section-shape; extractDurableScope
+            reports scope.invalid-durable-shape for the same tag.
+            The asserts fail. Record fail. Do not land production
+            in this round trip. Failure conditions: filenames
+            hardcoded; only grammar asserted; this round trip also
+            lands production.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (rejects new half): before production, in
+            its own tool round trip, write tests that OptionalContext
+            rejects a required context filename (sample taken from
+            NGRACE_CONTEXT_ARTIFACTS) and rejects an unknown
+            filename. HEAD today: there is no OptionalContext path
+            to reject through, so these asserts fail. Record fail.
+            Also write the ContextArtifact-still-rejects-optional-
+            names assert (scope.invalid-context-artifact): that
+            half is already true at HEAD (F45: exempt from
+            AC-HEAD-RED) and must not carry this red. Failure
+            conditions: only the already-green ContextArtifact
+            half asserted; this red recorded against that half;
+            this round trip also lands production.
+          </Criterion>
+          <Criterion>
+            Production: DurableScope admits OptionalContext.
+            The bucket admits the two live optional members and
+            rejects required and unknown names. Direct
+            ContextArtifact of an optional name still errors.
+            NGRACE_OPTIONAL_CONTEXT_ARTIFACTS is not merged into
+            NGRACE_CONTEXT_ARTIFACTS; CONTEXT_ARTIFACT_NAMES stays
+            a Set of the required constant only. extractDurableScope
+            stores optional names on optionalContextArtifacts,
+            distinct from contextArtifacts; durableOverlaps detects
+            optional-vs-optional overlap. Do not edit types.ts.
+            Failure conditions: only grammar admits the tag and
+            extraction ignores it; names added to the required
+            list; constants merged; only the already-green
+            ContextArtifact half asserted.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>bun test src/artifact/scope.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Both skill trees and both XML templates teach the child form</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SKILL-AND-TEMPLATE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (teaching half): after T-001, before any
+            skill or template edit, in its own tool round trip,
+            write the copy-fixture test in grammar.test.ts (D5)
+            and asserts that all eight teaching files describe the
+            child-anchor form and do not instruct a target
+            attribute. HEAD today: all eight sites contain
+            Clarification target=; plan rule 16 is the attribute
+            form; a filled template example cannot lint on the
+            Clarification shape. The asserts fail. Record fail.
+            Marketplace green at pre-change HEAD is not this red
+            (F28 / F45). Never a red backed only by a grep.
+            Failure conditions: only canonical tree asserted;
+            only SKILL.md asserted; marketplace green cited from
+            pre-change HEAD; this round trip also lands the edit.
+          </Criterion>
+          <Criterion>
+            Production, same commit, both trees: all eight teaching
+            files describe the child-anchor form and do not instruct
+            a target attribute holding an IC-*/INV-*/AC-* token.
+            ngrace-plan numbered rule 16 states the child form.
+            The copy-fixture (each template example, placeholders
+            filled, otherwise-valid bundle) is lint-clean on the
+            Clarification shape. bun run validate:marketplace is
+            green. Do not leave Clarification target= in any of
+            the eight files. Failure conditions: only canonical
+            tree updated; only SKILL.md updated and templates left
+            on the attribute form; marketplace green cited from
+            pre-change HEAD; criterion greps a helper name instead
+            of the taught shape.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>bun run validate:marketplace</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Dogfood close: suite, marketplace, lint at close, full HEAD-RED proof</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+          <Task>T-004</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SUITE-AND-LINT />
+          <AC-HEAD-RED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-SUITE-AND-LINT at close (F26 qualifier): after apply
+            and archive, bun run ngrace lint --path . is 0 errors
+            and 0 warnings. Do not claim 0/0 mid-change while
+            Baseline falsifiers are expected red (predicted N = 22
+            after T-001..T-004). Never weaken a BaselineAssertion
+            to move a lint count.
+          </Criterion>
+          <Criterion>
+            bun test green for touched packages
+            (src/artifact/grammar.test.ts, src/artifact/scope.test.ts,
+            src/lint/catalog.test.ts, src/gates); bun run validate:ci green (determinism
+            ratchet cardinality only moves if a catch is
+            intentionally added — re-measure, do not drop keys);
+            bun run validate:marketplace green. ObservedWriteScope
+            covers every path the deliverable forces, including
+            both skill trees, both template files,
+            src/gates/core.test.ts, src/artifact/grammar.test.ts,
+            src/artifact/scope.ts, src/lint/catalog.ts,
+            src/lint/catalog.test.ts, and this bundle's spec.xml /
+            plan.xml. No edits under docs/plans/ or
+            .ngrace/changes/archive/; no CHANGELOG; no version
+            surfaces (stays 6.2.0). Failure conditions: suite red;
+            lint 0/0 claimed mid-window; ratchet keys dropped;
+            writes outside declared scope; HEAD-green lint cited
+            as proof the child form or the bucket landed.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED post-change: per-family child-form
+            Clarification fixtures lint clean; diagnostics lead
+            with the working form; the two exact guides lead
+            with the working form and do not instruct a target
+            attribute; lint-clean unresolved IC and
+            INV each refuse approve and resolve to permit;
+            lint-clean Satisfied AC refuses apply and resolves to
+            not emit that code; OptionalContext admits the two
+            optional members and rejects required and unknown
+            names; extractDurableScope sees the optional names;
+            all eight teaching files show the child form; a copied
+            template example lints clean on that shape. Pre-edit
+            reds were recorded on T-001 (authorable, diagnostics,
+            exact guides),
+            T-002 (approve after lint-clean existed, apply; not
+            the attribute-form green), T-003 (admits, new reject
+            half; not the ContextArtifact half), and T-004
+            (teaching; not marketplace identity at pre-change
+            HEAD) — not manufactured at close. Exempt and not
+            reddened: AC-SUITE-AND-LINT, AC-ATTRIBUTE-FORM-REJECTED,
+            the ContextArtifact-still-rejects-optional-names half,
+            marketplace identity at pre-change HEAD. Failure
+            conditions: a check that passed on pre-change HEAD
+            sold as new behaviour; fail and pass in one tool call;
+            AC-SUITE-AND-LINT required to be red at HEAD;
+            attribute-form gate green recorded as
+            AC-APPROVE-GATE-FIRES.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+          <Command>bun test src/artifact/grammar.test.ts src/artifact/scope.test.ts src/lint/catalog.test.ts src/gates</Command>
+          <Command>bun run validate:marketplace</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-GRAMMAR-SEAM>
+</NgraceChangePlan>
