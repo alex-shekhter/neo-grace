@@ -3565,3 +3565,33 @@ the separator set, the accepted forms — and assert the literal bytes in the **
 TypeScript and has no escaping constraint. State the divergence in the criterion rather than
 letting the paraphrase read as a quotation. Related: [D16](#d16) (a criterion may only bind evidence
 that lives in an artifact) — F43 bounds *what kind* of evidence an artifact can hold at all.
+
+---
+
+### F44 — A criterion that pins a user-visible string but not its position accepts two different products. **[verified]**
+
+`AC-EXPLAIN-POINTER` requires that text lint "includes the exact pointer
+`(ngrace lint --explain <code>)` once per distinct error code". T-003 shipped it as a **footer**
+after the issue list. An inline suffix on each first-occurrence issue line satisfies every word of
+the criterion equally, and is a visibly different product — one adds two lines to a report, the
+other widens every error line.
+
+Raised by the executor after implementing: *"Attachment site is a user-visible choice left open.
+Footer and first-line suffix are both AC-legal and look different."*
+
+**Why it matters more here than it would elsewhere.** P1's objective is that an agent "learns the
+fix from the error." Where a pointer sits determines whether it is read at all — a footer after
+forty issues is not the same affordance as a suffix on the line that failed. The criterion
+carefully pins the exact string (correctly, per [F23](#f23)) and leaves the property that actually
+governs the reading experience unconstrained.
+
+**Kept as shipped.** The footer is defensible: it keeps issue lines diffable and stable for the
+tests that parse them, and it renders once per distinct code, which is what the criterion asks. The
+finding is about the criterion's reach, not the implementation's choice.
+
+**The rule.** When a criterion governs **user-visible output**, pin *where* as well as *what* —
+position, ordering, and repetition. For output nobody reads directly, the string alone is enough.
+Due immediately: **P1.6**'s typed-absence line (*"evaluated N rule classes; M not evaluable"*) is
+exactly this shape, and its whole purpose is that silence must not read as "will pass" — a
+correctly-worded absence line rendered where nobody sees it fails that purpose while satisfying its
+criterion.

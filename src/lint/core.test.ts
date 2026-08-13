@@ -10,6 +10,7 @@ import { isGateIssueCode } from "../gates/catalog";
 import { advanceCursor, listLooseEvents } from "../grace-cursor";
 import { isReviewIssueCode } from "../review/catalog";
 import { runReview } from "../review/core";
+import type { LintIssue, LintResult } from "./types";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const tempRoots: string[] = [];
@@ -413,5 +414,95 @@ describe("C-REPORT-HONESTY T-006: AC-BASELINE-LINT-FRAMING", () => {
     // Explicitly no cast-property leak
     expect(keys).not.toContain("baselineExpectationCount");
     expect(keys).not.toContain("baselineFramingCount");
+  });
+});
+
+describe("AC-EXPLAIN-POINTER / AC-POINTER-JSON (C-EXPLAIN-COVERAGE T-003)", () => {
+  const POINTER_STEM = "ngrace lint --explain";
+  const MUST_NOT_EXIST_POINTER = `(${POINTER_STEM} assertion.MustNotExist)`;
+  const WARNING_CODE = "graph.module-without-linked-files";
+  const WARNING_POINTER = `(${POINTER_STEM} ${WARNING_CODE})`;
+
+  function occurrences(haystack: string, needle: string): number {
+    return haystack.split(needle).length - 1;
+  }
+
+  function lintPluralBaseline(): LintResult {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-explain-pointer-"));
+    tempRoots.push(root);
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-BASE-PLURAL",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+      planBaselineAssertions:
+        `<MustNotExist><Value>src/example.ts</Value></MustNotExist>`
+        + `<MustNotExist><Value>M-EXAMPLE</Value></MustNotExist>`,
+    });
+    return lintGraceProject(root, {});
+  }
+
+  function warningOnlyResult(): LintResult {
+    const warning: LintIssue = {
+      severity: "warning",
+      code: WARNING_CODE,
+      file: "graph/main.xml",
+      message: "M-ORPHAN declares a Path but no governed file declares LINKS: M-ORPHAN.",
+    };
+    return {
+      schemaVersion: "1.0.0",
+      tool: "grace-lint",
+      generatedAt: new Date().toISOString(),
+      root: "/tmp/ngrace-warning-only",
+      profile: "standard",
+      assertionMode: "current",
+      commandsEnabled: false,
+      filesChecked: 1,
+      governedFiles: 1,
+      xmlFilesChecked: 0,
+      issues: [warning],
+      summary: { issues: 1, errors: 0, warnings: 1 },
+      analysisCoverage: { adapterBacked: [], unverified: [], governedFiles: 1 },
+    };
+  }
+
+  it("text report contains (ngrace lint --explain <code>) once per distinct error; JSON of the same LintResult does not", () => {
+    const result = lintPluralBaseline();
+    const repeated = result.issues.filter((issue) => issue.code === "assertion.MustNotExist");
+    expect(repeated).toHaveLength(2);
+    expect(repeated.every((issue) => issue.severity === "error")).toBe(true);
+
+    const report = formatTextReport(result);
+    const json = JSON.stringify(result);
+
+    expect(occurrences(report, MUST_NOT_EXIST_POINTER)).toBe(1);
+    expect(json).not.toContain(POINTER_STEM);
+  });
+
+  it("warning-only codes do not receive a pointer", () => {
+    const result = warningOnlyResult();
+    expect(result.issues.every((issue) => issue.severity === "warning")).toBe(true);
+    expect(result.summary.errors).toBe(0);
+
+    const report = formatTextReport(result);
+    expect(report).not.toContain(POINTER_STEM);
+    expect(report).not.toContain(WARNING_POINTER);
+  });
+
+  it("mixed report: distinct error codes get one pointer; warning codes on the same report get none", () => {
+    const result = lintPluralBaseline();
+    result.issues.push({
+      severity: "warning",
+      code: WARNING_CODE,
+      file: "graph/main.xml",
+      message: "M-ORPHAN declares a Path but no governed file declares LINKS: M-ORPHAN.",
+    });
+    result.summary.warnings += 1;
+    result.summary.issues += 1;
+
+    const report = formatTextReport(result);
+    expect(occurrences(report, MUST_NOT_EXIST_POINTER)).toBe(1);
+    expect(report).not.toContain(WARNING_POINTER);
   });
 });

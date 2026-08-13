@@ -581,11 +581,24 @@ export function formatTextReport(result: LintResult, options: { remediate?: bool
   }
 
   lines.push("", "Issues");
+  const explainedErrorCodes: string[] = [];
+  const seenErrorCodes = new Set<string>();
   for (const issue of result.issues) {
     const location = issue.line ? `${issue.file}:${issue.line}` : issue.file;
     lines.push(`- [${issue.severity}] ${issue.code} ${location} — ${issue.message}`);
     if (options.remediate && issue.remediation) {
       lines.push(...issue.remediation.map((item) => `  • ${item}`));
+    }
+    if (issue.severity === "error" && !seenErrorCodes.has(issue.code)) {
+      seenErrorCodes.add(issue.code);
+      explainedErrorCodes.push(issue.code);
+    }
+  }
+
+  if (explainedErrorCodes.length > 0) {
+    lines.push("");
+    for (const code of explainedErrorCodes) {
+      lines.push(`(ngrace lint --explain ${code})`);
     }
   }
 
