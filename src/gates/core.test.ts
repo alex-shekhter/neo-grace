@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
+import { validateNgraceProject } from "../artifact/grammar";
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { writeChangeBundleFixture, writeMinimalNgraceProject } from "../artifact/test-fixtures";
 import { allGateCodes, isGateIssueCode } from "./catalog";
@@ -506,8 +507,7 @@ describe("approve gate", () => {
     let spec = readFileSync(specPath, "utf8");
     spec = spec.replace(
       "</C-GATE>",
-      `<Clarifications><Clarification target="IC-EXAMPLE">need shape</Clarification></Clarifications>`
-        + `<Assumptions><Assumption>we assume green tests</Assumption></Assumptions></C-GATE>`,
+      `<Clarifications><Clarification><IC-EXAMPLE /></Clarification></Clarifications></C-GATE>`,
     );
     writeFileSync(specPath, spec);
     const refused = evaluateApproveGate(root, "C-GATE");
@@ -517,8 +517,8 @@ describe("approve gate", () => {
     // Resolve clarification
     spec = readFileSync(specPath, "utf8");
     spec = spec.replace(
-      `target="IC-EXAMPLE"`,
-      `target="IC-EXAMPLE" resolved="true"`,
+      "<Clarification>",
+      `<Clarification resolved="true">`,
     );
     writeFileSync(specPath, spec);
     const permitted = evaluateApproveGate(root, "C-GATE");
@@ -532,10 +532,176 @@ describe("approve gate", () => {
     let spec = readFileSync(specPath, "utf8");
     spec = spec.replace(
       "</C-GATE>",
-      `<Clarifications><Clarification target="AC-OTHER">hole</Clarification></Clarifications></C-GATE>`,
+      `<Clarifications><Clarification><AC-OTHER /></Clarification></Clarifications></C-GATE>`,
     );
     writeFileSync(specPath, spec);
     expect(evaluateApproveGate(root, "C-GATE").decision).toBe("permit");
+  });
+});
+
+const CLARIFICATION_SHAPE_CODES = [
+  "artifact.semantic-anchor-attribute",
+  "change.invalid-clarification",
+  "change.invalid-clarification-target",
+] as const;
+
+function plantChildFormClarification(bundle: string, inner: string): void {
+  const specPath = path.join(bundle, "spec.xml");
+  const spec = readFileSync(specPath, "utf8");
+  writeFileSync(
+    specPath,
+    spec.replace("</C-GATE>", `<Clarifications>${inner}</Clarifications></C-GATE>`),
+  );
+}
+
+function assertClarificationShapeClean(root: string): void {
+  const codes = validateNgraceProject(root).issues.map((issue) => issue.code);
+  for (const code of CLARIFICATION_SHAPE_CODES) {
+    expect(codes).not.toContain(code);
+  }
+}
+
+function approveClarificationRequirement(result: ReturnType<typeof evaluateApproveGate>) {
+  return result.requirements.find((requirement) => requirement.id === "no-unresolved-ic-inv-clarification");
+}
+
+describe("C-GRAMMAR-SEAM T-002 approve gate on lint-clean child-form Clarification", () => {
+  it("lint-clean unresolved IC-EXAMPLE refuses approve; resolved permits", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    plantChildFormClarification(
+      bundle,
+      "<Clarification><IC-EXAMPLE /></Clarification>",
+    );
+    assertClarificationShapeClean(root);
+
+    const refused = evaluateApproveGate(root, "C-GATE");
+    expect(refused.decision).toBe("refuse");
+    expect(refused.issues.some((issue) => issue.code === "gate.approve.clarification-unresolved")).toBe(true);
+    expect(approveClarificationRequirement(refused)?.present).toBe(false);
+
+    const specPath = path.join(bundle, "spec.xml");
+    writeFileSync(
+      specPath,
+      readFileSync(specPath, "utf8").replace("<Clarification>", `<Clarification resolved="true">`),
+    );
+    assertClarificationShapeClean(root);
+
+    const permitted = evaluateApproveGate(root, "C-GATE");
+    expect(permitted.decision).toBe("permit");
+    expect(approveClarificationRequirement(permitted)?.present).toBe(true);
+  });
+
+  it("lint-clean unresolved INV-AUTH refuses approve; resolved permits", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    plantChildFormClarification(
+      bundle,
+      "<Clarification><INV-AUTH /></Clarification>",
+    );
+    assertClarificationShapeClean(root);
+
+    const refused = evaluateApproveGate(root, "C-GATE");
+    expect(refused.decision).toBe("refuse");
+    expect(refused.issues.some((issue) => issue.code === "gate.approve.clarification-unresolved")).toBe(true);
+    expect(approveClarificationRequirement(refused)?.present).toBe(false);
+
+    const specPath = path.join(bundle, "spec.xml");
+    writeFileSync(
+      specPath,
+      readFileSync(specPath, "utf8").replace("<Clarification>", `<Clarification resolved="true">`),
+    );
+    assertClarificationShapeClean(root);
+
+    const permitted = evaluateApproveGate(root, "C-GATE");
+    expect(permitted.decision).toBe("permit");
+    expect(approveClarificationRequirement(permitted)?.present).toBe(true);
+  });
+
+  it("lint-clean unresolved AC-SAMPLE does not by itself refuse approve", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    plantChildFormClarification(
+      bundle,
+      "<Clarification><AC-SAMPLE /></Clarification>",
+    );
+    assertClarificationShapeClean(root);
+
+    const result = evaluateApproveGate(root, "C-GATE");
+    expect(result.decision).toBe("permit");
+    expect(result.issues.some((issue) => issue.code === "gate.approve.clarification-unresolved")).toBe(false);
+    expect(approveClarificationRequirement(result)?.present).toBe(true);
+  });
+});
+
+function plantAcSampleCriterion(bundle: string): void {
+  const specPath = path.join(bundle, "spec.xml");
+  writeFileSync(
+    specPath,
+    readFileSync(specPath, "utf8").replace(
+      "<AcceptanceCriteria><Criterion>The fixture remains valid.</Criterion></AcceptanceCriteria>",
+      "<AcceptanceCriteria><AC-SAMPLE>Sample criterion.</AC-SAMPLE></AcceptanceCriteria>",
+    ),
+  );
+}
+
+function plantPlanSatisfiesAcSample(bundle: string): void {
+  const planPath = path.join(bundle, "plan.xml");
+  writeFileSync(
+    planPath,
+    readFileSync(planPath, "utf8").replace(
+      "<DependsOn></DependsOn>",
+      "<DependsOn></DependsOn><Satisfies><AC-SAMPLE /></Satisfies>",
+    ),
+  );
+}
+
+function applySatisfiedAcRequirement(result: ReturnType<typeof evaluateApplyGate>) {
+  return result.requirements.find((requirement) => requirement.id === "no-unresolved-satisfied-ac-clarification");
+}
+
+describe("C-GRAMMAR-SEAM T-002 apply gate on lint-clean Satisfied AC Clarification", () => {
+  it("lint-clean unresolved Satisfied AC-SAMPLE refuses apply; resolved does not emit the code", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    plantAcSampleCriterion(bundle);
+    plantPlanSatisfiesAcSample(bundle);
+    plantChildFormClarification(
+      bundle,
+      "<Clarification><AC-SAMPLE /></Clarification>",
+    );
+    assertClarificationShapeClean(root);
+
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    const refused = evaluateApplyGate(root, "C-GATE");
+    expect(refused.issues.some((issue) => issue.code === "gate.apply.clarification-unresolved")).toBe(true);
+    expect(applySatisfiedAcRequirement(refused)?.present).toBe(false);
+
+    const specPath = path.join(bundle, "spec.xml");
+    writeFileSync(
+      specPath,
+      readFileSync(specPath, "utf8").replace("<Clarification>", `<Clarification resolved="true">`),
+    );
+    assertClarificationShapeClean(root);
+
+    const resolved = evaluateApplyGate(root, "C-GATE");
+    expect(resolved.issues.some((issue) => issue.code === "gate.apply.clarification-unresolved")).toBe(false);
+    expect(applySatisfiedAcRequirement(resolved)?.present).toBe(true);
+  });
+
+  it("lint-clean unresolved AC that no task Satisfies does not emit apply clarification-unresolved", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    plantChildFormClarification(
+      bundle,
+      "<Clarification><AC-OTHER /></Clarification>",
+    );
+    assertClarificationShapeClean(root);
+
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.issues.some((issue) => issue.code === "gate.apply.clarification-unresolved")).toBe(false);
+    expect(applySatisfiedAcRequirement(result)?.present).toBe(true);
   });
 });
 

@@ -3715,3 +3715,62 @@ named code still has a reachable trigger. Naming codes by trigger is right — i
 is a claim about a mapping, and a repair is exactly the thing that moves mappings. Due in
 **P1.13** and **P1.14**, both of which rewrite diagnostics, and in **P1.4**, where a generated
 schema reference will enumerate shapes the grammar can move.
+
+---
+
+### F49 — The repaired gate reader filters where P0's thesis says reject. **[verified]**
+
+T-002 moved `listClarifications` off `attributes.target` and onto the unique self-closing child,
+correctly refusing the dual-read that would have kept the illegal form alive. The reader now opens:
+
+```ts
+if (node.children.length !== 1) continue;
+```
+
+An attribute-form Clarification has **zero** children, so it is silently skipped. Before this
+bundle it was read and **refused**. After it, the same document is invisible to the gate and
+approve **permits**.
+
+The document is illegal either way — the grammar rejects the attribute form — but the approve gate
+has **zero lint requirements** (measured: its only requirement is
+`no-unresolved-ic-inv-clarification`). So nothing in the lifecycle stops a lint-failing bundle from
+being approved, and the one surface that used to notice this particular malformation no longer
+does. Note the live scenario: six teaching sites still instruct the attribute form until T-004
+lands, so this is the shape an agent is currently most likely to write.
+
+**Why this is a finding rather than a nitpick.** P0 of this very roadmap is titled *"Reject, don't
+filter: the integrity cluster"* and its objective is *"every unrecognized authored token becomes an
+error. No silent drops."* A Clarification whose shape the reader cannot interpret is exactly an
+unrecognized authored token, and it is being dropped. The bundle repairing one silent-teaching
+defect reintroduced a silent-drop one layer down. The same reader also accepts any unique
+self-closing child — a `<FOO />` is recorded with target `FOO` and then ignored downstream, while
+`isClarificationTarget` remains exported and unused by the new reader.
+
+**Deferred, with the conflict stated (D11).** The repair is a **new gate behaviour** — raising on a
+Clarification the reader cannot interpret — which is outside what the approved spec authorizes the
+gate to do, and this bundle has already taken one re-spec. The defect manifests only on documents
+that already fail lint. That is a conflict, not a schedule.
+
+**Home: P1.12's follow-on, or the first bundle that touches gate requirements.** Two candidate
+shapes, to be argued there rather than assumed: the reader raises on an uninterpretable
+Clarification, or the approve gate gains a lint-clean requirement — the second is larger and would
+close the whole class rather than this instance.
+
+### F50 — A plan's design note instructs an edit to itself that the same plan forbids. **[verified]**
+
+`C-GRAMMAR-SEAM`'s plan, design note D7 (`plan.xml:704`): *"execution companions; **expand OWS at
+execute** if …"*. The plan is approved and immutable, and `ngrace-execute` says so. Following D7
+means editing an approved artifact; following immutability means leaving `ObservedWriteScope`
+incomplete while the cursor writes `run.xml` and `run/*`. Both cannot hold.
+
+The executor followed immutability and disclosed the unlisted writes — the right call, and the same
+one it made in `C-EXPLAIN-COVERAGE`, where the identical note appeared. **Twice in two bundles,
+because the note is copied forward with the plan template.**
+
+**The rule.** A plan may not instruct its own amendment. Cursor companions (`run.xml`, `run/*`,
+`run-ledger.xml`) are written by the CLI, not the agent, and belong in `ObservedWriteScope` **at
+authoring time** or in a standing exclusion — the same category error [F27](#f27) settled for the
+review scope audit, which stopped auditing the CLI's own writes against the agent's declared scope.
+Fix the note at the source: it originates in the plan authored from
+`.ngrace/changes/archive/C-EXPLAIN-COVERAGE/plan.xml` as the model, so the next plan authored from
+that model inherits it again.
