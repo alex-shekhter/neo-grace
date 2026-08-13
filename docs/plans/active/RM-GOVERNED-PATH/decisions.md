@@ -4174,3 +4174,70 @@ work is *deleting the duplicate*, not changing a semantic. This is the same clas
 [F46](#f46) / [F49](#f49) / [F52](#f52) — a check whose blast radius and whose name have drifted
 apart — and the same class as [D16](#d16)'s concern that a claim must be anchored to what actually
 runs.
+
+### F61 — The comment well-formedness check makes CLI flags unwritable inside XML artifacts. **[verified]**
+
+`C-ARTIFACT-VALIDITY` shipped `xml.comment-not-well-formed`, which errors when an XML **comment body**
+holds two adjacent ASCII hyphens. Every artifact authored after that bundle is subject to it, and the
+frozen path allowlist covers only nine archived files.
+
+**The consequence nobody stated when the check shipped: a dashed long flag cannot be named in a
+`DESIGN` comment.** `C-SCHEMA-REFERENCE`'s spec calls for a writer "check mode", and the authoring
+prompt described it as a *check-mode flag*. Writing that flag the way a user types it puts the
+sequence into the comment body and turns the artifact red at lint. The executor caught this at
+authoring and routed around it: the plan specifies the bare argv token `check` plus an exported
+`checkSchemaReference(root)`, and never writes a dashed form.
+
+**This is correct behaviour, not a defect** — the sequence genuinely cannot appear in a conformant XML
+comment, and the check is enforcing the XML specification rather than a house rule. But it is a
+standing authoring constraint that will recur on every bundle whose subject is a CLI surface, which
+in this repository is most of them.
+
+**The rule.** When an artifact must refer to a dashed CLI flag, name the underlying argv token or the
+exported function instead, and put the dashed form only in `src/**/*.test.ts`, where it is code rather
+than comment prose. This is the same move [F43](#f43) requires for XML-inside-XML: **bind the semantic
+in the artifact, assert the literal bytes in a test.** Scan comment bodies — not delimiters, which
+always contain the sequence — before reporting an artifact clean.
+
+### F62 — The authority's prompts keep asserting a lint expectation the authority has not measured. **[verified]**
+
+The plan-authoring prompt for `C-SCHEMA-REFERENCE` told the executor that a draft plan beside an
+approved spec "is syntax-checked only, so the expected result is 0 errors / 0 warnings". Measured
+after authoring: **1 error**, `change.graph-anchors-miss-write-scope`, because `ObservedWriteScope`
+lists `src/artifact/schema-reference.ts` before that file exists. `linksByPath` is built from files on
+disk, so the check cannot resolve a path the change has not yet created.
+
+**This is the second instance of the same error class in this roadmap.** The first told an executor
+that bare `ngrace lint` would emit `assertion.change-not-approved` for a draft plan; it does not,
+because the default assertion mode evaluates approved baselines only. Both times the prompt asserted a
+lint outcome the authority had not run for that artifact shape, and both times the executor measured
+and corrected it.
+
+**Neither claim was harmless.** A prompt that names the wrong expected result teaches an executor
+either to manufacture the predicted number or to distrust the prompt. `D12` had already authorized
+exactly this window and [F19](#f19) had already ruled that the approval commit carries the predicted
+error and names it in the body — so the correct instruction existed in the ledger and the prompt
+contradicted it.
+
+**The rule.** A prompt may state an expected lint result only when the authority has run that exact
+command against that exact artifact shape, or when the ledger already rules on the window. Otherwise
+state the window and ask the executor to measure. **The general form is the standing one — measure,
+do not estimate — and it applies hardest to the authority's own instructions**, which an executor
+reads as settled fact.
+
+### F21 correction — `FIX_ATTEMPT_BUDGET` no longer exists in the product. **[verified]**
+
+[F21](#f21) recorded that escalation fires at `grace-cursor.ts:1737` on
+`options.outcome === "fail" && attemptCount >= FIX_ATTEMPT_BUDGET`, with the budget at 2, and that
+the counter ignores outcome. **Measured at `cd8d885`, that constant is gone.** `grace-cursor.ts`
+declares only `FIX_DISTINCT_SIGNATURE_BUDGET = 4` (`:183`), and the single escalation site is
+`distinctKeys.size >= FIX_DISTINCT_SIGNATURE_BUDGET` (`:1692`).
+
+**Why this needed checking rather than reading.** `C-SCHEMA-REFERENCE`'s plan schedules two
+consecutive `fail` attempts inside `T-001` and again inside `T-003`. Under F21 as written, the second
+`fail` in each window would have been the second attempt and would have tripped escalation, pausing
+both tasks — the [F56](#f56) trap arriving through a different door. Under the product as it actually
+stands, two distinct signatures is well under four and the plan is safe.
+
+**The rule.** A finding that quotes a constant is a measurement with an expiry date. Re-grep the
+constant before relying on the finding, especially when the reliance is "this plan is safe".
