@@ -7,6 +7,7 @@ import { ARTIFACT_DIR } from "./artifact/paths";
 import { SCHEMA_SHAPE_REGISTRY, renderSchemaShape } from "./artifact/schema-reference";
 import { lintGraceProject } from "./grace-lint";
 import { getLintIssueGuide } from "./lint/catalog";
+import { createTempProject, GraceProjectBuilder } from "./test-support/fixtures";
 
 function createProject() {
   return mkdtempSync(path.join(os.tmpdir(), "grace-lint-"));
@@ -1684,5 +1685,94 @@ describe("AC-SHAPE-CODE-SPLIT", () => {
       readFileSync(path.resolve(import.meta.dir, "..", ".ngrace-lint.json"), "utf8"),
     ) as { ignoredDirs: string[] };
     expect(config.ignoredDirs).toContain("scripts");
+  });
+});
+
+function javaGovernedBody(mapMode: "EXPORTS" | "SUMMARY") {
+  return new GraceProjectBuilder(createTempProject("grace-path-no-adapter-"))
+    .module({ id: "M-JAVA", path: "src/Main.java", summary: "Unbacked java Path." })
+    .governedFile({
+      path: "src/Main.java",
+      purpose: "Java fixture",
+      links: ["M-JAVA"],
+      mapMode,
+      mapEntries: mapMode === "EXPORTS" ? ["Main"] : undefined,
+      body: "public class Main {}\n",
+    });
+}
+
+describe("graph.path-no-adapter", () => {
+  it("Case A: EXPORTS+LINKS on an unbacked ext emits analysis.no-adapter and skips this code", () => {
+    const root = javaGovernedBody("EXPORTS").write();
+    const result = lintGraceProject(root);
+    expect(result.issues.some((issue) => issue.code === "analysis.no-adapter")).toBe(true);
+    expect(result.issues.filter((issue) => issue.code === "graph.path-no-adapter")).toHaveLength(0);
+  });
+
+  it("Case B: unmarked Path file emits this code and graph.module-without-linked-files", () => {
+    const root = new GraceProjectBuilder(createTempProject("grace-path-no-adapter-"))
+      .module({ id: "M-JAVA", path: "src/Main.java", summary: "Unmarked java Path." })
+      .file("src/Main.java", "public class Main {}\n")
+      .write();
+    const result = lintGraceProject(root);
+    const pathIssues = result.issues.filter((issue) => issue.code === "graph.path-no-adapter");
+    expect(pathIssues).toHaveLength(1);
+    expect(pathIssues[0]?.severity).toBe("warning");
+    expect(pathIssues[0]?.file).toContain(`${ARTIFACT_DIR}/graph/main.xml`);
+    expect(pathIssues[0]?.message).toContain("M-JAVA");
+    expect(pathIssues[0]?.message).toContain("src/Main.java");
+    expect(pathIssues[0]?.message).toContain(".java");
+    expect(pathIssues[0]?.message).toContain("contracts and health work");
+    expect(pathIssues[0]?.message).toContain("MODULE_MAP parity unverified");
+    expect(result.issues.some((issue) => issue.code === "graph.module-without-linked-files")).toBe(true);
+  });
+
+  it("Case C: SUMMARY+LINKS unacknowledged emits this code and not analysis.no-adapter", () => {
+    const root = javaGovernedBody("SUMMARY").write();
+    const result = lintGraceProject(root);
+    expect(result.issues.some((issue) => issue.code === "analysis.no-adapter")).toBe(false);
+    const pathIssues = result.issues.filter((issue) => issue.code === "graph.path-no-adapter");
+    expect(pathIssues).toHaveLength(1);
+    expect(pathIssues[0]?.severity).toBe("warning");
+    expect(pathIssues[0]?.file).toContain(`${ARTIFACT_DIR}/graph/main.xml`);
+    expect(pathIssues[0]?.message).toContain("M-JAVA");
+    expect(pathIssues[0]?.message).toContain("src/Main.java");
+    expect(pathIssues[0]?.message).toContain(".java");
+    expect(pathIssues[0]?.message).toContain("contracts and health work");
+    expect(pathIssues[0]?.message).toContain("MODULE_MAP parity unverified");
+  });
+
+  it("Case D: missing Path file emits this code and graph.module-without-linked-files", () => {
+    const root = new GraceProjectBuilder(createTempProject("grace-path-no-adapter-"))
+      .module({ id: "M-JAVA", path: "src/Main.java", summary: "Missing java Path." })
+      .write();
+    const result = lintGraceProject(root);
+    expect(result.issues.some((issue) => issue.code === "graph.path-no-adapter")).toBe(true);
+    expect(result.issues.some((issue) => issue.code === "graph.module-without-linked-files")).toBe(true);
+  });
+
+  it("Case E: adapter-backed .ts Path emits neither code", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const result = lintGraceProject(root);
+    expect(result.issues.some((issue) => issue.code === "analysis.no-adapter")).toBe(false);
+    expect(result.issues.some((issue) => issue.code === "graph.path-no-adapter")).toBe(false);
+  });
+
+  it("unverifiedLanguages for the Path extension suppresses this code", () => {
+    const root = javaGovernedBody("SUMMARY")
+      .file(".ngrace-lint.json", `${JSON.stringify({ unverifiedLanguages: [".java"] })}\n`)
+      .write();
+    const result = lintGraceProject(root);
+    expect(result.issues.some((issue) => issue.code === "analysis.no-adapter")).toBe(false);
+    expect(result.issues.some((issue) => issue.code === "graph.path-no-adapter")).toBe(false);
+  });
+
+  it("skips this code when the module has no Path", () => {
+    const root = new GraceProjectBuilder(createTempProject("grace-path-no-adapter-"))
+      .module({ id: "M-NOPATH", summary: "No Path module." })
+      .write();
+    const result = lintGraceProject(root);
+    expect(result.issues.some((issue) => issue.code === "graph.path-no-adapter")).toBe(false);
   });
 });

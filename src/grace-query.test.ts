@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -7,6 +7,7 @@ import { ARTIFACT_DIR } from "./artifact/paths";
 import { findModules, findVerifications, loadGraceArtifactIndex, resolveGovernedFile, resolveModule, resolveVerification } from "./query/core";
 import { GraceCommandError } from "./query/errors";
 import { buildModuleHealth } from "./query/health";
+import { createTempProject, GraceProjectBuilder } from "./test-support/fixtures";
 
 function createProject() {
   const root = mkdtempSync(path.join(os.tmpdir(), "grace-query-"));
@@ -880,5 +881,234 @@ describe("C-FLAG-HONESTY T-003 — F18.1 and positionals", () => {
     const bare = runNgrace(["module", "find", "--json", "--path", REPO_ROOT]);
     expect(bare.exitCode).toBe(0);
     expect(() => JSON.parse(bare.stdout.toString())).not.toThrow();
+  });
+});
+
+function createFileExportsFixture() {
+  return new GraceProjectBuilder(createTempProject("grace-file-exports-"))
+    .module({ id: "M-EXACT", path: "src/exact.ts", summary: "Exact adapter exports." })
+    .governedFile({
+      path: "src/exact.ts",
+      purpose: "Exact exports",
+      links: ["M-EXACT"],
+      mapMode: "EXPORTS",
+      mapEntries: ["listedExport"],
+      body: "export function listedExport() {}\nexport const otherExport = 1;\n",
+    })
+    .module({ id: "M-HEURISTIC", path: "src/heuristic.ts", summary: "Heuristic adapter exports." })
+    .governedFile({
+      path: "src/heuristic.ts",
+      purpose: "Heuristic exports",
+      links: ["M-HEURISTIC"],
+      mapMode: "EXPORTS",
+      mapEntries: ["reexported"],
+      body: 'export * from "./exact";\n',
+    })
+    .module({ id: "M-NO-PATH", summary: "Module without Path." })
+    .governedFile({
+      path: "src/linked-only.ts",
+      purpose: "Linked file that getModulePath would fall back to",
+      links: ["M-NO-PATH"],
+      mapMode: "EXPORTS",
+      mapEntries: ["hiddenByFallback"],
+      body: "export function hiddenByFallback() {}\n",
+    })
+    .module({ id: "M-MISSING-PATH", path: "src/does-not-exist.ts", summary: "Authored Path file missing on disk." })
+    .module({ id: "M-PRIMARY", path: "src/primary.ts", summary: "Path file only, not every linked file." })
+    .governedFile({
+      path: "src/primary.ts",
+      purpose: "Primary Path file",
+      links: ["M-PRIMARY"],
+      mapMode: "EXPORTS",
+      mapEntries: ["alpha"],
+      body: "export function alpha() {}\n",
+    })
+    .governedFile({
+      path: "src/secondary.ts",
+      purpose: "Linked sibling that Path form must not analyse",
+      links: ["M-PRIMARY"],
+      mapMode: "EXPORTS",
+      mapEntries: ["beta"],
+      body: "export function beta() {}\n",
+    })
+    .governedFile({
+      path: "src/unlinked.ts",
+      purpose: "Governed file linked to no module",
+      links: [],
+      mapMode: "EXPORTS",
+      mapEntries: ["unlinkedExport"],
+      body: "export function unlinkedExport() {}\n",
+    })
+    .file("src/unmarked.ts", "export function unmarkedExport() {}\n")
+    .file("src/Main.java", "public class Main {}\n")
+    .write();
+}
+
+function runFileExports(root: string, args: string[]) {
+  return Bun.spawnSync({
+    cmd: [process.execPath, "./src/grace.ts", "file", "exports", ...args],
+    cwd: path.resolve(import.meta.dir, ".."),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+}
+
+function fileExportsStdout(result: ReturnType<typeof runFileExports>) {
+  return Buffer.from(result.stdout).toString("utf8");
+}
+
+function fileExportsStderr(result: ReturnType<typeof runFileExports>) {
+  return Buffer.from(result.stderr).toString("utf8");
+}
+
+describe("file exports", () => {
+  it("prints first-match adapter exports for a positional path", () => {
+    const root = createFileExportsFixture();
+    const before = readFileSync(path.join(root, "src/exact.ts"), "utf8");
+    const result = runFileExports(root, ["src/exact.ts", "--path", root]);
+    expect(result.exitCode).toBe(0);
+    const stdout = fileExportsStdout(result);
+    expect(stdout).toContain("js-ts");
+    expect(stdout).toContain("exact");
+    expect(stdout).toContain("listedExport");
+    expect(stdout).toContain("otherExport");
+    expect(readFileSync(path.join(root, "src/exact.ts"), "utf8")).toBe(before);
+  });
+
+  it("prints first-match adapter exports for argv token module using authored Path only", () => {
+    const root = createFileExportsFixture();
+    const result = runFileExports(root, ["--module", "M-PRIMARY", "--path", root]);
+    expect(result.exitCode).toBe(0);
+    const stdout = fileExportsStdout(result);
+    expect(stdout).toContain("js-ts");
+    expect(stdout).toContain("alpha");
+    expect(stdout).not.toContain("beta");
+  });
+
+  it("makes heuristic exportConfidence visible on the same view as the list", () => {
+    const root = createFileExportsFixture();
+    const result = runFileExports(root, ["src/heuristic.ts", "--path", root]);
+    expect(result.exitCode).toBe(0);
+    expect(fileExportsStdout(result)).toContain("heuristic");
+  });
+
+  it("names Adapter none with an empty list and the consequence sentence", () => {
+    const root = createFileExportsFixture();
+    const result = runFileExports(root, ["src/Main.java", "--path", root]);
+    expect(result.exitCode).toBe(0);
+    const stdout = fileExportsStdout(result);
+    expect(stdout).toContain("Adapter none");
+    expect(stdout).toContain("contracts and health work");
+    expect(stdout).toContain("MODULE_MAP parity unverified");
+    expect(stdout).not.toMatch(/Exports:\s*\S/);
+  });
+
+  it("prints Module none for an unmarked file and still analyses it", () => {
+    const root = createFileExportsFixture();
+    const result = runFileExports(root, ["src/unmarked.ts", "--path", root]);
+    expect(result.exitCode).toBe(0);
+    const stdout = fileExportsStdout(result);
+    expect(stdout).toContain("Module none");
+    expect(stdout).toContain("js-ts");
+    expect(stdout).toContain("unmarkedExport");
+  });
+
+  it("prints Module none for a governed file linked to no module and still analyses it", () => {
+    const root = createFileExportsFixture();
+    const result = runFileExports(root, ["src/unlinked.ts", "--path", root]);
+    expect(result.exitCode).toBe(0);
+    const stdout = fileExportsStdout(result);
+    expect(stdout).toContain("Module none");
+    expect(stdout).toContain("unlinkedExport");
+  });
+
+  it("treats a resolved module with no Path as not-found without analysing a linked file", () => {
+    const root = createFileExportsFixture();
+    const result = runFileExports(root, ["--module", "M-NO-PATH", "--path", root, "--json"]);
+    expect(result.exitCode).not.toBe(0);
+    const body = JSON.parse(fileExportsStdout(result));
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("not-found");
+    expect(body.error.message).toMatch(/Path/i);
+    expect(body.error.message).not.toMatch(/does-not-exist|not found on disk|missing on disk/i);
+    expect(body.error.message).not.toContain("hiddenByFallback");
+  });
+
+  it("names a directory Path as its own cause, not as a missing file", () => {
+    const root = createFileExportsFixture();
+    mkdirSync(path.join(root, "src/adir"), { recursive: true });
+    const result = runFileExports(root, ["src/adir", "--path", root, "--json"]);
+    expect(result.exitCode).not.toBe(0);
+    const body = JSON.parse(fileExportsStdout(result));
+    expect(body.error.code).toBe("not-found");
+    expect(body.error.message).toMatch(/directory/i);
+    // The path exists; borrowing the missing-file sentence would be F40/F55's defect.
+    expect(body.error.message).not.toMatch(/not found on disk/i);
+  });
+
+  it("treats a missing file as not-found with a different cause than a missing Path", () => {
+    const root = createFileExportsFixture();
+    const missingFile = runFileExports(root, ["src/absent.ts", "--path", root, "--json"]);
+    const missingPath = runFileExports(root, ["--module", "M-MISSING-PATH", "--path", root, "--json"]);
+    const noPath = runFileExports(root, ["--module", "M-NO-PATH", "--path", root, "--json"]);
+    expect(missingFile.exitCode).not.toBe(0);
+    expect(missingPath.exitCode).not.toBe(0);
+    const missingFileBody = JSON.parse(fileExportsStdout(missingFile));
+    const missingPathBody = JSON.parse(fileExportsStdout(missingPath));
+    const noPathBody = JSON.parse(fileExportsStdout(noPath));
+    expect(missingFileBody.error.code).toBe("not-found");
+    expect(missingPathBody.error.code).toBe("not-found");
+    expect(noPathBody.error.code).toBe("not-found");
+    expect(missingFileBody.error.message).not.toBe(noPathBody.error.message);
+    expect(missingPathBody.error.message).not.toBe(noPathBody.error.message);
+    expect(missingFileBody.error.message).toMatch(/src\/absent\.ts|absent\.ts/);
+    expect(missingPathBody.error.message).toMatch(/src\/does-not-exist\.ts|does-not-exist\.ts/);
+  });
+
+  it("rejects both selectors or neither as invalid-arguments", () => {
+    const root = createFileExportsFixture();
+    const neither = runFileExports(root, ["--path", root, "--json"]);
+    const both = runFileExports(root, ["src/exact.ts", "--module", "M-EXACT", "--path", root, "--json"]);
+    expect(neither.exitCode).not.toBe(0);
+    expect(both.exitCode).not.toBe(0);
+    expect(JSON.parse(fileExportsStdout(neither)).error.code).toBe("invalid-arguments");
+    expect(JSON.parse(fileExportsStdout(both)).error.code).toBe("invalid-arguments");
+  });
+
+  it("emits the dedicated object for format json and the json boolean", () => {
+    const root = createFileExportsFixture();
+    const formatJson = runFileExports(root, ["src/exact.ts", "--path", root, "--format", "json"]);
+    const jsonFlag = runFileExports(root, ["--module", "M-EXACT", "--path", root, "--json"]);
+    expect(formatJson.exitCode).toBe(0);
+    expect(jsonFlag.exitCode).toBe(0);
+    const fromFormat = JSON.parse(fileExportsStdout(formatJson));
+    const fromFlag = JSON.parse(fileExportsStdout(jsonFlag));
+    expect(fromFormat).toEqual({
+      path: "src/exact.ts",
+      moduleId: "M-EXACT",
+      adapterId: "js-ts",
+      exportConfidence: "exact",
+      exports: ["listedExport", "otherExport"],
+    });
+    expect(fromFlag).toEqual({
+      path: "src/exact.ts",
+      moduleId: "M-EXACT",
+      adapterId: "js-ts",
+      exportConfidence: "exact",
+      exports: ["listedExport", "otherExport"],
+    });
+  });
+
+  it("emits null moduleId, adapterId, and exportConfidence when none", () => {
+    const root = createFileExportsFixture();
+    const result = runFileExports(root, ["src/Main.java", "--path", root, "--json"]);
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(fileExportsStdout(result))).toEqual({
+      path: "src/Main.java",
+      moduleId: null,
+      adapterId: null,
+      exportConfidence: null,
+      exports: [],
+    });
   });
 });

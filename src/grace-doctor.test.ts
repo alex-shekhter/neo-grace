@@ -82,11 +82,12 @@ function guided(code: string, file = "x.ts"): LintIssue {
 }
 
 describe("partitionAbsenceIssues", () => {
-  it("keeps all three absence codes and drops defects", () => {
+  it("keeps all four absence codes and drops defects", () => {
     const issues = [
       guided("analysis.no-adapter"),
       guided("analysis.runtime-missing"),
       guided("assertion.command-not-evaluated"),
+      guided("graph.path-no-adapter"),
       guided("analysis.adapter-failed"),
       guided("analysis.heuristic-confidence"),
       guided("assertion.MustExist"),
@@ -97,11 +98,13 @@ describe("partitionAbsenceIssues", () => {
       "analysis.no-adapter",
       "analysis.runtime-missing",
       "assertion.command-not-evaluated",
+      "graph.path-no-adapter",
     ]);
     expect(absenceCountsByReason(issues)).toEqual({
       "analysis.no-adapter": 1,
       "analysis.runtime-missing": 1,
       "assertion.command-not-evaluated": 1,
+      "graph.path-no-adapter": 1,
     });
     // Discriminating negative for prefix-filter regression (A4.3 / §0.7.2):
     // analysis.adapter-failed and analysis.heuristic-confidence start with analysis.
@@ -111,6 +114,7 @@ describe("partitionAbsenceIssues", () => {
       "analysis.no-adapter",
       "analysis.runtime-missing",
       "assertion.command-not-evaluated",
+      "graph.path-no-adapter",
     ]);
     expect(rows.every((r) => r.issueClass === "absence")).toBe(true);
   });

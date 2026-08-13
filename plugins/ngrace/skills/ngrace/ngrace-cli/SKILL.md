@@ -7,7 +7,7 @@ description: Operate the neo-grace CLI for .ngrace linting, status, module navig
 <installation_contract>Invoke the installed stable `ngrace` binary directly. If it is missing, install it with `bun add -g @neograce/cli`. Do not default to `bunx`, `npx`, or the `rc` dist-tag.</installation_contract>
 
 <shape_sources>
-Command inventory: README CLI Overview table (bound to `liveCommandRoots`). Do not restate that inventory here.
+Command inventory: README CLI Overview table (bound to `listLiveInvocations`). Do not restate that inventory here.
 Explain a shape or code: argv token `explain`.
 Registered artifact shapes: `docs/schema-reference.md`. That document is not a complete grammar.
 </shape_sources>

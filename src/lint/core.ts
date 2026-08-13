@@ -32,11 +32,11 @@ import {
   detectUnsafeConcurrentExecution,
   type ActiveChangeScope,
 } from "../artifact/scope";
-import { ARTIFACT_DIR } from "../artifact/paths";
+import { ARTIFACT_DIR, toProjectRelativePath } from "../artifact/paths";
 import { ARTIFACT_TAG_PREFIX, ANCHOR_PATTERNS, type NgraceIssue, type NgraceProjectPaths } from "../artifact/types";
 import { readGraceXmlArtifact } from "../artifact/xml";
 import { appendCommandRunEvent } from "../grace-cursor";
-import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "../language-registry";
+import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS, isGovernedCodeExtension } from "../language-registry";
 import {
   analyzeGovernedFile,
   collectCodeFiles,
@@ -47,7 +47,7 @@ import {
 import { withLintIssueGuide } from "./catalog";
 import { loadGraceLintConfig } from "./config";
 import { documentSizeIssues } from "./document-size";
-import type { AnalysisCoverage, AnalysisCoverageEntry, LintIssue, LintOptions, LintProfile, LintResult } from "./types";
+import type { AnalysisCoverage, AnalysisCoverageEntry, GraceLintConfig, LintIssue, LintOptions, LintProfile, LintResult } from "./types";
 
 const TEXT_FORMAT_OPTIONS = new Set(["text", "json"]);
 
@@ -175,6 +175,16 @@ function validateGovernedFiles(result: LintResult, root: string): FileMarkupReco
 }
 
 /**
+ * Project-relative POSIX form for one issue path. Absolute inputs go through the
+ * shared helper, which canonicalizes both ends (macOS `/var` → `/private/var`,
+ * Windows 8.3 temp names) before joining with "/"; already-relative inputs are
+ * only separator-normalized so they are never resolved against the process cwd.
+ */
+function toPosixRelative(root: string, file: string) {
+  return path.isAbsolute(file) ? toProjectRelativePath(root, file) : file.replaceAll(path.sep, "/");
+}
+
+/**
  * Validate DEPENDS/LINKS anchors against graph and verification projections (G-10, G-11).
  * Unknown anchors are errors; modules with Path but no linking file are warnings.
  */
@@ -183,6 +193,7 @@ function validateFileHeaderReferences(
   records: FileMarkupRecord[],
   graph: GraphProjection,
   verification: VerificationProjection,
+  config: GraceLintConfig | null,
 ): void {
   const knownModules = new Set(graph.modules.keys());
   const knownFlows = new Set(graph.dataFlows.keys());
@@ -231,15 +242,53 @@ function validateFileHeaderReferences(
     }
   }
 
+  const noAdapterPaths = new Set(
+    result.issues
+      .filter((issue) => issue.code === "analysis.no-adapter")
+      .map((issue) => toPosixRelative(result.root, issue.file)),
+  );
+  const unverifiedLanguages = new Set(config?.unverifiedLanguages ?? []);
+
   for (const [moduleId, moduleRecord] of graph.modules) {
+    // Both module-level warnings report the owning graph document the same way:
+    // project-relative POSIX. moduleRecord.file is an OS-native absolute path
+    // (realpathSync output), which reads as `...\.ngrace\graph\main.xml` on Windows.
+    const graphDocumentFile = toPosixRelative(result.root, moduleRecord.file);
     if (moduleRecord.path && (linkedModuleCount.get(moduleId) ?? 0) === 0) {
       addIssue(result, {
         severity: "warning",
         code: "graph.module-without-linked-files",
-        file: moduleRecord.file,
+        file: graphDocumentFile,
         message: `${moduleId} declares a Path but no governed file declares LINKS: ${moduleId}.`,
       });
     }
+
+    const authoredPath = moduleRecord.path?.trim() ?? "";
+    if (!authoredPath) {
+      continue;
+    }
+    const extension = path.extname(authoredPath);
+    if (!isGovernedCodeExtension(extension, config?.codeExtensions)) {
+      continue;
+    }
+    if (ADAPTER_BACKED_EXTENSIONS.has(extension)) {
+      continue;
+    }
+    if (unverifiedLanguages.has(extension)) {
+      continue;
+    }
+    const normalizedPath = authoredPath.replaceAll(path.sep, "/");
+    if (noAdapterPaths.has(normalizedPath)) {
+      continue;
+    }
+    addIssue(result, {
+      severity: "warning",
+      code: "graph.path-no-adapter",
+      file: graphDocumentFile,
+      message:
+        `${moduleId} Path ${authoredPath} (${extension}): contracts and health work; `
+        + "MODULE_MAP parity unverified; not an error because tier-1 is legitimate.",
+    });
   }
 }
 
@@ -475,7 +524,7 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
     addIssue(result, issue);
   }
 
-  validateFileHeaderReferences(result, governedRecords, graph, verification);
+  validateFileHeaderReferences(result, governedRecords, graph, verification, config);
 
   const activeScopes = collectActiveChangeScopes(paths);
   const ownership = createDurableOwnershipIndex(graph, verification);

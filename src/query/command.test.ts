@@ -21,6 +21,7 @@ import {
   collectBooleanFlagNames,
   defineGraceCommand,
   listBooleanFlags,
+  listLiveInvocations,
   refuseBooleanSpaceForm,
   resolveErrorFormat,
 } from "./command";
@@ -763,7 +764,7 @@ describe("listBooleanFlags live inventory (anti-F10)", () => {
 
     // Re-measured at execute via this walker. Plan-authoring HEAD 4bf483c: 24.
     // F23: exact pin, not a lower bound. F12.2: this run's number is the source of truth.
-    expect(sites.length).toBe(24);
+    expect(sites.length).toBe(25);
 
     // review and doctor included in the walk (0 booleans today).
     expect(sites.some((s) => s.path.startsWith("review"))).toBe(false);
@@ -880,12 +881,75 @@ describe("README CLI Overview lists every live command root", () => {
   });
 });
 
+function invocationToken(invocation: { root: string; sub: string | null }) {
+  return invocation.sub == null ? `ngrace ${invocation.root}` : `ngrace ${invocation.root} ${invocation.sub}`;
+}
+
+function documentedOverviewTokens(readme: string): string[] {
+  const afterHeading = readme.split("## CLI Overview\n")[1];
+  const overview = afterHeading?.split(/^## /m)[0] ?? "";
+  const tokens: string[] = [];
+  for (const line of overview.split("\n")) {
+    if (!line.startsWith("| `ngrace ")) continue;
+    const cell = line.match(/`([^`]+)`/)?.[1] ?? "";
+    const firstAlt = cell.split("\\|")[0] ?? cell;
+    const kept: string[] = [];
+    for (const word of firstAlt.trim().split(/\s+/)) {
+      if (word.startsWith("-") || word.startsWith("<") || word.startsWith("[")) break;
+      kept.push(word);
+    }
+    if (kept.length >= 2) tokens.push(kept.slice(0, 3).join(" "));
+  }
+  return tokens;
+}
+
+describe("README CLI Overview lists every live invocation", () => {
+  it("every live invocation appears as an ngrace token in a CLI Overview table row", () => {
+    const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");
+    const documented = new Set(documentedOverviewTokens(readme));
+    const missing = listLiveInvocations([...liveCommandRoots()])
+      .map(invocationToken)
+      .filter((token) => !documented.has(token));
+    expect(missing).toEqual([]);
+  });
+});
+
+describe("listLiveInvocations", () => {
+  it("treats a root with no subCommands as one invocation", () => {
+    const command = { args: { json: { type: "boolean" as const, default: false } } };
+    expect(listLiveInvocations([{ name: "status", command: command as never }])).toEqual([
+      { root: "status", sub: null },
+    ]);
+  });
+
+  it("yields one invocation per sub name", () => {
+    const command = {
+      subCommands: {
+        show: { args: {} },
+        exports: { args: {} },
+      },
+    };
+    expect(listLiveInvocations([{ name: "file", command: command as never }])).toEqual([
+      { root: "file", sub: "show" },
+      { root: "file", sub: "exports" },
+    ]);
+  });
+
+  it("throws on lazy args, subCommands, and a lazy sub entry", () => {
+    expect(() => listLiveInvocations([{ name: "lazy-args", command: { args: () => ({}) } as never }])).toThrow(/lazy-args/);
+    expect(() => listLiveInvocations([{ name: "lazy", command: { subCommands: () => ({}) } as never }])).toThrow(/lazy/);
+    expect(() =>
+      listLiveInvocations([{ name: "root", command: { subCommands: { child: () => ({}) } } as never }]),
+    ).toThrow(/root.child/);
+  });
+});
+
 describe("AC-CLASS-COVERAGE (T-003)", () => {
   it("every live boolean site sits on a defineGraceCommand-branded node (exact count)", () => {
     const roots = liveCommandRoots();
     const sites = listBooleanFlags([...roots]);
     // Re-measure at execute (F12.2). Plan authoring: 24. F23: exact pin.
-    expect(sites.length).toBe(24);
+    expect(sites.length).toBe(25);
 
     for (const site of sites) {
       const node = commandAtPath(roots as never, site.path);
@@ -898,7 +962,7 @@ describe("AC-CLASS-COVERAGE (T-003)", () => {
 
   it("pure refuse covers every collected live flag name for space true and space false", () => {
     const sites = listBooleanFlags([...liveCommandRoots()]);
-    expect(sites.length).toBe(24);
+    expect(sites.length).toBe(25);
     const names = [...new Set(sites.map((s) => s.name))];
     for (const name of names) {
       const long = `--${name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/_/g, "-").toLowerCase()}`;

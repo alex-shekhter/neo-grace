@@ -1,0 +1,1118 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-ADAPTER-HONESTY>
+    <IntentSummary>
+      Deliver RM-GOVERNED-PATH P1 steps 7 and 8 together: a
+      read-only file exports view that prints the first matching
+      adapter's exports and exportConfidence (or names a missing
+      adapter), a graph Path preflight warning
+      graph.path-no-adapter on the graph document, and a README
+      CLI Overview check bound to a live invocation walker so a
+      new sub of an existing root cannot stay invisible. Document
+      the six already-live undocumented invocations as well as
+      file exports. P1.6 is out.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-file.ts</Value></MustExist>
+      <MustExist><Value>src/query/render.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-query.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>src/language-registry.ts</Value></MustExist>
+      <MustExist><Value>src/project-utils.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-cli/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/packed-cli-smoke.ts</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-ADAPTER-HONESTY/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-ADAPTER-HONESTY/plan.xml</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-CLI-INFRA</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-file.ts</File>
+        <Text>export const fileCommand</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-file.ts</File>
+        <Text>show: defineCommand</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/render.ts</File>
+        <Text>export function formatFileText</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>export function listBooleanFlags</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>export function listAbsenceCatalogCodes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>graph.module-without-linked-files</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/project-utils.ts</File>
+        <Text>analysis.no-adapter</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/language-registry.ts</File>
+        <Text>export const LANGUAGE_ADAPTERS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/language-registry.ts</File>
+        <Text>export const ADAPTER_BACKED_EXTENSIONS</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>liveCommandRoots</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>liveCommandRoots</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>"schemaVersion": "1.0.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>analysis.runtime-missing</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-file.ts</File>
+        <Text>exports: defineCommand</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/query/render.ts</File>
+        <Text>formatFileExportsText</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/query/command.ts</File>
+        <Text>listLiveInvocations</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>graph.path-no-adapter</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/core.ts</File>
+        <Text>graph.path-no-adapter</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/project-utils.ts</File>
+        <Text>graph.path-no-adapter</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>listLiveInvocations</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>listLiveInvocations</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-CLI-INFRA</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-file.ts</Value></MustExist>
+      <MustExist><Value>src/query/render.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-query.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>src/language-registry.ts</Value></MustExist>
+      <MustExist><Value>src/project-utils.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-cli/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/packed-cli-smoke.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-CLI-INFRA</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-file.ts</File>
+        <Text>export const fileCommand</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-file.ts</File>
+        <Text>exports: defineCommand</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/render.ts</File>
+        <Text>export function formatFileExportsText</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>export function listBooleanFlags</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>export function listLiveInvocations</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>export function listAbsenceCatalogCodes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>graph.path-no-adapter</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>graph.module-without-linked-files</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>graph.path-no-adapter</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/project-utils.ts</File>
+        <Text>analysis.no-adapter</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/language-registry.ts</File>
+        <Text>export const LANGUAGE_ADAPTERS</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>listLiveInvocations</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>listLiveInvocations</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>"schemaVersion": "1.0.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>analysis.runtime-missing</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/project-utils.ts</File>
+        <Text>graph.path-no-adapter</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>liveCommandRoots</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>liveCommandRoots</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-CLI-INFRA</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/grace-query.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/query/command.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-lint.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/lint/catalog.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:marketplace</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-QUERY />
+        <M-CLI-INFRA />
+        <M-LINT-CORE />
+        <M-LINT-CATALOG />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-QUERY />
+        <V-M-CLI-INFRA />
+        <V-M-LINT-CORE />
+        <V-M-LINT-CATALOG />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-file.ts</File>
+      <File>src/query/render.ts</File>
+      <File>src/query/command.ts</File>
+      <File>src/query/command.test.ts</File>
+      <File>src/lint/core.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/grace-query.test.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>README.md</File>
+      <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>scripts/packed-cli-smoke.ts</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>src/grace-doctor.test.ts</File>
+      <File>.ngrace/changes/active/C-ADAPTER-HONESTY/spec.xml</File>
+      <File>.ngrace/changes/active/C-ADAPTER-HONESTY/plan.xml</File>
+      <File>.ngrace/changes/active/C-ADAPTER-HONESTY/run.xml</File>
+      <File>.ngrace/changes/active/C-ADAPTER-HONESTY/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-ADAPTER-HONESTY/run/**</Glob>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: c68b5d2 (branch feat/adapter-honesty).
+      Spec is approved and immutable. Do not amend it. If execute
+      shows the spec is wrong, stop and report.
+
+      Ceremony tier T2. Stop and re-spec rather than touching
+      src/project-utils.ts analysis.no-adapter trigger,
+      src/language-registry.ts adapter membership,
+      src/lint/types.ts LintResult, src/gates production,
+      src/review production, ngrace-execute SKILL.md,
+      examples/, docs/plans, .ngrace/changes/archive,
+      CHANGELOG.md, or any version surface. Packaged version
+      stays 6.2.0. No product version bump. F50: this plan
+      does not instruct its own ObservedWriteScope amendment;
+      cursor companions are listed at authoring. F33:
+      re-measure every count at execute. Do not pin 1366,
+      30, 24, 806, 55040, 3 absence codes, 13 adapter-backed
+      extensions, 26 CODE_EXTENSIONS members, or any line
+      number this change moves. F61: name argv tokens and
+      exported functions in this comment; leave dashed
+      forms to *.test.ts. F42: plan assertions bind to
+      exported function names, issue codes, and production
+      symbols, never to AC ids, README row prose, or
+      exportConfidence as a free needle. No Clarifications
+      section.
+
+      ────────────────────────────────────────────────────────────
+      D0 — Task decomposition and F56 / F67 / F68 budget
+      ────────────────────────────────────────────────────────────
+      Three non-exempt criteria, each with its own red
+      under the signature keys the spec named. Cap: at
+      most three distinct kind-plus-key pairs per task
+      (FIX_DISTINCT_SIGNATURE_BUDGET is 4). Prefer two
+      so an unplanned red has a slot. A task must not
+      record the same key twice
+      (FIX_SIGNATURE_REPEAT_BUDGET is 2, window per
+      task). Key on the property, never a test file
+      stem (F67).
+
+      Four tasks. At most one planned red per work
+      task. The close task plans zero.
+
+      | Task | Surface | Satisfies | Planned distinct reds |
+      | T-001 | file exports sub,
+          formatFileExportsText,
+          boolean site remasure,
+          packed smoke sibling
+        | AC-FILE-EXPORTS
+        | 1: test:file-exports-unknown |
+      | T-002 | catalog exact guide,
+          graph.path-no-adapter
+          emission, absence-list pin,
+          cases A/B/C/D/E and
+          same-file skip
+        | AC-GRAPH-PATH-NO-ADAPTER
+        | 1: test:graph-path-no-adapter |
+      | T-003 | listLiveInvocations,
+          README CLI Overview rows,
+          ngrace-cli shape_sources
+          both trees, F51 remasure
+        | AC-README-INVOCATIONS
+        | 1: test:readme-live-invocations |
+      | T-004 | dogfood close
+        | AC-HEAD-RED,
+          AC-SUITE-AND-LINT
+        | 0 planned |
+
+      T-002 DependsOn T-001: sequential executor,
+      one open epoch; the files do not overlap but
+      T-003 must see file exports as a live sub
+      before its walker red is recorded. T-003
+      DependsOn T-002 so the close wave is one
+      line. T-003 also shares
+      src/query/command.test.ts with T-001
+      (boolean site remasure vs walker check).
+      T-004 DependsOn T-003.
+
+      Signature keys the executor must record
+      (kind test):
+        T-001  test:file-exports-unknown
+        T-002  test:graph-path-no-adapter
+        T-003  test:readme-live-invocations
+
+      Per-task counts: T-001 1, T-002 1, T-003 1,
+      T-004 0. No key repeats inside a task. No
+      task has more than one planned red.
+
+      F68: no task plans two reds. The T-001 red
+      must not import formatFileExportsText (that
+      export is produced in the production trip).
+      The T-003 red must not import
+      listLiveInvocations (the failing surface is
+      README tokens, via a test-local walk of the
+      same command objects). Do not import two
+      new missing exports of one module in one
+      failing test.
+
+      ────────────────────────────────────────────────────────────
+      D1 — file exports (T-001)
+      ────────────────────────────────────────────────────────────
+      New sub of file, argv token exports, beside
+      show, using defineCommand the same way show
+      does (the parent fileCommand wrapper brands
+      the child). Accepts exactly one of: argv
+      token module holding a module id, or a
+      positional file path. Both or neither is
+      invalid-arguments.
+
+      Module form: resolveModule, then analyse
+      that module's authored graph Path only
+      (moduleRecord.graph.path). Do not call
+      getModulePath: that helper falls back to a
+      linked file and would hide a missing Path.
+      A module with no Path is a named absence,
+      code not-found, nonzero. A Path whose file
+      is missing on disk is not-found.
+
+      Path form: the named file need not be
+      governed and need not be linked. Do not
+      call resolveGovernedFile (that helper is
+      not-found for unmarked source, which is
+      the MODULE_MAP-dance input). Load the
+      project index the same way file show
+      does (a grace project is still required).
+      Missing file on disk is not-found. A file
+      linked to no module, or an unmarked file,
+      prints Module none and exits 0, and still
+      analyses if an adapter supports the file.
+      Path form analyses that one file, never
+      every linked file.
+
+      Adapter resolution is LANGUAGE_ADAPTERS
+      first-match, never a second list. Call
+      adapter.analyze directly. Do not call
+      analyzeGovernedFile (that is the lint
+      path and would couple the view to issue
+      emission).
+
+      If an adapter supports the file: print
+      adapter id, exportConfidence, and the
+      sorted exports set. If exportConfidence
+      is heuristic, the text on that same view
+      contains the word heuristic. If no
+      adapter supports the file: print Adapter
+      none, an empty export list, and the
+      consequence sentence (contracts and
+      health work; MODULE_MAP parity
+      unverified); do not invent symbols;
+      exit 0.
+
+      Output: format text (default) and format
+      json plus the json boolean shortcut,
+      matching file show. JSON is a dedicated
+      object with keys path, moduleId,
+      adapterId, exportConfidence, exports
+      (authority ruling on a spec
+      underspecification the executor flagged:
+      adapterId is what LanguageAnalysis already
+      calls this value at src/lint/types.ts:156,
+      and a bare module / adapter key reads as
+      an object rather than an id — one value
+      must not acquire a second name).
+      moduleId / adapterId / exportConfidence
+      are JSON null when none. exports is a sorted string
+      array, empty when none. It is not
+      LintResult. Do not add a top-level key
+      to LintResult (D13; the existing key pin
+      in src/lint/core.test.ts stays green by
+      non-edit of src/lint/types.ts).
+
+      Read-only: no file write, no map rewrite,
+      no fix argv token (D3).
+
+      New export in render.ts:
+      formatFileExportsText. Update that file's
+      MODULE_MAP. Do not export a second new
+      symbol from render.ts. Keep the JSON
+      object local to grace-file.ts. grace-file.ts
+      MODULE_MAP stays fileCommand (no new
+      export).
+
+      Boolean site pin: the json flag on file
+      exports moves listBooleanFlags from the
+      HEAD count 24. Re-measure all three
+      toBe sites in command.test.ts in this
+      task's production trip. That update is
+      not a weakening and is not a planned red
+      (F45 / F33).
+
+      Packed smoke: add a file exports case
+      beside file show in
+      scripts/packed-cli-smoke.ts in the
+      production trip, not in the red trip.
+
+      Do not edit README.md, skills, or
+      catalog.ts in this task. T-003 owns
+      the inventory rows so its red can still
+      observe the live holes including file
+      exports.
+
+      ────────────────────────────────────────────────────────────
+      D2 — graph.path-no-adapter (T-002)
+      ────────────────────────────────────────────────────────────
+      New lint warning code graph.path-no-adapter,
+      exact catalog guide, issueClass absence,
+      severity warning. derivedFrom and proposedBy
+      required (absence entries). Completeness via
+      emission: the object form in lint/core.ts is
+      visible to collectEmittedIssueCodes. Do not
+      take an allowlist seat.
+
+      Emit from validateFileHeaderReferences (or
+      an immediately adjacent graph-module loop
+      in src/lint/core.ts), on the graph document
+      that owns the module (moduleRecord.file),
+      same home as graph.module-without-linked-files.
+      Do not emit from analyzeGovernedFile. Do not
+      change the analysis.no-adapter predicate.
+
+      For each graph module with a non-empty Path
+      P: let ext be the extension of P. Skip when
+      ext is not a governed code extension (use
+      isGovernedCodeExtension with the run's
+      codeExtensions). Skip when
+      ADAPTER_BACKED_EXTENSIONS has ext. Skip
+      when this lint run already emitted
+      analysis.no-adapter for a governed file
+      whose project-relative path equals P
+      (analysis.no-adapter issue.file is the
+      absolute collectCodeFiles path;
+      P is project-relative; normalize before
+      compare). Skip when ext is in this run's
+      unverifiedLanguages (authority ruling;
+      per extension, matching the key).
+      Otherwise emit. The message names the
+      module id, P, ext, and the consequence:
+      contracts and health work; MODULE_MAP
+      parity unverified; not an error because
+      tier-1 is legitimate.
+
+      Thread lint config into this check
+      (unverifiedLanguages, codeExtensions).
+      config is loaded in validateGovernedFiles
+      today and is not passed to
+      validateFileHeaderReferences; pass it or
+      load it once and share. Do not add a
+      LintResult key.
+
+      Cases the tests must pin (isolated
+      fixtures, do not freeze counts):
+      A markers+EXPORTS+LINKS, governed
+        unbacked ext: analysis.no-adapter on
+        the file; graph.path-no-adapter
+        skipped (same-file).
+      B file exists, no markers, Path set:
+        graph.module-without-linked-files
+        AND graph.path-no-adapter (different
+        facts; both required).
+      C markers+SUMMARY+LINKS, unbacked ext,
+        unacknowledged: graph.path-no-adapter
+        on the graph document; no
+        analysis.no-adapter (MAP_MODE
+        SUMMARY). This is the lint-green hole.
+      D Path file missing: same two warnings
+        as B.
+      E .ts control: neither code.
+      Acknowledged: Case C plus
+        unverifiedLanguages containing that
+        ext emits neither analysis.no-adapter
+        nor graph.path-no-adapter.
+      No Path: skip this code (existing
+        linked-files warning is unchanged).
+
+      listAbsenceCatalogCodes pin: the exact
+      array gains graph.path-no-adapter.
+      Re-measure the array; do not keep a
+      three-code claim. Sort order is the
+      function's own sort. That update is not
+      a weakening and is not a planned red.
+
+      src/grace-doctor.test.ts (authority
+      addition; the executor reported this file
+      as green-by-non-edit and it is, but the
+      deliverable still falsifies a claim inside
+      it). The case at :85 is titled "keeps all
+      three absence codes" and hand-lists three
+      guided absence codes. A fourth absence
+      code makes that title false and leaves the
+      new code untested by the partition it
+      names. Repair the title to the measured
+      count and extend the hand-listed set to
+      include graph.path-no-adapter. Do not
+      rewrite it to call listAbsenceCatalogCodes
+      — the hand list is what makes the case a
+      second observer rather than a restatement
+      of the function under test. This is an F64
+      write: scope follows what the deliverable
+      falsifies, not only what fails.
+
+      ────────────────────────────────────────────────────────────
+      D3 — live invocation walker and README (T-003)
+      ────────────────────────────────────────────────────────────
+      Export one walker next to listBooleanFlags:
+
+        export function listLiveInvocations(
+          roots: ReadonlyArray<{ name: string; command: CommandDef }>,
+        ): { root: string; sub: string | null }[]
+
+      Do not export a companion type (one new
+      export of command.ts; F68). A root with
+      no subCommands is one invocation
+      { root, sub: null }. A root with
+      subCommands yields one invocation per
+      sub name { root, sub }. Throw on lazy
+      args / subCommands / sub entry the same
+      way listBooleanFlags throws. The walker
+      takes the same composed command objects
+      liveCommandRoots already walks; it does
+      not contain a second root list. Update
+      command.ts MODULE_MAP.
+
+      README check in command.test.ts uses
+      that walker, not liveCommandRoots names
+      alone and not a hand list. Each
+      invocation must appear as an ngrace
+      root token (sub null) or ngrace root
+      sub token (sub set) in a CLI Overview
+      table row (lines starting with the
+      existing table-row prefix). Exact token
+      match; an alternation cell satisfies
+      only the first member.
+
+      The red trip writes that check with a
+      test-local walk (same objects, same
+      token rule) so the failure is missing
+      README tokens, not a missing export.
+      After T-001, file exports is live, so
+      the missing set is the six HEAD holes
+      plus file exports. Record fail, then
+      production: move the walker to
+      command.ts, switch the check to the
+      export, and document every missing
+      invocation including file exports,
+      module health, verification localize,
+      cursor recover, and the cursor
+      alternation split or sibling rows.
+      Add an output-modes line for file
+      exports. Do not freeze the row count.
+
+      ngrace-cli shape_sources (both trees):
+      replace the sentence that names
+      liveCommandRoots with one that names
+      listLiveInvocations as the bind (F69).
+      Keep schemaVersion, ok false, and
+      analysis.runtime-missing. Keep
+      shape_sources. Both trees in the same
+      production trip. validate:marketplace
+      stays green because they change
+      together. Repair skill-contracts only
+      if a pin this edit falsifies; do not
+      delete or loosen a pin.
+
+      F51: after the skill edits, re-measure
+      skillTextLines total and totalBytes and
+      update token-accounting.test.ts and the
+      README F51 table to the new true
+      values. ngrace-fix stays 32 by
+      non-edit. That update is not a
+      weakening and is not a planned red.
+
+      Isolated walker tests (root with no
+      subs, root with two subs, lazy throw)
+      live in command.test.ts. liveCommandRoots
+      stays a test-local root list.
+
+      ────────────────────────────────────────────────────────────
+      D4 — HEAD-RED ownership
+      ────────────────────────────────────────────────────────────
+      | Spec AC | Owner | Pre-edit measurement |
+      | AC-FILE-EXPORTS
+        | T-001 test:file-exports-unknown
+        | file has only show; unknown
+          exports; formatFileExportsText
+          absent |
+      | AC-GRAPH-PATH-NO-ADAPTER
+        | T-002 test:graph-path-no-adapter
+        | Case C lint 0/0; no catalog
+          entry; no emission |
+      | AC-README-INVOCATIONS
+        | T-003 test:readme-live-invocations
+        | root check green; six live
+          subs absent; file exports
+          absent from the table; skill
+          names liveCommandRoots |
+      | AC-HEAD-RED + AC-SUITE-AND-LINT
+        | T-004 Satisfies; reds on
+          T-001 to T-003 |
+
+      Never a red backed only by a grep.
+      Never a retrospective red via stash.
+      Never fail and pass in one tool call.
+      Do not re-record T-001 through T-003.
+      F45 exemptions stay unreddened:
+      AC-SUITE-AND-LINT, F51 totals moving,
+      boolean site count remasure,
+      absence-code list length moving,
+      README row count, scripts/ staying
+      in ignoredDirs, package.json version
+      unchanged.
+
+      ────────────────────────────────────────────────────────────
+      D5 — ObservedWriteScope
+      ────────────────────────────────────────────────────────────
+      Forced by the spec (F27.2, F64), listed
+      as File entries (F60: no src glob). The
+      one Glob is
+      .ngrace/changes/active/C-ADAPTER-HONESTY/run/**
+      which is the same shape both matchers
+      agreed on in F60. Cursor companions are
+      audit-exempt via isCliLifecyclePath and
+      are still listed so OWS is complete at
+      authoring (F50).
+
+      scripts/skill-contracts.test.ts is
+      listed as permission: the F64 pin
+      survey names its ngrace-cli
+      fail-closed pins if that skill is
+      edited. Listing a path this run may
+      not write is free.
+
+      Deliberately excluded (stop and
+      re-spec): project-utils.ts adapter
+      trigger, language-registry.ts
+      membership, lint/types.ts LintResult,
+      gates production, review production,
+      ngrace-execute SKILL.md, examples/,
+      docs/plans, archive, CHANGELOG,
+      version surfaces, grace.ts (file is
+      already registered), query/core.ts
+      (use graph.path; do not add a
+      helper), grace-cursor.test.ts
+      writeFileSync inventory (do not add
+      a packed src writer).
+
+      scripts/ is in ignoredDirs.
+      AC-SUITE-AND-LINT is 0/0 at close,
+      not throughout. Mid-change Baseline
+      red is correct. Never weaken a
+      BaselineAssertion to move a lint
+      count.
+
+      ────────────────────────────────────────────────────────────
+      D6 — Baseline flips (no N prediction)
+      ────────────────────────────────────────────────────────────
+      Load-bearing flips (Baseline that become
+      false):
+
+        A  MustNotContain grace-file.ts
+             exports: defineCommand
+        B  MustNotContain render.ts
+             formatFileExportsText
+        C  MustNotContain command.ts
+             listLiveInvocations
+        D  MustNotContain catalog.ts and
+             lint/core.ts
+             graph.path-no-adapter
+        E  MustContain both ngrace-cli
+             trees liveCommandRoots
+        F  MustNotContain both ngrace-cli
+             trees listLiveInvocations
+
+      Stay-true: version 6.2.0;
+      fileCommand; formatFileText;
+      listBooleanFlags;
+      listAbsenceCatalogCodes;
+      graph.module-without-linked-files;
+      analysis.no-adapter in
+      project-utils.ts;
+      LANGUAGE_ADAPTERS;
+      schemaVersion and
+      analysis.runtime-missing;
+      MustNotContain graph.path-no-adapter
+      in project-utils.ts;
+      all MustExist of pre-existing paths
+      and modules; all MustVerify.
+
+      Do not predict the baseline issue
+      count. F62: an unmeasured N is not a
+      plan fact. Re-measure at execute.
+      Never weaken a BaselineAssertion.
+
+      ────────────────────────────────────────────────────────────
+      D7 — Execution discipline
+      ────────────────────────────────────────────────────────────
+      One open epoch. Each planned red is
+      its own tool round trip: write the
+      failing test first, record cursor
+      attempt outcome fail with the
+      signature named in D0, then land
+      production in a later round trip,
+      then record pass. Never fail and
+      pass in one call. Never a
+      retrospective red via stash.
+
+      T-001: one red trip
+      (file-exports-unknown) then
+      production.
+      T-002: one red trip
+      (graph-path-no-adapter) then
+      production.
+      T-003: one red trip
+      (readme-live-invocations) then
+      production.
+      T-004: no planned red; F51 final
+      remasure if needed, plus suite,
+      marketplace, and validate:ci.
+      Lint 0/0 is claimed at close only,
+      after apply and archive.
+
+      Newly visible codes and the new verb
+      are named in the conventional commit
+      body (D5.5), not in CHANGELOG.md.
+      Name argv tokens in any later
+      comment; leave dashed forms to
+      *.test.ts (F61).
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Add the read-only file exports view</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-FILE-EXPORTS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (file exports): before any
+            grace-file.ts or render.ts production
+            edit, in its own tool round trip, add
+            tests in src/grace-query.test.ts that
+            file exports accepts exactly one of
+            argv token module or a positional
+            path and prints first-match adapter
+            exports with adapter id and
+            exportConfidence visible; heuristic
+            confidence is visible on the same
+            view; no adapter yields Adapter none,
+            an empty list, the consequence
+            sentence, exit 0; unlinked or
+            unmarked file yields Module none,
+            exit 0, and still analyses; module
+            with no Path is a named absence,
+            nonzero; missing file is not-found;
+            both selectors or neither is
+            invalid-arguments; format json and
+            the json boolean emit the dedicated
+            object. Do not import
+            formatFileExportsText in this trip
+            (F68: that export is produced later;
+            the failing surface is the missing
+            exports sub on the existing
+            fileCommand). HEAD today: file has
+            only show; unknown exports. The
+            asserts fail. Record cursor attempt
+            outcome fail, signature kind test
+            key file-exports-unknown. Do not
+            land production in this round trip.
+            Never a red backed only by a grep;
+            never fail and pass in one tool
+            call; never a retrospective red via
+            stash. Failure conditions: this
+            round trip also lands production;
+            two new missing exports of one
+            module imported in one test; red
+            sold against a check that already
+            passes on HEAD.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after
+            the red): add exports: defineCommand
+            on fileCommand as in D1; export
+            formatFileExportsText from render.ts
+            and update that MODULE_MAP; keep
+            JSON local to grace-file.ts; remasure
+            the three boolean site toBe pins in
+            command.test.ts after the json flag
+            lands; add a file exports case beside
+            file show in packed-cli-smoke.ts.
+            LANGUAGE_ADAPTERS first-match. No
+            file write. No MODULE_MAP rewrite.
+            No LintResult key. Do not call
+            resolveGovernedFile for Path form.
+            Do not call getModulePath for module
+            form. Do not call analyzeGovernedFile.
+            Do not edit README.md, skills, or
+            catalog.ts. Failure conditions:
+            invented export list with no adapter;
+            heuristic list with no heuristic
+            word; Path form analyses every
+            linked file; getModulePath used so a
+            no-Path module silently analyses a
+            linked file; only json or only text;
+            version field edited; boolean pin
+            left at the pre-flag count.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-query.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Emit graph.path-no-adapter on unbacked graph Paths</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-GRAPH-PATH-NO-ADAPTER />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (path preflight): before
+            any catalog.ts or lint/core.ts
+            production edit, in its own tool
+            round trip, add tests in
+            src/grace-lint.test.ts that a graph
+            module whose Path extension is
+            governed and not adapter-backed
+            emits graph.path-no-adapter at
+            warning on the graph document,
+            naming module, Path, extension, and
+            the consequence; Case C (SUMMARY,
+            unacknowledged) emits this code;
+            Cases B and D also emit
+            graph.module-without-linked-files;
+            Case A skips this code because
+            analysis.no-adapter already named
+            that Path file; Case E emits
+            neither; unverifiedLanguages for
+            that extension suppresses this
+            code; no Path skips this code.
+            HEAD today: Case C is lint 0/0; no
+            graph.path-no-adapter. The asserts
+            fail. Record fail, signature kind
+            test key graph-path-no-adapter. Do
+            not land production in this round
+            trip. Failure conditions: this
+            round trip also lands production;
+            red sold against analysis.no-adapter
+            (different trigger); completeness
+            treated as this red (test files are
+            invisible to collectEmittedIssueCodes).
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after
+            the red): add an exact catalog guide
+            for graph.path-no-adapter with
+            issueClass absence; emit the warning
+            from lint/core.ts as in D2; remasure
+            the listAbsenceCatalogCodes exact
+            array (do not keep a three-code
+            claim); do not edit
+            src/project-utils.ts; do not emit
+            from analyzeGovernedFile; do not
+            change the analysis.no-adapter
+            predicate; do not drop
+            graph.module-without-linked-files;
+            do not take an allowlist seat.
+            Failure conditions: error severity;
+            still firing after the extension is
+            acknowledged; suppress on SUMMARY;
+            double-report the same Path file as
+            analysis.no-adapter; pin deleted or
+            loosened.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-lint.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Bind README CLI Overview to live invocations</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-README-INVOCATIONS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (invocations): before any
+            command.ts walker export, README.md,
+            or ngrace-cli SKILL.md production
+            edit, in its own tool round trip,
+            add a command.test.ts check that
+            every live invocation (test-local
+            walk of the same objects
+            liveCommandRoots already walks: a
+            root with no subCommands is one
+            invocation; a root with subCommands
+            yields one per sub name) appears as
+            an ngrace token in a CLI Overview
+            table row. Exact token match; an
+            alternation cell satisfies only the
+            first member. Do not import
+            listLiveInvocations in this trip
+            (F68: the failing surface is missing
+            README tokens, including the six
+            HEAD holes and file exports now
+            live from T-001). HEAD today: root
+            check green; six live subs absent;
+            file exports absent from the table.
+            The assert fails. Record fail,
+            signature kind test key
+            readme-live-invocations. Do not
+            land production in this round trip.
+            Failure conditions: this round trip
+            also lands production; red is a
+            missing-export import; hand-listed
+            inventory; only the file root
+            widened; check still uses
+            liveCommandRoots names alone.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after
+            the red): export listLiveInvocations
+            next to listBooleanFlags and update
+            command.ts MODULE_MAP; switch the
+            README check to that export; add
+            CLI Overview rows for every missing
+            live invocation including file
+            exports, module health, verification
+            localize, cursor recover, and the
+            cursor alternation split or sibling
+            rows; add the output-modes line for
+            file exports; do not freeze the row
+            count; replace liveCommandRoots with
+            listLiveInvocations in ngrace-cli
+            shape_sources in both trees (F69);
+            remasure F51 totals and update
+            token-accounting.test.ts and the
+            README F51 table; keep
+            schemaVersion, ok false, and
+            analysis.runtime-missing. Failure
+            conditions: only one tree updated;
+            skill still names liveCommandRoots;
+            hand-listed inventory; F51 pin left
+            stale; pin deleted or loosened;
+            validate:marketplace red.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun run validate:marketplace</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Close suite, marketplace, and validate:ci</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-HEAD-RED />
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED ownership: T-001, T-002,
+            and T-003 each recorded their named
+            red in its own tool round trip
+            before that task's production edit,
+            under keys file-exports-unknown,
+            graph-path-no-adapter, and
+            readme-live-invocations. Do not
+            re-record those reds. Do not add a
+            fourth planned red. F45 exemptions
+            stay unreddened.
+          </Criterion>
+          <Criterion>
+            AC-SUITE-AND-LINT: bun test green for
+            touched packages (grace-query,
+            command, grace-lint, catalog, packed
+            smoke, token-accounting, and any
+            other test this deliverable forced);
+            bun run validate:ci green
+            (re-measure ratchet cardinality; do
+            not drop keys); bun run
+            validate:marketplace green; ObservedWriteScope
+            covers every path the deliverable
+            forced. No docs/plans or archive
+            edits. No CHANGELOG. No version
+            surfaces. analysis.no-adapter
+            trigger untouched. Lint 0/0 is
+            claimed at close only, after apply
+            and archive, not mid-change.
+            Failure conditions: suite red;
+            lint 0/0 claimed mid-window; F51
+            pin left stale; writes outside
+            declared scope; pin deleted or
+            loosened; BaselineAssertion
+            weakened to move a lint count.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-query.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test src/grace-lint.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run validate:marketplace</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-ADAPTER-HONESTY>
+</NgraceChangePlan>

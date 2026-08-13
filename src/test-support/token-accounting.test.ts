@@ -46,7 +46,7 @@ describe("token-accounting (D15)", () => {
     //   stays 779 (frozen semantics; archived reports cite it).
     const measured = skillTextLines();
     expect(measured.total).toBe(806);
-    expect(measured.totalBytes).toBe(55040);
+    expect(measured.totalBytes).toBe(55043);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

@@ -4514,3 +4514,136 @@ shows the distinction on a module that has both.
 *shape*, never for *claims*. Every negative assertion — "without", "does not", "no longer" — must be
 re-verified against the new subject's own source. A copied absence is the cheapest false statement in
 the product to make and the hardest to see in review, because it reads as consistency.
+
+### F70 — the README command check binds roots, the README documents subcommands, and the authority reported the stronger claim. **[verified]**
+
+`C-TEACHING-SURFACE` shipped `README CLI Overview lists every live command root`
+(`src/query/command.test.ts:866`). It filters the CLI Overview to table rows and asserts every
+`liveCommandRoots()` **name** appears. Measured: **30 rows inside the `## CLI Overview` section**,
+which is the only scope the check reads (37 across the whole README — state the scope with the
+number, or the count is the F62 defect again; the executor and the authority each measured one of
+these and disagreed for that reason alone). They document *subcommands* — `ngrace module find`,
+`ngrace module show`, `ngrace file show`. Only **11 root tokens** are enumerated.
+
+**The gap is already live in six places, before this bundle adds a seventh.** A walk of the same
+command objects finds these invocations undocumented as rows today: `ngrace cursor pause`,
+`ngrace cursor resume`, `ngrace cursor fold` (prose only, README:133), `ngrace cursor recover`,
+`ngrace module health`, and `ngrace verification localize`. Exact-token matching is what exposes
+them — the combined `advance/pause/resume/fold` row satisfies only `advance`. **So widening the
+check forces README rows this bundle did not invent, and that is the finding being paid, not scope
+creep.** A predicate narrowed to `file.*` would leave F70 half-repaired and be exactly the special
+case the finding forbids.
+
+**A second false claim rides on the same check.** `liveCommandRoots` is **not exported** — it is
+defined only at `src/query/command.test.ts:831` — yet `skills/ngrace/ngrace-cli/SKILL.md:10` reads
+*"Command inventory: README CLI Overview table (bound to `liveCommandRoots`). Do not restate that
+inventory here."* A skill points at a private test function as the binding. Repairing the check
+without that sentence leaves an inherited false claim ([F69](#f69)).
+
+**So adding a subcommand to an existing root leaves the table silently stale**, which is the same
+drift the check was introduced to stop. `ngrace file exports` (P1.7) is precisely that case: `file`
+already appears, so the check stays green while the table omits the new verb.
+
+**The check's own name is honest** — it says *root*. The overclaim was the authority's, in the PR body
+and the phase-board row: *"README's CLI Overview is bound to the live command roots by a test, so the
+table cannot silently drift again."* The first clause is true and the second does not follow from it.
+This is [F62.1](#f621)'s class applied to a check rather than a survey fact: **a claim of completeness
+asserted from a mechanism that never evaluated it.**
+
+**The rule.** When reporting what a check protects, state **the predicate it evaluates**, not the
+outcome you wanted from it. And when a check guards a document that enumerates finer-grained items
+than the check itself enumerates, the guard is only as strong as its enumeration — say so at the time,
+or widen it.
+
+**Scheduled, not deferred:** widened in the bundle that first exercises the gap (P1.7 / P1.8), per
+fix-at-the-point-of-detection.
+
+### F71 — a getter named for the authored field returns a fallback, and the renderer labels the fallback with the authored field's name. **[verified]**
+
+Raised by the executor while planning `C-ADAPTER-HONESTY`, and it is what kept that bundle's
+named-absence criterion satisfiable.
+
+`getModulePath` (`src/query/core.ts:111-113`) returns
+`moduleRecord.graph.path ?? localFiles.find(non-test)?.path ?? localFiles[0]?.path`. The name says
+*the module's Path*; the body says *the Path, or failing that any linked file*. `module show` then
+prints that result under the label **"Graph Path"** (`src/query/render.ts:113`). **So a module with no
+authored `<Path>` but one linked file reports a Graph Path it never declared**, and no surface says
+the value was inferred.
+
+`ngrace file exports --module M-X` had to name a missing `<Path>` as an absence. Reusing the existing
+getter — the obvious move, and the one a later reader will propose as a simplification — would have
+made `AC-FILE-EXPORTS`'s absence criterion **unsatisfiable**: the command would analyse a linked file
+and never report the absence at all. The plan therefore binds `moduleRecord.graph.path` and forbids
+`getModulePath` by name.
+
+**The label is still lying and is not this bundle's to fix** — the defect is inherited and
+`module show`'s output was out of scope. Recorded for its own repair.
+
+**The rule.** A `??` chain inside an accessor is a silent policy decision, and the accessor's name is
+where it hides. When a criterion depends on an authored field being *absent*, bind the field, never a
+getter that resolves it — and check what the renderer calls the result, because a fallback under an
+authored field's label is a false claim on a user-visible surface.
+
+### F72 — an absence check that ORs two conditions ships one message for two causes. **[verified]**
+
+`C-ADAPTER-HONESTY` introduced `requireExistingFile` as
+`if (!existsSync(p) || !statSync(p).isFile())` behind the single sentence *"File `X` was not found on
+disk."* The approved plan required the two `not-found` causes it named — no `<Path>` and missing file
+— to carry different messages. **The `||` quietly created a third cause with the second one's
+words:** a Path that resolves to a **directory** exists, is not missing, and was reported as missing.
+Directory Paths exist in this repository, so the case is reachable, not theoretical.
+
+This is [F40](#f40) / [F55](#f55)'s class arriving through control flow rather than through a
+formatter: the code *knows* which branch it took and discards that knowledge at the throw site.
+
+Repaired in-bundle and disclosed in the verdict: the conditions are split and a directory gets its own
+sentence. **Proved by discrimination, not by a green suite** — the new case fails against the OR'd
+condition and passes against the split one.
+
+**The rule.** Every disjunct in an absence test is a distinct cause and needs its own message. When a
+criterion says two causes must be distinguishable, count the *branches*, not the causes the spec
+happened to name — the spec names the ones someone thought of.
+
+**Two smaller items from the same close, scheduled rather than fixed.** (1) `guided()` in
+`src/grace-doctor.test.ts:75-81` assigns severity by `code.startsWith("analysis.")`, so the fixture
+now classifies `graph.path-no-adapter` as an error while production emits a warning. The case stays
+green because it partitions on `issueClass`, so this is a **fixture that silently disagrees with
+production** — harmless today, wrong whenever severity starts mattering. (2) `file exports` reports a
+single `moduleId`, taking `linkedModuleIds[0]`, while a governed file may link several modules; the
+choice is arbitrary and unstated. Neither was in this bundle's approved scope.
+
+### F73 — every gate in this roadmap runs on one platform, so a clean close has never implied green CI. **[verified]**
+
+`C-ADAPTER-HONESTY` archived with review 0 findings, both process audits clean, `validate:ci` exit 0,
+and lint 0/0 — **and its first CI run failed on Windows.** Two cases of the new
+`graph.path-no-adapter` asserted `expect(issue.file).toContain(".ngrace/graph/main.xml")`, while the
+code emitted `moduleRecord.file` verbatim: a realpath'd OS-native absolute path that reads
+`...\.ngrace\graph\main.xml` on Windows. A `/`-joined needle is never a substring of a `\`-joined
+haystack, so the two cases that make that assertion — and only those two — failed.
+
+**The bundle predicted it and the authority approved anyway.** The executor's plan report said the
+same-file comparison "would not skip" for a `./`-prefixed variant and marked it **"Unexercised."** The
+authority read that, judged it a low-value edge case, and approved. On Windows the identical
+fragility arrived through a different door: separators instead of a prefix. **A reported-and-untested
+path comparison is a prediction, not a nit.**
+
+**The structural fact is larger than this bundle.** Every gate this roadmap runs — spec review, plan
+review, execute, `ngrace review`, the WriteEvidence and attempt-pair audits, `validate:ci`, and the
+authority's own independent verification — executes on **one machine, one OS**. None of them can
+observe a separator, a case-insensitive filesystem, an 8.3 short name, or a realpath divergence. Seven
+bundles have closed against that blind spot. This is the first one whose deliverable touched
+filesystem paths at an emission site, and it is the first to be caught by CI rather than by us.
+
+**Two smaller facts from the repair, both worth keeping.** The root cause was **not** the skip
+logic everyone suspected — `noAdapterPaths` and the normalized authored Path were already POSIX, and
+Case A, which depends on the skip matching, passed on Windows. The failing comparison was the emitted
+`issue.file` against a test's substring check. And the sibling `graph.module-without-linked-files` had
+been emitting a raw absolute `file` since long before this bundle; making both codes share one
+project-relative POSIX value changed **no** test expectation, but it is a user-visible JSON change to
+an already-shipped code.
+
+**The rule.** When a diagnostic emits a **path**, the path is part of the contract and needs a
+platform-independent normalizer at the emission site, not at the comparison site. And when an executor
+reports a path comparison as *unexercised*, that is the cheapest possible warning that a
+single-platform gate cannot see it — **test it or state in the verdict that CI is the only observer.**
+Until this roadmap gains a second platform in its gates, "closed clean" means "clean on macOS."
