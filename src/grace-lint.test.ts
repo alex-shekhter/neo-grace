@@ -1541,3 +1541,40 @@ describe("ngrace lint --explain CLI (Phase 11 / A76)", () => {
     expect(out).not.toMatch(/signals drift/i);
   });
 });
+
+describe("AC-POINTER-JSON CLI (C-EXPLAIN-COVERAGE)", () => {
+  it("text lint stdout contains the pointer; --format json stdout of the same project does not", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedChange(
+      root,
+      "C-POINTER-JSON",
+      `<MustNotExist><Value>src/example.ts</Value></MustNotExist>`,
+      `<MustExist><Value>src/example.ts</Value></MustExist>`,
+    );
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const pointerStem = "ngrace lint --explain";
+    const pointer = `(${pointerStem} assertion.MustNotExist)`;
+
+    const jsonRun = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--format", "json"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const jsonOut = Buffer.from(jsonRun.stdout).toString("utf8");
+    const parsed = JSON.parse(jsonOut) as { tool: string; summary: { errors: number } };
+    expect(parsed.tool).toBe("grace-lint");
+    expect(parsed.summary.errors).toBeGreaterThanOrEqual(1);
+    expect(jsonOut).not.toContain(pointerStem);
+
+    const textRun = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const textOut = Buffer.from(textRun.stdout).toString("utf8");
+    expect(textOut).toContain(pointer);
+  });
+});

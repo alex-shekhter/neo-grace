@@ -3595,3 +3595,39 @@ Due immediately: **P1.6**'s typed-absence line (*"evaluated N rule classes; M no
 exactly this shape, and its whole purpose is that silence must not read as "will pass" — a
 correctly-worded absence line rendered where nobody sees it fails that purpose while satisfying its
 criterion.
+
+---
+
+### F45 — A red-first universal cannot cover a criterion half that is true by construction. **[verified]**
+
+`AC-HEAD-RED` requires that *"each criterion above has a red recorded before its production edit."*
+It already carves out `AC-SUITE-AND-LINT` (green at HEAD, a close-time bar). It does not carve out
+the case that surfaced at close.
+
+`AC-POINTER-JSON` names **two** surfaces: `JSON.stringify` of the `LintResult`, and
+`ngrace lint --format json` stdout. The first had an honest red (event `13` fail → `14` pass,
+`core.test.ts` digest held while `core.ts` moved). The second is true **by construction** —
+`grace-lint.ts` stringifies the result and never calls `formatTextReport`, so no reachable code
+path could ever put the pointer there. T-004 added the missing assertion; it was green the moment
+it was written.
+
+So `AC-HEAD-RED`, read literally, demands a red for a property that can only be reddened by
+**breaking the renderer or stashing** — both forbidden by that same criterion and by the dispatch.
+The criterion is unsatisfiable as written for that half.
+
+**The distinction it lacks.** `AC-HEAD-RED` exists to stop a green that was never red being sold as
+evidence of new work ([F28](#f28)). It does not distinguish *new behaviour* (needs a red; a green
+proves nothing) from *coverage of behaviour already true* (cannot have a red; the assertion's value
+is regression protection, not proof of change). Both are legitimate; only the first can carry a
+red-first pair.
+
+**Disposition: disclosed, not amended.** The spec is approved and the bundle is closing. Amending a
+criterion at close so that it passes is the shape of weakening an assertion to reach green, and
+this roadmap forbids that even when the amendment would be honest. Recorded here and carried into
+the gate verdict note instead.
+
+**The rule.** A criterion that names a surface true by construction must say so at authoring time
+and exempt that half from the red-first universal, exactly as `AC-SUITE-AND-LINT` is exempted.
+Otherwise the universal is falsified by the bundle's own honest execution. Due in **P1.5**, whose
+acceptance test — *"generated output passes lint when committed unmodified"* — is the same shape:
+a generator that works has nothing to redden once written.
