@@ -1,0 +1,925 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-SCHEMA-REFERENCE>
+    <IntentSummary>
+      Deliver RM-GOVERNED-PATH P1 step 4 only: export GRAMMAR_INVENTORIES
+      from src/artifact/grammar.ts as the same references the validators
+      already use; render the closed registered shape sections from that
+      barrel in src/artifact/schema-reference.ts; write
+      docs/schema-reference.md from that renderer through
+      scripts/generate-schema-reference.ts; fail validate:ci when that
+      file is missing or stale; and dispatch the lint explain argument
+      registry-first so a registered shape name prints the renderer
+      section and a dotted issue code keeps today's path.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-SCHEMA-REFERENCE/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-SCHEMA-REFERENCE/plan.xml</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustNotExist><Value>src/artifact/schema-reference.ts</Value></MustNotExist>
+      <MustNotExist><Value>src/artifact/schema-reference.test.ts</Value></MustNotExist>
+      <MustNotExist><Value>docs/schema-reference.md</Value></MustNotExist>
+      <MustNotExist><Value>scripts/generate-schema-reference.ts</Value></MustNotExist>
+      <MustNotExist><Value>scripts/generate-schema-reference.test.ts</Value></MustNotExist>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>export function validateArtifactRoot</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-lint.ts</File>
+        <Text>const classification = classifyIssueCode(code);</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>export const GRAMMAR_INVENTORIES</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>package.json</File>
+        <Text>generate-schema-reference</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-lint.ts</File>
+        <Text>isRegisteredSchemaShape</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-lint.test.ts</File>
+        <Text>renderSchemaShape</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/schema-reference.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/schema-reference.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>docs/schema-reference.md</Value></MustExist>
+      <MustExist><Value>scripts/generate-schema-reference.ts</Value></MustExist>
+      <MustExist><Value>scripts/generate-schema-reference.test.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>export function validateArtifactRoot</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-lint.ts</File>
+        <Text>const classification = classifyIssueCode(code);</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>export const GRAMMAR_INVENTORIES</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/schema-reference.ts</File>
+        <Text>export function renderSchemaReference</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/schema-reference.ts</File>
+        <Text>export function renderSchemaShape</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/schema-reference.ts</File>
+        <Text>export function isRegisteredSchemaShape</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/schema-reference.ts</File>
+        <Text>SCHEMA_SHAPE_REGISTRY</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/generate-schema-reference.ts</File>
+        <Text>export function checkSchemaReference</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>generate-schema-reference</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-lint.ts</File>
+        <Text>isRegisteredSchemaShape</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-lint.test.ts</File>
+        <Text>renderSchemaShape</Text>
+      </MustContain>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/artifact/schema-reference.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-lint.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/generate-schema-reference.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+        <M-LINT-CORE />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GRAMMAR />
+        <V-M-LINT-CORE />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/schema-reference.ts</File>
+      <File>src/artifact/schema-reference.test.ts</File>
+      <File>src/grace-lint.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>docs/schema-reference.md</File>
+      <File>scripts/generate-schema-reference.ts</File>
+      <File>scripts/generate-schema-reference.test.ts</File>
+      <File>package.json</File>
+      <File>.ngrace/changes/active/C-SCHEMA-REFERENCE/spec.xml</File>
+      <File>.ngrace/changes/active/C-SCHEMA-REFERENCE/plan.xml</File>
+      <File>.ngrace/changes/active/C-SCHEMA-REFERENCE/run.xml</File>
+      <File>.ngrace/changes/active/C-SCHEMA-REFERENCE/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-SCHEMA-REFERENCE/run/**</Glob>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: 0c4d651 (branch feat/schema-reference).
+      Spec is approved. Do not re-open its decisions: source and
+      export, the closed shape registry, renderer/writer homes,
+      registry-first explain disambiguation, explain output shape,
+      and the drift check. Re-measure every count at execute (F33).
+      Do not pin line numbers, artifact counts, inventory counts,
+      shape counts, or lint 0/0 mid-change. Packaged version stays
+      6.2.0. No Clarifications section.
+
+      No SKILL.md in this decomposition. F51 pin files
+      (src/test-support/token-accounting.test.ts, README.md) are not
+      forced. Touching a skill is a re-spec.
+
+      Ceremony tier T2. Stop and re-spec rather than touching
+      src/review/**, src/artifact/scope.ts, src/project-utils.ts,
+      src/artifact/types.ts, src/artifact/projections.ts,
+      src/lint/catalog.ts, skills/**, plugins/**, docs/plans/**,
+      .ngrace/changes/archive/**, CHANGELOG.md, or any version
+      surface.
+
+      ─────────────────────────────────────────────────────────────────
+      D0 — Task decomposition
+      ─────────────────────────────────────────────────────────────────
+      Five non-exempt criteria, each with its own red. F56: a task
+      may plan at most three distinct fail signatures
+      (FIX_DISTINCT_SIGNATURE_BUDGET is 4, so a fourth planned red
+      also trips escalation). This plan splits so the per-task
+      maximum is two.
+
+      | Task | Surface | Satisfies | Planned distinct reds |
+      | T-001 | grammar.ts (barrel and MODULE_MAP
+          only), schema-reference.ts (new),
+          schema-reference.test.ts
+        | AC-REFERENCE-GENERATED (barrel and
+          renderer), AC-COVERAGE-NAMED,
+          AC-NO-GLOB-RULE
+        | 2 (AC-REFERENCE-GENERATED,
+          AC-COVERAGE-NAMED).
+          AC-NO-GLOB-RULE "no glob shape"
+          half is F45, not a red. |
+      | T-002 | generate-schema-reference.ts,
+          generate-schema-reference.test.ts,
+          docs/schema-reference.md,
+          package.json (validate:ci
+          composition only)
+        | AC-REFERENCE-GENERATED (committed
+          file and writer update path),
+          AC-DRIFT-DETECTABLE
+        | 1 (AC-DRIFT-DETECTABLE missing-file
+          check mode). |
+      | T-003 | grace-lint.ts (explain dispatch
+          only), grace-lint.test.ts (shape
+          explain cases only)
+        | AC-EXPLAIN-SHAPES,
+          AC-SHAPE-CODE-SPLIT
+        | 2 (registered-shape path,
+          unknown-undotted path).
+          Dotted issue-code explain is F45. |
+      | T-004 | dogfood close
+        | AC-SUITE-AND-LINT, AC-HEAD-RED (full)
+        | 0 manufactured reds. |
+
+      T-001 does not write the committed markdown and does not
+      write the writer. If it did, T-002's missing-file check-mode
+      test would be green the moment it was written (F28 / F45).
+
+      T-002 DependsOn T-001: the writer compares against the
+      renderer. T-003 DependsOn T-001: explain calls the renderer.
+      T-002 and T-003 are pairwise file-disjoint. T-004 DependsOn
+      both.
+
+      Signature keys the executor should record (kind test):
+        T-001 RT1  AC-REFERENCE-GENERATED
+        T-001 RT2  AC-COVERAGE-NAMED
+        T-002 RT1  AC-DRIFT-DETECTABLE
+        T-003 RT1  AC-EXPLAIN-SHAPES
+        T-003 RT2  AC-SHAPE-CODE-SPLIT
+
+      ─────────────────────────────────────────────────────────────────
+      D1 — Barrel and renderer (T-001)
+      ─────────────────────────────────────────────────────────────────
+      grammar.ts writes are the barrel export and MODULE_MAP only.
+      The eighteen inventories stay const in that file, not export
+      const. Relocating them into types.ts is out.
+
+      export const GRAMMAR_INVENTORIES is one object whose
+      properties are the same references the validators already
+      use. Do not copy arrays. Do not rebuild Sets. Adding a
+      nineteenth private constant does not enter the barrel; the
+      barrel and SCHEMA_SHAPE_REGISTRY are the coverage surface
+      (F10). MODULE_MAP gains the barrel name because MAP_MODE is
+      EXPORTS.
+
+      Live-reference proof (AC-REFERENCE-GENERATED): the eighteen
+      stay module-private, so a same-module helper would exceed
+      "barrel export and MODULE_MAP only". The suite proves
+      identity by probe mutation on at least one Set-backed
+      barrel property and one array-backed barrel property:
+      mutate the barrel property, call the validator that already
+      closes over that binding, observe the probe, restore. A
+      copied Set or a rebuilt array fails that probe. Do not
+      export the eighteen. Do not add a nineteenth export.
+
+      The mutation is additive and reverted in a finally block:
+      insert a sentinel member, assert the validator observes it,
+      remove it in finally, and assert the property is back to
+      its pre-probe size. These constants are module globals that
+      every later test in the same process reads, so a probe that
+      can leak on an assertion throw is a failure condition, not
+      a style note.
+
+      New file src/artifact/schema-reference.ts LINKS M-GRAMMAR.
+      It is a linked file, not a new graph module. MODULE_CONTRACT
+      matches sibling linked files (xml.ts). MAP_MODE EXPORTS.
+      MODULE_MAP lists the exports below.
+
+      Renderer exports (this plan's names; tests bind these
+      symbols, not rendered prose):
+
+        export const SCHEMA_SHAPE_REGISTRY
+        export function isRegisteredSchemaShape(token: string): boolean
+        export function renderSchemaShape(name: string): string
+        export function renderSchemaReference(): string
+
+      SCHEMA_SHAPE_REGISTRY maps these names, and only these,
+      onto barrel keys (the spec list; not a count):
+
+        artifact-root           STANDARD_ROOT_TAGS,
+                                CHANGE_ROOT_TAGS
+        root-metadata           ROOT_METADATA_ATTRIBUTE,
+                                CHANGE_ROOT_METADATA_ATTRIBUTES
+        change-status           VALID_CHANGE_STATUSES
+        change-spec             SPEC_REQUIRED_SECTIONS
+        change-plan             PLAN_REQUIRED_SECTIONS
+        change-task             TASK_REQUIRED_SECTIONS
+        assertion               ASSERTION_SECTION_TAGS
+        durable-scope           DURABLE_SCOPE_DIRECT_TAGS
+        observed-write-scope    OBSERVED_SCOPE_DIRECT_TAGS
+        anchor-family           ANCHOR_FAMILIES
+        context-artifact        CONTEXT_ARTIFACTS
+        ledger-verdict          REVIEW_VERDICT_OUTCOMES
+        gate-decision           GATE_DECISION_GATES,
+                                GATE_DECISION_VALUES
+        clarification           CLARIFICATION_WORKING_FORM
+        design-reference        DESIGN_REFERENCE_CHILD_TAGS
+
+      Extending that map is a re-spec. graph-module and
+      module-contract are not members. No registry key is named
+      glob or globstar.
+
+      renderSchemaShape(name) returns one shape section. Members
+      are read from the live barrel property (or properties) for
+      that name. A hardcoded member list fails when the constant
+      moves.
+
+      renderSchemaReference() returns the full document:
+        1. Banner is the first line and tells a reader not to
+           hand-edit. Tests bind those bytes.
+        2. Preamble, before any shape section. See D2.
+        3. Each registered shape section, in registry iteration
+           order, via renderSchemaShape.
+
+      Do not print SCHEMA_SHAPE_REGISTRY, GRAMMAR_INVENTORIES,
+      checkSchemaReference, or renderer function names into the
+      markdown (F42: those symbols are assertion needles).
+
+      Do not write docs/schema-reference.md in T-001. Do not
+      write the writer in T-001.
+
+      ─────────────────────────────────────────────────────────────────
+      D2 — Coverage preamble and no-glob (T-001)
+      ─────────────────────────────────────────────────────────────────
+      The preamble names every registered shape and states that
+      coverage is those inventories only. It names three excluded
+      classes as excluded:
+
+        1. imperative validators in grammar.ts
+        2. file-local markup families, and that graph-module and
+           module-contract are in that class, not in this registry
+        3. glob matching: P1.4 asked for zero-depth globstar and
+           F60 blocks documenting it while two implementations
+           disagree
+
+      It does not describe itself as a complete schema or a
+      complete grammar. It does not freeze a count of inventories
+      or shapes as the pass bar (F33).
+
+      AC-NO-GLOB-RULE: the registry contains no shape whose
+      subject is glob matching (true by construction of the
+      decided list; F45: do not add a glob shape in order to
+      delete it). The generated file contains no table or section
+      that states match outcomes for globstar, including the four
+      pairs F60 measured. The preamble's excluded-class sentence
+      is the only permitted mention of glob matching.
+
+      This plan binds that semantic content. Tests under
+      schema-reference.test.ts assert the literal bytes (F43).
+      Do not quote product markup or preamble sentences as
+      MustContain / MustNotContain needles in this file (F42).
+
+      ─────────────────────────────────────────────────────────────────
+      D3 — Writer, check mode, validate:ci (T-002)
+      ─────────────────────────────────────────────────────────────────
+      scripts/generate-schema-reference.ts writes
+      docs/schema-reference.md by calling renderSchemaReference.
+      The writer is the update path. Do not hand-write the
+      markdown.
+
+      Check mode: argv includes the token check (not a dashed
+      flag; F39.1 on this artifact). Check mode must not write.
+      export function checkSchemaReference(root: string): number
+      returns non-zero when the committed file under that root is
+      missing or when its bytes differ from renderSchemaReference,
+      and returns zero when they are identical. The script's
+      check-mode path calls that function against the repository
+      root and exits with its return value.
+
+      The missing-file test must stay valid after the committed
+      file lands. Call checkSchemaReference with an isolated root
+      that does not contain the file. Do not manufacture a red by
+      editing a green committed file. Do not present a clean-tree
+      no-op regeneration as evidence the check works.
+
+      HEAD-RED for AC-DRIFT-DETECTABLE is the RT1 test (writer
+      absent, so the import or spawn fails). After the writer
+      exists and before the committed file is written, the same
+      function against this repository root also returns non-zero
+      because the file is absent: that is the honest reason, and
+      it may be observed inside the production round trip before
+      the write, but it is not a second recorded fail signature.
+
+      validate:ci invokes that check mode by composition only.
+      Add a package.json script whose command line contains
+      generate-schema-reference and the check token, and append
+      that script to the existing validate:ci chain. Do not edit
+      the version field. Do not add the markdown to the npm
+      files list.
+
+      Suite identity (AC-REFERENCE-GENERATED remainder):
+      docs/schema-reference.md is byte-identical to
+      renderSchemaReference(). Live interpolation stays in
+      schema-reference.test.ts (T-001). After landing, inventory
+      edits without regeneration fail bun test via that live
+      interpolation, and fail validate:ci via check mode. Do not
+      stash an edit to prove staleness (F28 / F35.1).
+
+      Writer tests live in
+      scripts/generate-schema-reference.test.ts so T-002 does not
+      rewrite T-001's test file. scripts/ stays in ignoredDirs;
+      bun test still runs the file.
+
+      ─────────────────────────────────────────────────────────────────
+      D4 — Explain dispatch (T-003)
+      ─────────────────────────────────────────────────────────────────
+      Home: the existing lint explain argument in grace-lint.ts.
+      catalog.ts stays closed.
+
+      Settled order (registry first):
+
+        1. If isRegisteredSchemaShape(token), print the shape
+           section and exit 0. Do not call formatLintExplanation.
+        2. Else if the token contains a period, keep today's
+           issue-code path (classifyIssueCode /
+           formatLintExplanation / unknown-code exit 1).
+        3. Else treat it as an unknown shape: exit 1, name the
+           token, list the registered shape names, and do not
+           print a Classification line.
+
+      Text shape explain does not reuse the issue-guide title
+      "neo-grace Lint Issue Guide". Its first line identifies a
+      shape reference. The body after that heading is the same
+      bytes renderSchemaShape emitted for that name. Bind the
+      heading bytes in grace-lint.test.ts (F44).
+
+      JSON shape explain is a distinct envelope with kind shape.
+      It must not report an IssueCodeClassification. It must not
+      change lint-result schemaVersion. Unknown-shape JSON names
+      the token and the registered names.
+
+      Plant at least the registered names change-spec and
+      assertion (undotted tokens; assertion shares a prefix
+      family with issue codes). One registered name does not
+      satisfy the set.
+
+      F45 live asserts, written, not recorded as fail:
+        existing dotted exact explain (plant at least one exact
+          code already covered by the suite)
+        existing dotted unknown explain (plant at least one
+          unknown dotted token)
+        lint-result JSON schemaVersion unchanged
+        docs/*.md staying outside the lint artifact universe
+        scripts/ staying in ignoredDirs
+
+      Residual, disclosed: the four undotted GraceCommandError
+      codes (invalid-arguments, invalid-project, ambiguous-target,
+      not-found) take the unknown-shape path. Do not register
+      them. A future undotted issue code would also take that
+      path.
+
+      ─────────────────────────────────────────────────────────────────
+      D5 — HEAD-RED ownership
+      ─────────────────────────────────────────────────────────────────
+      | Spec AC | Owner | Pre-edit measurement |
+      | AC-REFERENCE-GENERATED (barrel,
+        renderer, live interpolation)
+        | T-001 RT1
+        | no GRAMMAR_INVENTORIES; no renderer;
+          no schema-reference test file |
+      | AC-COVERAGE-NAMED | T-001 RT2
+        | no preamble; no renderer |
+      | AC-NO-GLOB-RULE "no glob shape"
+        | T-001 live assert (F45)
+        | true once the decided list is
+          authored; do not add a glob shape |
+      | AC-DRIFT-DETECTABLE (missing-file
+        check mode)
+        | T-002 RT1
+        | no writer; committed file absent;
+          validate:ci does not invoke a check |
+      | AC-EXPLAIN-SHAPES | T-003 RT1
+        | registered names classify unknown;
+          explain exits 1 with an issue-guide
+          Classification line |
+      | AC-SHAPE-CODE-SPLIT (registered
+        path and unknown-undotted path)
+        | T-003 RT2
+        | undotted unregistered token prints
+          Classification unknown; registered
+          names enter formatLintExplanation |
+      | dotted issue-code explain
+        | T-003 live assert (F45)
+        | already true at HEAD |
+      | AC-HEAD-RED (full) + AC-SUITE-AND-LINT
+        | T-004 Satisfies;
+          reds recorded on T-001, T-002, T-003 |
+
+      Never a red backed only by a grep. Never a retrospective
+      red via stash. Never fail and pass in one tool call.
+      Failing tests are written before the fail attempt is
+      recorded, in a separate tool round trip.
+
+      ─────────────────────────────────────────────────────────────────
+      D6 — ObservedWriteScope (measured at 0c4d651)
+      ─────────────────────────────────────────────────────────────────
+      Forced by the spec (F27.2):
+        src/artifact/grammar.ts
+        src/artifact/schema-reference.ts
+        src/artifact/schema-reference.test.ts
+        src/grace-lint.ts
+        src/grace-lint.test.ts
+        docs/schema-reference.md
+        scripts/generate-schema-reference.ts
+        package.json
+        this bundle's spec.xml and plan.xml
+
+      Also listed so the writer-test home is in scope:
+        scripts/generate-schema-reference.test.ts
+
+      Authored complete, including cursor/execution companions
+      confirmed against archive/C-ARTIFACT-VALIDITY and
+      archive/C-SELECTION:
+        .ngrace/changes/active/C-SCHEMA-REFERENCE/run.xml
+        .ngrace/changes/active/C-SCHEMA-REFERENCE/run-ledger.xml
+        Glob .ngrace/changes/active/C-SCHEMA-REFERENCE/run/**
+
+      Those companions are audit-exempt via isCliLifecyclePath
+      (review/core.ts) for run.xml, run-ledger.xml, and run/**
+      under a canonical C-* bundle. They are still listed so OWS
+      is complete at authoring (F50). The spec's AC-SUITE-AND-LINT
+      list is a floor ("including"), not a closed set.
+
+      Deliberately excluded: docs/plans, archive, CHANGELOG,
+      version surfaces, catalog.ts, scope.ts, types.ts,
+      projections.ts, project-utils.ts, review/**, skills/**,
+      plugins/**, SKILL.md, F51 pin files.
+
+      M-GRAMMAR Path is src/artifact/grammar.ts; schema-reference.ts
+      LINKS M-GRAMMAR and rides OWS as a path. M-LINT-CORE Path
+      is src/lint/core.ts; grace-lint.ts LINKS M-LINT-CORE.
+
+      Predicted lint window (D12, not an assertion.* falsifier):
+      listing the not-yet-created src/artifact/schema-reference.ts
+      raises change.graph-anchors-miss-write-scope until T-001
+      creates that file with LINKS M-GRAMMAR. Do not omit the
+      path, do not host the renderer in an existing file to
+      dodge the check, and do not treat the window as a parse
+      failure. gate approve does not evaluate lint. The error
+      dies in T-001 production. AC-SUITE-AND-LINT is 0/0 at
+      close, not throughout.
+      isModuleOwnableWritePath excludes *.test.ts.
+      docs/*.md is not in the lint artifact universe.
+      scripts/ is in ignoredDirs.
+
+      ─────────────────────────────────────────────────────────────────
+      D7 — Baseline assertion.* count predictions
+      ─────────────────────────────────────────────────────────────────
+      Load-bearing flips (Baseline that become false):
+
+        A  MustNotExist schema-reference.ts
+        B  MustNotExist schema-reference.test.ts
+        C  MustNotExist generate-schema-reference.ts
+        D  MustNotExist generate-schema-reference.test.ts
+        E  MustNotExist docs/schema-reference.md
+        F  MustNotContain grammar.ts
+             export const GRAMMAR_INVENTORIES
+        G  MustNotContain package.json
+             generate-schema-reference
+        H  MustNotContain grace-lint.ts
+             isRegisteredSchemaShape
+        J  MustNotContain grace-lint.test.ts
+             renderSchemaShape
+
+      Stay-true (not in N): export function validateArtifactRoot;
+      const classification = classifyIssueCode(code);
+      "version": "6.2.0"; all MustExist of pre-existing paths and
+      modules; all MustVerify.
+
+      Measure with bun run ngrace lint, path ., change
+      C-SCHEMA-REFERENCE, assertions baseline.
+
+      Bare ngrace lint with path . evaluates approved baselines
+      only and is not the mid-change progress command. Immediately
+      after plan approval and before any task, N must be 0.
+
+        After plan approval, before any task: N = 0. Flag if N ≠ 0.
+        After T-001 test writes (B): N = 1. Flag if N ≠ 1.
+        After T-001 production (A, F): N = 3. Flag if N ≠ 3.
+        After T-002 test writes (D): N = 4. Flag if N ≠ 4.
+        After T-002 production (C, E, G): N = 7. Flag if N ≠ 7.
+        After T-003 test writes (J): N = 8 if T-002 is closed.
+        After T-003 production (H): N = 9.
+        After only T-003 from the T-001-closed state (J, H): N = 5.
+        After T-001, T-002, and T-003: N = 9. Flag if N ≠ 9.
+        After T-004 / apply-archive: lint 0/0 at close only (F26).
+        Until T-001 creates schema-reference.ts, root lint also
+        carries the one D12 graph-anchors-miss-write-scope
+        window named in D6. That issue is not in N.
+
+      Never weaken a BaselineAssertion to reduce N. Mid-change red
+      is correct; the CLI frames it.
+
+      ─────────────────────────────────────────────────────────────────
+      D8 — Execution discipline
+      ─────────────────────────────────────────────────────────────────
+      One open epoch. T-001 three round trips (barrel/renderer
+      red, preamble red, then production of grammar.ts plus
+      schema-reference.ts). T-002 two (missing-file check-mode
+      red, then production of the writer, the committed file, and
+      validate:ci composition). T-003 three (shape-explain red,
+      unknown-undotted red, then production of the dispatch).
+      T-004: no manufactured red if green. Terminal / fold / gate
+      / commit are operator steps after T-004 unless authority
+      says otherwise. Never fail and pass in one tool call. Never
+      a retrospective red via stash.
+
+      Newly visible explain-shape behaviour is named in the
+      conventional commit body (D5.5), not in CHANGELOG.md.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Export the live grammar barrel and render registered shape sections from it</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-REFERENCE-GENERATED />
+          <AC-COVERAGE-NAMED />
+          <AC-NO-GLOB-RULE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (barrel and renderer half): before any
+            grammar.ts or schema-reference.ts production edit, in
+            its own tool round trip, write tests in
+            src/artifact/schema-reference.test.ts that (1)
+            GRAMMAR_INVENTORIES is exported and each property is
+            the same reference the corresponding validator
+            constant uses, proven by probe mutation on at least
+            one Set-backed property and one array-backed property
+            (D1); (2) renderSchemaReference and renderSchemaShape
+            exist; (3) every live inventory member appears in the
+            generated text as that live value, so a hardcoded copy
+            inside the renderer fails when the constant moves.
+            HEAD today (probed at 0c4d651): the barrel, the
+            renderer, and this test file are absent. The asserts
+            fail. Record cursor fail with signature
+            test:AC-REFERENCE-GENERATED. Do not land production
+            in this round trip. Never a red backed only by a
+            grep; never fail and pass in one tool call; never a
+            retrospective red via stash. Failure conditions: this
+            round trip also lands production; reference equality
+            asserted by exporting the eighteen; a copied Set sold
+            as live; a probe mutation left unreverted, or reverted
+            outside a finally block; a count of inventories frozen
+            as the pass bar; the committed markdown written in
+            this task.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (coverage half): before any
+            schema-reference.ts production edit, in its own tool
+            round trip, write tests that renderSchemaReference
+            output has a generated banner as the first line, then
+            a preamble before any shape section that names every
+            registered shape, states that coverage is those
+            inventories only, names the three excluded classes in
+            D2 (including that graph-module and module-contract
+            are file-local markup, and the F60 glob refusal), and
+            does not describe the document as a complete schema
+            or a complete grammar. Bind a closed expected-shape
+            list in the test; assert literal bytes there. Also
+            write the F45 AC-NO-GLOB-RULE live asserts (registry
+            keys contain no glob or globstar subject; output has
+            no globstar match-outcome table, including the four
+            F60 pairs); those pass the moment the decided list is
+            authored and must not carry this red. HEAD today: no
+            renderer, so no preamble. The preamble asserts fail.
+            Record fail with signature test:AC-COVERAGE-NAMED.
+            Do not land production in this round trip. Failure
+            conditions: preamble omitted from the test; excluded
+            class missing; a count frozen as the pass bar; a glob
+            shape added so it can be deleted; this criterion
+            treated as a quoted-byte bind in the plan; this
+            round trip also lands production.
+          </Criterion>
+          <Criterion>
+            Production (same edit, own tool round trip after the
+            two reds): add export const GRAMMAR_INVENTORIES whose
+            properties are the same references the validators
+            already use, and add that name to grammar.ts
+            MODULE_MAP. Leave the eighteen as const. Create
+            src/artifact/schema-reference.ts linking M-GRAMMAR
+            with SCHEMA_SHAPE_REGISTRY, isRegisteredSchemaShape,
+            renderSchemaShape, and renderSchemaReference as in
+            D1 and D2. Do not write docs/schema-reference.md.
+            Do not write the writer. Do not export the eighteen.
+            Do not add a graph module. Do not edit catalog.ts,
+            scope.ts, types.ts, or review/**. Failure conditions:
+            barrel rebuilds arrays or Sets; renderer copies
+            member lists; only a subset of registered shapes
+            rendered while claiming the registry; markdown or
+            writer landed here; SKILL.md edited.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/schema-reference.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Write the committed reference through the writer and fail CI when it is missing or stale</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-REFERENCE-GENERATED />
+          <AC-DRIFT-DETECTABLE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (drift half): before any writer,
+            package.json, or docs/schema-reference.md production
+            edit, in its own tool round trip, write tests in
+            scripts/generate-schema-reference.test.ts that
+            checkSchemaReference returns non-zero when the
+            committed file is missing under the supplied root
+            and when the file's bytes differ from
+            renderSchemaReference, and returns zero when they
+            are identical. The missing-file case must use an
+            isolated root so the assert stays valid after the
+            committed file lands. Do not redden by mutating a
+            green committed file. Do not treat a clean-tree
+            no-op regeneration as this red. HEAD today: the
+            writer, this test file, and docs/schema-reference.md
+            are absent; validate:ci does not invoke a check.
+            The asserts fail. Record fail with signature
+            test:AC-DRIFT-DETECTABLE. Do not land production in
+            this round trip. Failure conditions: only a suite
+            identity test that can be skipped; check compares a
+            fixture copy rather than the renderer; this round
+            trip also lands production; HEAD absence not the
+            recorded red.
+          </Criterion>
+          <Criterion>
+            Production: add scripts/generate-schema-reference.ts
+            that writes docs/schema-reference.md from
+            renderSchemaReference and supports check mode via
+            checkSchemaReference (D3). Generate the committed
+            file with that writer; do not hand-write it. Compose
+            the check into validate:ci (package.json composition
+            only; no version field). Regeneration on a clean
+            tree is a no-op. The writer is the update path.
+            Failure conditions: markdown hand-written; check
+            implemented only as a skippable test; validate:ci
+            composition unchanged; version field edited; npm
+            files list gains the markdown; a green committed
+            file mutated to manufacture a red.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/generate-schema-reference.test.ts</Command>
+          <Command>bun test src/artifact/schema-reference.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Dispatch lint explain registry-first so registered shapes print the renderer section</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-EXPLAIN-SHAPES />
+          <AC-SHAPE-CODE-SPLIT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (shape-explain half): before any
+            grace-lint.ts production edit, in its own tool
+            round trip, write tests in src/grace-lint.test.ts
+            that lint explain of at least change-spec and
+            assertion exits 0; that the first line identifies a
+            shape reference and does not use the issue-guide
+            title; that the body after the heading equals
+            renderSchemaShape for that name; and that JSON
+            output uses a distinct envelope with kind shape and
+            does not carry an IssueCodeClassification. One
+            registered name does not satisfy the set. Bind the
+            heading bytes in the test (F44). HEAD today: every
+            registered name classifies unknown and explain
+            exits 1 with an issue-guide Classification line.
+            The asserts fail. Record fail with signature
+            test:AC-EXPLAIN-SHAPES. Do not land production in
+            this round trip. Failure conditions: only markdown
+            cited; only one shape planted; JSON classification
+            exact or unknown sold as success; lint-result
+            schemaVersion asserted as changed; this round trip
+            also lands production.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (unknown-undotted half): before any
+            grace-lint.ts production edit, in its own tool
+            round trip, write tests that lint explain of an
+            undotted token that is not a registered shape
+            (plant graph-module or module-contract) exits 1,
+            lists the registered names, and does not print
+            Classification. Also write the F45 dotted-code
+            live asserts (at least one exact dotted code and
+            one unknown dotted token keep today's
+            classification, title, and exit); those pass at
+            HEAD and must not carry this red. HEAD today:
+            graph-module and module-contract are unknown issue
+            codes (Classification unknown, exit 1). The
+            no-Classification asserts fail. Record fail with
+            signature test:AC-SHAPE-CODE-SPLIT. Do not land
+            production in this round trip. Failure conditions:
+            period-only rule with no registry lookup;
+            classifyIssueCode consulted before the registry;
+            dotted-code explain reddened; this round trip also
+            lands production.
+          </Criterion>
+          <Criterion>
+            Production: implement D4 dispatch in grace-lint.ts
+            explain handling only. Registered shapes never
+            enter formatLintExplanation. Dotted issue codes
+            keep today's path. Unknown undotted tokens take
+            the unknown-shape path. Do not edit catalog.ts.
+            Do not change lint-result schemaVersion. Do not
+            register graph-module, module-contract, or the
+            four undotted GraceCommandError codes. Failure
+            conditions: period-only rule; classifyIssueCode
+            first; first line still the issue-guide title;
+            JSON reports classification; existing dotted
+            explain rewritten; catalog.ts opened.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-lint.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Dogfood close: suite, lint at close, full HEAD-RED proof</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SUITE-AND-LINT />
+          <AC-HEAD-RED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-SUITE-AND-LINT at close (F26 qualifier): after
+            apply and archive, bun run ngrace lint with path .
+            is 0 errors and 0 warnings. Do not claim 0/0
+            mid-change while Baseline falsifiers are expected
+            red (predicted N = 9 after T-001, T-002, and
+            T-003). Never weaken a BaselineAssertion to move a
+            lint count.
+          </Criterion>
+          <Criterion>
+            bun test green for touched packages
+            (src/artifact/schema-reference.test.ts,
+            src/grace-lint.test.ts,
+            scripts/generate-schema-reference.test.ts);
+            bun run validate:ci green (determinism ratchet
+            cardinality only moves if a catch is intentionally
+            added — re-measure, do not drop keys).
+            ObservedWriteScope covers every path the
+            deliverable forces, including grammar.ts,
+            schema-reference.ts, schema-reference.test.ts,
+            grace-lint.ts, grace-lint.test.ts,
+            docs/schema-reference.md,
+            scripts/generate-schema-reference.ts,
+            scripts/generate-schema-reference.test.ts,
+            package.json, this bundle's spec.xml and plan.xml,
+            and the cursor/execution companions run.xml,
+            run-ledger.xml, and run/**. No SKILL.md, so no
+            F51 pin files. No edits under docs/plans/ or
+            .ngrace/changes/archive/; no CHANGELOG; no version
+            surfaces (stays 6.2.0). Failure conditions: suite
+            red; lint 0/0 claimed mid-window; ratchet keys
+            dropped; writes outside declared scope; HEAD-green
+            lint cited as proof the reference or explain-shape
+            path landed.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED post-change: barrel properties are the
+            validator references; committed markdown is
+            byte-identical to renderSchemaReference; preamble
+            names every registered shape and the three
+            excluded classes; checkSchemaReference fails when
+            the file is missing or stale and validate:ci
+            invokes it; explain of change-spec and of
+            assertion exits 0 with a shape-reference first
+            line and a body equal to the markdown section;
+            explain of a dotted exact code and of a dotted
+            unknown token keeps today's classification and
+            exit; explain of an undotted unregistered token
+            exits 1, lists registered names, and prints no
+            Classification line; registry has no glob shape
+            and the file has no globstar match table; F60
+            refusal is in the preamble. Pre-edit reds were
+            recorded on T-001 (barrel/renderer, preamble),
+            T-002 (missing-file check mode), and T-003
+            (shape explain, unknown-undotted) — not
+            manufactured at close. Exempt and not reddened:
+            AC-SUITE-AND-LINT, existing dotted issue-code
+            explain, docs/*.md outside the lint artifact
+            universe, scripts/ in ignoredDirs, AC-NO-GLOB-RULE
+            "no glob shape" half, lint-result JSON
+            schemaVersion unchanged. Failure conditions: a
+            check that passed on pre-change HEAD sold as new
+            behaviour; fail and pass in one tool call;
+            AC-SUITE-AND-LINT required to be red at HEAD;
+            clean-tree identity sold as AC-DRIFT-DETECTABLE's
+            red; dotted-code explain reddened.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/schema-reference.test.ts</Command>
+          <Command>bun test scripts/generate-schema-reference.test.ts</Command>
+          <Command>bun test src/grace-lint.test.ts</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-SCHEMA-REFERENCE>
+</NgraceChangePlan>
