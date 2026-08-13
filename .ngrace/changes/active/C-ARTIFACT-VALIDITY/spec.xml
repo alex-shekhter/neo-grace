@@ -1,0 +1,568 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-ARTIFACT-VALIDITY>
+    <Summary>
+      Deliver RM-GOVERNED-PATH P1 steps 13 and 14 only: make lint reject
+      an XML comment that is not well-formed under XML 1.0 section 2.5
+      (two adjacent hyphen characters inside the comment body) on every
+      artifact parseGraceXmlArtifact already reads, with a forward
+      check proved on fixtures rather than by grandfathering the
+      archived offenders; and interpolate the requested text and the
+      subject file into assertion.MustContain / assertion.MustNotContain
+      failure messages, with MustNotContain also naming the first-hit
+      offset, on the issue message field that both the text report and
+      --format json already print.
+    </Summary>
+    <Problem>
+      **Shared shape.** Two P1 items are the same class of change in
+      the same layer: the product knows a fact and declines to say it
+      on an agent-facing surface. P1's objective is that an agent
+      learns the fix from the error. Sequencing them together is the
+      same-layer dependency F39 recorded, not a convenience.
+      Authoring HEAD `93a9062`, packaged 6.2.0, lint 0/0, active
+      changes empty.
+
+      ---
+
+      **P1.13 — lint accepts artifacts that are not well-formed XML.**
+      `ngrace lint` reports every artifact clean while a conformant
+      parser rejects several. Cause is uniform: two adjacent hyphen
+      characters inside an XML comment, which XML 1.0 section 2.5
+      forbids, `fast-xml-parser` / `XMLValidator.validate` accept,
+      and expat rejects. `parseGraceXmlArtifact` therefore returns a
+      root and zero `xml.parse` issues. The product's own parser
+      reads the files; nothing is broken today. What is false is the
+      report line `XML artifacts checked` / `Errors: 0`, which claims
+      a validity never checked (F10 at the tool level).
+
+      Re-measured at this HEAD: **9** artifacts, all archived
+      `plan.xml` (survey, not a criterion — F33 / F39.1: the set
+      grows). The ninth is `C-GRAMMAR-SEAM`'s archived plan, written
+      by an executor that had read F39, named it, and stated it was
+      avoiding the sequence in comments. A long DESIGN block about a
+      CLI gives the hazard dozens of chances; care has to win every
+      time. A repair that only grandfathers the archive and adds no
+      forward check leaves the count climbing (F39.1).
+
+      `xml.parse` already exists. It fires when `XMLValidator.validate`
+      rejects the document or the parse yields no root — unreadable
+      input. It does not fire on these nine. Reusing that code for a
+      document that parsed successfully would make the code name claim
+      more than the body verifies (F10 / F52). A new constructed
+      `xml.*` code needs an exact guide or the P1.1–3 coverage test
+      fails (F27.2).
+
+      Archive treatment is **not assumed**. The four options, their
+      costs, which have F28 shape, and the recommendation live in
+      Assumptions. Criteria bind the forward check.
+
+      ---
+
+      **P1.14 — assertion.MustContain withholds the text it asked for.**
+      `evaluateTextContainment` in `src/artifact/assertions.ts` holds
+      the requested text and interpolates only the subject file:
+      the failure message is the file, then "must contain requested
+      text" or "must not contain requested text." A plan that pins
+      one file seven times produces seven identical lines. The same
+      string is the JSON `message`; `NgraceIssue` and `LintIssue`
+      have no `detail` field (F40's empty-detail observation is that
+      hole, not a missing key to invent). The sibling
+      `MustMatchPattern` already interpolates its subject via
+      `JSON.stringify`. This is P1's objective failing in its
+      purest form, the same class as P0.7 and `C-LEGIBLE-FAILURE`,
+      on a surface neither reached.
+    </Problem>
+    <Goals>
+      <Goal>
+        **P1.13 forward check.** A fixture artifact whose XML
+        comment body contains two adjacent hyphen characters
+        emits a dedicated well-formedness error at error
+        severity. A fixture whose comments omit that sequence
+        does not emit it. The check runs on every artifact
+        parseGraceXmlArtifact already reads, not on change
+        bundles only. The archived nine are not this goal's
+        evidence.
+      </Goal>
+      <Goal>
+        **P1.13 teaching.** That diagnostic names the forbidden
+        sequence, that it sits inside an XML comment, and the
+        repair (rewrite the comment body so it does not contain
+        the sequence), as the first shape it names. The exact
+        guide for that code teaches the same and does not
+        describe the document as unreadable.
+      </Goal>
+      <Goal>
+        **P1.14 visible subject.** On the containment-failure
+        path only, the issue `message` names the subject file
+        as its first token, then the requested text after the
+        verb, quoted as `JSON.stringify` quotes the sibling
+        pattern assertions. MustNotContain also names the
+        first-hit offset last on that message. Codes stay
+        `assertion.MustContain` and `assertion.MustNotContain`.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: RM-GOVERNED-PATH P1 steps 13 and 14; F39 / F39.1
+        (forward check, not a frozen nine); F40 (interpolate the
+        text the evaluator already holds); F43 (this artifact
+        cannot quote XML — bind semantic content here, assert
+        literal bytes in the test); F44 (pin where each part of
+        an agent-facing message sits); F45 (name HEAD-true halves
+        and exempt them from the red-first universal); F48 (if a
+        repair moves a trigger→code mapping, re-derive it and
+        keep a live fixture for every named code); F52 (when
+        citing a diagnostic as a bind, state what it compares
+        and at what severity); F28 / F35.1 (a green already true
+        at HEAD is not evidence); F33 (do not freeze a count or
+        line number this change moves); F27.2 / F51
+        (ObservedWriteScope covers what the deliverable forces,
+        including transitive pin files if any SKILL.md is
+        touched); D16 (evidence lives in an artifact); D11
+        (nothing deferred without a dependency or a conflict);
+        D17 (AC ids name the property). D13 (JSON.stringify of
+        a lint result gains no new top-level key; this bundle
+        also adds no `detail` field on `NgraceIssue` /
+        `LintIssue`).
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T2** (parse-site well-formedness +
+        assertion message + one exact guide). P1.4 schema
+        generation, P1.5 generators, P1.6 `--as`, P1.10 skill
+        inversion, P1.11 polyglot, and a second-parser XML 1.0
+        sweep are out of implementation.
+      </Constraint>
+      <Constraint>
+        **Decided here, not deferred to the plan — emission
+        home and code for step 13.** The check runs inside
+        `parseGraceXmlArtifact` (or a helper only it calls) so
+        every artifact that function already reads is covered.
+        A grammar-only walk that never sees some of those
+        artifacts is F10. The product parser still returns a
+        root when the only defect is the comment rule, so other
+        diagnostics remain visible. The new issue code is
+        `xml.comment-not-well-formed`. It is **error**
+        severity. It compares the comment *body* (not the
+        comment delimiters, which themselves contain hyphens)
+        against XML 1.0 section 2.5. It is not `xml.parse`
+        (`xml.parse` stays "validator rejected the document or
+        there is no root"; that comparison is unchanged).
+        After the edit, re-derive the trigger→code map (F48):
+        keep the existing unclosed-tag / no-root `xml.parse`
+        fixtures; plant a comment-body fixture for the new
+        code. `xml.generic-` does not match this code.
+      </Constraint>
+      <Constraint>
+        **Decided here — step 14 message shape (F44).**
+        Containment-failure `message` only (not the missing-file
+        / not-a-regular-file / missing-field paths, which already
+        name their subject). Subject file is the first token of
+        `message` (same position as today). Requested text comes
+        after the verb phrase "must contain" / "must not
+        contain", quoted by `JSON.stringify` of that string
+        (the sibling `MustMatchPattern` quoting). For
+        MustNotContain, the first-hit offset is a parenthetical
+        last on `message`. The offset is the index
+        `String.prototype.indexOf` returns on the same file
+        string the evaluator already read (the number the check
+        computed — not a UTF-8 byte offset and not a line
+        number). Text lint prints `message` after the em-dash
+        on the issue line; `--format json` prints the same
+        `message` field. That display half is true by
+        construction once `message` is repaired
+        (`formatTextReport` / `JSON.stringify` of the issue);
+        F45: do not manufacture a red for it. Do not add a
+        `detail` field. Do not change `schemaVersion`.
+      </Constraint>
+      <Constraint>
+        AffectedAreas names modules. `change.plan-scope-exceeds-spec`
+        compares plan DurableScope GraphAnchors to anchors the
+        spec mentions, at **warning** severity, and does not
+        look at ObservedWriteScope file paths (F52). File-level
+        scope is enforced at close by
+        `review.write-evidence-outside-scope` (error), not at
+        authoring. ObservedWriteScope must still list every
+        path the deliverable forces (F27.2). Forced write
+        surface: `src/artifact/xml.ts` (comment-body check at
+        the parse site); `src/artifact/xml.test.ts`;
+        `src/artifact/assertions.ts` (`evaluateTextContainment`
+        failure `message` only); `src/artifact/assertions.test.ts`;
+        `src/lint/catalog.ts` (only the exact guide for
+        `xml.comment-not-well-formed`); `src/lint/catalog.test.ts`
+        (test of that guide only); this bundle's `spec.xml` and
+        `plan.xml`. No SKILL.md, so F51 pin files are not
+        forced. **Narrow admission, not a blanket `src/lint`
+        opening:** that one exact-guide entry and its test are
+        in. **Stop and re-spec** rather than touching any other
+        path under `src/lint/**`, `docs/plans/**`,
+        `.ngrace/changes/archive/**` (unless authority picks
+        archive-immutability option 4, which is a re-spec),
+        CHANGELOG.md, version surfaces, `src/artifact/types.ts`
+        issue shape, `src/lint/types.ts` issue shape, or P1.4's
+        generator.
+      </Constraint>
+      <Constraint>
+        **Do not edit** `docs/plans/**`,
+        `.ngrace/changes/archive/**`, CHANGELOG.md, or any
+        version surface. Packaged version at authoring:
+        **6.2.0**. No product version bump — 6.3.0 is a phase
+        target, not this bundle's act.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first is mechanical for new
+        behaviour. Failing tests are written before the fail
+        attempt is recorded, in a separate tool round trip, so
+        that event's WriteEvidence carries the test. Never a
+        retrospective red via stash. Never weaken a
+        BaselineAssertion to move a lint count. F45 carve-outs
+        are named on AC-HEAD-RED; do not manufacture a red for a
+        half that is true by construction or already true at
+        HEAD.
+      </Constraint>
+      <Constraint>
+        F43 binding rule for this spec: criteria describe the
+        comment-body *rule* and the containment-message *shape*.
+        They do not quote product markup and do not bind an
+        escaped rendering in this file to an emitted message.
+        Tests under `src/**/*.test.ts` assert the literal bytes.
+        Do not put the forbidden two-hyphen sequence inside an
+        XML comment in this bundle's own artifacts.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        **Rejected — switch the product parser to expat / libxml
+        or add a second-parser XML 1.0 sweep.** The measured
+        class is the comment rule. A conformant parser is not
+        in the dependency set; swapping parsers is a different
+        change with its own blast radius. Residual: other
+        well-formedness holes `fast-xml-parser` may still
+        accept. Disclosed, not queued (D11: conflict).
+      </NonGoal>
+      <NonGoal>
+        **Rejected — teach the comment rule in SKILL.md.**
+        F39.1 is the evidence that knowing the rule does not
+        prevent it. Care-based teaching is not the repair. A
+        SKILL.md edit would force
+        `src/test-support/token-accounting.test.ts` and
+        `README.md` into ObservedWriteScope (F51) for a note
+        that cannot win every time. The diagnostic is the
+        teaching surface.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — add a `detail` field on `NgraceIssue` /
+        `LintIssue`, or a new JSON key.** F40's empty detail is
+        the withheld `message`. A new field is a versioned-
+        surface change (D13). Conflict, not a queue.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — exact guides for `assertion.MustContain` /
+        `assertion.MustNotContain`.** Those codes resolve to
+        the `assertion.` prefix guide, which does not instruct
+        the withheld-text form. Opening the catalog for two
+        guides this bundle does not need is a P1.2 leftover,
+        not this deliverable.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — reuse `xml.parse` for a document that
+        parsed.** That code compares validator-reject / no-root.
+        Emitting it while a root exists is F10. Fail-closed
+        (drop the root) would hide every other diagnostic on
+        the file. Conflict with the decided keep-root +
+        dedicated-code shape.
+      </NonGoal>
+      <NonGoal>
+        P1.4 schema reference, P1.5 generators, P1.6 `--as`,
+        P1.7 export view, P1.8 no-adapter warning, P1.10 skill
+        inversion, P1.11 polyglot, P3.2 `plan amend`. P3.2 is
+        the designed hatch for archive edits; this bundle does
+        not pre-empt it.
+      </NonGoal>
+      <NonGoal>
+        `docs/plans/**` board edits, CHANGELOG, product version
+        bump. Conflict: this bundle does not close 6.3.0.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-XML-COMMENT-WELL-FORMED>
+        A fixture artifact that parseGraceXmlArtifact reads,
+        whose only well-formedness defect is two adjacent
+        hyphen characters inside an XML comment body, produces
+        `xml.comment-not-well-formed` at error severity and
+        still returns a root. A fixture whose comments omit
+        that sequence does not emit that code. One sample
+        document kind does not satisfy the set: plant at least
+        a change plan and one non-plan artifact (a context or
+        graph document). Two adjacent hyphens in element text
+        are legal and must not emit the code. The archived
+        nine are not this criterion's evidence. Archive
+        treatment of those nine is Assumptions, not this
+        bind. **HEAD today:** `XMLValidator.validate` accepts
+        the sequence; `parseGraceXmlArtifact` returns a root
+        and zero issues on a comment-body plant; lint on this
+        repository reports the nine archived plans clean.
+        **Failure conditions:** only plans planted; check
+        implemented only on active bundles and sold as this
+        criterion; `xml.parse` reused while a root exists;
+        root dropped so other diagnostics vanish; element-text
+        hyphens rejected; the nine archived files cited as
+        the red; a count of nine frozen as the pass bar.
+      </AC-XML-COMMENT-WELL-FORMED>
+      <AC-COMMENT-ERROR-TEACHES>
+        The `xml.comment-not-well-formed` `message` names
+        three things, in this order (F44): that the defect is
+        inside an XML comment; that the forbidden content is
+        two adjacent hyphen characters; the repair (rewrite
+        the comment body so it does not contain that
+        sequence). A later mention after a "document failed
+        to parse" instruction does not satisfy. This criterion
+        binds that semantic content; the test asserts the
+        literal bytes. **HEAD today:** no such code exists;
+        the nine files emit no well-formedness message.
+        **Failure conditions:** only the code token asserted;
+        working form named after an unreadable-document
+        instruction; `--explain` cited while the emitted
+        message still withholds the sequence or the comment
+        location; this criterion treated as a quoted-byte
+        bind in this file.
+      </AC-COMMENT-ERROR-TEACHES>
+      <AC-COMMENT-GUIDE-TEACHES>
+        The `lint --explain` exact guide for
+        `xml.comment-not-well-formed` names the same three
+        facts as AC-COMMENT-ERROR-TEACHES, as the first shape
+        it names, and does not describe the document as
+        unreadable. The `xml.parse` exact guide is not a
+        member and is not rewritten. This criterion binds
+        semantic content; the test asserts the rendered guide
+        bytes. **HEAD today:** the code is absent, so it
+        cannot classify as exact; `xml.parse` is exact and
+        speaks to unclosed tags, bad entities, or a missing
+        root. **Failure conditions:** only the emitted
+        message cited; `xml.parse` guide rewritten as if it
+        were a member; catalog restructured; the
+        resolution-path predicate edited; an exact guide
+        C-EXPLAIN-COVERAGE authored rewritten.
+      </AC-COMMENT-GUIDE-TEACHES>
+      <AC-CONTAINMENT-MESSAGE>
+        On the containment-failure path, `evaluateTextContainment`
+        issues have code `assertion.MustContain` or
+        `assertion.MustNotContain` (the mapping does not
+        move — F48). `message` starts with the subject file
+        token, then the verb, then the requested text as
+        `JSON.stringify` of that string. For MustNotContain,
+        `message` ends with a parenthetical first-hit offset
+        that equals `indexOf` of that text in the file
+        string the evaluator read. MustContain has no offset
+        (there is no hit). Two MustContain failures on the
+        same file with different texts produce two
+        distinguishable `message` values. Missing-field,
+        missing-file, and not-a-regular-file paths are not
+        members. Text-report and JSON display of `message`
+        are the same field (F45: the display half is true by
+        construction once `message` is repaired; do not
+        redden it). This criterion binds that shape; the
+        test asserts the literal bytes. **HEAD today:**
+        MustContain message is the file plus "must contain
+        requested text"; MustNotContain is the file plus
+        "must not contain requested text"; neither
+        interpolates the text; JSON `message` is that same
+        string; `assertions.test.ts` asserts the codes, not
+        those message bytes. **Failure conditions:** only
+        MustContain repaired; text interpolated but after
+        an instruction that still says "requested text" as
+        the first named subject; offset given as a line
+        number or a UTF-8 byte count the evaluator did not
+        compute; a new `detail` field added instead of
+        repairing `message`; codes renamed; display-half
+        JSON asserted as the HEAD-RED.
+      </AC-CONTAINMENT-MESSAGE>
+      <AC-HEAD-RED>
+        Each of AC-XML-COMMENT-WELL-FORMED,
+        AC-COMMENT-ERROR-TEACHES, AC-COMMENT-GUIDE-TEACHES,
+        and AC-CONTAINMENT-MESSAGE (both kinds, not one)
+        has a red recorded before its production edit, in
+        its own tool round trip, with the failing test
+        written first. Never a red backed only by a grep,
+        and never a retrospective red via stash. **Exempt
+        from this universal (F45, named at authoring):**
+        AC-SUITE-AND-LINT (green at HEAD; close-time bar);
+        text-report / JSON display of an already-repaired
+        `message` (true by construction); `xml.parse` still
+        rejecting unclosed tags or a missing root (already
+        true at HEAD); files whose comments omit the
+        forbidden sequence staying clean; this repository's
+        nine archived plans staying quiet under the
+        recommended allowlist (a disclosed exception, not
+        new behaviour); marketplace identity at pre-change
+        HEAD (this bundle does not edit skills). **HEAD
+        today:** comment-body plants emit nothing;
+        containment messages withhold the text; the new
+        code has no exact guide. **Failure conditions:** a
+        check that passes on pre-change HEAD sold as new
+        behaviour; fail and pass in one tool call;
+        AC-SUITE-AND-LINT required to be red at HEAD; the
+        nine archived files recorded as the HEAD-RED.
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-LINT>
+        `bun test` green for touched packages
+        (`src/artifact/xml.test.ts`,
+        `src/artifact/assertions.test.ts`,
+        `src/lint/catalog.test.ts`);
+        `bun run validate:ci` green (determinism ratchet
+        cardinality only moves if a catch is intentionally
+        added — re-measure, do not drop keys);
+        `bun run ngrace lint --path .` is 0 errors and 0
+        warnings **at close** (after apply and archive —
+        not claimed mid-change). ObservedWriteScope covers
+        every path the deliverable forces, including
+        `src/artifact/xml.ts`, `src/artifact/xml.test.ts`,
+        `src/artifact/assertions.ts`,
+        `src/artifact/assertions.test.ts`,
+        `src/lint/catalog.ts`, `src/lint/catalog.test.ts`,
+        and this bundle's `spec.xml` / `plan.xml`. No
+        SKILL.md, so no F51 pin files. No edits under
+        `docs/plans/` or `.ngrace/changes/archive/`
+        (unless authority picks option 4 and re-specs);
+        no CHANGELOG; no version surfaces. **HEAD today:**
+        lint is 0/0 and `validate:ci` is green — that
+        green is the baseline, not this change's evidence.
+        **Failure conditions:** suite red; lint 0/0
+        claimed mid-window; ratchet keys dropped; writes
+        outside declared scope; HEAD-green lint cited as
+        proof the comment check or the message repair
+        landed.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GRAMMAR />
+      <M-ASSERTIONS />
+      <M-LINT-CATALOG />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/artifact/xml.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/artifact/assertions.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/lint/catalog.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): a comment-body plant on a plan and
+        on a non-plan artifact emits `xml.comment-not-well-formed`
+        at error, keeps a root, and does not emit `xml.parse`;
+        element-text hyphens stay clean; that message and its
+        exact guide lead with comment location, the forbidden
+        sequence, and the repair; `xml.parse` fixtures for
+        unclosed tags and missing root still fire;
+        MustContain / MustNotContain failure `message` starts
+        with the file, then the verb, then `JSON.stringify`
+        of the requested text; MustNotContain ends with the
+        `indexOf` offset; two texts on one file are
+        distinguishable; codes unchanged; validate:ci green;
+        lint 0/0 at close only. Evidence is the suite and
+        the ledger fail/pass pairs on the non-exempt
+        criteria, not a command someone reports.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring HEAD `93a9062`, packaged 6.2.0, lint 0/0.**
+        Active changes were empty before this bundle. F33:
+        implementation re-measures counts; criteria do not
+        freeze the nine or any line number.
+      </Assumption>
+      <Assumption>
+        **Survey snapshot, not a criterion.** Re-measured at
+        this HEAD: nine archived plans contain the forbidden
+        sequence inside an XML comment, and no other
+        `.ngrace/**/*.xml` does:
+
+        C-CALIBRATION-COMMAND-EVIDENCE, C-DECLARED-WRITES,
+        C-ESCALATION-HONESTY, C-EXECUTION-CONTRACT,
+        C-FLAG-HONESTY, C-GRAMMAR-SEAM, C-LEGIBLE-FAILURE,
+        C-RECOVER-FOLDABLE, C-REPORT-HONESTY
+
+        — each `plan.xml` only. `xml.parse` exact guide
+        exists. `assertion.MustContain` /
+        `assertion.MustNotContain` have no exact guides
+        (prefix `assertion.`). `NgraceIssue` / `LintIssue`
+        have fields severity, code, file, optional line,
+        message — no `detail`. `MustMatchPattern` already
+        interpolates via `JSON.stringify`.
+      </Assumption>
+      <Assumption>
+        **Archive treatment — options, costs, F28, recommendation.**
+        Authority chooses. Criteria bind only the forward
+        check. Until a different pick is written into an
+        approved spec, the plan implements the recommendation.
+
+        **Option 1 — scope the check to active bundles only.**
+        Cost: a 10th offender under archive (a new archived
+        spec, a copied plan, any non-plan archive file) is
+        silent. Non-bundle artifacts that are not "active
+        bundles" are out of the check unless separately
+        included. This repository's close bar stays 0/0.
+        F28 shape: **yes, if the nine are the claimed
+        evidence** — they are excluded by class, which is
+        exactly "a check that quietly excludes the files
+        that motivated it." Not F28 if the evidence is a
+        fixture and the exclusion is disclosed. Weaker
+        forward check than option 3.
+
+        **Option 2 — warn on archive, error on active.**
+        Cost: the nine become standing warnings on every
+        `ngrace lint --path .` of this dogfood tree.
+        AC-SUITE-AND-LINT's 0/0 at close is then
+        unsatisfiable without weakening the close bar or
+        ignoring archive warnings. Downstream projects
+        without this archive pay nothing. F28 shape: **no**
+        — the nine are visible. F52 shape: calling that
+        "well-formedness is checked" while archive is only
+        a warning is weaker than the name. Rejected for
+        this repository because it collides with the 0/0
+        close bar this roadmap actually uses.
+
+        **Option 3 — frozen path allowlist of the nine;
+        every other artifact errors.** Cost: the nine stay
+        silent; the allowlist is product data that must be
+        the re-measured paths, not the number nine (F33).
+        A 10th path, including a new archived file, errors.
+        0/0 is preserved. F28 shape: **yes, if silence on
+        the nine is sold as the red**; **no, if the red is
+        a fixture and the allowlist is a named exception
+        with a reason (archive immutability)**. Stronger
+        forward check than option 1 (archive is not a
+        blanket hole).
+
+        **Option 4 — re-examine archive immutability and
+        repair the nine comments.** Cost: punches a hole in
+        a wall this repository has used as a hard stop
+        (CLAUDE.md, every recent bundle). Comment-only
+        edits still rewrite approved historical artifacts.
+        P3.2 already schedules `ngrace plan amend` as the
+        controlled hatch. Doing it here pre-empts that
+        hatch and creates a precedent the next bundle will
+        cite. Combined with a uniform error check it is
+        complete, and 0/0 holds after the repair. F28
+        shape: **no**. Conflict: archive immutability vs
+        this class of repair. D11: not this bundle.
+
+        **Recommendation: option 3.** Forward-complete,
+        preserves 0/0, does not pre-empt P3.2, and avoids
+        option 1's blanket archive hole. F28 is discharged
+        by fixture reds (AC-HEAD-RED) plus a test that a
+        path not on the allowlist errors — not by the nine
+        staying quiet. Option 2 is the honest visibility
+        option and is incompatible with this repo's close
+        bar; say so rather than ship nine eternal warnings.
+        Option 4 is the honest cleanup and belongs to P3.2.
+      </Assumption>
+      <Assumption>
+        **Module ownership.** M-GRAMMAR → `src/artifact/grammar.ts`;
+        `src/artifact/xml.ts` LINKS M-GRAMMAR (parse home).
+        M-ASSERTIONS → `src/artifact/assertions.ts`.
+        M-LINT-CATALOG → `src/lint/catalog.ts`.
+        Test files are ungoverned and ride ObservedWriteScope
+        as paths. `src/lint/emission-patterns.ts` also LINKS
+        M-LINT-CATALOG and is not in this write set.
+      </Assumption>
+    </Assumptions>
+  </C-ARTIFACT-VALIDITY>
+</NgraceChangeSpec>

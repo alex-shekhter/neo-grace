@@ -321,13 +321,14 @@ done.
     convenience. Carries a gate-side reader change and the skill text that teaches the element.
     Sequence with step 9: same file, same class of change.
 13. **Lint accepts artifacts that are not well-formed XML** (F39, added 2026-08-12 during P1's
-    first bundle). `ngrace lint` reports `XML artifacts checked: 117 / Errors: 0` while **8**
-    archived plans are rejected by a conformant parser — uniformly `--` inside an XML comment,
+    first bundle). `ngrace lint` reports every XML artifact clean while a **growing set** of
+    archived plans is rejected by a conformant parser (8 when recorded, 9 by 2026-08-13 — see
+    F39.1; re-measure, never cite the count) — uniformly `--` inside an XML comment,
     forbidden by XML 1.0 §2.5, accepted by `fast-xml-parser`. Guaranteed by two conventions
     meeting: plans carry a binding `DESIGN` comment block, and the product being designed is a
     CLI whose every flag is `--`. Nothing is broken today — the product's own parser reads them
     — so the defect is the report's claim of a validity never checked. **The repair must settle
-    how the archive is treated**: the eight offenders are immutable, so the check is scoped to
+    how the archive is treated**: every offender is archived and immutable, so the check is scoped to
     active bundles, or warns with the archive grandfathered, or immutability is re-examined —
     argued, not assumed, since a check that excludes the files that motivated it is its own F28.
     Sequence with step 12: both are artifact-validity repairs under `src/artifact/`.

@@ -3424,7 +3424,7 @@ describe the post-implementation state. The report was this, twice, verbatim:
 ```
 
 Two identical lines. `src/lint/catalog.ts` is the subject of **seven** `MustContain` assertions in
-that plan, and the `detail` field is empty in `--format json` too. Nothing in the output says which
+that plan, and `--format json` carries the same undifferentiated string. Nothing in the output says which
 text was requested, so the executor cannot act on it without reading the plan and bisecting by hand.
 
 `src/artifact/assertions.ts:361` is the whole story:
@@ -3452,6 +3452,12 @@ binding to byte-accurate, branch-unique, backtick-free substrings (`See the revi
 (src/review/catalog.ts)`, `See the gate catalog (src/gates/catalog.ts)`), not by loosening the
 assertion. This is a second instance of [F36](#f36)'s family: an assertion whose subject was never
 pinned to what the file actually contains.
+
+**Correction, 2026-08-13.** This entry originally said the `detail` field is empty under
+`--format json`. There is no such field: `NgraceIssue` is `{severity, code, file, line?, message}`.
+Repeating that as a requirement would have mandated a new key on a versioned surface, which
+[D13](#d13) refuses. The withheld information belongs in `message`, which already exists and is
+what both renderers print. Caught by the executor at spec-authoring, before it reached a criterion.
 
 **Home: P1.14**, with [P1.12](#f38) and [P1.13](#f39). Assertion evaluation lives in
 `src/artifact/assertions.ts`, outside `C-EXPLAIN-COVERAGE`'s `AffectedAreas`, whose NonGoals
