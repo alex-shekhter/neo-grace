@@ -3846,3 +3846,37 @@ rather than a check.
 that diagnostic actually compares and at what severity. "Bound by `X`" is a claim about a
 mechanism, and mechanisms are exactly what [F35](#f35) says to verify by body rather than by name.
 Not swept across existing specs: they are approved and their criteria do not rest on the gloss.
+
+---
+
+### F53 — Every bundle hash on the phase board is branch-only. F37 fixed one instance, not the practice. **[verified]**
+
+[F37](#f37) established that squash-merge leaves no branch commit an ancestor of `main`, so a cited
+hash stops resolving. Its remedy was applied to the three commits it named. The **practice** was
+never changed, and the board kept citing hashes.
+
+Measured across the P1 phase row — every bundle citation on the board, thirteen of them:
+
+```
+a4b9ce7  BRANCH-ONLY      f10f868  BRANCH-ONLY      3f26381  BRANCH-ONLY
+5872ebb  BRANCH-ONLY      5a1b28b  BRANCH-ONLY      … all thirteen
+```
+
+Not one resolves on `main`. Two of them I wrote **this session**, one session after recording F37 —
+which is the point worth keeping: the finding was known, recorded, and re-committed by its own
+author, because the record fixed the instances and left the habit.
+
+**The citation was never load-bearing.** A bundle's evidence is its archived directory —
+`.ngrace/changes/archive/C-*/` with its `spec.xml`, `plan.xml` and folded `run-ledger.xml` — and
+that path *does* survive merge, because it is content, not history. The hash added a second, weaker
+name for something already durably addressed. [D16](#d16) says a criterion may only bind evidence
+that lives in an artifact; the same reasoning applies to a *record*, and the hash was the part that
+did not.
+
+**Repaired at the two sites I authored:** both now link the archive directory. The eleven P0
+citations are left as written — they are historical entries whose breakage F37 already documents,
+and rewriting them would edit the account of what happened rather than the practice.
+
+**The rule.** Cite a bundle by its **archive path**, never by commit. Where a commit genuinely must
+be named — a release tag, a revert target — tag the branch tip before deleting it, and cite the
+tag. Tags survive; branch tips do not.
