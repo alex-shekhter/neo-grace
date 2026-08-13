@@ -104,6 +104,7 @@ const DURABLE_SCOPE_DIRECT_TAGS = new Set([
   "ContextArtifact",
   "Context",
   "Artifact",
+  "OptionalContext",
   "None",
 ]);
 const OBSERVED_SCOPE_DIRECT_TAGS = new Set(["File", "Path", "Glob", "None"]);

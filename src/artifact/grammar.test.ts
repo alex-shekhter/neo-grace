@@ -1305,3 +1305,59 @@ describe("C-GRAMMAR-SEAM T-001 Clarification-shape diagnostics", () => {
     expect(seen.has("change.invalid-clarification-target")).toBe(true);
   });
 });
+
+const REPO_ROOT = path.resolve(import.meta.dir, "../..");
+
+const TEACHING_FILES = [
+  "skills/ngrace/ngrace-spec/SKILL.md",
+  "skills/ngrace/ngrace-spec/references/change-spec-template.xml",
+  "skills/ngrace/ngrace-plan/SKILL.md",
+  "skills/ngrace/ngrace-plan/references/change-plan-template.xml",
+  "plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md",
+  "plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml",
+  "plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md",
+  "plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml",
+] as const;
+
+const TEMPLATE_FILES = TEACHING_FILES.filter((file) => file.endsWith(".xml"));
+
+function extractClarificationExamples(template: string): string[] {
+  const uncommented = template.replace(/<!--([\s\S]*?)-->/g, "$1");
+  return uncommented.match(/<Clarification\b[^>]*(?:\/>|>[\s\S]*?<\/Clarification>)/g) ?? [];
+}
+
+function fillTemplatePlaceholders(xml: string): string {
+  return xml.replace(/\$[A-Z0-9_]+/g, "filled clarification");
+}
+
+function teachesChildAnchorForm(text: string): boolean {
+  const hasChildExample = /<Clarification\b[^>]*>\s*<(?:IC|INV|AC)-/.test(text);
+  const hasWorkingFormPhrase = /self-closing IC-\*|self-closing IC-\*, INV-\*, or AC-\* child/i.test(text);
+  return hasChildExample || hasWorkingFormPhrase;
+}
+
+describe("C-GRAMMAR-SEAM T-004 teaching files and template copy-fixture", () => {
+  it("all eight teaching files describe the child-anchor form and do not instruct a target attribute", () => {
+    for (const relative of TEACHING_FILES) {
+      const text = readFileSync(path.join(REPO_ROOT, relative), "utf8");
+      expect(text, relative).not.toContain("Clarification target=");
+      expect(text, relative).not.toMatch(/target="(?:IC|INV|AC)-/);
+      expect(teachesChildAnchorForm(text), relative).toBe(true);
+    }
+  });
+
+  it("each template Clarification example is lint-clean on the Clarification shape once placeholders are filled", () => {
+    for (const relative of TEMPLATE_FILES) {
+      const template = readFileSync(path.join(REPO_ROOT, relative), "utf8");
+      const examples = extractClarificationExamples(template);
+      expect(examples.length, relative).toBeGreaterThan(0);
+      for (const [index, example] of examples.entries()) {
+        const changeId = `C-TPL-${relative.includes("spec") ? "SPEC" : "PLAN"}-${index}`;
+        const artifact = relative.includes("spec") ? "spec" : "plan";
+        const root = clarificationFixture(changeId);
+        plantClarifications(root, changeId, artifact, fillTemplatePlaceholders(example));
+        expect(clarificationShapeCodes(root), `${relative}#${index}`).toEqual([]);
+      }
+    }
+  });
+});

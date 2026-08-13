@@ -28,7 +28,7 @@ import path from "node:path";
 
 import { ARTIFACT_DIR, ProjectPathError, normalizeProjectRelativePath, resolveContainedProjectPath } from "./paths";
 import type { GraphProjection, VerificationProjection } from "./projections";
-import { ANCHOR_PATTERNS, NGRACE_CONTEXT_ARTIFACTS, type NgraceIssue, type NgraceProjectPaths } from "./types";
+import { ANCHOR_PATTERNS, NGRACE_CONTEXT_ARTIFACTS, NGRACE_OPTIONAL_CONTEXT_ARTIFACTS, type NgraceIssue, type NgraceProjectPaths } from "./types";
 import { readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
 /** Durable semantic scope declared by a NgraceChangePlan. */
@@ -36,6 +36,7 @@ export type DurableScope = {
   graphAnchors: string[];
   verificationAnchors: string[];
   contextArtifacts: string[];
+  optionalContextArtifacts: string[];
   graphDocuments: string[];
   verificationDocuments: string[];
 };
@@ -81,6 +82,7 @@ const EMPTY_OWNERSHIP: DurableOwnershipIndex = {
 };
 
 const CONTEXT_ARTIFACT_NAMES = new Set<string>(NGRACE_CONTEXT_ARTIFACTS);
+const OPTIONAL_CONTEXT_ARTIFACT_NAMES = new Set<string>(NGRACE_OPTIONAL_CONTEXT_ARTIFACTS);
 const CONTEXT_SCOPE_TAGS = new Set(["ContextArtifact", "Context", "Artifact"]);
 
 type DurableAnchorArray = "graphAnchors" | "verificationAnchors" | "graphDocuments" | "verificationDocuments";
@@ -88,6 +90,7 @@ type DurableAnchorArray = "graphAnchors" | "verificationAnchors" | "graphDocumen
 function durableGroupDefinition(tag: string):
   | { kind: "anchor"; target: DurableAnchorArray; predicate: (value: string) => boolean }
   | { kind: "context" }
+  | { kind: "optional-context" }
   | null {
   switch (tag) {
     case "GraphAnchors":
@@ -107,6 +110,8 @@ function durableGroupDefinition(tag: string):
       return { kind: "anchor", target: "verificationDocuments", predicate: (value) => ANCHOR_PATTERNS.verificationDocument.test(value) };
     case "ContextArtifacts":
       return { kind: "context" };
+    case "OptionalContext":
+      return { kind: "optional-context" };
     default:
       return null;
   }
@@ -277,6 +282,7 @@ export function durableOverlaps(
     ...intersection(left.graphAnchors, right.graphAnchors),
     ...intersection(left.verificationAnchors, right.verificationAnchors),
     ...intersection(left.contextArtifacts, right.contextArtifacts),
+    ...intersection(left.optionalContextArtifacts, right.optionalContextArtifacts),
     ...intersection(left.graphDocuments, right.graphDocuments),
     ...intersection(left.verificationDocuments, right.verificationDocuments),
   ]);
@@ -319,6 +325,7 @@ function extractDurableScope(root: GraceXmlNode, planFile: string): { scope: Dur
     graphAnchors: [],
     verificationAnchors: [],
     contextArtifacts: [],
+    optionalContextArtifacts: [],
     graphDocuments: [],
     verificationDocuments: [],
   };
@@ -356,6 +363,19 @@ function extractDurableScope(root: GraceXmlNode, planFile: string): { scope: Dur
       return;
     }
     scope.contextArtifacts.push(value);
+    entries += 1;
+  };
+  const addOptionalContext = (node: GraceXmlNode): void => {
+    if (node.children.length > 0 || Object.keys(node.attributes).length > 0) {
+      issues.push(issue("error", "scope.invalid-durable-shape", planFile, `${node.tag} must be a plain text context artifact filename.`));
+      return;
+    }
+    const value = node.text.trim();
+    if (!OPTIONAL_CONTEXT_ARTIFACT_NAMES.has(value)) {
+      issues.push(issue("error", "scope.invalid-context-artifact", planFile, `Unsupported optional context artifact ${JSON.stringify(value)} in DurableScope.`));
+      return;
+    }
+    scope.optionalContextArtifacts.push(value);
     entries += 1;
   };
 
@@ -414,6 +434,12 @@ function extractDurableScope(root: GraceXmlNode, planFile: string): { scope: Dur
           issues.push(issue("error", "scope.invalid-durable-shape", planFile, `${child.tag} contains unsupported scope entry <${entry.tag}>.`));
         } else {
           addContext(entry);
+        }
+      } else if (group.kind === "optional-context") {
+        if (!CONTEXT_SCOPE_TAGS.has(entry.tag)) {
+          issues.push(issue("error", "scope.invalid-durable-shape", planFile, `${child.tag} contains unsupported scope entry <${entry.tag}>.`));
+        } else {
+          addOptionalContext(entry);
         }
       } else addAnchor(entry, group.predicate, scope[group.target], child.tag);
     }
@@ -691,6 +717,7 @@ function dedupeDurableScope(scope: DurableScope): DurableScope {
     graphAnchors: [...new Set(scope.graphAnchors)].sort(),
     verificationAnchors: [...new Set(scope.verificationAnchors)].sort(),
     contextArtifacts: [...new Set(scope.contextArtifacts)].sort(),
+    optionalContextArtifacts: [...new Set(scope.optionalContextArtifacts)].sort(),
     graphDocuments: [...new Set(scope.graphDocuments)].sort(),
     verificationDocuments: [...new Set(scope.verificationDocuments)].sort(),
   };

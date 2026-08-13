@@ -41,10 +41,12 @@ describe("token-accounting (D15)", () => {
     // Measured after instrument landed (not written toward):
     //   bun -e 'import { skillTextLines } from "./src/test-support/token-accounting.ts";
     //           console.log(skillTextLines().totalBytes);'
-    // → 53771. Line total stays 779 (frozen semantics; archived reports cite it).
+    // → 53771 at C-CONTRACT-DEBT. C-GRAMMAR-SEAM T-004 skill-prose
+    //   rewrite moved the UTF-8 sum; re-measured 53864. Line total
+    //   stays 779 (frozen semantics; archived reports cite it).
     const measured = skillTextLines();
     expect(measured.total).toBe(779);
-    expect(measured.totalBytes).toBe(53771);
+    expect(measured.totalBytes).toBe(53864);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

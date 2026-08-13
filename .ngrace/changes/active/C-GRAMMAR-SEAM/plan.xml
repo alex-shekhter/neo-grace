@@ -339,6 +339,8 @@
       <File>plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
       <File>.ngrace/changes/active/C-GRAMMAR-SEAM/plan.xml</File>
       <File>.ngrace/changes/active/C-GRAMMAR-SEAM/spec.xml</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
     </ObservedWriteScope>
     <!--
       DESIGN (binding for implementers; authority reviews the gate fixture hardest)
@@ -695,6 +697,12 @@
                                        tests of those two guides)
         eight teaching files (four canonical, four mirrors)
         this bundle's spec.xml and plan.xml
+        src/test-support/token-accounting.test.ts
+          (F51: transitive — skill-prose bytes move the
+           16-SKILL.md UTF-8 pin; ungoverned; OWS as a path)
+        README.md
+          (F51: same pin, published measurements table;
+           ungoverned; OWS as a path)
 
       Deliberately excluded: docs/plans, archive, CHANGELOG,
       version surfaces, every other src/lint/** path
@@ -1125,8 +1133,12 @@
             both skill trees, both template files,
             src/gates/core.test.ts, src/artifact/grammar.test.ts,
             src/artifact/scope.ts, src/lint/catalog.ts,
-            src/lint/catalog.test.ts, and this bundle's spec.xml /
-            plan.xml. No edits under docs/plans/ or
+            src/lint/catalog.test.ts, this bundle's spec.xml /
+            plan.xml, src/test-support/token-accounting.test.ts,
+            and README.md (F51: skill-prose bytes move the
+            16-SKILL.md UTF-8 pin and its published table row —
+            re-measure totalBytes at both sites; line total stays
+            779). No edits under docs/plans/ or
             .ngrace/changes/archive/; no CHANGELOG; no version
             surfaces (stays 6.2.0). Failure conditions: suite red;
             lint 0/0 claimed mid-window; ratchet keys dropped;

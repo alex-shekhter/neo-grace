@@ -51,13 +51,13 @@ Typed holes (D12) are schema elements, never prose markers. When a contract, inv
 
 ```xml
 <Clarifications>
-  <Clarification target="IC-EXAMPLE">What is the wire shape for this contract?</Clarification>
-  <Clarification target="INV-AUTH" resolved="true">Resolved: tokens expire at 15m.</Clarification>
+  <Clarification><IC-EXAMPLE />What is the wire shape for this contract?</Clarification>
+  <Clarification resolved="true"><INV-AUTH />Resolved: tokens expire at 15m.</Clarification>
 </Clarifications>
 ```
 
 Rules:
-- `target` must be a canonical `IC-*`, `INV-*`, or `AC-*` anchor.
+- Target is exactly one self-closing `IC-*`, `INV-*`, or `AC-*` child — never a target attribute.
 - Unresolved clarifications on `IC-*` / `INV-*` block plan approval (`ngrace gate approve`).
 - Unresolved clarifications on `AC-*` that a task `Satisfies` block apply.
 - `Assumptions` remain presence with weak provenance and never block a gate.

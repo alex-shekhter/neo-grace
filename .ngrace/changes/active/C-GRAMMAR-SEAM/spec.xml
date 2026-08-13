@@ -214,7 +214,11 @@
         `change.invalid-clarification` and
         `change.invalid-clarification-target`);
         `src/lint/catalog.test.ts` (tests of those two guides
-        only); this bundle's `spec.xml` and `plan.xml`.
+        only); this bundle's `spec.xml` and `plan.xml`;
+        `src/test-support/token-accounting.test.ts` and
+        `README.md` (F51: skill-prose bytes move the
+        16-SKILL.md UTF-8 pin and its published table row;
+        line total stays 779).
         **Narrow admission, not a blanket `src/lint` opening:**
         those two exact-guide entries and their test are in.
         **Stop and re-spec** rather than touching any other
@@ -574,7 +578,9 @@
         template files, `src/gates/core.test.ts`,
         `src/artifact/grammar.test.ts`, `src/artifact/scope.ts`,
         `src/lint/catalog.ts`, `src/lint/catalog.test.ts`,
-        and this bundle's `spec.xml` / `plan.xml`. No edits under
+        this bundle's `spec.xml` / `plan.xml`,
+        `src/test-support/token-accounting.test.ts`, and
+        `README.md` (F51 transitive pin). No edits under
         `docs/plans/` or `.ngrace/changes/archive/`; no CHANGELOG;
         no version surfaces. **HEAD today:** lint is 0/0 and
         `validate:ci` is green — that green is the baseline, not
@@ -668,7 +674,11 @@
         `src/lint/emission-patterns.ts` also LINKS
         M-LINT-CATALOG and is not in this write set.
         Test files are ungoverned and ride
-        ObservedWriteScope as paths. M-ARTIFACT-TYPES is not
+        ObservedWriteScope as paths.
+        `src/test-support/token-accounting.test.ts` and
+        `README.md` ride ObservedWriteScope as paths (F51:
+        the 16-SKILL.md UTF-8 pin and its published table
+        row; not module-ownable). M-ARTIFACT-TYPES is not
         in AffectedAreas: this bundle reads
         `NGRACE_OPTIONAL_CONTEXT_ARTIFACTS` and must not edit
         the constant lists.

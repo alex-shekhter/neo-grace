@@ -3815,3 +3815,34 @@ next touches that surface: a hand-maintained literal that every skill edit inval
 maintenance tax with no reader — the honest forms are a tool-updated value or an assertion on
 *movement being declared* rather than on a frozen number. Not opened here: this bundle has already
 taken one re-spec, and the pin's current form is what two archived roadmaps cite.
+
+---
+
+### F52 — "AffectedAreas binds the plan" names a check that is weaker than the belief it creates. **[verified]**
+
+`C-GRAMMAR-SEAM`'s spec — and `C-EXPLAIN-COVERAGE`'s before it — glosses its closed file list as
+bound by `change.plan-scope-exceeds-spec`. Measured at `src/artifact/grammar.ts:1867`, that code:
+
+- compares **`DurableScope` anchors** against anchors the spec mentions — not `ObservedWriteScope`
+  file paths against `AffectedAreas`;
+- emits a **warning**, not an error.
+
+So the sentence that makes a plan author believe file-level scope is mechanically enforced names a
+check that never looks at files and could not block anything if it did. Declared file scope is
+enforced by the review audits at close — the `WriteEvidence` scope audit — and by nothing at
+authoring time.
+
+Raised by the executor at close, correctly left untouched: it is spec prose, pre-existing, and the
+criteria around it are sound.
+
+**Why it matters beyond the wording.** This is the third check in one bundle found weaker than its
+description — with [F49](#f49) (a reader that skips what it cannot interpret) and the
+`validate:marketplace` green that only proves the two trees *agree* ([F46](#f46)). The pattern is
+consistent: a check's **name** and its **blast radius** drift apart, and the artifact citing it
+inherits the optimistic reading. [F41](#f41) is the same failure applied to a finding citation
+rather than a check.
+
+**The rule.** When an artifact cites a diagnostic as the thing that binds a constraint, state what
+that diagnostic actually compares and at what severity. "Bound by `X`" is a claim about a
+mechanism, and mechanisms are exactly what [F35](#f35) says to verify by body rather than by name.
+Not swept across existing specs: they are approved and their criteria do not rest on the gloss.
