@@ -302,7 +302,13 @@ done.
     example, which is the rarer and harder evidence type; copying it verbatim makes every
     `V-M-*` permanently `blocked` (ag9 §2, mistakes #8). Rebalance so `TraceAssertion` reads
     as the default. Keep the example linted in CI and add a check that skills' claimed shapes
-    resolve against it.
+    resolve against it. **Widened by F46 (2026-08-12):** that check must also cover the two
+    `references/*-template.xml` copy-sources, which return **zero** hits in the lint universe
+    today — they are shipped for agents to copy and no surface validates them, which is how
+    F38's unauthorable `<Clarification>` shipped inside a template. `validate:marketplace`
+    only proves the two trees agree, so it is green when both teach a broken form. The
+    checkable property is that a template's taught shape lints once its placeholders are
+    filled — not that the raw placeholder file passes `ngrace lint`, which it cannot.
 12. **`<Clarification>` is unauthorable — repair the shape and un-vacate the approve gate**
     (F38, added 2026-08-12 during P1's first bundle). `grammar.ts:1623/1637` requires a
     `target` attribute holding a canonical `IC-*` / `INV-*` / `AC-*` anchor;
