@@ -4557,3 +4557,57 @@ or widen it.
 
 **Scheduled, not deferred:** widened in the bundle that first exercises the gap (P1.7 / P1.8), per
 fix-at-the-point-of-detection.
+
+### F71 — a getter named for the authored field returns a fallback, and the renderer labels the fallback with the authored field's name. **[verified]**
+
+Raised by the executor while planning `C-ADAPTER-HONESTY`, and it is what kept that bundle's
+named-absence criterion satisfiable.
+
+`getModulePath` (`src/query/core.ts:111-113`) returns
+`moduleRecord.graph.path ?? localFiles.find(non-test)?.path ?? localFiles[0]?.path`. The name says
+*the module's Path*; the body says *the Path, or failing that any linked file*. `module show` then
+prints that result under the label **"Graph Path"** (`src/query/render.ts:113`). **So a module with no
+authored `<Path>` but one linked file reports a Graph Path it never declared**, and no surface says
+the value was inferred.
+
+`ngrace file exports --module M-X` had to name a missing `<Path>` as an absence. Reusing the existing
+getter — the obvious move, and the one a later reader will propose as a simplification — would have
+made `AC-FILE-EXPORTS`'s absence criterion **unsatisfiable**: the command would analyse a linked file
+and never report the absence at all. The plan therefore binds `moduleRecord.graph.path` and forbids
+`getModulePath` by name.
+
+**The label is still lying and is not this bundle's to fix** — the defect is inherited and
+`module show`'s output was out of scope. Recorded for its own repair.
+
+**The rule.** A `??` chain inside an accessor is a silent policy decision, and the accessor's name is
+where it hides. When a criterion depends on an authored field being *absent*, bind the field, never a
+getter that resolves it — and check what the renderer calls the result, because a fallback under an
+authored field's label is a false claim on a user-visible surface.
+
+### F72 — an absence check that ORs two conditions ships one message for two causes. **[verified]**
+
+`C-ADAPTER-HONESTY` introduced `requireExistingFile` as
+`if (!existsSync(p) || !statSync(p).isFile())` behind the single sentence *"File `X` was not found on
+disk."* The approved plan required the two `not-found` causes it named — no `<Path>` and missing file
+— to carry different messages. **The `||` quietly created a third cause with the second one's
+words:** a Path that resolves to a **directory** exists, is not missing, and was reported as missing.
+Directory Paths exist in this repository, so the case is reachable, not theoretical.
+
+This is [F40](#f40) / [F55](#f55)'s class arriving through control flow rather than through a
+formatter: the code *knows* which branch it took and discards that knowledge at the throw site.
+
+Repaired in-bundle and disclosed in the verdict: the conditions are split and a directory gets its own
+sentence. **Proved by discrimination, not by a green suite** — the new case fails against the OR'd
+condition and passes against the split one.
+
+**The rule.** Every disjunct in an absence test is a distinct cause and needs its own message. When a
+criterion says two causes must be distinguishable, count the *branches*, not the causes the spec
+happened to name — the spec names the ones someone thought of.
+
+**Two smaller items from the same close, scheduled rather than fixed.** (1) `guided()` in
+`src/grace-doctor.test.ts:75-81` assigns severity by `code.startsWith("analysis.")`, so the fixture
+now classifies `graph.path-no-adapter` as an error while production emits a warning. The case stays
+green because it partitions on `issueClass`, so this is a **fixture that silently disagrees with
+production** — harmless today, wrong whenever severity starts mattering. (2) `file exports` reports a
+single `moduleId`, taking `linkedModuleIds[0]`, while a governed file may link several modules; the
+choice is arbitrary and unstated. Neither was in this bundle's approved scope.
