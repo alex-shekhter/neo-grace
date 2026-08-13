@@ -4514,3 +4514,29 @@ shows the distinction on a module that has both.
 *shape*, never for *claims*. Every negative assertion — "without", "does not", "no longer" — must be
 re-verified against the new subject's own source. A copied absence is the cheapest false statement in
 the product to make and the hardest to see in review, because it reads as consistency.
+
+### F70 — the README command check binds roots, the README documents subcommands, and the authority reported the stronger claim. **[verified]**
+
+`C-TEACHING-SURFACE` shipped `README CLI Overview lists every live command root`
+(`src/query/command.test.ts:866`). It filters the CLI Overview to table rows and asserts every
+`liveCommandRoots()` **name** appears. Measured: the table holds **37 rows**, and they document
+*subcommands* — `ngrace module find`, `ngrace module show`, `ngrace file show`. Only **11 root tokens**
+are enumerated.
+
+**So adding a subcommand to an existing root leaves the table silently stale**, which is the same
+drift the check was introduced to stop. `ngrace file exports` (P1.7) is precisely that case: `file`
+already appears, so the check stays green while the table omits the new verb.
+
+**The check's own name is honest** — it says *root*. The overclaim was the authority's, in the PR body
+and the phase-board row: *"README's CLI Overview is bound to the live command roots by a test, so the
+table cannot silently drift again."* The first clause is true and the second does not follow from it.
+This is [F62.1](#f621)'s class applied to a check rather than a survey fact: **a claim of completeness
+asserted from a mechanism that never evaluated it.**
+
+**The rule.** When reporting what a check protects, state **the predicate it evaluates**, not the
+outcome you wanted from it. And when a check guards a document that enumerates finer-grained items
+than the check itself enumerates, the guard is only as strong as its enumeration — say so at the time,
+or widen it.
+
+**Scheduled, not deferred:** widened in the bundle that first exercises the gap (P1.7 / P1.8), per
+fix-at-the-point-of-detection.
