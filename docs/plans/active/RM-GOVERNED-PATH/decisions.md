@@ -4329,3 +4329,47 @@ minimum a validator accepts, the other is what a reader learns the optional shap
 between them is safe only if the renderer emits the teaching too. **Before declaring an existing file
 "generated output", enumerate its consumers**: a file that another artifact instructs a reader to
 *copy from* has a contract that a shape-equality check does not express.
+
+### F64 — the approved plan's write scope missed three CI-load-bearing pins, and the sanctioned remedy cannot reproduce red-first evidence once execution has run. **[verified]**
+
+`C-SKELETON-GENERATORS` executed T-001 through T-004 exactly as planned and then could not close,
+because `validate:ci` is held by **three pre-existing pins that the approved deliverable inevitably
+trips and the approved `ObservedWriteScope` does not list.** Verified independently at the executor's
+report:
+
+- `src/grace-cursor.test.ts:483` greps `writeFileSync|mkdirSync` across non-test `src/` and pins the
+  result to four files. `spec new` / `plan new` must write files from `src/grace-generate.ts`.
+- `scripts/release-check.test.ts:509` parses an allowlist **out of `scripts/release-check.ts`
+  source** and diffs it against `package.json#files`. The plan requires that file list to gain
+  `src/grace-generate.ts`, so the allowlist in `release-check.ts` must gain it too.
+- `scripts/skill-contracts.test.ts:48,71` pins `AC-EXAMPLE-CRITERION` in both spec and plan
+  templates. The approved spec decides the live criterion is `AC-SKELETON`, so the regenerated
+  teaching emission cannot contain the pinned string.
+
+**This is a requirement-6 violation in artifacts the authority approved.**
+`skills/ngrace/ngrace-plan/SKILL.md:38` states it in the exact terms of the failure: *"Scope covers
+what the deliverable forces, not only the files it targets… If the approved deliverable makes an edit
+inevitable, list that path at plan time — never leave the executor choosing between a scope breach and
+a failed task."* The executor chose neither: it stopped and reported, which is correct.
+
+**The generalizable miss.** All three pins are *second statements of a fact the bundle changes*, held
+in files the bundle never names: a grep-based inventory of writers, an allowlist duplicated from
+`package.json`, and a third-party assertion about template contents. **A plan's write scope must be
+derived from what the deliverable falsifies, not from what it edits** — and the reliable way to find
+those is to ask which existing tests encode the state being changed, not which files the tasks touch.
+Grep-based and allowlist-based pins are invisible to that reasoning precisely because they name no
+symbol the new code imports.
+
+**And the remedy has a hole.** `ngrace-plan/SKILL.md:22-26` forbids refreshing `ObservedWriteScope`
+in place and directs: *"Create a new `C-*` bundle and mark the old bundle superseded."* That remedy
+assumes the defect is found **before** execution. Found after four tasks have recorded genuine
+fail→pass pairs, a superseding bundle starts with an empty ledger and its criteria are **already true
+at its own HEAD** — the F28 shape — and re-recording those reds would be retrospective, which the
+red-first rule forbids. So the honest construction is a replacement bundle whose criteria for
+already-executed work **cite the superseded bundle's archived ledger as their evidence** (D16: a
+criterion may only bind evidence living in an artifact), and whose *new* work — the three pins, plus
+the README gap from the same review — gets genuine red-first. The superseded bundle must therefore be
+archived intact rather than deleted; its ledger is the replacement's evidence.
+
+**Rule.** Before approving a plan, ask of every fact the deliverable changes: *what else asserts this
+today?* Search for greps, allowlists, and cross-file content pins, not only for callers.
