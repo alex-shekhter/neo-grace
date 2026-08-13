@@ -4611,3 +4611,39 @@ green because it partitions on `issueClass`, so this is a **fixture that silentl
 production** — harmless today, wrong whenever severity starts mattering. (2) `file exports` reports a
 single `moduleId`, taking `linkedModuleIds[0]`, while a governed file may link several modules; the
 choice is arbitrary and unstated. Neither was in this bundle's approved scope.
+
+### F73 — every gate in this roadmap runs on one platform, so a clean close has never implied green CI. **[verified]**
+
+`C-ADAPTER-HONESTY` archived with review 0 findings, both process audits clean, `validate:ci` exit 0,
+and lint 0/0 — **and its first CI run failed on Windows.** Two cases of the new
+`graph.path-no-adapter` asserted `expect(issue.file).toContain(".ngrace/graph/main.xml")`, while the
+code emitted `moduleRecord.file` verbatim: a realpath'd OS-native absolute path that reads
+`...\.ngrace\graph\main.xml` on Windows. A `/`-joined needle is never a substring of a `\`-joined
+haystack, so the two cases that make that assertion — and only those two — failed.
+
+**The bundle predicted it and the authority approved anyway.** The executor's plan report said the
+same-file comparison "would not skip" for a `./`-prefixed variant and marked it **"Unexercised."** The
+authority read that, judged it a low-value edge case, and approved. On Windows the identical
+fragility arrived through a different door: separators instead of a prefix. **A reported-and-untested
+path comparison is a prediction, not a nit.**
+
+**The structural fact is larger than this bundle.** Every gate this roadmap runs — spec review, plan
+review, execute, `ngrace review`, the WriteEvidence and attempt-pair audits, `validate:ci`, and the
+authority's own independent verification — executes on **one machine, one OS**. None of them can
+observe a separator, a case-insensitive filesystem, an 8.3 short name, or a realpath divergence. Seven
+bundles have closed against that blind spot. This is the first one whose deliverable touched
+filesystem paths at an emission site, and it is the first to be caught by CI rather than by us.
+
+**Two smaller facts from the repair, both worth keeping.** The root cause was **not** the skip
+logic everyone suspected — `noAdapterPaths` and the normalized authored Path were already POSIX, and
+Case A, which depends on the skip matching, passed on Windows. The failing comparison was the emitted
+`issue.file` against a test's substring check. And the sibling `graph.module-without-linked-files` had
+been emitting a raw absolute `file` since long before this bundle; making both codes share one
+project-relative POSIX value changed **no** test expectation, but it is a user-visible JSON change to
+an already-shipped code.
+
+**The rule.** When a diagnostic emits a **path**, the path is part of the contract and needs a
+platform-independent normalizer at the emission site, not at the comparison site. And when an executor
+reports a path comparison as *unexercised*, that is the cheapest possible warning that a
+single-platform gate cannot see it — **test it or state in the verdict that CI is the only observer.**
+Until this roadmap gains a second platform in its gates, "closed clean" means "clean on macOS."

@@ -32,7 +32,7 @@ import {
   detectUnsafeConcurrentExecution,
   type ActiveChangeScope,
 } from "../artifact/scope";
-import { ARTIFACT_DIR } from "../artifact/paths";
+import { ARTIFACT_DIR, toProjectRelativePath } from "../artifact/paths";
 import { ARTIFACT_TAG_PREFIX, ANCHOR_PATTERNS, type NgraceIssue, type NgraceProjectPaths } from "../artifact/types";
 import { readGraceXmlArtifact } from "../artifact/xml";
 import { appendCommandRunEvent } from "../grace-cursor";
@@ -175,14 +175,19 @@ function validateGovernedFiles(result: LintResult, root: string): FileMarkupReco
 }
 
 /**
+ * Project-relative POSIX form for one issue path. Absolute inputs go through the
+ * shared helper, which canonicalizes both ends (macOS `/var` → `/private/var`,
+ * Windows 8.3 temp names) before joining with "/"; already-relative inputs are
+ * only separator-normalized so they are never resolved against the process cwd.
+ */
+function toPosixRelative(root: string, file: string) {
+  return path.isAbsolute(file) ? toProjectRelativePath(root, file) : file.replaceAll(path.sep, "/");
+}
+
+/**
  * Validate DEPENDS/LINKS anchors against graph and verification projections (G-10, G-11).
  * Unknown anchors are errors; modules with Path but no linking file are warnings.
  */
-function toPosixRelative(root: string, file: string) {
-  const relative = path.isAbsolute(file) ? path.relative(root, file) : file;
-  return relative.replaceAll(path.sep, "/");
-}
-
 function validateFileHeaderReferences(
   result: LintResult,
   records: FileMarkupRecord[],
@@ -245,11 +250,15 @@ function validateFileHeaderReferences(
   const unverifiedLanguages = new Set(config?.unverifiedLanguages ?? []);
 
   for (const [moduleId, moduleRecord] of graph.modules) {
+    // Both module-level warnings report the owning graph document the same way:
+    // project-relative POSIX. moduleRecord.file is an OS-native absolute path
+    // (realpathSync output), which reads as `...\.ngrace\graph\main.xml` on Windows.
+    const graphDocumentFile = toPosixRelative(result.root, moduleRecord.file);
     if (moduleRecord.path && (linkedModuleCount.get(moduleId) ?? 0) === 0) {
       addIssue(result, {
         severity: "warning",
         code: "graph.module-without-linked-files",
-        file: moduleRecord.file,
+        file: graphDocumentFile,
         message: `${moduleId} declares a Path but no governed file declares LINKS: ${moduleId}.`,
       });
     }
@@ -275,7 +284,7 @@ function validateFileHeaderReferences(
     addIssue(result, {
       severity: "warning",
       code: "graph.path-no-adapter",
-      file: moduleRecord.file,
+      file: graphDocumentFile,
       message:
         `${moduleId} Path ${authoredPath} (${extension}): contracts and health work; `
         + "MODULE_MAP parity unverified; not an error because tier-1 is legitimate.",
