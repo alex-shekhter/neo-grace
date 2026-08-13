@@ -1,1 +1,0 @@
-<NgraceRunEvent command="bun test src/gates" exitCode="0" assertionPassed="true" assertionKind="MustPassCommand" source="lint-run-commands" graceVersion="1.0" id="13" task="T-002" kind="command-run" />
