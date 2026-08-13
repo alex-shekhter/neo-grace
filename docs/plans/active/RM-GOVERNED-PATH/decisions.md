@@ -4053,3 +4053,77 @@ inside the bundle least entitled to it.
 
 **Home:** the first bundle that opens `src/artifact/xml.ts` emission, or a P1 follow-on; sibling of
 [F55](#f55), which is the same withholding on `assertion.command-not-evaluated`.
+
+### F58 — An archived bundle leaves a phantom directory across branch switches, and lint reports it as a missing artifact. **[verified]**
+
+Measured while merging the P1 stack. After `feat/explain-coverage` merged and `feat/grammar-seam`
+was rebased onto it, `ngrace lint --path .` on the rebased branch reported:
+
+```
+- [error] xml.missing-file … /.ngrace/changes/archive/C-ARTIFACT-VALIDITY/spec.xml
+```
+
+for a bundle that branch does not contain. On disk, `.ngrace/changes/archive/C-ARTIFACT-VALIDITY/`
+existed holding exactly one thing: an empty `run/` directory. `git ls-files` on that path returned
+**zero** entries, and `git status --short` was **clean**.
+
+**Cause.** `cursor fold` empties `run/`, archiving `git mv`s the bundle including that empty
+directory, and **git cannot track an empty directory**. Switching away from the branch deletes the
+four tracked bundle files and leaves `run/` behind, which keeps its parent alive. Lint then finds a
+directory under `changes/archive/` and correctly demands the `spec.xml` that a bundle directory must
+have.
+
+**Why it costs more than it should.** The emitted error says an XML artifact was not found for a
+bundle that was archived minutes earlier, which reads as data loss. The real cause is a git
+limitation about empty directories, and `git status` actively conceals it — the one command an agent
+would reach for reports a clean tree. Nothing in the message points at the empty directory.
+
+**The rule.** `xml.missing-file` on a bundle that should not exist on the current branch is a
+phantom directory, not a lost artifact. Confirm with `git ls-files <dir>` returning nothing, then
+`rm -rf` it. A repository that stacks bundle branches will hit this at every switch.
+
+**Home:** worth a diagnosis line in the `xml.missing-file` guide — when the named path's directory
+exists but is empty of tracked files, say so. Sibling of [F57](#f57): a diagnostic that holds the
+information that would end the search and does not say it.
+
+### F59 — The merge sequence this stack was handed was wrong, and the F53 tags are what caught it. **[verified]**
+
+The procedure was carried in the session handoff rather than in any committed document — checked:
+no file under `docs/plans/active/RM-GOVERNED-PATH/` contained it, which is part of why it survived
+unexamined. It specified, for each bundle in turn:
+
+```
+git rebase --onto main <branch-below> <branch-to-rebase>
+```
+
+That is correct exactly once. Measured at the third merge:
+
+```
+p1-grammar-seam   (original tip)  23405f9
+feat/grammar-seam (after rebase)  3aaf226
+
+git rev-list --count feat/grammar-seam..feat/artifact-validity   →  36
+git rev-list --count p1-grammar-seam..feat/artifact-validity     →   8
+```
+
+Once `feat/grammar-seam` is itself rebased, its commits are rewritten, so `feat/artifact-validity`
+no longer descends from the branch **name**. The range then resolves to every commit not reachable
+from the rewritten branch — 36 instead of 8 — and the rebase begins replaying the *first* bundle's
+commits onto a `main` that already contains them in squashed form. It conflicted on
+`docs(ngrace): record F38`, a commit from two bundles earlier, which is the tell.
+
+The correct upstream is the branch-below's **original** tip. That is precisely what the `p1-*` tags
+preserve, and [F53](#f53) created them for a different reason — so a bundle could be cited after its
+branch died. They turned out to be load-bearing for the merge itself.
+
+**The rule.** In a stack, rebase each branch onto `main` using the **tag** of the branch below, never
+its name:
+
+```
+git rebase --onto main p1-<branch-below> <branch-to-rebase>
+```
+
+Tag every branch tip **before** the first rebase in the stack, not before deletion. A rebase whose
+count does not match the bundle's commit count is using the wrong base — check the count before
+resolving a single conflict, because the conflicts are a symptom and resolving them would quietly
+duplicate merged work.
