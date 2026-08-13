@@ -16,18 +16,24 @@
 //   GovernedFileAnalysis
 //   GovernedFileAnalysisOptions
 //   MarkerEvidenceOptions
+//   ModuleContractRenderSpec
 //   TextSection
 //   analyzeGovernedFile
 //   collectCodeFiles
 //   collectNearMissMarkerIssues
+//   commentPrefixForExtension
+//   defaultMapMode
 //   findSection
 //   hasGraceMarkers
 //   hasRuntimeMarkerEvidence
+//   inferRole
 //   lineNumberAt
 //   normalizeRelative
 //   parseGovernedFile
 //   parseMarkerBlockName
 //   readTextIfExists
+//   renderModuleContract
+//   renderModuleMap
 //   stripCommentPrefix
 //   stripQuotedStrings
 // END_MODULE_MAP
@@ -845,7 +851,7 @@ function parseMapMode(value?: string): MapMode | undefined {
   return (["EXPORTS", "LOCALS", "SUMMARY", "NONE"] as const).find((mode) => mode === value?.trim().toUpperCase());
 }
 
-function inferRole(filePath: string): ModuleRole {
+export function inferRole(filePath: string): ModuleRole {
   const normalized = filePath.replaceAll("\\", "/");
   if (/(^|\/)(?:__tests__|tests)(\/|$)|\.(?:test|spec)\.[^.]+$/.test(normalized)) {
     return "TEST";
@@ -853,7 +859,7 @@ function inferRole(filePath: string): ModuleRole {
   return "RUNTIME";
 }
 
-function defaultMapMode(role: ModuleRole): MapMode {
+export function defaultMapMode(role: ModuleRole): MapMode {
   return ({ RUNTIME: "EXPORTS", TEST: "LOCALS", BARREL: "SUMMARY", CONFIG: "NONE", TYPES: "EXPORTS", SCRIPT: "LOCALS" } as const)[role];
 }
 
@@ -895,4 +901,72 @@ function validateMapParity(file: string, record: FileMarkupRecord, mapMode: MapM
 
 function markupIssue(severity: LintIssue["severity"], code: string, file: string, line: number, message: string): LintIssue {
   return { severity, code, file, line, message };
+}
+
+/** Fields consumed when rendering a MODULE_CONTRACT block. */
+export type ModuleContractRenderSpec = {
+  purpose?: string;
+  scope?: string;
+  depends?: string[];
+  links?: string[];
+  role?: string;
+  mapMode?: string;
+};
+
+/** Comment prefix accepted by the production parser for a governed extension. */
+export function commentPrefixForExtension(ext: string): string {
+  switch (ext) {
+    case ".py":
+    case ".pyi":
+    case ".rb":
+    case ".sh":
+    case ".bash":
+    case ".zsh":
+      return "#";
+    case ".sql":
+      return "--";
+    case ".clj":
+    case ".cljs":
+    case ".cljc":
+      return ";;";
+    default:
+      return "//";
+  }
+}
+
+function commentLine(prefix: string, text: string): string {
+  return text.length === 0 ? prefix : `${prefix} ${text}`;
+}
+
+/** Render a MODULE_CONTRACT comment block. */
+export function renderModuleContract(prefix: string, spec: ModuleContractRenderSpec): string {
+  const purpose = spec.purpose ?? "Fixture governed file.";
+  const scope = spec.scope ?? "Test fixture scope.";
+  const depends = (spec.depends ?? ["none"]).join(", ");
+  const links = (spec.links ?? []).join(", ") || "none";
+  const lines = [
+    commentLine(prefix, "START_MODULE_CONTRACT"),
+    commentLine(prefix, `  PURPOSE: ${purpose}`),
+    commentLine(prefix, `  SCOPE: ${scope}`),
+    commentLine(prefix, `  DEPENDS: ${depends}`),
+    commentLine(prefix, `  LINKS: ${links}`),
+  ];
+  if (spec.role) {
+    lines.push(commentLine(prefix, `  ROLE: ${spec.role}`));
+  }
+  if (spec.mapMode) {
+    lines.push(commentLine(prefix, `  MAP_MODE: ${spec.mapMode}`));
+  }
+  lines.push(commentLine(prefix, "END_MODULE_CONTRACT"));
+  return lines.join("\n");
+}
+
+/** Render a MODULE_MAP comment block. */
+export function renderModuleMap(prefix: string, mapEntries: string[]): string {
+  const lines = [
+    commentLine(prefix, "START_MODULE_MAP"),
+    ...mapEntries.map((entry) => commentLine(prefix, `  ${entry}`)),
+    commentLine(prefix, "END_MODULE_MAP"),
+  ];
+  return lines.join("\n");
 }

@@ -28,6 +28,7 @@
   },
   "files": [
     "src/grace-file.ts",
+    "src/grace-generate.ts",
     "src/project-utils.ts",
     "src/grace.ts",
     "src/grace-context.ts",
@@ -67,7 +68,8 @@
     "validate:examples": "bun run ./src/grace.ts lint --path examples/polyglot --fail-on errors && bun run ./scripts/validate-walkthrough.ts",
     "validate:determinism": "bun test --timeout=120000 src/review/core.test.ts src/review/scorer.test.ts && bun run ./scripts/validate-determinism.ts",
     "validate:schema-reference": "bun run ./scripts/generate-schema-reference.ts check",
-    "validate:ci": "bun run typecheck && bun run test && bun run validate:cli && bun run ./scripts/validate-marketplace.ts && bun run validate:examples && bun run validate:determinism && bun run validate:packed && bun run validate:schema-reference",
+    "validate:skeleton-templates": "bun run ./scripts/generate-skeleton-templates.ts check",
+    "validate:ci": "bun run typecheck && bun run test && bun run validate:cli && bun run ./scripts/validate-marketplace.ts && bun run validate:examples && bun run validate:determinism && bun run validate:packed && bun run validate:schema-reference && bun run validate:skeleton-templates",
     "validate:marketplace": "bun run ./scripts/validate-marketplace.ts",
     "validate:release": "bun run typecheck && bun run test && bun run validate:cli && bun run release:check && bun run ./scripts/validate-marketplace.ts && bun run validate:examples && bun run validate:packed",
     "validate:packed": "bun run ./scripts/packed-cli-smoke.ts",

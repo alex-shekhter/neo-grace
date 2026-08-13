@@ -1,10 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import type { ArgsDef } from "citty";
 
 import { contextCommand } from "../grace-context";
 import { cursorCommand } from "../grace-cursor";
 import { doctorCommand } from "../grace-doctor";
 import { fileCommand } from "../grace-file";
+import { planCommand, scaffoldCommand, specCommand } from "../grace-generate";
 import { graphCommand } from "../grace-graph";
 import { lintCommand } from "../grace-lint";
 import { moduleCommand } from "../grace-module";
@@ -755,20 +758,8 @@ describe("cause-chain diagnostic written exactly once", () => {
 });
 
 describe("listBooleanFlags live inventory (anti-F10)", () => {
-  it("counts type===boolean sites on the eleven exported command roots with exact pin", () => {
-    const sites = listBooleanFlags([
-      { name: "gate", command: gateCommand },
-      { name: "cursor", command: cursorCommand },
-      { name: "status", command: statusCommand },
-      { name: "lint", command: lintCommand },
-      { name: "module", command: moduleCommand },
-      { name: "file", command: fileCommand },
-      { name: "graph", command: graphCommand },
-      { name: "context", command: contextCommand },
-      { name: "verification", command: verificationCommand },
-      { name: "review", command: reviewCommand },
-      { name: "doctor", command: doctorCommand },
-    ]);
+  it("counts type===boolean sites on the live exported command roots with exact pin", () => {
+    const sites = listBooleanFlags([...liveCommandRoots()]);
 
     // Re-measured at execute via this walker. Plan-authoring HEAD 4bf483c: 24.
     // F23: exact pin, not a lower bound. F12.2: this run's number is the source of truth.
@@ -836,8 +827,8 @@ describe("listBooleanFlags live inventory (anti-F10)", () => {
   });
 });
 
-/** Eleven exported roots used by coverage / inventory (design D3). */
-function elevenRoots() {
+/** Live exported roots used by coverage / inventory. */
+function liveCommandRoots() {
   return [
     { name: "gate", command: gateCommand },
     { name: "cursor", command: cursorCommand },
@@ -850,6 +841,9 @@ function elevenRoots() {
     { name: "verification", command: verificationCommand },
     { name: "review", command: reviewCommand },
     { name: "doctor", command: doctorCommand },
+    { name: "spec", command: specCommand },
+    { name: "plan", command: planCommand },
+    { name: "scaffold", command: scaffoldCommand },
   ] as const;
 }
 
@@ -869,9 +863,26 @@ function commandAtPath(
   return cmd;
 }
 
+describe("README CLI Overview lists every live command root", () => {
+  it("every liveCommandRoots name appears as an ngrace <root> token in the CLI Overview tables", () => {
+    const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");
+    const afterHeading = readme.split("## CLI Overview\n")[1];
+    expect(afterHeading).toBeDefined();
+    const overview = afterHeading!.split(/^## /m)[0] ?? "";
+    const tableText = overview
+      .split("\n")
+      .filter((line) => line.startsWith("| `ngrace "))
+      .join("\n");
+    const missing = liveCommandRoots()
+      .map((root) => root.name)
+      .filter((name) => !new RegExp(`\`ngrace ${name}\\b`).test(tableText));
+    expect(missing).toEqual([]);
+  });
+});
+
 describe("AC-CLASS-COVERAGE (T-003)", () => {
   it("every live boolean site sits on a defineGraceCommand-branded node (exact count)", () => {
-    const roots = elevenRoots();
+    const roots = liveCommandRoots();
     const sites = listBooleanFlags([...roots]);
     // Re-measure at execute (F12.2). Plan authoring: 24. F23: exact pin.
     expect(sites.length).toBe(24);
@@ -886,7 +897,7 @@ describe("AC-CLASS-COVERAGE (T-003)", () => {
   });
 
   it("pure refuse covers every collected live flag name for space true and space false", () => {
-    const sites = listBooleanFlags([...elevenRoots()]);
+    const sites = listBooleanFlags([...liveCommandRoots()]);
     expect(sites.length).toBe(24);
     const names = [...new Set(sites.map((s) => s.name))];
     for (const name of names) {

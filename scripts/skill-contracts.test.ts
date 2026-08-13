@@ -45,7 +45,7 @@ describe("GRACE lifecycle skill contracts", () => {
     expect(spec).toContain("<Figma url=");
     expect(spec).toContain("UserResearch");
     expect(specTemplate).toContain("<Constraints>");
-    expect(specTemplate).toContain("AC-EXAMPLE-CRITERION");
+    expect(specTemplate).toContain("AC-SKELETON");
     expect(specTemplate).toContain("<DesignReferences>");
     expect(specTemplate).toContain("<Figma url=");
     expect(plan).toContain("<approved_plan_immutability>");
@@ -68,7 +68,7 @@ describe("GRACE lifecycle skill contracts", () => {
     expect(reviewer).toContain("tiers never bypass `--assertions final`");
     const planTemplate = read("skills/ngrace/ngrace-plan/references/change-plan-template.xml");
     expect(planTemplate).toContain("<Satisfies>");
-    expect(planTemplate).toContain("AC-EXAMPLE-CRITERION");
+    expect(planTemplate).toContain("AC-SKELETON");
     expect(planTemplate).toContain("OutOfPlanScope");
   });
 
