@@ -4461,3 +4461,56 @@ property (`shape-sources`, `approval-lexicon`, `evidence-doctrine`), not the ste
 criteria, and count them per task**, since that is the window the product actually evaluates. See
 [F56](#f56) for the distinct-signature half of the same tension and the [F21 correction](#f21-correction)
 for why the repeat budget survives at all.
+
+### F68 — two planned reds for two exports of one module cannot be independently observed. **[verified]**
+
+Raised by the executor in `C-TEACHING-SURFACE`'s execute report, unprompted, and it is [F67](#f67)'s
+sibling: a **planning convention**, not a budget, manufactures a discrimination failure that the
+ledger cannot show.
+
+T-003 planned two reds — `checkTemplateFill` absent, then `checkClaimedShapes` absent — against two
+new exports of a module **T-001 had already created**. After T-001 the file exists, so:
+
+- Red 1 fails with `Export named 'checkTemplateFill' not found`. Honest.
+- Red 2 adds `checkClaimedShapes` to the same import list. Both are still absent, so the runtime error
+  names **`checkTemplateFill`** — the sibling, not the property being recorded.
+
+The ledger then carries `test:checkClaimedShapes` because the plan named that key, **not because the
+observed failure named it.** The key and the evidence have come apart, and nothing in the ledger, the
+attempt-pair audit, or the budget shows it: two distinct keys, one per red, no repeat, no escalation.
+
+**The spare slot does not help.** The collision is in the red *design*, not in a third signature.
+
+**The rule.** Two planned absences are independently observable only if each can fail **alone**. When
+both live in one module, either give the second red its own module for the failing import, or require
+the first export to exist before the second red is recorded. **At plan review, ask of every pair of
+planned reds in a task: could the second one have failed for the first one's reason?** If yes, the
+second red proves nothing the first did not.
+
+### F69 — converted prose inherits an assertion that was true only where it came from. **[verified]**
+
+`C-TEACHING-SURFACE` rewrote `examples/polyglot`'s `V-M-API-ROUTER` from `<Marker>` to
+`<TraceAssertion>` and phrased it after the example's existing `TraceAssertion` on
+`V-M-WEB-LEDGER-TABLE`: *"asserted by … without runtime log emission."*
+
+**That clause is true of the web component and false of the Go router.**
+`examples/polyglot/services/api/internal/router/router.go:21` emits
+`[ApiRouter][Route][BLOCK_DISPATCH]` inside a live `START_BLOCK_DISPATCH` block. The teaching example
+asserted an absence its own source tree contradicts, in the one artifact the product ships **so that
+agents copy it**.
+
+Measured while checking the executor's related concern: **both** polyglot Markers are backed by real
+emission — the Rust core emits `[LedgerCore][post][BLOCK_VALIDATE_BALANCE]` at
+`crates/core/src/lib.rs:17`. So converting the other entry instead would have moved the same falsehood,
+not avoided it. The defect was the copied clause, never the choice of subject.
+
+**Repaired by the authority at close** (disclosed in the verdict): the assertion now reads that
+dispatch is asserted by `go test` and the `BLOCK_DISPATCH` emission stays as runtime trajectory and is
+not the evidence — which teaches the doctrine the same bundle installed (`TraceAssertion` plus tests is
+the default; `Marker` is for runtime trajectory only) **better than the original did**, because it
+shows the distinction on a module that has both.
+
+**The rule.** When converting an artifact to a sibling's form, the sibling's prose is a template for
+*shape*, never for *claims*. Every negative assertion — "without", "does not", "no longer" — must be
+re-verified against the new subject's own source. A copied absence is the cheapest false statement in
+the product to make and the hardest to see in review, because it reads as consistency.
