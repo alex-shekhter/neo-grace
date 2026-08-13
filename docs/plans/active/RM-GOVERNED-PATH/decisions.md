@@ -4264,3 +4264,68 @@ attempts" and the qualifying clause reads as droppable.
 re-measuring by grepping *the name the finding used* only proves that name is absent. **A rename is
 indistinguishable from a deletion under that grep.** Verify the behaviour at its decision site
 (`decideFixBudgetEscalation` here), not the identifier, before reporting a mechanism gone.
+
+### F62.1 — the class is wider than lint expectations: three unmeasured survey facts in one prompt. **[verified]**
+
+[F62](#f62) recorded the authority asserting an unmeasured *lint* expectation three times. The
+`C-SKELETON-GENERATORS` spec brief shows the same defect on **survey** facts, three in one dispatch,
+all three caught by the executor and all three confirmed against the tree afterwards:
+
+- *"six existing template files."* `find skills plugins -name "*template*.xml"` returns **ten** files
+  across **five** kinds (change-spec, change-plan, design-context, design-system, migration-report),
+  each mirrored. The authority had run that exact command, seen ten paths, and then wrote a number it
+  had not counted.
+- *"`renderModuleContract` / `renderModuleMap` … reachable only from tests."* Both are **private** in
+  `src/test-support/fixtures.ts`; only `commentPrefixForExtension` carries `export`. The brief
+  described a public API that does not exist.
+- *"the sharpest thing in the bundle"* (singular), naming `change.plan-requires-approved-spec`. There
+  were **two**. The second — the shipped plan template's `<File>src/path/to/file.ts</File>` raising
+  `change.graph-anchors-miss-write-scope` even beside an *approved* spec — is the one that actually
+  falsifies the roadmap's acceptance test, because it means copying the current template can never
+  satisfy it. The executor reported that a framing naming one edge is what would have hidden it.
+
+**The rule.** A survey fact handed to an executor is a measurement claim and inherits F62's
+discipline: state it with the command that produced it, or do not state it. **A singular framing
+("the trap is X") is itself an unmeasured claim** — it asserts completeness of a search that was
+never run. Name the traps found and say the list is not closed.
+
+The standing report contract is what caught all three. It has now produced a finding on **every
+dispatch across five bundles**.
+
+### F63 — regenerating a teaching template from a minimal-skeleton renderer deletes the teaching, and the skill text keeps pointing at what was deleted. **[verified]**
+
+`C-SKELETON-GENERATORS`'s draft spec resolves [F46](#f46)'s "templates are an unchecked second
+grammar" by making the four spec/plan template files **byte-identical to the generator's output**,
+with a check-mode script composed into `validate:ci` — the [`C-SCHEMA-REFERENCE`] precedent, applied
+faithfully. The same spec also decides the renderer emits **required sections only** (optional
+`Problem`, `Assumptions`, `DesignReferences`, `Clarifications`, `OutOfPlanScope` are omitted) and
+declares `SKILL.md` out of scope under [F51](#f51). Those three decisions are individually defensible
+and jointly delete product.
+
+**Measured at `3e5c3d8`.** The two templates are not minimal skeletons; they are teaching artifacts.
+`change-plan-template.xml` (59 lines) carries commented, filled examples of `OutOfPlanScope` and
+`Clarifications`; `change-spec-template.xml` (40 lines) carries `DesignReferences`, `Assumptions`,
+and the same `Clarifications` block. The `Clarification` example teaches the self-closing anchor-child
+form — *"Target is exactly one self-closing IC-*, INV-*, or AC-* child. Never use prose"* — which is
+**`C-GRAMMAR-SEAM`'s product change**, the bundle that made the element authorable at all and fired
+D12's approve gate for the first time in this repository's history. Byte-identity to a
+required-sections-only renderer deletes that example from both trees.
+
+And the skills keep pointing at it. `skills/ngrace/ngrace-spec/SKILL.md:105` instructs the author to
+write `spec.xml` *from* `references/change-spec-template.xml` and to *"Add `DesignReferences` when
+Figma or research artifacts exist"*; `skills/ngrace/ngrace-plan/SKILL.md:29` produces `plan.xml` from
+its template. With `SKILL.md` out of scope, both lines survive the regeneration and point at a file
+that no longer shows the shape they name — the [F46](#f46) defect inverted: instead of a template
+teaching a form the product rejects, a skill teaches a form the template no longer contains.
+
+**Why it is not caught by the bundle's own gates.** The check the spec designs compares the template
+to the renderer, so the two agree *by definition* after regeneration. `validate:marketplace` only
+proves the canonical and packaged trees match — green when both lose the same content. F46 already
+recorded that these template files return **zero hits in the lint universe**. Nothing in the bundle
+observes the deletion.
+
+**The rule.** A generator's output and a teaching template are **different products** — one is the
+minimum a validator accepts, the other is what a reader learns the optional shapes from. Byte-identity
+between them is safe only if the renderer emits the teaching too. **Before declaring an existing file
+"generated output", enumerate its consumers**: a file that another artifact instructs a reader to
+*copy from* has a contract that a shape-equality check does not express.
