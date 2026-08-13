@@ -3311,14 +3311,16 @@ assertion on one code, read as "this shape is valid." This is the [F23](#f23) fa
 weaker than the value its name implies — and it is the reason to prefer *document is clean* over
 *this code is absent* whenever a test's subject is a shape rather than a specific diagnostic.
 
-**Consequence, and the irony.** D12's approve gate refuses on an unresolved Clarification targeting
+**Consequence, and the irony.** `RM-AGENT-RELIABILITY` D12's approve gate (bare "D12" in this
+roadmap resolves to a different decision — see [F47](#f47)) refuses on an unresolved Clarification targeting
 `IC-*` or `INV-*` (`src/gates/core.ts:181–182` reads `node.attributes.target`). No Clarification can
 exist, so the gate can never fire. `C-GATE-SURFACE`'s own `AC-TYPED-CLARIFICATION` reads *"Without this
 AC the approve gate is vacuous."* The AC shipped; the gate is vacuous.
 
 **Footprint of the repair.** `src/artifact/grammar.ts` (shape + validator), `src/gates/core.ts:181–182`
-(the approve-gate reader), and **six** skill/template sites across both trees that teach the broken
-form — measured, not estimated:
+(the approve-gate reader), and **eight** skill/template files across both trees that teach the broken
+form — corrected 2026-08-12 from "six", which counted grep output lines rather than distinct files
+(`ngrace-spec/SKILL.md` carries two mentions). Four canonical files, each mirrored:
 
 ```
 skills/ngrace/ngrace-spec/SKILL.md:54,55
@@ -3631,3 +3633,250 @@ and exempt that half from the red-first universal, exactly as `AC-SUITE-AND-LINT
 Otherwise the universal is falsified by the bundle's own honest execution. Due in **P1.5**, whose
 acceptance test — *"generated output passes lint when committed unmodified"* — is the same shape:
 a generator that works has nothing to redden once written.
+
+---
+
+### F46 — The templates the product ships for agents to copy are outside every validation surface. **[verified]**
+
+This is **why [F38](#f38) survived**. `skills/ngrace/ngrace-spec/references/change-spec-template.xml`
+and `.../ngrace-plan/references/change-plan-template.xml` are shipped as copy-sources: an agent is
+told to start from them. Both teach `<Clarification target="IC-*">`, a form that cannot lint.
+
+Measured: the templates return **0** hits in `ngrace lint`'s artifact universe. They live outside
+`.ngrace/`, hold `$PLACEHOLDER` text rather than real content, and are not change bundles — so no
+surface checks them. `validate:marketplace` compares the canonical tree to the packaged mirror, so
+it confirms the two trees **agree**; when both teach a broken form it is green, which is
+[F28](#f28) at the packaging level.
+
+So the product distributes an authoring template that its own linter would reject, and every
+validation surface reports success. An agent that does exactly what the skill says produces an
+artifact that fails.
+
+**Bounding the repair honestly.** These files cannot simply be added to `ngrace lint` — a
+placeholder template is not a valid bundle and would fail for reasons that are correct. The
+checkable property is narrower: *the shapes a template teaches must lint when the template is
+filled in.* That is close to P1.11's *"add a check that skills' claimed shapes resolve against
+[the polyglot example]"*, generalized from one example to the templates, and it is the honest form
+of the "templates lint" requirement — which, stated flatly, is unsatisfiable and would have shipped
+as an unclosable criterion had the executor not named it at spec time.
+
+**Home: P1.11**, which already owns "skills' claimed shapes resolve." Widen it there rather than
+opening a fifteenth step; `C-GRAMMAR-SEAM` fixes the two templates' content now, and P1.11 builds
+the check that would have caught them.
+
+### F47 — Decision ids are roadmap-scoped, and two roadmaps both have a D12. **[verified]**
+
+`RM-GOVERNED-PATH/decisions.md:1640` — *D12: the shared membership definition gets its own file.*
+`RM-AGENT-RELIABILITY/plan.md:1737` — *D12: Clarifications block; assumptions do not.*
+
+[F38](#f38) and the `C-GRAMMAR-SEAM` brief both cite "D12's approve gate", meaning the second. An
+implementer who greps **this** roadmap's `decisions.md` for D12 — the obvious move, since it is the
+active roadmap — binds the run-membership decision and finds nothing about gates.
+
+Caught by the executor at spec-authoring, before it reached a plan.
+
+**Same family as [F41](#f41):** a citation that reads as precise and resolves to the wrong thing.
+F41 was a word whose meaning had shifted; this is an identifier whose namespace was assumed global.
+Both survive review because the citation *looks* checkable.
+
+**The rule.** Cite a decision from another roadmap as `<ROADMAP> D<n>` — `RM-AGENT-RELIABILITY D12`,
+never bare `D12`. Bare ids are reserved for the roadmap the citing artifact lives in. Corrected at
+F38's citation site below; not swept across the archive, since archived roadmaps are immutable and
+their internal citations resolve correctly within their own file.
+
+---
+
+### F48 — Enumerating diagnostics by their HEAD triggers orphans a code when the repair moves the trigger. **[verified]**
+
+`AC-ERROR-TEACHES-WORKING-FORM` names its members as *"the two `change.invalid-clarification`
+messages and the `change.invalid-clarification-target` message that element emits today"* — codes
+identified by code **and HEAD trigger**, deliberately, so the criterion would not freeze
+`grammar.ts` line numbers ([F33](#f33)).
+
+The repair moved the mapping underneath that enumeration. At HEAD, `target="NOT-AN-ANCHOR"`
+produced `change.invalid-clarification-target`. Afterwards a leftover `target` attribute is simply
+an illegal attribute and produces `change.invalid-clarification`; reading its *value* as the target
+would be the dual-read the spec forbids. So the trigger the criterion named for `-target` no longer
+produces `-target`.
+
+Left alone, the criterion would have been satisfied by tests covering two codes while `-target`
+kept both its guide and its production emission site (`grammar.ts:1642`, a self-closing child whose
+tag is not a family anchor) and lost its test. **A guide and an emission with no coverage between
+them** — the same shape as the `xml.generic-` prefix guide with zero emission sites noted during
+`C-EXPLAIN-COVERAGE`.
+
+Caught by the executor, which planted a fourth case — a non-family self-closing child — so the code
+retains a live post-change fixture, and reported the divergence rather than quietly treating two
+codes as three.
+
+**The rule.** When a criterion enumerates diagnostics by their current triggers, and the change
+alters emission logic, re-derive the trigger→code mapping **after** the repair and confirm every
+named code still has a reachable trigger. Naming codes by trigger is right — it avoids F33 — but it
+is a claim about a mapping, and a repair is exactly the thing that moves mappings. Due in
+**P1.13** and **P1.14**, both of which rewrite diagnostics, and in **P1.4**, where a generated
+schema reference will enumerate shapes the grammar can move.
+
+---
+
+### F49 — The repaired gate reader filters where P0's thesis says reject. **[verified]**
+
+T-002 moved `listClarifications` off `attributes.target` and onto the unique self-closing child,
+correctly refusing the dual-read that would have kept the illegal form alive. The reader now opens:
+
+```ts
+if (node.children.length !== 1) continue;
+```
+
+An attribute-form Clarification has **zero** children, so it is silently skipped. Before this
+bundle it was read and **refused**. After it, the same document is invisible to the gate and
+approve **permits**.
+
+The document is illegal either way — the grammar rejects the attribute form — but the approve gate
+has **zero lint requirements** (measured: its only requirement is
+`no-unresolved-ic-inv-clarification`). So nothing in the lifecycle stops a lint-failing bundle from
+being approved, and the one surface that used to notice this particular malformation no longer
+does. Note the live scenario: six teaching sites still instruct the attribute form until T-004
+lands, so this is the shape an agent is currently most likely to write.
+
+**Why this is a finding rather than a nitpick.** P0 of this very roadmap is titled *"Reject, don't
+filter: the integrity cluster"* and its objective is *"every unrecognized authored token becomes an
+error. No silent drops."* A Clarification whose shape the reader cannot interpret is exactly an
+unrecognized authored token, and it is being dropped. The bundle repairing one silent-teaching
+defect reintroduced a silent-drop one layer down. The same reader also accepts any unique
+self-closing child — a `<FOO />` is recorded with target `FOO` and then ignored downstream, while
+`isClarificationTarget` remains exported and unused by the new reader.
+
+**Deferred, with the conflict stated (D11).** The repair is a **new gate behaviour** — raising on a
+Clarification the reader cannot interpret — which is outside what the approved spec authorizes the
+gate to do, and this bundle has already taken one re-spec. The defect manifests only on documents
+that already fail lint. That is a conflict, not a schedule.
+
+**Home: P1.12's follow-on, or the first bundle that touches gate requirements.** Two candidate
+shapes, to be argued there rather than assumed: the reader raises on an uninterpretable
+Clarification, or the approve gate gains a lint-clean requirement — the second is larger and would
+close the whole class rather than this instance.
+
+### F50 — A plan's design note instructs an edit to itself that the same plan forbids. **[verified]**
+
+`C-GRAMMAR-SEAM`'s plan, design note D7 (`plan.xml:704`): *"execution companions; **expand OWS at
+execute** if …"*. The plan is approved and immutable, and `ngrace-execute` says so. Following D7
+means editing an approved artifact; following immutability means leaving `ObservedWriteScope`
+incomplete while the cursor writes `run.xml` and `run/*`. Both cannot hold.
+
+The executor followed immutability and disclosed the unlisted writes — the right call, and the same
+one it made in `C-EXPLAIN-COVERAGE`, where the identical note appeared. **Twice in two bundles,
+because the note is copied forward with the plan template.**
+
+**The rule.** A plan may not instruct its own amendment. Cursor companions (`run.xml`, `run/*`,
+`run-ledger.xml`) are written by the CLI, not the agent, and belong in `ObservedWriteScope` **at
+authoring time** or in a standing exclusion — the same category error [F27](#f27) settled for the
+review scope audit, which stopped auditing the CLI's own writes against the agent's declared scope.
+Fix the note at the source: it originates in the plan authored from
+`.ngrace/changes/archive/C-EXPLAIN-COVERAGE/plan.xml` as the model, so the next plan authored from
+that model inherits it again.
+
+---
+
+### F51 — A measurement pin makes every file it measures a transitive forced write. **[verified]**
+
+T-004 edited the eight skill and template files that taught the unauthorable `<Clarification>`.
+That moved a byte total pinned in two places outside the bundle's `ObservedWriteScope`:
+
+```
+src/test-support/token-accounting.test.ts:47   expect(measured.totalBytes).toBe(53771)  → 53864
+README.md:286                                  **779 lines** / **53771 UTF-8 bytes**
+```
+
+Measured: neither path appears in `plan.xml` (0 hits). The executor stopped rather than breach
+scope, leaving `bun test` at 1274 pass / **1 fail** — and T-005 claims `bun test` green, so the
+close task is blocked by its own plan's scope.
+
+**Why this is not simply [F27.2](#f272) again.** The two historical breaches were *direct*: a
+deliverable wrote a file the plan had not listed. This one is **transitive and invisible at
+authoring time**. The plan author would have had to know that editing skill prose moves a byte
+total asserted in a test file nobody is touching, in a bundle about grammar and gates. There are
+**16** `SKILL.md` files under that pin, so every future bundle that edits any skill text inherits
+the same unlisted forced write.
+
+**The pin is working exactly as designed, which is the point.** It exists because of
+[F29/F29.1](#f29): the footprint measure counted lines, so a 962-byte rewrite of agent-loaded skill
+text registered as zero movement, and `totalBytes` was added beside the frozen line total so that
+change would register. It registered. It just registers as a failure in a file outside every
+skill-touching bundle's natural scope.
+
+**Resolved here by amendment, not deferral.** The write is forced by the approved deliverable, so
+per F27.2 `ObservedWriteScope` must cover it; both paths are added and the pin is updated to the
+measured value. Deferring would leave a knowingly-red suite behind a close criterion that demands
+green.
+
+**The forward rule.** A bundle that edits any `SKILL.md` must list `token-accounting.test.ts` and
+`README.md` in `ObservedWriteScope` at authoring time. Better, and the shape to argue when a bundle
+next touches that surface: a hand-maintained literal that every skill edit invalidates is a
+maintenance tax with no reader — the honest forms are a tool-updated value or an assertion on
+*movement being declared* rather than on a frozen number. Not opened here: this bundle has already
+taken one re-spec, and the pin's current form is what two archived roadmaps cite.
+
+---
+
+### F52 — "AffectedAreas binds the plan" names a check that is weaker than the belief it creates. **[verified]**
+
+`C-GRAMMAR-SEAM`'s spec — and `C-EXPLAIN-COVERAGE`'s before it — glosses its closed file list as
+bound by `change.plan-scope-exceeds-spec`. Measured at `src/artifact/grammar.ts:1867`, that code:
+
+- compares **`DurableScope` anchors** against anchors the spec mentions — not `ObservedWriteScope`
+  file paths against `AffectedAreas`;
+- emits a **warning**, not an error.
+
+So the sentence that makes a plan author believe file-level scope is mechanically enforced names a
+check that never looks at files and could not block anything if it did. Declared file scope is
+enforced by the review audits at close — the `WriteEvidence` scope audit — and by nothing at
+authoring time.
+
+Raised by the executor at close, correctly left untouched: it is spec prose, pre-existing, and the
+criteria around it are sound.
+
+**Why it matters beyond the wording.** This is the third check in one bundle found weaker than its
+description — with [F49](#f49) (a reader that skips what it cannot interpret) and the
+`validate:marketplace` green that only proves the two trees *agree* ([F46](#f46)). The pattern is
+consistent: a check's **name** and its **blast radius** drift apart, and the artifact citing it
+inherits the optimistic reading. [F41](#f41) is the same failure applied to a finding citation
+rather than a check.
+
+**The rule.** When an artifact cites a diagnostic as the thing that binds a constraint, state what
+that diagnostic actually compares and at what severity. "Bound by `X`" is a claim about a
+mechanism, and mechanisms are exactly what [F35](#f35) says to verify by body rather than by name.
+Not swept across existing specs: they are approved and their criteria do not rest on the gloss.
+
+---
+
+### F53 — Every bundle hash on the phase board is branch-only. F37 fixed one instance, not the practice. **[verified]**
+
+[F37](#f37) established that squash-merge leaves no branch commit an ancestor of `main`, so a cited
+hash stops resolving. Its remedy was applied to the three commits it named. The **practice** was
+never changed, and the board kept citing hashes.
+
+Measured across the P1 phase row — every bundle citation on the board, thirteen of them:
+
+```
+a4b9ce7  BRANCH-ONLY      f10f868  BRANCH-ONLY      3f26381  BRANCH-ONLY
+5872ebb  BRANCH-ONLY      5a1b28b  BRANCH-ONLY      … all thirteen
+```
+
+Not one resolves on `main`. Two of them I wrote **this session**, one session after recording F37 —
+which is the point worth keeping: the finding was known, recorded, and re-committed by its own
+author, because the record fixed the instances and left the habit.
+
+**The citation was never load-bearing.** A bundle's evidence is its archived directory —
+`.ngrace/changes/archive/C-*/` with its `spec.xml`, `plan.xml` and folded `run-ledger.xml` — and
+that path *does* survive merge, because it is content, not history. The hash added a second, weaker
+name for something already durably addressed. [D16](#d16) says a criterion may only bind evidence
+that lives in an artifact; the same reasoning applies to a *record*, and the hash was the part that
+did not.
+
+**Repaired at the two sites I authored:** both now link the archive directory. The eleven P0
+citations are left as written — they are historical entries whose breakage F37 already documents,
+and rewriting them would edit the account of what happened rather than the practice.
+
+**The rule.** Cite a bundle by its **archive path**, never by commit. Where a commit genuinely must
+be named — a release tag, a revert target — tag the branch tip before deleting it, and cite the
+tag. Tags survive; branch tips do not.

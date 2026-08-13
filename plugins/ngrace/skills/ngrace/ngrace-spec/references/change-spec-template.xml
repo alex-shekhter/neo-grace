@@ -30,10 +30,10 @@
     <Assumptions>
       <Assumption>$ASSUMPTION</Assumption>
     </Assumptions>
-    <!-- Optional typed holes (D12). target must be IC-*, INV-*, or AC-*. Never use prose [NEEDS CLARIFICATION]. -->
+    <!-- Optional typed holes (D12). Target is exactly one self-closing IC-*, INV-*, or AC-* child. Never use prose [NEEDS CLARIFICATION]. -->
     <!--
     <Clarifications>
-      <Clarification target="IC-EXAMPLE">$CLARIFICATION</Clarification>
+      <Clarification><IC-EXAMPLE />$CLARIFICATION</Clarification>
     </Clarifications>
     -->
   </C-CHANGE-ID>

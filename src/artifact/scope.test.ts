@@ -1,8 +1,9 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
+import { validateNgraceProject } from "./grammar";
 import { ARTIFACT_DIR } from "./paths";
 import { resolveNgracePaths } from "./project";
 import {
@@ -15,6 +16,8 @@ import {
   type DurableOwnershipIndex,
   type DurableScope,
 } from "./scope";
+import { writeChangeBundleFixture, writeMinimalNgraceProject } from "./test-fixtures";
+import { NGRACE_CONTEXT_ARTIFACTS, NGRACE_OPTIONAL_CONTEXT_ARTIFACTS } from "./types";
 
 function createProject() {
   const root = path.join(os.tmpdir(), `grace4-scope-${crypto.randomUUID()}`);
@@ -74,6 +77,7 @@ describe("neo-grace scope detector", () => {
       graphAnchors: [],
       verificationAnchors: [],
       contextArtifacts: [],
+      optionalContextArtifacts: [],
       graphDocuments: [],
       verificationDocuments: [],
     });
@@ -94,6 +98,7 @@ describe("neo-grace scope detector", () => {
       graphAnchors: [],
       verificationAnchors: [],
       contextArtifacts: [],
+      optionalContextArtifacts: [],
       graphDocuments: [],
       verificationDocuments: [],
     });
@@ -122,6 +127,7 @@ describe("neo-grace scope detector", () => {
       graphAnchors: [],
       verificationAnchors: [],
       contextArtifacts: [],
+      optionalContextArtifacts: [],
       graphDocuments: [],
       verificationDocuments: [],
     });
@@ -190,5 +196,88 @@ describe("neo-grace scope detector", () => {
     expect(messages.some((message) => message.includes("C-FILE") && message.includes("C-GLOB"))).toBe(true);
     expect(messages.some((message) => message.includes("C-GLOB") && message.includes("C-NESTED"))).toBe(true);
     expect(messages.some((message) => message.includes("C-DISJOINT"))).toBe(false);
+  });
+});
+
+function contextEntryXml(names: readonly string[]): string {
+  return names.map((name) => `<ContextArtifact>${name}</ContextArtifact>`).join("");
+}
+
+function plantOptionalContext(root: string, changeId: string, names: readonly string[]): void {
+  const planPath = path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "plan.xml");
+  writeFileSync(
+    planPath,
+    readFileSync(planPath, "utf8").replace(
+      "</DurableScope>",
+      `<OptionalContext>${contextEntryXml(names)}</OptionalContext></DurableScope>`,
+    ),
+  );
+}
+
+function optionalContextShapeIssues(root: string) {
+  return validateNgraceProject(root).issues.filter(
+    (issue) => issue.code === "change.plan-invalid-section-shape" && issue.message.includes("OptionalContext"),
+  );
+}
+
+describe("C-GRAMMAR-SEAM T-003 OptionalContext bucket", () => {
+  it("admits live optional members: grammar-clean, extracted, and overlapping", () => {
+    const changeId = "C-OPT-ADMIT";
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId,
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+    });
+    plantOptionalContext(root, changeId, NGRACE_OPTIONAL_CONTEXT_ARTIFACTS);
+
+    expect(optionalContextShapeIssues(root)).toEqual([]);
+
+    const scopes = collectActiveChangeScopes(resolveNgracePaths(root));
+    const admitted = scopes.find((scope) => scope.changeId === changeId);
+    expect(admitted?.issues.some((issue) => issue.code === "scope.invalid-durable-shape")).toBe(false);
+    expect([...admitted?.durable.optionalContextArtifacts ?? []].sort()).toEqual(
+      [...NGRACE_OPTIONAL_CONTEXT_ARTIFACTS].sort(),
+    );
+
+    const leftRoot = createProject();
+    writeChange(leftRoot, "C-OPT-LEFT", { graphAnchor: "M-LEFT", file: "src/left.ts" });
+    writeChange(leftRoot, "C-OPT-RIGHT", { graphAnchor: "M-RIGHT", file: "src/right.ts" });
+    const shared = NGRACE_OPTIONAL_CONTEXT_ARTIFACTS[0]!;
+    plantOptionalContext(leftRoot, "C-OPT-LEFT", [shared]);
+    plantOptionalContext(leftRoot, "C-OPT-RIGHT", [shared]);
+    const overlap = detectScopeOverlaps(collectActiveChangeScopes(resolveNgracePaths(leftRoot)));
+    expect(overlap.some((issue) => issue.message.includes(shared))).toBe(true);
+  });
+
+  it("OptionalContext rejects a required context filename and an unknown filename", () => {
+    const required = NGRACE_CONTEXT_ARTIFACTS[0]!;
+    const unknown = "not-a-context-artifact.xml";
+    const cases: Array<{ changeId: string; names: string[] }> = [
+      { changeId: "C-OPT-REQ", names: [required] },
+      { changeId: "C-OPT-UNK", names: [unknown] },
+    ];
+    for (const { changeId, names } of cases) {
+      const root = createProject();
+      writeChange(root, changeId, { graphAnchor: "M-OPT", file: "src/opt.ts" });
+      plantOptionalContext(root, changeId, names);
+      const scope = collectActiveChangeScopes(resolveNgracePaths(root)).find((entry) => entry.changeId === changeId);
+      expect(scope?.issues.some((issue) => issue.code === "scope.invalid-context-artifact")).toBe(true);
+      expect(scope?.durable.optionalContextArtifacts ?? []).not.toEqual(expect.arrayContaining(names));
+      expect(scope?.durable.contextArtifacts ?? []).not.toEqual(expect.arrayContaining(names));
+    }
+  });
+
+  it("direct ContextArtifact of an optional name still errors", () => {
+    const root = createProject();
+    writeChange(root, "C-OPT-DIRECT", {
+      graphAnchor: "M-OPT",
+      file: "src/opt.ts",
+      contextArtifact: NGRACE_OPTIONAL_CONTEXT_ARTIFACTS[0],
+    });
+    const scope = collectActiveChangeScopes(resolveNgracePaths(root)).find((entry) => entry.changeId === "C-OPT-DIRECT");
+    expect(scope?.issues.some((issue) => issue.code === "scope.invalid-context-artifact")).toBe(true);
   });
 });

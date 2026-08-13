@@ -179,7 +179,11 @@ function listClarifications(file: string): ClarificationHit[] {
   const hits: ClarificationHit[] = [];
   for (const node of walkNodes(artifact.root)) {
     if (node.tag !== "Clarification") continue;
-    const target = (node.attributes.target ?? "").trim();
+    // Target is the unique self-closing child tag. Do not consult attributes.target.
+    if (node.children.length !== 1) continue;
+    const child = node.children[0]!;
+    if (child.children.length !== 0 || child.text.trim() !== "") continue;
+    const target = child.tag.trim();
     if (!target) continue;
     const resolved =
       node.attributes.resolved === "true"

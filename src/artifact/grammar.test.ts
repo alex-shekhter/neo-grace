@@ -689,24 +689,6 @@ describe("run ledger and cursor grammar (Phase 3 / A11)", () => {
     expect(codes(badGate)).toContain("ledger.invalid-decision");
   });
 
-  it("validates Clarification targets on change specs (A29.4)", () => {
-    const root = createProject();
-    writeMinimalNgraceProject(root);
-    writeChangeBundleFixture(root, { changeId: "C-CLAR", location: "active", specStatus: "approved", planStatus: "approved" });
-    const good = path.join(root, `${ARTIFACT_DIR}/changes/active/C-CLAR/spec.xml`);
-    let xml = readFileSync(good, "utf8");
-    xml = xml.replace(
-      `</C-CLAR>`,
-      `<Clarifications><Clarification target="IC-FOO">need shape</Clarification></Clarifications></C-CLAR>`,
-    );
-    writeFileSync(good, xml);
-    expect(codes(validateNgraceProject(root))).not.toContain("change.invalid-clarification-target");
-
-    xml = readFileSync(good, "utf8");
-    xml = xml.replace(`target="IC-FOO"`, `target="NOT-AN-ANCHOR"`);
-    writeFileSync(good, xml);
-    expect(codes(validateNgraceProject(root))).toContain("change.invalid-clarification-target");
-  });
 
 
   it("accepts a dense terminated ledger", () => {
@@ -1147,5 +1129,235 @@ describe("optional design-system.xml (Phase 6)", () => {
     );
     const resultCodes = codes(validateNgraceProject(root));
     expect(resultCodes.filter((c) => c.startsWith("design-system."))).toEqual([]);
+  });
+});
+
+const CLARIFICATION_SHAPE_CODES = [
+  "artifact.semantic-anchor-attribute",
+  "change.invalid-clarification",
+  "change.invalid-clarification-target",
+] as const;
+
+const WORKING_FORM_CHILDREN = [
+  "<Clarification><IC-EXAMPLE /></Clarification>",
+  "<Clarification><INV-AUTH /></Clarification>",
+  "<Clarification><AC-SAMPLE /></Clarification>",
+].join("");
+
+function clarificationFixture(changeId: string): string {
+  const root = createProject();
+  writeMinimalNgraceProject(root);
+  writeChangeBundleFixture(root, {
+    changeId,
+    location: "active",
+    specStatus: "approved",
+    planStatus: "approved",
+  });
+  return root;
+}
+
+function plantClarifications(
+  root: string,
+  changeId: string,
+  artifact: "spec" | "plan",
+  inner: string,
+): void {
+  const file = path.join(root, `${ARTIFACT_DIR}/changes/active/${changeId}/${artifact}.xml`);
+  const xml = readFileSync(file, "utf8");
+  const close = `</${changeId}>`;
+  writeFileSync(file, xml.replace(close, `<Clarifications>${inner}</Clarifications>${close}`));
+}
+
+function clarificationShapeCodes(root: string): string[] {
+  return codes(validateNgraceProject(root)).filter((code) =>
+    (CLARIFICATION_SHAPE_CODES as readonly string[]).includes(code),
+  );
+}
+
+describe("C-GRAMMAR-SEAM T-001 Clarification child form", () => {
+  it("child-form spec with one Clarification per family is document-clean", () => {
+    const changeId = "C-CLAR-SPEC";
+    const root = clarificationFixture(changeId);
+    plantClarifications(root, changeId, "spec", WORKING_FORM_CHILDREN);
+    expect(clarificationShapeCodes(root)).toEqual([]);
+  });
+
+  it("child-form plan with one Clarification per family is document-clean", () => {
+    const changeId = "C-CLAR-PLAN";
+    const root = clarificationFixture(changeId);
+    plantClarifications(root, changeId, "plan", WORKING_FORM_CHILDREN);
+    expect(clarificationShapeCodes(root)).toEqual([]);
+  });
+
+  it("resolved and status attributes remain legal on a child-form Clarification", () => {
+    const changeId = "C-CLAR-RESOLVED";
+    const root = clarificationFixture(changeId);
+    plantClarifications(
+      root,
+      changeId,
+      "spec",
+      [
+        `<Clarification resolved="true"><IC-EXAMPLE /></Clarification>`,
+        `<Clarification status="resolved"><INV-AUTH /></Clarification>`,
+        `<Clarification><AC-SAMPLE /></Clarification>`,
+      ].join(""),
+    );
+    expect(clarificationShapeCodes(root)).toEqual([]);
+  });
+
+  it("zero target children, two target children, a non-family child, and leftover target each error", () => {
+    const cases: Array<{ changeId: string; inner: string }> = [
+      { changeId: "C-CLAR-ZERO", inner: "<Clarification></Clarification>" },
+      {
+        changeId: "C-CLAR-TWO",
+        inner: "<Clarification><IC-EXAMPLE /><INV-AUTH /></Clarification>",
+      },
+      { changeId: "C-CLAR-NOTE", inner: "<Clarification><Note /></Clarification>" },
+      {
+        changeId: "C-CLAR-LEFTOVER",
+        inner: `<Clarification target="not-an-anchor"></Clarification>`,
+      },
+      {
+        changeId: "C-CLAR-BOTH",
+        inner: `<Clarification target="not-an-anchor"><IC-EXAMPLE /></Clarification>`,
+      },
+    ];
+    for (const { changeId, inner } of cases) {
+      const root = clarificationFixture(changeId);
+      plantClarifications(root, changeId, "spec", inner);
+      expect(clarificationShapeCodes(root).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("attribute form of each family remains an error, with or without a valid child", () => {
+    const plants: Array<{ changeId: string; inner: string }> = [
+      {
+        changeId: "C-CLAR-ATTR-IC",
+        inner: `<Clarification target="IC-EXAMPLE"></Clarification>`,
+      },
+      {
+        changeId: "C-CLAR-ATTR-INV",
+        inner: `<Clarification target="INV-AUTH"></Clarification>`,
+      },
+      {
+        changeId: "C-CLAR-ATTR-AC",
+        inner: `<Clarification target="AC-SAMPLE"></Clarification>`,
+      },
+      {
+        changeId: "C-CLAR-ATTR-AND-CHILD",
+        inner: `<Clarification target="IC-EXAMPLE"><IC-EXAMPLE /></Clarification>`,
+      },
+    ];
+    for (const { changeId, inner } of plants) {
+      const root = clarificationFixture(changeId);
+      plantClarifications(root, changeId, "spec", inner);
+      expect(clarificationShapeCodes(root)).toContain("artifact.semantic-anchor-attribute");
+    }
+  });
+});
+
+/** Closed expected-shape list (F43): literal bytes the diagnostics must name first. */
+const CLARIFICATION_WORKING_FORM_SHAPES = [
+  "exactly one self-closing IC-*, INV-*, or AC-* child",
+] as const;
+
+function assertTeachesWorkingForm(text: string): void {
+  const firstShapeAt = Math.min(
+    ...CLARIFICATION_WORKING_FORM_SHAPES.map((shape) => {
+      const idx = text.indexOf(shape);
+      expect(idx).toBeGreaterThanOrEqual(0);
+      return idx;
+    }),
+  );
+  const before = text.slice(0, firstShapeAt);
+  expect(before).not.toMatch(/target\s+attribute/i);
+  expect(before).not.toContain('target="');
+  expect(text).not.toMatch(/target\s+attribute/i);
+  expect(text).not.toContain('target="');
+  expect(text).not.toContain("target='");
+}
+
+describe("C-GRAMMAR-SEAM T-001 Clarification-shape diagnostics", () => {
+  it("each shape diagnostic names the working form first and does not instruct a target attribute", () => {
+    const plants: Array<{ changeId: string; inner: string }> = [
+      { changeId: "C-DIAG-NOTE", inner: "<Note>x</Note>" },
+      { changeId: "C-DIAG-EMPTY", inner: "<Clarification></Clarification>" },
+      {
+        changeId: "C-DIAG-ATTR",
+        inner: `<Clarification target="NOT-AN-ANCHOR"></Clarification>`,
+      },
+      { changeId: "C-DIAG-CHILD", inner: "<Clarification><FOO /></Clarification>" },
+    ];
+    const seen = new Set<string>();
+    for (const { changeId, inner } of plants) {
+      const root = clarificationFixture(changeId);
+      plantClarifications(root, changeId, "spec", inner);
+      const shapeIssues = validateNgraceProject(root).issues.filter((issue) =>
+        (CLARIFICATION_SHAPE_CODES as readonly string[]).includes(issue.code),
+      );
+      expect(shapeIssues.length).toBeGreaterThan(0);
+      for (const issue of shapeIssues) {
+        seen.add(issue.code);
+        assertTeachesWorkingForm(issue.message);
+      }
+    }
+    expect(seen.has("change.invalid-clarification")).toBe(true);
+    expect(seen.has("change.invalid-clarification-target")).toBe(true);
+  });
+});
+
+const REPO_ROOT = path.resolve(import.meta.dir, "../..");
+
+const TEACHING_FILES = [
+  "skills/ngrace/ngrace-spec/SKILL.md",
+  "skills/ngrace/ngrace-spec/references/change-spec-template.xml",
+  "skills/ngrace/ngrace-plan/SKILL.md",
+  "skills/ngrace/ngrace-plan/references/change-plan-template.xml",
+  "plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md",
+  "plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml",
+  "plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md",
+  "plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml",
+] as const;
+
+const TEMPLATE_FILES = TEACHING_FILES.filter((file) => file.endsWith(".xml"));
+
+function extractClarificationExamples(template: string): string[] {
+  const uncommented = template.replace(/<!--([\s\S]*?)-->/g, "$1");
+  return uncommented.match(/<Clarification\b[^>]*(?:\/>|>[\s\S]*?<\/Clarification>)/g) ?? [];
+}
+
+function fillTemplatePlaceholders(xml: string): string {
+  return xml.replace(/\$[A-Z0-9_]+/g, "filled clarification");
+}
+
+function teachesChildAnchorForm(text: string): boolean {
+  const hasChildExample = /<Clarification\b[^>]*>\s*<(?:IC|INV|AC)-/.test(text);
+  const hasWorkingFormPhrase = /self-closing IC-\*|self-closing IC-\*, INV-\*, or AC-\* child/i.test(text);
+  return hasChildExample || hasWorkingFormPhrase;
+}
+
+describe("C-GRAMMAR-SEAM T-004 teaching files and template copy-fixture", () => {
+  it("all eight teaching files describe the child-anchor form and do not instruct a target attribute", () => {
+    for (const relative of TEACHING_FILES) {
+      const text = readFileSync(path.join(REPO_ROOT, relative), "utf8");
+      expect(text, relative).not.toContain("Clarification target=");
+      expect(text, relative).not.toMatch(/target="(?:IC|INV|AC)-/);
+      expect(teachesChildAnchorForm(text), relative).toBe(true);
+    }
+  });
+
+  it("each template Clarification example is lint-clean on the Clarification shape once placeholders are filled", () => {
+    for (const relative of TEMPLATE_FILES) {
+      const template = readFileSync(path.join(REPO_ROOT, relative), "utf8");
+      const examples = extractClarificationExamples(template);
+      expect(examples.length, relative).toBeGreaterThan(0);
+      for (const [index, example] of examples.entries()) {
+        const changeId = `C-TPL-${relative.includes("spec") ? "SPEC" : "PLAN"}-${index}`;
+        const artifact = relative.includes("spec") ? "spec" : "plan";
+        const root = clarificationFixture(changeId);
+        plantClarifications(root, changeId, artifact, fillTemplatePlaceholders(example));
+        expect(clarificationShapeCodes(root), `${relative}#${index}`).toEqual([]);
+      }
+    }
   });
 });

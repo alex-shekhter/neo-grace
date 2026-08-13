@@ -49,10 +49,10 @@
         </Verification>
       </T-001>
     </ImplementationPlan>
-    <!-- Optional typed holes (D12). Unresolved AC-* that Satisfies blocks apply. Never prose markers. -->
+    <!-- Optional typed holes (D12). Unresolved AC-* that Satisfies blocks apply. Never prose markers. Target is exactly one self-closing IC-*, INV-*, or AC-* child. -->
     <!--
     <Clarifications>
-      <Clarification target="AC-EXAMPLE-CRITERION">$CLARIFICATION</Clarification>
+      <Clarification><AC-EXAMPLE-CRITERION />$CLARIFICATION</Clarification>
     </Clarifications>
     -->
   </C-CHANGE-ID>

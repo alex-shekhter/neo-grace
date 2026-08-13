@@ -104,6 +104,7 @@ const DURABLE_SCOPE_DIRECT_TAGS = new Set([
   "ContextArtifact",
   "Context",
   "Artifact",
+  "OptionalContext",
   "None",
 ]);
 const OBSERVED_SCOPE_DIRECT_TAGS = new Set(["File", "Path", "Glob", "None"]);
@@ -1588,8 +1589,24 @@ function validateOutOfPlanScopeSection(file: string, section: GraceXmlNode, issu
   }
 }
 
+const CLARIFICATION_WORKING_FORM =
+  "Clarification takes exactly one self-closing IC-*, INV-*, or AC-* child.";
+
+function isClarificationTargetTag(tag: string): boolean {
+  return (
+    ANCHOR_PATTERNS.interfaceContract.test(tag)
+    || ANCHOR_PATTERNS.invariant.test(tag)
+    || ANCHOR_PATTERNS.acceptanceCriterion.test(tag)
+  );
+}
+
+function isSelfClosingTargetChild(node: GraceXmlNode): boolean {
+  return node.children.length === 0 && node.text.trim() === "";
+}
+
 /**
- * Optional Clarifications section (D12 / A29.4): schema-bound holes with target anchors.
+ * Optional Clarifications section (D12 / A29.4): schema-bound holes whose
+ * target is exactly one self-closing IC-*, INV-*, or AC-* child.
  * Unresolved means present without resolved="true" (or status="resolved") — gate consults that.
  */
 function validateClarificationsSection(file: string, wrapper: GraceXmlNode, issues: NgraceIssue[]): void {
@@ -1607,34 +1624,29 @@ function validateClarificationsSection(file: string, wrapper: GraceXmlNode, issu
   for (const section of sections) {
     for (const child of section.children) {
       if (child.tag !== "Clarification") {
-        issues.push(
-          issue(
-            "error",
-            "change.invalid-clarification",
-            file,
-            `<Clarifications> does not allow child <${child.tag}>; use <Clarification target="IC-*|INV-*|AC-*">.`,
-          ),
-        );
+        issues.push(issue("error", "change.invalid-clarification", file, CLARIFICATION_WORKING_FORM));
         continue;
       }
-      const target = (child.attributes.target ?? "").trim();
-      if (!target) {
-        issues.push(
-          issue("error", "change.invalid-clarification", file, `<Clarification> requires a non-empty target attribute.`),
-        );
+      if (Object.prototype.hasOwnProperty.call(child.attributes, "target")) {
+        issues.push(issue("error", "change.invalid-clarification", file, CLARIFICATION_WORKING_FORM));
+      }
+      const targetChildren = child.children;
+      if (targetChildren.length !== 1) {
+        issues.push(issue("error", "change.invalid-clarification", file, CLARIFICATION_WORKING_FORM));
         continue;
       }
-      const ok =
-        ANCHOR_PATTERNS.interfaceContract.test(target)
-        || ANCHOR_PATTERNS.invariant.test(target)
-        || ANCHOR_PATTERNS.acceptanceCriterion.test(target);
-      if (!ok) {
+      const targetChild = targetChildren[0]!;
+      if (!isSelfClosingTargetChild(targetChild)) {
+        issues.push(issue("error", "change.invalid-clarification", file, CLARIFICATION_WORKING_FORM));
+        continue;
+      }
+      if (!isClarificationTargetTag(targetChild.tag)) {
         issues.push(
           issue(
             "error",
             "change.invalid-clarification-target",
             file,
-            `Clarification target '${target}' must be a canonical IC-*, INV-*, or AC-* anchor.`,
+            `${CLARIFICATION_WORKING_FORM} '${targetChild.tag}' is not one of those families.`,
           ),
         );
       }

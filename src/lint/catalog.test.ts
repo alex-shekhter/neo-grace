@@ -798,3 +798,44 @@ describe("AC-FIX-SHAPE (C-EXPLAIN-COVERAGE T-002)", () => {
     expect(planted.guide.explanation).toContain("[,;\\s]+");
   });
 });
+
+/** Closed expected-shape list (F43): literal bytes the exact guides must name first. */
+const CLARIFICATION_WORKING_FORM_SHAPES = [
+  "exactly one self-closing IC-*, INV-*, or AC-* child",
+] as const;
+
+const CLARIFICATION_SHAPE_GUIDE_CODES = [
+  "change.invalid-clarification",
+  "change.invalid-clarification-target",
+] as const;
+
+function clarificationGuideTeachingText(code: string): string {
+  const exact = getExactLintIssueGuide(code);
+  expect(exact).toBeDefined();
+  return [exact!.explanation, ...exact!.remediation].join("\n");
+}
+
+function assertGuideTeachesWorkingForm(text: string): void {
+  const firstShapeAt = Math.min(
+    ...CLARIFICATION_WORKING_FORM_SHAPES.map((shape) => {
+      const idx = text.indexOf(shape);
+      expect(idx).toBeGreaterThanOrEqual(0);
+      return idx;
+    }),
+  );
+  const before = text.slice(0, firstShapeAt);
+  expect(before).not.toMatch(/target\s+attribute/i);
+  expect(before).not.toContain('target="');
+  expect(text).not.toMatch(/target\s+attribute/i);
+  expect(text).not.toContain('target="');
+  expect(text).not.toContain("target='");
+}
+
+describe("C-GRAMMAR-SEAM T-001 Clarification-shape exact guides", () => {
+  it("change.invalid-clarification and change.invalid-clarification-target exact guides name the child form first", () => {
+    for (const code of CLARIFICATION_SHAPE_GUIDE_CODES) {
+      expect(classifyIssueCode(code)).toBe("exact");
+      assertGuideTeachesWorkingForm(clarificationGuideTeachingText(code));
+    }
+  });
+});

@@ -45,7 +45,7 @@ Produce `plan.xml` from `references/change-plan-template.xml` as draft unless th
 | 13 | Surface stale-state and coexistence warnings from preflight lint. |
 | 14 | Reject unsupported scope glob syntax instead of guessing. |
 | 15 | Before setting `plan.xml` to `approved`, run `ngrace gate approve --change C-ID`. Refuse means unresolved Clarifications on IC-* / INV-*; do not approve when refused. The gate records a Decision and does not itself set status. |
-| 16 | Optional typed holes use `<Clarifications><Clarification target="IC-*\|INV-*\|AC-*">…</Clarification></Clarifications>` — never a prose `[NEEDS CLARIFICATION]` marker. |
+| 16 | Optional typed holes use `<Clarifications><Clarification><IC-*|INV-*|AC-* /></Clarification></Clarifications>` — exactly one self-closing IC-*, INV-*, or AC-* child; never a target attribute and never a prose `[NEEDS CLARIFICATION]` marker. |
 </must_do>
 
 <ceremony_tiers>
