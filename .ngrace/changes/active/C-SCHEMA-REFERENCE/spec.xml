@@ -1,0 +1,635 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-SCHEMA-REFERENCE>
+    <Summary>
+      Deliver RM-GOVERNED-PATH P1 step 4 only: generate a committed
+      schema reference from the declarative inventories in
+      src/artifact/grammar.ts, fail CI when that file is stale, and
+      extend lint explain to those same inventories as named shapes,
+      so the markdown and the explain surface have one source.
+      Glob matching semantics are out: F60 blocks P1.4's requirement
+      to document zero-depth globstar, and deleting the duplicate
+      matcher is P2.1, not this bundle.
+    </Summary>
+    <Problem>
+      **Shared shape.** P1.4 exists so an agent can author a valid
+      artifact without reading TypeScript. A hand-written schema
+      document becomes a second grammar and drifts. The step
+      therefore asks for generation from the grammar, a committed
+      file, a CI stale-check, and explain of shapes from the same
+      source. Authoring HEAD a26b07b, packaged 6.2.0, lint 0/0
+      across 127 artifacts, active changes empty, suite 1286 pass
+      / 3 skip / 0 fail. Those numbers are a snapshot (F33).
+
+      ---
+
+      **The grammar is not a declarative schema.**
+      src/artifact/grammar.ts is 2387 lines of imperative
+      validators. It has a declarative core: eighteen module-private
+      constants (section lists, scope tags, anchor families, root
+      tags, statuses, verdict outcomes, gate values, clarification
+      form, design-reference children). They are const, not export
+      const. The generator can honestly document those inventories
+      and nothing else. Presenting the result as a complete schema
+      is F10. C-EXPLAIN-COVERAGE already recorded that P1.4 would
+      open this file; that is not a licence to claim the imperative
+      remainder.
+
+      ---
+
+      **Explain today takes an issue code.**
+      The lint explain argument is one string. classifyIssueCode
+      and formatLintExplanation treat it as a code. Extending the
+      same argument to shapes needs a disambiguation rule. Across
+      the registered union (exact guides, review catalog, gate
+      catalog, collectEmittedIssueCodes, PREFIX_GUIDES prefixes)
+      every member contains a period. Four GraceCommandError codes
+      (invalid-arguments, invalid-project, ambiguous-target,
+      not-found) do not, and already classify as unknown. A
+      period-only rule therefore holds for the lint/review/gate
+      universe and fails the moment a shape name contains a period
+      or a new code does not. That is an F10 waiting to happen.
+
+      The step's own examples (graph-module, module-contract) are
+      not among the eighteen inventories. module-contract is a
+      marker family in project-utils.ts. Graph module Type values
+      live in types.ts MODULE_TYPES and are checked in
+      projections.ts. Registering those names here would make the
+      generator claim a source it does not read.
+
+      ---
+
+      **F60 blocks the step's globstar sentence.**
+      P1.4 says the reference must document zero-depth globstar
+      explicitly (see P2.1). Sequencing rule 4 orders P1.4 before
+      P2.1's release note on that premise. Re-measured at this
+      HEAD, the product implements glob matching twice and the
+      copies disagree:
+
+      web/js/**/*.js x web/js/app.js        review false  scope true
+      src/**/*.ts    x src/a.ts             review false  scope true
+      src/**/*.ts    x src/x/a.ts           review true   scope true
+      src/**         x src/a.ts             review true   scope true
+
+      src/artifact/scope.ts (parseScopeGlob /
+      observedWriteScopeContains) is segment-based, exported, and
+      already admits zero-depth globstar. src/review/core.ts
+      matchSimpleGlob is a private regex copy that requires at
+      least one intervening segment. The copy governs the scope
+      audit. A plan declaring Glob src/**/*.ts and writing
+      src/a.ts is inside approved ObservedWriteScope by the
+      canonical parser and reported outside it by the audit.
+
+      A generated reference cannot be the single truth about a
+      rule implemented two ways. Deleting the duplicate is P2.1
+      (D11: genuine conflict, not filing). This bundle must not
+      document zero-depth globstar, and must not quietly omit the
+      refusal: the generated preamble names glob matching as
+      outside coverage and states why.
+
+      ---
+
+      **docs/schema-reference.md does not exist.**
+      docs/ currently holds ngrace-explainer.html and plans/.
+      Markdown under docs/ is not an XML artifact and is not
+      scanned as governed markup. ignoredDirs lists examples and
+      scripts, so a writer under scripts/ is outside ngrace lint.
+      Without a stale-check that can be shown red, a committed
+      generated file is just a document (F28 / F35.1).
+    </Problem>
+    <Goals>
+      <Goal>
+        **Generated reference.** A committed docs/schema-reference.md
+        is produced from the live declarative inventories in
+        grammar.ts, not hand-written. Regeneration on a clean tree
+        is a no-op. The file's preamble names every shape it
+        covers and names the classes it does not.
+      </Goal>
+      <Goal>
+        **Detectable staleness.** Changing an inventory member
+        without regenerating fails a check that validate:ci runs.
+        Absence of the committed file also fails that check.
+        Green on a clean tree is the baseline, not the evidence.
+      </Goal>
+      <Goal>
+        **Explain shapes from the same renderer.** lint explain
+        accepts each registered shape name and prints that shape's
+        section as the renderer produced it for the markdown.
+        Issue-code explain is unchanged. Disambiguation is
+        registry-first, decided below.
+      </Goal>
+      <Goal>
+        **F60 recorded, not improvised.** The generated document
+        does not teach a glob matching rule. It discloses that
+        P1.4 asked for zero-depth globstar and that F60 blocks it.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: RM-GOVERNED-PATH P1 step 4; F60 (glob semantics
+        are not this deliverable); F10 (the reference claims only
+        what it reads); F28 / F35.1 (a green already true at HEAD
+        is not evidence; the drift check must be showable red);
+        F33 (do not freeze a count or line number this change
+        moves); F42 (no assertion needle the generated document
+        may legitimately mention); F43 (this artifact cannot quote
+        XML; bind semantic content here, assert literal bytes in
+        tests); F44 (pin where explain output identifies itself);
+        F45 (name HEAD-true halves and exempt them); F51 (no
+        SKILL.md, so no token-accounting or README pin); F52
+        (change.plan-scope-exceeds-spec compares DurableScope
+        anchors at warning and does not look at file paths);
+        F56 (a task may plan at most three distinct fail
+        signatures; FIX_DISTINCT_SIGNATURE_BUDGET is 4, so a
+        fourth planned red also trips escalation); D11 (nothing
+        deferred without a dependency or a conflict); D16
+        (evidence lives in an artifact); D17 (AC ids name the
+        property). D13 (lint-result JSON gains no new top-level
+        key; explain JSON is a different envelope).
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T2** (grammar inventories + lint explain
+        dispatch + committed generated document + CI stale-check).
+        P1.5 generators, P1.6 as-state, P1.10 skill inversion,
+        P1.11 polyglot, P2.1 matcher deletion, and
+        C-EXPLAIN-COVERAGE's deferred option 2 (real issue-code
+        registries, drop prefix rule 6) are out of implementation.
+      </Constraint>
+      <Constraint>
+        **Decided here, not deferred to the plan — source and
+        export.** The generator reads live values from
+        src/artifact/grammar.ts. It does not parse the file as
+        text and does not copy member lists. The eighteen
+        module-private inventories become reachable through one
+        exported barrel GRAMMAR_INVENTORIES whose properties are
+        the same references the validators already use (not
+        copied arrays or rebuilt Sets). The eighteen stay const
+        in that file. MODULE_MAP gains the barrel name because
+        MAP_MODE is EXPORTS. Relocating the inventories into
+        types.ts is out. Adding a nineteenth private constant
+        does not automatically enter the reference; the barrel
+        and the shape registry are the coverage surface (F10).
+      </Constraint>
+      <Constraint>
+        **Decided here — closed shape registry.** schema-reference
+        (new file under src/artifact/, LINKS M-GRAMMAR) maps
+        these shape names, and only these, onto barrel keys:
+
+        artifact-root           STANDARD_ROOT_TAGS and CHANGE_ROOT_TAGS
+        root-metadata           ROOT_METADATA_ATTRIBUTE and CHANGE_ROOT_METADATA_ATTRIBUTES
+        change-status           VALID_CHANGE_STATUSES
+        change-spec             SPEC_REQUIRED_SECTIONS
+        change-plan             PLAN_REQUIRED_SECTIONS
+        change-task             TASK_REQUIRED_SECTIONS
+        assertion               ASSERTION_SECTION_TAGS
+        durable-scope           DURABLE_SCOPE_DIRECT_TAGS
+        observed-write-scope    OBSERVED_SCOPE_DIRECT_TAGS
+        anchor-family           ANCHOR_FAMILIES
+        context-artifact        CONTEXT_ARTIFACTS
+        ledger-verdict          REVIEW_VERDICT_OUTCOMES
+        gate-decision           GATE_DECISION_GATES and GATE_DECISION_VALUES
+        clarification           CLARIFICATION_WORKING_FORM
+        design-reference        DESIGN_REFERENCE_CHILD_TAGS
+
+        That list is those names, not a count (F33). Extending it
+        is a re-spec. graph-module and module-contract are not
+        members: they are not these inventories. No shape is named
+        glob or globstar.
+      </Constraint>
+      <Constraint>
+        **Decided here — renderer home and writer home.** One
+        renderer in src/artifact/schema-reference.ts produces
+        each shape section. lint explain and the committed
+        markdown both call it. A writer script
+        scripts/generate-schema-reference.ts writes
+        docs/schema-reference.md and supports a check mode that
+        exits non-zero when the file is missing or differs.
+        scripts/ is ignoredDirs, so the writer is outside ngrace
+        lint; that is correct (it is a repo tool, not an
+        artifact). The renderer ships because src/artifact/ is
+        already in the published files list. The markdown is
+        in-repo authoring documentation and is not added to the
+        npm files list.
+      </Constraint>
+      <Constraint>
+        **Decided here — explain disambiguation (registry first).**
+        On the existing lint explain argument: if the token is a
+        registered shape name, print the shape section and exit 0.
+        Else if the token contains a period, keep the current
+        issue-code path (classifyIssueCode / formatLintExplanation
+        / unknown-code exit 1). Else treat it as an unknown shape:
+        exit 1, name the token, list the registered shape names,
+        and do not print a Classification line (that line is the
+        issue-code surface). Measurement that supports the period
+        fallback: the registered code union at this HEAD has zero
+        members without a period. Residual, disclosed: the four
+        undotted GraceCommandError codes, which already classify
+        unknown, take the unknown-shape path after this change.
+        Do not register them. A future undotted issue code would
+        also take that path; that is accepted and recorded.
+      </Constraint>
+      <Constraint>
+        **Decided here — explain output shape (F44).** Text shape
+        explain does not reuse the issue-guide title
+        "neo-grace Lint Issue Guide". Its first line identifies a
+        shape reference. The body after that heading is the same
+        bytes the renderer emitted for that shape's markdown
+        section. JSON shape explain is a distinct envelope with
+        kind shape; it must not report an IssueCodeClassification
+        and must not change lint-result schemaVersion. Unknown
+        shape JSON names the token and the registered names.
+      </Constraint>
+      <Constraint>
+        **Decided here — drift check.** The suite asserts that
+        docs/schema-reference.md is byte-identical to the
+        renderer output, and that each barrel property is the
+        same reference the corresponding validator constant
+        uses. validate:ci invokes the writer's check mode so a
+        skipped test cannot hide staleness. At pre-change HEAD
+        the file is absent, so both checks fail: that is the
+        HEAD-RED for this property, not a later mutation of a
+        green file. After landing, the proof that the check
+        still sees inventory edits is the live-interpolation
+        assertion (generated text contains each inventory
+        member as the live value), not a stashed edit.
+      </Constraint>
+      <Constraint>
+        AffectedAreas names modules. File-level scope is enforced
+        at close by review.write-evidence-outside-scope (error),
+        not at authoring (F52). ObservedWriteScope must still
+        list every path the deliverable forces (F27.2). Forced
+        write surface: src/artifact/grammar.ts (barrel export and
+        MODULE_MAP only); src/artifact/schema-reference.ts (new);
+        src/artifact/schema-reference.test.ts; src/grace-lint.ts
+        (explain dispatch only); src/grace-lint.test.ts (shape
+        explain cases only); docs/schema-reference.md;
+        scripts/generate-schema-reference.ts; package.json
+        (validate:ci composition only; no version field). This
+        bundle's spec.xml and plan.xml. No SKILL.md. **Stop and
+        re-spec** rather than touching src/review/**,
+        src/artifact/scope.ts, src/project-utils.ts,
+        src/artifact/types.ts, src/artifact/projections.ts,
+        src/lint/catalog.ts, skills/**, plugins/**,
+        docs/plans/**, .ngrace/changes/archive/**, CHANGELOG.md,
+        or any version surface. catalog.ts stays closed because
+        dispatch lives in grace-lint.ts and the renderer lives
+        beside the grammar.
+      </Constraint>
+      <Constraint>
+        **Do not edit** docs/plans/**, .ngrace/changes/archive/**,
+        CHANGELOG.md, or any version surface. Packaged version at
+        authoring: **6.2.0**. No product version bump — 6.3.0 is
+        a phase target, not this bundle's act. Newly visible
+        explain-shape behaviour is named in the conventional
+        commit body (D5.5), not in CHANGELOG.md.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first is mechanical for new
+        behaviour. Failing tests are written before the fail
+        attempt is recorded, in a separate tool round trip.
+        Never a retrospective red via stash. Never weaken a
+        BaselineAssertion to move a lint count. F45 carve-outs
+        are named on AC-HEAD-RED. F56: the plan splits criteria
+        so no task plans more than three distinct fail
+        signatures. F42: plan assertions must not use as a
+        MustContain or MustNotContain needle any shape name,
+        inventory member, issue code, or coverage-preamble
+        phrase the generated document will emit; bind to
+        implementation symbols (barrel name, renderer export,
+        writer check-mode exit) instead. F43: this spec binds
+        semantics; tests under src/**/*.test.ts assert literal
+        bytes. F39.1: this bundle's artifacts must not hold two
+        adjacent hyphen characters inside any XML comment body.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        **Rejected — document zero-depth globstar, or teach either
+        glob matcher, in the generated reference.** P1.4 required
+        it. F60 makes a single-truth document of that rule
+        impossible while matchSimpleGlob still exists. Home: P2.1
+        deletes the duplicate and writes the release note. D11:
+        conflict, not filing. The preamble discloses the refusal;
+        silence about the refusal is also rejected.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — register graph-module or module-contract as
+        shapes in this bundle.** They are the step's examples and
+        they are not grammar.ts inventories. Adding them would
+        open project-utils.ts / projections.ts / types.ts and
+        claim a source the generator does not read (F10). After
+        this change those tokens take the unknown-shape path and
+        list the registered names. That is the honest teaching.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — C-EXPLAIN-COVERAGE option 2** (replace prefix
+        rule 6 with real xml.* / design-context.* / health.*
+        registries). That bundle assigned option 2 to P1.4 because
+        this step opens grammar.ts. Adjacency is not a dependency
+        (D11). This deliverable is the generated reference, not a
+        catalog rewrite. catalog.ts is closed.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — hand-write docs/schema-reference.md, or
+        generate by regex over grammar.ts source text.** The first
+        is the second grammar the step exists to prevent. The
+        second is regex-over-structure on a 2387-line imperative
+        file.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — generate the imperative remainder** (status
+        versus location, plan-requires-approved-spec, DependsOn
+        accepted forms, projection rules, markup field lists).
+        Those are validators and catalogs, not inventories. Issue
+        codes already have explain. Skills are P1.10.
+      </NonGoal>
+      <NonGoal>
+        P1.5 generators, P1.6 as-state, P1.7 export view, P1.8
+        no-adapter warning, P1.10 skill inversion, P1.11 polyglot,
+        P2.1 matcher deletion, P3.2 plan amend. Skill-text edits
+        (F51 pin files). Publishing the markdown on npm.
+      </NonGoal>
+      <NonGoal>
+        docs/plans/** board edits, CHANGELOG.md, product version
+        bump. Conflict: this bundle does not close 6.3.0.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-REFERENCE-GENERATED>
+        docs/schema-reference.md exists in the repository and is
+        byte-identical to the renderer output for the full
+        registry. A generated banner is the first line and tells
+        a reader not to hand-edit. Each GRAMMAR_INVENTORIES
+        property is the same reference as the validator constant
+        of the same name. Each inventory member appears in the
+        generated text as that live value, so a hardcoded copy
+        inside the renderer fails when the constant moves. The
+        writer script is what updates the committed file.
+        **HEAD today:** the path does not exist; the barrel does
+        not exist; the renderer does not exist. **Failure
+        conditions:** a hand-written file sold as generated;
+        renderer copies member lists instead of reading the
+        barrel; barrel rebuilds arrays or Sets so reference
+        equality fails; banner absent; only a subset of
+        registered shapes rendered while claiming the registry;
+        writer not the update path.
+      </AC-REFERENCE-GENERATED>
+      <AC-COVERAGE-NAMED>
+        The generated file's preamble, before any shape section,
+        names every registered shape and states that coverage is
+        those inventories only. It names three excluded classes
+        as excluded: imperative validators in grammar.ts; file-local
+        markup families (and that graph-module and module-contract
+        are in that class, not in this registry); glob matching
+        (F60). It does not describe itself as a complete schema
+        or a complete grammar. **HEAD today:** no file, so no
+        preamble. **Failure conditions:** preamble omitted;
+        file titled or introduced as a complete schema; excluded
+        class missing; graph-module or module-contract presented
+        as covered; a count of inventories or shapes frozen as
+        the pass bar (F33).
+      </AC-COVERAGE-NAMED>
+      <AC-DRIFT-DETECTABLE>
+        Two facts, both required. (1) The writer's check mode
+        exits non-zero when docs/schema-reference.md is missing
+        or when its bytes differ from the renderer. validate:ci
+        invokes that check mode. (2) The suite asserts
+        byte-identity and live interpolation as in
+        AC-REFERENCE-GENERATED, so an inventory edit without
+        regeneration fails bun test as well. At pre-change HEAD
+        (1) fails because the file is absent; that absence is
+        this criterion's red, not silence after the file lands.
+        Regeneration on a clean post-change tree is a no-op
+        (zero diff). **HEAD today:** file absent; no check mode;
+        validate:ci does not invoke one. **Failure conditions:**
+        check implemented only as a test that can be skipped;
+        check compares a fixture copy rather than the renderer;
+        green-on-clean-tree sold as the red; HEAD absence not
+        recorded as the red; validate:ci composition unchanged
+        so CI can pass with a stale file if the test is skipped.
+      </AC-DRIFT-DETECTABLE>
+      <AC-EXPLAIN-SHAPES>
+        For every registered shape name, lint explain of that
+        token exits 0. Text output: first line identifies a
+        shape reference and does not use the issue-guide title;
+        the body after the heading is the same bytes as that
+        shape's markdown section from the renderer. JSON output
+        uses a distinct envelope with kind shape and does not
+        carry an IssueCodeClassification. One registered name
+        does not satisfy the set; plant at least change-spec and
+        assertion (an undotted token that shares a prefix family
+        with issue codes). **HEAD today:** every registered
+        name classifies unknown and explain exits 1 with an
+        issue-guide Classification line. **Failure conditions:**
+        only markdown landed; explain restates the section by
+        hand; first line still the issue-guide title; JSON
+        reports classification exact or unknown; only one shape
+        planted; lint-result schemaVersion changed.
+      </AC-EXPLAIN-SHAPES>
+      <AC-SHAPE-CODE-SPLIT>
+        Registry first, then the period fallback, as decided.
+        lint explain of a registered shape never enters
+        formatLintExplanation. lint explain of an existing
+        dotted issue code (plant at least one exact code and
+        one unknown dotted token) keeps today's classification,
+        title, and exit code. lint explain of an undotted token
+        that is not a registered shape exits 1, lists the
+        registered names, and does not print Classification.
+        **HEAD today:** graph-module, module-contract, and
+        change-spec are unknown issue codes (Classification
+        unknown, exit 1); dotted codes behave as they do now.
+        **Failure conditions:** period-only rule with no
+        registry lookup; classifyIssueCode consulted before the
+        registry so a future dotted shape name would be
+        swallowed by a prefix guide; unknown undotted token
+        still printed as an issue guide; existing dotted
+        explain rewritten.
+      </AC-SHAPE-CODE-SPLIT>
+      <AC-NO-GLOB-RULE>
+        The closed registry contains no shape whose subject is
+        glob matching. The generated file contains no table or
+        section that states match outcomes for globstar (including
+        the four pairs F60 measured). The preamble's excluded-class
+        sentence required by AC-COVERAGE-NAMED is the only
+        permitted mention of glob matching, and it states that
+        P1.4 asked for zero-depth globstar and that F60 blocks
+        documenting it while two implementations disagree. This
+        criterion binds that semantic content; the test asserts
+        the bytes. **HEAD today:** no file and no registry.
+        **Failure conditions:** a glob or globstar shape added
+        to satisfy P1.4's sentence; a match-outcome table
+        generated from either matcher; preamble omits the F60
+        refusal; MustNotContain on a phrase the preamble must
+        use (F42); this criterion treated as a quoted-byte bind
+        in this file.
+      </AC-NO-GLOB-RULE>
+      <AC-HEAD-RED>
+        Each of AC-REFERENCE-GENERATED, AC-COVERAGE-NAMED,
+        AC-DRIFT-DETECTABLE (the missing-file check-mode
+        failure, not a later clean-tree green),
+        AC-EXPLAIN-SHAPES, and AC-SHAPE-CODE-SPLIT (the
+        registered-shape path and the unknown-undotted path,
+        not the unchanged dotted-code path) has a red recorded
+        before its production edit, in its own tool round trip,
+        with the failing test written first. Never a red backed
+        only by a grep, and never a retrospective red via stash.
+        **Exempt from this universal (F45, named at authoring):**
+        AC-SUITE-AND-LINT (green at HEAD; close-time bar);
+        existing dotted issue-code explain (already true at
+        HEAD); docs/*.md staying outside the lint artifact
+        universe (already true); scripts/ staying in ignoredDirs
+        (already true); AC-NO-GLOB-RULE's "no glob shape"
+        half once the decided list is authored (true by
+        construction of that list; do not manufacture a red by
+        adding a glob shape to delete it); lint-result JSON
+        schemaVersion unchanged (this bundle does not edit that
+        envelope). **HEAD today:** no markdown, no barrel, no
+        renderer, no shape explain path, check mode absent.
+        **Failure conditions:** a check that passes on
+        pre-change HEAD sold as new behaviour; fail and pass in
+        one tool call; AC-SUITE-AND-LINT required to be red at
+        HEAD; clean-tree identity sold as AC-DRIFT-DETECTABLE's
+        red; dotted-code explain reddened.
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-LINT>
+        bun test green for touched packages
+        (src/artifact/schema-reference.test.ts,
+        src/grace-lint.test.ts, and any test of the writer
+        check mode); bun run validate:ci green (determinism
+        ratchet cardinality only moves if a catch is
+        intentionally added — re-measure, do not drop keys);
+        bun run ngrace lint --path . is 0 errors and 0
+        warnings **at close** (after apply and archive — not
+        claimed mid-change). ObservedWriteScope covers every
+        path the deliverable forces, including grammar.ts,
+        schema-reference.ts, schema-reference.test.ts,
+        grace-lint.ts, grace-lint.test.ts,
+        docs/schema-reference.md,
+        scripts/generate-schema-reference.ts, package.json,
+        and this bundle's spec.xml / plan.xml. No SKILL.md, so
+        no F51 pin files. No edits under docs/plans/ or
+        .ngrace/changes/archive/; no CHANGELOG.md; no version
+        surfaces. **HEAD today:** lint is 0/0 and validate:ci
+        is green — that green is the baseline, not this
+        change's evidence. **Failure conditions:** suite red;
+        lint 0/0 claimed mid-window; ratchet keys dropped;
+        writes outside declared scope; HEAD-green lint cited
+        as proof the reference or explain-shape path landed.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GRAMMAR />
+      <M-LINT-CORE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/artifact/schema-reference.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-lint.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): the committed markdown is byte-identical
+        to the renderer; barrel properties are the validator
+        references; preamble names every registered shape and the
+        three excluded classes; check mode fails when the file is
+        missing or stale and validate:ci invokes it; explain of
+        change-spec and of assertion exits 0 with a shape-reference
+        first line and a body equal to the markdown section; explain
+        of a dotted exact code and of a dotted unknown token keeps
+        today's classification and exit; explain of an undotted
+        unregistered token exits 1, lists registered names, and
+        prints no Classification line; registry has no glob shape
+        and the file has no globstar match table; F60 refusal is
+        in the preamble; suite green; lint 0/0 at close only.
+        Evidence is the suite and the ledger fail/pass pairs on
+        the non-exempt criteria, not a command someone reports.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring HEAD a26b07b, packaged 6.2.0, lint 0/0
+        (108 files / 61 governed / 127 XML artifacts), archive
+        33, active empty before this bundle, suite 1286 pass /
+        3 skip / 0 fail, validate:ci green with ratchet 14.**
+        F33: implementation re-measures counts; criteria do not
+        freeze them or any line number.
+      </Assumption>
+      <Assumption>
+        **Survey snapshot, not a count to freeze.** Eighteen
+        module-private constants in grammar.ts:
+        STANDARD_ROOT_TAGS, CHANGE_ROOT_TAGS,
+        VALID_CHANGE_STATUSES, ROOT_METADATA_ATTRIBUTE,
+        CHANGE_ROOT_METADATA_ATTRIBUTES, SPEC_REQUIRED_SECTIONS,
+        PLAN_REQUIRED_SECTIONS, TASK_REQUIRED_SECTIONS,
+        ASSERTION_SECTION_TAGS, DURABLE_SCOPE_DIRECT_TAGS,
+        OBSERVED_SCOPE_DIRECT_TAGS, ANCHOR_FAMILIES,
+        CONTEXT_ARTIFACTS, REVIEW_VERDICT_OUTCOMES,
+        GATE_DECISION_GATES, GATE_DECISION_VALUES,
+        CLARIFICATION_WORKING_FORM, DESIGN_REFERENCE_CHILD_TAGS.
+        types.ts already exports related inventories
+        (NGRACE_ROOT_TAGS, CHANGE_STATUSES, MODULE_TYPES,
+        ANCHOR_PATTERNS, NGRACE_CONTEXT_ARTIFACTS,
+        NGRACE_OPTIONAL_CONTEXT_ARTIFACTS,
+        NGRACE_CHANGE_BUNDLE_COMPANIONS,
+        VERIFICATION_ENTRY_EVIDENCE_TAGS) that this bundle does
+        not add to the barrel unless they are already the
+        referent of one of the eighteen. docs/schema-reference.md
+        does not exist. ignoredDirs is examples and scripts.
+        docs/*.md is not in the lint artifact universe.
+      </Assumption>
+      <Assumption>
+        **Explain-code universe at this HEAD.** exact guides 114,
+        review 15, gate 8, collectEmittedIssueCodes 234,
+        PREFIX_GUIDES prefixes 14; union 255; members without a
+        period: none. Proposed shape names classify unknown.
+        collectEmittedIssueCodes's own code literal already
+        requires a period. Four GraceCommandError codes are
+        undotted and classify unknown. F60 pairs re-measured
+        against observedWriteScopeContains and a copy of
+        matchSimpleGlob at review/core.ts:1116; disagreement
+        holds on the two zero-depth cases.
+      </Assumption>
+      <Assumption>
+        **Disambiguation — decided registry-first against the
+        options below.** Option 1 (period means code, otherwise
+        shape) matches the 255-member union and is what the
+        authoring prompt guessed. It is F10 the first time a
+        shape name contains a period or a code does not;
+        PREFIX_GUIDES would also swallow a name like change.spec
+        as emittable. Option 2 (classifyIssueCode first, else
+        shape) lets prefix families steal dotted shape names and
+        prints unknown undotted tokens as issue guides. Option 3
+        (registry first; period fallback only after a miss) is
+        decided: registered shapes cannot be stolen, dotted
+        codes keep today's path, undotted misses teach the
+        registry. Residual: undotted GraceCommandError codes
+        move from unknown-issue to unknown-shape. Disclosed.
+      </Assumption>
+      <Assumption>
+        **C-EXPLAIN-COVERAGE assigned option 2 (real registries)
+        to P1.4.** That assignment is topical filing. This spec
+        does not absorb it. If a later bundle opens catalog.ts
+        for prefix rule 6, that is a new C-*.
+      </Assumption>
+      <Assumption>
+        **Sequencing rule 4 consequence.** P1.4 before P2.1's
+        release note assumed this reference would state
+        zero-depth globstar. It will not. P2.1 must carry that
+        semantic in its own CHANGELOG note and must not point
+        at docs/schema-reference.md for a rule this file
+        refuses to teach. Not this bundle's edit (docs/plans
+        is closed).
+      </Assumption>
+      <Assumption>
+        **Module ownership.** M-GRAMMAR Path is
+        src/artifact/grammar.ts; scope.ts also LINKS M-GRAMMAR
+        and is not in this write set. schema-reference.ts is a
+        new linked file, not a new graph module. M-LINT-CORE
+        Path is src/lint/core.ts; grace-lint.ts LINKS
+        M-LINT-CORE. M-LINT-CATALOG is catalog.ts and is
+        closed. Test files are ungoverned and ride
+        ObservedWriteScope as paths. package.json, the writer
+        script, and docs/schema-reference.md are not graph
+        modules and are declared as paths.
+      </Assumption>
+    </Assumptions>
+  </C-SCHEMA-REFERENCE>
+</NgraceChangeSpec>
