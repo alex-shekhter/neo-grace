@@ -1,0 +1,1068 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-TEACHING-SURFACE>
+    <IntentSummary>
+      Deliver RM-GOVERNED-PATH P1 steps 10 and 11 together: invert
+      the five skills that restate registered grammar shapes so they
+      name live shape sources and keep product-policy those sources
+      do not carry; add a checkable approval_lexicon; rewrite
+      evidence_contract so TraceAssertion plus tests is the default;
+      rebalance examples/polyglot so Marker is not the majority
+      V-M-star evidence type; add fill-and-lint (and the honest
+      weaker check) for the three remaining template kinds; and
+      install checkDocsAndExamplesDecision as the F66 rule. Repair
+      every pin the deliverable falsifies, including the F51 pair.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-design/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-verification/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-cli/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>examples/polyglot/.ngrace/verification/api.xml</Value></MustExist>
+      <MustExist><Value>examples/polyglot/.ngrace/verification/core.xml</Value></MustExist>
+      <MustExist><Value>examples/polyglot/.ngrace/verification/ui.xml</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/references/design-context-template.xml</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-design/references/design-system-template.xml</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-migrate/references/migration-report-template.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-TEACHING-SURFACE/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-TEACHING-SURFACE/plan.xml</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustNotExist><Value>scripts/check-teaching-surface.ts</Value></MustNotExist>
+      <MustNotExist><Value>scripts/check-teaching-surface.test.ts</Value></MustNotExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>review.write-evidence-outside-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>approved_plan_immutability</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>"schemaVersion": "1.0.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>analysis.runtime-missing</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-verification/SKILL.md</File>
+        <Text>evidence_contract</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>package.json</File>
+        <Text>check-teaching-surface</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>shape_sources</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>shape_sources</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-design/SKILL.md</File>
+        <Text>shape_sources</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-verification/SKILL.md</File>
+        <Text>shape_sources</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>shape_sources</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>approval_lexicon</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>approval_lexicon</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>docs_and_examples</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-design/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-verification/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-cli/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>check-teaching-surface</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>validate:teaching-surface</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkApprovalLexicon</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkPolyglotDefault</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkTemplateFill</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkClaimedShapes</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkDocsAndExamplesDecision</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>shape_sources</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>shape_sources</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-design/SKILL.md</File>
+        <Text>shape_sources</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-verification/SKILL.md</File>
+        <Text>shape_sources</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>shape_sources</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>approval_lexicon</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>approval_lexicon</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>docs_and_examples</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>review.write-evidence-outside-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>approved_plan_immutability</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>"schemaVersion": "1.0.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+        <Text>analysis.runtime-missing</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-verification/SKILL.md</File>
+        <Text>evidence_contract</Text>
+      </MustContain>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/grammar.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:marketplace</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:examples</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-design/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-design/SKILL.md</File>
+      <File>skills/ngrace/ngrace-verification/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-verification/SKILL.md</File>
+      <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</File>
+      <File>skills/ngrace/ngrace-migrate/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-migrate/SKILL.md</File>
+      <File>skills/ngrace/ngrace-spec/references/design-context-template.xml</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/references/design-context-template.xml</File>
+      <File>skills/ngrace/ngrace-design/references/design-system-template.xml</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-design/references/design-system-template.xml</File>
+      <File>skills/ngrace/ngrace-migrate/references/migration-report-template.xml</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-migrate/references/migration-report-template.xml</File>
+      <File>examples/polyglot/.ngrace/verification/api.xml</File>
+      <File>examples/polyglot/.ngrace/verification/core.xml</File>
+      <File>examples/polyglot/.ngrace/verification/ui.xml</File>
+      <File>examples/polyglot/WALKTHROUGH.md</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>package.json</File>
+      <File>.ngrace/changes/active/C-TEACHING-SURFACE/spec.xml</File>
+      <File>.ngrace/changes/active/C-TEACHING-SURFACE/plan.xml</File>
+      <File>.ngrace/changes/active/C-TEACHING-SURFACE/run.xml</File>
+      <File>.ngrace/changes/active/C-TEACHING-SURFACE/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-TEACHING-SURFACE/run/**</Glob>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: f5d50a2 (branch feat/teaching-surface).
+      Spec is approved and immutable. Do not amend it. If execute
+      shows the spec is wrong, stop and report.
+
+      Ceremony tier T2. Stop and re-spec rather than touching
+      src/artifact/grammar.ts validators, src/lint/catalog.ts,
+      src/lint/core.ts, src/gates production, src/review production,
+      ngrace-execute SKILL.md, the four spec/plan template files,
+      init assets, docs/plans, .ngrace/changes/archive,
+      CHANGELOG.md, or any version surface. Packaged version stays
+      6.2.0. No product version bump. F50: this plan does not
+      instruct its own ObservedWriteScope amendment; cursor
+      companions are listed at authoring. F33: re-measure every
+      count at execute. Do not pin 779, 53864, 1445, 1433, 1344,
+      136, 35, or any line number this change moves. F61: name
+      argv tokens and exported functions in this comment; leave
+      dashed forms to *.test.ts. F42: plan assertions bind to
+      exported function names and skill tag names, never to
+      looks good, continue, Marker, TraceAssertion, section
+      names, or AC-SKELETON. F65: in-place amend is not this
+      bundle's remedy. No Clarifications section.
+
+      ────────────────────────────────────────────────────────────
+      D0 — Task decomposition and F56 budget
+      ────────────────────────────────────────────────────────────
+      Seven non-exempt criteria, each with its own red.
+      Cap: at most three distinct kind-plus-key pairs per
+      task (FIX_DISTINCT_SIGNATURE_BUDGET is 4). A task
+      must not record the same key twice
+      (FIX_SIGNATURE_REPEAT_BUDGET is 2). New-check reds
+      use the exported function name as the key. Skill-pin
+      repairs use the test file stem. Do not reuse
+      validate-ci as a second key inside one task.
+
+      Five tasks. At most two planned reds per task, so
+      every window keeps at least one spare slot. Seven
+      reds cannot fill five tasks at two each without
+      inventing a red; the close task plans zero.
+
+      | Task | Surface | Satisfies | Planned distinct reds |
+      | T-001 | five SKILL.md pairs,
+          approval_lexicon,
+          checkApprovalLexicon,
+          skill-contracts repairs,
+          F51 first remeasure
+        | AC-SKILL-INVERSION,
+          AC-APPROVAL-LEXICON
+        | 2: test:skill-contracts,
+          test:checkApprovalLexicon |
+      | T-002 | evidence_contract,
+          checkPolyglotDefault,
+          one polyglot Marker entry
+        | AC-EVIDENCE-DOCTRINE,
+          AC-POLYGLOT-DEFAULT
+        | 2: test:skill-contracts,
+          test:checkPolyglotDefault |
+      | T-003 | checkTemplateFill,
+          checkClaimedShapes
+        | AC-TEMPLATE-FILL,
+          AC-CLAIMED-SHAPES
+        | 2: test:checkTemplateFill,
+          test:checkClaimedShapes |
+      | T-004 | docs_and_examples,
+          must_do row,
+          checkDocsAndExamplesDecision
+        | AC-DOCS-EXAMPLES
+        | 1: test:checkDocsAndExamplesDecision |
+      | T-005 | F51 final remeasure,
+          dogfood close
+        | AC-HEAD-RED,
+          AC-SUITE-AND-LINT
+        | 0 planned |
+
+      T-002 DependsOn T-001: verification skill already
+      carries shape_sources; the check module exists.
+      T-003 DependsOn T-002: same check module file.
+      T-004 DependsOn T-003: same check module, and
+      spec/plan skills must not gain docs_and_examples
+      before T-004 records its red. T-005 DependsOn T-004.
+      Sequential on purpose; the shared files cannot
+      run as a parallel wave.
+
+      Signature keys the executor must record (kind test):
+        T-001  test:skill-contracts
+        T-001  test:checkApprovalLexicon
+        T-002  test:skill-contracts
+        T-002  test:checkPolyglotDefault
+        T-003  test:checkTemplateFill
+        T-003  test:checkClaimedShapes
+        T-004  test:checkDocsAndExamplesDecision
+
+      Per-task counts: T-001 2, T-002 2, T-003 2, T-004 1,
+      T-005 0. No key repeats inside a task. No task has
+      more than two planned. T-002 may reuse the stem
+      skill-contracts because it is a new window.
+
+      ────────────────────────────────────────────────────────────
+      D1 — Skill inversion and approval lexicon (T-001)
+      ────────────────────────────────────────────────────────────
+      Edit canonical and packaged SKILL.md for ngrace-spec,
+      ngrace-plan, ngrace-design, ngrace-verification, and
+      ngrace-cli only. Both trees in the same production
+      trip. validate:marketplace stays green because they
+      change together.
+
+      Each of the five gains a named shape_sources block
+      that cites docs/schema-reference.md and argv token
+      explain for a shape or code. ngrace-spec names
+      argv token spec plus argv token new as the primary
+      write path and the spec template as the optional
+      section teaching source; cite
+      references/design-context-template.xml by path
+      (today the skill says "from its template" without
+      a path). ngrace-plan names argv token plan plus
+      argv token new the same way. ngrace-cli names the
+      README CLI Overview table (already bound to
+      liveCommandRoots) as the inventory and keeps
+      assertion-mode and fail-closed workflow, including
+      the schemaVersion pin and analysis.runtime-missing.
+      ngrace-design names the design-system template as
+      the children source and examples/polyglot as the
+      AccessibilityCheck / VisualCheck example; keep
+      ST-star whole-word matching and module Type values
+      (schema-reference lists the NgraceDesignSystem root
+      and the ST- prefix, not those rules; F63).
+      ngrace-verification names shape sources; do not
+      rewrite evidence_contract doctrine in this task.
+
+      Remove restatements of registered shapes: the
+      seven change-spec section names as the spec
+      contract; the change-plan and change-task section
+      lists as the plan contract; design-reference
+      children (Figma, UserResearch); the stale cli
+      command inventory. Do not delete ceremony_tiers,
+      interview and approval workflow,
+      approved_plan_immutability, must_do forced-scope
+      substance (deliverable forces, skill-footprint,
+      fixtures that construct, and
+      review.write-evidence-outside-scope), ST-star
+      whole-word matching, module Type values, or the
+      clarification working form. Keep a one-sentence
+      pointer that still satisfies grammar.test.ts
+      TEACHING_FILES (self-closing IC-star / INV-star /
+      AC-star child). Do not write grammar.test.ts
+      unless that pointer cannot be kept; if the pin
+      cannot be repaired without weakening, stop.
+
+      Do not drop forced-scope phrases. Do not edit
+      src/review/core.test.ts unless a pin repair
+      requires it. Do not edit ngrace-execute. Do not
+      edit ngrace-fix (perSkill stays 32 by non-edit).
+      Do not add docs_and_examples. Do not add the
+      F66 must_do row. Those belong to T-004 so its
+      red stays recordable.
+
+      approval_lexicon on ngrace-spec and ngrace-plan
+      (both trees). Sufficient phrases, closed: the
+      standalone word approved; the phrase I approve;
+      the phrase approve this spec or approve this
+      plan matching the artifact. Named non-approvals,
+      closed: looks good; continue; any question. A
+      question is not an approval even when it contains
+      an approving word. Do not add LGTM.
+
+      New file scripts/check-teaching-surface.ts.
+      export function checkApprovalLexicon(root): number
+      returns non-zero when either spec or plan skill
+      (either tree) lacks approval_lexicon or the block
+      omits a named non-approval; zero when both skills
+      in both trees carry the block. Isolated-root
+      fixture so the red stays valid after this repo
+      is green. Argv token check. Check mode must not
+      write. Compose validate:teaching-surface into
+      validate:ci (package.json scripts only; no
+      version field). Later tasks add exports to this
+      same file.
+
+      skill-contracts: repair every assertion this
+      inversion falsifies, including the seven-section
+      loop on ngrace-spec and the Figma url pin on the
+      skill (the same pins on the spec/plan templates
+      stay; those four files are not edited). Repair
+      to shape_sources present and approval_lexicon
+      present at the same matcher strength. Do not
+      replace an exact assertion with a substring one.
+      Do not delete a pin.
+
+      F51: after the skill edits, re-measure
+      skillTextLines total and totalBytes and update
+      token-accounting.test.ts and the README
+      documented totals to the new true values. Repair
+      README referencesTotal from the stale 1445 to
+      the live measured value; do not write 1433 as a
+      frozen target. Skills Overview one-liner only if
+      a rewritten skill's one-liner changes. That
+      update is not a weakening and is not a planned
+      red (F45 exemption named in the spec).
+
+      ngrace-migrate SKILL.md: do not edit unless a
+      claimed-path pointer is required to keep a
+      cited path resolvable. Prefer not to.
+
+      ────────────────────────────────────────────────────────────
+      D2 — Evidence doctrine and polyglot (T-002)
+      ────────────────────────────────────────────────────────────
+      Rewrite ngrace-verification evidence_contract
+      (both trees). TraceAssertion plus tests is the
+      default for deterministic module health. Marker
+      is only for proving a runtime trajectory
+      (BLOCK-star emission from linked implementation).
+      A non-empty Marker is no longer taught as an
+      equal alternative. Do not delete Marker. Do not
+      invent a blocked status on the example.
+
+      skill-contracts gains a doctrine pin at the same
+      matcher strength (named tag / exported check,
+      not a looks-good needle). Record that red under
+      key skill-contracts before the rewrite.
+
+      export function checkPolyglotDefault(root): number
+      counts V-M-star entries in that root's
+      examples/polyglot verification documents whose
+      evidence is TraceAssertion versus Marker.
+      Non-zero when TraceAssertion count is not
+      strictly greater than Marker count, or when
+      Marker count is less than one. Zero when both
+      hold. Isolated-root Marker-majority fixture so
+      the red stays valid after this repo is green.
+      Do not freeze 2 and 1. Check mode must not write.
+
+      Production also rebalances this repo: convert
+      exactly one of V-M-API-ROUTER or V-M-LEDGER-CORE
+      from Marker to TraceAssertion. Leave the other
+      Marker. Leave V-M-WEB-LEDGER-TABLE as
+      TraceAssertion. No status attribute. No blocked.
+      validate:examples stays green. WALKTHROUGH.md is
+      edited only if execute re-measurement shows it
+      teaches Marker as the default (authoring
+      measurement: it does not). Confirm, do not assume.
+
+      Re-measure F51 if the verification skill bytes
+      move. Same rule as D1.
+
+      ────────────────────────────────────────────────────────────
+      D3 — Template fill and claimed shapes (T-003)
+      ────────────────────────────────────────────────────────────
+      export function checkTemplateFill(root): number
+      does two things.
+
+      (1) design-context-template.xml and
+      design-system-template.xml, each tree: substitute
+      placeholders with legal contained values, plant
+      in a temp project at the path lint accepts
+      (design-context.xml under an active C-star
+      bundle; design-system.xml under .ngrace/context),
+      assert 0 errors and 0 warnings on that artifact.
+      Plant a TokenSource file the filled
+      design-system can legally name. Do not claim
+      raw placeholder lint.
+
+      (2) migration-report-template.xml, each tree:
+      well-formed XML after placeholder fill, and
+      every child name skill-contracts already pins
+      is present. Do not call ngrace lint on this
+      kind. NgraceMigrationReport has no
+      src/artifact grammar.
+
+      Discover the three kinds by filename under both
+      trees. Do not hardcode a copied path list.
+      Isolated-root missing-file case so the red
+      survives after this repo is green. Returns
+      non-zero on missing plant, lint errors, or
+      lost pinned children; zero when both trees
+      match. Check mode must not write.
+
+      The four spec/plan templates remain
+      byte-identical to the P1.5 teaching emission.
+      validate:skeleton-templates stays green. Do not
+      regenerate those four files. Do not move the
+      three remaining kinds onto the P1.5 renderer.
+
+      export function checkClaimedShapes(root): number
+      walks every SKILL.md this bundle edits, resolves
+      each cited references/*.xml path relative to that
+      skill directory, and returns non-zero when a
+      cited path is missing in either tree. Zero when
+      every cited XML path exists in both trees. Do
+      not hardcode a copied path list. Do not
+      re-implement spec/plan identity (that is
+      validate:skeleton-templates). Isolated-root
+      missing-citation fixture.
+
+      If a filled design-context or design-system
+      plant is not 0/0, repair the template (both
+      trees) to the new true taught shape. Never
+      weaken a pin to make the plant pass. If a pin
+      cannot be repaired without weakening, stop.
+
+      ────────────────────────────────────────────────────────────
+      D4 — Docs and examples check (T-004)
+      ────────────────────────────────────────────────────────────
+      ngrace-spec gains a named docs_and_examples
+      block. ngrace-plan gains a must_do row requiring
+      every spec to decide README.md and examples/.
+      Do not freeze the row number (F33); T-001 may
+      have replaced section-list rows with a pointer.
+
+      export function checkDocsAndExamplesDecision(specXml)
+      returns non-zero on silence (neither README.md
+      nor examples/ named in Goal, Constraint, or
+      NonGoal) and zero when both paths are decided.
+      A fixture spec with neither path fails; a
+      fixture that names both under NonGoal passes.
+      Do not derive the trigger by guessing
+      user-visible from prose. Do not add a grammar
+      section or a new lint code. Do not scan
+      archive (D5.2 grandfather).
+
+      argv token check runs this function against
+      every active spec in the target project.
+      validate:ci already invokes the script from
+      T-001; extend the runner, do not add a second
+      validate-ci key. Check mode must not write.
+
+      This spec itself already decides both paths
+      (README.md for F51 numbers and Skills Overview
+      if a row changes; examples/ for the polyglot
+      rebalance). That is why the red is the missing
+      function plus the silent fixture, not this spec.
+
+      Re-measure F51 after the spec/plan skill edits.
+
+      ────────────────────────────────────────────────────────────
+      D5 — HEAD-RED ownership
+      ────────────────────────────────────────────────────────────
+      | Spec AC | Owner | Pre-edit measurement |
+      | AC-SKILL-INVERSION | T-001 test:skill-contracts
+        | no shape_sources; spec restates the
+          seven sections; plan restates plan and
+          task sections; cli omits spec, plan,
+          scaffold |
+      | AC-APPROVAL-LEXICON
+        | T-001 test:checkApprovalLexicon
+        | no block; explicitly approves is the
+          whole rule; function absent |
+      | AC-EVIDENCE-DOCTRINE
+        | T-002 test:skill-contracts
+        | marker or trace equally satisfies |
+      | AC-POLYGLOT-DEFAULT
+        | T-002 test:checkPolyglotDefault
+        | Marker 2, TraceAssertion 1; function
+          absent |
+      | AC-TEMPLATE-FILL
+        | T-003 test:checkTemplateFill
+        | no check; three kinds unvalidated |
+      | AC-CLAIMED-SHAPES
+        | T-003 test:checkClaimedShapes
+        | paths exist; nothing fails a dangling
+          citation |
+      | AC-DOCS-EXAMPLES
+        | T-004 test:checkDocsAndExamplesDecision
+        | no block, no function, silence is legal |
+      | AC-HEAD-RED + AC-SUITE-AND-LINT
+        | T-005 Satisfies; reds on T-001 to T-004 |
+
+      Never a red backed only by a grep. Never a
+      retrospective red via stash. Never fail and
+      pass in one tool call. Do not re-record T-001
+      through T-004. F45 exemptions stay unreddened:
+      AC-SUITE-AND-LINT, F51 totals moving,
+      ngrace-fix staying at 32, liveCommandRoots
+      cardinality staying put, scripts/ staying in
+      ignoredDirs, package.json version unchanged,
+      validate:skeleton-templates staying green,
+      archived specs remaining silent on README.md.
+
+      ────────────────────────────────────────────────────────────
+      D6 — ObservedWriteScope
+      ────────────────────────────────────────────────────────────
+      Forced by the spec (F27.2, F64), listed as File
+      entries (F60: no src glob). The one Glob is
+      .ngrace/changes/active/C-TEACHING-SURFACE/run/**
+      which is the same shape both matchers agreed on
+      in F60. Cursor companions are audit-exempt via
+      isCliLifecyclePath and are still listed so OWS
+      is complete at authoring (F50).
+
+      Conditional paths are listed as permission:
+      ngrace-migrate SKILL.md and mirror; WALKTHROUGH.md;
+      grammar.test.ts; review/core.test.ts;
+      grace-cursor.test.ts; the three remaining
+      template kinds in both trees; ui.xml. Listing a
+      path this run may not write is free. Omitting
+      one it must write stops close. Do not edit
+      review/core.test.ts or grace-cursor.test.ts
+      unless a pin repair requires it. Do not edit
+      the four spec/plan templates.
+
+      Deliberately excluded (stop and re-spec):
+      grammar validators, catalog.ts, lint/core.ts,
+      gates production, review production,
+      ngrace-execute SKILL.md, init assets,
+      docs/plans, archive, CHANGELOG, version
+      surfaces, ngrace-fix, the other eleven skills.
+
+      scripts/ is in ignoredDirs. AC-SUITE-AND-LINT
+      is 0/0 at close, not throughout. Mid-change
+      Baseline red is correct. Never weaken a
+      BaselineAssertion to move a lint count.
+
+      ────────────────────────────────────────────────────────────
+      D7 — Baseline flips (no N prediction)
+      ────────────────────────────────────────────────────────────
+      Load-bearing flips (Baseline that become false):
+
+        A  MustNotExist check-teaching-surface.ts
+        B  MustNotExist check-teaching-surface.test.ts
+        C  MustNotContain package.json
+             check-teaching-surface
+        D  MustNotContain five skills shape_sources
+        E  MustNotContain spec and plan
+             approval_lexicon
+        F  MustNotContain spec docs_and_examples
+
+      Stay-true: version 6.2.0;
+      review.write-evidence-outside-scope;
+      approved_plan_immutability;
+      schemaVersion and analysis.runtime-missing;
+      evidence_contract tag (rewritten, not deleted);
+      all MustExist of pre-existing paths and modules;
+      all MustVerify.
+
+      Do not predict the baseline issue count. F62:
+      an unmeasured N is not a plan fact. Re-measure
+      at execute. Never weaken a BaselineAssertion.
+
+      ────────────────────────────────────────────────────────────
+      D8 — Execution discipline
+      ────────────────────────────────────────────────────────────
+      One open epoch. Each planned red is its own
+      tool round trip: write the failing test first,
+      record cursor attempt outcome fail with the
+      signature named in D0, then land production
+      in a later round trip, then record pass.
+      Never fail and pass in one call. Never a
+      retrospective red via stash.
+
+      T-001: two red trips (skill-contracts,
+      checkApprovalLexicon) then production.
+      T-002: two red trips then production.
+      T-003: two red trips then production.
+      T-004: one red trip then production.
+      T-005: no planned red; F51 final remeasure
+      plus suite, marketplace, examples, and
+      validate:ci. Lint 0/0 is claimed at close
+      only, after apply and archive.
+
+      Newly visible behaviour is named in the
+      conventional commit body (D5.5), not in
+      CHANGELOG.md. Name argv tokens in any later
+      comment; leave dashed forms to *.test.ts (F61).
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Invert the five skills and install the approval lexicon check</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-SKILL-INVERSION />
+          <AC-APPROVAL-LEXICON />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (inversion): before any SKILL.md
+            production edit, in its own tool round trip,
+            add a skill-contracts assertion that the five
+            named skills contain a shape_sources block.
+            HEAD today: no such block; spec restates the
+            seven change-spec section names; plan restates
+            plan and task sections; cli omits spec, plan,
+            and scaffold. The new assert fails. Record
+            cursor fail, outcome fail, signature kind test
+            key skill-contracts. Do not land production in
+            this round trip. Never a red backed only by a
+            grep; never fail and pass in one tool call;
+            never a retrospective red via stash. Failure
+            conditions: this round trip also lands
+            production; key reused as checkApprovalLexicon;
+            pin written as a substring of a section name.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (lexicon): before any SKILL.md or
+            check-module production edit, in its own tool
+            round trip, write tests in
+            scripts/check-teaching-surface.test.ts that
+            checkApprovalLexicon returns non-zero when
+            approval_lexicon is missing or a named
+            non-approval is absent under an isolated
+            root, and returns zero when both spec and
+            plan skills carry the block. HEAD today: the
+            function and this test file are absent. The
+            asserts fail. Record fail, signature kind
+            test key checkApprovalLexicon. Do not land
+            production in this round trip. Failure
+            conditions: missing-block case uses this
+            repository root so it dies after the block
+            is added; needles looks good or continue
+            bound in plan MustContain; this round trip
+            also lands production; key equals
+            skill-contracts.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the two
+            reds): invert the five skills in both trees
+            as in D1; add approval_lexicon to spec and
+            plan; add scripts/check-teaching-surface.ts
+            exporting checkApprovalLexicon; compose
+            validate:teaching-surface into validate:ci;
+            repair every skill-contracts assertion this
+            inversion falsifies to the new property at
+            the same matcher strength; re-measure F51
+            totals and update token-accounting.test.ts
+            and README.md to the new true values
+            including live referencesTotal. Do not add
+            docs_and_examples. Do not rewrite
+            evidence_contract doctrine. Do not edit
+            ngrace-execute, ngrace-fix, the four
+            spec/plan templates, or grammar.ts
+            validators. Keep forced-scope substance and
+            the clarification working form. Failure
+            conditions: only one tree updated;
+            schema-reference claimed complete;
+            forced-scope phrases dropped; clarification
+            working form deleted from every teaching
+            file; pin deleted or loosened; version
+            field edited; F51 left at 779 after skill
+            edits.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>bun run validate:marketplace</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Rewrite evidence doctrine and rebalance polyglot evidence</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-EVIDENCE-DOCTRINE />
+          <AC-POLYGLOT-DEFAULT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (doctrine): before any
+            evidence_contract production edit, in its
+            own tool round trip, add a skill-contracts
+            assertion that evidence_contract states
+            TraceAssertion plus tests as the default
+            and does not treat a non-empty marker or
+            trace as equal health evidence. HEAD today:
+            they are taught as equals. The new assert
+            fails. Record fail, signature kind test key
+            skill-contracts. Do not land production in
+            this round trip. Failure conditions: this
+            round trip also lands production; key
+            reused as checkPolyglotDefault; Marker
+            deleted from the skill in this trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (polyglot): before any polyglot
+            or checkPolyglotDefault production edit, in
+            its own tool round trip, write tests that
+            checkPolyglotDefault returns non-zero on an
+            isolated-root Marker-majority fixture and
+            when Marker count is zero, and returns zero
+            when TraceAssertion count is strictly
+            greater than Marker count with at least one
+            Marker. HEAD today: the function is absent;
+            this repo is Marker 2 / TraceAssertion 1.
+            The asserts fail. Record fail, signature
+            kind test key checkPolyglotDefault. Do not
+            land production in this round trip. Failure
+            conditions: counts frozen as 2 and 1;
+            missing-majority case uses this repository
+            root so it dies after the rebalance; this
+            round trip also lands production; key
+            equals skill-contracts.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the two
+            reds): rewrite evidence_contract in both
+            trees as in D2; export checkPolyglotDefault;
+            convert exactly one of V-M-API-ROUTER or
+            V-M-LEDGER-CORE from Marker to
+            TraceAssertion; leave the other Marker;
+            confirm WALKTHROUGH.md; re-measure F51 if
+            the verification skill moved. No status
+            attribute. No blocked. validate:examples
+            stays green. Failure conditions: all
+            Markers removed; blocked asserted; only one
+            tree updated; polyglot change bundles
+            rewritten; counts frozen in a criterion.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun run validate:examples</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Add fill-and-lint and claimed-shape checks for the remaining templates</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-TEMPLATE-FILL />
+          <AC-CLAIMED-SHAPES />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (template fill): before any
+            checkTemplateFill production edit, in its
+            own tool round trip, write tests that
+            checkTemplateFill returns non-zero when a
+            filled design-context or design-system
+            plant is missing or lints with errors under
+            an isolated root, or when a filled
+            migration-report is not well-formed or
+            loses a child name skill-contracts already
+            pins; and returns zero when both trees
+            match. HEAD today: the function is absent;
+            three kinds unvalidated. The asserts fail.
+            Record fail, signature kind test key
+            checkTemplateFill. Do not land production
+            in this round trip. Failure conditions:
+            raw placeholder lint claimed;
+            migration-report claimed to pass ngrace
+            lint; missing-file case uses this
+            repository root; this round trip also
+            lands production; key equals
+            checkClaimedShapes.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (claimed shapes): before any
+            checkClaimedShapes production edit, in its
+            own tool round trip, write tests that
+            checkClaimedShapes returns non-zero when a
+            cited references XML path is missing under
+            an isolated root, and returns zero when
+            every cited path exists in both trees.
+            HEAD today: the function is absent. The
+            asserts fail. Record fail, signature kind
+            test key checkClaimedShapes. Do not land
+            production in this round trip. Failure
+            conditions: check hardcodes a copied path
+            list; spec/plan identity re-implemented
+            here; this round trip also lands
+            production; key equals checkTemplateFill.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the two
+            reds): export checkTemplateFill and
+            checkClaimedShapes as in D3; extend the
+            argv token check runner; do not write the
+            four spec/plan templates; do not generate
+            the three remaining kinds from a
+            required-core walk. If a filled plant is
+            not 0/0, repair that template in both trees
+            without weakening a pin. Failure conditions:
+            templates generated from a required-core
+            walk; spec/plan templates regenerated or
+            drifted; check is only a skippable test;
+            only one tree checked; pin deleted.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test scripts/generate-skeleton-templates.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Install the docs-and-examples decision check</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-DOCS-EXAMPLES />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (docs-and-examples): before any
+            docs_and_examples, must_do-row, or
+            checkDocsAndExamplesDecision production
+            edit, in its own tool round trip, write
+            tests that checkDocsAndExamplesDecision on
+            a fixture spec that names neither README.md
+            nor examples/ in Goal, Constraint, or
+            NonGoal returns non-zero, and on a fixture
+            that names both under NonGoal returns zero.
+            HEAD today: the function is absent; silence
+            is legal. The asserts fail. Record fail,
+            signature kind test key
+            checkDocsAndExamplesDecision. Do not land
+            production in this round trip. Failure
+            conditions: red sold against this spec
+            (this spec already decides both paths);
+            archive scanned; trigger inferred by
+            guessing user-visible from prose; this
+            round trip also lands production.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the
+            red): add docs_and_examples to ngrace-spec
+            and a must_do row to ngrace-plan (both
+            trees); export checkDocsAndExamplesDecision;
+            extend the argv token check runner so
+            validate:ci runs it against every active
+            spec; do not scan archive; do not add a
+            grammar section or a new lint code;
+            re-measure F51. Failure conditions: skill
+            sentence with no function; function derived
+            from package.json files; archive scanned
+            and failed; new required grammar section;
+            version field edited.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Remeasure F51, prove the suite, and close</Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-HEAD-RED />
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (full): every non-exempt
+            criterion has a recorded fail then pass on
+            T-001 through T-004 as in D5. Do not re-run
+            or re-record those tasks. F45 exemptions
+            stay unreddened. No new planned red on this
+            task. Never a retrospective red via stash.
+            Failure conditions: re-recording T-001
+            through T-004; manufactured F51 red;
+            AC-SUITE-AND-LINT required to be red at HEAD.
+          </Criterion>
+          <Criterion>
+            AC-SUITE-AND-LINT: bun test green for the
+            new check test, skill-contracts,
+            token-accounting, grammar teaching files if
+            repaired, and any other test this
+            deliverable forced; validate:ci green
+            (re-measure ratchet cardinality; do not
+            drop keys); validate:marketplace green;
+            validate:examples green; ngrace lint path .
+            is 0 errors and 0 warnings at close only
+            (after apply and archive, not claimed
+            mid-change). Final F51 remeasure: pin and
+            README match live total and totalBytes.
+            ObservedWriteScope covers every path the
+            deliverable forced, including the F51 pair,
+            skill-contracts, and every SKILL.md this
+            bundle edited. No docs/plans or archive
+            edits. No CHANGELOG. No version surfaces.
+            Failure conditions: suite red; lint 0/0
+            claimed mid-window; F51 pin left stale
+            after skill edits; writes outside declared
+            scope; pin deleted or loosened.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>bun run validate:marketplace</Command>
+          <Command>bun run validate:examples</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-TEACHING-SURFACE>
+</NgraceChangePlan>

@@ -9,6 +9,7 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 | `RM-GOVERNED-PATH` | Make the governed path the path of least resistance | `approved` | 6.1.1 | 6.2.0 · 6.3.0 · 6.4.0 _(provisional)_ | [plan.md](./active/RM-GOVERNED-PATH/plan.md) · [decisions.md](./active/RM-GOVERNED-PATH/decisions.md) · [review.md](./active/RM-GOVERNED-PATH/review.md) |
 | `RM-LANGUAGE-EXTENSIBILITY` | Language bundles, conformance fixtures, and parser strategy | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-LANGUAGE-EXTENSIBILITY/review.md) |
 | `RM-GITLESS-INTEGRITY` | Gitless artifact integrity: what the tool knows about what it approved | `draft` | — | — | _not written_ — see [review.md](./active/RM-GITLESS-INTEGRITY/review.md) |
+| `RM-DESIGN-EVIDENCE` | Design evidence an agent can actually use: visual references, recordings, and the behaviour text that carries them | `draft` | — | — | _not written_ — see [review.md](./active/RM-DESIGN-EVIDENCE/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
@@ -24,11 +25,43 @@ maintainer's). `RM-AGENT-RELIABILITY-EVIDENCE` completed on 2026-07-30. Survivin
 from that track includes the draft change bundle `C-LEDGER-READ-ABSENCE` under
 `.ngrace/changes/active/` (not a roadmap plan).
 
-`RM-GITLESS-INTEGRITY` is backlog, recorded 2026-08-10: `gate approve` records no fingerprint of the
-artifact it approved, so integrity depends on git and cannot survive an edit-and-commit. **Not
-scheduled before the release after `RM-GOVERNED-PATH`'s next target**, and it must replace
-`approved-contract-drift`'s git reading rather than run beside it — two surfaces answering the same
-question from two sources is the defect `C-REPORT-HONESTY` exists to remove.
+**Execution order (historical).** `RM-NAMESPACE-SEPARATION` ran first and is complete — shipped
+2026-07-29 as `@neograce/cli` 6.0.1. `RM-AGENT-RELIABILITY` (with its evidence sibling) followed and
+is complete. `RM-LANGUAGE-EXTENSIBILITY` remains exploration only.
+
+The archived reliability track carries `decisions.md` (ratified design decisions D1–D16),
+`review-consolidated.md`, and `review.md` beside `plan.md` — one context serving both the evidence
+and implementation bundles. See the archive row for links.
+
+## Backlog
+
+Recorded, not scheduled. Each has an explanatory `review.md` and **no `plan.md`** — per rule 6 that
+means exploration, not a commitment. They are independent of each other and of one another's
+sequencing; nothing here is blocked by anything else on this page.
+
+### `RM-DESIGN-EVIDENCE` — recorded 2026-08-13
+
+An agent implementing a UI change has no governed way to be handed a picture. `<DesignReferences>`
+admits exactly `<Figma url>` and `<UserResearch>`, so mocks, sketches, screenshots and recordings
+have no home — and **`ngrace context` does not carry `DesignReferences` into the task slice at all**,
+so even those two never reach the executing agent.
+
+Two design decisions are recorded ahead of any spec. **Tags name the role, never the vendor**:
+`<Figma>` hardcodes one product into the grammar, open-source tools are unbounded, and a grammar that
+enumerates vendors guarantees drift. **A reference the agent cannot read must carry a text
+description of the behaviour**, and that description is what the slice delivers — otherwise a video
+tag claims more than any tool can consume (F10).
+
+**Not scheduled**: `RM-GOVERNED-PATH` P1 still owes steps 6–8 against 6.3.0, and this is new scope
+against a committed phase. Not blocked by anything, and it has no dependency on P1's remainder.
+
+### `RM-GITLESS-INTEGRITY` — recorded 2026-08-10
+
+`gate approve` records no fingerprint of the artifact it approved, so integrity depends on git and
+cannot survive an edit-and-commit. **Not scheduled before the release after `RM-GOVERNED-PATH`'s next
+target**, and it must replace `approved-contract-drift`'s git reading rather than run beside it — two
+surfaces answering the same question from two sources is the defect `C-REPORT-HONESTY` exists to
+remove.
 
 **First worked instance, 2026-08-12 — no contrivance required.** `C-EXPLAIN-COVERAGE`'s plan was
 approved, `gate approve` recorded `permit` into `run-ledger.xml`, and the plan was then edited to
@@ -45,14 +78,6 @@ So the ledger cannot distinguish the approval of the pre-repair plan from the ap
 repaired one, and a reader cannot order them. The edit was legitimate and the re-run was
 voluntary — which is the point: the gap is invisible inside one bundle's ordinary lifecycle, so it
 will not announce itself when it matters.
-
-**Execution order (historical).** `RM-NAMESPACE-SEPARATION` ran first and is complete — shipped
-2026-07-29 as `@neograce/cli` 6.0.1. `RM-AGENT-RELIABILITY` (with its evidence sibling) followed and
-is complete. `RM-LANGUAGE-EXTENSIBILITY` remains exploration only.
-
-The archived reliability track carries `decisions.md` (ratified design decisions D1–D16),
-`review-consolidated.md`, and `review.md` beside `plan.md` — one context serving both the evidence
-and implementation bundles. See the archive row for links.
 
 ## Archive
 

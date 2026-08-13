@@ -28,9 +28,9 @@ describe("GRACE lifecycle skill contracts", () => {
     const plan = read("skills/ngrace/ngrace-plan/SKILL.md");
     const reviewer = read("skills/ngrace/ngrace-reviewer/SKILL.md");
 
-    for (const section of ["Summary", "Goals", "Constraints", "NonGoals", "AcceptanceCriteria", "AffectedAreas", "VerificationIntent"]) {
-      expect(spec).toContain(section);
-    }
+    expect(spec).toContain("<shape_sources>");
+    expect(spec).toContain("docs/schema-reference.md");
+    expect(spec).toContain("ngrace spec new");
     expect(spec).toContain("AC-*");
     expect(spec).toContain("<acceptance_criteria_anchors>");
     // G-19: strict_contract is a numbered table (not a prose paragraph).
@@ -42,12 +42,16 @@ describe("GRACE lifecycle skill contracts", () => {
     expect(spec).toContain("--assertions final");
     expect(spec).toContain("<design_references>");
     expect(spec).toContain("DesignReferences");
-    expect(spec).toContain("<Figma url=");
-    expect(spec).toContain("UserResearch");
+    expect(spec).toContain("references/design-context-template.xml");
+    expect(spec).toContain("<approval_lexicon>");
+    expect(spec).toContain("<docs_and_examples>");
     expect(specTemplate).toContain("<Constraints>");
     expect(specTemplate).toContain("AC-SKELETON");
     expect(specTemplate).toContain("<DesignReferences>");
     expect(specTemplate).toContain("<Figma url=");
+    expect(plan).toContain("<shape_sources>");
+    expect(plan).toContain("ngrace plan new");
+    expect(plan).toContain("<approval_lexicon>");
     expect(plan).toContain("<approved_plan_immutability>");
     expect(plan).toContain("Create a new `C-*` bundle");
     expect(plan).toContain("mark the old bundle superseded");
@@ -70,6 +74,33 @@ describe("GRACE lifecycle skill contracts", () => {
     expect(planTemplate).toContain("<Satisfies>");
     expect(planTemplate).toContain("AC-SKELETON");
     expect(planTemplate).toContain("OutOfPlanScope");
+  });
+
+  it("states TraceAssertion plus tests as the default evidence doctrine", () => {
+    for (const rel of [
+      "skills/ngrace/ngrace-verification/SKILL.md",
+      "plugins/ngrace/skills/ngrace/ngrace-verification/SKILL.md",
+    ]) {
+      const text = read(rel);
+      expect(text).toContain("<evidence_contract>");
+      expect(text).toContain("TraceAssertion plus tests is the default");
+      expect(text).not.toContain(
+        "A non-empty marker or trace assertion satisfies the module-health evidence requirement",
+      );
+    }
+  });
+
+  it("requires a shape_sources block on the five inverted skills", () => {
+    for (const skill of [
+      "ngrace-spec",
+      "ngrace-plan",
+      "ngrace-design",
+      "ngrace-verification",
+      "ngrace-cli",
+    ]) {
+      expect(read(`skills/ngrace/${skill}/SKILL.md`)).toContain("<shape_sources>");
+      expect(read(`plugins/ngrace/skills/ngrace/${skill}/SKILL.md`)).toContain("<shape_sources>");
+    }
   });
 
   it("defines one recovery table and explicit selected assertion commands", () => {

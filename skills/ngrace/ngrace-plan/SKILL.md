@@ -6,6 +6,13 @@ description: Read an approved neo-grace NgraceChangeSpec and optional design con
 <skill>
 <purpose>Convert one approved active `NgraceChangeSpec` into the executable `NgraceChangePlan`; do not implement source code.</purpose>
 
+<shape_sources>
+Registered change-plan and change-task shapes: `docs/schema-reference.md` (headings change-plan, change-task). That document is not a complete grammar — it excludes imperative validators and file-local markup.
+Explain a shape or code: argv token `explain`.
+Primary write path: `ngrace plan new`.
+Optional-section teaching source: `references/change-plan-template.xml`.
+</shape_sources>
+
 <inputs>
 - Required: `.ngrace/changes/active/C-CHANGE-ID/spec.xml`
 - Optional: sibling `design-context.xml`
@@ -25,19 +32,33 @@ description: Read an approved neo-grace NgraceChangeSpec and optional design con
 - Create a new `C-*` bundle and mark the old bundle superseded with an explicit replacement reference.
 </approved_plan_immutability>
 
+<approval_lexicon>
+Sufficient approving phrases, closed:
+- the standalone word `approved`
+- the phrase `I approve`
+- the phrase `approve this plan` matching this artifact
+
+Named non-approvals, closed:
+- `looks good`
+- `continue`
+- any question
+
+A question is not an approval even when it contains an approving word.
+</approval_lexicon>
+
 <must_do>
-Produce `plan.xml` from `references/change-plan-template.xml` as draft unless the user explicitly approves the completed plan.
+Produce `plan.xml` with `ngrace plan new` as the primary write path. Use `references/change-plan-template.xml` as the teaching source for optional sections. Leave the plan as draft unless the user explicitly approves the completed plan.
 
 | # | requirement |
 |---|---|
 | 1 | Matching direct `C-*` wrapper identical to the authorizing spec. |
-| 2 | Meaningful `IntentSummary` describing what the plan will accomplish. |
-| 3 | Non-empty machine-checkable `BaselineAssertions`. |
-| 4 | Non-empty machine-checkable `TargetAssertions`. |
-| 5 | Explicit `DurableScope` (or `<None />` when there are no durable writes). |
-| 6 | Explicit `ObservedWriteScope` (or `<None />` when there are no observed writes). Scope covers what the deliverable forces, not only the files it targets: a skill-text change declares the skill-footprint pin; a rule change declares the fixtures that construct that rule. If the approved deliverable makes an edit inevitable, list that path at plan time — never leave the executor choosing between a scope breach and a failed task. Failure shape: `review.write-evidence-outside-scope`. |
+| 2 | Required plan sections are those `docs/schema-reference.md` lists under change-plan. Do not restate that list here. |
+| 3 | Required task sections are those `docs/schema-reference.md` lists under change-task. Do not restate that list here. |
+| 4 | Non-empty machine-checkable baseline and target assertions. |
+| 5 | Explicit durable and observed write scopes (or `<None />` when there are no writes). |
+| 6 | Scope covers what the deliverable forces, not only the files it targets: a skill-text change declares the skill-footprint pin; a rule change declares the fixtures that construct that rule. If the approved deliverable makes an edit inevitable, list that path at plan time — never leave the executor choosing between a scope breach and a failed task. Failure shape: `review.write-evidence-outside-scope`. |
 | 7 | A scope with no writes must use an explicit `<None />` marker; prose such as "none" is invalid. |
-| 8 | Unique acyclic `T-NNN` tasks under `ImplementationPlan`. |
+| 8 | Unique acyclic `T-NNN` tasks under the implementation plan. |
 | 9 | Every task has exactly one `Title`. |
 | 10 | Every task has exactly one `DependsOn`. |
 | 11 | Every task has non-empty acceptance criteria. |
@@ -46,6 +67,7 @@ Produce `plan.xml` from `references/change-plan-template.xml` as draft unless th
 | 14 | Reject unsupported scope glob syntax instead of guessing. |
 | 15 | Before setting `plan.xml` to `approved`, run `ngrace gate approve --change C-ID`. Refuse means unresolved Clarifications on IC-* / INV-*; do not approve when refused. The gate records a Decision and does not itself set status. |
 | 16 | Optional typed holes use `<Clarifications><Clarification><IC-*|INV-*|AC-* /></Clarification></Clarifications>` — exactly one self-closing IC-*, INV-*, or AC-* child; never a target attribute and never a prose `[NEEDS CLARIFICATION]` marker. |
+| 17 | Every authorizing spec must decide `README.md` and `examples/` in a Goal, Constraint, or NonGoal. Silence fails. Enforcement is `checkDocsAndExamplesDecision`. |
 </must_do>
 
 <ceremony_tiers>

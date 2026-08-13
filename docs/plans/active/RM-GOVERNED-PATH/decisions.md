@@ -4403,9 +4403,114 @@ artifact itself will not remember. Prefer the superseding bundle whenever the de
 execution — [F64](#f64) explains the one case where supersede is genuinely worse, and even there the
 product-correct construction is a replacement whose criteria cite the superseded ledger.
 
-**Related, and still owed.** The user's standing rule that **every phase ships updated docs and
-examples** is enforced by nothing in the product: no requirement in `ngrace-spec` or `ngrace-plan`
-obliges a spec adding a user-visible command to decide `README.md` or `examples/`. This bundle found
-its own README gap by review, not by a check, and could not fix the rule itself because it forbids
-`SKILL.md` edits under [F51](#f51). **Owed to the next bundle**, with the conflict stated. Until then
-the rule lives only in the authority's spec briefs.
+**Related, and still owed — promoted to its own entry as [F66](#f66)**, because it is a different
+finding and citing it as F65 mislabels what F65 protects.
+
+### F66 — the standing docs-and-examples rule is enforced by nothing, and its trigger is not a checkable predicate. **[verified]**
+
+**Split out of [F65](#f65) at `C-TEACHING-SURFACE`'s spec review**, on the executor's objection: F65
+is about an in-place amendment leaving artifacts looking compliant, and folding the docs rule into it
+teaches the next reader that F65 means "remember README." It does not. The two are separate and are
+now cited separately.
+
+**The rule (Alex, 2026-08-13):** *every phase ships updated docs and examples.* A spec touching a
+user-visible surface must **decide** `README.md` and `examples/` explicitly — in scope, or a named
+NonGoal with the step that owns them. Silence is not a decision.
+
+**Nothing in the product enforces it.** No requirement in `ngrace-spec` or `ngrace-plan` obliges a
+spec adding a user-visible command to decide either path. `C-SKELETON-GENERATORS` added three
+user-visible commands and never decided README; the gap was caught by review, not by a check, and
+that bundle could not fix the rule because it forbade `SKILL.md` edits under [F51](#f51).
+
+**And the obvious trigger is unimplementable.** *"A spec touching a user-visible surface"* is not a
+predicate the grammar can evaluate — there is no tag for it, and inventing one is a D5.2 break. So
+the honest implementations are exactly two: **every** active spec decides both paths, or a new
+optional section plus a lint code. `C-TEACHING-SURFACE` took the first and grandfathered the archive.
+**A rule whose trigger cannot be evaluated is a rule asserted by nothing** — which is the [F46](#f46)
+/ [F63](#f63) defect this roadmap keeps paying for. Do not restate the rule in skill text without
+naming what evaluates it.
+
+### F67 — a signature-key naming convention can collide with the repeat budget, and the collision is invisible until three pins share one file. **[verified]**
+
+Raised by the executor at `C-TEACHING-SURFACE`'s plan review, unprompted, as the thing it would still
+push back on after the plan was otherwise sound.
+
+**The mechanism.** House convention names a `signatureKey` after the test file stem, so three repairs
+in `scripts/skill-contracts.test.ts` all want the key `skill-contracts`.
+`FIX_SIGNATURE_REPEAT_BUDGET` is 2 under exact kind-plus-key equality, and the window is **per task**
+— `listWindowFailSignatures(events, task)` (`src/grace-cursor.ts:1666`) filters on `event.task`, then
+narrows to the last resolving resume. So two reds with that key **in one task** trip trigger R and
+pause the task.
+
+This bundle's spec requires three repairs in that one file (the shape-sources pin, the approval
+lexicon, the evidence doctrine). The plan avoided the collision by splitting them across T-001 and
+T-002, which works because the window is per-task. **That is a workaround the spec permits, not a
+rule the spec states** — and it only exists because the criteria happened to be separable. A bundle
+whose three same-file repairs belong to one criterion has no split available, and the only honest
+move is to stop.
+
+**Why it stays invisible.** Neither cap is violated by *design*: three distinct criteria in a task is
+under the distinct budget of 4, and one key per criterion is under the repeat budget of 2. The
+collision is manufactured entirely by the **naming convention**, which maps three different
+properties onto one key. Nothing in the plan review surfaces it, because the plan lists criteria and
+the budget counts keys.
+
+**The rule.** A `signatureKey` names the **property being reddened**, not the file the test lives in.
+When two planned reds in one task would repair the same file, the keys must still differ — key on the
+property (`shape-sources`, `approval-lexicon`, `evidence-doctrine`), not the stem. **Count keys, not
+criteria, and count them per task**, since that is the window the product actually evaluates. See
+[F56](#f56) for the distinct-signature half of the same tension and the [F21 correction](#f21-correction)
+for why the repeat budget survives at all.
+
+### F68 — two planned reds for two exports of one module cannot be independently observed. **[verified]**
+
+Raised by the executor in `C-TEACHING-SURFACE`'s execute report, unprompted, and it is [F67](#f67)'s
+sibling: a **planning convention**, not a budget, manufactures a discrimination failure that the
+ledger cannot show.
+
+T-003 planned two reds — `checkTemplateFill` absent, then `checkClaimedShapes` absent — against two
+new exports of a module **T-001 had already created**. After T-001 the file exists, so:
+
+- Red 1 fails with `Export named 'checkTemplateFill' not found`. Honest.
+- Red 2 adds `checkClaimedShapes` to the same import list. Both are still absent, so the runtime error
+  names **`checkTemplateFill`** — the sibling, not the property being recorded.
+
+The ledger then carries `test:checkClaimedShapes` because the plan named that key, **not because the
+observed failure named it.** The key and the evidence have come apart, and nothing in the ledger, the
+attempt-pair audit, or the budget shows it: two distinct keys, one per red, no repeat, no escalation.
+
+**The spare slot does not help.** The collision is in the red *design*, not in a third signature.
+
+**The rule.** Two planned absences are independently observable only if each can fail **alone**. When
+both live in one module, either give the second red its own module for the failing import, or require
+the first export to exist before the second red is recorded. **At plan review, ask of every pair of
+planned reds in a task: could the second one have failed for the first one's reason?** If yes, the
+second red proves nothing the first did not.
+
+### F69 — converted prose inherits an assertion that was true only where it came from. **[verified]**
+
+`C-TEACHING-SURFACE` rewrote `examples/polyglot`'s `V-M-API-ROUTER` from `<Marker>` to
+`<TraceAssertion>` and phrased it after the example's existing `TraceAssertion` on
+`V-M-WEB-LEDGER-TABLE`: *"asserted by … without runtime log emission."*
+
+**That clause is true of the web component and false of the Go router.**
+`examples/polyglot/services/api/internal/router/router.go:21` emits
+`[ApiRouter][Route][BLOCK_DISPATCH]` inside a live `START_BLOCK_DISPATCH` block. The teaching example
+asserted an absence its own source tree contradicts, in the one artifact the product ships **so that
+agents copy it**.
+
+Measured while checking the executor's related concern: **both** polyglot Markers are backed by real
+emission — the Rust core emits `[LedgerCore][post][BLOCK_VALIDATE_BALANCE]` at
+`crates/core/src/lib.rs:17`. So converting the other entry instead would have moved the same falsehood,
+not avoided it. The defect was the copied clause, never the choice of subject.
+
+**Repaired by the authority at close** (disclosed in the verdict): the assertion now reads that
+dispatch is asserted by `go test` and the `BLOCK_DISPATCH` emission stays as runtime trajectory and is
+not the evidence — which teaches the doctrine the same bundle installed (`TraceAssertion` plus tests is
+the default; `Marker` is for runtime trajectory only) **better than the original did**, because it
+shows the distinction on a module that has both.
+
+**The rule.** When converting an artifact to a sibling's form, the sibling's prose is a template for
+*shape*, never for *claims*. Every negative assertion — "without", "does not", "no longer" — must be
+re-verified against the new subject's own source. A copied absence is the cheapest false statement in
+the product to make and the hardest to see in review, because it reads as consistency.

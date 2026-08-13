@@ -4,7 +4,7 @@
       <Cwd>services/api</Cwd>
       <Command>go test ./internal/router/...</Command>
       <Scenario>Gateway dispatches routes to the posting contract.</Scenario>
-      <Marker>[ApiRouter][Route][BLOCK_DISPATCH]</Marker>
+      <TraceAssertion>Router dispatch is asserted by go test; the BLOCK_DISPATCH emission stays as runtime trajectory and is not the evidence.</TraceAssertion>
     </V-M-API-ROUTER>
   </VD-API>
 </NgraceVerificationDocument>

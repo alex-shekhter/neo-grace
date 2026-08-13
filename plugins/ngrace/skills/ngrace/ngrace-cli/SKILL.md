@@ -6,18 +6,16 @@ description: Operate the neo-grace CLI for .ngrace linting, status, module navig
 <skill>
 <installation_contract>Invoke the installed stable `ngrace` binary directly. If it is missing, install it with `bun add -g @neograce/cli`. Do not default to `bunx`, `npx`, or the `rc` dist-tag.</installation_contract>
 
+<shape_sources>
+Command inventory: README CLI Overview table (bound to `liveCommandRoots`). Do not restate that inventory here.
+Explain a shape or code: argv token `explain`.
+Registered artifact shapes: `docs/schema-reference.md`. That document is not a complete grammar.
+</shape_sources>
+
 <commands>
-- Active-baseline preflight before observed writes: `ngrace lint --path PROJECT --assertions current`
-- Selected baseline: `ngrace lint --path PROJECT --change C-ID --assertions baseline` (add `--run-commands` when the baseline declares `MustPassCommand`)
-- Selected target: `ngrace lint --path PROJECT --change C-ID --assertions target --run-commands`
-- Final execution gate: `ngrace lint --path PROJECT --change C-ID --assertions final --run-commands`
-- Parallel preflight: `ngrace lint --path PROJECT --parallel-preflight`
-- Status: `ngrace status --path PROJECT --with modules --json`
-- Cursor: `ngrace cursor show|regenerate|advance|pause|resume|fold --change C-ID --path PROJECT`
-- Navigation: `ngrace module find|show`, `ngrace verification find|show`, and `ngrace file show`.
-- Task slice / skill recommendation: `ngrace context --task T-NNN --change C-ID` or `ngrace context --skills` (selection, not a dump of `.ngrace/context/*`).
-- Gates, review, and read-only report: `ngrace gate approve|apply|archive|verdict --change C-ID`, `ngrace review --path PROJECT [--change C-ID]`, `ngrace doctor --path PROJECT`.
-- Issue code lookup: `ngrace lint --explain CODE` — a catalogued entry, a code the binary emits without a dedicated entry, or an unknown string (says so, exits nonzero). Never infer a meaning it did not print.
+The live command inventory is the README CLI Overview table. Assertion-mode and fail-closed workflow stay in this skill.
+- Active-baseline, selected baseline, selected target, and final assertion modes: see `lifecycle_command_contract`.
+- Issue code lookup: argv token `explain` — a catalogued entry, a code the binary emits without a dedicated entry, or an unknown string (says so, exits nonzero). Never infer a meaning it did not print.
 </commands>
 
 <lifecycle_command_contract>`current` evaluates active approved baselines and is not end-state evidence. Keep `MustPassCommand` entries as leaf project checks; do not nest `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside plan assertions. Run selected target/final lint externally.</lifecycle_command_contract>
