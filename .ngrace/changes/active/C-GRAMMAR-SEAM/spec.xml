@@ -1,0 +1,562 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-GRAMMAR-SEAM>
+    <Summary>
+      Deliver RM-GOVERNED-PATH P1 steps 9 and 12 only: add a dedicated
+      OptionalContext DurableScope bucket that admits the two optional
+      context artifacts without widening ContextArtifact or merging the
+      two filename constants; make Clarification authorable by moving its
+      target to a self-closing IC-*, INV-*, or AC-* child (not an attribute
+      exemption); retarget the approve and apply readers onto that child;
+      and teach the working form in both skill trees and both shipped
+      XML templates in the same commit.
+    </Summary>
+    <Problem>
+      **Shared shape.** Two P1 items are the same class of change in the
+      same file: an artifact-shape delta with a consumer on the other
+      side of the parse. P1.4 will generate a schema reference from the
+      grammar, so the grammar must stop moving first. Sequencing them
+      together is a dependency, not a convenience. Authoring HEAD
+      `e835d5c`, packaged 6.2.0, lint 0/0.
+
+      ---
+
+      **P1.12 — Clarification cannot be authored, so RM-AGENT-RELIABILITY D12's gates are vacuous.**
+      Two rules in `src/artifact/grammar.ts` are mutually exclusive
+      (F38). The error text at the Clarifications validator *instructs*
+      a target attribute holding an IC-*, INV-*, or AC-* token; a
+      non-empty target attribute is required; that value must be a
+      canonical anchor of one of those three families; and
+      `validateSemanticAnchorDiscipline` rejects any canonical anchor
+      in any attribute value (`artifact.semantic-anchor-attribute`).
+      All three advertised families were probed; all three error.
+      Zero Clarification instances exist under `.ngrace/`. The element
+      shipped and was never exercised.
+
+      The approve-gate reader (`src/gates/core.ts`, `listClarifications`)
+      takes `node.attributes.target` and skips an empty target.
+      RM-AGENT-RELIABILITY D12's approve requirement
+      `no-unresolved-ic-inv-clarification` is
+      therefore `present=true` whenever no authorable Clarification
+      exists. Observed on the last bundle: the approve gate printed
+      that requirement satisfied vacuously. Apply's
+      `no-unresolved-satisfied-ac-clarification` is the same vacancy
+      on the AC-* half.
+
+      The existing suite does not catch this. `grammar.test.ts` plants
+      the attribute form and asserts the codes do not include
+      `change.invalid-clarification-target` while the document is
+      simultaneously emitting `artifact.semantic-anchor-attribute`
+      (F23: a negative on one code, read as "this shape is valid").
+      `gates/core.test.ts` plants the same illegal attribute form,
+      never runs lint, and asserts approve refuse. That green is F28:
+      the reader works on a document no author can write.
+
+      Teaching sites still ship the broken form: `ngrace-spec` and
+      `ngrace-plan` SKILL.md plus each skill's `references/*.xml`
+      template, each mirrored under `plugins/ngrace/skills/ngrace/`.
+      Two of those are XML templates for verbatim copying, and they
+      do not lint.
+
+      **Fix direction is settled and is not reopened here:** the
+      target becomes a self-closing anchor child, matching
+      AffectedAreas. Do not exempt the attribute from wall §3.5
+      (anchors are grep-stable tags). The attribute form is
+      **rejected**, not kept as a deprecated alias — argued in
+      Constraints.
+
+      ---
+
+      **P1.9 — optional context cannot be declared in DurableScope.**
+      `NGRACE_OPTIONAL_CONTEXT_ARTIFACTS` is `design-system.xml` and
+      `invariants.xml`, with an explicit comment that merging it into
+      `NGRACE_CONTEXT_ARTIFACTS` would break every existing project.
+      `DURABLE_SCOPE_DIRECT_TAGS` admits ContextArtifacts /
+      ContextArtifact. `extractDurableScope` accepts those leaf tags
+      only when the text is in the *required* list
+      (`scope.invalid-context-artifact` otherwise). An
+      OptionalContext child is `change.plan-invalid-section-shape`
+      today. The two optional files can exist on disk and be validated
+      when present; a plan cannot name them as durable scope. Step 9
+      prefers a dedicated bucket over widening ContextArtifact so
+      required-vs-optional stays a parent distinction, not a leak in
+      the required list.
+    </Problem>
+    <Goals>
+      <Goal>
+        **P1.12 authorable shape.** A Clarification whose target is
+        exactly one self-closing IC-*, INV-*, or AC-* child lints
+        clean. Proven once per family, not on one sample. Cardinality
+        is closed: zero target children is an error; two or more is
+        an error; a leftover target attribute is an error. The
+        `resolved="true"` / `status="resolved"` attributes stay
+        attributes — their values are not anchors.
+      </Goal>
+      <Goal>
+        **P1.12 gates fire.** On a document that lints clean under
+        the new shape: an unresolved IC-* or INV-* Clarification
+        makes `evaluateApproveGate` refuse with
+        `gate.approve.clarification-unresolved` and
+        `no-unresolved-ic-inv-clarification` `present=false`; the
+        same document with `resolved="true"` permits. An unresolved
+        AC-* that a task Satisfies makes `evaluateApplyGate` refuse
+        with `gate.apply.clarification-unresolved`; a resolved one
+        does not (other apply requirements held aside). The reader
+        takes the child tag, not `attributes.target`.
+      </Goal>
+      <Goal>
+        **P1.9 bucket.** DurableScope admits an OptionalContext
+        child. That bucket admits the two members of
+        `NGRACE_OPTIONAL_CONTEXT_ARTIFACTS` and rejects required
+        context filenames, unknown filenames, and a widened
+        ContextArtifact list. The two constants stay separate.
+      </Goal>
+      <Goal>
+        **Teaching.** Both skill trees and both XML templates teach
+        the child-anchor form and do not teach the attribute form.
+        `bun run validate:marketplace` is green after that edit.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: RM-GOVERNED-PATH P1 steps 9 and 12; wall §3.5
+        (anchors are tags); F38 (the element is dead; do not exempt
+        the attribute); F43 (this artifact cannot quote XML — bind
+        semantic content here, assert literal bytes in the test);
+        F44 (pin *where* the target sits: exactly one self-closing
+        child of Clarification whose tag is the target id, not an
+        attribute and not text); F45 (name HEAD-true halves and
+        exempt them from the red-first universal); F28 / F35.1
+        (a green already true at HEAD is not evidence); F23 (the
+        replacement grammar test asserts the document is clean, not
+        that one code is absent); F10 (do not name a check for a
+        mechanism and test a different one); F26 / F30 / F33 (lint
+        0/0 is at close; do not pin authoring counts or line
+        numbers); F27.2 (ObservedWriteScope covers what this
+        deliverable forces, including this bundle's own artifacts);
+        D16 (evidence lives in an artifact); D11 (nothing deferred
+        without a dependency or a conflict); D17 (AC ids name the
+        property). Authoring history (not a live constraint): this
+        spec is draft with no plan.xml until approved (F4).
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T2** (grammar shape + gate reader + both
+        skill trees). P1.4 schema generation, P1.5 generators,
+        P1.6 `--as`, P1.10 skill inversion, P1.11 polyglot, P1.13
+        well-formedness, and P1.14 MustContain text are out of
+        implementation.
+      </Constraint>
+      <Constraint>
+        **Decided here, not deferred to the plan. Attribute form
+        is rejected.** Zero Clarification instances exist, so there
+        is no migration burden and no compatibility window to buy.
+        A deprecated alias that still carries a canonical anchor in
+        an attribute is not authorable unless we exempt that
+        attribute, which is the repair F38 forbids. A deprecated
+        alias the gate still reads would keep the broken teaching
+        alive. Therefore: one shape; the gate reader does not
+        consult `attributes.target`; a leftover target attribute is
+        an error even when a valid child is also present. The
+        implication of the empty corpus is that we do not ship a
+        dual-read, a shim, or a conversion.
+      </Constraint>
+      <Constraint>
+        **Decided here — OptionalContext shape.** OptionalContext is
+        a DurableScope child (added to the supported-child set).
+        It is a bucket, not a leaf: it contains the same
+        filename-text entry tags DurableScope already uses for
+        required context (ContextArtifact / Context / Artifact).
+        Membership of those entries is checked against
+        `NGRACE_OPTIONAL_CONTEXT_ARTIFACTS`, not
+        `NGRACE_CONTEXT_ARTIFACTS`. ContextArtifact as a *direct*
+        DurableScope child continues to accept only the required
+        list. Do not merge the constants. Do not add the optional
+        names to `CONTEXT_ARTIFACT_NAMES` in `scope.ts`. The
+        extract-and-overlap consumer in `scope.ts` must see the
+        optional names (a DurableScope that lints but is invisible
+        to overlap is F10). How that is stored on the DurableScope
+        object is the plan's, provided optional and required names
+        remain distinguishable and optional-vs-optional overlap is
+        detected.
+      </Constraint>
+      <Constraint>
+        AffectedAreas is closed and binds the plan
+        (`change.plan-scope-exceeds-spec`). Forced write surface:
+        `src/artifact/grammar.ts` (Clarification child shape,
+        OptionalContext admission, error text that currently
+        instructs the attribute form); `src/artifact/grammar.test.ts`
+        (per-family clean-document fixtures; rewrite the F23
+        negative); `src/artifact/scope.ts` (OptionalContext
+        extraction; keep required-list membership on the old
+        path); `src/artifact/scope.test.ts`;
+        `src/gates/core.ts` (`listClarifications` reads the child
+        tag); `src/gates/core.test.ts` (gate fixtures must plant
+        the authorable shape and must run lint on that document);
+        both trees of `ngrace-spec` / `ngrace-plan` SKILL.md and
+        both `references/*.xml` templates (eight teaching files);
+        this bundle's `spec.xml` and, when authored, `plan.xml`.
+        **Stop and re-spec** rather than touching `docs/plans/**`,
+        `.ngrace/changes/archive/**`, CHANGELOG.md, version
+        surfaces, P1.4's generator, or `src/lint/**`.
+      </Constraint>
+      <Constraint>
+        **Do not edit** `docs/plans/**`, `.ngrace/changes/archive/**`,
+        CHANGELOG.md, or any version surface. Packaged version at
+        authoring: **6.2.0**. No product version bump — 6.3.0 is a
+        phase target, not this bundle's act.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first is mechanical for new
+        behaviour. Failing tests are written before the fail
+        attempt is recorded, in a separate tool round trip, so
+        that event's WriteEvidence carries the test. Never a
+        retrospective red via stash. Never weaken a
+        BaselineAssertion to move a lint count. F45 carve-outs
+        are named on AC-HEAD-RED; do not manufacture a red for a
+        half that is true by construction or already true at HEAD.
+      </Constraint>
+      <Constraint>
+        F43 binding rule for this spec: criteria describe the
+        child-anchor *shape* (exactly one self-closing IC-*, INV-*,
+        or AC-* child; no target attribute). They do not quote the
+        product's XML bytes and do not bind an escaped rendering
+        in this file to an emitted message. Tests under
+        `src/**/*.test.ts` assert the literal bytes. The same rule
+        applies to OptionalContext: this spec names the bucket and
+        the two filenames; the test asserts the tagged form.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        **Rejected — exempt Clarification's target attribute from
+        semantic-anchor discipline.** That trades wall §3.5 for one
+        element's convenience. F38 closed this option.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — keep the attribute as a deprecated alias, or
+        dual-read attribute then child.** Zero instances exist; an
+        alias is either still unauthorable or an exemption. Conflict
+        with the settled child-anchor direction.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — widen ContextArtifact / CONTEXT_ARTIFACT_NAMES
+        to include design-system.xml and invariants.xml, or merge
+        the two constants.** Step 9's reason for a dedicated bucket
+        is to keep required-vs-optional distinct. Merging the
+        required list would make those two files mandatory for
+        every existing project (the types.ts comment).
+      </NonGoal>
+      <NonGoal>
+        P1.4 schema reference, P1.5 generators, P1.6 `--as`, P1.7
+        export view, P1.8 no-adapter warning, P1.10 skill inversion,
+        P1.11 polyglot rebalance, P1.13 well-formedness (F39),
+        P1.14 MustContain interpolation (F40). Dependency: P1.4
+        consumes a grammar that has stopped moving — that is why
+        this bundle exists *before* P1.4, not why it should start
+        P1.4. P1.13 sequences with this step as a later
+        artifact-validity repair; it is not this deliverable.
+      </NonGoal>
+      <NonGoal>
+        `docs/plans/**` board edits, CHANGELOG, product version
+        bump. Conflict: this bundle does not close 6.3.0.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-CLARIFICATION-AUTHORABLE>
+        A change spec (and a change plan) that contains a
+        Clarifications section with one Clarification per family —
+        target expressed as exactly one self-closing IC-* child,
+        one INV-* child, and one AC-* child on three separate
+        Clarification elements — produces no
+        `artifact.semantic-anchor-attribute`, no
+        `change.invalid-clarification`, and no
+        `change.invalid-clarification-target` when run through
+        `validateNgraceProject`. Each family is a required member;
+        one sample does not satisfy the set. Zero target children,
+        two or more target children, a non-IC/INV/AC child, or a
+        leftover target attribute, each errors. The resolved
+        attributes (`resolved="true"`, `status="resolved"`) remain
+        legal on the Clarification element. **HEAD today:** the
+        attribute form of each family emits
+        `artifact.semantic-anchor-attribute`; a Clarification with
+        only a child and no target attribute emits
+        `change.invalid-clarification` ("requires a non-empty
+        target attribute"); `grammar.test.ts` is green on a
+        one-code negative while the fixture is dirty. **Failure
+        conditions:** only IC-* sampled; document-clean claimed
+        because one code is absent; attribute exemption; target
+        accepted as text content; more than one target child
+        accepted; `resolved` moved into a child for no reason.
+      </AC-CLARIFICATION-AUTHORABLE>
+      <AC-APPROVE-GATE-FIRES>
+        On one lint-clean fixture per family of IC-* and INV-*:
+        `evaluateApproveGate` refuses while the Clarification is
+        unresolved, the issues include
+        `gate.approve.clarification-unresolved`, and requirement
+        `no-unresolved-ic-inv-clarification` has `present=false`.
+        The same fixture with `resolved="true"` permits and that
+        requirement is `present=true`. The reader obtains the
+        target from the Clarification's unique self-closing child
+        tag. An unresolved AC-* Clarification does not by itself
+        refuse approve (RM-AGENT-RELIABILITY D12's approve
+        set is IC/INV). **HEAD today:**
+        `listClarifications` reads `attributes.target`
+        and skips an empty target, so a child-only Clarification
+        is invisible to the gate (approve permits). Attribute-form
+        fixtures in `gates/core.test.ts` already refuse — that
+        green is not this criterion (F28); those fixtures are
+        illegal documents. This criterion's first real refusal is
+        this bundle's central evidence. **Failure conditions:**
+        only the old attribute-form test kept; only IC-* planted;
+        refuse asserted without a lint-clean document; dual-read
+        of the attribute; AC-* treated as an approve blocker.
+      </AC-APPROVE-GATE-FIRES>
+      <AC-APPLY-GATE-FIRES>
+        On one lint-clean fixture whose plan Satisfies an AC-*
+        and whose spec or plan holds an unresolved Clarification
+        targeting that same AC-* as a self-closing child:
+        `evaluateApplyGate` issues include
+        `gate.apply.clarification-unresolved` and requirement
+        `no-unresolved-satisfied-ac-clarification` is
+        `present=false` (other apply requirements held aside or
+        satisfied so this issue is visible). The same fixture
+        with `resolved="true"` does not emit that code. An
+        unresolved AC-* that no task Satisfies does not emit it.
+        **HEAD today:** no such authorable fixture exists; the
+        apply reader is the same `attributes.target` skip; there
+        is no apply-gate test that plants a Satisfied AC
+        Clarification at all. **Failure conditions:** approve-only
+        evidence cited as apply; Satisfies omitted so the filter
+        cannot fire; attribute-form plant.
+      </AC-APPLY-GATE-FIRES>
+      <AC-ATTRIBUTE-FORM-REJECTED>
+        A Clarification that still declares a target attribute
+        whose value is a canonical IC-*, INV-*, or AC-* anchor
+        remains an error after the child form lands. A document
+        that has both the attribute and a valid child is still
+        an error. This half is **already true at HEAD** via
+        `artifact.semantic-anchor-attribute` and is regression
+        protection, not new behaviour (F45: exempt from
+        AC-HEAD-RED). It must not make the attribute form
+        lint-clean. Teaching the working form is
+        AC-ERROR-TEACHES-WORKING-FORM. **HEAD today:** all
+        three families error on the attribute. **Failure
+        conditions:** attribute form accepted as an alias;
+        exemption; this green-at-HEAD negative recorded as
+        the HEAD-RED for P1.12.
+      </AC-ATTRIBUTE-FORM-REJECTED>
+      <AC-ERROR-TEACHES-WORKING-FORM>
+        Every diagnostic on this element's shape names the
+        working form — exactly one self-closing IC-*, INV-*,
+        or AC-* child — and does not instruct a target
+        attribute. The working form is the first shape the
+        message names (a later mention after an attribute
+        instruction does not satisfy). Required members are
+        the two `change.invalid-clarification` messages and
+        the `change.invalid-clarification-target` message
+        that element emits today; any diagnostic added on
+        this element's shape is under the same rule. The
+        duplicate-Clarifications-section diagnostic is not
+        a member. This criterion binds that semantic
+        content; the test asserts the literal bytes. **HEAD today:** one
+        `change.invalid-clarification` instructs a target
+        attribute holding an IC-*/INV-*/AC-* token as the
+        repair; the other requires a non-empty target
+        attribute; `change.invalid-clarification-target`
+        requires the target value to be a canonical IC-*,
+        INV-*, or AC-* anchor. None names the child form.
+        **Failure conditions:** only one of the three
+        messages rewritten; working form named after an
+        attribute instruction; `--explain` guide cited
+        while the emitted message still instructs the
+        attribute; this criterion treated as a quoted-byte
+        bind; attribute form still named as the repair.
+      </AC-ERROR-TEACHES-WORKING-FORM>
+      <AC-OPTIONAL-CONTEXT-ADMITS>
+        A DurableScope may contain an OptionalContext child.
+        That bucket admits entries whose text is `design-system.xml`
+        and entries whose text is `invariants.xml` (the live
+        members of `NGRACE_OPTIONAL_CONTEXT_ARTIFACTS`, not a
+        copied list in the test). `validateNgraceProject` on such
+        a plan does not emit `change.plan-invalid-section-shape`
+        for OptionalContext. `extractDurableScope` surfaces those
+        names so two plans declaring the same optional artifact
+        overlap. **HEAD today:** OptionalContext as a DurableScope
+        child is `change.plan-invalid-section-shape`
+        (`DurableScope does not allow child` OptionalContext);
+        `extractDurableScope` reports
+        `scope.invalid-durable-shape` for the same tag.
+        **Failure conditions:** only grammar admits the tag and
+        scope extraction ignores it; filenames hardcoded in the
+        test instead of read from the constant; bucket implemented
+        by adding the two names to the required list.
+      </AC-OPTIONAL-CONTEXT-ADMITS>
+      <AC-OPTIONAL-CONTEXT-REJECTS>
+        OptionalContext rejects a required context filename
+        (`requirements.xml` is the sample; the rule is membership
+        in `NGRACE_CONTEXT_ARTIFACTS`) and rejects an unknown
+        filename. A direct DurableScope ContextArtifact whose
+        text is `design-system.xml` or `invariants.xml` still
+        errors (`scope.invalid-context-artifact`).
+        `NGRACE_OPTIONAL_CONTEXT_ARTIFACTS` is not merged into
+        `NGRACE_CONTEXT_ARTIFACTS`; the types.ts comment that
+        forbids the merge remains true. The ContextArtifact-still-
+        rejects-optional-names half is **already true at HEAD**
+        (F45: exempt from AC-HEAD-RED). The OptionalContext-
+        rejects-required-and-unknown half is new (the bucket
+        does not exist). **HEAD today:** there is no OptionalContext
+        path to reject through; ContextArtifact of
+        `design-system.xml` already errors. **Failure conditions:**
+        required names accepted in the new bucket; unknown names
+        accepted; ContextArtifact widened; constants merged;
+        only the already-green ContextArtifact half asserted.
+      </AC-OPTIONAL-CONTEXT-REJECTS>
+      <AC-SKILL-AND-TEMPLATE>
+        After the edit, all eight teaching files (canonical
+        `skills/ngrace/ngrace-spec/SKILL.md`,
+        `skills/ngrace/ngrace-spec/references/change-spec-template.xml`,
+        `skills/ngrace/ngrace-plan/SKILL.md`,
+        `skills/ngrace/ngrace-plan/references/change-plan-template.xml`,
+        and the four packaged mirrors) describe the child-anchor
+        form and do not instruct a target attribute holding an
+        IC-*/INV-*/AC-* token. ngrace-plan numbered rule 16 states
+        the child form. A fixture that copies each template's
+        Clarification *example* into an otherwise-valid bundle
+        (placeholders filled) is lint-clean on the Clarification
+        shape. `bun run validate:marketplace` is green. The
+        marketplace-green-at-HEAD fact is not this criterion
+        (F28 / F45: both trees currently agree on the *broken*
+        form). **HEAD today:** all eight sites teach
+        `target="IC-…"` / `target="IC-*|INV-*|AC-*"`; plan rule 16
+        is the attribute form; uncommenting the template examples
+        cannot lint. **Failure conditions:** only canonical tree
+        updated; only SKILL.md updated and templates left on the
+        attribute form; marketplace green cited from pre-change
+        HEAD; criterion greps a helper name instead of the taught
+        shape.
+      </AC-SKILL-AND-TEMPLATE>
+      <AC-HEAD-RED>
+        Each of AC-CLARIFICATION-AUTHORABLE, AC-APPROVE-GATE-FIRES
+        (IC and INV, not one family), AC-APPLY-GATE-FIRES,
+        AC-ERROR-TEACHES-WORKING-FORM,
+        AC-OPTIONAL-CONTEXT-ADMITS, the new half of
+        AC-OPTIONAL-CONTEXT-REJECTS, and AC-SKILL-AND-TEMPLATE
+        has a red recorded before its production edit, in its own
+        tool round trip, with the failing test written first.
+        Never a red backed only by a grep, and never a
+        retrospective red via stash. **Exempt from this universal
+        (F45, named at authoring):** AC-SUITE-AND-LINT (green at
+        HEAD; close-time bar); AC-ATTRIBUTE-FORM-REJECTED (already
+        errors at HEAD); the ContextArtifact-still-rejects-
+        optional-names half of AC-OPTIONAL-CONTEXT-REJECTS
+        (already errors at HEAD); marketplace identity at
+        pre-change HEAD. Existing `gates/core.test.ts` attribute-
+        form refuse tests must not carry any of these reds. **HEAD
+        today:** child-form lint is red; child-form approve is
+        permit (invisible target); Clarification diagnostics
+        instruct a target attribute; OptionalContext is a
+        rejected DurableScope child; skills teach the
+        attribute. **Failure conditions:** a check that
+        passes on pre-change HEAD sold as new behaviour;
+        fail and pass in one tool call;
+        AC-SUITE-AND-LINT required to be red at HEAD; attribute-
+        form gate green recorded as AC-APPROVE-GATE-FIRES.
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-LINT>
+        `bun test` green for touched packages (`src/artifact/grammar.test.ts`,
+        `src/artifact/scope.test.ts`, `src/gates`);
+        `bun run validate:ci` green (determinism ratchet
+        cardinality only moves if a catch is intentionally added —
+        re-measure, do not drop keys);
+        `bun run validate:marketplace` green;
+        `bun run ngrace lint --path .` is 0 errors and 0 warnings
+        **at close** (after apply and archive — not claimed
+        mid-change). ObservedWriteScope covers every path the
+        deliverable forces, including both skill trees, both
+        template files, `src/gates/core.test.ts`,
+        `src/artifact/grammar.test.ts`, `src/artifact/scope.ts`,
+        and this bundle's `spec.xml` / `plan.xml`. No edits under
+        `docs/plans/` or `.ngrace/changes/archive/`; no CHANGELOG;
+        no version surfaces. **HEAD today:** lint is 0/0 and
+        `validate:ci` is green — that green is the baseline, not
+        this change's evidence. **Failure conditions:** suite red;
+        lint 0/0 claimed mid-window; ratchet keys dropped; writes
+        outside declared scope; HEAD-green lint cited as proof
+        the child form or the bucket landed.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GRAMMAR />
+      <M-GATES />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/artifact/grammar.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/artifact/scope.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/gates</ExpectedCommand>
+      <ExpectedCommand>bun run validate:marketplace</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): per-family child-form Clarification
+        fixtures lint clean (document clean, not one-code
+        negative); child-form unresolved IC-* and INV-* each
+        refuse approve and resolve to permit; child-form
+        unresolved Satisfied AC-* refuses apply and resolves
+        to not emit that code; attribute form remains an error;
+        Clarification-shape diagnostics lead with the child
+        form and do not instruct a target attribute;
+        OptionalContext admits the two optional filenames and
+        rejects required and unknown names; ContextArtifact
+        still rejects the optional names; extractDurableScope
+        sees the optional names; all eight teaching files show
+        the child form; a copied template example lints clean
+        on that shape; marketplace green after the skill edit;
+        validate:ci green; lint 0/0 at close only. Evidence is
+        the suite and the ledger fail/pass pairs on the
+        non-exempt criteria, not a command someone reports.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring HEAD `e835d5c`, packaged 6.2.0, lint 0/0.**
+        Active changes were empty before this bundle. F33:
+        implementation re-measures counts; criteria do not
+        freeze line numbers from F38's survey.
+      </Assumption>
+      <Assumption>
+        **D12 in this spec is the typed-hole decision**
+        (RM-AGENT-RELIABILITY: Clarifications block approve on
+        unresolved IC-*/INV-* and block apply on unresolved
+        Satisfied AC-*; Assumptions never block). The
+        identically numbered D12 in RM-GOVERNED-PATH/decisions.md
+        is the run-membership file split and is not this claim.
+      </Assumption>
+      <Assumption>
+        **resolved stays an attribute.** `resolved="true"` and
+        `status="resolved"` are not canonical anchors, so they
+        do not collide with wall §3.5. This bundle does not
+        invent a resolved child element.
+      </Assumption>
+      <Assumption>
+        **Survey snapshot, not a criterion.** Zero
+        `&lt;Clarification` instances under `.ngrace/`. Eight
+        teaching files (four canonical, four mirrors).
+        `NGRACE_OPTIONAL_CONTEXT_ARTIFACTS` has two members.
+        `grammar.test.ts` "validates Clarification targets"
+        asserts a one-code negative. Approve-gate tests plant
+        `target="IC-EXAMPLE"` and never lint that document.
+      </Assumption>
+      <Assumption>
+        **Module ownership.** M-GRAMMAR → `src/artifact/grammar.ts`
+        (and linked `scope.ts`); M-GATES → `src/gates/core.ts`;
+        M-SKILLS covers canonical `skills/ngrace/*` (packaged
+        mirror is the marketplace pair, not a second graph
+        Path). Test files are ungoverned and ride
+        ObservedWriteScope as paths. M-ARTIFACT-TYPES is not
+        in AffectedAreas: this bundle reads
+        `NGRACE_OPTIONAL_CONTEXT_ARTIFACTS` and must not edit
+        the constant lists.
+      </Assumption>
+    </Assumptions>
+  </C-GRAMMAR-SEAM>
+</NgraceChangeSpec>
