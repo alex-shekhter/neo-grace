@@ -3981,3 +3981,75 @@ genuine conflict, not by filing.
 `src/artifact/assertions.ts` for message work should sweep the file's other withheld subjects rather
 than repair one code at a time — the one-code-at-a-time shape is what left this instance standing
 after `C-LEGIBLE-FAILURE` and P0.7 both passed through the same layer.
+
+### F56 — A plan's red-first decomposition collided with the product's flailing detector, and the authority approved the collision. **[verified]**
+
+`C-ARTIFACT-VALIDITY`'s approved plan required **four distinct fail signatures on T-001** before any
+production edit — one per criterion, which is what red-first discipline asks for.
+
+Measured in the product:
+
+- `src/grace-cursor.ts:183` — `export const FIX_DISTINCT_SIGNATURE_BUDGET = 4;`
+- `src/grace-cursor.ts:1692` — escalation fires when `distinctKeys.size >= FIX_DISTINCT_SIGNATURE_BUDGET`
+
+So the **fourth planned red is also the escalation trigger**. The plan could not be executed as
+approved without tripping it. In the archived ledger: event 5 records the fourth red, event 6 is an
+escalation listing all four planned signatures, event 7 is a resume whose `Reason` cites the plan's
+own D8, event 8 is the production pass.
+
+**The executor handled it correctly and reported it.** The reds are genuine, the attempt-pair audit
+is clean, and nothing was hidden. But the judgement call — whether a planned red sequence may resume
+through an escalation — belonged to the authority, and the plan handed it to the executor by
+omission.
+
+**The skill text is not the defect.** The executor reported `ngrace-execute/SKILL.md` as stale on
+this. It is not: canonical and packaged are byte-identical and both say *"Escalation fires on 2
+failed attempts of the same signature, or on 4 distinct failing signatures in the current window —
+not on any two fails regardless of signature."* That matches the binary exactly. Corrected here so
+the ledger does not carry a false claim about the skill.
+
+**The real defect is that the budget cannot distinguish a planned red-first sequence from an
+executor thrashing.** Both look like *N* distinct failing signatures in one window. The two
+mechanisms push in opposite directions: red-first rewards one signature per criterion, and the fix
+budget reads accumulating distinct signatures as loss of control. A task with four criteria is
+therefore unexecutable without a resume, and the more faithfully a plan follows [D17](#d17) — name
+criteria for the property, one red each — the sooner it collides.
+
+**The rule.** A single task may plan **at most three** distinct fail signatures. A task needing more
+gets split, or the plan pre-authorizes the resume in its design note with the reason the executor
+should cite — so the escalation is a recorded checkpoint rather than a decision delegated by
+accident. Authorities approving a plan should count planned distinct reds per task against the
+budget before approving; this one was not counted.
+
+**Home:** `ngrace-plan` (the cap, or split guidance) alongside [F50](#f50) and [F51](#f51), which are
+also fixed at the plan-template source.
+
+### F57 — The bundle that made errors name what they withhold shipped an error that withholds where. **[verified]**
+
+`xml.comment-not-well-formed` names the file and the rule, and does not say **which comment**. The
+scanner holds the position: `collectCommentWellFormednessIssues` walks to `commentAt` and then emits
+a constant message. `NgraceIssue` has an optional `line` field, and the sibling `xml.parse`
+populates it from the validator. On an artifact with many comment blocks the agent is told the file
+has a bad comment somewhere.
+
+That is this bundle's own thesis one level down — the product knows a fact and declines to say it on
+an agent-facing surface, which is [F40](#f40)'s class and P1's whole objective.
+
+**Measured before judging it a defect.** Across `src/`, only about four emission sites populate
+`line` at all (`xml.parse`, and three `contractLine` sites in `src/lint/core.ts`). Omitting it
+follows house behaviour rather than departing from it, and no criterion in the approved spec asked
+for a position — AC-COMMENT-ERROR-TEACHES binds three semantic facts and their order, nothing about
+location. So this is a gap the spec did not close, not a criterion violated.
+
+**Not repaired at close, and the reason is not convenience.** Adding the position is new behaviour,
+which needs a red, which needs a criterion that does not exist. Authoring a criterion at close to
+bless code about to be written is exactly the [F28](#f28) shape — evidence written to fit the
+outcome. [D11](#d11) is satisfied by that conflict.
+
+**The rule.** A diagnostic that locates a defect inside a file should carry the position it already
+computed. When a bundle creates a new diagnostic, its spec should decide the position question
+explicitly rather than inheriting silence from house style — the silence is what let this one ship
+inside the bundle least entitled to it.
+
+**Home:** the first bundle that opens `src/artifact/xml.ts` emission, or a P1 follow-on; sibling of
+[F55](#f55), which is the same withholding on `assertion.command-not-evaluated`.
