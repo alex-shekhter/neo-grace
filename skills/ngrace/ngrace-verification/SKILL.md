@@ -8,6 +8,12 @@ description: Design and maintain neo-grace verification entries, commands, scena
 Strengthen deterministic verification for modules and changes. Verification state lives in `.ngrace/verification/index.xml` and routed verification documents. Each durable module should have deterministic `V-M-*` coverage unless an explicit exception is planned.
 </purpose>
 
+<shape_sources>
+Registered verification shapes: `docs/schema-reference.md` (artifact-root `NgraceVerificationDocument`, anchor-family `V-M-`). That document is not a complete grammar and does not carry Marker / TraceAssertion doctrine.
+Explain a shape or code: argv token `explain`.
+Taught example: `examples/polyglot`.
+</shape_sources>
+
 <workflow>
 1. Read relevant `.ngrace/graph` anchors and current `V-M-*` entries.
 2. Identify scenarios, commands, test files, required log markers, and trace assertions.
@@ -19,7 +25,7 @@ Strengthen deterministic verification for modules and changes. Verification stat
 When verification commands run from a workspace or package directory, add one direct `<Cwd>relative/project/path</Cwd>` child to the owning `V-M-*` entry. Keep declared `<TestFiles><File>...</File></TestFiles>` paths project-root-relative; the CLI uses `Cwd` only to compare them with cwd-relative command arguments.
 </cwd_contract>
 <evidence_contract>
-Use `<Marker>` when module health must prove a runtime log or trace emission from linked implementation code. Use `<TraceAssertion>` for deterministic test or trace evidence that does not require runtime logging, such as pure functions, type-level modules, and core libraries. A non-empty marker or trace assertion satisfies the module-health evidence requirement; only authored markers require matching runtime emission and `BLOCK_*` evidence.
+TraceAssertion plus tests is the default for deterministic module health. Marker is only for proving a runtime trajectory (`BLOCK-*` emission from linked implementation). A non-empty Marker is not an equal alternative to TraceAssertion.
 </evidence_contract>
 
 <verdicts>

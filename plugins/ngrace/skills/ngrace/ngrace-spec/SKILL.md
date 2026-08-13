@@ -12,22 +12,42 @@ description: Interview the user and create an approved neo-grace NgraceChangeSpe
 - `plan.xml` — created later by `ngrace-plan`
 </change_bundle_contract>
 
+<shape_sources>
+Registered change-spec shape: `docs/schema-reference.md` (heading change-spec). That document is not a complete grammar — it excludes imperative validators and file-local markup.
+Explain a shape or code: argv token `explain`.
+Primary write path: `ngrace spec new`.
+Optional-section teaching source: `references/change-spec-template.xml`.
+Optional design-context copy-source: `references/design-context-template.xml`.
+</shape_sources>
+
 <status_rules>
-Create `spec.xml` as `status="draft"`. Set `status="approved"` only after explicit user approval. Rejected or cancelled specs move to archive with terminal status. Do not create or edit `plan.xml` in this skill.
+Create `spec.xml` as `status="draft"`. Set `status="approved"` only after a sufficient phrase from `approval_lexicon`. Rejected or cancelled specs move to archive with terminal status. Do not create or edit `plan.xml` in this skill.
 </status_rules>
+
+<docs_and_examples>
+Every `NgraceChangeSpec` must decide `README.md` and `examples/` in a Goal, Constraint, or NonGoal. A NonGoal must name the owner (a step, a bundle, or "unchanged; no user-visible surface"). Silence fails. Enforcement is `checkDocsAndExamplesDecision`, not this sentence.
+</docs_and_examples>
+
+<approval_lexicon>
+Sufficient approving phrases, closed:
+- the standalone word `approved`
+- the phrase `I approve`
+- the phrase `approve this spec` matching this artifact
+
+Named non-approvals, closed:
+- `looks good`
+- `continue`
+- any question
+
+A question is not an approval even when it contains an approving word.
+</approval_lexicon>
 
 <strict_contract>
 | # | requirement |
 |---|---|
-| 1 | The direct `C-*` wrapper contains exactly one meaningful `Summary` section. |
-| 2 | The wrapper contains exactly one meaningful `Goals` section. |
-| 3 | The wrapper contains exactly one meaningful `Constraints` section. |
-| 4 | The wrapper contains exactly one meaningful `NonGoals` section. |
-| 5 | The wrapper contains exactly one meaningful `AcceptanceCriteria` section. |
-| 6 | The wrapper contains exactly one meaningful `AffectedAreas` section. |
-| 7 | The wrapper contains exactly one meaningful `VerificationIntent` section. |
-| 8 | Empty containers are not approval-ready. |
-| 9 | Semantic anchors are canonical attribute-free XML tags, never attributes or attribute values. |
+| 1 | Required sections are those `docs/schema-reference.md` lists under change-spec. Do not restate that list here. |
+| 2 | Empty containers are not approval-ready. |
+| 3 | Semantic anchors are canonical attribute-free XML tags, never attributes or attribute values. |
 </strict_contract>
 
 <ceremony_tiers>
@@ -82,29 +102,16 @@ Rules:
 </acceptance_criteria_anchors>
 
 <design_references>
-Optional `<DesignReferences>` under the `C-*` wrapper links design sources without bloating normative sections:
-
-```xml
-<DesignReferences>
-  <Figma url="https://www.figma.com/design/abc/Dashboard">Dashboard states</Figma>
-  <UserResearch>docs/research/auth-interviews.md</UserResearch>
-</DesignReferences>
-```
-
-Rules:
-- `<Figma url="…">` requires a well-formed **http(s)** URL (relative paths and other schemes are rejected by lint).
-- `<UserResearch>` holds a project-relative path that must stay inside the project root.
-- Only `Figma` and `UserResearch` children are allowed; other tags error.
-- Design references are not requirements; `spec.xml` sections remain the source of truth for `ngrace-plan`.
+Optional `DesignReferences` under the `C-*` wrapper. Children and their validators are the design-reference inventory in `docs/schema-reference.md`; do not restate them here. Design references are not requirements; `spec.xml` sections remain the source of truth for `ngrace-plan`.
 </design_references>
 
 <workflow>
 1. Ask one focused question at a time until goal, scope, constraints, non-goals, acceptance criteria, affected areas, verification expectations, and ceremony tier are clear.
-2. Propose a concise design summary and explicit assumptions. Ask for approval before writing an approved spec.
+2. Propose a concise design summary and explicit assumptions. Ask for approval before writing an approved spec. Only a sufficient phrase from `approval_lexicon` is approval.
 3. Create a deterministic uppercase-kebab `C-*` change id.
-4. Write `spec.xml` from `references/change-spec-template.xml` with exactly one direct `C-*` wrapper and no empty required section. Prefer `AC-*` acceptance criteria. Add `DesignReferences` when Figma or research artifacts exist.
-5. If rationale, alternatives, scenarios, or external constraints would otherwise bloat the spec, write non-normative `design-context.xml` from its template.
-6. If approval is not explicit, leave `spec.xml` as `status="draft"` and report the approval step needed.
+4. Write `spec.xml` with `ngrace spec new` as the primary write path. Use `references/change-spec-template.xml` as the teaching source for optional sections. Prefer `AC-*` acceptance criteria. Add `DesignReferences` when design sources exist.
+5. If rationale, alternatives, scenarios, or external constraints would otherwise bloat the spec, write non-normative `design-context.xml` from `references/design-context-template.xml`.
+6. If approval is not a sufficient phrase from `approval_lexicon`, leave `spec.xml` as `status="draft"` and report the approval step needed.
 </workflow>
 
 <hard_rules>

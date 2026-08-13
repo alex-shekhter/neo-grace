@@ -9,7 +9,7 @@ import {
 } from "./token-accounting";
 
 describe("token-accounting (D15)", () => {
-  it("skillTextLines().total reports 779 for SKILL.md files at HEAD", () => {
+  it("skillTextLines().total reports the measured SKILL.md line count at HEAD", () => {
     // Phase 2: three skills each gained a four-line <verdicts> block (636 → 648).
     // Phase 3: ngrace-cli cursor surface line + ngrace-execute advance/fold rule (648 → 650).
     // Phase 4: ngrace-execute attempt/budget/escalation rule (650 → 651).
@@ -27,7 +27,7 @@ describe("token-accounting (D15)", () => {
     // then re-measure — total stayed 779 (in-place line-neutral rewrite of four budget sites
     // + resume How; not a target written toward). Pin remains exact toBe of that measure.
     const measured = skillTextLines();
-    expect(measured.total).toBe(779);
+    expect(measured.total).toBe(806);
     expect(measured.perSkill["ngrace-fix"]).toBe(32);
     expect(Object.keys(measured.perSkill).length).toBe(16);
     // Sanity: known skills present
@@ -45,8 +45,8 @@ describe("token-accounting (D15)", () => {
     //   rewrite moved the UTF-8 sum; re-measured 53864. Line total
     //   stays 779 (frozen semantics; archived reports cite it).
     const measured = skillTextLines();
-    expect(measured.total).toBe(779);
-    expect(measured.totalBytes).toBe(53864);
+    expect(measured.total).toBe(806);
+    expect(measured.totalBytes).toBe(55040);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

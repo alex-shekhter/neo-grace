@@ -8,6 +8,13 @@ description: Interview for design-system intent and populate optional design-sys
 Make UI/UX load-bearing in neo-grace. Author optional `.ngrace/context/design-system.xml`, declare component `ST-*` states on graph modules, and wire `AccessibilityCheck` / `VisualCheck` evidence into `V-M-*` entries so module health can prove UI states.
 </purpose>
 
+<shape_sources>
+Registered NgraceDesignSystem root and design-reference children: `docs/schema-reference.md`. That document is not a complete grammar; it lists the NgraceDesignSystem root and the ST- prefix, not ST-star whole-word matching or module Type values.
+Explain a shape or code: argv token `explain`.
+Children source: `references/design-system-template.xml`.
+AccessibilityCheck / VisualCheck example: `examples/polyglot`.
+</shape_sources>
+
 <optional_artifact>
 `design-system.xml` is **optional**. Projects without it must keep linting. Never make it required. When UX is in scope, create it from `references/design-system-template.xml` with root `NgraceDesignSystem`.
 </optional_artifact>
@@ -30,20 +37,7 @@ A declared `ST-*` state is covered when any `Scenario`, `AccessibilityCheck`, or
 1. Ask whether the project has a design system / token source, breakpoints, and accessibility standard.
 2. If applicable, write `.ngrace/context/design-system.xml` from the template. Resolve `TokenSource` as a **project-relative** path only (no `..`, no absolute paths).
 3. For each `UI_COMPONENT` module, declare `<Type>UI_COMPONENT</Type>` and `<States>` with the relevant `ST-*` anchors.
-4. Extend `V-M-*` entries with `Scenario`s that name those states, plus optional:
-   ```xml
-   <AccessibilityCheck>
-     <Tool>axe</Tool>
-     <Command>bun run a11y --route /ledger</Command>
-     <MaxSeverity>serious</MaxSeverity>
-   </AccessibilityCheck>
-   <VisualCheck>
-     <Tool>playwright</Tool>
-     <Command>bun run visual --component LedgerTable</Command>
-     <Baseline>baselines/ledger-table.png</Baseline>
-     <Viewports><BP-MOBILE /><BP-DESKTOP /></Viewports>
-   </VisualCheck>
-   ```
+4. Extend `V-M-*` entries with `Scenario`s that name those states, plus optional `AccessibilityCheck` / `VisualCheck`. Copy the taught example from `examples/polyglot`; do not restate those shapes here.
 5. Recommend assertions when a change must enforce tokens or states:
    - `MustUseToken` / `MustNotUseLiteral` for token discipline
    - `MustMatchPattern` for general regex file checks (safe patterns only)
