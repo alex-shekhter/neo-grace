@@ -759,6 +759,56 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
       "ImplementationPlan children filtered to T-* only (RM-GOVERNED-PATH P0 / C-TOKEN-INTEGRITY T-004 site 10).",
     proposedBy: "confidently-wrong",
   },
+  "change.task-invalid-dependency": {
+    title: "Task DependsOn Token Is Not A Valid T-NNN Reference",
+    explanation:
+      "A DependsOn entry is not a valid task reference. The emitted message names the three "
+      + "accepted authoring shapes; the token is not yet a T-NNN id.",
+    remediation: [
+      "Use a multi-value text list of T-NNN ids (comma, semicolon, or whitespace).",
+      "Or write <Task>T-NNN</Task> children, or self-closing <T-NNN /> anchor children.",
+      "Do not leave free-text tokens such as not-a-task in DependsOn.",
+    ],
+  },
+  "change.task-unknown-dependency": {
+    title: "Task Depends On An Unknown Task",
+    explanation:
+      "A DependsOn token is a valid T-NNN id, but the plan contains no such task. "
+      + "This is a missing target, not an authoring-shape error.",
+    remediation: [
+      "Add the missing task, or change the DependsOn token so it no longer depends on unknown task.",
+      "The token is already a valid T-NNN — do not rewrite it as a list or anchor form.",
+    ],
+  },
+  "change.task-self-dependency": {
+    title: "Task Cannot Depend On Itself",
+    explanation:
+      "A task lists its own id in DependsOn. The token is already a valid T-NNN; the graph edge is the defect.",
+    remediation: [
+      "Remove the self-edge so the task cannot depend on itself.",
+      "The token is already a valid T-NNN — do not rewrite it as a list or anchor form.",
+    ],
+  },
+  "change.task-dependency-cycle": {
+    title: "Task Dependency Cycle",
+    explanation:
+      "The ImplementationPlan task graph contains a cycle. Each token is already a valid T-NNN; "
+      + "the cycle is the defect.",
+    remediation: [
+      "Break the dependency cycle involving the named tasks.",
+      "Keep each token as a valid T-NNN and change only the edges.",
+    ],
+  },
+  "change.task-duplicate-dependency": {
+    title: "Task Repeats A Dependency",
+    explanation:
+      "A DependsOn list names the same valid T-NNN id more than once. The token is already canonical; "
+      + "the repeat is the defect.",
+    remediation: [
+      "Remove the extra listing so DependsOn no longer repeats dependency.",
+      "The token is already a valid T-NNN — do not rewrite it as a list or anchor form.",
+    ],
+  },
   "change.duplicate-clarifications-section": {
     title: "Duplicate Clarifications Section",
     explanation: "A change spec or plan may contain at most one <Clarifications> section.",

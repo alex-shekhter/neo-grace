@@ -193,6 +193,7 @@
       <File>src/lint/core.test.ts</File>
       <File>src/grace-lint.test.ts</File>
       <File>.ngrace/changes/active/C-EXPLAIN-COVERAGE/plan.xml</File>
+      <File>.ngrace/changes/active/C-EXPLAIN-COVERAGE/spec.xml</File>
     </ObservedWriteScope>
     <!--
       DESIGN (binding for implementers; authority reviews the fixture hardest)

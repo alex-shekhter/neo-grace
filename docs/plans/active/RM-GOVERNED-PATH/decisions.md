@@ -3525,3 +3525,43 @@ after the first `cursor attempt`, it is not.
 
 **Promotion held.** Same reason as [D16](#d16): one worked instance. `ngrace-plan` gets it when a
 second bundle names a criterion after a mechanism and pays for it.
+
+---
+
+### F43 — An XML artifact cannot quote XML, so a criterion that binds its own words to an emitted message is unsatisfiable. **[verified]**
+
+`AC-FIX-SHAPE` binds a guide's remediation to the **emitted issue message**. For
+`change.task-invalid-dependency` that message is (`grammar.ts:2079`):
+
+```
+Accepted shapes: multi-value text list of T-NNN ids (comma, semicolon, or whitespace),
+<Task>T-NNN</Task> children, or self-closing <T-NNN /> anchor children.
+```
+
+The spec and plan name those shapes as *"Task-element children holding a T-NNN id"* and
+*"self-closing T-NNN anchor children"* — a **paraphrase**, because the literal text contains
+`<Task>` and `<T-NNN />`, and an unescaped tag in XML prose is parsed as a child element. That
+hazard has already broken this bundle's artifacts once.
+
+So the criterion's own words are not a substring of the thing it binds to. A fixture that took the
+paraphrase as its closed expected-shape list could never go green without editing `grammar.ts`,
+which this bundle forbids. The executor bound to the phrases the message actually emits and
+reported the divergence rather than quietly reinterpreting the criterion.
+
+**The cause is structural, not clumsy authoring.** GRACE artifacts are XML; escaping is mandatory;
+so an artifact quoting a shape is always a *rendering* of it, never the bytes. Any criterion of the
+form "the artifact's text matches the product's text" carries a silent escaping gap.
+
+**Why this recurs, and where.** Every remaining P1 step whose deliverable is a description of XML
+hits it: **P1.4** (schema reference generated from `grammar.ts` — a generated doc is exactly a
+rendering of shapes), **P1.5** (generators emitting skeletons that criteria will want to quote),
+**P1.6** (`--as` reporting on shapes), **P1.12** (the `Clarification` anchor-child form, which is
+itself a tag that cannot be written literally in the artifact teaching it). This is not a
+one-bundle wrinkle.
+
+**The rule.** A criterion may bind an artifact's prose to a product string only where the prose is
+**escape-free**. Where the target contains markup, bind to the *semantic* content — the shape names,
+the separator set, the accepted forms — and assert the literal bytes in the **test**, which is
+TypeScript and has no escaping constraint. State the divergence in the criterion rather than
+letting the paraphrase read as a quotation. Related: [D16](#d16) (a criterion may only bind evidence
+that lives in an artifact) — F43 bounds *what kind* of evidence an artifact can hold at all.

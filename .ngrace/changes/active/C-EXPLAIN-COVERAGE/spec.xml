@@ -142,8 +142,9 @@
         value); F26 / F30 / F33 (do not freeze authoring counts; lint 0/0 is
         **at close**); F27 / F27.2 (`ObservedWriteScope` covers what this
         deliverable **forces**); D16 (evidence lives in an artifact); D11
-        (no NonGoal without a dependency or a conflict); F4 (this pass is
-        **spec only**, `status="draft"`; no `plan.xml` until approved).
+        (no NonGoal without a dependency or a conflict). Authoring history
+        (not a live constraint): this spec was drafted under F4 as
+        spec-only with `status="draft"` and no `plan.xml` until approved.
       </Constraint>
       <Constraint>
         Ceremony tier **T1** (catalog resolution, coverage test,
@@ -302,6 +303,8 @@
         pre-change HEAD.
       </AC-COVERAGE-UNIVERSE>
       <AC-COVERAGE-NO-BOILERPLATE>
+        The id names the historical mechanism (a hunt for dedicated-entry
+        boilerplate sentences); this body carries the current one.
         That coverage test asserts: for every universe code, the
         resolution path (`getLintIssueGuideResolution`) is exact,
         prefix, review-catalog, or gate-catalog — not

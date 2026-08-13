@@ -1,10 +1,14 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
+import { ARTIFACT_DIR } from "../artifact/paths";
+import { writeChangeBundleFixture, writeMinimalNgraceProject } from "../artifact/test-fixtures";
 import { PATTERNS } from "../test-support/defect-corpus";
 import { allGateCodes, GATE_CATALOG } from "../gates/catalog";
 import { allReviewCodes, guideFor, REVIEW_CATALOG } from "../review/catalog";
+import { lintGraceProject } from "./core";
 import {
   classifyIssueCode,
   getExactLintIssueGuide,
@@ -195,16 +199,11 @@ const PREFIX_COVERED_LEGACY_CODES: readonly string[] = [
   "change.spec-plan-id-mismatch",
   "change.superseded-replacement-not-found",
   "change.superseded-self-replacement",
-  "change.task-dependency-cycle",
-  "change.task-duplicate-dependency",
   "change.task-duplicate-section",
   "change.task-empty-acceptance",
   "change.task-empty-title",
   "change.task-empty-verification",
-  "change.task-invalid-dependency",
   "change.task-missing-section",
-  "change.task-self-dependency",
-  "change.task-unknown-dependency",
   "change.unexpected-file",
   // --- context.* ---
   "context.applicability-duplicate",
@@ -659,5 +658,143 @@ describe("AC-WIRE-CATALOG-GUIDES (C-EXPLAIN-COVERAGE T-001)", () => {
       expect(classifyIssueCode(code)).toBe("emittable-uncatalogued");
       expect(getExactLintIssueGuide(code)).toBeUndefined();
     }
+  });
+});
+
+/**
+ * AC-FIX-SHAPE (C-EXPLAIN-COVERAGE T-002). Six plants via lintGraceProject
+ * on temp projects. Binding is a closed expected-shape list per code,
+ * authored here, asserted against both the emitted issue.message and
+ * getLintIssueGuide(code).remediation. Family archive-placement is a
+ * required negative. The four siblings must not name invalid's three
+ * DependsOn authoring shapes.
+ */
+const FIX_SHAPE_DEPENDENCY_CODES = [
+  "change.task-invalid-dependency",
+  "change.task-unknown-dependency",
+  "change.task-self-dependency",
+  "change.task-dependency-cycle",
+  "change.task-duplicate-dependency",
+] as const;
+
+const FIX_SHAPE_INVALID_SHAPES = [
+  "multi-value text list of T-NNN ids (comma, semicolon, or whitespace)",
+  "<Task>T-NNN</Task> children",
+  "self-closing <T-NNN /> anchor children",
+] as const;
+
+const FIX_SHAPE_EXPECTED: Record<string, readonly string[]> = {
+  "change.task-invalid-dependency": FIX_SHAPE_INVALID_SHAPES,
+  "change.task-unknown-dependency": ["depends on unknown task"],
+  "change.task-self-dependency": ["cannot depend on itself"],
+  "change.task-dependency-cycle": ["dependency cycle involving"],
+  "change.task-duplicate-dependency": ["repeats dependency"],
+  "markup.unparsed-link-token": ["M-*", "DF-*", "V-M-*", "comma, semicolon, or whitespace"],
+};
+
+const FAMILY_ARCHIVE_PLACEMENT = "Keep draft and approved bundles";
+
+type DependencyPlantKind = "invalid" | "unknown" | "self" | "cycle" | "duplicate";
+
+function fixtureTask(id: string, dependsOn?: string): string {
+  const dep = dependsOn === undefined
+    ? "<DependsOn></DependsOn>"
+    : `<DependsOn>${dependsOn}</DependsOn>`;
+  return `<${id}><Title>Task ${id}</Title>${dep}<AcceptanceCriteria><Criterion>The fixture remains valid.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></${id}>`;
+}
+
+function writePlantPlan(root: string, changeId: string, tasksXml: string): void {
+  const plan = `<NgraceChangePlan graceVersion="1.0" status="approved"><${changeId}><IntentSummary>Apply the fixture change.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan>${tasksXml}</ImplementationPlan></${changeId}></NgraceChangePlan>`;
+  writeFileSync(path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "plan.xml"), plan);
+}
+
+function plantFixShape(kind: DependencyPlantKind | "markup"): {
+  code: string;
+  issue: LintIssue;
+  guide: ReturnType<typeof getLintIssueGuide>;
+  firedDependencyCodes: string[];
+} {
+  const root = mkdtempSync(path.join(os.tmpdir(), "grace-fix-shape-"));
+  writeMinimalNgraceProject(root);
+  writeChangeBundleFixture(root, {
+    changeId: "C-EXAMPLE",
+    location: "active",
+    specStatus: "approved",
+    planStatus: "approved",
+  });
+
+  const kindToCode: Record<DependencyPlantKind | "markup", string> = {
+    invalid: "change.task-invalid-dependency",
+    unknown: "change.task-unknown-dependency",
+    self: "change.task-self-dependency",
+    cycle: "change.task-dependency-cycle",
+    duplicate: "change.task-duplicate-dependency",
+    markup: "markup.unparsed-link-token",
+  };
+  const code = kindToCode[kind];
+
+  if (kind === "markup") {
+    const file = path.join(root, "src", "example.ts");
+    const text = readFileSync(file, "utf8").replace("LINKS: M-EXAMPLE", "LINKS: M-EXAMPLE, TYPO-BAD");
+    writeFileSync(file, text);
+  } else {
+    const tasks =
+      kind === "invalid" ? fixtureTask("T-001", "not-a-task")
+      : kind === "unknown" ? fixtureTask("T-001", "T-999")
+      : kind === "self" ? fixtureTask("T-001", "T-001")
+      : kind === "cycle" ? fixtureTask("T-001", "T-002") + fixtureTask("T-002", "T-001")
+      : fixtureTask("T-001") + fixtureTask("T-002", "T-001 T-001");
+    writePlantPlan(root, "C-EXAMPLE", tasks);
+  }
+
+  const result = lintGraceProject(root);
+  const firedDependencyCodes = result.issues
+    .map((issue) => issue.code)
+    .filter((fired) => (FIX_SHAPE_DEPENDENCY_CODES as readonly string[]).includes(fired));
+  const issue = result.issues.find((item) => item.code === code);
+  if (!issue) {
+    throw new Error(`plant ${kind} did not fire ${code}; codes=${result.issues.map((item) => item.code).join(",")}`);
+  }
+  return { code, issue, guide: getLintIssueGuide(code), firedDependencyCodes };
+}
+
+describe("AC-FIX-SHAPE (C-EXPLAIN-COVERAGE T-002)", () => {
+  const plants: Array<{ kind: DependencyPlantKind; code: typeof FIX_SHAPE_DEPENDENCY_CODES[number] }> = [
+    { kind: "invalid", code: "change.task-invalid-dependency" },
+    { kind: "unknown", code: "change.task-unknown-dependency" },
+    { kind: "self", code: "change.task-self-dependency" },
+    { kind: "cycle", code: "change.task-dependency-cycle" },
+    { kind: "duplicate", code: "change.task-duplicate-dependency" },
+  ];
+
+  for (const { kind, code } of plants) {
+    it(`binds ${code} remediation to the shapes that plant's emitted message names`, () => {
+      const planted = plantFixShape(kind);
+      expect(planted.issue.code).toBe(code);
+      expect(planted.firedDependencyCodes).toEqual([code]);
+      const remediation = planted.guide.remediation.join("\n");
+      for (const shape of FIX_SHAPE_EXPECTED[code]!) {
+        expect(planted.issue.message).toContain(shape);
+        expect(remediation).toContain(shape);
+      }
+      expect(remediation).not.toContain(FAMILY_ARCHIVE_PLACEMENT);
+      if (code !== "change.task-invalid-dependency") {
+        for (const shape of FIX_SHAPE_INVALID_SHAPES) {
+          expect(remediation).not.toContain(shape);
+        }
+      }
+    });
+  }
+
+  it("markup.unparsed-link-token remains the already-green discrimination anchor", () => {
+    const planted = plantFixShape("markup");
+    expect(planted.issue.code).toBe("markup.unparsed-link-token");
+    expect(planted.firedDependencyCodes).toEqual([]);
+    const remediation = planted.guide.remediation.join("\n");
+    for (const shape of FIX_SHAPE_EXPECTED["markup.unparsed-link-token"]!) {
+      expect(planted.issue.message).toContain(shape);
+      expect(remediation).toContain(shape);
+    }
+    expect(planted.guide.explanation).toContain("[,;\\s]+");
   });
 });
