@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-EXPLAIN-COVERAGE>
     <Summary>
       Deliver RM-GOVERNED-PATH P1 steps 1–3 only: wire review and gate catalog
