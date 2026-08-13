@@ -3774,3 +3774,44 @@ review scope audit, which stopped auditing the CLI's own writes against the agen
 Fix the note at the source: it originates in the plan authored from
 `.ngrace/changes/archive/C-EXPLAIN-COVERAGE/plan.xml` as the model, so the next plan authored from
 that model inherits it again.
+
+---
+
+### F51 — A measurement pin makes every file it measures a transitive forced write. **[verified]**
+
+T-004 edited the eight skill and template files that taught the unauthorable `<Clarification>`.
+That moved a byte total pinned in two places outside the bundle's `ObservedWriteScope`:
+
+```
+src/test-support/token-accounting.test.ts:47   expect(measured.totalBytes).toBe(53771)  → 53864
+README.md:286                                  **779 lines** / **53771 UTF-8 bytes**
+```
+
+Measured: neither path appears in `plan.xml` (0 hits). The executor stopped rather than breach
+scope, leaving `bun test` at 1274 pass / **1 fail** — and T-005 claims `bun test` green, so the
+close task is blocked by its own plan's scope.
+
+**Why this is not simply [F27.2](#f272) again.** The two historical breaches were *direct*: a
+deliverable wrote a file the plan had not listed. This one is **transitive and invisible at
+authoring time**. The plan author would have had to know that editing skill prose moves a byte
+total asserted in a test file nobody is touching, in a bundle about grammar and gates. There are
+**16** `SKILL.md` files under that pin, so every future bundle that edits any skill text inherits
+the same unlisted forced write.
+
+**The pin is working exactly as designed, which is the point.** It exists because of
+[F29/F29.1](#f29): the footprint measure counted lines, so a 962-byte rewrite of agent-loaded skill
+text registered as zero movement, and `totalBytes` was added beside the frozen line total so that
+change would register. It registered. It just registers as a failure in a file outside every
+skill-touching bundle's natural scope.
+
+**Resolved here by amendment, not deferral.** The write is forced by the approved deliverable, so
+per F27.2 `ObservedWriteScope` must cover it; both paths are added and the pin is updated to the
+measured value. Deferring would leave a knowingly-red suite behind a close criterion that demands
+green.
+
+**The forward rule.** A bundle that edits any `SKILL.md` must list `token-accounting.test.ts` and
+`README.md` in `ObservedWriteScope` at authoring time. Better, and the shape to argue when a bundle
+next touches that surface: a hand-maintained literal that every skill edit invalidates is a
+maintenance tax with no reader — the honest forms are a tool-updated value or an assertion on
+*movement being declared* rather than on a frozen number. Not opened here: this bundle has already
+taken one re-spec, and the pin's current form is what two archived roadmaps cite.
