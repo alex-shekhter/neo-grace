@@ -1,0 +1,1241 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-SKELETON-GENERATORS>
+    <Summary>
+      Deliver RM-GOVERNED-PATH P1 step 5 only: add spec new, plan
+      new, and scaffold commands that write valid-by-construction
+      skeletons from the live grammar inventories and from the
+      single production MODULE_CONTRACT renderer, so an agent can
+      emit a shape-valid spec, plan, or module markup block without
+      reading src/artifact/grammar.ts. The existing spec and plan
+      skill templates are regenerated from that same renderer's
+      teaching emission (required core plus the optional teaching
+      the skills name), not from the CLI skeleton emission.
+      P1.6 as-state, P1.7 export view, and P1.8 no-adapter
+      preflight are out.
+    </Summary>
+    <Problem>
+      **Shared shape.** P1.5 exists so an agent can author a valid
+      artifact without reading TypeScript or copying the polyglot
+      example. The step asks for three generators: spec new and
+      plan new write skeletons with every mandatory section and
+      the canonical empty marker where emptiness is legal;
+      scaffold with the module flag emits the MODULE_CONTRACT /
+      MODULE_MAP block for the module's declared Path with
+      correct ROLE / MAP_MODE / LINKS. The headline acceptance
+      test is that generated output passes lint when committed
+      unmodified. Authoring HEAD 3e5c3d8, packaged 6.2.0, lint
+      0/0 across 131 XML artifacts, active changes empty before
+      this bundle, suite 1307 pass / 3 skip / 0 fail. Those
+      numbers are a snapshot (F33).
+
+      ---
+
+      **No command surface exists.** src/grace.ts registers
+      context, cursor, doctor, file, gate, graph, lint, module,
+      review, status, and verification. There is no spec, plan,
+      or scaffold command. This bundle is greenfield CLI surface
+      plus a renderer, not a repair of an existing verb.
+
+      ---
+
+      **The headline test is not one property (F45, Trap A).**
+      validateMeaningfulSection accepts any non-empty descendant
+      text, so a placeholder such as $SUMMARY satisfies
+      change.empty-section by construction. A criterion that
+      says only "generated output passes lint unmodified" has a
+      half that cannot be reddened without manufacturing a
+      failure. The real properties are listed on
+      AC-LINT-PROPERTIES; the construction half is exempted on
+      AC-HEAD-RED at authoring time.
+
+      ---
+
+      **Trap C, measured, not inferred.** An active plan beside
+      a non-approved spec is change.plan-requires-approved-spec
+      (error): "An active plan may exist only beside an approved
+      spec." Generating both from the shipped templates into
+      .ngrace/changes/active/C-PROBE/ (wrapper id substituted
+      only) produced two errors, not one:
+
+      change.plan-requires-approved-spec on the bundle
+      directory.
+
+      change.graph-anchors-miss-write-scope on plan.xml,
+      because the plan template's ObservedWriteScope names
+      File src/path/to/file.ts, which is not a governed file
+      whose MODULE_CONTRACT LINKS include a GraphAnchors
+      module.
+
+      Follow-up measurements on the same HEAD, then deleted:
+      draft spec only from the spec template is 0/0; approved
+      spec plus the unmodified plan template is still the
+      write-scope error; approved spec plus the same plan with
+      ObservedWriteScope replaced by None is 0/0. So the pair
+      can be lint-green, but only when the spec is approved
+      and ObservedWriteScope is the canonical empty marker,
+      not a placeholder src path. The probe directory was
+      deleted; the working tree was clean afterwards.
+
+      Therefore "generate spec and plan, commit unmodified,
+      lint green" cannot hold for a draft pair, and cannot
+      hold for output that copies the current plan template's
+      File placeholder. The resolution is decided below, not
+      left to the plan.
+
+      ---
+
+      **The templates are a second grammar (Trap B, F46, F10)
+      and they are also teaching artifacts (F63).** Five
+      hand-written XML kinds ship as copy-sources, each
+      mirrored. They return zero hits in the lint universe.
+      Leaving the spec and plan templates as a second
+      hand-maintained shape is F10: the plan template's File
+      placeholder is already a shape lint rejects. Collapsing
+      them to the CLI skeleton (required sections only) is
+      also F10: ngrace-spec SKILL.md tells the author to
+      write spec.xml from the spec template and to add
+      DesignReferences when Figma or research exist;
+      ngrace-plan SKILL.md produces plan.xml from the plan
+      template; both templates carry commented, filled
+      examples of Clarifications in the self-closing
+      anchor-child form (C-GRAMMAR-SEAM's product) and the
+      plan template carries commented OutOfPlanScope. A
+      check that compares template to skeleton agrees by
+      definition after it deletes that teaching, and
+      validate:marketplace is green when both trees lose
+      the same content. F63: a generator skeleton and a
+      teaching template are different products. This bundle
+      therefore keeps one renderer with two emissions.
+      CLI spec new / plan new write the skeleton emission.
+      The four spec/plan template files are the teaching
+      emission. The other three template kinds stay on
+      P1.11. SKILL.md is not edited.
+
+      ---
+
+      **The markup renderer already exists in test-support
+      (Trap D, F60).** src/test-support/fixtures.ts defines
+      renderModuleContract, renderModuleMap, and
+      commentPrefixForExtension. Only the last is exported;
+      the first two are reached from tests only through
+      GraceProjectBuilder. commentPrefixForExtension handles
+      a subset of CODE_EXTENSIONS and defaults the rest to
+      the slash-slash prefix, including .pyi, which is a
+      Python stub and whose comment prefix is hash. A second
+      renderer in production would be the F60 class: two
+      implementations that will disagree. The production
+      parser already lives in src/project-utils.ts beside
+      private inferRole and defaultMapMode. Those are the
+      functions scaffold must call, not reimplement.
+
+      ---
+
+      **inferRole is TEST or RUNTIME only.** BARREL, CONFIG,
+      TYPES, and SCRIPT are never inferred. Scaffold must
+      not invent a second inference table. ROLE is inferRole
+      of the Path; MAP_MODE is defaultMapMode of that ROLE.
+      House-style ROLE values the author wants beyond TEST /
+      RUNTIME are a later edit of the emitted block.
+
+      ---
+
+      **Exact MODULE_MAP requires an adapter and a body.**
+      LanguageAdapter.analyze already exists; P1.7 is a
+      read-only CLI view of the same function and is not a
+      dependency. Of 21 governed extensions, five adapters
+      back a derived ADAPTER_BACKED_EXTENSIONS set. Without
+      an adapter, or with an empty symbol set for the
+      required map mode, an "exact" MODULE_MAP cannot be
+      produced. Emitting a guessed entry would be a second
+      truth. Scaffold refuses those cases.
+
+      ---
+
+      **F61.** xml.comment-not-well-formed is error severity.
+      This spec names argv tokens and exported functions in
+      any comment body and does not write dashed CLI flags
+      inside XML comments. Element text may name a dashed
+      form; this file prefers argv tokens everywhere so a
+      later comment cannot regress it.
+    </Problem>
+    <Goals>
+      <Goal>
+        **Three generators, one bundle.** spec new, plan new,
+        and scaffold ship together. Scaffold does not depend
+        on P1.7 (analyze already exists). Nothing is split
+        for size (D11).
+      </Goal>
+      <Goal>
+        **Live grammar skeletons.** spec and plan skeletons
+        are rendered from the GRAMMAR_INVENTORIES bindings
+        the validators already close over, not from a copied
+        section list and not by reading grammar.ts as text.
+        Liveness is proved by probe mutation of an inventory,
+        observing the rendered bytes change, and restoring.
+      </Goal>
+      <Goal>
+        **One markup renderer.** The MODULE_CONTRACT /
+        MODULE_MAP renderer and the comment-prefix function
+        live in production (src/project-utils.ts). Test
+        fixtures import those same bindings. comment prefix
+        covers every CODE_EXTENSIONS member with the prefix
+        the production parser already accepts; .py and .pyi
+        share hash.
+      </Goal>
+      <Goal>
+        **Spec and plan templates stop being a second
+        grammar without deleting their teaching (F63).**
+        The four spec/plan template files (canonical and
+        packaged) are the teaching emission of the same
+        renderer the CLI calls for the skeleton. A check
+        that validate:ci runs fails when they differ from
+        that teaching emission or are missing. The teaching
+        emission still shows DesignReferences,
+        Clarifications (working form), and OutOfPlanScope.
+        The other three template kinds are untouched.
+        SKILL.md is not edited.
+      </Goal>
+      <Goal>
+        **Honest lint claim.** The properties that are real,
+        and the half that is true by construction, are named
+        on AC-LINT-PROPERTIES and AC-HEAD-RED. The generator
+        does not write a state lint would reject.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: RM-GOVERNED-PATH P1 step 5; F10 (claim only
+        what this surface verifies); F18 / F18.1 (any new
+        boolean arg uses defineGraceCommand; this bundle
+        adds none); F27.2 (ObservedWriteScope must cover
+        every path the deliverable forces); F33 (do not
+        freeze a count or line number this change moves);
+        F42 (no assertion needle a generated skeleton or
+        template may legitimately contain); F43 (this
+        artifact binds semantics; tests under src/**/*.test.ts
+        assert literal bytes); F44 (pin where a user-visible
+        string appears); F45 (name HEAD-true and
+        by-construction halves and exempt them); F46 (spec
+        and plan templates leave the unchecked-copy class);
+        F51 (no SKILL.md, so no token-accounting or README
+        pin; F63 is resolved without paying this cost);
+        F52 (change.plan-scope-exceeds-spec compares
+        DurableScope anchors at warning and does not look at
+        file paths); F56 (see the signature-key Constraint);
+        F60 (do not add a second markup renderer);
+        F61 (no two adjacent hyphens in any XML comment
+        body, including teaching comments the renderer
+        emits); F63 (skeleton and teaching template are
+        different products; one renderer, two emissions);
+        D11 (nothing deferred without a dependency
+        or a conflict); D16 (evidence lives in an artifact);
+        D17 (AC ids name the property). D13 (lint-result
+        JSON gains no new top-level key).
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T2** (new CLI verbs + grammar-driven
+        renderer with skeleton and teaching emissions +
+        moving the markup renderer out of test-support +
+        regenerating four template files from the teaching
+        emission + CI stale-check). P1.6 as-state, P1.7
+        export view, P1.8 no-adapter preflight, P1.10 skill
+        inversion, and P1.11 polyglot plus the remaining
+        templates are out of implementation.
+      </Constraint>
+      <Constraint>
+        **Decided here — one bundle, three verbs.** Default
+        is one bundle. The candidate dependency (scaffold
+        needs P1.7) does not hold: LanguageAdapter.analyze
+        already exists and both P1.5 scaffold and P1.7 are
+        callers. No other dependency or conflict was found.
+        Do not split.
+      </Constraint>
+      <Constraint>
+        **Decided here — command shape and homes.** grace.ts
+        registers three new top-level commands: spec, plan,
+        and scaffold. spec and plan each have a new
+        subcommand. One new published command module
+        src/grace-generate.ts exports the three command
+        defs and LINKS M-CLI; it is not a new graph module.
+        package.json files lists that new path (src/artifact/
+        already covers the renderer). Commands are wrapped
+        with defineGraceCommand. This bundle adds no boolean
+        args, so the live boolean-site cardinality does not
+        move; the live-root walk in
+        src/query/command.test.ts must still include the
+        new roots so a later boolean cannot hide. Do not
+        keep a walk name that states a count (F10). Errors
+        are GraceCommandError using the existing closed
+        code union only (invalid-arguments, invalid-project,
+        not-found, ambiguous-target). No JSON format flag
+        on these commands.
+      </Constraint>
+      <Constraint>
+        **Decided here — change id.** The positional slug
+        must already match ANCHOR_PATTERNS.change
+        (C-, then uppercase kebab). Do not prepend the
+        C- prefix (silent repair is filtering). An
+        invalid token is invalid-arguments and names the
+        accepted pattern. Refuse if
+        .ngrace/changes/active/C-ID or
+        .ngrace/changes/archive/C-ID already exists as a
+        directory; name the existing location. argv token
+        path (alias p) is the project root, default the
+        current working directory, matching the other
+        commands.
+      </Constraint>
+      <Constraint>
+        **Decided here — spec new output.** Writes
+        .ngrace/changes/active/C-ID/spec.xml. Creates the
+        directory. Refuses if the file exists
+        (invalid-arguments, names the path). Does not
+        overwrite. First line of stdout is the
+        project-relative written path (F44). Root is
+        NgraceChangeSpec; graceVersion is the live
+        NGRACE_ARTIFACT_VERSION; status is draft; the
+        direct wrapper tag is the change id. Every
+        SPEC_REQUIRED_SECTIONS member is present, in that
+        inventory's order, with placeholder text that is
+        non-empty. AffectedAreas contains one canonical
+        module anchor M-AFFECTED-MODULE. AcceptanceCriteria
+        contains one AC-SKELETON child with placeholder
+        text. This is the skeleton emission. Optional
+        sections (Problem, Assumptions, DesignReferences,
+        Clarifications) are not live children, and
+        teaching comments are not written: they belong
+        to the teaching emission only (F63). The
+        renderer reads the live inventory; it does not
+        copy the seven names.
+      </Constraint>
+      <Constraint>
+        **Decided here — plan new output and Trap C
+        resolution.** Writes
+        .ngrace/changes/active/C-ID/plan.xml. Creates
+        nothing if the spec is missing or not approved:
+        refuse with invalid-arguments, name the spec
+        path, and state that an active plan may exist
+        only beside an approved spec (the same rule
+        change.plan-requires-approved-spec enforces).
+        Do not write the file and leave lint to catch
+        it. Refuse if plan.xml already exists. First
+        line of stdout is the project-relative written
+        path. Root is NgraceChangePlan; graceVersion is
+        the live NGRACE_ARTIFACT_VERSION; status is
+        draft; wrapper tag is the change id. Every
+        PLAN_REQUIRED_SECTIONS member is present, in
+        inventory order. BaselineAssertions and
+        TargetAssertions each contain at least one
+        child whose tag is a member of
+        ASSERTION_SECTION_TAGS (MustExist naming the
+        first spec AffectedAreas module anchor, or
+        M-AFFECTED-MODULE when seeding from the
+        renderer-only synthetic spec). ObservedWriteScope
+        is a single None child — never a placeholder
+        File under src/. DurableScope GraphAnchors is
+        seeded from the approved spec's AffectedAreas
+        module and flow anchors so
+        change.scope-does-not-cover-spec does not fire.
+        ImplementationPlan contains T-001 with every
+        TASK_REQUIRED_SECTIONS member: non-empty Title,
+        empty DependsOn, one non-empty Criterion, one
+        non-empty Command. Satisfies lists every AC-*
+        the spec authored; if the spec has no AC-*
+        (author edited them out before plan new),
+        Satisfies is omitted. This is the skeleton
+        emission. OutOfPlanScope and Clarifications are
+        not live children and teaching comments are not
+        written (F63). The renderer reads the live
+        inventories; it does not copy the six or four
+        names.
+      </Constraint>
+      <Constraint>
+        **Decided here — scaffold output.** argv token
+        module is required and must match
+        ANCHOR_PATTERNS.module. Unknown module is
+        not-found and names the id. A module with no
+        Path (this repository's M-SKILLS) is
+        invalid-arguments and names that absence. The
+        Path file must exist (not-found if missing);
+        scaffold does not create source files. Default
+        and only output is stdout: the exact
+        MODULE_CONTRACT block followed by the
+        MODULE_MAP block, using the production
+        renderer. Scaffold does not write the Path
+        file (no boolean write flag). ROLE is inferRole
+        of the Path (TEST or RUNTIME). MAP_MODE is
+        defaultMapMode of that ROLE. LINKS is the
+        module id. DEPENDS is the accepted token none.
+        PURPOSE and SCOPE are non-empty placeholders.
+        Comment prefix comes from the production
+        commentPrefixForExtension of the Path
+        extension. MODULE_MAP entries are
+        adapter.analyze of the existing file body,
+        exports or localSymbols according to MAP_MODE.
+        Refuse invalid-arguments when the Path
+        extension is not in ADAPTER_BACKED_EXTENSIONS,
+        or when the required symbol set is empty:
+        an exact map cannot be produced. Do not emit
+        a guessed entry. Do not reimplement inferRole,
+        defaultMapMode, or analyze.
+      </Constraint>
+      <Constraint>
+        **Decided here — source of truth and drift.**
+        Spec/plan renderer: new src/artifact/skeletons.ts,
+        LINKS M-GRAMMAR, reads GRAMMAR_INVENTORIES and
+        NGRACE_ARTIFACT_VERSION live. Markup renderer:
+        move renderModuleContract, renderModuleMap, and
+        commentPrefixForExtension to src/project-utils.ts
+        and export them; fixtures.ts deletes its copies
+        and imports the production bindings (same
+        references, not wrappers that rebuild). Probe
+        mutation of SPEC_REQUIRED_SECTIONS,
+        PLAN_REQUIRED_SECTIONS, and
+        TASK_REQUIRED_SECTIONS changes the required
+        core of both the skeleton emission and the
+        teaching emission; restore in finally. The
+        suite asserts commentPrefixForExtension(".pyi")
+        is hash, and that
+        fixtures.commentPrefixForExtension is the
+        project-utils export if fixtures re-exports
+        it at all. validate:ci invokes a writer check
+        (scripts/generate-skeleton-templates.ts check
+        mode, composed like validate:schema-reference)
+        that exits non-zero when either spec/plan
+        template in either skill tree is missing or
+        differs from the teaching emission. Green on a
+        clean post-change tree is the baseline, not the
+        evidence.
+      </Constraint>
+      <Constraint>
+        **Decided here — templates (F63).** One
+        renderer, two emissions. Regenerated, not
+        left, not deleted, not reduced to the
+        skeleton. The four files are:
+
+        skills/ngrace/ngrace-spec/references/change-spec-template.xml
+
+        skills/ngrace/ngrace-plan/references/change-plan-template.xml
+
+        and the two packaged mirrors under
+        plugins/ngrace/skills/ngrace/.
+
+        Spec template bytes equal the teaching
+        emission of renderChangeSpec for
+        C-CHANGE-ID. Plan template bytes equal the
+        teaching emission of renderChangePlan for
+        C-CHANGE-ID seeded from that synthetic spec.
+        The required core of both emissions is the
+        same function (live inventories, ObservedWriteScope
+        None, seeded DurableScope and Satisfies). The
+        teaching appendix is a closed, named list in
+        the renderer, not claimed to be a grammar
+        inventory (F10):
+
+        spec teaching, live: Problem, Assumptions,
+        DesignReferences whose children are the live
+        DESIGN_REFERENCE_CHILD_TAGS members (Figma
+        with an http(s) example url, UserResearch
+        with a contained project-relative example
+        path).
+
+        spec teaching, commented: Clarifications
+        showing the working form (exactly one
+        self-closing IC-* / INV-* / AC-* child;
+        the live CLARIFICATION_WORKING_FORM).
+
+        plan teaching, commented: OutOfPlanScope
+        with a non-empty Reason child, and
+        Clarifications in the same working form
+        targeting AC-SKELETON.
+
+        Instructional comments that survive from
+        the current templates must remain F61-clean
+        (measured: nine comment bodies, zero
+        contain two adjacent hyphens). New comment
+        text the renderer emits is subject to the
+        same rule. No generated banner inside the
+        XML. SKILL.md is not edited (F51 unpaid):
+        both named write-from-template lines still
+        resolve to a file that shows the shape they
+        name. design-context, design-system, and
+        migration-report templates are not this
+        renderer and are not updated.
+        validate:marketplace must stay green
+        because both trees change together. The
+        File placeholder is not part of either
+        emission.
+      </Constraint>
+      <Constraint>
+        **Decided here — F56 signature keys.**
+        decideFixBudgetEscalation
+        (src/grace-cursor.ts) compares
+        FailureSignature values by exact kind plus
+        key equality (failureSignaturesEqual).
+        Trigger R fires when the current signature
+        appears FIX_SIGNATURE_REPEAT_BUDGET (2)
+        times in the window. Trigger D fires when
+        the distinct kind-plus-key set reaches
+        FIX_DISTINCT_SIGNATURE_BUDGET (4). The
+        kind and key are not derived from the test
+        output: cursor attempt takes argv tokens
+        signatureKind and signatureKey, and
+        recordAttempt stores them as authored.
+        Citty reporting an unknown command for
+        spec, plan, and scaffold is therefore the
+        same failure class and is indistinguishable
+        unless the recorded key names the command.
+        A task that records two of those reds with
+        the same kind and the same key trips
+        trigger R and pauses itself. What makes
+        the three reds distinguishable: the
+        recorded key must include the command
+        argv token (spec, plan, or scaffold). A
+        task may plan at most one unknown-command
+        red, or several only with those distinct
+        keys, and never more than three distinct
+        kind-plus-key pairs in one window.
+      </Constraint>
+      <Constraint>
+        **Decided here — what "passes lint unmodified"
+        actually means.** Three checkable facts, all
+        required. (1) A draft spec written by spec new,
+        committed as the only file in its active bundle,
+        produces 0 errors and 0 warnings. (2) A draft
+        plan written by plan new beside the approved
+        spec it refused to skip, committed unmodified,
+        produces 0 errors and 0 warnings. (3) plan new
+        never writes beside a missing or non-approved
+        spec, so the illegal pair is not a generator
+        output. Scaffold's emitted block, placed at the
+        top of a fixture file whose extension is
+        adapter-backed and whose body has a non-empty
+        symbol set for the inferred map mode, produces
+        0 markup errors (map mismatch, missing contract
+        field, invalid role, role/map mismatch). The
+        placeholder-text half of change.empty-section
+        is true by construction and is not sold as
+        evidence of new work (F45).
+      </Constraint>
+      <Constraint>
+        AffectedAreas names modules. File-level scope
+        is enforced at close by
+        review.write-evidence-outside-scope (error),
+        not at authoring (F52). ObservedWriteScope
+        must still list every path the deliverable
+        forces (F27.2). Forced write surface:
+        src/grace.ts (register three commands only);
+        src/grace-generate.ts (new); src/artifact/skeletons.ts
+        (new); src/artifact/skeletons.test.ts;
+        src/grace-generate.test.ts;
+        src/project-utils.ts (export the three markup
+        renderers and complete commentPrefixForExtension;
+        MODULE_MAP update); src/project-utils.test.ts
+        (prefix and renderer cases only);
+        src/test-support/fixtures.ts (delete local
+        copies, import production); src/query/command.test.ts
+        (live-root walk includes the new roots; boolean
+        site cardinality re-measured, not rewritten);
+        package.json (files list plus validate:ci
+        composition only; no version field);
+        scripts/generate-skeleton-templates.ts;
+        scripts/generate-skeleton-templates.test.ts;
+        the four spec/plan template files named above;
+        this bundle's spec.xml and plan.xml. No
+        SKILL.md. **Stop and re-spec** rather than
+        touching src/artifact/grammar.ts validators,
+        src/review/**, src/lint/catalog.ts,
+        src/lint/core.ts, src/gates/**, skills/**/SKILL.md,
+        plugins/**/SKILL.md, the three non-spec-plan
+        templates, docs/plans/**,
+        .ngrace/changes/archive/**, CHANGELOG.md, or
+        any version surface.
+      </Constraint>
+      <Constraint>
+        **Do not edit** docs/plans/**,
+        .ngrace/changes/archive/**, CHANGELOG.md, or
+        any version surface. Packaged version at
+        authoring: **6.2.0**. No product version bump
+        — 6.3.0 is a phase target, not this bundle's
+        act. Newly visible commands are named in the
+        conventional commit body (D5.5), not in
+        CHANGELOG.md.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first is mechanical for
+        new behaviour. Failing tests are written before
+        the fail attempt is recorded, in a separate
+        tool round trip. Never a retrospective red via
+        stash. Never weaken a BaselineAssertion to
+        move a lint count. F45 carve-outs are named
+        on AC-HEAD-RED. F56: the plan splits criteria
+        so no task plans more than three distinct
+        kind-plus-key pairs, and no task records the
+        same kind-plus-key twice; unknown-command
+        reds are keyed by the command argv token as
+        decided above. F42: plan assertions must not
+        use as a MustContain or MustNotContain needle
+        any required section name, placeholder token,
+        M-AFFECTED-MODULE, AC-SKELETON, DesignReferences
+        child name, Clarification working-form phrase,
+        OutOfPlanScope, or other template phrase
+        either emission will emit; bind to
+        implementation symbols (renderer export,
+        teaching-emission flag, command module export,
+        writer check-mode exit, production
+        commentPrefixForExtension) instead. F43: this
+        spec binds semantics; tests assert literal
+        bytes. F39.1 / F61: this bundle's artifacts
+        must not hold two adjacent hyphen characters
+        inside any XML comment body.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        P1.6 lint as-state evaluation. Generators cover
+        write-time; as-state covers evolution-time of
+        hand-edited artifacts. Non-overlapping.
+      </NonGoal>
+      <NonGoal>
+        P1.7 adapter export view. Scaffold calls
+        analyze directly. A read-only exports command
+        is a later step, not a dependency.
+      </NonGoal>
+      <NonGoal>
+        P1.8 no-adapter preflight warning. File-level
+        analysis.no-adapter already exists on
+        project-utils.ts. Scaffold refuses when there
+        is no adapter rather than emitting a block
+        that warning would then attach to. Widening
+        or relocating that warning is P1.8.
+      </NonGoal>
+      <NonGoal>
+        P1.10 skill inversion (SKILL.md stops
+        restating formats). This bundle does not
+        edit SKILL.md (F51 unpaid; F63 does not
+        require it). Skills will still name the
+        templates; the templates will now be the
+        teaching emission, which still shows the
+        shapes those lines name. Teaching the CLI
+        as the primary authoring path is P1.10.
+      </NonGoal>
+      <NonGoal>
+        P1.11 polyglot rebalance and the fill-and-lint
+        check for design-context, design-system, and
+        migration-report templates. F46's remaining
+        home. This bundle's check is byte-identity of
+        the four spec/plan templates to the teaching
+        emission, which is a different property.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — copy the current templates into
+        the generator.** The plan template's File
+        placeholder fails lint when committed
+        (measured). Copying it would fail
+        AC-LINT-PROPERTIES by construction.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — a second MODULE_CONTRACT
+        renderer, or leaving the test-support copies
+        in place.** F60. The production functions
+        are the only implementation.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — infer BARREL, CONFIG, TYPES, or
+        SCRIPT.** inferRole does not. A second table
+        would drift from the parser. Authors edit
+        ROLE after emit if they need those values.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — scaffold writes the Path file,
+        or a boolean write / force / json / stdout
+        flag on any of the three commands.** File
+        write of markup into source is a different
+        product (insertion vs emit). Boolean flags
+        would move the live-site pin in
+        command.test.ts (F18 class coverage). Spec
+        and plan write files; scaffold prints.
+        Adding those flags is a re-spec.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — auto-approve the generated
+        spec so plan new can always run.** draft to
+        approved stays authored
+        (RM-GOVERNED-PATH D1). The generator does
+        not write status.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — generate design-context,
+        design-system, or migration-report.** Not
+        this step's artifacts.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — emit optional sections as
+        live children of the CLI skeleton
+        emission.** They are not required
+        sections. The teaching emission does
+        emit the closed appendix named under
+        templates (F63); that is not this
+        rejection.
+      </NonGoal>
+      <NonGoal>
+        docs/plans/** board edits, CHANGELOG.md,
+        product version bump, grammar validator
+        behaviour changes, new GraceCommandError
+        codes, new graph modules. Conflict: this
+        bundle does not close 6.3.0.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SPEC-NEW>
+        spec new of a canonical change id against a
+        temp project with no such bundle writes
+        .ngrace/changes/active/C-ID/spec.xml and
+        exits 0. First line of stdout is that
+        project-relative path. The file's root,
+        graceVersion, status, and wrapper match the
+        decided shape. Every live
+        SPEC_REQUIRED_SECTIONS member appears as a
+        direct wrapper child, in inventory order,
+        with non-empty text or a canonical anchor
+        child. AffectedAreas contains
+        M-AFFECTED-MODULE. AcceptanceCriteria
+        contains AC-SKELETON. Optional sections
+        named in Constraints are absent as live
+        children, and teaching comments are
+        absent: spec new writes the skeleton
+        emission, not the teaching emission. A
+        second invocation on the same id exits
+        non-zero
+        with invalid-arguments and does not change
+        the file. A slug that does not match
+        ANCHOR_PATTERNS.change exits non-zero with
+        invalid-arguments and writes nothing,
+        including when the slug would be valid
+        after prepending C-. An id that already
+        exists under archive/ is refused the same
+        way. **HEAD today:** no spec command;
+        citty reports an unknown command. **Failure
+        conditions:** stdout-only with no file;
+        overwrite; silent C- prefix; wrapper not
+        the id; required section missing or out of
+        inventory order; copied section list that
+        ignores a live inventory edit; Problem,
+        DesignReferences, or a teaching comment
+        emitted by spec new; first stdout line
+        is not the path.
+      </AC-SPEC-NEW>
+      <AC-PLAN-NEW>
+        plan new of a canonical change id whose
+        active spec exists and is approved writes
+        .ngrace/changes/active/C-ID/plan.xml and
+        exits 0. First line of stdout is that
+        project-relative path. Root, graceVersion,
+        status, and wrapper match the decided
+        shape. Every live PLAN_REQUIRED_SECTIONS
+        member appears in inventory order.
+        ObservedWriteScope has exactly one None
+        child and no File/Path/Glob. DurableScope
+        GraphAnchors contains every module and flow
+        anchor from that spec's AffectedAreas.
+        T-001 has every live TASK_REQUIRED_SECTIONS
+        member; DependsOn may be empty;
+        Satisfies lists every spec AC-*.
+        BaselineAssertions and TargetAssertions
+        each have at least one
+        ASSERTION_SECTION_TAGS child. plan new
+        with no spec, or with a draft spec, exits
+        non-zero with invalid-arguments, writes
+        nothing, and the message names the spec
+        path and the approved-spec rule. plan new
+        when plan.xml already exists refuses
+        without overwrite. **HEAD today:** no plan
+        command. **Failure conditions:** writes
+        beside a draft spec; copies the current
+        template File placeholder; DurableScope
+        None while the spec names a module
+        (change.scope-does-not-cover-spec);
+        Satisfies omits a spec AC-* (unmapped
+        warning); copied section list; overwrite;
+        teaching comments or live OutOfPlanScope
+        emitted by plan new.
+      </AC-PLAN-NEW>
+      <AC-SCAFFOLD-EMIT>
+        scaffold with argv token module set to a
+        known module whose Path file exists, whose
+        extension is in ADAPTER_BACKED_EXTENSIONS,
+        and whose analyze symbol set for the
+        inferred map mode is non-empty, exits 0
+        and prints the production-rendered
+        MODULE_CONTRACT then MODULE_MAP to stdout.
+        The Path file bytes are unchanged. ROLE is
+        inferRole of the Path; MAP_MODE is
+        defaultMapMode of that ROLE; LINKS is the
+        module id; DEPENDS is none; the comment
+        prefix is commentPrefixForExtension of the
+        Path extension; MODULE_MAP labels are
+        exactly the analyze set for that mode
+        (exports for EXPORTS, localSymbols for
+        LOCALS). Unknown module is not-found.
+        Module with no Path is invalid-arguments
+        and names the absence. Missing Path file
+        is not-found. Extension not in
+        ADAPTER_BACKED_EXTENSIONS is
+        invalid-arguments and names the extension.
+        Empty required symbol set is
+        invalid-arguments and names the mode.
+        Plant at least: an adapter-backed runtime
+        file with a non-empty export set (happy
+        path); M-SKILLS or a fixture module with
+        no Path; a missing Path file; a governed
+        extension with no adapter. **HEAD today:**
+        no scaffold command. **Failure conditions:**
+        writes the Path file; second renderer;
+        guessed MODULE_MAP entry; ROLE invented
+        beyond inferRole; LINKS not the module id;
+        .pyi prefix slash-slash; happy path
+        omitted; refuse cases collapsed into one
+        test.
+      </AC-SCAFFOLD-EMIT>
+      <AC-LIVE-INVENTORY>
+        src/artifact/skeletons.ts exports the spec
+        and plan renderers. Those functions read
+        GRAMMAR_INVENTORIES and
+        NGRACE_ARTIFACT_VERSION; they do not parse
+        grammar.ts as text and do not contain a
+        copied array of required section names.
+        The required core is one walk used by both
+        the skeleton emission and the teaching
+        emission. Pushing a sentinel onto
+        SPEC_REQUIRED_SECTIONS changes
+        renderChangeSpec (both emissions) to
+        include that sentinel as a section tag;
+        the same for PLAN_REQUIRED_SECTIONS /
+        renderChangePlan and TASK_REQUIRED_SECTIONS
+        / the generated T-001; each probe restores
+        in finally.
+        graceVersion in the rendered root equals
+        the live NGRACE_ARTIFACT_VERSION constant
+        (same reference value, not a second
+        literal the test happens to share).
+        **HEAD today:** skeletons.ts does not
+        exist. **Failure conditions:** hardcoded
+        section names; probe does not change
+        output; restore omitted so the suite
+        pollutes later tests; graceVersion copied
+        as a string that would stay 1.0 if the
+        constant moved.
+      </AC-LIVE-INVENTORY>
+      <AC-SINGLE-MARKUP-RENDERER>
+        renderModuleContract, renderModuleMap, and
+        commentPrefixForExtension are exported
+        from src/project-utils.ts. They are the
+        only definitions of those algorithms under
+        src/. src/test-support/fixtures.ts
+        contains no function body that renders
+        START_MODULE_CONTRACT, START_MODULE_MAP,
+        or chooses a comment prefix by extension;
+        it imports the production bindings.
+        commentPrefixForExtension(".pyi") and
+        commentPrefixForExtension(".py") are both
+        hash. commentPrefixForExtension of a
+        TypeScript extension is the slash-slash
+        prefix. A TypeScript AST scan of src/
+        (the C-SUBSTANCE-OVER-NAME shape, not an
+        identifier grep) finds one function that
+        builds a START_MODULE_CONTRACT header.
+        **HEAD today:** the three functions live
+        in fixtures.ts; only
+        commentPrefixForExtension is exported;
+        .pyi defaults to slash-slash. **Failure
+        conditions:** fixtures keeps a private
+        copy; production wraps a rebuilt prefix
+        table; .pyi still slash-slash; scan
+        matches on the identifier only so a
+        renamed copy is invisible (F35).
+      </AC-SINGLE-MARKUP-RENDERER>
+      <AC-TEMPLATES-GENERATED>
+        The four spec/plan template files named
+        in Constraints are byte-identical to the
+        teaching emission (spec template =
+        renderChangeSpec of C-CHANGE-ID with
+        teaching; plan template = renderChangePlan
+        of C-CHANGE-ID seeded from that spec with
+        teaching). The required core of that
+        emission matches the skeleton emission
+        (same live inventories, ObservedWriteScope
+        None, seeded DurableScope and Satisfies,
+        AC-SKELETON). The teaching appendix
+        includes, as live children: Problem,
+        Assumptions, and DesignReferences whose
+        children are the live
+        DESIGN_REFERENCE_CHILD_TAGS members. It
+        includes, as comments: a Clarifications
+        example whose Clarification has exactly
+        one self-closing IC-* / INV-* / AC-*
+        child, and an OutOfPlanScope example
+        with a non-empty Reason. Those comments
+        contain no two adjacent hyphens. The
+        writer script's check mode exits
+        non-zero when any of the four is missing
+        or differs from the teaching emission
+        (not from the skeleton). validate:ci
+        invokes that check mode.
+        validate:marketplace stays green.
+        design-context, design-system, and
+        migration-report templates are byte-
+        identical to HEAD. SKILL.md in both
+        trees is byte-identical to HEAD.
+        **HEAD today:** the four files are
+        hand-written; the plan template contains
+        a File placeholder; Clarification and
+        OutOfPlanScope teaching exist as
+        comments; DesignReferences is live; no
+        check mode. **Failure conditions:**
+        templates equal the skeleton and drop
+        the teaching (F63); only one tree
+        updated; check compares skeleton bytes;
+        check implemented only as a skippable
+        test; File placeholder kept; other
+        templates edited; SKILL.md edited;
+        generated banner copied into the
+        template XML; teaching comment contains
+        two adjacent hyphens.
+      </AC-TEMPLATES-GENERATED>
+      <AC-LINT-PROPERTIES>
+        In a temp project: spec new then lint of
+        that project is 0 errors and 0 warnings.
+        After the spec is set to approved (a
+        test-only status write, not a generator
+        feature), plan new then lint is 0 errors
+        and 0 warnings. The pair includes no
+        change.plan-requires-approved-spec, no
+        change.graph-anchors-miss-write-scope, no
+        change.scope-does-not-cover-spec, and no
+        change.acceptance-criterion-unmapped.
+        plan new is refused before any write
+        when the spec is still draft, so the
+        illegal pair is not produced. Scaffold
+        stdout, prepended to a fixture body that
+        satisfies AC-SCAFFOLD-EMIT's happy path,
+        lints with 0 markup errors on that file.
+        **True by construction, not this
+        criterion's evidence (F45):** placeholder
+        text satisfying validateMeaningfulSection;
+        None counting as meaningful inside
+        DurableScope and ObservedWriteScope.
+        Those halves must not be reddened by
+        manufacturing an empty section. **HEAD
+        today:** no generators, so this pair
+        cannot be produced by the product.
+        **Failure conditions:** dogfooding this
+        repository's tree sold as the temp-
+        project proof; draft pair written and
+        called expected-red; File placeholder
+        reintroduced; construction half treated
+        as the red.
+      </AC-LINT-PROPERTIES>
+      <AC-HEAD-RED>
+        Each of AC-SPEC-NEW, AC-PLAN-NEW,
+        AC-SCAFFOLD-EMIT, AC-LIVE-INVENTORY,
+        AC-SINGLE-MARKUP-RENDERER,
+        AC-TEMPLATES-GENERATED, and
+        AC-LINT-PROPERTIES (the temp-project
+        generate-then-lint path, not the
+        construction half) has a red recorded
+        before its production edit, in its own
+        tool round trip, with the failing test
+        written first. Never a red backed only
+        by a grep, and never a retrospective
+        red via stash. **Exempt from this
+        universal (F45, named at authoring):**
+        AC-SUITE-AND-LINT (green at HEAD;
+        close-time bar); placeholder
+        meaningfulness; None-is-meaningful in
+        the two scope sections; a draft spec
+        with placeholder text already linting
+        as a document (true of the current
+        spec template, measured); live boolean-
+        site cardinality staying put because
+        this bundle adds no boolean args (do
+        not manufacture a red by adding a
+        boolean to delete it); scripts/
+        staying in ignoredDirs; docs/*.md
+        staying outside the lint artifact
+        universe; package.json version
+        unchanged; SKILL.md token pin
+        unchanged; analysis.no-adapter
+        remaining a file-level warning.
+        **HEAD today:** no spec/plan/scaffold
+        commands; no skeletons.ts; markup
+        renderer only in test-support;
+        templates hand-written (teaching
+        present, File placeholder also
+        present); no template check in
+        validate:ci. **Failure
+        conditions:** a check that passes on
+        pre-change HEAD sold as new
+        behaviour; fail and pass in one tool
+        call; AC-SUITE-AND-LINT required to
+        be red at HEAD; construction half
+        reddened; boolean flag added only to
+        create a red.
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-LINT>
+        bun test green for touched packages
+        (src/artifact/skeletons.test.ts,
+        src/grace-generate.test.ts,
+        src/project-utils.test.ts,
+        src/query/command.test.ts, and any
+        test of the writer check mode);
+        bun run validate:ci green
+        (determinism ratchet cardinality
+        only moves if a catch is
+        intentionally added — re-measure, do
+        not drop keys); bun run ngrace lint
+        --path . is 0 errors and 0 warnings
+        **at close** (after apply and archive
+        — not claimed mid-change);
+        bun run validate:marketplace green.
+        ObservedWriteScope covers every path
+        the deliverable forces, including
+        grace.ts, grace-generate.ts, the
+        skeletons and generate tests,
+        project-utils.ts, fixtures.ts,
+        command.test.ts, package.json, the
+        writer script, the four templates,
+        and this bundle's spec.xml / plan.xml.
+        No SKILL.md, so no F51 pin files. No
+        edits under docs/plans/ or
+        .ngrace/changes/archive/; no
+        CHANGELOG.md; no version surfaces.
+        **HEAD today:** lint is 0/0 and
+        validate:ci is green — that green is
+        the baseline, not this change's
+        evidence. **Failure conditions:**
+        suite red; lint 0/0 claimed
+        mid-window; ratchet keys dropped;
+        writes outside declared scope;
+        HEAD-green lint cited as proof the
+        generators landed.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI />
+      <M-GRAMMAR />
+      <M-PROJECT-UTILS />
+      <M-TEST-SUPPORT />
+      <M-CLI-INFRA />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/artifact/skeletons.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-generate.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/project-utils.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/generate-skeleton-templates.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run validate:marketplace</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): spec new writes a draft
+        spec whose sections follow the live
+        inventory and whose first stdout line is
+        the path; plan new refuses a draft spec
+        and writes a seeded plan beside an
+        approved one with ObservedWriteScope None;
+        both temp-project generate-then-lint paths
+        are 0/0; scaffold prints a production-
+        rendered block and does not write the
+        Path file; refuse paths for unknown
+        module, no Path, missing file, no
+        adapter, and empty map are planted;
+        probe mutation of the three section
+        inventories changes renderer output;
+        fixtures import the production markup
+        renderer; .pyi prefix is hash; the four
+        templates match the teaching emission
+        (required core plus DesignReferences,
+        commented Clarification working form,
+        commented OutOfPlanScope with Reason;
+        ObservedWriteScope None); the writer
+        check fails when a template differs
+        from the teaching emission and
+        validate:ci invokes it; SKILL.md
+        unchanged; live-root walk includes the
+        new commands; suite green; marketplace
+        green; lint 0/0 at close only. Evidence
+        is the suite and the ledger fail/pass
+        pairs on the non-exempt criteria, not a
+        command someone reports.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring HEAD 3e5c3d8, packaged 6.2.0,
+        lint 0/0 (108 files / 62 governed / 131
+        XML artifacts), archive 34, active empty
+        before this bundle, suite 1307 pass / 3
+        skip / 0 fail, validate:ci green.** F33:
+        implementation re-measures counts;
+        criteria do not freeze them or any line
+        number.
+      </Assumption>
+      <Assumption>
+        **Trap C measurement, this session.**
+        Templates copied to
+        .ngrace/changes/active/C-PROBE/ with only
+        C-CHANGE-ID substituted. bun run ngrace
+        lint --path . reported XML artifacts
+        checked 134, Errors 2, Warnings 0:
+        change.plan-requires-approved-spec on the
+        bundle directory ("An active plan may
+        exist only beside an approved spec.") and
+        change.graph-anchors-miss-write-scope on
+        plan.xml (ObservedWriteScope path
+        src/path/to/file.ts is under src/ but is
+        not a governed file whose MODULE_CONTRACT
+        LINKS include a GraphAnchors module).
+        Draft spec only: 0/0. Approved spec plus
+        unmodified plan template: the write-scope
+        error only. Approved spec plus plan with
+        ObservedWriteScope None: 0/0. Probe
+        directory deleted; git status --short
+        empty afterwards.
+      </Assumption>
+      <Assumption>
+        **Inventories, survey snapshot, not a
+        count to freeze.** SPEC_REQUIRED_SECTIONS
+        = Summary, Goals, Constraints, NonGoals,
+        AcceptanceCriteria, AffectedAreas,
+        VerificationIntent. PLAN_REQUIRED_SECTIONS
+        = IntentSummary, BaselineAssertions,
+        TargetAssertions, DurableScope,
+        ObservedWriteScope, ImplementationPlan.
+        TASK_REQUIRED_SECTIONS = Title, DependsOn,
+        AcceptanceCriteria, Verification. Problem,
+        Assumptions, DesignReferences, and
+        Clarifications are not required spec
+        sections. Satisfies and OutOfPlanScope
+        are not required plan/task sections.
+        VALID_CHANGE_STATUSES includes draft.
+        NGRACE_ARTIFACT_VERSION is 1.0.
+      </Assumption>
+      <Assumption>
+        **Templates, counted.** Five XML template
+        kinds exist, each mirrored: change-spec,
+        change-plan, design-context, design-system,
+        migration-report (ten files). The
+        authoring prompt said six; the tree has
+        five kinds. This bundle owns the first
+        two kinds (four files).
+        ngrace-init/assets/AGENTS.md.template is
+        not an XML artifact template.
+      </Assumption>
+      <Assumption>
+        **F63 resolution, this amendment.** One
+        renderer, two emissions. CLI writes the
+        skeleton. Templates are the teaching
+        emission. SKILL.md is not edited; the
+        two write-from-template lines still
+        point at files that show DesignReferences,
+        Clarifications (working form), and
+        OutOfPlanScope. F51 cost is not paid.
+      </Assumption>
+      <Assumption>
+        **F61 on current teaching comments,
+        measured.** bun extract of every
+        comment body in the two canonical
+        spec/plan templates: four comments in
+        change-spec-template.xml and five in
+        change-plan-template.xml; adjacentHyphens
+        false on all nine. Bodies include
+        "http(s)" and "C-DROP-LEGACY" and do
+        not contain two adjacent hyphen
+        characters. Teaching comments the
+        renderer keeps or rewrites must stay
+        in that class; the suite asserts it.
+      </Assumption>
+      <Assumption>
+        **F56 signature keys, measured at the
+        decision site.** decideFixBudgetEscalation
+        at src/grace-cursor.ts takes
+        FailureSignature[] and uses
+        failureSignaturesEqual (kind === and
+        key ===). R: sameCount >=
+        FIX_SIGNATURE_REPEAT_BUDGET (2). D:
+        distinct `${kind}\0${key}` set size >=
+        FIX_DISTINCT_SIGNATURE_BUDGET (4).
+        recordAttempt stores kind and key from
+        the cursor attempt argv tokens
+        signatureKind and signatureKey; they
+        are not computed from citty output.
+        Three unknown-command reds share a
+        class and collide on trigger R unless
+        the recorded key names the command.
+      </Assumption>
+      <Assumption>
+        **Markup inference, snapshot.** inferRole
+        returns TEST when the path matches a
+        tests directory or a test/spec suffix,
+        else RUNTIME. defaultMapMode is RUNTIME
+        EXPORTS, TEST LOCALS, BARREL SUMMARY,
+        CONFIG NONE, TYPES EXPORTS, SCRIPT
+        LOCALS. markup.role-map-mode-mismatch
+        fires only when both ROLE and MAP_MODE
+        are authored and disagree.
+        ADAPTER_BACKED_EXTENSIONS is derived
+        from LANGUAGE_ADAPTERS, not hand-listed.
+        CODE_EXTENSIONS has twenty-one members;
+        five adapters. M-SKILLS has Type
+        UTILITY and no Path.
+      </Assumption>
+      <Assumption>
+        **Module ownership.** M-CLI Path is
+        src/grace.ts; grace-generate.ts is a new
+        linked file, not a new graph module.
+        M-GRAMMAR Path is src/artifact/grammar.ts;
+        skeletons.ts is a new linked file of
+        M-GRAMMAR (same pattern as
+        schema-reference.ts). M-PROJECT-UTILS
+        Path is src/project-utils.ts.
+        M-TEST-SUPPORT Path is
+        src/test-support/fixtures.ts. M-CLI-INFRA
+        Path is src/query/errors.ts; the live-root
+        walk lives in command.test.ts.
+        M-SKILLS has no Path; template writes
+        under skills/ngrace/ are that module's
+        surface. Packaged mirrors, package.json,
+        and the writer script are not graph
+        modules and are declared as paths.
+        Test files are ungoverned and ride
+        ObservedWriteScope as paths.
+      </Assumption>
+      <Assumption>
+        **Live boolean-site walk.**
+        src/query/command.test.ts elevenRoots
+        lists eleven command objects and pins
+        24 boolean sites. Adding three
+        boolean-free commands extends the walk
+        and leaves the site count unmoved if
+        no boolean args are added. Re-measure
+        at execute. The function name states a
+        count and must not survive as a name
+        that claims eleven after the walk
+        grows (F10).
+      </Assumption>
+      <Assumption>
+        **P1.8 adjacency.** project-utils.ts
+        already emits analysis.no-adapter as a
+        warning when a governed file claims
+        EXPORTS/LOCALS parity and has no
+        adapter. P1.8's wording is a graph
+        module Path preflight. This bundle
+        treats that as a later step and does
+        not absorb it. Scaffold refuse on
+        no-adapter is a generator honesty
+        rule (cannot emit an exact map), not
+        that warning.
+      </Assumption>
+    </Assumptions>
+  </C-SKELETON-GENERATORS>
+</NgraceChangeSpec>
