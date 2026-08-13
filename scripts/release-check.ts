@@ -86,6 +86,7 @@ const PACK_ALLOWED_EXACT = new Set([
   "README.md",
   "LICENSE",
   "src/grace-file.ts",
+  "src/grace-generate.ts",
   "src/project-utils.ts",
   "src/grace.ts",
   "src/grace-context.ts",

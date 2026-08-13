@@ -1,40 +1,38 @@
 <NgraceChangeSpec graceVersion="1.0" status="draft">
   <C-CHANGE-ID>
-    <Summary>$SUMMARY</Summary>
-    <Problem>$PROBLEM</Problem>
+    <Summary>Summary of C-CHANGE-ID.</Summary>
     <Goals>
-      <Goal>$GOAL</Goal>
+      <Goal>Goal for C-CHANGE-ID.</Goal>
     </Goals>
     <Constraints>
-      <Constraint>$CONSTRAINT</Constraint>
+      <Constraint>Constraint for C-CHANGE-ID.</Constraint>
     </Constraints>
     <NonGoals>
-      <NonGoal>$NON_GOAL</NonGoal>
+      <NonGoal>Non-goal for C-CHANGE-ID.</NonGoal>
     </NonGoals>
     <AcceptanceCriteria>
-      <!-- Prefer addressable AC-* anchors so ngrace-plan can map them via <Satisfies>. Legacy free-text <Criterion> remains valid. -->
-      <AC-EXAMPLE-CRITERION>$ACCEPTANCE_CRITERION</AC-EXAMPLE-CRITERION>
+      <AC-SKELETON>Acceptance criterion for C-CHANGE-ID.</AC-SKELETON>
     </AcceptanceCriteria>
     <AffectedAreas>
       <M-AFFECTED-MODULE />
     </AffectedAreas>
     <VerificationIntent>
-      <ExpectedCommand>$EXPECTED_COMMAND</ExpectedCommand>
-      <ExpectedEvidence>$EXPECTED_EVIDENCE</ExpectedEvidence>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-CHANGE-ID.</ExpectedEvidence>
     </VerificationIntent>
-    <!-- Optional design-artifact links (G-18). Figma url must be http(s); UserResearch is project-relative. -->
+    <Problem>Problem for the teaching example.</Problem>
+    <Assumptions>
+      <Assumption>Assumption for the teaching example.</Assumption>
+    </Assumptions>
     <DesignReferences>
-      <Figma url="https://www.figma.com/design/EXAMPLE/Frame">$FIGMA_LABEL</Figma>
+      <Figma url="https://www.figma.com/design/EXAMPLE/Frame">Example frame</Figma>
       <UserResearch>docs/research/EXAMPLE.md</UserResearch>
     </DesignReferences>
-    <Assumptions>
-      <Assumption>$ASSUMPTION</Assumption>
-    </Assumptions>
-    <!-- Optional typed holes (D12). Target is exactly one self-closing IC-*, INV-*, or AC-* child. Never use prose [NEEDS CLARIFICATION]. -->
     <!--
-    <Clarifications>
-      <Clarification><IC-EXAMPLE />$CLARIFICATION</Clarification>
-    </Clarifications>
+      Clarification takes exactly one self-closing IC-*, INV-*, or AC-* child.
+      <Clarifications>
+        <Clarification><AC-SKELETON />Placeholder clarification.</Clarification>
+      </Clarifications>
     -->
   </C-CHANGE-ID>
 </NgraceChangeSpec>

@@ -4264,3 +4264,148 @@ attempts" and the qualifying clause reads as droppable.
 re-measuring by grepping *the name the finding used* only proves that name is absent. **A rename is
 indistinguishable from a deletion under that grep.** Verify the behaviour at its decision site
 (`decideFixBudgetEscalation` here), not the identifier, before reporting a mechanism gone.
+
+### F62.1 — the class is wider than lint expectations: three unmeasured survey facts in one prompt. **[verified]**
+
+[F62](#f62) recorded the authority asserting an unmeasured *lint* expectation three times. The
+`C-SKELETON-GENERATORS` spec brief shows the same defect on **survey** facts, three in one dispatch,
+all three caught by the executor and all three confirmed against the tree afterwards:
+
+- *"six existing template files."* `find skills plugins -name "*template*.xml"` returns **ten** files
+  across **five** kinds (change-spec, change-plan, design-context, design-system, migration-report),
+  each mirrored. The authority had run that exact command, seen ten paths, and then wrote a number it
+  had not counted.
+- *"`renderModuleContract` / `renderModuleMap` … reachable only from tests."* Both are **private** in
+  `src/test-support/fixtures.ts`; only `commentPrefixForExtension` carries `export`. The brief
+  described a public API that does not exist.
+- *"the sharpest thing in the bundle"* (singular), naming `change.plan-requires-approved-spec`. There
+  were **two**. The second — the shipped plan template's `<File>src/path/to/file.ts</File>` raising
+  `change.graph-anchors-miss-write-scope` even beside an *approved* spec — is the one that actually
+  falsifies the roadmap's acceptance test, because it means copying the current template can never
+  satisfy it. The executor reported that a framing naming one edge is what would have hidden it.
+
+**The rule.** A survey fact handed to an executor is a measurement claim and inherits F62's
+discipline: state it with the command that produced it, or do not state it. **A singular framing
+("the trap is X") is itself an unmeasured claim** — it asserts completeness of a search that was
+never run. Name the traps found and say the list is not closed.
+
+The standing report contract is what caught all three. It has now produced a finding on **every
+dispatch across five bundles**.
+
+### F63 — regenerating a teaching template from a minimal-skeleton renderer deletes the teaching, and the skill text keeps pointing at what was deleted. **[verified]**
+
+`C-SKELETON-GENERATORS`'s draft spec resolves [F46](#f46)'s "templates are an unchecked second
+grammar" by making the four spec/plan template files **byte-identical to the generator's output**,
+with a check-mode script composed into `validate:ci` — the [`C-SCHEMA-REFERENCE`] precedent, applied
+faithfully. The same spec also decides the renderer emits **required sections only** (optional
+`Problem`, `Assumptions`, `DesignReferences`, `Clarifications`, `OutOfPlanScope` are omitted) and
+declares `SKILL.md` out of scope under [F51](#f51). Those three decisions are individually defensible
+and jointly delete product.
+
+**Measured at `3e5c3d8`.** The two templates are not minimal skeletons; they are teaching artifacts.
+`change-plan-template.xml` (59 lines) carries commented, filled examples of `OutOfPlanScope` and
+`Clarifications`; `change-spec-template.xml` (40 lines) carries `DesignReferences`, `Assumptions`,
+and the same `Clarifications` block. The `Clarification` example teaches the self-closing anchor-child
+form — *"Target is exactly one self-closing IC-*, INV-*, or AC-* child. Never use prose"* — which is
+**`C-GRAMMAR-SEAM`'s product change**, the bundle that made the element authorable at all and fired
+D12's approve gate for the first time in this repository's history. Byte-identity to a
+required-sections-only renderer deletes that example from both trees.
+
+And the skills keep pointing at it. `skills/ngrace/ngrace-spec/SKILL.md:105` instructs the author to
+write `spec.xml` *from* `references/change-spec-template.xml` and to *"Add `DesignReferences` when
+Figma or research artifacts exist"*; `skills/ngrace/ngrace-plan/SKILL.md:29` produces `plan.xml` from
+its template. With `SKILL.md` out of scope, both lines survive the regeneration and point at a file
+that no longer shows the shape they name — the [F46](#f46) defect inverted: instead of a template
+teaching a form the product rejects, a skill teaches a form the template no longer contains.
+
+**Why it is not caught by the bundle's own gates.** The check the spec designs compares the template
+to the renderer, so the two agree *by definition* after regeneration. `validate:marketplace` only
+proves the canonical and packaged trees match — green when both lose the same content. F46 already
+recorded that these template files return **zero hits in the lint universe**. Nothing in the bundle
+observes the deletion.
+
+**The rule.** A generator's output and a teaching template are **different products** — one is the
+minimum a validator accepts, the other is what a reader learns the optional shapes from. Byte-identity
+between them is safe only if the renderer emits the teaching too. **Before declaring an existing file
+"generated output", enumerate its consumers**: a file that another artifact instructs a reader to
+*copy from* has a contract that a shape-equality check does not express.
+
+### F64 — the approved plan's write scope missed three CI-load-bearing pins, and the sanctioned remedy cannot reproduce red-first evidence once execution has run. **[verified]**
+
+`C-SKELETON-GENERATORS` executed T-001 through T-004 exactly as planned and then could not close,
+because `validate:ci` is held by **three pre-existing pins that the approved deliverable inevitably
+trips and the approved `ObservedWriteScope` does not list.** Verified independently at the executor's
+report:
+
+- `src/grace-cursor.test.ts:483` greps `writeFileSync|mkdirSync` across non-test `src/` and pins the
+  result to four files. `spec new` / `plan new` must write files from `src/grace-generate.ts`.
+- `scripts/release-check.test.ts:509` parses an allowlist **out of `scripts/release-check.ts`
+  source** and diffs it against `package.json#files`. The plan requires that file list to gain
+  `src/grace-generate.ts`, so the allowlist in `release-check.ts` must gain it too.
+- `scripts/skill-contracts.test.ts:48,71` pins `AC-EXAMPLE-CRITERION` in both spec and plan
+  templates. The approved spec decides the live criterion is `AC-SKELETON`, so the regenerated
+  teaching emission cannot contain the pinned string.
+
+**This is a requirement-6 violation in artifacts the authority approved.**
+`skills/ngrace/ngrace-plan/SKILL.md:38` states it in the exact terms of the failure: *"Scope covers
+what the deliverable forces, not only the files it targets… If the approved deliverable makes an edit
+inevitable, list that path at plan time — never leave the executor choosing between a scope breach and
+a failed task."* The executor chose neither: it stopped and reported, which is correct.
+
+**The generalizable miss.** All three pins are *second statements of a fact the bundle changes*, held
+in files the bundle never names: a grep-based inventory of writers, an allowlist duplicated from
+`package.json`, and a third-party assertion about template contents. **A plan's write scope must be
+derived from what the deliverable falsifies, not from what it edits** — and the reliable way to find
+those is to ask which existing tests encode the state being changed, not which files the tasks touch.
+Grep-based and allowlist-based pins are invisible to that reasoning precisely because they name no
+symbol the new code imports.
+
+**And the remedy has a hole.** `ngrace-plan/SKILL.md:22-26` forbids refreshing `ObservedWriteScope`
+in place and directs: *"Create a new `C-*` bundle and mark the old bundle superseded."* That remedy
+assumes the defect is found **before** execution. Found after four tasks have recorded genuine
+fail→pass pairs, a superseding bundle starts with an empty ledger and its criteria are **already true
+at its own HEAD** — the F28 shape — and re-recording those reds would be retrospective, which the
+red-first rule forbids. So the honest construction is a replacement bundle whose criteria for
+already-executed work **cite the superseded bundle's archived ledger as their evidence** (D16: a
+criterion may only bind evidence living in an artifact), and whose *new* work — the three pins, plus
+the README gap from the same review — gets genuine red-first. The superseded bundle must therefore be
+archived intact rather than deleted; its ledger is the replacement's evidence.
+
+**Rule.** Before approving a plan, ask of every fact the deliverable changes: *what else asserts this
+today?* Search for greps, allowlists, and cross-file content pins, not only for callers.
+
+### F65 — an in-place amendment leaves the artifacts looking compliant, and the audits that would catch it read the amended text. **[verified]**
+
+`C-SKELETON-GENERATORS` amended its approved `spec.xml` and `plan.xml` in place, mid-epoch, at the
+user's direction, after [F64](#f64) showed the write scope was defective.
+`ngrace-plan/SKILL.md:22-26` directs a superseding bundle instead. The exception was deliberate and
+priced. **What it costs is worth recording precisely, because the cost is invisible in the artifacts
+afterwards.**
+
+**The artifacts no longer show that anything happened.** After the edit, `spec.xml` and `plan.xml`
+read exactly as if the four extra paths had been in scope since authoring. The only surviving traces
+are the plan's `DESIGN` paragraph, the bundle verdict, this entry, and the separate commit
+(`febdd57`) the authority split out for that purpose. Nothing *mechanical* records it: a later reader
+running the audits sees a clean bundle.
+
+**And the audits confirm the amended text, not the history.** The WriteEvidence scope audit reported
+**45 paths, 0 findings** — because it reads the amended plan. Event 21's `validate-ci` fail carries
+WriteEvidence that could not name `src/grace-cursor.test.ts`, `scripts/release-check.ts`, or
+`scripts/skill-contracts.test.ts`, since none were in `ObservedWriteScope` when that fail was
+recorded. **The pin-repair pair therefore has a fail side that cannot name the files that made CI
+red** — the F9 shape, entered here by the authority's missed scope rather than by executor
+sequencing. A clean scope audit after an in-place amendment is evidence about the amendment, not
+about the run.
+
+**The rule.** An in-place amendment of an approved artifact is available only as a user-directed
+exception, and it must be **split into its own commit and named in the verdict**, because the
+artifact itself will not remember. Prefer the superseding bundle whenever the defect is found before
+execution — [F64](#f64) explains the one case where supersede is genuinely worse, and even there the
+product-correct construction is a replacement whose criteria cite the superseded ledger.
+
+**Related, and still owed.** The user's standing rule that **every phase ships updated docs and
+examples** is enforced by nothing in the product: no requirement in `ngrace-spec` or `ngrace-plan`
+obliges a spec adding a user-visible command to decide `README.md` or `examples/`. This bundle found
+its own README gap by review, not by a check, and could not fix the rule itself because it forbids
+`SKILL.md` edits under [F51](#f51). **Owed to the next bundle**, with the conflict stated. Until then
+the rule lives only in the authority's spec briefs.

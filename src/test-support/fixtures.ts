@@ -41,6 +41,13 @@ import os from "node:os";
 import path from "node:path";
 
 import { ARTIFACT_DIR } from "../artifact/paths";
+import {
+  commentPrefixForExtension,
+  renderModuleContract,
+  renderModuleMap,
+} from "../project-utils";
+
+export { commentPrefixForExtension };
 
 // ---------------------------------------------------------------------------
 // Spec types
@@ -49,7 +56,7 @@ import { ARTIFACT_DIR } from "../artifact/paths";
 export type ModuleSpec = {
   id: string;
   summary?: string;
-  path: string;
+  path?: string;
   type?: string;
   links?: string[];
   /** Optional ST-* UI states declared under <States>. */
@@ -131,58 +138,8 @@ export function writeProjectFile(root: string, relativePath: string, contents: s
   writeFileSync(filePath, contents);
 }
 
-export function commentPrefixForExtension(ext: string): string {
-  switch (ext) {
-    case ".py":
-    case ".rb":
-    case ".sh":
-    case ".bash":
-    case ".zsh":
-      return "#";
-    case ".sql":
-      return "--";
-    case ".clj":
-    case ".cljs":
-    case ".cljc":
-      return ";;";
-    default:
-      return "//";
-  }
-}
-
 function commentLine(prefix: string, text: string): string {
   return text.length === 0 ? prefix : `${prefix} ${text}`;
-}
-
-function renderModuleContract(prefix: string, spec: GovernedFileSpec): string {
-  const purpose = spec.purpose ?? "Fixture governed file.";
-  const scope = spec.scope ?? "Test fixture scope.";
-  const depends = (spec.depends ?? ["none"]).join(", ");
-  const links = (spec.links ?? []).join(", ") || "none";
-  const lines = [
-    commentLine(prefix, "START_MODULE_CONTRACT"),
-    commentLine(prefix, `  PURPOSE: ${purpose}`),
-    commentLine(prefix, `  SCOPE: ${scope}`),
-    commentLine(prefix, `  DEPENDS: ${depends}`),
-    commentLine(prefix, `  LINKS: ${links}`),
-  ];
-  if (spec.role) {
-    lines.push(commentLine(prefix, `  ROLE: ${spec.role}`));
-  }
-  if (spec.mapMode) {
-    lines.push(commentLine(prefix, `  MAP_MODE: ${spec.mapMode}`));
-  }
-  lines.push(commentLine(prefix, "END_MODULE_CONTRACT"));
-  return lines.join("\n");
-}
-
-function renderModuleMap(prefix: string, mapEntries: string[]): string {
-  const lines = [
-    commentLine(prefix, "START_MODULE_MAP"),
-    ...mapEntries.map((entry) => commentLine(prefix, `  ${entry}`)),
-    commentLine(prefix, "END_MODULE_MAP"),
-  ];
-  return lines.join("\n");
 }
 
 function renderEmptyBlocks(prefix: string, blocks: string[]): string {
@@ -313,13 +270,13 @@ export class GraceProjectBuilder {
 
     const moduleElements = this.modules.map((m) => {
       const summary = escapeXml(m.summary ?? `${m.id} fixture module.`);
-      const modulePath = escapeXml(m.path);
+      const pathXml = m.path ? `<Path>${escapeXml(m.path)}</Path>` : "";
       const typeXml = m.type ? `<Type>${escapeXml(m.type)}</Type>` : "";
       const statesXml = m.states && m.states.length > 0
         ? `<States>${m.states.map((state) => `<${state} />`).join("")}</States>`
         : "";
       const linksXml = (m.links ?? []).map((link) => `<${link} />`).join("");
-      return `<${m.id}><Summary>${summary}</Summary><Path>${modulePath}</Path>${typeXml}${statesXml}${linksXml}</${m.id}>`;
+      return `<${m.id}><Summary>${summary}</Summary>${pathXml}${typeXml}${statesXml}${linksXml}</${m.id}>`;
     }).join("");
 
     const dataFlowElements = this.dataFlows.map((df) => {

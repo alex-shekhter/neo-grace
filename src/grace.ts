@@ -19,6 +19,7 @@ import { contextCommand } from "./grace-context";
 import { cursorCommand } from "./grace-cursor";
 import { doctorCommand } from "./grace-doctor";
 import { fileCommand } from "./grace-file";
+import { planCommand, scaffoldCommand, specCommand } from "./grace-generate";
 import { graphCommand } from "./grace-graph";
 import { gateCommand } from "./gates/command";
 import { lintCommand } from "./grace-lint";
@@ -44,7 +45,10 @@ const main = defineCommand({
     graph: graphCommand,
     lint: lintCommand,
     module: moduleCommand,
+    plan: planCommand,
     review: reviewCommand,
+    scaffold: scaffoldCommand,
+    spec: specCommand,
     status: statusCommand,
     verification: verificationCommand,
   },

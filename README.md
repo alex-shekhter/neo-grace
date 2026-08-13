@@ -124,9 +124,9 @@ ngrace lint --path /path/to/grace4-project
 For a new neo-grace project:
 
 1. Run `$ngrace-init` to create `.ngrace`.
-2. Fill `.ngrace/context` artifacts with your agent.
-3. Run `$ngrace-spec` for a change.
-4. Run `$ngrace-plan` after spec approval, then `ngrace gate approve --change C-ID` before the plan is marked approved. Refuse means unresolved clarifications on `IC-*` / `INV-*`.
+2. Fill `.ngrace/context` artifacts with your agent. For a governed source file, `ngrace scaffold --module M-X` prints the `MODULE_CONTRACT` / `MODULE_MAP` block to stdout and does not write the Path file.
+3. Run `ngrace spec new C-ID` to write a draft spec skeleton, then `$ngrace-spec` to fill and approve it.
+4. After spec approval, run `ngrace plan new C-ID` to write a draft plan skeleton, then `$ngrace-plan` to fill it; then `ngrace gate approve --change C-ID` before the plan is marked approved. Refuse means unresolved clarifications on `IC-*` / `INV-*`.
 5. Before observed writes begin, run the active-baseline preflight: `ngrace lint --path /path/to/project --assertions current`.
 6. Run `ngrace lint --path /path/to/project --change C-ID --assertions baseline` before execution; add `--run-commands` when the baseline declares `MustPassCommand`.
 7. Run `ngrace status --path /path/to/project --json`.
@@ -178,6 +178,9 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | `ngrace lint --explain <code>` | Explain one issue code without linting. Three answers, never a guess: a catalogued code, a code this binary emits but has no dedicated entry for, or an unknown string — which says so and exits nonzero |
 | `ngrace doctor --path <root>` | Read-only report: adapters, analysis coverage, document size pressure, context gaps, absence issues, calibration, plan quality |
 | `ngrace graph split --by <path-prefix> --path <root>` | Move modules whose `Path` matches a prefix into a new `GD-*` document (dry-run by default; `--apply` to write) |
+| `ngrace spec new C-ID --path <root>` | Write a draft `NgraceChangeSpec` skeleton at `.ngrace/changes/active/C-ID/spec.xml`; refuses if the file already exists |
+| `ngrace plan new C-ID --path <root>` | Write a draft `NgraceChangePlan` skeleton beside an approved spec; refuses if the spec is missing or not approved |
+| `ngrace scaffold --module M-X --path <root>` | Print the production `MODULE_CONTRACT` and `MODULE_MAP` block for that module to stdout; does not write the Path file |
 
 ### Change lifecycle: gates, run ledger, and review
 

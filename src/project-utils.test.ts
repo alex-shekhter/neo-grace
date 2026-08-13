@@ -1,17 +1,22 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, test } from "bun:test";
+import ts from "typescript";
 
 import {
   analyzeGovernedFile,
   collectNearMissMarkerIssues,
+  commentPrefixForExtension,
   hasGraceMarkers,
   hasRuntimeMarkerEvidence,
   parseGovernedFile,
+  renderModuleContract,
+  renderModuleMap,
   stripQuotedStrings,
 } from "./project-utils";
+import * as fixtures from "./test-support/fixtures";
 
 function contract(mapMode: "EXPORTS" | "LOCALS" | "SUMMARY" | "NONE", moduleMap = ""): string {
   // Nested templates are safe again after stripQuotedStrings handles `${...}`
@@ -569,5 +574,157 @@ console.log(JSON.stringify(result.issues));`;
     const issues = JSON.parse(Buffer.from(run.stdout).toString("utf8")) as Array<{ code: string }>;
     expect(issues.map((issue) => issue.code)).toContain("analysis.adapter-failed");
     expect(issues.map((issue) => issue.code)).not.toContain("analysis.runtime-missing");
+  });
+});
+
+/**
+ * Body-shaped single-definition scan (C-SUBSTANCE-OVER-NAME): a header builder
+ * is a function whose body contains the START/END string literals and a
+ * PURPOSE field fragment. Binders are holes — the function name is not part
+ * of the match. Needles live at module scope so this file's helpers do not
+ * themselves contain those string literals inside a function body.
+ */
+const CONTRACT_HEADER_START = "START_MODULE_CONTRACT";
+const CONTRACT_HEADER_END = "END_MODULE_CONTRACT";
+const CONTRACT_PURPOSE_FIELD = "PURPOSE:";
+
+type HeaderBuilderHit = {
+  file: string;
+  binder: string;
+};
+
+function headerBuilderNeedles(node: ts.Node): { start: boolean; end: boolean; purpose: boolean } {
+  let start = false;
+  let end = false;
+  let purpose = false;
+  const visit = (child: ts.Node) => {
+    if (ts.isStringLiteral(child)) {
+      if (child.text === CONTRACT_HEADER_START) start = true;
+      if (child.text === CONTRACT_HEADER_END) end = true;
+      if (child.text.includes(CONTRACT_PURPOSE_FIELD)) purpose = true;
+    } else if (ts.isNoSubstitutionTemplateLiteral(child) || ts.isTemplateHead(child) || ts.isTemplateMiddle(child) || ts.isTemplateTail(child)) {
+      if (child.text.includes(CONTRACT_PURPOSE_FIELD)) purpose = true;
+    }
+    ts.forEachChild(child, visit);
+  };
+  ts.forEachChild(node, visit);
+  return { start, end, purpose };
+}
+
+function functionLikeIsHeaderBuilder(
+  node: ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction | ts.MethodDeclaration,
+): boolean {
+  if (!node.body) return false;
+  const found = headerBuilderNeedles(node.body);
+  return found.start && found.end && found.purpose;
+}
+
+function collectHeaderBuildersFromText(file: string, text: string): HeaderBuilderHit[] {
+  const sourceFile = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const hits: HeaderBuilderHit[] = [];
+
+  function consider(
+    node: ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction | ts.MethodDeclaration,
+    binder: string | undefined,
+  ) {
+    if (!binder) return;
+    if (functionLikeIsHeaderBuilder(node)) {
+      hits.push({ file, binder });
+    }
+  }
+
+  function visit(node: ts.Node) {
+    if (ts.isFunctionDeclaration(node)) {
+      consider(node, node.name?.text);
+    } else if (ts.isMethodDeclaration(node)) {
+      const name = ts.isIdentifier(node.name) ? node.name.text : undefined;
+      consider(node, name);
+    } else if (ts.isVariableStatement(node)) {
+      for (const decl of node.declarationList.declarations) {
+        if (!ts.isIdentifier(decl.name) || !decl.initializer) continue;
+        let init = decl.initializer;
+        while (
+          ts.isParenthesizedExpression(init)
+          || ts.isAsExpression(init)
+          || ts.isSatisfiesExpression(init)
+        ) {
+          init = init.expression;
+        }
+        if (ts.isFunctionExpression(init) || ts.isArrowFunction(init)) {
+          consider(init, decl.name.text);
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return hits;
+}
+
+function listSrcTsFiles(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...listSrcTsFiles(full));
+    } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+describe("production MODULE_CONTRACT renderer exports", () => {
+  it("exports renderModuleContract, renderModuleMap, and commentPrefixForExtension", () => {
+    expect(typeof renderModuleContract).toBe("function");
+    expect(typeof renderModuleMap).toBe("function");
+    expect(typeof commentPrefixForExtension).toBe("function");
+  });
+
+  it("commentPrefixForExtension of .pyi and .py is hash; TypeScript is slash-slash", () => {
+    expect(commentPrefixForExtension(".pyi")).toBe("#");
+    expect(commentPrefixForExtension(".py")).toBe("#");
+    expect(commentPrefixForExtension(".ts")).toBe("//");
+    expect(commentPrefixForExtension(".tsx")).toBe("//");
+  });
+
+  it("fixtures.commentPrefixForExtension is the production export when re-exported", () => {
+    if ("commentPrefixForExtension" in fixtures) {
+      expect(fixtures.commentPrefixForExtension).toBe(commentPrefixForExtension);
+    }
+  });
+
+  it("collectFromText is identifier-insensitive: emitContract and paintHeader are both hits", () => {
+    const text = `
+      function emitContract(prefix, spec) {
+        const lines = [
+          line(prefix, "START_MODULE_CONTRACT"),
+          line(prefix, \`  PURPOSE: \${spec.purpose}\`),
+          line(prefix, "END_MODULE_CONTRACT"),
+        ];
+        return lines.join("\\n");
+      }
+      const paintHeader = (prefix, spec) => {
+        const lines = [
+          line(prefix, "START_MODULE_CONTRACT"),
+          line(prefix, \`  PURPOSE: \${spec.purpose}\`),
+          line(prefix, "END_MODULE_CONTRACT"),
+        ];
+        return lines.join("\\n");
+      };
+    `;
+    const hits = collectHeaderBuildersFromText("probe.ts", text);
+    expect(hits.map((hit) => hit.binder).sort()).toEqual(["emitContract", "paintHeader"]);
+  });
+
+  it("TypeScript AST scan of src/ finds one START_MODULE_CONTRACT header builder", () => {
+    const srcRoot = path.resolve(import.meta.dir);
+    const hits: HeaderBuilderHit[] = [];
+    for (const file of listSrcTsFiles(srcRoot)) {
+      hits.push(...collectHeaderBuildersFromText(file, readFileSync(file, "utf8")));
+    }
+    expect(hits, JSON.stringify(hits)).toHaveLength(1);
   });
 });
