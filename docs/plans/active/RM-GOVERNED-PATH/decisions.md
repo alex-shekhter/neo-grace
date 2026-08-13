@@ -4519,9 +4519,26 @@ the product to make and the hardest to see in review, because it reads as consis
 
 `C-TEACHING-SURFACE` shipped `README CLI Overview lists every live command root`
 (`src/query/command.test.ts:866`). It filters the CLI Overview to table rows and asserts every
-`liveCommandRoots()` **name** appears. Measured: the table holds **37 rows**, and they document
-*subcommands* — `ngrace module find`, `ngrace module show`, `ngrace file show`. Only **11 root tokens**
-are enumerated.
+`liveCommandRoots()` **name** appears. Measured: **30 rows inside the `## CLI Overview` section**,
+which is the only scope the check reads (37 across the whole README — state the scope with the
+number, or the count is the F62 defect again; the executor and the authority each measured one of
+these and disagreed for that reason alone). They document *subcommands* — `ngrace module find`,
+`ngrace module show`, `ngrace file show`. Only **11 root tokens** are enumerated.
+
+**The gap is already live in six places, before this bundle adds a seventh.** A walk of the same
+command objects finds these invocations undocumented as rows today: `ngrace cursor pause`,
+`ngrace cursor resume`, `ngrace cursor fold` (prose only, README:133), `ngrace cursor recover`,
+`ngrace module health`, and `ngrace verification localize`. Exact-token matching is what exposes
+them — the combined `advance/pause/resume/fold` row satisfies only `advance`. **So widening the
+check forces README rows this bundle did not invent, and that is the finding being paid, not scope
+creep.** A predicate narrowed to `file.*` would leave F70 half-repaired and be exactly the special
+case the finding forbids.
+
+**A second false claim rides on the same check.** `liveCommandRoots` is **not exported** — it is
+defined only at `src/query/command.test.ts:831` — yet `skills/ngrace/ngrace-cli/SKILL.md:10` reads
+*"Command inventory: README CLI Overview table (bound to `liveCommandRoots`). Do not restate that
+inventory here."* A skill points at a private test function as the binding. Repairing the check
+without that sentence leaves an inherited false claim ([F69](#f69)).
 
 **So adding a subcommand to an existing root leaves the table silently stale**, which is the same
 drift the check was introduced to stop. `ngrace file exports` (P1.7) is precisely that case: `file`

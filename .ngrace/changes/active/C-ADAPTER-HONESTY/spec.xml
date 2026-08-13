@@ -1,0 +1,811 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-ADAPTER-HONESTY>
+    <Summary>
+      Deliver RM-GOVERNED-PATH P1 steps 7 and 8
+      together: a read-only file exports view that
+      prints exactly what a language adapter knows
+      about a module Path or a named file, including
+      exportConfidence and a named no-adapter
+      absence; and a graph-module Path preflight
+      warning that names the tier-1 consequence
+      (contracts and health work; MODULE_MAP
+      parity unverified) without turning tier-1
+      into an error. Widen the README CLI
+      Overview check from live command roots to
+      live invocations so a new sub of an existing
+      root cannot stay invisible. P1.6 as-state
+      evaluation is out.
+    </Summary>
+    <Problem>
+      **Shared shape.** P1.7 and P1.8 are one
+      honesty problem: what the adapter actually
+      knows about a module's file is inferred
+      later, or never said. Authoring HEAD
+      529d9ae on feat/adapter-honesty, packaged
+      6.2.0, lint 0/0, archive 36, active empty
+      before this bundle, suite 1366 pass / 3
+      skip / 0 fail. Those numbers are a
+      snapshot (F33).
+
+      ---
+
+      **P1.7.** ngrace file has one subcommand,
+      show (src/grace-file.ts:40). Writing a
+      MODULE_MAP still means guess, lint, guess
+      again. Auto-rewrite is rejected (plan.md
+      section 4 D3). The missing surface is a
+      read-only view of LanguageAnalysis.exports
+      plus exportConfidence. A printed list that
+      does not say it is heuristic claims more
+      than the adapter knows.
+
+      ---
+
+      **P1.8, measured, not the roadmap
+      sentence.** "Today's delayed IMPL=0
+      mystery" did not reproduce as an
+      adapter-caused silent IMPL=0. Constructed
+      a graph module whose Path is src/Main.java
+      (governed, no adapter) in six shapes.
+
+      A (markers, EXPORTS, LINKS): lint warning
+      analysis.no-adapter on the file; health
+      Implementation Files src/Main.java, state
+      attention (missing evidence), not blocked.
+      B (file exists, no markers): lint warning
+      graph.module-without-linked-files, message
+      names missing LINKS, not the adapter;
+      health Implementation Files none, blocked
+      health.missing-implementation-files.
+      C (markers, SUMMARY, LINKS): lint 0/0;
+      status Analysis Coverage still prints
+      Unverified 1 files (.java); health IMPL
+      present. D (Path file missing): same as B.
+      F (EXPORTS, wrong MODULE_MAP): only
+      analysis.no-adapter; no
+      markup.module-map-mismatch. E (.ts
+      control): lint 0/0, adapter-backed.
+
+      Default ngrace status does not print IMPL
+      (modules only under with modules).
+      module show with verification prints
+      Graph Path and Linked Files and never
+      names an adapter. IMPL=0 is missing
+      LINKS, adapter-independent (a .ts Path
+      with no markers is the same blocked
+      shape). The real silence is C (tier-1
+      Path, SUMMARY, lint green) and F (wrong
+      map never compared). B and D already
+      warn, but the warning does not name
+      parity unverified.
+
+      ---
+
+      **analysis.no-adapter is a different
+      trigger (F60 / F46 / F49 / F52).** It
+      fires only when the file is governed,
+      claims EXPORTS or LOCALS, the extension
+      is governed, and unverifiedLanguages
+      does not acknowledge it
+      (src/project-utils.ts:606-621). P1.8 is
+      a graph-module Path preflight. Do not
+      duplicate it and do not silently widen
+      it.
+
+      ---
+
+      **F70.** command.test.ts:866 asserts
+      every liveCommandRoots name appears in
+      README CLI Overview table rows. Measured
+      at this HEAD: 30 table rows, not the 37
+      F70 recorded; they document
+      subcommands. 14 live roots. Exact
+      `ngrace root sub` matching is already
+      missing cursor pause, cursor resume,
+      cursor fold, cursor recover, module
+      health, and verification localize. file
+      exports is the next case of the same
+      hole: file already appears, so the
+      root check stays green while the table
+      omits the new verb.
+
+      ---
+
+      **F66.** This spec must decide README.md
+      and examples/ in a Goal, Constraint, or
+      NonGoal body. README.md is in scope.
+      examples/ is unchanged.
+
+      ---
+
+      **F61.** xml.comment-not-well-formed is
+      error severity. This spec names argv
+      tokens and exported functions in any
+      comment body and does not write dashed
+      CLI flags inside XML comments.
+    </Problem>
+    <Goals>
+      <Goal>
+        **One bundle, both steps.** P1.7 and
+        P1.8 are one adapter-honesty surface.
+        The export view is what to print; the
+        Path preflight is when lint must say
+        the adapter cannot speak. No split
+        (D11).
+      </Goal>
+      <Goal>
+        **Read-only file exports view.**
+        ngrace file exports prints what the
+        first matching LANGUAGE_ADAPTERS
+        entry returns for a module Path or a
+        named file, including
+        exportConfidence, and names a missing
+        adapter instead of inventing an
+        export list. It does not write
+        MODULE_MAP (D3).
+      </Goal>
+      <Goal>
+        **Graph Path preflight warning.**
+        When a graph module Path has a
+        governed extension with no adapter,
+        lint emits a warning on the graph
+        document naming the module, the Path,
+        the extension, and the consequence:
+        contracts and health work; MODULE_MAP
+        parity unverified. Not an error.
+      </Goal>
+      <Goal>
+        **README.md CLI Overview is bound to
+        live invocations, not only roots
+        (F70).** Every live root with no
+        subcommand, and every live root plus
+        subcommand, appears as an ngrace
+        token in the CLI Overview tables.
+        The enumerator is a walk of the same
+        live command objects liveCommandRoots
+        already walks, not a hand list.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: RM-GOVERNED-PATH P1 steps 7
+        and 8; plan.md section 4 D3 (no
+        MODULE_MAP auto-rewrite); D5.2
+        (tier-1 is a legitimate working
+        state; the new check is a warning);
+        D5.5 (CHANGELOG.md is generated;
+        newly visible codes and the new verb
+        are named in the commit body);
+        D13 (no new LintResult JSON
+        top-level key); F10 (claim only what
+        the body verifies); F27.2 and F64
+        (ObservedWriteScope covers every
+        path the deliverable forces); F33
+        (do not freeze 1366, 30, 24, 806,
+        55040, 3 absence codes, or any line
+        number this change moves); F42 (no
+        MustContain or MustNotContain needle
+        that README, a skill, a template, or
+        a skeleton may legitimately contain);
+        F43 (this artifact binds semantics;
+        tests assert literal bytes); F44
+        (pin where a user-visible string
+        appears); F51 (token-accounting.test.ts
+        and README.md are forced writes if
+        any SKILL.md moves); F52
+        (change.plan-scope-exceeds-spec
+        compares DurableScope anchors at
+        warning); F56 / F67 (signatureKey
+        names the property, not the test
+        file stem); F61 (no two adjacent
+        hyphens in any XML comment body);
+        F66 (this spec decides README.md and
+        examples/); F68 (two planned reds
+        are independently observable); F69
+        (do not copy a negative claim onto a
+        new subject); F70 (widen the README
+        check in this bundle). D16 (evidence
+        lives in an artifact). D17 (AC ids
+        name the property).
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T2** (new file
+        subcommand plus a new lint warning
+        plus a README inventory widen that
+        forces documentation of already-live
+        undocumented subs). P1.6 is out.
+      </Constraint>
+      <Constraint>
+        **Decided here — one bundle.**
+        Default is one. The export view
+        without the Path preflight leaves
+        Case C silent at lint. The preflight
+        without the view still cannot show
+        what an adapter would have listed.
+        No dependency or conflict that
+        forces a split. Do not split.
+      </Constraint>
+      <Constraint>
+        **Decided here — file exports
+        surface.** New subcommand of file,
+        argv token exports. Accepts exactly
+        one of: argv token module holding a
+        module id, or a positional file
+        path (same target shape as file
+        show). Both or neither is
+        invalid-arguments. Module form
+        resolves the module and analyses
+        that module's graph Path only, not
+        every linked file. A module with no
+        Path is a named absence, not a
+        crash. Path form analyses the named
+        file. The file need not be governed
+        and need not be linked; unmarked
+        source is the MODULE_MAP-dance
+        input. A file linked to no module
+        prints Module none (or Linked
+        Modules none) and exits 0. Adapter
+        resolution is LANGUAGE_ADAPTERS
+        first-match, never a second list
+        (F60). If an adapter supports the
+        file, print adapter id,
+        exportConfidence, and the sorted
+        exports set. If exportConfidence is
+        heuristic, the text says so on the
+        same view; a list that omits that
+        word is a failed criterion. If no
+        adapter supports the file, print
+        Adapter none, an empty export list,
+        and the consequence sentence
+        (contracts and health work;
+        MODULE_MAP parity unverified); do
+        not invent symbols. Missing file on
+        disk is not-found. Output carries
+        format text (default) and format
+        json plus the json boolean shortcut,
+        matching file show. JSON is a
+        dedicated object (path, module id or
+        none, adapter id or none,
+        exportConfidence or none, exports
+        array). It is not LintResult. D13
+        constrains lint JSON only: do not
+        add a top-level key to LintResult.
+        Read-only: no file write, no map
+        rewrite, no fix argv token (D3).
+      </Constraint>
+      <Constraint>
+        **Decided here — P1.8 trigger.**
+        New lint warning code
+        graph.path-no-adapter, exact catalog
+        guide, issueClass absence, severity
+        warning. For each graph module with
+        a non-empty Path P: let ext be the
+        extension of P; skip when ext is
+        not a governed code extension
+        (tier 0); skip when
+        ADAPTER_BACKED_EXTENSIONS has ext;
+        skip when this lint run already
+        emitted analysis.no-adapter for a
+        governed file whose project-relative
+        path equals P (same-file
+        double-report); otherwise emit on
+        the graph document that owns the
+        module (same file home as
+        graph.module-without-linked-files).
+        The message names the module id, P,
+        ext, and the consequence: contracts
+        and health work; MODULE_MAP parity
+        unverified; not an error because
+        tier-1 is legitimate.
+        **unverifiedLanguages DOES suppress
+        this code — authority ruling, reversing
+        the draft.** The existing warning's own
+        text tells the author to acknowledge
+        with .ngrace-lint.json
+        unverifiedLanguages, and this code
+        names the same consequence for the same
+        extension. A second code that fires
+        after the documented acknowledgement
+        would make that acknowledgement false —
+        F10 in the product, not merely noise.
+        The fact is not lost when acknowledged:
+        ngrace status already reports the
+        unverified file count and that
+        MODULE_MAP parity is not enforced. An
+        unacknowledged extension still gets
+        this warning, which is the lint-green
+        hole the step exists to close;
+        acknowledgement is opt-in silence, and
+        that is what an acknowledgement is.
+        Suppression is per extension, matching
+        the key's own granularity. Do not change the
+        analysis.no-adapter predicate in
+        src/project-utils.ts:606-621. Do
+        not emit this code from
+        analyzeGovernedFile. Two warnings
+        on an unmarked Path (this code plus
+        graph.module-without-linked-files)
+        are different facts and are both
+        required. A SUMMARY or NONE Path
+        with no adapter must emit this code
+        (that is the lint-green Case C).
+      </Constraint>
+      <Constraint>
+        **Decided here — F70 enumerator.**
+        Export one walker, next to
+        listBooleanFlags, that returns every
+        live invocation from the same
+        composed command objects
+        liveCommandRoots already walks: a
+        root with no subCommands is one
+        invocation; a root with
+        subCommands yields one invocation
+        per sub name. The README check
+        requires each invocation to appear
+        as an ngrace root token, or ngrace
+        root sub token, in a CLI Overview
+        table row (lines starting with the
+        existing table-row prefix). Exact
+        token match; an alternation cell
+        satisfies only the first member
+        (cursor advance today, not pause,
+        resume, or fold). A hand-listed
+        subcommand inventory is a second
+        grammar (F60) and is refused. HEAD
+        is already red under this predicate
+        for cursor pause, cursor resume,
+        cursor fold, cursor recover, module
+        health, and verification localize.
+        This bundle documents those live
+        holes as well as file exports. Do
+        not freeze the row count (F33).
+      </Constraint>
+      <Constraint>
+        **Decided here — F56 / F67 / F68.**
+        signatureKey names the property:
+        file-exports-unknown,
+        graph-path-no-adapter,
+        readme-live-invocations. Do not key
+        on a test file stem. Two planned
+        reds in one task must be able to
+        fail alone: do not import two new
+        missing exports of one module in
+        one failing test (F68). A task may
+        plan at most three distinct
+        kind-plus-key pairs. The boolean
+        site count pin is re-measured after
+        the json flag lands; that update is
+        not a weakening.
+      </Constraint>
+      <Constraint>
+        AffectedAreas names modules.
+        File-level scope is enforced at
+        close by
+        review.write-evidence-outside-scope
+        (error), not at authoring (F52).
+        ObservedWriteScope must still list
+        every path the deliverable forces
+        (F27.2, F64). Forced write surface:
+        src/grace-file.ts (new subcommand);
+        src/query/render.ts if the text
+        renderer is a new export there
+        (MODULE_MAP of that file);
+        src/query/command.ts (the live
+        invocation walker) and
+        src/query/command.test.ts (widened
+        README check; boolean site count
+        re-measure; walker tests);
+        src/lint/core.ts (P1.8 emission);
+        src/lint/catalog.ts (exact guide
+        for graph.path-no-adapter);
+        src/lint/catalog.test.ts
+        (listAbsenceCatalogCodes pin;
+        completeness via emission);
+        src/grace-query.test.ts (exports
+        command behaviour);
+        src/grace-lint.test.ts (P1.8
+        cases A/B/C/D/E and the
+        same-file skip);
+        README.md (CLI Overview rows this
+        check requires, including file
+        exports, module health,
+        verification localize, cursor
+        recover, and the cursor
+        alternation split or sibling rows;
+        output-modes line for file
+        exports; F51 totals only if a
+        SKILL.md moves);
+        skills/ngrace/ngrace-cli/SKILL.md
+        and its packaged mirror (the
+        shape_sources sentence that names
+        liveCommandRoots must name the
+        widened walk, F69);
+        src/test-support/token-accounting.test.ts
+        (F51; re-measure, do not freeze);
+        scripts/packed-cli-smoke.ts (add
+        a file exports case beside file
+        show);
+        this bundle's spec.xml and
+        plan.xml.
+        **Stop and re-spec** rather than
+        touching src/project-utils.ts
+        analysis.no-adapter trigger,
+        src/language-registry.ts adapter
+        membership, src/lint/types.ts
+        LintResult, src/gates/**,
+        src/review/** production,
+        ngrace-execute SKILL.md,
+        examples/, docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md, or any version
+        surface.
+      </Constraint>
+      <Constraint>
+        **Do not edit** docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md, or any version
+        surface. Packaged version at
+        authoring: **6.2.0**. No product
+        version bump — 6.3.0 is a phase
+        target, not this bundle's act.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine for this bundle:
+        red-first is mechanical for new
+        behaviour. Failing tests are
+        written before the fail attempt is
+        recorded, in a separate tool round
+        trip. Never a retrospective red
+        via stash. Never weaken a
+        BaselineAssertion to move a lint
+        count. F51 totals are re-measured
+        after any skill edit. F42: plan
+        assertions bind to exported
+        function names, issue codes, and
+        production symbols, not to
+        AC ids, README row prose, or
+        exportConfidence as a free needle.
+        F61: this bundle's artifacts must
+        not hold two adjacent hyphen
+        characters inside any XML comment
+        body.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        P1.6 lint as-state evaluation.
+        The remaining P1 step. Generators
+        cover write-time; as-state covers
+        evolution-time of hand-edited
+        artifacts. Non-overlapping.
+      </NonGoal>
+      <NonGoal>
+        MODULE_MAP auto-rewrite, lint fix,
+        or any writer that updates a map
+        from adapter output (D3). P1.7 is
+        read-only.
+      </NonGoal>
+      <NonGoal>
+        Changing the analysis.no-adapter
+        predicate, its MAP_MODE gate, or
+        its unverifiedLanguages
+        acknowledgement. P1.8 is a
+        different trigger on the graph
+        document.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no example
+        tree documents file exports or the
+        graph Path preflight. Not a
+        user-visible example surface this
+        bundle owns.
+      </NonGoal>
+      <NonGoal>
+        A new LintResult top-level key, an
+        NGRACE_ARTIFACT_VERSION bump, or a
+        package.json version bump. D13
+        stands. 6.3.0 is the phase target.
+      </NonGoal>
+      <NonGoal>
+        HTML, CSS, or shell adapters.
+        Those belong to
+        RM-LANGUAGE-EXTENSIBILITY. This
+        bundle only names the missing
+        adapter.
+      </NonGoal>
+      <NonGoal>
+        docs/plans/** board edits,
+        CHANGELOG.md, product version
+        bump, new graph modules. Conflict:
+        this bundle does not close 6.3.0.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-FILE-EXPORTS>
+        ngrace file exports accepts exactly
+        one of argv token module or a
+        positional path and prints the
+        first matching adapter's exports
+        for that Path or file. Text names
+        adapter id and exportConfidence.
+        Heuristic confidence is visible on
+        the same view as the list. No
+        adapter: Adapter none, empty
+        export list, consequence sentence
+        present, exit 0. File linked to no
+        module: Module none (or Linked
+        Modules none), exit 0, still
+        analyses if an adapter supports
+        the file. Module with no Path:
+        named absence, nonzero. Missing
+        file: not-found. Both selectors or
+        neither: invalid-arguments. format
+        json (and the json boolean) emit
+        the dedicated object; lint JSON
+        gains no key. The command writes
+        no file. **HEAD today:** file has
+        only show; unknown exports.
+        **Failure conditions:** invented
+        export list with no adapter;
+        heuristic list with no confidence
+        word; Path form analyses every
+        linked file; MODULE_MAP rewritten;
+        LintResult gains a key; only json
+        or only text.
+      </AC-FILE-EXPORTS>
+      <AC-GRAPH-PATH-NO-ADAPTER>
+        A graph module whose Path
+        extension is governed and not
+        adapter-backed emits
+        graph.path-no-adapter at warning
+        on the graph document, naming
+        module, Path, extension, and the
+        consequence (contracts and health
+        work; MODULE_MAP parity
+        unverified). It does not emit when
+        the extension is adapter-backed,
+        when the extension is not
+        governed, when the module has no
+        Path, when this run already
+        emitted analysis.no-adapter for
+        that same Path file, or when the
+        Path extension is acknowledged in
+        unverifiedLanguages (authority
+        ruling; see the trigger
+        Constraint). A SUMMARY Path with
+        no adapter and an unacknowledged
+        extension emits this code (Case C). An unmarked or
+        missing Path still emits
+        graph.module-without-linked-files
+        as today and also emits this code.
+        analysis.no-adapter's predicate is
+        unchanged. The code has an exact
+        catalog guide and issueClass
+        absence. **HEAD today:** Case C is
+        lint 0/0; Case A is
+        analysis.no-adapter only; no
+        graph.path-no-adapter.
+        **Failure conditions:** error
+        severity; emit from
+        analyzeGovernedFile; double-report
+        the same Path file as
+        analysis.no-adapter; suppress on
+        SUMMARY; still firing after the
+        extension is acknowledged in
+        unverifiedLanguages; drop
+        graph.module-without-linked-files;
+        allowlist seat instead of an
+        exact guide.
+      </AC-GRAPH-PATH-NO-ADAPTER>
+      <AC-README-INVOCATIONS>
+        The README CLI Overview tables
+        contain an ngrace token for every
+        value of the live invocation
+        walker, including file exports and
+        the six HEAD holes (cursor pause,
+        cursor resume, cursor fold, cursor
+        recover, module health,
+        verification localize). The check
+        in command.test.ts uses that
+        walker, not liveCommandRoots
+        names alone and not a hand list.
+        ngrace-cli shape_sources names
+        the same walk rather than claiming
+        a root-only bind (both trees).
+        validate:marketplace stays green.
+        **HEAD today:** root check green;
+        six live subs absent; file
+        exports absent.
+        **Failure conditions:** hand-listed
+        inventory; only the file root
+        widened; skill still names
+        liveCommandRoots as the bind;
+        only one tree updated; row count
+        frozen in a criterion.
+      </AC-README-INVOCATIONS>
+      <AC-HEAD-RED>
+        Each of AC-FILE-EXPORTS,
+        AC-GRAPH-PATH-NO-ADAPTER, and
+        AC-README-INVOCATIONS has a red
+        recorded before its production
+        edit, in its own tool round trip,
+        with the failing test written
+        first, under the signature keys
+        named above. Never a red backed
+        only by a grep, and never a
+        retrospective red via stash.
+        **Exempt (F45, named at
+        authoring):** AC-SUITE-AND-LINT
+        (green at HEAD; close-time bar);
+        F51 totals moving; boolean site
+        count re-measure; absence-code
+        list length moving; README row
+        count; scripts/ staying in
+        ignoredDirs; package.json version
+        unchanged.
+        **HEAD today:** no exports
+        subcommand; no
+        graph.path-no-adapter; README
+        check is root-only.
+        **Failure conditions:** a check
+        that passes on pre-change HEAD
+        sold as new behaviour; fail and
+        pass in one tool call;
+        AC-SUITE-AND-LINT required to be
+        red at HEAD; two new missing
+        exports of one module reddened in
+        one import (F68).
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-LINT>
+        bun test green for touched
+        packages (grace-query, command,
+        grace-lint, catalog, packed smoke
+        if edited, token-accounting if a
+        skill moved, and any other test
+        this deliverable forces);
+        bun run validate:ci green
+        (re-measure ratchet cardinality;
+        do not drop keys); bun run ngrace
+        lint --path . is 0 errors and 0
+        warnings **at close** (after apply
+        and archive, not claimed
+        mid-change); bun run
+        validate:marketplace green if a
+        skill moved. ObservedWriteScope
+        covers every path the deliverable
+        forces, including the F64 list
+        above. No docs/plans or archive
+        edits. No CHANGELOG. No version
+        surfaces.
+        **HEAD today:** lint is 0/0 and
+        validate:ci is green — that green
+        is the baseline, not this
+        change's evidence.
+        **Failure conditions:** suite red;
+        lint 0/0 claimed mid-window;
+        F51 pin left stale after a skill
+        edit; writes outside declared
+        scope; pin deleted or loosened;
+        analysis.no-adapter trigger
+        edited.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-QUERY />
+      <M-CLI-INFRA />
+      <M-LINT-CORE />
+      <M-LINT-CATALOG />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/grace-query.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-lint.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/lint/catalog.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:marketplace</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): file exports
+        prints adapter exports with
+        exportConfidence; no-adapter and
+        unlinked-file cases are named
+        absences with empty lists; json
+        is a dedicated object; lint JSON
+        keys unchanged; graph.path-no-adapter
+        fires on a SUMMARY Path and is
+        skipped when analysis.no-adapter
+        already named that Path file;
+        analysis.no-adapter predicate
+        unchanged; README check walks
+        live invocations and fails a
+        fixture table that omits a live
+        sub; both skill trees agree if
+        ngrace-cli moved; F51 re-measured
+        if a skill moved; suite green;
+        lint 0/0 at close only. Evidence
+        is the suite and the ledger
+        fail/pass pairs, not a command
+        someone reports.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring HEAD 529d9ae on
+        feat/adapter-honesty, packaged
+        6.2.0, lint 0/0, archive 36,
+        active empty before this bundle,
+        suite 1366 pass / 3 skip / 0
+        fail, validate:ci green.** F33:
+        implementation re-measures
+        counts; criteria do not freeze
+        them.
+      </Assumption>
+      <Assumption>
+        **Language surface, measured.**
+        CODE_EXTENSIONS size 26.
+        ADAPTER_BACKED_EXTENSIONS size
+        13, derived from five adapters
+        (js-ts, python, dart, go, rust).
+        The dispatch figure of 21
+        CODE_EXTENSIONS members is
+        false at this HEAD.
+      </Assumption>
+      <Assumption>
+        **IMPL=0 measurement, this
+        session.** See Problem. Default
+        status does not print the IMPL
+        column. module show with
+        verification does not name an
+        adapter. health.missing-implementation-files
+        is the IMPL=0 blocker and keys
+        on linked non-test governed
+        files, not on adapter presence.
+      </Assumption>
+      <Assumption>
+        **F70 / README, measured.** 30
+        CLI Overview table rows (not
+        37). 14 live roots. 29 live
+        invocations. Exact token match
+        misses six: cursor pause, cursor
+        resume, cursor fold, cursor
+        recover, module health,
+        verification localize. Boolean
+        site pin is 24.
+      </Assumption>
+      <Assumption>
+        **F64 pin survey, this session.**
+        command.test.ts README root
+        check and boolean site count 24.
+        catalog.test.ts
+        listAbsenceCatalogCodes exact
+        three-code array.
+        packed-cli-smoke.ts file show
+        case (sibling, not a fail until
+        a case is added).
+        token-accounting.test.ts 806 /
+        55040 / ngrace-fix 32 / 16
+        skills, and README.md F51 table.
+        skill-contracts.test.ts ngrace-cli
+        fail-closed pins (schemaVersion,
+        ok false, analysis.runtime-missing)
+        if that skill is edited.
+        grace-file.ts and render.ts
+        MODULE_MAP if new exports land.
+        grace-cursor.test.ts
+        writeFileSync inventory fires
+        only if this bundle adds a
+        packed src writer — it must not.
+        release-check PACK_ALLOWED fires
+        only if a new packed top-level
+        src file is added — prefer not.
+        analysis.no-adapter tests in
+        project-utils.test.ts,
+        language-registry.test.ts,
+        grace-lint.test.ts, and
+        grace-doctor.test.ts stay green
+        by non-edit of that predicate.
+      </Assumption>
+    </Assumptions>
+  </C-ADAPTER-HONESTY>
+</NgraceChangeSpec>
