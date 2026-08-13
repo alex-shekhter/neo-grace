@@ -358,7 +358,13 @@ function evaluateTextContainment(assertion: GraceAssertion, context: AssertionCo
     return [];
   }
 
-  return [assertionIssue(assertion, shouldContain ? `${fileValue} must contain requested text.` : `${fileValue} must not contain requested text.`)];
+  const quoted = JSON.stringify(expectedText);
+  if (shouldContain) {
+    return [assertionIssue(assertion, `${fileValue} must contain ${quoted}.`)];
+  }
+
+  const offset = contents.indexOf(expectedText);
+  return [assertionIssue(assertion, `${fileValue} must not contain ${quoted} (first hit at offset ${offset}).`)];
 }
 
 function evaluateMustMatchPattern(assertion: GraceAssertion, context: AssertionContext): NgraceIssue[] {

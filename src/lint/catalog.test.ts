@@ -839,3 +839,32 @@ describe("C-GRAMMAR-SEAM T-001 Clarification-shape exact guides", () => {
     }
   });
 });
+
+const COMMENT_WELL_FORMED_GUIDE_SHAPES = [
+  "XML comment",
+  "two adjacent hyphen characters",
+  "rewrite the comment body",
+] as const;
+
+describe("C-ARTIFACT-VALIDITY T-001 comment well-formed exact guide", () => {
+  it("xml.comment-not-well-formed exact guide names comment location, the forbidden sequence, and the repair first", () => {
+    expect(classifyIssueCode("xml.comment-not-well-formed")).toBe("exact");
+    const exact = getExactLintIssueGuide("xml.comment-not-well-formed");
+    expect(exact).toBeDefined();
+    const text = [exact!.explanation, ...exact!.remediation].join("\n");
+    const indices = COMMENT_WELL_FORMED_GUIDE_SHAPES.map((shape) => {
+      const idx = text.indexOf(shape);
+      expect(idx).toBeGreaterThanOrEqual(0);
+      return idx;
+    });
+    expect(indices[0]).toBeLessThan(indices[1]!);
+    expect(indices[1]).toBeLessThan(indices[2]!);
+    const before = text.slice(0, indices[0]);
+    expect(before.toLowerCase()).not.toContain("unreadable");
+    expect(before.toLowerCase()).not.toContain("could not be parsed");
+    expect(before.toLowerCase()).not.toContain("failed to parse");
+    expect(text.toLowerCase()).not.toContain("unreadable");
+    expect(text.toLowerCase()).not.toContain("could not be parsed");
+    expect(text.toLowerCase()).not.toContain("failed to parse");
+  });
+});

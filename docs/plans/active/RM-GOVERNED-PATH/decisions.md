@@ -3392,6 +3392,21 @@ emitted as a warning with the archive grandfathered, or the archive's immutabili
 Whichever is chosen must be argued rather than assumed — a check that quietly excludes the eight
 files that motivated it would be its own [F28](#f28).
 
+#### F39.1 — The set is growing, and knowing the rule does not prevent it. **[verified, 2026-08-13]**
+
+Re-measured after `C-GRAMMAR-SEAM` archived: **9**, not 8. The new offender is that bundle's own
+`plan.xml:391`, `--explain` inside the `DESIGN` comment.
+
+Its executor had **read F39, named it, and stated it was avoiding ASCII `--` in both comments** — and
+still shipped one, because a long design block mentioning a CLI's flags gives the hazard dozens of
+chances and care has to win every time. The bundle is archived and immutable, so the ninth offender
+is permanent.
+
+This changes the repair's shape. The original framing was eight historical files to grandfather. The
+true shape is **one new offender per bundle that discusses CLI flags in a design note** — which, in a
+repository whose product is a CLI, is most of them. A repair that only grandfathers the archive and
+adds no forward check leaves the count climbing.
+
 **Home: P1.13**, sequenced with [F38](#f38)'s P1.12. Both are artifact-validity repairs under
 `src/artifact/`, and both must not be interleaved with the `lint --explain` bundle in flight, whose
 declared scope stops at `src/lint/*`.
@@ -3409,7 +3424,7 @@ describe the post-implementation state. The report was this, twice, verbatim:
 ```
 
 Two identical lines. `src/lint/catalog.ts` is the subject of **seven** `MustContain` assertions in
-that plan, and the `detail` field is empty in `--format json` too. Nothing in the output says which
+that plan, and `--format json` carries the same undifferentiated string. Nothing in the output says which
 text was requested, so the executor cannot act on it without reading the plan and bisecting by hand.
 
 `src/artifact/assertions.ts:361` is the whole story:
@@ -3437,6 +3452,12 @@ binding to byte-accurate, branch-unique, backtick-free substrings (`See the revi
 (src/review/catalog.ts)`, `See the gate catalog (src/gates/catalog.ts)`), not by loosening the
 assertion. This is a second instance of [F36](#f36)'s family: an assertion whose subject was never
 pinned to what the file actually contains.
+
+**Correction, 2026-08-13.** This entry originally said the `detail` field is empty under
+`--format json`. There is no such field: `NgraceIssue` is `{severity, code, file, line?, message}`.
+Repeating that as a requirement would have mandated a new key on a versioned surface, which
+[D13](#d13) refuses. The withheld information belongs in `message`, which already exists and is
+what both renderers print. Caught by the executor at spec-authoring, before it reached a criterion.
 
 **Home: P1.14**, with [P1.12](#f38) and [P1.13](#f39). Assertion evaluation lives in
 `src/artifact/assertions.ts`, outside `C-EXPLAIN-COVERAGE`'s `AffectedAreas`, whose NonGoals
@@ -3880,3 +3901,229 @@ and rewriting them would edit the account of what happened rather than the pract
 **The rule.** Cite a bundle by its **archive path**, never by commit. Where a commit genuinely must
 be named — a release tag, a revert target — tag the branch tip before deleting it, and cite the
 tag. Tags survive; branch tips do not.
+
+### F54 — A closed path allowlist cannot be exact at a parse site that never learns the project root. **[verified]**
+
+`C-ARTIFACT-VALIDITY` decides archive treatment as **option 3**: a frozen, closed allowlist of the
+nine current offender paths, every other path erroring. The spec also pins the emission home inside
+`parseGraceXmlArtifact`, which is the correct coverage decision — it is the one function every
+`readGraceXmlArtifact` caller funnels through, so no artifact escapes the check.
+
+Those two correct decisions are in tension, and the tension only appears at plan time.
+
+`parseGraceXmlArtifact(file, text)` receives **no project root**. Measured at `ce451dc`, the `file`
+argument is not in one form:
+
+- `resolveNgracePaths` calls `path.resolve` on the project root, so the production lint path reads
+  archived plans as **absolute** `path.join` results;
+- `src/review/core.ts` passes a variable named `abs`;
+- unit tests pass **bare relative** names such as `plan.xml`.
+
+So `allowlist.has(file)` against project-relative entries misses **every listed file on the exact
+path that protects this repository's `0/0` close bar**. A naive implementation does not fail loudly;
+it turns nine archived plans red and looks like the check working.
+
+The plan settles a normalize-then-suffix rule: slashes normalized, a leading `./` stripped, and a
+file admits iff its normalized form equals a listed entry or ends with `/` + entry.
+
+**The residual is real and is not a rounding error.** Any path ending in a listed entry is admitted
+— including an identically named archived plan in a *different project tree*. A downstream GRACE
+project that archives its own `C-DECLARED-WRITES/plan.xml` containing the forbidden sequence is
+silently admitted by this repository's allowlist. That is the shape the spec rejected as "option 1
+wearing a list", reappearing across project boundaries rather than across directories.
+
+**Why it ships anyway.** Exact project-relative identity requires threading a project root through
+`readGraceXmlArtifact` and its call sites — roughly eighty of them across `src/`. That is outside
+the spec's forced write surface and is a re-spec, not an implementation response. [D11](#d11) is
+satisfied: this is a genuine conflict, not filing.
+
+**The rule.** When a check compares a path against project-relative product data, establish *at
+authoring time* what path form the emission site actually receives, and in how many forms. A
+constant that reads as project-relative is not evidence that its consumer ever sees that form. Where
+exactness is unreachable, the artifact states the false-admit surface in prose — an undisclosed
+loose match is [F46](#f46) / [F52](#f52): a check whose name claims more than its body compares.
+
+**Home:** the residual is scheduled against a project-root parameter for `readGraceXmlArtifact`, not
+against this bundle. Not yet assigned to a phase.
+
+### F55 — `assertion.command-not-evaluated` withholds its subject exactly as the containment codes do. **[verified]**
+
+Measured at plan-approval time for `C-ARTIFACT-VALIDITY`, running the plan's own target assertions:
+
+```
+ngrace lint --path . --change C-ARTIFACT-VALIDITY --assertions target
+```
+
+Fifteen errors. Eleven are the containment codes this bundle repairs. The other four are:
+
+```
+- [error] assertion.command-not-evaluated … — MustPassCommand requires explicit command execution opt-in.
+- [error] assertion.command-not-evaluated … — MustPassCommand requires explicit command execution opt-in.
+- [error] assertion.command-not-evaluated … — MustPassCommand requires explicit command execution opt-in.
+- [error] assertion.command-not-evaluated … — MustPassCommand requires explicit command execution opt-in.
+```
+
+Four `MustPassCommand` entries naming four different commands, four byte-identical messages. The
+evaluator holds the command string and does not say it. This is [F40](#f40)'s class exactly — the
+product knows a fact and declines to say it on an agent-facing surface — on a code
+`C-ARTIFACT-VALIDITY` does not touch.
+
+The same run also demonstrates the defect the bundle *does* repair, on the bundle's own plan:
+`src/artifact/xml.ts must contain requested text.` printed twice for two different pinned texts.
+The withheld-subject class is not one site; it is a habit in this layer.
+
+**Not folded in.** The spec confines P1.14 to `evaluateTextContainment`'s containment-failure path
+and its NonGoals reject opening the catalog for codes the deliverable does not need. Repairing
+`assertion.command-not-evaluated` here would be scope the spec closed. [D11](#d11) is satisfied by a
+genuine conflict, not by filing.
+
+**Home:** P1's remaining steps, as a sibling of P1.14. Any bundle that opens
+`src/artifact/assertions.ts` for message work should sweep the file's other withheld subjects rather
+than repair one code at a time — the one-code-at-a-time shape is what left this instance standing
+after `C-LEGIBLE-FAILURE` and P0.7 both passed through the same layer.
+
+### F56 — A plan's red-first decomposition collided with the product's flailing detector, and the authority approved the collision. **[verified]**
+
+`C-ARTIFACT-VALIDITY`'s approved plan required **four distinct fail signatures on T-001** before any
+production edit — one per criterion, which is what red-first discipline asks for.
+
+Measured in the product:
+
+- `src/grace-cursor.ts:183` — `export const FIX_DISTINCT_SIGNATURE_BUDGET = 4;`
+- `src/grace-cursor.ts:1692` — escalation fires when `distinctKeys.size >= FIX_DISTINCT_SIGNATURE_BUDGET`
+
+So the **fourth planned red is also the escalation trigger**. The plan could not be executed as
+approved without tripping it. In the archived ledger: event 5 records the fourth red, event 6 is an
+escalation listing all four planned signatures, event 7 is a resume whose `Reason` cites the plan's
+own D8, event 8 is the production pass.
+
+**The executor handled it correctly and reported it.** The reds are genuine, the attempt-pair audit
+is clean, and nothing was hidden. But the judgement call — whether a planned red sequence may resume
+through an escalation — belonged to the authority, and the plan handed it to the executor by
+omission.
+
+**The skill text is not the defect.** The executor reported `ngrace-execute/SKILL.md` as stale on
+this. It is not: canonical and packaged are byte-identical and both say *"Escalation fires on 2
+failed attempts of the same signature, or on 4 distinct failing signatures in the current window —
+not on any two fails regardless of signature."* That matches the binary exactly. Corrected here so
+the ledger does not carry a false claim about the skill.
+
+**The real defect is that the budget cannot distinguish a planned red-first sequence from an
+executor thrashing.** Both look like *N* distinct failing signatures in one window. The two
+mechanisms push in opposite directions: red-first rewards one signature per criterion, and the fix
+budget reads accumulating distinct signatures as loss of control. A task with four criteria is
+therefore unexecutable without a resume, and the more faithfully a plan follows [D17](#d17) — name
+criteria for the property, one red each — the sooner it collides.
+
+**The rule.** A single task may plan **at most three** distinct fail signatures. A task needing more
+gets split, or the plan pre-authorizes the resume in its design note with the reason the executor
+should cite — so the escalation is a recorded checkpoint rather than a decision delegated by
+accident. Authorities approving a plan should count planned distinct reds per task against the
+budget before approving; this one was not counted.
+
+**Home:** `ngrace-plan` (the cap, or split guidance) alongside [F50](#f50) and [F51](#f51), which are
+also fixed at the plan-template source.
+
+### F57 — The bundle that made errors name what they withhold shipped an error that withholds where. **[verified]**
+
+`xml.comment-not-well-formed` names the file and the rule, and does not say **which comment**. The
+scanner holds the position: `collectCommentWellFormednessIssues` walks to `commentAt` and then emits
+a constant message. `NgraceIssue` has an optional `line` field, and the sibling `xml.parse`
+populates it from the validator. On an artifact with many comment blocks the agent is told the file
+has a bad comment somewhere.
+
+That is this bundle's own thesis one level down — the product knows a fact and declines to say it on
+an agent-facing surface, which is [F40](#f40)'s class and P1's whole objective.
+
+**Measured before judging it a defect.** Across `src/`, only about four emission sites populate
+`line` at all (`xml.parse`, and three `contractLine` sites in `src/lint/core.ts`). Omitting it
+follows house behaviour rather than departing from it, and no criterion in the approved spec asked
+for a position — AC-COMMENT-ERROR-TEACHES binds three semantic facts and their order, nothing about
+location. So this is a gap the spec did not close, not a criterion violated.
+
+**Not repaired at close, and the reason is not convenience.** Adding the position is new behaviour,
+which needs a red, which needs a criterion that does not exist. Authoring a criterion at close to
+bless code about to be written is exactly the [F28](#f28) shape — evidence written to fit the
+outcome. [D11](#d11) is satisfied by that conflict.
+
+**The rule.** A diagnostic that locates a defect inside a file should carry the position it already
+computed. When a bundle creates a new diagnostic, its spec should decide the position question
+explicitly rather than inheriting silence from house style — the silence is what let this one ship
+inside the bundle least entitled to it.
+
+**Home:** the first bundle that opens `src/artifact/xml.ts` emission, or a P1 follow-on; sibling of
+[F55](#f55), which is the same withholding on `assertion.command-not-evaluated`.
+
+### F58 — An archived bundle leaves a phantom directory across branch switches, and lint reports it as a missing artifact. **[verified]**
+
+Measured while merging the P1 stack. After `feat/explain-coverage` merged and `feat/grammar-seam`
+was rebased onto it, `ngrace lint --path .` on the rebased branch reported:
+
+```
+- [error] xml.missing-file … /.ngrace/changes/archive/C-ARTIFACT-VALIDITY/spec.xml
+```
+
+for a bundle that branch does not contain. On disk, `.ngrace/changes/archive/C-ARTIFACT-VALIDITY/`
+existed holding exactly one thing: an empty `run/` directory. `git ls-files` on that path returned
+**zero** entries, and `git status --short` was **clean**.
+
+**Cause.** `cursor fold` empties `run/`, archiving `git mv`s the bundle including that empty
+directory, and **git cannot track an empty directory**. Switching away from the branch deletes the
+four tracked bundle files and leaves `run/` behind, which keeps its parent alive. Lint then finds a
+directory under `changes/archive/` and correctly demands the `spec.xml` that a bundle directory must
+have.
+
+**Why it costs more than it should.** The emitted error says an XML artifact was not found for a
+bundle that was archived minutes earlier, which reads as data loss. The real cause is a git
+limitation about empty directories, and `git status` actively conceals it — the one command an agent
+would reach for reports a clean tree. Nothing in the message points at the empty directory.
+
+**The rule.** `xml.missing-file` on a bundle that should not exist on the current branch is a
+phantom directory, not a lost artifact. Confirm with `git ls-files <dir>` returning nothing, then
+`rm -rf` it. A repository that stacks bundle branches will hit this at every switch.
+
+**Home:** worth a diagnosis line in the `xml.missing-file` guide — when the named path's directory
+exists but is empty of tracked files, say so. Sibling of [F57](#f57): a diagnostic that holds the
+information that would end the search and does not say it.
+
+### F59 — The merge sequence this stack was handed was wrong, and the F53 tags are what caught it. **[verified]**
+
+The procedure was carried in the session handoff rather than in any committed document — checked:
+no file under `docs/plans/active/RM-GOVERNED-PATH/` contained it, which is part of why it survived
+unexamined. It specified, for each bundle in turn:
+
+```
+git rebase --onto main <branch-below> <branch-to-rebase>
+```
+
+That is correct exactly once. Measured at the third merge:
+
+```
+p1-grammar-seam   (original tip)  23405f9
+feat/grammar-seam (after rebase)  3aaf226
+
+git rev-list --count feat/grammar-seam..feat/artifact-validity   →  36
+git rev-list --count p1-grammar-seam..feat/artifact-validity     →   8
+```
+
+Once `feat/grammar-seam` is itself rebased, its commits are rewritten, so `feat/artifact-validity`
+no longer descends from the branch **name**. The range then resolves to every commit not reachable
+from the rewritten branch — 36 instead of 8 — and the rebase begins replaying the *first* bundle's
+commits onto a `main` that already contains them in squashed form. It conflicted on
+`docs(ngrace): record F38`, a commit from two bundles earlier, which is the tell.
+
+The correct upstream is the branch-below's **original** tip. That is precisely what the `p1-*` tags
+preserve, and [F53](#f53) created them for a different reason — so a bundle could be cited after its
+branch died. They turned out to be load-bearing for the merge itself.
+
+**The rule.** In a stack, rebase each branch onto `main` using the **tag** of the branch below, never
+its name:
+
+```
+git rebase --onto main p1-<branch-below> <branch-to-rebase>
+```
+
+Tag every branch tip **before** the first rebase in the stack, not before deletion. A rebase whose
+count does not match the bundle's commit count is using the wrong base — check the count before
+resolving a single conflict, because the conflicts are a symptom and resolving them would quietly
+duplicate merged work.

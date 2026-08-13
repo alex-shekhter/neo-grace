@@ -1,0 +1,807 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-ARTIFACT-VALIDITY>
+    <IntentSummary>
+      Deliver RM-GOVERNED-PATH P1 steps 13 and 14 only: emit
+      xml.comment-not-well-formed at error from parseGraceXmlArtifact when an
+      XML comment body contains two adjacent hyphen characters, keep the
+      root, and admit only the frozen closed path allowlist of the current
+      archived offenders under the settled absolute-versus-relative
+      comparison rule; add the exact lint-explain guide for that code so it
+      leads with comment location, the forbidden sequence, and the repair,
+      and does not describe the document as unreadable; interpolate the
+      requested text into assertion.MustContain and assertion.MustNotContain
+      containment-failure messages via JSON.stringify, with MustNotContain
+      also naming the first-hit indexOf offset last.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/artifact/xml.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/xml.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/assertions.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/assertions.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-ARTIFACT-VALIDITY/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-ARTIFACT-VALIDITY/plan.xml</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-ASSERTIONS</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>export function parseGraceXmlArtifact(file: string, text: string)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>function evaluateTextContainment</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>must contain requested text.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>must not contain requested text.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>"xml.parse":</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>An XML artifact could not be parsed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/xml.test.ts</File>
+        <Text>returns xml.parse diagnostics for malformed XML instead of throwing</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>xml.comment-not-well-formed</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>COMMENT_WELL_FORMED_PATH_ALLOWLIST</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/xml.test.ts</File>
+        <Text>xml.comment-not-well-formed</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/xml.test.ts</File>
+        <Text>COMMENT_WELL_FORMED_PATH_ALLOWLIST</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>xml.comment-not-well-formed</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/catalog.test.ts</File>
+        <Text>xml.comment-not-well-formed</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>JSON.stringify(expectedText)</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>(first hit at offset</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/assertions.test.ts</File>
+        <Text>(first hit at offset</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-ASSERTIONS</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/artifact/xml.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/xml.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/assertions.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/assertions.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-ASSERTIONS</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>export function parseGraceXmlArtifact(file: string, text: string)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>function evaluateTextContainment</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>"xml.parse":</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>An XML artifact could not be parsed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/xml.test.ts</File>
+        <Text>returns xml.parse diagnostics for malformed XML instead of throwing</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>xml.comment-not-well-formed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>COMMENT_WELL_FORMED_PATH_ALLOWLIST</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/xml.test.ts</File>
+        <Text>xml.comment-not-well-formed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/xml.test.ts</File>
+        <Text>COMMENT_WELL_FORMED_PATH_ALLOWLIST</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>xml.comment-not-well-formed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.test.ts</File>
+        <Text>xml.comment-not-well-formed</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>must contain requested text.</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>must not contain requested text.</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>JSON.stringify(expectedText)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>(first hit at offset</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/assertions.test.ts</File>
+        <Text>(first hit at offset</Text>
+      </MustContain>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-ASSERTIONS</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/artifact/xml.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/assertions.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/lint/catalog.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+        <M-ASSERTIONS />
+        <M-LINT-CATALOG />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GRAMMAR />
+        <V-M-ASSERTIONS />
+        <V-M-LINT-CATALOG />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/xml.ts</File>
+      <File>src/artifact/xml.test.ts</File>
+      <File>src/artifact/assertions.ts</File>
+      <File>src/artifact/assertions.test.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>.ngrace/changes/active/C-ARTIFACT-VALIDITY/spec.xml</File>
+      <File>.ngrace/changes/active/C-ARTIFACT-VALIDITY/plan.xml</File>
+      <File>.ngrace/changes/active/C-ARTIFACT-VALIDITY/run.xml</File>
+      <File>.ngrace/changes/active/C-ARTIFACT-VALIDITY/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-ARTIFACT-VALIDITY/run/**</Glob>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers; authority reviews the path rule hardest)
+
+      Plan-authoring HEAD: ce451dc (branch feat/artifact-validity).
+      Spec is approved. Do not re-open its decisions. Re-measure every
+      count at execute (F33). Do not pin xml.ts line numbers, an offender
+      count, or lint 0/0 mid-change. Packaged version stays 6.2.0.
+
+      No Clarifications section: spec decisions are closed, including
+      emission home, code, severity, archive option 3, and the
+      containment-message shape.
+
+      No SKILL.md in this decomposition. F51 pin files
+      (src/test-support/token-accounting.test.ts, README.md) are not
+      forced. Touching a skill is a re-spec.
+
+      ─────────────────────────────────────────────────────────────────
+      D0 — Task decomposition
+      ─────────────────────────────────────────────────────────────────
+      Two deliverables. Step 13 has three layers that fail differently
+      (parse-site emit, closed allowlist, teaching text) plus one exact
+      guide that must land with the emission. Step 14 is a second
+      surface (evaluateTextContainment message only).
+
+      | Task | Surface | Satisfies |
+      | T-001 | xml.ts, xml.test.ts,
+          catalog.ts (one exact guide only),
+          catalog.test.ts (that guide only)
+        | AC-XML-COMMENT-WELL-FORMED,
+          AC-ALLOWLIST-CLOSED,
+          AC-COMMENT-ERROR-TEACHES,
+          AC-COMMENT-GUIDE-TEACHES |
+      | T-002 | assertions.ts, assertions.test.ts
+        | AC-CONTAINMENT-MESSAGE |
+      | T-003 | dogfood close
+        | AC-SUITE-AND-LINT, AC-HEAD-RED (full) |
+
+      Why three. The exact guide is in T-001: collectEmittedIssueCodes
+      will see the new object-form emission in xml.ts, and the
+      completeness check requires an exact guide (xml.generic- does
+      not match this code). Landing the emit without the guide leaves
+      catalog.test.ts red on a predicate this bundle must not edit.
+      Containment is not in T-001: different file, different red.
+      T-001 and T-002 are pairwise file-disjoint. T-003 DependsOn
+      both.
+
+      ─────────────────────────────────────────────────────────────────
+      D1 — Comment-body scan (T-001)
+      ─────────────────────────────────────────────────────────────────
+      Home: parseGraceXmlArtifact in src/artifact/xml.ts, or a helper
+      only it calls. The product parser strips comments, so the check
+      reads the raw text argument, not the normalized tree.
+
+      Run the check only after a root exists. If XMLValidator rejected
+      the document or the parse yielded no root, return the existing
+      xml.parse issue only. Do not emit xml.comment-not-well-formed
+      onto an unreadable document. Do not drop the root when the only
+      defect is the comment rule.
+
+      Scanner (this plan's rule, not left to the implementer):
+        1. Walk text left to right.
+        2. On a CDATA opener, skip to the matching closer. If there is
+           no closer, stop; xml.parse already owns unreadable input.
+        3. On a comment opener, the body is the slice until the next
+           comment closer. If there is no closer, stop; xml.parse owns
+           that.
+        4. Hyphen characters that are part of the opener or closer
+           are not body.
+        5. If the body contains two adjacent hyphen characters, the
+           file is a hit.
+        6. Two adjacent hyphen characters in element text, attributes,
+           or CDATA are legal and must not emit the code.
+
+      One issue per file (first hit is enough). Severity error. Code
+      xml.comment-not-well-formed. Keep root. Do not reuse xml.parse.
+
+      Fixture kinds (AC-XML-COMMENT-WELL-FORMED): plant at least a
+      change plan and one non-plan artifact (a context or graph
+      document) via parseGraceXmlArtifact in-memory strings. One
+      sample kind does not satisfy the set. Construct the forbidden
+      sequence in the TypeScript test file; that file is not XML.
+
+      F45 live asserts, written, not recorded as fail:
+        comments that omit the sequence stay clean
+        two adjacent hyphen characters in element text stay clean
+        CDATA that merely resembles a comment stays clean
+        the existing unclosed-tag xml.parse test still fires
+          (already true at HEAD; do not add a second plant sold as
+          this change's red)
+
+      Failure conditions: only plans planted; check implemented only
+      on active bundles; xml.parse reused while a root exists; root
+      dropped; element-text hyphens rejected; the archived offenders
+      cited as the red; a count frozen as the pass bar.
+
+      ─────────────────────────────────────────────────────────────────
+      D2 — Path comparison rule (T-001; review this hardest)
+      ─────────────────────────────────────────────────────────────────
+      Measured at ce451dc: resolveNgracePaths path.resolve-s the
+      project root, so grammar.ts lint reads archive plans as
+      absolute path.join results. review/core.ts passes a variable
+      named abs (path.join of root and a relative). Unit tests pass
+      bare relative names such as plan.xml. parseGraceXmlArtifact
+      receives no project root. Production parseGraceXmlArtifact
+      call sites besides the readGraceXmlArtifact forwarder are
+      none; every readGraceXmlArtifact caller is covered by a check
+      at this one site.
+
+      A naive allowlist.has(file) against the project-relative
+      entries therefore misses every listed file on the production
+      lint path.
+
+      Settled rule (not left to the implementer):
+
+        normalize(s):
+          replace every backslash with slash
+          if the result starts with "./", strip that prefix
+          return the result
+
+        admits(file, entry):
+          n = normalize(file)
+          e = normalize(entry)
+          n equals e, OR n ends with "/" + e
+
+      The check reads only the exported constant
+      COMMENT_WELL_FORMED_PATH_ALLOWLIST. That constant is a frozen
+      as-const array whose members are exactly the paths named by
+      AC-ALLOWLIST-CLOSED, in that order. Do not keep a second copy.
+      The suite asserts deep equality against that same list so an
+      append fails. Adding a path is not a permitted repair.
+
+      Tests that must exist in xml.test.ts:
+        the same listed path admits under a relative file string
+          AND under an absolute file string
+          (path.join of a prefix and the listed relative entry)
+        separator form (backslashes) of a listed path admits
+        an unlisted archived path (in-memory; do not write the
+          real archive) errors under relative AND absolute forms
+        the exported allowlist equals the spec list
+
+      Listed-path admit tests are true at HEAD (nothing emits this
+      code). F45: write them; they pass the moment they are written;
+      do not record them as a fail. Unlisted-path emit and allowlist
+      equality are the red.
+
+      Residual, named: any file whose normalized path equals a listed
+      entry or ends with "/" + entry is admitted, including an
+      identically named archived plan under a different project tree
+      or under a nested tree that is not the project root. Exact
+      project-relative identity is impossible at this emission site
+      without a project-root parameter. Threading a root through
+      readGraceXmlArtifact and its callers is outside the forced
+      write surface and is a re-spec. Do not pretend the rule is
+      exact.
+
+      Failure conditions: the allowlist is a count; the list is
+      appendable so a tenth is absorbed; a red is discharged by
+      extending the list; only active-bundle paths error; silence on
+      the listed paths sold as this criterion's red; a planted
+      archived path not on the list stays clean; the real archive is
+      edited to plant the tenth; comparison is raw string equality
+      so absolute lint paths miss every listed file.
+
+      ─────────────────────────────────────────────────────────────────
+      D3 — Teaching (T-001)
+      ─────────────────────────────────────────────────────────────────
+      Emitted message (AC-COMMENT-ERROR-TEACHES, F44): names three
+      things, in this order, as the first shape: the defect is inside
+      an XML comment; the forbidden content is two adjacent hyphen
+      characters; the repair is rewrite the comment body so it does
+      not contain that sequence. A later mention after a
+      "document failed to parse" instruction does not satisfy.
+      Bind a closed expected-shape list in xml.test.ts; assert
+      literal bytes there. Do not quote product markup in this plan.
+
+      Exact guide (AC-COMMENT-GUIDE-TEACHES): the lint explain exact
+      guide for xml.comment-not-well-formed names the same three
+      facts as the first shape it names, and does not describe the
+      document as unreadable. The xml.parse exact guide is not a
+      member and is not rewritten. Bind a closed expected-shape list
+      in catalog.test.ts; assert the rendered guide bytes there
+      (explanation plus remediation, same join as the Clarification
+      guide test). Do not restructure the catalog. Do not touch the
+      resolution-path predicate. Do not rewrite exact guides
+      C-EXPLAIN-COVERAGE authored. Do not seat this code on
+      PREFIX_COVERED_LEGACY_CODES. Do not add assertion.MustContain
+      or assertion.MustNotContain exact guides.
+
+      Production of the emit, the allowlist, the message, and the
+      one exact guide lands in the same tool round trip after the
+      four reds. If the allowlist constant is exported, add it to
+      xml.ts MODULE_MAP in that same edit.
+
+      ─────────────────────────────────────────────────────────────────
+      D4 — Containment message (T-002)
+      ─────────────────────────────────────────────────────────────────
+      Home: evaluateTextContainment in src/artifact/assertions.ts,
+      containment-failure path only. Codes stay assertion.MustContain
+      and assertion.MustNotContain. Do not add a detail field. Do not
+      change schemaVersion. Missing-field, missing-file, and
+      not-a-regular-file paths are not members.
+
+      Settled interpolator (this plan's glue; tests assert the bytes):
+
+        MustContain:
+          fileValue + " must contain " + JSON.stringify(expectedText) + "."
+
+        MustNotContain:
+          fileValue + " must not contain " + JSON.stringify(expectedText)
+          + " (first hit at offset " + offset + ")."
+
+      offset is contents.indexOf(expectedText) on the same file
+      string the evaluator already read. Not a UTF-8 byte offset and
+      not a line number. MustContain has no offset.
+
+      Two texts pinned on one file produce two distinguishable
+      message values. Text-report and JSON display of message are
+      the same field (F45: do not redden the display half).
+
+      Bind the shape in assertions.test.ts; assert literal bytes
+      there. Do not quote the interpolated form in this plan as if
+      this file were the byte pin.
+
+      ─────────────────────────────────────────────────────────────────
+      D5 — HEAD-RED ownership
+      ─────────────────────────────────────────────────────────────────
+      | Spec AC | Owner | Pre-edit measurement |
+      | AC-XML-COMMENT-WELL-FORMED | T-001 RT1
+        | comment-body plant on a plan and on a non-plan:
+          root present, zero issues, code absent |
+      | AC-ALLOWLIST-CLOSED | T-001 RT2
+        | unlisted archived plant emits nothing;
+          COMMENT_WELL_FORMED_PATH_ALLOWLIST is absent.
+          Listed-path silence is F45, not this red |
+      | AC-COMMENT-ERROR-TEACHES | T-001 RT3
+        | no such code; no message names the three facts |
+      | AC-COMMENT-GUIDE-TEACHES | T-001 RT4
+        | getExactLintIssueGuide is undefined;
+          xml.parse guide is not a member |
+      | AC-CONTAINMENT-MESSAGE both kinds | T-002 RT1
+        | MustContain message is file plus
+          "must contain requested text.";
+          MustNotContain is file plus
+          "must not contain requested text.";
+          neither interpolates the text |
+      | AC-HEAD-RED (full) + AC-SUITE-AND-LINT | T-003 Satisfies;
+        reds recorded on T-001 and T-002 |
+
+      F45, written as live asserts, never recorded as fail:
+        AC-SUITE-AND-LINT (green at HEAD; close-time bar)
+        text-report / JSON display of an already-repaired message
+        xml.parse still rejecting unclosed tags or a missing root
+        files whose comments omit the sequence staying clean
+        element-text (and CDATA) hyphen characters staying clean
+        listed archived plans staying quiet under the allowlist
+        marketplace identity at pre-change HEAD
+
+      Never a red backed only by a grep. Never a retrospective red
+      via stash. Never fail and pass in one tool call. Failing tests
+      are written before the fail attempt is recorded, in a separate
+      tool round trip, so that event's WriteEvidence carries the test.
+
+      ─────────────────────────────────────────────────────────────────
+      D6 — ObservedWriteScope (measured at ce451dc)
+      ─────────────────────────────────────────────────────────────────
+      Forced by the spec (F27.2):
+        src/artifact/xml.ts
+        src/artifact/xml.test.ts
+        src/artifact/assertions.ts
+        src/artifact/assertions.test.ts
+        src/lint/catalog.ts          (only the one exact guide)
+        src/lint/catalog.test.ts     (test of that guide only)
+        this bundle's spec.xml and plan.xml
+
+      Authored complete, including cursor/execution companions
+      confirmed against archive/C-GRAMMAR-SEAM and archive/C-SELECTION:
+        .ngrace/changes/active/C-ARTIFACT-VALIDITY/run.xml
+        .ngrace/changes/active/C-ARTIFACT-VALIDITY/run-ledger.xml
+        Glob .ngrace/changes/active/C-ARTIFACT-VALIDITY/run/**
+
+      Positive evidence those companions are audit-exempt:
+      review/core.ts isCliLifecyclePath returns true for
+      run.xml, run-ledger.xml, and run/** under a canonical C-*
+      bundle, and both auditWriteEvidenceOutsideScope and
+      auditScopeOutsideWriteScope skip those paths (F11). The model
+      plan omitted them and closed with zero findings for that
+      reason. They are still listed here so OWS is complete at
+      authoring (F50). The spec's AC-SUITE-AND-LINT list is a floor
+      ("including"), not a closed set.
+
+      Deliberately excluded: docs/plans, archive, CHANGELOG, version
+      surfaces, every other src/lint/** path (resolution-path
+      predicate, C-EXPLAIN-COVERAGE guides, catalog structure,
+      emission-patterns.ts), types.ts, SKILL.md, F51 pin files.
+
+      M-GRAMMAR Path is src/artifact/grammar.ts; xml.ts LINKS
+      M-GRAMMAR and rides OWS as a path. M-ASSERTIONS Path is
+      assertions.ts. M-LINT-CATALOG Path is catalog.ts.
+      isModuleOwnableWritePath excludes *.test.ts.
+
+      ─────────────────────────────────────────────────────────────────
+      D7 — Baseline assertion.* count predictions
+      ─────────────────────────────────────────────────────────────────
+      Load-bearing flips (Baseline that become false):
+
+        A  MustNotContain xml.ts            xml.comment-not-well-formed
+        B  MustNotContain xml.ts            COMMENT_WELL_FORMED_PATH_ALLOWLIST
+        C  MustNotContain xml.test.ts       xml.comment-not-well-formed
+        D  MustNotContain xml.test.ts       COMMENT_WELL_FORMED_PATH_ALLOWLIST
+        E  MustNotContain catalog.ts        xml.comment-not-well-formed
+        F  MustNotContain catalog.test.ts   xml.comment-not-well-formed
+        G  MustContain    assertions.ts     must contain requested text.
+        H  MustContain    assertions.ts     must not contain requested text.
+        I  MustNotContain assertions.ts     JSON.stringify(expectedText)
+        J  MustNotContain assertions.ts     (first hit at offset
+        K  MustNotContain assertions.test.ts (first hit at offset
+
+      Stay-true (not in N): parseGraceXmlArtifact signature,
+      evaluateTextContainment, "xml.parse":, An XML artifact could
+      not be parsed, returns xml.parse diagnostics for malformed XML
+      instead of throwing; all MustExist / MustVerify.
+
+        After plan approval, before any task: N = 0. Flag if N ≠ 0.
+        After T-001 test writes (C, D, F): N = 3. Flag if N ≠ 3.
+        After T-001 production (A, B, E): N = 6. Flag if N ≠ 6.
+        After T-002 test writes (K): N = 7 if T-001 is closed.
+        After T-002 production (G, H, I, J): N = 11.
+        After only T-002 (G through K): N = 5.
+        After T-001 and T-002: N = 11. Flag if N ≠ 11.
+        After T-003 / apply-archive: lint 0/0 at close only (F26).
+
+      Never weaken a BaselineAssertion to reduce N. Mid-change red
+      is correct; the CLI frames it.
+
+      ─────────────────────────────────────────────────────────────────
+      D8 — Execution discipline
+      ─────────────────────────────────────────────────────────────────
+      One open epoch. T-001 five round trips (well-formed red,
+      allowlist red, message red, exact-guide red, then production
+      of xml.ts plus the one exact guide in the same RT). T-002
+      two (containment-message red for both kinds, then production).
+      T-003: no manufactured red if green. Terminal / fold / gate /
+      commit are operator steps after T-003 unless authority says
+      otherwise. Never fail and pass in one tool call. Never a
+      retrospective red via stash.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Comment-body well-formedness check, closed path allowlist, teaching diagnostic, and matching exact guide</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-XML-COMMENT-WELL-FORMED />
+          <AC-ALLOWLIST-CLOSED />
+          <AC-COMMENT-ERROR-TEACHES />
+          <AC-COMMENT-GUIDE-TEACHES />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (well-formed half): before any xml.ts production
+            edit, in its own tool round trip, write tests in
+            src/artifact/xml.test.ts that plant a change plan and a
+            non-plan artifact (a context or graph document) whose only
+            well-formedness defect is two adjacent hyphen characters
+            inside an XML comment body, and assert parseGraceXmlArtifact
+            returns a root and emits xml.comment-not-well-formed at
+            error severity, and does not emit xml.parse. One sample
+            kind does not satisfy the set. Construct the forbidden
+            sequence in the TypeScript test file. Also write the F45
+            live asserts (clean comments, element-text hyphen
+            characters, CDATA that merely resembles a comment, existing
+            unclosed-tag xml.parse test still present); those pass the
+            moment they are written and must not carry this red. HEAD
+            today (probed at ce451dc): a comment-body plant returns a
+            root and zero issues. The emit asserts fail. Record cursor
+            fail. Do not land production in this round trip. Never a
+            red backed only by a grep; never fail and pass in one tool
+            call; never a retrospective red via stash. Failure
+            conditions: only a plan planted; this round trip also lands
+            production; the archived offenders cited as the red; a
+            count frozen as the pass bar; F45 greens recorded as this
+            red.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (allowlist half): before any xml.ts production
+            edit, in its own tool round trip, write tests that (1) a
+            fixture whose path string is under .ngrace/changes/archive/
+            and is not on the AC-ALLOWLIST-CLOSED list emits
+            xml.comment-not-well-formed at error under both a relative
+            file string and an absolute file string (in-memory or temp
+            content; do not write the real archive); and (2) the
+            exported COMMENT_WELL_FORMED_PATH_ALLOWLIST equals exactly
+            the spec list, so an append fails that assertion. Also
+            write the F45 listed-path admit tests (same listed file
+            under relative, absolute, and backslash-normalized forms
+            does not emit); those are true at HEAD and must not carry
+            this red. HEAD today: no allowlist exists; an unlisted
+            archived plant emits nothing. The unlisted-emit and
+            equality asserts fail. Record fail. Do not land production
+            in this round trip. Failure conditions: only relative or
+            only absolute asserted; listed-path silence sold as this
+            red; the real archive edited; this round trip also lands
+            production; comparison left as raw string equality.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (diagnostic half): before any xml.ts production
+            edit, in its own tool round trip, write tests that a
+            comment-body plant's emitted message names, in this order
+            as the first shape, that the defect is inside an XML
+            comment, that the forbidden content is two adjacent hyphen
+            characters, and the repair (rewrite the comment body so it
+            does not contain that sequence). Bind a closed
+            expected-shape list in the test; assert literal bytes
+            there. A later mention after a document-failed-to-parse
+            instruction does not satisfy. HEAD today: no such code
+            exists. The asserts fail. Record fail. Do not land
+            production in this round trip. Failure conditions: only
+            the code token asserted; working form named after an
+            unreadable-document instruction; lint explain cited as the
+            bind; this criterion treated as a quoted-byte bind in the
+            plan; this round trip also lands production.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (exact-guide half): before any catalog.ts
+            production edit, in its own tool round trip, write tests
+            in src/lint/catalog.test.ts that the exact guide for
+            xml.comment-not-well-formed names the same three facts as
+            the first shape and does not describe the document as
+            unreadable. Bind a closed expected-shape list; assert the
+            rendered guide bytes (explanation plus remediation). The
+            xml.parse exact guide is not a member and is not asserted
+            as rewritten. Do not rewrite PREFIX_COVERED_LEGACY_CODES,
+            the resolution-path tests, or the AC-FIX-SHAPE describe.
+            HEAD today: the code is absent, so it cannot classify as
+            exact. The asserts fail. Record fail. Do not land
+            production in this round trip. Failure conditions: only
+            the emitted message cited; xml.parse guide rewritten as if
+            it were a member; catalog restructured; this round trip
+            also lands production.
+          </Criterion>
+          <Criterion>
+            Production (same edit, own tool round trip after the four
+            reds): parseGraceXmlArtifact emits xml.comment-not-well-formed
+            at error for a comment-body plant on a plan and on a
+            non-plan artifact, keeps a root, and does not emit
+            xml.parse. Clean comments, element-text hyphen characters,
+            and CDATA that merely resembles a comment stay clean.
+            Existing xml.parse fixtures for unclosed tags and missing
+            root still fire. The check uses the D2 comparison rule
+            against COMMENT_WELL_FORMED_PATH_ALLOWLIST only. A listed
+            path admits under relative, absolute, and backslash forms.
+            An unlisted archived path errors under relative and
+            absolute forms. The exported allowlist equals the spec
+            list. The emitted message leads with the three facts. In
+            the same tool round trip, add only the exact guide for
+            xml.comment-not-well-formed so it leads with those facts
+            and does not describe the document as unreadable. If the
+            constant is exported, add it to xml.ts MODULE_MAP. Do not
+            restructure the catalog, touch the resolution-path
+            predicate, rewrite xml.parse, or edit any other
+            src/lint/** path. Failure conditions: only one kind
+            planted; raw string equality; allowlist appendable; only
+            the message rewritten and the guide omitted, or the
+            reverse; xml.parse reused; root dropped; SKILL.md edited.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Containment-failure messages interpolate requested text and MustNotContain offset</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-CONTAINMENT-MESSAGE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (containment half, both kinds): before any
+            assertions.ts production edit, in its own tool round trip,
+            write tests in src/artifact/assertions.test.ts on the
+            containment-failure path only that assertion.MustContain
+            and assertion.MustNotContain messages are, in this order:
+            the subject file as the first token, then the verb
+            ("must contain" / "must not contain"), then the requested
+            text as JSON.stringify of that string; for MustNotContain,
+            the parenthetical first-hit offset last (equals indexOf of
+            that text in the file string the evaluator read).
+            MustContain has no offset. Two texts pinned on one file
+            produce two distinguishable message values. Assert literal
+            bytes. Missing-field, missing-file, and not-a-regular-file
+            paths are not members and must not carry this red. Do not
+            redden text-report or JSON display of message (F45: true
+            by construction once message is repaired). HEAD today:
+            MustContain message is the file plus "must contain
+            requested text."; MustNotContain is the file plus "must
+            not contain requested text."; neither interpolates the
+            text; assertions.test.ts asserts the codes, not those
+            message bytes. The new asserts fail. Record fail. Do not
+            land production in this round trip. Never a red backed
+            only by a grep; never fail and pass in one tool call.
+            Failure conditions: only MustContain asserted; display-half
+            JSON sold as this red; this round trip also lands
+            production; this criterion treated as a quoted-byte bind
+            in the plan.
+          </Criterion>
+          <Criterion>
+            Production: evaluateTextContainment uses the D4
+            interpolator on the containment-failure path only. Codes
+            stay assertion.MustContain and assertion.MustNotContain.
+            MustContain has no offset. MustNotContain offset equals
+            indexOf on the file string already read. Two texts on one
+            file produce distinguishable messages. Do not add a
+            detail field. Do not change schemaVersion. Do not edit
+            src/artifact/types.ts or src/lint/types.ts. Failure
+            conditions: only MustContain repaired; requested text
+            appended after the offset, or placed before the file;
+            offset given as a line number or a UTF-8 byte count;
+            a new detail field added; codes renamed; the withheld
+            "requested text" phrase kept as the first named subject.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/assertions.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Dogfood close: suite, lint at close, full HEAD-RED proof</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SUITE-AND-LINT />
+          <AC-HEAD-RED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-SUITE-AND-LINT at close (F26 qualifier): after apply
+            and archive, bun run ngrace lint with path . is 0 errors
+            and 0 warnings. Do not claim 0/0 mid-change while
+            Baseline falsifiers are expected red (predicted N = 11
+            after T-001 and T-002). Never weaken a BaselineAssertion
+            to move a lint count.
+          </Criterion>
+          <Criterion>
+            bun test green for touched packages
+            (src/artifact/xml.test.ts, src/artifact/assertions.test.ts,
+            src/lint/catalog.test.ts); bun run validate:ci green
+            (determinism ratchet cardinality only moves if a catch is
+            intentionally added — re-measure, do not drop keys).
+            ObservedWriteScope covers every path the deliverable
+            forces, including xml.ts, xml.test.ts, assertions.ts,
+            assertions.test.ts, catalog.ts, catalog.test.ts, this
+            bundle's spec.xml and plan.xml, and the cursor/execution
+            companions run.xml, run-ledger.xml, and run/**. No
+            SKILL.md, so no F51 pin files. No edits under docs/plans/
+            or .ngrace/changes/archive/; no CHANGELOG; no version
+            surfaces (stays 6.2.0). Failure conditions: suite red;
+            lint 0/0 claimed mid-window; ratchet keys dropped; writes
+            outside declared scope; HEAD-green lint cited as proof
+            the comment check or the message repair landed.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED post-change: comment-body plants on a plan and
+            a non-plan emit xml.comment-not-well-formed at error and
+            keep a root; the message and its exact guide lead with
+            comment location, the forbidden sequence, and the repair;
+            an unlisted archived path errors under relative and
+            absolute forms; the allowlist equals the spec list and is
+            not appendable as a repair; MustContain and MustNotContain
+            failure messages start with the file, then the verb, then
+            JSON.stringify of the requested text, in that order;
+            MustNotContain ends with the indexOf offset; two texts on
+            one file produce distinguishable messages. Pre-edit reds
+            were recorded on T-001 (well-formed, unlisted allowlist,
+            message, exact guide) and T-002 (both containment kinds)
+            — not manufactured at close. Exempt and not reddened:
+            AC-SUITE-AND-LINT, display half of message, xml.parse
+            still rejecting unclosed tags, clean-comment files, listed
+            archived plans staying quiet, marketplace identity at
+            pre-change HEAD. Failure conditions: a check that passed
+            on pre-change HEAD sold as new behaviour; fail and pass
+            in one tool call; AC-SUITE-AND-LINT required to be red at
+            HEAD; listed archived files recorded as the HEAD-RED.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+          <Command>bun test src/artifact/assertions.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-ARTIFACT-VALIDITY>
+</NgraceChangePlan>
