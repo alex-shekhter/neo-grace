@@ -1,0 +1,684 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-EXPLAIN-COVERAGE>
+    <Summary>
+      Deliver RM-GOVERNED-PATH P1 steps 1–3 only: wire review and gate catalog
+      guide objects into `lint --explain`; add a coverage test whose universe is
+      `collectEmittedIssueCodes` (independent of the guide table); author the
+      remaining constructed codes that still resolve to dedicated-entry
+      boilerplate **and** the five `change.task-*dependency*` codes
+      whose `--explain` body is the family prefix guide, not a
+      fix-shape (each bound to its own emitted message); and append
+      `(ngrace lint --explain &lt;code&gt;)` once per distinct error code on
+      text lint, suppressed under `--format json`.
+    </Summary>
+    <Problem>
+      **Shared shape.** `getLintIssueGuide` already imports the review and gate
+      surfaces, then ignores the guide objects those surfaces already hold, and
+      there is no test whose universe is the codes this binary **constructs**.
+      Three facts at authoring HEAD `0764686`:
+
+      | item | what it says | what it is bound to |
+      | P1.1 | `--explain` teaches the fix | prefix / boilerplate text for review.* and gate.* |
+      | P1.2 | every emittable code has a surface-specific guide | no finite constructed-code universe; `xml.*` / `design-context.*` / most `health.*` are prefix-open |
+      | P1.3 | the default lint report points at `--explain` | `formatTextReport` prints severity, code, location, message only |
+
+      ---
+
+      **P1.1 — the guide is already in the imported file.**
+      `src/lint/catalog.ts` imports `isReviewIssueCode` and `isGateIssueCode`.
+      `getLintIssueGuide` (`:848`) resolves `EXACT_GUIDES` → `PREFIX_GUIDES` →
+      those two predicates → `isEmittableIssueCode` → unknown. The review and
+      gate branches synthesize a title from the code string and return *"does
+      not yet have a dedicated `lint --explain` entry"* while `REVIEW_CATALOG`
+      (15 codes, all with title / explanation / remediation) and `GATE_CATALOG`
+      (8 codes, same) sit unused. `review.md` §4.7 reproduced this on
+      `review.scope-outside-write-scope`. That is the wire, not new prose.
+
+      `classifyIssueCode` stays a separate fact: review and gate codes remain
+      `emittable-uncatalogued` unless they become keys of `EXACT_GUIDES`, which
+      they must not (F10 namespace: review findings are not lint exact entries).
+
+      ---
+
+      **P1.2 — "every emittable code" is not a set this binary can iterate.**
+      `isEmittableIssueCode` rule 6 matches `xml.*`, `design-context.*`, and
+      `health.*` **by prefix**, with no registry. The same file's
+      `PREFIX_GUIDES` are also prefix-open (`change.totally-made-up` is
+      emittable). A coverage test that iterates guide-table keys is the D4
+      pattern `self-referential-comparison`: it is green the moment the table
+      is the universe, and it cannot see a constructed code the table omitted.
+
+      A completeness test already exists (`catalog.test.ts`,
+      `collectEmittedIssueCodes` + `hasExactSurfaceGuide`). **It is green at
+      HEAD.** It answers "exact guide or frozen allowlist seat", not "the
+      resolution path is surface-specific". Reusing it as P1.2's coverage
+      test is F28 / F35.1.
+
+      Constructed codes that today resolve to the dedicated-entry boilerplate
+      (survey, not a criterion): every `REVIEW_CATALOG` and `GATE_CATALOG`
+      code; `xml.parse` and `xml.missing-file` (the `xml.generic-` prefix does
+      **not** match them, and no production site emits `xml.generic-*`);
+      every `design-context.*` literal in `grammar.ts`; every `health.*`
+      literal in `query/health.ts` except the two exact guides
+      (`health.ui-state-unverified`, `health.ui-states-undeclared`).
+
+      **A second failure mode sits on a family prefix guide.**
+      `change.task-invalid-dependency` is review.md §4 item 1 — the corpus's
+      first-listed authoring failure — and P1 step 2's worked example.
+      `invalidMessage` at `grammar.ts:2079` already names the three accepted
+      DependsOn shapes. `--explain` at HEAD returns the `change.` family
+      guide (title "neo-grace Change Lifecycle Issue"; remediation is
+      active-vs-archive placement). That text is not generic: it answers a
+      different question than the emitted message. The code sits on
+      `PREFIX_COVERED_LEGACY_CODES`. A predicate that only rejects the
+      dedicated-entry boilerplate is **green on this code at HEAD**.
+
+      **Universe is decided: option 1.** Reuse or extract
+      `collectEmittedIssueCodes` (skips the three catalog files). The
+      regex-over-structure residual stays: a new emission form the scanner
+      does not see is invisible until listed.
+
+      **Option 2 (real registries, drop prefix rule 6) is a finding, not
+      this bundle.** Home: P1.4, which opens `src/artifact/grammar.ts`
+      anyway. Do not author registries here.
+
+      ---
+
+      **P1.3 — the report never names `--explain`.**
+      `formatTextReport` (`src/lint/core.ts:555`) emits one line per issue.
+      JSON lint is `JSON.stringify(result)` and never calls that function, so
+      suppression is a property of putting the pointer only in the text
+      renderer — but "JSON lacks the pointer" is already true at HEAD and is
+      not evidence unless paired with a text report that has it.
+    </Problem>
+    <Goals>
+      <Goal>
+        **P1.1.** `getLintIssueGuide` returns the review catalog guide object
+        (via `guideFor` / `REVIEW_CATALOG`) for registered review codes and the
+        gate catalog guide object (`GATE_CATALOG[code]`) for registered gate
+        codes — title, explanation, remediation copied from that object, not
+        synthesized. Classification of those codes remains
+        `emittable-uncatalogued`. They do not become `EXACT_GUIDES` keys.
+      </Goal>
+      <Goal>
+        **P1.2.** A coverage test iterates `collectEmittedIssueCodes` and
+        asserts each universe member's resolution path is exact, prefix,
+        review-catalog, or gate-catalog — not emittable-fallback and not
+        unknown. Written and
+        recorded red **before** the wire. After the wire it still fails on
+        constructed codes that hit the emittable fallback; those are
+        authored. Separately, the five `change.task-*dependency*` codes
+        get fix-shape `--explain` bodies — they already have a family
+        prefix guide — each bound to its own emitted message, on their
+        own priority. `markup.unparsed-link-token` is already green on
+        fix-shape and is the discrimination anchor, not new work.
+        Review, gate, and health corpus-priority codes are not this
+        claim: they remain in the constructed-code delta / the P1.1 wire.
+        Guide counts are not named in criteria.
+      </Goal>
+      <Goal>
+        **P1.3.** Text lint appends `(ngrace lint --explain &lt;code&gt;)`
+        once per distinct **error** code. `--format json` / `JSON.stringify`
+        of the same `LintResult` does not contain that pointer. Proven on a
+        report that repeats a code.
+      </Goal>
+      <Goal>
+        **Fallback honesty.** After the wire and the delta, no retained
+        branch text claims a dedicated-entry coverage gap. Whether the
+        now-wrong boilerplate branches are deleted or rewritten is argued in
+        Constraints; a kept branch that still says the gap exists is an F10
+        defect.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: RM-GOVERNED-PATH P1 steps 1, 2, 3 and hard sequencing rule 3
+        (wire → let the coverage test report the gap → author only the
+        delta). Decisions.md F10 / F35 / F41 (do not bind the check to a
+        name for the behaviour — neither a function identifier nor the
+        rendered --explain string; bind the resolution path, the analogue
+        of F35's identifier-insensitive AST shape match); F28 / F35.1 (a check already green at
+        HEAD is not evidence); F23 (exact pins where the criterion names a
+        value); F26 / F30 / F33 (do not freeze authoring counts; lint 0/0 is
+        **at close**); F27 / F27.2 (`ObservedWriteScope` covers what this
+        deliverable **forces**); D16 (evidence lives in an artifact); D11
+        (no NonGoal without a dependency or a conflict). Authoring history
+        (not a live constraint): this spec was drafted under F4 as
+        spec-only with `status="draft"` and no `plan.xml` until approved.
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T1** (catalog resolution, coverage test,
+        fixture-bound fix-shape guides, text-report pointer). Registries in emission
+        modules are not in this bundle (finding, home P1.4).
+      </Constraint>
+      <Constraint>
+        **Decided here, not deferred to the plan.** Universe =
+        `collectEmittedIssueCodes` (reuse or extract). Review and gate
+        codes are not added to `EXACT_GUIDES`. `classifyIssueCode` is not
+        widened to call registered review/gate codes `exact`. Prefix-family
+        `PREFIX_GUIDES` are not mass-replaced by per-code exact guides;
+        the five `change.task-*dependency*` codes are the family-prefix
+        exception and are in this delta. The existing completeness scanner and
+        `PREFIX_COVERED_LEGACY_CODES` remain; they are not this coverage
+        test. P1.4–P1.11 are out of implementation; P1.4 is the home of
+        the registries finding. A typed Clarification whose target is an
+        AC-* cannot be used (`artifact.semantic-anchor-attribute`).
+      </Constraint>
+      <Constraint>
+        **Fallback (argued, not silent).** After registered review/gate codes
+        resolve to catalog objects and the remaining constructed delta has
+        guides, the three dedicated-entry boilerplate strings are false.
+        **Delete** the review and gate boilerplate branches (catalog hit
+        returns the object; catalog miss must not claim a coverage gap — it
+        is an unregistered code on that prefix, which is the unknown path or
+        an honest "not a registered code on this surface" message). **Rewrite
+        or delete** the `isEmittableIssueCode` fallback: keeping the current
+        sentence is F10. Prefix rule 6 stays in this bundle (registries are
+        P1.4); invented `xml.foo` is still classified emittable and needs a
+        message that does **not** claim this binary emits a constructed code
+        we forgot to document.
+      </Constraint>
+      <Constraint>
+        AffectedAreas is closed and binds the plan
+        (`change.plan-scope-exceeds-spec`). Forced write surface:
+        `src/lint/catalog.ts` (resolution, fallback, the five
+        `change.task-*dependency*` exact guides and any remaining
+        boilerplate exact guides),
+        `src/lint/catalog.test.ts` (coverage test, fix-shape / review-replay
+        fixture; completeness test stays),
+        `src/lint/core.ts` (`formatTextReport` pointer),
+        `src/lint/core.test.ts` (text pointer, once-per-code, JSON pair),
+        `src/grace-lint.test.ts` (CLI `--explain` currently expects
+        `/ngrace review/i` on the boilerplate — that assertion is the
+        defect and must move). The five `change.task-*dependency*`
+        fix-shape guides are authored as exact guides in
+        `EXACT_GUIDES`; the replay fixture fires lint on a
+        temp project and reads the emitted `message`, so it does **not**
+        write `grammar.ts`. **Stop and re-spec** rather than touching
+        `src/artifact/grammar.ts`, `src/artifact/xml.ts`,
+        `src/query/health.ts`, skills, packaged mirrors, docs/plans, or
+        version surfaces.
+      </Constraint>
+      <Constraint>
+        **Do not edit** `docs/plans/**`, `.ngrace/changes/archive/**`,
+        CHANGELOG.md, or any version surface. Packaged version at authoring:
+        **6.2.0**. No product version bump — 6.3.0 is a phase target, not
+        this bundle's act.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first is mechanical. The coverage test is
+        written **before** the fail attempt is recorded, in a **separate
+        tool round trip**, so that fail event's `WriteEvidence` carries the
+        test. Never a retrospective red via stash. Never weaken a
+        `BaselineAssertion` to move a lint count — mid-change red is
+        correct. The pointer tests follow the same split: failing test in
+        its own round trip, then the renderer edit. P1.1 production edit
+        must not land in the same round trip as the first coverage-test
+        fail.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        **Rejected — iterate `EXACT_GUIDES` / `REVIEW_CATALOG` / `GATE_CATALOG`
+        / `PREFIX_GUIDES` as the coverage universe.** That is
+        `self-referential-comparison` (D4). It would be green after the wire
+        and would not expose `xml.parse`, `design-context.*`, or unguided
+        `health.*`.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — treat the existing completeness test as P1.2's coverage
+        test.** It is green at HEAD. It accepts `PREFIX_COVERED_LEGACY_CODES`
+        and does not observe the resolution path.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — mass-author exact guides for every
+        `PREFIX_COVERED_LEGACY_CODES` member.** Sequencing rule 3 and P1's
+        "do not redo work already done" forbid a sweep of the allowlist.
+        Family prefix guides stay the surface for allowlist codes that are
+        **not** the five `change.task-*dependency*` codes. Those five are
+        in this delta on their own priority; they already return family
+        text. That is not a sweep of the allowlist.
+      </NonGoal>
+      <NonGoal>
+        **Rejected — add review.* or gate.* keys to `EXACT_GUIDES`, or
+        reclassify them as `exact`.** F10 namespace. The wire reads the
+        objects that already exist.
+      </NonGoal>
+      <NonGoal>
+        P1.4 schema reference, P1.5 generators, P1.6 `--as`, P1.7 export
+        view, P1.8 no-adapter warning, P1.9 OptionalContext, P1.10 skill
+        inversion, P1.11 polyglot rebalance. Dependency: those steps are
+        later P1 items; this bundle is steps 1–3. D11: not topical filing —
+        they have no implementation dependency on this slice except P1.4's
+        later use of `--explain` shapes, which this bundle must not start.
+      </NonGoal>
+      <NonGoal>
+        The P1 Verification paragraph's generator golden-files (step 5) and
+        skills audit (step 10). Those verify later P1 steps. The
+        review-replay fixture is this bundle's: "the new messages" are
+        steps 1–3's, and that fixture is what makes `AC-FIX-SHAPE`
+        testable. D11: generator/skills work depends on P1.4–P1.10.
+      </NonGoal>
+      <NonGoal>
+        Skill-text edits, packaged-mirror edits, `docs/plans/**` board
+        edits, CHANGELOG, product version bump. Conflict: T1 surface is
+        `src/lint/*` plus the forced CLI test; skills are P1.10.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-WIRE-CATALOG-GUIDES>
+        For every code in `REVIEW_CATALOG` and every code in `GATE_CATALOG`,
+        `getLintIssueGuide(code)` returns that catalog object's `title`,
+        `explanation`, and `remediation` (field equality on the object, not
+        a substring hunt for the code's identifier). `--explain` text and
+        JSON expose that same body. Classification remains
+        `emittable-uncatalogued`. None of those codes is a key of
+        `EXACT_GUIDES`. **HEAD today:**
+        `getLintIssueGuide("review.scope-outside-write-scope")` and
+        `getLintIssueGuide("gate.apply.no-verdict")` return the dedicated-entry
+        boilerplate; CLI `--explain review.scope-outside-write-scope` prints
+        `Classification: emittable-uncatalogued` and matches `/ngrace review/i`
+        because of that boilerplate, not because it read the catalog.
+        **Failure conditions:** synthesized `toTitleFromCode` kept as the
+        title while the explanation is swapped; only one code sampled;
+        review/gate added to `EXACT_GUIDES`; classification changed to
+        `exact`; assertion greps `guideFor` / `GATE_CATALOG` identifiers
+        instead of comparing returned fields to the catalog object.
+      </AC-WIRE-CATALOG-GUIDES>
+      <AC-COVERAGE-UNIVERSE>
+        The suite contains a coverage test whose **universe** is
+        `collectEmittedIssueCodes` (reused or extracted) — a finite set of
+        codes constructed at production emission sites, obtained by
+        scanning `src/` while skipping `lint/catalog.ts`,
+        `gates/catalog.ts`, and `review/catalog.ts`. Invented codes that
+        match a prefix rule but are never constructed are not universe
+        members. The scanner's regex-over-structure residual stays
+        disclosed: a new emission form it does not see is invisible until
+        listed. **HEAD today:** the function exists and is used only to
+        feed `hasExactSurfaceGuide` / allowlist completeness, which
+        passes. No test uses it as a `--explain` universe.
+        **Failure conditions:** universe = `Object.keys` of any guide
+        table; universe = `isEmittableIssueCode` over a handmade prefix
+        expansion; completeness test renamed and reused; green at
+        pre-change HEAD.
+      </AC-COVERAGE-UNIVERSE>
+      <AC-COVERAGE-NO-BOILERPLATE>
+        The id names the historical mechanism (a hunt for dedicated-entry
+        boilerplate sentences); this body carries the current one.
+        That coverage test asserts: for every universe code, the
+        resolution path (`getLintIssueGuideResolution`) is exact,
+        prefix, review-catalog, or gate-catalog — not
+        emittable-fallback and not unknown. After the P1.1 wire, the
+        test is still red on every remaining constructed code that
+        still hits the emittable fallback; those codes are authored
+        as exact guides. This predicate does **not** prove fix-shape:
+        a family prefix guide passes it. Discrimination is proven by
+        probe, not by a fail-to-pass attempt pair (all 23 constructed
+        guides already exist after the delta; do not delete one to
+        manufacture a red): remove the exact guide for `xml.parse`
+        and the test reddens (no `xml.` family prefix matches
+        `xml.parse`; `xml.generic-` does not); restore. Leave the
+        five `change.task-*dependency*` codes on family text
+        (resolution prefix) and the test stays green.
+        **HEAD today:** the predicate fails on review, gate, `xml.parse`,
+        `xml.missing-file`, every `design-context.*` literal, and every
+        `health.*` literal except the two exact UI-state guides. It
+        **passes** all five `change.task-*dependency*` codes (family
+        text, not fallback).
+        **Failure conditions:** count pins; only review/gate sampled after
+        the wire so the test goes green before the constructed-code
+        delta; `hasExactSurfaceGuide` reused as the predicate; this
+        predicate treated as proof of P1.2 fix-shape; predicate that
+        matches deleted boilerplate sentences and is green
+        unconditionally.
+      </AC-COVERAGE-NO-BOILERPLATE>
+      <AC-FIX-SHAPE>
+        Fixture-bound membership, closed by identity (not a count this
+        change moves): `change.task-invalid-dependency`,
+        `change.task-unknown-dependency`,
+        `change.task-self-dependency`,
+        `change.task-dependency-cycle`,
+        `change.task-duplicate-dependency`, and
+        `markup.unparsed-link-token`. All five
+        `change.task-*dependency*` codes are required red-to-green
+        members. `markup.unparsed-link-token` is the
+        discrimination anchor, already green at HEAD, and is not
+        a red. For each of those codes, `--explain`
+        remediation and the **emitted issue message** from a
+        fixture that actually fires the code agree on the accepted
+        repair shapes that message names. Binding is
+        shape-agreement, not a substring copy of the message into
+        the test and not a word-hunt for tokens such as
+        "canonical". Proven by the review-replay fixture
+        (VerificationIntent): plant each fixture-bound failure,
+        collect that code's own `issue.message`, run `--explain` /
+        `getLintIssueGuide`, assert the guide's remediation names
+        the same accepted shapes.
+
+        For `change.task-invalid-dependency` those shapes are the three
+        `invalidMessage` already emits: multi-value text list of T-NNN
+        ids (comma, semicolon, or whitespace); Task-element children
+        holding a T-NNN id; self-closing T-NNN anchor children. A guide
+        that is topical ("this is a dependency problem") but names none
+        of those shapes, or that says the token must be canonical when
+        the token already is, fails.
+
+        For the four siblings the token is already a valid T-NNN; the
+        emitted messages name graph repairs, not authoring shapes:
+        unknown target (`depends on unknown task`); self-edge
+        (`cannot depend on itself`); duplicate listing (`repeats
+        dependency`); cycle (`dependency cycle involving`). A guide
+        that copies `invalidMessage`'s three DependsOn shapes onto
+        those codes, or that is merely topical, fails — the token
+        already is canonical.
+
+        **HEAD today (measured on the shipped binary):**
+        `change.task-invalid-dependency` — family title "neo-grace Change
+        Lifecycle Issue"; remediation is keep-drafts-active / move-applied
+        to archive; does not name the three DependsOn shapes; emitted
+        message does. The four siblings share that same HEAD
+        `--explain` body; each emitted message names its graph
+        failure, not archive placement. `markup.unparsed-link-token`
+        — exact guide already names accepted families and
+        `[,;\\s]+`; agrees with `unparsedLinkTokenMessage`; **green
+        at HEAD** (not a red).
+
+        Residual (disclosure, not a NonGoal):
+        `review.scope-outside-write-scope`, `gate.apply.no-verdict`,
+        and `health.required-log-marker-not-found` remain in
+        `AC-COVERAGE-NO-BOILERPLATE`'s constructed-code delta and still
+        get real guides. This bundle asserts the P1.1 wire, not the
+        quality of the review and gate catalogs' own remediation
+        text. Health is not emitted through lint, so a lint fixture
+        cannot plant it; after the wire the review and gate codes
+        are satisfied by catalog-object field equality
+        (`AC-WIRE-CATALOG-GUIDES`) and are not independent
+        fix-shape evidence.
+
+        **Failure conditions:** family lifecycle remediation left in
+        place; "must be canonical" as the only repair; three-shape
+        DependsOn text copied onto a sibling whose token is already
+        valid T-NNN; test greps `issue.message` into the guide or
+        greps isolated words from the message; only
+        `markup.unparsed-link-token` asserted (already green); only
+        `change.task-invalid-dependency` asserted (four siblings
+        left on the family guide); set replaced by a count;
+        fixture omitted so the bind is a catalog-to-catalog
+        comparison.
+      </AC-FIX-SHAPE>
+      <AC-EXPLAIN-POINTER>
+        `formatTextReport` on a `LintResult` that contains error-severity
+        issues includes the exact pointer `(ngrace lint --explain &lt;code&gt;)`
+        once per distinct error `code`. Warning-only codes do not receive
+        a pointer. **HEAD today:** `formatTextReport` never contains
+        `ngrace lint --explain`. The plural-baseline fixture already
+        emits two `assertion.MustNotExist` errors and is a usable
+        repeated-code subject. **Failure conditions:** pointer on warnings;
+        pointer once per issue rather than once per distinct code; pointer
+        only documented in a comment; identifier grep for a helper name
+        instead of asserting the rendered string.
+      </AC-EXPLAIN-POINTER>
+      <AC-POINTER-JSON>
+        On one fixture that has at least one error: the text report
+        contains the pointer; `JSON.stringify` of the same `LintResult`
+        and `ngrace lint --format json` stdout do not contain
+        `ngrace lint --explain`. Both directions are asserted together.
+        **HEAD today:** JSON already lacks the pointer (not evidence);
+        text also lacks it, so the pair fails. **Failure conditions:**
+        JSON-absence asserted alone; pointer stuffed into `LintResult` so
+        JSON grows a new field or string; `--explain` JSON envelope
+        (which must still carry `guide`) confused with lint `--format json`.
+      </AC-POINTER-JSON>
+      <AC-FALLBACK-HONEST>
+        After the wire and the delta, no production branch that
+        `getLintIssueGuide` can still reach claims a dedicated-entry
+        coverage gap. Catalog misses and invented prefix matches, if still
+        classified emittable, use a message that does not say the entry is
+        merely unwritten. **HEAD today:** three branches contain that
+        claim (review, gate, generic emittable). **Failure conditions:**
+        boilerplate left in place because "it is unreachable for registered
+        codes"; message kept and only the review/gate hits rerouted.
+      </AC-FALLBACK-HONEST>
+      <AC-HEAD-RED>
+        Each of `AC-WIRE-CATALOG-GUIDES`, `AC-COVERAGE-UNIVERSE`,
+        `AC-COVERAGE-NO-BOILERPLATE`, `AC-FIX-SHAPE`, `AC-EXPLAIN-POINTER`,
+        `AC-POINTER-JSON`, and `AC-FALLBACK-HONEST` has a red recorded
+        **before** its production edit, in its own tool round trip, with
+        the failing test written first so the fail event's `WriteEvidence`
+        carries it. Never a red backed only by a grep, and never a
+        retrospective red via stash. The coverage test's first fail
+        precedes the P1.1 wire. The fix-shape replay's first fail
+        precedes the five `change.task-*dependency*` exact-guide
+        edits. The pointer tests' first
+        fail precedes the `formatTextReport` edit. Mid-change lint red
+        from this bundle's own `BaselineAssertions` is correct and is not
+        silenced by weakening those assertions. `AC-SUITE-AND-LINT` is
+        excluded: it is already green at HEAD and is a close-time bar, not
+        new behaviour. All five `change.task-*dependency*` codes
+        (`change.task-invalid-dependency`,
+        `change.task-unknown-dependency`,
+        `change.task-self-dependency`,
+        `change.task-dependency-cycle`,
+        `change.task-duplicate-dependency`) are required
+        red-to-green members of `AC-FIX-SHAPE`; each must record
+        red on its own emitted-message bind before its exact-guide
+        edit. `markup.unparsed-link-token` is already green on
+        fix-shape and is the discrimination anchor, not a red; it
+        must not carry `AC-FIX-SHAPE`'s red at all.
+        `AC-FIX-SHAPE` is not satisfiable by
+        `change.task-invalid-dependency` alone — one repaired
+        guide beside four unrepaired ones is the failure this
+        delta exists to close. **HEAD today:** the coverage test
+        does not exist as a `--explain` universe; the pointer does
+        not exist; the catalog objects are not consulted; all five
+        `change.task-*dependency*` codes `--explain` as the
+        lifecycle family guide. **Failure conditions:**
+        a check that passes on pre-change HEAD while claiming to prove the
+        new property; fail and pass attempts recorded in one tool call;
+        `AC-SUITE-AND-LINT` required to be red at HEAD; only
+        `change.task-invalid-dependency` recorded red for
+        `AC-FIX-SHAPE`.
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-LINT>
+        `bun test` green for touched packages; `bun run validate:ci` green
+        (determinism ratchet cardinality only moves if a catch is
+        intentionally added — re-measure, do not drop keys);
+        `bun run ngrace lint --path .` is 0 errors and 0 warnings **at
+        close** (after apply and archive — not claimed mid-change).
+        `ObservedWriteScope` covers every path the deliverable forces,
+        including `src/grace-lint.test.ts`. No edits under `docs/plans/`
+        or `.ngrace/changes/archive/`; no CHANGELOG; no version surfaces.
+        **HEAD today:** lint is 0/0 and `validate:ci` is green — that
+        green is the baseline, not this change's evidence.
+        **Failure conditions:** suite red; lint 0/0 claimed mid-window;
+        ratchet keys dropped; writes outside declared scope; HEAD-green
+        lint cited as proof the pointer or the wire landed.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-LINT-CATALOG />
+      <M-LINT-CORE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/lint/catalog.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/lint/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-lint.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T1): coverage test red on `collectEmittedIssueCodes`
+        before the wire, still red on remaining constructed codes that
+        hit emittable-fallback after the wire, green only after that
+        delta; `getLintIssueGuide` field-equal
+        to review and gate catalog objects; CLI `--explain` for
+        `review.scope-outside-write-scope` prints that catalog title
+        (Changed File Outside ObservedWriteScope) and no dedicated-entry
+        sentence; review-replay fixture plants each fixture-bound
+        `AC-FIX-SHAPE` code (`change.task-invalid-dependency`,
+        `change.task-unknown-dependency`,
+        `change.task-self-dependency`,
+        `change.task-dependency-cycle`,
+        `change.task-duplicate-dependency`,
+        `markup.unparsed-link-token`), captures that code's own
+        emitted message, and asserts `--explain` remediation agrees
+        on the accepted shapes **that message** names —
+        `change.task-invalid-dependency` the three DependsOn
+        shapes, each sibling its own graph repair, markup the
+        already-green families; text lint pointer once per distinct error code on a
+        repeated-code report; JSON lint of the same result has no pointer;
+        fallback text no longer claims a coverage gap; validate:ci green;
+        lint 0/0 **at close** only. Evidence is the suite and the ledger
+        fail/pass pairs, not a command someone reports.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring HEAD `0764686` = `main`, packaged 6.2.0, lint 0/0.**
+        Active changes were empty before this bundle. F33: implementation
+        re-measures counts; criteria do not freeze them.
+      </Assumption>
+      <Assumption>
+        **Catalogs at HEAD (snapshot, not a criterion).** `EXACT_GUIDES`:
+        84 keys. `REVIEW_CATALOG`: 15 codes, 15 with full guide objects, 0
+        with a lint exact guide. `GATE_CATALOG`: 8 codes, 8 with full
+        guide objects. `guideFor` already exists on the review catalog;
+        gates expose `GATE_CATALOG` directly (`guideIssue` already reads
+        it). `isReviewIssueCode` / `isGateIssueCode` are prefix tests
+        (`review.` / `gate.`), not catalog-membership tests.
+      </Assumption>
+      <Assumption>
+        **How codes are constructed (survey).** Lint-family codes are
+        string literals in `issue` / `markupIssue` / `guideIssue` /
+        `pushIssue` / object `{severity, code}` forms across `src/`, plus
+        a small set of dynamic constructors: `` assertion.${kind} ``
+        (`assertions.ts`), `` projection.${kind}.duplicate-route ``
+        (`projections.ts`), and `missingCode` / `duplicateCode` parameters
+        for spec/plan/task section cardinality (`grammar.ts`). Review
+        codes are `makeFinding` literals or exported constants
+        (`ATTEMPT_PAIR_FINDING_CODE`, `WRITE_EVIDENCE_SCOPE_FINDING_CODE`).
+        Gate codes are `guideIssue(code: keyof typeof GATE_CATALOG)` —
+        the gate surface already has a closed registry. `xml.parse` and
+        `xml.missing-file` are object-literal returns in `artifact/xml.ts`
+        (and `xml.parse` is reused as a ledger-read failure in
+        `gates/ledger.ts`). All `design-context.*` codes are literals in
+        `grammar.ts`. All `health.*` codes are literals in
+        `query/health.ts` `pushIssue` calls (ten constructed; two already
+        exact). `PREFIX_GUIDES` includes `xml.generic-` with **zero**
+        production emission sites.
+      </Assumption>
+      <Assumption>
+        **Universe resolved: option 1.** `collectEmittedIssueCodes` in
+        `src/lint/catalog.test.ts` walks production `src/` skipping
+        `lint/catalog.ts`, `gates/catalog.ts`, and `review/catalog.ts`
+        (`:33–36`), plus bound expansions for the dynamic constructors
+        and the two review constants. Independent of guide tables.
+        Residual (stays): a new emission form the regexes do not see is
+        invisible until listed — the F10 class the scanner was born from.
+        `PREFIX_COVERED_LEGACY_CODES` is a frozen allowlist derived from
+        that scanner; using it as the coverage universe would still
+        accept family-prefix seats as success and would not observe
+        the resolution path.
+      </Assumption>
+      <Assumption>
+        **Finding (not this bundle) — option 2.** `xml.*`,
+        `design-context.*`, and remaining `health.*` have no registry;
+        `isEmittableIssueCode` rule 6 matches them by prefix, so
+        "emittable" is not a finite set. Real registries at emission
+        homes, then dropping rule 6, is the honest close of that
+        predicate. **Home: P1.4**, which opens `src/artifact/grammar.ts`
+        anyway (schema reference generated from the grammar). Do not
+        author registries, do not drop rule 6, and do not treat this as
+        still gated.
+      </Assumption>
+      <Assumption>
+        **review.md §4 corpus-priority set (measured, not a criterion
+        count).** §4 items that have a lint/explain code today, and
+        `--explain` at authoring HEAD:
+
+        1. `change.task-invalid-dependency` and its four emitted
+           siblings `change.task-unknown-dependency`,
+           `change.task-self-dependency`,
+           `change.task-dependency-cycle`,
+           `change.task-duplicate-dependency` (review.md §4 item 1
+           dated half-closed note, 2026-08-12; P1.2 worked example;
+           all five on `PREFIX_COVERED_LEGACY_CODES`). The note
+           records that P0.3 fixed the emission side; the
+           explanation side survives; the siblings are named there.
+           Line numbers in the item body are stale and left as
+           written. All five `--explain` at HEAD: title neo-grace
+           Change Lifecycle Issue; remediation keep drafts under
+           `.ngrace/changes/active`; move applied/rejected/cancelled/
+           superseded to archive. Emitted `invalidMessage`
+           (`grammar.ts:2079`, the line the dated note cites) names
+           three DependsOn shapes. The four siblings emit graph
+           failures on already-valid T-NNN tokens (unknown target,
+           self-edge, duplicate listing, cycle). Family guide
+           answers a different question for every one. The five are
+           the closed `change.task-*dependency*` emission family
+           (probed in `grammar.ts`; no sixth constructor). They are
+           the siblings of the corpus's first-listed authoring
+           failure, same `&lt;DependsOn&gt;` surface, same wrong
+           remediation — not a `PREFIX_COVERED_LEGACY_CODES` sweep.
+
+        2. `markup.unparsed-link-token` (§4 item 2's current emission
+           after P0.2). Classification: exact. Remediation already names
+           accepted families and `[,;\\s]+`. Agrees with
+           `unparsedLinkTokenMessage`. Green on fix-shape at HEAD.
+
+        3. `review.scope-outside-write-scope` (§4 item 7). Dedicated-entry
+           boilerplate. After P1.1 the wire copies `REVIEW_CATALOG`
+           (add to ObservedWriteScope or revert). That is the
+           disclosed residual, not an `AC-FIX-SHAPE` claim: this
+           bundle asserts the wire, not the quality of that
+           catalog's own remediation text.
+
+        4. `health.required-log-marker-not-found` (§4.1). Dedicated-entry
+           boilerplate. Health `pushIssue` remediation already says emit
+           the marker from runtime or update the verification entry.
+           Not an `AC-FIX-SHAPE` member: lint does not emit this code.
+
+        5. `gate.apply.no-verdict` (§4 item 10). Dedicated-entry
+           boilerplate. After P1.1 the wire copies `GATE_CATALOG`
+           (record `gate verdict --outcome`). That is the disclosed
+           residual, not an `AC-FIX-SHAPE` claim: this bundle
+           asserts the wire, not the quality of that catalog's own
+           remediation text.
+
+        §4 items 3, 4, 6, 8, 9 have no lint `--explain` code (CLI
+        `invalid-arguments`, cursor recovery, glob matcher, base ref,
+        status `moduleHealthLoadError`). They are not in this set.
+
+        The original corpus DependsOn input (comma-separated T-NNN) is
+        now accepted by P0.3. Each fixture-bound dependency code has
+        its own plant: `change.task-invalid-dependency` a still-invalid
+        token; `change.task-unknown-dependency` a reference to a task
+        that does not exist; `change.task-self-dependency` a self-edge;
+        `change.task-dependency-cycle` a cycle;
+        `change.task-duplicate-dependency` a repeated id. One shared
+        plant does not fire the other four.
+      </Assumption>
+      <Assumption>
+        **Forced CLI-test update.**
+        `src/grace-lint.test.ts` "exits 0 for emittable review codes
+        without claiming drift" requires `Classification:
+        emittable-uncatalogued` (stays true) and `/ngrace review/i` (true
+        today only because of the boilerplate; the real
+        `review.scope-outside-write-scope` guide does not contain that
+        phrase). That file is in the forced write set.
+      </Assumption>
+      <Assumption>
+        **Module ownership.** M-LINT-CATALOG → `src/lint/catalog.ts`;
+        M-LINT-CORE → `src/lint/core.ts`. `src/grace-lint.test.ts`
+        has no `MODULE_CONTRACT` and is ungoverned; it is covered
+        by `ObservedWriteScope` as a path, not by `AffectedAreas`
+        as a module. `src/grace-lint.ts:6` declares
+        `LINKS: M-LINT-CORE`. AffectedAreas stays `M-LINT-CATALOG`
+        + `M-LINT-CORE`. The five `change.task-*dependency*` exact
+        guides and the review-replay fixture live in those
+        modules. The fixture reads emitted
+        lint `message` from a temp project; it does not write
+        `grammar.ts`.
+      </Assumption>
+    </Assumptions>
+  </C-EXPLAIN-COVERAGE>
+</NgraceChangeSpec>

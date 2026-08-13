@@ -10,10 +10,12 @@
 // START_MODULE_MAP
 //   DefectPatternId
 //   IssueCodeClassification
+//   LintIssueGuideResolution
 //   classifyIssueCode
 //   formatLintExplanation
 //   getExactLintIssueGuide
 //   getLintIssueGuide
+//   getLintIssueGuideResolution
 //   isEmittableIssueCode
 //   listAbsenceCatalogCodes
 //   listExactGuideCodes
@@ -21,8 +23,8 @@
 // END_MODULE_MAP
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { ARTIFACT_TAG_PREFIX, skillRef } from "../artifact/types";
-import { isGateIssueCode } from "../gates/catalog";
-import { isReviewIssueCode } from "../review/catalog";
+import { GATE_CATALOG, isGateIssueCode } from "../gates/catalog";
+import { guideFor, isReviewIssueCode } from "../review/catalog";
 import { CONFIG_FILE_NAME } from "./config";
 import type { IssueClass, LintIssue } from "./types";
 
@@ -71,6 +73,16 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     title: "Invalid unverifiedLanguages Config",
     explanation: `\`unverifiedLanguages\` in ${CONFIG_FILE_NAME} must be an array of dot-prefixed file extensions.`,
     remediation: ["Use the form [\".rs\", \".go\"].", "Remove the key to restore default reporting."],
+  },
+  "config.invalid-code-extensions": {
+    title: "Invalid codeExtensions Config",
+    explanation: `\`codeExtensions\` in ${CONFIG_FILE_NAME} must be an array of lowercase file extensions beginning with a dot.`,
+    remediation: ["Use the form [\".ex\", \".exs\"].", "Remove the key to restore default extension coverage."],
+  },
+  "config.invalid-ignored-dirs": {
+    title: "Invalid ignoredDirs Config",
+    explanation: `\`ignoredDirs\` in ${CONFIG_FILE_NAME} must be an array of directory names.`,
+    remediation: ["Use the form [\"vendor\", \"third_party\"].", "Remove the key to lint every directory."],
   },
   "analysis.no-adapter": {
     title: "No Language Adapter For Governed File",
@@ -317,6 +329,164 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     remediation: [
       "Declare ST-* states under the module (ST-DEFAULT, ST-EMPTY, ST-LOADING, ST-ERROR, …).",
       "Cover each declared state in V-M-* Scenario, AccessibilityCheck, or VisualCheck evidence.",
+    ],
+  },
+  "health.missing-verification": {
+    title: "Module Has No Verification Entry",
+    explanation: "A graph module has no V-M-* verification entry, so there is no command, scenario, or marker evidence for that module.",
+    remediation: [
+      `Add V-<module-id> under ${ARTIFACT_DIR}/verification.`,
+      "Link the entry from the module and give it at least one Command and one Scenario.",
+    ],
+  },
+  "health.missing-implementation-files": {
+    title: "Module Has No Implementation Files",
+    explanation: "A graph module has no linked non-test governed files, so it is planned but not implemented.",
+    remediation: [
+      "Implement the module and list runtime files in START_MODULE_CONTRACT LINKS.",
+      "Or remove the unused module from the graph if it is no longer planned.",
+    ],
+  },
+  "health.verification-missing-commands": {
+    title: "Verification Entry Has No Commands",
+    explanation: "A V-M-* entry has no Command evidence, so module health cannot prove the suite ran.",
+    remediation: [
+      `Add Command entries to the V-M-* record in ${ARTIFACT_DIR}/verification.`,
+      "Point at least one command at a test file that exists on disk.",
+    ],
+  },
+  "health.verification-missing-scenarios": {
+    title: "Verification Entry Has No Scenarios",
+    explanation: "A V-M-* entry has no Scenario evidence, so the module has no named behavioural coverage.",
+    remediation: [
+      "Add Scenario entries to the V-M-* record.",
+      "For UI_COMPONENT modules, name each declared ST-* state in a Scenario, AccessibilityCheck, or VisualCheck.",
+    ],
+  },
+  "health.verification-missing-evidence": {
+    title: "Verification Entry Has No Markers Or Traces",
+    explanation: "A V-M-* entry has neither required log markers nor trace assertions, so runtime evidence is untracked.",
+    remediation: [
+      "Add Marker or TraceAssertion entries to the V-M-* record.",
+      "Emit those markers from linked runtime files, or drop the unused requirement.",
+    ],
+  },
+  "health.verification-test-file-missing-on-disk": {
+    title: "Verification Test File Missing On Disk",
+    explanation: "A V-M-* entry names a test file that does not exist at the recorded path.",
+    remediation: [
+      "Create the named test file, or update the V-M-* TestFile path to a file that exists.",
+      "Keep Command text pointing at the same path.",
+    ],
+  },
+  "health.verification-command-does-not-reference-test-file": {
+    title: "Verification Command Misses Its Test File",
+    explanation: "A V-M-* entry names a test file, but no Command clearly targets that file or its directory.",
+    remediation: [
+      "Make at least one Command reference the test file path or its directory.",
+      "Or remove the unused TestFile if the command is the source of truth.",
+    ],
+  },
+  "health.required-log-marker-not-found": {
+    title: "Required Log Marker Not Found",
+    explanation: "A V-M-* entry requires a log marker that is not present in any linked runtime file.",
+    remediation: [
+      "Emit the marker from the module's runtime code, or update the verification entry.",
+      "Do not treat a missing marker as a pass.",
+    ],
+  },
+  "health.required-log-marker-block-not-found": {
+    title: "Required Marker Block Not Found",
+    explanation: "A required marker names a BLOCK_* region, but no linked runtime file exposes that block.",
+    remediation: [
+      "Add the BLOCK_* region to a linked runtime file, or update the marker.",
+      "Keep the block name and the marker spelling synchronized.",
+    ],
+  },
+  "design-context.invalid-root-tag": {
+    title: "Invalid Design Context Root Tag",
+    explanation: "design-context.xml must use root tag NgraceChangeDesignContext.",
+    remediation: [
+      "Replace the root tag with NgraceChangeDesignContext and graceVersion=\"1.0\".",
+      "Do not reuse NgraceChangeSpec, DesignContext, or another artifact root.",
+    ],
+  },
+  "design-context.missing-grace-version": {
+    title: "Design Context Missing graceVersion",
+    explanation: "NgraceChangeDesignContext must declare graceVersion=\"1.0\".",
+    remediation: ["Add graceVersion=\"1.0\" on the root tag."],
+  },
+  "design-context.unsupported-grace-version": {
+    title: "Design Context Unsupported graceVersion",
+    explanation: "NgraceChangeDesignContext declares a graceVersion other than \"1.0\".",
+    remediation: ["Set graceVersion=\"1.0\".", "Do not invent a forward version on this artifact."],
+  },
+  "design-context.forbidden-status": {
+    title: "Design Context Must Not Declare Status",
+    explanation: "NgraceChangeDesignContext must not declare a status attribute; it is not a lifecycle artifact.",
+    remediation: ["Remove the status attribute.", "Keep identity on <Change>C-*</Change> or a C-* wrapper."],
+  },
+  "design-context.forbidden-root-attribute": {
+    title: "Design Context Forbidden Root Attribute",
+    explanation: "NgraceChangeDesignContext only allows the documented root attributes; extra attributes are rejected.",
+    remediation: ["Keep only graceVersion on the root.", "Move other metadata into child elements."],
+  },
+  "design-context.missing-change-id": {
+    title: "Design Context Missing Change Identity",
+    explanation: "NgraceChangeDesignContext must identify its bundle through one direct <Change>C-*</Change> or C-* wrapper.",
+    remediation: [
+      "Add <Change>C-EXAMPLE</Change> or a <C-EXAMPLE> wrapper matching the bundle id.",
+      "Do not leave the artifact anonymous.",
+    ],
+  },
+  "design-context.ambiguous-change-id": {
+    title: "Design Context Ambiguous Change Identity",
+    explanation: "NgraceChangeDesignContext must contain exactly one direct change identity declaration.",
+    remediation: ["Keep a single <Change> or C-* wrapper.", "Remove the extra identity child."],
+  },
+  "design-context.invalid-change-id": {
+    title: "Design Context Invalid Change Identity",
+    explanation: "NgraceChangeDesignContext <Change> must contain a canonical C-* identifier.",
+    remediation: ["Use a C-* id such as C-EXAMPLE.", "Do not put free text in <Change>."],
+  },
+  "design-context.bundle-id-mismatch": {
+    title: "Design Context Bundle Id Mismatch",
+    explanation: "design-context.xml identifies a C-* id that does not match its enclosing change bundle directory.",
+    remediation: [
+      "Set <Change> (or the C-* wrapper) to the bundle directory id.",
+      "Do not copy a design-context.xml from another bundle without rewriting the identity.",
+    ],
+  },
+  "xml.parse": {
+    title: "XML Artifact Failed To Parse",
+    explanation: "An XML artifact could not be parsed: the document is not well-formed, or it has no root element.",
+    remediation: [
+      "Fix the XML syntax (unclosed tags, bad entities, or a missing root).",
+      "Re-run the command that loaded the file after the document parses.",
+    ],
+  },
+  "xml.missing-file": {
+    title: "XML Artifact File Missing",
+    explanation: "A required XML artifact path does not exist on disk.",
+    remediation: [
+      "Create the missing file, or correct the path that pointed at it.",
+      "Do not treat a missing artifact as an empty parse.",
+    ],
+  },
+  "verification.index-invalid-documents-section": {
+    title: "Verification Index Documents Section Invalid",
+    explanation: `${ARTIFACT_TAG_PREFIX}VerificationIndex must contain exactly one direct VerificationDocuments section.`,
+    remediation: [
+      "Keep a single <VerificationDocuments> child on the verification index.",
+      "Move notes or extra lists outside that section.",
+    ],
+  },
+  "verification.invalid-document-wrapper": {
+    title: "Verification Document Wrapper Invalid",
+    explanation: `${ARTIFACT_TAG_PREFIX}VerificationDocument must contain exactly one direct VD-* wrapper.`,
+    remediation: [
+      "Keep exactly one VD-* child as the document wrapper.",
+      "Do not use a GD-* wrapper or more than one VD-* sibling.",
     ],
   },
   "design-system.duplicate-token": {
@@ -589,6 +759,56 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
       "ImplementationPlan children filtered to T-* only (RM-GOVERNED-PATH P0 / C-TOKEN-INTEGRITY T-004 site 10).",
     proposedBy: "confidently-wrong",
   },
+  "change.task-invalid-dependency": {
+    title: "Task DependsOn Token Is Not A Valid T-NNN Reference",
+    explanation:
+      "A DependsOn entry is not a valid task reference. The emitted message names the three "
+      + "accepted authoring shapes; the token is not yet a T-NNN id.",
+    remediation: [
+      "Use a multi-value text list of T-NNN ids (comma, semicolon, or whitespace).",
+      "Or write <Task>T-NNN</Task> children, or self-closing <T-NNN /> anchor children.",
+      "Do not leave free-text tokens such as not-a-task in DependsOn.",
+    ],
+  },
+  "change.task-unknown-dependency": {
+    title: "Task Depends On An Unknown Task",
+    explanation:
+      "A DependsOn token is a valid T-NNN id, but the plan contains no such task. "
+      + "This is a missing target, not an authoring-shape error.",
+    remediation: [
+      "Add the missing task, or change the DependsOn token so it no longer depends on unknown task.",
+      "The token is already a valid T-NNN — do not rewrite it as a list or anchor form.",
+    ],
+  },
+  "change.task-self-dependency": {
+    title: "Task Cannot Depend On Itself",
+    explanation:
+      "A task lists its own id in DependsOn. The token is already a valid T-NNN; the graph edge is the defect.",
+    remediation: [
+      "Remove the self-edge so the task cannot depend on itself.",
+      "The token is already a valid T-NNN — do not rewrite it as a list or anchor form.",
+    ],
+  },
+  "change.task-dependency-cycle": {
+    title: "Task Dependency Cycle",
+    explanation:
+      "The ImplementationPlan task graph contains a cycle. Each token is already a valid T-NNN; "
+      + "the cycle is the defect.",
+    remediation: [
+      "Break the dependency cycle involving the named tasks.",
+      "Keep each token as a valid T-NNN and change only the edges.",
+    ],
+  },
+  "change.task-duplicate-dependency": {
+    title: "Task Repeats A Dependency",
+    explanation:
+      "A DependsOn list names the same valid T-NNN id more than once. The token is already canonical; "
+      + "the repeat is the defect.",
+    remediation: [
+      "Remove the extra listing so DependsOn no longer repeats dependency.",
+      "The token is already a valid T-NNN — do not rewrite it as a list or anchor form.",
+    ],
+  },
   "change.duplicate-clarifications-section": {
     title: "Duplicate Clarifications Section",
     explanation: "A change spec or plan may contain at most one <Clarifications> section.",
@@ -802,6 +1022,21 @@ function toTitleFromCode(code: string) {
 export type IssueCodeClassification = "exact" | "emittable-uncatalogued" | "unknown";
 
 /**
+ * Which `getLintIssueGuide` branch produced the guide. Observed separately from
+ * the guide object so `withLintIssueGuide` and `--explain --format json` cannot
+ * grow a resolution field (they spread / serialize `LintIssueGuide` fields).
+ */
+export type LintIssueGuideResolution =
+  | "exact"
+  | "prefix"
+  | "review-catalog"
+  | "gate-catalog"
+  | "review-unregistered"
+  | "gate-unregistered"
+  | "emittable-fallback"
+  | "unknown";
+
+/**
  * Whether this binary can emit the code.
  *
  * Union rule (A76):
@@ -845,70 +1080,115 @@ export function listExactGuideCodes(): string[] {
   return Object.keys(EXACT_GUIDES).sort();
 }
 
-export function getLintIssueGuide(code: string): LintIssueGuide {
+function resolveLintIssueGuide(code: string): { guide: LintIssueGuide; resolution: LintIssueGuideResolution } {
   const exact = EXACT_GUIDES[code];
   if (exact) {
-    return { code, ...exact };
+    return { guide: { code, ...exact }, resolution: "exact" };
   }
 
   const prefixGuide = PREFIX_GUIDES.find((guide) => code.startsWith(guide.prefix));
   if (prefixGuide) {
-    return { code, ...prefixGuide };
+    return { guide: { code, ...prefixGuide }, resolution: "prefix" };
   }
 
   if (isReviewIssueCode(code)) {
+    const reviewGuide = guideFor(code);
+    if (reviewGuide) {
+      return {
+        guide: {
+          code,
+          title: reviewGuide.title,
+          explanation: reviewGuide.explanation,
+          remediation: reviewGuide.remediation,
+        },
+        resolution: "review-catalog",
+      };
+    }
     return {
-      code,
-      title: toTitleFromCode(code),
-      explanation:
-        `This code is emitted by \`ngrace review\` (${code}) but does not yet have a dedicated `
-        + "lint --explain entry. See the review catalog (src/review/catalog.ts) and the review report message.",
-      remediation: [
-        "Run `ngrace review` for the finding text and deterministic id.",
-        "Do not treat this as a lint-catalogued drift code until an exact entry exists.",
-      ],
+      guide: {
+        code,
+        title: toTitleFromCode(code),
+        explanation:
+          `\`${code}\` is not a registered review finding code. `
+          + "The review surface does not emit this string.",
+        remediation: [
+          "Check the spelling of the code you were given.",
+          "Run `ngrace review` to see codes this binary actually produces.",
+        ],
+      },
+      resolution: "review-unregistered",
     };
   }
 
   if (isGateIssueCode(code)) {
+    const gateGuide = GATE_CATALOG[code];
+    if (gateGuide) {
+      return {
+        guide: {
+          code,
+          title: gateGuide.title,
+          explanation: gateGuide.explanation,
+          remediation: gateGuide.remediation,
+        },
+        resolution: "gate-catalog",
+      };
+    }
     return {
-      code,
-      title: toTitleFromCode(code),
-      explanation:
-        `This code is emitted by \`ngrace gate\` (${code}) but does not yet have a dedicated `
-        + "lint --explain entry. See the gate catalog (src/gates/catalog.ts) and the gate decision output.",
-      remediation: [
-        "Re-run the gate command that produced the code and read its requirements list.",
-        "Do not treat this as a lint-catalogued drift code until an exact entry exists.",
-      ],
+      guide: {
+        code,
+        title: toTitleFromCode(code),
+        explanation:
+          `\`${code}\` is not a registered gate finding code. `
+          + "The gate surface does not emit this string.",
+        remediation: [
+          "Check the spelling of the code you were given.",
+          "Run `ngrace gate` to see codes this binary actually produces.",
+        ],
+      },
+      resolution: "gate-unregistered",
     };
   }
 
   if (isEmittableIssueCode(code)) {
     return {
-      code,
-      title: toTitleFromCode(code),
-      explanation:
-        "This issue code is emitted by the neo-grace CLI but does not yet have a dedicated explanation entry. "
-        + "It does not by itself prove project drift — read the emitting surface's message.",
-      remediation: [
-        "Inspect the issue message and the referenced file from the command that emitted the code.",
-        "Repair the smallest relevant artifact or governed section before re-running that command.",
-      ],
+      guide: {
+        code,
+        title: toTitleFromCode(code),
+        explanation:
+          `This string matches an emittable prefix but is not a constructed code this binary documents. `
+          + `\`${code}\` is not evidence that a dedicated explanation is missing, and it is not evidence of project drift.`,
+        remediation: [
+          "Check the spelling of the code you were given.",
+          "Run `ngrace lint`, `ngrace review`, or `ngrace gate` to see codes this binary actually produces.",
+        ],
+      },
+      resolution: "emittable-fallback",
     };
   }
 
   return {
-    code,
-    title: toTitleFromCode(code),
-    explanation:
-      `Unknown issue code: this binary does not emit \`${code}\`. `
-      + "Nothing was checked for this string — it is not evidence of drift or missing governance.",
-    remediation: [
-      "Check the spelling of the code you were given.",
-      "Run `ngrace lint`, `ngrace review`, or `ngrace gate` to see codes this binary actually produces.",
-    ],
+    guide: {
+      code,
+      title: toTitleFromCode(code),
+      explanation:
+        `Unknown issue code: this binary does not emit \`${code}\`. `
+        + "Nothing was checked for this string — it is not evidence of drift or missing governance.",
+      remediation: [
+        "Check the spelling of the code you were given.",
+        "Run `ngrace lint`, `ngrace review`, or `ngrace gate` to see codes this binary actually produces.",
+      ],
+    },
+    resolution: "unknown",
   };
+}
+
+export function getLintIssueGuide(code: string): LintIssueGuide {
+  return resolveLintIssueGuide(code).guide;
+}
+
+/** Branch that produced the guide. Not a field on the guide object. */
+export function getLintIssueGuideResolution(code: string): LintIssueGuideResolution {
+  return resolveLintIssueGuide(code).resolution;
 }
 
 /**

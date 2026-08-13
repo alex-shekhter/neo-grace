@@ -3271,3 +3271,363 @@ single instance gets weakened by the next one — [F9.3](#f93) was refuted by th
 was written. It is recorded here as binding on this repository now, and promoted to product once a second
 bundle has authored a criterion under it. That is a dependency, not a queue: the promotion is blocked on
 evidence that does not yet exist.
+
+---
+
+### F38 — `<Clarification>` cannot be authored in any legal form; the gate that depends on it is vacuous. **[verified]**
+
+Found by an executor doing the ordinary thing: it needed to record a gated hole in a spec, read the
+grammar's own instruction, and wrote what that instruction told it to write.
+
+**Two rules in one file, mutually exclusive.**
+
+| site | rule |
+|---|---|
+| `src/artifact/grammar.ts:1615` | the error text *instructs* `<Clarification target="IC-*\|INV-*\|AC-*">` |
+| `src/artifact/grammar.ts:1623` | `<Clarification>` **requires** a non-empty `target` attribute |
+| `src/artifact/grammar.ts:1637` | that target **must** be a canonical `IC-*`, `INV-*`, or `AC-*` anchor |
+| `src/artifact/grammar.ts:257–265` | any canonical anchor appearing in **any** attribute value is `artifact.semantic-anchor-attribute` |
+
+Every value satisfying the first three violates the fourth. Probed directly against
+`validateSemanticAnchorDiscipline` on a minimal spec, all three advertised families:
+
+```
+AC-FOO    -> artifact.semantic-anchor-attribute: Semantic anchor 'AC-FOO' appears in attribute 'target' on <Clarification>
+IC-FOO    -> artifact.semantic-anchor-attribute: Semantic anchor 'IC-FOO' appears in attribute 'target' on <Clarification>
+INV-FOO   -> artifact.semantic-anchor-attribute: Semantic anchor 'INV-FOO' appears in attribute 'target' on <Clarification>
+```
+
+There is no authorable Clarification. Not a narrow family gap — the element is dead.
+
+**Why lint is 0/0 and nobody noticed.** Zero instances exist. `C-GATE-SURFACE` specified the feature and
+its spec mentions it only in prose; no bundle in the archive has ever authored one. The element shipped
+and was never exercised.
+
+**Why the test did not catch it.** `src/artifact/grammar.test.ts:692` does run the fully composed
+`validateNgraceProject`, so both validators fire on its fixture. It asserts
+`expect(codes(...)).not.toContain("change.invalid-clarification-target")`. The document is
+*simultaneously* emitting `artifact.semantic-anchor-attribute`, and the test never looks. A negative
+assertion on one code, read as "this shape is valid." This is the [F23](#f23) family — an assertion
+weaker than the value its name implies — and it is the reason to prefer *document is clean* over
+*this code is absent* whenever a test's subject is a shape rather than a specific diagnostic.
+
+**Consequence, and the irony.** D12's approve gate refuses on an unresolved Clarification targeting
+`IC-*` or `INV-*` (`src/gates/core.ts:181–182` reads `node.attributes.target`). No Clarification can
+exist, so the gate can never fire. `C-GATE-SURFACE`'s own `AC-TYPED-CLARIFICATION` reads *"Without this
+AC the approve gate is vacuous."* The AC shipped; the gate is vacuous.
+
+**Footprint of the repair.** `src/artifact/grammar.ts` (shape + validator), `src/gates/core.ts:181–182`
+(the approve-gate reader), and **six** skill/template sites across both trees that teach the broken
+form — measured, not estimated:
+
+```
+skills/ngrace/ngrace-spec/SKILL.md:54,55
+skills/ngrace/ngrace-spec/references/change-spec-template.xml:36
+skills/ngrace/ngrace-plan/SKILL.md:48
+skills/ngrace/ngrace-plan/references/change-plan-template.xml:55
+  … each mirrored under plugins/ngrace/skills/ngrace/
+```
+
+Two of those are `.xml` **templates**, shipped for an agent to copy verbatim. The product distributes a
+spec template and a plan template that cannot lint. `ngrace-plan` rule 16 states the broken form as a
+numbered rule. This is the P1 objective — *"an agent can author a valid artifact without reading the
+TypeScript source"* — failing on the product's own worked example, which is why the repair is not
+complete without the skill and template halves in the same commit.
+
+**Fix direction — child anchor tag, not an attribute exemption.** Exempting `Clarification/@target` is
+the cheap repair and it is the wrong one: it punches a hole in the wall §3.5 principle that makes anchors
+grep-stable tags, for a single element's convenience. The consistent shape already exists everywhere else
+in the product — `<AffectedAreas><M-LINT-CATALOG /></AffectedAreas>` — so a Clarification should carry its
+target the same way, as a self-closing anchor child. That is a grammar change with a gate-side reader
+change, not a validator exemption. Settling it belongs to the bundle, not to this entry.
+
+**Home: P1's grammar bundle, alongside `<OptionalContext>` (P1.9), as [P1.12](./plan.md).** The dependency
+is real rather than a queue: it is the same file, the same class of change (an artifact-shape delta with a
+consumer on the other side), and it must not be interleaved with the `lint --explain` bundle already in
+flight, whose declared write scope stops at `src/lint/*` and whose NonGoals require a re-spec before
+`grammar.ts` is touched.
+
+---
+
+### F39 — Lint reports 118 artifacts clean; 8 of them are not well-formed XML. **[verified]**
+
+Found the same way as [F38](#f38): an executor doing the ordinary thing, reporting a workaround it
+did not have to mention. Authoring `C-EXPLAIN-COVERAGE`'s plan it wrote `--explain` inside the
+`DESIGN` comment block, noticed the artifact still linted clean, removed the `--` sequences anyway
+because they are not well-formed, and said so in one line of its report.
+
+**Measured across the whole artifact tree:**
+
+```
+artifacts scanned: 118        (ngrace lint: "XML artifacts checked: 117, Errors: 0")
+rejected by expat: 8
+  C-FLAG-HONESTY/plan.xml       C-EXECUTION-CONTRACT/plan.xml
+  C-RECOVER-FOLDABLE/plan.xml   C-LEGIBLE-FAILURE/plan.xml
+  C-DECLARED-WRITES/plan.xml    C-REPORT-HONESTY/plan.xml
+  C-CALIBRATION-COMMAND-EVIDENCE/plan.xml
+  C-ESCALATION-HONESTY/plan.xml
+```
+
+Cause is uniform: `--` inside an XML comment. XML 1.0 §2.5 forbids it; `fast-xml-parser` accepts it
+and expat rejects it. The three sites checked are `--name`, `recover --fix`, and `--format only:` —
+CLI flags, in comments, in a repository whose entire subject is a CLI.
+
+**Why this is systemic rather than incidental.** The plan convention in this roadmap is a binding
+`DESIGN` comment block, and the thing being designed is a command-line tool. Every flag is a `--`.
+The collision is guaranteed by the two conventions meeting, and it has already happened in **eight
+of the archive's plans** without one error.
+
+**The defect is the honesty of the report, not data loss.** The product's own parser reads these
+files correctly; nothing is broken today. What is false is the line `XML artifacts checked: 117 /
+Errors: 0`, which claims a validity that was never checked. Any other consumer — `xmllint`, an
+editor, a CI validator, a parser in another language — rejects them. That is [F10](#f10)'s shape at
+the tool level: a name claiming more than the body verifies.
+
+**Open question the repair must settle, recorded because it shapes the bundle.** Adding a
+well-formedness check turns eight **archived** artifacts red, and archived bundles are immutable in
+this repository. So the check cannot simply be switched on: it must be scoped to active bundles, or
+emitted as a warning with the archive grandfathered, or the archive's immutability re-examined.
+Whichever is chosen must be argued rather than assumed — a check that quietly excludes the eight
+files that motivated it would be its own [F28](#f28).
+
+**Home: P1.13**, sequenced with [F38](#f38)'s P1.12. Both are artifact-validity repairs under
+`src/artifact/`, and both must not be interleaved with the `lint --explain` bundle in flight, whose
+declared scope stops at `src/lint/*`.
+
+---
+
+### F40 — `assertion.MustContain` names the file and withholds the text. **[verified]**
+
+Approving `C-EXPLAIN-COVERAGE`'s plan turned lint red, which is correct — `TargetAssertions`
+describe the post-implementation state. The report was this, twice, verbatim:
+
+```
+- [error] assertion.MustContain .../plan.xml — src/lint/catalog.ts must contain requested text.
+- [error] assertion.MustContain .../plan.xml — src/lint/catalog.ts must contain requested text.
+```
+
+Two identical lines. `src/lint/catalog.ts` is the subject of **seven** `MustContain` assertions in
+that plan, and the `detail` field is empty in `--format json` too. Nothing in the output says which
+text was requested, so the executor cannot act on it without reading the plan and bisecting by hand.
+
+`src/artifact/assertions.ts:361` is the whole story:
+
+```ts
+return [assertionIssue(assertion, shouldContain ? `${fileValue} must contain requested text.` : …)];
+```
+
+The requested text is in scope at that line and is not interpolated.
+
+**Why this belongs to P1 and not to general polish.** P1's objective is *"when it gets something
+wrong, learns the fix from the error."* This is the failure in its purest form: the diagnostic
+knows the answer and declines to print it. It is the same class as P0.7 (the apply gate's
+no-verdict diagnostics gained path, count and reason) and `C-LEGIBLE-FAILURE`, on a surface those
+bundles did not reach.
+
+**Related but distinct — the defect the red actually caught.** The two failing assertions name
+`` This code is emitted by `ngrace review` `` with plain backticks, while `catalog.ts:864` holds
+`` This code is emitted by \`ngrace review\` `` — backslash-escaped inside a template literal. The
+assertion subject does not exist as written. The baseline half failed loudly, which is the system
+working. The **target** half is the hazard: `MustNotContain` on that same string is vacuously true
+at HEAD *and at close*, so the boilerplate this bundle exists to delete could survive and the
+assertion would still pass — [F35.1](#f351) exactly. Repaired in the plan before execution by
+binding to byte-accurate, branch-unique, backtick-free substrings (`See the review catalog
+(src/review/catalog.ts)`, `See the gate catalog (src/gates/catalog.ts)`), not by loosening the
+assertion. This is a second instance of [F36](#f36)'s family: an assertion whose subject was never
+pinned to what the file actually contains.
+
+**Home: P1.14**, with [P1.12](#f38) and [P1.13](#f39). Assertion evaluation lives in
+`src/artifact/assertions.ts`, outside `C-EXPLAIN-COVERAGE`'s `AffectedAreas`, whose NonGoals
+require a re-spec before it is touched — a conflict, not a queue.
+
+---
+
+### F41 — F35 was carried into a new context by a word that changed meaning. **[verified]**
+
+`C-EXPLAIN-COVERAGE`'s spec Constraints cite *"F10 / F35 (bind the check to the guide **body**, not
+a resolver identifier)"*. The plan obeyed it literally and built a predicate that searched the
+`--explain` prose for three boilerplate sentences. The same task then deleted those three sentences
+from the product, and the predicate became unconditionally green — a test that cannot fail, in the
+one place P1 step 1 specifies *"so this cannot regress."*
+
+**The principle was right; the transcription equivocated.** In [F35](#f35) *body* meant **function
+body** — the clone helper's third copy was caught by an AST shape match with the binder as a hole,
+precisely because an identifier is a name and the claim was about substance. Carried here, *body*
+was read as **message body**: prose. Prose is a name for behaviour in the same way an identifier is
+a name for a function. F35 forbids binding to either.
+
+The honest analogue of F35's AST shape match is the resolution **path**: which branch of
+`getLintIssueGuide` produced the answer. Verified reachable in both directions —
+`xml.something-unlisted → emittable-fallback`, `totally.made-up → unknown`, against
+`exact` / `prefix` / `review-catalog` / `gate-catalog` for covered codes — via a dedicated
+`getLintIssueGuideResolution` accessor, so `LintIssue` payloads and `--format json` are unchanged.
+
+**Why record it rather than just fix it.** This roadmap already knows that a rule promoted from one
+instance can be refuted by the next ([F9.3](#f93)), which is why [D16](#d16) is deliberately held
+back from skill text. F41 is a different failure of the same family and a worse one: the rule was
+not refuted, it was **restated in a word that had shifted meaning**, and the restatement passed
+three reviews — mine included — because it still sounded like the rule. When a finding is cited in
+a new artifact, the citation must name the *mechanism* it forbids, not reuse its vocabulary.
+
+Repaired in-task: the plan criterion now binds the resolution path and names two probes as its
+discrimination evidence. The spec sentence that caused it is repaired by the consistency sweep that
+follows, not left standing as the contract.
+
+### F42 — A baseline `MustNotContain` needle that documentation may legitimately mention turns prose into a tripwire. **[verified]**
+
+`C-EXPLAIN-COVERAGE`'s plan asserts, as a **baseline**, that `src/lint/catalog.test.ts` must not
+contain `AC-FIX-SHAPE` — the pair whose target half requires it once T-002 lands. During T-001 the
+executor wrote a comment mentioning `AC-FIX-SHAPE` to explain why the five dependency codes were
+deliberately *not* being given exact guides. Lint went from 5 to 6. The comment was reworded.
+
+The assertion behaved exactly as written, and that is the problem. The needle is an **acceptance
+criterion id**, and ids appear in prose — that is what they are for. So the baseline reports
+"T-002 has started" when what actually happened is "someone explained why T-002 has not started."
+The available fix, deleting the explanation, makes the codebase less legible in order to keep a
+state detector honest. That trade is backwards.
+
+**The rule this argues for:** a baseline/target `MustNotContain` needle should be a string only the
+**implementation** can introduce — a symbol the code must define, an exported name, a rendered
+output fragment — never an identifier that comments, docs or commit messages may legitimately cite.
+
+**Not promoted to `ngrace-plan` yet, deliberately.** One worked instance, and [D16](#d16)'s reason
+applies unchanged: this roadmap has shipped a rule from a single instance and had the next task
+refute it. Promote once a second plan trips the same wire. That is a dependency, not a queue.
+
+---
+
+### D17 — An acceptance-criterion id is an evidence anchor, and freezes the moment a run event cites it.
+
+Raised by the executor after [F41](#f41)'s repair: `AC-COVERAGE-NO-BOILERPLATE` no longer describes
+its own predicate. The check stopped hunting boilerplate sentences and now binds the resolution
+path, so the id names the mechanism the criterion was **repaired away from** — F41's own defect,
+sitting in the contract's identifier. The executor was right to raise it, and right not to act.
+
+**Measured before deciding.** The id appears in `spec.xml` (4), `plan.xml` (8), `catalog.test.ts`
+(2) — all editable — **and in two immutable recorded run events**:
+`run/2-T-001-attempt.xml`, whose fail signature is `test:AC-COVERAGE-NO-BOILERPLATE`, and
+`run/4-T-001-escalation.xml`.
+
+Renaming would orphan a citation inside recorded evidence. That is [F37](#f37) exactly: the
+adjudication survives, the ability to *re-derive* it does not, because the subject it names no
+longer resolves. A rename buys an accurate label and pays with an unverifiable attempt pair — and
+the attempt pair is the thing this roadmap spent P0 making trustworthy.
+
+**Decision.** The id is frozen. The criterion **body** carries the mechanism, states plainly that
+the id names the historical one, and the failure conditions name the deleted-sentence hunt as a
+defect. A label is not a contract; the body is.
+
+**The forward rule this yields — the only part that generalizes.** Name an acceptance criterion for
+the **property** it protects, never for the mechanism that happens to implement it. Mechanisms are
+exactly what review replaces; properties are what survive. `AC-COVERAGE-SURFACE-SPECIFIC` would
+have survived this repair unchanged. This applies at authoring time, when the id is still free —
+after the first `cursor attempt`, it is not.
+
+**Promotion held.** Same reason as [D16](#d16): one worked instance. `ngrace-plan` gets it when a
+second bundle names a criterion after a mechanism and pays for it.
+
+---
+
+### F43 — An XML artifact cannot quote XML, so a criterion that binds its own words to an emitted message is unsatisfiable. **[verified]**
+
+`AC-FIX-SHAPE` binds a guide's remediation to the **emitted issue message**. For
+`change.task-invalid-dependency` that message is (`grammar.ts:2079`):
+
+```
+Accepted shapes: multi-value text list of T-NNN ids (comma, semicolon, or whitespace),
+<Task>T-NNN</Task> children, or self-closing <T-NNN /> anchor children.
+```
+
+The spec and plan name those shapes as *"Task-element children holding a T-NNN id"* and
+*"self-closing T-NNN anchor children"* — a **paraphrase**, because the literal text contains
+`<Task>` and `<T-NNN />`, and an unescaped tag in XML prose is parsed as a child element. That
+hazard has already broken this bundle's artifacts once.
+
+So the criterion's own words are not a substring of the thing it binds to. A fixture that took the
+paraphrase as its closed expected-shape list could never go green without editing `grammar.ts`,
+which this bundle forbids. The executor bound to the phrases the message actually emits and
+reported the divergence rather than quietly reinterpreting the criterion.
+
+**The cause is structural, not clumsy authoring.** GRACE artifacts are XML; escaping is mandatory;
+so an artifact quoting a shape is always a *rendering* of it, never the bytes. Any criterion of the
+form "the artifact's text matches the product's text" carries a silent escaping gap.
+
+**Why this recurs, and where.** Every remaining P1 step whose deliverable is a description of XML
+hits it: **P1.4** (schema reference generated from `grammar.ts` — a generated doc is exactly a
+rendering of shapes), **P1.5** (generators emitting skeletons that criteria will want to quote),
+**P1.6** (`--as` reporting on shapes), **P1.12** (the `Clarification` anchor-child form, which is
+itself a tag that cannot be written literally in the artifact teaching it). This is not a
+one-bundle wrinkle.
+
+**The rule.** A criterion may bind an artifact's prose to a product string only where the prose is
+**escape-free**. Where the target contains markup, bind to the *semantic* content — the shape names,
+the separator set, the accepted forms — and assert the literal bytes in the **test**, which is
+TypeScript and has no escaping constraint. State the divergence in the criterion rather than
+letting the paraphrase read as a quotation. Related: [D16](#d16) (a criterion may only bind evidence
+that lives in an artifact) — F43 bounds *what kind* of evidence an artifact can hold at all.
+
+---
+
+### F44 — A criterion that pins a user-visible string but not its position accepts two different products. **[verified]**
+
+`AC-EXPLAIN-POINTER` requires that text lint "includes the exact pointer
+`(ngrace lint --explain <code>)` once per distinct error code". T-003 shipped it as a **footer**
+after the issue list. An inline suffix on each first-occurrence issue line satisfies every word of
+the criterion equally, and is a visibly different product — one adds two lines to a report, the
+other widens every error line.
+
+Raised by the executor after implementing: *"Attachment site is a user-visible choice left open.
+Footer and first-line suffix are both AC-legal and look different."*
+
+**Why it matters more here than it would elsewhere.** P1's objective is that an agent "learns the
+fix from the error." Where a pointer sits determines whether it is read at all — a footer after
+forty issues is not the same affordance as a suffix on the line that failed. The criterion
+carefully pins the exact string (correctly, per [F23](#f23)) and leaves the property that actually
+governs the reading experience unconstrained.
+
+**Kept as shipped.** The footer is defensible: it keeps issue lines diffable and stable for the
+tests that parse them, and it renders once per distinct code, which is what the criterion asks. The
+finding is about the criterion's reach, not the implementation's choice.
+
+**The rule.** When a criterion governs **user-visible output**, pin *where* as well as *what* —
+position, ordering, and repetition. For output nobody reads directly, the string alone is enough.
+Due immediately: **P1.6**'s typed-absence line (*"evaluated N rule classes; M not evaluable"*) is
+exactly this shape, and its whole purpose is that silence must not read as "will pass" — a
+correctly-worded absence line rendered where nobody sees it fails that purpose while satisfying its
+criterion.
+
+---
+
+### F45 — A red-first universal cannot cover a criterion half that is true by construction. **[verified]**
+
+`AC-HEAD-RED` requires that *"each criterion above has a red recorded before its production edit."*
+It already carves out `AC-SUITE-AND-LINT` (green at HEAD, a close-time bar). It does not carve out
+the case that surfaced at close.
+
+`AC-POINTER-JSON` names **two** surfaces: `JSON.stringify` of the `LintResult`, and
+`ngrace lint --format json` stdout. The first had an honest red (event `13` fail → `14` pass,
+`core.test.ts` digest held while `core.ts` moved). The second is true **by construction** —
+`grace-lint.ts` stringifies the result and never calls `formatTextReport`, so no reachable code
+path could ever put the pointer there. T-004 added the missing assertion; it was green the moment
+it was written.
+
+So `AC-HEAD-RED`, read literally, demands a red for a property that can only be reddened by
+**breaking the renderer or stashing** — both forbidden by that same criterion and by the dispatch.
+The criterion is unsatisfiable as written for that half.
+
+**The distinction it lacks.** `AC-HEAD-RED` exists to stop a green that was never red being sold as
+evidence of new work ([F28](#f28)). It does not distinguish *new behaviour* (needs a red; a green
+proves nothing) from *coverage of behaviour already true* (cannot have a red; the assertion's value
+is regression protection, not proof of change). Both are legitimate; only the first can carry a
+red-first pair.
+
+**Disposition: disclosed, not amended.** The spec is approved and the bundle is closing. Amending a
+criterion at close so that it passes is the shape of weakening an assertion to reach green, and
+this roadmap forbids that even when the amendment would be honest. Recorded here and carried into
+the gate verdict note instead.
+
+**The rule.** A criterion that names a surface true by construction must say so at authoring time
+and exempt that half from the red-first universal, exactly as `AC-SUITE-AND-LINT` is exempted.
+Otherwise the universal is falsified by the bundle's own honest execution. Due in **P1.5**, whose
+acceptance test — *"generated output passes lint when committed unmodified"* — is the same shape:
+a generator that works has nothing to redden once written.
