@@ -3392,6 +3392,21 @@ emitted as a warning with the archive grandfathered, or the archive's immutabili
 Whichever is chosen must be argued rather than assumed — a check that quietly excludes the eight
 files that motivated it would be its own [F28](#f28).
 
+#### F39.1 — The set is growing, and knowing the rule does not prevent it. **[verified, 2026-08-13]**
+
+Re-measured after `C-GRAMMAR-SEAM` archived: **9**, not 8. The new offender is that bundle's own
+`plan.xml:391`, `--explain` inside the `DESIGN` comment.
+
+Its executor had **read F39, named it, and stated it was avoiding ASCII `--` in both comments** — and
+still shipped one, because a long design block mentioning a CLI's flags gives the hazard dozens of
+chances and care has to win every time. The bundle is archived and immutable, so the ninth offender
+is permanent.
+
+This changes the repair's shape. The original framing was eight historical files to grandfather. The
+true shape is **one new offender per bundle that discusses CLI flags in a design note** — which, in a
+repository whose product is a CLI, is most of them. A repair that only grandfathers the archive and
+adds no forward check leaves the count climbing.
+
 **Home: P1.13**, sequenced with [F38](#f38)'s P1.12. Both are artifact-validity repairs under
 `src/artifact/`, and both must not be interleaved with the `lint --explain` bundle in flight, whose
 declared scope stops at `src/lint/*`.
