@@ -4429,3 +4429,35 @@ optional section plus a lint code. `C-TEACHING-SURFACE` took the first and grand
 **A rule whose trigger cannot be evaluated is a rule asserted by nothing** — which is the [F46](#f46)
 / [F63](#f63) defect this roadmap keeps paying for. Do not restate the rule in skill text without
 naming what evaluates it.
+
+### F67 — a signature-key naming convention can collide with the repeat budget, and the collision is invisible until three pins share one file. **[verified]**
+
+Raised by the executor at `C-TEACHING-SURFACE`'s plan review, unprompted, as the thing it would still
+push back on after the plan was otherwise sound.
+
+**The mechanism.** House convention names a `signatureKey` after the test file stem, so three repairs
+in `scripts/skill-contracts.test.ts` all want the key `skill-contracts`.
+`FIX_SIGNATURE_REPEAT_BUDGET` is 2 under exact kind-plus-key equality, and the window is **per task**
+— `listWindowFailSignatures(events, task)` (`src/grace-cursor.ts:1666`) filters on `event.task`, then
+narrows to the last resolving resume. So two reds with that key **in one task** trip trigger R and
+pause the task.
+
+This bundle's spec requires three repairs in that one file (the shape-sources pin, the approval
+lexicon, the evidence doctrine). The plan avoided the collision by splitting them across T-001 and
+T-002, which works because the window is per-task. **That is a workaround the spec permits, not a
+rule the spec states** — and it only exists because the criteria happened to be separable. A bundle
+whose three same-file repairs belong to one criterion has no split available, and the only honest
+move is to stop.
+
+**Why it stays invisible.** Neither cap is violated by *design*: three distinct criteria in a task is
+under the distinct budget of 4, and one key per criterion is under the repeat budget of 2. The
+collision is manufactured entirely by the **naming convention**, which maps three different
+properties onto one key. Nothing in the plan review surfaces it, because the plan lists criteria and
+the budget counts keys.
+
+**The rule.** A `signatureKey` names the **property being reddened**, not the file the test lives in.
+When two planned reds in one task would repair the same file, the keys must still differ — key on the
+property (`shape-sources`, `approval-lexicon`, `evidence-doctrine`), not the stem. **Count keys, not
+criteria, and count them per task**, since that is the window the product actually evaluates. See
+[F56](#f56) for the distinct-signature half of the same tension and the [F21 correction](#f21-correction)
+for why the repeat budget survives at all.
