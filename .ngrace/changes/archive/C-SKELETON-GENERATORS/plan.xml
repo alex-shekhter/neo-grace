@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-SKELETON-GENERATORS>
     <IntentSummary>
       Deliver RM-GOVERNED-PATH P1 step 5 only: render spec and

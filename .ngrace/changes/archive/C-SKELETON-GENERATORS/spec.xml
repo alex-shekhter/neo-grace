@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-SKELETON-GENERATORS>
     <Summary>
       Deliver RM-GOVERNED-PATH P1 step 5 only: add spec new, plan
