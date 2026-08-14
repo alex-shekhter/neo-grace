@@ -104,6 +104,47 @@ function runGit(root: string, args: string[]) {
   }
 }
 
+function initGitRepo(root: string) {
+  runGit(root, ["init"]);
+  runGit(root, ["config", "user.email", "grace@example.test"]);
+  runGit(root, ["config", "user.name", "GRACE Test"]);
+  runGit(root, ["config", "commit.gpgsign", "false"]);
+  runGit(root, ["config", "core.hooksPath", "disabled-hooks"]);
+  runGit(root, ["add", "."]);
+  runGit(root, ["commit", "-m", "test: baseline"]);
+}
+
+/** Applied C-ID whose OWS File names the active prefix; dirties the relocated archive suffix and another suffix. */
+function plantArchiveAliasFixture(changeId = "C-ALIAS") {
+  const root = createProject();
+  writeMinimalNgraceProject(root);
+  writeChange(root, changeId, {
+    location: "archive",
+    specStatus: "applied",
+    planStatus: "applied",
+    file: `.ngrace/changes/active/${changeId}/notes.txt`,
+  });
+  initGitRepo(root);
+  writeProjectFile(root, `.ngrace/changes/archive/${changeId}/notes.txt`, "relocated\n");
+  writeProjectFile(root, `.ngrace/changes/archive/${changeId}/other.txt`, "other suffix\n");
+  return collectProjectStatus(root);
+}
+
+/** Applied+applied archive, no active approved bundle, git present, only `src/example.ts` dirty. */
+function plantAppliedOwsDirtySrc(changeId = "C-APPLIED-CREDIT") {
+  const root = createProject();
+  writeMinimalNgraceProject(root);
+  writeChange(root, changeId, {
+    location: "archive",
+    specStatus: "applied",
+    planStatus: "applied",
+    file: "src/example.ts",
+  });
+  initGitRepo(root);
+  writeProjectFile(root, "src/example.ts", "// applied OWS dirty\n");
+  return collectProjectStatus(root);
+}
+
 describe("ngrace status", () => {
   it("summarizes durable neo-grace health and next action", () => {
     const root = createProject();
@@ -262,6 +303,142 @@ describe("ngrace status", () => {
     expect(result.observedDrift.unexplainedFiles).toContain("unplanned.txt");
     expect(result.derivedStates).toContain("explained-observed-drift");
     expect(result.derivedStates).toContain("unexplained-observed-drift");
+  });
+
+  it("puts a porcelain src path covered by an applied archive OWS in explainedFiles, not unexplainedFiles", () => {
+    const result = plantAppliedOwsDirtySrc();
+    expect(result.observedDrift.explainedFiles).toContain("src/example.ts");
+    expect(result.observedDrift.unexplainedFiles).not.toContain("src/example.ts");
+  });
+
+  it("derives explained-observed-drift without unexplained-observed-drift when the only porcelain path matches applied OWS", () => {
+    const result = plantAppliedOwsDirtySrc();
+    expect(result.derivedStates).toContain("explained-observed-drift");
+    expect(result.derivedStates).not.toContain("unexplained-observed-drift");
+  });
+
+  it("does not credit rejected, cancelled, or superseded archive OWS matches", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-REJ", { location: "archive", specStatus: "rejected", planStatus: "rejected", file: "src/example.ts" });
+    writeChange(root, "C-CAN", { location: "archive", specStatus: "cancelled", planStatus: "cancelled", file: "src/example.ts" });
+    writeChange(root, "C-SUP", { location: "archive", specStatus: "superseded", planStatus: "superseded", file: "src/example.ts" });
+    initGitRepo(root);
+    writeProjectFile(root, "src/example.ts", "// rejected-status dirty\n");
+    const drift = collectProjectStatus(root).observedDrift;
+    expect(drift.explainedFiles).not.toContain("src/example.ts");
+    expect(drift.unexplainedFiles).toContain("src/example.ts");
+  });
+
+  it("explains a relocated archive C-ID suffix when the applied OWS names that id's active prefix", () => {
+    const result = plantArchiveAliasFixture();
+    expect(result.observedDrift.explainedFiles).toContain(".ngrace/changes/archive/C-ALIAS/notes.txt");
+    expect(result.observedDrift.unexplainedFiles).not.toContain(".ngrace/changes/archive/C-ALIAS/notes.txt");
+  });
+
+  it("does not explain a different suffix under the same archive C-ID by alias alone", () => {
+    const result = plantArchiveAliasFixture();
+    expect(result.observedDrift.explainedFiles).not.toContain(".ngrace/changes/archive/C-ALIAS/other.txt");
+    expect(result.observedDrift.unexplainedFiles).toContain(".ngrace/changes/archive/C-ALIAS/other.txt");
+  });
+
+  it("prints Explained by approved or applied scopes on the Observed Drift count line", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const result = collectProjectStatus(root);
+    const text = formatStatusText(result);
+    expect(text).toContain(`- Explained by approved or applied scopes: ${result.observedDrift.explainedFiles.length}`);
+    expect(text).not.toContain("Explained by active approved changes");
+  });
+
+  it("keeps schemaVersion 1.0.0 and adds no StatusResult top-level key", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const result = collectProjectStatus(root);
+    expect(result.schemaVersion).toBe("1.0.0");
+    const allowed = new Set([
+      "schemaVersion",
+      "tool",
+      "generatedAt",
+      "root",
+      "projectKind",
+      "summary",
+      "changes",
+      "derivedStates",
+      "integrity",
+      "observedDrift",
+      "nextAction",
+      "migrationGuidance",
+      "modules",
+      "moduleHealthLoadError",
+      "analysisCoverage",
+    ]);
+    expect(Object.keys(result).every((key) => allowed.has(key))).toBe(true);
+  });
+
+  it("prints the approved-or-applied count line when only active credit ran", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-ACTIVE-LABEL", { specStatus: "approved", planStatus: "approved", file: "src/example.ts" });
+    initGitRepo(root);
+    writeProjectFile(root, "src/example.ts", "// active credit dirty\n");
+    const result = collectProjectStatus(root);
+    expect(result.observedDrift.explainedFiles).toContain("src/example.ts");
+    expect(formatStatusText(result)).toContain(`- Explained by approved or applied scopes: ${result.observedDrift.explainedFiles.length}`);
+  });
+
+  it("keeps unexplained nextAction as the refresh sentence and never recommends committing", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-REFRESH", { specStatus: "approved", planStatus: "approved", file: "src/example.ts" });
+    initGitRepo(root);
+    writeProjectFile(root, "unplanned.txt", "unexpected\n");
+    const result = collectProjectStatus(root);
+    expect(result.derivedStates).toContain("unexplained-observed-drift");
+    expect(result.nextAction).toBe(
+      "Use $ngrace-refresh to reconcile unexplained repository changes through a new NgraceChangeSpec and NgraceChangePlan.",
+    );
+    expect(result.nextAction).not.toMatch(/commit/i);
+    expect(readFileSync(path.join(REPO_ROOT, "src/grace-status.ts"), "utf8")).not.toContain("commit");
+  });
+
+  it("does not rewrite a porcelain path under a different archived C-ID", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-ONE", {
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+      file: ".ngrace/changes/active/C-ONE/notes.txt",
+    });
+    initGitRepo(root);
+    writeProjectFile(root, ".ngrace/changes/archive/C-ONE-OTHER/notes.txt", "other id\n");
+    const drift = collectProjectStatus(root).observedDrift;
+    expect(drift.explainedFiles).not.toContain(".ngrace/changes/archive/C-ONE-OTHER/notes.txt");
+    expect(drift.unexplainedFiles).toContain(".ngrace/changes/archive/C-ONE-OTHER/notes.txt");
+  });
+
+  it("does not credit applied DurableScope routes or undeclared archive files", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-OUTSIDE", {
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+      file: "src/example.ts",
+    });
+    initGitRepo(root);
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/graph/main.xml`,
+      `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-EXAMPLE><Summary>Changed main.</Summary></M-EXAMPLE></GD-MAIN></NgraceGraphDocument>`,
+    );
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/archive/C-OUTSIDE/notes.txt`, "undeclared\n");
+    const drift = collectProjectStatus(root).observedDrift;
+    expect(drift.explainedFiles).not.toContain(".ngrace/graph/main.xml");
+    expect(drift.unexplainedFiles).toContain(".ngrace/graph/main.xml");
+    expect(drift.explainedFiles).not.toContain(".ngrace/changes/archive/C-OUTSIDE/notes.txt");
+    expect(drift.unexplainedFiles).toContain(".ngrace/changes/archive/C-OUTSIDE/notes.txt");
   });
 
   it("keeps both source and destination paths for git rename drift", () => {

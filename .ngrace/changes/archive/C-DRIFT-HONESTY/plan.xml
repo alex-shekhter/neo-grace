@@ -1,0 +1,1131 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-DRIFT-HONESTY>
+    <IntentSummary>
+      Credit a porcelain path as
+      explained when it matches an
+      archived applied bundle's
+      ObservedWriteScope via
+      observedWriteScopeContains,
+      plus the archive-location
+      alias of that same change's
+      active prefix. Rejected,
+      cancelled, and superseded
+      grant no credit. The Observed
+      Drift line names approved or
+      applied scopes. Unexplained
+      nextAction stays the refresh
+      sentence and never recommends
+      committing. P2.5 and the
+      process grade are out.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-DRIFT-HONESTY/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-DRIFT-HONESTY/plan.xml</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>export function collectProjectStatus</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>export function formatStatusText</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>function chooseNextAction</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>function collectObservedDrift</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>function activeScopeExplainsFile</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>function parsePorcelainV1ZPaths</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>collectActiveChangeScopes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>observedWriteScopeContains</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>skillRef("refresh")</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>listLooseEvents</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>listRunOrphans</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>export function collectActiveChangeScopes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>export function observedWriteScopeContains</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>function extractObservedWriteScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>AC-MEMBERSHIP-ONE-DEFINITION</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.test.ts</File>
+        <Text>characterizes observedWriteScopeContains as the file matcher</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-status.ts</File>
+        <Text>commit</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-status.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-status.ts</File>
+        <Text>mkdirSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>collectAppliedChangeScopes</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>export function collectProjectStatus</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>export function formatStatusText</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>function chooseNextAction</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>function collectObservedDrift</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>function activeScopeExplainsFile</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>function parsePorcelainV1ZPaths</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>collectActiveChangeScopes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>collectAppliedChangeScopes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>observedWriteScopeContains</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>skillRef("refresh")</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>listLooseEvents</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>listRunOrphans</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>export function collectActiveChangeScopes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>export function collectAppliedChangeScopes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>export function observedWriteScopeContains</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>function extractObservedWriteScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>AC-MEMBERSHIP-ONE-DEFINITION</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.test.ts</File>
+        <Text>characterizes observedWriteScopeContains as the file matcher</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-status.ts</File>
+        <Text>commit</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-status.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-status.ts</File>
+        <Text>mkdirSync</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/grace-status.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/scope.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-STATUS />
+        <M-GRAMMAR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-STATUS />
+        <V-M-GRAMMAR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-status.ts</File>
+      <File>src/grace-status.test.ts</File>
+      <File>src/artifact/scope.ts</File>
+      <File>src/artifact/scope.test.ts</File>
+      <File>.ngrace/changes/active/C-DRIFT-HONESTY/spec.xml</File>
+      <File>.ngrace/changes/active/C-DRIFT-HONESTY/plan.xml</File>
+      <File>.ngrace/changes/active/C-DRIFT-HONESTY/run.xml</File>
+      <File>.ngrace/changes/active/C-DRIFT-HONESTY/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-DRIFT-HONESTY/run/**</Glob>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: 028a4e2 (branch
+      feat/drift-honesty). Preflight:
+      ngrace lint path . assertions current
+      is 0/0. Spec is approved and
+      immutable. Do not amend it. If
+      execute shows the spec is wrong,
+      stop and report.
+
+      Ceremony tier T2. Stop and re-spec
+      rather than touching
+      src/review, src/gates,
+      src/grace-cursor.ts,
+      src/query/health.ts,
+      src/test-support/token-accounting.ts,
+      README.md, examples/, skills/,
+      plugins/, docs/plans,
+      .ngrace/changes/archive, CHANGELOG.md,
+      or any version surface. Packaged
+      version stays 6.2.0. No product
+      version bump. F50: this plan does
+      not instruct its own
+      ObservedWriteScope amendment; cursor
+      companions are listed at authoring.
+      F33: re-measure every count at
+      execute. Do not pin suite totals,
+      archive counts, xml artifact counts,
+      or any line number this change
+      moves. F61: name exported
+      functions and argv tokens in this
+      comment; leave dashed forms to
+      *.test.ts. F42: plan assertions bind
+      to exported names, function names,
+      and issue codes, never to AC ids
+      or the Observed Drift sentence as
+      a free needle. F74: cite
+      cross-plan decisions as PLAN-ID Dn.
+
+      Measured at authoring, not inherited.
+      collectObservedDrift explains a path
+      only through activeScopeExplainsFile
+      against collectActiveChangeScopes
+      filtered to spec and plan both
+      approved. collectActiveChangeScopes
+      reads active/ only and drops any
+      bundle whose status is not draft
+      or approved. extractObservedWriteScope
+      is unexported. observedWriteScopeContains
+      is already the P2.1 matcher.
+      parsePorcelainV1ZPaths already
+      POSIX-normalizes (backslash to
+      slash, strip leading ./, drop
+      absolute and parent traversal).
+      formatStatusText prints Explained
+      by active approved changes on the
+      Observed Drift count line. That
+      sentence is unpinned by any test.
+      chooseNextAction unexplained branch
+      is skillRef("refresh") and the
+      file contains commit zero times.
+      Git unavailable still yields
+      available false and empty lists.
+      Existing status fixtures already
+      plant applied archives via
+      writeChange location archive, with
+      default File src/example.ts, but
+      those cases do not init git, so
+      observedDrift.available is false
+      and they do not flip when credit
+      lands. scope.test.ts writeChange
+      helper writes active/ only.
+
+      ════════════════════════════════════
+      D0. Tasks, reds, F68, F80
+      ════════════════════════════════════
+      | Task | work | Satisfies | planned
+        kind+key pairs |
+      | T-001 | applied reader;
+          credit via
+          observedWriteScopeContains
+          only; bound pins
+        | AC-APPLIED-CREDIT,
+          AC-CREDIT-BOUND
+        | test:applied-credit |
+      | T-002 | archive alias for
+          that C-ID only
+        | AC-ARCHIVE-ALIAS
+        | test:archive-alias |
+      | T-003 | Observed Drift line;
+          nextAction pin
+        | AC-LABEL-TEXT,
+          AC-NEXT-ACTION
+        | test:label-text |
+      | T-004 | dogfood close
+        | AC-HEAD-RED,
+          AC-SUITE-AND-CI
+        | none planned |
+
+      Sequential: T-002's alias red is
+      only independently observable
+      after T-001 lands credit without
+      an alias. T-003 edits the same
+      src/grace-status.ts as T-001 and
+      T-002. T-004 DependsOn T-003.
+      One open epoch.
+
+      Signature keys the executor must
+      record (kind test):
+        T-001  test:applied-credit
+        T-002  test:archive-alias
+        T-003  test:label-text
+
+      Per-task distinct pairs: T-001 1,
+      T-002 1, T-003 1, T-004 0. No key
+      repeats inside a task. No task
+      has more than one planned red.
+
+      F75: red event counts live only
+      in AC-HEAD-RED. Other sections
+      state independent observability,
+      not event counts.
+
+      F45, named at authoring, not reddened:
+      AC-NEXT-ACTION (refresh sentence
+      already exact; commit already
+      absent); AC-CREDIT-BOUND (no
+      applied reader means no
+      over-credit; pin as regression
+      after the reader exists);
+      AC-SUITE-AND-CI (green at HEAD;
+      task-observable suite bar);
+      nextAction leaving refresh when
+      credit empties unexplained (true
+      by construction of
+      chooseNextAction);
+      AC-MEMBERSHIP-ONE-DEFINITION
+      pin; writeFileSync inventory;
+      observedWriteScopeContains
+      characterization; README.md
+      staying out; examples/ staying
+      out; package.json version
+      unchanged; token-accounting.ts
+      unopened; collectActiveChangeScopes
+      unmoved; review and gates
+      unopened; evaluate and review
+      unmoved.
+
+      F68 / F80 on T-001.
+      test:applied-credit is one
+      applied+applied archive whose
+      OWS File is a src path, no
+      active approved bundle, git
+      present, that src path dirty.
+      Separate it() cases so each
+      failure prints (F80):
+      (1) collectProjectStatus puts
+      that path in explainedFiles
+      and not in unexplainedFiles;
+      (2) derivedStates includes
+      explained-observed-drift and,
+      when that is the only porcelain
+      path, does not include
+      unexplained-observed-drift.
+      Do not read formatStatusText
+      in these tests. Do not use an
+      archive/ porcelain path as this
+      red. Do not import
+      collectAppliedChangeScopes as
+      a missing export (F68 on
+      exports). HEAD fails because
+      applied archives are not read.
+      (2) is computed from explained
+      list length by existing
+      collectProjectStatus derivation,
+      so it cannot fail alone after
+      (1) passes; it is the same
+      property, not a second red.
+      Record one fail, signature
+      kind test key applied-credit.
+
+      Why T-002 is a later task.
+      At pre-reader HEAD, an
+      archive/C-ID/rest porcelain
+      path is unexplained for the
+      same reason as T-001: no
+      applied reader. Recording
+      archive-alias then would
+      fail naming applied-credit's
+      reason (F68). After T-001,
+      a src OWS match is explained
+      and an active/ to archive/
+      relocated suffix is still
+      unexplained. That is the
+      alias-specific red.
+
+      F68 / F80 on T-002.
+      test:archive-alias plants
+      applied C-ID whose OWS File
+      names .ngrace/changes/active/C-ID/rest
+      and dirties the relocated
+      .ngrace/changes/archive/C-ID/rest.
+      It asserts that archive path
+      is explained. A separate it()
+      asserts a different suffix
+      under that archive directory
+      is not explained by the alias
+      alone. It does not assert the
+      Observed Drift sentence and
+      does not use path.sep at the
+      test comparison. HEAD after
+      T-001 fails because exact OWS
+      match looks at the active/
+      spelling. A prefix rule that
+      credits the whole archive
+      directory would pass the
+      relocated suffix and fail the
+      other-suffix it(). Credit
+      without a rewrite passes
+      T-001 and fails this red.
+
+      F68 / F80 on T-003.
+      test:label-text reads
+      formatStatusText of any
+      StatusResult (no-git empty
+      drift is enough) and asserts
+      the Observed Drift count line
+      is exactly the new sentence
+      plus the explainedFiles
+      length (F44: pin where it
+      appears). It does not read
+      explainedFiles membership
+      as the red. The old sentence
+      is absent from the whole
+      text. HEAD fails: the old
+      count line is the one
+      printed. A membership-only
+      change leaves that line in
+      place and fails this red.
+      schemaVersion 1.0.0 and no
+      new StatusResult top-level
+      key are already true (F45);
+      characterise them after
+      production, do not record
+      them as this red.
+
+      ════════════════════════════════════
+      D1. Applied reader and credit (T-001)
+      ════════════════════════════════════
+      Export collectAppliedChangeScopes
+      from src/artifact/scope.ts beside
+      collectActiveChangeScopes. It
+      reads archive/ only. A bundle
+      enters only when spec status is
+      applied and plan status is
+      applied. Reuse
+      extractObservedWriteScope; do
+      not fork a second File/Glob
+      walker; do not export it.
+      Return AppliedChangeScope:
+      changeId, bundlePath, specStatus,
+      planStatus, observedWrites,
+      issues. Do not return durable.
+      Do not return ActiveChangeScope
+      with an empty durable. Rejected,
+      cancelled, and superseded never
+      enter. Applied-in-active is not
+      read here (collectActiveChangeScopes
+      already drops it). No apply
+      Decision requirement. No time
+      window. Update MODULE_MAP for
+      the new export and type.
+
+      collectActiveChangeScopes stays
+      active-only. Do not change its
+      membership filter. Do not
+      change observedWriteScopeContains
+      or parseScopeGlob.
+
+      collectProjectStatus calls the
+      applied reader. collectObservedDrift
+      explains a porcelain path when
+      either (1) an active approved
+      scope explains it exactly as
+      today (activeScopeExplainsFile
+      unchanged), or (2) an applied
+      scope's observedWrites satisfies
+      observedWriteScopeContains on
+      that path. Do not implement the
+      alias in this task. Do not pass
+      applied scopes through
+      activeScopeExplainsFile. Git
+      unavailable still yields
+      available false and empty lists
+      before any credit runs.
+
+      After production, add
+      credit-rejected and
+      credit-outside pins in
+      src/grace-status.test.ts (F45,
+      not a fail event):
+      rejected, cancelled, and
+      superseded archives with a
+      matching OWS stay unexplained;
+      a graph or verification file
+      an applied DurableScope would
+      have routed stays unexplained;
+      a file under archive/C-ID/
+      that no File or Glob covers
+      stays unexplained. Reader
+      membership tests in
+      src/artifact/scope.test.ts
+      are pass-side
+      characterization, not a
+      planned red. Keep
+      AC-MEMBERSHIP-ONE-DEFINITION.
+      Do not edit the
+      observedWriteScopeContains
+      characterization.
+
+      ════════════════════════════════════
+      D2. Archive alias (T-002)
+      ════════════════════════════════════
+      Unexported helper in
+      src/grace-status.ts. For one
+      applied C-ID, if the porcelain
+      path starts with
+      .ngrace/changes/archive/C-ID/
+      (POSIX slashes, trailing slash
+      required so C-ID is not a
+      prefix of C-ID-OTHER), rewrite
+      that prefix to
+      .ngrace/changes/active/C-ID/
+      and call
+      observedWriteScopeContains on
+      the rewritten path against that
+      same bundle's OWS. No other
+      rewrite. Do not invent a glob.
+      Do not rewrite the stored OWS.
+      Do not credit
+      archive/C-ID as a directory
+      prefix. Do not credit a suffix
+      the OWS does not cover. Do not
+      call activeScopeExplainsFile.
+
+      F73. Porcelain lists are already
+      POSIX at parsePorcelainV1ZPaths.
+      The alias helper also uses
+      POSIX literals (ARTIFACT_DIR
+      plus slash, never path.sep).
+      Tests compare the already
+      normalized project-relative
+      lists with slash-joined
+      literals. Do not normalize at
+      the test comparison. Local
+      gates cannot observe a Windows
+      separator. State in the close
+      verdict that CI is the only
+      observer of separators.
+
+      ════════════════════════════════════
+      D3. Label and nextAction (T-003)
+      ════════════════════════════════════
+      Exact sentence, pinned (F44),
+      asserted as literal bytes in
+      tests, not in plan MustContain:
+      Explained by approved or
+      applied scopes
+
+      It replaces the Observed Drift
+      count line in formatStatusText
+      even when only active credit
+      ran, so the line does not lie.
+      The old sentence is absent.
+      No new StatusResult top-level
+      key. schemaVersion stays 1.0.0.
+      chooseNextAction unexplained
+      branch stays the refresh
+      sentence and still does not
+      contain commit.
+      approved-contract-drift stays
+      Hard stop. Do not add ratify.
+      Do not add a commit
+      recommendation.
+
+      ════════════════════════════════════
+      D4. ObservedWriteScope
+      ════════════════════════════════════
+      Forced by the spec (F27.2, F64)
+      as File entries, plus this
+      bundle's run/** Glob. Cursor
+      companions are listed so OWS
+      is complete at authoring (F50).
+
+      Listed as permission (this run
+      may not write them):
+      spec.xml (approved, immutable).
+
+      Deliberately excluded (stop and
+      re-spec): src/review,
+      src/gates, src/grace-cursor.ts,
+      src/grace-cursor.test.ts
+      (writeFileSync inventory stays
+      by non-edit; status must not
+      grow a write),
+      src/query/health.ts,
+      src/test-support/token-accounting.ts,
+      README.md, examples/, skills/,
+      plugins/, docs/plans, archive,
+      CHANGELOG.md, version surfaces,
+      a new review or lint finding
+      code, a new StatusResult key.
+
+      AC-SUITE-AND-CI is the
+      task-observable suite bar.
+      Post-archive lint 0/0 is
+      close-verdict evidence, not
+      an AC-* (F82). This plan does
+      not author AC-SUITE-AND-LINT
+      and does not Satisfies-link
+      lint-after-archive to any
+      task. Mid-change
+      BaselineAssertions stay
+      intact. Never weaken a
+      BaselineAssertion to move a
+      lint count.
+
+      ════════════════════════════════════
+      D5. Execution discipline
+      ════════════════════════════════════
+      One open epoch. Each planned red
+      is its own tool round trip: write
+      the failing test first, record
+      cursor attempt outcome fail with
+      the signature named in D0, then
+      land production in a later round
+      trip, then record pass. Never
+      fail and pass in one call. Never
+      a retrospective red via stash.
+      Never a red backed only by a
+      shell grep.
+
+      T-001: fail applied-credit, then
+      production (reader plus credit,
+      no alias), then pass, then
+      bound and membership pins.
+      T-002: fail archive-alias, then
+      production (alias helper), then
+      pass.
+      T-003: fail label-text, then
+      production (count line), then
+      pass, then nextAction
+      characterization.
+      T-004: no planned red; suite
+      listed in TargetAssertions;
+      lint 0/0 claimed at close only,
+      after apply and archive.
+
+      Newly visible applied credit
+      is named in the conventional
+      commit body (RM-GOVERNED-PATH
+      D5.5), not in CHANGELOG.md.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Credit porcelain paths covered by applied OWS</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-APPLIED-CREDIT />
+          <AC-CREDIT-BOUND />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (applied-credit): before
+            any scope.ts or grace-status.ts
+            production edit, in its own
+            tool round trip, add bun
+            tests in src/grace-status.test.ts
+            that plant an archived bundle
+            with spec and plan both
+            applied, OWS File a src path,
+            no active approved bundle,
+            git present, that src path
+            dirty. Separate it() cases
+            so each failure prints (F80):
+            collectProjectStatus puts
+            that path in explainedFiles
+            and not in unexplainedFiles;
+            derivedStates includes
+            explained-observed-drift
+            and, when that is the only
+            porcelain path, does not
+            include unexplained-observed-drift.
+            Do not read formatStatusText.
+            Do not use an archive/ path
+            as this red. Do not import
+            collectAppliedChangeScopes
+            as a missing export. HEAD
+            today: applied archives are
+            not read; the path is
+            unexplained. Record cursor
+            attempt outcome fail,
+            signature kind test key
+            applied-credit. Do not land
+            production in this round
+            trip. Never a red backed
+            only by a shell grep; never
+            fail and pass in one tool
+            call; never a retrospective
+            red via stash. Failure
+            conditions: this round trip
+            also lands production; this
+            fail recorded from a
+            whole-file run that also
+            names archive-alias or
+            label-text; selling active
+            approved credit as this red;
+            selling derived-state as a
+            second fail event (same
+            property, existing list-length
+            derivation).
+          </Criterion>
+          <Criterion>
+            Characterization (same task;
+            not a planned red; already
+            true at HEAD or true after
+            production): after the
+            reader exists, rejected,
+            cancelled, and superseded
+            archives with a matching
+            OWS stay unexplained
+            (credit-rejected); a graph
+            or verification file an
+            applied DurableScope would
+            have routed stays
+            unexplained; a file under
+            archive/C-ID/ that no File
+            or Glob covers stays
+            unexplained (credit-outside);
+            collectAppliedChangeScopes
+            returns only applied+applied
+            archive bundles, reuses
+            extractObservedWriteScope
+            results, and has no durable
+            field; collectActiveChangeScopes
+            still returns draft and
+            approved active bundles
+            only; git unavailable still
+            yields available false and
+            empty lists; evaluate and
+            review are unmoved;
+            AC-MEMBERSHIP-ONE-DEFINITION
+            still holds; the
+            observedWriteScopeContains
+            characterization is unmoved.
+            Do not record a fail for
+            these.
+          </Criterion>
+          <Criterion>
+            Production (own tool round
+            trip after the red): export
+            collectAppliedChangeScopes
+            and AppliedChangeScope from
+            src/artifact/scope.ts per
+            D1; update MODULE_MAP;
+            collectProjectStatus calls
+            the reader; collectObservedDrift
+            unions applied credit via
+            observedWriteScopeContains
+            only; do not implement the
+            alias; do not pass applied
+            scopes through
+            activeScopeExplainsFile;
+            do not change
+            collectActiveChangeScopes
+            membership; do not change
+            observedWriteScopeContains
+            or parseScopeGlob; do not
+            export extractObservedWriteScope;
+            do not add writeFileSync or
+            mkdirSync to grace-status.ts;
+            do not edit src/review,
+            src/gates, or
+            src/grace-cursor.ts; do not
+            add a StatusResult
+            top-level key; do not add
+            a review or lint finding
+            code. Failure conditions:
+            routing applied scopes
+            through activeScopeExplainsFile;
+            returning durable on the
+            applied record; reading
+            active/ for applied credit;
+            crediting rejected,
+            cancelled, or superseded;
+            requiring an apply
+            Decision; implementing the
+            alias in this task;
+            opening token-accounting.ts
+            or README.md.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-status.test.ts</Command>
+          <Command>bun test src/artifact/scope.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Alias archive C-ID suffix to that id's active prefix</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-ARCHIVE-ALIAS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (archive-alias):
+            before any alias helper or
+            collectObservedDrift rewrite,
+            in its own tool round trip
+            after T-001 production, add
+            bun tests that plant applied
+            C-ID whose OWS File names
+            .ngrace/changes/active/C-ID/rest
+            and dirty
+            .ngrace/changes/archive/C-ID/rest.
+            Separate it() cases so each
+            failure prints (F80): that
+            archive path is explained;
+            a different suffix under
+            that archive directory is
+            not explained by the alias
+            alone. Use POSIX
+            project-relative literals
+            (F73). Do not use path.sep
+            at the test comparison.
+            Do not assert the Observed
+            Drift sentence. Record fail
+            with a filter that does not
+            run the applied-credit it().
+            Signature kind test key
+            archive-alias. After T-001:
+            exact OWS match looks at
+            the active/ spelling, so
+            the relocated path stays
+            unexplained. Do not land
+            production in this round
+            trip. Failure conditions:
+            this round trip also lands
+            production; this fail
+            recorded from a run that
+            still names applied-credit;
+            recording this red against
+            pre-reader HEAD (that fail
+            names T-001's reason);
+            asserting only that some
+            archive/ path is explained
+            (a prefix rule would pass);
+            normalizing separators at
+            the test instead of the
+            helper.
+          </Criterion>
+          <Criterion>
+            Characterization (same task;
+            not a planned red): a
+            porcelain path under a
+            different C-ID is not
+            rewritten by this alias;
+            credit-rejected and
+            credit-outside pins from
+            T-001 stay green; a wide
+            approved Glob is not
+            narrowed; parsePorcelainV1ZPaths
+            still POSIX-normalizes
+            porcelain. Do not record
+            a fail for these.
+          </Criterion>
+          <Criterion>
+            Production (own tool round
+            trip after the red): add
+            the unexported POSIX alias
+            helper in src/grace-status.ts
+            per D2 and consult it from
+            collectObservedDrift after
+            the exact OWS match; do
+            not invent a glob; do not
+            rewrite stored OWS; do not
+            credit archive/C-ID as a
+            directory prefix; do not
+            call activeScopeExplainsFile;
+            do not edit scope.ts matcher
+            functions; do not add a
+            StatusResult key. Failure
+            conditions: prefix credit
+            of the archive directory;
+            rewriting a path that is
+            not this C-ID; using
+            path.sep in the helper;
+            routing through
+            activeScopeExplainsFile;
+            narrowing a wide Glob.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-status.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Print approved or applied scopes on the Observed Drift line</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-LABEL-TEXT />
+          <AC-NEXT-ACTION />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (label-text):
+            before any formatStatusText
+            production edit, in its own
+            tool round trip, add a bun
+            test that calls
+            formatStatusText on a
+            StatusResult (no-git empty
+            drift is enough) and asserts
+            the Observed Drift count
+            line is exactly the pinned
+            sentence plus the
+            explainedFiles length
+            (F44; literal bytes in the
+            test, not a MustContain).
+            The old sentence is absent
+            from the whole text. Do not
+            read explainedFiles
+            membership as this red
+            (F68, F80). Do not use
+            schemaVersion or Object.keys
+            as this red (already true).
+            Record fail, signature kind
+            test key label-text. HEAD
+            today: the old count line
+            is the one printed. Do not
+            land production in this
+            round trip. Failure
+            conditions: this round trip
+            also lands production; this
+            fail recorded from a run
+            that also names
+            applied-credit or
+            archive-alias; asserting
+            only that the new sentence
+            appears somewhere; JSON
+            membership sold as this red.
+          </Criterion>
+          <Criterion>
+            Characterization (same task;
+            not a planned red; already
+            true at HEAD or true after
+            production): schemaVersion
+            stays 1.0.0; Object.keys of
+            StatusResult gain no new
+            top-level name; the new
+            count line also prints when
+            only active credit ran;
+            when unexplained-observed-drift
+            is present, nextAction is
+            exactly Use $ngrace-refresh
+            to reconcile unexplained
+            repository changes through
+            a new NgraceChangeSpec and
+            NgraceChangePlan and does
+            not contain commit;
+            approved-contract-drift
+            still produces the Hard
+            stop sentence; chooseNextAction
+            still has no commit branch.
+            Do not record a fail for
+            these.
+          </Criterion>
+          <Criterion>
+            Production (own tool round
+            trip after the red): put
+            the pinned sentence on the
+            Observed Drift count line
+            in formatStatusText; do not
+            change chooseNextAction;
+            do not add a StatusResult
+            key; do not edit README.md,
+            CHANGELOG.md, or examples/;
+            do not add ratify; do not
+            recommend commit. Failure
+            conditions: leaving the old
+            sentence in place; printing
+            the new sentence only
+            outside the Observed Drift
+            block; a new top-level JSON
+            key; changing the refresh
+            sentence; applying
+            never-commit to
+            approved-contract-drift.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-status.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Close suite, pins, and CI</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-HEAD-RED />
+          <AC-SUITE-AND-CI />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED ownership: do not
+            record a new red. Confirm
+            the three planned fail/pass
+            pairs exist under
+            test:applied-credit,
+            test:archive-alias, and
+            test:label-text, and that
+            no F45 exemption was
+            reddened. Do not re-record
+            T-001 through T-003. Do
+            not stash a retrospective
+            red. Close verdict states
+            that CI is the only
+            observer of path
+            separators (F73). Close
+            verdict quotes lint 0/0
+            after apply and archive
+            (RM-GOVERNED-PATH D16). That
+            0/0 is not an AC-* and is
+            not Satisfies-linked.
+          </Criterion>
+          <Criterion>
+            bun test green for status
+            and scope, and any other
+            test this deliverable
+            forced; bun run validate:ci
+            green (re-measure ratchet
+            cardinality; do not drop
+            keys). ObservedWriteScope
+            covers every path the
+            deliverable forced. No
+            docs/plans or archive
+            edits. No CHANGELOG. No
+            version surfaces. README.md
+            untouched. examples/
+            untouched. token-accounting.ts
+            unopened. collectActiveChangeScopes
+            unmoved. writeFileSync
+            inventory unmoved.
+            AC-MEMBERSHIP-ONE-DEFINITION
+            unmoved. observedWriteScopeContains
+            characterization unmoved.
+            Failure conditions: suite
+            red; Satisfies-linking
+            post-archive lint to this
+            task; writes outside
+            declared scope; pin deleted
+            or loosened; a new review
+            or lint finding code;
+            status grew a write.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-status.test.ts</Command>
+          <Command>bun test src/artifact/scope.test.ts</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-DRIFT-HONESTY>
+</NgraceChangePlan>

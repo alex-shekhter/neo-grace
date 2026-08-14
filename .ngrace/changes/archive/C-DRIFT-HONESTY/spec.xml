@@ -1,0 +1,1508 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-DRIFT-HONESTY>
+    <Summary>
+      P2.4 and P2.6 only:
+      status credits a porcelain
+      path as explained when it
+      matches an archived
+      applied bundle's
+      ObservedWriteScope via
+      observedWriteScopeContains,
+      plus the archive-location
+      alias of that same
+      change's active prefix;
+      rejected, cancelled, and
+      superseded grant no
+      credit. Unexplained
+      nextAction stays the
+      refresh sentence and
+      never recommends
+      committing. P2.5 and the
+      process grade are out.
+    </Summary>
+    <Problem>
+      **Shared shape.** P2 of
+      RM-GOVERNED-PATH is one
+      glob language and one
+      audit universe.
+      C-ONE-GLOB-LANGUAGE
+      delivered steps 1 and 2.
+      C-BUNDLE-BASE-REF
+      delivered step 3. This
+      bundle is steps 4 and 6,
+      plus the F82 close-time
+      evidence repair owed to
+      the next bundle
+      authoring from the model
+      plan. Authoring HEAD
+      652f300 on
+      feat/drift-honesty, cut
+      from main at that
+      commit, packaged 6.2.0,
+      tree clean, active empty
+      before this bundle, lint
+      0/0 across 159 XML
+      artifacts, archive 41.
+      Those numbers are a
+      snapshot (F33).
+
+      ---
+
+      **HEAD, measured, not
+      inherited.**
+      collectObservedDrift
+      (grace-status.ts) reads
+      git porcelain v1 -z,
+      POSIX-normalizes at
+      parsePorcelainV1ZPaths,
+      and explains a path only
+      through
+      activeScopeExplainsFile
+      against
+      collectActiveChangeScopes
+      filtered to spec and
+      plan both approved.
+      collectActiveChangeScopes
+      (scope.ts) reads
+      active/ only and drops
+      any bundle whose status
+      is not draft or
+      approved. Applied
+      archives are never
+      consulted. Explanation
+      today is OWS via
+      observedWriteScopeContains
+      (P2.1 language:
+      literals, *, ?,
+      whole-segment **,
+      zero-or-more segments),
+      plus the active bundle
+      directory prefix, plus
+      DurableScope routes for
+      context, graph, and
+      verification. The text
+      line is Explained by
+      active approved
+      changes. JSON has
+      explainedFiles and
+      unexplainedFiles and no
+      per-file C-* field.
+      schemaVersion is 1.0.0.
+
+      ---
+
+      **nextAction, measured.**
+      chooseNextAction
+      (grace-status.ts): when
+      derivedStates includes
+      unexplained-observed-drift,
+      the sentence is Use
+      $ngrace-refresh to
+      reconcile unexplained
+      repository changes
+      through a new
+      NgraceChangeSpec and
+      NgraceChangePlan. No
+      branch of
+      chooseNextAction
+      contains commit.
+      approved-contract-drift
+      is a different state
+      and still says Hard
+      stop: restore or
+      supersede. P2.6's
+      unexplained half is
+      already true at HEAD
+      (F45). The step's
+      refresh/ratify slash
+      mixes this cheap half
+      with P4.3 ratify
+      semantics; ratify is
+      out. RM-GOVERNED-PATH
+      plan.md section 4
+      deferred D1 (process
+      grade) is out.
+
+      ---
+
+      **P2.4 trap, measured.**
+      Feeding applied bundles
+      through
+      activeScopeExplainsFile
+      would credit DurableScope
+      routes and the archive
+      directory prefix: a
+      later edit to a graph
+      document, or a file
+      under archive/C-* that
+      no File or Glob names,
+      would become explained.
+      That is a file nobody
+      approved. Credit must
+      not reuse that
+      function. Matching must
+      be observedWriteScopeContains
+      on the applied plan's
+      ObservedWriteScope
+      only, plus the one
+      alias the archive move
+      requires (below).
+      Every archived Glob in
+      this repository is
+      .ngrace/changes/active/C-ID/run/**
+      (C-ONE-GLOB-LANGUAGE
+      measured; re-measured
+      this session, ten
+      plans). File entries
+      name active/ bundle
+      paths. After archive
+      those bytes live under
+      archive/. Exact OWS
+      match alone cannot
+      credit the moved
+      files, so the
+      post-apply nag of the
+      bundle itself would
+      remain. The alias is
+      that relocation of the
+      same approved suffix,
+      not a new glob.
+
+      ---
+
+      **Who is applied,
+      measured.** Archive
+      this session: 40
+      bundles with spec and
+      plan both applied; one
+      superseded spec-only
+      (C-LEDGER-READ-ABSENCE,
+      no plan, no OWS). No
+      rejected or cancelled
+      archive exists here.
+      Criteria still bind
+      those statuses. A
+      permitting apply
+      Decision is not
+      required: older
+      applied bundles are
+      apply-gate-record-absent
+      and still carry OWS.
+      Mislocated
+      applied-in-active is
+      already dropped by
+      collectActiveChangeScopes
+      and is not read by the
+      archive collector.
+
+      ---
+
+      **F82, measured.**
+      AC-SUITE-AND-LINT in
+      the model plan is
+      Satisfies-linked to
+      the final task; that
+      task ends before
+      apply and archive;
+      its Verification does
+      not include lint; the
+      recorded pass cannot
+      evidence the
+      close-time 0/0 bar.
+      A second AC-* for
+      the close half that
+      no task Satisfies
+      would raise
+      change.acceptance-criterion-unmapped
+      (warning) and make a
+      0/0 close bar
+      unsatisfiable. This
+      spec therefore
+      splits: the
+      task-observable half
+      stays an AC the plan
+      Satisfies-links; the
+      post-archive lint
+      half is close-verdict
+      evidence, not an
+      AC-*. This bundle's
+      own plan must use
+      that split.
+
+      ---
+
+      **F66.** This spec
+      decides README.md and
+      examples/ in a Goal,
+      Constraint, or
+      NonGoal body.
+      README.md is
+      unchanged.
+      examples/ is
+      unchanged.
+
+      ---
+
+      **F61.** This spec
+      names exported
+      functions and argv
+      tokens in any comment
+      body and does not
+      write dashed CLI
+      flags inside XML
+      comments.
+    </Problem>
+    <Goals>
+      <Goal>
+        **Applied credit.**
+        collectObservedDrift
+        consults archived
+        bundles whose spec
+        status is applied
+        and whose plan
+        status is applied.
+        A porcelain path
+        matching that
+        plan's
+        ObservedWriteScope
+        via
+        observedWriteScopeContains
+        is explained, not
+        unexplained. The
+        OWS is read by the
+        same extractor
+        active scopes use
+        (extractObservedWriteScope);
+        do not fork a
+        second File/Glob
+        walker. README.md
+        is unchanged.
+        examples/ is
+        unchanged.
+      </Goal>
+      <Goal>
+        **Credit bound.**
+        Rejected,
+        cancelled, and
+        superseded archives
+        grant no credit,
+        even when their
+        OWS would match.
+        Applied credit
+        does not use
+        DurableScope
+        routes and does
+        not use the
+        bundle-directory
+        prefix rule.
+        Do not pass
+        applied scopes
+        through
+        activeScopeExplainsFile.
+        A path no approved
+        or applied OWS
+        covers stays
+        unexplained.
+        Approved globs are
+        not rewritten or
+        narrowed; a wide
+        glob is the
+        approved width.
+      </Goal>
+      <Goal>
+        **Archive alias.**
+        For applied C-ID
+        only, a porcelain
+        path under
+        .ngrace/changes/archive/C-ID/
+        is also explained
+        when
+        observedWriteScopeContains
+        holds against the
+        same suffix under
+        .ngrace/changes/active/C-ID/.
+        POSIX slashes at
+        the helper. No
+        other rewrite.
+      </Goal>
+      <Goal>
+        **Honest
+        nextAction.**
+        Unexplained drift
+        still uses the
+        existing refresh
+        sentence and
+        never recommends
+        committing.
+        approved-contract-drift
+        stays the hard
+        stop. When credit
+        empties
+        unexplainedFiles,
+        unexplained-observed-drift
+        leaves and
+        nextAction leaves
+        that sentence by
+        the existing
+        ladder. Do not add
+        ratify. Do not add
+        a commit
+        recommendation.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding:
+        RM-GOVERNED-PATH
+        P2.4 and P2.6;
+        RM-GOVERNED-PATH
+        plan.md section 4
+        deferred D1
+        (process grade)
+        stays out;
+        RM-GOVERNED-PATH
+        D5.2 (the label
+        change is not a
+        compatibility
+        break: the old
+        sentence becomes
+        false once applied
+        credit exists);
+        RM-GOVERNED-PATH
+        D5.5 (CHANGELOG.md
+        is generated; the
+        release note is
+        the commit body);
+        RM-GOVERNED-PATH
+        D13 (no new
+        StatusResult
+        top-level key; no
+        new LintResult or
+        ReviewResult
+        top-level key);
+        RM-GOVERNED-PATH
+        D16 (evidence
+        lives in an
+        artifact);
+        RM-GOVERNED-PATH
+        D17 (AC ids name
+        the property);
+        F10 (claim only
+        what the body
+        verifies); F27.2
+        and F64
+        (ObservedWriteScope
+        covers every path
+        the deliverable
+        forces); F33 (do
+        not freeze suite
+        counts, archive
+        counts, or line
+        numbers this
+        change moves);
+        F42 (no
+        MustContain or
+        MustNotContain
+        needle that
+        README.md, a
+        skill, a template,
+        or a skeleton may
+        legitimately
+        contain); F43
+        (this artifact
+        binds semantics;
+        tests assert
+        literal bytes);
+        F44 (pin where a
+        user-visible
+        string appears);
+        F45 (already-true
+        surfaces are
+        exempt from
+        red-first); F52
+        (change.plan-scope-exceeds-spec
+        compares
+        DurableScope
+        anchors at
+        warning); F56 /
+        F67 (signatureKey
+        names the
+        property, not the
+        test file stem);
+        F61 (no two
+        adjacent hyphens
+        in any XML comment
+        body); F66 (this
+        spec decides
+        README.md and
+        examples/); F68
+        (two planned reds
+        are independently
+        observable); F73
+        (path lists are
+        POSIX
+        project-relative
+        at the helper, not
+        at the test
+        comparison; CI is
+        the only observer
+        of separators);
+        F75 (red counts
+        live in
+        AC-HEAD-RED
+        alone); F80 (one
+        recorded red, one
+        observable
+        property); F82
+        (close-time lint
+        is not
+        Satisfies-linked).
+      </Constraint>
+      <Constraint>
+        Ceremony tier
+        **T2** (status
+        credit plus scope
+        reader). P2.5,
+        P3, and P4 are
+        out.
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        credit predicate.**
+        A porcelain path
+        is explained when
+        either (1) an
+        active approved
+        scope explains it
+        exactly as today
+        (activeScopeExplainsFile
+        unchanged), or
+        (2) an archived
+        bundle with spec
+        status applied and
+        plan status
+        applied has an
+        ObservedWriteScope
+        for which
+        observedWriteScopeContains
+        is true on that
+        path, or (3) that
+        same applied
+        bundle satisfies
+        the archive alias
+        in the Goals. The
+        applied reader
+        lives in scope.ts
+        beside
+        collectActiveChangeScopes,
+        reuses
+        extractObservedWriteScope,
+        and does not
+        return DurableScope
+        for credit.
+        collectActiveChangeScopes
+        stays active-only.
+        Git unavailable
+        still yields
+        available false
+        and empty lists.
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        what stops
+        over-credit.**
+        Statuses rejected,
+        cancelled, and
+        superseded never
+        enter the applied
+        reader. Applied
+        credit does not
+        call
+        activeScopeExplainsFile.
+        The alias rewrites
+        only
+        archive/C-ID/ to
+        active/C-ID/ for
+        that same C-ID
+        before the same
+        matcher; it does
+        not invent a glob
+        and does not
+        credit a suffix
+        the OWS does not
+        cover. A
+        human-approved
+        wide Glob is not
+        narrowed. No
+        WriteEvidence
+        intersection. No
+        apply-Decision
+        requirement. No
+        time window
+        beyond porcelain
+        (committed paths
+        are not in the
+        set).
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        what existing
+        reports do.**
+        Intentional:
+        paths that match
+        applied credit
+        leave
+        unexplainedFiles
+        and enter
+        explainedFiles;
+        unexplained-observed-drift
+        leaves when that
+        list is empty;
+        nextAction then
+        leaves the
+        refresh sentence
+        via the existing
+        ladder; the
+        Observed Drift
+        text line uses
+        the new sentence
+        even when only
+        active credit
+        ran, so the line
+        does not lie.
+        Not changed:
+        active explanation
+        (OWS, bundle
+        prefix, durable
+        routes);
+        approved-contract-drift
+        and its hard
+        stop; tracked
+        spec.xml / plan.xml
+        of an active
+        approved bundle
+        still unexplained
+        for that state;
+        review scope
+        audit; execute
+        skill folklore;
+        module-health
+        nextAction;
+        schemaVersion
+        1.0.0; no new
+        derived-state
+        token; no
+        per-file
+        explained-by
+        field.
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        nextAction
+        shapes.**
+        Unexplained
+        observed drift:
+        keep the exact
+        sentence Use
+        $ngrace-refresh
+        to reconcile
+        unexplained
+        repository
+        changes through a
+        new
+        NgraceChangeSpec
+        and
+        NgraceChangePlan
+        (F44, already
+        true). Do not
+        recommend
+        commit. Do not
+        add ratify
+        (P4.3).
+        approved-contract-drift
+        stays Hard stop
+        (F7's commit
+        advice for the
+        approval window
+        is not this
+        bundle).
+        Explained-only
+        fallthrough is
+        unchanged.
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        F82.** Split the
+        old
+        AC-SUITE-AND-LINT
+        shape. The
+        task-observable
+        half is
+        AC-SUITE-AND-CI
+        and this plan
+        must
+        Satisfies-link it
+        to a task whose
+        Verification
+        includes those
+        commands. The
+        post-archive lint
+        0/0 half is
+        close-verdict
+        evidence, not an
+        AC-*, because an
+        unmapped AC-*
+        raises
+        change.acceptance-criterion-unmapped
+        and a
+        Satisfies-linked
+        close-time AC is
+        the defect F82
+        records. This
+        plan must not
+        author
+        AC-SUITE-AND-LINT
+        and must not
+        Satisfies-link
+        lint-after-archive
+        to any task. The
+        close verdict
+        quotes the 0/0
+        counts (D16).
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        F56 / F67 / F68 /
+        F80.**
+        signatureKey
+        names the
+        property:
+        applied-credit,
+        archive-alias,
+        label-text
+        (planned reds);
+        credit-rejected
+        and
+        credit-outside
+        are regression
+        pins only (F45). Do
+        not key on a test
+        file stem. Two
+        planned reds in
+        one task must be
+        able to fail
+        alone.
+        applied-credit
+        (JSON membership
+        and
+        explained-observed-drift)
+        and label-text
+        (the Observed
+        Drift line) are
+        separate
+        properties
+        (F80): do not put
+        both surfaces in
+        one case that
+        short-circuits.
+        A task may plan
+        at most three
+        distinct
+        kind-plus-key
+        pairs. Do not
+        state how many
+        fail events a
+        property implies
+        except in
+        AC-HEAD-RED
+        (F75).
+      </Constraint>
+      <Constraint>
+        AffectedAreas
+        names modules.
+        File-level scope
+        is enforced at
+        close by
+        review.write-evidence-outside-scope
+        (error), not at
+        authoring (F52).
+        ObservedWriteScope
+        must still list
+        every path the
+        deliverable
+        forces (F27.2,
+        F64). Forced
+        write surface:
+        src/grace-status.ts
+        (applied credit
+        union, archive
+        alias, label
+        sentence;
+        chooseNextAction
+        unexplained
+        sentence
+        unchanged;
+        collectActiveChangeScopes
+        call stays;
+        no new
+        StatusResult
+        key);
+        src/grace-status.test.ts
+        (credit, bound,
+        alias, both
+        label surfaces,
+        nextAction
+        non-regression;
+        keep
+        AC-MEMBERSHIP-ONE-DEFINITION);
+        src/artifact/scope.ts
+        (applied reader
+        reusing
+        extractObservedWriteScope;
+        MODULE_MAP if a
+        new export;
+        collectActiveChangeScopes
+        and
+        observedWriteScopeContains
+        unmoved);
+        src/artifact/scope.test.ts
+        (reader
+        membership;
+        do not change
+        the
+        observedWriteScopeContains
+        characterization);
+        this bundle's
+        spec.xml and
+        plan.xml.
+        **Stop and
+        re-spec**
+        rather than
+        touching
+        src/review/**,
+        src/gates/**,
+        src/grace-cursor.ts,
+        src/query/health.ts,
+        src/test-support/token-accounting.ts
+        (F74.2; this
+        bundle does not
+        open that file),
+        README.md,
+        examples/,
+        skills/,
+        plugins/,
+        docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md,
+        any version
+        surface, or a
+        new review or
+        lint finding
+        code.
+      </Constraint>
+      <Constraint>
+        **Do not edit**
+        docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md, or
+        any version
+        surface.
+        Packaged version
+        at authoring:
+        **6.2.0**. No
+        product version
+        bump. 6.3.0 is a
+        phase target,
+        not this
+        bundle's act.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine
+        for this bundle:
+        red-first is
+        mechanical for
+        new behaviour.
+        Failing tests
+        are written
+        before the fail
+        attempt is
+        recorded, in a
+        separate tool
+        round trip.
+        Never a
+        retrospective
+        red via stash.
+        Never weaken a
+        BaselineAssertion
+        to move a lint
+        count. F42: plan
+        assertions bind
+        to exported
+        names, attribute
+        names, and issue
+        codes, not to AC
+        ids or the label
+        sentence as a
+        free needle.
+        F61: this
+        bundle's
+        artifacts must
+        not hold two
+        adjacent hyphen
+        characters
+        inside any XML
+        comment body.
+        F73: normalize
+        at the helper;
+        state in the
+        close verdict
+        that CI is the
+        only observer of
+        separators.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        README.md
+        unchanged; status
+        already documents
+        explained and
+        unexplained drift
+        at overview
+        granularity, and
+        P2.5 remains.
+        examples/
+        unchanged;
+        WALKTHROUGH's
+        Suggested Next
+        Action sample is
+        the execute
+        sentence, not
+        the unexplained
+        refresh sentence,
+        and it does not
+        quote the
+        Explained by
+        line.
+      </NonGoal>
+      <NonGoal>
+        P2.5 finding
+        severities. P3
+        lifecycle
+        finish. P3.7
+        hand-written
+        applied finding.
+        P4 adoption
+        boundary and
+        ratify. Changing
+        review porcelain
+        or WriteEvidence
+        audits. Changing
+        approved-contract-drift.
+        Recommending
+        commit for any
+        status state
+        (RM-GOVERNED-PATH
+        plan.md section 4
+        deferred D1).
+      </NonGoal>
+      <NonGoal>
+        A new StatusResult
+        top-level key or
+        per-file
+        explained-by
+        map. A new
+        derived-state
+        token. A new
+        review or lint
+        finding code. A
+        new registered
+        schema shape
+        (no CloseEvidence
+        tag: the unmapped
+        warning is why
+        the close half
+        is not an AC-*).
+        Changing
+        observedWriteScopeContains
+        or parseScopeGlob.
+        Changing
+        collectActiveChangeScopes
+        membership.
+        Qualifying the
+        bare D15 in
+        src/test-support/token-accounting.ts
+        (F74.2). Editing
+        skills/ or
+        plugins/,
+        including the
+        shipped
+        change-plan-template.xml
+        (this plan is
+        authored from
+        the model
+        bundle, not
+        generated from
+        that
+        placeholder).
+      </NonGoal>
+      <NonGoal>
+        An
+        NGRACE_ARTIFACT_VERSION
+        bump. A
+        package.json
+        version bump.
+        Editing
+        CHANGELOG.md.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-APPLIED-CREDIT>
+        Given an archived
+        bundle with spec
+        and plan both
+        applied and a
+        porcelain path
+        covered by that
+        plan's
+        ObservedWriteScope
+        via
+        observedWriteScopeContains,
+        collectProjectStatus
+        puts that path in
+        explainedFiles
+        and not in
+        unexplainedFiles,
+        and
+        derivedStates
+        includes
+        explained-observed-drift
+        when the
+        explained list is
+        non-empty.
+        unexplained-observed-drift
+        is absent when
+        every porcelain
+        path is
+        explained.
+        evaluate and
+        review are
+        unmoved.
+        **HEAD today:**
+        applied archives
+        are not read;
+        the same path is
+        unexplained.
+        **Failure
+        conditions:**
+        crediting via
+        DurableScope or
+        the archive
+        directory prefix;
+        changing the P2.1
+        matcher;
+        requiring an
+        apply Decision.
+      </AC-APPLIED-CREDIT>
+      <AC-CREDIT-BOUND>
+        A porcelain path
+        matching only a
+        rejected,
+        cancelled, or
+        superseded
+        archive's OWS
+        stays
+        unexplained.
+        A porcelain path
+        that no active
+        approved OWS and
+        no applied OWS
+        covers stays
+        unexplained,
+        including a graph
+        or verification
+        file an applied
+        DurableScope
+        would have
+        routed and a
+        file under
+        archive/C-ID/
+        that the alias
+        plus OWS do not
+        cover.
+        **HEAD today:**
+        already true:
+        there is no
+        applied reader,
+        so nothing is
+        over-credited
+        (F45; regression
+        once the reader
+        exists).
+        **Failure
+        conditions:**
+        rejected credit;
+        durable-route
+        credit for
+        applied; prefix
+        credit of an
+        undeclared
+        archive file.
+      </AC-CREDIT-BOUND>
+      <AC-ARCHIVE-ALIAS>
+        Given applied
+        C-ID whose OWS
+        names
+        .ngrace/changes/active/C-ID/rest
+        (File or a Glob
+        that matches that
+        active path), a
+        porcelain
+        .ngrace/changes/archive/C-ID/rest
+        is explained.
+        A different
+        suffix under
+        that archive
+        directory is not
+        explained by the
+        alias alone.
+        **HEAD today:**
+        no alias.
+        **Failure
+        conditions:**
+        inventing a
+        directory-prefix
+        credit; rewriting
+        a path that is
+        not this C-ID;
+        using path.sep
+        at the test
+        instead of
+        normalizing at
+        the helper.
+      </AC-ARCHIVE-ALIAS>
+      <AC-LABEL-TEXT>
+        formatStatusText
+        prints the exact
+        sentence
+        Explained by
+        approved or
+        applied scopes
+        on the Observed
+        Drift count line
+        (F44). The old
+        sentence
+        Explained by
+        active approved
+        changes is
+        absent. No new
+        StatusResult
+        top-level key.
+        schemaVersion
+        stays 1.0.0.
+        **HEAD today:**
+        the old sentence
+        is present; the
+        new sentence is
+        absent.
+        **Failure
+        conditions:**
+        JSON-only
+        membership
+        change with the
+        old line left
+        in place;
+        adding an
+        explained-by
+        field.
+      </AC-LABEL-TEXT>
+      <AC-NEXT-ACTION>
+        When
+        unexplained-observed-drift
+        is present,
+        nextAction is
+        exactly Use
+        $ngrace-refresh
+        to reconcile
+        unexplained
+        repository
+        changes through
+        a new
+        NgraceChangeSpec
+        and
+        NgraceChangePlan
+        and does not
+        contain commit.
+        approved-contract-drift
+        still produces
+        the Hard stop
+        sentence.
+        **HEAD today:**
+        already true
+        (F45).
+        **Failure
+        conditions:**
+        recommending
+        commit for
+        unexplained
+        drift; changing
+        the refresh
+        sentence;
+        applying
+        never-commit to
+        approved-contract-drift.
+      </AC-NEXT-ACTION>
+      <AC-HEAD-RED>
+        Each of
+        AC-APPLIED-CREDIT,
+        AC-ARCHIVE-ALIAS,
+        and
+        AC-LABEL-TEXT
+        has a red
+        recorded before
+        its production
+        edit, in its
+        own tool round
+        trip, with the
+        failing test
+        written first,
+        under the
+        signature keys
+        named above.
+        Never a red
+        backed only by
+        a grep, and
+        never a
+        retrospective
+        red via stash.
+        **Exempt (F45,
+        named at
+        authoring):**
+        AC-NEXT-ACTION
+        (already true
+        at HEAD);
+        AC-CREDIT-BOUND
+        (already true
+        at HEAD: no
+        applied reader
+        means no
+        over-credit;
+        pin as
+        regression
+        after the
+        reader exists);
+        AC-SUITE-AND-CI
+        (green at HEAD;
+        task-observable
+        suite bar);
+        nextAction
+        leaving refresh
+        when credit
+        empties
+        unexplained
+        (true by
+        construction of
+        chooseNextAction);
+        AC-MEMBERSHIP-ONE-DEFINITION
+        pin;
+        writeFileSync
+        inventory;
+        observedWriteScopeContains
+        characterization;
+        README.md
+        staying out;
+        examples/
+        staying out;
+        package.json
+        version
+        unchanged;
+        token-accounting.ts
+        unopened;
+        collectActiveChangeScopes
+        unmoved;
+        review and
+        gates unopened.
+        **HEAD today:**
+        applied archives
+        grant no credit;
+        the old Explained
+        by line is the
+        one printed.
+        **Failure
+        conditions:**
+        a check that
+        passes on
+        pre-change HEAD
+        sold as new
+        behaviour; fail
+        and pass in one
+        tool call;
+        AC-NEXT-ACTION,
+        AC-CREDIT-BOUND,
+        or
+        AC-SUITE-AND-CI
+        required to be
+        red at HEAD;
+        applied-credit
+        and label-text
+        reddened so the
+        second fails
+        naming the
+        first (F68,
+        F80).
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-CI>
+        bun test green
+        for touched
+        packages (status
+        and scope, and
+        any other test
+        this deliverable
+        forces);
+        bun run
+        validate:ci
+        green
+        (re-measure
+        ratchet
+        cardinality; do
+        not drop keys).
+        This criterion
+        is task-observable
+        and this plan
+        Satisfies-links
+        it to a task
+        whose
+        Verification
+        includes those
+        commands. It
+        does not include
+        lint. ObservedWriteScope
+        covers every
+        path the
+        deliverable
+        forces,
+        including the
+        F64 list above.
+        No docs/plans
+        or archive
+        edits. No
+        CHANGELOG. No
+        version
+        surfaces.
+        README.md
+        untouched.
+        examples/
+        untouched.
+        token-accounting.ts
+        unopened.
+        **HEAD today:**
+        those commands
+        are green —
+        that green is
+        the baseline,
+        not this
+        change's
+        evidence.
+        **Failure
+        conditions:**
+        suite red;
+        Satisfies-linking
+        post-archive
+        lint to this
+        task; writes
+        outside
+        declared scope;
+        pin deleted or
+        loosened.
+      </AC-SUITE-AND-CI>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-STATUS />
+      <M-GRAMMAR />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/grace-status.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/artifact/scope.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2):
+        an applied
+        archive OWS
+        match is
+        explained; a
+        rejected or
+        cancelled match
+        is not; a path
+        outside applied
+        OWS stays
+        unexplained
+        even when
+        applied
+        DurableScope
+        would have
+        routed it; the
+        archive alias
+        explains the
+        relocated
+        suffix and not
+        a different
+        suffix; the
+        Observed Drift
+        line uses the
+        new sentence in
+        text; JSON
+        membership
+        flips without a
+        new top-level
+        key;
+        unexplained
+        nextAction
+        stays the
+        refresh
+        sentence and
+        never says
+        commit;
+        README.md and
+        examples/
+        untouched;
+        suite green;
+        lint 0/0
+        quoted in the
+        close verdict
+        after apply and
+        archive, not
+        claimed by a
+        task pass.
+        Evidence is the
+        suite and the
+        ledger fail/pass
+        pairs, not a
+        command someone
+        reports.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring HEAD
+        652f300 on
+        feat/drift-honesty,
+        packaged 6.2.0,
+        tree clean,
+        active empty
+        before this
+        bundle, lint
+        0/0,
+        xmlFilesChecked
+        159, archive
+        41 (40
+        applied+applied,
+        one superseded
+        spec-only).**
+        F33:
+        implementation
+        re-measures
+        counts; criteria
+        do not freeze
+        them.
+      </Assumption>
+      <Assumption>
+        **Status drift,
+        measured this
+        session.**
+        collectObservedDrift
+        uses active
+        approved scopes
+        only.
+        chooseNextAction
+        unexplained
+        branch is the
+        refresh
+        sentence and
+        never commit.
+        On this clean
+        tree
+        observedDrift
+        lists are empty
+        and nextAction
+        is Create a
+        change with
+        $ngrace-spec,
+        then plan it
+        with
+        $ngrace-plan.
+      </Assumption>
+      <Assumption>
+        **Glob language,
+        measured this
+        session.**
+        status already
+        calls
+        observedWriteScopeContains.
+        Every archived
+        Glob is
+        .ngrace/changes/active/C-ID/run/**.
+        No archived
+        Glob is src/**
+        or **.
+      </Assumption>
+      <Assumption>
+        **F64 pin
+        survey, this
+        session.**
+        grace-status.test.ts
+        AC-MEMBERSHIP-ONE-DEFINITION
+        (no endsWith
+        .xml open-epoch
+        filter; no
+        grace-cursor
+        import; keeps
+        listLooseEvents
+        and
+        listRunOrphans);
+        grace-cursor.test.ts
+        writeFileSync
+        inventory
+        (status must
+        not grow a
+        write);
+        scope.ts
+        MODULE_MAP if a
+        new export;
+        scope.test.ts
+        observedWriteScopeContains
+        characterization
+        (unmoved);
+        README
+        invocation
+        walker fires
+        only if
+        README.md moves
+        (it does not);
+        token-accounting
+        F51 totals fire
+        only if a
+        SKILL.md moves
+        (none does);
+        allReviewCodes
+        and localize
+        excluded-review-code
+        cardinalities
+        unmoved (no
+        review edit);
+        WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET
+        unmoved;
+        release-check
+        package.json
+        files allowlist
+        unmoved (no
+        new published
+        path);
+        boolean site
+        count unmoved
+        (no new
+        boolean).
+      </Assumption>
+    </Assumptions>
+  </C-DRIFT-HONESTY>
+</NgraceChangeSpec>
