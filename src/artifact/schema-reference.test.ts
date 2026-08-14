@@ -42,14 +42,11 @@ const EXCLUDED_FILE_LOCAL =
 const EXCLUDED_GLOB =
   "- Glob matching: P1.4 asked for zero-depth globstar. F60 blocks documenting it while two implementations disagree.";
 
-const F60_PAIRS = [
-  "web/js/**/*.js",
-  "web/js/app.js",
-  "src/**/*.ts",
-  "src/a.ts",
-  "src/x/a.ts",
-  "src/**",
-] as const;
+const DOCUMENTED_F60_PAIR = ["web/js/**/*.js", "web/js/app.js"] as const;
+const UNDOCUMENTED_F60_PAIRS = ["src/**/*.ts", "src/a.ts", "src/x/a.ts", "src/**"] as const;
+
+const GLOB_RULE =
+  "Whole-segment ** matches zero or more path segments, so web/js/**/*.js matches web/js/app.js.";
 
 function validSpec(changeId = "C-EXAMPLE"): string {
   return `<NgraceChangeSpec graceVersion="1.0" status="approved"><${changeId}><Summary>Summary.</Summary><Goals><Goal>Goal.</Goal></Goals><Constraints><Constraint>Constraint.</Constraint></Constraints><NonGoals><NonGoal>Non-goal.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></${changeId}></NgraceChangeSpec>`;
@@ -168,7 +165,7 @@ describe("AC-COVERAGE-NAMED", () => {
     expect(preamble).toContain(NOT_COMPLETE_GRAMMAR);
     expect(preamble).toContain(EXCLUDED_VALIDATORS);
     expect(preamble).toContain(EXCLUDED_FILE_LOCAL);
-    expect(preamble).toContain(EXCLUDED_GLOB);
+    expect(preamble).not.toContain(EXCLUDED_GLOB);
 
     for (const shape of REGISTERED_SHAPES) {
       expect(preamble).toContain(shape);
@@ -196,11 +193,31 @@ describe("AC-NO-GLOB-RULE", () => {
     expect(afterPreamble).not.toMatch(/glob matching/i);
     expect(afterPreamble).not.toMatch(/globstar/i);
 
-    for (const pair of F60_PAIRS) {
+    for (const pair of UNDOCUMENTED_F60_PAIRS) {
       expect(generated).not.toContain(pair);
     }
     expect(generated).not.toContain("review false");
     expect(generated).not.toContain("review true");
     expect(generated).not.toContain("scope true");
+  });
+});
+
+describe("C-ONE-GLOB-LANGUAGE T-002 glob-doc", () => {
+  it("glob-doc: preamble no longer contains the F60 exclusion sentence", () => {
+    const generated = renderSchemaReference();
+    const firstShapeIndex = generated.indexOf("\n## ");
+    expect(firstShapeIndex).toBeGreaterThan(0);
+    const preamble = generated.slice(0, firstShapeIndex);
+    expect(preamble).not.toContain(EXCLUDED_GLOB);
+  });
+
+  it("glob-doc: preamble states the zero-or-more-segment rule and the F60 pair", () => {
+    const generated = renderSchemaReference();
+    const firstShapeIndex = generated.indexOf("\n## ");
+    expect(firstShapeIndex).toBeGreaterThan(0);
+    const preamble = generated.slice(0, firstShapeIndex);
+    expect(preamble).toContain(GLOB_RULE);
+    expect(preamble).toContain(DOCUMENTED_F60_PAIR[0]);
+    expect(preamble).toContain(DOCUMENTED_F60_PAIR[1]);
   });
 });

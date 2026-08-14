@@ -4939,3 +4939,25 @@ shipped. Before writing a criterion on step text, **measure whether the step's p
 product's state** — and treat a normative universal ("can only widen", "always", "never") as a claim
 to falsify, not to inherit. Two of the five failures in this phase were steps prescribing work already
 done differently and better.
+
+### F80 — a red that asserts two things only ever evidences the first. **[verified]**
+
+Disclosed by the executor at `C-ONE-GLOB-LANGUAGE`'s close, unprompted, against its own work.
+
+The zero-depth red bundled two audits into one `it()`: the porcelain scope audit and the WriteEvidence
+scope audit, both expected to stop reporting `web/js/**/*.js` × `web/js/app.js`. On the recorded red
+run **the first expectation aborted the test**, so the transcript shows the porcelain finding and
+**never reached the WriteEvidence assertion.** Both are green after the change, and the plan required
+independence only between *different* signatures ([F68](#f68)), so nothing was violated — but the
+ledger's red for that signature evidences **one** of the two behaviours it claims.
+
+**Why this matters beyond tidiness.** A fail event is the product's evidence that a property was false
+before the edit. When one event covers two properties and the runner short-circuits, the second
+property has **no recorded red at all** — it is indistinguishable from a property that was already
+true. That is [F28](#f28)'s shape arriving through the test runner rather than through the criterion:
+a green that was never observed red.
+
+**The rule.** **One recorded red, one observable property.** When a criterion covers two surfaces that
+must both flip, either assert them in separate cases so each failure is printed, or record separate
+signatures. F68 asks whether two reds can fail *alone*; this asks the complementary question — whether
+a single red *proves* everything it is cited for. Ask both at plan review.

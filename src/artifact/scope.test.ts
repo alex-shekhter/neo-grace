@@ -11,6 +11,7 @@ import {
   detectScopeOverlaps,
   detectUnsafeConcurrentExecution,
   durableOverlaps,
+  observedWriteScopeContains,
   parseScopeGlob,
   scopeGlobsOverlap,
   type DurableOwnershipIndex,
@@ -169,6 +170,28 @@ describe("neo-grace scope detector", () => {
     for (const invalid of ["/tmp/**", "../src/**", "C:\\src\\**", "src/**x/file.ts", "src/[ab].ts", "!src/**"]) {
       expect(() => parseScopeGlob(invalid), invalid).toThrow();
     }
+  });
+
+  it("characterizes observedWriteScopeContains as the file matcher", () => {
+    const emptyFiles = (globs: string[]) => ({ files: [] as string[], globs });
+    expect(observedWriteScopeContains(emptyFiles(["web/js/**/*.js"]), "web/js/app.js")).toBe(true);
+    expect(observedWriteScopeContains(emptyFiles(["web/js/**/*.js"]), "web/js/sub/app.js")).toBe(true);
+    expect(observedWriteScopeContains(emptyFiles(["web/js/**/*.js"]), "web/js/app.ts")).toBe(false);
+    expect(observedWriteScopeContains(emptyFiles(["src/**/foo.ts"]), "src/foo.ts")).toBe(true);
+    expect(observedWriteScopeContains(emptyFiles(["**/*.ts"]), "foo.ts")).toBe(true);
+    expect(observedWriteScopeContains(emptyFiles(["src/**"]), "src")).toBe(true);
+    expect(observedWriteScopeContains(emptyFiles(["src/foo.ts"]), "./src/foo.ts")).toBe(true);
+    expect(observedWriteScopeContains(emptyFiles(["./src/foo.ts"]), "src/foo.ts")).toBe(true);
+    expect(observedWriteScopeContains({ files: ["src/foo.ts"], globs: [] }, "src\\foo.ts")).toBe(true);
+    expect(observedWriteScopeContains(emptyFiles(["src\\foo.ts"]), "src/foo.ts")).toBe(true);
+    expect(observedWriteScopeContains(emptyFiles(["src/?.ts"]), "src/a.ts")).toBe(true);
+    expect(observedWriteScopeContains(emptyFiles(["src/?.ts"]), "src/.ts")).toBe(false);
+    expect(observedWriteScopeContains(emptyFiles(["src/foo?"]), "src/foo")).toBe(false);
+    expect(observedWriteScopeContains(emptyFiles(["src/foo?"]), "src/foox")).toBe(true);
+    expect(observedWriteScopeContains(emptyFiles(["run/**"]), "run/1-T-001-attempt.xml")).toBe(true);
+    expect(observedWriteScopeContains(emptyFiles(["a**b"]), "ab")).toBe(false);
+    const caseFold = process.platform === "darwin" || process.platform === "win32";
+    expect(observedWriteScopeContains(emptyFiles(["SRC/**/*.TS"]), "src/a.ts")).toBe(caseFold);
   });
 
   it("normalizes backslashes and follows explicit case semantics", () => {

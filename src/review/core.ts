@@ -55,6 +55,7 @@ import path from "node:path";
 
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { resolveNgracePaths } from "../artifact/project";
+import { observedWriteScopeContains } from "../artifact/scope";
 import {
   ANCHOR_PATTERNS,
   isRegisteredSemanticAnchor,
@@ -976,7 +977,7 @@ export function auditScopeOutsideWriteScope(
     // F11: tool-owned lifecycle paths are not agent out-of-scope work (any C-*, any source).
     if (isCliLifecyclePath(changed)) continue;
     if (fileSet.has(changed)) continue;
-    const globHit = expandedGlobs.some((glob) => matchSimpleGlob(glob, changed));
+    const globHit = observedWriteScopeContains({ files: [], globs: expandedGlobs }, changed);
     if (globHit) continue;
     if (scopeFiles.length === 0 && scopeGlobs.length === 0) continue;
     findings.push(
@@ -1041,7 +1042,7 @@ export function auditWriteEvidenceOutsideScope(
     // F27.1: authority concurrent roadmap — hole named on isDocsPlansPath.
     if (isDocsPlansPath(changed)) continue;
     if (fileSet.has(changed)) continue;
-    const globHit = expandedGlobs.some((glob) => matchSimpleGlob(glob, changed));
+    const globHit = observedWriteScopeContains({ files: [], globs: expandedGlobs }, changed);
     if (globHit) continue;
     findings.push(
       makeFinding(
@@ -1110,20 +1111,6 @@ function loadWriteEvidencePathsFromBundle(
     kind: "no-evidence",
     reason: `WriteEvidence present but no content digests for ${changeId}`,
   };
-}
-
-/** Minimal glob: `**` / `*` only, for process-audit tests and plan globs. */
-function matchSimpleGlob(glob: string, file: string): boolean {
-  const g = glob.replaceAll("\\", "/");
-  const f = file.replaceAll("\\", "/");
-  if (g === f) return true;
-  // **/*.ts style
-  const escaped = g
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replace(/\*\*/g, "\0")
-    .replace(/\*/g, "[^/]*")
-    .replace(/\0/g, ".*");
-  return new RegExp(`^${escaped}$`).test(f);
 }
 
 export function auditTestWeakening(diffs: TestFileDiff[]): ReviewFinding[] {
