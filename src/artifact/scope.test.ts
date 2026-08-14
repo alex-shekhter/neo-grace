@@ -8,6 +8,7 @@ import { ARTIFACT_DIR } from "./paths";
 import { resolveNgracePaths } from "./project";
 import {
   collectActiveChangeScopes,
+  collectAppliedChangeScopes,
   detectScopeOverlaps,
   detectUnsafeConcurrentExecution,
   durableOverlaps,
@@ -43,6 +44,16 @@ function writeChange(root: string, changeId: string, options: { graphAnchor: str
   );
 }
 
+function writeArchivedChange(root: string, changeId: string, options: { specStatus: string; planStatus: string; file: string; graphAnchor?: string }) {
+  const bundle = `${ARTIFACT_DIR}/changes/archive/${changeId}`;
+  writeProjectFile(root, `${bundle}/spec.xml`, `<NgraceChangeSpec graceVersion="1.0" status="${options.specStatus}"><${changeId} /></NgraceChangeSpec>`);
+  writeProjectFile(
+    root,
+    `${bundle}/plan.xml`,
+    `<NgraceChangePlan graceVersion="1.0" status="${options.planStatus}"><${changeId}><DurableScope><GraphAnchors><${options.graphAnchor ?? "M-EXAMPLE"} /></GraphAnchors></DurableScope><ObservedWriteScope><File>${options.file}</File></ObservedWriteScope></${changeId}></NgraceChangePlan>`,
+  );
+}
+
 describe("neo-grace scope detector", () => {
   it("collects active change scopes from approved and draft plans", () => {
     const root = createProject();
@@ -55,6 +66,26 @@ describe("neo-grace scope detector", () => {
     expect(scopes.map((scope) => scope.changeId).sort()).toEqual(["C-ONE", "C-TWO"]);
     expect(one?.durable.contextArtifacts).toContain("requirements.xml");
     expect(one?.observedWrites.files).toContain("src/auth.ts");
+  });
+
+  it("collects only applied+applied archive scopes and never returns durable", () => {
+    const root = createProject();
+    writeChange(root, "C-ACTIVE-APPROVED", { graphAnchor: "M-AUTH-SESSION", file: "src/auth.ts" });
+    writeChange(root, "C-APPLIED-IN-ACTIVE", { graphAnchor: "M-AUTH-SESSION", file: "src/active.ts", status: "applied" });
+    writeArchivedChange(root, "C-APPLIED", { specStatus: "applied", planStatus: "applied", file: "src/applied.ts" });
+    writeArchivedChange(root, "C-REJ", { specStatus: "rejected", planStatus: "rejected", file: "src/rej.ts" });
+    writeArchivedChange(root, "C-CAN", { specStatus: "cancelled", planStatus: "cancelled", file: "src/can.ts" });
+    writeArchivedChange(root, "C-SUP", { specStatus: "superseded", planStatus: "superseded", file: "src/sup.ts" });
+
+    const paths = resolveNgracePaths(root);
+    const applied = collectAppliedChangeScopes(paths);
+    const active = collectActiveChangeScopes(paths);
+
+    expect(applied.map((scope) => scope.changeId)).toEqual(["C-APPLIED"]);
+    expect(applied[0]?.observedWrites.files).toContain("src/applied.ts");
+    expect(applied[0]).not.toHaveProperty("durable");
+    expect(active.map((scope) => scope.changeId).sort()).toEqual(["C-ACTIVE-APPROVED"]);
+    expect(active.every((scope) => scope.changeId !== "C-APPLIED")).toBe(true);
   });
 
   it("reports durable overlap as warnings and observed write overlap as blockers", () => {

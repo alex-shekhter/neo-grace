@@ -9,12 +9,14 @@
 //
 // START_MODULE_MAP
 //   ActiveChangeScope
+//   AppliedChangeScope
 //   DurableOwnershipIndex
 //   DurableScope
 //   ObservedWriteScope
 //   ParsedScopeGlob
 //   ScopeGlobSegment
 //   collectActiveChangeScopes
+//   collectAppliedChangeScopes
 //   createDurableOwnershipIndex
 //   detectScopeOverlaps
 //   detectUnsafeConcurrentExecution
@@ -72,6 +74,16 @@ export type ActiveChangeScope = {
   specStatus: string;
   planStatus?: string;
   durable: DurableScope;
+  observedWrites: ObservedWriteScope;
+  issues: NgraceIssue[];
+};
+
+/** Archived applied change used for observed-drift credit. No durable field. */
+export type AppliedChangeScope = {
+  changeId: string;
+  bundlePath: string;
+  specStatus: string;
+  planStatus: string;
   observedWrites: ObservedWriteScope;
   issues: NgraceIssue[];
 };
@@ -237,6 +249,18 @@ export function collectActiveChangeScopes(paths: NgraceProjectPaths): ActiveChan
     .filter((scope): scope is ActiveChangeScope => scope !== null);
 }
 
+/** Reads archive/ only. Enters only when spec and plan are both applied. No durable. */
+export function collectAppliedChangeScopes(paths: NgraceProjectPaths): AppliedChangeScope[] {
+  if (!existsSync(paths.changesArchiveDir)) {
+    return [];
+  }
+
+  return readdirSync(paths.changesArchiveDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && ANCHOR_PATTERNS.change.test(entry.name))
+    .map((entry) => readAppliedChangeScope(paths, path.join(paths.changesArchiveDir, entry.name), entry.name))
+    .filter((scope): scope is AppliedChangeScope => scope !== null);
+}
+
 /** Returns warning-only coexistence diagnostics for approved plans. */
 export function detectScopeOverlaps(
   changes: ActiveChangeScope[],
@@ -293,6 +317,28 @@ export function durableOverlaps(
   addDocumentAnchorOverlaps(overlaps, "verification", left.verificationDocuments, right.verificationAnchors, ownership.verificationDocuments, knownVerificationAnchors);
   addDocumentAnchorOverlaps(overlaps, "verification", right.verificationDocuments, left.verificationAnchors, ownership.verificationDocuments, knownVerificationAnchors);
   return [...overlaps].sort();
+}
+
+function readAppliedChangeScope(paths: NgraceProjectPaths, bundlePath: string, changeId: string): AppliedChangeScope | null {
+  const spec = readGraceXmlArtifact(path.join(bundlePath, "spec.xml"));
+  const planFile = path.join(bundlePath, "plan.xml");
+  const plan = readGraceXmlArtifact(planFile);
+  const specStatus = spec.root?.attributes.status ?? "missing";
+  const planStatus = plan.root?.attributes.status;
+
+  if (!plan.root || specStatus !== "applied" || planStatus !== "applied") {
+    return null;
+  }
+
+  const observed = extractObservedWriteScope(plan.root, paths.root, planFile);
+  return {
+    changeId,
+    bundlePath,
+    specStatus,
+    planStatus,
+    observedWrites: observed.scope,
+    issues: [...observed.issues],
+  };
 }
 
 function readActiveChangeScope(paths: NgraceProjectPaths, bundlePath: string, changeId: string): ActiveChangeScope | null {

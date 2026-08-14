@@ -29,7 +29,7 @@ import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePat
 import { listLooseEvents, listRunOrphans } from "./artifact/run-membership";
 import { skillRef } from "./artifact/types";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./artifact/projections";
-import { collectActiveChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope } from "./artifact/scope";
+import { collectActiveChangeScopes, collectAppliedChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope, type AppliedChangeScope } from "./artifact/scope";
 import { readGraceXmlArtifact } from "./artifact/xml";
 import { readPermittingDecision } from "./gates/ledger";
 import { collectModuleHealth } from "./query/health";
@@ -371,6 +371,7 @@ export function collectProjectStatus(projectRoot: string, options: { includeModu
   const graph = buildGraphProjection(paths);
   const verification = buildVerificationProjection(paths, graph);
   const activeScopes = collectActiveChangeScopes(paths);
+  const appliedScopes = collectAppliedChangeScopes(paths);
   const ownership = createDurableOwnershipIndex(graph, verification);
   const overlapIssues = detectScopeOverlaps(activeScopes, ownership);
   const unsafeIssues = detectUnsafeConcurrentExecution(activeScopes, ownership);
@@ -378,7 +379,7 @@ export function collectProjectStatus(projectRoot: string, options: { includeModu
     ...collectChangeBundleStatuses(root, "active", paths.changesActiveDir, lint.issues),
     ...collectChangeBundleStatuses(root, "archive", paths.changesArchiveDir, lint.issues),
   ];
-  const collectedDrift = collectObservedDrift(root, activeScopes, buildDriftRouteIndex(root, graph, verification));
+  const collectedDrift = collectObservedDrift(root, activeScopes, appliedScopes, buildDriftRouteIndex(root, graph, verification));
   const observedDrift = collectedDrift.drift;
   const approvedContractDrift = collectApprovedContractDrift(root, activeScopes, collectedDrift.trackedChangedFiles);
   const changes = rawChanges.map((change) => {
@@ -496,7 +497,7 @@ export function formatStatusText(result: StatusResult) {
     "Observed Drift",
     `- Available: ${result.observedDrift.available ? "yes" : "no"}`,
     `- Changed files: ${result.observedDrift.changedFiles.length}`,
-    `- Explained by active approved changes: ${result.observedDrift.explainedFiles.length}`,
+    `- Explained by approved or applied scopes: ${result.observedDrift.explainedFiles.length}`,
     `- Unexplained: ${result.observedDrift.unexplainedFiles.length}`,
   );
   for (const file of result.observedDrift.unexplainedFiles.slice(0, 10)) lines.push(`- unexplained: ${file}`);
@@ -520,7 +521,7 @@ export function formatStatusText(result: StatusResult) {
   return lines.join("\n");
 }
 
-function collectObservedDrift(root: string, activeScopes: ActiveChangeScope[], routes: DriftRouteIndex): CollectedObservedDrift {
+function collectObservedDrift(root: string, activeScopes: ActiveChangeScope[], appliedScopes: AppliedChangeScope[], routes: DriftRouteIndex): CollectedObservedDrift {
   const statusResult = Bun.spawnSync({
     cmd: ["git", "-c", "status.relativePaths=true", "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", "."],
     cwd: root,
@@ -535,7 +536,13 @@ function collectObservedDrift(root: string, activeScopes: ActiveChangeScope[], r
   const { changedFiles, trackedChangedFiles } = parsePorcelainV1ZPaths(statusOutput);
 
   const approvedScopes = activeScopes.filter((scope) => scope.specStatus === "approved" && scope.planStatus === "approved");
-  const explainedFiles = changedFiles.filter((file) => approvedScopes.some((scope) => activeScopeExplainsFile(root, scope, file, routes, trackedChangedFiles)));
+  const explainedFiles = changedFiles.filter((file) =>
+    approvedScopes.some((scope) => activeScopeExplainsFile(root, scope, file, routes, trackedChangedFiles))
+    || appliedScopes.some((scope) =>
+      observedWriteScopeContains(scope.observedWrites, file)
+      || appliedArchiveAliasExplains(scope, file)
+    ),
+  );
   const explained = new Set(explainedFiles);
   return {
     drift: {
@@ -546,6 +553,14 @@ function collectObservedDrift(root: string, activeScopes: ActiveChangeScope[], r
     },
     trackedChangedFiles,
   };
+}
+
+/** Rewrite archive/C-ID/rest to active/C-ID/rest for that id only, then match the stored OWS. */
+function appliedArchiveAliasExplains(scope: AppliedChangeScope, file: string): boolean {
+  const archivePrefix = `${ARTIFACT_DIR}/changes/archive/${scope.changeId}/`;
+  if (!file.startsWith(archivePrefix)) return false;
+  const rewritten = `${ARTIFACT_DIR}/changes/active/${scope.changeId}/${file.slice(archivePrefix.length)}`;
+  return observedWriteScopeContains(scope.observedWrites, rewritten);
 }
 
 function parsePorcelainV1ZPaths(output: string): { changedFiles: string[]; trackedChangedFiles: Set<string> } {
