@@ -4995,3 +4995,33 @@ order and the writer first-observation-wins, never storing a different object na
 **and** that the shape survives every reader that already depends on it. A record designed to key a
 future detection rule is worthless if writing it makes the event unreadable — and "record X at Y" is
 silently a schema change whenever Y is validated.
+
+### F82 — a close-time criterion cannot be evidenced by a task pass, because the task ends before the close. **[verified]**
+
+Raised by the executor at `C-BUNDLE-BASE-REF`'s execute close, against the plan template every bundle
+in this roadmap has used.
+
+`AC-SUITE-AND-LINT` defines its lint half as **0 errors / 0 warnings *after apply and archive***. It is
+`Satisfies`-linked to the final task. But that task's `Verification` commands do not include lint, and
+the task necessarily **completes before the close sequence that would make the claim true**. So the
+recorded pass evidences the three commands the task actually ran — and nothing about the close-time
+bar it is linked to.
+
+**This is not local to one bundle.** Every bundle in this phase carries an `AC-SUITE-AND-LINT` shaped
+this way, and every one recorded a final-task pass while the lint half was still false. The artifacts
+have been claiming, by link, evidence that the ledger cannot hold.
+
+**Why it has stayed invisible.** The close *does* verify the bar — the authority runs lint after
+archive and records the numbers in the verdict — so the claim is true in the end. What is wrong is
+**where the evidence lives**: in the verdict and the archive commit, not in the attempt that
+`Satisfies` points at. Nothing cross-checks the two, so the mislink never surfaces as a failure.
+
+**The rule.** A criterion whose evidence can only exist *after* the lifecycle step that ends the run
+must not be `Satisfies`-linked to a task. Either bind it to the close record explicitly, or split it:
+the half a task can run (suite, `validate:ci`) stays on the task; the half only the close can observe
+(post-archive lint, archive count) is verdict evidence. **Check at plan review that every `Satisfies`
+link points at something the task can actually observe.**
+
+Not repaired here — the plan template is shared and changing it mid-bundle would amend approved
+artifacts. **Owed to the next bundle that authors from the model plan**, which is the same route
+[F50](#f50) and [F51](#f51) took.
