@@ -5133,3 +5133,213 @@ and only its tail says whether the defect still exists.
 `D15` in `src/test-support/token-accounting.ts:80` (needs a bundle that opens that file), and
 [F84](#f84)'s standing contradiction between the shipped `ngrace-execute` skill and this roadmap's
 authority-owned close.
+
+### F86 — P3's gate cannot be run: its transcript does not exist and two of its three targets are outputs of the phase it gates. **[verified]**
+
+Measured at P3's opening, before any step detail was written.
+
+**There is no brownfield transcript to re-run.** The gate says *"the author re-runs one brownfield
+transcript end-to-end."* Nothing in this repository is one. `examples/polyglot/WALKTHROUGH.md` is a
+tour of a repo *"under full GRACE governance"* — greenfield, already adopted. `ngrace-init` is a
+greenfield bootstrap that explicitly creates **zero** bundles; `ngrace-migrate` is GRACE 3 → neo-grace
+artifact conversion and bans retroactive bundles. `grep -ri brownfield` hits only this roadmap and its
+own sources. The ten brownfield guides the plan cites are, by its own admission, *"files in another
+directory, owned by other people."* **Opening this gate requires authoring the transcript, not
+re-running one** — the same class as P2's ≥80% metric ([F83](#f83)), where the measurement's subject
+was a citation rather than an artifact.
+
+**And the gate is partly self-referential.** Of its three quantities, *"manual post-gate steps = 0"*
+and *"bundles for a bootstrap ≤ 3"* are **descriptions of what P3 and P4 deliver**, so measuring them
+before those phases can only ever return the pre-phase number. Only *"remaining folklore steps"* is
+measurable now, and the answer is concrete: **six manual post-gate steps, three of which have no CLI
+verb of any kind** — writing `status="applied"` on the spec, on the plan, and moving the bundle to
+`archive/`. `src/gates/command.ts` says so outright: *"Does not set status=applied and does not move
+bundles (invariant 8)."*
+
+**The sharpest measured fact, and it is an honesty gap in the product's own record.** Across **43
+archived bundles**, the run-ledger ends at the archive gate's `Decision`. **Nothing is recorded
+after it** — yet both artifacts read `applied` and the bundle sits under `archive/`. The three
+folklore steps leave **no machine record at all**, so the ledger cannot show that the transition it
+gates ever happened. That is what P3.1 exists to close, and it is a stronger argument for the step
+than the step makes for itself.
+
+**Two corrections to P3's own text, applied in the roadmap.** P3.7's *"all sixteen archived bundles"*
+was measured 2026-08-09 and is now **43 (39 with a ledger)** — a corpus 2.7x the size the rule was
+sized against. And P3.1's *"folds any loose epoch"* fires on **recovery paths only**: the archive gate
+already requires `no-open-epoch`, so on the normal path there is nothing left to fold.
+
+**The rule.** A gate that measures its own phase's output is not a gate — it is a restatement of the
+objective. When writing one, separate **what must be true before starting** from **what success looks
+like after**, and check that the artifact the gate reads actually exists in the repository that will
+run it.
+
+### F87 — lint still does not check XML well-formedness; F39's repair was exactly one rule wide. **[verified]**
+
+Surfaced by the brownfield transcripts (`brownfield-findings.md`, incident O1) and verified directly.
+
+**Measured, one lint run, 168 artifacts checked.** A `spec.xml` containing `&mdash;` — an undefined
+entity, not one of XML 1.0's five predefined ones — reports **0 errors**. A conformant parser rejects
+the same file: `undefined entity: line 3, column 19`. Replace the entity with `--` inside a comment
+body and lint reports **1 error**, `xml.comment-not-well-formed`.
+
+**So the well-formedness surface is one rule, not a parse.** [F39](#f39) said *"lint reports every
+XML artifact clean while a growing set is rejected by a conformant parser"* and named the defect
+precisely: *"the report's claim of a validity never checked."* P1.13 shipped a check for the single
+case F39 happened to enumerate — two adjacent hyphens in a comment — and the general claim was left
+standing. This is [F46](#f46) / [F49](#f49) / [F52](#f52)'s class again: **a check's name and its
+blast radius drift apart**, and the citing artifacts inherited the optimistic reading. Nine bundles
+have since been closed on a lint run that does not do what its own finding said it must.
+
+**It took a weaker model to find it.** A capable model writes `—` or `-` and never emits an undefined
+entity, so the gap was structurally invisible from inside this project — the same reason six manual
+post-gate steps went unrecorded across 43 bundles. The failing agent wrote HTML out of habit, and the
+tool told it the artifact was fine.
+
+**And note what did *not* find it: verbosity.** The check was silent, so no amount of logging from
+`ngrace` would have shown anything. What exposed it was a **differential** — running an independent
+conformant parser over the same file and comparing verdicts. When a checker's honesty is in question,
+a second implementation is the instrument; more output from the suspect one is not.
+
+**The rule.** When a finding says a class of validity is unchecked, the repair is checked against the
+**class**, not against the instance that surfaced it. Before closing such a repair, ask what else in
+that class exists and construct one — and where the product claims conformance to an external
+standard, **test it against an implementation of that standard**, not against itself.
+
+### F88 — approval is self-certified: both agents approved their own specs, and nothing in the product can tell. **[verified]**
+
+The most consequential result of the brownfield runs, and it is not a model defect.
+
+**Measured.** In `neo-grace-6.2.0-brownfield-ornith_35`, commit `932c452` — *"GRACE: init done,
+C-AUDIT-001 spec approved + plan partially written"* — writes `status="approved"` onto the spec the
+same agent authored, in the same commit, with no human act between. The other run did the same at
+its own scale. **Neither asked.** Two independent models, no hesitation.
+
+**Why the product cannot object.** `gate approve` evaluates requirements and records a `Decision`,
+but by A29.2 / D1 it deliberately **does not write `status`** — that transition is "authored". The
+design assumed the author is a human ratifying work. Nothing enforces or records *who* authored it.
+So the approved state that gates `ngrace plan new` (`change.plan-requires-approved-spec`) and
+`gate apply` is, for an autonomous agent, **a self-certification** — the same actor writing both the
+claim and its ratification.
+
+**This is [F38](#f38)'s shape at the level above.** F38 found D12's approve gate vacuous because the
+element it read could never be authored; the gate fired on nothing. Here the gate fires correctly and
+the *state it guards* is writable by the party it is meant to constrain. A gate whose precondition the
+gated party can simply assert is not a gate — and the roadmap's own words for the failure this product
+exists to prevent are exactly this: **"an authored claim of doneness outrunning its evidence."**
+
+**Note what this does not mean.** The rule is not wrong: D1's asymmetry — apply has a machine-evaluable
+precondition, approve has none — is sound reasoning, and recorded as such. What is missing is that
+*because* approve has no machine-evaluable precondition, the product has **no evidence about it at all**
+and does not say so. It reports `approved` with the same confidence whether a human ratified it or the
+authoring agent typed it.
+
+**The honest options, none of them free.** (a) Record an attestation on the approve event — who, and by
+what claim — accepting that an agent can also lie in a field. (b) Detect the shape: spec authored and
+approved with no intervening act, and report it as an absence rather than a defect. (c) Say plainly, in
+`status` and in `review`, that approval is unverified — the [`RM-AGENT-RELIABILITY` D5] typed-absence
+answer, and the only one that costs nothing and claims nothing false. **(c) is the floor; anything else
+is additive.** This also intersects `RM-GITLESS-INTEGRITY`, which already records that `gate approve`
+keeps no fingerprint of the artifact it approved.
+
+**The rule.** When a transition is left to a human on purpose, **say what the product knows about it**
+— which is nothing. An unverifiable claim reported without qualification is indistinguishable from a
+verified one, and the party best placed to exploit that is the agent the governance exists to
+constrain.
+
+### D18 — `gate approve` becomes the sanctioned writer of `draft → approved`, and records what it approved
+
+**Decided 2026-08-14 by the maintainer**, on the evidence of [F88](#f88).
+
+**The decision.** `ngrace gate approve` writes `status="approved"` onto the spec and records, on the
+approve event, a **fingerprint of the artifact it approved**. A `status="approved"` that carries no
+matching approval record — or whose fingerprint no longer matches the bytes — is a reportable defect,
+the shape P3.7 already proposes for a hand-written `applied`. A non-interactive escape hatch ships
+**with** the change, not after it, following [D1.5](#d1)'s precedent: it records the approval as
+forced, with an operator-supplied reason.
+
+**Why.** Two independent models adopting GRACE on a real repository each wrote `status="approved"`
+onto the spec they had just authored, in the same commit, without asking anyone (F88). Neither
+hesitated. The approved state gates `ngrace plan new` and `gate apply`, so for an autonomous agent it
+was the same actor writing both the claim and its ratification — **"an authored claim of doneness
+outrunning its evidence"**, which is the roadmap's own phrase for the failure this product exists to
+prevent.
+
+**What this changes about [D1](#d1), precisely.** D1 said the tool is the **only sanctioned writer of
+`approved → applied`**, and left `draft → approved` authored, reasoning that *apply has a
+machine-evaluable precondition — the gate — and approve has none.* **That reasoning was correct and is
+not overturned.** What it did not anticipate is the consequence: because approve had no
+machine-evaluable precondition, the product held **no evidence about it at all**, and printed
+`approved` with identical confidence whether a human ratified it or the authoring agent typed it. D18
+does not claim to have found a machine-evaluable precondition for human judgement. It **narrows the
+unverifiable region**: the tool now records *that* an approval was performed and *what bytes* it
+covered, leaving only *whether the human actually read them* outside the record — and says so rather
+than implying otherwise.
+
+**What this deliberately does not claim.** This is **tamper-evidence, not enforcement.** A single
+actor with write access can still author the status, the record, and the fingerprint. What changes is
+that forging approval becomes a **deliberate, visible act** rather than the default one — today,
+writing `approved` is *easier* than asking. Do not let the change be reported as
+"human-in-the-loop enforced"; verifiable approval needs a party the agent is not, which is recorded
+separately as [`RM-VERIFIED-APPROVAL`](../RM-VERIFIED-APPROVAL/review.md).
+
+**This decision is revisable, and here is what would revise it.** If `RM-VERIFIED-APPROVAL` ships —
+an external service issuing one-time codes bound to an artifact fingerprint — the write path and the
+attestation format both change, and D18's fingerprint record becomes the local half of a two-party
+scheme rather than the whole of it. If measurement shows approvals are frequent enough to be pasted
+unread, the correct response is to **narrow what requires ratification**, not to strengthen the
+mechanism. And if a later reader finds that requiring the CLI to write status blocks a legitimate
+workflow the escape hatch does not cover, that is evidence against this shape, not a reason to
+hand-write around it — **amend the decision instead.**
+
+**Sequencing.** The repo-local floor ships first and independently of any service: it needs no new
+trust boundary, and it is the half that would have caught both measured runs, since **neither ever
+requested an approval at all**. A future service that ships without the detection half has not fixed
+F88.
+
+### F87.1 correction — lint does validate; it trusts a validator that is not XML 1.0 conformant. **[verified]**
+
+[F87](#f87) said lint *"still does not check XML well-formedness."* **The symptom was right and the
+mechanism was wrong**, which matters because it changes what the repair is.
+
+**Measured.** `parseGraceXmlArtifact` already calls `XMLValidator.validate` on **every** artifact
+(`src/artifact/xml.ts:87-89`) and emits `xml.parse` on failure. Lint is not skipping validation. It is
+trusting `fast-xml-parser`, and that implementation is **not conformant**. A differential against a
+conformant parser over the same samples disagrees on four cases — `fast-xml-parser` **accepts** all
+four:
+
+| case | fast-xml-parser | conformant |
+|---|---|---|
+| `&mdash;` in text | accept | reject — undefined entity |
+| `&nbsp;` in an attribute value | accept | reject — undefined entity |
+| `--` inside a comment body | accept | reject — not well-formed |
+| **two root elements** | **accept** | reject — junk after document element |
+
+**So "turn the validator on" is not the fix — it is already on.** This is a parser-conformance
+decision, not a wiring change.
+
+**And the shape of the existing workaround is now explicable.** P1.13's `xml.comment-not-well-formed`
+is a hand-rolled string scan for `--` plus a nine-path escape hatch. It exists **because the vendored
+validator misses that case too** — P1.13 met this same leniency, patched the one instance it had
+found, and left the general defect. That is [F46](#f46)/[F49](#f49)/[F52](#f52)'s pattern with its
+cause visible in the source.
+
+**The corpus is far cleaner than F87 implied.** Of **199** XML files, **9 fail** a conformant parse —
+all one cause (`--` in comment bodies, from CLI flags written inside comments), all in archived plans.
+`COMMENT_WELL_FORMED_PATH_ALLOWLIST` (`src/artifact/xml.ts:39-49`) names **exactly those nine**: set
+equality, not overlap. Both skill template trees pass. **No migration strategy is needed** — the open
+question is only whether to repair the nine and delete the allowlist, or widen the allowlist to cover
+`xml.parse` as well. Note the allowlist currently suppresses only the comment rule, so under a
+conformant parser those nine would fail at `xml.parse` and lose **all** downstream grammar checking,
+since that path returns `root: null`.
+
+**Two things the sweep surfaced that no finding had.** `allowBooleanAttributes: true`
+(`src/artifact/xml.ts:88`) is a **deliberate non-conformance already in the configuration** — a
+conformant parser rejects bare attributes, so any swap needs a decision on whether GRACE artifacts may
+use them. And **a file with two root elements is accepted today**: a concatenated or duplicated
+artifact is a corruption mode nothing in the product catches.
+
+**The rule.** When a checker is found to miss a case, establish **whether it ran and was wrong** or
+**never ran** before naming the defect — the repairs are different, and "it does not check" reads as a
+wiring bug when the real answer is that the dependency's semantics differ from the standard the
+product claims. Where a claim rests on a vendored implementation, **test the vendor against the
+standard**, not the product against itself.

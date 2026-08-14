@@ -460,7 +460,8 @@ while every planted real violation is still caught.**
 verification" can no longer drift from "executed verification" undetected.
 
 1. **`ngrace lifecycle finish --change C-ID`.** One operation that, after a permitting
-   `gate apply`: folds any loose epoch (via P0.6), sets `status="applied"` on spec and plan,
+   `gate apply`: folds any loose epoch (via P0.6 — **recovery paths only; see F86**, since the
+   archive gate already requires `no-open-epoch`), sets `status="applied"` on spec and plan,
    moves the bundle to `archive/`, and records each action in the run-ledger. `--dry-run`
    prints the full mutation list and is the default in any ambiguous state. Gate output
    learns to print `next: ngrace lifecycle finish --change C-ID`.
@@ -526,9 +527,10 @@ verification" can no longer drift from "executed verification" undetected.
    the entire value D1 claims.
 
    **Not retroactive (D1.4, F1).** The finding fires only where the ledger carries an approve event
-   from the gate surface. Measured 2026-08-09: **all sixteen** archived bundles in this repository
-   are hand-written `applied`, and three carry no ledger at all. A naive rule reports sixteen
-   violations against its own history on the day it ships.
+   from the gate surface. ~~Measured 2026-08-09: **all sixteen** archived bundles~~ — **stale, see
+   F86. Re-measured 2026-08-14: 43 archived bundles, 39 carrying a ledger**, and every one still
+   hand-written `applied`. A naive rule reports 43 violations against its own history on the day it
+   ships, against a corpus 2.7x the size this step was sized for.
 
    **Detection, not prevention (F2).** Nothing stops an agent writing seven characters into an XML
    file, and this repository already refused the posture that pretends otherwise (§5 R3). This
