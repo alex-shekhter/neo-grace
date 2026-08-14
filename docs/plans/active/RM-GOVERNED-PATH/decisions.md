@@ -5245,3 +5245,53 @@ keeps no fingerprint of the artifact it approved.
 — which is nothing. An unverifiable claim reported without qualification is indistinguishable from a
 verified one, and the party best placed to exploit that is the agent the governance exists to
 constrain.
+
+### D18 — `gate approve` becomes the sanctioned writer of `draft → approved`, and records what it approved
+
+**Decided 2026-08-14 by the maintainer**, on the evidence of [F88](#f88).
+
+**The decision.** `ngrace gate approve` writes `status="approved"` onto the spec and records, on the
+approve event, a **fingerprint of the artifact it approved**. A `status="approved"` that carries no
+matching approval record — or whose fingerprint no longer matches the bytes — is a reportable defect,
+the shape P3.7 already proposes for a hand-written `applied`. A non-interactive escape hatch ships
+**with** the change, not after it, following [D1.5](#d1)'s precedent: it records the approval as
+forced, with an operator-supplied reason.
+
+**Why.** Two independent models adopting GRACE on a real repository each wrote `status="approved"`
+onto the spec they had just authored, in the same commit, without asking anyone (F88). Neither
+hesitated. The approved state gates `ngrace plan new` and `gate apply`, so for an autonomous agent it
+was the same actor writing both the claim and its ratification — **"an authored claim of doneness
+outrunning its evidence"**, which is the roadmap's own phrase for the failure this product exists to
+prevent.
+
+**What this changes about [D1](#d1), precisely.** D1 said the tool is the **only sanctioned writer of
+`approved → applied`**, and left `draft → approved` authored, reasoning that *apply has a
+machine-evaluable precondition — the gate — and approve has none.* **That reasoning was correct and is
+not overturned.** What it did not anticipate is the consequence: because approve had no
+machine-evaluable precondition, the product held **no evidence about it at all**, and printed
+`approved` with identical confidence whether a human ratified it or the authoring agent typed it. D18
+does not claim to have found a machine-evaluable precondition for human judgement. It **narrows the
+unverifiable region**: the tool now records *that* an approval was performed and *what bytes* it
+covered, leaving only *whether the human actually read them* outside the record — and says so rather
+than implying otherwise.
+
+**What this deliberately does not claim.** This is **tamper-evidence, not enforcement.** A single
+actor with write access can still author the status, the record, and the fingerprint. What changes is
+that forging approval becomes a **deliberate, visible act** rather than the default one — today,
+writing `approved` is *easier* than asking. Do not let the change be reported as
+"human-in-the-loop enforced"; verifiable approval needs a party the agent is not, which is recorded
+separately as [`RM-VERIFIED-APPROVAL`](../RM-VERIFIED-APPROVAL/review.md).
+
+**This decision is revisable, and here is what would revise it.** If `RM-VERIFIED-APPROVAL` ships —
+an external service issuing one-time codes bound to an artifact fingerprint — the write path and the
+attestation format both change, and D18's fingerprint record becomes the local half of a two-party
+scheme rather than the whole of it. If measurement shows approvals are frequent enough to be pasted
+unread, the correct response is to **narrow what requires ratification**, not to strengthen the
+mechanism. And if a later reader finds that requiring the CLI to write status blocks a legitimate
+workflow the escape hatch does not cover, that is evidence against this shape, not a reason to
+hand-write around it — **amend the decision instead.**
+
+**Sequencing.** The repo-local floor ships first and independently of any service: it needs no new
+trust boundary, and it is the half that would have caught both measured runs, since **neither ever
+requested an approval at all**. A future service that ships without the detection half has not fixed
+F88.
