@@ -11,6 +11,7 @@ import { allGateCodes, isGateIssueCode } from "./catalog";
 import {
   evaluateApproveGate,
   evaluateApplyGate,
+  evaluateApplyGateArtifact,
   evaluateArchiveGate,
   evaluateAttemptGate,
   evaluateGate,
@@ -407,6 +408,25 @@ describe("correction 64 — apply requires approved plan, not existsSync", () =>
     const planReq = result.requirements.find((r) => r.id === "plan-present");
     expect(planReq?.present).toBe(false);
     expect(planReq?.message).toMatch(/draft/);
+  });
+});
+
+describe("evaluateApplyGateArtifact", () => {
+  it("keeps plan-present and AC clarification and does not add review-verdict", () => {
+    const root = tempProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-GATE",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+    });
+    const artifact = evaluateApplyGateArtifact(root, "C-GATE");
+    expect(artifact.requirements.some((item) => item.id === "plan-present")).toBe(true);
+    expect(artifact.requirements.some((item) => item.id === "no-unresolved-satisfied-ac-clarification")).toBe(true);
+    expect(artifact.requirements.some((item) => item.id === "review-verdict")).toBe(false);
+    const composed = evaluateApplyGate(root, "C-GATE");
+    expect(composed.requirements.some((item) => item.id === "review-verdict")).toBe(true);
   });
 });
 

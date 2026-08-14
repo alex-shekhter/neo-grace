@@ -4752,3 +4752,40 @@ a compatibility break for any caller passing extra flags today.
 **The rule.** Before writing a criterion on "the CLI rejects X", run it and read the **message**. An
 exit code is a summary of everything the command did, so it can confirm a rejection that never
 happened.
+
+### F77 — the coverage report's class taxonomy is a hand-written conditional with no completeness guard. **[verified]**
+
+`C-AS-STATE` ships the `--as` coverage line — *"evaluated N rule classes; M classes not evaluable at
+this state"* — whose whole purpose is holding the tool's own coverage to the honesty rule it applies
+to everyone else. **The values are right and the mechanism can drift.**
+
+`applyAsStatePreview` (`src/lint/core.ts`) computes membership as a conditional over the requested
+status and whether a plan exists:
+
+```
+const ran = new Set(["artifact"]);
+if (… ARCHIVED_CHANGE_STATUSES.has(asStatus)) skipped.add("ledger-dependent");
+if (asStatus === "applied" || (asStatus === "approved" && planExists)) skipped.add("verification-runtime");
+```
+
+`AC-AS-ABSENCE-REPORT` requires *"N and M equal the derived class counts, not a frozen pair"*, and
+that is **satisfied**: the same status yields different M depending on real project state — `approved`
+without a plan is M=0, `approved` with one is M=1, `applied` is M=2 — which no status→M table could
+produce. The executor disclosed the gap rather than claiming instrumentation it had not built.
+
+**The residual risk is specific.** The class set is not derived from which evaluators actually ran; it
+is asserted alongside them. **Add a fourth impure class and this conditional will not mention it, M
+will silently under-count, and the coverage line will under-report the tool's own blindness** — the
+exact lie the step exists to prevent, in the feature built to prevent it. Nothing catches that: the
+tests pin membership per state (`src/lint/core.test.ts:565-579`), which is real discrimination, but
+**no test asserts the taxonomy is complete**, so a new class is invisible rather than red.
+
+**The rule.** A coverage report is only as honest as the enumeration behind it. When a summary counts
+*classes of work*, derive the count from the work — instrument the evaluators, or at minimum pin the
+class inventory so that adding a member without updating the reporter fails. A hand-maintained
+conditional describing what the code did is [F60](#f60)'s second inventory wearing a summary's
+clothes, and it fails silently in the direction of over-claiming.
+
+**Not fixed here** — instrumenting the evaluators is a re-spec, not a repair, and the shipped values
+are correct today. **Owed with the next change that touches the purity taxonomy**, and owed *before*
+any fourth class is introduced.

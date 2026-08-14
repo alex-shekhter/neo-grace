@@ -29,7 +29,13 @@ import { defineCommand, type CommandDef, runMain } from "citty";
 
 import { defineGraceCommand } from "./query/command";
 
+import { existsSync } from "node:fs";
+import path from "node:path";
+
+import { GRAMMAR_INVENTORIES } from "./artifact/grammar";
+import { ARTIFACT_DIR } from "./artifact/paths";
 import { isRegisteredSchemaShape, renderSchemaShape, SCHEMA_SHAPE_REGISTRY } from "./artifact/schema-reference";
+import { ANCHOR_PATTERNS, CHANGE_STATUSES } from "./artifact/types";
 import { classifyIssueCode, formatLintExplanation, getLintIssueGuide } from "./lint/catalog";
 import { formatTextReport, isValidTextFormat, lintGraceProject } from "./lint/core";
 import type { LintAssertionMode, LintOptions, LintProfile, LintResult } from "./lint/types";
@@ -84,6 +90,48 @@ function resolveAssertionMode(value: unknown): LintAssertionMode {
     throw new GraceCommandError("invalid-arguments", `Unsupported assertion mode \`${mode}\`. Use \`current\`, \`baseline\`, \`target\`, or \`final\`.`);
   }
   return mode;
+}
+
+const LINT_ASSERTION_MODES = new Set<string>(["current", "baseline", "target", "final"]);
+
+function resolveAsStatus(value: unknown): string {
+  const status = String(value);
+  if ((CHANGE_STATUSES as readonly string[]).includes(status)) {
+    return status;
+  }
+  if (LINT_ASSERTION_MODES.has(status)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Unsupported as status \`${status}\`. That token is an assertions mode. Use argv token as with a change status (${CHANGE_STATUSES.join(", ")}).`,
+    );
+  }
+  if (GRAMMAR_INVENTORIES.GATE_DECISION_GATES.has(status)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Unsupported as status \`${status}\`. That token is a gate verb. Use argv token as with a ChangeStatus (${CHANGE_STATUSES.join(", ")}).`,
+    );
+  }
+  throw new GraceCommandError(
+    "invalid-arguments",
+    `Unsupported as status \`${status}\`. Use ${CHANGE_STATUSES.join(", ")}.`,
+  );
+}
+
+function resolveAsChangeId(projectRoot: string, changeValue: unknown): string {
+  if (changeValue === undefined || changeValue === null || String(changeValue).trim() === "") {
+    throw new GraceCommandError("invalid-arguments", "argv token as requires argv token change naming a C-* bundle.");
+  }
+  const changeId = String(changeValue);
+  if (!ANCHOR_PATTERNS.change.test(changeId)) {
+    throw new GraceCommandError("invalid-arguments", `Selected change '${changeId}' must be a canonical C-* identifier.`);
+  }
+  const root = path.resolve(projectRoot);
+  const activeSpec = path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "spec.xml");
+  const archiveSpec = path.join(root, ARTIFACT_DIR, "changes", "archive", changeId, "spec.xml");
+  if (!existsSync(activeSpec) && !existsSync(archiveSpec)) {
+    throw new GraceCommandError("not-found", `Change ${changeId} was not found under active or archive.`);
+  }
+  return changeId;
 }
 
 function shouldFail(result: LintResult, failOn: string) {
@@ -154,6 +202,10 @@ export const lintCommand = defineGraceCommand({
       description: "Treat active-plan scope overlap as a parallel-execution blocker",
       default: false,
     },
+    as: {
+      type: "string",
+      description: "Preview artifact-pure rules as if the selected change carried this lifecycle status",
+    },
   },
   async run(context) {
     const errorFormat = context.args.format === "json" ? "json" : "text";
@@ -164,6 +216,21 @@ export const lintCommand = defineGraceCommand({
       const assertionMode = resolveAssertionMode(context.args.assertions);
       if (!isValidTextFormat(format)) {
         throw new GraceCommandError("invalid-arguments", `Unsupported format \`${format}\`. Use \`text\` or \`json\`.`);
+      }
+
+      if (context.args.as !== undefined) {
+        if (context.args.explain) {
+          throw new GraceCommandError("invalid-arguments", "argv token as cannot be combined with argv token explain.");
+        }
+        if (Boolean(context.args.runCommands)) {
+          throw new GraceCommandError("invalid-arguments", "argv token as cannot be combined with argv token runCommands.");
+        }
+        if (assertionMode !== "current") {
+          throw new GraceCommandError(
+            "invalid-arguments",
+            "argv token as cannot be combined with argv token assertions other than current.",
+          );
+        }
       }
 
       if (context.args.explain) {
@@ -205,12 +272,16 @@ export const lintCommand = defineGraceCommand({
         return;
       }
 
-      const result = lintGraceProject(String(context.args.path ?? "."), {
+      const projectRoot = String(context.args.path ?? ".");
+      const asStatus = context.args.as !== undefined ? resolveAsStatus(context.args.as) : undefined;
+      const asChangeId = asStatus !== undefined ? resolveAsChangeId(projectRoot, context.args.change) : undefined;
+      const result = lintGraceProject(projectRoot, {
         profile,
         assertionMode,
-        changeId: context.args.change ? String(context.args.change) : undefined,
+        changeId: asChangeId ?? (context.args.change ? String(context.args.change) : undefined),
         runCommands: Boolean(context.args.runCommands),
         parallelPreflight: Boolean(context.args.parallelPreflight),
+        asStatus,
       });
 
       if (format === "json") {

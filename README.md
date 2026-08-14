@@ -167,6 +167,7 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | `ngrace lint --path <root> --change C-ID --assertions baseline [--run-commands]` | Validate the immutable selected baseline before implementation; command assertions run only when explicitly enabled |
 | `ngrace lint --path <root> --change C-ID --assertions target --run-commands` | Validate selected target assertions and explicitly opt into `MustPassCommand` execution |
 | `ngrace lint --path <root> --change C-ID --assertions final [--run-commands]` | Run the final full-project gate, evaluate the selected target, and keep unrelated approved baselines active without re-evaluating the selected baseline |
+| `ngrace lint --path <root> --change C-ID --as <status>` | Preview artifact-pure lint and gate checks as if the selected change carried that lifecycle status; reports classes that cannot be evaluated |
 | `ngrace lint --path <root> --parallel-preflight` | Run the explicit approved-plan scope coexistence gate required for parallel-safe execution |
 | `ngrace status --path <root>` | Report durable health, stale plans, scope conflicts, and explained/unexplained observed git drift |
 | `ngrace module find <query> --path <root>` | Search graph projection modules by id, path, text, dependency, or verification id |

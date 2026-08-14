@@ -914,6 +914,20 @@ describe("README CLI Overview lists every live invocation", () => {
   });
 });
 
+describe("README CLI Overview documents argv token as", () => {
+  it("contains a lint row whose first ngrace cell names the as argv token", () => {
+    const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");
+    const afterHeading = readme.split("## CLI Overview\n")[1];
+    const overview = afterHeading?.split(/^## /m)[0] ?? "";
+    const rows = overview.split("\n").filter((line) => line.startsWith("| `ngrace "));
+    const asRow = rows.find((line) => {
+      const cell = line.match(/`([^`]+)`/)?.[1] ?? "";
+      return /\blint\b/.test(cell) && /(^|\s)--as(\s|$)/.test(cell);
+    });
+    expect(asRow).toBeDefined();
+  });
+});
+
 describe("listLiveInvocations", () => {
   it("treats a root with no subCommands as one invocation", () => {
     const command = { args: { json: { type: "boolean" as const, default: false } } };
