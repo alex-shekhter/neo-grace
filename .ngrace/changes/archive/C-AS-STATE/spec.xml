@@ -1,0 +1,1108 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-AS-STATE>
+    <Summary>
+      Deliver RM-GOVERNED-PATH P1 step 6: an
+      as-state lint preview. Argv token as
+      takes a ChangeStatus from the live
+      CHANGE_STATUSES export, evaluates only
+      artifact-pure rules against a virtual
+      status and the location that status
+      set implies, and reports derived N/M
+      coverage so silence cannot read as
+      will pass. Target and final are not
+      accepted values: they are already
+      LintAssertionMode members, and
+      validateAssertions is impure. P2 is
+      out.
+    </Summary>
+    <Problem>
+      **Shared shape.** P1.6 asks lint to
+      preview the rules that fire at
+      "approve / target / final" of a
+      hand-edited draft. Generators already
+      cover write-time. This is
+      evolution-time. Authoring HEAD
+      a7925cf on feat/as-state, packaged
+      6.2.0, lint 0/0, archive 37, active
+      empty before this bundle, suite 1389
+      pass / 3 skip / 0 fail. Those
+      numbers are a snapshot (F33).
+
+      ---
+
+      **The step's vocabulary is
+      incoherent, measured.** approve is a
+      gate (ngrace gate approve, apply,
+      archive). target and final are
+      LintAssertionMode members (current,
+      baseline, target, final at
+      src/lint/types.ts:38; argv token
+      assertions at
+      src/grace-lint.ts:142-147). Shipping
+      lint with argv token as taking
+      target would sit beside lint with
+      argv token assertions taking target
+      and mean something else. Three
+      roadmap claims in this phase have
+      already failed construction (P1.11
+      permanently blocked, P1.4 zero-depth
+      globstar, P1.8 delayed IMPL=0
+      mystery). This sentence is the
+      fourth candidate.
+
+      ---
+
+      **The purity bound forbids the
+      target/final half.** validateAssertions
+      (src/lint/core.ts:317-410) needs
+      GraphProjection and
+      VerificationProjection and, with
+      runCommands, shells out and appends
+      to the run ledger
+      (appendCommandRunEvent, :333-336).
+      An approximate as-state of those
+      rules would be an authored claim of
+      doneness outrunning its evidence.
+      The step itself says that is
+      permanent, not a v1 compromise. So
+      the roadmap's own target/final
+      values are unsatisfiable under the
+      roadmap's own purity bound.
+
+      ---
+
+      **What the product actually has.**
+      CHANGE_STATUSES is draft, approved,
+      applied, rejected, cancelled,
+      superseded (src/artifact/types.ts:134-142).
+      Active = draft, approved. Archived =
+      applied, rejected, cancelled,
+      superseded. Eight status-gated lint
+      checks are all pure (they read
+      status attributes and location).
+      evaluateApproveGate
+      (src/gates/core.ts:258) is
+      artifact-only.
+      evaluateApplyGate (:300) is mixed:
+      plan-present and the AC
+      clarification check are
+      artifact-only; review-verdict and
+      host-capability read the ledger.
+      evaluateArchiveGate (:408) is
+      ledger-only. No shipped feature
+      previews a future lifecycle status.
+
+      ---
+
+      **There is no typed-absence text
+      surface.** formatTextReport
+      (src/lint/core.ts:604-654) renders
+      every issue identically and never
+      reads issueClass. JSON carries
+      issueClass only as a field on
+      LintIssue. grace-doctor's
+      partitionAbsenceIssues /
+      absenceCountsByReason
+      (src/grace-doctor.ts:83-98) is a
+      filtered list plus counts by code,
+      not an evaluated-N / not-evaluable-M
+      sentence. The absence report has to
+      build its surface.
+
+      ---
+
+      **D13 blocks the obvious JSON
+      home.** LintResult top-level keys
+      are pinned exactly at
+      src/lint/core.test.ts:383-408.
+      Putting asStatus beside
+      assertionMode would fail that pin.
+      A WeakMap (D13's answer for the
+      baseline count) cannot appear in
+      JSON, and JSON silence would read
+      as will pass. The nest must live
+      under summary. finalizeResult
+      (src/lint/core.ts:100-104)
+      currently rebuilds summary as
+      exactly issues, errors, warnings
+      and would drop a nest that is not
+      written back.
+
+      ---
+
+      **F66.** This spec must decide
+      README.md and examples/ in a Goal,
+      Constraint, or NonGoal body.
+      README.md is in scope. examples/
+      is unchanged.
+
+      ---
+
+      **F70 residue.** The README check
+      now walks live invocations. Flags
+      are still not covered. A new as
+      row can go undocumented without
+      failing the check.
+
+      ---
+
+      **F61.** xml.comment-not-well-formed
+      is error severity. This spec names
+      argv tokens and exported functions
+      in any comment body and does not
+      write dashed CLI flags inside XML
+      comments.
+    </Problem>
+    <Goals>
+      <Goal>
+        **As-state preview.** lint
+        argv token as takes a
+        ChangeStatus from the live
+        CHANGE_STATUSES export and
+        evaluates the selected change
+        under the artifact-pure rules
+        that that status would invoke,
+        without writing disk.
+      </Goal>
+      <Goal>
+        **Derived absence report.**
+        Text and JSON both report
+        evaluated N rule classes and M
+        classes not evaluable at this
+        state, with typed reasons.
+        N and M are derived from
+        evaluation entry-point purity,
+        never hand-listed and never
+        frozen (F60, F33).
+      </Goal>
+      <Goal>
+        **README.md documents the flag.**
+        The CLI Overview gains a table
+        row whose first ngrace token
+        cell names lint and the as
+        argv token. F70 flag-coverage
+        residue is not repaired here.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: RM-GOVERNED-PATH P1
+        step 6; plan.md section 2 P1
+        purity bound and absence
+        reporting; D5 typed-absence
+        (one value plus a required
+        reason; silence is not an
+        answer); D5.2 (this preview
+        does not turn a legitimate
+        working state into an error);
+        D5.5 (CHANGELOG.md is
+        generated; the new flag is
+        named in the commit body);
+        D13 (no new LintResult JSON
+        top-level key); F10 (claim
+        only what the body verifies);
+        F27.2 and F64
+        (ObservedWriteScope covers
+        every path the deliverable
+        forces); F33 (do not freeze
+        1389, 37, 25, 806, 55043, 4
+        absence codes, N, M, or any
+        line number this change
+        moves); F42 (no MustContain
+        or MustNotContain needle that
+        README.md, a skill, a
+        template, or a skeleton may
+        legitimately contain); F43
+        (this artifact binds
+        semantics; tests assert
+        literal bytes); F44 (pin
+        where a user-visible string
+        appears); F51
+        (token-accounting.test.ts
+        and README.md are forced
+        writes if any SKILL.md
+        moves); F52
+        (change.plan-scope-exceeds-spec
+        compares DurableScope anchors
+        at warning); F56 / F67
+        (signatureKey names the
+        property, not the test file
+        stem); F61 (no two adjacent
+        hyphens in any XML comment
+        body); F66 (this spec decides
+        README.md and examples/);
+        F68 (two planned reds are
+        independently observable);
+        F70 residue (flag rows are
+        not covered by the
+        invocation check; named
+        NonGoal); F73 (any emitted
+        path is project-relative
+        POSIX at the emission site;
+        CI is the only observer that
+        can check separators). D16
+        (evidence lives in an
+        artifact). D17 (AC ids name
+        the property).
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T2** (new
+        string flag on lint, a JSON
+        nest under summary, a text
+        coverage line, a gate
+        artifact-pure split, and a
+        README.md row). P2 is out.
+      </Constraint>
+      <Constraint>
+        **Decided here — vocabulary.**
+        Argv token as is a string
+        option on lint, matching
+        change, explain, profile,
+        failOn, and assertions. It
+        will not move the boolean-site
+        pin (25 at this HEAD).
+        Accepted values are exactly
+        the members of the live
+        CHANGE_STATUSES export. Do
+        not hand-copy the six names
+        into a second list (F60).
+        Refuse any other token as
+        invalid-arguments before lint
+        runs. The refusal names the
+        accepted members by reading
+        that export. When the
+        rejected token is a
+        LintAssertionMode member, the
+        message also names argv token
+        assertions as the flag that
+        already takes that token.
+        When the rejected token is a
+        live gate name (the same
+        inventory ngrace gate
+        already walks), the message
+        says that token is a gate
+        verb and this flag takes a
+        ChangeStatus. Those two
+        refusal shapes must be able
+        to fail alone (F68). This is
+        why the roadmap's approve /
+        target / final set is
+        rejected: approve is a gate
+        verb; target and final are
+        already assertion modes; and
+        validateAssertions cannot be
+        previewed honestly.
+      </Constraint>
+      <Constraint>
+        **Decided here — selection.**
+        Argv token as requires argv
+        token change. Missing change,
+        a non-canonical id, or a
+        bundle that exists in neither
+        active nor archive is
+        invalid-arguments (or
+        not-found) at the CLI, before
+        lint runs. Do not reuse
+        resolveSelectedApprovedPlan:
+        that helper demands an
+        approved spec and plan pair
+        (src/lint/core.ts:459-476),
+        which is exactly the state a
+        draft preview is not in
+        (F4). The as-state resolver
+        accepts a spec-only draft
+        and accepts an archived
+        bundle. Parallel-preflight,
+        remediate, failOn, and format
+        compose. Argv token as
+        combined with assertions
+        other than current, with
+        runCommands, or with explain,
+        is invalid-arguments. Default
+        assertions current (omitted
+        or explicit) is the legal
+        companion. Explain currently
+        short-circuits and would
+        silently ignore as; refuse
+        rather than ignore.
+      </Constraint>
+      <Constraint>
+        **Decided here — purity
+        partition.** A rule class is
+        a purity class of an
+        evaluation entry point, not
+        an issue-code family and not
+        a hand-maintained inventory
+        of the eight status-gated
+        checks. Classify by closed-over
+        inputs. Artifact-pure: reads
+        only parsed artifact XML
+        (status overlay in memory)
+        plus the location implied by
+        which of ACTIVE_CHANGE_STATUSES
+        or ARCHIVED_CHANGE_STATUSES
+        contains the requested
+        status. Ledger-dependent:
+        reads run-ledger, run/, or
+        review verdicts.
+        Verification-runtime:
+        validateAssertions
+        (projections, optional
+        command execution, optional
+        appendCommandRunEvent). N is
+        the count of evaluable purity
+        classes that ran. M is the
+        count of non-pure classes
+        that the requested status
+        would invoke and that this
+        run did not invoke. Do not
+        freeze N or M (F33). Do not
+        publish a list of issue
+        codes as the previewable set
+        (F60). Membership follows
+        the function that ran: split
+        evaluateApplyGate so the
+        artifact-pure half
+        (plan-present and the AC
+        clarification check) is a
+        distinct entry point and the
+        ledger half (review-verdict,
+        host-capability) is another;
+        evaluateApplyGate composes
+        both and keeps today's
+        public result.
+        evaluateApproveGate is
+        already artifact-pure; call
+        it. evaluateArchiveGate is
+        entirely ledger-dependent;
+        do not call it under as.
+        validateAssertions keeps
+        running against real disk
+        status for the rest of the
+        project; the selected
+        change's would-be semantic
+        assertion evaluation is
+        counted in M, never faked.
+        Overlay status only on the
+        selected change's spec and
+        plan, never on
+        design-context or on an
+        artifact that forbids a
+        status attribute.
+      </Constraint>
+      <Constraint>
+        **Decided here — N/M
+        surface.** Text: when as is
+        set, formatTextReport prints
+        one coverage line immediately
+        after the Warnings header
+        line and immediately before
+        the blank line that precedes
+        either No issues found. or
+        Issues (F44). The line is
+        present on the zero-issue
+        path. It is not a footer
+        after the explain pointers
+        and not a lead before the
+        title. Semantics: evaluated
+        N rule classes; M classes
+        not evaluable at this state,
+        plus the typed reasons when
+        M is greater than zero. Tests
+        assert the rendered bytes
+        (F43). JSON: when as is set,
+        summary gains an asState
+        object holding status (the
+        requested ChangeStatus),
+        evaluatedRuleClasses (N),
+        unevaluableRuleClasses (M),
+        and unevaluable (the derived
+        reason strings, sorted).
+        When as is not set, summary
+        stays issues, errors,
+        warnings only. No new
+        LintResult top-level key,
+        including under as (D13).
+        Do not use a WeakMap: that
+        home cannot appear in JSON
+        and would recreate the
+        silence this step exists to
+        prevent. Do not emit N/M as
+        LintIssue rows: that would
+        move summary.errors /
+        summary.warnings and failOn
+        for a coverage fact. Do not
+        add a lint issue code for
+        the coverage line.
+        finalizeResult must write
+        the nest back when it
+        rebuilds summary. Gate
+        preview issues reuse
+        existing gate codes; any
+        file field this path adds
+        is project-relative POSIX at
+        the emission site (F73).
+      </Constraint>
+      <Constraint>
+        **Decided here — no
+        mutation.** Argv token as
+        never writes a status
+        attribute, never moves a
+        bundle, never creates or
+        appends a ledger event, and
+        never calls
+        appendCommandRunEvent. The
+        as-state path never
+        constructs onCommandRun.
+        Combined with runCommands is
+        already refused. Enforcement
+        is a fixture whose
+        spec.xml, plan.xml if any,
+        and run-ledger.xml / run/
+        digest are byte-identical
+        after the invocation, plus
+        the existing writeFileSync
+        inventory staying green
+        because this path adds no
+        writer. Do not add a
+        writeFileSync to lint.
+      </Constraint>
+      <Constraint>
+        **Decided here — F56 / F67 /
+        F68.** signatureKey names
+        the property: as-vocabulary,
+        as-pure-preview,
+        as-absence-report,
+        readme-as-row. Do not key on
+        a test file stem. Two
+        planned reds in one task
+        must be able to fail alone:
+        the assertions-mode refusal
+        and the gate-verb refusal
+        are separate reds; the D13
+        top-level pin under as and
+        the asState nest are
+        separate reds. A task may
+        plan at most three distinct
+        kind-plus-key pairs. The
+        boolean site count pin is
+        re-measured only if a
+        boolean lands; a string as
+        must not move it.
+      </Constraint>
+      <Constraint>
+        AffectedAreas names modules.
+        File-level scope is enforced
+        at close by
+        review.write-evidence-outside-scope
+        (error), not at authoring
+        (F52). ObservedWriteScope
+        must still list every path
+        the deliverable forces
+        (F27.2, F64). Forced write
+        surface: src/grace-lint.ts
+        (string arg as, resolve
+        against CHANGE_STATUSES,
+        combo refusals, change
+        resolver that is not
+        resolveSelectedApprovedPlan);
+        src/lint/types.ts
+        (LintOptions.asStatus as
+        string; optional
+        summary.asState nest;
+        MODULE_MAP gains no new
+        export); src/lint/core.ts
+        (overlay, gate artifact-pure
+        call, N/M derivation,
+        finalizeResult preserves
+        asState, formatTextReport
+        line); src/lint/core.test.ts
+        (D13 pin still exact under
+        as; asState nest; text
+        position); src/grace-lint.test.ts
+        (CLI refusals, preview
+        cases, no-mutation digest);
+        src/gates/core.ts (apply
+        split; evaluateApplyGate
+        composes; MODULE_MAP gains
+        the artifact-pure export if
+        one is added);
+        src/gates/core.test.ts
+        (composition preserves
+        today's apply result;
+        artifact-only path does not
+        read the ledger);
+        src/artifact/grammar.ts
+        and src/artifact/grammar.test.ts
+        if the overlay needs a
+        validateNgraceProject hook
+        (default path, no as, stays
+        behaviour-identical);
+        README.md (one CLI Overview
+        table row naming lint and
+        the as argv token; F51
+        totals only if a SKILL.md
+        moves);
+        scripts/packed-cli-smoke.ts
+        only if a case is added
+        beside the existing lint
+        case;
+        this bundle's spec.xml and
+        plan.xml.
+        **Stop and re-spec** rather
+        than touching
+        listAbsenceCatalogCodes,
+        validateAssertions
+        semantics for non-as runs,
+        src/lint/types.ts
+        LintResult top-level keys,
+        the boolean-site pin via a
+        new boolean, the live
+        invocation walker,
+        src/project-utils.ts,
+        ngrace-execute SKILL.md,
+        examples/, docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md, or any
+        version surface.
+      </Constraint>
+      <Constraint>
+        **Do not edit** docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md, or any version
+        surface. Packaged version at
+        authoring: **6.2.0**. No
+        product version bump — 6.3.0
+        is a phase target, not this
+        bundle's act.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine for this
+        bundle: red-first is
+        mechanical for new
+        behaviour. Failing tests are
+        written before the fail
+        attempt is recorded, in a
+        separate tool round trip.
+        Never a retrospective red
+        via stash. Never weaken a
+        BaselineAssertion to move a
+        lint count. F51 totals are
+        re-measured after any skill
+        edit. F42: plan assertions
+        bind to exported function
+        names, issue codes, JSON
+        keys (asState,
+        evaluatedRuleClasses,
+        unevaluableRuleClasses),
+        and CHANGE_STATUSES, not to
+        AC ids, README row prose, or
+        the coverage sentence as a
+        free needle. F61: this
+        bundle's artifacts must not
+        hold two adjacent hyphen
+        characters inside any XML
+        comment body. F73: if a
+        test compares an emitted
+        path, the production
+        emission is already POSIX
+        project-relative; state in
+        the close verdict that CI
+        is the only observer of
+        separators.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Previewing LintAssertionMode
+        values (current, baseline,
+        target, final) under argv
+        token as. validateAssertions
+        is impure. Use argv token
+        assertions for those modes.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no
+        example tree documents
+        as-state evaluation. The
+        examples/cli lint lines
+        teach assertion-mode
+        lifecycle gates; putting as
+        there would recreate the
+        vocabulary mix. Not a
+        user-visible example surface
+        this bundle owns.
+      </NonGoal>
+      <NonGoal>
+        F70 flag-coverage residue.
+        The README invocation check
+        stays an invocation check.
+        This bundle documents the
+        as row; it does not widen
+        the check to flags.
+      </NonGoal>
+      <NonGoal>
+        A new LintResult top-level
+        key, a new lint issue code
+        for the coverage line, an
+        NGRACE_ARTIFACT_VERSION
+        bump, or a package.json
+        version bump. D13 stands.
+        6.3.0 is the phase target.
+      </NonGoal>
+      <NonGoal>
+        Editing ngrace-cli or
+        ngrace-execute SKILL.md.
+        Command inventory stays the
+        README.md CLI Overview
+        table. Assertion-mode
+        workflow is not this flag.
+      </NonGoal>
+      <NonGoal>
+        P2 review honesty, P3
+        lifecycle finish / plan
+        amend / hand-written status
+        detection, P4 adoption.
+        This is P1's last step.
+        Conflict: this bundle does
+        not close 6.3.0 and does
+        not edit docs/plans/**.
+      </NonGoal>
+      <NonGoal>
+        Mutating disk, recording a
+        gate decision, or calling
+        appendCommandRunEvent from
+        the as-state path.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-AS-VOCABULARY>
+        lint argv token as accepts
+        exactly the live
+        CHANGE_STATUSES members and
+        requires argv token change
+        naming a bundle that exists
+        under active or archive,
+        including a spec-only draft.
+        It refuses, as
+        invalid-arguments before
+        lint runs, a token that is
+        not in CHANGE_STATUSES, a
+        missing change, a
+        non-canonical change id, a
+        missing bundle, assertions
+        other than current,
+        runCommands, and explain.
+        A rejected LintAssertionMode
+        token names argv token
+        assertions. A rejected live
+        gate name names the gate
+        verb. resolveSelectedApprovedPlan
+        is not the resolver.
+        Parallel-preflight,
+        remediate, failOn, and
+        format still compose.
+        **HEAD today:** lint has no
+        as arg; unknown as is an
+        unknown-flag failure, not
+        this refusal.
+        **Failure conditions:**
+        accepting target, final, or
+        approve; shipping as target
+        beside assertions target;
+        reusing the approved-pair
+        resolver so a draft cannot
+        be previewed; silently
+        ignoring as when explain is
+        also set; a hand-copied
+        status list that can drift
+        from CHANGE_STATUSES.
+      </AC-AS-VOCABULARY>
+      <AC-AS-PURE-PREVIEW>
+        For the selected change,
+        status-gated and
+        location-gated issues match
+        validateChangeArtifact as if
+        that change's spec and plan
+        carried the requested
+        status and the location
+        implied by
+        ACTIVE_CHANGE_STATUSES /
+        ARCHIVED_CHANGE_STATUSES.
+        Artifact-pure gate
+        requirements that fire at
+        the transition to that
+        status run (approve in
+        full; apply via the new
+        artifact-pure entry point).
+        Ledger-dependent and
+        verification-runtime
+        classes do not run under
+        as and are not approximated.
+        evaluateApplyGate's public
+        result without as is
+        unchanged. The invocation
+        writes no file and does not
+        call appendCommandRunEvent;
+        spec, plan, and ledger
+        bytes are identical after.
+        Design-context and
+        forbidden-status artifacts
+        are not given a status.
+        **HEAD today:** no overlay;
+        apply is one mixed
+        function; lint with
+        runCommands can append a
+        ledger event.
+        **Failure conditions:**
+        hand-listed eight-code
+        inventory sold as the
+        previewable set; virtual
+        target/final assertion
+        evaluation; apply artifact
+        half skipped while still
+        counting it as evaluated;
+        disk status or location
+        mutated; onCommandRun
+        constructed on the as
+        path; adding writeFileSync
+        under src/lint.
+      </AC-AS-PURE-PREVIEW>
+      <AC-AS-ABSENCE-REPORT>
+        When as is set, text lint
+        prints the derived N/M
+        coverage line immediately
+        after the Warnings header
+        line and immediately before
+        the blank line that
+        precedes No issues found.
+        or Issues, including when
+        there are zero issues
+        (F44). JSON of the same
+        result has no new top-level
+        key (D13), including
+        versus the pinned set at
+        src/lint/core.test.ts:383-408.
+        summary.asState holds
+        status, evaluatedRuleClasses,
+        unevaluableRuleClasses, and
+        unevaluable. Without as,
+        summary has no asState
+        key. N and M equal the
+        derived class counts, not a
+        frozen pair. Unevaluable
+        reasons are the skipped
+        non-pure class names, not
+        a parenthetical that always
+        prints both. N/M is not a
+        LintIssue and does not
+        move summary.errors or
+        failOn. The D13 pin and
+        the nest are independently
+        observable (F68).
+        **HEAD today:**
+        formatTextReport never
+        reads issueClass;
+        finalizeResult rebuilds
+        summary as three keys;
+        no asState.
+        **Failure conditions:**
+        top-level asStatus or
+        asState; WeakMap-only
+        (JSON silent); coverage
+        line only in a footer or
+        only when issues exist;
+        N/M frozen in a criterion;
+        emitting the line as an
+        issue that changes
+        failOn; dropping asState
+        in finalizeResult.
+      </AC-AS-ABSENCE-REPORT>
+      <AC-README-AS-ROW>
+        README.md CLI Overview
+        tables contain a row whose
+        first ngrace token cell
+        names lint and the as argv
+        token (same table-row
+        prefix the invocation
+        check already reads). The
+        invocation walker is not
+        widened to flags (F70
+        residue, named NonGoal).
+        examples/ is unchanged.
+        ngrace-cli SKILL.md is
+        unchanged. validate:marketplace
+        stays green without a
+        skill move.
+        **HEAD today:** four lint
+        assertion-mode rows; no as
+        row; flag absence cannot
+        fail the check.
+        **Failure conditions:**
+        undocumented as; as
+        mentioned only outside
+        CLI Overview; row count
+        frozen in a criterion;
+        examples/ edited;
+        skill edited and F51
+        left stale.
+      </AC-README-AS-ROW>
+      <AC-HEAD-RED>
+        Each of AC-AS-VOCABULARY,
+        AC-AS-PURE-PREVIEW,
+        AC-AS-ABSENCE-REPORT, and
+        AC-README-AS-ROW has a red
+        recorded before its
+        production edit, in its
+        own tool round trip, with
+        the failing test written
+        first, under the signature
+        keys named above. Never a
+        red backed only by a grep,
+        and never a retrospective
+        red via stash.
+        **Exempt (F45, named at
+        authoring):**
+        AC-SUITE-AND-LINT (green
+        at HEAD; close-time bar);
+        F51 totals moving; boolean
+        site count unmoved;
+        absence-code list unmoved;
+        live invocation list
+        unmoved; README row count;
+        examples/ staying out;
+        package.json version
+        unchanged.
+        **HEAD today:** no as
+        arg; no overlay; no N/M
+        line; no asState; no
+        README as row.
+        **Failure conditions:** a
+        check that passes on
+        pre-change HEAD sold as
+        new behaviour; fail and
+        pass in one tool call;
+        AC-SUITE-AND-LINT required
+        to be red at HEAD; the
+        assertions-mode refusal
+        and the gate-verb refusal
+        reddened so the second
+        fails naming the first
+        (F68).
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-LINT>
+        bun test green for touched
+        packages (grace-lint, lint
+        core, gates core, grammar
+        if edited, packed smoke if
+        edited, token-accounting
+        if a skill moved, command
+        if README checks moved,
+        and any other test this
+        deliverable forces);
+        bun run validate:ci green
+        (re-measure ratchet
+        cardinality; do not drop
+        keys); bun run ngrace lint
+        --path . is 0 errors and 0
+        warnings **at close**
+        (after apply and archive,
+        not claimed mid-change);
+        bun run
+        validate:marketplace
+        green if a skill moved.
+        ObservedWriteScope covers
+        every path the deliverable
+        forces, including the F64
+        list above. No docs/plans
+        or archive edits. No
+        CHANGELOG. No version
+        surfaces. Boolean site
+        count unmoved. Absence
+        catalog unmoved. D13
+        top-level key set
+        unmoved.
+        **HEAD today:** lint is
+        0/0 and validate:ci is
+        green — that green is the
+        baseline, not this
+        change's evidence.
+        **Failure conditions:**
+        suite red; lint 0/0
+        claimed mid-window; F51
+        pin left stale after a
+        skill edit; writes
+        outside declared scope;
+        pin deleted or loosened;
+        D13 expectedKeys
+        extended with a new
+        top-level name;
+        listAbsenceCatalogCodes
+        extended for the coverage
+        line.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-LINT-CORE />
+      <M-LINT-TYPES />
+      <M-GATES />
+      <M-GRAMMAR />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/grace-lint.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/lint/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/gates/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/artifact/grammar.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): argv
+        token as accepts
+        CHANGE_STATUSES and
+        refuses assertion modes
+        and gate verbs with
+        distinct messages; a
+        draft spec-only bundle
+        can be selected; overlay
+        changes status-gated
+        issues without writing
+        disk; apply public result
+        unchanged; text N/M line
+        sits after Warnings and
+        before No issues found.
+        or Issues; JSON gains
+        summary.asState and no
+        top-level key; without as
+        the nest is absent;
+        README CLI Overview row
+        names lint and as;
+        examples/ untouched;
+        suite green; lint 0/0 at
+        close only. Evidence is
+        the suite and the ledger
+        fail/pass pairs, not a
+        command someone reports.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring HEAD a7925cf
+        on feat/as-state, packaged
+        6.2.0, lint 0/0, archive
+        37, active empty before
+        this bundle, suite 1389
+        pass / 3 skip / 0 fail,
+        validate:ci green.** F33:
+        implementation
+        re-measures counts;
+        criteria do not freeze
+        them.
+      </Assumption>
+      <Assumption>
+        **Vocabulary, measured.**
+        LintAssertionMode =
+        current | baseline |
+        target | final
+        (src/lint/types.ts:38).
+        CHANGE_STATUSES = draft,
+        approved, applied,
+        rejected, cancelled,
+        superseded
+        (src/artifact/types.ts:134).
+        Gate verbs live on ngrace
+        gate. lint already takes
+        string options (change,
+        explain, profile, failOn,
+        assertions). Boolean site
+        pin is 25. No feature
+        previews a future
+        lifecycle status.
+      </Assumption>
+      <Assumption>
+        **Purity, measured.**
+        Eight status-gated checks
+        are pure:
+        change.invalid-active-status
+        (grammar.ts:539),
+        change.invalid-archive-status
+        (:544),
+        change.plan-requires-approved-spec
+        (:1313),
+        change.archive-status-mismatch
+        (:1316),
+        change.missing-status
+        (:2212),
+        change.invalid-status
+        (:2218),
+        design-context.forbidden-status
+        (:637),
+        artifact.forbidden-status-attribute
+        (:203).
+        change.applied-plan-missing
+        (:1319) and
+        change.superseded-missing-replacement
+        (:588) are also
+        status-gated and pure.
+        They are members of the
+        artifact-pure class, not
+        the inventory of that
+        class. validateAssertions
+        is impure.
+        evaluateApproveGate is
+        artifact-only.
+        evaluateApplyGate is
+        mixed. evaluateArchiveGate
+        is ledger-only.
+      </Assumption>
+      <Assumption>
+        **F64 pin survey, this
+        session.**
+        src/lint/core.test.ts:383-408
+        exact top-level LintResult
+        keys (D13).
+        finalizeResult
+        (src/lint/core.ts:100-104)
+        rebuilds summary to three
+        keys.
+        listAbsenceCatalogCodes
+        exact four-code array
+        (catalog.test.ts:327-332).
+        boolean site count 25
+        (command.test.ts:768).
+        live invocation walker
+        (command.test.ts:906-914)
+        does not see flags.
+        packed-cli-smoke.ts lint
+        case asserts summary
+        exists, not its exact
+        keys.
+        writeFileSync inventory
+        (grace-cursor.test.ts:483)
+        fires if lint gains a
+        writer.
+        token-accounting.test.ts
+        806 / 55043 / ngrace-fix
+        32 / 16 skills, and
+        README.md F51 table, fire
+        only if a SKILL.md moves.
+        skill-contracts.test.ts
+        assertions-mode phrases
+        stay green by non-edit of
+        those skills.
+        gates/core.test.ts
+        evaluateApplyGate cases
+        stay green if composition
+        preserves the public
+        result.
+        grammar.test.ts active /
+        archive status cases stay
+        green on the no-overlay
+        path.
+        No Object.keys(summary)
+        exact-key pin exists;
+        nested summary change is
+        not the D13 pin.
+      </Assumption>
+    </Assumptions>
+  </C-AS-STATE>
+</NgraceChangeSpec>

@@ -22,7 +22,7 @@ import {
   type AssertionContext,
   type CommandRunRecord,
 } from "../artifact/assertions";
-import { validateNgraceProject } from "../artifact/grammar";
+import { validateChangeArtifact, validateNgraceProject } from "../artifact/grammar";
 import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "../artifact/project";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "../artifact/projections";
 import {
@@ -33,9 +33,19 @@ import {
   type ActiveChangeScope,
 } from "../artifact/scope";
 import { ARTIFACT_DIR, toProjectRelativePath } from "../artifact/paths";
-import { ARTIFACT_TAG_PREFIX, ANCHOR_PATTERNS, type NgraceIssue, type NgraceProjectPaths } from "../artifact/types";
-import { readGraceXmlArtifact } from "../artifact/xml";
-import { appendCommandRunEvent } from "../grace-cursor";
+import {
+  ACTIVE_CHANGE_STATUSES,
+  ANCHOR_PATTERNS,
+  ARCHIVED_CHANGE_STATUSES,
+  ARTIFACT_TAG_PREFIX,
+  CHANGE_STATUSES,
+  type ChangeStatus,
+  type NgraceIssue,
+  type NgraceProjectPaths,
+} from "../artifact/types";
+import { readGraceXmlArtifact, type ParsedGraceXmlArtifact } from "../artifact/xml";
+import { evaluateApplyGateArtifact, evaluateApproveGate } from "../gates/core";
+import { appendCommandRunEvent, resolveChangeBundle } from "../grace-cursor";
 import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS, isGovernedCodeExtension } from "../language-registry";
 import {
   analyzeGovernedFile,
@@ -57,6 +67,130 @@ const TEXT_FORMAT_OPTIONS = new Set(["text", "json"]);
  * read only by formatTextReport. Not on LintResult — JSON.stringify must not gain a key.
  */
 const baselineExpectationCounts = new WeakMap<LintResult, number>();
+
+type AsStateScratch = {
+  status: string;
+  ran: Set<string>;
+  skipped: Set<string>;
+};
+
+const asStateScratchByResult = new WeakMap<LintResult, AsStateScratch>();
+
+function overlayChangeStatus(artifact: ParsedGraceXmlArtifact, status: string): ParsedGraceXmlArtifact {
+  if (!artifact.root) {
+    return artifact;
+  }
+  return {
+    ...artifact,
+    root: {
+      ...artifact.root,
+      attributes: { ...artifact.root.attributes, status },
+    },
+  };
+}
+
+function emitAsStateIssueFile(projectRoot: string, specFile: string, changeId: string): string {
+  try {
+    return toProjectRelativePath(projectRoot, specFile);
+  } catch {
+    return `${ARTIFACT_DIR}/changes/active/${changeId}/spec.xml`;
+  }
+}
+
+function applyAsStatePreview(result: LintResult, root: string, options: LintOptions): void {
+  const asStatus = options.asStatus;
+  const changeId = options.changeId;
+  if (!asStatus || !changeId) {
+    return;
+  }
+  if (!(CHANGE_STATUSES as readonly string[]).includes(asStatus)) {
+    return;
+  }
+
+  let bundlePath: string;
+  try {
+    bundlePath = resolveChangeBundle(root, changeId);
+  } catch {
+    return;
+  }
+
+  const location: "active" | "archive" = ACTIVE_CHANGE_STATUSES.has(asStatus as ChangeStatus)
+    ? "active"
+    : "archive";
+  const specFile = path.join(bundlePath, "spec.xml");
+  const planFile = path.join(bundlePath, "plan.xml");
+  const strip = new Set([specFile, planFile, bundlePath].map((entry) => path.resolve(entry)));
+  result.issues = result.issues.filter((issue) => !strip.has(path.resolve(issue.file)));
+
+  if (existsSync(specFile)) {
+    const spec = overlayChangeStatus(readGraceXmlArtifact(specFile), asStatus);
+    for (const issue of validateChangeArtifact(spec, location, root).issues) {
+      addNgraceIssue(result, issue);
+    }
+  }
+  const planExists = existsSync(planFile);
+  // The previewed plan status is the overlay's result, not the requested status: overlayChangeStatus
+  // leaves a rootless (unparseable) plan.xml untouched, so it carries no status to preview.
+  let previewPlanStatus: string | undefined;
+  if (planExists) {
+    const plan = overlayChangeStatus(readGraceXmlArtifact(planFile), asStatus);
+    previewPlanStatus = plan.root?.attributes.status;
+    for (const issue of validateChangeArtifact(plan, location, root).issues) {
+      addNgraceIssue(result, issue);
+    }
+  }
+
+  if (location === "active" && planExists && asStatus !== "approved") {
+    addNgraceIssue(result, {
+      severity: "error",
+      code: "change.plan-requires-approved-spec",
+      file: bundlePath,
+      message: "An active plan may exist only beside an approved spec.",
+    });
+  }
+  if (location === "archive" && asStatus === "applied" && (!planExists || previewPlanStatus !== "applied")) {
+    addNgraceIssue(result, {
+      severity: "error",
+      code: "change.applied-plan-missing",
+      file: bundlePath,
+      message: "An applied archived bundle requires an applied plan.xml.",
+    });
+  }
+
+  const previewFile = existsSync(specFile)
+    ? emitAsStateIssueFile(root, specFile, changeId)
+    : `${ARTIFACT_DIR}/changes/${location}/${changeId}/spec.xml`;
+  if (asStatus === "approved") {
+    for (const issue of evaluateApproveGate(root, changeId).issues) {
+      addIssue(result, {
+        severity: issue.severity,
+        code: issue.code,
+        file: previewFile,
+        message: issue.message,
+      });
+    }
+  }
+  if (asStatus === "applied") {
+    for (const issue of evaluateApplyGateArtifact(root, changeId).issues) {
+      addIssue(result, {
+        severity: issue.severity,
+        code: issue.code,
+        file: previewFile,
+        message: issue.message,
+      });
+    }
+  }
+
+  const ran = new Set<string>(["artifact"]);
+  const skipped = new Set<string>();
+  if (asStatus === "applied" || ARCHIVED_CHANGE_STATUSES.has(asStatus as ChangeStatus)) {
+    skipped.add("ledger-dependent");
+  }
+  if (asStatus === "applied" || (asStatus === "approved" && planExists)) {
+    skipped.add("verification-runtime");
+  }
+  asStateScratchByResult.set(result, { status: asStatus, ran, skipped });
+}
 
 function emptyAnalysisCoverage(): AnalysisCoverage {
   return { adapterBacked: [], unverified: [], governedFiles: 0 };
@@ -102,6 +236,16 @@ function finalizeResult(result: LintResult): LintResult {
     errors: result.issues.filter((issue) => issue.severity === "error").length,
     warnings: result.issues.filter((issue) => issue.severity === "warning").length,
   };
+  const scratch = asStateScratchByResult.get(result);
+  if (scratch) {
+    const unevaluable = [...scratch.skipped].sort();
+    result.summary.asState = {
+      status: scratch.status,
+      evaluatedRuleClasses: scratch.ran.size,
+      unevaluableRuleClasses: unevaluable.length,
+      unevaluable,
+    };
+  }
   result.issues = result.issues.map(withLintIssueGuide);
   return result;
 }
@@ -331,11 +475,13 @@ function validateAssertions(
   const commandRunSource =
     assertionMode === "final" ? "assertions-final" : "lint-run-commands";
   const onCommandRun =
-    options.runCommands === true && options.changeId
-      ? (record: CommandRunRecord) => {
-          appendCommandRunEvent(root, options.changeId!, record);
-        }
-      : undefined;
+    options.asStatus
+      ? undefined
+      : options.runCommands === true && options.changeId
+        ? (record: CommandRunRecord) => {
+            appendCommandRunEvent(root, options.changeId!, record);
+          }
+        : undefined;
   const context: AssertionContext = {
     root,
     graph,
@@ -349,9 +495,19 @@ function validateAssertions(
   for (const planFile of planFilesActive) {
     const status = readPlanStatus(planFile);
     const isSelected = selectedPlan !== null && path.resolve(selectedPlan) === path.resolve(planFile);
+    const skipSelectedAsState =
+      Boolean(options.asStatus && options.changeId && path.basename(path.dirname(planFile)) === options.changeId);
     const evaluateCurrentBaseline = assertionMode === "current" && status === "approved";
     const evaluateUnrelatedFinalBaseline = assertionMode === "final" && status === "approved" && !isSelected;
-    evaluateSection(result, planFile, "BaselineAssertions", context, evaluateCurrentBaseline || evaluateUnrelatedFinalBaseline, true, true);
+    evaluateSection(
+      result,
+      planFile,
+      "BaselineAssertions",
+      context,
+      !skipSelectedAsState && (evaluateCurrentBaseline || evaluateUnrelatedFinalBaseline),
+      true,
+      true,
+    );
     evaluateSection(result, planFile, "TargetAssertions", context, false);
   }
 
@@ -513,6 +669,7 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
   for (const issue of validation.issues) {
     addNgraceIssue(result, issue);
   }
+  applyAsStatePreview(result, root, options);
 
   const graph = buildGraphProjection(paths);
   const verification = buildVerificationProjection(paths, graph);
@@ -622,6 +779,15 @@ export function formatTextReport(result: LintResult, options: { remediate?: bool
     `Errors: ${result.summary.errors}`,
     `Warnings: ${result.summary.warnings}`,
   ];
+
+  if (result.summary.asState) {
+    const n = result.summary.asState.evaluatedRuleClasses;
+    const m = result.summary.asState.unevaluableRuleClasses;
+    const nLabel = n === 1 ? "rule class" : "rule classes";
+    const mLabel = m === 1 ? "class" : "classes";
+    const reasons = m > 0 ? ` (${result.summary.asState.unevaluable.join(", ")})` : "";
+    lines.push(`evaluated ${n} ${nLabel}; ${m} ${mLabel} not evaluable at this state${reasons}`);
+  }
 
   if (result.issues.length === 0) {
     lines.push("", "No issues found.");

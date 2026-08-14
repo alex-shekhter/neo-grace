@@ -3,9 +3,14 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
+import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+
+import { writeChangeBundleFixture } from "./artifact/test-fixtures";
+import { CHANGE_STATUSES } from "./artifact/types";
 import { ARTIFACT_DIR } from "./artifact/paths";
 import { SCHEMA_SHAPE_REGISTRY, renderSchemaShape } from "./artifact/schema-reference";
-import { lintGraceProject } from "./grace-lint";
+import { lintCommand, lintGraceProject } from "./grace-lint";
 import { getLintIssueGuide } from "./lint/catalog";
 import { createTempProject, GraceProjectBuilder } from "./test-support/fixtures";
 
@@ -1776,3 +1781,323 @@ describe("graph.path-no-adapter", () => {
     expect(result.issues.some((issue) => issue.code === "graph.path-no-adapter")).toBe(false);
   });
 });
+
+function spawnLintJson(root: string, args: string[]) {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+  return Bun.spawnSync({
+    cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--format", "json", ...args],
+    cwd: repoRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+}
+
+function parseEnvelope(result: ReturnType<typeof Bun.spawnSync>) {
+  const stdout = Buffer.from(result.stdout ?? "").toString("utf8");
+  return JSON.parse(stdout) as {
+    ok?: boolean;
+    error?: { code?: string; message?: string };
+    tool?: string;
+  };
+}
+
+function writeSpecOnlyDraft(root: string, changeId: string) {
+  writeMinimalNgraceProject(root);
+  writeProjectFile(
+    root,
+    `${ARTIFACT_DIR}/changes/active/${changeId}/spec.xml`,
+    `<NgraceChangeSpec graceVersion="1.0" status="draft"><${changeId}><Summary>Draft spec only.</Summary><Goals><Goal>Preview as-state.</Goal></Goals><Constraints><Constraint>Keep fixture valid.</Constraint></Constraints><NonGoals><NonGoal>Unrelated.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Draft is selectable.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></${changeId}></NgraceChangeSpec>`,
+  );
+}
+
+describe("argv token as vocabulary", () => {
+  it("declares as as a string option on lintCommand", () => {
+    expect(lintCommand.args).toHaveProperty("as");
+    expect((lintCommand.args as { as?: { type?: string } }).as?.type).toBe("string");
+  });
+
+  it("refuses a LintAssertionMode token and names argv token assertions", () => {
+    const root = createProject();
+    writeSpecOnlyDraft(root, "C-AS-VOCAB");
+    const result = spawnLintJson(root, ["--as", "target", "--change", "C-AS-VOCAB"]);
+    const parsed = parseEnvelope(result);
+    expect(result.exitCode).not.toBe(0);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error?.code).toBe("invalid-arguments");
+    const assertionMessage = parsed.error?.message ?? "";
+    expect(assertionMessage).toContain("assertions");
+    expect(assertionMessage).toMatch(/target/);
+  });
+
+  it("refuses a live gate name and names the gate verb", () => {
+    const root = createProject();
+    writeSpecOnlyDraft(root, "C-AS-VOCAB");
+    const result = spawnLintJson(root, ["--as", "approve", "--change", "C-AS-VOCAB"]);
+    const parsed = parseEnvelope(result);
+    expect(result.exitCode).not.toBe(0);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error?.code).toBe("invalid-arguments");
+    expect(parsed.error?.message).toMatch(/gate/i);
+    expect(parsed.error?.message).toMatch(/approve/);
+  });
+
+  it("refuses as without change", () => {
+    const root = createProject();
+    writeSpecOnlyDraft(root, "C-AS-VOCAB");
+    const result = spawnLintJson(root, ["--as", "approved"]);
+    const parsed = parseEnvelope(result);
+    expect(result.exitCode).not.toBe(0);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error?.code).toBe("invalid-arguments");
+    expect(parsed.error?.message).toMatch(/change/i);
+  });
+
+  it("refuses a non-canonical change id", () => {
+    const root = createProject();
+    writeSpecOnlyDraft(root, "C-AS-VOCAB");
+    const result = spawnLintJson(root, ["--as", "approved", "--change", "not-a-change"]);
+    const parsed = parseEnvelope(result);
+    expect(result.exitCode).not.toBe(0);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error?.code).toBe("invalid-arguments");
+  });
+
+  it("refuses a missing bundle as not-found or invalid-arguments", () => {
+    const root = createProject();
+    writeSpecOnlyDraft(root, "C-AS-VOCAB");
+    const result = spawnLintJson(root, ["--as", "approved", "--change", "C-MISSING"]);
+    const parsed = parseEnvelope(result);
+    expect(result.exitCode).not.toBe(0);
+    expect(parsed.ok).toBe(false);
+    expect(["not-found", "invalid-arguments"]).toContain(parsed.error?.code ?? "");
+  });
+
+  it("refuses as combined with runCommands", () => {
+    const root = createProject();
+    writeSpecOnlyDraft(root, "C-AS-VOCAB");
+    const result = spawnLintJson(root, ["--as", "approved", "--change", "C-AS-VOCAB", "--run-commands"]);
+    const parsed = parseEnvelope(result);
+    expect(result.exitCode).not.toBe(0);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error?.code).toBe("invalid-arguments");
+  });
+
+  it("refuses as combined with explain", () => {
+    const root = createProject();
+    writeSpecOnlyDraft(root, "C-AS-VOCAB");
+    const result = spawnLintJson(root, ["--as", "approved", "--change", "C-AS-VOCAB", "--explain", "change.missing-status"]);
+    const parsed = parseEnvelope(result);
+    expect(result.exitCode).not.toBe(0);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error?.code).toBe("invalid-arguments");
+  });
+
+  it("refuses as combined with assertions other than current", () => {
+    const root = createProject();
+    writeSpecOnlyDraft(root, "C-AS-VOCAB");
+    const result = spawnLintJson(root, ["--as", "approved", "--change", "C-AS-VOCAB", "--assertions", "target"]);
+    const parsed = parseEnvelope(result);
+    expect(result.exitCode).not.toBe(0);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error?.code).toBe("invalid-arguments");
+  });
+
+  it("refuses an unknown status and names CHANGE_STATUSES members", () => {
+    const root = createProject();
+    writeSpecOnlyDraft(root, "C-AS-VOCAB");
+    const result = spawnLintJson(root, ["--as", "gobbledygook", "--change", "C-AS-VOCAB"]);
+    const parsed = parseEnvelope(result);
+    expect(result.exitCode).not.toBe(0);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error?.code).toBe("invalid-arguments");
+    for (const status of CHANGE_STATUSES) {
+      expect(parsed.error?.message).toContain(status);
+    }
+  });
+
+  it("accepts each CHANGE_STATUSES member with a spec-only draft and does not refuse compose flags", () => {
+    const root = createProject();
+    writeSpecOnlyDraft(root, "C-AS-VOCAB");
+    for (const status of CHANGE_STATUSES) {
+      const result = spawnLintJson(root, [
+        "--as",
+        status,
+        "--change",
+        "C-AS-VOCAB",
+        "--fail-on",
+        "never",
+        "--remediate",
+        "--parallel-preflight",
+      ]);
+      const parsed = parseEnvelope(result);
+      expect(parsed.ok).not.toBe(false);
+      expect(parsed.tool).toBe("grace-lint");
+    }
+  });
+
+  it("selects a spec-only draft and an archived bundle", () => {
+    const root = createProject();
+    writeSpecOnlyDraft(root, "C-AS-VOCAB");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/archive/C-ARCHIVED/spec.xml`,
+      `<NgraceChangeSpec graceVersion="1.0" status="applied"><C-ARCHIVED><Summary>Archived spec.</Summary><Goals><Goal>Stay archived.</Goal></Goals><Constraints><Constraint>Keep fixture valid.</Constraint></Constraints><NonGoals><NonGoal>Unrelated.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Selectable.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></C-ARCHIVED></NgraceChangeSpec>`,
+    );
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/archive/C-ARCHIVED/plan.xml`,
+      `<NgraceChangePlan graceVersion="1.0" status="applied"><C-ARCHIVED><IntentSummary>Archived plan.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Done</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Done.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-ARCHIVED></NgraceChangePlan>`,
+    );
+    const draft = spawnLintJson(root, ["--as", "approved", "--change", "C-AS-VOCAB", "--fail-on", "never"]);
+    expect(parseEnvelope(draft).tool).toBe("grace-lint");
+    expect(parseEnvelope(draft).ok).not.toBe(false);
+    const archived = spawnLintJson(root, ["--as", "applied", "--change", "C-ARCHIVED", "--fail-on", "never"]);
+    expect(parseEnvelope(archived).tool).toBe("grace-lint");
+    expect(parseEnvelope(archived).ok).not.toBe(false);
+  });
+});
+
+function digestIfPresent(filePath: string): string {
+  if (!existsSync(filePath)) return "";
+  return createHash("sha256").update(readFileSync(filePath)).digest("hex");
+}
+
+describe("as-state pure preview", () => {
+  it("overlays superseded onto a draft spec and emits change.superseded-missing-replacement", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-PREV",
+      location: "active",
+      specStatus: "draft",
+    });
+    const result = lintGraceProject(root, { asStatus: "superseded", changeId: "C-AS-PREV" });
+    expect(result.issues.some((issue) => issue.code === "change.superseded-missing-replacement")).toBe(true);
+  });
+
+  it("overlays approved onto a draft spec+plan and drops change.plan-requires-approved-spec", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-PREV",
+      location: "active",
+      specStatus: "draft",
+      planStatus: "draft",
+    });
+    const current = lintGraceProject(root);
+    expect(current.issues.some((issue) => issue.code === "change.plan-requires-approved-spec")).toBe(true);
+    const preview = lintGraceProject(root, { asStatus: "approved", changeId: "C-AS-PREV" });
+    expect(preview.issues.some((issue) => issue.code === "change.plan-requires-approved-spec")).toBe(false);
+  });
+
+  it("surfaces evaluateApproveGate artifact issues at approved", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-PREV",
+      location: "active",
+      specStatus: "draft",
+    });
+    const specPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-AS-PREV", "spec.xml");
+    const spec = readFileSync(specPath, "utf8").replace(
+      "</C-AS-PREV>",
+      "<Clarifications><Clarification><IC-EXAMPLE /></Clarification></Clarifications></C-AS-PREV>",
+    );
+    writeFileSync(specPath, spec);
+    const result = lintGraceProject(root, { asStatus: "approved", changeId: "C-AS-PREV" });
+    const issue = result.issues.find((item) => item.code === "gate.approve.clarification-unresolved");
+    expect(issue).toBeDefined();
+    expect(issue?.file.replaceAll("\\", "/")).toContain(".ngrace/changes/active/C-AS-PREV/spec.xml");
+  });
+
+  it("surfaces apply artifact-pure plan-present at applied without calling the archive gate", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-PREV",
+      location: "active",
+      specStatus: "draft",
+    });
+    const result = lintGraceProject(root, { asStatus: "applied", changeId: "C-AS-PREV" });
+    expect(result.issues.some((issue) => issue.code === "gate.apply.no-plan")).toBe(true);
+    expect(result.issues.some((issue) => issue.code.startsWith("gate.archive."))).toBe(false);
+  });
+
+  it("does not write spec, plan, or ledger bytes", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-PREV",
+      location: "active",
+      specStatus: "draft",
+      planStatus: "draft",
+    });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "active", "C-AS-PREV");
+    const before = ["spec.xml", "plan.xml", "run-ledger.xml"].map((name) => digestIfPresent(path.join(bundle, name)));
+    lintGraceProject(root, { asStatus: "approved", changeId: "C-AS-PREV" });
+    const after = ["spec.xml", "plan.xml", "run-ledger.xml"].map((name) => digestIfPresent(path.join(bundle, name)));
+    expect(after).toEqual(before);
+  });
+
+  it("emits change.applied-plan-missing at applied when plan.xml carries no previewable status", () => {
+    // The overlay leaves an unparseable plan.xml rootless, so it carries no status into the
+    // preview. grammar.ts:1319 fires on exactly that shape, so the preview must fire too.
+    const real = createProject();
+    writeMinimalNgraceProject(real);
+    writeChangeBundleFixture(real, {
+      changeId: "C-AS-PREV",
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    writeFileSync(
+      path.join(real, ARTIFACT_DIR, "changes", "archive", "C-AS-PREV", "plan.xml"),
+      '<NgraceChangePlan graceVersion="1.0" status="applied"><C-AS-PREV>',
+    );
+    expect(lintGraceProject(real).issues.some((issue) => issue.code === "change.applied-plan-missing")).toBe(true);
+
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-PREV",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+    });
+    writeFileSync(
+      path.join(root, ARTIFACT_DIR, "changes", "active", "C-AS-PREV", "plan.xml"),
+      '<NgraceChangePlan graceVersion="1.0" status="approved"><C-AS-PREV>',
+    );
+    const preview = lintGraceProject(root, { asStatus: "applied", changeId: "C-AS-PREV" });
+    expect(preview.issues.some((issue) => issue.code === "change.applied-plan-missing")).toBe(true);
+  });
+
+  it("stays silent on change.applied-plan-missing at applied when plan.xml is well formed", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-PREV",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+    });
+    const preview = lintGraceProject(root, { asStatus: "applied", changeId: "C-AS-PREV" });
+    expect(preview.issues.some((issue) => issue.code === "change.applied-plan-missing")).toBe(false);
+  });
+
+  it("does not give design-context a status", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-PREV",
+      location: "active",
+      specStatus: "draft",
+      designContext:
+        '<NgraceChangeDesignContext graceVersion="1.0"><Change>C-AS-PREV</Change><Rationale>Fixture.</Rationale></NgraceChangeDesignContext>',
+    });
+    const result = lintGraceProject(root, { asStatus: "approved", changeId: "C-AS-PREV" });
+    expect(result.issues.some((issue) => issue.code === "design-context.forbidden-status")).toBe(false);
+  });
+});
+
+

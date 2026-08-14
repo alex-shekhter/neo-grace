@@ -88,6 +88,12 @@ export type LintResult = {
     issues: number;
     errors: number;
     warnings: number;
+    asState?: {
+      status: string;
+      evaluatedRuleClasses: number;
+      unevaluableRuleClasses: number;
+      unevaluable: string[];
+    };
   };
   analysisCoverage: AnalysisCoverage;
 };
@@ -98,6 +104,7 @@ export type LintOptions = {
   changeId?: string;
   runCommands?: boolean;
   parallelPreflight?: boolean;
+  asStatus?: string;
 };
 
 /** Project policy for whether host-capability-missing (and similar) blocks apply (D11 / A29.5). */

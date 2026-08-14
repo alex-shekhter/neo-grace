@@ -506,3 +506,113 @@ describe("AC-EXPLAIN-POINTER / AC-POINTER-JSON (C-EXPLAIN-COVERAGE T-003)", () =
     expect(report).not.toContain(WARNING_POINTER);
   });
 });
+
+describe("as-state absence report", () => {
+  function jsonTopLevelKeys(result: ReturnType<typeof lintGraceProject>): string[] {
+    return Object.keys(JSON.parse(JSON.stringify(result)) as Record<string, unknown>).sort();
+  }
+
+  const expectedTopLevel = [
+    "analysisCoverage",
+    "assertionMode",
+    "commandsEnabled",
+    "filesChecked",
+    "generatedAt",
+    "governedFiles",
+    "issues",
+    "profile",
+    "root",
+    "schemaVersion",
+    "summary",
+    "tool",
+    "xmlFilesChecked",
+  ].sort();
+
+  it("does not add a top-level key when asStatus is set (RM-GOVERNED-PATH D13)", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-as-d13-"));
+    tempRoots.push(root);
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-ABS",
+      location: "active",
+      specStatus: "draft",
+    });
+    const result = lintGraceProject(root, { asStatus: "approved", changeId: "C-AS-ABS" });
+    expect(jsonTopLevelKeys(result)).toEqual([...expectedTopLevel, "changeId"].sort());
+    expect(jsonTopLevelKeys(result)).not.toContain("asState");
+    expect(jsonTopLevelKeys(result)).not.toContain("asStatus");
+    expect(jsonTopLevelKeys(result)).not.toContain("baselineExpectationCount");
+  });
+
+  it("publishes summary.asState from the classes that ran", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-as-nest-"));
+    tempRoots.push(root);
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-ABS",
+      location: "active",
+      specStatus: "draft",
+    });
+    const none = lintGraceProject(root);
+    expect(none.summary).not.toHaveProperty("asState");
+
+    const specOnly = lintGraceProject(root, { asStatus: "approved", changeId: "C-AS-ABS" });
+    const specState = specOnly.summary.asState;
+    expect(specState).toBeDefined();
+    expect(specState?.status).toBe("approved");
+    expect(specState?.evaluatedRuleClasses).toBeGreaterThan(0);
+    expect(specState?.unevaluableRuleClasses).toBe(specState?.unevaluable.length);
+    expect(specState?.unevaluable).not.toContain("verification-runtime");
+
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-ABS",
+      location: "active",
+      specStatus: "draft",
+      planStatus: "draft",
+    });
+    const withPlan = lintGraceProject(root, { asStatus: "approved", changeId: "C-AS-ABS" });
+    expect(withPlan.summary.asState?.unevaluable).toContain("verification-runtime");
+    expect(withPlan.summary.asState?.unevaluableRuleClasses).not.toBe(specState?.unevaluableRuleClasses);
+
+    const applied = lintGraceProject(root, { asStatus: "applied", changeId: "C-AS-ABS" });
+    expect(applied.summary.asState?.unevaluable).toContain("ledger-dependent");
+    expect(applied.summary.asState?.unevaluable).toContain("verification-runtime");
+    expect(applied.summary.asState?.unevaluable).toEqual([...applied.summary.asState!.unevaluable].sort());
+  });
+
+  it("prints the coverage line after Warnings and before No issues found or Issues", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-as-line-"));
+    tempRoots.push(root);
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-ABS",
+      location: "active",
+      specStatus: "draft",
+    });
+    const clean = lintGraceProject(root, { asStatus: "draft", changeId: "C-AS-ABS" });
+    const cleanReport = formatTextReport(clean);
+    const cleanLines = cleanReport.split("\n");
+    const cleanWarnings = cleanLines.findIndex((line) => line.startsWith("Warnings:"));
+    expect(cleanWarnings).toBeGreaterThanOrEqual(0);
+    expect(cleanLines[cleanWarnings + 1]).toMatch(/^evaluated \d+ rule class/);
+    expect(cleanLines[cleanWarnings + 1]).toMatch(/not evaluable at this state/);
+    expect(cleanLines[cleanWarnings + 2]).toBe("");
+    expect(cleanLines[cleanWarnings + 3]).toBe("No issues found.");
+
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-ABS",
+      location: "active",
+      specStatus: "draft",
+      planStatus: "draft",
+    });
+    const dirty = lintGraceProject(root, { asStatus: "applied", changeId: "C-AS-ABS" });
+    expect(dirty.issues.length).toBeGreaterThan(0);
+    const dirtyReport = formatTextReport(dirty);
+    const dirtyLines = dirtyReport.split("\n");
+    const dirtyWarnings = dirtyLines.findIndex((line) => line.startsWith("Warnings:"));
+    expect(dirtyLines[dirtyWarnings + 1]).toMatch(/^evaluated \d+ rule class/);
+    expect(dirtyLines[dirtyWarnings + 2]).toBe("");
+    expect(dirtyLines[dirtyWarnings + 3]).toBe("Issues");
+  });
+});
+

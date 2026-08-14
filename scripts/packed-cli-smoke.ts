@@ -165,6 +165,7 @@ export async function runPackedCliSmoke(repoRoot: string): Promise<void> {
     const jsonObject = (stdout: string) => JSON.parse(stdout.trim()) as Record<string, unknown>;
     const cases: PackedSmokeCase[] = [
       { name: "lint", args: ["lint", "--path", project, "--assertions", "current", "--format", "json"], expectedExitCode: 0, assertStdout: (out) => { if (!jsonObject(out).summary) throw new Error("lint JSON has no summary"); } },
+      { name: "lint as", args: ["lint", "--path", project, "--as", "approved", "--format", "json"], expectedExitCode: 1, assertStdout: (out) => { const value = jsonObject(out); const error = value.error as { code?: string } | undefined; if (value.ok !== false || error?.code !== "invalid-arguments") throw new Error("lint as did not refuse missing change"); } },
       { name: "status", args: ["status", "--path", project, "--json", "--fail-on", "errors"], expectedExitCode: 0, assertStdout: (out) => { if (jsonObject(out).projectKind !== "grace4") throw new Error("status projectKind mismatch"); } },
       { name: "module find", args: ["module", "find", "example", "--path", project, "--json"], expectedExitCode: 0, assertStdout: (out) => { if (!out.includes("M-EXAMPLE")) throw new Error("module find missed M-EXAMPLE"); } },
       { name: "module show", args: ["module", "show", "M-EXAMPLE", "--path", project, "--json"], expectedExitCode: 0, assertStdout: (out) => { if (!out.includes("runExample")) throw new Error("module show missed file-local symbol"); } },

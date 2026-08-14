@@ -4647,3 +4647,145 @@ platform-independent normalizer at the emission site, not at the comparison site
 reports a path comparison as *unexercised*, that is the cheapest possible warning that a
 single-platform gate cannot see it — **test it or state in the verdict that CI is the only observer.**
 Until this roadmap gains a second platform in its gates, "closed clean" means "clean on macOS."
+
+### F74 — a bare `D<n>` citation is ambiguous across plans, and one sits inside a normative block. **[verified]**
+
+Caught by the executor while authoring `C-AS-STATE`, checking a citation the authority had repeated
+without following it.
+
+P1 step 6's **normative** absence-reporting block reads *"using D5's typed-absence idiom."* Measured:
+
+- **This plan's D5** is *"Separators are `,` `;` and whitespace; and a standing rule for what counts
+  as a break"* (`decisions.md`).
+- **The typed-absence idiom is `RM-AGENT-RELIABILITY`'s D5** — *"The trust model: two axes for claims,
+  one value for absence"* — which lives in `docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md`.
+
+So a reader who follows the citation inside the plan that contains it lands on the separator rule and
+finds nothing about absence. **Both plans number their decisions from D1, and both reach the teens**
+(this plan D1–D17, the reliability plan D1–D16), so *every* bare `D<n>` in this repository is
+ambiguous between at least two documents. The step text has been read by three bundles without anyone
+resolving it, because "D5" reads as self-evidently local.
+
+Repaired in the roadmap: the citation now names the plan, quotes the decision, and gives the archive
+path, with a note that the qualifier is load-bearing.
+
+**This is [F53](#f53)'s rule one level up.** F53 said cite a bundle by archive path, never by commit
+hash, because the hash is not resolvable from the text. A bare `D<n>` has the same defect for a
+different reason: it *is* resolvable, to the wrong thing, silently.
+
+**The rule.** **Cite a cross-plan decision as `<PLAN-ID> D<n>`, always.** A local `D<n>` is acceptable
+only inside the plan that owns it, and never inside a normative block that another artifact will
+quote. **Owed: an audit of the remaining bare `D<n>` citations** in this plan and in the skills —
+`D3`, `D5.2`, `D5.5`, `D11`, `D12`, `D13`, `D16`, `D17` are all in live use and at least one (D12) is
+known to belong to the reliability plan. Not done here; this bundle's scope is `--as`.
+
+### F75 — a spec that counts reds in two places has two inventories, and they disagree. **[verified]**
+
+`C-AS-STATE`'s approved spec states its red arithmetic twice and the two statements are not the same
+arithmetic. Caught by the executor at plan authoring; the authority had approved it.
+
+- The signature-key **Constraint** (`spec.xml:471-482`) says *"the assertions-mode refusal and the
+  gate-verb refusal **are separate reds**"* — two.
+- **`AC-HEAD-RED`** (`:850-860`) says each of the four criteria *"has **a** red … under the signature
+  keys named above"* — four keys total, so both refusals sit under `as-vocabulary` as **one**.
+- `AC-HEAD-RED`'s own **failure conditions** (`:884-891`) then forbid *"the assertions-mode refusal and
+  the gate-verb refusal reddened so the second fails naming the first ([F68](#f68))"* — which is
+  precisely what obeying the Constraint would produce, because at HEAD both refusals fail identically
+  as an unknown flag.
+
+So the Constraint demands a pair that the criterion's failure list forbids. **`AC-HEAD-RED` had the
+correct count all along; the Constraint over-counted.**
+
+**The distinction the Constraint blurred is the useful one.** *Tests* must be able to fail alone —
+that is a real property and worth requiring. *Ledger fail events* are a different quantity, governed by
+the fix budget and by [F68](#f68)'s independence rule. A Constraint may require the first; only
+`AC-HEAD-RED` may count the second. Conflating them produced a spec that could not be executed as
+written.
+
+**The rule.** **Red counts live in exactly one place: `AC-HEAD-RED`.** Any other section may say that
+two properties must be *independently observable*, and must not say how many `cursor attempt --outcome
+fail` events that implies. This is [F60](#f60)'s second-inventory pattern applied to reds — and the
+second time this phase an approved spec carried an internal contradiction that only surfaced at plan
+authoring, after [F63](#f63)'s sibling in `C-TEACHING-SURFACE` where an acceptance criterion defined
+"tables" two incompatible ways in adjacent sentences.
+
+**Also recorded, not fixed:** the same spec still cites *"D5 typed-absence"* bare at `spec.xml:192` —
+the exact defect [F74](#f74) records. The spec is approved and immutable, so it stands; the plan cites
+`RM-AGENT-RELIABILITY` D5 correctly, and this entry is the record that the artifact does not.
+
+### F76 — the CLI silently ignores an unrecognised flag, in the product whose thesis is that silence must not read as pass. **[verified]**
+
+Found by the executor while executing `C-AS-STATE`, checking a HEAD claim the plan asserted and the
+authority's dispatch repeated: that an undeclared `--as` would fail as an unknown flag. **It does
+not.** Measured at HEAD:
+
+```
+ngrace lint --path . --totallyBogusFlag hello --format json
+```
+
+emits **no diagnostic naming the flag** and produces a byte-shaped-normal `LintResult`, identical to
+the run without it. (Exit code is not the tell: this tree had unrelated lint errors, so `1` came from
+those. Checking the exit code alone would have confirmed the wrong conclusion — measure the
+*diagnostic*, not the status.)
+
+**The consequence is worse than a typo.** `ngrace lint --assertionss target` — one transposed letter —
+runs in `current` mode, reports a clean result, and tells the author nothing. They believe they
+evaluated target assertions. They evaluated the default. Every selected-assertion command in the
+lifecycle is exposed the same way, and the `--assertions` modes are precisely the gates the execute
+flow depends on.
+
+**The irony is exact and worth keeping.** This finding surfaced inside the bundle implementing P1
+step 6, whose own **normative** text reads *"Silence must not read as 'will pass.'"* The feature was
+being built to hold the tool's rule-coverage to that standard while the CLI that dispatches it drops
+unrecognised arguments without a word.
+
+**Neither the plan nor the authority measured it.** The plan asserted the unknown-flag failure as a
+HEAD fact, the dispatch restated it, and both were wrong — the third time in this phase a HEAD claim
+about the CLI has been asserted rather than measured (see [F62](#f62), [F62.1](#f621)). The executor
+caught it because a red it expected to be red was green.
+
+**Not fixed here.** The behaviour belongs to the argument layer shared by every command, not to
+`--as`, and this bundle's scope is the overlay. **Owed as its own change**: decide whether unknown
+arguments are rejected, warned, or reported as a typed absence, and note that a strictness change is
+a compatibility break for any caller passing extra flags today.
+
+**The rule.** Before writing a criterion on "the CLI rejects X", run it and read the **message**. An
+exit code is a summary of everything the command did, so it can confirm a rejection that never
+happened.
+
+### F77 — the coverage report's class taxonomy is a hand-written conditional with no completeness guard. **[verified]**
+
+`C-AS-STATE` ships the `--as` coverage line — *"evaluated N rule classes; M classes not evaluable at
+this state"* — whose whole purpose is holding the tool's own coverage to the honesty rule it applies
+to everyone else. **The values are right and the mechanism can drift.**
+
+`applyAsStatePreview` (`src/lint/core.ts`) computes membership as a conditional over the requested
+status and whether a plan exists:
+
+```
+const ran = new Set(["artifact"]);
+if (… ARCHIVED_CHANGE_STATUSES.has(asStatus)) skipped.add("ledger-dependent");
+if (asStatus === "applied" || (asStatus === "approved" && planExists)) skipped.add("verification-runtime");
+```
+
+`AC-AS-ABSENCE-REPORT` requires *"N and M equal the derived class counts, not a frozen pair"*, and
+that is **satisfied**: the same status yields different M depending on real project state — `approved`
+without a plan is M=0, `approved` with one is M=1, `applied` is M=2 — which no status→M table could
+produce. The executor disclosed the gap rather than claiming instrumentation it had not built.
+
+**The residual risk is specific.** The class set is not derived from which evaluators actually ran; it
+is asserted alongside them. **Add a fourth impure class and this conditional will not mention it, M
+will silently under-count, and the coverage line will under-report the tool's own blindness** — the
+exact lie the step exists to prevent, in the feature built to prevent it. Nothing catches that: the
+tests pin membership per state (`src/lint/core.test.ts:565-579`), which is real discrimination, but
+**no test asserts the taxonomy is complete**, so a new class is invisible rather than red.
+
+**The rule.** A coverage report is only as honest as the enumeration behind it. When a summary counts
+*classes of work*, derive the count from the work — instrument the evaluators, or at minimum pin the
+class inventory so that adding a member without updating the reporter fails. A hand-maintained
+conditional describing what the code did is [F60](#f60)'s second inventory wearing a summary's
+clothes, and it fails silently in the direction of over-claiming.
+
+**Not fixed here** — instrumenting the evaluators is a re-spec, not a repair, and the shipped values
+are correct today. **Owed with the next change that touches the purity taxonomy**, and owed *before*
+any fourth class is introduced.

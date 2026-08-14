@@ -11,6 +11,7 @@
 //   GateEvaluation
 //   GateIssue
 //   evaluateApplyGate
+//   evaluateApplyGateArtifact
 //   evaluateApproveGate
 //   evaluateArchiveGate
 //   evaluateAttemptGate
@@ -297,11 +298,10 @@ export function evaluateApproveGate(projectRoot: string, changeId: string): Gate
   };
 }
 
-export function evaluateApplyGate(projectRoot: string, changeId: string): GateEvaluation {
+export function evaluateApplyGateArtifact(projectRoot: string, changeId: string): GateEvaluation {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const requirements: GateRequirementRecord[] = [];
   const issues: GateIssue[] = [];
-  const failOn = resolveProjectGateFailOn(projectRoot);
 
   // A31.3: consume planStatus the way status does; require approved (not existsSync).
   const planStatus = readPlanStatus(bundlePath);
@@ -328,6 +328,40 @@ export function evaluateApplyGate(projectRoot: string, changeId: string): GateEv
       ),
     );
   }
+
+  const satisfied = planSatisfiedAcceptanceCriteria(bundlePath);
+  const unresolvedAc = bundleClarifications(bundlePath).filter(
+    (c) => !c.resolved && ANCHOR_PATTERNS.acceptanceCriterion.test(c.target) && satisfied.has(c.target),
+  );
+  const acOk = unresolvedAc.length === 0;
+  requirements.push(
+    requirement(
+      "no-unresolved-satisfied-ac-clarification",
+      true,
+      acOk,
+      acOk ? undefined : unresolvedAc.map((c) => c.target).join(", "),
+    ),
+  );
+  if (!acOk) {
+    issues.push(
+      guideIssue("gate.apply.clarification-unresolved", unresolvedAc.map((c) => c.target).join(", ")),
+    );
+  }
+
+  return {
+    gate: "apply",
+    changeId,
+    decision: issues.some((i) => i.severity === "error") ? "refuse" : "permit",
+    requirements,
+    issues,
+  };
+}
+
+export function evaluateApplyGate(projectRoot: string, changeId: string): GateEvaluation {
+  const artifact = evaluateApplyGateArtifact(projectRoot, changeId);
+  const requirements: GateRequirementRecord[] = [...artifact.requirements];
+  const issues: GateIssue[] = [...artifact.issues];
+  const failOn = resolveProjectGateFailOn(projectRoot);
 
   // A31.2: newest entry governs; unreadable newest is absence with ledger.invalid-verdict.
   // Decision always from readLatestReviewVerdict; surface enriches detail only (P0.7 / F16 class).
@@ -374,25 +408,6 @@ export function evaluateApplyGate(projectRoot: string, changeId: string): GateEv
         issues.push({ ...warn, severity: "warning" });
       }
     }
-  }
-
-  const satisfied = planSatisfiedAcceptanceCriteria(bundlePath);
-  const unresolvedAc = bundleClarifications(bundlePath).filter(
-    (c) => !c.resolved && ANCHOR_PATTERNS.acceptanceCriterion.test(c.target) && satisfied.has(c.target),
-  );
-  const acOk = unresolvedAc.length === 0;
-  requirements.push(
-    requirement(
-      "no-unresolved-satisfied-ac-clarification",
-      true,
-      acOk,
-      acOk ? undefined : unresolvedAc.map((c) => c.target).join(", "),
-    ),
-  );
-  if (!acOk) {
-    issues.push(
-      guideIssue("gate.apply.clarification-unresolved", unresolvedAc.map((c) => c.target).join(", ")),
-    );
   }
 
   return {

@@ -1,0 +1,1282 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-AS-STATE>
+    <IntentSummary>
+      Deliver RM-GOVERNED-PATH P1 step 6: lint argv
+      token as takes a ChangeStatus from the live
+      CHANGE_STATUSES export, overlays the selected
+      change's spec and plan in memory, evaluates
+      only artifact-pure rules (including
+      evaluateApproveGate and a new apply
+      artifact-pure entry point), and publishes a
+      derived N/M coverage nest under summary.asState
+      plus a text line after Warnings. Target and
+      final stay on argv token assertions.
+      validateAssertions is not previewed.
+      README.md gains one CLI Overview row.
+      examples/ is out. This closes P1; it does
+      not cut 6.3.0.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-lint.ts</Value></MustExist>
+      <MustExist><Value>src/lint/types.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/types.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/packed-cli-smoke.ts</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-AS-STATE/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-AS-STATE/plan.xml</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-LINT-TYPES</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/types.ts</File>
+        <Text>export const CHANGE_STATUSES</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/types.ts</File>
+        <Text>export const ACTIVE_CHANGE_STATUSES</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/types.ts</File>
+        <Text>export const ARCHIVED_CHANGE_STATUSES</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/types.ts</File>
+        <Text>export type LintAssertionMode</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/types.ts</File>
+        <Text>export type LintOptions</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/types.ts</File>
+        <Text>export type LintResult</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>function finalizeResult</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>function resolveSelectedApprovedPlan</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>appendCommandRunEvent</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>export function formatTextReport</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>export function lintGraceProject</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.test.ts</File>
+        <Text>gains no new top-level key (D13)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>export function evaluateApproveGate</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>export function evaluateApplyGate</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>export function evaluateArchiveGate</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>export function listAbsenceCatalogCodes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>export function listBooleanFlags</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>export function listLiveInvocations</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-lint.ts</File>
+        <Text>function resolveAssertionMode</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/lint/types.ts</File>
+        <Text>asStatus</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/types.ts</File>
+        <Text>asState</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/types.ts</File>
+        <Text>evaluatedRuleClasses</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/types.ts</File>
+        <Text>unevaluableRuleClasses</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-lint.ts</File>
+        <Text>resolveAsStatus</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/core.ts</File>
+        <Text>evaluateApplyGateArtifact</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/core.ts</File>
+        <Text>evaluateApplyGateArtifact</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/core.ts</File>
+        <Text>asState</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/core.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-lint.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-LINT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-lint.ts</Value></MustExist>
+      <MustExist><Value>src/lint/types.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/types.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-LINT-TYPES</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/types.ts</File>
+        <Text>export const CHANGE_STATUSES</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/types.ts</File>
+        <Text>asStatus</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/types.ts</File>
+        <Text>asState</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/types.ts</File>
+        <Text>evaluatedRuleClasses</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/types.ts</File>
+        <Text>unevaluableRuleClasses</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-lint.ts</File>
+        <Text>resolveAsStatus</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>evaluateApplyGateArtifact</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>export function evaluateApplyGate</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>export function evaluateApproveGate</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>export function evaluateArchiveGate</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>evaluateApplyGateArtifact</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>asState</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>function finalizeResult</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>function resolveSelectedApprovedPlan</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>appendCommandRunEvent</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.test.ts</File>
+        <Text>gains no new top-level key (D13)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>export function listAbsenceCatalogCodes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>export function listBooleanFlags</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>export function listLiveInvocations</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/lint/core.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-lint.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-LINT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/grace-lint.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/lint/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/gates/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/grammar.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/query/command.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-LINT-CORE />
+        <M-LINT-TYPES />
+        <M-GATES />
+        <M-GRAMMAR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-LINT-CORE />
+        <V-M-LINT-TYPES />
+        <V-M-GATES />
+        <V-M-GRAMMAR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-lint.ts</File>
+      <File>src/lint/types.ts</File>
+      <File>src/lint/core.ts</File>
+      <File>src/lint/core.test.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>src/gates/core.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/query/command.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>scripts/packed-cli-smoke.ts</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>README.md</File>
+      <File>.ngrace/changes/active/C-AS-STATE/spec.xml</File>
+      <File>.ngrace/changes/active/C-AS-STATE/plan.xml</File>
+      <File>.ngrace/changes/active/C-AS-STATE/run.xml</File>
+      <File>.ngrace/changes/active/C-AS-STATE/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-AS-STATE/run/**</Glob>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: 363b61e (branch feat/as-state).
+      Preflight: ngrace lint path . assertions current
+      is 0/0. Spec is approved and immutable. Do not
+      amend it. If execute shows the spec is wrong,
+      stop and report.
+
+      Ceremony tier T2. Stop and re-spec rather than
+      touching listAbsenceCatalogCodes,
+      validateAssertions semantics for non-as runs,
+      LintResult top-level keys, the boolean-site
+      pin via a new boolean, the live invocation
+      walker, src/project-utils.ts, ngrace-execute
+      SKILL.md, examples/, docs/plans,
+      .ngrace/changes/archive, CHANGELOG.md, or any
+      version surface. Packaged version stays 6.2.0.
+      No product version bump. F50: this plan does
+      not instruct its own ObservedWriteScope
+      amendment; cursor companions are listed at
+      authoring. F33: re-measure every count at
+      execute. Do not pin 1389, 37, 25, 806, 55043,
+      4 absence codes, N, M, or any line number
+      this change moves. F61: name argv tokens and
+      exported functions in this comment; leave
+      dashed forms to *.test.ts. F42: plan
+      assertions bind to exported function names,
+      issue codes, JSON keys (asState,
+      evaluatedRuleClasses, unevaluableRuleClasses),
+      and CHANGE_STATUSES, never to AC ids, README
+      row prose, or the coverage sentence as a free
+      needle. F74: cite cross-plan decisions as
+      PLAN-ID Dn. Typed-absence is
+      RM-AGENT-RELIABILITY D5. Compatibility and
+      changelog rules are RM-GOVERNED-PATH D5.2 and
+      D5.5. The LintResult key pin is
+      RM-GOVERNED-PATH D13. No Clarifications
+      section.
+
+      ────────────────────────────────────────────────────────────
+      D0 — Task decomposition and F56 / F67 / F68 budget
+      ────────────────────────────────────────────────────────────
+      Four non-exempt criteria, each with one
+      planned red under the signature keys the
+      spec named. Cap: at most three distinct
+      kind-plus-key pairs per task
+      (FIX_DISTINCT_SIGNATURE_BUDGET is 4).
+      Prefer two so an unplanned red has a
+      slot. A task must not record the same
+      key twice (FIX_SIGNATURE_REPEAT_BUDGET
+      is 2, window per task,
+      listWindowFailSignatures at
+      src/grace-cursor.ts:1666). Key on the
+      property, never a test file stem (F67).
+
+      Five tasks. At most one planned red per
+      work task. The close task plans zero.
+
+      | Task | Surface | Satisfies | Planned distinct reds |
+      | T-001 | argv token as, resolveAsStatus,
+          change resolver, combo refusals,
+          LintOptions.asStatus, packed smoke
+        | AC-AS-VOCABULARY
+        | 1: test:as-vocabulary |
+      | T-002 | overlay, evaluateApplyGateArtifact,
+          evaluateApproveGate call, no archive,
+          no-mutation digest, WeakMap class record
+        | AC-AS-PURE-PREVIEW
+        | 1: test:as-pure-preview |
+      | T-003 | finalizeResult writes asState
+          back, formatTextReport line,
+          RM-GOVERNED-PATH D13 still exact
+        | AC-AS-ABSENCE-REPORT
+        | 1: test:as-absence-report |
+      | T-004 | README.md CLI Overview row
+        | AC-README-AS-ROW
+        | 1: test:readme-as-row |
+      | T-005 | dogfood close
+        | AC-HEAD-RED,
+          AC-SUITE-AND-LINT
+        | 0 planned |
+
+      Sequential: T-002 needs the as option
+      and asStatus field; T-003 publishes
+      the class record T-002 writes; T-004
+      is file-disjoint from T-001 through
+      T-003 if the README test lives in
+      command.test.ts, but this plan keeps
+      one open epoch so T-004 DependsOn
+      T-003. T-005 DependsOn T-004.
+
+      Signature keys the executor must record
+      (kind test):
+        T-001  test:as-vocabulary
+        T-002  test:as-pure-preview
+        T-003  test:as-absence-report
+        T-004  test:readme-as-row
+
+      Per-task counts: T-001 1, T-002 1,
+      T-003 1, T-004 1, T-005 0. No key
+      repeats inside a task. No task has
+      more than one planned red.
+
+      F68 resolution of the spec Constraint
+      versus AC-HEAD-RED. The Constraint
+      names two refusal shapes as separate
+      reds, and the D13 pin under as plus
+      the asState nest as separate reds.
+      At HEAD both refusal tests fail as
+      unknown-flag, so a second HEAD red
+      would name the first failure (the
+      exact F68 shape). In-process D13
+      under as already holds if no
+      top-level key is added (F45). This
+      plan therefore records one HEAD red
+      per AC, and makes the sibling
+      properties independently failable
+      tests after the flag exists:
+      assertions-mode refusal versus
+      gate-verb refusal (different
+      messages); asState nest versus
+      D13-under-as (nest missing does
+      not add a top-level key). Do not
+      record a second cursor fail for
+      those siblings.
+
+      F68 on exports. T-001 red must not
+      import resolveAsStatus (produced in
+      that task's production trip; failing
+      surface is the missing as arg on
+      lintCommand). T-002 red must not
+      import evaluateApplyGateArtifact
+      (produced later; failing surface is
+      lintGraceProject overlay behaviour).
+      T-003 red must not import a new
+      core export (none is added; failing
+      surface is summary.asState and the
+      text line). T-004 red must not
+      import a new export (failing
+      surface is README tokens). Do not
+      import two new missing exports of
+      one module in one failing test.
+
+      ────────────────────────────────────────────────────────────
+      D1 — vocabulary (T-001)
+      ────────────────────────────────────────────────────────────
+      String option as on lintCommand,
+      beside change, explain, profile,
+      failOn, and assertions. It must not
+      move the boolean-site pin (25 at
+      this HEAD). Re-measure only if a
+      boolean lands; a string must not.
+
+      resolveAsStatus(value) reads the live
+      CHANGE_STATUSES export. Do not
+      hand-copy the six names. Unknown
+      token: invalid-arguments before lint
+      runs, message names the accepted
+      members from that export. When the
+      rejected token is a LintAssertionMode
+      member, the message also names argv
+      token assertions. When the rejected
+      token is in GATE_DECISION_GATES (the
+      same set ngrace gate walks), the
+      message says that token is a gate
+      verb and this flag takes a
+      ChangeStatus. Those two messages
+      must be able to fail alone after
+      the flag exists (F68).
+
+      as requires change. Missing change,
+      a non-canonical id, or a bundle in
+      neither active nor archive is
+      invalid-arguments (or not-found) at
+      the CLI, before lint runs. The
+      lookup accepts a spec-only draft
+      and an archived bundle. Do not call
+      resolveSelectedApprovedPlan (that
+      helper demands an approved spec and
+      plan pair at src/lint/core.ts:459-476).
+
+      Combined with assertions other than
+      current, with runCommands, or with
+      explain: invalid-arguments. Default
+      or explicit current is legal.
+      Explain currently short-circuits
+      and would silently ignore as;
+      refuse rather than ignore.
+      parallel-preflight, remediate,
+      failOn, and format compose.
+
+      LintOptions gains asStatus?: string.
+      No new types.ts export. MODULE_MAP
+      of types.ts unchanged. CLI passes
+      asStatus and changeId into
+      lintGraceProject. T-001 does not
+      overlay and does not write asState.
+
+      resolveAsStatus stays private in
+      grace-lint.ts, next to
+      resolveAssertionMode. No new
+      grace-lint.ts export.
+
+      Packed smoke: add one case beside
+      the existing lint case that
+      exercises argv token as so the
+      flag is parsed in the packed
+      binary. If the smoke fixture has
+      no bundle, assert the structured
+      not-found / invalid-arguments
+      envelope, not a hang. Do not
+      require asState in that case
+      (T-003 owns the nest).
+
+      ────────────────────────────────────────────────────────────
+      D2 — pure preview (T-002)
+      ────────────────────────────────────────────────────────────
+      lintGraceProject activates as-state
+      only when both asStatus and changeId
+      are set. Overlay the selected
+      change's spec and plan in memory:
+      status becomes the requested
+      ChangeStatus; location is active
+      when ACTIVE_CHANGE_STATUSES has it
+      and archive when
+      ARCHIVED_CHANGE_STATUSES has it.
+      Do not write the attribute. Do not
+      move the bundle. Do not overlay
+      design-context or any artifact that
+      forbids a status attribute.
+
+      Status-gated and location-gated
+      issues for those two files must
+      match validateChangeArtifact as if
+      they carried that status and
+      location. Prefer re-validating the
+      selected spec and plan through
+      validateChangeArtifact over adding
+      a new grammar export. If
+      validateNgraceProject needs an
+      optional hook, add an argument; do
+      not add a new grammar.ts export
+      (F68). Default path with no as
+      stays behaviour-identical.
+
+      Call evaluateApproveGate when the
+      requested status is approved. Split
+      evaluateApplyGate: export
+      evaluateApplyGateArtifact for
+      plan-present and the AC
+      clarification check; keep the
+      ledger half (review-verdict,
+      host-capability) private;
+      evaluateApplyGate composes both and
+      keeps today's public result.
+      MODULE_MAP of gates/core.ts gains
+      evaluateApplyGateArtifact only.
+      Do not export a second new symbol
+      from gates/core.ts. Call the
+      artifact-pure half when the
+      requested status is applied. Do
+      not call evaluateArchiveGate.
+      validateAssertions keeps running
+      against real disk status for the
+      rest of the project; the selected
+      change's would-be semantic
+      assertion evaluation is recorded
+      as skipped verification-runtime,
+      never faked. The as-state path
+      never constructs onCommandRun.
+
+      Gate preview issues reuse existing
+      gate codes. Any file field this
+      path adds is the selected change's
+      spec.xml (else the bundle
+      directory) as a project-relative
+      POSIX path, normalized at the
+      emission site (F73). CI is the
+      only observer of separators; say
+      so in the close verdict.
+
+      Record which purity classes ran
+      and which were skipped in a
+      module-private WeakMap keyed on
+      the LintResult (scratch pad only;
+      RM-GOVERNED-PATH D13 forbids a
+      top-level field, and JSON silence
+      is T-003's to prevent). Class
+      identity is the entry point that
+      ran, not an issue-code list. Do
+      not hand-list the eight
+      status-gated codes as the
+      previewable set.
+
+      No mutation: after an as
+      invocation, spec.xml, plan.xml
+      if any, and run-ledger.xml / run/
+      bytes are identical. The
+      writeFileSync inventory in
+      grace-cursor.test.ts stays green
+      because this path adds no writer.
+      Do not add writeFileSync under
+      src/lint or grace-lint.ts.
+
+      ────────────────────────────────────────────────────────────
+      D3 — absence report (T-003)
+      ────────────────────────────────────────────────────────────
+      finalizeResult currently rebuilds
+      summary as exactly issues, errors,
+      warnings (src/lint/core.ts:100-104).
+      When as-state ran, it must write
+      summary.asState back after that
+      rebuild. A nest assigned before
+      finalizeResult and not written
+      back is a failed criterion.
+
+      summary.asState holds status,
+      evaluatedRuleClasses (N),
+      unevaluableRuleClasses (M), and
+      unevaluable (sorted reason
+      strings). N is the count of
+      evaluable purity classes that
+      ran. M is unevaluable.length.
+      Do not freeze N or M. Reasons
+      are the skipped non-pure class
+      names (ledger-dependent,
+      verification-runtime), not a
+      parenthetical that always prints
+      both. Without as, summary has
+      no asState key.
+
+      types.ts: optional asState nest
+      on summary, inline. No new
+      exported type name. MODULE_MAP
+      unchanged.
+
+      JSON of lintGraceProject, including
+      under as, gains no new top-level
+      key versus the pinned set at
+      src/lint/core.test.ts:383-408
+      (RM-GOVERNED-PATH D13). Keep that
+      pin exact. Add a sibling
+      assertion that the same key set
+      holds when asStatus is set. That
+      sibling is regression (F45), not
+      a planned red: after T-001 it
+      already holds if no top-level
+      key was added. The planned red
+      is the missing nest and the
+      missing text line.
+
+      Text: formatTextReport prints one
+      coverage line immediately after
+      the Warnings header line and
+      immediately before the blank line
+      that precedes either No issues
+      found. or Issues, including on
+      the zero-issue path (F44). Tests
+      assert the rendered bytes (F43).
+      The line is not a footer after
+      explain pointers and not a lead
+      before the title. N/M is not a
+      LintIssue and does not move
+      summary.errors or failOn. Do not
+      add a lint issue code. Do not
+      leave the nest only in the
+      WeakMap.
+
+      ────────────────────────────────────────────────────────────
+      D4 — README row (T-004)
+      ────────────────────────────────────────────────────────────
+      Add one CLI Overview table row
+      whose first ngrace token cell
+      names lint and the as argv token
+      (same table-row prefix the
+      invocation check already reads).
+      Do not freeze the row count.
+      Do not widen listLiveInvocations
+      to flags (F70 residue, named
+      NonGoal). Do not edit examples/.
+      Do not edit ngrace-cli SKILL.md.
+      F51 totals stay unmoved by
+      non-edit of skills.
+
+      The red trip writes a
+      command.test.ts check that the
+      Overview tables contain that
+      lint plus as token. HEAD today:
+      four lint assertion-mode rows;
+      no as row. Do not change the
+      boolean site pin or the
+      invocation walker in this task.
+
+      ────────────────────────────────────────────────────────────
+      D5 — HEAD-RED ownership
+      ────────────────────────────────────────────────────────────
+      | Spec AC | Owner | Pre-edit measurement |
+      | AC-AS-VOCABULARY
+        | T-001 test:as-vocabulary
+        | lint has no as arg; unknown
+          as is unknown-flag, not the
+          CHANGE_STATUSES refusal;
+          resolveAsStatus absent |
+      | AC-AS-PURE-PREVIEW
+        | T-002 test:as-pure-preview
+        | no overlay; apply is one
+          mixed function;
+          evaluateApplyGateArtifact
+          absent; runCommands can
+          still append a ledger event
+          on the non-as path |
+      | AC-AS-ABSENCE-REPORT
+        | T-003 test:as-absence-report
+        | formatTextReport never reads
+          issueClass; finalizeResult
+          rebuilds three keys; no
+          asState |
+      | AC-README-AS-ROW
+        | T-004 test:readme-as-row
+        | no Overview row naming lint
+          and as; flag absence cannot
+          fail the invocation check |
+      | AC-HEAD-RED + AC-SUITE-AND-LINT
+        | T-005 Satisfies; reds on
+          T-001 to T-004 |
+
+      Never a red backed only by a grep.
+      Never a retrospective red via stash.
+      Never fail and pass in one tool call.
+      Do not re-record T-001 through T-004.
+      F45 exemptions stay unreddened:
+      AC-SUITE-AND-LINT, F51 totals,
+      boolean site count unmoved,
+      absence-code list unmoved, live
+      invocation list unmoved, README
+      row count, examples/ staying out,
+      package.json version unchanged,
+      D13-under-as (true by construction
+      until a top-level key is added).
+
+      ────────────────────────────────────────────────────────────
+      D6 — ObservedWriteScope
+      ────────────────────────────────────────────────────────────
+      Forced by the spec (F27.2, F64) and
+      the dispatch pin list, as File
+      entries (F60: no src glob). The one
+      Glob is
+      .ngrace/changes/active/C-AS-STATE/run/**
+      which is the same shape both
+      matchers agreed on in F60. Cursor
+      companions are audit-exempt via
+      isCliLifecyclePath and are still
+      listed so OWS is complete at
+      authoring (F50).
+
+      Listed as permission (this run may
+      not write them):
+      src/lint/catalog.test.ts (absence
+      array stays four codes),
+      src/grace-cursor.test.ts
+      (writeFileSync inventory; do not
+      add a writer),
+      src/test-support/token-accounting.test.ts
+      (F51; no skill edit),
+      scripts/skill-contracts.test.ts
+      (assertions-mode phrases; no skill
+      edit),
+      src/artifact/grammar.ts and
+      src/artifact/grammar.test.ts
+      (only if the overlay needs a
+      validateNgraceProject hook).
+
+      Deliberately excluded (stop and
+      re-spec): src/lint/catalog.ts,
+      src/query/command.ts, src/project-utils.ts,
+      ngrace-execute SKILL.md, examples/,
+      docs/plans, archive, CHANGELOG,
+      version surfaces, LintResult
+      top-level keys.
+
+      scripts/ is in ignoredDirs.
+      AC-SUITE-AND-LINT is 0/0 at close,
+      not throughout. Mid-change Baseline
+      red is correct. Never weaken a
+      BaselineAssertion to move a lint
+      count.
+
+      ────────────────────────────────────────────────────────────
+      D7 — Baseline flips (no N prediction)
+      ────────────────────────────────────────────────────────────
+      Load-bearing flips (Baseline that
+      become false):
+
+        A  MustNotContain types.ts
+             asStatus, asState,
+             evaluatedRuleClasses,
+             unevaluableRuleClasses
+        B  MustNotContain grace-lint.ts
+             resolveAsStatus
+        C  MustNotContain gates/core.ts
+             and lint/core.ts
+             evaluateApplyGateArtifact
+        D  MustNotContain lint/core.ts
+             asState
+
+      Stay-true: version 6.2.0;
+      CHANGE_STATUSES and the two
+      location sets; LintAssertionMode;
+      LintOptions; LintResult;
+      finalizeResult;
+      resolveSelectedApprovedPlan;
+      appendCommandRunEvent;
+      formatTextReport; lintGraceProject;
+      the D13 pin title string;
+      evaluateApproveGate;
+      evaluateApplyGate;
+      evaluateArchiveGate;
+      listAbsenceCatalogCodes;
+      listBooleanFlags;
+      listLiveInvocations;
+      resolveAssertionMode;
+      MustNotContain writeFileSync in
+      lint/core.ts and grace-lint.ts;
+      all MustExist of pre-existing
+      paths and modules; all MustVerify.
+
+      Do not predict the baseline issue
+      count. F62: an unmeasured N is not
+      a plan fact. Re-measure at execute.
+      Never weaken a BaselineAssertion.
+
+      ────────────────────────────────────────────────────────────
+      D8 — Execution discipline
+      ────────────────────────────────────────────────────────────
+      One open epoch. Each planned red is
+      its own tool round trip: write the
+      failing test first, record cursor
+      attempt outcome fail with the
+      signature named in D0, then land
+      production in a later round trip,
+      then record pass. Never fail and
+      pass in one call. Never a
+      retrospective red via stash.
+
+      T-001: one red trip (as-vocabulary)
+      then production.
+      T-002: one red trip (as-pure-preview)
+      then production.
+      T-003: one red trip (as-absence-report)
+      then production.
+      T-004: one red trip (readme-as-row)
+      then production.
+      T-005: no planned red; suite,
+      command tests, grammar tests if
+      edited, packed smoke if edited,
+      and validate:ci. Lint 0/0 is
+      claimed at close only, after apply
+      and archive.
+
+      Newly visible flag is named in the
+      conventional commit body
+      (RM-GOVERNED-PATH D5.5), not in
+      CHANGELOG.md. Name argv tokens in
+      any later comment; leave dashed
+      forms to *.test.ts (F61).
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Add lint argv token as and the ChangeStatus resolver</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-AS-VOCABULARY />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (vocabulary): before any
+            grace-lint.ts or lint/types.ts
+            production edit, in its own tool
+            round trip, add tests in
+            src/grace-lint.test.ts that argv
+            token as accepts exactly the live
+            CHANGE_STATUSES members, requires
+            argv token change naming a bundle
+            that exists under active or
+            archive including a spec-only
+            draft, and refuses as
+            invalid-arguments before lint
+            runs a token not in
+            CHANGE_STATUSES, a missing change,
+            a non-canonical id, a missing
+            bundle, assertions other than
+            current, runCommands, and explain.
+            A rejected LintAssertionMode token
+            names argv token assertions. A
+            rejected live gate name names the
+            gate verb. Parallel-preflight,
+            remediate, failOn, and format
+            still compose. Do not import
+            resolveAsStatus in this trip
+            (F68: that function is produced
+            later; the failing surface is the
+            missing as arg on the existing
+            lintCommand). HEAD today: lint
+            has no as arg; unknown as is an
+            unknown-flag failure, not this
+            refusal. The asserts fail. Record
+            cursor attempt outcome fail,
+            signature kind test key
+            as-vocabulary. Do not land
+            production in this round trip.
+            Never a red backed only by a
+            grep; never fail and pass in one
+            tool call; never a retrospective
+            red via stash. Failure conditions:
+            this round trip also lands
+            production; two new missing
+            exports of one module imported
+            in one test; the assertions-mode
+            refusal and the gate-verb refusal
+            recorded as two HEAD reds that
+            both fail as unknown-flag (F68);
+            red sold against a check that
+            already passes on HEAD.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip
+            after the red): add the string
+            arg as and private resolveAsStatus
+            as in D1; add LintOptions.asStatus
+            as string with no new types.ts
+            export; look up the bundle in
+            active then archive without
+            calling resolveSelectedApprovedPlan;
+            implement both refusal messages
+            so they can fail alone after the
+            flag exists; pass asStatus and
+            changeId into lintGraceProject;
+            do not overlay; do not write
+            asState; do not edit gates or
+            README.md; add a packed smoke
+            sibling that parses as; boolean
+            site pin stays 25. Failure
+            conditions: accepting target,
+            final, or approve; shipping as
+            target beside assertions target;
+            reusing the approved-pair
+            resolver so a draft cannot be
+            selected; silently ignoring as
+            when explain is also set; a
+            hand-copied status list; a new
+            boolean; version field edited;
+            writeFileSync added.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-lint.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Overlay artifact-pure rules and split the apply gate</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-AS-PURE-PREVIEW />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (pure preview): before
+            any gates/core.ts, lint/core.ts,
+            or grammar.ts production edit, in
+            its own tool round trip, add tests
+            in src/grace-lint.test.ts that for
+            a selected change, status-gated
+            and location-gated issues match
+            validateChangeArtifact as if that
+            change's spec and plan carried
+            the requested status and the
+            location implied by
+            ACTIVE_CHANGE_STATUSES /
+            ARCHIVED_CHANGE_STATUSES;
+            evaluateApproveGate's artifact
+            check is visible at approved;
+            apply artifact-pure requirements
+            are visible at applied;
+            evaluateArchiveGate is not
+            invoked; spec, plan, and ledger
+            bytes are identical after;
+            design-context is not given a
+            status. Do not import
+            evaluateApplyGateArtifact in this
+            trip (F68: that export is
+            produced later; the failing
+            surface is lintGraceProject
+            overlay behaviour). HEAD today:
+            no overlay; apply is one mixed
+            function. The asserts fail.
+            Record fail, signature kind test
+            key as-pure-preview. Do not land
+            production in this round trip.
+            Failure conditions: this round
+            trip also lands production; red
+            sold against a missing export
+            import; two new missing exports
+            of one module in one test;
+            completeness treated as this red.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip
+            after the red): implement the
+            overlay, apply split, approve
+            call, archive skip, WeakMap class
+            record, and no-mutation path as
+            in D2; evaluateApplyGate's public
+            result without as is unchanged;
+            onCommandRun is never constructed
+            on the as path; any new issue
+            file field is project-relative
+            POSIX at emission (F73); do not
+            publish asState yet (T-003);
+            do not edit README.md; do not
+            add writeFileSync; do not
+            hand-list the eight status-gated
+            codes as the previewable set.
+            Failure conditions: virtual
+            target/final assertion
+            evaluation; apply artifact half
+            skipped while still counting it
+            as evaluated; disk status or
+            location mutated; second new
+            export from gates/core.ts;
+            evaluateArchiveGate called;
+            resolveSelectedApprovedPlan used
+            as the overlay selector.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-lint.test.ts</Command>
+          <Command>bun test src/gates/core.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Publish derived N/M coverage in text and JSON</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-AS-ABSENCE-REPORT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (absence report):
+            before any finalizeResult or
+            formatTextReport production edit,
+            in its own tool round trip, add
+            tests in src/lint/core.test.ts
+            that when as is set, JSON of
+            lintGraceProject has
+            summary.asState with status,
+            evaluatedRuleClasses,
+            unevaluableRuleClasses, and
+            unevaluable, and that
+            formatTextReport prints the
+            derived coverage line
+            immediately after the Warnings
+            header line and immediately
+            before the blank line that
+            precedes No issues found. or
+            Issues, including when there
+            are zero issues. Do not import
+            a new core export (F68: none
+            is added; the failing surface
+            is the nest and the line).
+            Also assert, in a separate
+            test that can fail alone, that
+            top-level keys under as still
+            equal the RM-GOVERNED-PATH D13
+            pinned set; that sibling is
+            F45 (green after T-001) and
+            is not this red. HEAD today:
+            finalizeResult rebuilds three
+            keys; no asState; no coverage
+            line. The nest and line asserts
+            fail. Record fail, signature
+            kind test key as-absence-report.
+            Do not land production in this
+            round trip. Failure conditions:
+            this round trip also lands
+            production; D13-under-as
+            recorded as a fail that already
+            passes; N or M frozen in the
+            test as a universal pair; red
+            sold against a check that
+            already passes on HEAD.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip
+            after the red): finalizeResult
+            writes asState back after
+            rebuilding counts; formatTextReport
+            prints the line at the D3
+            position; types.ts gains the
+            inline nest and no new export;
+            without as, summary has no
+            asState key; N equals evaluable
+            classes that ran; M equals
+            unevaluable.length; reasons are
+            the skipped class names; N/M
+            is not a LintIssue and does
+            not move failOn; the D13 pin
+            stays exact, including under
+            as; WeakMap is not the only
+            home. Failure conditions:
+            top-level asStatus or asState;
+            WeakMap-only (JSON silent);
+            coverage line only in a footer
+            or only when issues exist;
+            dropping asState in
+            finalizeResult; new lint issue
+            code; D13 expectedKeys extended
+            with a new top-level name.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/lint/core.test.ts</Command>
+          <Command>bun test src/grace-lint.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Document argv token as on the README CLI Overview</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-README-AS-ROW />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (README row): before
+            any README.md production edit, in
+            its own tool round trip, add a
+            command.test.ts check that the
+            CLI Overview tables contain a
+            row whose first ngrace token
+            cell names lint and the as argv
+            token, using the same table-row
+            prefix the invocation check
+            already reads. Do not import a
+            new export (F68: failing surface
+            is README tokens). Do not change
+            listLiveInvocations or the
+            boolean site pin. HEAD today:
+            four lint assertion-mode rows;
+            no as row. The assert fails.
+            Record fail, signature kind test
+            key readme-as-row. Do not land
+            production in this round trip.
+            Failure conditions: this round
+            trip also lands production; row
+            count frozen in the test;
+            walker widened to flags; red
+            sold against a check that
+            already passes on HEAD.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip
+            after the red): add the Overview
+            row as in D4; do not edit
+            examples/; do not edit ngrace-cli
+            SKILL.md; do not widen the
+            invocation walker; F51 totals
+            stay unmoved by non-edit of
+            skills. Failure conditions:
+            as mentioned only outside CLI
+            Overview; examples/ edited;
+            skill edited and F51 left stale;
+            boolean pin moved; walker
+            changed.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/query/command.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Close suite, pins, and lint at archive</Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-HEAD-RED />
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED ownership: do not
+            record a new red. Confirm the
+            four planned fail/pass pairs
+            exist under the keys in D0 and
+            that no F45 exemption was
+            reddened. Do not re-record
+            T-001 through T-004. Do not
+            stash a retrospective red.
+          </Criterion>
+          <Criterion>
+            bun test green for touched
+            packages (grace-lint, lint core,
+            gates core, grammar if edited,
+            command tests, packed smoke if
+            edited, token-accounting only
+            if a skill moved); bun run
+            validate:ci green (re-measure
+            ratchet cardinality; do not
+            drop keys); bun run ngrace lint
+            path . is 0 errors and 0
+            warnings at close only, after
+            apply and archive, not claimed
+            mid-change. ObservedWriteScope
+            covers every path the
+            deliverable forced. No
+            docs/plans or archive edits.
+            No CHANGELOG. No version
+            surfaces. Boolean site count
+            unmoved. Absence catalog
+            unmoved. D13 top-level key set
+            unmoved. F73: close verdict
+            states CI is the only observer
+            of path separators. Failure
+            conditions: suite red; lint 0/0
+            claimed mid-window; pin deleted
+            or loosened; writes outside
+            declared scope; listAbsenceCatalogCodes
+            extended for the coverage line.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-lint.test.ts</Command>
+          <Command>bun test src/lint/core.test.ts</Command>
+          <Command>bun test src/gates/core.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-AS-STATE>
+</NgraceChangePlan>
