@@ -4849,3 +4849,31 @@ scoping the repair — a getter is a defect at each of its call sites, and the s
 happened to notice is rarely all of them. And before writing an acceptance criterion, check whether
 the defect is **reachable on the tree you will run it against**; if the live project cannot express
 the broken state, the fixture is part of the deliverable, not an implementation detail.
+
+### F78 — a parent-level argument check does not reject the command, it poisons the exit after the child already succeeded. **[verified]**
+
+Measured by the executor at `C-RECORDED-DEBT` by forcing the parent-run skip off, then restoring it.
+
+The arg library dispatches the child command **and then also runs the parent's `run`**. With the skip
+disabled, `ngrace module show M-EXAMPLE --path <tmp>` **printed the module JSON to stdout — the
+correct output, the work done — and the parent then set exit 1** reporting `Unrecognized argument
+'--path'`, because `--path` is declared on the child and invisible in the parent's empty args
+definition.
+
+**That is worse than the failure everyone framed.** The spec, the plan and the authority's dispatch
+all described the hazard as *"a naive check would reject a valid command."* Rejection is loud and
+safe: nothing runs, the user retypes. What actually happens is **success-then-fail after side
+effects** — the command completes, emits real output, and reports failure. A caller reading the exit
+code concludes the work did not happen; a caller reading stdout concludes it did. For a write
+command the divergence would be worse than for a read.
+
+**And it explains why the skip cannot be a membership restatement.** A skip that merely lists known
+subcommand names is a second inventory ([F60](#f60)) *and* fails in this direction — silently, after
+the fact — rather than by refusing. The skip has to be derived from the same live command objects the
+dispatch used.
+
+**The rule.** When a guard runs at a level that is **not** the level that owns the arguments, ask what
+it does *after* the real work has already run. A check placed downstream of execution cannot reject —
+it can only contradict. Guards belong where the decision is still ahead of the side effect, and when
+they cannot be, their failure mode must be stated in those terms rather than as "rejects the
+command."

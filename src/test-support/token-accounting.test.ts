@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
 
 import { minimalTsFixture } from "./fixtures";
 import {
@@ -46,7 +48,7 @@ describe("token-accounting (D15)", () => {
     //   stays 779 (frozen semantics; archived reports cite it).
     const measured = skillTextLines();
     expect(measured.total).toBe(806);
-    expect(measured.totalBytes).toBe(55043);
+    expect(measured.totalBytes).toBe(55106);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);
@@ -79,6 +81,24 @@ describe("token-accounting (D15)", () => {
     expect(selectionRatio(100, 40)).toBeCloseTo(0.6);
     expect(selectionRatio(100, 100)).toBe(0);
     expect(selectionRatio(0, 0)).toBe(0);
+  });
+
+  it("canonical SKILL.md D-numbers are immediately preceded by a plan id", () => {
+    const skillsRoot = path.join(packageRoot(), "skills", "ngrace");
+    const bare: string[] = [];
+    const dNumber = /\bD\d+\b/g;
+    for (const skill of readdirSync(skillsRoot).sort()) {
+      const skillMd = path.join(skillsRoot, skill, "SKILL.md");
+      if (!statSync(skillMd, { throwIfNoEntry: false })?.isFile()) continue;
+      const text = readFileSync(skillMd, "utf8");
+      for (const match of text.matchAll(dNumber)) {
+        const before = text.slice(0, match.index);
+        if (!/RM-[A-Z0-9-]+ $/.test(before)) {
+          bare.push(`${skill}/SKILL.md:${match[0]}`);
+        }
+      }
+    }
+    expect(bare).toEqual([]);
   });
 
   it("selectionRatio rejects selected outside [0, full] and non-finite inputs", () => {

@@ -311,7 +311,7 @@ const verdictSubCommand = defineCommand({
   },
 });
 
-export const gateCommand = defineCommand({
+export const gateCommand = defineGraceCommand({
   meta: {
     name: "gate",
     description:

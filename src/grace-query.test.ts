@@ -7,6 +7,12 @@ import { ARTIFACT_DIR } from "./artifact/paths";
 import { findModules, findVerifications, loadGraceArtifactIndex, resolveGovernedFile, resolveModule, resolveVerification } from "./query/core";
 import { GraceCommandError } from "./query/errors";
 import { buildModuleHealth } from "./query/health";
+import {
+  formatModuleFindTable,
+  formatModuleHealthText,
+  formatModuleText,
+  formatVerificationText,
+} from "./query/render";
 import { createTempProject, GraceProjectBuilder } from "./test-support/fixtures";
 
 function createProject() {
@@ -1110,5 +1116,71 @@ describe("file exports", () => {
       exportConfidence: null,
       exports: [],
     });
+  });
+});
+
+function createNoPathLinkedDisplayFixture() {
+  return new GraceProjectBuilder(createTempProject("grace-no-path-display-"))
+    .module({ id: "M-NO-PATH", summary: "Module without Path." })
+    .governedFile({
+      path: "src/linked-only.ts",
+      purpose: "Linked file that getModulePath would fall back to",
+      links: ["M-NO-PATH"],
+      mapMode: "EXPORTS",
+      mapEntries: ["hiddenByFallback"],
+      body: "export function hiddenByFallback() {}\n",
+    })
+    .verification({
+      moduleId: "M-NO-PATH",
+      commands: ["bun test src/linked-only.test.ts"],
+      scenarios: ["linked file exists"],
+    })
+    .write();
+}
+
+describe("authored Path only (AC-AUTHORED-PATH)", () => {
+  it("a no-Path module with a linked file renders absence tokens, not the linked path", () => {
+    const root = createNoPathLinkedDisplayFixture();
+    const index = loadGraceArtifactIndex(root);
+    const moduleRecord = resolveModule(index, "M-NO-PATH");
+    const linkedPath = "src/linked-only.ts";
+
+    const moduleText = formatModuleText(moduleRecord, { withVerification: false });
+    expect(moduleText).toMatch(/^Graph Path: /m);
+    const graphLine = moduleText.split("\n").find((line) => line.startsWith("Graph Path:"));
+    expect(graphLine).toBe("Graph Path: n/a");
+    expect(graphLine).not.toContain(linkedPath);
+
+    const verification = resolveVerification(index, "V-M-NO-PATH");
+    const verificationText = formatVerificationText(verification);
+    expect(verificationText).toMatch(/^Module Path: /m);
+    const modulePathLine = verificationText.split("\n").find((line) => line.startsWith("Module Path:"));
+    expect(modulePathLine).toBe("Module Path: n/a");
+    expect(modulePathLine).not.toContain(linkedPath);
+
+    const findText = formatModuleFindTable(findModules(index, { query: "M-NO-PATH" }));
+    const findRow = findText.split("\n").find((line) => line.startsWith("M-NO-PATH"));
+    expect(findRow).toBeDefined();
+    const pathCell = findRow!.trim().split(/\s{2,}/)[3];
+    expect(pathCell).toBe("-");
+    expect(pathCell).not.toContain(linkedPath);
+
+    const health = buildModuleHealth(index, moduleRecord);
+    expect(health.path).toBeUndefined();
+    const healthText = formatModuleHealthText(health);
+    const healthPathLine = healthText.split("\n").find((line) => line.startsWith("Path:"));
+    expect(healthPathLine).toBe("Path: n/a");
+    expect(healthPathLine).not.toContain(linkedPath);
+  });
+
+  it("file exports on that module still reports not-found naming Path and does not analyse the linked file", () => {
+    const root = createFileExportsFixture();
+    const result = runFileExports(root, ["--module", "M-NO-PATH", "--path", root, "--json"]);
+    expect(result.exitCode).not.toBe(0);
+    const body = JSON.parse(fileExportsStdout(result));
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("not-found");
+    expect(body.error.message).toMatch(/Path/i);
+    expect(body.error.message).not.toContain("hiddenByFallback");
   });
 });

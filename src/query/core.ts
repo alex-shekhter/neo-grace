@@ -109,7 +109,7 @@ export function getModuleType(moduleRecord: ModuleRecord) {
 }
 
 export function getModulePath(moduleRecord: ModuleRecord) {
-  return moduleRecord.graph.path ?? moduleRecord.localFiles.find((file) => !isLikelyTestPath(file.path))?.path ?? moduleRecord.localFiles[0]?.path;
+  return moduleRecord.graph.path;
 }
 
 export function getModuleDepends(moduleRecord: ModuleRecord) {

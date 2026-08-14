@@ -13,7 +13,9 @@
 //   reportProcessFault
 // END_MODULE_MAP
 
-import { defineCommand, type CommandDef, runMain } from "citty";
+import { type CommandDef, runMain } from "citty";
+
+import { defineGraceCommand } from "./query/command";
 
 import { contextCommand } from "./grace-context";
 import { cursorCommand } from "./grace-cursor";
@@ -30,7 +32,7 @@ import { reviewCommand } from "./review/command";
 import { ARTIFACT_DIR } from "./artifact/paths";
 import { formatCauseChain } from "./query/errors";
 
-const main = defineCommand({
+const main = defineGraceCommand({
   meta: {
     name: "ngrace",
     version: "6.2.0",

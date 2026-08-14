@@ -29,7 +29,7 @@ ngrace review --path . --change C-ID
 ngrace review --path . --change C-ID --format json
 ```
 
-The CLI emits deterministic finding IDs for pattern detectors (five D4 patterns) and process audits
+The CLI emits deterministic finding IDs for pattern detectors (five RM-AGENT-RELIABILITY D4 patterns) and process audits
 (scope, test weakening, backward-compat, hunk coverage). Finding IDs are stable across reruns and
 unrelated blank-line edits. Use those IDs in your report; do not invent parallel codes.
 </mechanized_first>

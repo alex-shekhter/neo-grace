@@ -1798,6 +1798,7 @@ function parseEnvelope(result: ReturnType<typeof Bun.spawnSync>) {
     ok?: boolean;
     error?: { code?: string; message?: string };
     tool?: string;
+    assertionMode?: string;
   };
 }
 
@@ -2097,6 +2098,34 @@ describe("as-state pure preview", () => {
     });
     const result = lintGraceProject(root, { asStatus: "approved", changeId: "C-AS-PREV" });
     expect(result.issues.some((issue) => issue.code === "design-context.forbidden-status")).toBe(false);
+  });
+});
+
+describe("undeclared flag tokens on lint", () => {
+  it("lint with an undeclared flag is invalid-arguments, not a LintResult", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const result = spawnLintJson(root, ["--not-a-real-flag"]);
+    const parsed = parseEnvelope(result);
+    expect(result.exitCode).not.toBe(0);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.tool).toBeUndefined();
+    expect(parsed.error?.code).toBe("invalid-arguments");
+    expect(parsed.error?.message).toContain("--not-a-real-flag");
+    expect(parsed.error?.message).not.toMatch(/\u001B/);
+  });
+
+  it("lint with a transposed assertions token is invalid-arguments, not a LintResult", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const result = spawnLintJson(root, ["--assertionss", "current"]);
+    const parsed = parseEnvelope(result);
+    expect(result.exitCode).not.toBe(0);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.tool).toBeUndefined();
+    expect(parsed.error?.code).toBe("invalid-arguments");
+    expect(parsed.error?.message).toContain("--assertionss");
+    expect(parsed.assertionMode).toBeUndefined();
   });
 });
 

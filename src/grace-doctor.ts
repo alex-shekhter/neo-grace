@@ -23,7 +23,9 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-import { defineCommand, type CommandDef, runMain } from "citty";
+import { type CommandDef, runMain } from "citty";
+
+import { defineGraceCommand } from "./query/command";
 
 import { ARTIFACT_DIR } from "./artifact/paths";
 import { detectGraceProjectKind, resolveNgracePaths } from "./artifact/project";
@@ -243,7 +245,7 @@ export function formatDoctorText(report: DoctorResult): string {
   return `${lines.join("\n")}\n`;
 }
 
-export const doctorCommand = defineCommand({
+export const doctorCommand = defineGraceCommand({
   meta: {
     name: "doctor",
     description:

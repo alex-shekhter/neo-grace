@@ -8,8 +8,10 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   AS_STATE_PURITY_CLASSES
 //   AnalysisCoverage
 //   AnalysisCoverageEntry
+//   AsStatePurityClass
 //   DEFAULT_DOCUMENT_ANCHOR_LIMIT
 //   DEFAULT_DOCUMENT_BYTE_LIMIT
 //   GateFailOn
@@ -30,6 +32,11 @@
 //   ModuleMapItem
 //   ModuleRole
 // END_MODULE_MAP
+/** Closed inventory of as-state purity classes. Classifier must assign every member. */
+export const AS_STATE_PURITY_CLASSES = ["artifact", "ledger-dependent", "verification-runtime"] as const;
+
+export type AsStatePurityClass = (typeof AS_STATE_PURITY_CLASSES)[number];
+
 export type LintSeverity = "error" | "warning";
 
 export type LintProfile = "standard";

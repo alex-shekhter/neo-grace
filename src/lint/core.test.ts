@@ -10,7 +10,7 @@ import { isGateIssueCode } from "../gates/catalog";
 import { advanceCursor, listLooseEvents } from "../grace-cursor";
 import { isReviewIssueCode } from "../review/catalog";
 import { runReview } from "../review/core";
-import type { LintIssue, LintResult } from "./types";
+import { AS_STATE_PURITY_CLASSES, type LintIssue, type LintResult } from "./types";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const tempRoots: string[] = [];
@@ -578,6 +578,26 @@ describe("as-state absence report", () => {
     expect(applied.summary.asState?.unevaluable).toContain("ledger-dependent");
     expect(applied.summary.asState?.unevaluable).toContain("verification-runtime");
     expect(applied.summary.asState?.unevaluable).toEqual([...applied.summary.asState!.unevaluable].sort());
+  });
+
+  it("assigns every AS_STATE_PURITY_CLASSES member ran or skipped (N+M is inventory length)", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-as-complete-"));
+    tempRoots.push(root);
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-AS-ABS",
+      location: "active",
+      specStatus: "draft",
+      planStatus: "draft",
+    });
+    const result = lintGraceProject(root, { asStatus: "applied", changeId: "C-AS-ABS" });
+    const state = result.summary.asState;
+    expect(state).toBeDefined();
+    expect(state!.evaluatedRuleClasses + state!.unevaluableRuleClasses).toBe(AS_STATE_PURITY_CLASSES.length);
+    expect(state!.unevaluableRuleClasses).toBe(state!.unevaluable.length);
+    for (const name of state!.unevaluable) {
+      expect((AS_STATE_PURITY_CLASSES as readonly string[]).includes(name)).toBe(true);
+    }
   });
 
   it("prints the coverage line after Warnings and before No issues found or Issues", () => {
