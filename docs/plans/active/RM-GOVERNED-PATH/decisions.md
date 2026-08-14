@@ -4647,3 +4647,34 @@ platform-independent normalizer at the emission site, not at the comparison site
 reports a path comparison as *unexercised*, that is the cheapest possible warning that a
 single-platform gate cannot see it — **test it or state in the verdict that CI is the only observer.**
 Until this roadmap gains a second platform in its gates, "closed clean" means "clean on macOS."
+
+### F74 — a bare `D<n>` citation is ambiguous across plans, and one sits inside a normative block. **[verified]**
+
+Caught by the executor while authoring `C-AS-STATE`, checking a citation the authority had repeated
+without following it.
+
+P1 step 6's **normative** absence-reporting block reads *"using D5's typed-absence idiom."* Measured:
+
+- **This plan's D5** is *"Separators are `,` `;` and whitespace; and a standing rule for what counts
+  as a break"* (`decisions.md`).
+- **The typed-absence idiom is `RM-AGENT-RELIABILITY`'s D5** — *"The trust model: two axes for claims,
+  one value for absence"* — which lives in `docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md`.
+
+So a reader who follows the citation inside the plan that contains it lands on the separator rule and
+finds nothing about absence. **Both plans number their decisions from D1, and both reach the teens**
+(this plan D1–D17, the reliability plan D1–D16), so *every* bare `D<n>` in this repository is
+ambiguous between at least two documents. The step text has been read by three bundles without anyone
+resolving it, because "D5" reads as self-evidently local.
+
+Repaired in the roadmap: the citation now names the plan, quotes the decision, and gives the archive
+path, with a note that the qualifier is load-bearing.
+
+**This is [F53](#f53)'s rule one level up.** F53 said cite a bundle by archive path, never by commit
+hash, because the hash is not resolvable from the text. A bare `D<n>` has the same defect for a
+different reason: it *is* resolvable, to the wrong thing, silently.
+
+**The rule.** **Cite a cross-plan decision as `<PLAN-ID> D<n>`, always.** A local `D<n>` is acceptable
+only inside the plan that owns it, and never inside a normative block that another artifact will
+quote. **Owed: an audit of the remaining bare `D<n>` citations** in this plan and in the skills —
+`D3`, `D5.2`, `D5.5`, `D11`, `D12`, `D13`, `D16`, `D17` are all in live use and at least one (D12) is
+known to belong to the reliability plan. Not done here; this bundle's scope is `--as`.

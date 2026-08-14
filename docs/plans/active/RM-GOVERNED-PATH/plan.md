@@ -285,8 +285,10 @@ done.
 
    **Absence reporting (normative).** Silence must not read as "will pass." Output reports
    *"evaluated N rule classes; M classes not evaluable at this state (ledger-dependent,
-   verification-runtime)"* using D5's typed-absence idiom — the tool's own coverage held to
-   the rule it applies to everyone else.
+   verification-runtime)"* using **`RM-AGENT-RELIABILITY` D5**'s typed-absence idiom (*"two axes
+   for claims, one value for absence"*, `docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md`) —
+   the tool's own coverage held to the rule it applies to everyone else. **The plan qualifier is
+   load-bearing: this plan's own D5 is the separator rule** (see F74).
 7. **Adapter export view.** `ngrace file exports --module M-X` prints exactly what the
    adapter considers exports — **read-only**. The two-iteration `MODULE_MAP` dance dies
    here. Auto-rewrite is deliberately deferred (§4 D3).
