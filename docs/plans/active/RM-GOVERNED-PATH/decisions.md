@@ -4712,3 +4712,43 @@ authoring, after [F63](#f63)'s sibling in `C-TEACHING-SURFACE` where an acceptan
 **Also recorded, not fixed:** the same spec still cites *"D5 typed-absence"* bare at `spec.xml:192` —
 the exact defect [F74](#f74) records. The spec is approved and immutable, so it stands; the plan cites
 `RM-AGENT-RELIABILITY` D5 correctly, and this entry is the record that the artifact does not.
+
+### F76 — the CLI silently ignores an unrecognised flag, in the product whose thesis is that silence must not read as pass. **[verified]**
+
+Found by the executor while executing `C-AS-STATE`, checking a HEAD claim the plan asserted and the
+authority's dispatch repeated: that an undeclared `--as` would fail as an unknown flag. **It does
+not.** Measured at HEAD:
+
+```
+ngrace lint --path . --totallyBogusFlag hello --format json
+```
+
+emits **no diagnostic naming the flag** and produces a byte-shaped-normal `LintResult`, identical to
+the run without it. (Exit code is not the tell: this tree had unrelated lint errors, so `1` came from
+those. Checking the exit code alone would have confirmed the wrong conclusion — measure the
+*diagnostic*, not the status.)
+
+**The consequence is worse than a typo.** `ngrace lint --assertionss target` — one transposed letter —
+runs in `current` mode, reports a clean result, and tells the author nothing. They believe they
+evaluated target assertions. They evaluated the default. Every selected-assertion command in the
+lifecycle is exposed the same way, and the `--assertions` modes are precisely the gates the execute
+flow depends on.
+
+**The irony is exact and worth keeping.** This finding surfaced inside the bundle implementing P1
+step 6, whose own **normative** text reads *"Silence must not read as 'will pass.'"* The feature was
+being built to hold the tool's rule-coverage to that standard while the CLI that dispatches it drops
+unrecognised arguments without a word.
+
+**Neither the plan nor the authority measured it.** The plan asserted the unknown-flag failure as a
+HEAD fact, the dispatch restated it, and both were wrong — the third time in this phase a HEAD claim
+about the CLI has been asserted rather than measured (see [F62](#f62), [F62.1](#f621)). The executor
+caught it because a red it expected to be red was green.
+
+**Not fixed here.** The behaviour belongs to the argument layer shared by every command, not to
+`--as`, and this bundle's scope is the overlay. **Owed as its own change**: decide whether unknown
+arguments are rejected, warned, or reported as a typed absence, and note that a strictness change is
+a compatibility break for any caller passing extra flags today.
+
+**The rule.** Before writing a criterion on "the CLI rejects X", run it and read the **message**. An
+exit code is a summary of everything the command did, so it can confirm a rejection that never
+happened.
