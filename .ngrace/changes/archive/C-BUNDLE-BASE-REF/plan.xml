@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-BUNDLE-BASE-REF>
     <IntentSummary>
       Record the observed HEAD object
