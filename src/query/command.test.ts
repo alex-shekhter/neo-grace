@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import type { ArgsDef } from "citty";
+import { renderUsage, type ArgsDef } from "citty";
+
+import { writeMinimalNgraceProject } from "../artifact/test-fixtures";
 
 import { contextCommand } from "../grace-context";
 import { cursorCommand } from "../grace-cursor";
@@ -928,6 +931,17 @@ describe("README CLI Overview documents argv token as", () => {
   });
 });
 
+describe("README CLI Overview records unrecognized argument refusal", () => {
+  it("Overview or the prose immediately around those tables records that unrecognized arguments are rejected and usage is printed", () => {
+    const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");
+    const afterHeading = readme.split("## CLI Overview\n")[1];
+    expect(afterHeading).toBeDefined();
+    const overview = afterHeading!.split(/^## /m)[0] ?? "";
+    expect(overview).toMatch(/unrecognized arguments? are rejected/i);
+    expect(overview).toMatch(/usage is printed/i);
+  });
+});
+
 describe("listLiveInvocations", () => {
   it("treats a root with no subCommands as one invocation", () => {
     const command = { args: { json: { type: "boolean" as const, default: false } } };
@@ -1132,5 +1146,177 @@ describe("process-fault reporter (D14 clause 4 / T-004)", () => {
     const counts = JSON.parse(stdout) as { r0: number; e0: number; r1: number; e1: number };
     expect(counts.r1).toBe(counts.r0);
     expect(counts.e1).toBe(counts.e0);
+  });
+});
+
+const CLI_ENTRY = path.resolve(import.meta.dir, "../grace.ts");
+const REPO_ROOT = path.resolve(import.meta.dir, "../..");
+
+function spawnGrace(args: string[], env?: Record<string, string | undefined>) {
+  const merged: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined) merged[key] = value;
+  }
+  if (env) {
+    for (const [key, value] of Object.entries(env)) {
+      if (value === undefined) delete merged[key];
+      else merged[key] = value;
+    }
+  }
+  return Bun.spawnSync({
+    cmd: [process.execPath, CLI_ENTRY, ...args],
+    cwd: REPO_ROOT,
+    stdout: "pipe",
+    stderr: "pipe",
+    env: merged,
+  });
+}
+
+function spawnText(result: ReturnType<typeof spawnGrace>) {
+  return {
+    exitCode: result.exitCode,
+    stdout: Buffer.from(result.stdout ?? "").toString("utf8"),
+    stderr: Buffer.from(result.stderr ?? "").toString("utf8"),
+  };
+}
+
+describe("undeclared flag tokens (AC-UNRECOGNIZED-ARGS)", () => {
+  it("defineGraceCommand refuses an undeclared flag before original run and keeps the envelope keys", async () => {
+    let ran = false;
+    const cmd = defineGraceCommand({
+      meta: { name: "probe" },
+      args: {
+        path: { type: "string" as const, default: "." },
+        format: { type: "string" as const, default: "text" },
+      },
+      async run() {
+        ran = true;
+      },
+    });
+
+    const previousExit = process.exitCode;
+    process.exitCode = undefined;
+    const stdout = await captureStdout(async () => {
+      await captureStderr(async () => {
+        await cmd.run!({
+          rawArgs: ["--not-a-real-flag", "--format", "json"],
+          args: { path: ".", format: "json", _: [] },
+          cmd,
+        } as never);
+      });
+    });
+    const refusedExit = readExitCode();
+    restoreExitCode(previousExit);
+
+    expect(ran).toBe(false);
+    expect(refusedExit).toBe(1);
+    const body = JSON.parse(stdout) as {
+      schemaVersion?: string;
+      ok?: boolean;
+      error?: { code?: string; message?: string };
+    };
+    expect(Object.keys(body).sort()).toEqual(["error", "ok", "schemaVersion"]);
+    expect(body.schemaVersion).toBe("1.0.0");
+    expect(body.ok).toBe(false);
+    expect(body.error).toBeDefined();
+    expect(Object.keys(body.error!).sort()).toEqual(["code", "message"]);
+    expect(body.error!.code).toBe("invalid-arguments");
+    const refusedMessage = body.error!.message ?? "";
+    expect(refusedMessage).toContain("--not-a-real-flag");
+    expect(refusedMessage).not.toMatch(/\u001B/);
+    const usage = (await renderUsage(cmd)).replace(/\u001B\[[0-9;]*[A-Za-z]/g, "");
+    expect(refusedMessage.replace(/\u001B\[[0-9;]*[A-Za-z]/g, "")).toContain(usage.trim());
+  });
+
+  it("every liveCommandRoots entry and gate.verdict carry BOOLEAN_SPACE_GUARD_BRAND", () => {
+    const roots = liveCommandRoots();
+    const unbranded = roots
+      .filter((root) => (root.command as Record<symbol, unknown>)[BOOLEAN_SPACE_GUARD_BRAND] !== true)
+      .map((root) => root.name);
+    expect(unbranded).toEqual([]);
+    expect(
+      (commandAtPath(roots as never, "gate.verdict") as Record<symbol, unknown>)[BOOLEAN_SPACE_GUARD_BRAND],
+    ).toBe(true);
+  });
+
+  it("review, doctor, module with only an undeclared flag, and root ngrace name the token", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-unrecog-"));
+    writeMinimalNgraceProject(root);
+
+    const cases: { args: string[]; token: string }[] = [
+      { args: ["review", "--path", root, "--format", "json", "--not-a-real-flag"], token: "--not-a-real-flag" },
+      { args: ["doctor", "--path", root, "--format", "json", "--not-a-real-flag"], token: "--not-a-real-flag" },
+      { args: ["module", "--not-a-real-flag"], token: "--not-a-real-flag" },
+      { args: ["--not-a-real-flag"], token: "--not-a-real-flag" },
+    ];
+
+    for (const testCase of cases) {
+      const result = spawnText(spawnGrace(testCase.args));
+      expect(result.exitCode, testCase.args.join(" ")).not.toBe(0);
+      const payload = result.stdout.trim().startsWith("{") ? result.stdout : result.stderr;
+      expect(payload, testCase.args.join(" ")).toContain(testCase.token);
+      if (result.stdout.trim().startsWith("{")) {
+        const body = JSON.parse(result.stdout) as {
+          ok?: boolean;
+          error?: { code?: string; message?: string };
+          tool?: string;
+        };
+        expect(body.ok).toBe(false);
+        expect(body.error?.code).toBe("invalid-arguments");
+        expect(body.error?.message).toContain(testCase.token);
+        expect(body.tool).toBeUndefined();
+        expect(body.error?.message).not.toMatch(/\u001B/);
+      }
+    }
+  });
+
+  it("JSON error.message from a color-capable spawn carries no escape sequence", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-unrecog-color-"));
+    writeMinimalNgraceProject(root);
+    const result = spawnText(
+      spawnGrace(["lint", "--path", root, "--format", "json", "--not-a-real-flag"], {
+        TEST: undefined,
+        NO_COLOR: undefined,
+        CI: undefined,
+        TERM: "xterm-256color",
+        FORCE_COLOR: "1",
+      }),
+    );
+    expect(result.exitCode).not.toBe(0);
+    const body = JSON.parse(result.stdout) as { ok?: boolean; error?: { message?: string }; tool?: string };
+    expect(body.ok).toBe(false);
+    expect(body.tool).toBeUndefined();
+    expect(body.error?.message).toContain("--not-a-real-flag");
+    expect(body.error?.message).not.toMatch(/\u001B/);
+  });
+
+  it("parent-run skip: module show with argv token path still succeeds", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-parent-skip-"));
+    writeMinimalNgraceProject(root);
+    const result = spawnText(spawnGrace(["module", "show", "M-EXAMPLE", "--path", root]));
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("M-EXAMPLE");
+    expect(result.stderr).not.toMatch(/Unrecognized argument/);
+  });
+
+  it("defineGraceCommand is idempotent on an already-branded def", () => {
+    expect(defineGraceCommand(lintCommand)).toBe(lintCommand);
+    expect(defineGraceCommand(reviewCommand)).toBe(reviewCommand);
+  });
+
+  it("declared positionals still bind; citty help and version remain accepted", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-pos-"));
+    writeMinimalNgraceProject(root);
+    const find = spawnText(spawnGrace(["module", "find", "M-EXAMPLE", "--path", root]));
+    expect(find.exitCode).toBe(0);
+    expect(find.stdout).toContain("M-EXAMPLE");
+
+    const help = spawnText(spawnGrace(["lint", "--help"]));
+    expect(help.exitCode).toBe(0);
+    expect(`${help.stdout}\n${help.stderr}`).toMatch(/USAGE|lint/i);
+
+    const version = spawnText(spawnGrace(["--version"]));
+    expect(version.exitCode).toBe(0);
+    expect(version.stdout).toContain("6.2.0");
   });
 });

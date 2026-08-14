@@ -32,7 +32,7 @@
  * Hosted under M-CLI-INFRA (F24 repair): shared CLI infrastructure, not query resolution.
  */
 
-import { defineCommand, type ArgsDef, type CommandDef, type Resolvable } from "citty";
+import { defineCommand, renderUsage, type ArgsDef, type CommandDef, type Resolvable } from "citty";
 
 import { asGraceCommandError, GraceCommandError, runGraceCommand } from "./errors";
 
@@ -172,18 +172,97 @@ export function resolveErrorFormat(args: Record<string, unknown> | undefined | n
   return Boolean(args.json) || String(args.format ?? "") === "json" ? "json" : "text";
 }
 
+/** Strip CSI SGR / cursor sequences. One usage string feeds text and JSON. */
+function stripAnsiEscapes(text: string): string {
+  return text.replace(/\u001B\[[0-9;]*[A-Za-z]/g, "");
+}
+
+function aliasTokens(alias: unknown): string[] {
+  if (alias === undefined || alias === null) return [];
+  return Array.isArray(alias) ? alias.map(String) : [String(alias)];
+}
+
+/** Flag heads (token before `=`) this command declares, plus citty help/version. */
+function collectAcceptedFlagHeads(argsDef: ArgsDef): Set<string> {
+  const heads = new Set<string>(["--help", "-h", "--version", "-v"]);
+  for (const [name, def] of Object.entries(argsDef)) {
+    if (!def || typeof def !== "object" || def.type === "positional") continue;
+    heads.add(`--${name}`);
+    heads.add(`--${toKebabCase(name)}`);
+    const aliases = aliasTokens("alias" in def ? def.alias : undefined);
+    for (const alias of aliases) {
+      heads.add(alias.length === 1 ? `-${alias}` : `--${alias}`);
+      heads.add(`--${toKebabCase(alias)}`);
+    }
+    if (def.type === "boolean") {
+      heads.add(`--no-${name}`);
+      heads.add(`--no-${toKebabCase(name)}`);
+      for (const alias of aliases) {
+        heads.add(`--no-${alias}`);
+        heads.add(`--no-${toKebabCase(alias)}`);
+      }
+    }
+  }
+  return heads;
+}
+
+function firstNonFlagToken(rawArgs: readonly string[]): string | undefined {
+  for (const token of rawArgs) {
+    if (token === "--") return undefined;
+    if (!token.startsWith("-")) return token;
+  }
+  return undefined;
+}
+
+async function shouldSkipUnrecognizedCheck(
+  rawArgs: readonly string[],
+  subCommands: CommandDef["subCommands"],
+): Promise<boolean> {
+  if (subCommands === undefined || subCommands === null) return false;
+  const resolved = await resolveValue(subCommands as Resolvable<Record<string, unknown>>);
+  if (!resolved || typeof resolved !== "object") return false;
+  const first = firstNonFlagToken(rawArgs);
+  return first !== undefined && Object.prototype.hasOwnProperty.call(resolved, first);
+}
+
+async function refuseUnrecognizedFlagTokens(
+  rawArgs: readonly string[],
+  argsDef: ArgsDef,
+  command: CommandDef<any>,
+): Promise<void> {
+  const accepted = collectAcceptedFlagHeads(argsDef);
+  for (const token of rawArgs) {
+    if (token === "--") break;
+    if (!token.startsWith("-")) continue;
+    const eq = token.indexOf("=");
+    const head = eq === -1 ? token : token.slice(0, eq);
+    if (accepted.has(head)) continue;
+    const usage = stripAnsiEscapes(await renderUsage(command));
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Unrecognized argument \`${token}\`.\n${usage}`,
+    );
+  }
+}
+
 /**
  * citty defineCommand wrapper that always refuses boolean space-form on rawArgs
  * before the original run, re-reading boolean names from def.args at run time.
- * Refusal (and any GraceCommandError from the operation) routes through
- * runGraceCommand so the declared envelope / one-line text path applies.
+ * Also refuses undeclared flag tokens (parent-run skip when a known sub name
+ * leads rawArgs). Refusal (and any GraceCommandError from the operation) routes
+ * through runGraceCommand so the declared envelope / one-line text path applies.
  * Recursively wraps subCommands and stamps BOOLEAN_SPACE_GUARD_BRAND.
+ * Already-branded defs are returned as-is (no double wrap).
  *
  * Trap 1: refuse and originalRun are sequential steps inside one runGraceCommand
  * operation — the throw short-circuits originalRun by control flow, not by
  * polling process.exitCode.
  */
 export function defineGraceCommand<const T extends ArgsDef = ArgsDef>(def: CommandDef<T>): CommandDef<T> {
+  if ((def as CommandDef<T> & Record<symbol, unknown>)[BOOLEAN_SPACE_GUARD_BRAND] === true) {
+    return def;
+  }
+
   const originalRun = def.run;
   const wrapped: CommandDef<T> = {
     ...def,
@@ -192,11 +271,22 @@ export function defineGraceCommand<const T extends ArgsDef = ArgsDef>(def: Comma
       const argsDef = (await resolveValue(def.args ?? ({} as T))) as ArgsDef;
       const names = collectBooleanFlagNames(argsDef);
       const format = resolveErrorFormat(context.args as Record<string, unknown>);
+      const skipUnrecognized = await shouldSkipUnrecognizedCheck(context.rawArgs, wrapped.subCommands);
       await runGraceCommand(
         format,
         async () => {
+          if (!skipUnrecognized) {
+            await refuseUnrecognizedFlagTokens(context.rawArgs, argsDef, wrapped);
+          }
           refuseBooleanSpaceForm(context.rawArgs, names);
-          if (!originalRun) return;
+          if (!originalRun) {
+            if (!skipUnrecognized) {
+              const usage = stripAnsiEscapes(await renderUsage(wrapped));
+              process.stderr.write(usage.endsWith("\n") ? usage : `${usage}\n`);
+              process.exitCode = 1;
+            }
+            return;
+          }
           try {
             await originalRun(context);
           } catch (error) {

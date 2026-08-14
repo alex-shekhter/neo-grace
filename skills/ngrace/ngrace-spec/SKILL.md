@@ -67,7 +67,7 @@ Hard rules for tiers:
 </ceremony_tiers>
 
 <clarifications>
-Typed holes (D12) are schema elements, never prose markers. When a contract, invariant, or acceptance criterion is unknown at authoring time, declare:
+Typed holes (RM-AGENT-RELIABILITY D12) are schema elements, never prose markers. When a contract, invariant, or acceptance criterion is unknown at authoring time, declare:
 
 ```xml
 <Clarifications>

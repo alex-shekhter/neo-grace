@@ -1,0 +1,1457 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-RECORDED-DEBT>
+    <Summary>
+      Pay four recorded P1 debts in
+      one bundle: refuse undeclared
+      CLI flag tokens with usage
+      (F76); make getModulePath
+      return only the authored Path
+      (F71); pin the as-state class
+      taxonomy so a new class cannot
+      under-count M (F77); qualify
+      the three shipped SKILL.md
+      D-number citations and their
+      plugin mirrors (F74.1). P2
+      has not started and is out.
+    </Summary>
+    <Problem>
+      **Shared shape.** Four defects
+      were found during P1, recorded
+      as owed, and left unpaid.
+      Recording is not scheduling.
+      Authoring HEAD f38db11 on
+      feat/recorded-debt, cut from
+      main 7e119b4, packaged 6.2.0,
+      lint 0/0, archive 38, active
+      empty before this bundle.
+      Those numbers are a snapshot
+      (F33).
+
+      ---
+
+      **F76, measured this session.**
+      citty parseArgs uses strict
+      false (node_modules/citty
+      dist parseRawArgs).
+      ngrace lint with path . and
+      an undeclared flag token
+      returns a normal LintResult,
+      assertionMode current, exit
+      0, no diagnostic naming the
+      flag. The same run with argv
+      token assertionss (one
+      transposed letter on
+      assertions) evaluates current
+      and reports clean. review and
+      doctor do the same. module
+      show with an undeclared flag
+      still prints the module.
+      The user has ruled: an
+      undeclared argument must
+      error out and print usage.
+      Not a warning, not typed
+      absence. Callers passing extra
+      flags today start failing.
+
+      **Parent-run, measured.**
+      citty runCommand dispatches
+      the subcommand, then always
+      calls the parent run
+      (A31.4, already known on
+      gate). defineGraceCommand
+      always installs a run, so
+      every wrapped parent fires
+      after a successful child.
+      Probe: child rawArgs are
+      sliced after the sub name;
+      parent rawArgs still hold
+      the sub name and the child
+      flags. A naive check against
+      an empty parent args def
+      would reject a valid module
+      show with argv token path.
+
+      **Not every command uses the
+      wrapper.** liveCommandRoots
+      includes review and doctor
+      (defineCommand, zero
+      booleans) and gate
+      (defineCommand parent;
+      approve/apply/archive are
+      already wrapped; verdict is
+      not). Root ngrace is
+      defineCommand with no run.
+      ngrace plus only an
+      undeclared flag already
+      exits 1 with No command
+      specified and citty usage,
+      without naming the flag.
+      module plus only an
+      undeclared flag exits 0
+      with no output.
+
+      **Positionals, measured.**
+      Production positional args:
+      module find query; module
+      show and health target;
+      file show and exports
+      target; spec new and plan
+      new change; verification
+      find query; verification
+      show and localize target.
+      A flag-only check must
+      leave those alone.
+
+      **Usage, measured.** citty
+      exports renderUsage and
+      showUsage. runMain prints
+      that text for CLIError
+      (unknown command, missing
+      command). GraceCommandError
+      goes through runGraceCommand
+      and does not. The refusal
+      must reuse renderUsage, not
+      a second hand-written usage
+      string.
+
+      ---
+
+      **F71, measured this session.**
+      getModulePath
+      (src/query/core.ts:111-113)
+      returns graph.path or else
+      the first non-test linked
+      file or else localFiles[0].
+      Four call sites: find table
+      PATH column
+      (src/query/render.ts:58);
+      verification show
+      Module Path (:81); module
+      show Graph Path (:114);
+      health record.path
+      (src/query/health.ts:126),
+      rendered as Path:
+      (render.ts:94). No test
+      pins Graph Path or Module
+      Path. This repo's only
+      no-Path module is M-SKILLS,
+      which has no linked files,
+      so live Graph Path is
+      already n/a; the lie needs
+      a fixture with a linked
+      file (grace-query.test.ts
+      already builds M-NO-PATH
+      for file exports).
+      file exports binds
+      moduleRecord.graph.path
+      (src/grace-file.ts:213)
+      and forbids this getter.
+      That binding stays.
+
+      ---
+
+      **F77, measured this session.**
+      applyAsStatePreview
+      (src/lint/core.ts:184-192)
+      writes bare strings
+      artifact, ledger-dependent,
+      verification-runtime into
+      untyped Sets. Tests pin
+      membership per state
+      (src/lint/core.test.ts:565-579)
+      and do not pin completeness.
+      Add a fourth class as a
+      literal and M under-counts.
+
+      ---
+
+      **F74.1, not F74's list.**
+      F74 named eight tokens and
+      missed the real hazard.
+      F74.1 measured 31 distinct
+      bare tokens, 30 defined in
+      RM-GOVERNED-PATH
+      decisions.md, D15 the only
+      foreign one, D12 and D5
+      defined here and in
+      RM-AGENT-RELIABILITY.
+      Three SKILL.md citations,
+      each mirrored in plugins/:
+      ngrace-spec D12 (means
+      RM-AGENT-RELIABILITY typed
+      holes, not this plan's
+      membership-file D12);
+      ngrace-fix D8 (means
+      RM-AGENT-RELIABILITY
+      failure localization);
+      ngrace-reviewer D4 (means
+      RM-AGENT-RELIABILITY's
+      five review patterns).
+      This bundle does not edit
+      docs/plans/**, so the plan
+      file qualifications F74.1
+      also named are out.
+      Skill references
+      (v3-capability-map,
+      verdicts.md) stay; F74.1
+      forbade a repo-wide sweep
+      and named three citations.
+
+      ---
+
+      **F66.** This spec must
+      decide README.md and
+      examples/ in a Goal,
+      Constraint, or NonGoal
+      body. README.md is in
+      scope (F76 is user-visible
+      CLI behaviour; F51 table
+      moves if any SKILL.md
+      moves). examples/ is
+      unchanged.
+
+      ---
+
+      **F61.** xml.comment-not-well-formed
+      is error severity. This
+      spec names argv tokens and
+      exported functions in any
+      comment body and does not
+      write dashed CLI flags
+      inside XML comments.
+    </Problem>
+    <Goals>
+      <Goal>
+        **F76.** Every dispatched
+        ngrace invocation refuses
+        an undeclared flag token
+        as invalid-arguments,
+        names that token, prints
+        citty renderUsage for
+        the command being
+        checked, and exits
+        non-zero. The check is
+        written once. Valid
+        parent-plus-child
+        invocations keep working.
+      </Goal>
+      <Goal>
+        **F71.** getModulePath
+        returns only the authored
+        graph.path. The four call
+        sites display absence
+        when that field is
+        missing. file exports
+        still binds the field.
+      </Goal>
+      <Goal>
+        **F77.** The as-state
+        class set has one named
+        inventory. Adding a
+        class without the
+        reporter assigning it
+        fails. Tests do not
+        re-list the names (F60).
+      </Goal>
+      <Goal>
+        **F74.1.** The three
+        SKILL.md citations, and
+        their plugin mirrors,
+        name the plan that owns
+        the decision. A scan of
+        canonical SKILL.md files
+        fails on a new bare
+        D-number.
+      </Goal>
+      <Goal>
+        **README.md records the
+        F76 refusal.** CLI
+        Overview (or the prose
+        immediately around those
+        tables) says unrecognized
+        arguments are rejected
+        and usage is printed.
+        F70 flag-coverage residue
+        is not repaired. F51
+        totals are re-measured
+        after the skill edits.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: recorded debts
+        F71, F74.1, F76, F77
+        from RM-GOVERNED-PATH
+        decisions.md. Not a
+        roadmap phase step.
+        RM-GOVERNED-PATH D5.2
+        (this is a real CLI
+        compatibility break:
+        extra flags that work
+        today become errors;
+        it is not an artifact
+        grammar break and does
+        not bump
+        NGRACE_ARTIFACT_VERSION);
+        RM-GOVERNED-PATH D5.5
+        (CHANGELOG.md is
+        generated; the break is
+        named in the commit
+        body); RM-GOVERNED-PATH
+        D13 (no new LintResult
+        JSON top-level key; no
+        new GraceCommandError
+        envelope key);
+        RM-AGENT-RELIABILITY D5
+        (typed absence is not
+        the F76 shape; the user
+        ruled error, not
+        absence); RM-AGENT-RELIABILITY
+        D15 (skill-line pin
+        moves if SKILL.md
+        moves); F10 (claim only
+        what the body verifies);
+        F27.2 and F64
+        (ObservedWriteScope
+        covers every path the
+        deliverable forces);
+        F33 (do not freeze
+        suite counts, archive
+        counts, boolean site
+        count, F51 totals, N, M,
+        or line numbers this
+        change moves); F42 (no
+        MustContain or
+        MustNotContain needle
+        that README.md, a
+        skill, a template, or a
+        skeleton may
+        legitimately contain);
+        F43 (this artifact binds
+        semantics; tests assert
+        literal bytes); F44
+        (pin where a
+        user-visible string
+        appears); F51
+        (token-accounting.test.ts
+        and the README.md F51
+        table are forced writes
+        because SKILL.md
+        moves); F52
+        (change.plan-scope-exceeds-spec
+        compares DurableScope
+        anchors at warning);
+        F56 / F67 (signatureKey
+        names the property, not
+        the test file stem);
+        F61 (no two adjacent
+        hyphens in any XML
+        comment body); F66
+        (this spec decides
+        README.md and
+        examples/); F68 (two
+        planned reds are
+        independently
+        observable); F70
+        residue (flag rows are
+        not covered by the
+        invocation check; named
+        NonGoal); F73 (any
+        emitted path is
+        project-relative POSIX
+        at the emission site;
+        CI is the only observer
+        that can check
+        separators); F75 (red
+        counts live in
+        AC-HEAD-RED alone).
+        RM-GOVERNED-PATH D16
+        (evidence lives in an
+        artifact).
+        RM-GOVERNED-PATH D17
+        (AC ids name the
+        property).
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T2**
+        (class-wide CLI refusal,
+        query display honesty,
+        lint taxonomy guard,
+        and shipped skill text).
+        P2 is out.
+      </Constraint>
+      <Constraint>
+        **Decided here — one
+        bundle.** The four debts
+        ship together. F76 is
+        the compatibility break;
+        the other three are not.
+        Split only with a
+        conflict; there is none.
+        File-disjointness is not
+        a conflict.
+      </Constraint>
+      <Constraint>
+        **Decided here — F76
+        home.** The check lives
+        in defineGraceCommand
+        next to
+        refuseBooleanSpaceForm,
+        reading rawArgs against
+        that command's args
+        def. It is flag-only:
+        a token that starts
+        with a dash, including
+        equals form; scan stops
+        at a bare double-dash
+        terminator the same way
+        the boolean guard does.
+        Accepted tokens are the
+        declared arg names,
+        citty kebab aliases,
+        declared short aliases,
+        boolean no- forms, and
+        citty builtin help and
+        version tokens.
+        Positionals are not
+        inspected.
+
+        **Parent-run skip.**
+        When the command has
+        subCommands and the
+        first non-flag rawArgs
+        token is a key of those
+        subCommands, skip the
+        check. citty then runs
+        the parent after a
+        successful child, and
+        the parent rawArgs
+        still hold the child
+        flags (measured). A
+        check that ran against
+        an empty parent args
+        def would reject valid
+        invocations.
+
+        **Class coverage.**
+        Every liveCommandRoots
+        entry is produced by
+        defineGraceCommand
+        (branded). review,
+        doctor, and gate
+        convert; verdict wraps
+        because gate wraps.
+        defineGraceCommand on
+        an already-branded def
+        does not double-wrap
+        (gate approve / apply /
+        archive are already
+        branded). Root ngrace
+        is also wrapped so an
+        undeclared flag at the
+        root names that flag
+        instead of only No
+        command specified.
+
+        **Usage.** Throw
+        GraceCommandError
+        invalid-arguments.
+        The message names the
+        first unrecognized
+        token as typed and
+        appends citty
+        renderUsage of this
+        command (leaf when a
+        leaf was dispatched;
+        parent when no sub
+        was). Text: that
+        message on stderr.
+        JSON: the existing
+        envelope; error.message
+        carries the same text;
+        no new envelope key
+        (RM-GOVERNED-PATH D13).
+        Exit code comes from
+        the error (1). Do not
+        throw citty CLIError:
+        that bypasses
+        runGraceCommand and
+        undoes F25.
+
+        The unknown-flag
+        refusal and a valid
+        parent-plus-child
+        invocation (module show
+        with argv token path)
+        must be able to fail
+        alone (F68).
+      </Constraint>
+      <Constraint>
+        **Decided here — F71
+        authored only.**
+        getModulePath returns
+        only
+        moduleRecord.graph.path
+        (undefined when
+        missing). The fallback
+        chain is deleted, not
+        renamed and not kept
+        under a second name.
+        The four call sites
+        keep calling
+        getModulePath:
+
+        1. formatModuleFindTable
+           PATH column: authored
+           or the existing dash
+           placeholder.
+        2. formatVerificationText
+           Module Path: authored
+           or n/a.
+        3. formatModuleText
+           Graph Path: authored
+           or n/a.
+        4. buildModuleHealth
+           record.path: authored
+           or undefined;
+           formatModuleHealthText
+           Path: follows.
+
+        Labels stay. They
+        become true. Tests pin
+        Graph Path at
+        formatModuleText and
+        Module Path at
+        formatVerificationText
+        (F44) and pin that a
+        no-Path module with a
+        linked file renders the
+        absence token, not the
+        linked path. file
+        exports keeps binding
+        moduleRecord.graph.path
+        in grace-file.ts and
+        must not call
+        getModulePath. The
+        existing M-NO-PATH
+        not-found case stays
+        green.
+      </Constraint>
+      <Constraint>
+        **Decided here — F77
+        one inventory.** Export
+        one const tuple of the
+        purity class tokens
+        (name is
+        implementation) and a
+        type of its members.
+        ran and skipped are
+        typed as that member
+        set. The classifier
+        assigns every member to
+        ran or skipped; a
+        member in neither is a
+        thrown fault, not a
+        silent under-count.
+        Tests import that
+        export. They do not
+        re-list the class names
+        (F60). Existing
+        per-state membership
+        cases stay; they are
+        not the completeness
+        guard. A new string
+        literal at the emission
+        site is a type error. A
+        new export member that
+        the classifier does not
+        assign fails on every
+        as-state run. Do not
+        freeze N, M, or the
+        class names in a
+        criterion (F33). Do
+        not instrument
+        evaluators (named
+        NonGoal; F77's stronger
+        option).
+      </Constraint>
+      <Constraint>
+        **Decided here — F74.1
+        skill citations only.**
+        Qualify, in both skill
+        trees:
+
+        * ngrace-spec SKILL.md
+          D12 as
+          RM-AGENT-RELIABILITY
+          D12 (typed holes).
+        * ngrace-fix SKILL.md
+          D8 as
+          RM-AGENT-RELIABILITY
+          D8 (failure
+          localization).
+        * ngrace-reviewer
+          SKILL.md D4 as
+          RM-AGENT-RELIABILITY
+          D4 (five review
+          patterns).
+
+        plugins/ copies stay
+        byte-identical with
+        canonical
+        (validate:marketplace).
+        A test walks canonical
+        skills/**/SKILL.md and
+        fails on a D-number
+        token that is not
+        immediately preceded by
+        a plan id. It does not
+        scan references/,
+        docs/plans/**, or
+        test files. F51 totals
+        are re-measured, not
+        frozen.
+      </Constraint>
+      <Constraint>
+        **Decided here — F56 /
+        F67 / F68.**
+        signatureKey names the
+        property:
+        unrecognized-args,
+        authored-path,
+        as-class-complete,
+        decision-cite,
+        readme-unrecognized-args.
+        Do not key on a test
+        file stem. Two planned
+        reds in one task must
+        be able to fail alone:
+        the unknown-flag
+        refusal and the
+        parent-run valid
+        invocation; the
+        no-Path display
+        absence and the file
+        exports field binding.
+        A task may plan at
+        most three distinct
+        kind-plus-key pairs.
+        Do not state how many
+        fail events a property
+        implies except in
+        AC-HEAD-RED (F75).
+        The boolean site count
+        pin is re-measured
+        only if a boolean
+        lands; this change
+        adds no boolean.
+      </Constraint>
+      <Constraint>
+        AffectedAreas names
+        modules. File-level
+        scope is enforced at
+        close by
+        review.write-evidence-outside-scope
+        (error), not at
+        authoring (F52).
+        ObservedWriteScope
+        must still list every
+        path the deliverable
+        forces (F27.2, F64).
+        Forced write surface:
+        src/query/command.ts
+        (unrecognized-flag
+        check inside
+        defineGraceCommand;
+        parent-run skip;
+        idempotent wrap);
+        src/query/command.test.ts
+        (boolean site pin
+        unmoved if no new
+        boolean; live
+        invocation walker
+        unmoved; brand
+        coverage over every
+        liveCommandRoots
+        entry; unknown-flag
+        cases; parent-run
+        valid case; positional
+        counterweight);
+        src/grace.ts (root
+        wrap);
+        src/review/command.ts
+        (review wrap);
+        src/grace-doctor.ts
+        (doctor wrap);
+        src/gates/command.ts
+        (gate wrap so verdict
+        wraps);
+        src/grace-lint.test.ts
+        (lint unknown-flag
+        CLI; transposed
+        assertions token);
+        src/query/core.ts
+        (getModulePath body);
+        src/query/render.ts
+        (labels stay; values
+        change);
+        src/query/health.ts
+        (record.path authored
+        only);
+        src/grace-query.test.ts
+        (no-Path plus linked
+        file display; Graph
+        Path and Module Path
+        pins; file exports
+        field-binding case
+        stays green);
+        src/lint/types.ts
+        (exported class
+        inventory; MODULE_MAP
+        gains that export;
+        asState JSON values
+        stay strings);
+        src/lint/core.ts
+        (classifier uses the
+        export; assignment
+        completeness);
+        src/lint/core.test.ts
+        (completeness via the
+        export, not a
+        re-list; D13 pin still
+        exact; per-state
+        membership stays);
+        skills/ngrace/ngrace-spec/SKILL.md,
+        skills/ngrace/ngrace-fix/SKILL.md,
+        skills/ngrace/ngrace-reviewer/SKILL.md
+        and the three plugin
+        mirrors;
+        src/test-support/token-accounting.test.ts
+        (F51 totals
+        re-measured; bare
+        D-number scan);
+        README.md (F76
+        refusal sentence in
+        or next to CLI
+        Overview; F51 table
+        totals re-measured);
+        scripts/packed-cli-smoke.ts
+        only if a case is
+        added beside the
+        existing lint case;
+        this bundle's spec.xml
+        and plan.xml.
+        **Stop and re-spec**
+        rather than touching
+        listAbsenceCatalogCodes,
+        validateAssertions
+        semantics, LintResult
+        top-level keys, the
+        boolean-site pin via a
+        new boolean, the live
+        invocation walker, the
+        F70 invocation check's
+        flag-blindness,
+        src/grace-file.ts
+        (file exports keeps
+        the field bind),
+        examples/,
+        docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md, skill
+        references/, or any
+        version surface.
+      </Constraint>
+      <Constraint>
+        **Do not edit**
+        docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md, or any
+        version surface.
+        Packaged version at
+        authoring: **6.2.0**.
+        No product version
+        bump. 6.3.0 is a
+        phase target, not this
+        bundle's act.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine for
+        this bundle: red-first
+        is mechanical for new
+        behaviour. Failing
+        tests are written
+        before the fail
+        attempt is recorded,
+        in a separate tool
+        round trip. Never a
+        retrospective red via
+        stash. Never weaken a
+        BaselineAssertion to
+        move a lint count.
+        F51 totals are
+        re-measured after any
+        skill edit. F42: plan
+        assertions bind to
+        exported function
+        names, issue codes,
+        JSON keys, and
+        GraceCommandError
+        code invalid-arguments,
+        not to AC ids, README
+        prose, or usage text
+        as a free needle.
+        F61: this bundle's
+        artifacts must not
+        hold two adjacent
+        hyphen characters
+        inside any XML comment
+        body. F73: if a test
+        compares an emitted
+        path, the production
+        emission is already
+        POSIX
+        project-relative;
+        state in the close
+        verdict that CI is
+        the only observer of
+        separators.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        examples/ unchanged;
+        no example tree
+        documents unrecognized
+        argument refusal. The
+        examples/cli lint
+        lines teach declared
+        assertion-mode
+        invocations. Not a
+        user-visible example
+        surface this bundle
+        owns.
+      </NonGoal>
+      <NonGoal>
+        F70 flag-coverage
+        residue. The README
+        invocation check stays
+        an invocation check.
+        This bundle documents
+        the F76 refusal; it
+        does not widen the
+        check to flags.
+      </NonGoal>
+      <NonGoal>
+        Qualifying bare
+        D-numbers in
+        docs/plans/** (F74.1
+        named D15, D12, and
+        D5 there; this
+        bundle is forbidden
+        to edit plans).
+        Qualifying skill
+        references
+        (v3-capability-map.md,
+        verdicts.md) or test
+        titles. A repo-wide
+        qualify-everything
+        sweep (F74.1).
+      </NonGoal>
+      <NonGoal>
+        Instrumenting
+        evaluators so the
+        as-state class set is
+        derived from which
+        functions ran (F77's
+        stronger option).
+        Adding a fourth
+        purity class.
+        Changing N/M
+        semantics or the
+        coverage line
+        position.
+      </NonGoal>
+      <NonGoal>
+        Renaming Graph Path
+        or Module Path.
+        Adding a display or
+        resolved path getter.
+        Changing file exports
+        to call getModulePath.
+        Editing
+        src/grace-file.ts.
+      </NonGoal>
+      <NonGoal>
+        Rejecting extra
+        positionals on
+        commands that do not
+        declare one. Changing
+        citty unknown-command
+        handling. Rewriting
+        gate's A31.4 usage
+        text except as
+        required to wrap gate.
+      </NonGoal>
+      <NonGoal>
+        P2.1 delete the
+        duplicate glob
+        matcher
+        (matchSimpleGlob).
+        P2.2 exclude
+        CLI-authored lifecycle
+        files from the scope
+        audit. P2.3 bundle
+        stored BaseCommit.
+        P2.4 drift credit
+        from applied bundles.
+        P2.5 finding
+        severities. P2.6
+        honest nextAction.
+        P3 lifecycle finish /
+        plan amend /
+        hand-written status
+        detection. P4
+        adoption. An
+        NGRACE_ARTIFACT_VERSION
+        bump. A package.json
+        version bump.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-UNRECOGNIZED-ARGS>
+        defineGraceCommand
+        refuses an undeclared
+        flag token as
+        invalid-arguments
+        before the original
+        run, names that token
+        as typed, and appends
+        citty renderUsage of
+        the command being
+        checked. JSON uses
+        the existing
+        GraceCommandError
+        envelope with no new
+        key. Text writes the
+        same message. Exit
+        is non-zero. The
+        check is flag-only
+        and does not disturb
+        the measured
+        positional sites.
+        When a command has
+        subCommands and the
+        first non-flag rawArgs
+        token is a known sub
+        name, the parent skips
+        the check; the child
+        still checks. A valid
+        module show with argv
+        token path still
+        succeeds. lint with
+        an undeclared flag, or
+        with a transposed
+        assertions token,
+        no longer returns a
+        normal LintResult.
+        Every liveCommandRoots
+        entry is
+        defineGraceCommand
+        branded. Root ngrace
+        names an undeclared
+        flag. citty help and
+        version tokens remain
+        accepted.
+        README.md CLI
+        Overview, or the prose
+        immediately around
+        those tables, records
+        that unrecognized
+        arguments are rejected
+        and usage is printed
+        (F44). The invocation
+        walker is not widened
+        (F70 residue).
+        **HEAD today:** lint,
+        review, doctor, and
+        module show ignore
+        undeclared flags and
+        exit 0; module plus
+        only an undeclared
+        flag exits 0 with no
+        output; parent run
+        after a successful
+        child sees the child
+        flags.
+        **Failure conditions:**
+        warning or typed
+        absence instead of
+        error; a second usage
+        string not produced
+        by renderUsage;
+        rejecting a valid
+        parent-plus-child
+        invocation; rejecting
+        a declared positional;
+        leaving review,
+        doctor, gate, or
+        verdict unwrapped;
+        throwing citty
+        CLIError so JSON
+        loses the envelope;
+        a new envelope key;
+        documenting the
+        refusal only outside
+        CLI Overview.
+      </AC-UNRECOGNIZED-ARGS>
+      <AC-AUTHORED-PATH>
+        getModulePath returns
+        only
+        moduleRecord.graph.path.
+        A module with no
+        authored Path and one
+        linked file: module
+        show Graph Path is
+        n/a, not the linked
+        path; verification
+        show Module Path is
+        n/a, not the linked
+        path; find table PATH
+        is the dash
+        placeholder; health
+        record.path is
+        undefined and Path:
+        is n/a. Tests pin the
+        Graph Path and Module
+        Path labels at those
+        two functions (F44).
+        file exports with
+        argv token module on
+        that module still
+        reports not-found
+        naming Path and does
+        not analyse the
+        linked file; it still
+        reads
+        moduleRecord.graph.path
+        and does not call
+        getModulePath.
+        **HEAD today:** the
+        getter falls back;
+        no test pins either
+        label; file exports
+        already binds the
+        field.
+        **Failure conditions:**
+        renaming the getter
+        but keeping the
+        fallback; adding a
+        second getter and
+        leaving module show
+        on the fallback;
+        switching file
+        exports onto
+        getModulePath;
+        changing the Graph
+        Path or Module Path
+        labels; pinning only
+        that the linked path
+        string appears
+        somewhere.
+      </AC-AUTHORED-PATH>
+      <AC-AS-CLASS-COMPLETE>
+        The as-state class
+        tokens live in one
+        exported inventory.
+        ran and skipped are
+        typed as its members.
+        Every member is
+        assigned ran or
+        skipped; an unassigned
+        member is a thrown
+        fault. Completeness
+        tests import that
+        export and do not
+        re-list the names
+        (F60). Per-state
+        membership cases
+        stay. summary.asState
+        JSON shape and the
+        coverage line
+        position stay.
+        No new LintResult
+        top-level key
+        (RM-GOVERNED-PATH
+        D13). N and M stay
+        derived, not frozen
+        (F33).
+        **HEAD today:** three
+        bare string literals
+        in untyped Sets;
+        membership pinned
+        per state;
+        no completeness
+        guard.
+        **Failure conditions:**
+        a test that re-lists
+        the three names sold
+        as completeness;
+        leaving ran/skipped
+        untyped so a new
+        literal compiles;
+        assigning only some
+        members so a new
+        export member
+        under-counts M;
+        changing N/M
+        semantics or the
+        line position;
+        adding a fourth
+        class in this bundle.
+      </AC-AS-CLASS-COMPLETE>
+      <AC-DECISION-CITE>
+        Canonical
+        ngrace-spec,
+        ngrace-fix, and
+        ngrace-reviewer
+        SKILL.md cite
+        RM-AGENT-RELIABILITY
+        D12, D8, and D4
+        respectively. Plugin
+        mirrors match.
+        A test over canonical
+        skills/**/SKILL.md
+        fails on a D-number
+        that is not preceded
+        by a plan id.
+        validate:marketplace
+        is green. F51 totals
+        in
+        token-accounting.test.ts
+        and the README.md F51
+        table match a
+        post-edit measurement.
+        docs/plans/** and
+        skill references/ are
+        untouched.
+        **HEAD today:** three
+        bare citations, each
+        mirrored; no SKILL.md
+        scan for bare
+        D-numbers.
+        **Failure conditions:**
+        qualifying the local
+        plan's D12 (membership
+        file) onto the spec
+        skill; editing
+        docs/plans/**; a
+        repo-wide sweep of
+        references/; F51 pin
+        left stale; plugin
+        drift.
+      </AC-DECISION-CITE>
+      <AC-HEAD-RED>
+        Each of
+        AC-UNRECOGNIZED-ARGS,
+        AC-AUTHORED-PATH,
+        AC-AS-CLASS-COMPLETE,
+        and AC-DECISION-CITE
+        has a red recorded
+        before its production
+        edit, in its own tool
+        round trip, with the
+        failing test written
+        first, under the
+        signature keys named
+        above. Never a red
+        backed only by a
+        grep, and never a
+        retrospective red via
+        stash.
+        **Exempt (F45, named
+        at authoring):**
+        AC-SUITE-AND-LINT
+        (green at HEAD;
+        close-time bar);
+        F51 totals moving;
+        boolean site count
+        unmoved; absence-code
+        list unmoved; live
+        invocation list
+        unmoved; README
+        invocation row count;
+        examples/ staying
+        out; package.json
+        version unchanged;
+        plugin mirrors
+        matching by
+        construction once
+        copied.
+        **HEAD today:**
+        undeclared flags are
+        ignored; getModulePath
+        falls back; taxonomy
+        has no completeness
+        guard; three SKILL.md
+        citations are bare.
+        **Failure conditions:**
+        a check that passes
+        on pre-change HEAD
+        sold as new
+        behaviour; fail and
+        pass in one tool
+        call; AC-SUITE-AND-LINT
+        required to be red at
+        HEAD; the unknown-flag
+        refusal and the
+        parent-run valid
+        invocation reddened
+        so the second fails
+        naming the first
+        (F68).
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-LINT>
+        bun test green for
+        touched packages
+        (query command, query
+        render/core/health,
+        grace-query,
+        grace-lint, lint
+        core, token-accounting,
+        command README checks,
+        packed smoke if
+        edited, and any other
+        test this deliverable
+        forces);
+        bun run validate:ci
+        green (re-measure
+        ratchet cardinality;
+        do not drop keys);
+        bun run ngrace lint
+        --path . is 0 errors
+        and 0 warnings **at
+        close** (after apply
+        and archive, not
+        claimed mid-change);
+        bun run
+        validate:marketplace
+        green (skills moved).
+        ObservedWriteScope
+        covers every path the
+        deliverable forces,
+        including the F64
+        list above. No
+        docs/plans or archive
+        edits. No CHANGELOG.
+        No version surfaces.
+        Boolean site count
+        unmoved. Absence
+        catalog unmoved. D13
+        top-level key set
+        unmoved. Envelope
+        keys unmoved.
+        examples/ untouched.
+        **HEAD today:** lint
+        is 0/0 and
+        validate:ci is
+        green — that green is
+        the baseline, not
+        this change's
+        evidence.
+        **Failure conditions:**
+        suite red; lint 0/0
+        claimed mid-window;
+        F51 pin left stale
+        after a skill edit;
+        writes outside
+        declared scope; pin
+        deleted or loosened;
+        D13 expectedKeys
+        extended with a new
+        top-level name;
+        listAbsenceCatalogCodes
+        extended.
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI-INFRA />
+      <M-CLI />
+      <M-QUERY />
+      <M-LINT-CORE />
+      <M-LINT-TYPES />
+      <M-REVIEW />
+      <M-DOCTOR />
+      <M-GATES />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-query.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-lint.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/lint/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run validate:marketplace</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): an
+        undeclared flag on
+        lint, review, doctor,
+        and a wrapped parent
+        is invalid-arguments
+        naming the token plus
+        renderUsage; module
+        show with argv token
+        path still succeeds;
+        declared positionals
+        still bind; getModulePath
+        is authored only and
+        Graph Path / Module
+        Path pins hold; file
+        exports still binds
+        the field; as-state
+        completeness imports
+        the export; three
+        SKILL.md citations
+        name
+        RM-AGENT-RELIABILITY;
+        F51 totals
+        re-measured; README.md
+        records the refusal;
+        examples/ untouched;
+        suite green; lint 0/0
+        at close only.
+        Evidence is the suite
+        and the ledger
+        fail/pass pairs, not
+        a command someone
+        reports.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring HEAD
+        f38db11 on
+        feat/recorded-debt,
+        packaged 6.2.0, lint
+        0/0, archive 38,
+        active empty before
+        this bundle.** F33:
+        implementation
+        re-measures counts;
+        criteria do not freeze
+        them.
+      </Assumption>
+      <Assumption>
+        **F76, measured this
+        session.** citty
+        parseArgs strict
+        false. defineGraceCommand
+        is the shared run
+        wrapper and already
+        reads rawArgs. It
+        does not wrap review,
+        doctor, gate, verdict,
+        or root. citty
+        runCommand always
+        invokes parent run
+        after a successful
+        child; parent rawArgs
+        keep the child flags.
+        renderUsage is the
+        usage surface. Nine
+        production positional
+        sites exist.
+      </Assumption>
+      <Assumption>
+        **F71, measured this
+        session.** Four call
+        sites, two user-facing
+        labels plus the find
+        PATH column and
+        health Path:. Live
+        M-SKILLS is no-Path
+        with no linked files,
+        so it does not
+        reproduce the lie.
+        file exports binds
+        graph.path at
+        grace-file.ts:213.
+      </Assumption>
+      <Assumption>
+        **F77, measured this
+        session.** Class
+        tokens are bare
+        strings at
+        lint/core.ts:184-192.
+        Per-state membership
+        is pinned;
+        completeness is not.
+      </Assumption>
+      <Assumption>
+        **F74.1, measured this
+        session.** Exactly
+        three canonical
+        SKILL.md files hold a
+        bare D-number. Plugin
+        mirrors exist.
+        docs/plans/** is out
+        of this bundle.
+      </Assumption>
+      <Assumption>
+        **F64 pin survey, this
+        session.**
+        src/lint/core.test.ts:383-408
+        exact top-level
+        LintResult keys
+        (RM-GOVERNED-PATH
+        D13). boolean site
+        count 25
+        (command.test.ts:768
+        and :967). live
+        invocation walker
+        (command.test.ts:906-914)
+        does not see flags.
+        listAbsenceCatalogCodes
+        exact four-code array
+        (catalog.test.ts:327-332).
+        writeFileSync
+        inventory
+        (grace-cursor.test.ts:483)
+        fires if lint or
+        query command gains a
+        writer. token-accounting
+        806 / 55043 / 16
+        skills, ngrace-fix 32,
+        and the README.md F51
+        table, fire if any
+        SKILL.md moves.
+        validate-marketplace
+        fires if a plugin
+        mirror drifts.
+        file exports no-Path
+        case
+        (grace-query.test.ts:1025)
+        fires if the field
+        bind is lost.
+        packed-cli-smoke.ts
+        lint case asserts
+        summary exists, not
+        exact keys. Envelope
+        tests pin
+        schemaVersion, ok,
+        error.code,
+        error.message. No
+        Object.keys(summary)
+        exact-key pin exists
+        beyond asState
+        presence. MODULE_MAP
+        on lint/types.ts
+        fires if an export is
+        added without the
+        map line.
+      </Assumption>
+    </Assumptions>
+  </C-RECORDED-DEBT>
+</NgraceChangeSpec>

@@ -14,12 +14,11 @@
  * ngrace review — run mechanized audits and pattern detectors; never write verdicts (A35.2 corr 81).
  */
 
-import { defineCommand } from "citty";
-
+import { defineGraceCommand } from "../query/command";
 import { GraceCommandError, runGraceCommand } from "../query/errors";
 import { formatReviewResult, runReview } from "./core";
 
-export const reviewCommand = defineCommand({
+export const reviewCommand = defineGraceCommand({
   meta: {
     name: "review",
     description:

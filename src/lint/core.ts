@@ -57,7 +57,17 @@ import {
 import { withLintIssueGuide } from "./catalog";
 import { loadGraceLintConfig } from "./config";
 import { documentSizeIssues } from "./document-size";
-import type { AnalysisCoverage, AnalysisCoverageEntry, GraceLintConfig, LintIssue, LintOptions, LintProfile, LintResult } from "./types";
+import {
+  AS_STATE_PURITY_CLASSES,
+  type AnalysisCoverage,
+  type AnalysisCoverageEntry,
+  type AsStatePurityClass,
+  type GraceLintConfig,
+  type LintIssue,
+  type LintOptions,
+  type LintProfile,
+  type LintResult,
+} from "./types";
 
 const TEXT_FORMAT_OPTIONS = new Set(["text", "json"]);
 
@@ -70,8 +80,8 @@ const baselineExpectationCounts = new WeakMap<LintResult, number>();
 
 type AsStateScratch = {
   status: string;
-  ran: Set<string>;
-  skipped: Set<string>;
+  ran: Set<AsStatePurityClass>;
+  skipped: Set<AsStatePurityClass>;
 };
 
 const asStateScratchByResult = new WeakMap<LintResult, AsStateScratch>();
@@ -181,13 +191,22 @@ function applyAsStatePreview(result: LintResult, root: string, options: LintOpti
     }
   }
 
-  const ran = new Set<string>(["artifact"]);
-  const skipped = new Set<string>();
+  const ran = new Set<AsStatePurityClass>(["artifact"]);
+  const skipped = new Set<AsStatePurityClass>();
   if (asStatus === "applied" || ARCHIVED_CHANGE_STATUSES.has(asStatus as ChangeStatus)) {
     skipped.add("ledger-dependent");
+  } else {
+    ran.add("ledger-dependent");
   }
   if (asStatus === "applied" || (asStatus === "approved" && planExists)) {
     skipped.add("verification-runtime");
+  } else {
+    ran.add("verification-runtime");
+  }
+  for (const cls of AS_STATE_PURITY_CLASSES) {
+    if (!ran.has(cls) && !skipped.has(cls)) {
+      throw new Error(`as-state class ${cls} was not assigned to ran or skipped`);
+    }
   }
   asStateScratchByResult.set(result, { status: asStatus, ran, skipped });
 }

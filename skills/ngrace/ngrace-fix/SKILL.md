@@ -11,7 +11,7 @@ description: Debug and fix issues in a neo-grace project using .ngrace semantic 
 4. Capture the **run's own stdout/stderr** (not only the test framework failure report that
    echoes expected marker strings). Localize with
    `ngrace verification localize <V-M-*> --log <file>` (or `--log -` for stdin).
-   Optional: `--review-json` from `ngrace review --format json` for D8 process context;
+   Optional: `--review-json` from `ngrace review --format json` for RM-AGENT-RELIABILITY D8 process context;
    `--change C-*` (and optional `--task T-*`) for flake classification from ledger attempts.
    Observed is textual presence of declared markers in that log (see command output ground),
    not proven emissions — if only a failure report exists, treat the observed sequence as
