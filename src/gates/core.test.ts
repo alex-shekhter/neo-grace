@@ -1352,3 +1352,226 @@ describe("C-LEGIBLE-FAILURE T-002 — three exits and single classification", ()
     expect(evaluateApproveGate(root, "C-GATE").decision).toBe("permit");
   });
 });
+
+function gitIn(root: string, args: string[]) {
+  return spawnSync("git", args, { cwd: root, encoding: "utf8" });
+}
+
+function initGitWithCommit(root: string, message: string): string {
+  const init = gitIn(root, ["init"]);
+  if (init.status !== 0) throw new Error(init.stderr);
+  gitIn(root, ["config", "user.email", "t@t"]);
+  gitIn(root, ["config", "user.name", "t"]);
+  gitIn(root, ["config", "commit.gpgsign", "false"]);
+  gitIn(root, ["add", "-A"]);
+  const committed = gitIn(root, ["commit", "-m", message]);
+  if (committed.status !== 0) throw new Error(committed.stderr);
+  return revParseHead(root);
+}
+
+function revParseHead(root: string): string {
+  const parsed = gitIn(root, ["rev-parse", "HEAD"]);
+  if (parsed.status !== 0) throw new Error(parsed.stderr);
+  return parsed.stdout.trim();
+}
+
+function decisionOpenTags(ledgerXml: string): string[] {
+  return [...ledgerXml.matchAll(/<Decision\b[^>]*>/g)].map((match) => match[0]);
+}
+
+describe("C-BUNDLE-BASE-REF T-001 record-base", () => {
+  it("record-base: permitting recorded approve writes baseCommit equal to fixture HEAD", () => {
+    const root = tempProject();
+    activeBundle(root);
+    const head = initGitWithCommit(root, "base");
+    expect(head).toMatch(/^[0-9a-f]{40}$/);
+
+    // CLI process cwd is this repository; --path is the fixture (gate path).
+    const result = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(result.status).toBe(0);
+
+    const tags = decisionOpenTags(readFileSync(fixtureLedgerPath(root), "utf8"));
+    expect(tags).toHaveLength(1);
+    expect(tags[0]).toContain(`gate="approve"`);
+    expect(tags[0]).toContain(`decision="permit"`);
+    expect(tags[0]).toContain(`baseCommit="${head}"`);
+  });
+});
+
+function decisionElements(ledgerXml: string): string[] {
+  return [...ledgerXml.matchAll(/<Decision\b[\s\S]*?<\/Decision>/g)].map((match) => match[0]);
+}
+
+function twoRecordedApprovesWithMovedHead(): {
+  root: string;
+  commitA: string;
+  commitB: string;
+  firstDecisionBytes: string;
+  ledgerAfterSecond: string;
+} {
+  const root = tempProject();
+  activeBundle(root);
+  const commitA = initGitWithCommit(root, "A");
+  const first = runGateCli(
+    ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+  );
+  expect(first.status).toBe(0);
+  const firstDecisionBytes = decisionElements(readFileSync(fixtureLedgerPath(root), "utf8"))[0]!;
+  expect(firstDecisionBytes).toBeTruthy();
+
+  writeFileSync(path.join(root, "moved-head.txt"), "B");
+  gitIn(root, ["add", "moved-head.txt"]);
+  const moved = gitIn(root, ["commit", "-m", "B"]);
+  if (moved.status !== 0) throw new Error(moved.stderr);
+  const commitB = revParseHead(root);
+  expect(commitB).not.toBe(commitA);
+
+  const second = runGateCli(
+    ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+  );
+  expect(second.status).toBe(0);
+  return {
+    root,
+    commitA,
+    commitB,
+    firstDecisionBytes,
+    ledgerAfterSecond: readFileSync(fixtureLedgerPath(root), "utf8"),
+  };
+}
+
+function firstRecordedBaseCommit(root: string): string | undefined {
+  const decisions = listGateDecisions(root, "C-GATE") as Array<{
+    gate: string;
+    decision: string;
+    baseCommit?: string;
+  }>;
+  const found = decisions.find(
+    (entry) =>
+      entry.gate === "approve"
+      && entry.decision === "permit"
+      && Boolean(entry.baseCommit?.trim()),
+  );
+  return found?.baseCommit;
+}
+
+describe("C-BUNDLE-BASE-REF T-001 base-stable", () => {
+  it("base-stable: reader returns A after second approve at B", () => {
+    const { root, commitA } = twoRecordedApprovesWithMovedHead();
+    expect(firstRecordedBaseCommit(root)).toBe(commitA);
+  });
+
+  it("base-stable: second Decision is not B", () => {
+    const { commitB, ledgerAfterSecond } = twoRecordedApprovesWithMovedHead();
+    const tags = decisionOpenTags(ledgerAfterSecond);
+    expect(tags).toHaveLength(2);
+    expect(tags[1]).not.toContain(`baseCommit="${commitB}"`);
+  });
+
+  it("base-stable: first Decision bytes are unchanged", () => {
+    const { firstDecisionBytes, ledgerAfterSecond } = twoRecordedApprovesWithMovedHead();
+    expect(decisionElements(ledgerAfterSecond)[0]).toBe(firstDecisionBytes);
+  });
+});
+
+describe("C-BUNDLE-BASE-REF T-001 characterization", () => {
+  it("record=false still writes no Decision", () => {
+    const root = tempProject();
+    activeBundle(root);
+    initGitWithCommit(root, "base");
+    const result = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=false"],
+    );
+    expect(result.status).toBe(0);
+    expect(existsSync(fixtureLedgerPath(root))).toBe(false);
+  });
+
+  it("refuse, apply, and archive omit baseCommit", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    initGitWithCommit(root, "base");
+    const specPath = path.join(bundle, "spec.xml");
+    writeFileSync(
+      specPath,
+      readFileSync(specPath, "utf8").replace(
+        "</C-GATE>",
+        `<Clarifications><Clarification><IC-EXAMPLE /></Clarification></Clarifications></C-GATE>`,
+      ),
+    );
+    const refused = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(refused.status).toBe(1);
+    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    const applied = runGateCli(
+      ["apply", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(applied.status).toBe(0);
+    const archived = runGateCli(
+      ["archive", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(archived.status).toBe(0);
+    for (const tag of decisionOpenTags(readFileSync(fixtureLedgerPath(root), "utf8"))) {
+      expect(tag).not.toContain("baseCommit=");
+    }
+  });
+
+  it("unreadable HEAD at first observation omits the attribute", () => {
+    const root = tempProject();
+    activeBundle(root);
+    const result = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(result.status).toBe(0);
+    const tag = decisionOpenTags(readFileSync(fixtureLedgerPath(root), "utf8"))[0]!;
+    expect(tag).toContain(`decision="permit"`);
+    expect(tag).not.toContain("baseCommit=");
+    expect(tag).not.toContain('baseCommit=""');
+  });
+
+  it("planted baseCommit stays a valid permitting approve", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    writeFileSync(
+      path.join(bundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-GATE>`
+        + `<Decisions><Decision gate="approve" decision="permit" baseCommit="abc123def456" /></Decisions>`
+        + `</C-GATE></NgraceRunLedger>`,
+    );
+    const listed = listGateDecisions(root, "C-GATE");
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.gate).toBe("approve");
+    expect(listed[0]?.decision).toBe("permit");
+    expect(listed[0]?.baseCommit).toBe("abc123def456");
+    expect(readPermittingDecision(root, "C-GATE", "approve").state).toBe("permit");
+  });
+
+  it("evaluateApproveGate source does not spawn git", () => {
+    const source = readFileSync(path.join(import.meta.dir, "core.ts"), "utf8");
+    const fn = source.slice(source.indexOf("export function evaluateApproveGate"));
+    const body = fn.slice(0, fn.indexOf("\nexport function", 1));
+    expect(body).not.toMatch(/\bgit\b/);
+    expect(body).not.toMatch(/spawnSync|Bun\.spawnSync|rev-parse/);
+  });
+
+  it("later permit may write the first observation when the first omitted it", () => {
+    const root = tempProject();
+    activeBundle(root);
+    const first = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(first.status).toBe(0);
+    expect(decisionOpenTags(readFileSync(fixtureLedgerPath(root), "utf8"))[0]).not.toContain("baseCommit=");
+    const head = initGitWithCommit(root, "later");
+    const second = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(second.status).toBe(0);
+    const tags = decisionOpenTags(readFileSync(fixtureLedgerPath(root), "utf8"));
+    expect(tags).toHaveLength(2);
+    expect(tags[0]).not.toContain("baseCommit=");
+    expect(tags[1]).toContain(`baseCommit="${head}"`);
+    expect(firstRecordedBaseCommit(root)).toBe(head);
+  });
+});

@@ -68,6 +68,18 @@ export function formatGateEvaluation(evaluation: GateEvaluation): string {
   return lines.join("\n");
 }
 
+function observeHeadObjectName(projectRoot: string): string | undefined {
+  const result = Bun.spawnSync({
+    cmd: ["git", "rev-parse", "HEAD"],
+    cwd: projectRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (result.exitCode !== 0) return undefined;
+  const name = new TextDecoder().decode(result.stdout).trim();
+  return name || undefined;
+}
+
 function runGate(
   projectRoot: string,
   changeId: string,
@@ -79,6 +91,10 @@ function runGate(
     const decision = evaluationToDecision(evaluation);
     if (decision) {
       try {
+        if (gate === "approve" && decision.decision === "permit") {
+          const observed = observeHeadObjectName(projectRoot);
+          if (observed) decision.baseCommit = observed;
+        }
         recordGateDecision(projectRoot, changeId, decision);
       } catch (error) {
         // A31.5: a recording failure must not suppress the evaluation the caller asked for.

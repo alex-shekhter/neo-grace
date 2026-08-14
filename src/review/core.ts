@@ -74,6 +74,7 @@ import {
   type LooseEvent,
   type WriteEvidenceSnapshot,
 } from "../grace-cursor";
+import { listGateDecisions } from "../gates/ledger";
 import { CODE_EXTENSIONS } from "../language-registry";
 import {
   getModuleImplementationFiles,
@@ -119,7 +120,7 @@ export type ScopeAuditReport = {
   /** Where plan.xml was read, when resolved. */
   planLocation?: "active" | "archive";
   /** How the changed-file set was obtained when the audit ran. */
-  inputSource?: "explicit" | "base" | "porcelain";
+  inputSource?: "explicit" | "base" | "porcelain" | "recorded-base";
   baseRef?: string;
   changedFileCount?: number;
   /** True when status=ran over a caller-supplied empty --changed-files set (state 5). */
@@ -1589,6 +1590,10 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
     }
   }
 
+  if (scopeAudit) {
+    scopeAudit = attachNoBaseCommitCaveat(scopeAudit, options);
+  }
+
   findings.sort(
     (a, b) =>
       a.file.localeCompare(b.file)
@@ -1615,13 +1620,170 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
 }
 
 type ScopeChangedFilesResolution =
-  | { kind: "files"; files: string[]; source: "explicit" | "base" | "porcelain"; baseRef?: string }
+  | { kind: "files"; files: string[]; source: "explicit" | "base" | "porcelain" | "recorded-base"; baseRef?: string }
   | { kind: "absence"; absence: AbsenceValue };
+
+function readRecordedBaseCommit(root: string, changeId: string): string | undefined {
+  try {
+    const found = listGateDecisions(root, changeId).find(
+      (entry) =>
+        entry.gate === "approve"
+        && entry.decision === "permit"
+        && Boolean(entry.baseCommit?.trim()),
+    );
+    return found?.baseCommit?.trim();
+  } catch {
+    return undefined;
+  }
+}
+
+const NO_BASE_COMMIT_CAVEAT = "no base commit — cannot attribute pre-existing changes";
+
+function reviewOverrideIsSet(options: ReviewOptions): boolean {
+  if (options.changedFiles !== undefined) return true;
+  return Boolean(options.baseRef !== undefined && options.baseRef !== null && String(options.baseRef).trim());
+}
+
+function attachNoBaseCommitCaveat(
+  audit: ScopeAuditReport,
+  options: ReviewOptions,
+): ScopeAuditReport {
+  if (!options.changeId || reviewOverrideIsSet(options)) return audit;
+  if (
+    audit.inputSource === "recorded-base"
+    || audit.inputSource === "explicit"
+    || audit.inputSource === "base"
+  ) {
+    return audit;
+  }
+  const porcelainRan = audit.inputSource === "porcelain" && audit.status === "ran";
+  const porcelainNotRun =
+    audit.status === "not-run" && /no changed files available/i.test(audit.reason);
+  const gitUnavailable =
+    audit.status === "unable-to-determine" && /git status unavailable/i.test(audit.reason);
+  if (!porcelainRan && !porcelainNotRun && !gitUnavailable) return audit;
+  if (audit.reason.includes(NO_BASE_COMMIT_CAVEAT)) return audit;
+  const reason = `${audit.reason} ${NO_BASE_COMMIT_CAVEAT}`;
+  return {
+    ...audit,
+    reason,
+    absence: audit.absence ? { ...audit.absence, reason } : audit.absence,
+  };
+}
+
+function posixProjectRel(entry: string): string | undefined {
+  const normalized = entry.replaceAll("\\", "/").replace(/^\.\//, "").trim();
+  if (!normalized || normalized === ".." || normalized.startsWith("../")) return undefined;
+  if (path.posix.isAbsolute(normalized) || path.win32.isAbsolute(normalized)) return undefined;
+  return normalized;
+}
+
+/** git stderr as a one-line diagnostic tail, or the exit code when git said nothing (F40). */
+function gitFailureDetail(result: { stderr: Uint8Array; exitCode: number | null }): string {
+  const stderr = new TextDecoder().decode(result.stderr).trim().split("\n")[0]?.trim() ?? "";
+  return stderr ? stderr.slice(0, 200) : `exit ${result.exitCode}`;
+}
+
+/**
+ * Commit-versus-working-tree name-only set for a recorded approve base.
+ * Unexported: tests go through runReview. Do not reuse listFilesChangedAgainstBase.
+ *
+ * Three distinct failures, three distinct reasons (F40 / F55): the sha not resolving,
+ * the diff failing, and the untracked walk failing are different facts, and only the
+ * first one indicts the sha. All three stay `unable-to-determine`.
+ */
+function listFilesChangedAgainstRecordedBase(
+  root: string,
+  sha: string,
+): { available: true; files: string[] } | { available: false; absence: AbsenceValue } {
+  const verified = Bun.spawnSync({
+    cmd: ["git", "rev-parse", "--verify", "--quiet", `${sha}^{commit}`],
+    cwd: root,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (verified.exitCode !== 0) {
+    return {
+      available: false,
+      absence: {
+        verdict: "unable-to-determine",
+        reason: `recorded base ${sha} does not resolve`,
+      },
+    };
+  }
+  const diff = Bun.spawnSync({
+    cmd: ["git", "-c", "status.relativePaths=true", "diff", "--name-only", "--diff-filter=ACMR", sha],
+    cwd: root,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (diff.exitCode !== 0) {
+    return {
+      available: false,
+      absence: {
+        verdict: "unable-to-determine",
+        reason:
+          `recorded base ${sha} resolved, but git diff against it failed: ${gitFailureDetail(diff)}`,
+      },
+    };
+  }
+  const porcelain = Bun.spawnSync({
+    cmd: [
+      "git",
+      "-c",
+      "status.relativePaths=true",
+      "status",
+      "--porcelain=v1",
+      "-z",
+      "--untracked-files=all",
+      "--",
+      ".",
+    ],
+    cwd: root,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (porcelain.exitCode !== 0) {
+    return {
+      available: false,
+      absence: {
+        verdict: "unable-to-determine",
+        reason:
+          `recorded base ${sha} diffed, but git status (untracked walk) failed: `
+          + gitFailureDetail(porcelain),
+      },
+    };
+  }
+
+  const fromDiff = new TextDecoder()
+    .decode(diff.stdout)
+    .split("\n")
+    .map((entry) => posixProjectRel(entry))
+    .filter((entry): entry is string => Boolean(entry));
+
+  const records = new TextDecoder().decode(porcelain.stdout).split("\0");
+  const untracked: string[] = [];
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index];
+    if (!record || record.length < 4) continue;
+    const status = record.slice(0, 2);
+    if (status.includes("R") || status.includes("C")) {
+      index += 1;
+    }
+    if (status !== "??") continue;
+    const normalized = posixProjectRel(record.slice(3));
+    if (normalized) untracked.push(normalized);
+  }
+
+  const files = [...new Set([...fromDiff, ...untracked])].sort();
+  return { available: true, files };
+}
 
 /**
  * Resolve the changed-file set for the scope audit.
  * - defined `changedFiles` (incl. []) → caller-owned explicit set (A66 Q5)
  * - else `baseRef` → three-dot name-only (A66.3)
+ * - else recorded approve baseCommit → commit-versus-worktree plus untracked
  * - else porcelain: non-empty usable; empty or unavailable → not-run / unable-to-determine (corr 169)
  */
 function resolveScopeChangedFiles(
@@ -1649,6 +1811,21 @@ function resolveScopeChangedFiles(
       source: "base",
       baseRef: String(options.baseRef).trim(),
     };
+  }
+  if (options.changeId) {
+    const recorded = readRecordedBaseCommit(root, options.changeId);
+    if (recorded) {
+      const listed = listFilesChangedAgainstRecordedBase(root, recorded);
+      if (!listed.available) {
+        return { kind: "absence", absence: listed.absence };
+      }
+      return {
+        kind: "files",
+        files: listed.files,
+        source: "recorded-base",
+        baseRef: recorded,
+      };
+    }
   }
   const listed = listRepositoryChangedFiles(root);
   if (!listed.available) {
@@ -1766,22 +1943,26 @@ function formatScopeAuditLine(audit: ScopeAuditReport): string {
   const sourceLabel =
     audit.inputSource === "base" && audit.baseRef
       ? `base ${audit.baseRef}`
-      : audit.inputSource === "explicit"
-        ? "explicit --changed-files"
-        : audit.inputSource === "porcelain"
-          ? "working-tree porcelain"
-          : "unknown";
+      : audit.inputSource === "recorded-base" && audit.baseRef
+        ? `recorded-base ${audit.baseRef}`
+        : audit.inputSource === "explicit"
+          ? "explicit --changed-files"
+          : audit.inputSource === "porcelain"
+            ? "working-tree porcelain"
+            : "unknown";
   const n = audit.changedFileCount ?? 0;
   const planBit = audit.planLocation ? ` [${audit.planLocation}]` : "";
+  const caveat =
+    audit.reason.includes(NO_BASE_COMMIT_CAVEAT) ? ` ${NO_BASE_COMMIT_CAVEAT}` : "";
   if (audit.reason.includes("no out-of-scope")) {
     return (
       `Scope audit: ran over ${n} changed file(s) against ObservedWriteScope for ${audit.changeId}${planBit}`
-      + ` (input: ${sourceLabel}). No out-of-scope paths.`
+      + ` (input: ${sourceLabel}). No out-of-scope paths.${caveat}`
     );
   }
   return (
     `Scope audit: ran over ${n} changed file(s) against ObservedWriteScope for ${audit.changeId}${planBit}`
-    + ` (input: ${sourceLabel}).`
+    + ` (input: ${sourceLabel}).${caveat}`
   );
 }
 

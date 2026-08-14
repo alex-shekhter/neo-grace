@@ -109,6 +109,8 @@ export type GateDecisionRecord = {
   gate: GateId;
   decision: GateDecisionValue;
   requirements: GateRequirementRecord[];
+  /** First observed HEAD object name on a permitting approve. Omitted when never observed. */
+  baseCommit?: string;
 };
 
 /** Newest-governs read of the Verdicts section (A31.2). Invalid is never skipped. */
@@ -345,12 +347,19 @@ export function recordGateDecision(
     children: [],
     text: req.message ?? "",
   }));
+  const attributes: Record<string, string> = {
+    gate: decision.gate,
+    decision: decision.decision,
+  };
+  if (decision.gate === "approve" && decision.decision === "permit") {
+    const stored = firstStoredBaseCommit(section);
+    const incoming = (decision.baseCommit ?? "").trim();
+    const value = stored ?? (incoming || undefined);
+    if (value) attributes.baseCommit = value;
+  }
   section.children.push({
     tag: "Decision",
-    attributes: {
-      gate: decision.gate,
-      decision: decision.decision,
-    },
+    attributes,
     children: reqChildren,
     text: "",
   });
@@ -565,11 +574,25 @@ function parseDecisionNode(child: GraceXmlNode): GateDecisionRecord | { invalid:
       message: req.text.trim() || undefined,
     });
   }
-  return {
+  const record: GateDecisionRecord = {
     gate: gate as GateId,
     decision: decision as GateDecisionValue,
     requirements,
   };
+  const baseCommit = (child.attributes.baseCommit ?? "").trim();
+  if (baseCommit) record.baseCommit = baseCommit;
+  return record;
+}
+
+function firstStoredBaseCommit(section: GraceXmlNode): string | undefined {
+  for (const child of section.children) {
+    if (child.tag !== "Decision") continue;
+    if (child.attributes.gate !== "approve") continue;
+    if (child.attributes.decision !== "permit") continue;
+    const value = (child.attributes.baseCommit ?? "").trim();
+    if (value) return value;
+  }
+  return undefined;
 }
 
 /**
