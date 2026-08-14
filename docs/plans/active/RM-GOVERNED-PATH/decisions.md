@@ -4825,3 +4825,27 @@ prose that other findings quote invites its own errors. Qualify `D15` (foreign),
 **And the lesson about the ledger itself:** F74 asserted an audit list without running the audit, in
 the entry whose subject was citation precision. That is [F62](#f62)'s class inside a finding about
 accuracy — a list offered as a survey becomes an enumeration the moment it is written down.
+
+### F71.1 correction — four display strings, not two, and the live tree cannot be the fixture. **[verified]**
+
+[F71](#f71) named `module show`'s **"Graph Path"** label and cited `src/query/render.ts:113`.
+Measured, corrected by the executor at `C-RECORDED-DEBT`'s spec authoring:
+
+- The label is at **`render.ts:114`**, not `:113`.
+- `getModulePath` feeds **four** display strings, not two: the module-find table's `PATH` column
+  (`render.ts:58`), **`Module Path:`** (`:81`), **`Graph Path:`** (`:114`), and the health record's
+  `path` (`health.ts:126`, rendered as `Path:` via `render.ts:94`). **Two of those four are labels
+  F71 never named**, so a repair that fixes only the labels F71 quoted would leave the same fallback
+  printing under different words.
+
+**And the live tree cannot serve as the acceptance fixture.** `M-SKILLS` has no `<Path>` **and no
+linked files**, so `getModulePath` already falls through to `undefined` and `module show` already
+prints `n/a`. A criterion written against it would pass at HEAD — [F28](#f28)'s shape, a green that
+is not evidence. Demonstrating the defect requires a module with **no authored Path and at least one
+linked file**, which is the only state where the fallback speaks.
+
+**The rule.** When a finding names a symptom, count **every** consumer of the mechanism before
+scoping the repair — a getter is a defect at each of its call sites, and the site the finding
+happened to notice is rarely all of them. And before writing an acceptance criterion, check whether
+the defect is **reachable on the tree you will run it against**; if the live project cannot express
+the broken state, the fixture is part of the deliverable, not an implementation detail.
