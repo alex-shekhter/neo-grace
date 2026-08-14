@@ -1,0 +1,976 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-ONE-GLOB-LANGUAGE>
+    <IntentSummary>
+      Delete matchSimpleGlob and route both
+      review scope audits through
+      observedWriteScopeContains so review
+      and scope.ts share one glob language.
+      Pin that export as a file matcher.
+      Land the glob documentation P1.4
+      could not write. Keep the shipped
+      any-C-* lifecycle exclusion and pin
+      that undeclared writes under
+      .ngrace/graph, .ngrace/verification,
+      and .ngrace/context still raise.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/schema-reference.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/schema-reference.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/paths.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/generate-schema-reference.ts</Value></MustExist>
+      <MustExist><Value>docs/schema-reference.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-ONE-GLOB-LANGUAGE/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-ONE-GLOB-LANGUAGE/plan.xml</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function matchSimpleGlob</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function auditScopeOutsideWriteScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function auditWriteEvidenceOutsideScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>export function observedWriteScopeContains</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>export function parseScopeGlob</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/paths.ts</File>
+        <Text>export function normalizeProjectRelativePath</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/schema-reference.ts</File>
+        <Text>export function renderSchemaReference</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/generate-schema-reference.ts</File>
+        <Text>export function checkSchemaReference</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/generate-schema-reference.ts</File>
+        <Text>export function writeSchemaReference</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>observedWriteScopeContains</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>observedWriteScopeContains</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>export function allReviewCodes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>review.scope-outside-write-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>WRITE_EVIDENCE_SCOPE_FINDING_CODE</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-status.ts</File>
+        <Text>matchSimpleGlob</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>matchSimpleGlob</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/schema-reference.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/schema-reference.test.ts</Value></MustExist>
+      <MustExist><Value>docs/schema-reference.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>observedWriteScopeContains</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function auditScopeOutsideWriteScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function auditWriteEvidenceOutsideScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>export function observedWriteScopeContains</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>export function parseScopeGlob</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/schema-reference.ts</File>
+        <Text>export function renderSchemaReference</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>observedWriteScopeContains</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>observedWriteScopeContains</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>export function allReviewCodes</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>matchSimpleGlob</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-status.ts</File>
+        <Text>matchSimpleGlob</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>matchSimpleGlob</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/scope.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/schema-reference.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/generate-schema-reference.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+        <M-GRAMMAR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+        <V-M-GRAMMAR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/artifact/scope.test.ts</File>
+      <File>src/artifact/schema-reference.ts</File>
+      <File>src/artifact/schema-reference.test.ts</File>
+      <File>docs/schema-reference.md</File>
+      <File>.ngrace/changes/active/C-ONE-GLOB-LANGUAGE/spec.xml</File>
+      <File>.ngrace/changes/active/C-ONE-GLOB-LANGUAGE/plan.xml</File>
+      <File>.ngrace/changes/active/C-ONE-GLOB-LANGUAGE/run.xml</File>
+      <File>.ngrace/changes/active/C-ONE-GLOB-LANGUAGE/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-ONE-GLOB-LANGUAGE/run/**</Glob>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: 25ed4b2 (branch
+      feat/one-glob-language). Preflight:
+      ngrace lint path . assertions current
+      is 0/0. Spec is approved and
+      immutable. Do not amend it. If
+      execute shows the spec is wrong,
+      stop and report.
+
+      Ceremony tier T2. Stop and re-spec
+      rather than touching
+      src/artifact/scope.ts (already
+      exports the survivor),
+      src/grace-status.ts,
+      src/grace-cursor.ts,
+      src/review/scope-helpers.ts,
+      src/test-support/token-accounting.ts,
+      src/verification/localize.test.ts,
+      README.md, examples/, skills/,
+      plugins/, docs/plans,
+      .ngrace/changes/archive, CHANGELOG.md,
+      or any version surface. Packaged
+      version stays 6.2.0. No product
+      version bump. F50: this plan does
+      not instruct its own
+      ObservedWriteScope amendment; cursor
+      companions are listed at authoring.
+      F33: re-measure every count at
+      execute. Do not pin allReviewCodes
+      length, localize excluded length,
+      WriteEvidence ratchet pairs, suite
+      totals, or any line number this
+      change moves. F61: name exported
+      functions and argv tokens in this
+      comment; leave dashed forms to
+      *.test.ts. F42: plan assertions bind
+      to exported function names and issue
+      codes, plus the matchSimpleGlob
+      identifier this bundle deletes,
+      never to AC ids, preamble prose, or
+      the release-note sentence. F74: cite
+      cross-plan decisions as PLAN-ID Dn.
+
+      Measured at authoring, not inherited.
+      matchSimpleGlob has two call sites,
+      both in src/review/core.ts (the two
+      audits). observedWriteScopeContains
+      has zero test importers. The export
+      already returns true for
+      web/js/**/*.js x web/js/app.js and
+      for src/**/foo.ts x src/foo.ts.
+      Both audits raise
+      review.scope-outside-write-scope /
+      review.write-evidence-outside-scope
+      on that F60 pair today. isCliLifecyclePath
+      already silences any canonical C-*
+      run.xml, run-ledger.xml, and run/**
+      under active or archive, including
+      fold of A during a review of B.
+      Undeclared .ngrace/graph/main.xml,
+      .ngrace/verification/main.xml, and
+      .ngrace/context/requirements.xml
+      already raise on both audits. Those
+      three trees are not specifically
+      pinned. File entries stored with a
+      leading ./ or a backslash are not
+      normalized by
+      observedWriteScopeContains (equalPath
+      on the stored string); only the
+      query path and Glob patterns go
+      through normalizeProjectRelativePath.
+      Do not edit scope.ts to change that.
+
+      ════════════════════════════════════
+      D0. Tasks, reds, F68, F75
+      ════════════════════════════════════
+      | Task | work | Satisfies | planned
+        kind+key pairs |
+      | T-001 | delete matchSimpleGlob;
+          both audits call the export
+          for glob membership; pin the
+          export; pin stay-audited trees
+        | AC-ONE-MATCHER,
+          AC-ZERO-DEPTH,
+          AC-LIFECYCLE-BOUND
+        | 2: test:one-matcher,
+          test:zero-depth |
+      | T-002 | invert the F60 exclusion
+          sentence; state the
+          zero-or-more-segment rule at
+          the F60 pair; regenerate
+          docs/schema-reference.md
+        | AC-GLOB-DOC
+        | 1: test:glob-doc |
+      | T-003 | dogfood close
+        | AC-HEAD-RED,
+          AC-SUITE-AND-LINT
+        | 0 planned |
+
+      Sequential: T-002 needs the
+      duplicate gone before the generated
+      document may state one rule
+      (RM-GOVERNED-PATH D11). T-003
+      DependsOn T-002. One open epoch.
+
+      Signature keys the executor must
+      record (kind test):
+        T-001  test:one-matcher
+               test:zero-depth
+        T-002  test:glob-doc
+
+      Per-task counts: T-001 2, T-002 1,
+      T-003 0. No key repeats inside a
+      task. No task has more than two
+      planned reds.
+
+      F75: red event counts live only in
+      AC-HEAD-RED (one fail event per
+      key above). Other sections state
+      independent observability, not
+      event counts.
+
+      F45, named at authoring, not reddened:
+      AC-LIFECYCLE-BOUND (any-C-* silence
+      and spec.xml raise are green; the
+      three durable-tree pins characterize
+      HEAD); AC-SUITE-AND-LINT (close-time
+      bar); status and cursor already
+      calling observedWriteScopeContains;
+      planted miss already raises; run/**
+      already agrees; parseScopeGlob
+      already rejects braces, mid-segment
+      **, and leading !; allReviewCodes
+      cardinality unmoved; localize
+      excluded-review-code cardinality
+      unmoved; WriteEvidence ratchet
+      unmoved; README.md staying out;
+      examples/ staying out; package.json
+      version unchanged;
+      token-accounting.ts unopened.
+
+      F68 on T-001. The two reds fail
+      independently:
+      (1) test:one-matcher reads
+      src/review/core.ts (and src/
+      production, excluding *.test.ts)
+      and asserts the identifier
+      matchSimpleGlob is absent. It does
+      not call either audit. HEAD fails
+      because function matchSimpleGlob
+      is present. A renamed regex copy
+      would pass this and fail
+      zero-depth.
+      (2) test:zero-depth calls
+      auditScopeOutsideWriteScope and
+      auditWriteEvidenceOutsideScope
+      with files empty and globs
+      web/js/**/*.js against
+      web/js/app.js, and the porcelain
+      audit with src/**/foo.ts against
+      src/foo.ts, and asserts zero
+      findings. It does not read the
+      identifier. HEAD fails because
+      both audits raise. Routing while
+      leaving an unused matchSimpleGlob
+      would pass this and fail
+      one-matcher.
+      Record each fail in its own tool
+      round trip with a bun test filter
+      that cannot see the sibling
+      (one-matcher filter must not run
+      the zero-depth it(); zero-depth
+      filter must not run the
+      one-matcher it()). Never record
+      the second fail from a whole-file
+      run that still names the first.
+
+      F68 on T-002. Two tests, one fail
+      event (F75). They can fail alone
+      after the renderer exists:
+      (1) preamble no longer contains
+      the exact EXCLUDED_GLOB bytes;
+      (2) preamble, before the first
+      shape heading, contains the
+      zero-or-more-segment rule and
+      web/js/**/*.js matches
+      web/js/app.js.
+      Deleting the exclusion sentence
+      without adding the pair passes
+      (1) and fails (2). Adding the
+      pair while leaving the exclusion
+      sentence passes (2) and fails
+      (1). Do not record a second
+      cursor fail for those siblings.
+
+      F68 on exports. T-001 reds must
+      not import a new missing export
+      of one module. one-matcher reads
+      file bytes. zero-depth calls the
+      already-exported audits.
+      observedWriteScopeContains is
+      already exported; characterization
+      tests of it are green at HEAD and
+      are not a red. T-002 reds must
+      not import a new
+      schema-reference export (none is
+      added; failing surface is
+      renderSchemaReference output).
+
+      ════════════════════════════════════
+      D1. Matcher and audits (T-001)
+      ════════════════════════════════════
+      Delete matchSimpleGlob. Do not
+      rename it. Do not keep a regex
+      body under a second name. Both
+      auditScopeOutsideWriteScope and
+      auditWriteEvidenceOutsideScope
+      call observedWriteScopeContains
+      for glob membership. They may
+      keep the exact-file Set for
+      declared File entries. Do not
+      add a third matcher in review.
+      Do not change
+      observedWriteScopeContains to
+      require an intervening segment.
+      Do not teach status or cursor
+      the regex copy. parseScopeGlob
+      remains the grammar: literals,
+      *, ?, whole-segment **; braces,
+      brackets, parentheses, leading !,
+      and mid-segment ** stay rejected.
+
+      Keep existing
+      C-REPORT-HONESTY any-C-*
+      lifecycle cases and the
+      undeclared spec.xml WriteEvidence
+      case. Keep allReviewCodes
+      cardinality pins (do not freeze
+      the number in this plan). Keep
+      WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET
+      exact. Do not open
+      localize.test.ts.
+
+      Export characterization (green at
+      HEAD; write in src/artifact/scope.test.ts;
+      import observedWriteScopeContains
+      directly). files empty unless noted:
+      * web/js/**/*.js x web/js/app.js
+        true
+      * web/js/**/*.js x web/js/sub/app.js
+        true
+      * web/js/**/*.js x web/js/app.ts
+        false
+      * src/**/foo.ts x src/foo.ts
+        true
+      * **/*.ts x foo.ts true
+      * src/** x src true
+      * glob src/foo.ts x ./src/foo.ts
+        true
+      * glob ./src/foo.ts x src/foo.ts
+        true
+      * files [src/foo.ts] x src\foo.ts
+        true (query normalized)
+      * glob src\foo.ts x src/foo.ts
+        true (glob normalized)
+      * src/?.ts x src/a.ts true
+      * src/?.ts x src/.ts false
+      * src/foo? x src/foo false
+      * src/foo? x src/foox true
+      * run/** x run/1-T-001-attempt.xml
+        true
+      * glob a**b x ab false
+        (parseScopeGlob throws;
+        contains returns false)
+      Keep the existing parseScopeGlob
+      throw cases (braces, absolute,
+      traversal, mid-segment **,
+      brackets, leading !).
+      Darwin / Windows case is
+      platform-conditioned only: when
+      process.platform is darwin or
+      win32, SRC/**/*.TS x src/a.ts
+      is true; otherwise false. Do not
+      assert a universal.
+      Do not assert that files
+      [./src/foo.ts] contains
+      src/foo.ts. Measured false
+      (stored File is not normalized).
+      Do not edit scope.ts to make it
+      true.
+
+      Audit reds (HEAD fail; same
+      zero-depth key):
+      * porcelain and WriteEvidence
+        silent on web/js/**/*.js x
+        web/js/app.js
+      * porcelain silent on
+        src/**/foo.ts x src/foo.ts
+      After production, also assert
+      (green at HEAD, stay green):
+      planted miss web/js/app.ts
+      still raises on both audits;
+      run/** x a file under that run/
+      directory stays inside on both;
+      web/js/sub/app.js stays inside.
+
+      Stay-audited characterization
+      (F45; green at HEAD; both audits):
+      undeclared .ngrace/graph/main.xml,
+      .ngrace/verification/main.xml,
+      and .ngrace/context/requirements.xml
+      still raise; spec.xml and
+      plan.xml still raise;
+      scratch/run.xml still raises;
+      src/secret.ts beside lifecycle
+      still raises. Do not key
+      isCliLifecyclePath on the
+      reviewed change id. Do not
+      require run/ in
+      ObservedWriteScope to stay
+      silent.
+
+      one-matcher red: a bun test,
+      not a shell grep, that reads
+      src/review/core.ts and other
+      src/ production files (exclude
+      *.test.ts) and asserts the
+      identifier matchSimpleGlob is
+      absent.
+
+      F73. The match site after this
+      change is normalizeProjectRelativePath
+      inside observedWriteScopeContains
+      (backslash to slash, dot-segment
+      collapse, reject absolute and
+      parent traversal). finding.file
+      emission stays makeFinding's
+      normalizeRel (backslash to slash
+      only; no dot collapse). Local
+      gates cannot observe a Windows
+      separator or a case-insensitive
+      filesystem. State in the close
+      verdict that CI is the only
+      observer of separators. Do not
+      assert finding.file with a
+      slash-joined needle against an
+      OS-native path.
+
+      ════════════════════════════════════
+      D2. Documentation (T-002)
+      ════════════════════════════════════
+      After T-001, invert the generated
+      preamble. Replace the F60
+      exclusion sentence (the exact
+      EXCLUDED_GLOB bytes in
+      schema-reference.test.ts) with
+      the positive rule: whole-segment
+      ** matches zero or more path
+      segments, so web/js/**/*.js
+      matches web/js/app.js. That
+      sentence lives in the preamble,
+      before the first shape heading
+      (F44). Call writeSchemaReference
+      so docs/schema-reference.md is
+      byte-identical to
+      renderSchemaReference
+      (checkSchemaReference).
+
+      Invert EXCLUDED_GLOB to
+      not.toContain. Invert the F60
+      pair absence only for the
+      documented pair
+      (web/js/**/*.js and
+      web/js/app.js) in the preamble.
+      Keep the other F60_PAIRS strings
+      absent. Keep: no registered
+      shape named glob or globstar;
+      shape sections contain no
+      match-outcome table and do not
+      contain the strings review false,
+      review true, or scope true.
+      generate-schema-reference.test.ts
+      stays unedited (composition, not
+      the F60 sentence). README.md
+      untouched. CHANGELOG.md
+      untouched. The release note is
+      the commit body
+      (RM-GOVERNED-PATH D5.5): review
+      may report fewer findings for **
+      patterns adjacent to top-level
+      files; this is deduplication
+      toward git/minimatch semantics.
+
+      ════════════════════════════════════
+      D3. ObservedWriteScope
+      ════════════════════════════════════
+      Forced by the spec (F27.2, F64)
+      as File entries (F60: the one
+      Glob both implementations
+      already agree on is this
+      bundle's run/**). Cursor
+      companions are audit-exempt via
+      isCliLifecyclePath and are still
+      listed so OWS is complete at
+      authoring (F50).
+
+      Listed as permission (this run
+      may not write them):
+      spec.xml (approved, immutable).
+
+      Deliberately excluded (stop and
+      re-spec): src/artifact/scope.ts,
+      src/grace-status.ts,
+      src/grace-cursor.ts,
+      src/review/scope-helpers.ts,
+      src/test-support/token-accounting.ts,
+      src/verification/localize.test.ts
+      (excluded-review-code length pin
+      stays by non-edit),
+      scripts/generate-schema-reference.test.ts
+      (composition pin stays by
+      non-edit), README.md, examples/,
+      skills/, plugins/, docs/plans,
+      archive, CHANGELOG.md, version
+      surfaces, a new review finding
+      code.
+
+      scripts/ is in ignoredDirs.
+      AC-SUITE-AND-LINT is 0/0 at
+      close, not throughout.
+      Mid-change BaselineAssertions
+      stay intact. Never weaken a
+      BaselineAssertion to move a
+      lint count.
+
+      ════════════════════════════════════
+      D4. Execution discipline
+      ════════════════════════════════════
+      One open epoch. Each planned red
+      is its own tool round trip: write
+      the failing test first, record
+      cursor attempt outcome fail with
+      the signature named in D0, then
+      land production in a later round
+      trip, then record pass. Never
+      fail and pass in one call. Never
+      a retrospective red via stash.
+      Never a red backed only by a
+      shell grep.
+
+      T-001: fail one-matcher, then
+      fail zero-depth, then production,
+      then pass. Two fail events, two
+      keys, isolated filters.
+      T-002: one red trip (glob-doc)
+      then production including
+      writeSchemaReference.
+      T-003: no planned red; suite
+      listed in TargetAssertions; lint
+      0/0 claimed at close only, after
+      apply and archive.
+
+      Newly visible glob documentation
+      is named in the conventional
+      commit body (RM-GOVERNED-PATH
+      D5.5), not in CHANGELOG.md.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Delete the review glob copy and pin the survivor</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-ONE-MATCHER />
+          <AC-ZERO-DEPTH />
+          <AC-LIFECYCLE-BOUND />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (one-matcher): before
+            any src/review/core.ts production
+            edit, in its own tool round trip,
+            add a bun test in
+            src/review/core.test.ts that reads
+            src/review/core.ts and other src/
+            production files (exclude *.test.ts)
+            and asserts the identifier
+            matchSimpleGlob is absent. Do not
+            call either audit in this test
+            (F68). Do not import a new missing
+            export. HEAD today: function
+            matchSimpleGlob exists in
+            src/review/core.ts. The assert
+            fails. Record cursor attempt
+            outcome fail, signature kind test
+            key one-matcher. Do not land
+            production in this round trip.
+            Never a red backed only by a
+            shell grep; never fail and pass
+            in one tool call; never a
+            retrospective red via stash.
+            Failure conditions: this round
+            trip also lands production; this
+            fail recorded from a whole-file
+            run that also names zero-depth;
+            red sold against a check that
+            already passes on HEAD (the
+            identifier is not exported today,
+            so an export-absent import is
+            not this red).
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (zero-depth): before
+            any src/review/core.ts production
+            edit, in a later tool round trip
+            than one-matcher, add bun tests
+            that
+            auditScopeOutsideWriteScope and
+            auditWriteEvidenceOutsideScope
+            against files empty and globs
+            web/js/**/*.js are silent for
+            web/js/app.js, and that the
+            porcelain audit against
+            src/**/foo.ts is silent for
+            src/foo.ts. Do not read the
+            matchSimpleGlob identifier in
+            these tests (F68). Record fail
+            with a bun test filter that does
+            not run the one-matcher it().
+            Signature kind test key
+            zero-depth. HEAD today: both
+            audits raise
+            review.scope-outside-write-scope
+            or review.write-evidence-outside-scope
+            on the F60 pair, and porcelain
+            raises on the mid-path pair.
+            Do not land production in this
+            round trip. Failure conditions:
+            this round trip also lands
+            production; this fail recorded
+            from a run that still names
+            one-matcher; pinning only the
+            export (already true at HEAD)
+            sold as this red; pinning only
+            one audit; accepting
+            web/js/app.ts.
+          </Criterion>
+          <Criterion>
+            Characterization (same task;
+            not a planned red; green at
+            HEAD): in
+            src/artifact/scope.test.ts
+            import observedWriteScopeContains
+            and pin the D1 export cases
+            (F60 pair and subdir, planted
+            miss, mid-path, leading **,
+            directory itself, ./ query and
+            ./ glob, backslash query and
+            backslash glob, the four ?
+            cases, run/**, mid-segment **
+            returns false, parseScopeGlob
+            still throws braces / leading !
+            / mid-segment **). Darwin case
+            is platform-conditioned only.
+            In src/review/core.test.ts keep
+            the C-REPORT-HONESTY any-C-*
+            lifecycle cases, the undeclared
+            spec.xml WriteEvidence case,
+            planted miss still raising,
+            run/** still inside, and add
+            stay-audited pins for
+            .ngrace/graph/main.xml,
+            .ngrace/verification/main.xml,
+            and .ngrace/context/requirements.xml
+            on both audits. Do not record
+            a fail for these. Do not freeze
+            allReviewCodes length or the
+            WriteEvidence ratchet.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip
+            after both reds): delete
+            matchSimpleGlob; both audits
+            call observedWriteScopeContains
+            for glob membership and may
+            keep the exact-file Set; do not
+            edit src/artifact/scope.ts,
+            src/grace-status.ts, or
+            src/grace-cursor.ts; do not add
+            a third matcher; do not add a
+            review finding code; do not
+            narrow isCliLifecyclePath to
+            the reviewed change id.
+            Failure conditions: renaming
+            the function and keeping the
+            regex body; routing only one
+            audit; changing
+            observedWriteScopeContains to
+            require an intervening
+            segment; status or cursor
+            taught the regex copy; a new
+            review code; version field
+            edited.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+          <Command>bun test src/artifact/scope.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Document the one remaining glob rule</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-GLOB-DOC />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (glob-doc): before
+            any schema-reference.ts or
+            docs/schema-reference.md
+            production edit, in its own
+            tool round trip, invert
+            src/artifact/schema-reference.test.ts
+            so the preamble must not
+            contain the exact EXCLUDED_GLOB
+            bytes and so the preamble,
+            before the first shape heading,
+            must state that whole-segment
+            ** matches zero or more path
+            segments and that
+            web/js/**/*.js matches
+            web/js/app.js. Those two
+            asserts must be able to fail
+            alone (F68). Keep
+            no-glob-shape, no match-outcome
+            table, and the forbid of
+            review false, review true, and
+            scope true. Do not import a
+            new schema-reference export.
+            HEAD today: preamble names
+            glob matching as excluded;
+            tests require that sentence
+            and forbid the F60 pair
+            strings. The inverted asserts
+            fail. Record fail, signature
+            kind test key glob-doc. Do
+            not land production in this
+            round trip. Failure conditions:
+            this round trip also lands
+            production; two cursor fails
+            for the exclusion inversion
+            and the pair pin (F75: one
+            event); red sold against a
+            check that already passes on
+            HEAD.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip
+            after the red): replace the F60
+            exclusion sentence in
+            renderSchemaReference with the
+            D2 rule; invert the pair-absence
+            only for the documented pair in
+            the preamble; keep other
+            F60_PAIRS strings absent; call
+            writeSchemaReference so
+            docs/schema-reference.md is
+            byte-identical to the renderer;
+            do not edit README.md,
+            CHANGELOG.md, examples/, or
+            generate-schema-reference.test.ts;
+            do not add a glob or globstar
+            registered shape. Failure
+            conditions: leaving the F60
+            sentence; documenting the rule
+            only in README.md; putting the
+            rule only after the first shape
+            heading; adding a glob shape;
+            editing CHANGELOG.md; printing
+            review false, review true, or
+            scope true.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/schema-reference.test.ts</Command>
+          <Command>bun test scripts/generate-schema-reference.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Close suite, pins, and lint at archive</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-HEAD-RED />
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED ownership: do not
+            record a new red. Confirm the
+            three planned fail/pass pairs
+            exist under test:one-matcher,
+            test:zero-depth, and
+            test:glob-doc, and that no F45
+            exemption was reddened. Do not
+            re-record T-001 or T-002. Do
+            not stash a retrospective red.
+            Close verdict states that CI
+            is the only observer of path
+            separators (F73).
+          </Criterion>
+          <Criterion>
+            bun test green for review core,
+            artifact scope, schema-reference,
+            generate-schema-reference, and
+            any other test this deliverable
+            forced; bun run validate:ci
+            green (re-measure ratchet
+            cardinality; do not drop keys;
+            checkSchemaReference green);
+            bun run ngrace lint --path . is
+            0 errors and 0 warnings at
+            close only, after apply and
+            archive, not claimed mid-change.
+            ObservedWriteScope covers every
+            path the deliverable forced.
+            No docs/plans or archive edits.
+            No CHANGELOG. No version
+            surfaces. allReviewCodes
+            cardinality unmoved. localize
+            excluded-review-code
+            cardinality unmoved.
+            WriteEvidence ratchet unmoved.
+            README.md untouched. examples/
+            untouched. token-accounting.ts
+            unopened. status and cursor
+            still call
+            observedWriteScopeContains.
+            matchSimpleGlob absent from
+            src/ production. Failure
+            conditions: suite red; lint
+            0/0 claimed mid-window; writes
+            outside declared scope; pin
+            deleted or loosened; a new
+            review finding code; F51 pin
+            moved without a skill edit
+            (there is no skill edit).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+          <Command>bun test src/artifact/scope.test.ts</Command>
+          <Command>bun test src/artifact/schema-reference.test.ts</Command>
+          <Command>bun test scripts/generate-schema-reference.test.ts</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-ONE-GLOB-LANGUAGE>
+</NgraceChangePlan>
