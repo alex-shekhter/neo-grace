@@ -5061,3 +5061,36 @@ inherits the obligation to check the repair is closable.**
 **The rule.** Before treating a roadmap step as work, measure whether the product already does it —
 and when a step credits or matches stored records, check the records **as they exist at the moment the
 rule runs**, not as they were written.
+
+### F84 — a pass recorded before its characterization pins snapshots a tree that is not the finished task. **[verified]**
+
+Raised by the executor at `C-DRIFT-HONESTY`'s close, against a design note in the plan **it had
+written and I had approved**.
+
+The plan's D5 said T-001 should record `pass`, **then** add the bounding characterization pins. The
+executor inverted that deliberately and reported it. It is right: `cursor attempt --outcome pass`
+snapshots `WriteEvidence` at the moment it runs, so a pass recorded before the pins captures a tree
+**missing the files that bound the task's claim**. The ledger would then show a completed task whose
+evidence set is smaller than the task's own deliverable — and the WriteEvidence scope audit, which
+reads that snapshot, would never see them.
+
+**Pins belong inside the pass snapshot.** The ordering is: red → production → bounding pins → pass.
+
+**A second, unrelated observation from the same report, worth its own line.** The plan called T-002's
+other-suffix case *"part of the recorded red"* so that "each failure prints" — but at fail-record time
+that case **does not fail**; it is a bound, the same job as T-001's credit-outside pins, which the plan
+correctly kept off `AC-HEAD-RED`. Calling both halves "the red" overstates what the fail event
+observed. This is [F80](#f80)'s rule from the other direction: F80 says one red must not be *cited* for
+two properties; this says a red must not be *described* as covering a case that was green when it was
+recorded.
+
+**Also standing, and now load-bearing.** `skills/ngrace/ngrace-execute/SKILL.md` still assigns
+`--assertions final`, apply and archive to the executor, while this roadmap's practice — reinforced by
+[F82](#f82) — makes the close authority-owned. Every dispatch in this phase has had to contradict the
+shipped skill on that split, and the executor has flagged it each time. **Decide it rather than
+re-encountering it:** either the dispatches stop deviating, or the skill acknowledges an
+operator-owned close. Not this bundle's scope; owed to whichever bundle next opens `ngrace-execute`.
+
+**The rule.** Evidence is captured at the instant the event is recorded, so **the order of writes
+inside a task is part of what the task proves.** When a plan sequences a pass before any file the task
+is accountable for, the plan has specified a snapshot that under-reports its own work.
