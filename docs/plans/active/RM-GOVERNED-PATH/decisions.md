@@ -4789,3 +4789,39 @@ clothes, and it fails silently in the direction of over-claiming.
 **Not fixed here** — instrumenting the evaluators is a re-spec, not a repair, and the shipped values
 are correct today. **Owed with the next change that touches the purity taxonomy**, and owed *before*
 any fourth class is introduced.
+
+### F74.1 correction — the audit list named the wrong tokens, and the real hazard is a number defined in *both* plans. **[verified]**
+
+[F74](#f74) recorded that bare `D<n>` citations are ambiguous and listed *"`D3`, `D5.2`, `D5.5`,
+`D11`, `D12`, `D13`, `D16`, `D17`"* as owed. **Measured, that list is wrong in both directions.**
+
+- There are **31 distinct bare tokens**, not eight: `D1 D1.1 D1.3 D1.4 D1.5 D2 D2.1 D3 D4 D5 D5.1
+  D5.2 D5.3 D5.4 D5.5 D6 D6.3 D6.4 D7 D8 D8.3 D8.4 D8.8 D9 D11 D12 D13 D14 D15 D16 D17`. The heaviest
+  users are `D1` (29 sites), `D12` (17), `D5` (15), `D11` (15).
+- **30 of the 31 are defined locally** in this plan's `decisions.md`, so most of the list F74 named
+  as owed were never ambiguous at all.
+- **The one genuinely foreign token is `D15`, which F74 did not name.** It has no heading in this
+  plan and resolves to `docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md:921` ("Token
+  accountability"). Four bare sites: `plan.md:71`, `decisions.md:1525`, `:1528`, `:2437`.
+
+**The sharper hazard is `D12`, and F74 stated it backwards.** F74 said D12 "is known to belong to the
+reliability plan." It belongs to **both**: `D12` is defined in this plan's `decisions.md` *and* cited
+elsewhere as `RM-AGENT-RELIABILITY D12`. A bare `D12` therefore resolves to a real decision either
+way, and the reader cannot tell which — **the failure mode is not a dangling reference but a
+confident wrong one.** `D5` has the same shape: qualified in some places, bare in others, defined
+locally as the separator rule.
+
+**Three bare citations also live in shipped skill text** — `ngrace-fix/SKILL.md:14` (`D8`),
+`ngrace-reviewer/SKILL.md:32` (`D4`), `ngrace-spec/SKILL.md:70` (`D12`, the dual-defined one) — each
+mirrored in `plugins/`. Skills are read by agents in *other* repositories, where neither plan's
+`decisions.md` exists at all.
+
+**The rule, sharpened.** Qualify a citation when the number exists in more than one plan **or** when
+the text will be read outside the plan that owns it. **A repo-wide "qualify everything" sweep is the
+wrong repair** — 30 locally-defined tokens would gain noise for no reader benefit, and mass-editing
+prose that other findings quote invites its own errors. Qualify `D15` (foreign), `D12` and `D5`
+(dual-resolving), and every `D<n>` in shipped skill text.
+
+**And the lesson about the ledger itself:** F74 asserted an audit list without running the audit, in
+the entry whose subject was citation precision. That is [F62](#f62)'s class inside a finding about
+accuracy — a list offered as a survey becomes an enumeration the moment it is written down.
