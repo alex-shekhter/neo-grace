@@ -79,10 +79,10 @@ Measured 2026-08-09:
 - Every family in `ANCHOR_PATTERNS` (`src/artifact/types.ts:203–217`) matches
   `^[A-Z]+-[A-Z0-9-]+$`. **No id can contain `,`, `;`, `:`, or whitespace**, so none of the
   candidate separators is ambiguous against a well-formed token.
-- `splitList` already strips a surrounding `[...]` and drops `none` case-insensitively. D5 preserves
+- `splitList` already strips a surrounding `[...]` and drops `none` case-insensitively. `RM-GOVERNED-PATH` D5 preserves
   both.
 
-D5 rests on the second point: it is what makes widening safe rather than a guess.
+`RM-GOVERNED-PATH` D5 rests on the second point: it is what makes widening safe rather than a guess.
 
 ### F4 — Bundle authoring is necessarily two-stage. **[verified]**
 
@@ -1522,10 +1522,10 @@ broke two things outside its `ObservedWriteScope`:
 
 | File | What it holds | Blocking? |
 |---|---|---|
-| `src/test-support/token-accounting.test.ts` | D15's skill-line budget, pinned at `730` | **yes** — `validate:ci` fails |
+| `src/test-support/token-accounting.test.ts` | `RM-AGENT-RELIABILITY` D15's skill-line budget, pinned at `730` | **yes** — `validate:ci` fails |
 | `README.md:286` | a published measurements table stating **730 lines** | no — and worse for it |
 
-**The first is not a brittle test and should not be filed with F11.1.** D15's pin is a *deliberate
+**The first is not a brittle test and should not be filed with F11.1.** `RM-AGENT-RELIABILITY` D15's pin is a *deliberate
 budget ledger* for skill footprint, carrying a comment history of every phase that moved the number
 (`636 → 648 → 650 → 651 … → 730`). Bumping it with a reason is the designed workflow, not a
 workaround. The defect is only that the plan did not anticipate a step the repository has taken nine
@@ -1719,7 +1719,7 @@ thing it exists to catch, and that is worth a transient.
 
 **It is a sequencing rule, and it overrides the authority's earlier plan.** The authority had decided
 to hold the approval commit until T-001 created `src/artifact/run-membership.ts`, so that no commit
-in history carried D12's predicted lint error. That plan is wrong: it leaves the executor working
+in history carried `RM-GOVERNED-PATH` D12's predicted lint error. That plan is wrong: it leaves the executor working
 inside a bundle whose own status says *stop*, and telling an executor to disregard a hard stop is how
 a check is taught to be noise — the harm F9.9 named, arriving by a different road.
 
@@ -1730,7 +1730,7 @@ and the second is an instruction a reader may obey.
 
 ### D12.1 — Two corrections to D12, neither of which changes the decision
 
-**`DEPENDS` was cited wrongly.** D12 said hosting the membership body in `paths.ts` would falsify
+**`DEPENDS` was cited wrongly.** `RM-GOVERNED-PATH` D12 said hosting the membership body in `paths.ts` would falsify
 *"both the SCOPE line and `DEPENDS`"*. `DEPENDS` does not describe file imports: it lists **M-\***
 graph anchors (`lint/catalog.ts:113` — *"LINKS accepts M-\*, DF-\*, and V-M-\*; DEPENDS accepts M-\*
 only"*), and `src/gates/core.ts` declares `DEPENDS: none` while importing widely. Adding an
@@ -1742,7 +1742,7 @@ that, and accommodating it means editing the SCOPE line to describe whatever lan
 unchanged — `src/artifact/run-membership.ts` — on one true reason instead of one true and one
 invented.
 
-**The out-of-scope importer list was short by one.** D12 and the plan name
+**The out-of-scope importer list was short by one.** `RM-GOVERNED-PATH` D12 and the plan name
 `src/calibration/report.ts` (M-CALIBRATION) as the consumer the re-export protects. Measured, four
 production files import from `grace-cursor`: `gates/core.ts:39`, `review/core.ts:68`,
 `calibration/report.ts:53`, and **`verification/localize.ts:73` (M-LOCALIZE)** — also outside
@@ -1766,7 +1766,7 @@ because it looks inconsistent and is not:
   approved `ObservedWriteScope`, and the plan is immutable.
 - The in-scope alternative — export it from `run-membership.ts` for the cursor to import — puts a
   generic XML utility on the public surface of a module whose declared `SCOPE` is `run/` membership.
-  That falsifies a module contract **D12 had just insisted must be true on the day it is written**,
+  That falsifies a module contract **`RM-GOVERNED-PATH` D12 had just insisted must be true on the day it is written**,
   and it is the same objection that disqualified `paths.ts` as the host.
 - `AC-MEMBERSHIP-ONE-DEFINITION` governs *membership*, not every helper the membership body calls.
   Two copies of a pure structural clone can drift; a module contract that lies is read by every
@@ -1970,12 +1970,12 @@ silently replaced*, which produces a wrong answer wearing the exact costume of a
 result is indistinguishable from a real negative.
 
 **It also settles a design question the spec would otherwise have to argue.** `C-FLAG-HONESTY` rejects
-`--flag true` as well as `--flag false`, which by the letter of D5's standing rule — *"making a silent
+`--flag true` as well as `--flag false`, which by the letter of `RM-GOVERNED-PATH` D5's standing rule — *"making a silent
 failure loud is not a compatibility break; turning a working state into an error is"* — looks like it
 converts a working state into an error, since `--json true` happens to produce `json: true`. The probe
 shows it is not a working state. The flag lands correctly **by coincidence** while the positional is
 silently corrupted, and the coincidence does not hold for the seven commands that read one. Rejecting
-both spellings is the honest reading of D5, not an exception to it.
+both spellings is the honest reading of `RM-GOVERNED-PATH` D5, not an exception to it.
 
 Disposition: evidence for `C-FLAG-HONESTY` (spec `3f3547c`). Recorded during authority review of the
 spec, before approval, so the criteria could rest on a measurement rather than on my prediction.
@@ -4214,7 +4214,7 @@ lint outcome the authority had not run for that artifact shape, and both times t
 and corrected it.
 
 **Neither claim was harmless.** A prompt that names the wrong expected result teaches an executor
-either to manufacture the predicted number or to distrust the prompt. `D12` had already authorized
+either to manufacture the predicted number or to distrust the prompt. `RM-GOVERNED-PATH D12` had already authorized
 exactly this window and [F19](#f19) had already ruled that the approval commit carries the predicted
 error and names it in the body — so the correct instruction existed in the ledger and the prompt
 contradicted it.
@@ -4308,7 +4308,7 @@ and jointly delete product.
 and the same `Clarifications` block. The `Clarification` example teaches the self-closing anchor-child
 form — *"Target is exactly one self-closing IC-*, INV-*, or AC-* child. Never use prose"* — which is
 **`C-GRAMMAR-SEAM`'s product change**, the bundle that made the element authorable at all and fired
-D12's approve gate for the first time in this repository's history. Byte-identity to a
+`RM-AGENT-RELIABILITY` D12's approve gate for the first time in this repository's history. Byte-identity to a
 required-sections-only renderer deletes that example from both trees.
 
 And the skills keep pointing at it. `skills/ngrace/ngrace-spec/SKILL.md:105` instructs the author to
@@ -4877,3 +4877,34 @@ it does *after* the real work has already run. A check placed downstream of exec
 it can only contradict. Guards belong where the decision is still ahead of the side effect, and when
 they cannot be, their failure mode must be stated in those terms rather than as "rejects the
 command."
+
+### F74.2 — there is a third `D<n>` numbering space, and one instance is baked into source. **[verified]**
+
+Found while discharging [F74.1](#f741)'s plan-file half. Both F74 and F74.1 said the ambiguity was
+between **two** documents. Measured, it is **three**:
+
+1. `RM-GOVERNED-PATH` decisions (D1–D17).
+2. `RM-AGENT-RELIABILITY` decisions (D1–D16), archived.
+3. **`plan.md` §4 "Deferred", which runs its own D1–D6 series for rejected *suggestions*** — where
+   `D3` is the `lint --fix` auto-rewrite rejection and `D5` is evidence-strength tiers, neither of
+   them a decision at all.
+
+So a bare `D5` has **three** possible referents: the separator rule, the trust model, or a deferred
+suggestion about doctor tiers. **A mechanical sweep would have rewritten the §4 rows into
+confidently wrong cross-plan citations** — the exact failure F74.1 warned about, one level deeper
+than F74.1 itself saw. The §4 rows are correctly cited elsewhere as *"§4 D3"*, and that section
+qualifier is what makes them readable; it is not optional decoration.
+
+**And the ambiguity is not confined to prose.** `src/test-support/token-accounting.ts:80` reads *"the
+D15 baseline number"* in a doc comment — a bare cross-plan citation **in shipped source**. That site
+also blocked one qualification: `decisions.md:2437` *quotes* that comment verbatim, so qualifying the
+quotation would falsify it. **The repair belongs in the code, not the quote.**
+
+**Owed with a stated dependency, not deferred:** a source comment cannot be edited outside a change
+bundle — that is GRACE's own rule, and it is a real blocker rather than a preference. The one-word
+qualification goes to the next bundle that opens `src/test-support/`.
+
+**The rule.** Before qualifying a citation family, **enumerate the numbering spaces, not the
+documents.** A table that reuses `D<n>` for a different taxonomy inside the same file is a third
+space with no heading to announce it, and it is invisible to any search that assumes one series per
+document.
