@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-AS-STATE>
     <IntentSummary>
       Deliver RM-GOVERNED-PATH P1 step 6: lint argv
