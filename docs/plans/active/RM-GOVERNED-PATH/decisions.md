@@ -5172,3 +5172,35 @@ already requires `no-open-epoch`, so on the normal path there is nothing left to
 objective. When writing one, separate **what must be true before starting** from **what success looks
 like after**, and check that the artifact the gate reads actually exists in the repository that will
 run it.
+
+### F87 — lint still does not check XML well-formedness; F39's repair was exactly one rule wide. **[verified]**
+
+Surfaced by the brownfield transcripts (`brownfield-findings.md`, incident O1) and verified directly.
+
+**Measured, one lint run, 168 artifacts checked.** A `spec.xml` containing `&mdash;` — an undefined
+entity, not one of XML 1.0's five predefined ones — reports **0 errors**. A conformant parser rejects
+the same file: `undefined entity: line 3, column 19`. Replace the entity with `--` inside a comment
+body and lint reports **1 error**, `xml.comment-not-well-formed`.
+
+**So the well-formedness surface is one rule, not a parse.** [F39](#f39) said *"lint reports every
+XML artifact clean while a growing set is rejected by a conformant parser"* and named the defect
+precisely: *"the report's claim of a validity never checked."* P1.13 shipped a check for the single
+case F39 happened to enumerate — two adjacent hyphens in a comment — and the general claim was left
+standing. This is [F46](#f46) / [F49](#f49) / [F52](#f52)'s class again: **a check's name and its
+blast radius drift apart**, and the citing artifacts inherited the optimistic reading. Nine bundles
+have since been closed on a lint run that does not do what its own finding said it must.
+
+**It took a weaker model to find it.** A capable model writes `—` or `-` and never emits an undefined
+entity, so the gap was structurally invisible from inside this project — the same reason six manual
+post-gate steps went unrecorded across 43 bundles. The failing agent wrote HTML out of habit, and the
+tool told it the artifact was fine.
+
+**And note what did *not* find it: verbosity.** The check was silent, so no amount of logging from
+`ngrace` would have shown anything. What exposed it was a **differential** — running an independent
+conformant parser over the same file and comparing verdicts. When a checker's honesty is in question,
+a second implementation is the instrument; more output from the suspect one is not.
+
+**The rule.** When a finding says a class of validity is unchecked, the repair is checked against the
+**class**, not against the instance that surfaced it. Before closing such a repair, ask what else in
+that class exists and construct one — and where the product claims conformance to an external
+standard, **test it against an implementation of that standard**, not against itself.
