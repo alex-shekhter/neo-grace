@@ -5094,3 +5094,30 @@ operator-owned close. Not this bundle's scope; owed to whichever bundle next ope
 **The rule.** Evidence is captured at the instant the event is recorded, so **the order of writes
 inside a task is part of what the task proves.** When a plan sequences a pass before any file the task
 is accountable for, the plan has specified a snapshot that under-reports its own work.
+
+### F85 — findings say what is owed and never say when it was paid, so briefs inherit false debt. **[verified]**
+
+Caught by the executor at `C-FINDING-SEVERITIES`'s spec authoring: my dispatch carried [F76](#f76) as
+a live trap — *"this bundle's subject is a CLI flag"* — when unrecognised arguments have refused since
+`C-RECORDED-DEBT`. Measured: F76 still ends *"Not fixed here… Owed as its own change."*
+
+**No finding in this ledger has ever been marked discharged.** F60 was paid by `C-ONE-GLOB-LANGUAGE`;
+F71, F74, F76 and F77 by `C-RECORDED-DEBT`; [F82](#f82)'s repair was demonstrated by
+`C-DRIFT-HONESTY`. Every one of those entries still reads as outstanding. The ledger is append-only by
+design (D9), which is right — but append-only means the **correction is another line, not a silent
+edit**, and nobody has been writing that line.
+
+**The cost is not tidiness.** The authority's briefs are assembled from this ledger, so stale debt
+becomes a stale premise handed to the executor, which is the exact failure [F62.1](#f621) and
+[F74.1](#f741) already record in other forms. This phase has now spent three separate corrections on
+premises that were true when written and false when used.
+
+**The rule.** **When a bundle discharges a finding, append a discharge line to that finding naming the
+bundle** — one sentence, in the same append-only style, at the close that pays it. And before citing
+any finding in a brief, **read its last line, not its first**: a finding's opening states the defect,
+and only its tail says whether the defect still exists.
+
+**Still genuinely owed at this point**, so the next reader has a true list: [F74.2](#f742)'s bare
+`D15` in `src/test-support/token-accounting.ts:80` (needs a bundle that opens that file), and
+[F84](#f84)'s standing contradiction between the shipped `ngrace-execute` skill and this roadmap's
+authority-owned close.
