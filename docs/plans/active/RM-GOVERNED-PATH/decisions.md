@@ -5386,3 +5386,39 @@ subject.** Before drawing a behavioural conclusion from an agent transcript, rea
 options it made available — and check whether the behaviour under study was one the prompt made the
 cheapest legal move. Give every affordance you intend to measure: if asking is a possible correct
 action, the prompt must say a human is reachable, or its absence is the finding about the prompt.
+
+### F89 — skills are the governance mechanism, and they are only binding in a harness that executes them. **[verified]**
+
+Observed across three brownfield runs: **the models read the skills as reference material rather than
+executing them as contracts.** Reading is not following. A document you consult is information you may
+weigh and discard; a skill that is *invoked* governs the turn.
+
+**Why this is a product finding and not a harness detail.** GRACE ships its governance **as skill
+text**. The approval lexicon, the stop points, the must-do tables, the ordering rules — none of them
+live in the binary. `ngrace` does not check that a human approved, does not check that the spec skill
+was consulted, does not check ordering of governance writes. **So the enforceability of GRACE's
+central controls is delegated to whether the reader's harness treats `SKILL.md` as instructions or as
+documentation** — a property the product neither declares nor detects.
+
+This is the mechanism behind [F88](#f88) and its correction: a model that never invokes `ngrace-spec`
+never encounters the instruction to stop for approval, so the stop is not *skipped* so much as never
+seen. The third run's own phrasing is the right frame — *"the human stop is a social contract on the
+agent, not the binary"* — and a social contract requires the other party to have read it.
+
+**What follows, and none of it is free.** Either (a) the controls that matter move into the binary,
+where they are checkable — which is [D18](#d18)'s direction for approval and would need repeating for
+ordering and lexicon; or (b) the product states plainly that skill contracts are advisory outside a
+skill-executing harness, which is honest and weak; or (c) skills gain a machine-checkable
+representation the CLI can verify was honoured, which is new surface. **What is not defensible is the
+current position: shipping controls as prose and reporting outcomes as though they were enforced.**
+
+**Measurement note for the next run.** A prompt cannot make a harness execute skills, but it can force
+the reading to become accountable: require the agent to transcribe each skill's requirements as a
+checklist *before* the stage and mark every item done / skipped / could-not *after* it. That converts
+a document into obligations and makes a skipped contract item visible in the transcript instead of
+silent. Applied to the brownfield prompt on 2026-08-14.
+
+**The rule.** When a control is shipped as text for another system to honour, **it is not a control —
+it is a request.** Before claiming a governance property, ask which component refuses when the rule is
+broken; if the answer is "the agent, if it read the file", the property is aspirational and must be
+reported that way.
