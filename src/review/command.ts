@@ -16,7 +16,7 @@
 
 import { defineGraceCommand } from "../query/command";
 import { GraceCommandError, runGraceCommand } from "../query/errors";
-import { formatReviewResult, runReview } from "./core";
+import { formatReviewResult, resolveReviewSeverity, runReview } from "./core";
 
 export const reviewCommand = defineGraceCommand({
   meta: {
@@ -52,6 +52,11 @@ export const reviewCommand = defineGraceCommand({
       type: "string",
       description: "text or json",
       default: "text",
+    },
+    severity: {
+      type: "string",
+      description:
+        "Minimum finding severity: error, warning, or info. Omitted means warning.",
     },
   },
   async run(context) {
@@ -93,10 +98,18 @@ export const reviewCommand = defineGraceCommand({
 
       const baseRef = hasBase ? String(baseRaw).trim() : undefined;
 
+      const rawSeverity = context.args.severity;
+      const severity = resolveReviewSeverity(
+        rawSeverity !== undefined && rawSeverity !== null
+          ? String(rawSeverity)
+          : undefined,
+      );
+
       const result = runReview(projectRoot, {
         changeId,
         changedFiles,
         baseRef,
+        severity,
       });
       if (format === "json") {
         console.log(JSON.stringify({ ok: true, ...result }, null, 2));

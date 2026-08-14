@@ -4175,6 +4175,8 @@ work is *deleting the duplicate*, not changing a semantic. This is the same clas
 apart — and the same class as [D16](#d16)'s concern that a claim must be anchored to what actually
 runs.
 
+**Discharged by [`C-ONE-GLOB-LANGUAGE`](../../../../.ngrace/changes/archive/C-ONE-GLOB-LANGUAGE/), matchSimpleGlob deleted; both scope audits route through observedWriteScopeContains.**
+
 ### F61 — The comment well-formedness check makes CLI flags unwritable inside XML artifacts. **[verified]**
 
 `C-ARTIFACT-VALIDITY` shipped `xml.comment-not-well-formed`, which errors when an XML **comment body**
@@ -4584,6 +4586,8 @@ where it hides. When a criterion depends on an authored field being *absent*, bi
 getter that resolves it — and check what the renderer calls the result, because a fallback under an
 authored field's label is a false claim on a user-visible surface.
 
+**Discharged by [`C-RECORDED-DEBT`](../../../../.ngrace/changes/archive/C-RECORDED-DEBT/), the getter returns only the authored Path, so all four display sites report absence.**
+
 ### F72 — an absence check that ORs two conditions ships one message for two causes. **[verified]**
 
 `C-ADAPTER-HONESTY` introduced `requireExistingFile` as
@@ -4679,6 +4683,8 @@ quote. **Owed: an audit of the remaining bare `D<n>` citations** in this plan an
 `D3`, `D5.2`, `D5.5`, `D11`, `D12`, `D13`, `D16`, `D17` are all in live use and at least one (D12) is
 known to belong to the reliability plan. Not done here; this bundle's scope is `--as`.
 
+**Discharged by [`C-RECORDED-DEBT`](../../../../.ngrace/changes/archive/C-RECORDED-DEBT/), the three shipped SKILL.md citations qualified as RM-AGENT-RELIABILITY; the plan-file half was completed separately and F74.2 remains open for the source comment.**
+
 ### F75 — a spec that counts reds in two places has two inventories, and they disagree. **[verified]**
 
 `C-AS-STATE`'s approved spec states its red arithmetic twice and the two statements are not the same
@@ -4753,6 +4759,8 @@ a compatibility break for any caller passing extra flags today.
 exit code is a summary of everything the command did, so it can confirm a rejection that never
 happened.
 
+**Discharged by [`C-RECORDED-DEBT`](../../../../.ngrace/changes/archive/C-RECORDED-DEBT/), unknown flag tokens now error with usage.**
+
 ### F77 — the coverage report's class taxonomy is a hand-written conditional with no completeness guard. **[verified]**
 
 `C-AS-STATE` ships the `--as` coverage line — *"evaluated N rule classes; M classes not evaluable at
@@ -4789,6 +4797,8 @@ clothes, and it fails silently in the direction of over-claiming.
 **Not fixed here** — instrumenting the evaluators is a re-spec, not a repair, and the shipped values
 are correct today. **Owed with the next change that touches the purity taxonomy**, and owed *before*
 any fourth class is introduced.
+
+**Discharged by [`C-RECORDED-DEBT`](../../../../.ngrace/changes/archive/C-RECORDED-DEBT/), the purity classes are a declared inventory that throws when a member is neither run nor skipped.**
 
 ### F74.1 correction — the audit list named the wrong tokens, and the real hazard is a number defined in *both* plans. **[verified]**
 
@@ -5026,6 +5036,8 @@ Not repaired here — the plan template is shared and changing it mid-bundle wou
 artifacts. **Owed to the next bundle that authors from the model plan**, which is the same route
 [F50](#f50) and [F51](#f51) took.
 
+**Discharged by [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/), demonstrated the split: AC-SUITE-AND-CI on a task that runs those commands, post-archive lint as verdict evidence.**
+
 ### F83 — a step described as delivery is already shipped, and its sibling's credit rule cannot match the files it names. **[verified]**
 
 Seventh roadmap claim in this phase to fail construction. Caught by the executor at
@@ -5094,3 +5106,30 @@ operator-owned close. Not this bundle's scope; owed to whichever bundle next ope
 **The rule.** Evidence is captured at the instant the event is recorded, so **the order of writes
 inside a task is part of what the task proves.** When a plan sequences a pass before any file the task
 is accountable for, the plan has specified a snapshot that under-reports its own work.
+
+### F85 — findings say what is owed and never say when it was paid, so briefs inherit false debt. **[verified]**
+
+Caught by the executor at `C-FINDING-SEVERITIES`'s spec authoring: my dispatch carried [F76](#f76) as
+a live trap — *"this bundle's subject is a CLI flag"* — when unrecognised arguments have refused since
+`C-RECORDED-DEBT`. Measured: F76 still ends *"Not fixed here… Owed as its own change."*
+
+**No finding in this ledger has ever been marked discharged.** F60 was paid by `C-ONE-GLOB-LANGUAGE`;
+F71, F74, F76 and F77 by `C-RECORDED-DEBT`; [F82](#f82)'s repair was demonstrated by
+`C-DRIFT-HONESTY`. Every one of those entries still reads as outstanding. The ledger is append-only by
+design (D9), which is right — but append-only means the **correction is another line, not a silent
+edit**, and nobody has been writing that line.
+
+**The cost is not tidiness.** The authority's briefs are assembled from this ledger, so stale debt
+becomes a stale premise handed to the executor, which is the exact failure [F62.1](#f621) and
+[F74.1](#f741) already record in other forms. This phase has now spent three separate corrections on
+premises that were true when written and false when used.
+
+**The rule.** **When a bundle discharges a finding, append a discharge line to that finding naming the
+bundle** — one sentence, in the same append-only style, at the close that pays it. And before citing
+any finding in a brief, **read its last line, not its first**: a finding's opening states the defect,
+and only its tail says whether the defect still exists.
+
+**Still genuinely owed at this point**, so the next reader has a true list: [F74.2](#f742)'s bare
+`D15` in `src/test-support/token-accounting.ts:80` (needs a bundle that opens that file), and
+[F84](#f84)'s standing contradiction between the shipped `ngrace-execute` skill and this roadmap's
+authority-owned close.

@@ -1,0 +1,1604 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-FINDING-SEVERITIES>
+    <Summary>
+      P2.5 only:
+      review findings gain
+      error, warning, and info;
+      argv token severity is a
+      minimum-threshold filter
+      on review text and JSON;
+      omitted means warning
+      (error plus warning).
+      Named values land and
+      hotfix are refused.
+      No live catalog code is
+      demoted. The P2 ≥80%
+      corpus-transcript metric
+      is not a criterion.
+    </Summary>
+    <Problem>
+      **Shared shape.** P2 of
+      RM-GOVERNED-PATH is one
+      glob language and one
+      audit universe.
+      C-ONE-GLOB-LANGUAGE
+      delivered steps 1 and 2.
+      C-BUNDLE-BASE-REF
+      delivered step 3.
+      C-DRIFT-HONESTY delivered
+      steps 4 and 6. This
+      bundle is step 5, the
+      last P2 step. Authoring
+      HEAD 11614ac on
+      feat/finding-severities,
+      cut from main at that
+      commit, packaged 6.2.0,
+      tree clean, active empty
+      before this bundle, lint
+      0/0 across 163 XML
+      artifacts, archive 42.
+      Those numbers are a
+      snapshot (F33).
+
+      ---
+
+      **HEAD, measured, not
+      inherited (F45).**
+      ReviewIssueSeverity and
+      ReviewFinding.severity
+      are the closed pair
+      error or warning
+      (review/catalog.ts,
+      review/core.ts). Fifteen
+      REVIEW_CATALOG codes:
+      thirteen error, two
+      warning
+      (review.hunk-uncovered
+      and
+      review.attempt-pair-identical-tree).
+      No catalog code is info.
+      runReview summary counts
+      findings, errors,
+      warnings, and
+      shapeDataExemptions.
+      schemaVersion is 1.0.0.
+      ReviewResult has no
+      infos field. The review
+      command args are path,
+      change, base,
+      changed-files, and
+      format. There is no
+      argv token severity.
+      Passing it today is
+      invalid-arguments
+      Unrecognized argument
+      (F76 is already repaired
+      on this surface). Exit
+      is 1 when
+      summary.errors is
+      greater than 0.
+      LintSeverity and
+      NgraceIssue.severity
+      are the same pair.
+      lint has argv token
+      profile (only standard)
+      and failOn (errors,
+      warnings, never). lint
+      has no argv token
+      severity.
+
+      ---
+
+      **What is actually
+      noisy after steps 1
+      through 4, measured.**
+      Unscoped review on this
+      tree: 0 findings, 2
+      shape-data exemptions.
+      review with argv token
+      change against ten
+      archived bundles
+      (C-DRIFT-HONESTY through
+      C-TOKEN-INTEGRITY): 0
+      findings each;
+      attempt-pair and
+      WriteEvidence audits
+      ran; porcelain scope
+      audit is not-run on a
+      clean tree. CLI-reachable
+      process findings after
+      P2.1 through P2.4 are
+      review.scope-outside-write-scope
+      (error),
+      review.write-evidence-outside-scope
+      (error), and
+      review.attempt-pair-identical-tree
+      (warning, D8.6
+      adjudication).
+      review.hunk-uncovered,
+      review.test-assertion-weakened,
+      review.compat-new-error,
+      and the four
+      counterpart-* codes
+      fire only when a caller
+      supplies hunkCoverage,
+      testFileDiffs,
+      lintCodes, or
+      joinProbes. The review
+      command never does.
+      The step's parenthetical
+      change-meta notes names
+      no code. The lint pair
+      that matches that
+      phrase
+      (change.plan-scope-exceeds-spec
+      and
+      change.acceptance-criterion-unmapped)
+      is already warning, is
+      lint not review, and is
+      out.
+
+      ---
+
+      **The phase metric is
+      not evidenceable here.**
+      plan.md P2 says on the
+      corpus's own transcripts,
+      scope findings drop ≥80%
+      while every planted real
+      violation is still
+      caught. The cited
+      transcripts (ag1 14/19,
+      ag10 45-flagged) are
+      not files in this
+      repository. review.md
+      cites them as reported
+      noise; it does not
+      ship the trees. A
+      criterion that can
+      only be checked against
+      an absent artifact is
+      not a criterion (D16).
+      Pretending otherwise
+      is the class of
+      failure this phase
+      records. The planted
+      half is in-repo:
+      scripts/validate-walkthrough.ts
+      still requires
+      review.scope-outside-write-scope
+      on the walkthrough's
+      undeclared write.
+      That half is
+      AC-DETECTION. The
+      ≥80% half is close-
+      verdict disclosure,
+      not an AC-*.
+
+      ---
+
+      **F66.** This spec
+      decides README.md and
+      examples/ in a Goal,
+      Constraint, or
+      NonGoal body.
+      README.md is in
+      scope (review CLI
+      Overview row).
+      examples/ is
+      unchanged.
+
+      ---
+
+      **F61.** This spec
+      names argv token
+      severity in comment
+      bodies if any and
+      does not write dashed
+      CLI flags inside XML
+      comments. This file
+      carries no XML
+      comment.
+    </Problem>
+    <Goals>
+      <Goal>
+        **Three-value
+        review severity.**
+        ReviewIssueSeverity
+        and
+        ReviewFinding.severity
+        are error, warning,
+        or info. Catalog
+        guides may assign
+        info. No live
+        REVIEW_CATALOG code
+        is assigned info in
+        this bundle.
+        README.md CLI
+        Overview review row
+        names argv token
+        severity.
+      </Goal>
+      <Goal>
+        **Filter.** Argv
+        token severity on
+        review is a minimum
+        threshold: error
+        shows errors only;
+        warning shows
+        error plus warning;
+        info shows all
+        three. Omitted
+        means warning. The
+        filter applies to
+        text and to the
+        JSON findings
+        array. summary is
+        recounted to match
+        the displayed
+        array and gains
+        infos (nested,
+        not a new
+        ReviewResult
+        top-level key).
+      </Goal>
+      <Goal>
+        **Refuse taste.**
+        Values land,
+        hotfix, empty, and
+        any other token
+        are invalid-arguments
+        naming the three
+        accepted values.
+        After the flag
+        exists that
+        refusal is a value
+        check, not
+        Unrecognized
+        argument.
+      </Goal>
+      <Goal>
+        **Detection
+        stays.**
+        review.scope-outside-write-scope
+        and
+        review.write-evidence-outside-scope
+        stay error.
+        review.attempt-pair-identical-tree
+        and
+        review.hunk-uncovered
+        stay warning.
+        A planted
+        undeclared source
+        write still
+        produces
+        review.scope-outside-write-scope.
+        examples/ is
+        unchanged.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding:
+        RM-GOVERNED-PATH
+        P2.5;
+        RM-GOVERNED-PATH
+        D5.2 (adding a
+        third value and a
+        filter is not a
+        break; demoting a
+        live error to info
+        would be, and is
+        not done);
+        RM-GOVERNED-PATH
+        D5.5 (CHANGELOG.md
+        is generated; the
+        new token is named
+        in the commit
+        body);
+        RM-GOVERNED-PATH
+        D13 (no new
+        ReviewResult
+        top-level key; no
+        new LintResult or
+        StatusResult
+        top-level key);
+        RM-GOVERNED-PATH
+        D16 (evidence
+        lives in an
+        artifact; the ≥80%
+        transcript metric
+        cannot);
+        RM-GOVERNED-PATH
+        D17 (AC ids name
+        the property);
+        F10 (claim only
+        what the body
+        verifies); F27.2
+        and F64
+        (ObservedWriteScope
+        covers every path
+        the deliverable
+        forces); F33 (do
+        not freeze suite
+        counts, archive
+        counts, catalog
+        length 15, boolean
+        site count 25, or
+        line numbers this
+        change moves);
+        F42 (no
+        MustContain or
+        MustNotContain
+        needle that
+        README.md, a
+        skill, a template,
+        or a skeleton may
+        legitimately
+        contain); F43
+        (this artifact
+        binds semantics;
+        tests assert
+        literal bytes);
+        F44 (pin where a
+        user-visible
+        string appears);
+        F45 (already-true
+        surfaces are
+        exempt from
+        red-first); F52
+        (change.plan-scope-exceeds-spec
+        compares
+        DurableScope
+        anchors at
+        warning); F56 /
+        F67 (signatureKey
+        names the
+        property, not the
+        test file stem);
+        F61 (no two
+        adjacent hyphens
+        in any XML comment
+        body); F66 (this
+        spec decides
+        README.md and
+        examples/); F68
+        (two planned reds
+        are independently
+        observable); F73
+        (path lists are
+        POSIX
+        project-relative
+        at the helper;
+        CI is the only
+        observer of
+        separators);
+        F75 (red counts
+        live in
+        AC-HEAD-RED
+        alone); F80 (one
+        recorded red, one
+        observable
+        property); F82
+        (close-time lint
+        is not
+        Satisfies-linked);
+        F84 (pins belong
+        inside the pass
+        snapshot).
+      </Constraint>
+      <Constraint>
+        Ceremony tier
+        **T1** (review
+        module plus
+        README.md row).
+        P3 and P4 are
+        out. Lint
+        severity, lint
+        failOn, and lint
+        profile stay
+        out.
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        vocabulary and
+        demotion.** The
+        closed set is
+        error, warning,
+        info. makeFinding
+        still reads
+        guide.severity
+        and defaults to
+        error. No
+        REVIEW_CATALOG
+        severity field is
+        rewritten to
+        info. The two
+        warning codes
+        stay warning.
+        Every other live
+        code stays error.
+        Adding info with
+        zero emitters is
+        not
+        unthreaded-construct:
+        the union, the
+        filter, and the
+        value refusal
+        all close over
+        the three tokens.
+        Do not add a
+        sixteenth catalog
+        code so that info
+        has a production
+        emitter.
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        filter and
+        default view.**
+        Argv token
+        severity is a
+        string on the
+        review command
+        (not a boolean;
+        the live boolean
+        site pin must
+        not move).
+        Omitted equals
+        warning.
+        Present must be
+        exactly error,
+        warning, or info.
+        Threshold is
+        minimum: a
+        finding is kept
+        when its severity
+        is at least as
+        severe as the
+        token (error
+        greater than
+        warning greater
+        than info).
+        Filtering happens
+        inside runReview
+        from a
+        ReviewOptions
+        field so tests
+        observe it
+        without the CLI.
+        Text and JSON
+        use the same
+        filtered
+        findings array.
+        summary.findings,
+        summary.errors,
+        summary.warnings,
+        and summary.infos
+        are recounted
+        from that array.
+        formatReviewResult
+        names infos on
+        the Findings
+        count line (F44).
+        schemaVersion
+        stays 1.0.0.
+        The CLI JSON
+        wrapper stays
+        ok plus the
+        ReviewResult
+        fields.
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        what existing
+        reports do.**
+        Intentional:
+        omitted token
+        keeps today's
+        default view
+        (error plus
+        warning) because
+        no live code is
+        info; summary
+        gains infos at
+        0 on that view;
+        the Findings
+        line names the
+        third count.
+        Not changed:
+        exit 1 iff
+        summary.errors
+        greater than 0,
+        for every legal
+        token value
+        (every legal
+        threshold still
+        includes error);
+        attempt-pair
+        warning;
+        WriteEvidence
+        and porcelain
+        scope errors;
+        process-audit
+        absence reports;
+        shape-data
+        exemptions;
+        recorded-base
+        default;
+        argv tokens
+        base and
+        changed-files;
+        lint issue
+        severity;
+        lint failOn;
+        lint profile
+        standard.
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        refuse land and
+        hotfix as
+        values.** After
+        the flag exists,
+        land, hotfix,
+        and any other
+        token produce
+        GraceCommandError
+        invalid-arguments
+        whose message
+        names the three
+        accepted values
+        and does not say
+        Unrecognized
+        argument. At
+        HEAD the flag
+        is itself
+        unrecognized, so
+        a CLI red that
+        only observes
+        that sentence
+        is the wrong
+        property (F68,
+        F76 residue).
+        Planned reds
+        for refusal go
+        through an
+        in-process
+        resolver that
+        can fail alone
+        after the flag
+        is declared.
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        the phase
+        metric.** The
+        ≥80% drop on
+        corpus
+        transcripts is
+        not an AC-* and
+        not a plan
+        assertion. The
+        close verdict
+        states that
+        those
+        transcripts are
+        not in this
+        repository and
+        quotes this
+        tree's measured
+        0-finding
+        reviews. The
+        planted-
+        violation half
+        is AC-DETECTION
+        and
+        validate-walkthrough.
+        Re-entry for
+        the percentage
+        is a later
+        fixture bundle
+        if the original
+        trees become
+        artifacts. It
+        is not P3 and
+        not P4.
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        F82.** The
+        task-observable
+        half is
+        AC-SUITE-AND-CI
+        and this plan
+        must
+        Satisfies-link
+        it to a task
+        whose
+        Verification
+        includes those
+        commands. The
+        post-archive
+        lint 0/0 half
+        is close-verdict
+        evidence, not
+        an AC-*. This
+        plan must not
+        author
+        AC-SUITE-AND-LINT
+        and must not
+        Satisfies-link
+        lint-after-archive
+        to any task.
+      </Constraint>
+      <Constraint>
+        **Decided here —
+        F56 / F67 / F68
+        / F80 / F84.**
+        signatureKey
+        names the
+        property:
+        vocabulary,
+        filter,
+        refuse-profile,
+        readme-severity-row,
+        contract-infos
+        (planned reds).
+        detection,
+        lint-unmoved,
+        boolean-site,
+        catalog-length
+        are regression
+        pins only (F45).
+        Do not key on a
+        test file stem.
+        Two planned
+        reds in one
+        task must be
+        able to fail
+        alone. Do not
+        put filter and
+        refuse-profile
+        in one case.
+        Do not put
+        contract-infos
+        (the Findings
+        line and
+        summary.infos)
+        in the same
+        case as
+        vocabulary.
+        A task may
+        plan at most
+        three distinct
+        kind-plus-key
+        pairs. Do not
+        state how many
+        fail events a
+        property
+        implies except
+        in AC-HEAD-RED
+        (F75). Pins
+        belong inside
+        the pass
+        snapshot (F84):
+        red, then
+        production,
+        then bounding
+        pins, then
+        pass.
+      </Constraint>
+      <Constraint>
+        AffectedAreas
+        names modules.
+        File-level
+        scope is
+        enforced at
+        close by
+        review.write-evidence-outside-scope
+        (error), not at
+        authoring (F52).
+        ObservedWriteScope
+        must still list
+        every path the
+        deliverable
+        forces (F27.2,
+        F64). Forced
+        write surface:
+        src/review/catalog.ts
+        (ReviewIssueSeverity
+        gains info; no
+        live code
+        rewritten;
+        MODULE_MAP
+        already names
+        ReviewIssueSeverity);
+        src/review/core.ts
+        (ReviewFinding
+        severity union;
+        ReviewOptions
+        threshold;
+        filter inside
+        runReview;
+        summary.infos;
+        formatReviewResult
+        Findings line;
+        MODULE_MAP if a
+        new export);
+        src/review/command.ts
+        (string arg
+        severity,
+        resolve, pass
+        through);
+        src/review/core.test.ts
+        (vocabulary,
+        filter,
+        refuse
+        helper,
+        contract-infos,
+        keep the
+        attempt-pair
+        warning pin and
+        the
+        write-evidence
+        error pin and
+        the top-level
+        ReviewResult
+        key list);
+        src/query/command.test.ts
+        (README
+        severity row
+        pin beside the
+        existing as
+        row; boolean
+        site count
+        unmoved);
+        README.md
+        (review CLI
+        Overview row
+        names argv
+        token
+        severity);
+        this bundle's
+        spec.xml and
+        plan.xml.
+        **Stop and
+        re-spec**
+        rather than
+        touching
+        src/lint/types.ts
+        (LintSeverity),
+        src/artifact/types.ts
+        (NgraceIssue),
+        src/gates/core.ts
+        (GateIssue
+        severity),
+        src/query/types.ts
+        (health
+        severity),
+        src/grace-lint.ts,
+        src/grace-status.ts,
+        src/verification/localize.ts
+        (allReviewCodes
+        length 15 and
+        excluded length
+        12 stay),
+        src/test-support/token-accounting.ts
+        (F74.2; this
+        bundle does not
+        open that
+        file),
+        examples/,
+        skills/,
+        plugins/,
+        docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md,
+        any version
+        surface, or a
+        new review or
+        lint finding
+        code.
+      </Constraint>
+      <Constraint>
+        **Do not edit**
+        docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md, or
+        any version
+        surface.
+        Packaged version
+        at authoring:
+        **6.2.0**. No
+        product version
+        bump. 6.3.0 is a
+        phase target,
+        not this
+        bundle's act.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine
+        for this bundle:
+        red-first is
+        mechanical for
+        new behaviour.
+        Failing tests
+        are written
+        before the fail
+        attempt is
+        recorded, in a
+        separate tool
+        round trip.
+        Never a
+        retrospective
+        red via stash.
+        Never weaken a
+        BaselineAssertion
+        to move a lint
+        count. F42: plan
+        assertions bind
+        to exported
+        names, attribute
+        names, and issue
+        codes, not to AC
+        ids or the
+        Findings line as
+        a free needle.
+        F61: this
+        bundle's
+        artifacts must
+        not hold two
+        adjacent hyphen
+        characters
+        inside any XML
+        comment body.
+        F73: no new path
+        emission;
+        state in the
+        close verdict
+        that CI is the
+        only observer of
+        separators.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        examples/
+        unchanged. The
+        polyglot
+        walkthrough
+        already plants
+        review.scope-outside-write-scope
+        and a 0-error
+        plain review;
+        both stay true
+        because no live
+        code is demoted
+        and the default
+        view stays
+        error plus
+        warning.
+        examples/cli is
+        unchanged.
+      </NonGoal>
+      <NonGoal>
+        P3 lifecycle
+        finish. P3.7
+        hand-written
+        applied finding.
+        P4 adoption
+        boundary and
+        ratify.
+        RM-GOVERNED-PATH
+        plan.md section 4
+        deferred D1
+        (process grade).
+        Repairing F76
+        (already
+        repaired at
+        HEAD). Demoting
+        any live review
+        or lint code.
+        Adding a
+        sixteenth
+        review catalog
+        code.
+      </NonGoal>
+      <NonGoal>
+        Changing
+        LintSeverity,
+        NgraceIssue,
+        GateIssue
+        severity, or
+        module-health
+        severity.
+        Adding argv
+        token severity
+        to lint.
+        Changing lint
+        profile or
+        failOn.
+        A new
+        ReviewResult
+        top-level key
+        or per-finding
+        field beyond
+        severity.
+        Changing
+        allReviewCodes
+        cardinality.
+        Editing skills/
+        or plugins/,
+        including
+        ngrace-cli and
+        ngrace-reviewer
+        (F51).
+      </NonGoal>
+      <NonGoal>
+        An
+        NGRACE_ARTIFACT_VERSION
+        bump. A
+        package.json
+        version bump.
+        Editing
+        CHANGELOG.md.
+        The F70
+        invocation
+        walker is not
+        widened to
+        flags; review
+        is already a
+        documented
+        invocation.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-VOCABULARY>
+        ReviewIssueSeverity
+        and
+        ReviewFinding.severity
+        admit error,
+        warning, and
+        info. A
+        constructed
+        finding with
+        severity info
+        is a legal
+        ReviewFinding.
+        No live
+        REVIEW_CATALOG
+        code has
+        severity info.
+        guideFor of
+        review.attempt-pair-identical-tree
+        stays warning.
+        guideFor of
+        review.write-evidence-outside-scope
+        and
+        review.scope-outside-write-scope
+        stays error.
+        allReviewCodes
+        length is
+        unmoved.
+        **HEAD today:**
+        the union is
+        error or
+        warning; info
+        is not a
+        member.
+        **Failure
+        conditions:**
+        assigning info
+        to a live
+        code; adding a
+        catalog code;
+        changing lint
+        or NgraceIssue
+        unions.
+      </AC-VOCABULARY>
+      <AC-FILTER>
+        Argv token
+        severity
+        accepts error,
+        warning, and
+        info as a
+        minimum
+        threshold.
+        Omitted equals
+        warning.
+        Given
+        constructed
+        findings at
+        all three
+        severities,
+        omitted and
+        warning keep
+        error and
+        warning and
+        drop info;
+        error keeps
+        only error;
+        info keeps
+        all three.
+        Text and JSON
+        findings
+        arrays match
+        that set.
+        evaluate and
+        lint are
+        unmoved.
+        **HEAD today:**
+        the token is
+        unrecognized;
+        runReview has
+        no threshold
+        option.
+        **Failure
+        conditions:**
+        a red that
+        only observes
+        Unrecognized
+        argument for
+        the token sold
+        as this
+        property;
+        filtering text
+        only; default
+        hiding
+        warnings;
+        treating the
+        token as an
+        exact-match
+        rather than a
+        minimum.
+      </AC-FILTER>
+      <AC-REFUSE-PROFILE>
+        After the
+        token exists,
+        values land,
+        hotfix, and
+        any other
+        string are
+        invalid-arguments.
+        The message
+        names error,
+        warning, and
+        info and does
+        not say
+        Unrecognized
+        argument.
+        JSON stays the
+        existing
+        failure
+        envelope
+        (schemaVersion
+        1.0.0, ok
+        false, error
+        code plus
+        message).
+        **HEAD today:**
+        the flag
+        itself is
+        unrecognized,
+        so land and
+        hotfix fail
+        for the wrong
+        reason.
+        **Failure
+        conditions:**
+        accepting
+        land or
+        hotfix;
+        refusing with
+        the
+        unrecognized-
+        argument
+        sentence
+        after the
+        flag is
+        declared;
+        reddening
+        this so it
+        fails naming
+        the missing
+        flag (F68).
+      </AC-REFUSE-PROFILE>
+      <AC-DETECTION>
+        review.scope-outside-write-scope
+        and
+        review.write-evidence-outside-scope
+        stay error.
+        review.attempt-pair-identical-tree
+        stays warning.
+        scripts/validate-walkthrough.ts
+        still requires
+        the planted
+        undeclared
+        write to
+        produce
+        review.scope-outside-write-scope.
+        A fixture with
+        a genuine
+        undeclared
+        source write
+        still fails
+        at the pre-P2
+        rate for that
+        code.
+        **HEAD today:**
+        already true
+        (F45;
+        regression
+        once the
+        filter
+        exists).
+        **Failure
+        conditions:**
+        demoting any
+        of those
+        codes;
+        filter
+        dropping
+        errors on the
+        default view;
+        walkthrough
+        planted case
+        going silent.
+      </AC-DETECTION>
+      <AC-CONTRACT>
+        ReviewResult
+        top-level keys
+        stay the
+        existing set
+        (no new
+        top-level
+        key, D13).
+        schemaVersion
+        stays 1.0.0.
+        summary gains
+        infos
+        recounted
+        from the
+        displayed
+        array.
+        formatReviewResult
+        prints the
+        Findings count
+        line with
+        errors,
+        warnings, and
+        infos (F44).
+        Legal token
+        values do not
+        change the
+        exit rule:
+        1 iff
+        summary.errors
+        greater than
+        0. The ok
+        wrapper is
+        unchanged.
+        **HEAD today:**
+        summary has
+        findings,
+        errors,
+        warnings,
+        shapeDataExemptions;
+        the Findings
+        line names
+        errors and
+        warnings
+        only.
+        **Failure
+        conditions:**
+        a new
+        top-level
+        key; JSON-only
+        infos with the
+        old line left
+        in place;
+        exit 1 on
+        warnings or
+        info.
+      </AC-CONTRACT>
+      <AC-README-SEVERITY-ROW>
+        README.md CLI
+        Overview
+        tables contain
+        a row whose
+        first ngrace
+        token cell
+        names review
+        and the
+        severity argv
+        token (same
+        table-row
+        prefix the
+        invocation
+        check already
+        reads). The
+        invocation
+        walker is not
+        widened to
+        flags (F70
+        residue, named
+        NonGoal).
+        examples/ is
+        unchanged.
+        ngrace-cli
+        SKILL.md is
+        unchanged.
+        **HEAD today:**
+        the review row
+        names path,
+        change, and
+        base; it does
+        not name
+        severity.
+        **Failure
+        conditions:**
+        undocumented
+        token; token
+        mentioned only
+        outside CLI
+        Overview; row
+        count frozen
+        in a
+        criterion;
+        examples/
+        edited; skill
+        edited and
+        F51 left
+        stale.
+      </AC-README-SEVERITY-ROW>
+      <AC-HEAD-RED>
+        Each of
+        AC-VOCABULARY,
+        AC-FILTER,
+        AC-REFUSE-PROFILE,
+        AC-CONTRACT,
+        and
+        AC-README-SEVERITY-ROW
+        has a red
+        recorded
+        before its
+        production
+        edit, in its
+        own tool
+        round trip,
+        with the
+        failing test
+        written
+        first, under
+        the signature
+        keys named
+        above. Never a
+        red backed
+        only by a
+        grep, and
+        never a
+        retrospective
+        red via stash.
+        **Exempt (F45,
+        named at
+        authoring):**
+        AC-DETECTION
+        (already true
+        at HEAD);
+        AC-SUITE-AND-CI
+        (green at
+        HEAD;
+        task-observable
+        suite bar);
+        allReviewCodes
+        length;
+        excluded
+        localization
+        length;
+        boolean site
+        count;
+        live
+        invocation
+        list;
+        README row
+        count;
+        examples/
+        staying out;
+        package.json
+        version
+        unchanged;
+        token-accounting.ts
+        unopened;
+        lint, gates,
+        and status
+        unopened;
+        localize.ts
+        unopened.
+        **HEAD today:**
+        the union is
+        two-valued;
+        the token is
+        unrecognized;
+        the Findings
+        line omits
+        infos; the
+        review row
+        omits the
+        token.
+        **Failure
+        conditions:**
+        a check that
+        passes on
+        pre-change
+        HEAD sold as
+        new behaviour;
+        fail and pass
+        in one tool
+        call;
+        AC-DETECTION
+        or
+        AC-SUITE-AND-CI
+        required to be
+        red at HEAD;
+        filter and
+        refuse-profile
+        reddened so
+        the second
+        fails naming
+        the missing
+        flag (F68,
+        F80);
+        vocabulary
+        and
+        contract-infos
+        in one
+        short-circuiting
+        case (F80).
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-CI>
+        bun test green
+        for touched
+        packages
+        (review and
+        query command,
+        and any other
+        test this
+        deliverable
+        forces);
+        bun run
+        validate:ci
+        green
+        (re-measure
+        ratchet
+        cardinality;
+        do not drop
+        keys).
+        This criterion
+        is
+        task-observable
+        and this plan
+        Satisfies-links
+        it to a task
+        whose
+        Verification
+        includes those
+        commands. It
+        does not
+        include lint.
+        ObservedWriteScope
+        covers every
+        path the
+        deliverable
+        forces,
+        including the
+        F64 list
+        above.
+        No docs/plans
+        or archive
+        edits. No
+        CHANGELOG. No
+        version
+        surfaces.
+        examples/
+        untouched.
+        token-accounting.ts
+        unopened.
+        **HEAD today:**
+        those commands
+        are green —
+        that green is
+        the baseline,
+        not this
+        change's
+        evidence.
+        **Failure
+        conditions:**
+        suite red;
+        Satisfies-linking
+        post-archive
+        lint to this
+        task; writes
+        outside
+        declared
+        scope; pin
+        deleted or
+        loosened.
+      </AC-SUITE-AND-CI>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/review</ExpectedCommand>
+      <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T1):
+        the review
+        severity union
+        admits info
+        and no live
+        catalog code
+        uses it;
+        omitted argv
+        token severity
+        hides
+        constructed
+        info and keeps
+        error and
+        warning; info
+        shows all
+        three; error
+        hides warning;
+        land and
+        hotfix refuse
+        as values
+        naming the
+        three accepted
+        tokens;
+        summary.infos
+        exists and the
+        Findings line
+        names it; no
+        new
+        ReviewResult
+        top-level key;
+        schemaVersion
+        1.0.0; exit
+        still keys on
+        errors;
+        README.md
+        review row
+        names the
+        token;
+        examples/
+        untouched;
+        planted
+        undeclared
+        write still
+        errors;
+        suite green;
+        lint 0/0
+        quoted in the
+        close verdict
+        after apply
+        and archive,
+        not claimed by
+        a task pass.
+        Evidence is
+        the suite and
+        the ledger
+        fail/pass
+        pairs, not a
+        command
+        someone
+        reports.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring HEAD
+        11614ac on
+        feat/finding-severities,
+        packaged 6.2.0,
+        tree clean,
+        active empty
+        before this
+        bundle, lint
+        0/0,
+        xmlFilesChecked
+        163, archive
+        42.**
+        F33:
+        implementation
+        re-measures
+        counts;
+        criteria do
+        not freeze
+        them.
+      </Assumption>
+      <Assumption>
+        **Review
+        findings,
+        measured this
+        session.**
+        Fifteen catalog
+        codes; two
+        warnings; zero
+        info. Unscoped
+        review 0
+        findings.
+        Ten archived
+        bundles
+        reviewed at 0
+        findings.
+        F76 unrecognized-
+        argument
+        refusal is
+        already live
+        on review and
+        lint.
+      </Assumption>
+      <Assumption>
+        **F64 pin
+        survey, this
+        session.**
+        allReviewCodes
+        length 15
+        (core.test.ts
+        and
+        localize.test.ts);
+        excluded
+        localization
+        length 12;
+        attempt-pair
+        warning pin;
+        write-evidence
+        error pin;
+        ReviewResult
+        top-level key
+        list;
+        boolean site
+        count 25
+        (string flag
+        must not
+        move it);
+        README
+        invocation
+        walker
+        (review
+        already
+        listed; not
+        widened to
+        flags);
+        existing
+        README as-row
+        pin unmoved;
+        WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET
+        unmoved;
+        writeFileSync
+        inventory
+        unmoved
+        (review stays
+        read-only);
+        release-check
+        package.json
+        files
+        allowlist
+        unmoved;
+        token-accounting
+        F51 totals
+        fire only if
+        a SKILL.md
+        moves (none
+        does);
+        validate-walkthrough
+        planted
+        scope-outside
+        unmoved.
+      </Assumption>
+    </Assumptions>
+  </C-FINDING-SEVERITIES>
+</NgraceChangeSpec>

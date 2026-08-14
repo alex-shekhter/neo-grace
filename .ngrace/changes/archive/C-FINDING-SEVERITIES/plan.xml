@@ -1,0 +1,1481 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-FINDING-SEVERITIES>
+    <IntentSummary>
+      P2.5 only: review findings
+      gain error, warning, and info;
+      argv token severity is a
+      minimum-threshold filter on
+      review text and JSON; omitted
+      means warning. Named values
+      land and hotfix are refused
+      as values after the flag
+      exists. No live catalog code
+      is demoted. The P2 corpus
+      transcript metric is not a
+      criterion.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/command.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-FINDING-SEVERITIES/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-FINDING-SEVERITIES/plan.xml</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>export type ReviewIssueSeverity</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>export const REVIEW_CATALOG</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>export function allReviewCodes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>export function guideFor</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export type ReviewFinding</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export type ReviewOptions</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export type ReviewResult</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function runReview</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function formatReviewResult</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/command.ts</File>
+        <Text>export const reviewCommand</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>export function listBooleanFlags</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>export function listLiveInvocations</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.test.ts</File>
+        <Text>contains a lint row whose first ngrace cell names the as argv token</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/types.ts</File>
+        <Text>export type LintSeverity = "error" | "warning"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/catalog.ts</File>
+        <Text>REVIEW_ISSUE_SEVERITIES</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>applyReviewSeverityThreshold</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>resolveReviewSeverity</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/command.ts</File>
+        <Text>severity:</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/command.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/catalog.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/command.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>export type ReviewIssueSeverity</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>REVIEW_ISSUE_SEVERITIES</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>export const REVIEW_CATALOG</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>export function allReviewCodes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>export function guideFor</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export type ReviewFinding</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export type ReviewOptions</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export type ReviewResult</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function runReview</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function formatReviewResult</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function applyReviewSeverityThreshold</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function resolveReviewSeverity</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/command.ts</File>
+        <Text>export const reviewCommand</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/command.ts</File>
+        <Text>severity:</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>export function listBooleanFlags</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.ts</File>
+        <Text>export function listLiveInvocations</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.test.ts</File>
+        <Text>contains a lint row whose first ngrace cell names the as argv token</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/types.ts</File>
+        <Text>export type LintSeverity = "error" | "warning"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/command.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/catalog.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/review</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/query/command.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/catalog.ts</File>
+      <File>src/review/core.ts</File>
+      <File>src/review/command.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/query/command.test.ts</File>
+      <File>README.md</File>
+      <File>.ngrace/changes/active/C-FINDING-SEVERITIES/spec.xml</File>
+      <File>.ngrace/changes/active/C-FINDING-SEVERITIES/plan.xml</File>
+      <File>.ngrace/changes/active/C-FINDING-SEVERITIES/run.xml</File>
+      <File>.ngrace/changes/active/C-FINDING-SEVERITIES/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-FINDING-SEVERITIES/run/**</Glob>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: aa6f0b7 (branch
+      feat/finding-severities). Preflight:
+      ngrace lint path . assertions current
+      is 0/0. Spec is approved and
+      immutable. Do not amend it. If
+      execute shows the spec is wrong,
+      stop and report.
+
+      Ceremony tier T1. Stop and re-spec
+      rather than touching
+      src/lint/types.ts,
+      src/artifact/types.ts,
+      src/gates/core.ts,
+      src/query/types.ts,
+      src/grace-lint.ts,
+      src/grace-status.ts,
+      src/verification/localize.ts,
+      src/test-support/token-accounting.ts,
+      examples/, skills/, plugins/,
+      docs/plans,
+      .ngrace/changes/archive,
+      CHANGELOG.md, any version surface,
+      or a new review or lint finding
+      code. Packaged version stays 6.2.0.
+      No product version bump. 6.3.0 is
+      a phase target, not this bundle.
+
+      F50: this plan does not instruct
+      its own ObservedWriteScope
+      amendment; cursor companions are
+      listed at authoring.
+      F33: re-measure every count at
+      execute. Do not pin suite totals,
+      archive counts, xml artifact
+      counts, catalog length 15 as a
+      new number, boolean site count
+      25 as a new number, or any line
+      number this change moves.
+      F61: name exported functions and
+      argv tokens in this comment;
+      leave dashed forms to *.test.ts.
+      F42: plan assertions bind to
+      exported names, attribute names,
+      and issue codes, never to AC ids
+      or the Findings line as a free
+      needle.
+      F74: cite cross-plan decisions
+      as PLAN-ID Dn.
+
+      Measured at authoring, not
+      inherited. ReviewIssueSeverity
+      and ReviewFinding.severity are
+      error or warning. Fifteen
+      REVIEW_CATALOG codes; thirteen
+      error; two warning
+      (review.hunk-uncovered and
+      review.attempt-pair-identical-tree).
+      No catalog code is info.
+      runReview summary counts
+      findings, errors, warnings, and
+      shapeDataExemptions. No infos
+      field. schemaVersion is 1.0.0.
+      ReviewResult top-level keys:
+      attemptPairAudit, findings, root,
+      schemaVersion, scopeAudit,
+      shapeDataExemptions, summary,
+      tool, writeEvidenceScopeAudit.
+      reviewCommand args: path, change,
+      base, changed-files, format.
+      Passing argv token severity today
+      is invalid-arguments Unrecognized
+      argument (F76 already repaired).
+      Exit is 1 when summary.errors is
+      greater than 0.
+      LintSeverity is still error or
+      warning. Boolean site count is
+      25; a new string arg must not
+      move it.
+
+      ════════════════════════════════════
+      D0. Tasks, reds, F68, F80
+      ════════════════════════════════════
+      | Task | work | Satisfies | planned
+        kind+key pairs |
+      | T-001 | three-value union;
+          REVIEW_ISSUE_SEVERITIES;
+          no live code rewritten
+        | AC-VOCABULARY
+        | test:vocabulary |
+      | T-002 | ReviewOptions threshold;
+          filter inside runReview;
+          declare string arg;
+          passthrough resolver
+        | AC-FILTER
+        | test:filter |
+      | T-003 | value refusal through
+          the in-process resolver
+        | AC-REFUSE-PROFILE
+        | test:refuse-profile |
+      | T-004 | summary.infos nest;
+          Findings count line
+        | AC-CONTRACT
+        | test:contract-infos |
+      | T-005 | README review row
+        | AC-README-SEVERITY-ROW
+        | test:readme-severity-row |
+      | T-006 | dogfood close
+        | AC-DETECTION,
+          AC-HEAD-RED,
+          AC-SUITE-AND-CI
+        | none planned |
+
+      Sequential: T-002 constructed
+      info cases need T-001's union.
+      T-003's refusal red is only the
+      right property after T-002
+      declares the flag and exports
+      a passthrough resolver. T-004
+      must not land inside T-002 or
+      the contract red is already
+      green. T-005 is file-disjoint
+      from T-001 through T-004 if the
+      README test lives in
+      command.test.ts, but this plan
+      keeps one open epoch so T-005
+      DependsOn T-004. T-006
+      DependsOn T-005.
+
+      Signature keys the executor must
+      record (kind test):
+        T-001  test:vocabulary
+        T-002  test:filter
+        T-003  test:refuse-profile
+        T-004  test:contract-infos
+        T-005  test:readme-severity-row
+
+      Per-task distinct pairs: T-001 1,
+      T-002 1, T-003 1, T-004 1,
+      T-005 1, T-006 0. No key
+      repeats inside a task. No task
+      has more than one planned red.
+      Cap is three distinct pairs per
+      task; prefer two; this plan
+      uses one so an unplanned red
+      has a slot.
+
+      F75: red event counts live only
+      in AC-HEAD-RED. Other sections
+      state independent observability,
+      not event counts.
+
+      F45, named at authoring, not
+      reddened:
+      AC-DETECTION (already true at
+      HEAD; regression once the
+      filter exists);
+      AC-SUITE-AND-CI (green at HEAD;
+      task-observable suite bar);
+      allReviewCodes length;
+      excluded localization length;
+      boolean site count;
+      live invocation list;
+      README row count;
+      examples/ staying out;
+      package.json version unchanged;
+      token-accounting.ts unopened;
+      lint, gates, and status
+      unopened;
+      localize.ts unopened;
+      Object.keys of ReviewResult
+      (already the closed set);
+      schemaVersion 1.0.0;
+      exit 1 iff summary.errors
+      greater than 0;
+      constructed runtime object
+      with severity info (types are
+      erased; the red is the closed
+      set, not the object literal).
+
+      F68 / F80 on T-001.
+      test:vocabulary asserts
+      REVIEW_ISSUE_SEVERITIES equals
+      error, warning, info. Do not
+      import applyReviewSeverityThreshold
+      or resolveReviewSeverity (those
+      are produced later). Do not
+      treat a constructed object
+      literal as this red (runtime
+      already accepts it). HEAD
+      after the two-member extract:
+      the list has no info. Record
+      one fail, signature kind test
+      key vocabulary.
+
+      F68 / F80 on T-002.
+      test:filter calls existing
+      runReview with ReviewOptions
+      field severity set to error on
+      a fixture that already emits
+      one error
+      (review.scope-outside-write-scope)
+      and one warning
+      (review.attempt-pair-identical-tree).
+      It asserts the warning is
+      absent and the error remains.
+      Do not import
+      applyReviewSeverityThreshold
+      or resolveReviewSeverity in
+      this red (F68 on exports).
+      Do not spawn the CLI. Do not
+      assert Unrecognized argument.
+      Do not assert the Findings
+      line or summary.infos (T-004).
+      HEAD: the extra option is
+      ignored, so the warning
+      remains. That is the minimum
+      threshold property. Record
+      one fail, signature kind test
+      key filter.
+
+      Why constructed info is not
+      this recorded red. runReview
+      has no info emitter, and this
+      bundle must not add a
+      sixteenth catalog code. A
+      runReview red cannot observe
+      dropping info. The
+      constructed-info matrix is
+      pass-side after the helper
+      exists (same property, F45
+      half that cannot be red via
+      runReview).
+
+      F68 / F80 on T-003.
+      test:refuse-profile calls
+      resolveReviewSeverity (exported
+      as a passthrough in T-002)
+      with land, hotfix, empty, and
+      one other token in separate
+      it() cases so each failure
+      prints (F80). Each asserts
+      GraceCommandError
+      invalid-arguments whose
+      message names error, warning,
+      and info and does not say
+      Unrecognized argument. Do not
+      spawn the CLI. Do not observe
+      process exit. After T-002 the
+      function exists and returns
+      those tokens, so the fail is
+      the value check, not a missing
+      export and not F76 residue.
+      Record one fail, signature
+      kind test key refuse-profile.
+      Do not put filter and
+      refuse-profile in one case.
+
+      F68 / F80 on T-004.
+      test:contract-infos reads
+      formatReviewResult of any
+      ReviewResult and asserts the
+      Findings count line (the line
+      that starts with Findings:)
+      is exactly findings N, then
+      a parenthetical errors,
+      warnings, and infos (F44:
+      the new count is the third
+      slot of that same
+      parenthetical, not a new
+      line and not a footer). A
+      separate it() asserts
+      summary.infos is a number
+      recounted from the displayed
+      findings array. Do not assert
+      Object.keys(result) as this
+      red (already true). Do not
+      put this in the same case as
+      vocabulary. HEAD: the
+      parenthetical names errors
+      and warnings only;
+      summary.infos is absent.
+      Record one fail, signature
+      kind test key contract-infos.
+
+      F68 / F80 on T-005.
+      test:readme-severity-row
+      finds a CLI Overview table
+      row whose first ngrace cell
+      names review and the severity
+      argv token (same table-row
+      prefix the as-row pin
+      already reads). It does not
+      freeze row count and does
+      not widen listLiveInvocations.
+      HEAD: the review row names
+      path, change, and base only.
+      Record one fail, signature
+      kind test key
+      readme-severity-row.
+
+      ════════════════════════════════════
+      D1. Vocabulary (T-001)
+      ════════════════════════════════════
+      Export REVIEW_ISSUE_SEVERITIES
+      from src/review/catalog.ts as
+      the closed runtime set error,
+      warning, info. Derive
+      ReviewIssueSeverity from that
+      const. ReviewFinding.severity
+      uses ReviewIssueSeverity.
+      makeFinding still reads
+      guide.severity and defaults
+      to error. No REVIEW_CATALOG
+      severity field is rewritten
+      to info. The two warning
+      codes stay warning. Every
+      other live code stays error.
+      Do not add a sixteenth
+      catalog code.
+
+      info has zero emitters and
+      is still load-bearing: the
+      union, the filter rank, and
+      the value refusal all close
+      over REVIEW_ISSUE_SEVERITIES.
+      A later cleanup that drops
+      info because no catalog
+      code uses it breaks those
+      three surfaces. That is the
+      binding, not a dummy code.
+
+      Red trip order (failing test
+      first): write the vocabulary
+      test importing
+      REVIEW_ISSUE_SEVERITIES;
+      extract the live two-member
+      list so the recorded fail is
+      membership, not a missing
+      export; record fail; then
+      production adds info.
+
+      Update MODULE_MAP for the
+      new export. Keep both
+      allReviewCodes length-15
+      expects in core.test.ts.
+
+      ════════════════════════════════════
+      D2. Filter and flag (T-002)
+      ════════════════════════════════════
+      ReviewOptions gains severity
+      as ReviewIssueSeverity
+      (string token, not a
+      boolean; the live boolean
+      site pin must not move).
+      Export applyReviewSeverityThreshold
+      (findings, threshold) from
+      src/review/core.ts. Rank:
+      error greater than warning
+      greater than info. Keep a
+      finding when its rank is at
+      least the threshold.
+      Omitted options.severity
+      equals warning. runReview
+      applies the helper to the
+      findings array before
+      recounting summary.findings,
+      summary.errors, and
+      summary.warnings. Do not
+      add summary.infos. Do not
+      change the Findings count
+      line. Text and JSON use
+      the same filtered array
+      (formatReviewResult and
+      the ReviewResult findings
+      field).
+
+      Declare string arg severity
+      on reviewCommand beside
+      path, change, base,
+      changed-files, and format.
+      Export resolveReviewSeverity
+      from src/review/core.ts as
+      a passthrough: undefined
+      means warning; any present
+      string is returned as
+      ReviewIssueSeverity without
+      throwing. command.ts calls
+      that helper and passes the
+      result into runReview. This
+      is the flag-exists
+      prerequisite for T-003. It
+      is not the refuse red.
+
+      After production, add the
+      constructed-info matrix in
+      core.test.ts (pass-side,
+      same property, not a second
+      fail event): given three
+      constructed findings,
+      omitted and warning keep
+      error and warning and drop
+      info; error keeps only
+      error; info keeps all
+      three. Those cases call
+      applyReviewSeverityThreshold
+      after it exists. Also pin
+      that evaluate and lint are
+      unmoved (by non-edit).
+
+      Update MODULE_MAP for the
+      two new core exports.
+
+      ════════════════════════════════════
+      D3. Refuse profile (T-003)
+      ════════════════════════════════════
+      After T-002 the flag exists
+      and resolveReviewSeverity
+      accepts any present string.
+      Production tightens that
+      helper to the closed set:
+      undefined still means
+      warning; present must be
+      exactly error, warning, or
+      info; land, hotfix, empty,
+      and any other token throw
+      GraceCommandError
+      invalid-arguments whose
+      message names the three
+      accepted values from
+      REVIEW_ISSUE_SEVERITIES
+      and does not say
+      Unrecognized argument.
+      JSON stays the existing
+      failure envelope
+      (schemaVersion 1.0.0, ok
+      false, error code plus
+      message). Do not hand-copy
+      the three names; read the
+      const. Legal token values
+      still reach runReview.
+      Exit still keys on
+      summary.errors.
+
+      The recorded red goes
+      through this in-process
+      helper only. A CLI spawn
+      that only observes exit 1
+      or Unrecognized argument
+      is F76 residue and is
+      forbidden as this red.
+
+      ════════════════════════════════════
+      D4. Contract (T-004)
+      ════════════════════════════════════
+      summary gains infos
+      recounted from the
+      displayed findings array.
+      That is a nested summary
+      field, the asState
+      precedent: not a new
+      ReviewResult top-level
+      key (RM-GOVERNED-PATH D13).
+      Pin Object.keys(result) to
+      the existing nine names
+      (pass-side; already true
+      at HEAD). schemaVersion
+      stays 1.0.0. The CLI JSON
+      wrapper stays ok plus the
+      ReviewResult fields.
+
+      formatReviewResult Findings
+      count line, pinned where
+      (F44), asserted as literal
+      bytes in tests, not in
+      plan MustContain:
+      Findings: N (errors: E, warnings: W, infos: I)
+
+      The new count is the third
+      slot of that same
+      parenthetical. Not a new
+      line. Not a footer. Not
+      JSON-only infos with the
+      old line left in place.
+
+      ════════════════════════════════════
+      D5. README row (T-005)
+      ════════════════════════════════════
+      README.md CLI Overview
+      tables contain a row whose
+      first ngrace token cell
+      names review and the
+      severity argv token. Keep
+      the existing as-row pin.
+      Do not widen
+      listLiveInvocations to
+      flags (F70 residue, named
+      NonGoal). Do not edit
+      examples/ or ngrace-cli
+      SKILL.md. Do not freeze
+      row count in a criterion.
+
+      ════════════════════════════════════
+      D6. ObservedWriteScope
+      ════════════════════════════════════
+      Forced by the spec (F27.2,
+      F64) as File entries, plus
+      this bundle's run/** Glob.
+      Cursor companions are
+      listed so OWS is complete
+      at authoring (F50).
+
+      Listed as permission (this
+      run may not write them):
+      spec.xml (approved,
+      immutable).
+
+      Held by non-edit (not
+      omitted forced writes):
+      src/verification/localize.ts
+      and localize.test.ts
+      (allReviewCodes length 15
+      at three sites: two in
+      core.test.ts kept while
+      editing that file; one in
+      localize.test.ts unopened;
+      excluded localization
+      length 12 unopened);
+      scripts/validate-walkthrough.ts
+      (planted
+      review.scope-outside-write-scope
+      stays);
+      src/query/command.ts
+      (boolean walker and
+      invocation list unmoved);
+      WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET
+      (kept while editing
+      core.test.ts);
+      writeFileSync inventory
+      (review stays read-only);
+      token-accounting.ts (F74.2;
+      this bundle does not open
+      that file).
+
+      Deliberately excluded
+      (stop and re-spec):
+      src/lint/types.ts,
+      src/artifact/types.ts,
+      src/gates/core.ts,
+      src/query/types.ts,
+      src/grace-lint.ts,
+      src/grace-status.ts,
+      examples/, skills/,
+      plugins/, docs/plans,
+      archive, CHANGELOG.md,
+      version surfaces, a new
+      review or lint finding
+      code, a new ReviewResult
+      top-level key.
+
+      AC-SUITE-AND-CI is the
+      task-observable suite bar.
+      Post-archive lint 0/0 is
+      close-verdict evidence,
+      not an AC-* (F82). This
+      plan does not author
+      AC-SUITE-AND-LINT and does
+      not Satisfies-link
+      lint-after-archive to any
+      task. Mid-change
+      BaselineAssertions stay
+      intact. Never weaken a
+      BaselineAssertion to move
+      a lint count.
+
+      ════════════════════════════════════
+      D7. Execution discipline
+      ════════════════════════════════════
+      One open epoch. Each planned
+      red is its own tool round
+      trip: write the failing test
+      first, record cursor attempt
+      outcome fail with the
+      signature named in D0, then
+      land production in a later
+      round trip, then add
+      bounding pins, then record
+      pass (F84: red, then
+      production, then pins, then
+      pass). Never fail and pass
+      in one call. Never a
+      retrospective red via
+      stash. Never a red backed
+      only by a shell grep.
+
+      T-001: extract two-member
+      list plus vocabulary test,
+      fail vocabulary, then
+      production (add info),
+      then catalog pins, then
+      pass.
+      T-002: fail filter, then
+      production (threshold,
+      string arg, passthrough
+      resolver), then
+      constructed-info matrix
+      and boolean-site pin,
+      then pass.
+      T-003: fail refuse-profile,
+      then production (closed
+      set throw), then envelope
+      pin, then pass.
+      T-004: fail contract-infos,
+      then production (nest plus
+      Findings line), then
+      top-level key pin, then
+      pass.
+      T-005: fail
+      readme-severity-row, then
+      production (README row
+      plus command.test.ts pin),
+      then as-row and invocation
+      pins, then pass.
+      T-006: no planned red;
+      suite listed in
+      TargetAssertions; lint
+      0/0 claimed at close only,
+      after apply and archive.
+
+      Newly visible argv token
+      is named in the
+      conventional commit body
+      (RM-GOVERNED-PATH D5.5),
+      not in CHANGELOG.md.
+      Close verdict states that
+      CI is the only observer
+      of path separators (F73).
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Widen review severity vocabulary to three tokens</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-VOCABULARY />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (vocabulary): before
+            any production edit that adds
+            info to the closed set, in its
+            own tool round trip, add bun
+            tests in src/review/core.test.ts
+            that REVIEW_ISSUE_SEVERITIES
+            equals error, warning, and
+            info. Write the failing test
+            first. Extract the live
+            two-member list into that
+            export so the recorded fail
+            is membership, not a missing
+            export. Do not import
+            applyReviewSeverityThreshold
+            or resolveReviewSeverity.
+            Do not add a catalog code.
+            Do not rewrite a live
+            REVIEW_CATALOG severity
+            field. HEAD after the
+            extract: the list has no
+            info. Record cursor attempt
+            outcome fail, signature kind
+            test key vocabulary. Do not
+            land the info member in this
+            round trip. Never a red
+            backed only by a shell grep;
+            never fail and pass in one
+            tool call; never a
+            retrospective red via stash.
+            Failure conditions: this
+            round trip also adds info;
+            this fail recorded from a
+            missing-export crash sold as
+            the three-member property;
+            two new missing exports of
+            one module imported in one
+            test; selling a constructed
+            object literal as this red.
+          </Criterion>
+          <Criterion>
+            Characterization (same task;
+            not a planned red; already
+            true at HEAD or true after
+            production): a constructed
+            ReviewFinding with severity
+            info is legal after the
+            union widens; no live
+            REVIEW_CATALOG code has
+            severity info;
+            guideFor of
+            review.attempt-pair-identical-tree
+            stays warning; guideFor of
+            review.write-evidence-outside-scope
+            and
+            review.scope-outside-write-scope
+            stays error; both
+            allReviewCodes length-15
+            expects in core.test.ts
+            stay; LintSeverity stays
+            error or warning. Do not
+            record a fail for these.
+          </Criterion>
+          <Criterion>
+            Production (own tool round
+            trip after the red): add
+            info to REVIEW_ISSUE_SEVERITIES;
+            derive ReviewIssueSeverity
+            from that const;
+            ReviewFinding.severity uses
+            ReviewIssueSeverity; update
+            catalog MODULE_MAP; do not
+            rewrite any live catalog
+            severity; do not add a
+            sixteenth catalog code; do
+            not add summary.infos; do
+            not declare the review
+            command arg; do not edit
+            README.md, localize.ts,
+            token-accounting.ts, lint
+            types, or examples/. Failure
+            conditions: assigning info
+            to a live code; adding a
+            catalog code; changing
+            LintSeverity or NgraceIssue
+            unions; opening
+            token-accounting.ts.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Filter review findings by a minimum severity threshold</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-FILTER />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (filter): before
+            any ReviewOptions,
+            runReview, or command.ts
+            production edit, in its own
+            tool round trip after T-001,
+            add bun tests that call
+            existing runReview with
+            ReviewOptions field severity
+            set to error on a fixture
+            that already emits
+            review.scope-outside-write-scope
+            (error) and
+            review.attempt-pair-identical-tree
+            (warning). Assert the
+            warning is absent and the
+            error remains. Separate
+            it() cases so each failure
+            prints (F80). Do not import
+            applyReviewSeverityThreshold
+            or resolveReviewSeverity
+            (F68: those are produced
+            later; the failing surface
+            is runReview ignoring the
+            option). Do not spawn the
+            CLI. Do not assert
+            Unrecognized argument. Do
+            not assert the Findings
+            line or summary.infos.
+            HEAD today: the extra
+            option is ignored, so the
+            warning remains. Record
+            fail, signature kind test
+            key filter. Do not land
+            production in this round
+            trip. Failure conditions:
+            this round trip also lands
+            production; this fail
+            recorded from a CLI spawn
+            that names Unrecognized
+            argument; this fail
+            recorded from a missing
+            export; selling the
+            Findings line as this red;
+            putting refuse-profile in
+            this case.
+          </Criterion>
+          <Criterion>
+            Characterization (same task;
+            not a planned red): after
+            the helper exists, given
+            constructed findings at all
+            three severities, omitted
+            and warning keep error and
+            warning and drop info;
+            error keeps only error;
+            info keeps all three; text
+            and JSON findings arrays
+            match that set; evaluate
+            and lint are unmoved;
+            boolean site count stays
+            25. Do not record a fail
+            for these.
+          </Criterion>
+          <Criterion>
+            Production (own tool round
+            trip after the red): add
+            ReviewOptions.severity as
+            ReviewIssueSeverity; export
+            applyReviewSeverityThreshold
+            and apply it inside
+            runReview; omitted equals
+            warning; recount
+            summary.findings,
+            summary.errors, and
+            summary.warnings from the
+            filtered array; do not add
+            summary.infos; do not
+            change the Findings count
+            line; declare string arg
+            severity on reviewCommand;
+            export resolveReviewSeverity
+            as a passthrough
+            (undefined means warning;
+            any present string is
+            returned; no throw);
+            command.ts calls that
+            helper and passes through;
+            update core MODULE_MAP;
+            do not throw on land,
+            hotfix, or empty; do not
+            add a boolean; do not
+            edit README.md. Failure
+            conditions: treating the
+            token as an exact-match
+            rather than a minimum;
+            default hiding warnings;
+            filtering text only;
+            adding summary.infos or
+            changing the Findings
+            line in this task;
+            refusing land in this
+            task; moving the boolean
+            site pin.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Refuse land, hotfix, and other severity tokens as values</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-REFUSE-PROFILE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (refuse-profile):
+            after T-002 has declared
+            the flag and exported
+            resolveReviewSeverity, and
+            before any closed-set
+            throw, in its own tool
+            round trip, add bun tests
+            in src/review/core.test.ts
+            that call
+            resolveReviewSeverity with
+            land, hotfix, empty, and
+            one other token in
+            separate it() cases so
+            each failure prints (F80).
+            Each asserts
+            GraceCommandError
+            invalid-arguments whose
+            message names error,
+            warning, and info and does
+            not say Unrecognized
+            argument. Do not spawn the
+            CLI. Do not observe process
+            exit. After T-002 the
+            helper exists and returns
+            those tokens, so the fail
+            is the value check, not
+            Unrecognized argument and
+            not a missing export.
+            Record fail, signature
+            kind test key
+            refuse-profile. Do not
+            land the throw in this
+            round trip. Failure
+            conditions: this round
+            trip also lands the throw;
+            this fail recorded from a
+            CLI spawn that names
+            Unrecognized argument or
+            only exit 1; recording
+            this red against pre-flag
+            HEAD (that fail names the
+            missing flag); putting
+            filter in this case.
+          </Criterion>
+          <Criterion>
+            Characterization (same task;
+            not a planned red): legal
+            tokens error, warning, and
+            info still resolve and
+            reach runReview; omitted
+            still means warning; JSON
+            failure envelope stays
+            schemaVersion 1.0.0, ok
+            false, error code plus
+            message; Unrecognized
+            argument remains the
+            missing-flag sentence for
+            tokens that are not this
+            arg. Do not record a fail
+            for these.
+          </Criterion>
+          <Criterion>
+            Production (own tool round
+            trip after the red):
+            tighten resolveReviewSeverity
+            to the closed set; throw
+            GraceCommandError
+            invalid-arguments for land,
+            hotfix, empty, and any
+            other token; name the three
+            accepted values from
+            REVIEW_ISSUE_SEVERITIES;
+            do not say Unrecognized
+            argument; do not hand-copy
+            the three names; do not
+            change the Findings line;
+            do not add a ReviewResult
+            top-level key; do not edit
+            README.md. Failure
+            conditions: accepting land
+            or hotfix; refusing with
+            the unrecognized-argument
+            sentence; a hand-copied
+            name list that can drift
+            from the const.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Nest summary.infos and name it on the Findings count line</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-CONTRACT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (contract-infos):
+            before any summary.infos or
+            formatReviewResult
+            production edit, in its own
+            tool round trip, add bun
+            tests that call
+            formatReviewResult on a
+            ReviewResult and assert the
+            Findings count line (the
+            line that starts with
+            Findings:) is exactly
+            findings N then a
+            parenthetical errors,
+            warnings, and infos (F44:
+            the new count is the third
+            slot of that same
+            parenthetical). A separate
+            it() asserts summary.infos
+            is a number recounted from
+            the displayed findings
+            array so each failure
+            prints (F80). Do not assert
+            Object.keys(result) as this
+            red (already true). Do not
+            put this in the same case
+            as vocabulary. Literal
+            bytes live in the test, not
+            a MustContain. HEAD today:
+            the parenthetical names
+            errors and warnings only;
+            summary.infos is absent.
+            Record fail, signature kind
+            test key contract-infos.
+            Do not land production in
+            this round trip. Failure
+            conditions: this round trip
+            also lands production;
+            asserting only that infos
+            appears somewhere; JSON-only
+            infos with the old line
+            left in place; selling
+            Object.keys as this red;
+            combining this case with
+            vocabulary.
+          </Criterion>
+          <Criterion>
+            Characterization (same task;
+            not a planned red):
+            Object.keys of ReviewResult
+            stay the existing nine
+            names (no new top-level
+            key, RM-GOVERNED-PATH D13);
+            schemaVersion stays 1.0.0;
+            the ok wrapper is
+            unchanged; legal token
+            values do not change the
+            exit rule (1 iff
+            summary.errors greater
+            than 0). Do not record a
+            fail for these.
+          </Criterion>
+          <Criterion>
+            Production (own tool round
+            trip after the red): add
+            summary.infos recounted
+            from the displayed array;
+            put infos in the third
+            slot of the Findings count
+            line; do not add a
+            ReviewResult top-level
+            key; do not change
+            schemaVersion; do not
+            change the exit rule; do
+            not edit README.md.
+            Failure conditions: a new
+            top-level key; a new line
+            or footer instead of the
+            existing parenthetical;
+            exit 1 on warnings or
+            info.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Name argv token severity on the README review row</Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-README-SEVERITY-ROW />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED
+            (readme-severity-row):
+            before any README.md
+            production edit, in its
+            own tool round trip, add a
+            bun test in
+            src/query/command.test.ts
+            beside the existing as-row
+            pin that finds a CLI
+            Overview table row whose
+            first ngrace cell names
+            review and the severity
+            argv token (same table-row
+            prefix the invocation check
+            already reads). Do not
+            freeze row count. Do not
+            widen listLiveInvocations.
+            Do not import a new export.
+            HEAD today: the review row
+            names path, change, and
+            base; it does not name
+            severity. Record fail,
+            signature kind test key
+            readme-severity-row. Do
+            not land production in
+            this round trip. Failure
+            conditions: this round
+            trip also lands
+            production; token
+            mentioned only outside
+            CLI Overview; row count
+            frozen in a criterion.
+          </Criterion>
+          <Criterion>
+            Characterization (same task;
+            not a planned red): the
+            existing as-row pin stays;
+            listLiveInvocations is not
+            widened to flags; examples/
+            is unchanged; ngrace-cli
+            SKILL.md is unchanged;
+            boolean site count stays
+            25. Do not record a fail
+            for these.
+          </Criterion>
+          <Criterion>
+            Production (own tool round
+            trip after the red): add
+            argv token severity to the
+            README.md CLI Overview
+            review row; add the
+            command.test.ts pin; do
+            not edit examples/ or
+            skills/; do not open
+            token-accounting.ts; do
+            not add a boolean. Failure
+            conditions: undocumented
+            token; token mentioned
+            only outside CLI Overview;
+            examples/ edited; skill
+            edited and F51 left stale.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/query/command.test.ts</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Close suite, pins, and CI</Title>
+        <DependsOn>
+          <Task>T-005</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-DETECTION />
+          <AC-HEAD-RED />
+          <AC-SUITE-AND-CI />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED ownership: do not
+            record a new red. Confirm
+            the five planned fail/pass
+            pairs exist under
+            test:vocabulary,
+            test:filter,
+            test:refuse-profile,
+            test:contract-infos, and
+            test:readme-severity-row,
+            and that no F45 exemption
+            was reddened. Do not
+            re-record T-001 through
+            T-005. Do not stash a
+            retrospective red. Close
+            verdict states that CI is
+            the only observer of path
+            separators (F73). Close
+            verdict quotes lint 0/0
+            after apply and archive
+            (RM-GOVERNED-PATH D16).
+            That 0/0 is not an AC-*
+            and is not Satisfies-linked.
+            Close verdict states that
+            the corpus transcripts are
+            not in this repository and
+            quotes this tree's
+            measured 0-finding reviews.
+          </Criterion>
+          <Criterion>
+            AC-DETECTION (F45; already
+            true; regression after the
+            filter exists):
+            review.scope-outside-write-scope
+            and
+            review.write-evidence-outside-scope
+            stay error;
+            review.attempt-pair-identical-tree
+            stays warning;
+            scripts/validate-walkthrough.ts
+            still requires the planted
+            undeclared write to produce
+            review.scope-outside-write-scope;
+            default view still includes
+            errors. Do not record a
+            fail for these.
+          </Criterion>
+          <Criterion>
+            bun test green for review
+            and query command, and any
+            other test this deliverable
+            forced; bun run validate:ci
+            green (re-measure ratchet
+            cardinality; do not drop
+            keys). ObservedWriteScope
+            covers every path the
+            deliverable forced. No
+            docs/plans or archive
+            edits. No CHANGELOG. No
+            version surfaces. examples/
+            untouched. token-accounting.ts
+            unopened. localize.ts
+            unopened. allReviewCodes
+            length unmoved. excluded
+            localization length
+            unmoved. boolean site
+            count unmoved.
+            WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET
+            unmoved. writeFileSync
+            inventory unmoved. Failure
+            conditions: suite red;
+            Satisfies-linking
+            post-archive lint to this
+            task; writes outside
+            declared scope; pin
+            deleted or loosened; a new
+            review or lint finding
+            code.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-006>
+    </ImplementationPlan>
+  </C-FINDING-SEVERITIES>
+</NgraceChangePlan>
