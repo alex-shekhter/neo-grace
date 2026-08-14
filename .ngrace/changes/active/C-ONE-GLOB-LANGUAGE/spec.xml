@@ -1,0 +1,1070 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-ONE-GLOB-LANGUAGE>
+    <Summary>
+      P2.1 and P2.2 in one bundle: delete
+      matchSimpleGlob and route both scope
+      audits through
+      observedWriteScopeContains so review
+      and scope.ts share one glob language;
+      land the glob documentation P1.4
+      could not write; keep the shipped
+      any-C-* lifecycle exclusion and pin
+      that .ngrace/graph,
+      .ngrace/verification, and
+      .ngrace/context writes stay audited.
+      P2.3 through P2.6 are out.
+    </Summary>
+    <Problem>
+      **Shared shape.** P2 of
+      RM-GOVERNED-PATH is one glob
+      language and one audit universe.
+      This bundle is steps 1 and 2.
+      Authoring HEAD c26c16f on
+      feat/one-glob-language, cut from
+      main at that commit, packaged
+      6.2.0, tree clean, active empty
+      before this bundle. Those numbers
+      are a snapshot (F33).
+
+      ---
+
+      **F60, re-measured this session.**
+      Two implementations. Canonical:
+      src/artifact/scope.ts
+      parseScopeGlob /
+      observedWriteScopeContains,
+      segment-based, whole-segment
+      globstar, zero-or-more segments
+      (git/minimatch). Duplicate:
+      src/review/core.ts
+      matchSimpleGlob, private, ** to
+      .*, * to [^/]*. The slash after
+      ** survives, so ** requires an
+      intervening segment.
+
+      Call sites, measured: status
+      (grace-status.ts) and cursor
+      (grace-cursor.ts) already call
+      observedWriteScopeContains.
+      auditScopeOutsideWriteScope
+      (review/core.ts:979) and
+      auditWriteEvidenceOutsideScope
+      (review/core.ts:1044) call
+      matchSimpleGlob. observedWriteScopeContains
+      has zero test imports.
+
+      F60's table holds. Beyond
+      zero-depth ** this session also
+      measured:
+
+      * mid-path zero directories:
+        src/**/foo.ts x src/foo.ts
+        review false, scope true
+      * leading **:
+        **/*.ts x foo.ts
+        review false, scope true
+      * directory itself:
+        src/** x src
+        review false, scope true
+      * path form:
+        src/foo.ts x ./src/foo.ts
+        (and the reverse)
+        review false, scope true
+      * backslash form:
+        src\foo.ts x src/foo.ts
+        (and the reverse)
+        review false, scope true
+      * darwin case:
+        SRC/**/*.TS x src/a.ts
+        review false, scope true
+      * ? is a different language:
+        src/?.ts x src/a.ts
+        review false, scope true;
+        src/?.ts x src/.ts
+        review true, scope false;
+        src/foo? x src/foo
+        review true, scope false;
+        src/foo? x src/foox
+        review false, scope true
+      * mid-segment ** (not GRACE):
+        a**b x ab / axb / a/x/b
+        review true, scope false
+        (parseScopeGlob throws;
+        observedWriteScopeContains
+        returns false)
+      * run/** x a file under run/
+        both true (the only archived
+        Glob shape)
+
+      Every archived Glob is
+      .ngrace/changes/active/C-ID/run/**.
+      That is why closed reviews of 0
+      findings are not evidence this
+      path works.
+
+      ---
+
+      **Direction constraint, measured
+      not inherited.** Routing review
+      to scope.ts, for the GRACE glob
+      language parseScopeGlob accepts
+      (literals, *, ?, whole-segment
+      **), widens * and ** and path
+      normalize and darwin case.
+      ? is incomparable: matchSimpleGlob
+      treats ? as a regex quantifier;
+      scope.ts treats ? as one
+      non-slash character. Invalid
+      syntax (braces, mid-segment **)
+      never reaches an approved plan
+      (scope.unsupported-glob). No
+      archived Glob contains ?.
+      Active is empty. So no
+      already-approved plan's permitted
+      set shrinks. The reverse
+      (scope.ts adopting the regex
+      copy) would make status and
+      cursor stricter and flip
+      preflight. That direction is
+      forbidden.
+
+      ---
+
+      **P2.2, measured this session.**
+      The exclusion already shipped in
+      C-REPORT-HONESTY.
+      isCliLifecyclePath
+      (review/core.ts:945-963) matches
+      any canonical C-* id under
+      active or archive for run.xml,
+      run-ledger.xml, and run/**. It
+      is not keyed on the reviewed
+      change id. Tests pin any-C-*
+      silence and "fold of A does not
+      error a review of B"
+      (review/core.test.ts:1222-1245).
+      spec.xml and plan.xml still
+      raise. The roadmap sentence
+      "exactly the reviewed bundle"
+      is stale against that shipped
+      predicate. Narrowing would
+      regress AC-SCOPE-LIFECYCLE-EXCLUSION.
+      What remains: do not regress
+      the any-C-* predicate, and pin
+      the stay-audited trees the
+      roadmap named (.ngrace/graph,
+      .ngrace/verification,
+      .ngrace/context), which are
+      not specifically pinned today
+      (the nearest pin is undeclared
+      spec.xml).
+
+      ---
+
+      **P1.4 documentation debt.**
+      docs/schema-reference.md
+      preamble line and
+      schema-reference.ts:103 still
+      say F60 blocks documenting
+      glob matching.
+      schema-reference.test.ts
+      EXCLUDED_GLOB and AC-NO-GLOB-RULE
+      pin that sentence and forbid
+      the F60 pair strings in the
+      generated file. P2.1 must
+      invert that: delete the
+      duplicate, then document the
+      one remaining semantic.
+
+      ---
+
+      **F66.** This spec decides
+      README.md and examples/ in a
+      Goal, Constraint, or NonGoal
+      body. README.md is unchanged
+      (glob semantics land in the
+      generated schema reference;
+      the CLI Overview does not
+      teach Glob). examples/ is
+      unchanged.
+
+      ---
+
+      **F61.** This spec names
+      exported functions and argv
+      tokens in any comment body and
+      does not write dashed CLI
+      flags inside XML comments.
+    </Problem>
+    <Goals>
+      <Goal>
+        **P2.1 matcher.** matchSimpleGlob
+        is deleted, not renamed and not
+        kept under a second name. Both
+        scope audits call
+        observedWriteScopeContains.
+        Review does not grow a third
+        matcher. status and cursor keep
+        calling observedWriteScopeContains.
+      </Goal>
+      <Goal>
+        **P2.1 semantic.** The F60 pair
+        web/js/**/*.js x web/js/app.js
+        is inside scope at
+        observedWriteScopeContains and
+        silent on both audits. A file
+        the glob does not name still
+        raises. Mid-path zero-directory
+        src/**/foo.ts x src/foo.ts is
+        also silent on the audit.
+      </Goal>
+      <Goal>
+        **P2.1 documentation.** The
+        generated schema-reference
+        preamble drops the F60
+        exclusion sentence and states
+        the one remaining rule:
+        whole-segment ** matches zero
+        or more path segments, so
+        web/js/**/*.js matches
+        web/js/app.js. The committed
+        docs/schema-reference.md is
+        regenerated from that
+        renderer. The release note
+        lives in the commit body
+        (RM-GOVERNED-PATH D5.5), not
+        in CHANGELOG.md.
+      </Goal>
+      <Goal>
+        **P2.2 bound.** The shipped
+        any-C-* lifecycle exclusion
+        stays. Undeclared writes under
+        .ngrace/graph,
+        .ngrace/verification, and
+        .ngrace/context still raise
+        on both audits. spec.xml and
+        plan.xml still raise. A planted
+        src/ secret path still raises.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: RM-GOVERNED-PATH
+        P2.1 and P2.2; F60; F11 /
+        F11.2 as shipped by
+        C-REPORT-HONESTY (any-C-*
+        lifecycle exclusion, not
+        reviewed-id-only);
+        RM-GOVERNED-PATH D5.2 (this
+        is not a compatibility break:
+        review may report fewer
+        findings; nothing that was
+        in-scope becomes out-of-scope
+        for an already-approved plan);
+        RM-GOVERNED-PATH D5.5
+        (CHANGELOG.md is generated;
+        the release note is the
+        commit body); RM-GOVERNED-PATH
+        D11 (delete the duplicate;
+        do not document two
+        semantics); RM-GOVERNED-PATH
+        D13 (no new LintResult JSON
+        top-level key; no new review
+        finding code);
+        RM-GOVERNED-PATH D16
+        (evidence lives in an
+        artifact); RM-GOVERNED-PATH
+        D17 (AC ids name the
+        property); F10 (claim only
+        what the body verifies);
+        F27.2 and F64
+        (ObservedWriteScope covers
+        every path the deliverable
+        forces); F33 (do not freeze
+        suite counts, archive
+        counts, review-code
+        cardinality, or line numbers
+        this change moves); F42 (no
+        MustContain or MustNotContain
+        needle that README.md, a
+        skill, a template, or a
+        skeleton may legitimately
+        contain); F43 (this artifact
+        binds semantics; tests assert
+        literal bytes); F44 (pin
+        where a user-visible string
+        appears); F52
+        (change.plan-scope-exceeds-spec
+        compares DurableScope
+        anchors at warning); F56 /
+        F67 (signatureKey names the
+        property, not the test file
+        stem); F61 (no two adjacent
+        hyphens in any XML comment
+        body); F66 (this spec decides
+        README.md and examples/);
+        F68 (two planned reds are
+        independently observable);
+        F73 (match site is
+        normalizeProjectRelativePath
+        inside
+        observedWriteScopeContains;
+        finding.file emission stays
+        makeFinding's normalizeRel;
+        CI is the only observer that
+        can confirm separators);
+        F75 (red counts live in
+        AC-HEAD-RED alone).
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T2**
+        (review audit routing plus
+        generated schema-reference
+        documentation). P2.3 through
+        P2.6 are out.
+      </Constraint>
+      <Constraint>
+        **Decided here — one bundle.**
+        P2.1 and P2.2 both change
+        what the two scope audits
+        call a violation, in the same
+        two functions. P2.2's
+        exclusion already shipped;
+        the remaining work is a bound
+        on those same functions.
+        Split only with a conflict;
+        there is none. File
+        disjointness is not a
+        conflict.
+      </Constraint>
+      <Constraint>
+        **Decided here — direction
+        is review to scope.ts.**
+        Delete matchSimpleGlob.
+        Both auditScopeOutsideWriteScope
+        and auditWriteEvidenceOutsideScope
+        call observedWriteScopeContains
+        for glob membership (and may
+        keep the exact-file Set for
+        declared File/Path entries).
+        Do not change
+        observedWriteScopeContains
+        to match the regex copy. Do
+        not teach status or cursor
+        the regex copy. Do not add a
+        wrapper that reimplements
+        matching. parseScopeGlob
+        remains the grammar:
+        literals, *, ?, whole-segment
+        **; braces, brackets,
+        parentheses, leading !, and
+        mid-segment ** stay rejected.
+
+        The F60 pair at both call
+        sites is required and not
+        sufficient. Also required:
+        the identifier matchSimpleGlob
+        is gone from src/ production;
+        both audit glob branches call
+        the export; a pair both
+        already agree on
+        (run/** x a file under run/)
+        stays inside; a planted path
+        the glob does not name still
+        raises; mid-path
+        src/**/foo.ts x src/foo.ts
+        is silent on the audit. A
+        renamed copy of the regex
+        matcher is a stop-and-re-spec,
+        not a third implementation
+        this bundle ships. An
+        identifier-insensitive clone
+        detector is a named NonGoal
+        (C-SUBSTANCE-OVER-NAME
+        disclosed the same limit).
+      </Constraint>
+      <Constraint>
+        **Decided here — release
+        note and documentation.**
+        Commit body (D5.5) states
+        that review may report fewer
+        findings for ** patterns
+        adjacent to top-level files;
+        this is deduplication toward
+        git/minimatch semantics. Do
+        not edit CHANGELOG.md.
+
+        The documentation itself is
+        the generated preamble in
+        src/artifact/schema-reference.ts
+        and the regenerated
+        docs/schema-reference.md.
+        Replace the F60 exclusion
+        sentence with the positive
+        rule (whole-segment **
+        matches zero or more path
+        segments; web/js/**/*.js
+        matches web/js/app.js).
+        Invert the EXCLUDED_GLOB
+        pin and the F60 pair
+        absence pin. Keep: no
+        registered shape named glob
+        or globstar; no match-outcome
+        table in the shape sections;
+        do not print "review false",
+        "review true", or
+        "scope true". F44: the
+        user-visible sentence lives
+        in the preamble, before the
+        first shape heading.
+
+        README.md is not that
+        surface. examples/ is not
+        that surface.
+      </Constraint>
+      <Constraint>
+        **Decided here — P2.2
+        predicate.** Keep the shipped
+        any-C-* predicate:
+        ARTIFACT_DIR/changes/
+        {active|archive}/&lt;canonical
+        C-*&gt;/(run.xml|run-ledger.xml|run|run/**).
+        Canonical means
+        ANCHOR_PATTERNS.change. A
+        non-canonical directory
+        (scratch) is not lifecycle.
+        The reviewed change id does
+        not gate the exclusion;
+        another bundle's lifecycle
+        files stay excluded
+        (porcelain is repository
+        wide; fold of A must not
+        error a review of B).
+
+        What stops the predicate
+        matching durable writes:
+        it does not match spec.xml,
+        plan.xml, or anything under
+        .ngrace/graph,
+        .ngrace/verification, or
+        .ngrace/context, and it does
+        not match an arbitrary
+        .ngrace/changes/** prefix.
+        Those three trees stay
+        audited on both the
+        porcelain audit and the
+        WriteEvidence audit. Pin
+        each tree. docs/plans/**
+        stays excluded on the
+        WriteEvidence audit only
+        (F27.1 hole, already named).
+
+        Do not implement the
+        roadmap's "exactly the
+        reviewed bundle" reading.
+        That sentence predates
+        C-REPORT-HONESTY and would
+        fail
+        AC-SCOPE-LIFECYCLE-EXCLUSION.
+      </Constraint>
+      <Constraint>
+        **Decided here — F56 / F67
+        / F68.** signatureKey names
+        the property: one-matcher,
+        zero-depth, glob-doc,
+        lifecycle-bound. Do not key
+        on a test file stem. Two
+        planned reds in one task
+        must be able to fail alone:
+        the identifier-gone check
+        and the F60 pair on the
+        audit; the preamble
+        exclusion-line inversion and
+        the pair-now-documented
+        pin. A task may plan at
+        most three distinct
+        kind-plus-key pairs. Do not
+        state how many fail events
+        a property implies except
+        in AC-HEAD-RED (F75).
+      </Constraint>
+      <Constraint>
+        AffectedAreas names
+        modules. File-level scope
+        is enforced at close by
+        review.write-evidence-outside-scope
+        (error), not at authoring
+        (F52). ObservedWriteScope
+        must still list every path
+        the deliverable forces
+        (F27.2, F64). Forced write
+        surface:
+        src/review/core.ts
+        (delete matchSimpleGlob;
+        both audits call
+        observedWriteScopeContains);
+        src/review/core.test.ts
+        (F60 pair on both audits;
+        mid-path zero-directory
+        case; planted miss still
+        raises; any-C-* lifecycle
+        cases stay green;
+        stay-audited pins for
+        .ngrace/graph,
+        .ngrace/verification,
+        .ngrace/context on both
+        audits; allReviewCodes
+        cardinality unmoved);
+        src/artifact/scope.test.ts
+        (observedWriteScopeContains
+        F60 pair; currently
+        untested);
+        src/artifact/schema-reference.ts
+        (preamble: drop F60
+        exclusion, state the rule);
+        src/artifact/schema-reference.test.ts
+        (invert EXCLUDED_GLOB and
+        the F60 pair absence pin;
+        keep no-glob-shape and
+        no-table);
+        docs/schema-reference.md
+        (regenerate;
+        checkSchemaReference);
+        this bundle's spec.xml and
+        plan.xml.
+        src/artifact/scope.ts only
+        if an export must change;
+        observedWriteScopeContains
+        is already exported. Do not
+        edit it to satisfy a write
+        list.
+        **Stop and re-spec**
+        rather than touching
+        src/grace-status.ts,
+        src/grace-cursor.ts,
+        src/review/scope-helpers.ts
+        (extraction stays
+        list-only),
+        src/test-support/token-accounting.ts
+        (F74.2; this bundle does
+        not open that file),
+        src/verification/localize.test.ts
+        (review-code cardinality
+        unmoved),
+        README.md, examples/,
+        skills/, plugins/,
+        docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md, any version
+        surface, or a new review
+        finding code.
+      </Constraint>
+      <Constraint>
+        **Do not edit**
+        docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md, or any
+        version surface.
+        Packaged version at
+        authoring: **6.2.0**.
+        No product version bump.
+        6.3.0 is a phase target,
+        not this bundle's act.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine for this
+        bundle: red-first is
+        mechanical for new
+        behaviour. Failing tests
+        are written before the fail
+        attempt is recorded, in a
+        separate tool round trip.
+        Never a retrospective red
+        via stash. Never weaken a
+        BaselineAssertion to move
+        a lint count. F42: plan
+        assertions bind to exported
+        function names and issue
+        codes, not to AC ids,
+        preamble prose, or the
+        release-note sentence as a
+        free needle. F61: this
+        bundle's artifacts must not
+        hold two adjacent hyphen
+        characters inside any XML
+        comment body. F73: the
+        match site is already POSIX
+        project-relative via
+        normalizeProjectRelativePath;
+        finding.file stays
+        normalizeRel; state in the
+        close verdict that CI is
+        the only observer of
+        separators.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        README.md unchanged; glob
+        semantics are not a CLI
+        Overview row. The generated
+        schema reference is the
+        documentation this step
+        lands. examples/ unchanged;
+        no example tree documents
+        glob matching.
+      </NonGoal>
+      <NonGoal>
+        Narrowing the lifecycle
+        exclusion to the reviewed
+        change id. Widening it to
+        spec.xml, plan.xml, or
+        .ngrace/changes/**.
+        Changing the F27.1
+        docs/plans/ WriteEvidence
+        hole.
+      </NonGoal>
+      <NonGoal>
+        Qualifying the bare D15 in
+        src/test-support/token-accounting.ts:80
+        (F74.2). This bundle does
+        not open that file. The
+        qualification goes to the
+        next bundle that does.
+      </NonGoal>
+      <NonGoal>
+        An identifier-insensitive
+        clone detector for a
+        renamed matchSimpleGlob.
+        Changing parseScopeGlob
+        grammar (?, braces,
+        mid-segment **). Teaching
+        status or cursor the regex
+        copy. Changing
+        extractObservedWriteScopeFromPlan
+        from list-only extraction.
+      </NonGoal>
+      <NonGoal>
+        P2.3 bundle-stored
+        BaseCommit. P2.4 drift
+        credit from applied
+        bundles. P2.5 finding
+        severities. P2.6 honest
+        nextAction. P3 lifecycle
+        finish / plan amend /
+        hand-written status
+        detection. P4 adoption.
+        An NGRACE_ARTIFACT_VERSION
+        bump. A package.json
+        version bump. A new review
+        finding code. A new
+        registered schema shape.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-ONE-MATCHER>
+        matchSimpleGlob is absent
+        from src/review/core.ts and
+        from src/ production. Both
+        auditScopeOutsideWriteScope
+        and
+        auditWriteEvidenceOutsideScope
+        decide glob membership by
+        calling
+        observedWriteScopeContains.
+        They do not call a local
+        regex substitute. status
+        and cursor still call
+        observedWriteScopeContains
+        (not the deleted copy).
+        parseScopeGlob still
+        rejects braces, mid-segment
+        **, and leading !.
+        **HEAD today:** both audits
+        call matchSimpleGlob;
+        status and cursor already
+        call the export.
+        **Failure conditions:**
+        renaming the function and
+        keeping the regex body;
+        routing only one audit;
+        changing
+        observedWriteScopeContains
+        to require an intervening
+        segment; adding a third
+        matcher in review.
+      </AC-ONE-MATCHER>
+      <AC-ZERO-DEPTH>
+        observedWriteScopeContains
+        with files empty and globs
+        web/js/**/*.js returns
+        true for web/js/app.js.
+        auditScopeOutsideWriteScope
+        on that changed file
+        against that glob is
+        silent.
+        auditWriteEvidenceOutsideScope
+        on that path against that
+        glob is silent.
+        web/js/**/*.js x
+        web/js/sub/app.js stays
+        inside. A path the glob
+        does not name (web/js/app.ts)
+        still raises on both
+        audits. src/**/foo.ts x
+        src/foo.ts is silent on
+        the porcelain audit.
+        run/** x a file under that
+        run/ directory stays
+        inside.
+        **HEAD today:** the export
+        already returns true; both
+        audits raise
+        review.scope-outside-write-scope
+        (or the WriteEvidence
+        sibling) on the F60 pair;
+        no test imports the export.
+        **Failure conditions:**
+        pinning only the export
+        and leaving the audits on
+        the regex copy; pinning
+        only one audit; accepting
+        web/js/app.ts; breaking
+        the already-agreeing
+        run/** case.
+      </AC-ZERO-DEPTH>
+      <AC-GLOB-DOC>
+        renderSchemaReference
+        preamble no longer contains
+        the F60 exclusion sentence
+        (the exact EXCLUDED_GLOB
+        bytes at
+        schema-reference.test.ts).
+        The preamble, before the
+        first shape heading,
+        states that whole-segment
+        ** matches zero or more
+        path segments and that
+        web/js/**/*.js matches
+        web/js/app.js (F44).
+        docs/schema-reference.md
+        is byte-identical to the
+        renderer
+        (checkSchemaReference).
+        No registered shape named
+        glob or globstar. Shape
+        sections still contain no
+        match-outcome table and
+        do not contain the strings
+        review false, review true,
+        or scope true. README.md
+        is untouched. The commit
+        body, not CHANGELOG.md,
+        carries the release note
+        that review may report
+        fewer findings for **
+        patterns adjacent to
+        top-level files.
+        **HEAD today:** preamble
+        names glob matching as
+        excluded; tests require
+        that sentence and forbid
+        the F60 pair strings.
+        **Failure conditions:**
+        leaving the F60 sentence;
+        documenting the rule only
+        in README.md; adding a
+        glob shape to the
+        registry; editing
+        CHANGELOG.md; putting the
+        rule only after the first
+        shape heading.
+      </AC-GLOB-DOC>
+      <AC-LIFECYCLE-BOUND>
+        Lifecycle paths for any
+        canonical C-* under
+        active or archive
+        (run.xml, run-ledger.xml,
+        run/**) still produce zero
+        review.scope-outside-write-scope
+        and zero
+        review.write-evidence-outside-scope
+        findings, including when
+        the reviewed id differs
+        from the bundle that owns
+        the files. spec.xml and
+        plan.xml still raise.
+        scratch/run.xml still
+        raises. Undeclared
+        .ngrace/graph/main.xml,
+        .ngrace/verification/main.xml,
+        and
+        .ngrace/context/requirements.xml
+        still raise on both
+        audits. src/secret.ts
+        beside lifecycle files
+        still raises.
+        **HEAD today:** any-C-*
+        exclusion and spec.xml
+        raise are already true;
+        the three durable trees
+        are not specifically
+        pinned.
+        **Failure conditions:**
+        keying the exclusion on
+        the reviewed change id;
+        excluding spec.xml or
+        plan.xml; excluding any
+        of the three durable
+        trees; requiring run/ in
+        ObservedWriteScope to
+        stay silent.
+      </AC-LIFECYCLE-BOUND>
+      <AC-HEAD-RED>
+        Each of AC-ONE-MATCHER,
+        AC-ZERO-DEPTH, and
+        AC-GLOB-DOC has a red
+        recorded before its
+        production edit, in its
+        own tool round trip, with
+        the failing test written
+        first, under the
+        signature keys named
+        above. Never a red backed
+        only by a grep, and never
+        a retrospective red via
+        stash.
+        **Exempt (F45, named at
+        authoring):**
+        AC-LIFECYCLE-BOUND
+        (any-C-* silence and
+        spec.xml raise are green
+        at HEAD; the durable-tree
+        pins characterize HEAD);
+        AC-SUITE-AND-LINT (green
+        at HEAD; close-time bar);
+        allReviewCodes cardinality
+        unmoved; localize
+        excluded-review-code
+        cardinality unmoved;
+        README.md staying out;
+        examples/ staying out;
+        package.json version
+        unchanged;
+        token-accounting.ts
+        unopened.
+        **HEAD today:**
+        matchSimpleGlob exists;
+        both audits raise on the
+        F60 pair; preamble still
+        excludes glob matching.
+        **Failure conditions:**
+        a check that passes on
+        pre-change HEAD sold as
+        new behaviour; fail and
+        pass in one tool call;
+        AC-LIFECYCLE-BOUND or
+        AC-SUITE-AND-LINT required
+        to be red at HEAD; the
+        identifier-gone check and
+        the F60 audit pair
+        reddened so the second
+        fails naming the first
+        (F68).
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-LINT>
+        bun test green for
+        touched packages (review
+        core, artifact scope,
+        schema-reference, generate
+        schema-reference, and any
+        other test this
+        deliverable forces);
+        bun run validate:ci
+        green (re-measure ratchet
+        cardinality; do not drop
+        keys; checkSchemaReference
+        green);
+        bun run ngrace lint
+        --path . is 0 errors and
+        0 warnings **at close**
+        (after apply and archive,
+        not claimed mid-change).
+        ObservedWriteScope covers
+        every path the deliverable
+        forces, including the F64
+        list above. No
+        docs/plans or archive
+        edits. No CHANGELOG. No
+        version surfaces.
+        allReviewCodes cardinality
+        unmoved. README.md
+        untouched. examples/
+        untouched.
+        token-accounting.ts
+        unopened.
+        **HEAD today:** lint is
+        0/0 and validate:ci is
+        green — that green is the
+        baseline, not this
+        change's evidence.
+        **Failure conditions:**
+        suite red; lint 0/0
+        claimed mid-window;
+        writes outside declared
+        scope; pin deleted or
+        loosened; a new review
+        finding code; F51 pin
+        moved without a skill
+        edit (there is no skill
+        edit).
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+      <M-GRAMMAR />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/artifact/scope.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/artifact/schema-reference.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/generate-schema-reference.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): both
+        audits call
+        observedWriteScopeContains;
+        matchSimpleGlob is gone;
+        the F60 pair is silent on
+        both audits and true at
+        the export; a planted miss
+        still raises; any-C-*
+        lifecycle stays silent;
+        .ngrace/graph,
+        .ngrace/verification, and
+        .ngrace/context undeclared
+        writes still raise;
+        preamble states the
+        zero-or-more-segment rule
+        at the F60 pair and no
+        longer contains the F60
+        exclusion sentence;
+        docs/schema-reference.md
+        matches the renderer;
+        README.md and examples/
+        untouched; suite green;
+        lint 0/0 at close only.
+        Evidence is the suite and
+        the ledger fail/pass
+        pairs, not a command
+        someone reports.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring HEAD c26c16f
+        on feat/one-glob-language,
+        packaged 6.2.0, tree
+        clean, active empty
+        before this bundle.**
+        F33: implementation
+        re-measures counts;
+        criteria do not freeze
+        them.
+      </Assumption>
+      <Assumption>
+        **Matchers, measured this
+        session.** F60 table
+        holds. Additional
+        disagreements: mid-path
+        zero directories, leading
+        **, directory-itself,
+        ./ prefix, backslash
+        form, darwin case, and
+        ? as two languages.
+        Invalid mid-segment **
+        is review-true /
+        scope-false and cannot
+        appear in an approved
+        plan. All eight archived
+        Glob entries are run/**.
+      </Assumption>
+      <Assumption>
+        **P2.2, measured this
+        session.**
+        isCliLifecyclePath is
+        any-C-*, not
+        reviewed-id-only.
+        C-REPORT-HONESTY tests
+        pin that. Narrowing is a
+        regression. The three
+        durable trees are not
+        specifically pinned.
+      </Assumption>
+      <Assumption>
+        **Widening, measured this
+        session.** For * and **
+        and path normalize and
+        darwin case, review's
+        matches are a subset of
+        scope.ts. Switching
+        widens. ? is
+        incomparable. No
+        approved plan uses ?.
+        Therefore no
+        already-approved plan
+        permits less.
+      </Assumption>
+      <Assumption>
+        **F64 pin survey, this
+        session.**
+        schema-reference.test.ts
+        EXCLUDED_GLOB exact
+        preamble sentence;
+        AC-NO-GLOB-RULE forbids
+        F60 pair strings in the
+        generated file and
+        forbids a glob/globstar
+        registered shape;
+        checkSchemaReference
+        requires
+        docs/schema-reference.md
+        byte-identical to
+        renderSchemaReference;
+        generate-schema-reference.test.ts
+        pins writer/check
+        composition, not the
+        F60 sentence;
+        review/core.test.ts
+        any-C-* lifecycle cases
+        (including fold of A
+        versus review of B);
+        undeclared spec.xml
+        WriteEvidence case;
+        allReviewCodes length
+        pin (unmoved; do not
+        freeze the number);
+        localize.test.ts
+        excludedReviewCodesForLocalization
+        length pin (unmoved);
+        WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET
+        unmoved; scope.test.ts
+        overlap and
+        unsupported-glob cases
+        stay; no test currently
+        imports
+        observedWriteScopeContains;
+        token-accounting F51
+        totals fire only if a
+        SKILL.md moves (none
+        does); README invocation
+        walker fires only if
+        README.md moves (it
+        does not); boolean site
+        count unmoved (no new
+        boolean).
+      </Assumption>
+    </Assumptions>
+  </C-ONE-GLOB-LANGUAGE>
+</NgraceChangeSpec>

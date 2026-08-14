@@ -4908,3 +4908,34 @@ qualification goes to the next bundle that opens `src/test-support/`.
 documents.** A table that reuses `D<n>` for a different taxonomy inside the same file is a third
 space with no heading to announce it, and it is invisible to any search that assumes one series per
 document.
+
+### F79 — P2's normative text describes shipped work as unstarted and states a universal that is false. **[verified]**
+
+Fifth roadmap claim in this roadmap to fail construction, after P1.11's "permanently blocked", P1.4's
+zero-depth globstar, P1.8's "delayed IMPL=0 mystery" and P1.6's pure preview of impure modes. Caught
+by the executor at `C-ONE-GLOB-LANGUAGE`'s spec authoring; verified independently.
+
+**P2.2 prescribes a regression.** It says the lifecycle exclusion must be scoped *"to exactly the
+reviewed bundle."* Shipped code already does the opposite **on purpose**: `isCliLifecyclePath`
+(`src/review/core.ts`) matches any canonical `C-*` and carries the comment *"Not keyed on the reviewed
+change id (cross-bundle)"*, pinned by `C-REPORT-HONESTY` with a test titled *"cross-bundle — fold of A
+does not error a review of B."* Porcelain is repository-wide, so a reviewed-id gate re-opens exactly
+the wolf-crying F11.2 was written to stop. **The step's load-bearing half is its stay-audited clause**
+(`.ngrace/graph`, `.ngrace/verification`, `.ngrace/context`); the reviewed-id half is stale.
+
+**P2.1's direction constraint states a universal it does not have.** *"The change can only widen what
+review accepts"* is true for `*` and `**`, and **false for `?`**, where the two copies implement
+different operators — measured in both directions: `src/foo?` × `src/foo` is review-true / scope-false,
+`src/?.ts` × `src/a.ts` is review-false / scope-true. The sets are **incomparable**, not nested. The
+practical claim survives only because no approved plan in this repository has ever used `?`, which is
+a fact about the corpus, not about the language.
+
+**And the F60 story understates the split.** Zero-depth `**` is the headline; the copies also disagree
+on mid-path zero directories, leading `**`, the directory itself, `./` collapse, backslash form and
+case. **The roadmap's single pinned pair is necessary and not sufficient.**
+
+**The rule.** A roadmap step written before its phase begins ages against the code the earlier phases
+shipped. Before writing a criterion on step text, **measure whether the step's premise is still the
+product's state** — and treat a normative universal ("can only widen", "always", "never") as a claim
+to falsify, not to inherit. Two of the five failures in this phase were steps prescribing work already
+done differently and better.

@@ -374,8 +374,10 @@ paragraph. **The cure is attribution, not suppression.**
    **Direction constraint (normative).** The dedup runs **review → `scope.ts`**, never
    `scope.ts` → `matchSimpleGlob`. The reverse would be a genuine retroactive break:
    previously-explained drift becomes unexplained and preflight verdicts flip. In the
-   permitted direction the change can only *widen* what review accepts, so it cannot make an
-   approved plan permit less or create a new violation.
+   permitted direction the change can only *widen* what review accepts **for `*` and `**`**, so it
+   cannot make an approved plan permit less or create a new violation. **Not a universal — see
+   F79:** `?` is a different operator in each copy, so the sets are incomparable. No approved plan
+   has ever used `?`, which is what makes the practical claim hold.
 
    **Release note.** An author who wrote `web/js/**/*.js` intending "subdirectories only"
    loses the one surface that ever flagged the mismatch — that intent was unenforced
@@ -391,7 +393,9 @@ paragraph. **The cure is attribution, not suppression.**
 2. **Exclude CLI-authored lifecycle files.** `run-ledger.xml`, `run.xml`, `run/*.xml` of the
    *reviewed* change are never "outside write scope" — the CLI wrote them, and auditing the
    CLI's own writes against the agent's declared scope is a category error. Scope the
-   exclusion to exactly the reviewed bundle. `.ngrace/graph`, `.ngrace/verification`,
+   ~~exclusion to exactly the reviewed bundle.~~ **Stale — see F79:** shipped code already excludes
+   any canonical `C-*` deliberately (`isCliLifecyclePath`), pinned by `C-REPORT-HONESTY`, and a
+   reviewed-id gate re-opens F11.2. The stay-audited clause is this step's load-bearing half. `.ngrace/graph`, `.ngrace/verification`,
    `.ngrace/context` writes **stay audited** (ag1 F-2's own condition): those are real
    durable writes that must be declared.
 3. **Bundle-stored base ref.** At `gate approve`, record `BaseCommit` into the change's
