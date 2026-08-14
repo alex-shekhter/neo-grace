@@ -2233,3 +2233,162 @@ describe("ngrace-plan forced-scope prose (C-DECLARED-WRITES T-002)", () => {
     expect(Buffer.compare(a, b)).toBe(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// C-ONE-GLOB-LANGUAGE T-001 — one matcher, zero-depth audits, stay-audited trees
+// ---------------------------------------------------------------------------
+
+const SRC_ROOT = path.resolve(import.meta.dir, "..");
+
+function listSrcProductionFiles(): string[] {
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const full = path.join(dir, name);
+      if (statSync(full).isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (name.endsWith(".test.ts")) continue;
+      if (!name.endsWith(".ts")) continue;
+      out.push(full);
+    }
+  };
+  walk(SRC_ROOT);
+  return out;
+}
+
+describe("C-ONE-GLOB-LANGUAGE T-001 matcher", () => {
+  it("one-matcher: matchSimpleGlob identifier is absent from src/ production", () => {
+    const ident = /\bmatchSimpleGlob\b/;
+    const hits: string[] = [];
+    for (const file of listSrcProductionFiles()) {
+      if (ident.test(readFileSync(file, "utf8"))) {
+        hits.push(path.relative(SRC_ROOT, file));
+      }
+    }
+    expect(hits).toEqual([]);
+  });
+});
+
+describe("C-ONE-GLOB-LANGUAGE T-001 zero-depth audits", () => {
+  it("zero-depth: porcelain and WriteEvidence silent on web/js/**/*.js x web/js/app.js", () => {
+    const porcelain = auditScopeOutsideWriteScope(["web/js/app.js"], [], ["web/js/**/*.js"]);
+    expect(porcelain).toHaveLength(0);
+    const ledger = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: ["web/js/app.js"],
+      scopeFiles: [],
+      scopeGlobs: ["web/js/**/*.js"],
+    });
+    expect(ledger).toHaveLength(0);
+  });
+
+  it("zero-depth: porcelain silent on src/**/foo.ts x src/foo.ts", () => {
+    const porcelain = auditScopeOutsideWriteScope(["src/foo.ts"], [], ["src/**/foo.ts"]);
+    expect(porcelain).toHaveLength(0);
+  });
+
+  it("planted miss web/js/app.ts still raises on both audits", () => {
+    const porcelain = auditScopeOutsideWriteScope(["web/js/app.ts"], [], ["web/js/**/*.js"]);
+    expect(porcelain.some((f) => f.file === "web/js/app.ts" && f.code === "review.scope-outside-write-scope")).toBe(true);
+    const ledger = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: ["web/js/app.ts"],
+      scopeFiles: [],
+      scopeGlobs: ["web/js/**/*.js"],
+    });
+    expect(ledger.some((f) => f.file === "web/js/app.ts" && f.code === WRITE_EVIDENCE_SCOPE_FINDING_CODE)).toBe(true);
+  });
+
+  it("web/js/sub/app.js stays inside web/js/**/*.js on both audits", () => {
+    expect(auditScopeOutsideWriteScope(["web/js/sub/app.js"], [], ["web/js/**/*.js"])).toHaveLength(0);
+    expect(
+      auditWriteEvidenceOutsideScope({
+        changeId: "C-X",
+        writeEvidencePaths: ["web/js/sub/app.js"],
+        scopeFiles: [],
+        scopeGlobs: ["web/js/**/*.js"],
+      }),
+    ).toHaveLength(0);
+  });
+
+  it("run/** covers a file under that run directory on both audits", () => {
+    const underRun = "run/1-T-001-attempt.xml";
+    expect(auditScopeOutsideWriteScope([underRun], [], ["run/**"])).toHaveLength(0);
+    expect(
+      auditWriteEvidenceOutsideScope({
+        changeId: "C-X",
+        writeEvidencePaths: [underRun],
+        scopeFiles: [],
+        scopeGlobs: ["run/**"],
+      }),
+    ).toHaveLength(0);
+  });
+});
+
+describe("C-ONE-GLOB-LANGUAGE T-001 stay-audited trees", () => {
+  const ows = ["src/in-scope.ts"];
+  const durable = [
+    ".ngrace/graph/main.xml",
+    ".ngrace/verification/main.xml",
+    ".ngrace/context/requirements.xml",
+  ] as const;
+
+  it("undeclared durable trees still raise on porcelain", () => {
+    const findings = auditScopeOutsideWriteScope([...durable], ows, []);
+    for (const file of durable) {
+      expect(findings.some((f) => f.file === file && f.code === "review.scope-outside-write-scope")).toBe(true);
+    }
+  });
+
+  it("undeclared durable trees still raise on WriteEvidence", () => {
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: [...durable],
+      scopeFiles: ows,
+      scopeGlobs: [],
+    });
+    for (const file of durable) {
+      expect(findings.some((f) => f.file === file && f.code === WRITE_EVIDENCE_SCOPE_FINDING_CODE)).toBe(true);
+    }
+  });
+
+  it("spec.xml and plan.xml still raise on WriteEvidence", () => {
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-A",
+      writeEvidencePaths: [
+        ".ngrace/changes/active/C-A/spec.xml",
+        ".ngrace/changes/active/C-A/plan.xml",
+      ],
+      scopeFiles: ows,
+      scopeGlobs: [],
+    });
+    expect(findings.some((f) => f.file === ".ngrace/changes/active/C-A/spec.xml")).toBe(true);
+    expect(findings.some((f) => f.file === ".ngrace/changes/active/C-A/plan.xml")).toBe(true);
+  });
+
+  it("scratch/run.xml still raises on WriteEvidence", () => {
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: [".ngrace/changes/active/scratch/run.xml"],
+      scopeFiles: ows,
+      scopeGlobs: [],
+    });
+    expect(findings.some((f) => f.file === ".ngrace/changes/active/scratch/run.xml")).toBe(true);
+  });
+
+  it("src/secret.ts beside lifecycle still raises on WriteEvidence", () => {
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-A",
+      writeEvidencePaths: [
+        ".ngrace/changes/active/C-A/run.xml",
+        "src/secret.ts",
+      ],
+      scopeFiles: ows,
+      scopeGlobs: [],
+    });
+    expect(findings.some((f) => f.file === "src/secret.ts" && f.code === WRITE_EVIDENCE_SCOPE_FINDING_CODE)).toBe(true);
+    expect(findings.some((f) => f.file.includes("/run"))).toBe(false);
+  });
+});

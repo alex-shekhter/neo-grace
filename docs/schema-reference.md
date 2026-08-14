@@ -9,7 +9,8 @@ This document is not a complete schema. This document is not a complete grammar.
 Excluded classes:
 - Imperative validators in grammar.ts.
 - File-local markup families. graph-module and module-contract are file-local markup, not members of this registry.
-- Glob matching: P1.4 asked for zero-depth globstar. F60 blocks documenting it while two implementations disagree.
+
+Whole-segment ** matches zero or more path segments, so web/js/**/*.js matches web/js/app.js.
 
 ## artifact-root
 
