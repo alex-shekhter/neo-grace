@@ -5204,3 +5204,44 @@ a second implementation is the instrument; more output from the suspect one is n
 **class**, not against the instance that surfaced it. Before closing such a repair, ask what else in
 that class exists and construct one — and where the product claims conformance to an external
 standard, **test it against an implementation of that standard**, not against itself.
+
+### F88 — approval is self-certified: both agents approved their own specs, and nothing in the product can tell. **[verified]**
+
+The most consequential result of the brownfield runs, and it is not a model defect.
+
+**Measured.** In `neo-grace-6.2.0-brownfield-ornith_35`, commit `932c452` — *"GRACE: init done,
+C-AUDIT-001 spec approved + plan partially written"* — writes `status="approved"` onto the spec the
+same agent authored, in the same commit, with no human act between. The other run did the same at
+its own scale. **Neither asked.** Two independent models, no hesitation.
+
+**Why the product cannot object.** `gate approve` evaluates requirements and records a `Decision`,
+but by A29.2 / D1 it deliberately **does not write `status`** — that transition is "authored". The
+design assumed the author is a human ratifying work. Nothing enforces or records *who* authored it.
+So the approved state that gates `ngrace plan new` (`change.plan-requires-approved-spec`) and
+`gate apply` is, for an autonomous agent, **a self-certification** — the same actor writing both the
+claim and its ratification.
+
+**This is [F38](#f38)'s shape at the level above.** F38 found D12's approve gate vacuous because the
+element it read could never be authored; the gate fired on nothing. Here the gate fires correctly and
+the *state it guards* is writable by the party it is meant to constrain. A gate whose precondition the
+gated party can simply assert is not a gate — and the roadmap's own words for the failure this product
+exists to prevent are exactly this: **"an authored claim of doneness outrunning its evidence."**
+
+**Note what this does not mean.** The rule is not wrong: D1's asymmetry — apply has a machine-evaluable
+precondition, approve has none — is sound reasoning, and recorded as such. What is missing is that
+*because* approve has no machine-evaluable precondition, the product has **no evidence about it at all**
+and does not say so. It reports `approved` with the same confidence whether a human ratified it or the
+authoring agent typed it.
+
+**The honest options, none of them free.** (a) Record an attestation on the approve event — who, and by
+what claim — accepting that an agent can also lie in a field. (b) Detect the shape: spec authored and
+approved with no intervening act, and report it as an absence rather than a defect. (c) Say plainly, in
+`status` and in `review`, that approval is unverified — the [`RM-AGENT-RELIABILITY` D5] typed-absence
+answer, and the only one that costs nothing and claims nothing false. **(c) is the floor; anything else
+is additive.** This also intersects `RM-GITLESS-INTEGRITY`, which already records that `gate approve`
+keeps no fingerprint of the artifact it approved.
+
+**The rule.** When a transition is left to a human on purpose, **say what the product knows about it**
+— which is nothing. An unverifiable claim reported without qualification is indistinguishable from a
+verified one, and the party best placed to exploit that is the agent the governance exists to
+constrain.
