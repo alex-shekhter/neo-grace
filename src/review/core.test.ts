@@ -4,11 +4,14 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
+import { GraceCommandError } from "../query/errors";
+
 import { validateRunLedgerArtifact } from "../artifact/grammar";
 import { writeMinimalNgraceProject } from "../artifact/test-fixtures";
 import { parseGraceXmlArtifact } from "../artifact/xml";
 import { byPattern, corpus } from "../test-support/defect-corpus";
 import {
+  applyReviewSeverityThreshold,
   auditAttemptPairWriteEvidence,
   auditCompatNewErrors,
   auditHunkCoverage,
@@ -19,13 +22,17 @@ import {
   findingId,
   formatReviewResult,
   resolveChangePlanPath,
+  resolveReviewSeverity,
   runJoinProbes,
   listRuntimeSourceFilesForMarkerScan,
   runPatternDetectors,
   runReview,
+  type ReviewFinding,
 } from "./core";
 import {
   ATTEMPT_PAIR_FINDING_CODE,
+  REVIEW_CATALOG,
+  REVIEW_ISSUE_SEVERITIES,
   WRITE_EVIDENCE_SCOPE_FINDING_CODE,
   allReviewCodes,
   guideFor,
@@ -2791,5 +2798,233 @@ describe("C-BUNDLE-BASE-REF T-003 characterization", () => {
     expect(unresolved.scopeAudit?.reason).toContain(dead);
     expect(unresolved.scopeAudit?.reason).not.toContain(NO_BASE_COMMIT_CAVEAT);
     expect(formatReviewResult(unresolved)).not.toContain(NO_BASE_COMMIT_CAVEAT);
+  });
+});
+
+function plantIdenticalTreePair(root: string, changeId: string): void {
+  writeFileSync(
+    path.join(root, ".ngrace", "changes", "active", changeId, "run-ledger.xml"),
+    `<NgraceRunLedger graceVersion="1.0"><${changeId}>`
+      + `<Epoch-1>`
+      + `<Event id="1" task="T-001" kind="attempt" outcome="fail">`
+      + `<WriteEvidence available="true"><File digest="aaa">src/example.ts</File></WriteEvidence>`
+      + `</Event>`
+      + `<Event id="2" task="T-001" kind="attempt" outcome="pass">`
+      + `<WriteEvidence available="true"><File digest="aaa">src/example.ts</File></WriteEvidence>`
+      + `</Event>`
+      + `</Epoch-1>`
+      + `</${changeId}></NgraceRunLedger>`,
+  );
+}
+
+function reviewWithErrorAndWarning(
+  extra: { severity?: "error" | "warning" | "info" } = {},
+) {
+  const root = ensureTempRoot();
+  writeMinimalNgraceProject(root);
+  writeScopedPlan(root, "C-FILTER", ["src/example.ts"]);
+  plantIdenticalTreePair(root, "C-FILTER");
+  return runReview(root, {
+    changeId: "C-FILTER",
+    changedFiles: ["src/example.ts", "src/out-of-scope.ts"],
+    patterns: false,
+    joinEngine: false,
+    ...extra,
+  });
+}
+
+describe("C-FINDING-SEVERITIES T-002 filter", () => {
+  it("severity error keeps review.scope-outside-write-scope", () => {
+    const result = reviewWithErrorAndWarning({ severity: "error" });
+    expect(result.findings.some((finding) => finding.code === "review.scope-outside-write-scope")).toBe(true);
+  });
+
+  it("severity error drops review.attempt-pair-identical-tree", () => {
+    const result = reviewWithErrorAndWarning({ severity: "error" });
+    expect(result.findings.some((finding) => finding.code === ATTEMPT_PAIR_FINDING_CODE)).toBe(false);
+  });
+});
+
+describe("C-FINDING-SEVERITIES T-002 constructed-info matrix", () => {
+  const constructed: ReviewFinding[] = [
+    {
+      severity: "error",
+      code: "review.constructed-error",
+      file: "src/x.ts",
+      message: "error",
+      findingId: "e".repeat(16),
+      ruleId: "constructed",
+      anchorOrHunkKey: "error",
+    },
+    {
+      severity: "warning",
+      code: "review.constructed-warning",
+      file: "src/x.ts",
+      message: "warning",
+      findingId: "w".repeat(16),
+      ruleId: "constructed",
+      anchorOrHunkKey: "warning",
+    },
+    {
+      severity: "info",
+      code: "review.constructed-info",
+      file: "src/x.ts",
+      message: "info",
+      findingId: "i".repeat(16),
+      ruleId: "constructed",
+      anchorOrHunkKey: "info",
+    },
+  ];
+
+  it("omitted and warning keep error and warning and drop info", () => {
+    const omittedDefault = applyReviewSeverityThreshold(constructed, "warning");
+    expect(omittedDefault.map((finding) => finding.severity)).toEqual(["error", "warning"]);
+    expect(applyReviewSeverityThreshold(constructed, "warning").map((finding) => finding.severity)).toEqual([
+      "error",
+      "warning",
+    ]);
+  });
+
+  it("error keeps only error", () => {
+    expect(applyReviewSeverityThreshold(constructed, "error").map((finding) => finding.severity)).toEqual(["error"]);
+  });
+
+  it("info keeps all three", () => {
+    expect(applyReviewSeverityThreshold(constructed, "info").map((finding) => finding.severity)).toEqual([
+      "error",
+      "warning",
+      "info",
+    ]);
+  });
+});
+
+function expectSeverityRefused(token: string): void {
+  try {
+    resolveReviewSeverity(token);
+    expect.unreachable(`expected throw for ${JSON.stringify(token)}`);
+  } catch (error) {
+    expect(error).toBeInstanceOf(GraceCommandError);
+    const refused = error as GraceCommandError;
+    expect(refused.code).toBe("invalid-arguments");
+    expect(refused.message).toContain("error");
+    expect(refused.message).toContain("warning");
+    expect(refused.message).toContain("info");
+    expect(refused.message).not.toContain("Unrecognized argument");
+  }
+}
+
+describe("C-FINDING-SEVERITIES T-003 refuse-profile", () => {
+  it("land is invalid-arguments naming the three accepted values", () => {
+    expectSeverityRefused("land");
+  });
+
+  it("hotfix is invalid-arguments naming the three accepted values", () => {
+    expectSeverityRefused("hotfix");
+  });
+
+  it("empty is invalid-arguments naming the three accepted values", () => {
+    expectSeverityRefused("");
+  });
+
+  it("any other token is invalid-arguments naming the three accepted values", () => {
+    expectSeverityRefused("critical");
+  });
+
+  it("legal tokens still resolve and omitted means warning", () => {
+    expect(resolveReviewSeverity(undefined)).toBe("warning");
+    expect(resolveReviewSeverity("error")).toBe("error");
+    expect(resolveReviewSeverity("warning")).toBe("warning");
+    expect(resolveReviewSeverity("info")).toBe("info");
+  });
+
+  it("refusal envelope stays schemaVersion 1.0.0, ok false, error code plus message", () => {
+    try {
+      resolveReviewSeverity("land");
+      expect.unreachable("expected throw");
+    } catch (error) {
+      const refused = error as GraceCommandError;
+      const envelope = {
+        schemaVersion: "1.0.0" as const,
+        ok: false as const,
+        error: { code: refused.code, message: refused.message },
+      };
+      expect(Object.keys(envelope).sort()).toEqual(["error", "ok", "schemaVersion"]);
+      expect(envelope.schemaVersion).toBe("1.0.0");
+      expect(envelope.ok).toBe(false);
+      expect(Object.keys(envelope.error).sort()).toEqual(["code", "message"]);
+      expect(envelope.error.code).toBe("invalid-arguments");
+      expect(envelope.error.message).not.toContain("Unrecognized argument");
+    }
+  });
+});
+
+describe("C-FINDING-SEVERITIES T-004 contract-infos", () => {
+  function emptyReview() {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    return runReview(root, { patterns: false, joinEngine: false, processAudits: false });
+  }
+
+  it("Findings count line is findings N then errors, warnings, and infos", () => {
+    const result = emptyReview();
+    const line = formatReviewResult(result).split("\n").find((entry) => entry.startsWith("Findings:"));
+    expect(line).toBe(
+      `Findings: ${result.summary.findings} (errors: ${result.summary.errors}, warnings: ${result.summary.warnings}, infos: ${result.summary.infos})`,
+    );
+    expect(line).toMatch(/^Findings: \d+ \(errors: \d+, warnings: \d+, infos: \d+\)$/);
+  });
+
+  it("summary.infos is a number recounted from the displayed findings array", () => {
+    const result = emptyReview();
+    expect(typeof result.summary.infos).toBe("number");
+    expect(result.summary.infos).toBe(
+      result.findings.filter((finding) => finding.severity === "info").length,
+    );
+  });
+
+  it("ReviewResult top-level keys stay the existing nine names", () => {
+    const result = reviewWithErrorAndWarning();
+    expect(Object.keys(result).sort()).toEqual([
+      "attemptPairAudit",
+      "findings",
+      "root",
+      "schemaVersion",
+      "scopeAudit",
+      "shapeDataExemptions",
+      "summary",
+      "tool",
+      "writeEvidenceScopeAudit",
+    ]);
+    expect(result.schemaVersion).toBe("1.0.0");
+  });
+});
+
+describe("C-FINDING-SEVERITIES T-001 vocabulary", () => {
+  it("REVIEW_ISSUE_SEVERITIES equals error, warning, and info", () => {
+    expect([...REVIEW_ISSUE_SEVERITIES]).toEqual(["error", "warning", "info"]);
+  });
+
+  it("no live REVIEW_CATALOG code has severity info", () => {
+    expect(Object.values(REVIEW_CATALOG).filter((guide) => guide.severity === "info")).toEqual([]);
+  });
+
+  it("guideFor of the two warnings and the two live scope errors stay", () => {
+    expect(guideFor(ATTEMPT_PAIR_FINDING_CODE)!.severity).toBe("warning");
+    expect(guideFor("review.hunk-uncovered")!.severity).toBe("warning");
+    expect(guideFor(WRITE_EVIDENCE_SCOPE_FINDING_CODE)!.severity).toBe("error");
+    expect(guideFor("review.scope-outside-write-scope")!.severity).toBe("error");
+  });
+
+  it("a constructed ReviewFinding with severity info is legal", () => {
+    const finding: ReviewFinding = {
+      severity: "info",
+      code: "review.constructed",
+      file: "src/x.ts",
+      message: "constructed info finding",
+      findingId: "0".repeat(16),
+      ruleId: "constructed",
+      anchorOrHunkKey: "constructed",
+    };
+    expect(finding.severity).toBe("info");
   });
 });

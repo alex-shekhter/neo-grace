@@ -931,6 +931,20 @@ describe("README CLI Overview documents argv token as", () => {
   });
 });
 
+describe("C-FINDING-SEVERITIES T-005 readme-severity-row", () => {
+  it("contains a review row whose first ngrace cell names the severity argv token", () => {
+    const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");
+    const afterHeading = readme.split("## CLI Overview\n")[1];
+    const overview = afterHeading?.split(/^## /m)[0] ?? "";
+    const rows = overview.split("\n").filter((line) => line.startsWith("| `ngrace "));
+    const reviewRow = rows.find((line) => {
+      const cell = line.match(/`([^`]+)`/)?.[1] ?? "";
+      return /\breview\b/.test(cell) && /\[?--severity(?:\s|>|\]|$)/.test(cell);
+    });
+    expect(reviewRow).toBeDefined();
+  });
+});
+
 describe("README CLI Overview records unrecognized argument refusal", () => {
   it("Overview or the prose immediately around those tables records that unrecognized arguments are rejected and usage is printed", () => {
     const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");

@@ -11,6 +11,7 @@
 //   ATTEMPT_PAIR_FINDING_CODE
 //   WRITE_EVIDENCE_SCOPE_FINDING_CODE
 //   REVIEW_CATALOG
+//   REVIEW_ISSUE_SEVERITIES
 //   ReviewIssueGuide
 //   ReviewIssueSeverity
 //   allReviewCodes
@@ -27,7 +28,9 @@
  * Family B never moves the five-pattern trend rate.
  */
 
-export type ReviewIssueSeverity = "error" | "warning";
+export const REVIEW_ISSUE_SEVERITIES = ["error", "warning", "info"] as const;
+
+export type ReviewIssueSeverity = (typeof REVIEW_ISSUE_SEVERITIES)[number];
 
 export type ReviewIssueGuide = {
   code: string;

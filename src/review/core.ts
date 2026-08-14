@@ -32,10 +32,12 @@
 //   auditTestWeakening
 //   expandScopePathsForArchiveIdentity
 //   findingId
+//   applyReviewSeverityThreshold
 //   formatReviewResult
 //   isReviewIssueCode
 //   listRuntimeSourceFilesForMarkerScan
 //   resolveChangePlanPath
+//   resolveReviewSeverity
 //   runJoinProbes
 //   runPatternDetectors
 //   runPatternDetectorsWithMeta
@@ -56,6 +58,7 @@ import path from "node:path";
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { resolveNgracePaths } from "../artifact/project";
 import { observedWriteScopeContains } from "../artifact/scope";
+import { GraceCommandError } from "../query/errors";
 import {
   ANCHOR_PATTERNS,
   isRegisteredSemanticAnchor,
@@ -83,10 +86,12 @@ import {
 } from "../query/core";
 import {
   ATTEMPT_PAIR_FINDING_CODE,
+  REVIEW_ISSUE_SEVERITIES,
   WRITE_EVIDENCE_SCOPE_FINDING_CODE,
   REVIEW_CATALOG,
   guideFor,
   type ReviewIssueGuide,
+  type ReviewIssueSeverity,
 } from "./catalog";
 import {
   SHAPE_DATA_MARKER,
@@ -94,7 +99,7 @@ import {
 } from "./shape-data";
 
 export type ReviewFinding = {
-  severity: "error" | "warning";
+  severity: ReviewIssueSeverity;
   code: string;
   file: string;
   message: string;
@@ -183,6 +188,7 @@ export type ReviewResult = {
     findings: number;
     errors: number;
     warnings: number;
+    infos: number;
     /** Count of shape-data exemptions (same as shapeDataExemptions.length). */
     shapeDataExemptions: number;
   };
@@ -243,6 +249,11 @@ export type ReviewOptions = {
    * Ignored when `changedFiles` is defined.
    */
   baseRef?: string;
+  /**
+   * Minimum severity threshold. Omitted equals warning (error plus warning).
+   * A finding is kept when its rank is at least this token.
+   */
+  severity?: ReviewIssueSeverity;
   testFileDiffs?: TestFileDiff[];
   lintCodesBefore?: string[];
   lintCodesAfter?: string[];
@@ -253,6 +264,36 @@ export type ReviewOptions = {
   processAudits?: boolean;
   joinEngine?: boolean;
 };
+
+const REVIEW_SEVERITY_RANK: Record<ReviewIssueSeverity, number> = {
+  error: 2,
+  warning: 1,
+  info: 0,
+};
+
+/** Keep findings whose severity rank is at least the threshold. */
+export function applyReviewSeverityThreshold(
+  findings: ReviewFinding[],
+  threshold: ReviewIssueSeverity,
+): ReviewFinding[] {
+  const minimum = REVIEW_SEVERITY_RANK[threshold];
+  return findings.filter((finding) => REVIEW_SEVERITY_RANK[finding.severity] >= minimum);
+}
+
+/**
+ * Closed-set resolver. Undefined means warning; present must be exactly
+ * a REVIEW_ISSUE_SEVERITIES member.
+ */
+export function resolveReviewSeverity(value: string | undefined): ReviewIssueSeverity {
+  if (value === undefined) return "warning";
+  if ((REVIEW_ISSUE_SEVERITIES as readonly string[]).includes(value)) {
+    return value as ReviewIssueSeverity;
+  }
+  throw new GraceCommandError(
+    "invalid-arguments",
+    `Invalid severity ${JSON.stringify(value)}. Accepted values: ${REVIEW_ISSUE_SEVERITIES.join(", ")}.`,
+  );
+}
 
 /** Resolve plan.xml under active/ first, then archive/ (read-only; corr 139). */
 export function resolveChangePlanPath(
@@ -1601,19 +1642,22 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
       || a.findingId.localeCompare(b.findingId),
   );
 
+  const displayed = applyReviewSeverityThreshold(findings, options.severity ?? "warning");
+
   return {
     schemaVersion: "1.0.0",
     tool: "ngrace-review",
     root,
-    findings,
+    findings: displayed,
     shapeDataExemptions,
     scopeAudit,
     attemptPairAudit,
     writeEvidenceScopeAudit,
     summary: {
-      findings: findings.length,
-      errors: findings.filter((f) => f.severity === "error").length,
-      warnings: findings.filter((f) => f.severity === "warning").length,
+      findings: displayed.length,
+      errors: displayed.filter((f) => f.severity === "error").length,
+      warnings: displayed.filter((f) => f.severity === "warning").length,
+      infos: displayed.filter((f) => f.severity === "info").length,
       shapeDataExemptions: shapeDataExemptions.length,
     },
   };
@@ -1855,7 +1899,7 @@ export function formatReviewResult(result: ReviewResult): string {
     "neo-grace Review Report",
     "=======================",
     `Root: ${result.root}`,
-    `Findings: ${result.summary.findings} (errors: ${result.summary.errors}, warnings: ${result.summary.warnings})`,
+    `Findings: ${result.summary.findings} (errors: ${result.summary.errors}, warnings: ${result.summary.warnings}, infos: ${result.summary.infos})`,
     `Shape-data exemptions: ${result.summary.shapeDataExemptions}`,
     "",
   ];

@@ -198,7 +198,7 @@ and never move a bundle. `ngrace review` never records a verdict. The separation
 | `ngrace gate apply --change C-ID` | Evaluate the apply transition — a recorded review verdict of some outcome is required |
 | `ngrace gate archive --change C-ID` | Evaluate the archive transition (an open epoch refuses) |
 | `ngrace gate verdict --change C-ID --outcome pass\|fail\|unable-to-determine` | Record judgment in `run-ledger.xml`; optional `--reason`, `--note`, `--scope task\|wave\|bundle`, `--classification implementation\|plan` |
-| `ngrace review --path <root> [--change C-ID] [--base <ref>]` | Mechanized detectors and process audits with deterministic finding IDs; with `--change`, an `ObservedWriteScope` scope audit |
+| `ngrace review --path <root> [--change C-ID] [--base <ref>] [--severity <token>]` | Mechanized detectors and process audits with deterministic finding IDs; with `--change`, an `ObservedWriteScope` scope audit |
 | `ngrace cursor show --change C-ID` | Show durable run position (never writes; recovers rather than blocks) |
 | `ngrace cursor regenerate --change C-ID [--apply]` | Re-derive `run.xml` from ledger, loose events, and codebase evidence (dry-run by default) |
 | `ngrace cursor advance --change C-ID` | Append a structural run event and keep the epoch in progress |
