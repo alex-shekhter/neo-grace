@@ -5295,3 +5295,51 @@ hand-write around it — **amend the decision instead.**
 trust boundary, and it is the half that would have caught both measured runs, since **neither ever
 requested an approval at all**. A future service that ships without the detection half has not fixed
 F88.
+
+### F87.1 correction — lint does validate; it trusts a validator that is not XML 1.0 conformant. **[verified]**
+
+[F87](#f87) said lint *"still does not check XML well-formedness."* **The symptom was right and the
+mechanism was wrong**, which matters because it changes what the repair is.
+
+**Measured.** `parseGraceXmlArtifact` already calls `XMLValidator.validate` on **every** artifact
+(`src/artifact/xml.ts:87-89`) and emits `xml.parse` on failure. Lint is not skipping validation. It is
+trusting `fast-xml-parser`, and that implementation is **not conformant**. A differential against a
+conformant parser over the same samples disagrees on four cases — `fast-xml-parser` **accepts** all
+four:
+
+| case | fast-xml-parser | conformant |
+|---|---|---|
+| `&mdash;` in text | accept | reject — undefined entity |
+| `&nbsp;` in an attribute value | accept | reject — undefined entity |
+| `--` inside a comment body | accept | reject — not well-formed |
+| **two root elements** | **accept** | reject — junk after document element |
+
+**So "turn the validator on" is not the fix — it is already on.** This is a parser-conformance
+decision, not a wiring change.
+
+**And the shape of the existing workaround is now explicable.** P1.13's `xml.comment-not-well-formed`
+is a hand-rolled string scan for `--` plus a nine-path escape hatch. It exists **because the vendored
+validator misses that case too** — P1.13 met this same leniency, patched the one instance it had
+found, and left the general defect. That is [F46](#f46)/[F49](#f49)/[F52](#f52)'s pattern with its
+cause visible in the source.
+
+**The corpus is far cleaner than F87 implied.** Of **199** XML files, **9 fail** a conformant parse —
+all one cause (`--` in comment bodies, from CLI flags written inside comments), all in archived plans.
+`COMMENT_WELL_FORMED_PATH_ALLOWLIST` (`src/artifact/xml.ts:39-49`) names **exactly those nine**: set
+equality, not overlap. Both skill template trees pass. **No migration strategy is needed** — the open
+question is only whether to repair the nine and delete the allowlist, or widen the allowlist to cover
+`xml.parse` as well. Note the allowlist currently suppresses only the comment rule, so under a
+conformant parser those nine would fail at `xml.parse` and lose **all** downstream grammar checking,
+since that path returns `root: null`.
+
+**Two things the sweep surfaced that no finding had.** `allowBooleanAttributes: true`
+(`src/artifact/xml.ts:88`) is a **deliberate non-conformance already in the configuration** — a
+conformant parser rejects bare attributes, so any swap needs a decision on whether GRACE artifacts may
+use them. And **a file with two root elements is accepted today**: a concatenated or duplicated
+artifact is a corruption mode nothing in the product catches.
+
+**The rule.** When a checker is found to miss a case, establish **whether it ran and was wrong** or
+**never ran** before naming the defect — the repairs are different, and "it does not check" reads as a
+wiring bug when the real answer is that the dependency's semantics differ from the standard the
+product claims. Where a claim rests on a vendored implementation, **test the vendor against the
+standard**, not the product against itself.
