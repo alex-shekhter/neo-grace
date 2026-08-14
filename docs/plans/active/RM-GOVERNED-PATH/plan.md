@@ -398,13 +398,21 @@ paragraph. **The cure is attribution, not suppression.**
    reviewed-id gate re-opens F11.2. The stay-audited clause is this step's load-bearing half. `.ngrace/graph`, `.ngrace/verification`,
    `.ngrace/context` writes **stay audited** (ag1 F-2's own condition): those are real
    durable writes that must be declared.
-3. **Bundle-stored base ref.** At `gate approve`, record `BaseCommit` into the change's
+3. **Bundle-stored base ref.** At `gate approve`, record the base commit into the change's
    run-ledger — a recorded fact, not authored plan state, consistent with §3.3.
-   `ngrace review --change C-ID` then defaults its universe to `base..working-tree`
-   name-only instead of raw porcelain: pre-existing dirt never enters the audit. No-git
-   fallback keeps porcelain **and prints the explicit caveat** ("no base commit — cannot
-   attribute pre-existing changes"), so the weaker audit is never silent. Existing
-   `--base` / `--changed-files` remain as overrides.
+   `ngrace review --change C-ID` then defaults its universe to that commit versus the working
+   tree, instead of raw porcelain. Existing `--base` / `--changed-files` remain as overrides.
+
+   **Three clauses of the original wording could not be built — see F81, corrected here.** It said a
+   `BaseCommit` *child*: a non-`Requirement` child of `<Decision>` is `ledger.invalid-decision`, which
+   would invalidate the very approve event this record exists to key. It is an **attribute**. It said
+   the no-git fallback *keeps porcelain*: `review` already becomes `unable-to-determine` when git
+   fails, so the honest split is **git-present-but-unrecorded** (porcelain plus caveat) versus
+   **git-absent** (existing absence plus caveat). It said `base..working-tree`, which is not git
+   syntax, while the existing `--base` helper is `base...HEAD` — reusing it would go **blind on
+   uncommitted work**, so this needs its own commit-versus-worktree walk that unions untracked files.
+   And **"pre-existing dirt never enters" overclaims a SHA**: files already dirty at approve still
+   differ from that commit. A dirty-set inventory is D2 / P4, not this step.
 
    **Settled by D3.** The ref lives in the change's `run-ledger.xml`, written by `gate approve` as
    part of the approve event. The repository-scoped half of the question belongs to P4.2's adoption

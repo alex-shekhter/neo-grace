@@ -4961,3 +4961,37 @@ a green that was never observed red.
 must both flip, either assert them in separate cases so each failure is printed, or record separate
 signatures. F68 asks whether two reds can fail *alone*; this asks the complementary question — whether
 a single red *proves* everything it is cited for. Ask both at plan review.
+
+### F81 — P2.3's wording would have invalidated the record it exists to create. **[verified]**
+
+Sixth roadmap claim in this phase to fail construction. Caught by the executor at
+`C-BUNDLE-BASE-REF`'s spec authoring; all four points verified independently.
+
+1. **`BaseCommit` as a child invalidates the approve event.** A non-`Requirement` child of
+   `<Decision>` raises `ledger.invalid-decision` (`src/artifact/grammar.ts:896`,
+   `src/gates/ledger.ts:553`). The step says this record is *"what D1's detection rule keys on"* in
+   P3.7 — so the prescribed shape would have **destroyed the readability of the event it was
+   written for**. Extra *attributes* are already accepted, so an attribute is the only shape that
+   preserves the key.
+2. **"No-git fallback keeps porcelain" is already false.** `listRepositoryChangedFiles` returns
+   `available: false` when git fails and `review` becomes `unable-to-determine`. The honest split is
+   **git present but nothing recorded** (porcelain plus caveat) versus **git absent** (existing
+   absence plus caveat) — two different silences, and the step conflated them.
+3. **`base..working-tree` is not git syntax**, and the existing `--base` helper the same sentence
+   preserves is `base...HEAD` (`src/grace-cursor.ts:1594`). Wiring the recorded sha into that helper
+   is the obvious implementation and **goes blind on uncommitted work** — the exact writes an audit
+   at review time most needs to see. It needs its own commit-versus-worktree walk, and one that
+   unions untracked files, since porcelain includes them and `git diff --name-only <sha>` does not.
+4. **"Pre-existing dirt never enters the audit" overclaims a SHA.** Files already dirty at approve
+   still differ from that commit. Only a recorded dirty-set inventory would deliver that sentence, and
+   the step assigns that to D2 / P4.
+
+**And the step never said what re-approval does.** Measured: **five archived bundles already carry two
+permitting approve `Decision`s**, and permit lookup is newest-governs (`src/gates/ledger.ts:120`). A
+recorded fact that newest-governs is **a silent rewrite** — so the reader must be first-in-document-
+order and the writer first-observation-wins, never storing a different object name (D9, append-only).
+
+**The rule.** When a step prescribes *where* a fact is stored, check that the store accepts that shape
+**and** that the shape survives every reader that already depends on it. A record designed to key a
+future detection rule is worthless if writing it makes the event unreadable — and "record X at Y" is
+silently a schema change whenever Y is validated.
