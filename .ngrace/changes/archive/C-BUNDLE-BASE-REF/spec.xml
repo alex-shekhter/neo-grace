@@ -1,0 +1,1087 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-BUNDLE-BASE-REF>
+    <Summary>
+      P2.3 only: gate approve
+      records the observed HEAD
+      object name as attribute
+      baseCommit on the permitting
+      approve Decision, first
+      observation wins; review
+      with argv token change and
+      no overrides then defaults
+      the scope-audit universe to
+      that commit versus the
+      working tree, name-only.
+      No recorded base keeps
+      porcelain and prints the
+      caveat. Existing argv tokens
+      base and changed-files stay
+      as overrides. P2.4 through
+      P2.6 are out.
+    </Summary>
+    <Problem>
+      **Shared shape.** P2 of
+      RM-GOVERNED-PATH is one glob
+      language and one audit
+      universe. C-ONE-GLOB-LANGUAGE
+      delivered steps 1 and 2.
+      This bundle is step 3.
+      Authoring HEAD 9fcefc5 on
+      feat/bundle-base-ref, cut
+      from main at that commit,
+      packaged 6.2.0, tree clean,
+      active empty before this
+      bundle, lint 0/0 across 155
+      XML artifacts. Those numbers
+      are a snapshot (F33).
+
+      ---
+
+      **Settled by RM-GOVERNED-PATH
+      D3, re-measured this
+      session.** The per-change
+      question is "what changed
+      since this change started."
+      The home is this change's
+      run-ledger.xml, written by
+      gate approve as part of the
+      approve event. The
+      repository-scoped half is
+      P4.2 / RM-GOVERNED-PATH D2
+      and is out. This is also the
+      approve event RM-GOVERNED-PATH
+      D1's detection rule keys on
+      in P3.7, so the Decision's
+      identity (attributes gate and
+      decision) must stay readable.
+
+      ---
+
+      **HEAD, measured, not
+      inherited.** Nothing in src/
+      names BaseCommit or
+      baseCommit. evaluateApproveGate
+      (gates/core.ts) returns
+      permit or refuse from
+      clarifications; it writes
+      nothing. recordGateDecision
+      (gates/ledger.ts) appends
+      Decision with attributes
+      gate and decision and
+      Requirement children only.
+      parseDecisionNode returns
+      invalid on any
+      non-Requirement child.
+      validateLedgerDecisionsSection
+      (grammar.ts) raises
+      ledger.invalid-decision for
+      the same child. Extra
+      attributes are accepted
+      today by both the grammar
+      and the permit reader.
+      Archived permitting approve
+      Decisions exist in volume
+      (including two-permit
+      pairs on the same bundle)
+      and none carry a base
+      attribute.
+
+      ---
+
+      **Review universe, measured.**
+      resolveScopeChangedFiles
+      (review/core.ts): defined
+      changedFiles wins; else
+      non-empty argv token base
+      calls listFilesChangedAgainstBase
+      (grace-cursor.ts), which is
+      three-dot name-only to HEAD
+      with diff-filter ACMR; else
+      porcelain via
+      listRepositoryChangedFiles.
+      Empty porcelain is not-run
+      (corr 169). Unavailable git
+      is unable-to-determine.
+      There is no recorded-base
+      branch. review/command.ts
+      still refuses both override
+      flags together.
+
+      ---
+
+      **The step text is wrong in
+      two places, corrected here
+      rather than inherited
+      (F79).** (1) "no-git fallback
+      keeps porcelain" is false
+      for a host with no git:
+      porcelain already fails and
+      the audit is
+      unable-to-determine. The
+      porcelain-plus-caveat case
+      is git present and no
+      recorded base. (2)
+      "pre-existing dirt never
+      enters" is stronger than a
+      commit object can buy:
+      files already dirty at
+      approve still differ from
+      that commit. A SHA is not a
+      dirty-set inventory
+      (RM-GOVERNED-PATH D2). The
+      honest claim is: paths that
+      match the recorded commit
+      and are not new untracked
+      files leave the universe;
+      undeclared writes since that
+      commit still raise.
+
+      ---
+
+      **F66.** This spec decides
+      README.md and examples/ in a
+      Goal, Constraint, or NonGoal
+      body. README.md is unchanged.
+      examples/ is unchanged.
+
+      ---
+
+      **F61.** This spec names
+      exported functions and argv
+      tokens in any comment body
+      and does not write dashed
+      CLI flags inside XML
+      comments.
+    </Problem>
+    <Goals>
+      <Goal>
+        **Recorded fact.** A
+        permitting gate approve
+        that records writes
+        attribute baseCommit on
+        that Decision, equal to
+        git rev-parse HEAD at the
+        first successful
+        observation. evaluate stays
+        git-free. The attribute is
+        omitted when git cannot
+        name HEAD and no prior
+        value exists. Refuse,
+        apply, and archive
+        Decisions never carry it.
+      </Goal>
+      <Goal>
+        **Stable fact.** A later
+        permitting approve does
+        not write a different
+        object name. It copies the
+        first recorded value or
+        omits the attribute if
+        none exists yet. The
+        Decision list only grows
+        (RM-GOVERNED-PATH D9).
+      </Goal>
+      <Goal>
+        **Default universe.**
+        review with argv token
+        change and neither
+        override, when a recorded
+        baseCommit resolves, runs
+        the scope audit over
+        name-only paths that
+        differ between that commit
+        and the working tree,
+        including untracked files,
+        POSIX-normalized at the
+        helper. inputSource is
+        recorded-base, distinct
+        from argv token base
+        (still three-dot to HEAD).
+      </Goal>
+      <Goal>
+        **Honest weaker audit.**
+        When argv token change is
+        set, no override is set,
+        and no recorded base exists,
+        porcelain remains and both
+        text and JSON carry the
+        caveat sentence. An
+        unresolvable recorded sha
+        is unable-to-determine and
+        does not fall back to
+        porcelain.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: RM-GOVERNED-PATH
+        P2.3 and D3; RM-GOVERNED-PATH
+        D1 / D1.4 (P3.7 will key
+        on the approve event's
+        existence, not on
+        baseCommit being present,
+        and must not see invalid);
+        RM-GOVERNED-PATH D5.2 (the
+        narrower universe is not
+        a compatibility break:
+        pre-change dirt leaving
+        the audit is the point);
+        RM-GOVERNED-PATH D5.5
+        (CHANGELOG.md is generated;
+        the release note is the
+        commit body); RM-GOVERNED-PATH
+        D9 (append only; do not
+        rewrite a recorded
+        Decision); RM-GOVERNED-PATH
+        D13 (no new LintResult
+        JSON top-level key; no new
+        ReviewResult top-level
+        key; no new review finding
+        code); RM-AGENT-RELIABILITY
+        D5 (typed absence: one
+        value plus a required
+        reason; this plan's D5 is
+        the separator rule, F74);
+        RM-GOVERNED-PATH D16
+        (evidence lives in an
+        artifact); RM-GOVERNED-PATH
+        D17 (AC ids name the
+        property); F10 (claim only
+        what the body verifies);
+        F27.2 and F64
+        (ObservedWriteScope covers
+        every path the deliverable
+        forces); F33 (do not freeze
+        suite counts, archive
+        counts, review-code
+        cardinality, or line
+        numbers this change
+        moves); F42 (no MustContain
+        or MustNotContain needle
+        that README.md, a skill, a
+        template, or a skeleton
+        may legitimately contain);
+        F43 (this artifact binds
+        semantics; tests assert
+        literal bytes); F44 (pin
+        where a user-visible
+        string appears); F52
+        (change.plan-scope-exceeds-spec
+        compares DurableScope
+        anchors at warning); F56 /
+        F67 (signatureKey names
+        the property, not the test
+        file stem); F61 (no two
+        adjacent hyphens in any
+        XML comment body); F66
+        (this spec decides
+        README.md and examples/);
+        F68 (two planned reds are
+        independently observable);
+        F73 (path lists are POSIX
+        project-relative at the
+        helper, not at the test
+        comparison; CI is the only
+        observer of separators);
+        F75 (red counts live in
+        AC-HEAD-RED alone); F80
+        (one recorded red, one
+        observable property).
+      </Constraint>
+      <Constraint>
+        Ceremony tier **T2**
+        (gate record plus review
+        universe). P2.4 through
+        P2.6 are out.
+      </Constraint>
+      <Constraint>
+        **Decided here — attribute,
+        not child, not sibling.**
+        baseCommit is an attribute
+        on the permitting approve
+        Decision. A BaseCommit
+        child is forbidden: both
+        parseDecisionNode and
+        validateLedgerDecisionsSection
+        treat a non-Requirement
+        child as
+        ledger.invalid-decision,
+        which would make the
+        approve event unreadable
+        and vacate the P3.7
+        trigger this record
+        exists to create. A
+        sibling section is the
+        sidecar RM-GOVERNED-PATH
+        D3 rejected. Historical
+        Decisions without the
+        attribute stay valid.
+        parseDecisionNode copies a
+        non-empty baseCommit
+        attribute onto
+        GateDecisionRecord and
+        still returns invalid
+        only for the children it
+        already rejects.
+      </Constraint>
+      <Constraint>
+        **Decided here — who
+        writes, when.** The
+        observation runs in the
+        record path
+        (recordGateDecision /
+        the approve command's
+        record=true branch),
+        never inside
+        evaluateApproveGate.
+        argv token record false
+        writes no Decision and
+        no baseCommit. First
+        permitting approve with
+        a resolvable HEAD writes
+        that object name. A later
+        permitting approve copies
+        the first stored value
+        when one exists; it never
+        stores a different name.
+        If the first permit had
+        no git and a later permit
+        can name HEAD, that later
+        permit is the first
+        observation and may write
+        it. Newest-governs for
+        permit lookup is
+        unchanged and is not the
+        reader for this fact.
+        The reader is the first
+        permitting approve
+        Decision in document
+        order whose baseCommit
+        is non-empty
+        (listGateDecisions).
+      </Constraint>
+      <Constraint>
+        **Decided here — universe
+        and overrides.** Order:
+        defined changedFiles
+        (including empty) stays
+        caller-owned; else
+        non-empty argv token base
+        stays three-dot name-only
+        to HEAD via
+        listFilesChangedAgainstBase
+        (do not change that
+        helper); else when argv
+        token change is set and
+        a recorded baseCommit
+        resolves, use the new
+        commit-versus-working-tree
+        name-only set
+        (diff-filter ACMR, plus
+        untracked, same path
+        normalize as the existing
+        helpers); else porcelain.
+        The two-dot phrase in the
+        roadmap is the
+        commit-versus-worktree
+        set, not a change to
+        argv token base. Do not
+        reuse listFilesChangedAgainstBase
+        for the recorded default:
+        that helper stops at HEAD
+        and would go blind on
+        uncommitted work.
+      </Constraint>
+      <Constraint>
+        **Decided here — caveat
+        and absence.** Exact
+        caveat sentence, pinned
+        (F44): no base commit —
+        cannot attribute
+        pre-existing changes.
+        It appears in the Scope
+        audit text line and in
+        scopeAudit.reason when
+        argv token change is set,
+        no override is set, and
+        no recorded base exists
+        (porcelain ran, porcelain
+        not-run, or git
+        unavailable). It does not
+        appear when the recorded
+        universe ran, and it does
+        not appear under an
+        override. An unresolvable
+        recorded sha is
+        unable-to-determine
+        naming that sha; it does
+        not print this sentence
+        (the fact exists; it does
+        not resolve) and it does
+        not fall back to
+        porcelain (RM-AGENT-RELIABILITY
+        D5; RM-GOVERNED-PATH D2.1
+        same posture). No new
+        ReviewResult key.
+      </Constraint>
+      <Constraint>
+        **Decided here — what
+        existing reports do.**
+        Intentional: with a
+        recorded resolvable base
+        and no override,
+        review.scope-outside-write-scope
+        findings on paths that
+        do not differ from that
+        commit leave the report;
+        undeclared paths that do
+        differ still raise; after
+        a clean commit of work
+        since the base the scope
+        audit runs instead of
+        corr-169 not-run. Not
+        changed: WriteEvidence
+        scope audit, attempt-pair
+        audit, unscoped review,
+        argv token base,
+        argv token changed-files,
+        the any-C-* lifecycle
+        exclusion, stay-audited
+        durable trees. Historical
+        bundles with an approve
+        event and no baseCommit
+        keep porcelain and gain
+        only the caveat line.
+      </Constraint>
+      <Constraint>
+        **Decided here — F56 /
+        F67 / F68 / F80.**
+        signatureKey names the
+        property: record-base,
+        base-stable,
+        review-universe,
+        base-unresolved,
+        caveat-text,
+        caveat-json. Do not key
+        on a test file stem.
+        Two planned reds in one
+        task must be able to
+        fail alone. caveat-text
+        and caveat-json are
+        separate properties
+        (F80): do not put both
+        surfaces in one case
+        that short-circuits.
+        A task may plan at most
+        three distinct
+        kind-plus-key pairs. Do
+        not state how many fail
+        events a property implies
+        except in AC-HEAD-RED
+        (F75).
+      </Constraint>
+      <Constraint>
+        AffectedAreas names
+        modules. File-level scope
+        is enforced at close by
+        review.write-evidence-outside-scope
+        (error), not at authoring
+        (F52). ObservedWriteScope
+        must still list every
+        path the deliverable
+        forces (F27.2, F64).
+        Forced write surface:
+        src/gates/ledger.ts
+        (write and read attribute
+        baseCommit on Decision;
+        parseDecisionNode stays
+        valid);
+        src/gates/command.ts
+        (observe HEAD only on
+        the approve record path);
+        src/gates/core.test.ts
+        and the ledger tests the
+        writer forces;
+        src/review/core.ts
+        (recorded-base branch,
+        new worktree helper,
+        caveat in
+        formatScopeAuditLine and
+        scopeAudit.reason);
+        src/review/core.test.ts
+        (universe, both caveat
+        surfaces, unresolved
+        sha, corr 169 without a
+        record, overrides
+        unchanged);
+        src/review/command.ts
+        (help text: argv token
+        base overrides a recorded
+        base);
+        this bundle's spec.xml
+        and plan.xml.
+        **Stop and re-spec**
+        rather than touching
+        src/grace-cursor.ts
+        (listFilesChangedAgainstBase
+        stays three-dot to HEAD),
+        src/gates/core.ts
+        (evaluateApproveGate stays
+        git-free),
+        src/artifact/grammar.ts
+        (no child-tag widening),
+        src/artifact/schema-reference.ts,
+        docs/schema-reference.md,
+        src/review/catalog.ts,
+        src/verification/localize.test.ts
+        (review-code cardinality
+        unmoved),
+        src/test-support/token-accounting.ts
+        (F74.2; this bundle does
+        not open that file),
+        README.md, examples/,
+        skills/, plugins/,
+        docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md, any version
+        surface, or a new review
+        finding code.
+      </Constraint>
+      <Constraint>
+        **Do not edit**
+        docs/plans/**,
+        .ngrace/changes/archive/**,
+        CHANGELOG.md, or any
+        version surface.
+        Packaged version at
+        authoring: **6.2.0**.
+        No product version bump.
+        6.3.0 is a phase target,
+        not this bundle's act.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine for this
+        bundle: red-first is
+        mechanical for new
+        behaviour. Failing tests
+        are written before the fail
+        attempt is recorded, in a
+        separate tool round trip.
+        Never a retrospective red
+        via stash. Never weaken a
+        BaselineAssertion to move
+        a lint count. F42: plan
+        assertions bind to
+        exported names, attribute
+        names, and issue codes,
+        not to AC ids or the
+        caveat sentence as a free
+        needle. F61: this
+        bundle's artifacts must
+        not hold two adjacent
+        hyphen characters inside
+        any XML comment body.
+        F73: normalize at the
+        helper; state in the close
+        verdict that CI is the
+        only observer of
+        separators.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        README.md unchanged; no
+        new invocation, and the
+        default universe is
+        visible on every review
+        with argv token change
+        via the Scope audit line
+        and the caveat. examples/
+        unchanged; WALKTHROUGH
+        keeps argv token
+        changed-files as the
+        override it already is.
+        No example tree documents
+        baseCommit.
+      </NonGoal>
+      <NonGoal>
+        P2.4 drift credit from
+        applied bundles. P2.5
+        finding severities. P2.6
+        honest nextAction. P3.1
+        lifecycle finish. P3.7
+        the hand-written applied
+        finding (this step only
+        creates the approve
+        record that finding will
+        key on). P4 adoption
+        boundary. Changing
+        status porcelain.
+      </NonGoal>
+      <NonGoal>
+        A BaseCommit child tag
+        or sibling section.
+        Widening Decision
+        children. Changing
+        listFilesChangedAgainstBase.
+        Putting git in
+        evaluateApproveGate.
+        A dirty-set inventory
+        beside the sha. A new
+        review finding code. A
+        new registered schema
+        shape. A new ReviewResult
+        or LintResult top-level
+        key. Qualifying the bare
+        D15 in
+        src/test-support/token-accounting.ts
+        (F74.2).
+      </NonGoal>
+      <NonGoal>
+        An NGRACE_ARTIFACT_VERSION
+        bump. A package.json
+        version bump. Skill or
+        plugin edits. Editing
+        CHANGELOG.md.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-RECORD-BASE>
+        A permitting gate approve
+        with recording on writes
+        attribute baseCommit on
+        that Decision equal to
+        git rev-parse HEAD when
+        that command succeeds.
+        evaluateApproveGate still
+        does not spawn git.
+        Recording off writes no
+        Decision and no
+        attribute. A refuse
+        approve, and every apply
+        or archive Decision,
+        omit the attribute. An
+        unreadable HEAD at first
+        observation omits the
+        attribute (no empty
+        value, no unknown token).
+        parseDecisionNode returns
+        a valid record when the
+        attribute is present.
+        listGateDecisions still
+        treats the event as a
+        permitting approve.
+        **HEAD today:** Decision
+        attributes are only gate
+        and decision.
+        **Failure conditions:**
+        a child tag; writing the
+        attribute from evaluate;
+        writing it on refuse or
+        apply; inventing a value
+        when git fails; making
+        parseDecisionNode invalid
+        on the new attribute.
+      </AC-RECORD-BASE>
+      <AC-BASE-STABLE>
+        Given a permitting
+        approve Decision that
+        already carries
+        baseCommit=A, a later
+        permitting approve whose
+        HEAD is B (B not equal
+        A) writes either no
+        baseCommit or
+        baseCommit=A. It never
+        writes B. The earlier
+        Decision bytes are not
+        rewritten. The reader
+        (first permitting approve
+        with a non-empty
+        baseCommit) still returns
+        A.
+        **HEAD today:** a second
+        approve appends another
+        Decision with no
+        baseCommit (live archive
+        shape).
+        **Failure conditions:**
+        silently storing B;
+        rewriting the first
+        Decision in place;
+        newest-governs becoming
+        the reader for this fact.
+      </AC-BASE-STABLE>
+      <AC-REVIEW-UNIVERSE>
+        review with argv token
+        change, no overrides, and
+        a resolvable recorded
+        baseCommit runs the scope
+        audit over the
+        commit-versus-working-tree
+        name-only set
+        (inputSource
+        recorded-base, baseRef
+        equal to that sha). A
+        path that differs from
+        the commit and is outside
+        ObservedWriteScope still
+        raises
+        review.scope-outside-write-scope.
+        A path that does not
+        differ and is not new
+        untracked does not enter.
+        Uncommitted new tracked
+        and untracked paths since
+        the commit do enter.
+        After a clean commit of
+        in-scope work since the
+        base, the audit runs
+        (not corr-169 not-run).
+        Without a recorded
+        baseCommit, corr 169
+        empty-porcelain not-run
+        still holds.
+        **HEAD today:** no
+        recorded-base branch;
+        clean tree is not-run.
+        **Failure conditions:**
+        calling
+        listFilesChangedAgainstBase
+        for this default;
+        dropping untracked;
+        leaving clean-tree
+        committed work as
+        not-run; changing
+        unscoped review.
+      </AC-REVIEW-UNIVERSE>
+      <AC-UNRESOLVED>
+        A recorded baseCommit
+        that git cannot resolve
+        makes the scope audit
+        unable-to-determine. The
+        reason names the sha.
+        The audit does not run
+        over porcelain. The
+        caveat sentence from
+        AC-CAVEAT-TEXT is absent.
+        **HEAD today:** no reader,
+        so a fixture attribute is
+        ignored and porcelain
+        runs.
+        **Failure conditions:**
+        silent porcelain
+        fallback; using the
+        no-base caveat sentence
+        for a present-but-dead
+        ref.
+      </AC-UNRESOLVED>
+      <AC-CAVEAT-TEXT>
+        When argv token change is
+        set, no override is set,
+        and no recorded base
+        exists, formatReviewResult
+        prints the exact sentence
+        no base commit — cannot
+        attribute pre-existing
+        changes on the Scope
+        audit line (F44). The
+        sentence is absent when
+        recorded-base ran and
+        absent under either
+        override.
+        **HEAD today:** the
+        sentence is absent.
+        **Failure conditions:**
+        printing it only in a
+        finding; swallowing it
+        when findings is 0;
+        printing it after a
+        successful recorded-base
+        run.
+      </AC-CAVEAT-TEXT>
+      <AC-CAVEAT-JSON>
+        Under the same conditions
+        as AC-CAVEAT-TEXT,
+        scopeAudit.reason
+        contains that same
+        sentence. No new
+        ReviewResult top-level
+        key appears. schemaVersion
+        stays 1.0.0.
+        **HEAD today:**
+        scopeAudit.reason names
+        porcelain absence or
+        working-tree porcelain
+        and does not contain
+        that sentence.
+        **Failure conditions:**
+        text-only caveat; a new
+        top-level JSON key;
+        JSON silence while text
+        speaks.
+      </AC-CAVEAT-JSON>
+      <AC-OVERRIDES>
+        Defined changedFiles
+        (including empty) still
+        wins and still names
+        the empty set as
+        caller-owned. Non-empty
+        argv token base still
+        uses
+        listFilesChangedAgainstBase
+        (three-dot to HEAD) and
+        still ignores a recorded
+        sha. Passing both
+        override flags still
+        refuses. WriteEvidence
+        and attempt-pair audits
+        still read the ledger,
+        not this universe.
+        **HEAD today:** already
+        true (F45).
+        **Failure conditions:**
+        recorded-base overriding
+        an explicit flag;
+        changing the three-dot
+        helper.
+      </AC-OVERRIDES>
+      <AC-HEAD-RED>
+        Each of AC-RECORD-BASE,
+        AC-BASE-STABLE,
+        AC-REVIEW-UNIVERSE,
+        AC-UNRESOLVED,
+        AC-CAVEAT-TEXT, and
+        AC-CAVEAT-JSON has a red
+        recorded before its
+        production edit, in its
+        own tool round trip, with
+        the failing test written
+        first, under the
+        signature keys named
+        above. Never a red backed
+        only by a grep, and never
+        a retrospective red via
+        stash.
+        **Exempt (F45, named at
+        authoring):**
+        AC-OVERRIDES (already
+        true at HEAD);
+        AC-SUITE-AND-LINT (green
+        at HEAD; close-time bar);
+        allReviewCodes cardinality
+        unmoved; localize
+        excluded-review-code
+        cardinality unmoved;
+        README.md staying out;
+        examples/ staying out;
+        package.json version
+        unchanged;
+        token-accounting.ts
+        unopened;
+        listFilesChangedAgainstBase
+        unmoved;
+        evaluateApproveGate
+        staying git-free;
+        grammar Decision children
+        staying Requirement-only.
+        **HEAD today:** no
+        baseCommit attribute is
+        written; review has no
+        recorded-base branch; the
+        caveat sentence is
+        absent.
+        **Failure conditions:**
+        a check that passes on
+        pre-change HEAD sold as
+        new behaviour; fail and
+        pass in one tool call;
+        AC-OVERRIDES or
+        AC-SUITE-AND-LINT
+        required to be red at
+        HEAD; caveat-text and
+        caveat-json reddened so
+        the second fails naming
+        the first (F68, F80).
+      </AC-HEAD-RED>
+      <AC-SUITE-AND-LINT>
+        bun test green for
+        touched packages (gates
+        ledger and command,
+        review core, and any
+        other test this
+        deliverable forces);
+        bun run validate:ci
+        green (re-measure ratchet
+        cardinality; do not drop
+        keys);
+        bun run ngrace lint
+        --path . is 0 errors and
+        0 warnings **at close**
+        (after apply and archive,
+        not claimed mid-change).
+        ObservedWriteScope covers
+        every path the deliverable
+        forces, including the F64
+        list above. No
+        docs/plans or archive
+        edits. No CHANGELOG. No
+        version surfaces.
+        allReviewCodes cardinality
+        unmoved. README.md
+        untouched. examples/
+        untouched.
+        token-accounting.ts
+        unopened.
+        **HEAD today:** lint is
+        0/0 and validate:ci is
+        green — that green is the
+        baseline, not this
+        change's evidence.
+        **Failure conditions:**
+        suite red; lint 0/0
+        claimed mid-window;
+        writes outside declared
+        scope; pin deleted or
+        loosened; a new review
+        finding code; F51 pin
+        moved without a skill
+        edit (there is no skill
+        edit).
+      </AC-SUITE-AND-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GATES />
+      <M-REVIEW />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/gates/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): a
+        permitting recorded
+        approve writes
+        baseCommit; a second
+        permit does not store a
+        different sha; review
+        with argv token change
+        uses that sha versus the
+        working tree; a planted
+        undeclared path since
+        the sha still raises; a
+        path that does not
+        differ does not; no
+        recorded sha keeps
+        porcelain and prints the
+        caveat in text and in
+        scopeAudit.reason; an
+        unresolvable sha is
+        unable-to-determine;
+        overrides unchanged;
+        README.md and examples/
+        untouched; suite green;
+        lint 0/0 at close only.
+        Evidence is the suite
+        and the ledger fail/pass
+        pairs, not a command
+        someone reports.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring HEAD 9fcefc5
+        on feat/bundle-base-ref,
+        packaged 6.2.0, tree
+        clean, active empty
+        before this bundle, lint
+        0/0, xmlFilesChecked
+        155.** F33:
+        implementation
+        re-measures counts;
+        criteria do not freeze
+        them.
+      </Assumption>
+      <Assumption>
+        **Gate write, measured
+        this session.**
+        evaluateApproveGate
+        writes nothing.
+        recordGateDecision
+        appends Decision
+        attributes gate and
+        decision plus
+        Requirement children.
+        A non-Requirement child
+        invalidates the event in
+        both the parser and the
+        grammar. Extra attributes
+        do not. Re-approval is
+        live: several archived
+        ledgers carry two
+        permitting approve
+        Decisions.
+      </Assumption>
+      <Assumption>
+        **Review universe,
+        measured this session.**
+        Order is explicit, then
+        three-dot argv token
+        base, then porcelain.
+        Empty porcelain is
+        not-run. No recorded-base
+        branch exists.
+        listFilesChangedAgainstBase
+        is three-dot to HEAD and
+        has exactly one
+        production caller.
+      </Assumption>
+      <Assumption>
+        **F64 pin survey, this
+        session.**
+        review/core.test.ts
+        corr-169 empty-porcelain
+        not-run; explicit empty
+        changedFiles; both-flags
+        refusal in
+        review/command.ts;
+        parseDecisionNode
+        non-Requirement child
+        invalid
+        (gates/ledger.ts,
+        grammar.ts,
+        ledger.invalid-decision
+        guide in
+        lint/catalog.ts);
+        gate-decision registered
+        shape stays gates plus
+        values only
+        (schema-reference.ts);
+        allReviewCodes length
+        pin (unmoved; do not
+        freeze the number);
+        localize.test.ts
+        catalog length 15 and
+        excluded length 12
+        (unmoved);
+        WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET
+        unmoved; README
+        invocation walker fires
+        only if README.md moves
+        (it does not);
+        token-accounting F51
+        totals fire only if a
+        SKILL.md moves (none
+        does); boolean site
+        count unmoved (no new
+        boolean);
+        checkSchemaReference
+        fires only if the
+        renderer or the
+        committed document
+        moves (neither does).
+      </Assumption>
+    </Assumptions>
+  </C-BUNDLE-BASE-REF>
+</NgraceChangeSpec>

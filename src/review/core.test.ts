@@ -2392,3 +2392,404 @@ describe("C-ONE-GLOB-LANGUAGE T-001 stay-audited trees", () => {
     expect(findings.some((f) => f.file.includes("/run"))).toBe(false);
   });
 });
+
+function gitInReview(root: string, args: string[]) {
+  return spawnSync("git", args, { cwd: root, encoding: "utf8" });
+}
+
+function initReviewGitCommit(root: string, message: string): string {
+  const init = gitInReview(root, ["init"]);
+  if (init.status !== 0) throw new Error(init.stderr);
+  gitInReview(root, ["config", "user.email", "t@t"]);
+  gitInReview(root, ["config", "user.name", "t"]);
+  gitInReview(root, ["config", "commit.gpgsign", "false"]);
+  gitInReview(root, ["add", "-A"]);
+  const committed = gitInReview(root, ["commit", "-m", message]);
+  if (committed.status !== 0) throw new Error(committed.stderr);
+  const parsed = gitInReview(root, ["rev-parse", "HEAD"]);
+  if (parsed.status !== 0) throw new Error(parsed.stderr);
+  return parsed.stdout.trim();
+}
+
+function plantRecordedBase(root: string, changeId: string, sha: string): void {
+  writeFileSync(
+    path.join(root, ".ngrace", "changes", "active", changeId, "run-ledger.xml"),
+    `<NgraceRunLedger graceVersion="1.0"><${changeId}>`
+      + `<Decisions><Decision gate="approve" decision="permit" baseCommit="${sha}" /></Decisions>`
+      + `</${changeId}></NgraceRunLedger>`,
+  );
+}
+
+describe("C-BUNDLE-BASE-REF T-002 review-universe", () => {
+  it("review-universe: inputSource recorded-base and undeclared path still raises", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(path.join(root, "src", "in-scope.ts"), "export const a = 1;\n");
+    writeScopedPlan(root, "C-SCOPE", [
+      "src/in-scope.ts",
+      ".ngrace/changes/active/C-SCOPE/run-ledger.xml",
+    ]);
+    const sha = initReviewGitCommit(root, "base");
+    plantRecordedBase(root, "C-SCOPE", sha);
+    writeFileSync(path.join(root, "src", "out-of-scope.ts"), "export const leak = 1;\n");
+
+    const result = runReview(root, {
+      changeId: "C-SCOPE",
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(result.scopeAudit?.inputSource).toBe("recorded-base");
+    expect(result.scopeAudit?.baseRef).toBe(sha);
+    expect(
+      result.findings.some(
+        (finding) =>
+          finding.code === "review.scope-outside-write-scope"
+          && finding.file === "src/out-of-scope.ts",
+      ),
+    ).toBe(true);
+  });
+
+  it("review-universe: clean commit of in-scope work since the base still runs", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(path.join(root, "src", "in-scope.ts"), "export const a = 1;\n");
+    writeScopedPlan(root, "C-SCOPE", [
+      "src/in-scope.ts",
+      ".ngrace/changes/active/C-SCOPE/run-ledger.xml",
+    ]);
+    const sha = initReviewGitCommit(root, "base");
+    plantRecordedBase(root, "C-SCOPE", sha);
+    writeFileSync(path.join(root, "src", "in-scope.ts"), "export const a = 2;\n");
+    gitInReview(root, ["add", "-A"]);
+    const committed = gitInReview(root, ["commit", "-m", "in-scope"]);
+    if (committed.status !== 0) throw new Error(committed.stderr);
+
+    const result = runReview(root, {
+      changeId: "C-SCOPE",
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(result.scopeAudit?.status).toBe("ran");
+    expect(result.scopeAudit?.inputSource).toBe("recorded-base");
+    expect(result.scopeAudit?.absence?.verdict).not.toBe("not-run");
+  });
+});
+
+describe("C-BUNDLE-BASE-REF T-002 base-unresolved", () => {
+  it("base-unresolved: dead recorded sha is unable-to-determine and skips porcelain", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(path.join(root, "src", "in-scope.ts"), "export const a = 1;\n");
+    writeScopedPlan(root, "C-SCOPE", ["src/in-scope.ts"]);
+    initReviewGitCommit(root, "base");
+    const dead = "0123456789abcdef0123456789abcdef01234567";
+    plantRecordedBase(root, "C-SCOPE", dead);
+    writeFileSync(path.join(root, "src", "out-of-scope.ts"), "export const leak = 1;\n");
+
+    const result = runReview(root, {
+      changeId: "C-SCOPE",
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(result.scopeAudit?.status).toBe("unable-to-determine");
+    expect(result.scopeAudit?.reason).toContain(dead);
+    expect(
+      result.findings.filter((finding) => finding.code === "review.scope-outside-write-scope"),
+    ).toHaveLength(0);
+  });
+
+  it("base-unresolved: each of the three failures names its own cause (F40/F55)", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(path.join(root, "src", "in-scope.ts"), "export const a = 1;\n");
+    writeScopedPlan(root, "C-SCOPE", ["src/in-scope.ts"]);
+    const live = initReviewGitCommit(root, "base");
+    const review = () =>
+      runReview(root, { changeId: "C-SCOPE", patterns: false, joinEngine: false });
+
+    // (c) sha resolves, diff succeeds, the porcelain/untracked walk fails.
+    plantRecordedBase(root, "C-SCOPE", live);
+    gitInReview(root, ["config", "status.showStash", "bogus"]);
+    const porcelainFailed = review();
+    gitInReview(root, ["config", "--unset", "status.showStash"]);
+
+    // (b) sha resolves (the commit object is intact) but its tree is gone, so diff fails.
+    const tree = gitInReview(root, ["rev-parse", `${live}^{tree}`]).stdout.trim();
+    rmSync(path.join(root, ".git", "objects", tree.slice(0, 2), tree.slice(2)), { force: true });
+    const diffFailed = review();
+
+    // (a) the recorded sha itself does not resolve.
+    const dead = "0123456789abcdef0123456789abcdef01234567";
+    plantRecordedBase(root, "C-SCOPE", dead);
+    const shaUnresolved = review();
+
+    for (const result of [shaUnresolved, diffFailed, porcelainFailed]) {
+      expect(result.scopeAudit?.status).toBe("unable-to-determine");
+      expect(result.scopeAudit?.absence?.verdict).toBe("unable-to-determine");
+      expect(
+        result.findings.filter((f) => f.code === "review.scope-outside-write-scope"),
+      ).toHaveLength(0);
+    }
+
+    const reasonOf = (result: ReturnType<typeof runReview>) =>
+      String(result.scopeAudit?.reason ?? "");
+    expect(reasonOf(shaUnresolved)).toContain(dead);
+    expect(reasonOf(diffFailed)).toContain(live);
+    expect(reasonOf(porcelainFailed)).toContain(live);
+
+    // Only the first failure may indict the sha.
+    expect(reasonOf(shaUnresolved)).toMatch(/does not resolve/);
+    expect(reasonOf(diffFailed)).not.toMatch(/does not resolve/);
+    expect(reasonOf(porcelainFailed)).not.toMatch(/does not resolve/);
+    expect(reasonOf(diffFailed)).toMatch(/git diff against it failed/);
+    expect(reasonOf(porcelainFailed)).toMatch(/git status \(untracked walk\) failed/);
+    expect(reasonOf(porcelainFailed)).not.toMatch(/git diff against it failed/);
+
+    // Discrimination proper: the shas are masked, so distinctness can only come from
+    // the cause wording. Collapsing any two messages fails here.
+    const masked = [shaUnresolved, diffFailed, porcelainFailed].map((result) =>
+      reasonOf(result).replaceAll(/\b[0-9a-f]{40}\b/g, "<sha>"),
+    );
+    expect(new Set(masked).size).toBe(3);
+  });
+});
+
+describe("C-BUNDLE-BASE-REF T-002 characterization", () => {
+  it("without a recorded base, empty porcelain stays not-run", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeScopedPlan(root, "C-SCOPE", ["src/in-scope.ts"]);
+    initReviewGitCommit(root, "base");
+    const result = runReview(root, {
+      changeId: "C-SCOPE",
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(result.scopeAudit?.status).toBe("not-run");
+    expect(result.scopeAudit?.absence?.verdict).toBe("not-run");
+    expect(result.scopeAudit?.inputSource).toBeUndefined();
+  });
+
+  it("defined changedFiles including empty still wins over a recorded sha", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeScopedPlan(root, "C-SCOPE", ["src/in-scope.ts"]);
+    const sha = initReviewGitCommit(root, "base");
+    plantRecordedBase(root, "C-SCOPE", sha);
+    writeFileSync(path.join(root, "src", "out-of-scope.ts"), "export const leak = 1;\n");
+    const empty = runReview(root, {
+      changeId: "C-SCOPE",
+      changedFiles: [],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(empty.scopeAudit?.status).toBe("ran");
+    expect(empty.scopeAudit?.inputSource).toBe("explicit");
+    expect(empty.scopeAudit?.callerSuppliedEmpty).toBe(true);
+    expect(empty.findings.filter((f) => f.code === "review.scope-outside-write-scope")).toHaveLength(0);
+
+    const explicit = runReview(root, {
+      changeId: "C-SCOPE",
+      changedFiles: ["src/out-of-scope.ts"],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(explicit.scopeAudit?.inputSource).toBe("explicit");
+    expect(explicit.findings.some((f) => f.file === "src/out-of-scope.ts")).toBe(true);
+  });
+
+  it("argv token base still uses three-dot and ignores a recorded sha", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(path.join(root, "src", "in-scope.ts"), "export const a = 1;\n");
+    writeScopedPlan(root, "C-SCOPE", ["src/in-scope.ts"]);
+    const recorded = initReviewGitCommit(root, "base");
+    plantRecordedBase(root, "C-SCOPE", recorded);
+    writeFileSync(path.join(root, "src", "after-base.ts"), "export const b = 1;\n");
+    gitInReview(root, ["add", "src/after-base.ts"]);
+    const committed = gitInReview(root, ["commit", "-m", "after"]);
+    if (committed.status !== 0) throw new Error(committed.stderr);
+    const head = gitInReview(root, ["rev-parse", "HEAD"]).stdout.trim();
+    writeFileSync(path.join(root, "src", "untracked.ts"), "export const u = 1;\n");
+
+    const result = runReview(root, {
+      changeId: "C-SCOPE",
+      baseRef: recorded,
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(result.scopeAudit?.inputSource).toBe("base");
+    expect(result.scopeAudit?.baseRef).toBe(recorded);
+    expect(head).not.toBe(recorded);
+    expect(result.findings.some((f) => f.file === "src/after-base.ts")).toBe(true);
+    expect(result.findings.some((f) => f.file === "src/untracked.ts")).toBe(false);
+  });
+
+  it("untracked since the recorded commit enters; matching committed path does not", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(path.join(root, "src", "in-scope.ts"), "export const a = 1;\n");
+    writeScopedPlan(root, "C-SCOPE", [
+      "src/in-scope.ts",
+      ".ngrace/changes/active/C-SCOPE/run-ledger.xml",
+    ]);
+    const sha = initReviewGitCommit(root, "base");
+    plantRecordedBase(root, "C-SCOPE", sha);
+    writeFileSync(path.join(root, "src", "untracked-out.ts"), "export const leak = 1;\n");
+
+    const result = runReview(root, {
+      changeId: "C-SCOPE",
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(result.scopeAudit?.inputSource).toBe("recorded-base");
+    expect(
+      result.findings.some(
+        (f) => f.code === "review.scope-outside-write-scope" && f.file === "src/untracked-out.ts",
+      ),
+    ).toBe(true);
+    expect(result.findings.some((f) => f.file === "src/example.ts")).toBe(false);
+  });
+});
+
+const NO_BASE_COMMIT_CAVEAT = "no base commit — cannot attribute pre-existing changes";
+
+function porcelainRanNoRecord() {
+  const root = ensureTempRoot();
+  writeMinimalNgraceProject(root);
+  mkdirSync(path.join(root, "src"), { recursive: true });
+  writeFileSync(path.join(root, "src", "in-scope.ts"), "export const a = 1;\n");
+  writeScopedPlan(root, "C-SCOPE", ["src/in-scope.ts"]);
+  initReviewGitCommit(root, "base");
+  writeFileSync(path.join(root, "src", "dirty.ts"), "export const d = 1;\n");
+  const result = runReview(root, {
+    changeId: "C-SCOPE",
+    patterns: false,
+    joinEngine: false,
+  });
+  expect(result.scopeAudit?.status).toBe("ran");
+  expect(result.scopeAudit?.inputSource).toBe("porcelain");
+  return result;
+}
+
+describe("C-BUNDLE-BASE-REF T-003 caveat-text", () => {
+  it("caveat-text: porcelain-ran Scope audit line prints the pinned sentence", () => {
+    const result = porcelainRanNoRecord();
+    const line = formatReviewResult(result)
+      .split("\n")
+      .find((entry) => entry.startsWith("Scope audit:"));
+    expect(line).toBeDefined();
+    expect(line).toContain(NO_BASE_COMMIT_CAVEAT);
+  });
+});
+
+describe("C-BUNDLE-BASE-REF T-003 caveat-json", () => {
+  it("caveat-json: porcelain-ran scopeAudit.reason contains the sentence", () => {
+    const result = porcelainRanNoRecord();
+    expect(result.scopeAudit?.reason).toContain(NO_BASE_COMMIT_CAVEAT);
+    expect(result.schemaVersion).toBe("1.0.0");
+    expect(Object.keys(result).sort()).toEqual([
+      "attemptPairAudit",
+      "findings",
+      "root",
+      "schemaVersion",
+      "scopeAudit",
+      "shapeDataExemptions",
+      "summary",
+      "tool",
+      "writeEvidenceScopeAudit",
+    ]);
+  });
+});
+
+describe("C-BUNDLE-BASE-REF T-003 characterization", () => {
+  it("porcelain not-run and git unavailable keep their reason and add the sentence", () => {
+    const clean = ensureTempRoot();
+    writeMinimalNgraceProject(clean);
+    writeScopedPlan(clean, "C-SCOPE", ["src/in-scope.ts"]);
+    initReviewGitCommit(clean, "base");
+    const notRun = runReview(clean, {
+      changeId: "C-SCOPE",
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(notRun.scopeAudit?.status).toBe("not-run");
+    expect(notRun.scopeAudit?.reason).toMatch(/no changed files available/i);
+    expect(notRun.scopeAudit?.reason).toContain(NO_BASE_COMMIT_CAVEAT);
+    expect(formatReviewResult(notRun)).toContain(NO_BASE_COMMIT_CAVEAT);
+
+    const bare = ensureTempRoot();
+    writeMinimalNgraceProject(bare);
+    writeScopedPlan(bare, "C-SCOPE", ["src/in-scope.ts"]);
+    const unavailable = runReview(bare, {
+      changeId: "C-SCOPE",
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(unavailable.scopeAudit?.status).toBe("unable-to-determine");
+    expect(unavailable.scopeAudit?.reason).toMatch(/git status unavailable/i);
+    expect(unavailable.scopeAudit?.reason).toContain(NO_BASE_COMMIT_CAVEAT);
+    expect(formatReviewResult(unavailable)).toContain(NO_BASE_COMMIT_CAVEAT);
+  });
+
+  it("sentence is absent when recorded-base ran, under either override, and for a dead sha", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    writeFileSync(path.join(root, "src", "in-scope.ts"), "export const a = 1;\n");
+    writeScopedPlan(root, "C-SCOPE", [
+      "src/in-scope.ts",
+      ".ngrace/changes/active/C-SCOPE/run-ledger.xml",
+    ]);
+    const sha = initReviewGitCommit(root, "base");
+    plantRecordedBase(root, "C-SCOPE", sha);
+    writeFileSync(path.join(root, "src", "dirty.ts"), "export const d = 1;\n");
+
+    const recorded = runReview(root, {
+      changeId: "C-SCOPE",
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(recorded.scopeAudit?.inputSource).toBe("recorded-base");
+    expect(recorded.scopeAudit?.reason).not.toContain(NO_BASE_COMMIT_CAVEAT);
+    expect(formatReviewResult(recorded)).not.toContain(NO_BASE_COMMIT_CAVEAT);
+
+    const explicit = runReview(root, {
+      changeId: "C-SCOPE",
+      changedFiles: ["src/dirty.ts"],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(explicit.scopeAudit?.inputSource).toBe("explicit");
+    expect(explicit.scopeAudit?.reason).not.toContain(NO_BASE_COMMIT_CAVEAT);
+    expect(formatReviewResult(explicit)).not.toContain(NO_BASE_COMMIT_CAVEAT);
+
+    const base = runReview(root, {
+      changeId: "C-SCOPE",
+      baseRef: sha,
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(base.scopeAudit?.inputSource).toBe("base");
+    expect(base.scopeAudit?.reason).not.toContain(NO_BASE_COMMIT_CAVEAT);
+    expect(formatReviewResult(base)).not.toContain(NO_BASE_COMMIT_CAVEAT);
+
+    const dead = "0123456789abcdef0123456789abcdef01234567";
+    plantRecordedBase(root, "C-SCOPE", dead);
+    const unresolved = runReview(root, {
+      changeId: "C-SCOPE",
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(unresolved.scopeAudit?.status).toBe("unable-to-determine");
+    expect(unresolved.scopeAudit?.reason).toContain(dead);
+    expect(unresolved.scopeAudit?.reason).not.toContain(NO_BASE_COMMIT_CAVEAT);
+    expect(formatReviewResult(unresolved)).not.toContain(NO_BASE_COMMIT_CAVEAT);
+  });
+});

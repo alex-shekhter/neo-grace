@@ -39,7 +39,8 @@ export const reviewCommand = defineGraceCommand({
       type: "string",
       description:
         "Git base ref for a three-dot (merge-base) name-only diff of changed files "
-        + "(what this branch wrote). Used when --change is set and --changed-files is not.",
+        + "(what this branch wrote). Used when --change is set and --changed-files is not. "
+        + "Overrides a recorded base.",
     },
     "changed-files": {
       type: "string",

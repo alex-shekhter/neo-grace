@@ -4961,3 +4961,67 @@ a green that was never observed red.
 must both flip, either assert them in separate cases so each failure is printed, or record separate
 signatures. F68 asks whether two reds can fail *alone*; this asks the complementary question — whether
 a single red *proves* everything it is cited for. Ask both at plan review.
+
+### F81 — P2.3's wording would have invalidated the record it exists to create. **[verified]**
+
+Sixth roadmap claim in this phase to fail construction. Caught by the executor at
+`C-BUNDLE-BASE-REF`'s spec authoring; all four points verified independently.
+
+1. **`BaseCommit` as a child invalidates the approve event.** A non-`Requirement` child of
+   `<Decision>` raises `ledger.invalid-decision` (`src/artifact/grammar.ts:896`,
+   `src/gates/ledger.ts:553`). The step says this record is *"what D1's detection rule keys on"* in
+   P3.7 — so the prescribed shape would have **destroyed the readability of the event it was
+   written for**. Extra *attributes* are already accepted, so an attribute is the only shape that
+   preserves the key.
+2. **"No-git fallback keeps porcelain" is already false.** `listRepositoryChangedFiles` returns
+   `available: false` when git fails and `review` becomes `unable-to-determine`. The honest split is
+   **git present but nothing recorded** (porcelain plus caveat) versus **git absent** (existing
+   absence plus caveat) — two different silences, and the step conflated them.
+3. **`base..working-tree` is not git syntax**, and the existing `--base` helper the same sentence
+   preserves is `base...HEAD` (`src/grace-cursor.ts:1594`). Wiring the recorded sha into that helper
+   is the obvious implementation and **goes blind on uncommitted work** — the exact writes an audit
+   at review time most needs to see. It needs its own commit-versus-worktree walk, and one that
+   unions untracked files, since porcelain includes them and `git diff --name-only <sha>` does not.
+4. **"Pre-existing dirt never enters the audit" overclaims a SHA.** Files already dirty at approve
+   still differ from that commit. Only a recorded dirty-set inventory would deliver that sentence, and
+   the step assigns that to D2 / P4.
+
+**And the step never said what re-approval does.** Measured: **five archived bundles already carry two
+permitting approve `Decision`s**, and permit lookup is newest-governs (`src/gates/ledger.ts:120`). A
+recorded fact that newest-governs is **a silent rewrite** — so the reader must be first-in-document-
+order and the writer first-observation-wins, never storing a different object name (D9, append-only).
+
+**The rule.** When a step prescribes *where* a fact is stored, check that the store accepts that shape
+**and** that the shape survives every reader that already depends on it. A record designed to key a
+future detection rule is worthless if writing it makes the event unreadable — and "record X at Y" is
+silently a schema change whenever Y is validated.
+
+### F82 — a close-time criterion cannot be evidenced by a task pass, because the task ends before the close. **[verified]**
+
+Raised by the executor at `C-BUNDLE-BASE-REF`'s execute close, against the plan template every bundle
+in this roadmap has used.
+
+`AC-SUITE-AND-LINT` defines its lint half as **0 errors / 0 warnings *after apply and archive***. It is
+`Satisfies`-linked to the final task. But that task's `Verification` commands do not include lint, and
+the task necessarily **completes before the close sequence that would make the claim true**. So the
+recorded pass evidences the three commands the task actually ran — and nothing about the close-time
+bar it is linked to.
+
+**This is not local to one bundle.** Every bundle in this phase carries an `AC-SUITE-AND-LINT` shaped
+this way, and every one recorded a final-task pass while the lint half was still false. The artifacts
+have been claiming, by link, evidence that the ledger cannot hold.
+
+**Why it has stayed invisible.** The close *does* verify the bar — the authority runs lint after
+archive and records the numbers in the verdict — so the claim is true in the end. What is wrong is
+**where the evidence lives**: in the verdict and the archive commit, not in the attempt that
+`Satisfies` points at. Nothing cross-checks the two, so the mislink never surfaces as a failure.
+
+**The rule.** A criterion whose evidence can only exist *after* the lifecycle step that ends the run
+must not be `Satisfies`-linked to a task. Either bind it to the close record explicitly, or split it:
+the half a task can run (suite, `validate:ci`) stays on the task; the half only the close can observe
+(post-archive lint, archive count) is verdict evidence. **Check at plan review that every `Satisfies`
+link points at something the task can actually observe.**
+
+Not repaired here — the plan template is shared and changing it mid-bundle would amend approved
+artifacts. **Owed to the next bundle that authors from the model plan**, which is the same route
+[F50](#f50) and [F51](#f51) took.

@@ -1,0 +1,1332 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-BUNDLE-BASE-REF>
+    <IntentSummary>
+      Record the observed HEAD object
+      name as attribute baseCommit on
+      the permitting approve Decision,
+      first observation wins. Review
+      with argv token change and no
+      overrides then defaults the
+      scope-audit universe to that
+      commit versus the working tree,
+      name-only, including untracked.
+      No recorded base keeps porcelain
+      and prints the pinned caveat.
+      Unresolvable sha is
+      unable-to-determine. Existing
+      overrides stay. P2.4 through
+      P2.6 are out.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/command.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/schema-reference.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.test.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-BUNDLE-BASE-REF/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-BUNDLE-BASE-REF/plan.xml</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function recordGateDecision</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function listGateDecisions</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>export function evaluateApproveGate</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>recordGateDecision</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>export function listFilesChangedAgainstBase</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function runReview</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function formatReviewResult</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>review.scope-outside-write-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>export function allReviewCodes</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>baseCommit</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/command.ts</File>
+        <Text>baseCommit</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>recorded-base</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/command.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function recordGateDecision</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function listGateDecisions</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>baseCommit</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>export function evaluateApproveGate</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>export function listFilesChangedAgainstBase</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function runReview</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function formatReviewResult</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>recorded-base</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>review.scope-outside-write-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>export function allReviewCodes</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>BaseCommit</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/gates/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GATES />
+        <M-REVIEW />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GATES />
+        <V-M-REVIEW />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/gates/ledger.ts</File>
+      <File>src/gates/command.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/review/core.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/review/command.ts</File>
+      <File>.ngrace/changes/active/C-BUNDLE-BASE-REF/spec.xml</File>
+      <File>.ngrace/changes/active/C-BUNDLE-BASE-REF/plan.xml</File>
+      <File>.ngrace/changes/active/C-BUNDLE-BASE-REF/run.xml</File>
+      <File>.ngrace/changes/active/C-BUNDLE-BASE-REF/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-BUNDLE-BASE-REF/run/**</Glob>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: 991360a (branch
+      feat/bundle-base-ref). Preflight:
+      ngrace lint path . assertions current
+      is 0/0. Spec is approved and
+      immutable. Do not amend it. If
+      execute shows the spec is wrong,
+      stop and report.
+
+      Ceremony tier T2. Stop and re-spec
+      rather than touching
+      src/grace-cursor.ts,
+      src/gates/core.ts,
+      src/artifact/grammar.ts,
+      src/artifact/schema-reference.ts,
+      docs/schema-reference.md,
+      src/review/catalog.ts,
+      src/verification/localize.test.ts,
+      src/test-support/token-accounting.ts,
+      README.md, examples/, skills/,
+      plugins/, docs/plans,
+      .ngrace/changes/archive, CHANGELOG.md,
+      or any version surface. Packaged
+      version stays 6.2.0. No product
+      version bump. F50: this plan does
+      not instruct its own
+      ObservedWriteScope amendment; cursor
+      companions are listed at authoring.
+      F33: re-measure every count at
+      execute. Do not pin allReviewCodes
+      length, localize excluded length,
+      WriteEvidence ratchet pairs, suite
+      totals, or any line number this
+      change moves. F61: name exported
+      functions and argv tokens in this
+      comment; leave dashed forms to
+      *.test.ts. F42: plan assertions bind
+      to exported names, the attribute
+      name baseCommit, and issue codes,
+      never to AC ids or the caveat
+      sentence as a free needle. F74:
+      cite cross-plan decisions as
+      PLAN-ID Dn.
+
+      Measured at authoring, not inherited.
+      Nothing in src/ names baseCommit.
+      recordGateDecision writes Decision
+      attributes gate and decision only.
+      parseDecisionNode (unexported) is
+      invalid on any non-Requirement
+      child and drops extra attributes.
+      validateLedgerDecisionsSection
+      raises ledger.invalid-decision for
+      the same child; extra attributes
+      are accepted. listGateDecisions
+      walks parseDecisionNode.
+      readPermittingDecision is
+      newest-governs and stays that
+      for permit lookup. evaluateApproveGate
+      writes nothing and does not spawn
+      git. evaluationToDecision does not
+      observe git. Observation belongs
+      in the approve record=true branch
+      of src/gates/command.ts, cwd equal
+      to the gate path, never process cwd.
+      resolveScopeChangedFiles order is
+      defined changedFiles, else
+      non-empty argv token base via
+      listFilesChangedAgainstBase
+      (three-dot to HEAD; one production
+      caller), else porcelain.
+      Empty porcelain is not-run
+      (corr 169). Unavailable git is
+      unable-to-determine. Review
+      command refuses both override
+      flags. inputSource is explicit
+      or base or porcelain.
+      formatScopeAuditLine for ran
+      reconstructs the line and does
+      not print reason; for not-run
+      and unable-to-determine it prints
+      reason. Archived two-permit
+      approve pairs exist and none
+      carry a base attribute.
+
+      ════════════════════════════════════
+      D0. Tasks, reds, F68, F80
+      ════════════════════════════════════
+      | Task | work | Satisfies | planned
+        kind+key pairs |
+      | T-001 | write and read
+          attribute baseCommit;
+          observe HEAD on approve
+          record; first observation
+          wins
+        | AC-RECORD-BASE,
+          AC-BASE-STABLE
+        | test:record-base,
+          test:base-stable |
+      | T-002 | recorded-base
+          universe; untracked union;
+          unresolved sha; overrides
+          stay
+        | AC-REVIEW-UNIVERSE,
+          AC-UNRESOLVED,
+          AC-OVERRIDES
+        | test:review-universe,
+          test:base-unresolved |
+      | T-003 | caveat sentence on
+          text and JSON, independently
+        | AC-CAVEAT-TEXT,
+          AC-CAVEAT-JSON
+        | test:caveat-text,
+          test:caveat-json |
+      | T-004 | dogfood close
+        | AC-HEAD-RED,
+          AC-SUITE-AND-LINT
+        | none planned |
+
+      Sequential: T-002 reads the
+      attribute T-001 makes visible.
+      T-003 edits the same
+      src/review/core.ts as T-002.
+      T-004 DependsOn T-003. One
+      open epoch.
+
+      Signature keys the executor must
+      record (kind test):
+        T-001  test:record-base
+               test:base-stable
+        T-002  test:review-universe
+               test:base-unresolved
+        T-003  test:caveat-text
+               test:caveat-json
+
+      Per-task distinct pairs: T-001 2,
+      T-002 2, T-003 2, T-004 0. No key
+      repeats inside a task. No task
+      has more than two planned reds.
+
+      F75: red event counts live only
+      in AC-HEAD-RED. Other sections
+      state independent observability,
+      not event counts.
+
+      F45, named at authoring, not reddened:
+      AC-OVERRIDES (defined changedFiles
+      including empty, argv token base
+      three-dot to HEAD, both-flags
+      refusal, WriteEvidence and
+      attempt-pair still read the
+      ledger); AC-SUITE-AND-LINT
+      (close-time bar); allReviewCodes
+      cardinality unmoved; localize
+      excluded-review-code cardinality
+      unmoved; README.md staying out;
+      examples/ staying out; package.json
+      version unchanged;
+      token-accounting.ts unopened;
+      listFilesChangedAgainstBase
+      unmoved; evaluateApproveGate
+      staying git-free; grammar Decision
+      children staying Requirement-only;
+      gate-decision registered shape
+      staying gates plus values;
+      empty-porcelain not-run without
+      a record (corr 169); "second
+      approve writes no baseCommit"
+      as a standalone assert (already
+      true at HEAD; see D1).
+
+      F68 / F80 on T-001.
+      (1) test:record-base is one
+      permitting approve through the
+      gate record path in a git
+      fixture whose rev-parse HEAD
+      succeeds. It asserts the written
+      Decision carries baseCommit
+      equal to that object name. It
+      does not approve a second time
+      and does not call the reader
+      across two permits.
+      HEAD fails because attributes
+      are only gate and decision.
+      (2) test:base-stable is two
+      permitting approves through
+      the same record path, with HEAD
+      changed from A to B between
+      them (B not equal A). It asserts
+      the reader (first permitting
+      approve with a non-empty
+      baseCommit, via
+      listGateDecisions, document
+      order) returns A, that the
+      second Decision is not B, and
+      that the first Decision bytes
+      are unchanged. Separate it()
+      cases so each failure prints
+      (F80). Do not plant the first
+      A only as fixture XML and skip
+      the second approve: the live
+      archive shape is two permits,
+      and planting alone cannot
+      expose a writer that would
+      store B.
+      Record each fail in its own
+      tool round trip with a bun
+      test filter that cannot see
+      the sibling. Never record the
+      second fail from a whole-file
+      run that still names the first.
+
+      Why (2) fails at HEAD: the
+      first approve writes no A, the
+      reader is empty. "Second is
+      not B" is already true at HEAD
+      (F45) and is not the red by
+      itself; it becomes load-bearing
+      after a writer exists. A naive
+      always-HEAD writer plus a
+      first-in-order reader would
+      pass the reader half and fail
+      "second is not B". First-wins
+      plus no reader would write A
+      twice and fail the reader half.
+
+      F68 / F80 on T-002.
+      (1) test:review-universe asserts
+      inputSource recorded-base and
+      baseRef equal to the sha, and
+      in a separate it() that after
+      a clean commit of in-scope work
+      since the base the audit runs
+      (not corr 169). It does not
+      assert the caveat sentence and
+      does not use a dead sha.
+      HEAD fails: no recorded-base
+      branch; clean tree is not-run.
+      Untracked-enters cannot be the
+      recorded red (porcelain already
+      includes untracked). That case
+      is pass-side after production
+      so a three-dot-to-HEAD reuse
+      would go blind.
+      (2) test:base-unresolved plants
+      a recorded sha git cannot
+      resolve, with a dirty tree so
+      porcelain would have run. It
+      asserts unable-to-determine
+      naming that sha and that the
+      dirty undeclared path is not
+      audited. It does not assert
+      the no-base caveat is absent
+      as the red (that absence is
+      already true at HEAD; pin it
+      on T-003 after the sentence
+      exists).
+      Separate filters. A resolvable
+      walk without a dead-sha exit
+      passes (1) and fails (2). A
+      blanket unable on any recorded
+      sha passes (2) and fails (1).
+
+      F68 / F80 on T-003.
+      Recorded reds use porcelain
+      ran (git present, dirty tree,
+      argv token change, no override,
+      no recorded base). In that
+      state formatScopeAuditLine
+      reconstructs the line and does
+      not print reason, so the two
+      surfaces are independently
+      wired.
+      (1) test:caveat-text asserts
+      formatReviewResult prints the
+      exact pinned sentence on the
+      Scope audit line. It does not
+      read scopeAudit.reason.
+      (2) test:caveat-json asserts
+      scopeAudit.reason contains
+      that same sentence, schemaVersion
+      stays 1.0.0, and no new
+      ReviewResult top-level key
+      appears. It does not read the
+      text line.
+      Do not record the red against
+      not-run or git-unavailable:
+      those lines already print
+      reason, so one write would
+      feed both surfaces and the
+      second red would not be
+      independently observable.
+      Characterise those two
+      conditions after production,
+      and characterise that an
+      unresolvable sha and either
+      override do not print this
+      sentence. A test that only
+      checks "a caveat appears"
+      is forbidden.
+
+      F68 on exports. Do not import
+      a new missing export of one
+      module as a red. parseDecisionNode
+      stays unexported; tests go
+      through listGateDecisions and
+      Decision bytes. The worktree
+      helper stays unexported; tests
+      go through runReview. Do not
+      add a new ledger export for
+      the reader.
+
+      ════════════════════════════════════
+      D1. Recorded fact (T-001)
+      ════════════════════════════════════
+      GateDecisionRecord gains optional
+      baseCommit. parseDecisionNode
+      copies a non-empty baseCommit
+      attribute onto the record and
+      still returns invalid only for
+      the children it already rejects.
+      Historical Decisions without
+      the attribute stay valid.
+
+      recordGateDecision writes the
+      attribute only on a permitting
+      approve Decision, never on
+      refuse, apply, or archive, and
+      never as an empty value or an
+      unknown token. First-wins lives
+      here: walk existing Decision
+      children in document order;
+      the first approve+permit with a
+      non-empty baseCommit attribute
+      is the stored fact; a later
+      permitting approve copies that
+      value and never stores a
+      different object name. If none
+      exists yet, write the
+      caller-supplied value when
+      non-empty, else omit. Prior
+      Decision bytes are not
+      rewritten (append only;
+      RM-GOVERNED-PATH D9).
+      Newest-governs for permit
+      lookup is unchanged and is
+      not this reader.
+
+      Observation runs only in
+      src/gates/command.ts on the
+      approve record=true permit
+      branch. Spawn git rev-parse
+      HEAD with cwd equal to the
+      gate path. On success, set
+      baseCommit on the Decision
+      passed to recordGateDecision.
+      On failure, omit (no empty
+      value). argv token record
+      false writes no Decision and
+      no attribute (existing pin).
+      If the first permit had no
+      git and a later permit can
+      name HEAD, that later permit
+      is the first observation and
+      may write it.
+
+      evaluateApproveGate stays
+      git-free. evaluationToDecision
+      stays git-free. Do not add a
+      BaseCommit child. Do not
+      widen Decision children in
+      grammar.ts. Do not add
+      baseCommit to the registered
+      gate-decision shape.
+
+      Keep existing
+      ledger.invalid-decision pins
+      (non-Requirement child,
+      duplicate Decisions, bad
+      gate token) and the
+      record=false writes-no-Decision
+      pin.
+
+      ════════════════════════════════════
+      D2. Universe and absence (T-002)
+      ════════════════════════════════════
+      resolveScopeChangedFiles order:
+      defined changedFiles (including
+      empty) stays caller-owned; else
+      non-empty argv token base stays
+      listFilesChangedAgainstBase
+      (do not change that helper);
+      else when argv token change is
+      set and a recorded baseCommit
+      resolves, use a new private
+      commit-versus-working-tree
+      name-only set; else porcelain.
+
+      The new helper (unexported, in
+      src/review/core.ts):
+      git diff name-only diff-filter
+      ACMR against the sha (commit
+      versus worktree, not three-dot
+      to HEAD), union untracked from
+      the same porcelain the existing
+      helper uses, POSIX-normalize at
+      the helper (backslash to slash,
+      strip leading ./, reject
+      absolute and parent traversal).
+      If either walk fails, or the
+      sha does not resolve, return
+      unable-to-determine naming that
+      sha. Do not emit a partial set.
+      Do not fall back to porcelain.
+      Do not reuse
+      listFilesChangedAgainstBase.
+
+      Review walks listGateDecisions
+      for the first permitting
+      approve with a non-empty
+      baseCommit. That is the
+      recorded sha. inputSource
+      recorded-base, baseRef equal
+      to that sha.
+
+      When the recorded universe
+      ran: a path that differs from
+      the commit and is outside
+      ObservedWriteScope still
+      raises review.scope-outside-write-scope;
+      a path that matches the commit
+      and is not new untracked does
+      not enter; uncommitted new
+      tracked and untracked paths
+      since the commit do enter;
+      after a clean commit of
+      in-scope work since the base
+      the audit runs (not corr 169).
+      Without a recorded baseCommit,
+      corr 169 empty-porcelain
+      not-run still holds.
+
+      Unresolvable recorded sha:
+      scope audit unable-to-determine,
+      reason names the sha, no
+      porcelain, no no-base caveat
+      sentence.
+
+      Overrides (F45, already true;
+      add only the recorded-sha
+      ignore): defined changedFiles
+      still wins and still names
+      the empty set as caller-owned;
+      non-empty argv token base
+      still uses the three-dot
+      helper and ignores a recorded
+      sha; both override flags still
+      refuse; WriteEvidence and
+      attempt-pair still read the
+      ledger. Update review command
+      help: argv token base overrides
+      a recorded base. Do not add a
+      boolean site. Do not add a
+      review finding code.
+
+      F73. Normalize at the helper,
+      not at the test comparison.
+      finding.file stays
+      normalizeRel (backslash to
+      slash only). Local gates
+      cannot observe a Windows
+      separator. State in the close
+      verdict that CI is the only
+      observer of separators. Do
+      not assert finding.file with
+      a slash-joined needle against
+      an OS-native path.
+
+      ════════════════════════════════════
+      D3. Caveat (T-003)
+      ════════════════════════════════════
+      Exact sentence, pinned (F44),
+      asserted as literal bytes in
+      tests, not in plan
+      MustContain: no base commit
+      — cannot attribute
+      pre-existing changes.
+
+      It appears in the Scope audit
+      text line and in
+      scopeAudit.reason when argv
+      token change is set, no
+      override is set, and no
+      recorded base exists
+      (porcelain ran, porcelain
+      not-run, or git unavailable).
+      Git-present-but-unrecorded
+      keeps the existing porcelain
+      or not-run reason and adds
+      this sentence. Git-absent
+      keeps the existing
+      unable-to-determine reason
+      and adds this sentence. An
+      unresolvable recorded sha
+      names the sha and does not
+      print this sentence. The
+      sentence is absent when
+      recorded-base ran and absent
+      under either override.
+
+      Recorded reds use porcelain
+      ran only (see D0). No new
+      ReviewResult key. schemaVersion
+      stays 1.0.0.
+
+      ════════════════════════════════════
+      D4. ObservedWriteScope
+      ════════════════════════════════════
+      Forced by the spec (F27.2, F64)
+      as File entries, plus this
+      bundle's run/** Glob. Cursor
+      companions are listed so OWS
+      is complete at authoring (F50).
+
+      Listed as permission (this run
+      may not write them):
+      spec.xml (approved, immutable).
+
+      Deliberately excluded (stop and
+      re-spec): src/grace-cursor.ts,
+      src/gates/core.ts,
+      src/artifact/grammar.ts
+      (invalid-decision pin stays
+      by non-edit),
+      src/artifact/schema-reference.ts
+      and docs/schema-reference.md
+      (gate-decision stays gates
+      plus values by non-edit),
+      src/review/catalog.ts,
+      src/verification/localize.test.ts
+      (catalog length and excluded
+      length stay by non-edit),
+      src/test-support/token-accounting.ts,
+      README.md, examples/, skills/,
+      plugins/, docs/plans, archive,
+      CHANGELOG.md, version surfaces,
+      a new review finding code.
+      There is no ledger.test.ts;
+      ledger tests the writer forces
+      land in src/gates/core.test.ts.
+
+      AC-SUITE-AND-LINT is 0/0 at
+      close, not throughout.
+      Mid-change BaselineAssertions
+      stay intact. Never weaken a
+      BaselineAssertion to move a
+      lint count.
+
+      ════════════════════════════════════
+      D5. Execution discipline
+      ════════════════════════════════════
+      One open epoch. Each planned red
+      is its own tool round trip: write
+      the failing test first, record
+      cursor attempt outcome fail with
+      the signature named in D0, then
+      land production in a later round
+      trip, then record pass. Never
+      fail and pass in one call. Never
+      a retrospective red via stash.
+      Never a red backed only by a
+      shell grep.
+
+      T-001: fail record-base, then
+      fail base-stable, then
+      production, then pass. Isolated
+      filters.
+      T-002: fail review-universe
+      (both it() cases so each
+      failure prints), then fail
+      base-unresolved, then
+      production including the
+      worktree helper and help text,
+      then pass.
+      T-003: fail caveat-text, then
+      fail caveat-json, then
+      production, then pass.
+      T-004: no planned red; suite
+      listed in TargetAssertions;
+      lint 0/0 claimed at close only,
+      after apply and archive.
+
+      Newly visible recorded-base
+      default is named in the
+      conventional commit body
+      (RM-GOVERNED-PATH D5.5), not
+      in CHANGELOG.md.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Record a stable approve baseCommit attribute</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-RECORD-BASE />
+          <AC-BASE-STABLE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (record-base): before
+            any ledger.ts or command.ts
+            production edit, in its own
+            tool round trip, add a bun
+            test in src/gates/core.test.ts
+            that runs a permitting gate
+            approve with recording on
+            against a temp git fixture
+            whose rev-parse HEAD succeeds
+            (cwd equal to the gate path)
+            and asserts the written
+            Decision carries attribute
+            baseCommit equal to that
+            object name. Do not approve
+            a second time in this test
+            (F68). Do not import
+            parseDecisionNode. HEAD
+            today: Decision attributes
+            are only gate and decision.
+            The assert fails. Record
+            cursor attempt outcome fail,
+            signature kind test key
+            record-base. Do not land
+            production in this round
+            trip. Never a red backed
+            only by a shell grep; never
+            fail and pass in one tool
+            call; never a retrospective
+            red via stash. Failure
+            conditions: this round trip
+            also lands production; this
+            fail recorded from a
+            whole-file run that also
+            names base-stable; calling
+            recordGateDecision alone
+            sold as this red (observation
+            is on the approve record
+            path); red sold against
+            evaluateApproveGate staying
+            git-free (already true).
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (base-stable):
+            before any ledger.ts or
+            command.ts production edit,
+            in a later tool round trip
+            than record-base, add bun
+            tests that perform two
+            permitting recorded approves
+            in one git fixture with HEAD
+            changed from A to B between
+            them (B not equal A; a real
+            second commit, not a planted
+            first Decision without a
+            second approve). Assert, in
+            separate it() cases so each
+            failure prints (F80): the
+            reader (first permitting
+            approve with a non-empty
+            baseCommit, via
+            listGateDecisions, document
+            order) returns A; the second
+            Decision is not B; the first
+            Decision bytes are unchanged.
+            Do not read newest-governs
+            permit lookup as this
+            reader. Record fail with a
+            bun test filter that does
+            not run the record-base it().
+            Signature kind test key
+            base-stable. HEAD today: a
+            second approve appends
+            another Decision with no
+            baseCommit; the reader is
+            empty because extra
+            attributes are dropped.
+            Do not land production in
+            this round trip. Failure
+            conditions: this round trip
+            also lands production; this
+            fail recorded from a run
+            that still names record-base;
+            planting A as XML and
+            skipping the second approve
+            sold as this red; asserting
+            only "second is not B"
+            (already true at HEAD).
+          </Criterion>
+          <Criterion>
+            Characterization (same task;
+            not a planned red; already
+            true at HEAD or true after
+            production): argv token
+            record false still writes
+            no Decision; refuse, apply,
+            and archive omit the
+            attribute; unreadable HEAD
+            at first observation omits
+            the attribute (no empty
+            value); a non-Requirement
+            child is still
+            ledger.invalid-decision;
+            a Decision with extra
+            attribute baseCommit is
+            still a valid permitting
+            approve; evaluateApproveGate
+            still does not spawn git;
+            if the first permit omitted
+            the attribute and a later
+            permit can name HEAD, that
+            later permit may write it;
+            newest-governs permit lookup
+            is unchanged. Do not record
+            a fail for these.
+          </Criterion>
+          <Criterion>
+            Production (own tool round
+            trip after both reds):
+            optional baseCommit on
+            GateDecisionRecord;
+            parseDecisionNode copies a
+            non-empty value; recordGateDecision
+            writes it only on permitting
+            approve and first-wins by
+            copying the first stored
+            non-empty attribute in
+            document order; command.ts
+            observes rev-parse HEAD
+            only on the approve
+            record=true permit branch
+            with cwd equal to the gate
+            path; do not edit
+            src/gates/core.ts,
+            src/artifact/grammar.ts, or
+            src/grace-cursor.ts; do not
+            add a BaseCommit child; do
+            not add a ledger export for
+            the reader; do not add a
+            review finding code.
+            Failure conditions: a child
+            tag; writing the attribute
+            from evaluateApproveGate;
+            writing it on refuse or
+            apply; inventing a value
+            when git fails; making
+            parseDecisionNode invalid
+            on the new attribute;
+            newest-governs becoming
+            the reader for this fact;
+            observing process cwd
+            instead of the gate path;
+            rewriting the first
+            Decision in place.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Default review universe to the recorded base</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-REVIEW-UNIVERSE />
+          <AC-UNRESOLVED />
+          <AC-OVERRIDES />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (review-universe):
+            before any src/review/core.ts
+            production edit, in its own
+            tool round trip, add bun
+            tests that run review with
+            argv token change, no
+            overrides, and a resolvable
+            recorded baseCommit. Separate
+            it() cases so each failure
+            prints (F80): inputSource is
+            recorded-base and baseRef
+            equals that sha, and a path
+            that differs from the commit
+            and is outside
+            ObservedWriteScope still
+            raises review.scope-outside-write-scope;
+            after a clean commit of
+            in-scope work since the base
+            the audit runs (not corr
+            169 not-run). Do not call
+            listFilesChangedAgainstBase
+            for this default. Do not
+            assert the caveat sentence
+            in these tests. Do not use
+            a dead sha. Record fail
+            with a filter that does not
+            run the base-unresolved
+            it(). Signature kind test
+            key review-universe. HEAD
+            today: no recorded-base
+            branch; fixture attribute
+            is ignored; clean tree is
+            not-run. Do not land
+            production in this round
+            trip. Failure conditions:
+            this round trip also lands
+            production; this fail
+            recorded from a run that
+            still names base-unresolved;
+            asserting only that
+            untracked raises (already
+            true via porcelain);
+            selling corr 169 without a
+            record as this red (already
+            true).
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (base-unresolved):
+            before any src/review/core.ts
+            production edit, in a later
+            tool round trip than
+            review-universe, add bun
+            tests that plant a recorded
+            baseCommit git cannot
+            resolve, with a dirty tree
+            so porcelain would have
+            run, and assert the scope
+            audit is unable-to-determine,
+            the reason names that sha,
+            and the dirty undeclared
+            path is not audited. Do
+            not assert absence of the
+            no-base caveat as this red
+            (already true at HEAD; pin
+            it on T-003). Record fail
+            with a filter that does not
+            run the review-universe
+            it(). Signature kind test
+            key base-unresolved. HEAD
+            today: no reader, so a
+            fixture attribute is
+            ignored and porcelain
+            runs. Do not land
+            production in this round
+            trip. Failure conditions:
+            this round trip also lands
+            production; this fail
+            recorded from a run that
+            still names review-universe;
+            silent porcelain fallback
+            sold as success; using the
+            no-base caveat sentence
+            for a present-but-dead ref
+            as the only assert.
+          </Criterion>
+          <Criterion>
+            Characterization (same task;
+            not a planned red): without
+            a recorded baseCommit, corr
+            169 empty-porcelain not-run
+            still holds; defined
+            changedFiles including
+            empty still wins and still
+            names the empty set as
+            caller-owned; non-empty
+            argv token base still uses
+            listFilesChangedAgainstBase
+            and ignores a recorded sha;
+            passing both override flags
+            still refuses; WriteEvidence
+            and attempt-pair audits
+            still read the ledger;
+            unscoped review is
+            unchanged. After production,
+            also assert untracked paths
+            since the commit enter the
+            recorded universe (so a
+            three-dot-to-HEAD reuse
+            cannot pass) and a path
+            that matches the commit
+            and is not new untracked
+            does not enter. Do not
+            record a fail for these.
+            Do not freeze allReviewCodes
+            length.
+          </Criterion>
+          <Criterion>
+            Production (own tool round
+            trip after both reds): add
+            the recorded-base branch
+            and the private
+            commit-versus-worktree
+            helper in src/review/core.ts
+            per D2; update review
+            command help so argv token
+            base overrides a recorded
+            base; do not edit
+            src/grace-cursor.ts,
+            src/review/catalog.ts, or
+            src/gates/core.ts; do not
+            add a review finding code;
+            do not add a ReviewResult
+            top-level key; do not add
+            a boolean site. Failure
+            conditions: calling
+            listFilesChangedAgainstBase
+            for the recorded default;
+            dropping untracked;
+            leaving clean-tree
+            committed work as not-run;
+            changing unscoped review;
+            recorded-base overriding
+            an explicit flag; a new
+            review code; version field
+            edited.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Print the no-base caveat on text and JSON</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-CAVEAT-TEXT />
+          <AC-CAVEAT-JSON />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (caveat-text):
+            before any formatReviewResult
+            or formatScopeAuditLine
+            production edit, in its own
+            tool round trip, add a bun
+            test that runs review with
+            argv token change, no
+            override, no recorded base,
+            and a dirty tree so
+            porcelain ran, and asserts
+            formatReviewResult prints
+            the exact pinned sentence
+            on the Scope audit line
+            (F44; literal bytes in the
+            test, not a MustContain).
+            Do not read
+            scopeAudit.reason in this
+            test (F68, F80). Do not
+            use git-absent,
+            empty-porcelain not-run,
+            or a dead sha as this red
+            (each has its own sentence
+            or absence). Record fail,
+            signature kind test key
+            caveat-text. HEAD today:
+            the sentence is absent.
+            Do not land production in
+            this round trip. Failure
+            conditions: this round trip
+            also lands production;
+            this fail recorded from a
+            run that also names
+            caveat-json; asserting only
+            that some caveat appears;
+            printing it only in a
+            finding; swallowing it
+            when findings is 0.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (caveat-json):
+            before any scopeAudit.reason
+            production edit, in a later
+            tool round trip than
+            caveat-text, add a bun
+            test under the same
+            porcelain-ran no-record
+            conditions that asserts
+            scopeAudit.reason contains
+            that same sentence,
+            schemaVersion stays 1.0.0,
+            and Object.keys of the
+            ReviewResult gain no new
+            top-level name. Do not
+            read formatReviewResult
+            in this test (F68, F80).
+            Record fail with a filter
+            that does not run the
+            caveat-text it().
+            Signature kind test key
+            caveat-json. HEAD today:
+            scopeAudit.reason names
+            porcelain and does not
+            contain that sentence.
+            Do not land production in
+            this round trip. Failure
+            conditions: this round trip
+            also lands production;
+            this fail recorded from a
+            run that still names
+            caveat-text; a new
+            top-level JSON key; JSON
+            silence while text speaks;
+            recording this red against
+            not-run or git-unavailable
+            where reason already feeds
+            the text line.
+          </Criterion>
+          <Criterion>
+            Characterization (same task;
+            not a planned red): after
+            production, the same
+            sentence also appears for
+            porcelain not-run and for
+            git unavailable (existing
+            reasons kept, sentence
+            added); it is absent when
+            recorded-base ran, absent
+            under either override, and
+            absent for an unresolvable
+            recorded sha (reason names
+            the sha). Do not record a
+            fail for these. Do not add
+            a ReviewResult key.
+          </Criterion>
+          <Criterion>
+            Production (own tool round
+            trip after both reds): put
+            the sentence on the Scope
+            audit text line and in
+            scopeAudit.reason under
+            the D3 conditions; do not
+            edit README.md,
+            CHANGELOG.md, examples/,
+            or src/review/catalog.ts;
+            do not add a review
+            finding code. Failure
+            conditions: printing it
+            only in a finding;
+            printing it after a
+            successful recorded-base
+            run; using it for a
+            present-but-dead ref;
+            a new top-level JSON key;
+            editing CHANGELOG.md.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Close suite, pins, and lint at archive</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-HEAD-RED />
+          <AC-SUITE-AND-LINT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED ownership: do not
+            record a new red. Confirm
+            the six planned fail/pass
+            pairs exist under
+            test:record-base,
+            test:base-stable,
+            test:review-universe,
+            test:base-unresolved,
+            test:caveat-text, and
+            test:caveat-json, and that
+            no F45 exemption was
+            reddened. Do not re-record
+            T-001 through T-003. Do
+            not stash a retrospective
+            red. Close verdict states
+            that CI is the only
+            observer of path
+            separators (F73).
+          </Criterion>
+          <Criterion>
+            bun test green for gates
+            ledger and command, review
+            core, and any other test
+            this deliverable forced;
+            bun run validate:ci green
+            (re-measure ratchet
+            cardinality; do not drop
+            keys); bun run ngrace lint
+            path . is 0 errors and 0
+            warnings at close only,
+            after apply and archive,
+            not claimed mid-change.
+            ObservedWriteScope covers
+            every path the deliverable
+            forced. No docs/plans or
+            archive edits. No
+            CHANGELOG. No version
+            surfaces. allReviewCodes
+            cardinality unmoved.
+            localize excluded-review-code
+            cardinality unmoved.
+            README.md untouched.
+            examples/ untouched.
+            token-accounting.ts
+            unopened.
+            listFilesChangedAgainstBase
+            unmoved. evaluateApproveGate
+            still git-free. grammar
+            Decision children still
+            Requirement-only.
+            gate-decision registered
+            shape still gates plus
+            values. Failure conditions:
+            suite red; lint 0/0 claimed
+            mid-window; writes outside
+            declared scope; pin deleted
+            or loosened; a new review
+            finding code; F51 pin
+            moved without a skill edit
+            (there is no skill edit).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+          <Command>bun test src/review/core.test.ts</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-BUNDLE-BASE-REF>
+</NgraceChangePlan>
