@@ -4678,3 +4678,37 @@ only inside the plan that owns it, and never inside a normative block that anoth
 quote. **Owed: an audit of the remaining bare `D<n>` citations** in this plan and in the skills —
 `D3`, `D5.2`, `D5.5`, `D11`, `D12`, `D13`, `D16`, `D17` are all in live use and at least one (D12) is
 known to belong to the reliability plan. Not done here; this bundle's scope is `--as`.
+
+### F75 — a spec that counts reds in two places has two inventories, and they disagree. **[verified]**
+
+`C-AS-STATE`'s approved spec states its red arithmetic twice and the two statements are not the same
+arithmetic. Caught by the executor at plan authoring; the authority had approved it.
+
+- The signature-key **Constraint** (`spec.xml:471-482`) says *"the assertions-mode refusal and the
+  gate-verb refusal **are separate reds**"* — two.
+- **`AC-HEAD-RED`** (`:850-860`) says each of the four criteria *"has **a** red … under the signature
+  keys named above"* — four keys total, so both refusals sit under `as-vocabulary` as **one**.
+- `AC-HEAD-RED`'s own **failure conditions** (`:884-891`) then forbid *"the assertions-mode refusal and
+  the gate-verb refusal reddened so the second fails naming the first ([F68](#f68))"* — which is
+  precisely what obeying the Constraint would produce, because at HEAD both refusals fail identically
+  as an unknown flag.
+
+So the Constraint demands a pair that the criterion's failure list forbids. **`AC-HEAD-RED` had the
+correct count all along; the Constraint over-counted.**
+
+**The distinction the Constraint blurred is the useful one.** *Tests* must be able to fail alone —
+that is a real property and worth requiring. *Ledger fail events* are a different quantity, governed by
+the fix budget and by [F68](#f68)'s independence rule. A Constraint may require the first; only
+`AC-HEAD-RED` may count the second. Conflating them produced a spec that could not be executed as
+written.
+
+**The rule.** **Red counts live in exactly one place: `AC-HEAD-RED`.** Any other section may say that
+two properties must be *independently observable*, and must not say how many `cursor attempt --outcome
+fail` events that implies. This is [F60](#f60)'s second-inventory pattern applied to reds — and the
+second time this phase an approved spec carried an internal contradiction that only surfaced at plan
+authoring, after [F63](#f63)'s sibling in `C-TEACHING-SURFACE` where an acceptance criterion defined
+"tables" two incompatible ways in adjacent sentences.
+
+**Also recorded, not fixed:** the same spec still cites *"D5 typed-absence"* bare at `spec.xml:192` —
+the exact defect [F74](#f74) records. The spec is approved and immutable, so it stands; the plan cites
+`RM-AGENT-RELIABILITY` D5 correctly, and this entry is the record that the artifact does not.
