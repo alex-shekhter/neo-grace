@@ -420,16 +420,27 @@ paragraph. **The cure is attribution, not suppression.**
    load-bearing beyond this step.
 4. **Drift credit from applied bundles** (ag9 #4/#10). `status`'s unexplained-drift detector
    consults **applied** bundles' `ObservedWriteScope`s before declaring drift unexplained: a
-   file matching an applied bundle's scope is "explained by C-*", not drift. Removes the
-   permanent post-bootstrap refresh nag without weakening detection — the credit is only as
+   file matching an applied bundle's scope is "explained by C-*", not drift. The credit is only as
    broad as scopes a human approved.
+
+   **Three clauses corrected at delivery — see F83.** *(a)* An archived bundle's `ObservedWriteScope`
+   still names `.ngrace/changes/**active**/C-ID/...` while its bytes now live under `archive/`, so
+   exact matching credits `src/` leftovers and **misses the moved bundle itself**. Credit needs an
+   archive-location alias for that id. *(b)* *"Without weakening detection"* is overclaimed: OWS
+   membership is permanent, so any later dirty edit to a once-approved path becomes explained. That is
+   a real, intended narrowing of "unexplained" — no time window is specified, and inventing one is not
+   this step. *(c)* It does **not** remove the post-bootstrap nag: files no applied `ObservedWriteScope`
+   covers stay unexplained, and that nag is P4.2's adoption boundary.
 5. **Finding severities.** Findings gain `error | warning | info`; `--severity` filters
    output. Named profiles ("land", "hotfix") are rejected — severity is model-honest,
    profiles are taste. After items 1–4, remaining low-value findings (change-meta notes) are
    demoted to `info` so the default view is signal.
-6. **Honest nextAction** (ag2 §4.3, cheap half). `status` nextAction for unexplained drift
-   never recommends committing; it recommends refresh/ratify. The full process grade is
-   deferred (§4 D1).
+6. ~~**Honest nextAction** (ag2 §4.3, cheap half).~~ **Already true at HEAD — see F83.** Measured:
+   `src/grace-status.ts` contains the string `commit` **zero** times, and unexplained drift already
+   recommends refresh. There is no commit recommendation to remove. Note also that *"never recommends
+   committing"* is the undifferentiated rule **F7 already refuted** — it is right for unexplained
+   drift and wrong for the approval-window `approved-contract-drift` hard stop. "Ratify" belongs to
+   P4.3, not here. The full process grade stays deferred (§4 D1).
 
 **Verification.** Fixtures reproducing each corpus audit (ag1's 14/19, ag10's 45-flagged)
 must come out clean; a fixture with genuine undeclared source writes must still fail; a

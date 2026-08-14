@@ -5025,3 +5025,39 @@ link points at something the task can actually observe.**
 Not repaired here — the plan template is shared and changing it mid-bundle would amend approved
 artifacts. **Owed to the next bundle that authors from the model plan**, which is the same route
 [F50](#f50) and [F51](#f51) took.
+
+### F83 — a step described as delivery is already shipped, and its sibling's credit rule cannot match the files it names. **[verified]**
+
+Seventh roadmap claim in this phase to fail construction. Caught by the executor at
+`C-DRIFT-HONESTY`'s spec authoring; both verified independently.
+
+**P2.6 is already true.** *"`status` nextAction for unexplained drift never recommends committing"* —
+measured, `src/grace-status.ts` contains the string `commit` **zero times**, and unexplained drift
+already emits the refresh sentence. There is nothing to remove. Building it would be an
+[F28](#f28) green-as-new-work, or a rewrite of a sentence that is already the honest one. **And the
+rule as stated is one F7 already refuted**: never-commit is right for unexplained drift and wrong for
+the approval-window `approved-contract-drift` hard stop, which the step text never absorbed.
+
+**P2.4's credit rule cannot match its own subject.** An archived bundle's `ObservedWriteScope` still
+names `.ngrace/changes/`**`active`**`/C-ID/...` — measured on the most recent archive, whose `<Glob>`
+reads `…/active/C-BUNDLE-BASE-REF/run/**` — while the bytes now live under `archive/`. So exact
+matching credits stray `src/` paths and **misses the moved bundle itself**, leaving the post-apply nag
+the step exists to remove. This is the same shape as [F81](#f81): the prescribed rule does not survive
+the store it is applied to.
+
+**Two overclaims in the same sentence.** *"Without weakening detection"* is false if credit is OWS
+membership: the scope is permanent, so **any later dirty edit to a once-approved path becomes
+explained**. That is a real narrowing of what "unexplained" means, and no time window is specified.
+And *"removes the permanent post-bootstrap refresh nag"* overclaims — files no applied scope covers
+stay unexplained, and that nag belongs to P4.2's adoption boundary.
+
+**Related, and the trap in [F82](#f82)'s own repair.** F82 said to bind the close-time lint bar to the
+close record or split the criterion. Both collide with shipped lint: a second close-time `AC-*` that no
+task `Satisfies` raises `change.acceptance-criterion-unmapped`, so a 0/0 bar containing it can never
+close. The workable third option is that the post-archive half is **verdict evidence and not an `AC-*`
+at all**, with the task-observable half kept as a criterion. **A finding that prescribes a repair
+inherits the obligation to check the repair is closable.**
+
+**The rule.** Before treating a roadmap step as work, measure whether the product already does it —
+and when a step credits or matches stored records, check the records **as they exist at the moment the
+rule runs**, not as they were written.
