@@ -5133,3 +5133,42 @@ and only its tail says whether the defect still exists.
 `D15` in `src/test-support/token-accounting.ts:80` (needs a bundle that opens that file), and
 [F84](#f84)'s standing contradiction between the shipped `ngrace-execute` skill and this roadmap's
 authority-owned close.
+
+### F86 — P3's gate cannot be run: its transcript does not exist and two of its three targets are outputs of the phase it gates. **[verified]**
+
+Measured at P3's opening, before any step detail was written.
+
+**There is no brownfield transcript to re-run.** The gate says *"the author re-runs one brownfield
+transcript end-to-end."* Nothing in this repository is one. `examples/polyglot/WALKTHROUGH.md` is a
+tour of a repo *"under full GRACE governance"* — greenfield, already adopted. `ngrace-init` is a
+greenfield bootstrap that explicitly creates **zero** bundles; `ngrace-migrate` is GRACE 3 → neo-grace
+artifact conversion and bans retroactive bundles. `grep -ri brownfield` hits only this roadmap and its
+own sources. The ten brownfield guides the plan cites are, by its own admission, *"files in another
+directory, owned by other people."* **Opening this gate requires authoring the transcript, not
+re-running one** — the same class as P2's ≥80% metric ([F83](#f83)), where the measurement's subject
+was a citation rather than an artifact.
+
+**And the gate is partly self-referential.** Of its three quantities, *"manual post-gate steps = 0"*
+and *"bundles for a bootstrap ≤ 3"* are **descriptions of what P3 and P4 deliver**, so measuring them
+before those phases can only ever return the pre-phase number. Only *"remaining folklore steps"* is
+measurable now, and the answer is concrete: **six manual post-gate steps, three of which have no CLI
+verb of any kind** — writing `status="applied"` on the spec, on the plan, and moving the bundle to
+`archive/`. `src/gates/command.ts` says so outright: *"Does not set status=applied and does not move
+bundles (invariant 8)."*
+
+**The sharpest measured fact, and it is an honesty gap in the product's own record.** Across **43
+archived bundles**, the run-ledger ends at the archive gate's `Decision`. **Nothing is recorded
+after it** — yet both artifacts read `applied` and the bundle sits under `archive/`. The three
+folklore steps leave **no machine record at all**, so the ledger cannot show that the transition it
+gates ever happened. That is what P3.1 exists to close, and it is a stronger argument for the step
+than the step makes for itself.
+
+**Two corrections to P3's own text, applied in the roadmap.** P3.7's *"all sixteen archived bundles"*
+was measured 2026-08-09 and is now **43 (39 with a ledger)** — a corpus 2.7x the size the rule was
+sized against. And P3.1's *"folds any loose epoch"* fires on **recovery paths only**: the archive gate
+already requires `no-open-epoch`, so on the normal path there is nothing left to fold.
+
+**The rule.** A gate that measures its own phase's output is not a gate — it is a restatement of the
+objective. When writing one, separate **what must be true before starting** from **what success looks
+like after**, and check that the artifact the gate reads actually exists in the repository that will
+run it.
