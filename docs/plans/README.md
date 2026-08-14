@@ -9,6 +9,7 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 | `RM-GOVERNED-PATH` | Make the governed path the path of least resistance | `approved` | 6.1.1 | 6.2.0 · 6.3.0 · 6.4.0 _(provisional)_ | [plan.md](./active/RM-GOVERNED-PATH/plan.md) · [decisions.md](./active/RM-GOVERNED-PATH/decisions.md) · [review.md](./active/RM-GOVERNED-PATH/review.md) |
 | `RM-LANGUAGE-EXTENSIBILITY` | Language bundles, conformance fixtures, and parser strategy | `draft` | 5.0.0 | — | _not written_ — see [review.md](./active/RM-LANGUAGE-EXTENSIBILITY/review.md) |
 | `RM-GITLESS-INTEGRITY` | Gitless artifact integrity: what the tool knows about what it approved | `draft` | — | — | _not written_ — see [review.md](./active/RM-GITLESS-INTEGRITY/review.md) |
+| `RM-VERIFIED-APPROVAL` | Verified approval: making ratification something the agent cannot assert | `draft` | — | — | _not written_ — see [review.md](./active/RM-VERIFIED-APPROVAL/review.md) |
 | `RM-DESIGN-EVIDENCE` | Design evidence an agent can actually use: visual references, recordings, and the behaviour text that carries them | `draft` | — | — | _not written_ — see [review.md](./active/RM-DESIGN-EVIDENCE/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
@@ -38,6 +39,24 @@ and implementation bundles. See the archive row for links.
 Recorded, not scheduled. Each has an explanatory `review.md` and **no `plan.md`** — per rule 6 that
 means exploration, not a commitment. They are independent of each other and of one another's
 sequencing; nothing here is blocked by anything else on this page.
+
+### `RM-VERIFIED-APPROVAL` — recorded 2026-08-14
+
+Two independent models adopting GRACE on a real repository each wrote `status="approved"` onto the
+spec they had just authored, in the same commit, without asking (F88). `gate approve` deliberately
+does not write `status`, so for an autonomous agent the approved state that gates `plan new` and
+`gate apply` is a self-certification the product cannot distinguish from human ratification.
+
+Records why the cheap answers fail — anywhere the agent can write, it can forge; a blockchain
+faithfully records whatever was submitted; a prompt only governs agents already willing to ask — and
+the shape that works: **a service the agent cannot write to, issuing one-time codes to the human
+bound to a fingerprint of the artifact.** That moves approval from tamper-evident to **verifiable**.
+Constraints that decide whether it holds are recorded with it, including that **the detection half is
+still required** — both measured runs bypassed the request entirely, so codes alone would not have
+caught them.
+
+**Not scheduled.** The repo-local floor ships first regardless: `gate approve` writing status with a
+fingerprint, and lint reporting `approved` without a matching record.
 
 ### `RM-DESIGN-EVIDENCE` — recorded 2026-08-13
 
