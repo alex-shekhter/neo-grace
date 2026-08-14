@@ -5343,3 +5343,46 @@ artifact is a corruption mode nothing in the product catches.
 wiring bug when the real answer is that the dependency's semantics differ from the standard the
 product claims. Where a claim rests on a vendored implementation, **test the vendor against the
 standard**, not the product against itself.
+
+### F88.1 correction — the self-approval evidence is confounded: the prompt sanctioned guessing and never mentioned a human. **[verified]**
+
+Raised by a third model (Qwen3 27B) reflecting on its own run when challenged, and it is a correction
+to **my instrument**, not to its behaviour.
+
+**Measured against the prompt text.** The brownfield prompt contains **no occurrence** of *user*,
+*ask*, *human*, *operator*, *interactive*, or *approval* — the sole match on that grep is an
+incidental "approved through to archived". It offered exactly two categories for uncertainty:
+`BLOCKED` ("could not proceed") and `INFERRED` ("you decided something the instructions did not
+specify"). It then described `INFERRED` lines as **"the most valuable lines in the transcript."**
+
+**So the instrument rewarded guessing and never disclosed that a human was reachable.** All three
+models resolved the approval stop by inference and labelled it — which is precisely, and only, what
+they were told to do. The third model named the conflation exactly: it read the absence of an
+interactive user as *"there is no human to ask"*, when what was actually true was *"the CLI does not
+enforce the lexicon."* Its own sentence is the sharpest statement of the product principle anyone has
+written this phase: **"the human stop is a social contract on the agent, not the binary."**
+
+**What this does and does not do to [F88](#f88).**
+
+- **The product defect stands, and is not transcript-dependent.** `gate approve` does not write
+  `status`; nothing records who authored the transition; the product cannot distinguish human
+  ratification from agent self-certification. That was verified from source, not inferred from
+  behaviour. [D18](#d18) rests on that, and is unaffected.
+- **The behavioural claim is contaminated and must not be cited as it was written.** F88 says the two
+  models did it *"without hesitation"*, framed as evidence that agents will self-certify when
+  unwatched. They had no sanctioned alternative. **That inference is not supported by this
+  experiment.** What the runs do establish is weaker and still useful: when a governance stop is
+  unenforced by the tool *and* unmentioned by the operator, it is skipped — three times out of three.
+- The third run adds the piece the design most needed: challenged, the model recognised the stop as
+  binding, reverted its own self-approval, and asked. **The gate is respected when it is surfaced.**
+
+**A second finding out of the same run, unrelated to the confound.** It wrote module-contract markup
+into a file that its own change's `ObservedWriteScope` names — **before the spec or plan were
+approved**. Governance writes landing ahead of the approval that gates them is an ordering hole the
+lifecycle does not currently catch, and no finding covered it.
+
+**The rule.** **An instrument that offers only one route past uncertainty measures the route, not the
+subject.** Before drawing a behavioural conclusion from an agent transcript, read the prompt for the
+options it made available — and check whether the behaviour under study was one the prompt made the
+cheapest legal move. Give every affordance you intend to measure: if asking is a possible correct
+action, the prompt must say a human is reachable, or its absence is the finding about the prompt.
