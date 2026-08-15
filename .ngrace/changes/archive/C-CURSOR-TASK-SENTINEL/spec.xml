@@ -1,5 +1,6 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
   <C-CURSOR-TASK-SENTINEL>
+    <Replacement>C-CURSOR-TASK-IDENTITY</Replacement>
     <Summary>
       Discharge F90 as out-of-phase hygiene for RM-GOVERNED-PATH P3.1
       (lifecycle finish). Stop every guessed task identity on a run
