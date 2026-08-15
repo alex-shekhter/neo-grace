@@ -1,0 +1,195 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-CRITERION-CLOSE-EVIDENCE</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    Survey of what the grammar affords today, and
+    why this bundle specifies CloseEvidence as a
+    child of AC-* evaluated by gate verdict on an
+    applied archived bundle.
+
+    Afforded today. Mapped: an AC-* the plan
+    Satisfies-links to a task. Unmapped: an AC-*
+    with no Satisfies, warned at
+    change.acceptance-criterion-unmapped
+    (src/artifact/grammar.ts:1883-1890). Legacy:
+    free-text AcceptanceCriteria with no AC-*,
+    mapping skipped. Satisfies accepts only AC-*
+    or None. Verdicts accept outcome pass, fail,
+    or unable-to-determine, and optional scope
+    task, wave, or bundle. They do not name an
+    AC-*. Anchors may not appear in attributes.
+
+    Not afforded. No close-bound, verdict-bound,
+    or archive-only AC-* state. No Satisfies
+    target that is the close. No Verdict child
+    that cites an AC-*. D17 freezes an id once a
+    run event cites it; it does not bind a
+    criterion to the close.
+
+    Where the evidence exists. D20 close is
+    argv token assertions final, review, gate
+    verdict, gate apply, gate archive, applied
+    writes, archive move. Post-archive lint is
+    practice after the last of those. F86: the
+    ledger ends at the archive Decision. So the
+    canonical 0/0 observation is after the last
+    recording act the product already performs
+    in the normal close.
+
+    What still records. resolveChangeBundle
+    (src/grace-cursor.ts:500-502) finds
+    archive/. gate verdict can write a second
+    Verdict after the move. That is the first
+    point where post-archive evidence can exist
+    and a verdict can still be recorded. The
+    writer exists; the obligation and the
+    evaluator do not.
+
+    Why not evaluate in lint. A lint diagnostic
+    that the close-bound criterion has not been
+    evaluated would fire on the first
+    post-archive lint, which is the evidence
+    the criterion names. That is F83.1 again.
+    Review findings are not lint issues. Gate
+    verdict running the Command is the
+    evaluator; review detecting a missing
+    record is the skip detector.
+
+    Why this is smaller than the name and still
+    the charter. The bundle does not add a
+    post-archive lint verb or a lifecycle finish.
+    It makes the third state real, stops the
+    unmapped self-trap, and evaluates at a
+    writer that already exists. Post-archive
+    0/0 becomes authorable as CloseEvidence
+    whose Command is lint with argv token
+    fail-on set to warnings. Until that ships,
+    this bundle itself still uses the
+    C-DRIFT-HONESTY split.
+
+    F89. A CloseEvidence tag with no Command
+    and no evaluator would be a decoration
+    authors could use to claim close evidence.
+    Incomplete CloseEvidence is an error.
+    Evaluation is gate verdict. Absence of the
+    record is a review finding on applied
+    archives only. If either half is cut, the
+    state is F89 prose.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Attribute on AC-* (when=close). Rejected.
+      Semantic anchors are attribute-free.
+      artifact.semantic-anchor-attribute and F38
+      already record the cost of stuffing an
+      anchor into an attribute. when=close is
+      not itself an anchor value, but it still
+      violates the attribute-free rule and is
+      only typing something (ruling 1).
+    </Alternative>
+    <Alternative>
+      Distinct sibling of AcceptanceCriteria, or
+      a CloseSatisfies section on the plan.
+      Rejected. The criterion is still an AC-*.
+      Splitting the section invents a second
+      list collectAcceptanceCriteriaIds would
+      have to union, and plan new would still
+      need to know which list is which.
+    </Alternative>
+    <Alternative>
+      Satisfies targeting the close or a Verdict.
+      Rejected. Satisfies is task to AC-*
+      (src/artifact/grammar.ts:2056-2068). A
+      non-AC-* child is already
+      change.plan-invalid-section-shape. The
+      close is not a task.
+    </Alternative>
+    <Alternative>
+      Keep the C-DRIFT-HONESTY workaround as the
+      product. Rejected as the only state. It
+      remains the construction this bundle must
+      use for its own 0/0 bar, but the registry
+      charter is to make the third state
+      authorable. A spec that only restates the
+      workaround pays nothing.
+    </Alternative>
+    <Alternative>
+      Evaluate at argv token assertions final or
+      at the first gate verdict. Rejected for
+      the canonical case. Those run before the
+      archive move. Status writes and the move
+      can change lint (active vs archive
+      checks). Pre-archive 0/0 is a different
+      claim.
+    </Alternative>
+    <Alternative>
+      Require MaxErrors and MaxWarnings children
+      and parse lint text. Deferred. Extra
+      parser surface. Exit 0 plus fail-on
+      warnings already expresses 0/0 with
+      shipped CLI. Revisit if a close-bound
+      Command is not process-exit shaped.
+    </Alternative>
+    <Alternative>
+      Raise unmapped to error. Rejected. See
+      spec Constraints. The self-trap dies when
+      the third state exists; the raise is not
+      required and would break in-progress
+      mapping.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Whether P3.1 lifecycle finish should
+      absorb the post-archive gate verdict so
+      the authority does not have to remember
+      a second verdict write. Out of this
+      bundle. Named so C-ARCHIVE-CURSOR / D1
+      do not have to rediscover it.
+    </Decision>
+    <Decision>
+      Whether a later measurement wants Require
+      bounds parsed from lint text instead of
+      fail-on warnings. Not needed to ship the
+      state.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Author declares CloseEvidence with a
+      Command that is lint plus fail-on
+      warnings. Plan does not Satisfies it.
+      Tasks complete. Authority runs the D20
+      close, moves the bundle, runs that
+      Command via gate verdict. Verdict
+      children record pass. Later review is
+      quiet. Forgotten AC-* in the same spec
+      still warns.
+    </Scenario>
+    <Scenario>
+      Author forgets to map an ordinary AC-*.
+      Warning fires. Adding an empty
+      CloseEvidence does not silence it; that
+      is an error.
+    </Scenario>
+    <Scenario>
+      Author Satisfies-links a CloseEvidence
+      AC-* because plan new used to do that.
+      After this lands, plan new does not.
+      If they do it by hand, both-states
+      errors.
+    </Scenario>
+    <Scenario>
+      Bundle is superseded or cancelled.
+      CloseEvidence is inert. No close
+      evaluation is owed.
+    </Scenario>
+    <Scenario>
+      Authority archives and skips the
+      post-archive verdict. Review on the
+      applied archive finds the absence. Lint
+      stays free of that finding, so a 0/0
+      Command is still runnable.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
