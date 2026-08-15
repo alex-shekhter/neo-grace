@@ -5448,8 +5448,10 @@ authored transition happened; it was never committed as its own snapshot
   respected. That is a fact about the *corrected instrument*, not about agents in general
   (F88.1's rule, applied here as T7).
 - **D18's sequencing sentence** — *"neither ever requested an approval at all"* — is now
-  two-of-three. Not rewritten in place. The repo-local floor is still the half that would
-  have caught runs 1–2, and is still the record this run's ask does not have.
+  three-of-four: runs 1–3 (ornith, muse, and qwen 3.6, all on the original prompt) never
+  requested an approval; only this fourth, corrected-prompt run asked. Not rewritten in
+  place. The repo-local floor is still the half that would have caught runs 1–3, and is
+  still the record this run's ask does not have.
 - **The stop that was skipped is a different stop.** Action #34 mutated `ObservedWriteScope`
   on an approved working-tree plan. The corrected prompt did not prevent it. It was surfaced
   only after a human challenge (#41). Approval-of-status and immutability-of-content are not

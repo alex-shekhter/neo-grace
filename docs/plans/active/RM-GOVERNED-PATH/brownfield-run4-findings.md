@@ -384,8 +384,10 @@ after being challenged. Design input, not measurement.
   visible: not borne out as specified. See F89.1.
 - **Standing text** that "both measured runs bypassed the request
   entirely" (`docs/plans/README.md`, `RM-VERIFIED-APPROVAL/review.md`,
-  D18's sequencing sentence) is now two-of-three. Corrected beside the
-  finding that falsifies it.
+  D18's sequencing sentence) is now three-of-four: runs 1–3 (ornith,
+  muse, qwen 3.6 — all on the original prompt) bypassed it; this fourth,
+  corrected-prompt run did not. Corrected beside the finding that
+  falsifies it.
 
 ### Scheduled, not new debt (F85)
 
