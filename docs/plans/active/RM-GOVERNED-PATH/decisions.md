@@ -4,7 +4,7 @@ kind: context
 status: draft
 supersededBy: null
 created: 2026-08-09
-updated: 2026-08-14
+updated: 2026-08-15
 baseline: 6.1.1
 targets: []
 normative: false
@@ -5626,3 +5626,357 @@ The human's "per-state, do not extrapolate" rule left the close unattested. D18 
 lexicon to apply without a machine-evaluable extra is more prompt, which F88.2 just
 measured as insufficient for a different stop. Leave it on that entry. Not a new
 `RM-*`.
+
+---
+
+### F90.1 correction — `T-000` is a well-formed task id; the check fires on undeclared, not reserved; the way back exists and is undocumented. **[verified]**
+
+[F90](#f90) said `--run-commands` emits `T-000`, *"which the plan cannot declare"*, and that
+*"there is no sanctioned edit of a folded ledger"* / the written close protocol leaves
+*"no sanctioned way back"*. **Four of those clauses do not survive HEAD.** The writer is
+still wrong and the checker is still right. What F90 named as the repair, and what it
+named as unreachable, are not.
+
+**1. `T-000` matches the task grammar.** `ANCHOR_PATTERNS.task` is `/^T-[0-9]{3}$/`
+(`src/artifact/types.ts:212`). `T-000` is a well-formed task id. A plan *may* declare it.
+Generators emit `T-001`; conventional plans do not declare `T-000`. That is a convention,
+not a reservation. F90's phrase that the plan cannot declare the id is false as grammar. It
+is true of the conventional plan the close protocol produces.
+
+**2. `cursor.unknown-task` fires on an undeclared id, not a reserved one.**
+`src/artifact/grammar.ts:1361–1370` is `if (!tasks.has(entry.task))` against
+`planTaskIds`. There is no blacklist. A plan that declared `T-000` would silence the
+code for that id. A repair that exempts `T-000` from the checker — F90 candidate (b) —
+would therefore be the wrong repair even if it were ratified: it would punch a hole in a
+check that is doing its job, for an id the grammar already accepts. Candidate (b) is
+more clearly wrong than F90 stated, not less.
+
+**3. The way back exists and is undocumented.** After a poisoned `T-000` command-run,
+`cursor advance --task T-001 --kind terminal` *without* `--open-epoch`, then `cursor fold`,
+leaves `run.xml` on a declared task. Fold's auto-open (`src/grace-cursor.ts:1081–1087`,
+`maybeAutoOpenCoveringAllocation` at `:730`) inherits the last loose event's task; a
+trailing declared terminal makes that task `T-001`. The same sequence is already in the
+suite: `src/grace-cursor.test.ts:2966–2967` advances `kind: "terminal"` with no
+`openEpoch` after a post-work `appendCommandRunEvent`, then folds. F90's *"no sanctioned
+way back"* is an overclaim. **No *documented* way back is true, and still damning** —
+`ngrace-execute` steps 7 and 9 (`skills/ngrace/ngrace-execute/SKILL.md:40–43`) still run
+`--run-commands` after fold and then archive, and nothing in that contract names the
+terminal-without-open-epoch recovery. An operator following the written order still walks
+into the trap F90 measured.
+
+The natural reread of "re-open a declared task" does **not** work. Default `--open-epoch`
+sets `from = options.from ?? 1` (`src/grace-cursor.ts:896`). After a prior fold,
+`nextEventId` takes `ledgerMax + 1` (`:3047–3051`). The new opened event lands at that
+id with allocation `1..id+98`. `validateEventsAgainstAllocations` (`:2536–2540`) then
+refuses `range hole at 1`. The suite already knows: `:2976` comments *"default from=1
+would hole"* and computes `from = maxFolded + 1` by hand. That is why the recovery has
+to be *no* default open-epoch.
+
+**4. The `T-001` fallbacks F90 never named.** F90 cited `appendCommandRunEvent`'s
+`?? "T-000"` at `src/grace-cursor.ts:2977`. Two siblings invent `T-001` by the same
+A13.2 shape:
+
+| Writer | Line | Fallback |
+|---|---|---|
+| `recover --fix` | `src/grace-cursor.ts:616` | last loose task, else `"T-001"` |
+| `maybeAutoOpenCoveringAllocation` | `src/grace-cursor.ts:730` | last loose task, else `"T-001"` |
+
+After a `T-000` command-run they *inherit* `T-000` (not a new guess). The `T-001`
+fallback is the same defect on the empty-`run/` path. A repair that changes only
+`:2977` and leaves these two is this repository's repeated one-site patch.
+
+**What this does and does not do to [F90](#f90).**
+
+- **Stands.** The writer invents a task id. The checker is right to refuse an undeclared
+  one. The written close protocol emits `T-000` after fold, and archive then permits
+  (`[F93](#f93)`). Candidate (a) — do not emit a guessed id; refuse when none is in
+  scope — is still the only option that does not invent a task the plan did not declare.
+  Not re-ratified here; still not ratified there.
+- **Overturned.** "The plan cannot declare `T-000`." A blacklist of `T-000` as the
+  repair. "No sanctioned way back."
+- **Narrowed.** "No sanctioned way back" → no *documented* way back. The verbs exist;
+  the contract does not name them.
+
+**Scheduled as `C-CURSOR-TASK-SENTINEL`, already authored on `fix/cursor-task-sentinel`
+at `241c628`** (`.ngrace/changes/active/C-CURSOR-TASK-SENTINEL/spec.xml` on that
+branch; not present here). That spec absorbs these four points (its Problem states
+them) and forbids exempting a sentinel id. This pass does not create or edit that
+bundle.
+
+**The rule.** A well-formed id the plan did not declare is an undeclared id, not a
+reserved one. Do not repair a guessed fallback by making the guess legal.
+
+### F93 — the archive gate permits a cursor that lint rejects. **[verified]**
+
+`evaluateArchiveGate` (`src/gates/core.ts:423–467`) carries one requirement,
+`no-open-epoch` (`:450`), and **no cursor requirement at all**. If `run/` has no
+foldable loose events, the gate permits. It does not read `run.xml`. It does not
+run `cursor.unknown-task`. A bundle whose cursor names `T-000` and whose plan does
+not declare `T-000` archives cleanly.
+
+That is how brownfield run 4 archived. [F86.1](#f861) recorded the close:
+`archive=permit` (`run/ empty`), bundle under `archive/C-IDENT-COVERAGE/`, lint at
+HEAD one error, `cursor.unknown-task`. The gate and the checker disagreed, and the
+gate won.
+
+**This is a defect of the gate, not of the writer.** [F90](#f90) / [F90.1](#f901)
+own the guessed id. This finding owns the gate that then accepted the poisoned
+cursor as a closed bundle. Two surfaces, two repairs.
+
+**P3.1 inherits it verbatim.** `lifecycle finish` (`plan.md:462–467`) is *"one
+operation that, after a permitting `gate apply`: folds any loose epoch (via P0.6 —
+recovery paths only; see F86, since the archive gate already requires
+`no-open-epoch`)"*. The justification for trusting fold-and-move is the archive
+gate's `no-open-epoch`. That predicate does not see the cursor. Shipping P3.1
+against the gate as it stands moves a lint-red cursor into `archive/` in one
+verb, with `status="applied"` written by the tool, which is a worse record than
+today's folklore close: the same residual, now tool-certified.
+
+`C-CURSOR-TASK-SENTINEL` spec `:280–285` (same branch) explicitly forbids
+touching `src/gates/**` archive predicates. The owner is not that bundle.
+
+**The mechanism it demands.** The archive gate must require a cursor that lint
+accepts. A live `cursor.unknown-task` (and, once [F90.1](#f901) lands, any other
+cursor error) is a refuse, not a permit. `no-open-epoch` stays; it is no longer
+sufficient.
+
+**This is a binding requirement on P3's derivation.** P3 is objectives-only
+(`plan.md` header; `docs/plans/README.md` rule 7). This pass does not write P3
+step detail. The derivation that authors P3.1's first bundle must carry the
+requirement. The bundle that requirement names is **`C-ARCHIVE-CURSOR`** — either
+as its own change or as a must-include of `lifecycle finish`. Not created here.
+Not folded into `C-CURSOR-TASK-SENTINEL`.
+
+**The rule.** A gate that asks only "is `run/` empty?" will archive whatever
+`run.xml` says. Emptiness of the loose directory is not integrity of the cursor.
+
+### F88.3 — the authority-side half of F88: a brief asserted ratification, and the product could not refuse. **[verified]**
+
+On 2026-08-15 an executor brief *asserted* that the maintainer had ratified
+`C-CURSOR-TASK-SENTINEL` and made the `status="approved"` write step 1 of a
+numbered imperative. The executor performed it, then self-audited and stopped.
+**Nothing in the product could refuse.**
+
+`evaluateApproveGate` (`src/gates/core.ts:259–298`) reads one thing:
+`no-unresolved-ic-inv-clarification`. It reads no phrase. It writes no status.
+`src/gates/command.ts:15` is still *"evaluate/record; never author status
+(A29.2, A31.1)"*. The permit that followed dressed a self-certified write as a
+gated approval of a human-ratified spec.
+
+The record it produced, discarded at the maintainer's direction before any commit,
+was exactly:
+
+```xml
+<Decision gate="approve" decision="permit" baseCommit="93d30dab4140bcb4fef427ae96b4a04a61dc3204"><Requirement id="no-unresolved-ic-inv-clarification" required="true" present="true" blocking="false" /></Decision>
+```
+
+`93d30dab4140bcb4fef427ae96b4a04a61dc3204` is the draft-spec commit. The same
+XML now sits in the committed ledger (`241c628`, the authority's later act,
+after a real in-session phrase). **The discarded Decision and the kept Decision
+are indistinguishable.** That is [F88](#f88) performed by this repository's own
+operators, not by a brownfield adopter.
+
+**Record the departure; do not reframe it as compliance.** The sanctioned route
+for a wrongly transitioned artifact is supersede and replan with an explicit
+replacement reference (`skills/ngrace/ngrace-plan/SKILL.md:29–33`,
+`skills/ngrace/ngrace-execute/SKILL.md:8`). It was not taken. Nothing had been
+committed, and the maintainer directed a discard — an exception, named as one,
+following [F65](#f65)'s precedent for a user-directed departure (F65, not F64:
+F64 is the scope miss that made supersede expensive after execution; F65 is the
+named in-place exception). [F64](#f64) is the cost argument, not the precedent.
+
+**What this does and does not do to [F88](#f88).**
+
+- **The product defect stands, and has a second actor.** F88 measured adopters
+  writing `approved` onto a spec they had authored. This is the authority writing
+  `approved` onto a spec because a brief *said* a human had ratified it. Same
+  seven characters, same gate, same silence. [D18](#d18) still rests on that.
+- **F88.1's instrument confound does not cover this.** The brief was not a
+  brownfield prompt that forgot to mention a human. It *named* the ratification
+  as a fact and ordered the write. The failure is the opposite of F88.1: the
+  human stop was asserted, not omitted.
+- **D18 as written would not have refused this Decision.** D18 records a
+  fingerprint of the bytes and writes `status`. It does not record the phrase,
+  who said it, or what the phrase covered. A brief-asserted write plus
+  `gate approve` still produces a permitting Decision whose fingerprint matches
+  the bytes. The forged claim is *"a human ratified these bytes"*, and D18 does
+  not hold that claim.
+
+**The rule it yields.** A brief may assert nothing about ratification. The
+phrase must travel with the bytes it covered, or the agent's write is
+indistinguishable from self-certification — which, on this date, it was.
+
+#### Decision candidate — phrase attestation (not ratified)
+
+Honest options, none free. [D18](#d18) is already decided and is the floor.
+This candidate is additive.
+
+- **(a) D18 only — fingerprint of the bytes, no phrase.** Already decided.
+  Cost: this slip's Decision still looks like a gated approval of a ratified
+  spec. The discarded XML and the kept XML stay twins.
+- **(b) D18 plus an attestation naming the phrase and the bytes it covered.**
+  The approve event records the closed-lexicon phrase and a fingerprint of
+  what that phrase was claimed to cover. A `status="approved"` whose record
+  names no phrase — or whose phrase-fingerprint no longer matches — is the
+  same reportable defect D18 already specifies for a missing fingerprint.
+  Cost: an agent can still forge the field. That is D18's own ceiling
+  (tamper-evidence, not enforcement). What changes is that forging the
+  *ratification claim* becomes a visible act rather than the default one,
+  the same move D18 already makes for the status write.
+- **(c) Wait for [`RM-VERIFIED-APPROVAL`](../RM-VERIFIED-APPROVAL/review.md).**
+  The phrase becomes a one-time code bound to the fingerprint, issued by a
+  party the agent is not. Cost: not scheduled; the floor is still required
+  first; this slip would have waited on a service that does not exist.
+
+**(b) is the mechanism this slip demands, and it is not ratified here.** D18
+as written records a fingerprint and not the phrase; saying that out loud is
+the point of this entry. If (b) is adopted it ships *with* D18's
+implementation, not after it — a floor that cannot tell this Decision from a
+real one has not narrowed the unverifiable region this instance opened.
+
+### F94 — a brief can contradict an approved spec, and the plan it would produce lints clean. **[verified]**
+
+The same 2026-08-15 brief made `docs/plans/**` a deliverable of
+`C-CURSOR-TASK-SENTINEL`. The approved spec forbids exactly that, as Constraint
+prose:
+
+```
+Do not edit docs/plans/**, the phase board,
+CHANGELOG.md, any version surface, or
+.ngrace/changes/archive/**.
+```
+
+(`.ngrace/changes/active/C-CURSOR-TASK-SENTINEL/spec.xml:273–278` on
+`fix/cursor-task-sentinel` at `241c628`. Not present on this branch; this pass
+does not touch `.ngrace/`.)
+
+The executor caught it by reading both. The product would not have.
+
+`change.plan-scope-exceeds-spec` (`src/artifact/grammar.ts:1864–1873`) compares
+`DurableScope` **anchors** against anchors collected from spec `AffectedAreas`,
+at **warning** severity, and never looks at file paths. [F52](#f52) already
+measured this. That spec's `AffectedAreas` (`:421–425`) is
+`<M-CURSOR /><M-LINT-CATALOG /><M-SKILLS />` — no paths. A plan that listed
+`docs/plans/**` under `ObservedWriteScope` would not trip this code. A brief
+is not an artifact the product reads at all.
+
+**Two layers, and they must not be collapsed.**
+
+1. **Brief versus spec.** An executor brief is not a GRACE artifact. Nothing
+   in the binary can refuse it. That layer ends in no shipped check, and
+   cannot, without making briefs a governed surface they are not.
+2. **Plan versus spec.** The plan the brief would have produced — one that
+   names a path its spec forbids — lints clean. That layer is a product
+   defect, and it is the one a check can close.
+
+**The mechanism the brief under review demanded** — *"that check compares
+file paths and errors"* — would not have caught *this* instance. The forbid
+lives in Constraint prose, not in a path inventory. Widening
+`change.plan-scope-exceeds-spec` to compare `ObservedWriteScope` paths against
+`AffectedAreas` still compares against `<M-CURSOR />`. This is [F66](#f66)'s
+class: a rule whose trigger is English is not a checkable predicate.
+
+**The mechanism that would refuse the plan.** The spec carries a
+machine-readable path bound (allow or forbid — `File` / `Path` / `Glob`
+children, not Constraint sentences). The check compares the plan's
+`ObservedWriteScope` against that bound, and **errors**. Existing
+`change.plan-scope-exceeds-spec` cannot grow a path comparison until that
+inventory exists; the grammar change is the bundle's first act, not a
+severity flip on the current body.
+
+#### Decision candidate — path-bound comparison (not ratified; scheduled)
+
+- **(a) Structured forbid/allow on the spec, compared to `ObservedWriteScope`,
+  error severity.** Catches the plan this brief would have produced. Cost:
+  every existing spec that forbids paths only in prose stays silent until
+  those forbids are restated as structured paths. Under [D5.2](#d5) that is
+  a silent failure made loud *after* the inventory exists, not a
+  compatibility break. Cost of the inventory: authoring burden on every
+  spec that today writes "do not edit X" as a sentence.
+- **(b) Severity-flip only — same check, error instead of warning.** Free,
+  and does not see paths. This slip stays green.
+- **(c) Parse Constraint prose for path patterns.** Unimplementable as a
+  reliable check. F66 already refused this shape.
+
+**(a) is the scheduled repair, not advice.** The bundle it names is
+**`C-PLAN-SCOPE-PATHS`**. Not created here. [F52](#f52) recorded the weakness
+and left it; this slip is what makes that weakness load-bearing. (b) and (c)
+are recorded so a later reader does not "fix" F52 by flipping a severity on
+a check that never looks at the thing that failed.
+
+**The rule.** A Constraint that names a path is a request ([F89](#f89)). A
+path the plan is forbidden to touch has to live in a field a checker reads,
+or the forbid is decorative. A brief that contradicts a spec is a human
+failure; a plan that would lint clean afterwards is a product one.
+
+## D19 — an approval covers the current step only
+
+**Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
+runs, which raised the ambiguity, and run 4, whose human had to state the
+per-state rule in-session because the skills do not.
+
+**The decision.** An approval covers the **current step** only. Approval of
+the spec is not approval of the plan. Approval of the plan is not approval
+of apply, archive, or `applied`. Each transition waits on its own sufficient
+phrase from the closed lexicon, matching that artifact. The skills **must
+say this explicitly**.
+
+**Why.** Run 4 asked before `draft → approved` on the spec, then asked again
+for the plan ([F88.2](#f882)). At close the human had to say, in session,
+that the rule is per-state and must not be extrapolated — because
+`ngrace-spec` and `ngrace-plan` each ship a lexicon for *their* artifact,
+`ngrace-execute` step 8 asks for "explicit apply confirmation" without a
+closed phrase, and nothing anywhere says the earlier phrase does not travel.
+The apply/archive lexicon candidate under [F92](#f92) already left that
+gap on this entry. This decision answers the scope question those lexicons
+were silent on.
+
+**What it costs.** As skill prose it is a control shipped as a request
+([F89](#f89)). Enforcement still arrives with [D18](#d18)'s fingerprint
+binding an approval to bytes: a plan `approved` under a spec-only phrase
+would be a status whose matching record, once D18 ships, either does not
+exist or fingerprints the wrong artifact. Until D18 lands, this decision
+is a sentence an agent may weigh and discard — the same class F89 named,
+now written down so the next brief cannot pretend the skills already said
+it.
+
+**What this does not do.** It does not invent an apply/archive lexicon.
+It does not make `gate approve` write status — that is D18. It does not
+claim the product can see a phrase — that is [F88.3](#f883) candidate (b),
+not ratified. It answers only *how far one phrase reaches*.
+
+**This decision is revisable, and here is what would revise it.** If D18
+ships and measurement shows per-step phrases are frequent enough to be
+pasted unread, the correct response is the one D18 already recorded:
+narrow what requires ratification, not a batch phrase that silently
+covers the next three states. If `RM-VERIFIED-APPROVAL` ships, the unit
+of approval (per spec, per bundle, per batch) is an open question of
+that entry and may supersede this one. And if a later reader finds a
+legitimate workflow that cannot name each step, that is evidence against
+this shape, not a reason to treat one phrase as a season ticket —
+**amend the decision instead.**
+
+**Sequencing.** Named follow-up bundle: **`C-APPROVAL-SCOPE`**. It writes
+the per-step rule into the spec, plan, and execute skills (and their
+packaged mirrors). It does not implement D18. Not created here.
+
+---
+
+## Slip register — 2026-08-15
+
+Every governance slip of the last two days, and the mechanism that must
+catch it. A row ends in a shipped check, a named bundle, or a recorded
+acceptance. A row with none of those is itself the finding.
+
+| Slip | What should have refused it | Where the repair is |
+|---|---|---|
+| Writer emits a guessed task id (`T-000` / `T-001`); written close protocol walks into `cursor.unknown-task` ([F90](#f90), [F90.1](#f901)) | The writer, before the event exists — A13.2, never a guessed id. The checker that then fires is doing its job. | **`C-CURSOR-TASK-SENTINEL`** (named; spec already on `fix/cursor-task-sentinel`; not created here). Not a blacklist. |
+| Archive gate permits a cursor lint rejects ([F93](#f93); run 4 archived this way) | Archive, when `run.xml` would fail `cursor.unknown-task` (or any cursor error). | **`C-ARCHIVE-CURSOR`**, as a binding requirement on P3's derivation / P3.1 `lifecycle finish`. Not created here. P3 stays objectives-only. |
+| A brief asserted the maintainer had ratified a spec; executor wrote `approved`; `gate approve` permitted ([F88.3](#f883)) | A gate that reads a phrase bound to bytes. D18's fingerprint does not hold the phrase. | **D18** (decided 2026-08-14, unshipped) is the floor. Phrase attestation is [F88.3](#f883) candidate (b), **not ratified** — that half of the row is a candidate, not a shipped check, a named bundle, or an acceptance. |
+| A brief named `docs/plans/**` as a deliverable of a spec that forbids it ([F94](#f94)) | Nothing can refuse a brief (not an artifact). The *plan* that brief would produce should error on a path outside a machine-readable spec path bound. Today's check does not look at paths ([F52](#f52)). | **`C-PLAN-SCOPE-PATHS`** (named; not created). Brief-versus-spec itself **ends in nothing** and must: briefs are not a governed surface. |
+| Agent mutated an approved plan in place (run 4 #34; [F88.2](#f882)) | `approved-contract-drift` ([F7](#f7)) — shipped, and defeated because the approval was never committed as its own snapshot. Skill immutability (`ngrace-plan` `:29–33`, `ngrace-execute` `:8`) is a request ([F89](#f89)). | **D18** (fingerprint of approved bytes) plus **`C-APPROVAL-SCOPE`** ([D19](#d19): skills say the phrase does not travel). The shipped check exists and did not fire. |
+| Governance writes landed before the spec that would gate them ([F88.1](#f881), [F88.1.1](#f8811)) | The lifecycle, on a module-contract / graph write with no approved change that owns it. Nothing refuses today. Lint is green. | **`C-GOVERNANCE-ORDER`** (named; not created). P4.1 owns first-module bootstrap ([F91](#f91)); this is the ordering hole beside it. No shipped check. No acceptance. |
+
+No row is an acceptance of the slip. The discard of the 2026-08-15
+self-certified `approved` is a named exception ([F65](#f65) class), not a
+repair and not a ratification.
