@@ -74,8 +74,10 @@ enumerates vendors guarantees drift. **A reference the agent cannot read must ca
 description of the behaviour**, and that description is what the slice delivers — otherwise a video
 tag claims more than any tool can consume (F10).
 
-**Not scheduled**: `RM-GOVERNED-PATH` P1 still owes steps 6–8 against 6.3.0, and this is new scope
-against a committed phase. Not blocked by anything, and it has no dependency on P1's remainder.
+**Not scheduled.** `RM-GOVERNED-PATH` P1 is complete (all 14 steps delivered; the 6.3.0 release
+commitment is a separate act). This remains new scope against a completed phase, not blocked by
+anything on this page. The previous justification — that P1 still owed steps 6–8 — is false as of
+the P1 close.
 
 ### `RM-GITLESS-INTEGRITY` — recorded 2026-08-10
 
