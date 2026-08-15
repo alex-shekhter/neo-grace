@@ -5346,8 +5346,9 @@ standard**, not the product against itself.
 
 ### F88.1 correction — the self-approval evidence is confounded: the prompt sanctioned guessing and never mentioned a human. **[verified]**
 
-Raised by a third model (Qwen3 27B) reflecting on its own run when challenged, and it is a correction
-to **my instrument**, not to its behaviour.
+Raised by a third model (qwen 3.6) reflecting on its own run when challenged — a different run from
+the corrected-prompt qwen3.8-28B one — and it is a correction to **my instrument**, not to its
+behaviour.
 
 **Measured against the prompt text.** The brownfield prompt contains **no occurrence** of *user*,
 *ask*, *human*, *operator*, *interactive*, or *approval* — the sole match on that grep is an
@@ -5423,13 +5424,13 @@ it is a request.** Before claiming a governance property, ask which component re
 broken; if the answer is "the agent, if it read the file", the property is aspirational and must be
 reported that way.
 
-### F88.2 — given a reachable human and a ban on self-approval, the third measured run asked. **[verified]**
+### F88.2 — given a reachable human and a ban on self-approval, the fourth measured run asked. **[verified]**
 
 Qualifies [F88](#f88)'s behavioural claim. Does not touch the product defect.
 
-**Measured, run 3** (`neo-grace-6.2.0-brownfield-qwen3.8-28B`, prompt at
+**Measured, run 4** (`neo-grace-6.2.0-brownfield-qwen3.8-28B`, prompt at
 `/Users/sas/Projects/neo-grace-useful-prompts/brownfield-transcript-prompt.md`; evidence in
-[brownfield-run3-findings.md](./brownfield-run3-findings.md)). The spec stayed `draft` until a
+[brownfield-run4-findings.md](./brownfield-run4-findings.md)). The spec stayed `draft` until a
 human said `i approve`. `plan new` was proved to refuse beside that draft. The plan stayed
 `draft` until `i approve plan`. `status="approved"` was then hand-written, as D1 still
 requires. The apply Decision records `plan-present status=approved`, so the sanctioned
@@ -5461,7 +5462,7 @@ of the instrument.
 
 ### F88.1.1 — governance writes still land before the approval that would gate them. **[verified]**
 
-F88.1's second finding, reproduced on this run rather than only on the Qwen3 27B reflection
+F88.1's second finding, reproduced on this run rather than only on the qwen 3.6 reflection
 that raised it.
 
 `6809122` adds `M-IDENT` to the graph, `MODULE_CONTRACT` / `MODULE_MAP` on
@@ -5527,7 +5528,7 @@ const task = options.task ?? loose[loose.length - 1]?.task ?? "T-000";
 *"Known task id only — never a guessed id (A13.2)"* (`src/grace-cursor.ts:252–256`).
 `T-000` is a guessed id.
 
-Reproduced on run 3 at HEAD of that branch: lint 1 error, `run.xml names task T-000,
+Reproduced on run 4 at HEAD of that branch: lint 1 error, `run.xml names task T-000,
 which is absent from plan.xml`. `ngrace cursor regenerate` dry-run prints `Task: T-000`
 from the folded ledger. The `--explain` repair ("regenerate from the ledger and plan")
 re-derives the illegal name. There is no sanctioned edit of a folded ledger.
@@ -5574,7 +5575,7 @@ Runs 1–2 recorded that `scaffold` was not found. This run found it.
 `ngrace scaffold --module M-X` throws `Unknown module ${moduleId}` when the graph has no
 such record (`src/grace-generate.ts:183`). `ngrace module` is find / show / health.
 `ngrace graph` is `split`. `ngrace init` is not a command. The first `M-*` + `V-M-*` +
-graph index entry of a legacy repo is four hand-edits and a lint. Live on run 3:
+graph index entry of a legacy repo is four hand-edits and a lint. Live on run 4:
 `scaffold --module=M-VOLUME` refused; they hand-wrote `M-IDENT`.
 
 **Scheduled, not new debt.** P4.1 (`graph scan --draft`) is the owner. Recorded because

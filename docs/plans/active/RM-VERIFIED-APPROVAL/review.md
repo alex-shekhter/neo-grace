@@ -25,9 +25,9 @@ stress-testing it.
 
 [F88](../RM-GOVERNED-PATH/decisions.md) — **approval is self-certified.** Two independent models
 adopting GRACE on a real repository each wrote `status="approved"` onto the spec they had just
-authored, in the same commit, without asking anyone. Neither hesitated. A third run, given a
+authored, in the same commit, without asking anyone. Neither hesitated. A fourth run, given a
 reachable human and a ban on self-approval, asked and waited ([F88.2](../RM-GOVERNED-PATH/decisions.md)).
-The product cannot tell the first two acts from the third.
+The product cannot tell the first two acts from the fourth.
 
 The product cannot object. `gate approve` evaluates requirements and records a `Decision`, but by
 A29.2 / `RM-GOVERNED-PATH` D1 it deliberately does **not** write `status` — that transition is
@@ -54,9 +54,9 @@ tamper-evidence; if it is not, consensus inside it rescues nothing. **Keep the a
 tamper-evident properties; the consensus layer is not load-bearing.**
 
 **Prompting.** Making `gate approve` ask interactively governs only agents already willing to ask.
-The first two measured runs edited the attribute directly. The third asked, because the prompt
+The first two measured runs edited the attribute directly. The fourth asked, because the prompt
 told it a human was reachable and forbade self-approval — and then still mutated an approved
-plan in place when close pressure rose ([F88.2](../RM-GOVERNED-PATH/decisions.md), run-3 #34).
+plan in place when close pressure rose ([F88.2](../RM-GOVERNED-PATH/decisions.md), run-4 #34).
 A prompt is not a boundary.
 
 ## 3. The shape that does work
@@ -83,7 +83,7 @@ transcript — otherwise the agent presents a tidy summary and applies the code 
 Transaction signing in banking exists for precisely this reason: what you see is what you sign.
 
 **The detection half is still required.** A code makes forgery hard; it does not make direct editing
-impossible — the first two measured runs never made a request at all, and the third still wrote
+impossible — the first two measured runs never made a request at all, and the fourth still wrote
 `status` by hand after the phrase (the binary does not). `lint` must refuse `approved` that
 carries no valid attestation, and report a fingerprint that no longer matches the bytes. **The code
 stops fabrication; the check stops bypass. Neither substitutes for the other**, and the check is also
@@ -119,7 +119,7 @@ than "a tool you run", and adoption cost changes with it. That cost lands on P4'
 - Does a superseded or amended artifact invalidate its attestation? It must, or an approved spec can
   be edited afterwards — the defect `RM-GITLESS-INTEGRITY` records.
 - Would this have prevented the measured runs? **The first two, no** — they bypassed the request
-  entirely. The third asked; a bound code would have given that ask something the product can
+  entirely. The fourth asked; a bound code would have given that ask something the product can
   check. Only the detection half stops a run that never requests. Any plan that ships the service
   without the check has not fixed F88.
 
@@ -129,6 +129,6 @@ than "a tool you run", and adoption cost changes with it. That cost lands on P4'
 brownfield evidence. **The cheap floor should ship first regardless of this plan:** `gate approve`
 writing status, recording a fingerprint, and `lint` reporting `approved` without a matching record.
 That is tamper-evidence, it is repo-local, it needs no service, and it is the half that would have
-caught the first two measured runs (neither requested). The third run requested; the floor would
+caught the first two measured runs (neither requested). The fourth run requested; the floor would
 still have given that request a record the product currently lacks. This entry is what comes
 **after** that, not instead of it.

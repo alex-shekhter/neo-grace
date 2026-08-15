@@ -1,14 +1,14 @@
-# Brownfield adoption — run 3 (corrected prompt)
+# Brownfield adoption — run 4 (corrected prompt)
 
-Measured 2026-08-14 against the third brownfield run of neo-grace on
+Measured 2026-08-14 against the fourth brownfield run of neo-grace on
 `/Users/sas/Projects/spaghetti-mapper-private`. Sibling to
 [brownfield-findings.md](./brownfield-findings.md), which measured runs 1–2
 (ornith, muse) on the **uncorrected** prompt. This document is evidence, not a
 plan. Do not average it with those two.
 
 Findings F88, F88.1, F89 and decision D18 were written **before** this
-transcript finished. F88.1's "third model (Qwen3 27B)" is a different
-reflection, not this branch. This run is `qwen3.8-28B`.
+transcript finished. F88.1's "third model (qwen 3.6)" is a different
+run's reflection, not this branch. This run is `qwen3.8-28B` (run 4).
 
 Analysis used `git log` / `git show` / `git diff` against
 `0d92d15..cd6def9`, plus `ngrace lint` / `ngrace status` /
@@ -57,13 +57,13 @@ skill-checklist obligation, "never self-approve."
 
 ## The run
 
-| | run 3 (this file) | ornith (runs 1–2) | muse (runs 1–2) |
+| | run 4 (this file) | ornith (runs 1–2) | muse (runs 1–2) |
 |---|---|---|---|
 | Branch | `neo-grace-6.2.0-brownfield-qwen3.8-28B` | `…-ornith_35` | `…-muse-glimmer_30b-mlx` |
 | Model (branch name only) | qwen3.8-28B | ornith 35 | muse-glimmer 30b-mlx |
 | Starting SHA | `0d92d15` (`main`) | same | same |
 | HEAD | `cd6def9` | `7b7f2bf` | `aaaf501` |
-| GRACE commits after start | **9** (`ae7d73b`..`cd6def9`) | 5 | 1 |
+| GRACE commits after start | **9** (`ae7d73b` through `cd6def9`, inclusive) | 5 | 1 |
 | Prompt | corrected (ASKED, human, checklist) | original | original |
 | Reached a closed bundle? | **Yes, with a residual.** `C-IDENT-COVERAGE` is under `archive/`. Spec and plan `status="applied"`. Ledger last event is `archive=permit`. `ident_test.go` is real and `go test ./internal/ident/...` is the recorded passing command. Lint at HEAD: **1 error**, `cursor.unknown-task` (T-000). Observed drift 0/0/0. | No. Still `active/`, spec `approved`, plan missing-as-far-as-the-tool-is-concerned. | No. Spec still `draft`, no plan, work uncommitted. |
 
@@ -128,7 +128,7 @@ the status flip.
 
 Relative to runs 1–2, and only what the tree or the prompt text can carry.
 
-| Behaviour | runs 1–2 (original prompt) | run 3 (corrected prompt) | Prompt artefact? |
+| Behaviour | runs 1–2 (original prompt) | run 4 (corrected prompt) | Prompt artefact? |
 |---|---|---|---|
 | `draft → approved` on the spec they authored | Both wrote it. Neither asked. (F88, withdrawn as "without hesitation" by F88.1) | **Asked** (#22), halted (#25), waited for `i approve` (#26), then hand-edited. Did **not** self-approve. | **Yes, for the ask.** The prompt forbade self-approval, offered `ASKED`, and said a human was reachable. The product still does not enforce the stop. |
 | `draft → approved` on the plan | ornith never had a valid plan; muse never reached a plan | Same as spec: asked (#31), `i approve plan`, then hand-edited | Same |
@@ -168,7 +168,7 @@ harness (here: the model, reading a file) executes it.
 
 ## Transcript vs commits
 
-Nine commits, `ae7d73b`..`cd6def9`. Unlike muse, the work is on the
+Nine commits, `ae7d73b` through `cd6def9` inclusive. Unlike muse, the work is on the
 branch. Unlike ornith, the diary is not more flattering than the history
 in the ways that matter for the close. It is incomplete in other ways.
 
