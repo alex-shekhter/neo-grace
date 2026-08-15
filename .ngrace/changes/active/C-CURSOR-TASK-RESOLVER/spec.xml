@@ -1,19 +1,25 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-CURSOR-TASK-IDENTITY>
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-CURSOR-TASK-RESOLVER>
     <Summary>
-      Origin: superseded C-CURSOR-TASK-SENTINEL. Same F90
-      repair as that bundle, minus the F83 close-criterion
-      trap. Discharge F90 as out-of-phase hygiene for
-      RM-GOVERNED-PATH P3.1 (lifecycle finish). Stop every
-      guessed task identity on a run event: lint argv token
-      run-commands must not write T-000, and recover /
-      auto-open must not invent T-001. Inherit a
-      plan-declared task that is already in scope; refuse
-      before write when none is. An explicitly supplied
-      options.task is a legal first source when it is a
-      declared id. cursor.unknown-task stays a correct
-      checker. Do not write P3 step detail and do not
-      amend the phase board.
+      Origin: superseded C-CURSOR-TASK-IDENTITY.
+      Same F90 repair as that bundle, plus the
+      F64 write-surface correction it could not
+      close without. Discharge F90 as
+      out-of-phase hygiene for RM-GOVERNED-PATH
+      P3.1 (lifecycle finish). Stop every
+      guessed task identity on a run event: lint
+      argv token run-commands must not write
+      T-000, and recover / auto-open must not
+      invent T-001. Inherit a plan-declared task
+      that is already in scope; refuse before
+      write when none is. An explicitly supplied
+      options.task is a legal first source when
+      it is a declared id. cursor.unknown-task
+      stays a correct checker. Re-measure every
+      pin this deliverable moves, including
+      src/test-support/token-accounting.test.ts,
+      as owned task work. Do not write P3 step
+      detail and do not amend the phase board.
     </Summary>
     <Problem>
       F90 (decisions.md): the check ran and was right; the
@@ -141,6 +147,23 @@
       ruling 2026-08-15: supersede, do not amend in
       place; that workaround is abandoned, not ratified.
       C-DRIFT-HONESTY already split this shape.
+
+      C-CURSOR-TASK-IDENTITY executed the F90 repair
+      (six pins, five discriminated reds) and could
+      not close. Its approved ObservedWriteScope
+      (.ngrace/changes/archive/C-CURSOR-TASK-IDENTITY/plan.xml
+      ObservedWriteScope) omitted
+      src/test-support/token-accounting.test.ts, whose
+      totalBytes pin the T-003 ngrace-execute skill
+      rewrite falsifies (55106 to 55476). That is
+      F64's defect class. The file's own comments
+      record two earlier bundles re-measuring it.
+      Maintainer ruling 2026-08-15: supersede;
+      in-place scope widening is not available. The
+      deliverable was uncommitted, so product files
+      return to the pre-execution baseline and the
+      reds are re-earned rather than cited from the
+      superseded ledger.
     </Problem>
     <Goals>
       <Goal>
@@ -196,27 +219,34 @@
         no user-visible command table or example tree
         moves.
       </Goal>
+      <Goal>
+        Re-measure every byte, line, or count pin
+        this deliverable moves, in a named task.
+        src/test-support/token-accounting.test.ts
+        totalBytes is one such pin. Updating a moved
+        measurement is that task's work, not a
+        close-time side effect.
+      </Goal>
     </Goals>
     <Constraints>
       <Constraint>
         Binding: F90; RM-GOVERNED-PATH P3.1 hygiene
         only. Origin is superseded
-        C-CURSOR-TASK-SENTINEL. P1 and P2 are
+        C-CURSOR-TASK-IDENTITY (itself the
+        replacement for superseded
+        C-CURSOR-TASK-SENTINEL). P1 and P2 are
         complete. P3 is objectives-only and NOT
         STARTED. This bundle does not write P3 step
         detail and does not amend the phase board. It
         exists so lifecycle finish does not inherit a
-        close that plants cursor.unknown-task.
+        close that plants cursor.unknown-task, and so
+        the F90 repair can close without an F64
+        scope miss.
       </Constraint>
       <Constraint>
-        Ceremony tier T1 (module change). This spec
-        stays status="draft" until a human approves
-        it. Do not run gate approve. Do not write
-        status="approved". This spec-authoring pass
-        does not write plan.xml (F4). That ban
-        applies only to this authoring pass. After
-        this spec is approved, a later plan-authoring
-        pass writes plan.xml.
+        Ceremony tier T1 (module change). plan.xml
+        is authored only after this spec is
+        approved (F4).
       </Constraint>
       <Constraint>
         Chosen repair is F90 candidate (a), which is
@@ -299,12 +329,11 @@
       </Constraint>
       <Constraint>
         F64 / F27.2: ObservedWriteScope at plan time
-        must enumerate every pin this deliverable
-        falsifies. Predicate: a file that must gain
-        or change an assertion, or that this
-        deliverable must rewrite. Re-derived against
-        the tree at fbc985f, not copied from
-        C-CURSOR-TASK-SENTINEL.
+        must enumerate every file whose contents this
+        change causes to differ, including test files
+        that only change because a measurement moved.
+        Re-derived by walking the tree at 43e9eff,
+        not copied from C-CURSOR-TASK-IDENTITY.
 
         Forced write surface:
 
@@ -346,9 +375,31 @@
         run-commands, assertions final, and
         parallel-preflight);
 
+        src/test-support/token-accounting.test.ts
+        (skillTextLines totalBytes pin, and total
+        if the skill rewrite moves the line count;
+        a named task owns the re-measure);
+
         this bundle's spec.xml and, after this spec
         is approved, a later plan-authoring pass's
         plan.xml.
+
+        Walk of the same kind (byte, line, or count
+        pin over skills, commands, or artifacts):
+
+        src/test-support/token-accounting.test.ts
+        is the only test whose contents this
+        deliverable forces to differ. README.md
+        documents the same 806 / 55106 figures
+        and is a decided NonGoal (will go stale).
+        docs/plans/** cite historical figures and
+        stay out of scope. grace-context.test.ts
+        pins published-skill cardinality 16; this
+        change does not add or remove a skill.
+        token-accounting.test.ts line total 806
+        stays if the rewrite is line-neutral; the
+        file is still forced because totalBytes
+        moves.
 
         Not forced, measured:
 
@@ -383,17 +434,20 @@
         the file stem. F80: one red evidences one
         property; split inherit from refuse. F45:
         AC-CHECKER-HOLDS is true at HEAD; do not
-        manufacture a red for it.
+        manufacture a red for it. AC-PIN-REMEASURE
+        is a bounding pin (F84), not a manufactured
+        red.
       </Constraint>
       <Constraint>
         F82 / F83, following C-DRIFT-HONESTY
         (archive/C-DRIFT-HONESTY/spec.xml:633-671).
         Split the old AC-SUITE-AND-LINT shape. The
         task-observable half is AC-SUITE-AND-CI
-        (suite green and validate-marketplace exit
-        0); a later plan Satisfies-links it to a
-        task whose Verification includes those
-        commands. The post-archive lint 0/0 half is
+        (full bun test green and validate-marketplace
+        exit 0); a later plan Satisfies-links it to a
+        task whose Verification block runs those
+        exact commands, not a file-list subset. The
+        post-archive lint 0/0 half is
         close-verdict evidence, not an AC-*. An
         unmapped AC-* raises
         change.acceptance-criterion-unmapped
@@ -587,19 +641,35 @@
         fold. validate:marketplace stays green. HEAD
         today: step 7 then step 9 with no re-fold.
       </AC-PROTOCOL-DOCUMENTED>
+      <AC-PIN-REMEASURE>
+        Task-observable bounding pin (F84); a later
+        plan Satisfies-links this to the task that
+        rewrites ngrace-execute. After that rewrite,
+        src/test-support/token-accounting.test.ts
+        pins match a fresh skillTextLines() measure
+        (totalBytes, and total if the rewrite moves
+        the line count). Do not manufacture a red
+        for the pin at HEAD (F45). Updating the
+        moved measurement is that task's work, not
+        a close-time side effect. HEAD today: total
+        806, totalBytes 55106.
+      </AC-PIN-REMEASURE>
       <AC-SUITE-AND-CI>
         Task-observable; a later plan Satisfies-links
-        this. bun test green for touched packages
-        (cursor, catalog, lint, grace-lint, and
-        skill-contracts, and any other test this
-        deliverable forces). bun run
+        this. bun test (the full suite, not a
+        file-list subset) exits 0. bun run
         ./scripts/validate-marketplace.ts exits 0.
-        Existing command-run tests that open T-001
-        before appendCommandRunEvent stay green
-        (they inherit the loose declared task).
-        This criterion does not include lint. HEAD
-        today: those commands are green; that green
-        is the baseline, not this change's evidence.
+        A task that Satisfies this criterion must
+        put those two commands in its Verification
+        block. A Verification that lists a subset
+        of test files does not satisfy this
+        criterion. Existing command-run tests that
+        open T-001 before appendCommandRunEvent
+        stay green (they inherit the loose declared
+        task). This criterion does not include lint.
+        HEAD today: those commands are green; that
+        green is the baseline, not this change's
+        evidence.
       </AC-SUITE-AND-CI>
     </AcceptanceCriteria>
     <AffectedAreas>
@@ -610,6 +680,8 @@
     <VerificationIntent>
       <ExpectedCommand>bun test src/grace-cursor.test.ts src/lint/catalog.test.ts src/lint/core.test.ts src/grace-lint.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test</ExpectedCommand>
       <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
       <ExpectedCommand>bun run ngrace lint</ExpectedCommand>
       <ExpectedEvidence>
@@ -624,8 +696,12 @@
         resolver; there is no public-API red.
         AC-CHECKER-HOLDS is HEAD-true and is a
         stay-true regression, not a red.
-        AC-SUITE-AND-CI is task-observable suite
-        evidence. Post-archive lint 0/0 is
+        AC-PIN-REMEASURE is a bounding pin (F84),
+        not a red. AC-SUITE-AND-CI is task-observable
+        suite evidence: full bun test plus
+        validate-marketplace, and the Satisfies-linked
+        Verification must be those commands, not a
+        file-list subset. Post-archive lint 0/0 is
         close-verdict evidence (F82), quoted in the
         close verdict after apply and archive, not
         claimed by a task pass, and is not an AC-*.
@@ -660,5 +736,5 @@
         run-commands still passes none.
       </Assumption>
     </Assumptions>
-  </C-CURSOR-TASK-IDENTITY>
+  </C-CURSOR-TASK-RESOLVER>
 </NgraceChangeSpec>

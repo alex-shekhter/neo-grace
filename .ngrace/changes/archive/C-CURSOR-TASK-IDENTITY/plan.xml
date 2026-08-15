@@ -1,5 +1,6 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="superseded">
   <C-CURSOR-TASK-IDENTITY>
+    <Replacement>C-CURSOR-TASK-RESOLVER</Replacement>
     <IntentSummary>
       Discharge F90 as out-of-phase hygiene
       for RM-GOVERNED-PATH P3.1. Never invent
