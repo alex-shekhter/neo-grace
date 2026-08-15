@@ -17,9 +17,11 @@
       it is a declared id. cursor.unknown-task
       stays a correct checker. Re-measure every
       pin this deliverable moves, including
-      src/test-support/token-accounting.test.ts,
-      as owned task work. Do not write P3 step
-      detail and do not amend the phase board.
+      src/test-support/token-accounting.test.ts
+      and the README.md measurement cell that
+      publishes the same figures, as owned
+      task work. Do not write P3 step detail
+      and do not amend the phase board.
     </Summary>
     <Problem>
       F90 (decisions.md): the check ran and was right; the
@@ -150,19 +152,42 @@
 
       C-CURSOR-TASK-IDENTITY executed the F90 repair
       (six pins, five discriminated reds) and could
-      not close. Its approved ObservedWriteScope
-      (.ngrace/changes/archive/C-CURSOR-TASK-IDENTITY/plan.xml
-      ObservedWriteScope) omitted
-      src/test-support/token-accounting.test.ts, whose
-      totalBytes pin the T-003 ngrace-execute skill
-      rewrite falsifies (55106 to 55476). That is
-      F64's defect class. The file's own comments
-      record two earlier bundles re-measuring it.
-      Maintainer ruling 2026-08-15: supersede;
-      in-place scope widening is not available. The
-      deliverable was uncommitted, so product files
-      return to the pre-execution baseline and the
-      reds are re-earned rather than cited from the
+      not close. The write-surface predicate at
+      C-CURSOR-TASK-IDENTITY/spec.xml:303-306 was
+      sound: a file that must gain or change an
+      assertion, or that this deliverable must
+      rewrite. src/test-support/token-accounting.test.ts:51
+      toBe(55106) is exactly that. The walk that
+      enumerated Forced write surface omitted the
+      file, so the approved ObservedWriteScope
+      (.ngrace/changes/archive/C-CURSOR-TASK-IDENTITY/plan.xml:219-233)
+      did not list it. The T-003 ngrace-execute
+      skill rewrite then falsified the pin (55106
+      to 55476). That is F64 as an incomplete
+      walk, not as a weak predicate. A broader
+      sentence would have fixed nothing; the same
+      predicate with a complete walk would have
+      listed the file.
+
+      The same class holds for AC-SUITE-AND-CI.
+      C-CURSOR-TASK-IDENTITY/spec.xml:591-604
+      already said "and any other test this
+      deliverable forces." What failed was
+      T-003's Verification block
+      (archive/C-CURSOR-TASK-IDENTITY/plan.xml:1054-1058)
+      listing a file-list subset that omitted
+      the forced test. The repair is binding
+      the plan Verification to what the
+      criterion claims, not rewriting the
+      criterion.
+
+      The file's own comments record two earlier
+      bundles re-measuring it. Maintainer ruling
+      2026-08-15: supersede; in-place scope
+      widening is not available. The deliverable
+      was uncommitted, so product files return
+      to the pre-execution baseline and the reds
+      are re-earned rather than cited from the
       superseded ledger.
     </Problem>
     <Goals>
@@ -215,15 +240,19 @@
         no-open-epoch; terminal the declared task and
         fold before archive. Baseline run-commands
         also requires a declared task already in
-        scope. README.md and examples/ stay unchanged;
-        no user-visible command table or example tree
-        moves.
+        scope. examples/ stays unchanged; no
+        example tree moves. README.md is decided
+        separately as in-scope for the
+        measurement cell only.
       </Goal>
       <Goal>
         Re-measure every byte, line, or count pin
         this deliverable moves, in a named task.
         src/test-support/token-accounting.test.ts
-        totalBytes is one such pin. Updating a moved
+        total / totalBytes and the README.md:299
+        cell that publishes the same figures are
+        one pin in two places. One re-measurement
+        updates both. Updating a moved
         measurement is that task's work, not a
         close-time side effect.
       </Goal>
@@ -329,11 +358,17 @@
       </Constraint>
       <Constraint>
         F64 / F27.2: ObservedWriteScope at plan time
-        must enumerate every file whose contents this
-        change causes to differ, including test files
-        that only change because a measurement moved.
-        Re-derived by walking the tree at 43e9eff,
-        not copied from C-CURSOR-TASK-IDENTITY.
+        must enumerate every pin this deliverable
+        falsifies. Predicate: a file that must gain
+        or change an assertion, or that this
+        deliverable must rewrite. That sentence is
+        C-CURSOR-TASK-IDENTITY/spec.xml:303-306
+        and was already sound. This walk is
+        re-derived against the tree at this
+        authoring HEAD, not copied from
+        C-CURSOR-TASK-IDENTITY, and is shown
+        below. A broader sentence is not the
+        repair.
 
         Forced write surface:
 
@@ -380,26 +415,54 @@
         if the skill rewrite moves the line count;
         a named task owns the re-measure);
 
+        README.md (the skillTextLines().total /
+        totalBytes measurement cell only; F51
+        already named this pair as the
+        transitive forced write);
+
         this bundle's spec.xml and, after this spec
         is approved, a later plan-authoring pass's
         plan.xml.
 
         Walk of the same kind (byte, line, or count
-        pin over skills, commands, or artifacts):
+        pin over skills, commands, or artifacts).
+        Searched: 806, 55106, 55476, skillTextLines,
+        totalBytes, referencesTotal, perSkill
+        exact toBe, published-skill cardinality
+        16, UTF-8 bytes cells.
 
-        src/test-support/token-accounting.test.ts
-        is the only test whose contents this
-        deliverable forces to differ. README.md
-        documents the same 806 / 55106 figures
-        and is a decided NonGoal (will go stale).
-        docs/plans/** cite historical figures and
-        stay out of scope. grace-context.test.ts
-        pins published-skill cardinality 16; this
+        Forced by the T-003 skill rewrite:
+
+        src/test-support/token-accounting.test.ts:32
+        and :50 pin total 806; :51 pins
+        totalBytes 55106. README.md:299
+        publishes the same two figures. One
+        re-measure updates both
+        (AC-PIN-REMEASURE).
+
+        Not forced (same search):
+
+        README.md:300 referencesTotal 1433; this
+        deliverable does not edit references/.
+        token-accounting.test.ts:33 perSkill
+        ngrace-fix 32; this deliverable does
+        not edit ngrace-fix. Cardinality 16 in
+        token-accounting.test.ts:34,:54 and
+        grace-context.test.ts:384,:387; this
         change does not add or remove a skill.
+        README polyglot CLI-byte cells are
+        command output, not skill-text pins.
+        docs/plans/** cite historical figures
+        and stay out of scope.
+
         token-accounting.test.ts line total 806
         stays if the rewrite is line-neutral; the
         file is still forced because totalBytes
-        moves.
+        moves. README.md:299 is forced for the
+        same reason. Byte-identity of canonical
+        and packaged ngrace-execute is already
+        on the forced surface as the mirror; it
+        is not a published count.
 
         Not forced, measured:
 
@@ -443,13 +506,22 @@
         (archive/C-DRIFT-HONESTY/spec.xml:633-671).
         Split the old AC-SUITE-AND-LINT shape. The
         task-observable half is AC-SUITE-AND-CI
-        (full bun test green and validate-marketplace
-        exit 0); a later plan Satisfies-links it to a
-        task whose Verification block runs those
-        exact commands, not a file-list subset. The
-        post-archive lint 0/0 half is
-        close-verdict evidence, not an AC-*. An
-        unmapped AC-* raises
+        (suite green and validate-marketplace exit
+        0). The superseded criterion at
+        C-CURSOR-TASK-IDENTITY/spec.xml:591-604
+        already said "and any other test this
+        deliverable forces"; that claim was
+        sound. What failed was T-003's
+        Verification listing a file-list subset
+        narrower than the claim. A later plan
+        Satisfies-links AC-SUITE-AND-CI to a
+        task whose Verification block runs what
+        the criterion claims, including every
+        forced test, not a file-list subset. A
+        broader criterion sentence is not the
+        repair. The post-archive lint 0/0 half
+        is close-verdict evidence, not an AC-*.
+        An unmapped AC-* raises
         change.acceptance-criterion-unmapped
         (src/artifact/grammar.ts:1883-1890) and a
         Satisfies-linked close-time lint AC is the
@@ -461,10 +533,18 @@
         its own presence falsifies.
       </Constraint>
       <Constraint>
-        F66: README.md and examples/ are decided
-        below as NonGoals (unchanged; no
-        user-visible surface). Silence would fail
-        checkDocsAndExamplesDecision.
+        F66: README.md is decided in this
+        Constraint as in-scope for the
+        skillTextLines().total / totalBytes
+        measurement cell (README.md:299) only.
+        This is not a licence to edit any other
+        README sentence, table, or version
+        marker. This bundle still adds no
+        command root and does not change the
+        CLI Overview table. examples/ is
+        decided below as a NonGoal (unchanged;
+        no user-visible surface). Silence
+        would fail checkDocsAndExamplesDecision.
       </Constraint>
       <Constraint>
         Do not edit docs/plans/**, the phase board,
@@ -541,12 +621,6 @@
         Planting a public-API red for the T-001
         fallbacks. They are unreachable. A fake
         public plant is not evidence.
-      </NonGoal>
-      <NonGoal>
-        README.md unchanged; no user-visible
-        surface. This bundle adds no command root
-        and does not change the CLI Overview table.
-        Owner: unchanged; no user-visible surface.
       </NonGoal>
       <NonGoal>
         examples/ including examples/polyglot
@@ -646,28 +720,37 @@
         plan Satisfies-links this to the task that
         rewrites ngrace-execute. After that rewrite,
         src/test-support/token-accounting.test.ts
-        pins match a fresh skillTextLines() measure
+        pins and the README.md:299 measurement cell
+        both match a fresh skillTextLines() measure
         (totalBytes, and total if the rewrite moves
-        the line count). Do not manufacture a red
-        for the pin at HEAD (F45). Updating the
-        moved measurement is that task's work, not
-        a close-time side effect. HEAD today: total
-        806, totalBytes 55106.
+        the line count). One re-measurement updates
+        every place the figure is published. Do not
+        manufacture a red for the pin at HEAD (F45).
+        Updating the moved measurement is that
+        task's work, not a close-time side effect.
+        HEAD today: total 806, totalBytes 55106, in
+        both the test pin and the README cell.
       </AC-PIN-REMEASURE>
       <AC-SUITE-AND-CI>
         Task-observable; a later plan Satisfies-links
-        this. bun test (the full suite, not a
-        file-list subset) exits 0. bun run
+        this. bun test green for touched packages
+        (cursor, catalog, lint, grace-lint,
+        skill-contracts, token-accounting, and any
+        other test this deliverable forces). bun run
         ./scripts/validate-marketplace.ts exits 0.
         A task that Satisfies this criterion must
-        put those two commands in its Verification
+        put those commands in its Verification
         block. A Verification that lists a subset
-        of test files does not satisfy this
-        criterion. Existing command-run tests that
-        open T-001 before appendCommandRunEvent
-        stay green (they inherit the loose declared
-        task). This criterion does not include lint.
-        HEAD today: those commands are green; that
+        of the tests the criterion names does not
+        satisfy this criterion. The superseded
+        criterion already claimed the forced
+        tests; this sentence binds the plan
+        Verification to that claim. Existing
+        command-run tests that open T-001 before
+        appendCommandRunEvent stay green (they
+        inherit the loose declared task). This
+        criterion does not include lint. HEAD
+        today: those commands are green; that
         green is the baseline, not this change's
         evidence.
       </AC-SUITE-AND-CI>
@@ -698,9 +781,11 @@
         stay-true regression, not a red.
         AC-PIN-REMEASURE is a bounding pin (F84),
         not a red. AC-SUITE-AND-CI is task-observable
-        suite evidence: full bun test plus
-        validate-marketplace, and the Satisfies-linked
-        Verification must be those commands, not a
+        suite evidence: touched-package tests
+        including every test the deliverable
+        forces, plus validate-marketplace, and
+        the Satisfies-linked Verification must
+        run what the criterion claims, not a
         file-list subset. Post-archive lint 0/0 is
         close-verdict evidence (F82), quoted in the
         close verdict after apply and archive, not
