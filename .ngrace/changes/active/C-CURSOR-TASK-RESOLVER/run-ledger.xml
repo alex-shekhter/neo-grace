@@ -1,0 +1,1 @@
+<NgraceRunLedger graceVersion="1.0"><C-CURSOR-TASK-RESOLVER><Decisions><Decision gate="approve" decision="permit" baseCommit="7957afef93f7cf56f5be441850d247049ed3cba7"><Requirement id="no-unresolved-ic-inv-clarification" required="true" present="true" blocking="false" /></Decision></Decisions></C-CURSOR-TASK-RESOLVER></NgraceRunLedger>
