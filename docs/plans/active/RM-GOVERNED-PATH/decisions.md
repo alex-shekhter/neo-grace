@@ -61,6 +61,14 @@ are living boards.** They answer *where the repair is now*. Rewrite the cell whe
 location changes. A row that still names a discharged finding as open, or a bundle by a
 retired name, is itself the defect.
 
+**Append-only starts at publication.** A record becomes append-only when it is
+*published* — when the branch carrying it merges. Inside the branch that is still
+authoring it, a sentence may be corrected in place, because no one has yet read it as a
+record. **The test:** is the sentence on `main`? Then append. Did it land in the unmerged
+branch you are writing? Then fix it where it stands. This is what makes the in-place
+corrections in `6bc8c1a` and `f4af49f` legitimate, rather than exceptions to the rule
+above.
+
 **The test for a section this file does not yet name.** If the section answers *"what was
 observed or decided, and when?"* it is append-only. If it answers *"where is the repair
 now?"* it is living. [plan.md](./plan.md) §1 is living (the phase board). This file's
@@ -82,6 +90,15 @@ qualification, or a later count of the same set.
 observation, the new observation is `Fn.m`. If citing `Fn` still names the right defect
 and the new text is payment or qualification of that defect, extend `Fn`.
 
+**Correcting a stated clause: mint or append.** Both are open when a sentence turns out
+false, and the same test decides. Mint `Fn.m` when what is corrected is the finding's own
+**observation**, so that citing `Fn`'s title would now be wrong ([F88.1](#f881),
+[F90.1](#f901)). Append the correction to `Fn` when what is corrected is a **pointer,
+disposition or reference** and citing `Fn`'s title still names the right defect:
+[F95](#f95)'s false pointer to F4's candidate is paid by an appended
+*"Correction (2026-08-15)"* block, not by an `F95.1`, because F95's own measurement and
+rule are untouched.
+
 ### Where a discharge annotation goes
 
 The discharge line is the last line of the finding it pays (`Fn`), after any later-added
@@ -91,12 +108,13 @@ paid; the canonical discharge lives on `Fn`. [F90](#f90) is the worked case: the
 discharge sits at the end of F90 after the candidate; [F90.1](#f901) notes the writer
 half is paid and does not become the discharge home.
 
-### A finding with two halves
+### A finding with more than one half
 
-When one finding records two observations and only one is paid, the entry names each
-**half** and that half's state. Citing the title as closed is then wrong if any half is a
-standing rule or still open; citing the title as open is wrong if the unpaid half is not
-an obligation. [F84](#f84) is the first use.
+When one finding records more than one observation and they are not all in the same
+state, the entry names each **half** — the file's term whatever the count — and that
+half's state. Citing the title as closed is then wrong if any half is a standing rule or
+still open; citing the title as open is wrong for any half that is not an outstanding
+obligation. [F84](#f84) is the first use, with three.
 
 States a half may take: **paid** (name the bundle or decision), **open** (an outstanding
 action remains), **stated rule, no action** (the sentence stands and nothing is owed).
@@ -5293,7 +5311,9 @@ above is unchanged.
 
 **Halves.** This finding records three observations. A brief citing the title as closed is
 wrong: the title is a standing rule, not a closed defect. A brief citing the title as
-open is wrong for the skill-versus-practice half.
+open is wrong for the other two halves as well — the red-description half states a rule
+and owes nothing, and skill versus practice is paid by [D20](#d20). No half of F84 is an
+outstanding obligation.
 
 | Half | State |
 |---|---|
