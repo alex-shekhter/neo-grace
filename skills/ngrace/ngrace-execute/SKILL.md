@@ -31,15 +31,15 @@ Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires
 </recovery_decision_table>
 
 <execution_rules>
-1. Run the selected baseline before implementation, including explicit `--run-commands` when its assertions declare `MustPassCommand`.
+1. Run the selected baseline before implementation, including explicit `--run-commands` when its assertions declare `MustPassCommand`. argv token run-commands requires a declared task in scope before baseline run-commands that will record.
 2. Execute one dependency-ready task or one verified parallel-safe batch at a time.
 3. Run each task's acceptance and verification immediately.
 4. Advance the run cursor when a task starts or completes (`ngrace cursor advance`); pause/resume around interruptions; fold the open epoch when the wave is quiescent (`ngrace cursor fold`).
 5. Record every verification cycle with `ngrace cursor attempt --change C-ID --task T-NNN --outcome pass|fail` (add `--signature-kind` and `--signature-key` on fail). Optionally record agent self-report with `--claimed-confidence low|medium|high` — **analysis only**: no gate may read it; the calibration report scores it against independent `target-assertions`, never against the attempt's own outcome. When verification cannot run, use `ngrace cursor verification-unavailable --change C-ID --task T-NNN --reason …` — never an attempt and never silence. Do not use `cursor advance --kind attempt`. The fix budget escalates on 2 failed attempts of the same signature, or on 4 distinct failing signatures in the current budget window (not a raw attempt count) — `paused-pending-approval` awaits a replan decision; the task has not failed. On epoch open, the harness may pass `--executor-model` / `--executor-harness` (optional; may be absent).
 6. Apply approved durable context, graph, and verification changes centrally.
-7. Reconcile durable state, run leaf plan gates, then run selected `--assertions final` as the outermost lifecycle gate, including `--run-commands` when `MustPassCommand` is declared. Final mode performs full project lint, evaluates the selected target, keeps unrelated approved baselines active, and does not re-evaluate the selected plan's superseded baseline.
+7. Reconcile durable state, run leaf plan gates, then run selected `--assertions final` as the outermost lifecycle gate, including `--run-commands` when `MustPassCommand` is declared. Note that after a fold, final run-commands writes loose events and archive requires no-open-epoch, so terminal the declared task and fold before gate archive. Final mode performs full project lint, evaluates the selected target, keeps unrelated approved baselines active, and does not re-evaluate the selected plan's superseded baseline.
 8. Ask for explicit apply confirmation after fresh end-state evidence passes.
-9. Before setting `applied` or archiving: run `ngrace review --path . --change C-ID` for mechanized findings (does not record a verdict), form judgment on a detached reviewer when the host supports it, then record with `ngrace gate verdict --change C-ID --outcome <token>` (closed set in `references/verdicts.md`; the verdict command only writes). Then run `ngrace gate apply --change C-ID` and `ngrace gate archive --change C-ID`. Each gate evaluates and records a Decision in `run-ledger.xml`; exit non-zero means refuse. Do not set status or move the bundle when refused. The gate does not itself author `status` or archive paths. Detachment is host-conditional — see README host-capability matrix.
+9. Before setting `applied` or archiving: run `ngrace review --path . --change C-ID` for mechanized findings (does not record a verdict), form judgment on a detached reviewer when the host supports it, then record with `ngrace gate verdict --change C-ID --outcome <token>` (closed set in `references/verdicts.md`; the verdict command only writes). Then run `ngrace gate apply --change C-ID` and `ngrace gate archive --change C-ID`. Each gate evaluates and records a Decision in `run-ledger.xml`; exit non-zero means refuse. Do not set status or move the bundle when refused. The gate does not itself author `status` or archive paths. Detachment is host-conditional — see README host-capability matrix. Do not terminal an undeclared event task to satisfy fold.
 10. Only after both gates permit, set spec and plan to `applied` and archive the complete bundle.
 11. Never edit approved assertions/scopes/tasks in place, bypass stale evidence, or continue through unknown drift.
 </execution_rules>
@@ -74,7 +74,7 @@ Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires
   <kind id="command-run">
     When: durable evidence of a MustPassCommand (or budget) evaluation is recorded by the harness/CLI after opted-in command execution.
     Meaning / state: command-evaluation evidence event; cursor stays `in-progress`. Agents do not invent this kind by hand for ordinary task progress — it is emitted when command evidence is written into the run stream.
-    How to emit: produced by the CLI/harness path that appends command-run evidence (e.g. lint `--run-commands`); not a substitute for `cursor attempt`.
+    How to emit: produced by the CLI/harness path that appends command-run evidence (e.g. lint `--run-commands`); not a substitute for `cursor attempt`. argv token run-commands after a fold writes loose events.
   </kind>
   <kind id="pause">
     When: work is interrupted and must stop mid-epoch without closing the epoch (await operator, context switch, or other pause).

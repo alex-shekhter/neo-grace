@@ -436,6 +436,17 @@ describe("catalog issueClass (A5.1 route 2, A6.1)", () => {
   });
 });
 
+describe("C-CURSOR-TASK-RESOLVER T-003: remediations-honest", () => {
+  it("remediate-honest: cursor.unknown-task names sanctioned recovery not regenerate-alone", () => {
+    const guide = getLintIssueGuide("cursor.unknown-task");
+    const remediation = guide.remediation.join(" ");
+    expect(remediation).not.toContain("Regenerate the cursor from the ledger and plan.");
+    expect(remediation).toContain(
+      "Advance a declared task with kind terminal (no default open-epoch), then fold.",
+    );
+  });
+});
+
 describe("catalog exact-guide completeness (C-TOKEN-INTEGRITY T-005 / C-CURSOR-INTEGRITY T-001 F10)", () => {
   const tokenIntegrityCodes = [
     "markup.unparsed-link-token",

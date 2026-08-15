@@ -25,6 +25,7 @@ import {
   fixBudgetSkillRequiredSubstrings,
   foldEpoch,
   formatCursorPosition,
+  inheritLooseEventTask,
   KNOWN_EVENT_KINDS,
   lastResolvingResumeId,
   listAccountingEvents,
@@ -3255,6 +3256,188 @@ describe("appendEpochToLedger structural clone pin (C-SUBSTANCE-OVER-NAME)", () 
     const slice = source.slice(start, nextFn === -1 ? undefined : nextFn);
     expect(slice).not.toContain("children: [...child.children]");
     expect(slice).toContain(".map(cloneXmlNode)");
+  });
+});
+
+describe("C-CURSOR-TASK-RESOLVER T-001: command-run inherits a declared in-scope task", () => {
+  it("inherit-declared: after a T-001 fold, lintGraceProject final+runCommands writes command-run as T-001 not T-000", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const changeId = "C-INHERIT";
+    writeChangeBundleFixture(root, {
+      changeId,
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+      planTargetAssertions:
+        `<MustExist><Value>src/example.ts</Value></MustExist>`
+        + `<MustPassCommand><Command>exit 0</Command></MustPassCommand>`,
+    });
+    advanceCursor(root, changeId, {
+      task: "T-001",
+      openEpoch: true,
+      worker: "w0",
+      from: 1,
+      to: 20,
+    });
+    advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+    const folded = foldEpoch(root, changeId);
+    expect(folded.applied).toBe(true);
+
+    const bundlePath = path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
+    expect(listLooseEvents(bundlePath)).toHaveLength(0);
+    expect(readFileSync(path.join(bundlePath, "run.xml"), "utf8")).toContain("<Task>T-001</Task>");
+
+    lintGraceProject(root, {
+      assertionMode: "final",
+      changeId,
+      runCommands: true,
+    });
+
+    const runDir = path.join(bundlePath, "run");
+    const files = existsSync(runDir)
+      ? readdirSync(runDir).filter((name) => name.includes("command-run"))
+      : [];
+    // Discriminating negative at HEAD: 3-T-000-command-run.xml after a T-001 fold.
+    expect(files).not.toContain("3-T-000-command-run.xml");
+    expect(files).toContain("3-T-001-command-run.xml");
+    const commandRuns = listLooseEvents(bundlePath).filter((event) => event.kind === "command-run");
+    expect(commandRuns.length).toBeGreaterThanOrEqual(1);
+    expect(commandRuns[commandRuns.length - 1]!.task).toBe("T-001");
+  });
+});
+
+describe("C-CURSOR-TASK-RESOLVER T-001: command-run refuses when no declared task is in scope", () => {
+  function seedUnscopedCommandProject(changeId: string): { root: string; bundlePath: string } {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId,
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+      planTargetAssertions:
+        `<MustExist><Value>src/example.ts</Value></MustExist>`
+        + `<MustPassCommand><Command>exit 0</Command></MustPassCommand>`,
+    });
+    return { root, bundlePath: path.join(root, ARTIFACT_DIR, "changes", "active", changeId) };
+  }
+
+  function expectRefuseWithoutRunWrite(root: string, bundlePath: string, run: () => void): void {
+    const runDir = path.join(bundlePath, "run");
+    expect(existsSync(runDir) ? readdirSync(runDir) : []).toEqual([]);
+    try {
+      run();
+      throw new Error("expected GraceCommandError invalid-arguments");
+    } catch (error) {
+      expect(error).toBeInstanceOf(GraceCommandError);
+      const commandError = error as GraceCommandError;
+      expect(commandError.code).toBe("invalid-arguments");
+      expect(commandError.message).toContain("no declared task is in scope");
+      expect(commandError.message).toContain("cursor advance");
+      expect(commandError.message).toContain("declared T-");
+      expect(commandError.message).toContain("run.xml");
+      expect(commandError.message).not.toMatch(/--task\b/);
+    }
+    expect(existsSync(runDir) ? readdirSync(runDir) : []).toEqual([]);
+  }
+
+  it("refuse-unscoped: first run-commands before any cursor refuses without writing run/", () => {
+    const changeId = "C-REFUSE";
+    const { root, bundlePath } = seedUnscopedCommandProject(changeId);
+    expectRefuseWithoutRunWrite(root, bundlePath, () => {
+      lintGraceProject(root, {
+        assertionMode: "target",
+        changeId,
+        runCommands: true,
+      });
+    });
+  });
+
+  it("refuse-unscoped: poisoned run.xml Task T-000 plus last ledger T-000 refuses", () => {
+    const changeId = "C-POISON";
+    const { root, bundlePath } = seedUnscopedCommandProject(changeId);
+    writeFileSync(
+      path.join(bundlePath, "run.xml"),
+      `<NgraceRunCursor graceVersion="1.0"><${changeId}><Task>T-000</Task></${changeId}></NgraceRunCursor>\n`,
+    );
+    writeFileSync(
+      path.join(bundlePath, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><${changeId}><Epoch-1><Event id="1" task="T-000" kind="opened" /></Epoch-1></${changeId}></NgraceRunLedger>\n`,
+    );
+    expectRefuseWithoutRunWrite(root, bundlePath, () => {
+      lintGraceProject(root, {
+        assertionMode: "target",
+        changeId,
+        runCommands: true,
+      });
+    });
+  });
+
+  it("refuse-unscoped: explicit options.task absent from planTaskIds refuses", () => {
+    const changeId = "C-EXPLICIT";
+    const { root, bundlePath } = seedUnscopedCommandProject(changeId);
+    expectRefuseWithoutRunWrite(root, bundlePath, () => {
+      appendCommandRunEvent(root, changeId, {
+        command: "exit 0",
+        exitCode: 0,
+        assertionPassed: true,
+        assertionKind: "MustPassCommand",
+        source: "test",
+      }, { task: "T-999" });
+    });
+  });
+});
+
+describe("C-CURSOR-TASK-RESOLVER T-002: sibling no-guess helper", () => {
+  it("sibling-refuse: inheritLooseEventTask(undefined) throws invalid-arguments and does not return T-001", () => {
+    expect(() => inheritLooseEventTask(undefined)).toThrow(GraceCommandError);
+    try {
+      inheritLooseEventTask(undefined);
+      throw new Error("expected inheritLooseEventTask to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(GraceCommandError);
+      expect((error as GraceCommandError).code).toBe("invalid-arguments");
+      expect((error as GraceCommandError).message).not.toContain("T-001");
+    }
+  });
+
+  it("inherit-undeclared: recover --fix after planted T-000 command-run writes T-000 opened", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, "1-T-000-command-run.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-000" kind="command-run"/>`,
+    );
+    const fixed = recoverCursor(root, "C-RUN", { fix: true });
+    expect(fixed.fixApplied).toBe(true);
+    expect(fixed.coveringOpenedFile).toMatch(/T-000-opened\.xml$/);
+    const opened = listLooseEvents(bundle).filter((event) => event.kind === "opened");
+    expect(opened.some((event) => event.task === "T-000")).toBe(true);
+    expect(opened.some((event) => event.task === "T-001")).toBe(false);
+  });
+
+  it("inherit-undeclared: fold after planted T-000 command-run auto-opens T-000", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, "1-T-000-command-run.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-000" kind="command-run"/>`,
+    );
+    writeFileSync(
+      path.join(runDir, "2-T-000-terminal.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="2" task="T-000" kind="terminal"/>`,
+    );
+    const folded = foldEpoch(root, "C-RUN");
+    expect(folded.applied).toBe(true);
+    const ledger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(ledger).toContain('task="T-000"');
+    expect(ledger).toMatch(/kind="opened"/);
+    expect(ledger).not.toContain('task="T-001"');
   });
 });
 

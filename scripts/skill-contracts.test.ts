@@ -117,6 +117,18 @@ describe("GRACE lifecycle skill contracts", () => {
     expect(execute.toLowerCase()).not.toContain("refresh assertions");
   });
 
+  it("protocol-documented: execute skill names run-commands scope and fold-before-archive", () => {
+    const execute = read("skills/ngrace/ngrace-execute/SKILL.md");
+    expect(execute).toContain("argv token run-commands requires a declared task in scope");
+    expect(execute).toContain(
+      "after a fold, final run-commands writes loose events and archive requires no-open-epoch, so terminal the declared task and fold before gate archive",
+    );
+    expect(execute).toContain("Do not terminal an undeclared event task");
+    expect(execute).toContain("--change C-ID --assertions target --run-commands");
+    expect(execute).toContain("--change C-ID --assertions final");
+    expect(execute).toContain("--parallel-preflight");
+  });
+
   it("documents fail-closed CLI and derived readiness behavior", () => {
     const cli = read("skills/ngrace/ngrace-cli/SKILL.md");
     const status = read("skills/ngrace/ngrace-status/SKILL.md");
