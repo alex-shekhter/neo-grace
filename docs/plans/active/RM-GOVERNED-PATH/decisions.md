@@ -5291,13 +5291,14 @@ is accountable for, the plan has specified a snapshot that under-reports its own
 `applied` status writes and the archive move are the authority's acts. The snapshot-ordering rule
 above is unchanged.
 
-**Halves.** This finding records two observations. A brief citing the title as closed is
+**Halves.** This finding records three observations. A brief citing the title as closed is
 wrong: the title is a standing rule, not a closed defect. A brief citing the title as
 open is wrong for the skill-versus-practice half.
 
 | Half | State |
 |---|---|
 | Snapshot ordering (the title) | **Stated rule, no action.** Pins belong inside the pass snapshot. Nothing is owed. |
+| What a red may be *described* as covering (the second, unrelated observation above) | **Stated rule, no action.** A red must not be described as covering a case that was green when it was recorded — [F80](#f80)'s rule from the other direction. The entry names no bundle, no action and no deferral against it; like F80 it is a rule the next plan author must not violate. |
 | Skill versus practice | **Paid** by [D20](#d20) (2026-08-15). The skill-text follow-up is D20's work on `C-APPROVAL-SCOPE`, not remaining F84 debt. |
 
 ### F85 — findings say what is owed and never say when it was paid, so briefs inherit false debt. **[verified]**
@@ -5330,6 +5331,12 @@ authority-owned close.
 **F84's skill-versus-practice half is paid by [D20](#d20)** (2026-08-15). The snapshot-ordering
 rule in F84 stands. F74.2 remains the only entry on that list that is still open. The shipped
 `ngrace-execute` text is now *wrong*, which is D20's named follow-up, not a remaining F84 deferral.
+
+**That owed-list is a historical record, not a board** (appended 2026-08-15). It states what
+was owed at the moment F85 was written, corrected by the line above; it is not maintained as
+the live set. Per [Which document tracks finding state](#which-document-tracks-finding-state),
+[plan.md](./plan.md) §1 is the board for current finding state. Read this file for *what was
+observed and when*, and each finding's last line for whether its defect still exists.
 
 ### F86 — P3's gate cannot be run: its transcript does not exist and two of its three targets are outputs of the phase it gates. **[verified]**
 
@@ -6230,6 +6237,20 @@ authoring the gap it will later be asked to detect.
 
 The candidate that would stop the plan-stage run duplicating the spec-stage one is
 under [F4](#f4). It is not ratified.
+
+**Correction (2026-08-15), appended rather than rewritten.** The pointer above is false.
+The [co-draft candidate](#decision-candidate--co-draft-the-pair-not-ratified) under
+[F4](#f4) carries **no mechanism** that would stop the duplicate. A `<Decision>` written
+by `gate approve` carries only `gate`, `decision`, `baseCommit` and `Requirement`
+children (`src/gates/ledger.ts:553–584`; the type at `:109–114`) — no timestamp, no
+stage, and no identity of the artifact it permits — so co-drafting both approvals into
+one turn makes the two records **more** certainly byte-identical, not less. F4's own
+candidate now says the same: co-draft as written would *worsen* F95.
+
+The missing mechanism is [D18](#d18)'s fingerprint. What actually pays F95 is
+**`C-APPROVAL-FINGERPRINT`** — position 2 of the [named-bundle registry](#named-bundle-registry),
+authorized to start. `C-CO-DRAFT` is position 5, ordered *after* it, and the registry
+records that it does **not** pay F95.
 
 ### F96 — `MustNotContain` binds a substring, so a rewording satisfies it while the prohibited behaviour remains. **[verified]**
 
