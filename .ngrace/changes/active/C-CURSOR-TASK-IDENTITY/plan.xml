@@ -1,0 +1,1061 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-CURSOR-TASK-IDENTITY>
+    <IntentSummary>
+      Discharge F90 as out-of-phase hygiene
+      for RM-GOVERNED-PATH P3.1. Never invent
+      a task id on a run event. appendCommandRunEvent
+      inherits a plan-declared in-scope task
+      (options.task when explicitly supplied,
+      else last loose event task, else run.xml
+      Task, else last folded ledger event)
+      and refuses before write when none of
+      those is a declared id. recover argv
+      token fix and maybeAutoOpenCoveringAllocation
+      inherit the last loose event task and
+      refuse rather than invent T-001 when it
+      is absent. cursor.unknown-task stays an
+      error for any undeclared run.xml Task
+      or EscalatedTask. Catalog remediation
+      names the sanctioned recovery instead
+      of claiming regenerate is enough.
+      ngrace-execute (canonical and packaged
+      mirror) documents the close order.
+      README.md and examples/ stay unchanged.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-CURSOR-TASK-IDENTITY/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-CURSOR-TASK-IDENTITY/plan.xml</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>export function appendCommandRunEvent</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>?? "T-000"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>?.task ?? "T-001"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>export function planTaskIds</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>export function cursorNamedTask</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>if (!tasks.has(entry.task))</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>"cursor.unknown-task"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>Regenerate the cursor from the ledger and plan.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>appendCommandRunEvent(root, options.changeId!, record)</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>--change C-ID --assertions target --run-commands</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>--change C-ID --assertions final</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>--parallel-preflight</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>Advance a declared task with kind terminal (no default open-epoch), then fold.</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>argv token run-commands requires a declared task in scope</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>Do not terminal an undeclared event task</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>export function appendCommandRunEvent</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>export function planTaskIds</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>export function cursorNamedTask</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>if (!tasks.has(entry.task))</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>"cursor.unknown-task"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>Advance a declared task with kind terminal (no default open-epoch), then fold.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>appendCommandRunEvent(root, options.changeId!, record)</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>--change C-ID --assertions target --run-commands</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>--change C-ID --assertions final</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>--parallel-preflight</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>argv token run-commands requires a declared task in scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>Do not terminal an undeclared event task</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>?? "T-000"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>?.task ?? "T-001"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>Regenerate the cursor from the ledger and plan.</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/grace-cursor.test.ts src/lint/catalog.test.ts src/lint/core.test.ts src/grace-lint.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+        <M-LINT-CATALOG />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+        <V-M-LINT-CATALOG />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>.ngrace/changes/active/C-CURSOR-TASK-IDENTITY/spec.xml</File>
+      <File>.ngrace/changes/active/C-CURSOR-TASK-IDENTITY/plan.xml</File>
+      <File>.ngrace/changes/active/C-CURSOR-TASK-IDENTITY/run.xml</File>
+      <File>.ngrace/changes/active/C-CURSOR-TASK-IDENTITY/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-CURSOR-TASK-IDENTITY/run/**</Glob>
+    </ObservedWriteScope>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: cc5d6a0 (branch
+      fix/cursor-task-sentinel). Preflight:
+      ngrace lint path . assertions current
+      is 0/0. Spec is approved and
+      immutable. Do not amend it. Do not
+      run gate approve on this plan in
+      this pass. If execute shows the spec
+      is wrong, stop and report.
+
+      Ceremony tier T1. Stop and re-spec
+      rather than touching
+      src/artifact/grammar.ts
+      cursor.unknown-task behaviour,
+      src/gates archive predicates,
+      regenerateCursor derivation order,
+      default open-epoch from=1, lint
+      argv token task, src/lint/core.ts
+      (no second resolver), docs/plans,
+      CHANGELOG.md, any version surface,
+      examples/, README.md, or
+      .ngrace/changes/archive.
+      Packaged version stays 6.2.0.
+      No product version bump.
+
+      F33: re-measure every count at
+      execute. Do not pin suite totals,
+      catalog length, or any line number
+      this change moves.
+      F61: name exported functions and
+      argv tokens in this comment.
+      F42: plan assertions bind to
+      exported names, issue codes, and
+      exact source literals, never to
+      AC ids.
+      F50: this plan does not instruct
+      its own ObservedWriteScope
+      amendment; cursor companions are
+      listed at authoring.
+      F74: cite cross-plan decisions
+      as PLAN-ID Dn.
+
+      Measured at authoring, not
+      inherited. appendCommandRunEvent
+      resolves
+      options.task, else last loose
+      event task, else literal T-000.
+      lint argv token run-commands
+      never passes a task
+      (src/lint/core.ts onCommandRun).
+      recover argv token fix and
+      maybeAutoOpenCoveringAllocation
+      each resolve last loose task,
+      else literal T-001. Those T-001
+      fallbacks are unreachable through
+      listLooseEvents today (empty
+      loose already returns or throws;
+      a listed event always has a
+      task from filename or attribute).
+      The fallbacks are still deleted:
+      unreachable guessed ids are still
+      guessed ids. writeEventFile always
+      writes a task attribute.
+      planTaskIds and cursorNamedTask
+      remain the public readers.
+      lastTaskFromLedger stays the last
+      Event task in folded epochs.
+      Catalog remediation for
+      cursor.unknown-task is regenerate
+      from the ledger and plan.
+      ngrace-execute step 7 then step 9
+      run argv token run-commands after
+      a fold and then archive, with no
+      re-fold. Existing
+      src/lint/core.test.ts command-run
+      cases already open T-001 and stay
+      green. src/grace-lint.test.ts
+      C-COMMAND and C-SYSTEMS call
+      lintGraceProject with runCommands
+      true and no cursor; after refuse
+      those throw unless they open a
+      declared task first. That is a
+      forced pin, not a new red.
+      C-COMMAND also spawns the CLI
+      with argv token run-commands;
+      the same open-first pin covers
+      that spawn. C-PHASE-CONFLICT
+      calls lintGraceProject with
+      runCommands true, but
+      extractAssertionsWithIssues
+      skips the command when
+      phase-incompatible
+      (src/artifact/assertions.ts
+      around the phaseIssues continue),
+      so onCommandRun never fires.
+      assertions.test.ts and
+      systems-modeling.test.ts use a
+      local onCommandRun and never
+      reach appendCommandRunEvent.
+
+      Do not decide F84 standing
+      executor versus operator close
+      ownership while editing
+      ngrace-execute. Document only
+      the three protocol sentences
+      the spec names. Keep apply and
+      archive on the same steps they
+      occupy today.
+
+      ════════════════════════════════════
+      D0. Tasks, reds, F56, F67, F80
+      ════════════════════════════════════
+      | Task | work | Satisfies | planned
+        kind+key pairs |
+      | T-001 | command-run resolver;
+          grace-lint.test.ts pins
+        | AC-INHERIT-DECLARED,
+          AC-REFUSE-UNSCOPED,
+          AC-CHECKER-HOLDS
+        | test:inherit-declared,
+          test:refuse-unscoped |
+      | T-002 | sibling no-guess helper
+        | AC-SIBLING-NO-GUESS
+        | test:sibling-refuse |
+      | T-003 | catalog remediation;
+          execute protocol; mirror
+        | AC-REMEDIATE-HONEST,
+          AC-PROTOCOL-DOCUMENTED,
+          AC-SUITE-AND-CI
+        | test:remediate-honest,
+          test:protocol-documented |
+
+      Sequential: T-002 DependsOn T-001
+      because both write
+      src/grace-cursor.ts and
+      src/grace-cursor.test.ts.
+      T-003 DependsOn T-002 so one
+      open epoch carries the close
+      protocol that T-001 makes
+      load-bearing. T-003's files
+      are otherwise disjoint.
+
+      Signature keys the executor must
+      record (kind test):
+        T-001  test:inherit-declared
+        T-001  test:refuse-unscoped
+        T-002  test:sibling-refuse
+        T-003  test:remediate-honest
+        T-003  test:protocol-documented
+
+      Per-task distinct pairs: T-001 2,
+      T-002 1, T-003 2. No key
+      repeats inside a task. Cap is
+      three distinct pairs per task.
+      Keys name the property, not the
+      file stem (F67).
+
+      Record each fail by running only
+      that case (bun test name
+      pattern) so the second property
+      is actually observed (F80).
+      Never fail and pass in one
+      tool call. Never a
+      retrospective red via stash.
+      Never a red backed only by a
+      shell grep.
+
+      F45, named at authoring, not
+      reddened:
+      AC-CHECKER-HOLDS (already true
+      at HEAD; stay-true);
+      sibling inherit when the last
+      loose event has a task,
+      including an undeclared one
+      already on disk (already true;
+      recover and auto-open already
+      inherit);
+      existing command-run tests that
+      open T-001 before
+      appendCommandRunEvent;
+      a declared options.task inherit
+      (authorship, not a guess);
+      lastTaskFromLedger inherit when
+      run.xml Task is absent and the
+      last ledger event is declared;
+      src/lint/core.ts callback form;
+      package.json version;
+      README.md and examples/
+      unopened;
+      writeFileSync inventory
+      (no new writer file).
+
+      F82 / F83: this plan does not
+      author AC-SUITE-AND-LINT and
+      does not Satisfies-link
+      lint-after-archive to any
+      task. AC-SUITE-AND-CI is the
+      task-observable suite bar on
+      T-003. Post-archive lint 0/0
+      is close-verdict evidence,
+      quoted after apply and
+      archive, not claimed by a
+      task pass, and is not an AC-*.
+
+      F68 / F80 on T-001.
+      test:inherit-declared builds a
+      temp project (writeChangeBundleFixture
+      or equivalent) whose plan
+      declares T-001 and whose
+      TargetAssertions include a
+      passing MustPassCommand. Open
+      T-001, emit kind terminal (no
+      default open-epoch), fold so
+      run.xml names T-001 and run/
+      is empty. Then lintGraceProject
+      with assertionMode final,
+      runCommands true, and changeId
+      set. Assert the written
+      command-run event's task is
+      T-001, not T-000. Discriminating
+      negative: today's
+      3-T-000-command-run.xml after a
+      T-001 fold. Do not spawn the
+      CLI as this red. Do not assert
+      refuse. HEAD: writes T-000.
+      Record one fail, signature
+      kind test key inherit-declared.
+
+      test:refuse-unscoped builds a
+      temp project with a declared
+      T-001, empty run/, and neither
+      run.xml Task nor last ledger
+      event a plan-declared task
+      (first run-commands before any
+      cursor). lintGraceProject with
+      runCommands true and changeId
+      set. Assert it throws
+      GraceCommandError
+      invalid-arguments, writes no
+      run/ file, and the message
+      names that no declared task is
+      in scope and names the existing
+      verbs (cursor advance on a
+      declared T-NNN so a loose
+      event exists, or leave run.xml
+      naming a declared task). Do
+      not mention an argv token this
+      bundle does not add. A second
+      it() covering poisoned run.xml
+      Task T-000 plus last ledger
+      event T-000 (both undeclared)
+      is the same property, not a
+      second recorded red. A third
+      it() covering explicit
+      options.task absent from
+      planTaskIds is the same
+      property, not a second
+      recorded red. Do not put
+      inherit and refuse in one
+      case. HEAD: writes T-000 and
+      lint is green until that id
+      reaches run.xml. Record one
+      fail, signature kind test key
+      refuse-unscoped.
+
+      F68 / F80 on T-002.
+      Extract inheritLooseEventTask
+      (name illustrative) so recover
+      argv token fix and
+      maybeAutoOpenCoveringAllocation
+      both call it. First implement
+      today's last-or-T-001 behaviour
+      so the recorded fail is the
+      refuse property, not a missing
+      export. Then the red:
+      inheritLooseEventTask(undefined)
+      throws GraceCommandError
+      invalid-arguments and does not
+      return T-001. Do not import a
+      second new export in this red.
+      Do not assert command-run
+      inherit or refuse here. HEAD
+      after the extract: the helper
+      returns T-001. Record one fail,
+      signature kind test key
+      sibling-refuse.
+
+      F68 / F80 on T-003.
+      test:remediate-honest calls
+      getLintIssueGuide of
+      cursor.unknown-task and asserts
+      remediation does not contain
+      Regenerate the cursor from the
+      ledger and plan, and does
+      contain Advance a declared
+      task with kind terminal (no
+      default open-epoch), then
+      fold. Do not assert execute
+      skill text in this case. HEAD:
+      remediation is regenerate from
+      the ledger and plan. Record
+      one fail, signature kind test
+      key remediate-honest.
+
+      test:protocol-documented in
+      scripts/skill-contracts.test.ts
+      asserts the canonical execute
+      skill contains
+      argv token run-commands
+      requires a declared task in
+      scope; that after a fold,
+      final run-commands writes
+      loose events and archive
+      requires no-open-epoch, so
+      terminal the declared task
+      and fold before gate archive;
+      and Do not terminal an
+      undeclared event task.
+      Keep the existing pin strings
+      (assertions target
+      run-commands, assertions
+      final, parallel-preflight).
+      Do not assert catalog
+      remediation in this case.
+      HEAD: step 7 then step 9 with
+      no re-fold. Record one fail,
+      signature kind test key
+      protocol-documented.
+
+      ════════════════════════════════════
+      D1. Command-run resolver (T-001)
+      ════════════════════════════════════
+      One resolver inside
+      appendCommandRunEvent. Do not
+      add a second resolver in lint.
+      In-scope, in this order, only
+      when the id is in planTaskIds:
+      1. options.task when present
+         and declared (lint still
+         passes none)
+      2. last loose event task
+      3. run.xml Task via
+         cursorNamedTask
+      4. lastTaskFromLedger
+      Refuse invalid-arguments
+      before any run/ write when
+      none of those is a declared
+      id. Delete the literal T-000
+      fallback. Do not pick a plan
+      task by position, by first
+      task, or by only task.
+
+      After production, update
+      src/grace-lint.test.ts
+      C-COMMAND and C-SYSTEMS so
+      they open T-001 before
+      lintGraceProject with
+      runCommands true. The
+      C-COMMAND CLI spawn with
+      argv token run-commands
+      needs the same open first.
+      That is a bounding pin (F84),
+      not a red. Existing
+      src/lint/core.test.ts cases
+      already open T-001; do not
+      edit them unless they go red.
+
+      AC-CHECKER-HOLDS stay-true:
+      do not edit grammar.ts; do
+      not add T-000 to any
+      exemption set; existing
+      grammar.test.ts and
+      grace-lint.test.ts
+      cursor.unknown-task plants
+      (T-999 and undeclared T-000)
+      stay green. Do not
+      manufacture a red.
+
+      Temp-project close sequence
+      from the spec Problem is the
+      integration shape. Do not
+      dogfood this repository's
+      tree as that proof.
+
+      ════════════════════════════════════
+      D2. Sibling no-guess (T-002)
+      ════════════════════════════════════
+      inheritLooseEventTask (name
+      illustrative) is the single
+      last-loose inherit used by
+      recover argv token fix and
+      maybeAutoOpenCoveringAllocation.
+      After the red: undefined
+      throws invalid-arguments
+      before writeCoveringOpened.
+      When the last loose event has
+      a task, return that task
+      including an undeclared one
+      already on disk. Do not run
+      planTaskIds on this path.
+      Delete both literal T-001
+      fallbacks. Update MODULE_MAP
+      if the helper is exported.
+
+      Pass-side (not a recorded
+      red): recover argv token fix
+      after a planted T-000
+      command-run still writes a
+      T-000 opened (inherit, not a
+      new guess). Fold after that
+      still auto-opens T-000.
+      Those already hold at HEAD.
+
+      ════════════════════════════════════
+      D3. Remediation and protocol (T-003)
+      ════════════════════════════════════
+      Catalog remediation for
+      cursor.unknown-task must not
+      claim that regenerate from
+      the ledger and plan is
+      sufficient when the ledger
+      last event is undeclared.
+      Name the sanctioned recovery:
+      Advance a declared task with
+      kind terminal (no default
+      open-epoch), then fold.
+      regenerate of a ledger whose
+      last event is undeclared still
+      re-derives that id; do not
+      teach regenerate to walk
+      backward.
+
+      Canonical
+      skills/ngrace/ngrace-execute/SKILL.md
+      and the packaged byte mirror
+      both say the three protocol
+      sentences in D0. Also note
+      under kind command-run that
+      argv token run-commands after
+      a fold writes loose events.
+      Step 1: a declared task must
+      already be in scope before
+      baseline run-commands that
+      will record. Do not document
+      default open-epoch after a
+      prior fold. Keep the three
+      existing skill-contracts pin
+      strings. Copy the canonical
+      execute skill onto the
+      packaged mirror so
+      validate-marketplace stays
+      green. Do not rewrite other
+      execute steps. Do not move
+      apply or archive off step 9.
+
+      ════════════════════════════════════
+      D4. ObservedWriteScope
+      ════════════════════════════════════
+      Re-derived against the tree
+      at cc5d6a0 by the spec
+      predicate (a file that must
+      gain or change an assertion,
+      or that this deliverable must
+      rewrite). Not copied from the
+      spec list and not copied from
+      fbc985f. Product sources
+      under src, skills, scripts,
+      and plugins are unchanged
+      from fbc985f; the forced
+      product set is the same.
+
+      Forced writes:
+        src/grace-cursor.ts
+        src/grace-cursor.test.ts
+        src/lint/catalog.ts
+        src/lint/catalog.test.ts
+        src/grace-lint.test.ts
+        skills/ngrace/ngrace-execute/SKILL.md
+        plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md
+        scripts/skill-contracts.test.ts
+        this bundle's plan.xml
+
+      Listed as permission (this
+      run may not write them):
+        spec.xml (approved,
+        immutable).
+
+      Cursor companions listed so
+      OWS is complete at authoring
+      (F50): run.xml, run-ledger.xml,
+      run/**.
+
+      Held by non-edit:
+        src/lint/core.ts (callback
+        stays; no second resolver);
+        src/lint/core.test.ts
+        (already opens T-001);
+        src/artifact/grammar.ts;
+        writeFileSync inventory
+        (no new writer file);
+        package.json version;
+        README.md; examples/.
+
+      Deliberately excluded
+      (stop and re-spec):
+        src/gates/**,
+        regenerateCursor order,
+        default open-epoch from=1,
+        a lint argv token task,
+        docs/plans,
+        CHANGELOG.md,
+        version surfaces,
+        .ngrace/changes/archive.
+
+      ════════════════════════════════════
+      D5. Baseline N predictions
+      ════════════════════════════════════
+      Load-bearing flips:
+        A  MustContain grace-cursor.ts
+           ?? "T-000"
+        B  MustContain grace-cursor.ts
+           ?.task ?? "T-001"
+        C  MustContain catalog.ts
+           Regenerate the cursor from
+           the ledger and plan.
+        D  MustNotContain catalog.ts
+           Advance a declared task
+           with kind terminal (no
+           default open-epoch), then
+           fold.
+        E  MustNotContain execute
+           argv token run-commands
+           requires a declared task
+           in scope
+        F  MustNotContain execute
+           Do not terminal an
+           undeclared event task
+
+      Stay-true (not in N):
+      MustExist / MustVerify;
+      version 6.2.0;
+      appendCommandRunEvent,
+      planTaskIds, cursorNamedTask;
+      if (!tasks.has(entry.task));
+      cursor.unknown-task key;
+      lint/core.ts callback;
+      execute pin strings;
+      README.md.
+
+        After plan approval, before
+        any task: N = 0. Flag if
+        N ≠ 0.
+        After T-001 (A): N = 1.
+        After T-001 + T-002 (A, B):
+        N = 2.
+        After T-001 + T-002 + T-003
+        (A through F): N = 6.
+        Lint 0/0 at close only,
+        after apply and archive
+        (F82). Never weaken a
+        BaselineAssertion to move
+        a lint count.
+
+      ════════════════════════════════════
+      D6. Execution discipline
+      ════════════════════════════════════
+      One open epoch. Each planned
+      red is its own tool round
+      trip: write the failing test
+      first, record cursor attempt
+      outcome fail with the
+      signature named in D0 (run
+      only that case), then land
+      production in a later round
+      trip, then add bounding pins,
+      then record pass (F84).
+      This bundle's own Target
+      MustPassCommand entries will
+      write command-run events
+      after T-001 production. Open
+      a declared task before any
+      target or final run-commands.
+      After a fold, inherit the
+      declared run.xml Task. Archive
+      still requires no-open-epoch,
+      so terminal that declared
+      task and fold before gate
+      archive. Do not terminal an
+      undeclared event task.
+
+      T-001: fail inherit-declared,
+      fail refuse-unscoped, then
+      production (resolver), then
+      grace-lint.test.ts pins, then
+      pass.
+      T-002: extract helper with
+      today's fallback, fail
+      sibling-refuse, then
+      production (refuse), then
+      inherit-undeclared pins and
+      MODULE_MAP, then pass.
+      T-003: fail remediate-honest,
+      fail protocol-documented,
+      then production (catalog
+      plus both execute skills),
+      then skill-contracts keep
+      existing pins, then pass.
+
+      Do not set plan status to
+      approved. Do not run gate
+      approve in this pass.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Inherit a declared in-scope task on command-run, or refuse before write</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-INHERIT-DECLARED />
+          <AC-REFUSE-UNSCOPED />
+          <AC-CHECKER-HOLDS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (inherit-declared): before any production
+            edit that deletes the T-000 fallback, in its own tool
+            round trip, add a bun test in src/grace-cursor.test.ts
+            on a temp project whose plan declares T-001 and whose
+            TargetAssertions include a passing MustPassCommand.
+            Open T-001, emit kind terminal without default
+            open-epoch, fold so run.xml names T-001 and run/ is
+            empty, then lintGraceProject with assertionMode final,
+            runCommands true, and changeId set. Assert the written
+            command-run event task is T-001, not T-000. Do not
+            spawn the CLI. Do not assert refuse in this case. HEAD
+            today: the file is 3-T-000-command-run.xml. Record
+            cursor attempt outcome fail, signature kind test key
+            inherit-declared. Run only this case. Do not land the
+            resolver in this round trip. Never a red backed only
+            by a shell grep; never fail and pass in one tool call;
+            never a retrospective red via stash. Failure
+            conditions: this round trip also deletes T-000; this
+            fail recorded from a missing export; inherit and
+            refuse asserted in one case; this repository's tree
+            used as the fixture.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (refuse-unscoped): before the same
+            production edit, in its own tool round trip, add a
+            bun test in src/grace-cursor.test.ts on a temp project
+            with a declared T-001, empty run/, and neither run.xml
+            Task nor last ledger event a plan-declared task.
+            lintGraceProject with runCommands true and changeId
+            set must throw GraceCommandError invalid-arguments,
+            write no run/ file, and the message must name that no
+            declared task is in scope and name the existing verbs
+            (cursor advance on a declared T-NNN so a loose event
+            exists, or leave run.xml naming a declared task). Do
+            not mention an argv token this bundle does not add.
+            A sibling it() covering poisoned run.xml Task T-000
+            plus last ledger event T-000 (both undeclared) is the
+            same property and is not a second recorded red. A
+            sibling it() covering explicit options.task absent
+            from planTaskIds is the same property and is not a
+            second recorded red. HEAD today: writes T-000. Record
+            fail, signature kind test key refuse-unscoped. Run
+            only this case. Do not land the resolver in this
+            round trip.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after both reds): one
+            resolver inside appendCommandRunEvent. Use a
+            plan-declared task already in scope, in this order:
+            options.task when present and in planTaskIds; else
+            last loose event task when in planTaskIds; else
+            run.xml Task via cursorNamedTask when in planTaskIds;
+            else lastTaskFromLedger when in planTaskIds. Refuse
+            invalid-arguments before any run/ write when none of
+            those is a declared id. Delete the literal T-000
+            fallback. Do not pick a plan task by position, first
+            task, or only task. Do not add a second resolver in
+            lint. Do not edit grammar.ts. Do not add T-000 to any
+            exemption set.
+          </Criterion>
+          <Criterion>
+            Bounding pins then pass (F84): update
+            src/grace-lint.test.ts C-COMMAND and C-SYSTEMS so they
+            open T-001 before lintGraceProject with runCommands
+            true. The C-COMMAND CLI spawn with argv token
+            run-commands needs the same open first. Existing
+            src/lint/core.test.ts command-run cases that already
+            open T-001 stay green. Existing cursor.unknown-task
+            plants stay green (AC-CHECKER-HOLDS; already true at
+            HEAD; do not record a fail). Then record pass. Failure
+            conditions: pass recorded before the grace-lint.test.ts
+            pins; exempting T-000; editing grammar.ts.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+          <Command>bun test src/lint/core.test.ts</Command>
+          <Command>bun test src/grace-lint.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Delete the T-001 guess from recover and auto-open</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SIBLING-NO-GUESS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Extract first, then AC-HEAD-RED (sibling-refuse):
+            extract inheritLooseEventTask (name illustrative)
+            used by recover argv token fix and
+            maybeAutoOpenCoveringAllocation, initially
+            implementing today's last-or-T-001 behaviour so the
+            recorded fail is the refuse property, not a missing
+            export. In its own tool round trip, add a bun test
+            that inheritLooseEventTask(undefined) throws
+            GraceCommandError invalid-arguments and does not
+            return T-001. Do not import a second new export.
+            Do not assert command-run inherit or refuse. HEAD
+            after the extract: the helper returns T-001. Record
+            fail, signature kind test key sibling-refuse. Run
+            only this case. Do not land the refuse in this
+            round trip. Never a red backed only by a shell
+            grep; never fail and pass in one tool call.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): the helper
+            refuses before writeCoveringOpened when the last
+            loose event has no task. When the last loose event
+            has a task, it still inherits that task including
+            an undeclared one already on disk. Delete both
+            literal T-001 fallbacks. Update MODULE_MAP if the
+            helper is exported. Pass-side characterization
+            (already true at HEAD; do not record a fail):
+            recover argv token fix after a planted T-000
+            command-run still writes a T-000 opened; fold
+            after that still auto-opens T-000. Then record
+            pass. Failure conditions: inventing T-001;
+            applying planTaskIds on this path; pass recorded
+            before MODULE_MAP and inherit-undeclared pins;
+            changing only one of the two call sites.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Make unknown-task remediation and execute close order honest</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-REMEDIATE-HONEST />
+          <AC-PROTOCOL-DOCUMENTED />
+          <AC-SUITE-AND-CI />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (remediate-honest): before editing
+            src/lint/catalog.ts, in its own tool round trip, add
+            a bun test in src/lint/catalog.test.ts that
+            getLintIssueGuide of cursor.unknown-task remediation
+            does not contain Regenerate the cursor from the
+            ledger and plan, and does contain Advance a
+            declared task with kind terminal (no default
+            open-epoch), then fold. Do not assert execute skill
+            text in this case. HEAD today: remediation is
+            regenerate from the ledger and plan. Record fail,
+            signature kind test key remediate-honest. Run only
+            this case. Do not land the catalog edit in this
+            round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (protocol-documented): before editing
+            ngrace-execute skill text, in its own tool round
+            trip, add expects in scripts/skill-contracts.test.ts
+            that the canonical execute skill contains argv
+            token run-commands requires a declared task in
+            scope; that after a fold, final run-commands writes
+            loose events and archive requires no-open-epoch, so
+            terminal the declared task and fold before gate
+            archive; and Do not terminal an undeclared event
+            task. Keep the existing pin strings. Do not assert
+            catalog remediation in this case. HEAD today: step
+            7 then step 9 with no re-fold. Record fail,
+            signature kind test key protocol-documented. Run
+            only this case. Do not land the skill edit in this
+            round trip.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): update
+            cursor.unknown-task remediation as the remediate
+            red requires. Do not teach regenerate to skip
+            undeclared last events. Update canonical
+            skills/ngrace/ngrace-execute/SKILL.md steps 1, 7,
+            and 9 and the command-run kind note with the three
+            protocol sentences; keep the existing
+            skill-contracts pin strings. Copy the canonical
+            execute skill onto
+            plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md
+            so the files stay a byte mirror. bun test of
+            touched packages and
+            bun run ./scripts/validate-marketplace.ts are the
+            task-observable suite bar (AC-SUITE-AND-CI). Do
+            not claim ngrace lint path . is 0/0 at this task
+            pass (F82; that count is verdict evidence after
+            apply and archive). Then record pass. Failure
+            conditions: regenerate taught to walk backward;
+            packaged skill left drifting; existing pin
+            strings dropped; lint 0/0 claimed here.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts src/lint/catalog.test.ts src/lint/core.test.ts src/grace-lint.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-CURSOR-TASK-IDENTITY>
+</NgraceChangePlan>
