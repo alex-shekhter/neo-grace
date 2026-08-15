@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-CRITERION-CLOSE-EVIDENCE>
     <Summary>
       Add a close-bound acceptance-criterion state
