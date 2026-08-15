@@ -43,17 +43,20 @@ sequencing; nothing here is blocked by anything else on this page.
 ### `RM-VERIFIED-APPROVAL` — recorded 2026-08-14
 
 Two independent models adopting GRACE on a real repository each wrote `status="approved"` onto the
-spec they had just authored, in the same commit, without asking (F88). `gate approve` deliberately
-does not write `status`, so for an autonomous agent the approved state that gates `plan new` and
-`gate apply` is a self-certification the product cannot distinguish from human ratification.
+spec they had just authored, in the same commit, without asking (F88). A fourth run, on a prompt that
+named a reachable human and forbade self-approval, asked and waited (F88.2). `gate approve`
+deliberately does not write `status`, so for an autonomous agent the approved state that gates
+`plan new` and `gate apply` is a self-certification the product cannot distinguish from human
+ratification.
 
 Records why the cheap answers fail — anywhere the agent can write, it can forge; a blockchain
 faithfully records whatever was submitted; a prompt only governs agents already willing to ask — and
 the shape that works: **a service the agent cannot write to, issuing one-time codes to the human
 bound to a fingerprint of the artifact.** That moves approval from tamper-evident to **verifiable**.
 Constraints that decide whether it holds are recorded with it, including that **the detection half is
-still required** — both measured runs bypassed the request entirely, so codes alone would not have
-caught them.
+still required** — the first two measured runs bypassed the request entirely, so codes alone would
+not have caught them. The fourth run asked; the product still cannot tell that ask from a typed
+`approved`.
 
 **Not scheduled.** The repo-local floor ships first regardless: `gate approve` writing status with a
 fingerprint, and lint reporting `approved` without a matching record.

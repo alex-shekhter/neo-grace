@@ -5,6 +5,12 @@ Measured 2026-08-14 against two independent runs of the same prompt in
 subject of F86: a brownfield transcript that can be counted. It is evidence,
 not a plan. Do not average the two runs.
 
+A fourth run, on a **corrected** prompt (`qwen3.8-28B`, branch
+`neo-grace-6.2.0-brownfield-qwen3.8-28B`), is measured in
+[brownfield-run4-findings.md](./brownfield-run4-findings.md). Do not fold
+that measurement into these two counts. That transcript post-dates F88,
+F88.1, F89 and D18.
+
 Analysis used `git show` / `git log` / `git diff` against the branch refs, plus
 a detached worktree (created and removed) to run `ngrace lint` on ornith HEAD
 and earlier commits. Muse artifacts that were never committed were read from
