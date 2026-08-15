@@ -43,6 +43,94 @@ Evidence tags: **[verified]** reproduced against `f340a98` · **[reasoned]** arg
 
 ---
 
+## Recording conventions
+
+This file did not state how it records. Every dispatch re-derived the rules and guessed
+differently. The conventions below are what the file already does; they are stated here so
+the next brief does not have to guess. They are not findings.
+
+### Append-only versus living
+
+**Findings, decision entries, and discharge annotations are append-only.** A later fact is
+another line (or a new `Fn.m`), never a silent rewrite of an earlier sentence. [F85](#f85)
+is the rule for findings; [D9](#d9) is the same discipline for ledgers. [F88.2](#f882)
+refused to rewrite D18's sequencing sentence in place.
+
+**The [slip register](#slip-register--2026-08-15) and the [named-bundle registry](#named-bundle-registry)
+are living boards.** They answer *where the repair is now*. Rewrite the cell when the
+location changes. A row that still names a discharged finding as open, or a bundle by a
+retired name, is itself the defect.
+
+**Append-only starts at publication.** A record becomes append-only when it is
+*published* — when the branch carrying it merges. Inside the branch that is still
+authoring it, a sentence may be corrected in place, because no one has yet read it as a
+record. **The test:** is the sentence on `main`? Then append. Did it land in the unmerged
+branch you are writing? Then fix it where it stands. This is what makes the in-place
+corrections in `6bc8c1a` and `f4af49f` legitimate, rather than exceptions to the rule
+above.
+
+**The test for a section this file does not yet name.** If the section answers *"what was
+observed or decided, and when?"* it is append-only. If it answers *"where is the repair
+now?"* it is living. [plan.md](./plan.md) §1 is living (the phase board). This file's
+findings are not.
+
+### When an observation is `Fn.m` rather than an extension of `Fn`
+
+Mint `Fn.m` when the new observation shares a subject with `Fn` but is not the same
+observation: a new instance of a named trap ([F83.1](#f831)), a correction of a stated
+clause ([F88.1](#f881), [F90.1](#f901)), a new measurement that qualifies a behavioural
+claim ([F88.2](#f882)), or a second finding that escaped inside a parent
+([F88.1.1](#f8811)).
+
+Extend `Fn` — append a paragraph, do not mint a number — when the new sentence is about
+that same observation: a discharge, a disposition, a "what this does and does not do"
+qualification, or a later count of the same set.
+
+**The test.** If a later brief citing `Fn`'s title would be *wrong* about the new
+observation, the new observation is `Fn.m`. If citing `Fn` still names the right defect
+and the new text is payment or qualification of that defect, extend `Fn`.
+
+**Correcting a stated clause: mint or append.** Both are open when a sentence turns out
+false, and the same test decides. Mint `Fn.m` when what is corrected is the finding's own
+**observation**, so that citing `Fn`'s title would now be wrong ([F88.1](#f881),
+[F90.1](#f901)). Append the correction to `Fn` when what is corrected is a **pointer,
+disposition or reference** and citing `Fn`'s title still names the right defect:
+[F95](#f95)'s false pointer to F4's candidate is paid by an appended
+*"Correction (2026-08-15)"* block, not by an `F95.1`, because F95's own measurement and
+rule are untouched.
+
+### Where a discharge annotation goes
+
+The discharge line is the last line of the finding it pays (`Fn`), after any later-added
+subsections of that finding (candidates, dispositions). It is not moved onto `Fn.m` even
+when `Fn.m` is the later correction. `Fn.m` may note that a clause it restated is now
+paid; the canonical discharge lives on `Fn`. [F90](#f90) is the worked case: the
+discharge sits at the end of F90 after the candidate; [F90.1](#f901) notes the writer
+half is paid and does not become the discharge home.
+
+### A finding with more than one half
+
+When one finding records more than one observation and they are not all in the same
+state, the entry names each **half** — the file's term whatever the count — and that
+half's state. Citing the title as closed is then wrong if any half is a standing rule or
+still open; citing the title as open is wrong for any half that is not an outstanding
+obligation. [F84](#f84) is the first use, with three.
+
+States a half may take: **paid** (name the bundle or decision), **open** (an outstanding
+action remains), **stated rule, no action** (the sentence stands and nothing is owed).
+
+### Which document tracks finding state
+
+**[plan.md](./plan.md) §1 is the board** — "the single source of truth for progress"
+(`plan.md:66`). A finding is open, half-paid, or closed *there*.
+
+**This file is the record.** Findings and their discharge annotations live here. Read a
+finding's last line for whether the defect still exists ([F85](#f85)); do not treat this
+file's owed lists as the board.
+
+**[docs/plans/README.md](../../README.md) is the plan index.** It does not track finding
+state.
+
 ## Findings these decisions rest on
 
 ### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**
@@ -103,6 +191,77 @@ This is also live evidence for RC-4 (*rules are discovered after they are expens
 enforced in the grammar, documented nowhere an author would look, and cost a round trip. It is
 exactly what P1.4's generated schema reference and P1.5's valid-by-construction generators exist to
 prevent, encountered by this plan's own execution.
+
+The live check is `src/artifact/grammar.ts:1313–1314` (`change.plan-requires-approved-spec`), not
+the `:1272` this entry first cited — that line is now `change.invalid-bundle-id`. The rule is
+unchanged. A 2026-08-15 candidate that would revise it sits below; it is not ratified.
+
+#### Decision candidate — co-draft the pair (not ratified)
+
+**Raised by the maintainer on 2026-08-15. Candidate, not a decided rule.**
+
+**The proposal.** `plan new` may write beside a **draft** spec, so the plan-requires-approved-spec
+rule becomes a rule about *approval*, not *authoring*. A plan still may not be approved while its
+spec is draft. Both approval phrases may be spoken in one turn but remain **two decisions over two
+fingerprints**.
+
+The product today forbids the plan from *existing*, not from being *approved*.
+`change.plan-requires-approved-spec` at `src/artifact/grammar.ts:1313` tests
+`location === "active" && planArtifact && specStatus !== "approved"` and never consults
+`planStatus` (read on the next line and unused by this check). That diagnosis is why the
+authoring rule is the wrong one, and it is why a candidate about approval rather than
+authoring is even coherent.
+
+**What this does not pay.** Co-draft does **not** stop the plan-stage `gate approve` from
+duplicating the spec-stage one. [F95](#f95) is not among what this candidate pays. A
+`<Decision>` written by `gate approve` carries `gate`, `decision`, `baseCommit`, and
+`Requirement` children — no timestamp, no stage, and no identity of the artifact it
+permits (`src/gates/ledger.ts:553–584`; the type at `:109–114`). On
+`C-CURSOR-TASK-RESOLVER` the two approve `Decision`s are byte-identical including
+`baseCommit`. [F81](#f81)'s dated "five" is superseded: [F95](#f95) counted **ten** of 46
+archived bundles carrying the pair (2026-08-15). Co-draft keeps two approvals and moves
+both into one turn, at which point `baseCommit` is **more** certainly identical, not less.
+Without [D18](#d18)'s fingerprint — or any attribute recording which artifact a `Decision`
+permits — co-draft as written would *worsen* F95, not fix it.
+
+**Why.** The plan is the spec's most rigorous reader, and the product currently guarantees that
+reader arrives only after the spec is immutable — so a spec defect costs a supersede instead of an
+edit.
+
+**Evidence, measured on the 2026-08-15 chain.** Of the two supersedes, co-drafting would have
+prevented `C-CURSOR-TASK-SENTINEL`'s (an unsatisfiable criterion, found while authoring the plan —
+[F83.1](#f831)) and would **not** have prevented `C-CURSOR-TASK-IDENTITY`'s (a write-scope omission
+found only when the suite ran — that class needs a walk, not a re-read).
+
+**What it costs.** The ordering that lets a spec constrain a plan rather than co-evolve with it,
+and a larger surface under a single approval act immediately after [D19](#d19) narrowed approval to
+the current step — habituation is the real risk, and it is the same risk that produced the
+self-approval slips. [D19](#d19) is not overturned: two phrases, two fingerprints, even in one turn.
+
+**Shipped checks this would revise**, all of which currently refuse a plan beside a non-approved
+spec:
+
+- `change.plan-requires-approved-spec` at `src/artifact/grammar.ts:1313–1314` (active location,
+  any plan, spec status ≠ `approved`)
+- the `--as` overlay twin at `src/lint/core.ts:153–159` (same code, fired when `asStatus !==
+  "approved"`)
+- `approvedSpecXml` / `writePlanNew` at `src/grace-generate.ts:94–110` and `:114–131` (throws
+  `invalid-arguments` unless the spec file exists and reads `approved`)
+- the `plan` command description at `src/grace-generate.ts:227` ("beside an approved spec")
+
+Skill preflight (`skills/ngrace/ngrace-plan/SKILL.md:23–24`) restates the same refusal; it is a
+request ([F89](#f89)), not a check.
+
+**Revisable by.** If measurement shows plans bending specs toward implementation convenience,
+restore the authoring refusal.
+
+**Sequencing.** This lands as its own bundle — **`C-CO-DRAFT`** — because it revises a rule four
+shipped checks close over. [D18](#d18) is a **prerequisite**, not a peer: the fingerprint is the
+mechanism that would make the two same-turn approvals distinguishable, and without it the
+candidate worsens [F95](#f95). The maintainer's ordering (2026-08-15) is to ship the
+criterion-state and fingerprint bundles first and **re-measure whether co-draft still earns
+its cost**. That is a sequencing decision, not a deferral. Not created here. Not folded
+into `C-APPROVAL-SCOPE`. Not ratified.
 
 ### F5 — `<DependsOn>` silently discards the anchor-child form. **[verified]**
 
@@ -5074,6 +5233,44 @@ inherits the obligation to check the repair is closable.**
 and when a step credits or matches stored records, check the records **as they exist at the moment the
 rule runs**, not as they were written.
 
+### F83.1 — the copied `AC-SUITE-AND-LINT` shape still authors the unsatisfiable 0/0 close criterion, and that is why `C-CURSOR-TASK-SENTINEL` was superseded. **[verified]**
+
+[F83](#f83) named the trap in [F82](#f82)'s own repair: a close-time `AC-*` that no task `Satisfies`
+raises `change.acceptance-criterion-unmapped`, so a 0/0 bar containing it can never close. [F82](#f82)
+was discharged by `C-DRIFT-HONESTY`, which demonstrated the split. The next bundle that authored from
+the model plan copied the old shape anyway.
+
+`C-CURSOR-TASK-SENTINEL/spec.xml:411–420` authors `<AC-SUITE-AND-LINT>` as *"Close-time only, bound
+to the verdict, not to a task pass (F82)"* and requires `bun run ngrace lint … is 0 errors and 0
+warnings`. `:437` repeats that it is close-time verdict evidence. The draft plan then
+`Satisfies`-linked it to T-003 (`plan.xml:397–404`) *because* the spec also required 0 warnings and
+an unmapped `AC-*` is a warning. Mapping it contradicted F82; leaving it unmapped falsified the
+criterion. Maintainer ruling 2026-08-15: supersede, do not amend in place
+(`C-CURSOR-TASK-IDENTITY/spec.xml:131–144`). That is the first supersede in this chain.
+
+**Severity of the unmapped diagnostic, measured.** `validateSpecPlanCoverage`
+(`src/artifact/grammar.ts:1883–1890`) emits `change.acceptance-criterion-unmapped` at **warning**.
+There is no third `AC-*` state. `collectAcceptanceCriteriaIds` / `collectSatisfiedAcceptanceCriteria`
+know mapped and unmapped; nothing in the grammar is verdict-bound, close-time, or archive-only. D17
+freezes an id once a run event cites it — it does not bind a criterion to the close record.
+
+**The teaching templates do not force this.** `skills/ngrace/ngrace-spec/references/change-spec-template.xml:14`
+ships `<AC-SKELETON>`, not `AC-SUITE-AND-LINT`. The force is the **copied model-plan shape** F82
+already named — every earlier bundle in this phase carried it — surviving F82's discharge as a habit.
+
+**The working construction**, demonstrated by `C-DRIFT-HONESTY` and reused by `C-CURSOR-TASK-IDENTITY`
+and `C-CURSOR-TASK-RESOLVER`: **do not author lint 0/0 as an `AC-*` at all.** Split the old
+`AC-SUITE-AND-LINT` shape. The task-observable half is `AC-SUITE-AND-CI`, `Satisfies`-linked to a
+task whose `Verification` runs those commands (`C-DRIFT-HONESTY/spec.xml:633–671`, `:1254–1279`).
+The post-archive lint 0/0 half is close-verdict evidence, quoted in the verdict (D16). The spec
+does not author `AC-SUITE-AND-LINT` and must not `Satisfies`-link lint-after-archive to any task.
+Neither half requires a state that its own presence falsifies.
+
+**The rule.** A criterion that requires 0 warnings cannot be an unmapped `AC-*`, and a close-time
+lint bar cannot be a mapped one. The construction that closes is to stop authoring the lint half as
+an `AC-*`. Copying the old name after that demonstration has been shown is a supersede, not a
+warning to work around.
+
 ### F84 — a pass recorded before its characterization pins snapshots a tree that is not the finished task. **[verified]**
 
 Raised by the executor at `C-DRIFT-HONESTY`'s close, against a design note in the plan **it had
@@ -5107,6 +5304,23 @@ operator-owned close. Not this bundle's scope; owed to whichever bundle next ope
 inside a task is part of what the task proves.** When a plan sequences a pass before any file the task
 is accountable for, the plan has specified a snapshot that under-reports its own work.
 
+**The standing skill-versus-practice contradiction is decided, not deferred.** [D20](#d20)
+(2026-08-15): `--assertions final`, `review`, `gate verdict`, `gate apply`, `gate archive`, the
+`applied` status writes and the archive move are the authority's acts. The snapshot-ordering rule
+above is unchanged.
+
+**Halves.** This finding records three observations. A brief citing the title as closed is
+wrong: the title is a standing rule, not a closed defect. A brief citing the title as
+open is wrong for the other two halves as well — the red-description half states a rule
+and owes nothing, and skill versus practice is paid by [D20](#d20). No half of F84 is an
+outstanding obligation.
+
+| Half | State |
+|---|---|
+| Snapshot ordering (the title) | **Stated rule, no action.** Pins belong inside the pass snapshot. Nothing is owed. |
+| What a red may be *described* as covering (the second, unrelated observation above) | **Stated rule, no action.** A red must not be described as covering a case that was green when it was recorded — [F80](#f80)'s rule from the other direction. The entry names no bundle, no action and no deferral against it; like F80 it is a rule the next plan author must not violate. |
+| Skill versus practice | **Paid** by [D20](#d20) (2026-08-15). The skill-text follow-up is D20's work on `C-APPROVAL-SCOPE`, not remaining F84 debt. |
+
 ### F85 — findings say what is owed and never say when it was paid, so briefs inherit false debt. **[verified]**
 
 Caught by the executor at `C-FINDING-SEVERITIES`'s spec authoring: my dispatch carried [F76](#f76) as
@@ -5133,6 +5347,16 @@ and only its tail says whether the defect still exists.
 `D15` in `src/test-support/token-accounting.ts:80` (needs a bundle that opens that file), and
 [F84](#f84)'s standing contradiction between the shipped `ngrace-execute` skill and this roadmap's
 authority-owned close.
+
+**F84's skill-versus-practice half is paid by [D20](#d20)** (2026-08-15). The snapshot-ordering
+rule in F84 stands. F74.2 remains the only entry on that list that is still open. The shipped
+`ngrace-execute` text is now *wrong*, which is D20's named follow-up, not a remaining F84 deferral.
+
+**That owed-list is a historical record, not a board** (appended 2026-08-15). It states what
+was owed at the moment F85 was written, corrected by the line above; it is not maintained as
+the live set. Per [Which document tracks finding state](#which-document-tracks-finding-state),
+[plan.md](./plan.md) §1 is the board for current finding state. Read this file for *what was
+observed and when*, and each finding's last line for whether its defect still exists.
 
 ### F86 — P3's gate cannot be run: its transcript does not exist and two of its three targets are outputs of the phase it gates. **[verified]**
 
@@ -5513,6 +5737,58 @@ non-retroactive trigger does not protect it — the ledger *has* approve events 
 gate surface. That is the rule working as designed, on a tree this repository does not
 own.
 
+### F86.2 — superseding a bundle has no verb; the only linting order is replacement-first, and nothing creates the replacement atomically. **[verified]**
+
+[F86.1](#f861) recorded the *applied-close* instance of the missing-verb gap: spec `applied`,
+plan `applied`, `mv` to `archive/` are still folklore. Superseding is the same shape and was
+unrecorded. Measured over `C-CURSOR-TASK-SENTINEL` → `C-CURSOR-TASK-IDENTITY` →
+`C-CURSOR-TASK-RESOLVER` (all three now archived).
+
+**There is no `supersede` verb.** `src/grace.ts:41–56` registers `context`, `cursor`, `doctor`,
+`file`, `gate`, `graph`, `lint`, `module`, `plan`, `review`, `scaffold`, `spec`, `status`,
+`verification`. `src/gates/command.ts:336–340` registers `approve`, `apply`, `archive`,
+`verdict`. `plan` and `spec` expose `new` only (`src/grace-generate.ts:154–156`, `:230–232`).
+None writes `status="superseded"`, none writes `<Replacement>`, none moves a bundle.
+
+**The four hand writes, forced by named checks.** A superseded bundle in `active/` is
+`change.invalid-active-status` (`src/artifact/grammar.ts:539–542`;
+`ACTIVE_CHANGE_STATUSES` is `{draft, approved}` at `src/artifact/types.ts:139`;
+`ARCHIVED_CHANGE_STATUSES` is `{applied, rejected, cancelled, superseded}` at `:142`). In
+`archive/`, spec status must equal plan status (`change.archive-status-mismatch`,
+`grammar.ts:1316–1318`). Each artifact with `status="superseded"` must name a different
+replacement C-* (`change.superseded-missing-replacement` at `:588–598`;
+`change.superseded-self-replacement` at `:601–604`). So the close is: a `status` write on
+`spec.xml`, a `status` write on `plan.xml`, a `<Replacement>` (or `ReplacementChange`, or
+direct C-* child — `replacementChangeIds` at `:1426–1433`) on **both**, and a filesystem
+move to `archive/`. All four are visible on the archived pair:
+`C-CURSOR-TASK-SENTINEL/{spec,plan}.xml:1–3` (`status="superseded"`,
+`<Replacement>C-CURSOR-TASK-IDENTITY</Replacement>`);
+`C-CURSOR-TASK-IDENTITY/{spec,plan}.xml:1–3` (`status="superseded"`,
+`<Replacement>C-CURSOR-TASK-RESOLVER</Replacement>`).
+
+**The fifth absence is the one that decides the order.** `validateReplacementTargetExists`
+(`grammar.ts:1436–1448`) errors `change.superseded-replacement-not-found` unless
+`knownChangeIds` already contains the replacement. `collectChangeBundleIds` (`:1415–1423`)
+reads directory names under `active/` and `archive/`. **The replacement bundle must already
+exist as a directory.** No verb creates it atomically with the supersede. The only order
+that ever lints is **replacement-first**.
+
+**What the skills actually say.** `skills/ngrace/ngrace-plan/SKILL.md:32` is *"Create a new
+`C-*` bundle and mark the old bundle superseded with an explicit replacement reference"* —
+create-then-mark as a sentence, no named checks, no status-on-both, no move, no statement
+that every other order is an error. `ngrace-execute` `:8` and `:28` say "supersede and
+replan" as a recovery action. Neither is a verb, and neither names the grammar that makes
+replacement-first the only green path.
+
+The honest intermediate state is unrepresentable, the same class as [F19.1](#f191): write
+`superseded` while still under `active/` and `change.invalid-active-status` fires; move
+without matching statuses and `change.archive-status-mismatch` fires; move without the
+replacement directory and `change.superseded-replacement-not-found` fires.
+
+**The rule.** A lifecycle transition the grammar accepts only as four writes plus a move,
+and only after a directory the transition itself does not create, is not a transition the
+product performs. It is folklore with a checker.
+
 ### F90 — `--run-commands` emits `T-000`, which the plan cannot declare, and a clean cursor then cannot be derived. **[verified]**
 
 The check ran and was right. The writer is wrong.
@@ -5555,10 +5831,13 @@ declare, the checker that then refuses is doing its job; the repair is the write
 
 Honest options, none free:
 
-- **(a) Do not emit `T-000`.** Inherit `run.xml`'s current task if it is a declared id;
-  otherwise refuse `--run-commands` with "no current task; pass `--task T-NNN` or open an
-  epoch first." Cheap, fail-closed, matches A13.2. Cost: every post-fold
-  `--run-commands` needs an explicit task or a re-open. The execute skill must say so.
+- **(a) Do not emit `T-000`.** Inherit a task the plan already declares, or refuse
+  before write. No new lint surface — `src/grace-lint.ts` still has no `--task` flag.
+  Sources, in this order, only when the id is in `planTaskIds`: explicit `options.task`
+  (library callers; not a new CLI flag), last loose event, `run.xml` Task, last folded
+  ledger event. Refuse `invalid-arguments` when none of those is a declared id. Cheap,
+  fail-closed, matches A13.2. Cost: every post-fold `--run-commands` needs a declared
+  task already in scope. The execute skill must say so.
 - **(b) Declare `T-000` as a permitted system task** the grammar exempts from
   `cursor.unknown-task`. Makes the fallback legal. Cost: a phantom task in every
   command-run-only epoch; `status` `tasks=` becomes a lie unless counted separately;
@@ -5567,8 +5846,31 @@ Honest options, none free:
   task and never require a T-000 open/terminal to fold. Cost: fold semantics grow a
   special case; "terminal is a judgment" (cursor kinds) is no longer true for this kind.
 
-**(a) is the only option that does not invent a task the plan did not declare.** Not
-ratified here.
+**(a) is the only option that does not invent a task the plan did not declare.**
+**Shipped as (a) without the `--task` flag this candidate first proposed**, by
+[`C-CURSOR-TASK-RESOLVER`](../../../../.ngrace/changes/archive/C-CURSOR-TASK-RESOLVER/)
+in PR #59 (`49c3c94`).
+
+**Discharged by [`C-CURSOR-TASK-RESOLVER`](../../../../.ngrace/changes/archive/C-CURSOR-TASK-RESOLVER/)
+(PR #59, `49c3c94`).** `resolveDeclaredCommandRunTask` (`src/grace-cursor.ts:3126–3150`)
+inherits a `planTaskIds` member from explicit `options.task`, last loose event, `run.xml`
+Task, or last folded ledger event, and throws `invalid-arguments` when none is declared
+— *"Cannot record command-run: no declared task is in scope."* `appendCommandRunEvent`
+calls it at `:2989`. The T-001 fallbacks on `recover --fix` and
+`maybeAutoOpenCoveringAllocation` are deleted; both now `inheritLooseEventTask`
+(`:736–746`) and refuse rather than invent. `cursor.unknown-task` is untouched. No
+`--task` flag was added to lint (`src/grace-lint.ts` has none); a new lint argv token
+`task` was a NonGoal (`C-CURSOR-TASK-RESOLVER/spec.xml:587–591`). The bundle's own close
+is the proof: post-fold `--assertions final --run-commands` wrote events 13–18 as
+`task="T-003"` (`run-ledger.xml` Epoch-2), not `T-000`.
+
+**Residuals this discharge does not pay**, all stated NonGoals of that spec
+(`:592–612`) and still true at `49c3c94`: `regenerateCursor` (`src/grace-cursor.ts:802–815`)
+still re-derives whatever `derivePosition` last-event / last-ledger task is
+(`:1374–1380`), with no `planTaskIds` check; default `--open-epoch` `from = options.from
+?? 1` (`:910`) still holes after a fold ([F90.1](#f901) point 3); operator-supplied
+advance / attempt task ids are still unchecked at write time ([F98](#f98)); the published
+`@neograce/cli@6.2.0` still invents the sentinel ([F99](#f99)). [F93](#f93) is unchanged.
 
 ### F91 — `scaffold` cannot create the first module; nothing else writes one. **[verified]**
 
@@ -5697,11 +5999,21 @@ fallback is the same defect on the empty-`run/` path. A repair that changes only
 - **Narrowed.** "No sanctioned way back" → no *documented* way back. The verbs exist;
   the contract does not name them.
 
+Those three clauses are this correction's effect on [F90](#f90) at the time it was
+written. The writer-invents clause and "still not ratified" are now paid; see the
+writer-half paragraph below. The archive-permits half is still [F93](#f93).
+
 **Scheduled as `C-CURSOR-TASK-SENTINEL`, already authored on `fix/cursor-task-sentinel`
 at `241c628`** (`.ngrace/changes/active/C-CURSOR-TASK-SENTINEL/spec.xml` on that
 branch; not present here). That spec absorbs these four points (its Problem states
 them) and forbids exempting a sentinel id. This pass does not create or edit that
 bundle.
+
+**The writer half is paid.** `C-CURSOR-TASK-SENTINEL` was superseded (F83 close-criterion
+trap) by `C-CURSOR-TASK-IDENTITY`, which was superseded (F64 write-scope miss) by
+`C-CURSOR-TASK-RESOLVER`, which shipped [F90](#f90) candidate (a) in PR #59. Point 3's
+range hole and the regenerate re-derivation of an undeclared last event remain, as
+that spec's NonGoals (`C-CURSOR-TASK-RESOLVER/spec.xml:600–612`).
 
 **The rule.** A well-formed id the plan did not declare is an undeclared id, not a
 reserved one. Do not repair a guessed fallback by making the guess legal.
@@ -5909,6 +6221,134 @@ path the plan is forbidden to touch has to live in a field a checker reads,
 or the forbid is decorative. A brief that contradicts a spec is a human
 failure; a plan that would lint clean afterwards is a product one.
 
+### F95 — `ngrace-plan` requirement 15 mandates the second, unorderable approve Decision. **[verified]**
+
+[F81](#f81) measured **five** archived bundles already carrying two permitting approve
+`Decision`s, and made the reader first-in-document-order / the writer first-observation-wins
+so a re-approval cannot silently rewrite the recorded `baseCommit`. The count is no longer
+five. Measured 2026-08-15 across `.ngrace/changes/archive/*/run-ledger.xml`: **ten**
+bundles carry two byte-identical `<Decision gate="approve" decision="permit" …>` elements
+(`C-CONTRACT-DEBT`, `C-CURSOR-TASK-IDENTITY`, `C-CURSOR-TASK-RESOLVER`,
+`C-DECLARED-WRITES`, `C-EXPLAIN-COVERAGE`, `C-FAILURE-LOCALIZATION`,
+`C-OBSERVABLE-CHECKS`, `C-REVIEW-SURFACE`, `C-SUBSTANCE-OVER-NAME`,
+`C-SUBSTANTIATION-HONESTY`). The repo README does **not** note the pair; the "five"
+lived in this file at F81 and in the P2 board, and is now a dated measurement, not a
+current one.
+
+**The causation is the product, not a re-approval.** `skills/ngrace/ngrace-plan/SKILL.md:68`
+requirement 15: *"Before setting `plan.xml` to `approved`, run `ngrace gate approve
+--change C-ID`."* The hard rule at `:112` repeats it. `gate approve` records a Decision
+and does not write status (`src/gates/command.ts:15`, `:349–352`). The spec-stage run
+already stored a permitting approve Decision. The plan-stage run appends another. On
+`C-CURSOR-TASK-RESOLVER/run-ledger.xml` the two lines are byte-identical, including
+`baseCommit="7957afef93f7cf56f5be441850d247049ed3cba7"` — first-observation-wins
+(`src/gates/ledger.ts:354–358`, `firstStoredBaseCommit` at `:587–596`) copies the stored
+sha onto the second write, and a `Decision` carries no timestamp. Nothing orders them.
+The same pair is on `C-CURSOR-TASK-IDENTITY` (`baseCommit="684b724e9fe8920680cfd36c662dd936215c68ab"`).
+
+Following the skill is what produces the unorderable record. This is
+`RM-GITLESS-INTEGRITY`'s defect performed by the documented happy path, not by an
+edit-and-re-approve.
+
+**The rule.** A gate that records a Decision on every invocation, pointed at the same
+requirement list, will append a twin every time the skill says to run it again. If the
+second run is mandatory and the two records cannot be told apart, the product is
+authoring the gap it will later be asked to detect.
+
+The candidate that would stop the plan-stage run duplicating the spec-stage one is
+under [F4](#f4). It is not ratified.
+
+**Correction (2026-08-15), appended rather than rewritten.** The pointer above is false.
+The [co-draft candidate](#decision-candidate--co-draft-the-pair-not-ratified) under
+[F4](#f4) carries **no mechanism** that would stop the duplicate. A `<Decision>` written
+by `gate approve` carries only `gate`, `decision`, `baseCommit` and `Requirement`
+children (`src/gates/ledger.ts:553–584`; the type at `:109–114`) — no timestamp, no
+stage, and no identity of the artifact it permits — so co-drafting both approvals into
+one turn makes the two records **more** certainly byte-identical, not less. F4's own
+candidate now says the same: co-draft as written would *worsen* F95.
+
+The missing mechanism is [D18](#d18)'s fingerprint. What actually pays F95 is
+**`C-APPROVAL-FINGERPRINT`** — position 2 of the [named-bundle registry](#named-bundle-registry),
+authorized to start. `C-CO-DRAFT` is position 5, ordered *after* it, and the registry
+records that it does **not** pay F95.
+
+### F96 — `MustNotContain` binds a substring, so a rewording satisfies it while the prohibited behaviour remains. **[verified]**
+
+Raised by the executor of `C-CURSOR-TASK-RESOLVER`. Re-derived, not taken from the brief.
+
+`evaluateTextContainment` (`src/artifact/assertions.ts:345–368`) decides by
+`contents.includes(expectedText)` (`:356`). `MustNotContain` is that test with
+`shouldContain = false` (`:181–182`). There is no AST walk, no identifier check, no
+behavioural probe. A Target `MustNotContain` of `?? "T-000"`
+(`C-CURSOR-TASK-RESOLVER/plan.xml:199–201`) is satisfied by deleting those six
+characters, or by spelling the same fallback as `` `${"T-000"}` ``, or by moving the
+invention to a helper whose body the needle does not name. The prohibited behaviour —
+inventing a task id the plan did not declare — can remain.
+
+`MustMatchPattern` / `MustNotUseLiteral` (`:370–410`) compile a regex and still bind
+text. Nothing in the assertion grammar binds "does not invent a task id".
+
+**The rule.** A containment assertion is a spelling pin. Treat it as one. A behaviour
+the plan needs to forbid needs a test that observes the behaviour, not a needle the
+next author can rename past.
+
+### F97 — the `assertion.` prefix remediation advises supersede-and-replan for planned baseline flips. **[verified]**
+
+Raised by the same executor as [F96](#f96). The brief named `assertion.MustContain`;
+there is no exact guide for that code (`src/lint/catalog.ts` `EXACT_GUIDES` has none).
+`resolveLintIssueGuide` (`:1117–1125`) falls through to the prefix table. The
+`assertion.` prefix (`:990–993`) remediates every assertion failure, including
+`MustContain` and `MustNotContain`, with:
+
+> Reconcile the current state with the approved plan assertions.
+> If the approved plan is stale, supersede and replan rather than editing it silently.
+
+That second sentence is the wrong remedy for a **planned** baseline flip. The same
+bundle's baseline `MustContain` of `?? "T-000"` (`plan.xml:61–63`) is the current
+tree; its target `MustNotContain` of the same needle (`:199–201`) is the flip. Mid-
+change, the baseline fails because the production edit deleted the needle — the plan
+is not stale, and superseding it would discard the flip it authored. The prefix cannot
+tell a stale plan from a plan whose target is the negation of its baseline.
+
+**The rule.** Remediation that names supersede as the response to any assertion
+failure will fire on the exact shape a target assertion is for. A planned flip needs
+a different sentence, or the catalog should stay silent rather than prescribe the
+wrong lifecycle act.
+
+### F98 — operator-supplied task ids are still unchecked at write time. **[verified]**
+
+Stated NonGoal of `C-CURSOR-TASK-RESOLVER` (`spec.xml:592–599`). Still true.
+
+`advanceCursor` writes `options.task` onto the opened event with no `planTaskIds`
+check (`src/grace-cursor.ts:916`). The non-open path validates only
+`ANCHOR_PATTERNS.task` (`:957–959`) — well-formed `T-NNN`, including undeclared
+`T-000` and `T-999`. `cursor attempt` and `verification-unavailable` pass
+`String(context.args.task)` through the same way (`:3279`, `:3335`, `:3382`).
+Detection remains `cursor.unknown-task` when the name lands on `run.xml`
+(`src/artifact/grammar.ts:1361–1370`). Prevention at the write is a different
+product. No named bundle already owns this; it is not `C-ARCHIVE-CURSOR` (gate
+predicate) and not a residual of the writer repair [F90](#f90) paid.
+
+**The rule.** A write that accepts any well-formed task id will accept an undeclared
+one. The checker that then refuses is doing its job; the residual is that the
+illegal name is already on disk.
+
+### F99 — the published `@neograce/cli@6.2.0` still invents `T-000`; the tree fix carried no version bump. **[verified]**
+
+[F90](#f90) is paid **in this tree** (`49c3c94`). The change carried no version bump:
+`package.json` is `"6.2.0"`, `openpackage.yml` / marketplace / plugin manifests agree,
+`C-CURSOR-TASK-RESOLVER/spec.xml:548–554` forbade a version surface edit. `v6.2.0`
+was tagged on 2026-08-12 (`0764686`); npm `latest` is `6.2.0`. Installers of the
+published CLI still run the pre-`resolveDeclaredCommandRunTask` writer. The defect is
+fixed in HEAD and live for installers until a release.
+
+Not a `C-*` already named on this board. A release is a maintainer act, not a
+roadmap bundle. Recorded so the next brief cannot treat a green tree as a green
+install.
+
+**The rule.** A repair that does not move the published version has not reached the
+installers of that version. Say so at the close that ships it.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
@@ -5960,6 +6400,62 @@ this shape, not a reason to treat one phrase as a season ticket —
 the per-step rule into the spec, plan, and execute skills (and their
 packaged mirrors). It does not implement D18. Not created here.
 
+## D20 — the authority owns the close
+
+**Decided 2026-08-15 by the maintainer.** Decision, not a deferral.
+
+**The decision.** `--assertions final`, `review`, `gate verdict`, `gate apply`,
+`gate archive`, the `applied` status writes, and the archive move are the
+**authority's** acts, not the executing agent's. [D19](#d19) said an approval
+covers the current step only; this says who performs the steps after the plan
+is approved. The two compose: the plan phrase does not travel, and the actor
+who would have carried it does not perform those acts.
+
+**Why.** Every dispatch in this phase has had to contradict the shipped
+`ngrace-execute` skill on that split, and the executor has flagged it each
+time ([F84](#f84)). The close of `C-CURSOR-TASK-RESOLVER` was performed this
+way (PR #59 commit body: terminal, fold, `--assertions final --run-commands`,
+terminal, fold, review, `gate verdict`, `gate apply`, `gate archive`, then
+the applied writes and the archive move — "The authority owns the close").
+
+**The shipped skill is now wrong.** `skills/ngrace/ngrace-execute/SKILL.md:40–43`
+(steps 7–10) still assign `--assertions final`, apply confirmation, `review`,
+`gate verdict`, `gate apply`, `gate archive`, the `applied` status writes, and
+the archive move to the executing agent. Do not fix the skill here — that is
+its own bundle.
+
+**The trigger was consumed without payment.** [F84](#f84) owed the decision to
+*"whichever bundle next opens `ngrace-execute`"*. That bundle was
+`C-CURSOR-TASK-RESOLVER`. Its approved plan forbade deciding the split
+(`plan.xml:396–403`, `:767–768`: *"Do not decide F84 standing executor versus
+operator close ownership while editing ngrace-execute"*). The file was opened;
+the obligation was scoped out. Without this record the trigger expires unpaid.
+A trigger consumed by a bundle scoped to not pay it is not a discharge.
+
+`C-CURSOR-TASK-IDENTITY`'s plan-approve commit had already named the same
+trigger and deferred it to "the same branch"; RESOLVER then inherited the
+file and the forbid. The pattern happened twice in one chain.
+
+**What this does not do.** It does not invent an apply/archive lexicon (still
+the candidate under [F92](#f92)). It does not make the gates write `status` or
+move the bundle (still D1 / `src/gates/command.ts:15`). It does not rewrite
+the skill. It answers only *who* performs the close acts.
+
+**This decision is revisable, and here is what would revise it.** If a
+harness is built in which the executing agent cannot write `status` or move
+the bundle — a host-enforced split, not a sentence — the skill can assign
+the *request* for those acts to the agent and the *writes* stay with the
+host. Until that exists, assigning the writes to the agent is the claim D20
+refuses. If measurement shows the authority-owned close is the bottleneck
+that sends work around the governed path, amend this decision rather than
+quietly handing the writes back.
+
+**Sequencing.** Named follow-up bundle: **`C-APPROVAL-SCOPE`**, the same
+bundle [D19](#d19) already named. It already opens the spec, plan, and
+execute skills. It now also writes that the close acts listed above are the
+authority's, and removes the execute-skill sentences that assign them to
+the executor. It does not implement D18. Not created here.
+
 ---
 
 ## Slip register — 2026-08-15
@@ -5970,13 +6466,75 @@ acceptance. A row with none of those is itself the finding.
 
 | Slip | What should have refused it | Where the repair is |
 |---|---|---|
-| Writer emits a guessed task id (`T-000` / `T-001`); written close protocol walks into `cursor.unknown-task` ([F90](#f90), [F90.1](#f901)) | The writer, before the event exists — A13.2, never a guessed id. The checker that then fires is doing its job. | **`C-CURSOR-TASK-SENTINEL`** (named; spec already on `fix/cursor-task-sentinel`; not created here). Not a blacklist. |
+| Writer emits a guessed task id (`T-000` / `T-001`); written close protocol walks into `cursor.unknown-task` ([F90](#f90), [F90.1](#f901)) | The writer, before the event exists — A13.2, never a guessed id. The checker that then fires is doing its job. | **Paid in-tree** by **`C-CURSOR-TASK-RESOLVER`** (PR #59, `49c3c94`): inherit a declared task or refuse; no `--task` flag; not a blacklist. `C-CURSOR-TASK-SENTINEL` was the first name and was superseded. Residuals: regenerate still re-derives an undeclared last event ([F90](#f90)); range hole ([F90.1](#f901)); operator-supplied ids unchecked at write ([F98](#f98)); published `6.2.0` still invents ([F99](#f99)). |
 | Archive gate permits a cursor lint rejects ([F93](#f93); run 4 archived this way) | Archive, when `run.xml` would fail `cursor.unknown-task` (or any cursor error). | **`C-ARCHIVE-CURSOR`**, as a binding requirement on P3's derivation / P3.1 `lifecycle finish`. Not created here. P3 stays objectives-only. |
-| A brief asserted the maintainer had ratified a spec; executor wrote `approved`; `gate approve` permitted ([F88.3](#f883)) | A gate that reads a phrase bound to bytes. D18's fingerprint does not hold the phrase. | **D18** (decided 2026-08-14, unshipped) is the floor. Phrase attestation is [F88.3](#f883) candidate (b), **not ratified** — that half of the row is a candidate, not a shipped check, a named bundle, or an acceptance. |
+| A brief asserted the maintainer had ratified a spec; executor wrote `approved`; `gate approve` permitted ([F88.3](#f883)) | A gate that reads a phrase bound to bytes. D18's fingerprint does not hold the phrase. | **D18** / **`C-APPROVAL-FINGERPRINT`** (decided 2026-08-14, unshipped; authorized to start). Phrase attestation is [F88.3](#f883) candidate (b), **not ratified** — that half of the row is a candidate, not a shipped check, a named bundle, or an acceptance. |
 | A brief named `docs/plans/**` as a deliverable of a spec that forbids it ([F94](#f94)) | Nothing can refuse a brief (not an artifact). The *plan* that brief would produce should error on a path outside a machine-readable spec path bound. Today's check does not look at paths ([F52](#f52)). | **`C-PLAN-SCOPE-PATHS`** (named; not created). Brief-versus-spec itself **ends in nothing** and must: briefs are not a governed surface. |
-| Agent mutated an approved plan in place (run 4 #34; [F88.2](#f882)) | `approved-contract-drift` ([F7](#f7)) — shipped, and defeated because the approval was never committed as its own snapshot. Skill immutability (`ngrace-plan` `:29–33`, `ngrace-execute` `:8`) is a request ([F89](#f89)). | **D18** (fingerprint of approved bytes) plus **`C-APPROVAL-SCOPE`** ([D19](#d19): skills say the phrase does not travel). The shipped check exists and did not fire. |
+| Agent mutated an approved plan in place (run 4 #34; [F88.2](#f882)) | `approved-contract-drift` ([F7](#f7)) — shipped, and defeated because the approval was never committed as its own snapshot. Skill immutability (`ngrace-plan` `:29–33`, `ngrace-execute` `:8`) is a request ([F89](#f89)). | **`C-APPROVAL-FINGERPRINT`** ([D18](#d18): fingerprint of approved bytes) plus **`C-APPROVAL-SCOPE`** ([D19](#d19): skills say the phrase does not travel; [D20](#d20): the close acts are the authority's). The shipped check exists and did not fire. |
+| F84's trigger — whichever bundle next opens `ngrace-execute` — was consumed by `C-CURSOR-TASK-RESOLVER`, whose approved plan forbade deciding the split ([D20](#d20)) | Nothing. A trigger is a sentence. A bundle scoped to not pay it will not pay it. | **D20** (decided 2026-08-15). Skill text lands in **`C-APPROVAL-SCOPE`**. The unpaid obligation is recorded so the trigger cannot expire. |
 | Governance writes landed before the spec that would gate them ([F88.1](#f881), [F88.1.1](#f8811)) | The lifecycle, on a module-contract / graph write with no approved change that owns it. Nothing refuses today. Lint is green. | **`C-GOVERNANCE-ORDER`** (named; not created). P4.1 owns first-module bootstrap ([F91](#f91)); this is the ordering hole beside it. No shipped check. No acceptance. |
 
 No row is an acceptance of the slip. The discard of the 2026-08-15
 self-certified `approved` is a named exception ([F65](#f65) class), not a
 repair and not a ratification.
+
+---
+
+## Named-bundle registry
+
+`C-*` names mentioned in this directory that do not exist under
+`.ngrace/changes/{active,archive}/`. Names have been minted in findings; this board
+is where they live so the next dispatch does not invent a synonym or miss an existing
+one.
+
+**Sweep (2026-08-15).** Every `C-[A-Z0-9-]+` token in
+`docs/plans/active/RM-GOVERNED-PATH/*.md` (including `sources/`, derivations, and
+brownfield notes), excluding a match that is only the tail of an `AC-*` id. Compared
+to directory names under `.ngrace/changes/active/` and `.ngrace/changes/archive/`.
+62 distinct mentioned names; 43 exist on disk; 19 do not. This pass minted three
+names the sweep could not have seen: `C-CRITERION-CLOSE-EVIDENCE`,
+`C-APPROVAL-FINGERPRINT`, `C-SUPERSEDE-VERB`. Three on-disk bundles are unmentioned
+here (`C-CALIBRATION-CONTEXT`, `C-GRAPH-COVERAGE`, `C-SELECTION`) and are not this
+board's subject.
+
+**Execution order, decided 2026-08-15.** Positions 1 and 2 are **authorized to
+start**. Positions 3–5 are **ordered, not deferred** — they wait on the earlier
+positions; they are not parked. Position 5 ships only if the candidate is ratified
+after the re-measure. A name found by the sweep and not in this order is recorded
+below; it is not given a slot.
+
+| # | Name | Charter | Pays | Status |
+|---|---|---|---|---|
+| 1 | **`C-CRITERION-CLOSE-EVIDENCE`** | A close/verdict-bound acceptance-criterion state, so post-archive lint 0/0 is authorable rather than reinvented as an unsatisfiable `AC-*`. Named here 2026-08-15. No existing name covers it: no `C-CRITERION*` / `C-CLOSE-EVIDENCE` in this directory; [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/) archived the workaround, not a third `AC-*` state. | [F82](#f82), [F83](#f83), [F83.1](#f831). F82 is already discharged as *practice* by `C-DRIFT-HONESTY`; this bundle is the product state that would make that practice authorable. F83's P2.6 / P2.4 halves were paid by the same archive; the live remainder is F83.1. | **Authorized to start.** |
+| 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18): a `Decision` records what it permits. No existing name: D18 named none; `C-BUNDLE-BASE-REF` shipped `baseCommit`, not an artifact fingerprint. | [F95](#f95), and [F81](#f81) as a consequence of the dated "five" (superseded by F95's ten of 46). Unblocks [D19](#d19), [D20](#d20), and the [co-draft candidate](#decision-candidate--co-draft-the-pair-not-ratified), all of which already name fingerprints that do not exist. | **Authorized to start.** Prerequisite of position 5. |
+| 3 | **`C-SUPERSEDE-VERB`** | A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name. | [F86.1](#f861), [F86.2](#f862). | **Ordered, not deferred.** |
+| 4 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
+| 5 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after 2, and only if ratified after the re-measure. Unratified. |
+
+**Named by this directory, not in the 2026-08-15 order.**
+
+| Name | Charter | Pays | Position |
+|---|---|---|---|
+| **`C-ARCHIVE-CURSOR`** | Archive gate requires a cursor lint accepts. Named by [F93](#f93). | F93. Binding on P3.1 / `lifecycle finish`. | Named; not in the order. |
+| **`C-PLAN-SCOPE-PATHS`** | Structured spec path bound compared to `ObservedWriteScope`, at error. Named by [F94](#f94). | F94, and [F52](#f52)'s load-bearing weakness. | Named; not in the order. |
+| **`C-GOVERNANCE-ORDER`** | Refuse a module-contract / graph write with no approved change that owns it. Named by the slip register. | [F88.1](#f881), [F88.1.1](#f8811). | Named; not in the order. |
+
+**Sweep remainder — mentioned, missing from disk, not a chartered bundle.** Recorded so they
+are not silently dropped. None is work.
+
+| Name | What it is |
+|---|---|
+| `C-AUDIT-001` | Brownfield run 1 bundle in another repository ([F88](#f88)). |
+| `C-IDENT-COVERAGE` | Brownfield run 4 bundle in another repository ([F86.1](#f861)). |
+| `C-ESTABLISH-MODULE-GRAPH-4` | Prior-attempt backup cited in the brownfield notes, not a charter here. |
+| `C-001` | Brownfield / generator example id (`spec new C-001`). |
+| `C-P0-CALIBRATION` | Rejected name; `C-CALIBRATION-COMMAND-EVIDENCE` shipped (`p0-calibration-derivation.md:394–396`). |
+| `C-LEDGER-MEMBERSHIP` | Rejected split; `C-REPORT-HONESTY` absorbed F14+F15 (`p0-report-honesty-derivation.md:511–512`). |
+| `C-BASE` | Temp-fixture id in the P0 derivation. |
+| `C-TEST` | Temp-fixture id in the cursor derivation. |
+| `C-PROBE` | Example change id in a command line ([F25](#f25)). |
+| `C-ID` | Placeholder in skill / command prose. |
+| `C-SLUG` | Placeholder in [plan.md](./plan.md). |
+| `C-X` | Example id in [review.md](./review.md). |
+| `C-CURSOR` | Abbreviation of `C-CURSOR-INTEGRITY` in the cursor derivation. |
+| `C-TOKEN` | Abbreviation of `C-TOKEN-INTEGRITY` in the cursor derivation. |
