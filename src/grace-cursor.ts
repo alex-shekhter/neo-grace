@@ -52,6 +52,7 @@
 //   foldEpoch
 //   formatCursorPosition
 //   formatFoldResult
+//   inheritLooseEventTask
 //   lastResolvingResumeId
 //   setEvaluateTargetCompleteThrowProbeForTests
 //   listAccountingEvents
@@ -113,6 +114,7 @@ import {
 } from "./artifact/types";
 import {
   cursorNamedTask,
+  planTaskIds,
   validateRunLedgerArtifact,
   validateRunCursorArtifact,
 } from "./artifact/grammar";
@@ -613,7 +615,7 @@ export function recoverCursor(
 
   const worker = pre.workers[0] ?? "w0";
   const loose = listLooseEvents(bundlePath);
-  const task = loose[loose.length - 1]?.task ?? "T-001";
+  const task = inheritLooseEventTask(loose[loose.length - 1]?.task);
   const covering = writeCoveringOpened(bundlePath, {
     worker,
     task,
@@ -727,8 +729,20 @@ function maybeAutoOpenCoveringAllocation(
   const ids = events.map((e) => e.id);
   const from = Math.min(...ids);
   const to = Math.max(...ids);
-  const task = events[events.length - 1]?.task ?? "T-001";
+  const task = inheritLooseEventTask(events[events.length - 1]?.task);
   writeCoveringOpened(bundlePath, { worker, task, from, to });
+}
+
+/** Last-loose inherit for recover --fix and auto-open. Refuse rather than invent a task id. */
+export function inheritLooseEventTask(lastLooseTask: string | undefined): string {
+  const task = lastLooseTask?.trim();
+  if (!task) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      "Cannot inherit a loose-event task: none is present.",
+    );
+  }
+  return task;
 }
 
 /** Distinct worker values on Allocation nodes in loose events and folded ledger. */
@@ -2972,9 +2986,8 @@ export function appendCommandRunEvent(
   options: { task?: string } = {},
 ): void {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const task = resolveDeclaredCommandRunTask(bundlePath, options.task);
   const id = nextEventId(bundlePath);
-  const loose = listLooseEvents(bundlePath);
-  const task = options.task ?? loose[loose.length - 1]?.task ?? "T-000";
   writeEventFile(bundlePath, {
     id,
     task,
@@ -3103,6 +3116,38 @@ function readWaveFromOpened(events: LooseEvent[]): string | undefined {
     if (wave?.trim()) return wave.trim();
   }
   return undefined;
+}
+
+/**
+ * Inherit a plan-declared in-scope task for command-run, or refuse before write.
+ * Sources, in this order, only when the id is in planTaskIds: explicit options.task,
+ * last loose event task, run.xml Task, last folded ledger event. Never invent T-000.
+ */
+function resolveDeclaredCommandRunTask(bundlePath: string, explicitTask?: string): string {
+  const planPath = path.join(bundlePath, "plan.xml");
+  const declared = existsSync(planPath)
+    ? planTaskIds(readGraceXmlArtifact(planPath))
+    : new Set<string>();
+  const cursorPath = path.join(bundlePath, "run.xml");
+  const namedTask = existsSync(cursorPath)
+    ? cursorNamedTask(readGraceXmlArtifact(cursorPath).root)
+    : undefined;
+  const candidates = [
+    explicitTask,
+    listLooseEvents(bundlePath).at(-1)?.task,
+    namedTask,
+    lastTaskFromLedger(bundlePath),
+  ];
+  for (const candidate of candidates) {
+    const id = candidate?.trim();
+    if (id && declared.has(id)) return id;
+  }
+  throw new GraceCommandError(
+    "invalid-arguments",
+    "Cannot record command-run: no declared task is in scope. "
+      + "Use cursor advance on a declared T-NNN so a loose event exists, "
+      + "or leave run.xml naming a declared task.",
+  );
 }
 
 function lastTaskFromLedger(bundlePath: string): string | undefined {

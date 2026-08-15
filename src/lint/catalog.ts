@@ -905,7 +905,10 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
   "cursor.unknown-task": {
     title: "Run Cursor Names Unknown Task",
     explanation: "run.xml names a T-* task absent from this bundle's plan.xml (D1 referential integrity).",
-    remediation: ["Regenerate the cursor from the ledger and plan.", "Do not advance past tasks not in the plan."],
+    remediation: [
+      "Advance a declared task with kind terminal (no default open-epoch), then fold.",
+      "Regenerate of a ledger whose last event is undeclared still re-derives that id; do not treat regenerate as sufficient.",
+    ],
     derivedFrom: "Present-but-inconsistent cursor is an error; absent cursor is silent (D1).",
     proposedBy: "unthreaded-construct",
   },

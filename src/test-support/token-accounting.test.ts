@@ -46,15 +46,23 @@ describe("token-accounting (D15)", () => {
     // → 53771 at C-CONTRACT-DEBT. C-GRAMMAR-SEAM T-004 skill-prose
     //   rewrite moved the UTF-8 sum; re-measured 53864. Line total
     //   stays 779 (frozen semantics; archived reports cite it).
+    // C-CURSOR-TASK-RESOLVER T-003: ngrace-execute protocol sentences
+    // moved totalBytes 55106 → 55486; line total stayed 806.
     const measured = skillTextLines();
     expect(measured.total).toBe(806);
-    expect(measured.totalBytes).toBe(55106);
+    expect(measured.totalBytes).toBe(55486);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);
     expect(Object.keys(measured.perSkillBytes).sort()).toEqual(
       Object.keys(measured.perSkill).sort(),
     );
+  });
+
+  it("README measurement cell publishes the same skillTextLines total and totalBytes", () => {
+    const measured = skillTextLines();
+    const readme = readFileSync(path.join(packageRoot(), "README.md"), "utf8");
+    expect(readme).toContain(`**${measured.total} lines** / **${measured.totalBytes} UTF-8 bytes**`);
   });
 
   it("skillTextLines is deterministic for the same root", () => {

@@ -1,0 +1,825 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-CURSOR-TASK-RESOLVER>
+    <Summary>
+      Origin: superseded C-CURSOR-TASK-IDENTITY.
+      Same F90 repair as that bundle, plus the
+      F64 write-surface correction it could not
+      close without. Discharge F90 as
+      out-of-phase hygiene for RM-GOVERNED-PATH
+      P3.1 (lifecycle finish). Stop every
+      guessed task identity on a run event: lint
+      argv token run-commands must not write
+      T-000, and recover / auto-open must not
+      invent T-001. Inherit a plan-declared task
+      that is already in scope; refuse before
+      write when none is. An explicitly supplied
+      options.task is a legal first source when
+      it is a declared id. cursor.unknown-task
+      stays a correct checker. Re-measure every
+      pin this deliverable moves, including
+      src/test-support/token-accounting.test.ts
+      and the README.md measurement cell that
+      publishes the same figures, as owned
+      task work. Do not write P3 step detail
+      and do not amend the phase board.
+    </Summary>
+    <Problem>
+      F90 (decisions.md): the check ran and was right; the
+      writer is wrong. lint with argv token run-commands
+      records each MustPassCommand through
+      appendCommandRunEvent (src/lint/core.ts:501) and
+      never passes a task. The writer falls back
+      (src/grace-cursor.ts:2977):
+
+      options.task, else last loose event task, else the
+      literal T-000.
+
+      After a fold, run/ is empty, so the next command-run
+      is T-000. The same fallback fires before any cursor
+      event exists. cursor.unknown-task
+      (src/artifact/grammar.ts:1365) then fires when
+      run.xml names a task the plan does not declare. The
+      position type says known task id only, never a
+      guessed id (A13.2, src/grace-cursor.ts:252). T-000
+      is a guessed id.
+
+      Reproduced at HEAD c3d4b61 from sanctioned commands
+      only, in a temp project that was deleted afterwards.
+      The claim under test is not that T-000 can appear,
+      but that the documented close order lands on
+      cursor.unknown-task.
+
+      Documented order (ngrace-execute steps 4, 7, 9):
+      open T-001, terminal T-001, fold, then lint argv
+      tokens assertions final and run-commands. After
+      fold, run.xml still names T-001 and run/ is empty.
+      The command-run file is 3-T-000-command-run.xml.
+      Lint is still green because run.xml has not moved.
+      gate archive refuses no-open-epoch (1 loose event).
+      fold then refuses unterminated range. Terminal of
+      the event's own task T-000 plus fold writes run.xml
+      Task T-000. Lint is then one error,
+      cursor.unknown-task: run.xml names task T-000,
+      which is absent from plan.xml. gate archive permits
+      (run/ empty). cursor regenerate dry-run prints
+      Task T-000, sources epoch=ledger task=ledger
+      state=ledger. The catalog remediation for
+      cursor.unknown-task says regenerate from the ledger
+      and plan; that command re-derives the illegal name.
+
+      F90 is right that the transcript overclaimed
+      unreachable. After the poisoned fold, cursor
+      advance with task T-001 and kind terminal (no argv
+      token open-epoch), then fold, leaves run.xml on
+      T-001 and lint at 0 errors; regenerate then follows
+      the last ledger event and stays on T-001. Avoidance
+      also works: after the work fold, a T-001 progress
+      event (again no open-epoch) makes the subsequent
+      command-run inherit T-001. The documented
+      open-epoch form with default from=1 after a prior
+      fold fails with a range hole; that is why the
+      natural reread of "re-open a declared task" does
+      not work. The way back exists and is undocumented.
+      The written order walks into the trap.
+
+      T-000 is a well-formed task id (ANCHOR_PATTERNS.task
+      is T- then three digits). A plan may declare it.
+      Generators emit T-001. F90's phrase that the plan
+      can never declare T-000 is false as grammar; it is
+      true of the conventional plan this close produces.
+      The checker fires because the plan does not declare
+      the id, not because the id is reserved.
+
+      Writer set that can emit an event whose task the
+      plan does not declare (siblings, not only the
+      run-4 citation):
+
+      1. appendCommandRunEvent (src/grace-cursor.ts:2977)
+         invents T-000 when run/ is empty. This is the
+         F90 emitter.
+      2. recover with argv token fix
+         (src/grace-cursor.ts:616) uses last loose task,
+         else invents T-001. After a T-000 command-run
+         it writes a T-000 opened (inherit, not a new
+         guess). The T-001 fallback is the same A13.2
+         shape, and it is unreachable: recover throws
+         when looseEventIds is empty
+         (src/grace-cursor.ts:595-599); listLooseEvents
+         always sets task from the filename
+         (src/artifact/run-membership.ts:48,73); the
+         pre.looseEventRange non-null assertion at
+         src/grace-cursor.ts:620-621 is the same empty
+         check. Deletion is hygiene.
+      3. maybeAutoOpenCoveringAllocation
+         (src/grace-cursor.ts:730) is the same
+         last-or-T-001 guess; fold after a T-000
+         command-run auto-opens T-000. The T-001
+         fallback is unreachable: the function returns
+         when events.length === 0
+         (src/grace-cursor.ts:715); a LooseEvent always
+         has a task. Deletion is hygiene.
+      4. advanceCursor, pauseCursor, resumeCursor,
+         recordAttempt, and recordVerificationUnavailable
+         accept an operator task that matches T- then
+         three digits and do not check the plan. They
+         can write T-000 if asked. That is operator
+         authorship; the checker is the detection.
+      5. foldCursor and regenerateCursor write run.xml
+         from the last event or last ledger task. They
+         do not invent a new event id, but they are how
+         T-000 becomes the cursor.unknown-task subject.
+         regenerate of a ledger whose last event is
+         T-000 re-derives T-000.
+
+      A repair that changes only line 2977 and leaves
+      the T-001 fallbacks is this repository's repeated
+      defect shape.
+
+      C-CURSOR-TASK-SENTINEL's approved spec recombined
+      suite green, validate-marketplace exit 0, and
+      post-archive lint 0/0 into AC-SUITE-AND-LINT,
+      bound to the verdict by F82 and therefore
+      unmapped. An unmapped AC-* emits
+      change.acceptance-criterion-unmapped at warning
+      (src/artifact/grammar.ts:1883-1890). The criterion
+      required 0 warnings, so its own presence falsified
+      it; mapping it contradicted F82. That is F83. The
+      draft plan at fbc985f disclosed a Satisfies
+      deviation to silence the warning. Maintainer
+      ruling 2026-08-15: supersede, do not amend in
+      place; that workaround is abandoned, not ratified.
+      C-DRIFT-HONESTY already split this shape.
+
+      C-CURSOR-TASK-IDENTITY executed the F90 repair
+      (six pins, five discriminated reds) and could
+      not close. The write-surface predicate at
+      C-CURSOR-TASK-IDENTITY/spec.xml:303-306 was
+      sound: a file that must gain or change an
+      assertion, or that this deliverable must
+      rewrite. src/test-support/token-accounting.test.ts:51
+      toBe(55106) is exactly that. The walk that
+      enumerated Forced write surface omitted the
+      file, so the approved ObservedWriteScope
+      (.ngrace/changes/archive/C-CURSOR-TASK-IDENTITY/plan.xml:219-233)
+      did not list it. The T-003 ngrace-execute
+      skill rewrite then falsified the pin (55106
+      to 55476). That is F64 as an incomplete
+      walk, not as a weak predicate. A broader
+      sentence would have fixed nothing; the same
+      predicate with a complete walk would have
+      listed the file.
+
+      The same class holds for AC-SUITE-AND-CI.
+      C-CURSOR-TASK-IDENTITY/spec.xml:591-604
+      already said "and any other test this
+      deliverable forces." What failed was
+      T-003's Verification block
+      (archive/C-CURSOR-TASK-IDENTITY/plan.xml:1054-1058)
+      listing a file-list subset that omitted
+      the forced test. The repair is binding
+      the plan Verification to what the
+      criterion claims, not rewriting the
+      criterion.
+
+      The file's own comments record two earlier
+      bundles re-measuring it. Maintainer ruling
+      2026-08-15: supersede; in-place scope
+      widening is not available. The deliverable
+      was uncommitted, so product files return
+      to the pre-execution baseline and the reds
+      are re-earned rather than cited from the
+      superseded ledger.
+    </Problem>
+    <Goals>
+      <Goal>
+        Never invent a task id on a run event (A13.2).
+        One resolver for appendCommandRunEvent. Sources,
+        in this order, only when the id is in
+        planTaskIds: (1) options.task when explicitly
+        supplied; (2) last loose event task; (3)
+        run.xml Task; (4) last folded ledger event.
+        Refuse before write when none of those is a
+        declared id. Delete the literal T-000 fallback.
+        An explicit options.task is not a guess; it is
+        a legal first source provided it is validated
+        against the plan's declared task ids like every
+        other source.
+      </Goal>
+      <Goal>
+        Delete the unreachable T-001 fallbacks at
+        recover argv token fix and
+        maybeAutoOpenCoveringAllocation as hygiene.
+        Inherit the last loose event's task when it
+        exists (including an undeclared one already on
+        disk). Do not invent T-001. Evidence of the
+        refuse-when-absent property is a red on an
+        extracted resolver; no public-API red exists,
+        and the plan must not plant a fake one.
+      </Goal>
+      <Goal>
+        Keep cursor.unknown-task as an error for a
+        run.xml Task or EscalatedTask the plan does
+        not declare, including a genuine T-999 and
+        including T-000 when the plan does not
+        declare T-000. Do not exempt a sentinel id.
+      </Goal>
+      <Goal>
+        Make the documented repair honest. Catalog
+        remediation for cursor.unknown-task must not
+        claim that regenerate alone repairs a ledger
+        whose last event is undeclared. Name the
+        sanctioned recovery: advance a declared task
+        with kind terminal (no default open-epoch),
+        then fold.
+      </Goal>
+      <Goal>
+        Document the load-bearing close order in
+        ngrace-execute (canonical and packaged
+        mirror): argv token run-commands after a fold
+        writes loose events; archive requires
+        no-open-epoch; terminal the declared task and
+        fold before archive. Baseline run-commands
+        also requires a declared task already in
+        scope. examples/ stays unchanged; no
+        example tree moves. README.md is decided
+        separately as in-scope for the
+        measurement cell only.
+      </Goal>
+      <Goal>
+        Re-measure every byte, line, or count pin
+        this deliverable moves, in a named task.
+        src/test-support/token-accounting.test.ts
+        total / totalBytes and the README.md:299
+        cell that publishes the same figures are
+        one pin in two places. One re-measurement
+        updates both. Updating a moved
+        measurement is that task's work, not a
+        close-time side effect.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Binding: F90; RM-GOVERNED-PATH P3.1 hygiene
+        only. Origin is superseded
+        C-CURSOR-TASK-IDENTITY (itself the
+        replacement for superseded
+        C-CURSOR-TASK-SENTINEL). P1 and P2 are
+        complete. P3 is objectives-only and NOT
+        STARTED. This bundle does not write P3 step
+        detail and does not amend the phase board. It
+        exists so lifecycle finish does not inherit a
+        close that plants cursor.unknown-task, and so
+        the F90 repair can close without an F64
+        scope miss.
+      </Constraint>
+      <Constraint>
+        Ceremony tier T1 (module change). plan.xml
+        is authored only after this spec is
+        approved (F4).
+      </Constraint>
+      <Constraint>
+        Chosen repair is F90 candidate (a), which is
+        also brief (a) plus the safe half of brief
+        (b): inherit a declared in-scope task; refuse
+        when none is. In-scope means, in this order,
+        only when the id is in planTaskIds: options.task
+        when explicitly supplied; else last loose
+        event task; else run.xml Task via
+        cursorNamedTask; else lastTaskFromLedger. Do
+        not pick a plan task by position, by
+        first-task, or by only-task. That would be a
+        guessed id (A13.2) and is not brief (b) as
+        ratified here.
+      </Constraint>
+      <Constraint>
+        Refuse is invalid-arguments, before any run/
+        write. The message names the missing declared
+        task and the existing verbs that create one
+        (cursor advance on a declared T-NNN so a
+        loose event exists, or leave run.xml naming a
+        declared task). Do not mention an argv token
+        that this bundle does not add.
+      </Constraint>
+      <Constraint>
+        Do not add a lint argv token task. Inherit
+        from a declared run.xml Task covers the
+        post-fold close path. First run-commands
+        before any cursor currently invents T-000;
+        after this repair it refuses. That is a
+        protocol change, not a new flag (F18).
+      </Constraint>
+      <Constraint>
+        cursor.unknown-task, its grammar site, and
+        its severity stay. Do not add T-000 to any
+        exemption set. If a plan declares T-000,
+        that id is a declared task and inherit of it
+        is legal; this bundle does not blacklist the
+        token.
+      </Constraint>
+      <Constraint>
+        Folded ledgers stay immutable (D9). Recovery
+        of an already-poisoned cursor is in scope as
+        existing verbs, not as a ledger rewrite:
+        cursor advance on a declared task with kind
+        terminal and without default open-epoch, then
+        fold. regenerate of a ledger whose last event
+        is undeclared still re-derives that id; do
+        not teach regenerate to walk backward to the
+        last declared task (that hides history).
+        Update the catalog remediation so it does not
+        claim regenerate alone repairs this state.
+      </Constraint>
+      <Constraint>
+        Close protocol is in scope. ngrace-execute
+        steps 1, 7, and 9 as written today run argv
+        token run-commands without requiring a
+        declared task in scope and then archive
+        without re-folding. After this repair, step 1
+        must have a declared task in scope before
+        baseline run-commands; step 7's post-fold
+        run-commands inherit the declared run.xml
+        task when one exists; archive still requires
+        no-open-epoch, so terminal that declared task
+        and fold before gate archive. Do not terminal
+        the event's task when that id is absent from
+        the plan. Do not document default open-epoch
+        after a prior fold: default from=1 leaves a
+        range hole (already noted in
+        src/grace-cursor.test.ts around the
+        C-JOIN-EDIT recovery).
+      </Constraint>
+      <Constraint>
+        F61: no two adjacent hyphen characters inside
+        any XML comment body. This artifact prefers
+        argv tokens over dashed flags in every
+        comment; element text may name a dashed form
+        but this file avoids that so a later comment
+        cannot regress it.
+      </Constraint>
+      <Constraint>
+        F64 / F27.2: ObservedWriteScope at plan time
+        must enumerate every pin this deliverable
+        falsifies. Predicate: a file that must gain
+        or change an assertion, or that this
+        deliverable must rewrite. That sentence is
+        C-CURSOR-TASK-IDENTITY/spec.xml:303-306
+        and was already sound. This walk is
+        re-derived against the tree at this
+        authoring HEAD, not copied from
+        C-CURSOR-TASK-IDENTITY, and is shown
+        below. A broader sentence is not the
+        repair.
+
+        Forced write surface:
+
+        src/grace-cursor.ts (appendCommandRunEvent
+        resolver; recover argv token fix fallback;
+        maybeAutoOpenCoveringAllocation fallback;
+        MODULE_MAP only if a new export is added);
+
+        src/grace-cursor.test.ts (new inherit /
+        refuse cases; extracted-resolver red for the
+        T-001 hygiene; the writeFileSync inventory
+        pin stays a read of existing writers and is
+        not edited unless a new writer file appears,
+        which this bundle forbids);
+
+        src/lint/catalog.ts (cursor.unknown-task
+        remediation text only);
+
+        src/lint/catalog.test.ts (must gain the
+        remediations-honest assertion on
+        getLintIssueGuide of cursor.unknown-task);
+
+        src/grace-lint.test.ts (C-COMMAND and
+        C-SYSTEMS call lintGraceProject with
+        runCommands true and no cursor; they write
+        through onCommandRun and will refuse until
+        they open a declared task first);
+
+        skills/ngrace/ngrace-execute/SKILL.md
+        (steps 1, 7, 9 close order and the
+        command-run kind note);
+
+        plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md
+        (byte-mirror; validate:marketplace drift);
+
+        scripts/skill-contracts.test.ts (must gain
+        the protocol-documented expects; keep the
+        existing pin strings assertions target
+        run-commands, assertions final, and
+        parallel-preflight);
+
+        src/test-support/token-accounting.test.ts
+        (skillTextLines totalBytes pin, and total
+        if the skill rewrite moves the line count;
+        a named task owns the re-measure);
+
+        README.md (the skillTextLines().total /
+        totalBytes measurement cell only; F51
+        already named this pair as the
+        transitive forced write);
+
+        this bundle's spec.xml and, after this spec
+        is approved, a later plan-authoring pass's
+        plan.xml.
+
+        Walk of the same kind (byte, line, or count
+        pin over skills, commands, or artifacts).
+        Searched: 806, 55106, 55476, skillTextLines,
+        totalBytes, referencesTotal, perSkill
+        exact toBe, published-skill cardinality
+        16, UTF-8 bytes cells.
+
+        Forced by the T-003 skill rewrite:
+
+        src/test-support/token-accounting.test.ts:32
+        and :50 pin total 806; :51 pins
+        totalBytes 55106. README.md:299
+        publishes the same two figures. One
+        re-measure updates both
+        (AC-PIN-REMEASURE).
+
+        Not forced (same search):
+
+        README.md:300 referencesTotal 1433; this
+        deliverable does not edit references/.
+        token-accounting.test.ts:33 perSkill
+        ngrace-fix 32; this deliverable does
+        not edit ngrace-fix. Cardinality 16 in
+        token-accounting.test.ts:34,:54 and
+        grace-context.test.ts:384,:387; this
+        change does not add or remove a skill.
+        README polyglot CLI-byte cells are
+        command output, not skill-text pins.
+        docs/plans/** cite historical figures
+        and stay out of scope.
+
+        token-accounting.test.ts line total 806
+        stays if the rewrite is line-neutral; the
+        file is still forced because totalBytes
+        moves. README.md:299 is forced for the
+        same reason. Byte-identity of canonical
+        and packaged ngrace-execute is already
+        on the forced surface as the mirror; it
+        is not a published count.
+
+        Not forced, measured:
+
+        src/lint/core.ts stays; appendCommandRunEvent
+        reads the plan and run.xml itself. Do not
+        add a second resolver in lint.
+
+        src/lint/core.test.ts already opens T-001
+        before lintGraceProject with runCommands
+        true; no assertion change unless those cases
+        go red.
+
+        C-PHASE-CONFLICT in src/grace-lint.test.ts
+        calls lintGraceProject with runCommands true
+        but extractAssertionsWithIssues skips the
+        command when phase-incompatible
+        (src/artifact/assertions.ts:235-238), so
+        onCommandRun never fires.
+
+        src/artifact/assertions.test.ts and
+        src/artifact/systems-modeling.test.ts call
+        evaluateAssertion with a local onCommandRun;
+        they never reach appendCommandRunEvent.
+      </Constraint>
+      <Constraint>
+        F56 / F67: FIX_DISTINCT_SIGNATURE_BUDGET is
+        4, so a task may plan at most three distinct
+        fail signatures. FIX_SIGNATURE_REPEAT_BUDGET
+        is 2 under exact kind-plus-key equality, so a
+        task may never plan the same signatureKey
+        twice. signatureKey names the property, not
+        the file stem. F80: one red evidences one
+        property; split inherit from refuse. F45:
+        AC-CHECKER-HOLDS is true at HEAD; do not
+        manufacture a red for it. AC-PIN-REMEASURE
+        is a bounding pin (F84), not a manufactured
+        red.
+      </Constraint>
+      <Constraint>
+        F82 / F83, following C-DRIFT-HONESTY
+        (archive/C-DRIFT-HONESTY/spec.xml:633-671).
+        Split the old AC-SUITE-AND-LINT shape. The
+        task-observable half is AC-SUITE-AND-CI
+        (suite green and validate-marketplace exit
+        0). The superseded criterion at
+        C-CURSOR-TASK-IDENTITY/spec.xml:591-604
+        already said "and any other test this
+        deliverable forces"; that claim was
+        sound. What failed was T-003's
+        Verification listing a file-list subset
+        narrower than the claim. A later plan
+        Satisfies-links AC-SUITE-AND-CI to a
+        task whose Verification block runs what
+        the criterion claims, including every
+        forced test, not a file-list subset. A
+        broader criterion sentence is not the
+        repair. The post-archive lint 0/0 half
+        is close-verdict evidence, not an AC-*.
+        An unmapped AC-* raises
+        change.acceptance-criterion-unmapped
+        (src/artifact/grammar.ts:1883-1890) and a
+        Satisfies-linked close-time lint AC is the
+        defect F82 records. This spec does not
+        author AC-SUITE-AND-LINT and must not
+        Satisfies-link lint-after-archive to any
+        task. The close verdict quotes the 0/0
+        counts. Neither half requires a state that
+        its own presence falsifies.
+      </Constraint>
+      <Constraint>
+        F66: README.md is decided in this
+        Constraint as in-scope for the
+        skillTextLines().total / totalBytes
+        measurement cell (README.md:299) only.
+        This is not a licence to edit any other
+        README sentence, table, or version
+        marker. This bundle still adds no
+        command root and does not change the
+        CLI Overview table. examples/ is
+        decided below as a NonGoal (unchanged;
+        no user-visible surface). Silence
+        would fail checkDocsAndExamplesDecision.
+      </Constraint>
+      <Constraint>
+        Do not edit docs/plans/**, the phase board,
+        CHANGELOG.md, any version surface, or
+        .ngrace/changes/archive/**. Packaged version
+        at authoring: 6.2.0. No product version
+        bump.
+      </Constraint>
+      <Constraint>
+        Stop and re-spec rather than touching
+        src/artifact/grammar.ts cursor.unknown-task
+        behaviour, src/gates/** archive predicates,
+        regenerateCursor derivation order, default
+        open-epoch from=1, or adding a lint argv
+        token task.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Brief (c) / F90 candidate (b): declare T-000
+        legal and exempt it from cursor.unknown-task.
+        That weakens a checker F90's own text says is
+        correct. Take it only with an argument that
+        survives F90; this spec has none.
+      </NonGoal>
+      <NonGoal>
+        F90 candidate (c): auto-terminate command-run
+        events so they never become the cursor's
+        current task. Terminal is a judgment
+        (ngrace-execute cursor kinds). A special case
+        for one kind is a fold-semantics change, not
+        a writer repair.
+      </NonGoal>
+      <NonGoal>
+        Brief (b) as "pick a task from the plan"
+        (first, last, or only ImplementationPlan
+        child). Plans have no current task. That is
+        a guessed id (A13.2).
+      </NonGoal>
+      <NonGoal>
+        A new lint argv token task, a new
+        GraceCommandError code, or a new graph
+        module.
+      </NonGoal>
+      <NonGoal>
+        Validating operator-supplied advance /
+        attempt / verification-unavailable task ids
+        against the plan at write time. Detection
+        remains cursor.unknown-task when those land
+        on run.xml. Prevention is a different
+        product.
+      </NonGoal>
+      <NonGoal>
+        Rewriting a folded ledger, deleting T-000
+        events, or teaching regenerate to skip
+        undeclared last events. D9 / A13.2: the
+        ledger is the record; recovery is a new
+        epoch on a declared task.
+      </NonGoal>
+      <NonGoal>
+        Fixing default open-epoch from=1 after a
+        prior fold (the range-hole). Adjacent,
+        already noted in existing tests, not F90.
+        Protocol text warns; the allocator stays.
+      </NonGoal>
+      <NonGoal>
+        P3 step detail, lifecycle finish
+        implementation, phase-board edits, D1
+        applied-status writer, or any other P3.1
+        objective beyond removing this inherited
+        defect.
+      </NonGoal>
+      <NonGoal>
+        Planting a public-API red for the T-001
+        fallbacks. They are unreachable. A fake
+        public plant is not evidence.
+      </NonGoal>
+      <NonGoal>
+        examples/ including examples/polyglot
+        unchanged; no user-visible surface. Owner:
+        unchanged; no user-visible surface.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-INHERIT-DECLARED>
+        Task-observable; a later plan Satisfies-links
+        this. After a declared-task epoch is folded
+        so run.xml names that declared id and run/
+        is empty, lint with argv tokens assertions
+        final, run-commands, and change set writes a
+        kind=command-run event whose task attribute
+        is that declared id, not T-000.
+        Discriminating negative: today's
+        3-T-000-command-run.xml after a T-001 fold.
+        HEAD today: writes T-000.
+      </AC-INHERIT-DECLARED>
+      <AC-REFUSE-UNSCOPED>
+        Task-observable; a later plan Satisfies-links
+        this. lint with argv token run-commands and
+        change set, when run/ is empty and neither
+        run.xml Task nor the last ledger event is a
+        plan-declared task, exits non-zero with
+        invalid-arguments, writes no run/ file, and
+        the message names that no declared task is
+        in scope. Covers the first run-commands
+        before any cursor, and a poisoned run.xml
+        whose Task is undeclared. An explicit
+        options.task that is absent from planTaskIds
+        is the same refuse. HEAD today: writes T-000
+        and lint is green until that id reaches
+        run.xml.
+      </AC-REFUSE-UNSCOPED>
+      <AC-SIBLING-NO-GUESS>
+        Task-observable; a later plan Satisfies-links
+        this. recover argv token fix and
+        maybeAutoOpenCoveringAllocation do not
+        contain the literal T-001 fallback. When the
+        last loose event has a task, they still
+        inherit that task (including an undeclared
+        one already on disk). The refuse-when-no-task
+        property is reachable only on an extracted
+        resolver: recover throws first when
+        looseEventIds is empty
+        (src/grace-cursor.ts:595-599);
+        maybeAutoOpenCoveringAllocation returns when
+        events.length === 0 (src/grace-cursor.ts:715);
+        listLooseEvents always sets task
+        (src/artifact/run-membership.ts:48,73).
+        Evidence is a red on that extracted resolver
+        called with no task. No public-API red
+        exists; do not plant one. HEAD today: the
+        fallback literal is T-001 at
+        src/grace-cursor.ts:616 and :730.
+      </AC-SIBLING-NO-GUESS>
+      <AC-CHECKER-HOLDS>
+        Task-observable stay-true; a later plan
+        Satisfies-links this; F45, do not manufacture
+        a red. cursor.unknown-task still fires when
+        run.xml names a task absent from plan.xml,
+        including T-999 and including T-000 when the
+        plan does not declare T-000. Absent run.xml
+        Task stays silent. HEAD today: already true.
+        A change that exempts T-000, or that
+        downgrades the code, fails this criterion.
+      </AC-CHECKER-HOLDS>
+      <AC-REMEDIATE-HONEST>
+        Task-observable; a later plan Satisfies-links
+        this. ngrace lint with argv token explain and
+        code cursor.unknown-task no longer tells the
+        operator that regenerate from the ledger and
+        plan is sufficient when the ledger last event
+        is undeclared. Remediation names the
+        sanctioned recovery (advance a declared task,
+        kind terminal, no default open-epoch, then
+        fold). HEAD today: remediation is regenerate
+        from the ledger and plan.
+      </AC-REMEDIATE-HONEST>
+      <AC-PROTOCOL-DOCUMENTED>
+        Task-observable; a later plan Satisfies-links
+        this. Canonical and packaged ngrace-execute
+        skill text both say: (1) argv token
+        run-commands requires a declared task in
+        scope; (2) after a fold, final run-commands
+        writes loose events and archive requires
+        no-open-epoch, so terminal the declared task
+        and fold before gate archive; (3) do not
+        terminal an undeclared event task to satisfy
+        fold. validate:marketplace stays green. HEAD
+        today: step 7 then step 9 with no re-fold.
+      </AC-PROTOCOL-DOCUMENTED>
+      <AC-PIN-REMEASURE>
+        Task-observable bounding pin (F84); a later
+        plan Satisfies-links this to the task that
+        rewrites ngrace-execute. After that rewrite,
+        src/test-support/token-accounting.test.ts
+        pins and the README.md:299 measurement cell
+        both match a fresh skillTextLines() measure
+        (totalBytes, and total if the rewrite moves
+        the line count). One re-measurement updates
+        every place the figure is published. Do not
+        manufacture a red for the pin at HEAD (F45).
+        Updating the moved measurement is that
+        task's work, not a close-time side effect.
+        HEAD today: total 806, totalBytes 55106, in
+        both the test pin and the README cell.
+      </AC-PIN-REMEASURE>
+      <AC-SUITE-AND-CI>
+        Task-observable; a later plan Satisfies-links
+        this. bun test green for touched packages
+        (cursor, catalog, lint, grace-lint,
+        skill-contracts, token-accounting, and any
+        other test this deliverable forces). bun run
+        ./scripts/validate-marketplace.ts exits 0.
+        A task that Satisfies this criterion must
+        put those commands in its Verification
+        block. A Verification that lists a subset
+        of the tests the criterion names does not
+        satisfy this criterion. The superseded
+        criterion already claimed the forced
+        tests; this sentence binds the plan
+        Verification to that claim. Existing
+        command-run tests that open T-001 before
+        appendCommandRunEvent stay green (they
+        inherit the loose declared task). This
+        criterion does not include lint. HEAD
+        today: those commands are green; that
+        green is the baseline, not this change's
+        evidence.
+      </AC-SUITE-AND-CI>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CURSOR />
+      <M-LINT-CATALOG />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/grace-cursor.test.ts src/lint/catalog.test.ts src/lint/core.test.ts src/grace-lint.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint</ExpectedCommand>
+      <ExpectedEvidence>
+        Red-first on AC-INHERIT-DECLARED,
+        AC-REFUSE-UNSCOPED, AC-SIBLING-NO-GUESS,
+        AC-REMEDIATE-HONEST, and
+        AC-PROTOCOL-DOCUMENTED, each property its
+        own red (F80), split across tasks so no task
+        plans more than three distinct signatures or
+        repeats a signatureKey (F56, F67).
+        AC-SIBLING-NO-GUESS's red is the extracted
+        resolver; there is no public-API red.
+        AC-CHECKER-HOLDS is HEAD-true and is a
+        stay-true regression, not a red.
+        AC-PIN-REMEASURE is a bounding pin (F84),
+        not a red. AC-SUITE-AND-CI is task-observable
+        suite evidence: touched-package tests
+        including every test the deliverable
+        forces, plus validate-marketplace, and
+        the Satisfies-linked Verification must
+        run what the criterion claims, not a
+        file-list subset. Post-archive lint 0/0 is
+        close-verdict evidence (F82), quoted in the
+        close verdict after apply and archive, not
+        claimed by a task pass, and is not an AC-*.
+        Temp-project close sequence from the Problem
+        (fold, run-commands, archive no-open-epoch,
+        declared-task inherit) is the integration
+        shape; do not dogfood this repository's tree
+        as that proof.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        planTaskIds and cursorNamedTask remain the
+        public readers for declared tasks and
+        run.xml Task. lastTaskFromLedger stays the
+        last Event task in folded epochs.
+      </Assumption>
+      <Assumption>
+        writeEventFile always writes a task
+        attribute. listLooseEvents always populates
+        task from the filename
+        (src/artifact/run-membership.ts:48,73), so
+        a listed LooseEvent never has an empty task.
+        The T-001 fallbacks are therefore
+        unreachable at both public call sites.
+      </Assumption>
+      <Assumption>
+        An explicitly supplied options.task that
+        matches a plan-declared id is authorship,
+        not a guess, and is therefore a legal first
+        resolver source. lint argv token
+        run-commands still passes none.
+      </Assumption>
+    </Assumptions>
+  </C-CURSOR-TASK-RESOLVER>
+</NgraceChangeSpec>

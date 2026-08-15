@@ -11,6 +11,7 @@ import { CHANGE_STATUSES } from "./artifact/types";
 import { ARTIFACT_DIR } from "./artifact/paths";
 import { SCHEMA_SHAPE_REGISTRY, renderSchemaShape } from "./artifact/schema-reference";
 import { lintCommand, lintGraceProject } from "./grace-lint";
+import { advanceCursor } from "./grace-cursor";
 import { getLintIssueGuide } from "./lint/catalog";
 import { createTempProject, GraceProjectBuilder } from "./test-support/fixtures";
 
@@ -432,6 +433,13 @@ describe("lintGraceProject", () => {
       }
     }
 
+    advanceCursor(root, "C-COMMAND", {
+      task: "T-001",
+      openEpoch: true,
+      worker: "w0",
+      from: 1,
+      to: 20,
+    });
     const executed = lintGraceProject(root, { assertionMode: "target", changeId: "C-COMMAND", runCommands: true });
     expect(executed.issues.map((issue) => issue.code)).not.toContain("assertion.command-not-evaluated");
     expect(executed.commandsEnabled).toBe(true);
@@ -1071,6 +1079,13 @@ export function run() {
     // Target mode evaluates MustPassBudget → command-not-evaluated without --run-commands.
     expect(without.issues.map((i) => i.code)).toContain("assertion.command-not-evaluated");
 
+    advanceCursor(root, "C-SYSTEMS", {
+      task: "T-001",
+      openEpoch: true,
+      worker: "w0",
+      from: 1,
+      to: 20,
+    });
     const withCmds = lintGraceProject(root, {
       assertionMode: "target",
       changeId: "C-SYSTEMS",
