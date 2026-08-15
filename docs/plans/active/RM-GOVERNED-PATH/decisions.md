@@ -4,7 +4,7 @@ kind: context
 status: draft
 supersededBy: null
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-14
 baseline: 6.1.1
 targets: []
 normative: false
@@ -5422,3 +5422,204 @@ silent. Applied to the brownfield prompt on 2026-08-14.
 it is a request.** Before claiming a governance property, ask which component refuses when the rule is
 broken; if the answer is "the agent, if it read the file", the property is aspirational and must be
 reported that way.
+
+### F88.2 — given a reachable human and a ban on self-approval, the third measured run asked. **[verified]**
+
+Qualifies [F88](#f88)'s behavioural claim. Does not touch the product defect.
+
+**Measured, run 3** (`neo-grace-6.2.0-brownfield-qwen3.8-28B`, prompt at
+`/Users/sas/Projects/neo-grace-useful-prompts/brownfield-transcript-prompt.md`; evidence in
+[brownfield-run3-findings.md](./brownfield-run3-findings.md)). The spec stayed `draft` until a
+human said `i approve`. `plan new` was proved to refuse beside that draft. The plan stayed
+`draft` until `i approve plan`. `status="approved"` was then hand-written, as D1 still
+requires. The apply Decision records `plan-present status=approved`, so the sanctioned
+authored transition happened; it was never committed as its own snapshot
+(`a24eafd` is draft, `6cc2429` is applied).
+
+**What this does and does not do.**
+
+- **F88's product defect stands.** `gate approve` still does not write `status`; nothing
+  records who authored the transition; the product cannot distinguish this run's human phrase
+  from ornith's silent seven characters. [D18](#d18) still rests on that.
+- **F88's "neither asked" / "without hesitation" does not describe this run.** F88.1 already
+  withdrew that inference as confounded by the old prompt. This run is the positive control
+  that sentence needed: name a human, forbid self-approval, and the approval stop is
+  respected. That is a fact about the *corrected instrument*, not about agents in general
+  (F88.1's rule, applied here as T7).
+- **D18's sequencing sentence** — *"neither ever requested an approval at all"* — is now
+  two-of-three. Not rewritten in place. The repo-local floor is still the half that would
+  have caught runs 1–2, and is still the record this run's ask does not have.
+- **The stop that was skipped is a different stop.** Action #34 mutated `ObservedWriteScope`
+  on an approved working-tree plan. The corrected prompt did not prevent it. It was surfaced
+  only after a human challenge (#41). Approval-of-status and immutability-of-content are not
+  the same gate; this run honoured the one the prompt named and broke the one it did not
+  score.
+
+**The rule.** A behavioural finding measured under one prompt is not a finding about agents.
+Re-measure under the affordance you intend to claim, and say so when the new measurement is
+of the instrument.
+
+### F88.1.1 — governance writes still land before the approval that would gate them. **[verified]**
+
+F88.1's second finding, reproduced on this run rather than only on the Qwen3 27B reflection
+that raised it.
+
+`6809122` adds `M-IDENT` to the graph, `MODULE_CONTRACT` / `MODULE_MAP` on
+`internal/ident/ident.go`, and `V-M-IDENT`. The spec does not exist until `a60e161`. No
+change bundle owns the bootstrap; lint is green; the lifecycle has nothing to refuse.
+Ordering of governance writes ahead of `draft → approved` is still unenforced. No finding
+before F88.1 covered it; this is that finding, now with a committed tree.
+
+### F89.1 — the checklist obligation was skipped where the contract was broken. **[verified]**
+
+[F89](#f89)'s measurement note, applied. The corrected prompt required: before each stage,
+transcribe the owning skill's requirements; after, mark each `done` / `skipped` / `could
+not`.
+
+**Measured against the transcript, not against the model's account of it.** Init has a
+pre-stage checklist and no after-stage marks. Spec, plan, and execute have no transcribed
+must-do table — plan cites "must_do (1-17)" as a count. Cursor `advance` / `attempt` /
+`fold` ran (the ledger has them) and are not numbered. The skip that mattered — approved-plan
+immutability, #34 — is visible because they wrote that they were violating it, not because a
+checklist item was marked `skipped`.
+
+**So F89's prediction is not borne out as specified.** A prompt-level checklist is the same
+class of control F89 named: a request, binding only if the reader executes it. This run
+executed it at the given entry point (init) and dropped it once inside the lifecycle. The
+instrument did not make later skipped contract items visible; the instrument was itself
+skipped.
+
+**The rule.** An obligation whose only enforcement is "write it down before you start" will
+be written down where the operator is watching the start, and not where the operator would
+most need the skip to be visible.
+
+### F86.1 — a stranger reached the close; the three no-verb steps were performed; the ledger still ends at `archive=permit`. **[verified]**
+
+[F86](#f86) said the three folklore close steps — spec `applied`, plan `applied`, `mv` to
+`archive/` — had not been "discovered by doing" because neither run 1 nor run 2 reached a
+permitting `gate apply`. This run did.
+
+Ledger at `cd6def9`: `apply=permit` (after a first refuse for no verdict),
+`archive=permit` (`run/ empty`). Bundle sits under `archive/C-IDENT-COVERAGE/`. Both
+artifacts read `status="applied"`. Nothing is recorded after the archive Decision. The
+three writes are still folklore. F86's honesty gap is no longer a prediction about a close
+nobody reached; it is a property of a close that happened.
+
+P3.7's detection rule would fire on this bundle the day D1 ships, and D1.4's
+non-retroactive trigger does not protect it — the ledger *has* approve events from the
+gate surface. That is the rule working as designed, on a tree this repository does not
+own.
+
+### F90 — `--run-commands` emits `T-000`, which the plan cannot declare, and a clean cursor then cannot be derived. **[verified]**
+
+The check ran and was right. The writer is wrong.
+
+`lint --run-commands` records each `MustPassCommand` through `appendCommandRunEvent`
+(`src/lint/core.ts:501`) and never passes a task. The writer falls back:
+
+```
+const task = options.task ?? loose[loose.length - 1]?.task ?? "T-000";
+```
+
+(`src/grace-cursor.ts:2977`.) After a fold, `run/` is empty, so the next command-run is
+`T-000`. `cursor.unknown-task` (`src/artifact/grammar.ts:1365–1369`) then fires when
+`run.xml` names a task the plan does not declare. The same module's position type says
+*"Known task id only — never a guessed id (A13.2)"* (`src/grace-cursor.ts:252–256`).
+`T-000` is a guessed id.
+
+Reproduced on run 3 at HEAD of that branch: lint 1 error, `run.xml names task T-000,
+which is absent from plan.xml`. `ngrace cursor regenerate` dry-run prints `Task: T-000`
+from the folded ledger. The `--explain` repair ("regenerate from the ledger and plan")
+re-derives the illegal name. There is no sanctioned edit of a folded ledger.
+
+**The transcript overclaimed "unreachable".** Re-opening a declared task before the
+post-fold `--run-commands` avoids the fallback. The *written* close protocol does not say
+that: `ngrace-execute` step 7 runs `--assertions final --run-commands` as the outermost
+lifecycle gate; step 9 then applies and archives; archive requires `no-open-epoch`.
+Followed in that order, the sanctioned path emits `T-000`, demands a fold, and leaves
+`cursor.unknown-task` if the fold is done by opening the sentinel.
+
+**P3.1 as specified does not cover this.** `lifecycle finish` folds loose epochs and
+writes `applied`. Folding T-000 events without renaming the cursor leaves the same error.
+The derivation pass for P3.1 has to absorb this, or a small `C-*` has to land first. See
+the decision candidate below.
+
+**The rule.** A fallback identity the grammar forbids is not a fallback — it is a
+self-inflicted integrity error. When the close protocol writes a task the plan cannot
+declare, the checker that then refuses is doing its job; the repair is the writer.
+
+#### Decision candidate — T-000 (not ratified)
+
+Honest options, none free:
+
+- **(a) Do not emit `T-000`.** Inherit `run.xml`'s current task if it is a declared id;
+  otherwise refuse `--run-commands` with "no current task; pass `--task T-NNN` or open an
+  epoch first." Cheap, fail-closed, matches A13.2. Cost: every post-fold
+  `--run-commands` needs an explicit task or a re-open. The execute skill must say so.
+- **(b) Declare `T-000` as a permitted system task** the grammar exempts from
+  `cursor.unknown-task`. Makes the fallback legal. Cost: a phantom task in every
+  command-run-only epoch; `status` `tasks=` becomes a lie unless counted separately;
+  A13.2 is weakened for one magic id.
+- **(c) Auto-terminate command-run events** so they never become the cursor's current
+  task and never require a T-000 open/terminal to fold. Cost: fold semantics grow a
+  special case; "terminal is a judgment" (cursor kinds) is no longer true for this kind.
+
+**(a) is the only option that does not invent a task the plan did not declare.** Not
+ratified here.
+
+### F91 — `scaffold` cannot create the first module; nothing else writes one. **[verified]**
+
+Runs 1–2 recorded that `scaffold` was not found. This run found it.
+
+`ngrace scaffold --module M-X` throws `Unknown module ${moduleId}` when the graph has no
+such record (`src/grace-generate.ts:183`). `ngrace module` is find / show / health.
+`ngrace graph` is `split`. `ngrace init` is not a command. The first `M-*` + `V-M-*` +
+graph index entry of a legacy repo is four hand-edits and a lint. Live on run 3:
+`scaffold --module=M-VOLUME` refused; they hand-wrote `M-IDENT`.
+
+**Scheduled, not new debt.** P4.1 (`graph scan --draft`) is the owner. Recorded because
+the mechanism — the repair verb they were told to find *refuses the bootstrap case* —
+was not in the F-register, and because "not found" and "found and refused" have
+different repairs. Teaching `scaffold` harder does not create the first module.
+
+### F92 — generators still emit `bun test` and `ObservedWriteScope <None />`, regardless of detected language. **[verified]**
+
+P1.5 paid valid-by-construction emit (`C-SKELETON-GENERATORS`). Unmodified output lints
+0. That debt is paid (F85). This is a different one.
+
+`src/artifact/skeletons.ts:113` and `:160` hardcode `bun test`. `:198–199` emit
+`<ObservedWriteScope><None /></ObservedWriteScope>`. Neither reads
+`.ngrace/context/technology.xml` (this run's says `<Language>Go</Language>`). Combined
+with [F11](#f11)'s leftover — spec.xml / plan.xml are **intentionally** inside the
+scope-audit universe (`src/review/core.ts:986–1005`; test
+`AC-SCOPE-LIFECYCLE-EXCLUSION`) — the first `ngrace review --change` after `spec new` /
+`plan new` flags the bundle's own files unless the author names them.
+
+This run overrode `bun test` by hand, named `go test ./internal/ident/...`, and still
+self-flagged because OWS was `<None />` then only the test file. The OWS correction was
+the approved-plan mutation F88.2 names.
+
+#### Decision candidate — skeletons (not ratified)
+
+- **(a) Language-detecting emit** (`go test ./...` from `technology.xml` / adapter /
+  `go.mod`). Fits the repo they just initialised. Cost: init's guessed `<Language>`
+  becomes load-bearing; a wrong guess emits a wrong command that looks official.
+- **(b) Keep `bun test` as a valid-by-construction placeholder** and make the instance
+  message at first lint say so. Honest about P1.5's acceptance test. Cost: every
+  non-JS repo rewrites every spec and plan, which is what this run did.
+- **(c) Seed OWS with the bundle's own `spec.xml` and `plan.xml`.** Stops the first
+  review from self-flagging the generator's own writes. Cost: those paths then *must*
+  stay in scope, which is what F27.2 already asks the author to declare; the generator
+  would be doing the skill's must-do #6.
+
+**(c) is cheap and local; (a) is the one the transcript asked for and is a product
+change to a completed phase.** Not ratified here.
+
+#### Decision candidate — apply/archive lexicon (not ratified)
+
+This run's #38: there is no approval-lexicon phrase for apply / archive / `applied`.
+The human's "per-state, do not extrapolate" rule left the close unattested. D18 and
+`RM-VERIFIED-APPROVAL` already own attestation for `draft → approved`. Widening the
+lexicon to apply without a machine-evaluable extra is more prompt, which F88.2 just
+measured as insufficient for a different stop. Leave it on that entry. Not a new
+`RM-*`.
