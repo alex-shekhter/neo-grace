@@ -122,6 +122,8 @@ function collectEmittedIssueCodes(srcRoot: string): string[] {
     "review.attempt-pair-identical-tree",
     // makeFinding(WRITE_EVIDENCE_SCOPE_FINDING_CODE, …) — constant, not a string literal
     "review.write-evidence-outside-scope",
+    // makeFinding(CLOSE_EVIDENCE_ABSENCE_FINDING_CODE, …) — constant, not a string literal
+    "review.close-evidence-unevaluated",
   ]) {
     codes.add(code);
   }
@@ -436,6 +438,16 @@ describe("catalog issueClass (A5.1 route 2, A6.1)", () => {
   });
 });
 
+describe("CloseEvidence change.* exact guides", () => {
+  it("both new change.* codes have exact guides and are not prefix-allowlisted", () => {
+    for (const code of ["change.close-evidence-incomplete", "change.close-evidence-and-satisfied"] as const) {
+      expect(getExactLintIssueGuide(code)).toBeDefined();
+      expect(PREFIX_COVERED_LEGACY_CODES.includes(code)).toBe(false);
+      expect(classifyIssueCode(code)).toBe("exact");
+    }
+  });
+});
+
 describe("C-CURSOR-TASK-RESOLVER T-003: remediations-honest", () => {
   it("remediate-honest: cursor.unknown-task names sanctioned recovery not regenerate-alone", () => {
     const guide = getLintIssueGuide("cursor.unknown-task");
@@ -542,6 +554,12 @@ describe("catalog exact-guide completeness (C-TOKEN-INTEGRITY T-005 / C-CURSOR-I
     expect(guideFor(weScope)).toBeDefined();
     expect(hasExactSurfaceGuide(weScope)).toBe(true);
     expect(REVIEW_PREFIX_COVERED_LEGACY_CODES.includes(weScope)).toBe(false);
+    const closeAbsence = "review.close-evidence-unevaluated";
+    expect(getExactLintIssueGuide(closeAbsence)).toBeUndefined();
+    expect(guideFor(closeAbsence)).toBeDefined();
+    expect(hasExactSurfaceGuide(closeAbsence)).toBe(true);
+    expect(REVIEW_PREFIX_COVERED_LEGACY_CODES.includes(closeAbsence)).toBe(false);
+    expect(PREFIX_COVERED_LEGACY_CODES.includes(closeAbsence)).toBe(false);
     // A still-uncatalogued review code remains a review-surface orphan, not a lint orphan.
     const future = "review.future-uncatalogued-probe";
     expect(getExactLintIssueGuide(future)).toBeUndefined();

@@ -92,6 +92,7 @@ Never invent a "skip plan" path. If the user wants an ungoverned edit, refuse an
   </OutOfPlanScope>
   ```
 - When the spec declares `AC-*` criteria, each task that implements one should list it under optional `<Satisfies><AC-ID /></Satisfies>`. Unmapped criteria warn; Satisfies of unknown `AC-*` ids error.
+- CloseEvidence `AC-*` are not Satisfies targets. `plan new` links only ordinary criteria. Satisfies of a complete CloseEvidence `AC-*` is an error.
 - Absence of `<Satisfies>` or `<OutOfPlanScope>` is never an error by itself.
 </spec_plan_traceability>
 

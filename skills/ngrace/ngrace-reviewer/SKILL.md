@@ -45,6 +45,7 @@ unrelated blank-line edits. Use those IDs in your report; do not invent parallel
 - Verification evidence is fresh and tied to commands or markers.
 - Optional `DesignReferences` use http(s) Figma URLs and project-contained `UserResearch` paths.
 - Mechanized findings from `ngrace review` are addressed or explicitly deferred with reasons.
+- An applied-archive CloseEvidence `AC-*` must have a recorded evaluation on a Verdict.
 </review_checklist>
 
 <ceremony_tier_review>

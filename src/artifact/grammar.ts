@@ -30,6 +30,11 @@
 //   validateRunLedgerArtifact
 //   validateSemanticAnchorDiscipline
 //   validateSpecPlanCoverage
+//   collectAcceptanceCriteriaIds
+//   collectSatisfiedAcceptanceCriteria
+//   isCloseBoundCriterion
+//   collectCloseBoundCriterionIds
+//   collectCloseEvidenceEvaluations
 // END_MODULE_MAP
 import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
@@ -1687,6 +1692,19 @@ function validateSpecAcceptanceCriteria(file: string, wrapper: GraceXmlNode, iss
           ),
         );
       }
+      for (const child of node.children) {
+        if (child.tag !== "CloseEvidence") continue;
+        if (!isCompleteCloseEvidence(child)) {
+          issues.push(
+            issue(
+              "error",
+              "change.close-evidence-incomplete",
+              file,
+              `Acceptance criterion ${node.tag} CloseEvidence must contain at least one non-empty Command.`,
+            ),
+          );
+        }
+      }
     }
   }
 }
@@ -1875,11 +1893,13 @@ export function validateSpecPlanCoverage(
 
   const specCriteria = collectAcceptanceCriteriaIds(specWrapper);
   const satisfied = collectSatisfiedAcceptanceCriteria(planWrapper);
+  const closeBound = collectCloseBoundCriterionIds(specWrapper);
 
   // Unmapped warnings only when the spec authored AC-* (legacy free-text stays quiet).
+  // Complete CloseEvidence is a third state, not a forgotten mapping.
   if (specCriteria.size > 0) {
     for (const id of specCriteria) {
-      if (!satisfied.has(id)) {
+      if (!satisfied.has(id) && !closeBound.has(id)) {
         issues.push(
           issue(
             "warning",
@@ -1893,6 +1913,7 @@ export function validateSpecPlanCoverage(
   }
 
   // Unknown Satisfies targets always error — referencing a non-existent AC-* is never valid.
+  // Close-bound AC-* must not also be task-mapped (F82).
   for (const id of satisfied) {
     if (!specCriteria.has(id)) {
       issues.push(
@@ -1901,6 +1922,17 @@ export function validateSpecPlanCoverage(
           "change.unknown-acceptance-criterion",
           planFile,
           `Plan references ${id}, which the approved spec does not define.`,
+        ),
+      );
+      continue;
+    }
+    if (closeBound.has(id)) {
+      issues.push(
+        issue(
+          "error",
+          "change.close-evidence-and-satisfied",
+          planFile,
+          `Plan Satisfies ${id}, which is close-bound via CloseEvidence.`,
         ),
       );
     }
@@ -1948,7 +1980,19 @@ function collectJustifiedOutOfPlanAnchors(wrapper: GraceXmlNode): Set<string> {
   return anchors;
 }
 
-function collectAcceptanceCriteriaIds(wrapper: GraceXmlNode): Set<string> {
+function isCompleteCloseEvidence(node: GraceXmlNode): boolean {
+  return node.children.some((child) => child.tag === "Command" && child.text.trim().length > 0);
+}
+
+/** True when an AC-* node has a CloseEvidence child with at least one non-empty Command. */
+export function isCloseBoundCriterion(node: GraceXmlNode): boolean {
+  if (!ANCHOR_PATTERNS.acceptanceCriterion.test(node.tag)) {
+    return false;
+  }
+  return node.children.some((child) => child.tag === "CloseEvidence" && isCompleteCloseEvidence(child));
+}
+
+export function collectAcceptanceCriteriaIds(wrapper: GraceXmlNode): Set<string> {
   const ids = new Set<string>();
   for (const section of wrapper.children.filter((child) => child.tag === "AcceptanceCriteria")) {
     for (const node of walkNodes(section)) {
@@ -1960,7 +2004,38 @@ function collectAcceptanceCriteriaIds(wrapper: GraceXmlNode): Set<string> {
   return ids;
 }
 
-function collectSatisfiedAcceptanceCriteria(wrapper: GraceXmlNode): Set<string> {
+export function collectCloseBoundCriterionIds(wrapper: GraceXmlNode): Set<string> {
+  const ids = new Set<string>();
+  for (const section of wrapper.children.filter((child) => child.tag === "AcceptanceCriteria")) {
+    for (const node of walkNodes(section)) {
+      if (node !== section && isCloseBoundCriterion(node)) {
+        ids.add(node.tag);
+      }
+    }
+  }
+  return ids;
+}
+
+/** Reads pinned CloseEvidence Verdict children: AC-* / Exit / Result. */
+export function collectCloseEvidenceEvaluations(
+  verdict: GraceXmlNode,
+): Array<{ criterionId: string; exit: string; result: string }> {
+  const evaluations: Array<{ criterionId: string; exit: string; result: string }> = [];
+  if (verdict.tag !== "Verdict") {
+    return evaluations;
+  }
+  for (const child of verdict.children) {
+    if (!ANCHOR_PATTERNS.acceptanceCriterion.test(child.tag)) continue;
+    const exit = child.children.find((node) => node.tag === "Exit")?.text.trim() ?? "";
+    const result = child.children.find((node) => node.tag === "Result")?.text.trim() ?? "";
+    if (exit !== "" && (result === "pass" || result === "fail")) {
+      evaluations.push({ criterionId: child.tag, exit, result });
+    }
+  }
+  return evaluations;
+}
+
+export function collectSatisfiedAcceptanceCriteria(wrapper: GraceXmlNode): Set<string> {
   const ids = new Set<string>();
   const implementationPlan = wrapper.children.find((child) => child.tag === "ImplementationPlan");
   if (!implementationPlan) {

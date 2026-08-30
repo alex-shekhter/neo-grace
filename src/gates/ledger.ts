@@ -47,9 +47,10 @@
 import { existsSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { validateRunLedgerArtifact } from "../artifact/grammar";
-import { ARTIFACT_TAG_PREFIX, NGRACE_ARTIFACT_VERSION } from "../artifact/types";
-import { cloneXmlNode, readGraceXmlArtifact, type GraceXmlNode } from "../artifact/xml";
+import { spawnShellCommand } from "../artifact/assertions";
+import { isCloseBoundCriterion, validateRunLedgerArtifact } from "../artifact/grammar";
+import { ANCHOR_PATTERNS, ARTIFACT_TAG_PREFIX, NGRACE_ARTIFACT_VERSION } from "../artifact/types";
+import { cloneXmlNode, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "../artifact/xml";
 import { serializeGraceXmlDocument } from "../artifact/xml-serialize";
 import { resolveChangeBundle } from "../grace-cursor";
 import { GraceCommandError } from "../query/errors";
@@ -301,6 +302,17 @@ export function recordReviewVerdict(
   }
 
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const closeChildren = evaluateCloseEvidenceChildren(projectRoot, bundlePath);
+  if (
+    verdict.outcome === "pass"
+    && closeChildren.some((child) =>
+      child.children.some((node) => node.tag === "Result" && node.text.trim() === "fail"))
+  ) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      "CloseEvidence Command exited non-zero; refuse to record outcome pass.",
+    );
+  }
   const root = loadOrCreateLedgerRoot(bundlePath, changeId);
   const wrapper = ensureWrapper(root, changeId);
   const section = ensureSection(wrapper, "Verdicts");
@@ -319,11 +331,56 @@ export function recordReviewVerdict(
   section.children.push({
     tag: "Verdict",
     attributes,
-    children: [],
+    children: closeChildren,
     text: stored.note ?? "",
   });
   writeAndVerifyLedger(bundlePath, root);
   return stored;
+}
+
+function isAppliedArchiveBundle(bundlePath: string, specStatus: string | undefined): boolean {
+  const archiveMarker = `${path.sep}changes${path.sep}archive${path.sep}`;
+  return bundlePath.includes(archiveMarker) && specStatus === "applied";
+}
+
+function evaluateCloseEvidenceChildren(projectRoot: string, bundlePath: string): GraceXmlNode[] {
+  const specPath = path.join(bundlePath, "spec.xml");
+  if (!existsSync(specPath)) return [];
+  const spec = readGraceXmlArtifact(specPath);
+  if (!isAppliedArchiveBundle(bundlePath, spec.root?.attributes.status)) {
+    return [];
+  }
+  const wrapper = spec.root?.children.find((child) => ANCHOR_PATTERNS.change.test(child.tag));
+  if (!wrapper) return [];
+  const children: GraceXmlNode[] = [];
+  for (const section of wrapper.children.filter((child) => child.tag === "AcceptanceCriteria")) {
+    for (const node of walkNodes(section)) {
+      if (node === section || !isCloseBoundCriterion(node)) continue;
+      const close = node.children.find((child) => child.tag === "CloseEvidence");
+      if (!close) continue;
+      let exitCode = 0;
+      let result: "pass" | "fail" = "pass";
+      for (const command of close.children.filter((child) => child.tag === "Command" && child.text.trim())) {
+        const spawned = spawnShellCommand(command.text.trim(), projectRoot);
+        const code = spawned.exitCode ?? 1;
+        exitCode = code;
+        if (code !== 0) {
+          result = "fail";
+          break;
+        }
+      }
+      children.push({
+        tag: node.tag,
+        attributes: {},
+        children: [
+          { tag: "Exit", attributes: {}, children: [], text: String(exitCode) },
+          { tag: "Result", attributes: {}, children: [], text: result },
+        ],
+        text: "",
+      });
+    }
+  }
+  return children;
 }
 
 /** Append a gate decision to the ledger Decisions section (A30.2). Leaves run/ untouched. */

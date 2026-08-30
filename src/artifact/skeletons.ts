@@ -12,7 +12,7 @@
 //   renderChangePlan
 //   renderChangeSpec
 // END_MODULE_MAP
-import { GRAMMAR_INVENTORIES } from "./grammar";
+import { GRAMMAR_INVENTORIES, isCloseBoundCriterion } from "./grammar";
 import { ANCHOR_PATTERNS, NGRACE_ARTIFACT_VERSION } from "./types";
 import { parseGraceXmlArtifact, walkNodes } from "./xml";
 
@@ -75,7 +75,7 @@ function seedFromSpecXml(specXml?: string): PlanSeed {
   const acceptanceCriteria: string[] = [];
   for (const section of wrapper.children.filter((child) => child.tag === "AcceptanceCriteria")) {
     for (const node of walkNodes(section)) {
-      if (node !== section && ANCHOR_PATTERNS.acceptanceCriterion.test(node.tag)) {
+      if (node !== section && ANCHOR_PATTERNS.acceptanceCriterion.test(node.tag) && !isCloseBoundCriterion(node)) {
         acceptanceCriteria.push(node.tag);
       }
     }

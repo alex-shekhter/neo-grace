@@ -115,4 +115,22 @@ describe("renderChangeSpec / renderChangePlan live inventory", () => {
       expect(body.includes("--")).toBe(false);
     }
   });
+
+  it("skeleton-excludes-close-evidence: Satisfies links only ordinary AC-*", () => {
+    const specXml = [
+      `<NgraceChangeSpec graceVersion="${NGRACE_ARTIFACT_VERSION}" status="approved">`,
+      `  <${CHANGE_ID}>`,
+      `    <AcceptanceCriteria>`,
+      `      <AC-CLOSE>Close bound.<CloseEvidence><Command>true</Command></CloseEvidence></AC-CLOSE>`,
+      `      <AC-ORDINARY>Ordinary criterion.</AC-ORDINARY>`,
+      `    </AcceptanceCriteria>`,
+      `    <AffectedAreas><M-AFFECTED-MODULE /></AffectedAreas>`,
+      `  </${CHANGE_ID}>`,
+      `</NgraceChangeSpec>`,
+    ].join("\n");
+    const plan = renderChangePlan(CHANGE_ID, specXml);
+    const satisfies = plan.match(/<Satisfies>[\s\S]*?<\/Satisfies>/)?.[0] ?? "";
+    expect(satisfies).toContain("<AC-ORDINARY");
+    expect(satisfies).not.toContain("<AC-CLOSE");
+  });
 });

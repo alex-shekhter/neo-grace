@@ -131,6 +131,22 @@ describe("plan new", () => {
     expect(xml).not.toContain("<!--");
   });
 
+  it("skeleton-excludes-close-evidence: plan new Satisfies-links only ordinary AC-*", () => {
+    const root = createTempProject("grace-plan-close-");
+    const changeId = "C-GEN-CLOSE";
+    writeApprovedSpec(
+      root,
+      changeId,
+      `<NgraceChangeSpec graceVersion="${NGRACE_ARTIFACT_VERSION}" status="approved"><${changeId}><Summary>s</Summary><Goals>g</Goals><Constraints>c</Constraints><NonGoals>n</NonGoals><AcceptanceCriteria><AC-CLOSE>Close bound.<CloseEvidence><Command>true</Command></CloseEvidence></AC-CLOSE><AC-ORDINARY>Ordinary criterion.</AC-ORDINARY></AcceptanceCriteria><AffectedAreas><M-AFFECTED-MODULE /></AffectedAreas><VerificationIntent>v</VerificationIntent></${changeId}></NgraceChangeSpec>\n`,
+    );
+    const result = runGenerate(root, ["plan", "new", changeId]);
+    expect(result.exitCode).toBe(0);
+    const xml = readFileSync(path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "plan.xml"), "utf8");
+    const satisfies = xml.match(/<Satisfies>[\s\S]*?<\/Satisfies>/)?.[0] ?? "";
+    expect(satisfies).toContain("<AC-ORDINARY");
+    expect(satisfies).not.toContain("<AC-CLOSE");
+  });
+
   it("refuses a draft spec without writing plan.xml", () => {
     const root = createTempProject("grace-plan-draft-");
     const changeId = "C-GEN-PLAN-DRAFT";

@@ -10,6 +10,7 @@
 // START_MODULE_MAP
 //   ATTEMPT_PAIR_FINDING_CODE
 //   WRITE_EVIDENCE_SCOPE_FINDING_CODE
+//   CLOSE_EVIDENCE_ABSENCE_FINDING_CODE
 //   REVIEW_CATALOG
 //   REVIEW_ISSUE_SEVERITIES
 //   ReviewIssueGuide
@@ -65,6 +66,14 @@ export const ATTEMPT_PAIR_FINDING_CODE = "review.attempt-pair-identical-tree" as
  */
 export const WRITE_EVIDENCE_SCOPE_FINDING_CODE =
   "review.write-evidence-outside-scope" as const;
+
+/**
+ * Live CloseEvidence-absence finding code (C-CRITERION-CLOSE-EVIDENCE).
+ * Process-audit: applied archive with a complete CloseEvidence AC-* and no
+ * recorded Verdict evaluation. Review findings are not lint issues.
+ */
+export const CLOSE_EVIDENCE_ABSENCE_FINDING_CODE =
+  "review.close-evidence-unevaluated" as const;
 
 export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
   // --- Family A: corpus pattern codes ---
@@ -217,6 +226,21 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
     ],
     severity: "warning",
     derivedFrom: "F9.10 / F31 / F32 / C-SUBSTANTIATION-HONESTY",
+    family: "process-audit",
+  },
+  [CLOSE_EVIDENCE_ABSENCE_FINDING_CODE]: {
+    code: CLOSE_EVIDENCE_ABSENCE_FINDING_CODE,
+    title: "CloseEvidence Has No Recorded Evaluation",
+    explanation:
+      "An applied archived bundle declares a complete CloseEvidence AC-* that has no recorded "
+      + "evaluation on any Verdict. Review can detect a skipped close-evidence verdict; it does "
+      + "not refuse the close.",
+    remediation: [
+      "Run ngrace gate verdict against the applied archived bundle so each CloseEvidence Command is evaluated and recorded.",
+      "Do not treat this finding as a lint change.* code and do not raise it from lint.",
+    ],
+    severity: "error",
+    derivedFrom: "C-CRITERION-CLOSE-EVIDENCE",
     family: "process-audit",
   },
   [WRITE_EVIDENCE_SCOPE_FINDING_CODE]: {

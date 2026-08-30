@@ -1575,3 +1575,126 @@ describe("C-BUNDLE-BASE-REF T-001 characterization", () => {
     expect(firstRecordedBaseCommit(root)).toBe(head);
   });
 });
+
+function writeCloseEvidenceSpec(specPath: string, command: string): void {
+  const spec = readFileSync(specPath, "utf8").replace(
+    "<AcceptanceCriteria><Criterion>The fixture remains valid.</Criterion></AcceptanceCriteria>",
+    `<AcceptanceCriteria><AC-CLOSE>Close bound.<CloseEvidence><Command>${command}</Command></CloseEvidence></AC-CLOSE></AcceptanceCriteria>`,
+  );
+  writeFileSync(specPath, spec);
+}
+
+describe("CloseEvidence gate verdict evaluator", () => {
+  it("evaluate-on-archive: applied archive records AC-* Exit 0 Result pass", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, {
+      changeId: "C-GATE",
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-GATE");
+    writeCloseEvidenceSpec(path.join(bundle, "spec.xml"), "true");
+    const recorded = runGateCli(
+      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root, "--format", "json"],
+      root,
+    );
+    expect(recorded.status).toBe(0);
+    const xml = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(xml).toMatch(/<AC-CLOSE>\s*<Exit>0<\/Exit>\s*<Result>pass<\/Result>\s*<\/AC-CLOSE>/);
+  });
+
+  it("refuse-pass-on-nonzero: outcome pass is refused and no Verdict is written", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, {
+      changeId: "C-GATE",
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-GATE");
+    writeCloseEvidenceSpec(path.join(bundle, "spec.xml"), "false");
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    const prior = existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : null;
+    const recorded = runGateCli(
+      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root],
+      root,
+    );
+    expect(recorded.status).not.toBe(0);
+    if (prior === null) {
+      expect(existsSync(ledgerPath)).toBe(false);
+    } else {
+      expect(readFileSync(ledgerPath, "utf8")).toBe(prior);
+    }
+  });
+
+  it("records outcome fail after a non-zero CloseEvidence Command", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, {
+      changeId: "C-GATE",
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-GATE");
+    writeCloseEvidenceSpec(path.join(bundle, "spec.xml"), "false");
+    const recorded = runGateCli(
+      ["verdict", "--change", "C-GATE", "--outcome", "fail", "--path", root, "--format", "json"],
+      root,
+    );
+    expect(recorded.status).toBe(0);
+    const xml = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(xml).toMatch(/<AC-CLOSE>\s*<Exit>1<\/Exit>\s*<Result>fail<\/Result>\s*<\/AC-CLOSE>/);
+  });
+
+  it("skip-on-active: does not run CloseEvidence and writes empty children", () => {
+    const root = tempProject();
+    activeBundle(root);
+    writeCloseEvidenceSpec(
+      path.join(root, ARTIFACT_DIR, "changes", "active", "C-GATE", "spec.xml"),
+      "false",
+    );
+    const recorded = runGateCli(
+      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root],
+      root,
+    );
+    expect(recorded.status).toBe(0);
+    const xml = readFileSync(path.join(root, ARTIFACT_DIR, "changes", "active", "C-GATE", "run-ledger.xml"), "utf8");
+    expect(xml).toContain("<Verdict outcome=\"pass\"");
+    expect(xml).not.toContain("<AC-CLOSE>");
+  });
+
+  it("applied spec still under active/ does not run CloseEvidence", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, {
+      changeId: "C-GATE",
+      location: "active",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    writeCloseEvidenceSpec(
+      path.join(root, ARTIFACT_DIR, "changes", "active", "C-GATE", "spec.xml"),
+      "false",
+    );
+    const recorded = runGateCli(
+      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root],
+      root,
+    );
+    expect(recorded.status).toBe(0);
+    const xml = readFileSync(path.join(root, ARTIFACT_DIR, "changes", "active", "C-GATE", "run-ledger.xml"), "utf8");
+    expect(xml).not.toContain("<AC-CLOSE>");
+  });
+
+  it("GATE_SUBCOMMANDS and gate lint review arg maps gain no new token", () => {
+    const gateSrc = readFileSync(path.join(import.meta.dir, "command.ts"), "utf8");
+    expect(gateSrc).toContain('const GATE_SUBCOMMANDS = new Set(["approve", "apply", "archive", "verdict"])');
+    const keys = Object.keys(gateCommand.subCommands ?? {}).sort();
+    expect(keys).toEqual(["apply", "approve", "archive", "verdict"]);
+    const lintSrc = readFileSync(path.join(import.meta.dir, "../grace-lint.ts"), "utf8");
+    expect(lintSrc).toMatch(/args:\s*\{/);
+    expect(lintSrc).not.toMatch(/closeEvidence|close-evidence/);
+    const reviewSrc = readFileSync(path.join(import.meta.dir, "../review/command.ts"), "utf8");
+    expect(reviewSrc).not.toMatch(/closeEvidence|close-evidence/);
+    expect(gateSrc).not.toMatch(/closeEvidence|close-evidence/);
+  });
+});

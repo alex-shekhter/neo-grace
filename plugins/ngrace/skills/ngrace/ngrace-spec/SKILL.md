@@ -91,12 +91,14 @@ Prefer addressable `AC-*` tags under `AcceptanceCriteria` so `ngrace-plan` can m
 <AcceptanceCriteria>
   <AC-KEYBOARD-NAV>Arrow keys move focus; Home/End jump to first/last row.</AC-KEYBOARD-NAV>
   <AC-AXE-CLEAN>axe reports zero serious or critical violations on the route.</AC-AXE-CLEAN>
+  <AC-CLOSE-LINT>Post-archive lint 0/0.<CloseEvidence><Command>bun run ngrace lint --path . --fail-on warnings</Command></CloseEvidence></AC-CLOSE-LINT>
 </AcceptanceCriteria>
 ```
 
 Rules:
 - `AC-*` ids are uppercase kebab (`AC-[A-Z0-9]+(?:-[A-Z0-9]+)*`).
 - Each `AC-*` id is unique within the spec and must contain non-empty text.
+- A close-bound `AC-*` is a child `CloseEvidence` that contains at least one non-empty `Command`. CloseEvidence is a child of `AC-*`, never an attribute. Forgotten `AC-*` (no Satisfies, no complete CloseEvidence) still warn unmapped.
 - Legacy free-text or `<Criterion>` children remain valid; when no `AC-*` is present, criteria mapping is skipped for backward compatibility.
 - `AffectedAreas` should name real `M-*` / `DF-*` / `IC-*` anchors (not prose alone) so plan DurableScope coverage can be validated.
 </acceptance_criteria_anchors>
