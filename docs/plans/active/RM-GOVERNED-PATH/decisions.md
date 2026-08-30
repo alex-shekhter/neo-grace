@@ -6349,6 +6349,80 @@ install.
 **The rule.** A repair that does not move the published version has not reached the
 installers of that version. Say so at the close that ships it.
 
+### F100 — a pre-archive suite green is not evidence of a post-archive green. **[verified]**
+
+The `WriteEvidence` archive ratchet at `src/review/core.test.ts:2094` iterates every directory
+under `.ngrace/changes/archive` and asserts the exact multiset of
+`review.write-evidence-outside-scope` pairs. **The archive move is therefore a test input.**
+`C-CRITERION-CLOSE-EVIDENCE` was reported closed at `1524 pass / 3 skip / 0 fail`; the tree as
+left measured `1523 pass / 3 skip / 1 fail`. The reported number was real — measured before
+`git mv` — and stale the moment the bundle became the 47th archive.
+
+**The rule.** `bun test` and `validate:ci` run **after** the archive move, never before. A close
+that quotes a pre-move suite result is quoting a tree that no longer exists.
+
+### F101 — a new `review.*` catalog code forces `src/verification/localize.test.ts`. **[verified]**
+
+Adding `review.close-evidence-unevaluated` moved the cardinality pins at
+`src/verification/localize.test.ts:430` (catalog 15 to 16) and `:436` (excluded 12 to 13).
+`bun test` cannot go green without that edit, so the write was **forced, not discretionary** —
+but the approved `ObservedWriteScope` never named the file, and the plan's own scope-derivation
+search list omitted it. The bundle closed with `review.write-evidence-outside-scope` against
+itself, now recorded in `WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET` as the third pair.
+
+**The rule.** `ngrace-plan` requirement 6 says scope covers what the deliverable *forces*. A new
+review catalog entry forces `src/verification/localize.test.ts`. Add it to the derivation
+checklist beside the `skillTextLines` pins.
+
+### F102 — a planned red for a HEAD-true guard forces deliberately wrong production code. **[verified]**
+
+The plan listed `test:skip-on-active` as a recorded red. But an active bundle already skips
+`CloseEvidence` at HEAD, and it still skips once the evaluator ships **with** its
+archive-plus-applied conjunct. The only way to observe the fail was to ship the evaluator
+*without* the conjunct first, then add it — which is manufacturing a red, exactly what
+[F45](#f45) forbids. The executor did this and reported it.
+
+**The rule.** Before planning a red, ask whether the property is false at HEAD *and* would be
+false under a correct implementation. A guard that is true both before and after is an F45
+exemption named at authoring, never a signature. This is F45's converse and it is not covered by
+naming HEAD-true properties alone.
+
+### F103 — a plan's worked fixture contradicted its own named assertion. **[verified]**
+
+`plan.xml` D1 specified `test:close-bound-exempt` as: plan `Satisfies` only `AC-ORDINARY`, and
+assert unmapped warns only `AC-ORDINARY`. Those cannot both hold — a criterion that is
+`Satisfies`-linked is mapped, so it is precisely the one that cannot warn unmapped. The executor
+kept the assertion and dropped the fixture clause.
+
+**The rule.** When a DESIGN block gives both a fixture and the assertion it should produce,
+evaluate the assertion against the fixture at plan review. I approved this plan and did not.
+
+### F104 — the executor performed the authority's close sequence and committed nothing. **[verified]**
+
+The close sequence (terminal, fold, review, `gate verdict`, `gate apply`, hand-authored
+`applied`, `gate archive`, `git mv`, commit) is the authority's act, stated as such in the
+standing handoff and in [D20](#d20). The execute brief did not restate it, and the executor ran
+the whole sequence — minting the apply and archive `Decision`s and moving the bundle — then left
+**every change uncommitted**, including an untracked `archive/C-CRITERION-CLOSE-EVIDENCE/`. HEAD
+was still the plan-approval commit.
+
+**The rule.** An execute brief states the boundary explicitly: implement the tasks, stop at the
+terminal state, do not run the close. Silence is not a boundary. Note also that the working-tree
+scope audit only saw the out-of-scope write ([F101](#f101)) *because* nothing was committed.
+
+### F105 — a malformed `Command` yields a null root, so an unchecked fixture passes for the wrong reason. **[verified]**
+
+A bare `&` is not well-formed XML. `readGraceXmlArtifact` does not throw on it: it returns
+`root: null` with one `xml.parse` issue at severity **error**. The product is therefore
+defended — lint reports the parse error and no criterion evaluates. The hazard is in *fixtures*:
+the first `skip-on-active` fixture wrote `bun test && bun run lint` inside a `Command`, and
+passed for the wrong reason because it asserted on behaviour without asserting `issues` was
+empty. Note this is the shape an author most wants to write.
+
+**The rule.** A fixture that builds an XML artifact asserts `issues` is empty before asserting
+anything about behaviour. Chain shell steps as sibling `Command` elements, never with `&&`.
+Companion to [F43](#f43) and [F61](#f61).
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
@@ -6505,7 +6579,7 @@ below; it is not given a slot.
 
 | # | Name | Charter | Pays | Status |
 |---|---|---|---|---|
-| 1 | **`C-CRITERION-CLOSE-EVIDENCE`** | A close/verdict-bound acceptance-criterion state, so post-archive lint 0/0 is authorable rather than reinvented as an unsatisfiable `AC-*`. Named here 2026-08-15. No existing name covers it: no `C-CRITERION*` / `C-CLOSE-EVIDENCE` in this directory; [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/) archived the workaround, not a third `AC-*` state. | [F82](#f82), [F83](#f83), [F83.1](#f831). F82 is already discharged as *practice* by `C-DRIFT-HONESTY`; this bundle is the product state that would make that practice authorable. F83's P2.6 / P2.4 halves were paid by the same archive; the live remainder is F83.1. | **Authorized to start.** |
+| 1 | **`C-CRITERION-CLOSE-EVIDENCE`** | A close/verdict-bound acceptance-criterion state, so post-archive lint 0/0 is authorable rather than reinvented as an unsatisfiable `AC-*`. Named here 2026-08-15. No existing name covers it: no `C-CRITERION*` / `C-CLOSE-EVIDENCE` in this directory; [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/) archived the workaround, not a third `AC-*` state. | [F82](#f82), [F83](#f83), [F83.1](#f831). F82 is already discharged as *practice* by `C-DRIFT-HONESTY`; this bundle is the product state that would make that practice authorable. F83's P2.6 / P2.4 halves were paid by the same archive; the live remainder is F83.1. | **Delivered** 2026-08-30, archived as [`C-CRITERION-CLOSE-EVIDENCE`](../../../../.ngrace/changes/archive/C-CRITERION-CLOSE-EVIDENCE/). Closed with [F100](#f100)–[F105](#f105). The residual hole is unpaid by design: after the archive move no gate is required to run, so the close-evidence verdict is skippable — `review` detects a skip, nothing refuses one. `C-ARCHIVE-CURSOR` / P3.1 own the mandatory post-archive act. |
 | 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18): a `Decision` records what it permits. No existing name: D18 named none; `C-BUNDLE-BASE-REF` shipped `baseCommit`, not an artifact fingerprint. | [F95](#f95), and [F81](#f81) as a consequence of the dated "five" (superseded by F95's ten of 46). Unblocks [D19](#d19), [D20](#d20), and the [co-draft candidate](#decision-candidate--co-draft-the-pair-not-ratified), all of which already name fingerprints that do not exist. | **Authorized to start.** Prerequisite of position 5. |
 | 3 | **`C-SUPERSEDE-VERB`** | A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name. | [F86.1](#f861), [F86.2](#f862). | **Ordered, not deferred.** |
 | 4 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
