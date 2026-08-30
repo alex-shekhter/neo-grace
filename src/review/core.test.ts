@@ -7,7 +7,8 @@ import { spawnSync } from "node:child_process";
 import { GraceCommandError } from "../query/errors";
 
 import { validateRunLedgerArtifact } from "../artifact/grammar";
-import { writeMinimalNgraceProject } from "../artifact/test-fixtures";
+import { writeChangeBundleFixture, writeMinimalNgraceProject } from "../artifact/test-fixtures";
+import { ARTIFACT_DIR } from "../artifact/paths";
 import { parseGraceXmlArtifact } from "../artifact/xml";
 import { byPattern, corpus } from "../test-support/defect-corpus";
 import {
@@ -1844,8 +1845,8 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     expect(guide!.remediation.some((r) => /gate verdict|--note|findingId/i.test(r))).toBe(true);
     expect(allReviewCodes()).toContain(ATTEMPT_PAIR_FINDING_CODE);
     expect(allReviewCodes()).not.toContain(RETIRED_ATTEMPT_PAIR_CODE);
-    // C-DECLARED-WRITES adds write-evidence-outside-scope (14 → 15).
-    expect(allReviewCodes()).toHaveLength(15);
+    // C-CRITERION-CLOSE-EVIDENCE adds review.close-evidence-unevaluated (15 → 16).
+    expect(allReviewCodes()).toHaveLength(16);
     expect(guideFor(RETIRED_ATTEMPT_PAIR_CODE)).toBeUndefined();
     const catalogTest = readFileSync(
       path.join(import.meta.dir, "../lint/catalog.test.ts"),
@@ -1956,6 +1957,11 @@ describe("ngrace-execute attempt-pair failure-shape prose (C-SUBSTANTIATION-HONE
 const WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET: ReadonlyArray<readonly [string, string]> = [
   ["C-ESCALATION-HONESTY", "src/gates/core.test.ts"],
   ["C-EXECUTION-CONTRACT", "src/test-support/token-accounting.test.ts"],
+  // C-CRITERION-CLOSE-EVIDENCE: adding a REVIEW_CATALOG code forces the
+  // cardinality pins at src/verification/localize.test.ts:430 and :436.
+  // The approved ObservedWriteScope did not name that file; the write was
+  // forced, not discretionary. Recorded, not excused.
+  ["C-CRITERION-CLOSE-EVIDENCE", "src/verification/localize.test.ts"],
 ];
 
 describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
@@ -2090,7 +2096,7 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     expect(we.every((f) => !f.file.startsWith("docs/plans/"))).toBe(true);
   });
 
-  it("archive ratchet: exact product multiset of two pairs; non-lifecycle .ngrace/ exactly 0", () => {
+  it("archive ratchet: exact product multiset of three pairs; non-lifecycle .ngrace/ exactly 0", () => {
     const repoRoot = path.resolve(import.meta.dir, "../..");
     const archiveDir = path.join(repoRoot, ".ngrace/changes/archive");
     // Dynamic enumeration — no expect(dirs.length).toBe(N) (F33).
@@ -2158,13 +2164,13 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     }
   });
 
-  it("REVIEW_CATALOG registers write-evidence code at error; length 15", () => {
+  it("REVIEW_CATALOG registers write-evidence code at error; length 16", () => {
     const guide = guideFor(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
     expect(guide).toBeDefined();
     expect(guide!.code).toBe(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
     expect(guide!.severity).toBe("error");
     expect(allReviewCodes()).toContain(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
-    expect(allReviewCodes()).toHaveLength(15);
+    expect(allReviewCodes()).toHaveLength(16);
     // Porcelain sibling still distinct.
     expect(guideFor("review.scope-outside-write-scope")!.severity).toBe("error");
   });
@@ -3026,5 +3032,87 @@ describe("C-FINDING-SEVERITIES T-001 vocabulary", () => {
       anchorOrHunkKey: "constructed",
     };
     expect(finding.severity).toBe("info");
+  });
+});
+
+describe("CloseEvidence review absence detector", () => {
+  function plantCloseEvidence(root: string, location: "active" | "archive", changeId: string): void {
+    const specPath = path.join(root, ARTIFACT_DIR, "changes", location, changeId, "spec.xml");
+    const spec = readFileSync(specPath, "utf8").replace(
+      "<AcceptanceCriteria><Criterion>The fixture remains valid.</Criterion></AcceptanceCriteria>",
+      "<AcceptanceCriteria><AC-CLOSE>Close bound.<CloseEvidence><Command>true</Command></CloseEvidence></AC-CLOSE></AcceptanceCriteria>",
+    );
+    writeFileSync(specPath, spec);
+  }
+
+  it("review-absence-applied: applied archive without Verdict child emits unevaluated", () => {
+    const root = track(mkdtempSyncSafe());
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-REV",
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    plantCloseEvidence(root, "archive", "C-REV");
+    const result = runReview(root, {
+      changeId: "C-REV",
+      patterns: false,
+      joinEngine: false,
+      changedFiles: ["src/example.ts"],
+    });
+    const unevaluated = result.findings.filter((f) => f.code === "review.close-evidence-unevaluated");
+    expect(unevaluated.length).toBeGreaterThan(0);
+    expect(unevaluated[0]?.severity).toBe("error");
+    expect(result.findings.some((f) => f.code.startsWith("change."))).toBe(false);
+  });
+
+  it("does not emit the absence finding on active, superseded, cancelled, or rejected", () => {
+    for (const [location, specStatus] of [
+      ["active", "approved"],
+      ["archive", "superseded"],
+      ["archive", "cancelled"],
+      ["archive", "rejected"],
+    ] as const) {
+      const root = track(mkdtempSyncSafe());
+      writeMinimalNgraceProject(root);
+      writeChangeBundleFixture(root, {
+        changeId: "C-REV",
+        location,
+        specStatus,
+        planStatus: specStatus === "approved" ? "approved" : specStatus,
+      });
+      plantCloseEvidence(root, location, "C-REV");
+      const result = runReview(root, {
+        changeId: "C-REV",
+        patterns: false,
+        joinEngine: false,
+        changedFiles: ["src/example.ts"],
+      });
+      expect(result.findings.some((f) => f.code === "review.close-evidence-unevaluated")).toBe(false);
+    }
+  });
+
+  it("does not emit the absence finding when pinned Verdict children exist", () => {
+    const root = track(mkdtempSyncSafe());
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-REV",
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    plantCloseEvidence(root, "archive", "C-REV");
+    writeFileSync(
+      path.join(root, ARTIFACT_DIR, "changes", "archive", "C-REV", "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-REV><Verdicts><Verdict outcome="pass"><AC-CLOSE><Exit>0</Exit><Result>pass</Result></AC-CLOSE></Verdict></Verdicts></C-REV></NgraceRunLedger>\n`,
+    );
+    const result = runReview(root, {
+      changeId: "C-REV",
+      patterns: false,
+      joinEngine: false,
+      changedFiles: ["src/example.ts"],
+    });
+    expect(result.findings.some((f) => f.code === "review.close-evidence-unevaluated")).toBe(false);
   });
 });

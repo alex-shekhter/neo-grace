@@ -4,6 +4,9 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import {
+  collectAcceptanceCriteriaIds,
+  collectCloseBoundCriterionIds,
+  collectSatisfiedAcceptanceCriteria,
   validateArtifactRoot,
   validateChangeArtifact,
   validateChangeDesignContextArtifact,
@@ -1068,6 +1071,77 @@ describe("spec→plan coverage (G-05 / AC-*)", () => {
     const issues = validateSemanticAnchorDiscipline("spec.xml", root);
     const malformed = issues.filter((i) => i.code === "artifact.malformed-semantic-anchor");
     expect(malformed.some((i) => i.message.includes("acceptance-criterion"))).toBe(true);
+  });
+
+  it("close-bound-exempt: complete CloseEvidence AC-* does not warn unmapped", () => {
+    const spec = validSpec().replace(
+      "<AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria>",
+      "<AcceptanceCriteria><AC-CLOSE>Close bound.<CloseEvidence><Command>true</Command></CloseEvidence></AC-CLOSE><AC-ORDINARY>Ordinary criterion.</AC-ORDINARY></AcceptanceCriteria>",
+    );
+    const plan = validPlan(task("T-001"));
+    const result = validateNgraceProject(projectWithBundle(spec, plan));
+    const unmapped = result.issues.filter((i) => i.code === "change.acceptance-criterion-unmapped");
+    expect(unmapped).toHaveLength(1);
+    expect(unmapped[0]?.message).toContain("AC-ORDINARY");
+    expect(unmapped[0]?.message).not.toContain("AC-CLOSE");
+    expect(unmapped[0]?.severity).toBe("warning");
+    const specWrapper = parseGraceXmlArtifact("spec.xml", spec).root!.children[0]!;
+    const planWrapper = parseGraceXmlArtifact("plan.xml", plan).root!.children[0]!;
+    expect(collectAcceptanceCriteriaIds(specWrapper).has("AC-CLOSE")).toBe(true);
+    expect(collectAcceptanceCriteriaIds(specWrapper).has("AC-ORDINARY")).toBe(true);
+    expect(collectCloseBoundCriterionIds(specWrapper).has("AC-CLOSE")).toBe(true);
+    expect(collectCloseBoundCriterionIds(specWrapper).has("AC-ORDINARY")).toBe(false);
+    expect(collectSatisfiedAcceptanceCriteria(planWrapper).has("AC-CLOSE")).toBe(false);
+  });
+
+  it("close-evidence-incomplete: empty, no Command, or decoration emits error", () => {
+    const spec = validSpec().replace(
+      "<AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria>",
+      "<AcceptanceCriteria>"
+        + "<AC-EMPTY-CE>Empty marker.<CloseEvidence /></AC-EMPTY-CE>"
+        + "<AC-NO-CMD>No command.<CloseEvidence><Command>  </Command></CloseEvidence></AC-NO-CMD>"
+        + "<AC-DECOR>Decoration only.<CloseEvidence><Note>not a command</Note></CloseEvidence></AC-DECOR>"
+        + "</AcceptanceCriteria>",
+    );
+    const result = validateNgraceProject(projectWithBundle(spec, validPlan(task("T-001"))));
+    const incomplete = result.issues.filter((i) => i.code === "change.close-evidence-incomplete");
+    expect(incomplete.length).toBeGreaterThanOrEqual(3);
+    expect(incomplete.every((i) => i.severity === "error")).toBe(true);
+    const incompleteIds = incomplete.map((i) => i.message).join(" ");
+    expect(incompleteIds).toContain("AC-EMPTY-CE");
+    expect(incompleteIds).toContain("AC-NO-CMD");
+    expect(incompleteIds).toContain("AC-DECOR");
+    const unmapped = result.issues.filter((i) => i.code === "change.acceptance-criterion-unmapped");
+    expect(unmapped.some((i) => i.message.includes("AC-EMPTY-CE"))).toBe(true);
+    expect(unmapped.some((i) => i.message.includes("AC-NO-CMD"))).toBe(true);
+    expect(unmapped.some((i) => i.message.includes("AC-DECOR"))).toBe(true);
+    expect(unmapped.every((i) => i.severity === "warning")).toBe(true);
+  });
+
+  it("close-evidence-and-satisfied: Satisfies of a complete CloseEvidence AC-* is an error", () => {
+    const spec = validSpec().replace(
+      "<AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria>",
+      "<AcceptanceCriteria><AC-CLOSE>Close bound.<CloseEvidence><Command>true</Command></CloseEvidence></AC-CLOSE></AcceptanceCriteria>",
+    );
+    const plan = validPlan(
+      `<T-001><Title>T-001 title</Title><DependsOn></DependsOn><Satisfies><AC-CLOSE /></Satisfies><AcceptanceCriteria><Criterion>T-001 accepted.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001>`,
+    );
+    const result = validateNgraceProject(projectWithBundle(spec, plan));
+    const both = result.issues.filter((i) => i.code === "change.close-evidence-and-satisfied");
+    expect(both).toHaveLength(1);
+    expect(both[0]?.severity).toBe("error");
+    expect(both[0]?.file).toContain("plan.xml");
+    expect(both[0]?.message).toContain("AC-CLOSE");
+  });
+
+  it("unknown Satisfies target stays unknown-acceptance-criterion", () => {
+    const plan = validPlan(
+      `<T-001><Title>T-001 title</Title><DependsOn></DependsOn><Satisfies><AC-MISSING /></Satisfies><AcceptanceCriteria><Criterion>T-001 accepted.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001>`,
+    );
+    const result = validateNgraceProject(projectWithBundle(validSpec(), plan));
+    const codes = result.issues.map((i) => i.code);
+    expect(codes).toContain("change.unknown-acceptance-criterion");
+    expect(codes).not.toContain("change.close-evidence-and-satisfied");
   });
 });
 

@@ -1,0 +1,1189 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-CRITERION-CLOSE-EVIDENCE>
+    <IntentSummary>
+      Add a close-bound AC-* state
+      as a CloseEvidence child that
+      holds at least one non-empty
+      Command. Forgotten AC-* still
+      warn unmapped. Both-states
+      Satisfies is an error. plan new
+      does not Satisfies-link
+      close-bound ids. gate verdict
+      on an applied archived bundle
+      runs each Command, records one
+      AC-* child per result, and
+      refuses outcome pass on a
+      non-zero exit. review on that
+      same applied archive finds a
+      missing record; it does not
+      refuse the close. Post-archive
+      lint 0/0 is close-verdict
+      evidence, not an AC-* on this
+      bundle. README.md is the
+      skillTextLines measurement
+      cell only. examples/ unchanged.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/skeletons.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/skeletons.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-CRITERION-CLOSE-EVIDENCE/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-CRITERION-CLOSE-EVIDENCE/plan.xml</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>change.acceptance-criterion-unmapped</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>function collectAcceptanceCriteriaIds</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>function collectSatisfiedAcceptanceCriteria</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/skeletons.ts</File>
+        <Text>seed.acceptanceCriteria.map((id) =&gt; `          &lt;${id} /&gt;`)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>children: []</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>const GATE_SUBCOMMANDS = new Set(["approve", "apply", "archive", "verdict"])</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.total).toBe(806)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.totalBytes).toBe(55486)</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>**806 lines** / **55486 UTF-8 bytes**</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>&lt;acceptance_criteria_anchors&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>&lt;spec_plan_traceability&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>deliverable forces</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>&lt;review_checklist&gt;</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>CloseEvidence</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/skeletons.ts</File>
+        <Text>CloseEvidence</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>change.close-evidence-incomplete</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>change.close-evidence-and-satisfied</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.close-evidence-unevaluated</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/skeletons.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/skeletons.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>CloseEvidence</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>change.close-evidence-incomplete</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>change.close-evidence-and-satisfied</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>change.acceptance-criterion-unmapped</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>change.close-evidence-incomplete</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>change.close-evidence-and-satisfied</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.close-evidence-unevaluated</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>const GATE_SUBCOMMANDS = new Set(["approve", "apply", "archive", "verdict"])</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>CloseEvidence</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>CloseEvidence</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>deliverable forces</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>CloseEvidence</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.totalBytes).toBe(55486)</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>README.md</File>
+        <Text>**806 lines** / **55486 UTF-8 bytes**</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/artifact/grammar.test.ts src/lint/catalog.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/skeletons.test.ts src/grace-generate.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/gates/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+        <M-LINT-CATALOG />
+        <M-GATES />
+        <M-REVIEW />
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GRAMMAR />
+        <V-M-LINT-CATALOG />
+        <V-M-GATES />
+        <V-M-REVIEW />
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/artifact/skeletons.ts</File>
+      <File>src/artifact/skeletons.test.ts</File>
+      <File>src/grace-generate.test.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/gates/ledger.ts</File>
+      <File>src/gates/command.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/review/core.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>.ngrace/changes/active/C-CRITERION-CLOSE-EVIDENCE/spec.xml</File>
+      <File>.ngrace/changes/active/C-CRITERION-CLOSE-EVIDENCE/design-context.xml</File>
+      <File>.ngrace/changes/active/C-CRITERION-CLOSE-EVIDENCE/plan.xml</File>
+      <File>.ngrace/changes/active/C-CRITERION-CLOSE-EVIDENCE/run.xml</File>
+      <File>.ngrace/changes/active/C-CRITERION-CLOSE-EVIDENCE/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-CRITERION-CLOSE-EVIDENCE/run/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Grammar third state, both-states, and change catalogs</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            A complete CloseEvidence AC-*
+            (one non-empty Command child)
+            does not emit
+            change.acceptance-criterion-unmapped.
+            collectAcceptanceCriteriaIds
+            still lists it.
+          </Criterion>
+          <Criterion>
+            Empty CloseEvidence, CloseEvidence
+            with no Command, or CloseEvidence
+            whose children are not Command,
+            emits change.close-evidence-incomplete
+            at error and does not exempt
+            unmapped.
+          </Criterion>
+          <Criterion>
+            Satisfies of a complete
+            CloseEvidence AC-* emits
+            change.close-evidence-and-satisfied
+            at error. Satisfies of an
+            unknown AC-* stays
+            change.unknown-acceptance-criterion.
+          </Criterion>
+          <Criterion>
+            Both new change.* codes have
+            exact EXACT_GUIDES entries and
+            are not on
+            PREFIX_COVERED_LEGACY_CODES.
+            Forgotten AC-* still warn
+            unmapped at warning, same code,
+            same message family. Legacy
+            free-text AcceptanceCriteria
+            still skip mapping.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/grammar.test.ts src/lint/catalog.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-THIRD-STATE-DISTINCT />
+          <AC-FORGOTTEN-UNCHANGED />
+          <AC-NOT-BOTH />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>plan new Satisfies only ordinary AC-*</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            renderChangePlan / plan new
+            writes Satisfies only for spec
+            AC-* that are not close-bound.
+            A spec with one complete
+            CloseEvidence AC-* and one
+            ordinary AC-* yields a skeleton
+            that Satisfies-links only the
+            ordinary one.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/skeletons.test.ts src/grace-generate.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SKELETON-EXCLUDES />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>gate verdict evaluates CloseEvidence on applied archives</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            When gate verdict runs against
+            a bundle whose path is under
+            archive/ and whose spec status
+            is applied, it runs each
+            complete CloseEvidence Command
+            and records one AC-* child per
+            such criterion on that Verdict,
+            with Exit and Result children
+            as pinned in the DESIGN comment.
+          </Criterion>
+          <Criterion>
+            It refuses to record outcome
+            pass if any named Command exits
+            non-zero. No Verdict is written
+            in that refuse.
+          </Criterion>
+          <Criterion>
+            When gate verdict runs against
+            an active bundle, it does not
+            run CloseEvidence and still
+            writes an empty-children Verdict.
+            GATE_SUBCOMMANDS and the gate,
+            lint, and review arg maps gain
+            no new token.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-EVALUATED-AT-CLOSE />
+          <AC-NO-NEW-ARGV />
+        </Satisfies>
+      </T-003>
+      <T-004>
+        <Title>review finds missing close-evidence records</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            ngrace review with argv token
+            change on an applied archived
+            bundle emits
+            review.close-evidence-unevaluated
+            when a complete CloseEvidence
+            AC-* has no recorded evaluation
+            on any Verdict. The finding is
+            not a lint change.* code.
+          </Criterion>
+          <Criterion>
+            The same review on an active,
+            superseded, cancelled, or
+            rejected bundle does not emit
+            that finding. Forgotten AC-*
+            on cancelled or rejected still
+            warn unmapped. Superseded
+            coverage stays skipped. This
+            detector does not refuse the
+            close.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts src/artifact/grammar.test.ts src/lint/catalog.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-REVIEW-DETECTS-ABSENCE />
+          <AC-TERMINAL-INERT />
+        </Satisfies>
+      </T-004>
+      <T-005>
+        <Title>Teach CloseEvidence, remeasure pins, suite and archive compat</Title>
+        <DependsOn>T-002 T-003 T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            ngrace-spec SKILL.md teaches
+            CloseEvidence under
+            acceptance_criteria_anchors.
+            ngrace-plan SKILL.md says
+            CloseEvidence AC-* are not
+            Satisfies targets. ngrace-reviewer
+            SKILL.md checklist requires a
+            recorded evaluation on an
+            applied-archive CloseEvidence
+            AC-*. Packaged mirrors stay
+            byte-identical. Do not write
+            D19 or D20 close-ownership
+            sentences. Do not edit
+            ngrace-execute.
+          </Criterion>
+          <Criterion>
+            After those SKILL.md rewrites,
+            token-accounting.test.ts pins
+            and the README.md measurement
+            cell both match a fresh
+            skillTextLines() measure
+            (totalBytes, and total if the
+            line count moves). One
+            remeasure updates every place
+            the figure is published.
+          </Criterion>
+          <Criterion>
+            bun test is green for the
+            touched packages this
+            deliverable forces, bun test
+            is green, and
+            validate-marketplace exits 0.
+            Root lint adds no new error
+            and no new warning on the
+            existing 46 archives.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test src/artifact/grammar.test.ts src/artifact/skeletons.test.ts src/grace-generate.test.ts src/lint/catalog.test.ts src/gates/core.test.ts src/review/core.test.ts</Command>
+          <Command>bun test</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>bun run ngrace lint --path .</Command>
+        </Verification>
+        <Satisfies>
+          <AC-PIN-REMEASURE />
+          <AC-SUITE-AND-CI />
+          <AC-ARCHIVE-COMPAT />
+        </Satisfies>
+      </T-005>
+    </ImplementationPlan>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: a611273 (branch
+      feat/criterion-close-evidence).
+      Preflight: ngrace lint path .
+      assertions current is 0/0.
+      Parallel preflight is 0/0.
+      Spec is approved and immutable.
+      Do not amend it. Do not run
+      gate approve on this plan in
+      this pass. If execute shows the
+      spec is wrong, stop and report.
+      Do not rebase: the ledger pins
+      baseCommit to a commit on this
+      branch.
+
+      Ceremony tier T2. Stop and
+      re-spec rather than adding an
+      argv token, a gate subcommand,
+      a lifecycle finish verb,
+      evaluating CloseEvidence at
+      argv token assertions final or
+      at review before apply or at
+      gate archive, raising
+      change.acceptance-criterion-unmapped
+      to error, mutating existing
+      archives, authoring
+      AC-SUITE-AND-LINT, Satisfies-linking
+      lint-after-archive to a task,
+      writing D19 / D20 sentences,
+      editing ngrace-execute,
+      docs/plans, CHANGELOG.md, any
+      version surface, examples/,
+      references/ templates, or
+      .ngrace/changes/archive.
+      README.md is the measurement
+      cell only. Packaged version
+      stays 6.2.0. No product version
+      bump.
+
+      F61: name exported functions
+      and argv tokens in this comment.
+      Never two adjacent hyphens.
+      F42: plan assertions bind to
+      exported names, issue codes,
+      and exact source literals,
+      never to AC ids.
+      F50: cursor companions are
+      listed at authoring.
+      F74: cite cross-plan decisions
+      as PLAN-ID Dn.
+
+      ════════════════════════════════════
+      D0. Tasks, reds, F56, F67, F80
+      ════════════════════════════════════
+      | Task | work | Satisfies | planned
+        kind+key pairs |
+      | T-001 | CloseEvidence shape;
+          unmapped exemption;
+          both-states; change.*
+          exact guides
+        | AC-THIRD-STATE-DISTINCT,
+          AC-FORGOTTEN-UNCHANGED,
+          AC-NOT-BOTH
+        | test:close-bound-exempt,
+          test:close-evidence-incomplete,
+          test:close-evidence-and-satisfied |
+      | T-002 | plan new Satisfies
+          filter
+        | AC-SKELETON-EXCLUDES
+        | test:skeleton-excludes-close-evidence |
+      | T-003 | gate verdict evaluator
+          and writer
+        | AC-EVALUATED-AT-CLOSE,
+          AC-NO-NEW-ARGV
+        | test:evaluate-on-archive,
+          test:refuse-pass-on-nonzero,
+          test:skip-on-active |
+      | T-004 | review absence
+          detector
+        | AC-REVIEW-DETECTS-ABSENCE,
+          AC-TERMINAL-INERT
+        | test:review-absence-applied |
+      | T-005 | skill text; mirrors;
+          remeasure; suite; archive
+          compat
+        | AC-PIN-REMEASURE,
+          AC-SUITE-AND-CI,
+          AC-ARCHIVE-COMPAT
+        | test:spec-teaches-close-evidence,
+          test:plan-excludes-satisfies-close-evidence,
+          test:reviewer-checklist-close-evidence |
+
+      T-002, T-003, and T-004 each
+      DependsOn T-001 only and write
+      disjoint files, so they are
+      parallel-safe after T-001.
+      T-005 DependsOn T-002 T-003
+      T-004 so remeasure and the
+      suite run after every write
+      that can move a pin.
+
+      Signature keys the executor
+      must record (kind test):
+        T-001  test:close-bound-exempt
+        T-001  test:close-evidence-incomplete
+        T-001  test:close-evidence-and-satisfied
+        T-002  test:skeleton-excludes-close-evidence
+        T-003  test:evaluate-on-archive
+        T-003  test:refuse-pass-on-nonzero
+        T-003  test:skip-on-active
+        T-004  test:review-absence-applied
+        T-005  test:spec-teaches-close-evidence
+        T-005  test:plan-excludes-satisfies-close-evidence
+        T-005  test:reviewer-checklist-close-evidence
+
+      Per-task distinct pairs:
+      T-001 3, T-002 1, T-003 3,
+      T-004 1, T-005 3. No key
+      repeats inside a task. Cap is
+      three distinct pairs per task.
+      Keys name the property, not
+      the file stem (F67).
+
+      Record each fail by running
+      only that case (bun test name
+      pattern) so the second
+      property is actually observed
+      (F80). Never fail and pass in
+      one tool call. Never a
+      retrospective red via stash.
+      Never a red backed only by a
+      shell grep.
+
+      F45, named at authoring, not
+      reddened:
+      forgotten AC-* still warns
+      unmapped at warning (HEAD
+      true);
+      forgotten does not become
+      error (HEAD true);
+      legacy free-text still skips
+      mapping (HEAD true);
+      unknown Satisfies target
+      stays
+      change.unknown-acceptance-criterion
+      (HEAD true; do not let the
+      new error swallow it);
+      attribute-on-AC-* is already
+      artifact.semantic-anchor-attribute
+      and is not the third state
+      (HEAD true);
+      AC-NO-NEW-ARGV (HEAD true);
+      AC-ARCHIVE-COMPAT (HEAD true
+      on the 46 archives);
+      AC-TERMINAL-INERT (redden
+      only if a new required
+      evaluation fires on
+      superseded, cancelled, or
+      rejected);
+      AC-PIN-REMEASURE numbers at
+      HEAD (F45 / F84: remeasure is
+      a bounding pin, not a red);
+      catalog completeness after
+      the same-task EXACT_GUIDES
+      writes (bounding, not a red).
+      Do not record the
+      token-accounting fail that
+      appears after the skill
+      rewrite and before remeasure
+      as a planned signature.
+
+      F82 / F83: this plan does not
+      author AC-SUITE-AND-LINT and
+      does not Satisfies-link
+      lint-after-archive to any
+      task. AC-SUITE-AND-CI is the
+      task-observable suite bar on
+      T-005. T-005 Verification
+      runs every command that
+      criterion names, plus root
+      lint for AC-ARCHIVE-COMPAT,
+      not a file-list subset.
+      Post-archive lint 0/0 is
+      close-verdict evidence,
+      quoted after apply and
+      archive, not claimed by a
+      task pass, and is not an
+      AC-*. Until this bundle
+      ships, that trap still
+      applies to it.
+
+      plan new Satisfies-linked
+      every spec AC-* to T-001.
+      This spec authors no
+      CloseEvidence AC-*, so that
+      dump is not
+      change.close-evidence-and-satisfied.
+      It is still wrong for budget
+      and for criterion-complete
+      Verification. This plan
+      redistributes Satisfies as
+      the table above. After T-002
+      lands, a future spec that
+      does author CloseEvidence
+      will not auto-Satisfies it.
+
+      ════════════════════════════════════
+      D1. CloseEvidence shape (T-001)
+      ════════════════════════════════════
+      Close-bound is an AC-* under
+      AcceptanceCriteria that has a
+      CloseEvidence child containing
+      at least one Command whose
+      text is non-empty. Export
+      isCloseBoundCriterion and
+      collectCloseBoundCriterionIds
+      from grammar.ts. Incomplete
+      CloseEvidence (empty, no
+      Command, or only a decoration
+      tag) is
+      change.close-evidence-incomplete
+      at error, not an unmapped
+      exemption.
+
+      F68 / F80 on T-001.
+      test:close-bound-exempt:
+      spec has AC-CLOSE with a
+      CloseEvidence Command and
+      AC-ORDINARY with no
+      CloseEvidence and no
+      Satisfies. Plan Satisfies
+      only AC-ORDINARY. Assert
+      unmapped warns only
+      AC-ORDINARY, same code,
+      warning. AC-CLOSE is in
+      collectAcceptanceCriteriaIds
+      and not in
+      collectSatisfiedAcceptanceCriteria.
+      Do not assert both-states
+      here. HEAD: AC-CLOSE warns
+      unmapped. Record one fail,
+      signature kind test key
+      close-bound-exempt.
+
+      test:close-evidence-incomplete:
+      AC-* whose CloseEvidence is
+      empty, or has no Command, or
+      whose only child is a
+      decoration tag, emits
+      change.close-evidence-incomplete
+      at error. The second and
+      third shapes are the same
+      property, not extra recorded
+      reds. Do not treat incomplete
+      as unmapped-exempt. HEAD: no
+      such code. Record one fail,
+      signature kind test key
+      close-evidence-incomplete.
+
+      test:close-evidence-and-satisfied:
+      plan Satisfies names a
+      complete CloseEvidence AC-*.
+      Expect
+      change.close-evidence-and-satisfied
+      at error on the plan. A
+      sibling it() that Satisfies
+      AC-MISSING still emits
+      change.unknown-acceptance-criterion
+      and not the new code (same
+      property's stay-true half,
+      not a second red). HEAD:
+      Satisfies of a defined AC-*
+      is legal. Record one fail,
+      signature kind test key
+      close-evidence-and-satisfied.
+
+      Add exact EXACT_GUIDES for
+      both new change.* codes in
+      the same task (F84 catalog
+      pin). Do not put them on
+      PREFIX_COVERED_LEGACY_CODES.
+      The unmapped diagnostic
+      message in grammar.ts stays
+      in the same family. Catalog
+      remediation for unmapped may
+      name CloseEvidence as the
+      third state; do not change
+      the emitted message text.
+      Do not add a
+      GRAMMAR_INVENTORIES key and
+      do not regenerate
+      docs/schema-reference.md.
+
+      ════════════════════════════════════
+      D2. Verdict child shape (pin)
+      ════════════════════════════════════
+      On an applied archived
+      bundle, the Verdict this
+      write appends has one child
+      per complete CloseEvidence
+      AC-*. The child tag is that
+      AC-* id. Its children are
+      Exit (decimal exit-code text)
+      and Result (pass or fail).
+      No attributes on the AC-*
+      child (anchors stay
+      attribute-free). Example
+      shape, names binding:
+
+        Verdict outcome=pass
+          AC-EXAMPLE
+            Exit 0
+            Result pass
+
+      Existing Verdicts with no
+      children stay valid. This
+      bundle does not add a
+      forbid-unknown-Verdict-child
+      validator (that would be a
+      fourth T-001 red or a sixth
+      task). A later validator that
+      rejects unknown Verdict
+      children must keep this
+      shape legal. T-001 may
+      export a reader for this
+      shape; T-003 writes it;
+      T-004 reads it.
+
+      ════════════════════════════════════
+      D3. Skeleton (T-002)
+      ════════════════════════════════════
+      F68 / F80 on T-002.
+      test:skeleton-excludes-close-evidence:
+      renderChangePlan (and plan new
+      through grace-generate.test.ts)
+      on a spec that declares one
+      complete CloseEvidence AC-*
+      and one ordinary AC-* writes
+      Satisfies only for the
+      ordinary id. Filter
+      seed.acceptanceCriteria with
+      isCloseBoundCriterion. Do not
+      stop linking ordinary AC-*.
+      HEAD: every AC-* is linked
+      at skeletons.ts map site.
+      Record one fail, signature
+      kind test key
+      skeleton-excludes-close-evidence.
+
+      ════════════════════════════════════
+      D4. Evaluator (T-003)
+      ════════════════════════════════════
+      Evaluator is the existing
+      gate verdict verb when
+      resolveChangeBundle returns a
+      path under archive/ and spec
+      status is applied. Both
+      conjuncts. Applied but still
+      under active/ does not run
+      CloseEvidence. No new argv.
+      Reuse spawnShellCommand from
+      assertions.ts. Do not edit
+      assertions.ts. Do not add
+      M-ASSERTIONS to DurableScope.
+
+      F68 / F80 on T-003.
+      test:evaluate-on-archive:
+      temp project, spec status
+      applied, bundle under
+      archive/, one CloseEvidence
+      Command that exits 0. Run
+      gate verdict outcome pass.
+      Assert the written Verdict
+      has one AC-* child, Exit 0,
+      Result pass. Do not assert
+      refuse. Do not assert
+      active-skip. HEAD:
+      recordReviewVerdict writes
+      children empty and never
+      runs a Command. Record one
+      fail, signature kind test
+      key evaluate-on-archive.
+
+      test:refuse-pass-on-nonzero:
+      same applied-archive setup,
+      Command exits non-zero,
+      outcome pass. Assert refuse
+      before write: no new Verdict,
+      prior ledger restored or
+      unchanged. A sibling it()
+      that records outcome fail
+      after a non-zero Command is
+      the same property, not a
+      second red. HEAD: pass is
+      recorded regardless. Record
+      one fail, signature kind
+      test key
+      refuse-pass-on-nonzero.
+
+      test:skip-on-active:
+      bundle under active/, spec
+      approved or applied, has
+      CloseEvidence. gate verdict
+      does not run the Command
+      (plant a Command that would
+      fail if run) and writes
+      empty children. Stay-true
+      it()s snapshot
+      GATE_SUBCOMMANDS and the
+      gate / lint / review arg
+      maps (no new token); those
+      are not extra reds. HEAD:
+      already skips because there
+      is no reader; after the
+      evaluator exists, active
+      must still skip. Record one
+      fail, signature kind test
+      key skip-on-active.
+
+      ════════════════════════════════════
+      D5. Review detector (T-004)
+      ════════════════════════════════════
+      Process-audit finding
+      review.close-evidence-unevaluated,
+      severity error, family
+      process-audit. Export
+      CLOSE_EVIDENCE_ABSENCE_FINDING_CODE
+      from review/catalog.ts.
+      Add the bound expansion in
+      src/lint/catalog.test.ts
+      (same pattern as
+      WRITE_EVIDENCE_SCOPE_FINDING_CODE).
+      Do not put it on
+      PREFIX_COVERED_LEGACY_CODES.
+      Review findings are not lint
+      issues.
+
+      Residual honesty hole
+      (structural inside approved
+      scope). After the archive
+      move no gate is required to
+      run, so the close-evidence
+      verdict can be skipped.
+      This detector can find that
+      skip. Nothing in this
+      bundle's approved scope can
+      refuse it. Evaluating at
+      gate archive, or emitting
+      the absence from lint, is
+      out of scope and deadlocks a
+      Command that is repo lint
+      with argv token fail-on set
+      to warnings (F83.1).
+      missingApplyGateRecord
+      checks apply, not archive.
+      Some applied archives have
+      no Decisions at all and are
+      classified as
+      apply-gate-record-absent,
+      not a violation. P3.1 and
+      C-ARCHIVE-CURSOR own a
+      mandatory post-archive act.
+      Do not write task text that
+      claims this hole is closed.
+
+      F68 / F80 on T-004.
+      test:review-absence-applied:
+      applied archived bundle,
+      complete CloseEvidence, no
+      Verdict child for that AC-*.
+      runReview with changeId set
+      emits
+      review.close-evidence-unevaluated.
+      Do not emit a lint change.*
+      code. Sibling it()s that the
+      finding is absent on active,
+      superseded, cancelled, and
+      rejected, and absent when
+      the pinned Verdict children
+      exist, are the same
+      property's guards, not extra
+      reds. Forgotten unmapped on
+      cancelled stays warning
+      (HEAD true). HEAD: review
+      has no CloseEvidence reader.
+      Record one fail, signature
+      kind test key
+      review-absence-applied.
+
+      ════════════════════════════════════
+      D6. Skills and remeasure (T-005)
+      ════════════════════════════════════
+      Edit only the AC-mapping /
+      CloseEvidence sentences.
+      Keep C-DECLARED-WRITES
+      phrases in ngrace-plan
+      (deliverable forces,
+      skill-footprint, fixtures
+      that construct, and the live
+      write-evidence-outside-scope
+      code). Keep clarification
+      teaching phrases in spec and
+      plan skills. Do not write
+      D19 or D20 sentences. Do not
+      mention a bare D-number. Do
+      not edit ngrace-execute. Do
+      not edit references/
+      templates (referencesTotal
+      stays unmoved). Copy each
+      canonical SKILL.md onto its
+      packaged mirror so
+      validate-marketplace stays
+      green.
+
+      F68 / F80 on T-005.
+      test:spec-teaches-close-evidence
+      in skill-contracts.test.ts
+      asserts the canonical spec
+      skill contains CloseEvidence
+      under
+      acceptance_criteria_anchors
+      and that CloseEvidence is a
+      child of AC-* with at least
+      one Command. Do not assert
+      plan or reviewer text in
+      this case. HEAD: that
+      section has no CloseEvidence.
+      Record one fail, signature
+      kind test key
+      spec-teaches-close-evidence.
+
+      test:plan-excludes-satisfies-close-evidence
+      asserts the canonical plan
+      skill, under
+      spec_plan_traceability, says
+      CloseEvidence AC-* are not
+      Satisfies targets. Keep the
+      existing forced-scope
+      phrases. Do not assert spec
+      or reviewer text in this
+      case. HEAD: Satisfies maps
+      every AC-*. Record one fail,
+      signature kind test key
+      plan-excludes-satisfies-close-evidence.
+
+      test:reviewer-checklist-close-evidence
+      asserts the canonical
+      reviewer skill checklist
+      says an applied-archive
+      CloseEvidence AC-* must have
+      a recorded evaluation. Do
+      not assert spec or plan text
+      in this case. HEAD: the
+      checklist has no
+      CloseEvidence line. Record
+      one fail, signature kind
+      test key
+      reviewer-checklist-close-evidence.
+
+      After those writes, remeasure
+      is this task's work (F84),
+      not a close-time side
+      effect. Run skillTextLines().
+      Update
+      src/test-support/token-accounting.test.ts
+      totalBytes (and total if the
+      line count moved) and the
+      README.md measurement cell
+      to the same fresh figures.
+      The README cell already
+      interpolates measured
+      figures in
+      token-accounting.test.ts;
+      keep that bounding
+      assertion. Live pins at this
+      HEAD: total 806 at
+      token-accounting.test.ts:32
+      and :52; totalBytes 55486 at
+      :53; README.md:299 publishes
+      806 lines / 55486 UTF-8
+      bytes. Spec Constraints
+      cited :50 and :51; those
+      lines drifted (comment and
+      measure call). Do not edit
+      any other README sentence,
+      table, or version marker.
+      Do not record the
+      pre-remeasure
+      token-accounting fail as a
+      planned red.
+
+      T-005 Verification runs what
+      AC-SUITE-AND-CI claims: the
+      named touched-package tests
+      (grammar, catalog,
+      skeletons, grace-generate,
+      gates, review,
+      skill-contracts,
+      token-accounting), bun test,
+      and validate-marketplace.
+      A subset does not satisfy
+      that criterion. It also runs
+      root lint for
+      AC-ARCHIVE-COMPAT. That lint
+      is not an AC-SUITE-AND-CI
+      command and is not this
+      bundle's close-verdict 0/0
+      claim.
+
+      ════════════════════════════════════
+      D7. ObservedWriteScope
+      ════════════════════════════════════
+      Re-derived against the tree
+      at a611273 by the spec
+      predicate (a file that must
+      gain or change an assertion,
+      or that this deliverable must
+      rewrite). Not copied from the
+      spec list.
+
+      Searched (live pins and
+      published constants this
+      deliverable can move):
+        806, 55106, 55486,
+        skillTextLines, totalBytes,
+        referencesTotal, perSkill
+        exact toBe, published-skill
+        cardinality 16, UTF-8
+        bytes cells, AC-SKELETON,
+        Satisfies,
+        acceptance-criterion-unmapped,
+        CloseEvidence,
+        ngrace-spec / ngrace-plan /
+        ngrace-reviewer exact
+        phrases in
+        skill-contracts.test.ts and
+        review/core.test.ts,
+        docs-claims.test.ts (absent),
+        scale-ergonomics.test.ts
+        (absent), scripts/ (no
+        skillTextLines pin),
+        examples/ (no skillTextLines
+        pin), docs/plans (historical
+        figures, out of scope).
+
+      Forced writes are the
+      ObservedWriteScope list.
+      Not forced: referencesTotal
+      1433; perSkill ngrace-fix 32;
+      cardinality 16 in
+      token-accounting.test.ts:34
+      :56 and
+      grace-context.test.ts:384
+      :387; templates under
+      references/; docs/plans/**;
+      CHANGELOG.md; version
+      surfaces; archive/**.
+
+      ════════════════════════════════════
+      D8. Out of plan
+      ════════════════════════════════════
+      C-APPROVAL-SCOPE owns D19 /
+      D20 skill sentences in
+      ngrace-spec, ngrace-plan, and
+      ngrace-execute. This bundle
+      edits only CloseEvidence
+      mapping sentences.
+      C-ARCHIVE-CURSOR / P3.1 own
+      lifecycle finish and a
+      mandatory post-archive act.
+      C-APPROVAL-FINGERPRINT,
+      C-CO-DRAFT, C-SUPERSEDE-VERB
+      are out.
+    -->
+  </C-CRITERION-CLOSE-EVIDENCE>
+</NgraceChangePlan>

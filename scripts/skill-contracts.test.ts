@@ -76,6 +76,28 @@ describe("GRACE lifecycle skill contracts", () => {
     expect(planTemplate).toContain("OutOfPlanScope");
   });
 
+  it("spec-teaches-close-evidence: spec skill teaches CloseEvidence under acceptance_criteria_anchors", () => {
+    const spec = read("skills/ngrace/ngrace-spec/SKILL.md");
+    const section = spec.match(/<acceptance_criteria_anchors>[\s\S]*?<\/acceptance_criteria_anchors>/)?.[0] ?? "";
+    expect(section).toContain("CloseEvidence");
+    expect(section).toMatch(/<CloseEvidence>[\s\S]*?<Command>/);
+  });
+
+  it("plan-excludes-satisfies-close-evidence: plan skill says CloseEvidence AC-* are not Satisfies targets", () => {
+    const plan = read("skills/ngrace/ngrace-plan/SKILL.md");
+    const section = plan.match(/<spec_plan_traceability>[\s\S]*?<\/spec_plan_traceability>/)?.[0] ?? "";
+    expect(section).toContain("CloseEvidence");
+    expect(section).toMatch(/not Satisfies targets/);
+  });
+
+  it("reviewer-checklist-close-evidence: reviewer checklist requires recorded evaluation", () => {
+    const reviewer = read("skills/ngrace/ngrace-reviewer/SKILL.md");
+    const section = reviewer.match(/<review_checklist>[\s\S]*?<\/review_checklist>/)?.[0] ?? "";
+    expect(section).toContain("CloseEvidence");
+    expect(section).toMatch(/applied-archive|applied archive/);
+    expect(section).toMatch(/recorded evaluation/);
+  });
+
   it("states TraceAssertion plus tests as the default evidence doctrine", () => {
     for (const rel of [
       "skills/ngrace/ngrace-verification/SKILL.md",

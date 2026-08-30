@@ -1,0 +1,678 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-CRITERION-CLOSE-EVIDENCE>
+    <Summary>
+      Add a close-bound acceptance-criterion state
+      so a criterion whose evidence exists only at
+      the close is authorable, distinguishable from
+      a forgotten mapping, and evaluated by a
+      shipped check at the first point where that
+      evidence exists and a verdict can still be
+      recorded. Post-archive lint 0/0 is the
+      motivating case, expressed as CloseEvidence
+      whose Command exits non-zero on warnings,
+      not as an AC-* this bundle itself authors.
+    </Summary>
+    <Problem>
+      HEAD 892c711 on main, packaged 6.2.0, tree
+      clean, active empty before this bundle,
+      lint 0/0, archive 46. Those numbers are a
+      snapshot.
+
+      An AC-* is either mapped (a task Satisfies
+      child names it) or unmapped. There is no
+      third state. collectAcceptanceCriteriaIds
+      and collectSatisfiedAcceptanceCriteria
+      (src/artifact/grammar.ts:1951-1978) know
+      those two sets only. validateSpecPlanCoverage
+      (src/artifact/grammar.ts:1876-1892) emits
+      change.acceptance-criterion-unmapped at
+      warning when an AC-* is in the first set
+      and not the second. Satisfies allows only
+      AC-* children or None
+      (src/artifact/grammar.ts:2056-2068). Verdict
+      records outcome, optional scope, classification,
+      and constituentTasksPassed
+      (src/artifact/grammar.ts:776-848); they do
+      not bind an AC-*. Semantic anchors are
+      attribute-free tags
+      (artifact.semantic-anchor-attribute).
+
+      AC-SUITE-AND-LINT in the copied model-plan
+      shape claimed 0 errors and 0 warnings after
+      apply and archive, and was Satisfies-linked
+      to a task that ends before that close (F82).
+      Authoring the close half as an unmapped AC-*
+      emits the unmapped warning, so a 0/0 bar
+      fails on a warning about itself (F83 related
+      paragraph; F83.1). That trap is why
+      C-CURSOR-TASK-SENTINEL was superseded.
+      C-DRIFT-HONESTY archived the workaround:
+      task-observable AC-SUITE-AND-CI, post-archive
+      lint 0/0 as close-verdict evidence, no
+      AC-SUITE-AND-LINT element. The teaching
+      template ships AC-SKELETON, not
+      AC-SUITE-AND-LINT
+      (skills/ngrace/ngrace-spec/references/change-spec-template.xml:14).
+      The force is habit, not the template.
+
+      Default lint fail-on is errors
+      (src/grace-lint.ts:79, :184). Exit 0 is not
+      0 errors and 0 warnings. The 0/0 bar is the
+      printed counts, or lint with argv token
+      fail-on set to warnings.
+
+      Close sequence (D20): argv token assertions
+      final, review, gate verdict, gate apply,
+      gate archive, applied status writes, archive
+      move. Post-archive lint is authority practice
+      after the move, not a CLI verb. Run-ledgers
+      end at the archive Decision (F86).
+      resolveChangeBundle searches active then
+      archive (src/grace-cursor.ts:500-502), so
+      gate verdict can already write a Verdict
+      into an applied archived ledger. Nothing
+      requires that write, and nothing evaluates
+      a criterion there.
+
+      Coverage runs on archive as well as active
+      (src/artifact/grammar.ts:1298-1307) and
+      skips only superseded
+      (src/artifact/grammar.ts:1822-1824). This
+      repo's applied archives have no unmapped
+      AC-* (root lint 0/0). plan new Satisfies-links
+      every AC-* from the spec to T-001
+      (src/artifact/skeletons.ts:171-173).
+    </Problem>
+    <Goals>
+      <Goal>
+        Make a close-bound AC-* authorable as a
+        CloseEvidence child of that AC-*, not as
+        an attribute on the anchor, not as a
+        Satisfies target, and not as a new
+        AcceptanceCriteria sibling section.
+      </Goal>
+      <Goal>
+        Keep a forgotten AC-* (no Satisfies, no
+        CloseEvidence) emitting
+        change.acceptance-criterion-unmapped at
+        warning, same code, same severity, same
+        message family.
+      </Goal>
+      <Goal>
+        Evaluate each CloseEvidence Command at
+        gate verdict when the bundle is applied
+        and lives under archive/. Refuse to
+        record outcome pass if any named Command
+        exits non-zero. Record each AC-* result
+        as Verdict children in that same write
+        (D16).
+      </Goal>
+      <Goal>
+        Have ngrace review on an applied archived
+        bundle raise a catalogued finding when a
+        CloseEvidence AC-* has no recorded
+        evaluation. Review findings are not lint
+        issues, so a 0/0 lint bar cannot fail on
+        a warning about itself.
+      </Goal>
+      <Goal>
+        Stop plan new from Satisfies-linking a
+        CloseEvidence AC-* to T-001.
+      </Goal>
+      <Goal>
+        README.md is in scope only for the
+        skillTextLines total / totalBytes
+        measurement cell (README.md:299) if this
+        deliverable rewrites a SKILL.md.
+        examples/ is unchanged; no user-visible
+        surface. Silence would fail
+        checkDocsAndExamplesDecision.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting). Grammar,
+        lint catalog, gate verdict writer, review
+        detector, skeleton emission, and skill
+        text. Tiers never skip argv token
+        assertions final.
+      </Constraint>
+      <Constraint>
+        Distinguishability. Close-bound is an
+        AC-* that has a CloseEvidence child
+        containing at least one non-empty
+        Command. Forgotten is an AC-* that has
+        neither CloseEvidence nor a Satisfies
+        reference. An empty CloseEvidence, a
+        CloseEvidence with no Command, or a
+        CloseEvidence whose only child is a
+        decoration tag, is
+        change.close-evidence-incomplete at
+        error, not an unmapped exemption. Typing
+        a marker is not the third state.
+      </Constraint>
+      <Constraint>
+        An AC-* must not be both close-bound and
+        task-mapped. Satisfies of a CloseEvidence
+        AC-* is change.close-evidence-and-satisfied
+        at error. That is F82 enforced: close
+        evidence must not be claimed by a task
+        pass.
+      </Constraint>
+      <Constraint>
+        The evaluator is gate verdict
+        (src/gates/command.ts record path;
+        src/gates/ledger.ts:248 recordReviewVerdict)
+        when resolveChangeBundle returns an
+        archive/ path and spec status is applied.
+        It runs each CloseEvidence Command and
+        records the result on that Verdict. It
+        does not run CloseEvidence on an active
+        bundle: that write is the apply-gate
+        verdict and the evidence does not exist
+        yet. No new argv token. Grammar expresses
+        the state; the existing verdict verb
+        evaluates it.
+      </Constraint>
+      <Constraint>
+        Pass is process exit 0 of the named
+        Command. A 0/0 lint bar is a Command that
+        exits non-zero when warnings exist: lint
+        with argv token fail-on set to warnings.
+        This bundle does not add a lint-output
+        parser. Default fail-on stays errors.
+      </Constraint>
+      <Constraint>
+        Lint does not emit a diagnostic that a
+        CloseEvidence AC-* has not yet been
+        evaluated. That diagnostic on the 0/0
+        Command would recreate F83.1. Authoring
+        codes (incomplete, both-states, invalid
+        child) stay lint errors because they are
+        shape, not close-time evidence.
+      </Constraint>
+      <Constraint>
+        Superseded and cancelled bundles never
+        reach an applied close. CloseEvidence on
+        those statuses is inert: no evaluation
+        required, no review absence finding.
+        Forgotten AC-* on cancelled still warn
+        as they do today. Superseded coverage
+        stays skipped (src/artifact/grammar.ts:1822-1824).
+        Rejected follows cancelled.
+      </Constraint>
+      <Constraint>
+        Existing archives must stay 0 errors.
+        CloseEvidence is additive; no applied
+        archive in this repo authors it. A check
+        that would warn on those 46 bundles is
+        not shippable without an explicit
+        grandfather recorded here. This spec
+        records none because none is needed if
+        the checks are additive.
+      </Constraint>
+      <Constraint>
+        change.acceptance-criterion-unmapped
+        stays warning. Raising it to error would
+        turn in-progress mapping (spec and plan
+        both exist, some AC-* not yet Satisfies
+        linked) into an invalid artifact, and
+        would be a D5.2 break for any adopter
+        who treats the warning as a TODO. Once
+        CloseEvidence exists, the 0/0 self-trap
+        is gone without that raise.
+      </Constraint>
+      <Constraint>
+        This spec does not author
+        AC-SUITE-AND-LINT and must not
+        Satisfies-link lint-after-archive to any
+        task. Until this bundle ships, the trap
+        it repairs still applies to it. Split:
+        AC-SUITE-AND-CI is task-observable;
+        post-archive lint 0/0 is close-verdict
+        evidence quoted in the verdict (D16),
+        not an AC-*. C-DRIFT-HONESTY
+        construction
+        (archive/C-DRIFT-HONESTY/spec.xml:1254-1317).
+      </Constraint>
+      <Constraint>
+        Forced write surface the later plan must
+        scope, including every pin this
+        deliverable moves:
+
+        src/artifact/grammar.ts and
+        src/artifact/grammar.test.ts
+        (CloseEvidence shape; unmapped exemption;
+        both-states error);
+
+        src/artifact/skeletons.ts and its tests
+        (plan new must not Satisfies-link
+        CloseEvidence AC-*; no graph module owns
+        this file, so the path is named here);
+
+        src/lint/catalog.ts and
+        src/lint/catalog.test.ts
+        (exact guides for every new change.*
+        code);
+
+        src/gates/ledger.ts, src/gates/command.ts,
+        and gate tests (evaluate CloseEvidence on
+        applied archive; refuse pass on non-zero;
+        record per-AC results; no new argv);
+
+        src/review/core.ts, src/review/catalog.ts,
+        and review tests (absence finding on
+        applied archive only);
+
+        skills/ngrace/ngrace-spec/SKILL.md
+        (teach CloseEvidence under
+        acceptance_criteria_anchors);
+
+        skills/ngrace/ngrace-plan/SKILL.md
+        (spec_plan_traceability: CloseEvidence
+        AC-* are not Satisfies targets);
+
+        skills/ngrace/ngrace-reviewer/SKILL.md
+        (review checklist: applied-archive
+        CloseEvidence must have a recorded
+        evaluation);
+
+        the packaged byte-mirrors under
+        plugins/ngrace/skills/ngrace/ for each
+        of those three SKILL.md files
+        (validate-marketplace drift);
+
+        src/test-support/token-accounting.test.ts
+        (skillTextLines total and totalBytes
+        pins) and README.md:299 (the published
+        cell) when any SKILL.md rewrite moves
+        those figures;
+
+        this bundle's spec.xml,
+        design-context.xml, and a later
+        plan-authoring pass's plan.xml.
+
+        Walk of the same kind (byte, line, or
+        count pin over skills, commands, or
+        artifacts). Searched: 806, 55106, 55486,
+        skillTextLines, totalBytes,
+        referencesTotal, perSkill exact toBe,
+        published-skill cardinality 16, UTF-8
+        bytes cells, AC-SKELETON, Satisfies,
+        acceptance-criterion-unmapped.
+
+        Forced by a SKILL.md rewrite:
+
+        token-accounting.test.ts:32 and :50 pin
+        total 806; :51 pins totalBytes 55486
+        (C-CURSOR-TASK-RESOLVER moved 55106 to
+        55486; 55106 is stale). README.md:299
+        publishes 806 lines / 55486 UTF-8 bytes.
+        One re-measure updates both
+        (AC-PIN-REMEASURE).
+
+        Not forced (same search):
+
+        README.md:300 referencesTotal 1433; this
+        deliverable edits SKILL.md, not
+        references/, unless a teaching comment
+        is added to a template. token-accounting
+        asserts referencesTotal only greater
+        than 0. perSkill ngrace-fix 32; this
+        deliverable does not edit ngrace-fix.
+        Cardinality 16 in
+        token-accounting.test.ts:34,:54 and
+        grace-context.test.ts published-skill
+        counts; this change does not add or
+        remove a skill. docs/plans/** cite
+        historical figures and stay out of
+        scope.
+
+        C-APPROVAL-SCOPE owns D19 / D20 skill
+        sentences in ngrace-spec, ngrace-plan,
+        and ngrace-execute. This bundle edits
+        only the AC-mapping / CloseEvidence
+        sentences. It does not rewrite close
+        ownership.
+      </Constraint>
+      <Constraint>
+        F56 / F67: FIX_DISTINCT_SIGNATURE_BUDGET
+        is 4, so a task may plan at most three
+        distinct fail signatures.
+        FIX_SIGNATURE_REPEAT_BUDGET is 2 under
+        exact kind-plus-key equality. F80: one
+        red evidences one property. F45: do not
+        manufacture a red for a HEAD-true
+        property. AC-PIN-REMEASURE is a bounding
+        pin (F84), not a manufactured red.
+        AC-FORGOTTEN-UNCHANGED, AC-NO-NEW-ARGV,
+        and AC-ARCHIVE-COMPAT have HEAD-true
+        halves; redden only the new exemption,
+        the new evaluator, and the new detector.
+      </Constraint>
+      <Constraint>
+        F61: no two adjacent hyphens inside any
+        XML comment body. Name argv tokens.
+        F66: README.md and examples/ are decided
+        in Goals and NonGoals above and below.
+        Do not edit docs/plans/**, the phase
+        board, CHANGELOG.md, any version
+        surface, or
+        .ngrace/changes/archive/**.
+        Packaged version at authoring: 6.2.0.
+        No product version bump.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        A new CLI argv token, a new gate
+        subcommand, or a lifecycle finish verb.
+        P3.1 / D1 owns lifecycle finish.
+        C-ARCHIVE-CURSOR owns archive-gate
+        cursor predicates. If a later measurement
+        shows gate verdict on applied archive is
+        the wrong home, re-spec; do not add argv
+        here.
+      </NonGoal>
+      <NonGoal>
+        Raising change.acceptance-criterion-unmapped
+        to error. Argument is in Constraints.
+      </NonGoal>
+      <NonGoal>
+        An attribute on AC-* (when, phase, bind).
+        Semantic anchors are attribute-free.
+        F38 already recorded what happens when
+        an anchor is stuffed into an attribute.
+      </NonGoal>
+      <NonGoal>
+        A Satisfies target that is the close,
+        a verdict, or a non-AC-* child.
+        Satisfies is task to AC-*. Close-bound
+        is declared on the criterion.
+      </NonGoal>
+      <NonGoal>
+        Evaluating CloseEvidence at argv token
+        assertions final, at review before
+        apply, or at gate archive. Those run
+        before the archive move. Post-archive
+        evidence does not exist there.
+      </NonGoal>
+      <NonGoal>
+        Mutating existing archives, rewriting
+        C-DRIFT-HONESTY, or making post-archive
+        lint 0/0 an AC-* on this bundle's own
+        spec.
+      </NonGoal>
+      <NonGoal>
+        D19 / D20 skill text, ngrace-execute
+        close-ownership sentences, approval
+        fingerprints (C-APPROVAL-FINGERPRINT),
+        co-draft (C-CO-DRAFT), or supersede
+        verb (C-SUPERSEDE-VERB).
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no user-visible
+        surface. Owner: unchanged; no
+        user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        README.md except the skillTextLines
+        measurement cell named in Goals, and
+        only if a SKILL.md rewrite moves the
+        published figures.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-THIRD-STATE-DISTINCT>
+        An AC-* with a CloseEvidence child that
+        contains at least one non-empty Command
+        is close-bound. collectAcceptanceCriteriaIds
+        still lists it. collectSatisfiedAcceptanceCriteria
+        does not, unless a task illegally
+        Satisfies it. validateSpecPlanCoverage
+        does not emit
+        change.acceptance-criterion-unmapped
+        for that id. Empty CloseEvidence,
+        CloseEvidence with no Command, or
+        CloseEvidence whose children are not
+        Command, is
+        change.close-evidence-incomplete at
+        error. CloseEvidence is a child element,
+        never an attribute on the AC-* tag.
+        HEAD today: no CloseEvidence element
+        exists; any AC-* without Satisfies
+        warns. Failure conditions: an attribute
+        is the only mark; an empty marker
+        exempts unmapped; a forgotten AC-*
+        becomes silent.
+      </AC-THIRD-STATE-DISTINCT>
+      <AC-FORGOTTEN-UNCHANGED>
+        Stay-true plus exemption isolation. An
+        AC-* with no CloseEvidence and no
+        Satisfies still emits
+        change.acceptance-criterion-unmapped at
+        warning, same code, from
+        src/artifact/grammar.ts:1883-1890. Legacy
+        free-text AcceptanceCriteria without
+        AC-* still skips mapping. HEAD today:
+        that warning already fires. Do not
+        manufacture a red for the forgotten
+        path (F45). Redden the exemption: a
+        CloseEvidence AC-* must not emit that
+        warning. Failure conditions: forgotten
+        goes silent; forgotten becomes error;
+        CloseEvidence still warns unmapped.
+      </AC-FORGOTTEN-UNCHANGED>
+      <AC-NOT-BOTH>
+        A task Satisfies child naming a
+        CloseEvidence AC-* emits
+        change.close-evidence-and-satisfied at
+        error on the plan. Unknown Satisfies
+        targets stay
+        change.unknown-acceptance-criterion at
+        error. HEAD today: Satisfies of a
+        defined AC-* is legal. Failure
+        conditions: both states are legal; the
+        new error swallows unknown-target.
+      </AC-NOT-BOTH>
+      <AC-EVALUATED-AT-CLOSE>
+        When gate verdict runs against a bundle
+        whose path is under archive/ and whose
+        spec status is applied, it runs each
+        CloseEvidence Command and records one
+        child per such AC-* on that Verdict
+        (id, exit, pass or fail). It refuses to
+        record outcome pass if any Command exits
+        non-zero. When gate verdict runs against
+        an active bundle, it does not run
+        CloseEvidence. No new argv token is
+        registered on gate, lint, or review.
+        HEAD today: recordReviewVerdict writes
+        an empty-children Verdict
+        (src/gates/ledger.ts:319-324) and never
+        runs a Command. Failure conditions:
+        evaluation on active; pass recorded
+        after a failed Command; results only in
+        the note prose; a new argv token.
+      </AC-EVALUATED-AT-CLOSE>
+      <AC-REVIEW-DETECTS-ABSENCE>
+        ngrace review with argv token change
+        on an applied archived bundle emits a
+        catalogued review.* finding when a
+        CloseEvidence AC-* has no recorded
+        evaluation on any Verdict. The same
+        review on an active, superseded,
+        cancelled, or rejected bundle does not
+        emit that finding. The finding is not a
+        lint change.* code. HEAD today: review
+        has no CloseEvidence reader. Failure
+        conditions: lint emits the absence;
+        review emits it before apply; review is
+        the only evaluator and gate verdict
+        never runs the Command (F89 decoration).
+      </AC-REVIEW-DETECTS-ABSENCE>
+      <AC-TERMINAL-INERT>
+        A superseded, cancelled, or rejected
+        archive that declares CloseEvidence
+        does not require a recorded evaluation
+        and does not emit the review absence
+        finding. Forgotten AC-* on cancelled or
+        rejected still warn.
+        change.acceptance-criterion-unmapped
+        stays skipped for superseded. HEAD
+        today: superseded skips coverage;
+        cancelled does not. Failure conditions:
+        cancelled CloseEvidence required to
+        have a close verdict; superseded
+        CloseEvidence errors.
+      </AC-TERMINAL-INERT>
+      <AC-ARCHIVE-COMPAT>
+        After this lands, bun run ngrace lint
+        with argv token path set to this
+        repository root against the existing
+        46 archives adds no new error
+        and no new warning on those bundles.
+        Additive shape only. HEAD today: those
+        archives are 0/0. Do not manufacture a
+        red against them (F45). Failure
+        conditions: an existing archive warns
+        or errors; a grandfather that hides a
+        real new defect on a new CloseEvidence.
+      </AC-ARCHIVE-COMPAT>
+      <AC-SKELETON-EXCLUDES>
+        ngrace plan new writes Satisfies only
+        for spec AC-* that are not close-bound.
+        A spec that has one CloseEvidence AC-*
+        and one ordinary AC-* yields a skeleton
+        that Satisfies-links only the ordinary
+        one. HEAD today: every AC-* is linked
+        (src/artifact/skeletons.ts:171-173).
+        Failure conditions: CloseEvidence AC-*
+        still auto-Satisfies; ordinary AC-*
+        stop being linked.
+      </AC-SKELETON-EXCLUDES>
+      <AC-NO-NEW-ARGV>
+        Stay-true. src/grace.ts command
+        registration and gate / lint / review
+        arg maps gain no new token. CloseEvidence
+        is grammar. Evaluation is the existing
+        gate verdict verb. HEAD today: no
+        close-evidence argv exists. Do not
+        manufacture a red (F45). Failure
+        conditions: a new token is the only way
+        the state is expressed.
+      </AC-NO-NEW-ARGV>
+      <AC-PIN-REMEASURE>
+        Task-observable bounding pin (F84); a
+        later plan Satisfies-links this to the
+        task that rewrites any SKILL.md. After
+        that rewrite,
+        src/test-support/token-accounting.test.ts
+        pins and the README.md:299 measurement
+        cell both match a fresh skillTextLines()
+        measure (totalBytes, and total if the
+        rewrite moves the line count). One
+        re-measurement updates every place the
+        figure is published. Do not manufacture
+        a red for the pin at HEAD (F45). HEAD
+        today: total 806, totalBytes 55486, in
+        both the test pin and the README cell.
+      </AC-PIN-REMEASURE>
+      <AC-SUITE-AND-CI>
+        Task-observable; a later plan
+        Satisfies-links this. bun test green
+        for touched packages (grammar, catalog,
+        skeletons, gates, review, skill-contracts,
+        token-accounting, and any other test
+        this deliverable forces). bun run
+        ./scripts/validate-marketplace.ts exits
+        0. A task that Satisfies this criterion
+        must put those commands in its
+        Verification block. This criterion does
+        not include lint. HEAD today: those
+        commands are green; that green is the
+        baseline, not this change's evidence.
+      </AC-SUITE-AND-CI>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GRAMMAR />
+      <M-LINT-CATALOG />
+      <M-GATES />
+      <M-REVIEW />
+      <M-SKILLS />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/artifact/grammar.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/artifact/skeletons.test.ts src/grace-generate.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/lint/catalog.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/gates/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Red-first on AC-THIRD-STATE-DISTINCT,
+        AC-NOT-BOTH, AC-EVALUATED-AT-CLOSE,
+        AC-REVIEW-DETECTS-ABSENCE,
+        AC-SKELETON-EXCLUDES, and the exemption
+        half of AC-FORGOTTEN-UNCHANGED, each
+        property its own red (F80), split across
+        tasks so no task plans more than three
+        distinct signatures or repeats a
+        signatureKey (F56, F67).
+        AC-FORGOTTEN-UNCHANGED forgotten path,
+        AC-NO-NEW-ARGV, and AC-ARCHIVE-COMPAT
+        are HEAD-true stay-true halves, not
+        reds (F45). AC-TERMINAL-INERT is a
+        characterization of statuses that never
+        close; redden only if a new required
+        evaluation fires on them.
+        AC-PIN-REMEASURE is a bounding pin
+        (F84), not a red. AC-SUITE-AND-CI is
+        task-observable suite evidence. Post-archive
+        lint 0/0 is close-verdict evidence (F82),
+        quoted in the close verdict after apply
+        and archive, not claimed by a task pass,
+        and is not an AC-*.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        resolveChangeBundle will keep searching
+        archive/ after active/
+        (src/grace-cursor.ts:500-502). If that
+        walk is later restricted to active/,
+        gate verdict cannot record close
+        evidence and this design is blocked.
+      </Assumption>
+      <Assumption>
+        Verdict children are currently empty
+        (src/gates/ledger.ts:319-324). Adding
+        per-AC result children is an additive
+        ledger shape. Existing Verdicts without
+        those children stay valid.
+      </Assumption>
+      <Assumption>
+        Root lint fail-on stays errors. 0/0 as
+        quoted counts remains authority practice
+        for this bundle's own close, not an
+        AC-*.
+      </Assumption>
+      <Assumption>
+        M-TEST-SUPPORT Path is
+        src/test-support/fixtures.ts. The pin
+        file is token-accounting.test.ts in the
+        same directory. Naming M-TEST-SUPPORT
+        covers that pin the way C-CURSOR-TASK-RESOLVER
+        named the cell in Constraints when it
+        omitted this module.
+      </Assumption>
+    </Assumptions>
+    <DesignReferences>
+      <UserResearch>docs/plans/active/RM-GOVERNED-PATH/decisions.md</UserResearch>
+    </DesignReferences>
+  </C-CRITERION-CLOSE-EVIDENCE>
+</NgraceChangeSpec>

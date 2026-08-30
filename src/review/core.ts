@@ -55,6 +55,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
+import { collectCloseBoundCriterionIds, collectCloseEvidenceEvaluations } from "../artifact/grammar";
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { resolveNgracePaths } from "../artifact/project";
 import { observedWriteScopeContains } from "../artifact/scope";
@@ -86,6 +87,7 @@ import {
 } from "../query/core";
 import {
   ATTEMPT_PAIR_FINDING_CODE,
+  CLOSE_EVIDENCE_ABSENCE_FINDING_CODE,
   REVIEW_ISSUE_SEVERITIES,
   WRITE_EVIDENCE_SCOPE_FINDING_CODE,
   REVIEW_CATALOG,
@@ -1457,6 +1459,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
 
   if (runProcess) {
     if (options.changeId) {
+      findings.push(...auditCloseEvidenceUnevaluated(root, options.changeId));
       const changeId = options.changeId;
       const resolved = resolveChangePlanPath(root, changeId);
       if (!resolved) {
@@ -1666,6 +1669,54 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
 type ScopeChangedFilesResolution =
   | { kind: "files"; files: string[]; source: "explicit" | "base" | "porcelain" | "recorded-base"; baseRef?: string }
   | { kind: "absence"; absence: AbsenceValue };
+
+function auditCloseEvidenceUnevaluated(root: string, changeId: string): ReviewFinding[] {
+  let bundlePath: string;
+  try {
+    bundlePath = resolveChangeBundle(root, changeId);
+  } catch {
+    return [];
+  }
+  const archiveMarker = `${path.sep}changes${path.sep}archive${path.sep}`;
+  if (!bundlePath.includes(archiveMarker)) return [];
+  const specPath = path.join(bundlePath, "spec.xml");
+  if (!existsSync(specPath)) return [];
+  const spec = readGraceXmlArtifact(specPath);
+  if (spec.root?.attributes.status !== "applied") return [];
+  const wrapper = spec.root.children.find((child) => ANCHOR_PATTERNS.change.test(child.tag));
+  if (!wrapper) return [];
+  const closeBound = collectCloseBoundCriterionIds(wrapper);
+  if (closeBound.size === 0) return [];
+
+  const evaluated = new Set<string>();
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (existsSync(ledgerPath)) {
+    const ledger = readGraceXmlArtifact(ledgerPath);
+    const ledgerWrapper = ledger.root?.children.find((child) => ANCHOR_PATTERNS.change.test(child.tag));
+    const verdicts = ledgerWrapper?.children.find((child) => child.tag === "Verdicts");
+    for (const verdict of verdicts?.children ?? []) {
+      for (const evaluation of collectCloseEvidenceEvaluations(verdict)) {
+        evaluated.add(evaluation.criterionId);
+      }
+    }
+  }
+
+  const specRel = path.relative(root, specPath).replaceAll("\\", "/");
+  const out: ReviewFinding[] = [];
+  for (const id of closeBound) {
+    if (evaluated.has(id)) continue;
+    out.push(
+      makeFinding(
+        CLOSE_EVIDENCE_ABSENCE_FINDING_CODE,
+        specRel,
+        `${id} has no recorded CloseEvidence evaluation on any Verdict.`,
+        CLOSE_EVIDENCE_ABSENCE_FINDING_CODE,
+        id,
+      ),
+    );
+  }
+  return out;
+}
 
 function readRecordedBaseCommit(root: string, changeId: string): string | undefined {
   try {

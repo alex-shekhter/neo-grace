@@ -258,7 +258,26 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     explanation: "The spec declares an AC-* acceptance criterion that no task Satisfies element references.",
     remediation: [
       "Add <Satisfies><AC-ID /></Satisfies> under the task that implements the criterion.",
+      "Or declare the criterion close-bound with a complete <CloseEvidence><Command>…</Command></CloseEvidence> child.",
       "Or remove the unused AC-* from the spec's AcceptanceCriteria if it is no longer required.",
+    ],
+  },
+  "change.close-evidence-incomplete": {
+    title: "CloseEvidence Is Incomplete",
+    explanation:
+      "An AC-* declares a CloseEvidence child that is empty, has no Command, or whose children are not Command. A marker without a non-empty Command is not the close-bound state.",
+    remediation: [
+      "Add at least one non-empty <Command> under <CloseEvidence>.",
+      "Or remove the CloseEvidence child so the criterion stays forgotten or is mapped via Satisfies.",
+    ],
+  },
+  "change.close-evidence-and-satisfied": {
+    title: "CloseEvidence Criterion Also Satisfies-Linked",
+    explanation:
+      "A task Satisfies child names an AC-* that is already close-bound via a complete CloseEvidence child. Close evidence must not be claimed by a task pass.",
+    remediation: [
+      "Remove the AC-* from the task Satisfies list.",
+      "Or remove CloseEvidence from the spec criterion if it is actually task-mapped.",
     ],
   },
   "change.unknown-acceptance-criterion": {
