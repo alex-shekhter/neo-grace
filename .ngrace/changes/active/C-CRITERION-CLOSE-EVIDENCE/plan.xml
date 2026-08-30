@@ -453,7 +453,7 @@
         </Satisfies>
       </T-004>
       <T-005>
-        <Title>Teach CloseEvidence, remesure pins, suite and archive compat</Title>
+        <Title>Teach CloseEvidence, remeasure pins, suite and archive compat</Title>
         <DependsOn>T-002 T-003 T-004</DependsOn>
         <AcceptanceCriteria>
           <Criterion>
@@ -480,7 +480,7 @@
             skillTextLines() measure
             (totalBytes, and total if the
             line count moves). One
-            remesure updates every place
+            remeasure updates every place
             the figure is published.
           </Criterion>
           <Criterion>
@@ -594,7 +594,7 @@
           AC-TERMINAL-INERT
         | test:review-absence-applied |
       | T-005 | skill text; mirrors;
-          remesure; suite; archive
+          remeasure; suite; archive
           compat
         | AC-PIN-REMEASURE,
           AC-SUITE-AND-CI,
@@ -608,7 +608,7 @@
       disjoint files, so they are
       parallel-safe after T-001.
       T-005 DependsOn T-002 T-003
-      T-004 so remesure and the
+      T-004 so remeasure and the
       suite run after every write
       that can move a pin.
 
@@ -671,7 +671,7 @@
       superseded, cancelled, or
       rejected);
       AC-PIN-REMEASURE numbers at
-      HEAD (F45 / F84: remesure is
+      HEAD (F45 / F84: remeasure is
       a bounding pin, not a red);
       catalog completeness after
       the same-task EXACT_GUIDES
@@ -679,7 +679,7 @@
       Do not record the
       token-accounting fail that
       appears after the skill
-      rewrite and before remesure
+      rewrite and before remeasure
       as a planned signature.
 
       F82 / F83: this plan does not
@@ -1001,7 +1001,7 @@
       review-absence-applied.
 
       ════════════════════════════════════
-      D6. Skills and remesure (T-005)
+      D6. Skills and remeasure (T-005)
       ════════════════════════════════════
       Edit only the AC-mapping /
       CloseEvidence sentences.
@@ -1070,7 +1070,7 @@
       test key
       reviewer-checklist-close-evidence.
 
-      After those writes, remesure
+      After those writes, remeasure
       is this task's work (F84),
       not a close-time side
       effect. Run skillTextLines().
@@ -1098,7 +1098,7 @@
       any other README sentence,
       table, or version marker.
       Do not record the
-      pre-remesure
+      pre-remeasure
       token-accounting fail as a
       planned red.
 
