@@ -6828,6 +6828,28 @@ that orders a red, evaluate the property against HEAD **and** against a correct 
 holds in both, it is an F45 exemption named at authoring, never a signature. Reviewing a spec means
 executing its instructions in the head, not reading them.
 
+### F113 — the approved spec ordered a typed-absence value onto a surface whose key set is frozen. **[verified]**
+
+`AC-STATUS-DRIFT-SOURCE` requires the status surface to report **typed absence** when git is
+unavailable and no fingerprint exists, in D5's idiom. But `src/grace-status.test.ts:354` pins the
+`StatusResult` top-level key set — *"keeps schemaVersion 1.0.0 and adds no StatusResult top-level
+key"* — so any typed-absence **field** is a new derived key by another name and breaks that pin.
+
+The spec asked for something the product forbids. The executor resolved it by surfacing absence only
+through `chooseNextAction` (`src/grace-status.ts:321`, *"Not evaluable: git unavailable."*), adding no
+JSON key, and reported the conflict rather than quietly picking one side.
+
+**The resolution is right and its limit should be stated.** Absence is now **human-readable text, not
+a machine-readable field**, so a JSON consumer cannot detect *not evaluable* programmatically. D5's
+idiom is served for an operator reading output and only partly served for a consumer parsing it.
+Widening `StatusResult` is a separate change that must retire or amend that pin deliberately.
+
+**Second defect found in this approved spec at execution time**, after [F112](#f112), both surfaced
+by the executor. Both are the same class: **the spec ordered something without checking it against a
+pin or a rule the product already enforces.** Spec review has to execute the criteria against the
+tree, not read them for plausibility — the same conclusion F112 reached, now with a second instance
+in one bundle.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
