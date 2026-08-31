@@ -6627,6 +6627,51 @@ means `ngrace status` reporting clean on a contract that provably changed.
 the git reading. Open nuance for the spec: *absent record* and *mismatched record* are different
 conditions collapsing onto one legacy state name, and a missing record is not a drift.
 
+### F109.1 correction — the superset claim was measured against the wrong design, and row three is not time-bounded. **[verified]**
+
+Two corrections in one entry, both raised by the executor, both verified. They correct
+[F109](#f109) and [F108.2](#f1082), which were authored separately and never checked against each
+other.
+
+**1. [F109](#f109)'s "strict superset" is false once [F108.2](#f1082) row three exists.**
+`collectApprovedContractDrift` (`src/grace-status.ts:654-662`) has **no fingerprint dependency** — it
+fires on any uncommitted edit to an approved spec/plan pair. The superset argument was measured for
+*fingerprinted* artifacts only. Combine the two amendments as originally written — delete the git
+reading, keep row three silent — and an approved artifact carrying an **unfingerprinted** `Decision`,
+edited uncommitted, is watched by **nothing**. Today git catches it.
+
+The affected population is nearly exactly one bundle: **this one, during its own execution window**,
+when the executor is actively editing files. Shipping both amendments as drafted would have left the
+bundle that invents fingerprinting the only bundle unwatched by the state whose git reading it
+deletes.
+
+**The resolution, ruled by the maintainer 2026-08-30: a precedence chain, not a deletion.** Inside
+one collector, per artifact:
+
+1. a fingerprinted `Decision` is present → compare the bytes to the fingerprint;
+2. else → the existing git tracked-changed reading;
+3. else (git unavailable) → typed absence.
+
+This still satisfies `RM-GITLESS-INTEGRITY` section 4. Its objection, and the
+[`C-REPORT-HONESTY`](#f14) precedent behind it, is to **two independent implementations** computing
+one answer and drifting apart — the [F60](#f60) shape. A single collector with a documented
+precedence chain is not that: exactly one answer per artifact, from the best evidence available. The
+git branch becomes dead code on its own once row three empties, and can then be deleted with no
+coverage argument.
+
+**The requirement that keeps this from becoming F60 later:** `status` and `review` must consume **one
+computed classification**, not each implement the three-way test.
+
+**2. [F108.2](#f1082)'s bound on row three was too small.** It said row three "can only arise from a
+pre-ship bundle or a hand-edited ledger". **A mixed-version CLI is a third source**: an older binary
+run after this ships writes the same unfingerprinted `Decision`, and it reads as pre-writer forever.
+Verified — the published package and this tree are both `6.2.0`, and [F99](#f99) already records that
+installers of a published version keep running the pre-fix writer until a release. **Row three is not
+time-bounded**, which is a further argument for keeping the git fallback rather than deleting it.
+
+**The rule.** When two amendments to one artifact are authored separately, evaluate them **together**
+before either is approved. Both were individually sound; their combination opened the hole.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
@@ -6784,7 +6829,7 @@ below; it is not given a slot.
 | # | Name | Charter | Pays | Status |
 |---|---|---|---|---|
 | 1 | **`C-CRITERION-CLOSE-EVIDENCE`** | A close/verdict-bound acceptance-criterion state, so post-archive lint 0/0 is authorable rather than reinvented as an unsatisfiable `AC-*`. Named here 2026-08-15. No existing name covers it: no `C-CRITERION*` / `C-CLOSE-EVIDENCE` in this directory; [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/) archived the workaround, not a third `AC-*` state. | [F82](#f82), [F83](#f83), [F83.1](#f831). F82 is already discharged as *practice* by `C-DRIFT-HONESTY`; this bundle is the product state that would make that practice authorable. F83's P2.6 / P2.4 halves were paid by the same archive; the live remainder is F83.1. | **Delivered** 2026-08-30, archived as [`C-CRITERION-CLOSE-EVIDENCE`](../../../../.ngrace/changes/archive/C-CRITERION-CLOSE-EVIDENCE/). Closed with [F100](#f100)–[F105](#f105). The residual hole is unpaid by design: after the archive move no gate is required to run, so the close-evidence verdict is skippable — `review` detects a skip, nothing refuses one. `C-ARCHIVE-CURSOR` / P3.1 own the mandatory post-archive act. |
-| 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18) entire: `gate approve` becomes the sanctioned `draft` to `approved` writer, records a per-`Decision` fingerprint of the bytes it wrote plus the artifact it targeted, ships the forced-permit escape hatch, **and** `review` reports an `approved` spec or plan whose newest per-artifact fingerprint is absent or no longer matches. Briefly split into a writer half and a detector half on 2026-08-30 and re-merged the same day; see [F108](#f108) and [F108.1](#f1081). | [F95](#f95) / [F95.1](#f951), [F81](#f81), [F109](#f109). | **Authorized to start.** Detection uses the three-way trigger of [F108.2](#f1082), so no bootstrap stamp is needed. It also retires `approved-contract-drift`'s git reading per [F109](#f109). Prerequisite of position 5. |
+| 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18) entire: `gate approve` becomes the sanctioned `draft` to `approved` writer, records a per-`Decision` fingerprint of the bytes it wrote plus the artifact it targeted, ships the forced-permit escape hatch, **and** `review` reports an `approved` spec or plan whose newest per-artifact fingerprint is absent or no longer matches. Briefly split into a writer half and a detector half on 2026-08-30 and re-merged the same day; see [F108](#f108) and [F108.1](#f1081). | [F95](#f95) / [F95.1](#f951), [F81](#f81), [F109](#f109). | **Authorized to start.** Detection uses the three-way trigger of [F108.2](#f1082), so no bootstrap stamp is needed. It re-sources `approved-contract-drift` from the fingerprint and **demotes** the git reading to a fallback rather than deleting it, per [F109](#f109) / [F109.1](#f1091). Prerequisite of position 5. |
 | 3 | **`C-SUPERSEDE-VERB`** | A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name. | [F86.1](#f861), [F86.2](#f862). | **Ordered, not deferred.** |
 | 4 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
 | 5 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after position 2, whose writer mints the fingerprint it depends on, and only if ratified after the re-measure. Unratified. |
