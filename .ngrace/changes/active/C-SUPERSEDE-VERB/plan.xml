@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="draft">
+<NgraceChangePlan graceVersion="1.0" status="approved">
   <C-SUPERSEDE-VERB>
     <IntentSummary>
       Add a top-level ngrace supersede root, defined in
