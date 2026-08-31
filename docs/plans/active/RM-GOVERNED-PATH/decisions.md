@@ -6987,6 +6987,40 @@ single-quoted root attribute, so F116's row two is reachable only through a cons
 which is an argument for the fixture, not against the repair, because the grammar accepts the form
 from any project the CLI is pointed at.
 
+### F119 — the authority's brief made F62's error, on the roadmap that records F62. **[verified]**
+
+The plan-authoring brief for `C-SUPERSEDE-VERB` ended: *"Stop after `plan.xml` is drafted and lint
+is green."* Measured after authoring: **1 error**,
+`change.graph-anchors-miss-write-scope`, because `ObservedWriteScope` names
+`src/grace-supersede.ts` before that file exists. `linksByPath` is built from files on disk, so the
+check cannot resolve a path the change has not yet created.
+
+This is the **third** instance of the class on this roadmap and the first the authority committed
+after writing the rule down. [F62](#f62) recorded the same code, on the same artifact shape, for
+`C-SCHEMA-REFERENCE`'s `src/artifact/schema-reference.ts`, and closed with: *"A prompt may state an
+expected lint result only when the authority has run that exact command against that exact artifact
+shape, or when the ledger already rules on the window."* Both conditions were available and neither
+was used — [D12](#d12) authorizes the window and [F19](#f19) already rules that the approval commit
+carries the predicted error and names it in the body.
+
+**The window is real and the alternatives are worse**, which is why it is authorized rather than
+repaired here. Dropping the path from `ObservedWriteScope` fails the spec's declared-writes
+requirement; stubbing the file to satisfy the checker is production work performed to make a lint
+run green, which is the failure mode `AC-HEAD-RED` exists to prevent. Precedent confirms the
+transient closes on its own: `C-SCHEMA-REFERENCE` shipped in `3e5c3d8` (PR #46) and that path lints
+clean today.
+
+**Why the phrasing mattered even though the executor ignored it.** A stop condition stated as an
+expected number is an instruction to produce that number. This executor measured and reported the
+discrepancy; that is the behaviour the standing report-by-exception field is for, not a reason to
+keep writing briefs that require it. The correction is not "be more careful with predictions" — it
+is to **state the window and ask for a measurement**, which costs the same to write.
+
+**The rule, restated because restating it is apparently not enough.** When a brief is about to name
+an expected verification result, the authority either ran that exact command against that exact
+artifact shape, or cites the ledger entry that rules on the window, or says neither and asks. There
+is no fourth form, and "it will be green" is not a stop condition — *"report what it says"* is.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
