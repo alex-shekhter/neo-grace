@@ -6909,6 +6909,84 @@ carries no time, actor, or evidence that the verb ran.
 **The rule.** Before calling two situations the same defect, name the mechanism of each. "No record"
 and "a record of the wrong thing" have different repairs.
 
+### F116 — the surgical needle is narrower than the parser on more than one axis, so quote normalisation alone does not close F114. **[verified]**
+
+[F114](#f114) recorded the repair as an **OR**: normalise both quote styles, *or* refuse loudly. The
+executor answered **AND**, and the measurement says it is right.
+
+Parsing four opening tags that a reader would all call `draft`, and asking separately whether the
+writer's literal `status="draft"` needle is present:
+
+| form | parsed status | `status="draft"` needle found |
+|---|---|---|
+| `status="draft"` | `draft` | yes |
+| `status='draft'` | `draft` | **no** |
+| `status = "draft"` | `draft` | **no** |
+| attribute on its own line | `draft` | yes |
+
+The needle misses on **two** axes, not one. Quote normalisation repairs row two and leaves row three
+writing nothing while the caller has already printed `permit`. So normalise-only is not a complete
+repair, and refuse-only turns a legal, lint-green draft into a document that can be neither approved
+nor superseded. Both halves are load-bearing.
+
+**The refuse must key on the grammar parse, not on the surgical reader.** `rootStatusFromFile`
+(`src/gates/ledger.ts:991-1001`) opens with the *same* narrow literal `'status="'`, so it returns
+`undefined` on rows two and three. A refuse conditioned on *"the surgical reader says draft"* can
+never fire on exactly the inputs that need it — it would ship as dead code that reads like a
+guarantee. Conditioning it on `parseGraceXmlArtifact` is what makes the property live.
+
+**The rule.** When a writer and a reader disagree about what a document says, the repair is not to
+teach the writer one more form the reader accepts. It is to make the writer prove it changed
+something, measured against the *authoritative* parse.
+
+### F117 — `CONTRIBUTING.md` states the opposite of what `package.json` runs. **[verified]**
+
+`CONTRIBUTING.md:46` says `validate:release` *"adds `release:check` and `validate:packed`, which
+`validate:ci` does not run"*. `package.json:73`'s `validate:ci` chain contains
+`bun run validate:packed`. The parenthetical rationale below the table repeats the claim.
+
+The sentence is false as written, and it is false in the direction that costs work: a contributor
+reads it as *"CI will not catch my packaging change"* and reaches for the heavier script, or trusts
+the sentence over the manifest. It also weakens the ship proof this bundle leans on — a spec that
+cites `validate:packed` as CI-run evidence should not be contradicted by the contributor guide.
+
+**Out of scope for `C-SUPERSEDE-VERB`.** Found after the spec's Constraints landed; a doc-only fix
+grafted onto an in-flight bundle is exactly the scope drift the constraint list exists to prevent.
+It needs its own change.
+
+### F118 — corrections to the authority's amendment brief. **[verified]**
+
+Three, all raised by the executor, all upheld on measurement.
+
+**1. `src/gates/ledger.ts` was already on the write surface.** The brief said the F114 repair
+*"enters"* it into the write allowlist and asked the spec to justify that as a deliberate in-scope
+repair. It is already one of the five files `src/grace-cursor.test.ts:484-513` allows, and this
+bundle was going to edit it anyway for the superseded writer. F114 is a **second reason** to edit a
+file already in scope, not a first appearance — the justification the brief asked for is answering a
+question nobody asked.
+
+**2. "Still prints `permit`" is not the writer's silence.** The brief folded the permit print into
+the F114 defect. `evaluateGate` returns `permit` *before* the writer runs
+(`src/gates/command.ts:97-118`); the stamp is inside the recording `try`, so a throw becomes
+`recordingError`, appends no `Decision`, writes no fingerprint, and `printGateEvaluation` sets a
+nonzero exit (`:180-182`). Suppressing the permit text would mix evaluation with recording and
+collide with A31.5, which exists precisely so a recording failure cannot swallow the evaluation the
+caller asked for. Naming the honest evaluation as the defect is [F86](#f86)'s error read backwards.
+
+**3. The five-operation count is the spec+plan close.** [F115](#f115) fixed F86.2's count at five; the
+brief then reused five as though it covered every bundle. A spec-only bundle is **three** operations.
+The corpus has exactly one such archived bundle, `C-LEDGER-READ-ABSENCE`. Repeating a corrected
+integer in a context the correction did not cover is the same off-by-one, one generation later.
+
+**Corpus measured while checking this.** Three superseded bundles
+(`C-LEDGER-READ-ABSENCE` spec-only, `C-CURSOR-TASK-IDENTITY`, `C-CURSOR-TASK-SENTINEL`), five
+superseded artifacts, every one carrying a `<Replacement>` element naming a different existing `C-*`,
+and every bundle with a `plan.xml` carrying the status on **both** files. The verb's target shape is
+the shape the archive already has. Separately: **zero** artifacts in this repository use a
+single-quoted root attribute, so F116's row two is reachable only through a constructed fixture —
+which is an argument for the fixture, not against the repair, because the grammar accepts the form
+from any project the CLI is pointed at.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
