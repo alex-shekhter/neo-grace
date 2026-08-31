@@ -45,18 +45,36 @@
     is a sibling export in that
     file so the writeFileSync
     allowlist does not grow a path.
-    The command def itself follows
-    scaffoldCommand: an extra root
-    exported from
-    src/grace-generate.ts, already
-    in package.json files, already
-    allowed to writeFileSync. A new
-    src/grace-supersede.ts would
-    need a files-list line or the
-    packed CLI would ship a help
-    entry with no module (F99
-    class). That cost is avoided
-    without hiding the root.
+    The command def is a new
+    src/grace-supersede.ts plus a
+    package.json files entry
+    (maintainer ruling). Putting
+    an extra root in
+    src/grace-generate.ts, or a
+    file under src/gates/ which
+    already ships as a directory,
+    would hide a new lifecycle
+    root where packaging already
+    includes it. The new file
+    defines the command and
+    delegates every write,
+    including renameSync, to
+    ledger.ts, so the five-file
+    writeFileSync allowlist does
+    not grow. bun run
+    validate:packed is the ship
+    proof: grace.ts statically
+    imports the new module, so a
+    missing files entry fails the
+    packed install. F114 is
+    repaired on that shared writer
+    in this bundle because a
+    second caller of a known-silent
+    function is worse than a mixed
+    write surface. Shape: both
+    quote styles, and a throw when
+    the grammar parse says draft
+    and the needle missed.
 
     Require, do not create. The
     registry says atomically with
@@ -75,10 +93,11 @@
     replacement-first. The verb
     should perform that order, not
     invert it. Atomically means
-    the four artifact writes and
-    the move, including the
-    Replacement element, are one
-    invocation against a successor
+    the five operations (F115:
+    status on spec, status on
+    plan, a replacement reference
+    on both, and the move) are
+    one invocation against a successor
     that already has a directory.
 
     Failure. The honest
@@ -152,10 +171,14 @@
     gate had already recorded
     permit; it is not a gap
     when no gate is in the
-    story. The record of this
-    transition is the archived
-    bundle's status and
-    Replacement element.
+    story (F115). The record of
+    this transition is the
+    archived bundle's status and
+    Replacement element. That
+    record is a state, not an
+    event: it carries no time,
+    actor, or evidence that the
+    verb ran.
   </Rationale>
   <Alternatives>
     <Alternative>
@@ -259,17 +282,62 @@
       does not need.
     </Alternative>
     <Alternative>
+      Extra root from
+      src/grace-generate.ts
+      (scaffoldCommand pattern).
+      Rejected by maintainer
+      ruling. Generate already
+      ships; hiding a lifecycle
+      root there is a packaging
+      dodge. The honest cost is
+      a new src/grace-supersede.ts
+      plus a files entry, proved
+      by bun run validate:packed.
+    </Alternative>
+    <Alternative>
+      Command file under
+      src/gates/. Rejected. That
+      directory already ships
+      whole in package.json
+      files, so the new file
+      would appear in the tarball
+      with no files-list delta.
+      Same dodge. The verb is
+      not a gate.
+    </Alternative>
+    <Alternative>
       New src/grace-supersede.ts
-      plus a package.json files
-      line. Rejected as
-      unnecessary. scaffoldCommand
-      already lives in
-      src/grace-generate.ts as
-      an extra root. A new file
-      is honest and more
-      expensive; the packed CLI
-      would miss it if the files
-      list were forgotten.
+      that itself writeFileSyncs
+      spec and plan. Rejected.
+      The writeFileSync allowlist
+      would grow to six, which
+      is a separate spec decision
+      with its own criterion.
+      This spec keeps the closed
+      five-file list by
+      delegating every write to
+      ledger.ts.
+    </Alternative>
+    <Alternative>
+      F114 normalise-only.
+      Rejected. Quote-style
+      handling writes the known
+      fixture but leaves the
+      silent return for any other
+      form lint already reads as
+      draft. The binding
+      requirement is no silent
+      no-op after permit.
+    </Alternative>
+    <Alternative>
+      F114 refuse-only. Rejected.
+      A legal draft the grammar
+      accepts would become
+      un-approvable. rootStatusFromFile
+      currently cannot even see
+      the F114 fixture as draft,
+      so a refuse keyed on parsed
+      draft would not fire.
     </Alternative>
     <Alternative>
       Require a lexicon phrase
@@ -406,6 +474,28 @@
       defineGraceCommand the
       same way other roots
       refuse one.
+    </Scenario>
+    <Scenario>
+      Single-quoted draft.
+      Opening-tag status uses
+      single quotes; lint reads
+      draft. gate approve writes
+      approved, preserving the
+      quote character, and
+      fingerprints those bytes.
+      The same fixture under
+      this verb writes
+      superseded the same way.
+    </Scenario>
+    <Scenario>
+      Grammar-parsed draft whose
+      opening tag has no
+      locatable status needle.
+      The writer throws. No
+      Decision. Bytes unchanged.
+      Exit nonzero. Evaluation
+      may still print permit
+      (A31.5 recordingError).
     </Scenario>
   </Scenarios>
 </NgraceChangeDesignContext>

@@ -13,9 +13,15 @@
       is not a gate, mints no Decision, and
       reuses the surgical attribute write in
       src/gates/ledger.ts rather than
-      re-serializing. Partial failure rolls
-      bytes back; a superseded bundle still
-      under active/ is resumed by the same verb.
+      re-serializing. The command def lives in
+      a new src/grace-supersede.ts listed in
+      package.json files; every write stays in
+      ledger.ts. This bundle also repairs F114
+      on that shared writer so a permitting
+      caller cannot receive a silent no-op.
+      Partial failure rolls bytes back; a
+      superseded bundle still under active/ is
+      resumed by the same verb.
     </Summary>
     <Problem>
       HEAD 9d156cd on feat/supersede-verb, cut
@@ -44,8 +50,9 @@
       that set in a different order and is the
       pin README CLI Overview must match.
       gate subCommands at
-      src/gates/command.ts:425-430 are
-      approve, apply, archive, verdict.
+      src/gates/command.ts:426-429 are
+      approve, apply, archive, verdict
+      (F115: F86.2's :336-340 is stale).
       GateId (src/gates/ledger.ts:103) is
       approve, apply, archive only; verdict
       is a sibling recorder, not a GateId.
@@ -124,10 +131,11 @@
       (src/gates/ledger.ts:1049-1061)
       calls writeDraftRootToApproved
       (:1004-1013): a surgical
-      replacement of status="draft" with
-      status="approved" in the root
-      opening tag, then SHA-256 of the
-      on-disk bytes. It does not call
+      replacement of the double-quoted
+      draft status needle with
+      approved in the root opening
+      tag, then SHA-256 of the on-disk
+      bytes. It does not call
       serializeGraceXmlDocument on the
       spec or plan (that serialize is
       used for the ledger at :242).
@@ -145,6 +153,55 @@
       :224-258) restores priorBytes on
       a failed write and unlinks only a
       newly created ledger.
+
+      ---
+
+      Measured F114. writeDraftRootToApproved
+      at :1008-1010 searches the opening
+      tag for one double-quoted draft
+      needle and returns with no write
+      when that substring is absent.
+      rootStatusFromFile (:991-1001)
+      parses only the double-quoted
+      form. Single-quoted status is
+      legal XML: parseGraceXmlArtifact
+      reads it as draft and lint reports
+      0 issues. On that artifact gate
+      approve still evaluates permit
+      (src/gates/command.ts:107-118),
+      still calls stampApproveArtifact
+      which still hashes the unwritten
+      bytes, still appends a Decision,
+      and still exits 0. collectApprovedContractDrift
+      (src/grace-status.ts:677) and
+      auditApprovedArtifact
+      (src/review/core.ts:1687) skip
+      unless status is approved, so
+      nothing reports the lie. Shipped
+      by archive/C-APPROVAL-FINGERPRINT/.
+      This verb reuses that writer.
+      Maintainer ruling: repair F114
+      in this bundle.
+
+      ---
+
+      Measured packaging. package.json
+      files lists individual src/*.ts
+      paths (package.json:29-41) next
+      to whole directories (src/gates
+      at :48). A new top-level file
+      omitted from that array is absent
+      from the npm tarball. validate:packed
+      (package.json:73, :77) runs
+      scripts/packed-cli-smoke.ts, which
+      npm-packs, installs the tarball,
+      and executes src/grace.ts from
+      the install (scripts/packed-cli-smoke.ts:139-167).
+      A static import from grace.ts of
+      a file the tarball omitted fails
+      that first packed invocation.
+      That is the ship proof, not a
+      files-array assertion.
 
       ---
 
@@ -187,7 +244,17 @@
       appends nothing to Decisions
       looks like that gap; whether it
       is that gap is a decision below,
-      not an inheritance.
+      not an inheritance. F115: the
+      brief's equivalence was wrong.
+      F86's gap is a gate Decision
+      standing in for work the gate
+      did not do. There is no
+      supersede gate. The residual,
+      once the lint-checked status
+      plus Replacement exist, is that
+      the record is a state, not an
+      event: it carries no time, actor,
+      or evidence that the verb ran.
 
       ---
 
@@ -207,13 +274,17 @@
       ordering a behaviour onto a
       surface, this spec names the pins
       that surface already carries.
+      F111. Flatten whitespace before
+      grepping this artifact.
     </Problem>
     <Goals>
       <Goal>
         A new top-level ngrace root named
-        supersede, registered in
-        src/grace.ts alongside the existing
-        roots, branded with
+        supersede, defined in
+        src/grace-supersede.ts, registered
+        in src/grace.ts alongside the
+        existing roots by a static import
+        of that module, branded with
         defineGraceCommand so
         BOOLEAN_SPACE_GUARD_BRAND holds,
         listed in liveCommandRoots, and
@@ -221,7 +292,9 @@
         token in a README.md CLI Overview
         table row. It is not a gate
         subcommand and not a spec or plan
-        subcommand.
+        subcommand. It is not an extra
+        root exported from
+        src/grace-generate.ts.
       </Goal>
       <Goal>
         That verb is the sanctioned
@@ -309,6 +382,55 @@
         would fail
         checkDocsAndExamplesDecision.
       </Goal>
+      <Goal>
+        src/grace-supersede.ts is listed
+        in package.json files next to
+        the other src/grace-*.ts paths.
+        package.json is in scope for
+        that array only. Packaged
+        version stays 6.2.0. bun run
+        validate:packed is the command
+        that proves the file shipped:
+        a missing files entry fails
+        the packed install of a
+        grace.ts that statically
+        imports it. Do not prove
+        shipment by asserting the
+        JSON array in a unit test.
+      </Goal>
+      <Goal>
+        F114 repair on the shared
+        writer. writeDraftRootToApproved
+        and the new superseded writer
+        both handle single-quoted and
+        double-quoted opening-tag
+        status. When the grammar parse
+        of the artifact (the same
+        parse lint uses) reads status
+        draft and the surgical write
+        did not happen, the writer
+        throws; stampApproveArtifact
+        does not fingerprint; no
+        Decision is appended. A writer
+        whose caller has already
+        reported permit must not
+        return silently having done
+        nothing. This is a deliberate
+        in-scope repair of a defect
+        shipped by
+        archive/C-APPROVAL-FINGERPRINT/,
+        not scope creep: this verb
+        reuses that writer, and
+        shipping as-is would add a
+        second caller of a known-silent
+        function. ledger.ts is already
+        on this bundle's write surface
+        for the superseded path; F114
+        is a second reason to edit
+        that function and the tests
+        that pin it, unrelated to
+        superseding itself.
+      </Goal>
     </Goals>
     <Constraints>
       <Constraint>
@@ -323,9 +445,19 @@
         Binding: RM-GOVERNED-PATH
         registry position 3 (charter),
         F86.2 (measured close and the
-        only linting order), F86 / F86.1
+        only linting order; cite F115
+        for the five-operation count
+        and for command.ts:426-429,
+        not F86.2's four hand writes
+        or :336-340), F86 / F86.1
         (honesty-gap sibling, not this
-        verb), F19.1 (honest intermediate
+        verb), F114 (silent no-op on
+        the shared writer; repaired
+        here), F115 (create-versus-require
+        was not a fork; ledger
+        equivalence was wrong; residual
+        is state not event), F19.1
+        (honest intermediate
         unrepresentable), D18 / A29.2
         (gate purity remains approve-only
         for status writes; apply, archive,
@@ -370,19 +502,24 @@
       <Constraint>
         Decided here: require the
         replacement directory; do not
-        create it. F86.2's fifth absence
-        is a checker: the successor must
-        already be a directory.
+        create it. F86.2 named a fifth
+        absence besides the writes it
+        counted: a checker that the
+        successor directory already
+        exists.
         Creating a skeleton would
         duplicate writeSpecNew
         (src/grace-generate.ts:80-91),
         would author an empty replacement
         after the old contract had left
         active/, and would invert the
-        only order that lints. The
-        replacement is a content decision
-        authored while the old bundle is
-        still the live contract (ngrace-plan
+        only order that lints. F115:
+        that create-versus-require
+        choice was not a real fork.
+        The replacement is a content
+        decision authored while the
+        old bundle is still the live
+        contract (ngrace-plan
         approved_plan_immutability).
         Atomically with the replacement
         in the registry sentence means
@@ -390,7 +527,12 @@
         written as part of the same
         verb as the status writes and
         the move, not that spec new is
-        absorbed.
+        absorbed. F115: F86.2's close
+        is five operations (status on
+        spec, status on plan, a
+        replacement reference on both,
+        and the move), not four hand
+        writes.
       </Constraint>
       <Constraint>
         Decided here: ordering and
@@ -406,10 +548,9 @@
         status on spec (and plan if
         present) is draft or approved,
         or the resume case below;
-        opening-tag status uses the
-        double-quoted form
-        writeDraftRootToApproved already
-        matches. 2. Compute next bytes
+        opening-tag status is locatable
+        as either quote style on the
+        status attribute (F114). 2. Compute next bytes
         in memory (status superseded;
         insert a Replacement element as
         first child of the wrapper when
@@ -486,10 +627,14 @@
         Replacement element naming the
         successor, which applied-close
         folklore never had. That is
-        not F86 reproduced. The old
-        bundle's ledger, if any, moves
-        with the directory and is left
-        otherwise untouched.
+        not F86 reproduced (F115).
+        The residual: that record is
+        a state, not an event. It
+        carries no time, no actor, and
+        no evidence that the verb ran.
+        The old bundle's ledger, if
+        any, moves with the directory
+        and is left otherwise untouched.
       </Constraint>
       <Constraint>
         Decided here: reuse the
@@ -498,33 +643,144 @@
         src/gates/ledger.ts next to
         stampApproveArtifact, sharing
         rootOpeningTag (:985-989).
-        Status needle is the
-        double-quoted form already
-        used at :1008-1012, extended
-        to accept draft or approved as
-        the source value. writeFileSync
-        of spec/plan bytes stays in
-        that file so
-        src/grace-cursor.test.ts:484-513
-        does not gain a new path.
-        Command def is a
-        defineGraceCommand root
-        exported from
-        src/grace-generate.ts (the
-        scaffoldCommand pattern at
-        :244-266: an extra root from
-        the generate module, already
-        in package.json files).
-        Register it in src/grace.ts
-        and in liveCommandRoots.
-        Do not add a new src/*.ts
-        sibling that package.json
-        files would miss. Do not add
+        Status needles are both quote
+        styles of the source value
+        (draft or approved for this
+        verb; draft for approve),
+        preserving the quote character
+        used on that attribute and
+        swapping only the value.
+        writeFileSync of spec/plan
+        bytes, mkdirSync if any, and
+        renameSync all stay in
+        ledger.ts. Do not add
         unlinkSync or rmSync call
         sites (the pin at
         src/grace-cursor.test.ts:515-547
         is exact). renameSync is new
         and unpinned; it is the move.
+      </Constraint>
+      <Constraint>
+        Decided here: F114 shape is
+        both. Normalise so the
+        surgical writer and
+        rootStatusFromFile handle
+        single-quoted and
+        double-quoted status on the
+        opening tag, preserving the
+        quote character. And refuse
+        loudly: if parseGraceXmlArtifact
+        (the parse lint uses) reads
+        root status draft and the
+        surgical needle was not
+        applied, the writer throws a
+        GraceCommandError; it does
+        not return. stampApproveArtifact
+        does not hash. recordGateDecision
+        is not reached (same try at
+        src/gates/command.ts:107-118).
+        printGateEvaluation still
+        prints the already-computed
+        permit and sets exit 1 on
+        recordingError (:180-182,
+        A31.5); do not change
+        evaluateGate to refuse. The
+        already-approved re-approve
+        no-op (core.test.ts:1843-1853)
+        stays: parsed status is not
+        draft, so the loud refuse
+        does not fire. Normalise-only
+        is insufficient: the silent
+        return at :1009-1010 remains
+        for any other form lint reads
+        as draft (whitespace around
+        the equals is legal XML) and
+        the binding requirement is
+        that a permitting caller must
+        not observe a silent no-op,
+        not that quotes are the only
+        miss. Refuse-only is
+        insufficient: a legal draft
+        the grammar already accepts
+        would become un-approvable
+        and un-supersedable, and
+        refuse when parsed status is
+        draft is vacuously true today
+        if the reader stays
+        double-quote-only
+        (rootStatusFromFile :991-1001
+        returns undefined on the
+        F114 fixture, so the refuse
+        would never fire). Both is
+        the repair that writes legal
+        drafts and cannot reprint
+        the F114 lie. Do not expand
+        classifyApprovedArtifact or
+        the approved-only guards at
+        src/grace-status.ts:677 and
+        src/review/core.ts:1687.
+      </Constraint>
+      <Constraint>
+        Decided here: command def is
+        a new top-level
+        src/grace-supersede.ts on
+        the existing src/grace-*.ts
+        convention, plus one new
+        entry in package.json files
+        next to those paths. Maintainer
+        ruling: a new file and the
+        files entry, not an extra
+        root from
+        src/grace-generate.ts (that
+        is a packaging dodge: generate
+        already ships) and not a file
+        under src/gates/ (that
+        directory already ships as a
+        whole, which would hide the
+        files-list delta the same
+        way). package.json is in
+        scope for the files array
+        only; no other field; version
+        stays 6.2.0; no product
+        version bump. grace.ts
+        registers the root by a
+        static import of
+        src/grace-supersede.ts at
+        the same site as the other
+        roots (src/grace.ts:20-31).
+        liveCommandRoots imports it
+        the same way. The new file
+        defines the command and
+        delegates every write,
+        including renameSync, to
+        ledger.ts. It must not
+        contain the identifiers
+        writeFileSync or mkdirSync,
+        including in imports: the
+        allowlist grep
+        (src/grace-cursor.test.ts:484-513)
+        matches those tokens, not
+        call sites. That is the
+        explicit allowlist decision:
+        the closed five-file list
+        does not grow. Growing it to
+        six would be a different
+        spec decision with its own
+        criterion; this spec does
+        not make that decision.
+        bun run validate:packed is
+        required verification that
+        the file shipped. Do not
+        add a supersede case to
+        scripts/packed-cli-smoke.ts
+        for that proof; the static
+        import is the catch. Do not
+        extend the
+        scale-ergonomics.test.ts:368
+        files pin; that pin is four
+        named historical files plus
+        gates/review, not a closed
+        complete files list (F113).
       </Constraint>
       <Constraint>
         F113 pins checked before
@@ -561,9 +817,18 @@
         scripts/skill-contracts.test.ts:56-57
         substrings: keep or update in
         this bundle. package.json
-        files: unchanged because the
-        command def lives in an
-        already-published module.
+        files: gains one path,
+        src/grace-supersede.ts; no
+        other field. writeFileSync
+        allowlist stays the closed
+        five-file list because the
+        new file does not write.
+        src/artifact/scale-ergonomics.test.ts:368
+        files pin is four named
+        historical files plus
+        gates/review, not a complete
+        files list; do not extend it
+        as the ship proof (F113).
         A29.2 / command.ts:15-16 and
         the README sentence that apply,
         archive, and verdict never
@@ -602,17 +867,32 @@
         moves:
 
         src/gates/ledger.ts and its
-        tests (new export next to
+        tests, including
+        src/gates/core.test.ts (new
+        export next to
         stampApproveArtifact: surgical
         superseded status, Replacement
         insert, renameSync, byte
-        rollback, resume);
+        rollback, resume; and the F114
+        repair of writeDraftRootToApproved
+        / rootStatusFromFile, a second
+        reason to edit that file,
+        unrelated to superseding,
+        shipped by
+        archive/C-APPROVAL-FINGERPRINT/);
 
-        src/grace-generate.ts
-        (supersedeCommand root);
+        src/grace-supersede.ts
+        (command def only; no
+        writeFileSync or mkdirSync
+        identifier) and
+        src/grace-supersede.test.ts
+        if command tests live there;
 
-        src/grace.ts (register the
-        root);
+        src/grace.ts (static import
+        and register the root);
+
+        package.json files array
+        only (one new path);
 
         src/query/command.test.ts
         (liveCommandRoots membership
@@ -621,7 +901,9 @@
         src/grace-cursor.test.ts
         write-surface inventory only
         if a new writeFileSync path
-        appears (it must not);
+        appears (it must not; the
+        five-file list is an explicit
+        stay);
 
         skills/ngrace/ngrace-plan/SKILL.md,
         skills/ngrace/ngrace-execute/SKILL.md,
@@ -641,13 +923,23 @@
         later plan-authoring pass's
         plan.xml.
 
+        Not on the write surface:
+        src/grace-generate.ts (no
+        extra root),
+        scripts/packed-cli-smoke.ts
+        (run as verification, not
+        edited),
+        src/artifact/scale-ergonomics.test.ts
+        (do not extend that pin).
+
         Walk of the same kind.
         Searched: writeFileSync,
         liveCommandRoots,
         listLiveInvocations,
         skillTextLines, GateId,
         renameSync, Replacement,
-        superseded.
+        superseded, package.json
+        files, validate:packed.
       </Constraint>
       <Constraint>
         This spec does not author
@@ -674,10 +966,20 @@
         AC-SHAPE-STAY-VALID, and the
         stay-true half of
         AC-WRITE-SURFACE have
-        HEAD-true halves; redden only
-        the new root, the required-replacement
+        HEAD-true halves; do not
+        redden the five-file
+        allowlist remaining five,
+        or bun run validate:packed
+        being green at HEAD (F45).
+        Redden only the new root
+        (including that it is
+        defined in
+        src/grace-supersede.ts),
+        the required-replacement
         refuse, the surgical write
         plus move, rollback/resume,
+        the F114 single-quoted write
+        and the F114 throw-on-miss,
         the skill sentences, and the
         README row.
       </Constraint>
@@ -724,6 +1026,33 @@
         Text stdout like spec new.
       </NonGoal>
       <NonGoal>
+        An extra root exported from
+        src/grace-generate.ts, or a
+        command file under src/gates/
+        that would ship because that
+        directory is already in
+        package.json files. Owner:
+        this spec's command-home
+        Constraint; those homes are
+        packaging dodges.
+      </NonGoal>
+      <NonGoal>
+        package.json except the files
+        array. Owner: unchanged; no
+        product version bump.
+        Packaged version stays 6.2.0.
+      </NonGoal>
+      <NonGoal>
+        Expanding
+        classifyApprovedArtifact or
+        the approved-only guards so
+        a still-draft artifact after
+        a permitting approve is
+        reported. Owner: unchanged.
+        F114 is repaired at the
+        writer, not at the detector.
+      </NonGoal>
+      <NonGoal>
         Closing replacementChangeIds
         to a single shape, adding
         change.duplicate-bundle-id,
@@ -763,8 +1092,11 @@
     <AcceptanceCriteria>
       <AC-ROOT-COMMAND>
         ngrace supersede is a live
-        top-level root: registered in
-        src/grace.ts, present in
+        top-level root: defined in
+        src/grace-supersede.ts,
+        registered in src/grace.ts
+        by a static import of that
+        module, present in
         liveCommandRoots, branded with
         BOOLEAN_SPACE_GUARD_BRAND, and
         listed as an ngrace supersede
@@ -772,7 +1104,9 @@
         Overview table row.
         listLiveInvocations includes
         that invocation. It is not
-        under gate, spec, or plan.
+        under gate, spec, or plan,
+        and it is not exported from
+        src/grace-generate.ts.
         argv token change and argv
         token replacement are required
         strings; argv token path
@@ -784,9 +1118,14 @@
         conditions: the verb is a gate
         subcommand; the verb is spec
         supersede or plan supersede;
+        the def lives in
+        src/grace-generate.ts or
+        under src/gates/;
         liveCommandRoots omits it;
         README table omits it;
-        defineGraceCommand is skipped.
+        defineGraceCommand is skipped;
+        grace.ts does not statically
+        import src/grace-supersede.ts.
       </AC-ROOT-COMMAND>
       <AC-REQUIRE-REPLACEMENT>
         The verb refuses with a
@@ -814,12 +1153,12 @@
         A successful invocation whose
         spec root status is draft or
         approved writes superseded
-        onto that root attribute the
-        same way writeDraftRootToApproved
-        swaps draft to approved
-        (src/gates/ledger.ts:1004-1013):
-        opening-tag attribute only,
-        no serializeGraceXmlDocument
+        onto that root attribute
+        surgically: opening-tag
+        attribute only, both quote
+        styles, preserving the quote
+        character, no
+        serializeGraceXmlDocument
         of the spec or plan. When
         plan.xml exists it receives
         the same status write. When
@@ -835,7 +1174,8 @@
         pre-write bytes aside from
         those two edits. HEAD today:
         stampApproveArtifact writes
-        approved only; nothing writes
+        approved only, double-quoted
+        needle only; nothing writes
         superseded. Failure conditions:
         round-trip serialize; plan
         skipped when present; a
@@ -843,8 +1183,55 @@
         a direct C-* child written by
         this verb; a second Replacement
         element when one already names
-        the target.
+        the target; single-quoted
+        source left unwritten.
       </AC-SURGICAL-WRITE>
+      <AC-WRITER-NO-SILENT>
+        F114 repair of the shared
+        writer, two properties, each
+        its own red (F80).
+        Property one: a draft whose
+        opening-tag status uses
+        single quotes is written the
+        same way a double-quoted
+        draft is: value swapped,
+        quote character preserved,
+        rest of the file
+        byte-identical. That holds
+        for stampApproveArtifact
+        (draft to approved) and for
+        this verb (draft or approved
+        to superseded). HEAD today:
+        writeDraftRootToApproved
+        :1008-1010 no-ops on that
+        fixture; red that.
+        Property two: when
+        parseGraceXmlArtifact reads
+        root status draft and the
+        surgical needle was not
+        applied, the writer throws;
+        stampApproveArtifact does
+        not fingerprint; no Decision
+        is appended; exit is
+        nonzero. HEAD today: that
+        path returns, fingerprints,
+        and records; red that.
+        Do not redden the
+        double-quoted draft-to-approved
+        byte-identity pin
+        (core.test.ts:1826-1841) or
+        the already-approved re-approve
+        no-op (:1843-1853); both are
+        HEAD-true and stay true
+        (F45, F102). Failure
+        conditions: single-quoted
+        draft still unwritten after
+        a permitting approve;
+        grammar-parsed draft with no
+        locatable needle still
+        fingerprints; the writer
+        returns void on that miss.
+      </AC-WRITER-NO-SILENT>
       <AC-MOVE-AND-ROLLBACK>
         After the artifact writes
         succeed, renameSync moves the
@@ -946,10 +1333,21 @@
         Stay-true plus path isolation.
         Production writeFileSync and
         mkdirSync remain only in the
-        files src/grace-cursor.test.ts:484-513
-        already allows. New spec/plan
-        writes from this verb live in
-        src/gates/ledger.ts. The
+        five files
+        src/grace-cursor.test.ts:484-513
+        already allows. Explicit
+        decision: src/grace-supersede.ts
+        defines the command and
+        delegates every write,
+        including renameSync, to
+        src/gates/ledger.ts, so that
+        closed five-file list does
+        not grow to six. The new file
+        must not contain the
+        identifiers writeFileSync or
+        mkdirSync, including in
+        imports (the grep matches
+        those tokens). The
         unlinkSync/rmSync/rmdirSync
         inventory stays the four call
         sites at :538-547. HEAD today:
@@ -958,13 +1356,17 @@
         :249, :1012. Do not manufacture
         a red for membership of
         ledger.ts on the write
-        allowlist (F45). Redden a new
-        file on that grep, or a fifth
-        unlink/rm call site.
+        allowlist, or for the five-file
+        list remaining five (F45).
+        Redden a new file on that
+        grep, or a fifth unlink/rm
+        call site.
         Failure conditions: a new
         src/*.ts path appears on the
-        writeFileSync grep; rmSync of
-        the bundle directory.
+        writeFileSync grep; the new
+        command file writes;
+        rmSync of the bundle
+        directory.
       </AC-WRITE-SURFACE>
       <AC-SKILL-PATH>
         After the skill rewrite,
@@ -1045,7 +1447,8 @@
         Task-observable; a later plan
         Satisfies-links this. bun test
         green for touched packages
-        (gates ledger, generate,
+        (gates ledger and core F114
+        tests, grace-supersede,
         query command README pins,
         cursor write-surface inventory,
         skill-contracts,
@@ -1053,11 +1456,24 @@
         other test this deliverable
         forces). bun run
         ./scripts/validate-marketplace.ts
-        exits 0. A task that Satisfies
-        this criterion must put those
-        commands in its Verification
-        block. This criterion does not
-        include lint. HEAD today:
+        exits 0. bun run
+        validate:packed exits 0 and
+        is the command that proves
+        src/grace-supersede.ts
+        shipped: a missing files
+        entry fails the packed
+        install because grace.ts
+        statically imports that
+        file (package.json:73, :77;
+        scripts/packed-cli-smoke.ts:139-167).
+        Do not manufacture a red for
+        validate:packed being green
+        at HEAD (F45). A task that
+        Satisfies this criterion must
+        put those commands in its
+        Verification block. This
+        criterion does not include
+        lint. HEAD today:
         those commands are green; that
         green is the baseline, not this
         change's evidence.
@@ -1081,13 +1497,14 @@
     </AffectedAreas>
     <VerificationIntent>
       <ExpectedCommand>bun test src/gates/core.test.ts</ExpectedCommand>
-      <ExpectedCommand>bun test src/grace-generate.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-supersede.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test src/grace-cursor.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test</ExpectedCommand>
       <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:packed</ExpectedCommand>
       <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
       <ExpectedEvidence>
         Red-first on AC-ROOT-COMMAND,
@@ -1096,6 +1513,8 @@
         AC-MOVE-AND-ROLLBACK,
         the writer half of
         AC-SHAPE-STAY-VALID,
+        both properties of
+        AC-WRITER-NO-SILENT,
         AC-SKILL-PATH, and
         AC-README-ROW, each property
         its own red (F80), split across
@@ -1109,11 +1528,14 @@
         half of AC-WRITE-SURFACE are
         HEAD-true stay-true halves,
         not reds (F45, F102, F112).
-        AC-PIN-REMEASURE is a bounding
-        pin (F84), not a red.
-        AC-SUITE-AND-CI is
-        task-observable suite evidence.
-        Post-archive lint 0/0 is
+        Do not redden validate:packed
+        green at HEAD. AC-PIN-REMEASURE
+        is a bounding pin (F84), not
+        a red. AC-SUITE-AND-CI is
+        task-observable suite evidence
+        and includes bun run
+        validate:packed as the ship
+        proof. Post-archive lint 0/0 is
         AC-CLOSE-LINT CloseEvidence,
         evaluated at gate verdict on
         the applied archive, not
@@ -1122,13 +1544,28 @@
     </VerificationIntent>
     <Assumptions>
       <Assumption>
-        src/grace-generate.ts remains
-        an acceptable home for an
-        extra defineGraceCommand root
-        (scaffoldCommand at :244-266)
-        without gaining its own graph
-        module. M-CLI Path stays
-        src/grace.ts.
+        M-CLI Path stays src/grace.ts.
+        src/grace-supersede.ts is a
+        new top-level command module
+        in that Path, the same shape
+        as src/grace-doctor.ts, and
+        does not require a new graph
+        module.
+      </Assumption>
+      <Assumption>
+        A static import of
+        src/grace-supersede.ts from
+        src/grace.ts is enough for
+        bun run validate:packed to
+        fail if that file is omitted
+        from package.json files,
+        because packed-cli-smoke.ts
+        loads the packed src/grace.ts
+        for lint before any
+        supersede invocation exists.
+        Lazy or dynamic import would
+        void that proof; this spec
+        forbids it.
       </Assumption>
       <Assumption>
         Same-filesystem renameSync
