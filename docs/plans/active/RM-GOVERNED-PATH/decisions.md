@@ -6423,6 +6423,62 @@ empty. Note this is the shape an author most wants to write.
 anything about behaviour. Chain shell steps as sibling `Command` elements, never with `&&`.
 Companion to [F43](#f43) and [F61](#f61).
 
+### F95.1 correction — the twin count is 11, and its denominator is 43, not 46. **[verified]**
+
+[F95](#f95) recorded "ten of 46" and flagged itself as a dated measurement. Re-measured
+2026-08-30 with a per-occurrence count (these `run-ledger.xml` files are a **single line**, so
+`grep -c` counts lines and silently caps at 1):
+
+**11 bundles** carry two permitting approve `Decision` elements — the original ten plus
+`C-CRITERION-CLOSE-EVIDENCE`, which reproduced the defect after F95 was written.
+
+**The denominator is wrong in both records.** 47 directories exist under `archive/`, but only
+**43** contain a `run-ledger.xml`: `C-ABSENCE-VALUE`, `C-ATTEMPT-LOG`, `C-LEDGER-READ-ABSENCE`
+and `C-RUN-LEDGER` have none and could never carry the twin. The honest figure is **11 of 43
+ledger-bearing archives**.
+
+**The rule.** State the denominator you actually measured over. "Of 46 archives" implies 46 could
+have carried it; four cannot.
+
+### F106 — `missingApplyGateRecord` is dead code that reads as a working detector. **[verified]**
+
+`missingApplyGateRecord` (`src/gates/core.ts:507-510`) is exported, documented in the module-map
+comment at `core.ts:22`, and has **zero call sites** anywhere in `src/` or `scripts/` — production
+or test. Verified by grep excluding its own definition and comment.
+
+This matters because it was cited as load-bearing. `C-CRITERION-CLOSE-EVIDENCE`'s approved plan
+argued the post-archive hole could not be closed because "nothing detects a missing archive
+`Decision` — `missingApplyGateRecord` checks *apply*." True as far as it goes, and the conclusion
+survives, but the stronger fact is that it checks **nothing**, because nobody calls it. An
+exported name in a module map is not evidence that a check runs.
+
+**The rule.** Before citing a detector as a reason a hole is open or closed, grep for its call
+sites. `C-APPROVAL-FINGERPRINT`'s detection half must not assume any existing detector is wired
+up.
+
+### F107 — `status` tells the operator to author a new bundle to explain the bundle being authored. **[verified]**
+
+With one active bundle in draft-spec state, `ngrace status` reports its own two files as
+unexplained drift and prints:
+
+> Use `$ngrace-refresh` to reconcile unexplained repository changes through a new
+> `NgraceChangeSpec` and `NgraceChangePlan`.
+
+Observed on `C-APPROVAL-FINGERPRINT` at draft-spec: derived states
+`draft-spec, unexplained-observed-drift`; unexplained paths are that bundle's own `spec.xml` and
+`design-context.xml`.
+
+**This is systematic, not incidental.** Drift is "explained" only by an **approved or applied**
+scope. A draft spec is neither, and it has no plan, so a bundle can never explain its own files
+while being authored. **Every** bundle passes through this state, so the tool advises authoring a
+second bundle to explain the first, every time — and `ngrace-status`'s own skill text calls
+draft-spec-with-no-plan the normal intermediate state.
+
+Raised by the executor unprompted while reporting on an unrelated task, and confirmed here.
+
+**The rule.** Suggested-next-action text must be suppressed, or reworded, when the unexplained
+paths are the in-flight bundle's own artifacts. Not yet assigned to a named bundle.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield

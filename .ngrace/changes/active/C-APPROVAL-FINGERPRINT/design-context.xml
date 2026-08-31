@@ -1,0 +1,395 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-APPROVAL-FINGERPRINT</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    Why these five decisions, measured
+    against the current write path,
+    not inherited from comments.
+
+    What is fingerprinted. Whole file
+    bytes of spec.xml or plan.xml
+    after the surgical status write.
+    digestProjectFile already SHA-256
+    hashes on-disk bytes to lowercase
+    hex (src/grace-cursor.ts:1762).
+    A canonicalised parse would be a
+    new grammar that can silently
+    discard whitespace and comments
+    the operator actually saw, which
+    is the class of defect this track
+    refuses. design-context.xml has
+    no status and is not approved.
+    The chicken-egg: hashing before
+    writing approved would make the
+    fingerprint mismatch the moment
+    status lands, and D18's defect
+    is status approved whose
+    fingerprint no longer matches.
+    So the write happens first, then
+    the hash. If the root is already
+    approved, the bytes are not
+    rewritten; the hash is of what
+    is there.
+
+    Re-approval. D9 forbids rewriting
+    a Decision. An amended artifact
+    is a new permit of new bytes, so
+    a new Decision. Copying the first
+    fingerprint, the way
+    firstStoredBaseCommit copies
+    baseCommit at ledger.ts:411-415,
+    would pin the spec-stage bytes
+    onto the plan-stage Decision and
+    leave F95 unpaid. baseCommit is
+    a once-ever fact about when the
+    change started. A fingerprint is
+    a claim about what this Decision
+    permitted. Those are different
+    facts and they do not share a
+    reader.
+
+    Read-order, measured. F81 said
+    permit lookup is newest-governs
+    at ledger.ts:120. At HEAD that
+    line is a Verdict type member.
+    readPermittingDecision at :848
+    is any-permit via some().
+    latestReviewVerdict is the
+    newest-governs reader.
+    firstStoredBaseCommit is
+    first-in-document-order.
+    Detection for this fingerprint
+    is newest-governs per artifact:
+    the latest claim about spec
+    bytes is compared to spec.xml,
+    the latest claim about plan
+    bytes to plan.xml. any-match
+    against every historical
+    fingerprint would let an old
+    matching Decision hide a later
+    junk claim. Grouping by the
+    artifact attribute is required
+    for that newest-governs split;
+    without it the newest Decision
+    in the file would be compared
+    to the wrong bytes. The
+    attribute also makes F95's
+    twins readable without hashing.
+
+    Target selection. The skill
+    runs gate approve at spec
+    stage and again at plan stage.
+    Defaulting to the current
+    unapproved artifact, then to
+    the plan if both are approved,
+    pays that path without a
+    required argv token. The
+    measured re-approval (F40 /
+    RM-GITLESS-INTEGRITY) edited
+    an already-approved plan and
+    re-ran the gate; that is the
+    default plan branch. Re-stamping
+    an already-approved spec while
+    a plan exists is the override
+    (argv token artifact). Matching
+    re-approve still appends, so
+    archive/C-BUNDLE-BASE-REF/'s
+    two-permit first-wins tests
+    remain expressible.
+
+    Algorithm. SHA-256 lowercase
+    hex, 64 characters, same form
+    WriteEvidence already stores.
+    Well-formed as an attribute
+    value. No algo prefix: a later
+    algorithm change would be a
+    new attribute or a versioned
+    prefix, not this bundle.
+
+    Detection home. D18 points at
+    P3.7, which is not shipped.
+    The live precedent is
+    archive/C-CRITERION-CLOSE-EVIDENCE/:
+    a reportable defect that must
+    not break a 0/0 lint bar lives
+    in review, because review
+    findings are not lint issues.
+    F83.1 is why this bundle itself
+    can author AC-CLOSE-LINT as
+    CloseEvidence rather than as
+    an unmapped AC-*. Archives are
+    applied or superseded (47/47);
+    a trigger on status approved is
+    silent there without a
+    grandfather list. The hole D1.4
+    had to close was applied as
+    the legitimate historical
+    method. That is not this
+    trigger. The live hole is an
+    active approved with no
+    fingerprint, which is F88, and
+    this bundle after its own
+    pre-writer approval. Review is
+    correct to fire on this bundle
+    until the new writer stamps it.
+    Apply does not refuse: that
+    would be enforcement, which
+    D18 and F2 already refused.
+
+    Hand-authored flow. Today the
+    authority hand-writes approved
+    after a lexicon phrase, then
+    the agent runs gate approve,
+    which records a Decision and
+    does not write status. After
+    this lands, the phrase still
+    gates the operator; the
+    sanctioned write is the gate.
+    Hand-writing and then running
+    the gate still produces a
+    matching record if the bytes
+    were not edited. Hand-writing
+    and never running the gate is
+    the review error. argv token
+    record false stays a dry-run.
+    Skill requirement 15 currently
+    authors F95 by mandating the
+    second run and saying the gate
+    does not set status; that
+    sentence has to move with the
+    writer.
+
+    Escape hatch. D1.5 is the
+    analog and is also unshipped.
+    Putting force on the existing
+    approve verb, not a new
+    subcommand, keeps one record
+    path. A forced permit is still
+    a permit so detection accepts
+    it; forced true plus a reason
+    is how a reader tells it from
+    a ratified one. Requirement
+    children still show what was
+    bypassed, so the hatch is not
+    a silent green. Empty reason
+    writes nothing, or the hatch
+    becomes a bare boolean. Force
+    does not resurrect applied or
+    superseded: that is a different
+    transition.
+
+    A29.2. D1 said the gate does
+    not set status and a separate
+    verb writes applied. D18 puts
+    the approved write on the
+    approve gate itself. That is a
+    deliberate revision of gate
+    purity for approve only. Apply,
+    archive, and verdict stay
+    evaluate-and-record.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Child element holding the
+      digest. Rejected. F81: a
+      non-Requirement child of
+      Decision raises
+      ledger.invalid-decision at
+      grammar.ts:901-910 and
+      ledger.ts:619-622, which
+      would invalidate the event
+      detection keys on. Extra
+      attributes are already
+      accepted.
+    </Alternative>
+    <Alternative>
+      First-observation-wins, like
+      baseCommit. Rejected. That
+      writer copies the first
+      stored value at
+      ledger.ts:411-415. Doing the
+      same for a fingerprint would
+      stamp spec bytes onto the
+      plan-stage Decision and leave
+      F95 as two still-unorderable
+      records. baseCommit is when
+      the change started;
+      fingerprint is what this
+      permit covered.
+    </Alternative>
+    <Alternative>
+      Canonicalised parse, or hash
+      excluding the status
+      attribute. Rejected. A new
+      canonical form can discard
+      intent. Detection keys on
+      status approved, so surviving
+      apply by excluding status is
+      not required. Whole-file
+      bytes after the surgical
+      write match the existing
+      digest helper.
+    </Alternative>
+    <Alternative>
+      Lint change.* error or
+      warning. Rejected. F83.1: a
+      lint diagnostic on this
+      bundle's own approved-without-
+      fingerprint window, or on a
+      0/0 close criterion, fails
+      the bar on a warning about
+      itself. Review findings are
+      not lint issues.
+    </Alternative>
+    <Alternative>
+      gate apply refuse on a
+      missing or mismatched
+      fingerprint. Rejected as
+      the detector. That is
+      enforcement. D18 and F2
+      already refused that
+      posture. Apply stays as it
+      is. Review reports.
+    </Alternative>
+    <Alternative>
+      Fingerprint spec.xml only,
+      because D18's first sentence
+      names the spec. Rejected.
+      F95 is the plan-stage twin.
+      The named-bundle registry
+      says this bundle pays F95.
+      Spec-only would leave the
+      second Decision still
+      fingerprinting the wrong
+      bytes or none.
+    </Alternative>
+    <Alternative>
+      Grandfather by absence of
+      any fingerprint-bearing
+      Decision, the D1.4 analog.
+      Rejected as the only trigger.
+      That would silence F88: an
+      agent that hand-writes
+      approved and never runs the
+      gate has no fingerprint-
+      bearing Decision, which is
+      the defect. Status approved
+      is the trigger; archives
+      are not in that state.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      F88.3 candidate (b): bind the
+      lexicon phrase to the
+      fingerprinted bytes. Not
+      ratified. Would change the
+      attestation format; D18 said
+      so.
+    </Decision>
+    <Decision>
+      D19 / D20 skill sentences
+      (per-step phrase, authority
+      owns the close). Owner:
+      C-APPROVAL-SCOPE.
+    </Decision>
+    <Decision>
+      Co-draft of spec and plan.
+      D18 is a prerequisite; this
+      bundle does not ratify
+      C-CO-DRAFT.
+    </Decision>
+    <Decision>
+      Whether RM-VERIFIED-APPROVAL
+      later makes this fingerprint
+      the local half of a two-party
+      code. Out of this repo-local
+      floor.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Spec-stage permit. spec.xml
+      is draft. Operator runs gate
+      approve after a lexicon
+      phrase. The command writes
+      approved, hashes spec.xml,
+      appends a Decision with
+      artifact spec and that
+      fingerprint. plan.xml is
+      untouched.
+    </Scenario>
+    <Scenario>
+      Plan-stage permit. spec.xml
+      is already approved and
+      matches. plan.xml is draft.
+      The same command writes
+      approved onto plan.xml,
+      hashes it, appends a second
+      Decision with artifact plan.
+      The two Decisions are not
+      byte-identical. F95 paid.
+    </Scenario>
+    <Scenario>
+      Amended plan re-approval.
+      Both artifacts approved.
+      plan.xml bytes changed. A
+      recorded approve targets
+      plan, appends a new
+      fingerprint, leaves the
+      earlier Decisions in place.
+      Detection reads the newest
+      plan Decision.
+    </Scenario>
+    <Scenario>
+      Hand-written approved, no
+      gate. Active spec status is
+      approved. No fingerprint-
+      bearing Decision for spec.
+      ngrace review with argv
+      token change reports the
+      catalogued error. Lint stays
+      0/0. gate apply still
+      evaluates as today.
+    </Scenario>
+    <Scenario>
+      Forced permit. Unresolved
+      IC-* clarification. argv
+      token force with a non-empty
+      reason. Decision is permit
+      with forced true and that
+      reason; status is written;
+      bytes are fingerprinted;
+      Requirement children still
+      show the missing check.
+      Detection treats it as a
+      matching record if the hash
+      matches.
+    </Scenario>
+    <Scenario>
+      argv token record false.
+      Evaluate prints. spec.xml
+      bytes unchanged. Ledger
+      unchanged.
+    </Scenario>
+    <Scenario>
+      Existing archive. status
+      applied, no fingerprint
+      attributes. Lint 0/0. Review
+      without argv token change
+      does not raise the new
+      finding. No grandfather
+      table.
+    </Scenario>
+    <Scenario>
+      This bundle after the writer
+      lands. Its spec and plan were
+      approved the old way. Review
+      on this change id fires until
+      the new approve write stamps
+      both artifacts. That is the
+      first real use, not an
+      exemption.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>

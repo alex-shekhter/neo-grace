@@ -1,0 +1,1051 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-APPROVAL-FINGERPRINT>
+    <Summary>
+      gate approve becomes the sanctioned
+      writer of draft to approved on the
+      targeted spec or plan, and records
+      on that permitting Decision a
+      per-Decision fingerprint of the
+      artifact bytes it just wrote.
+      status equals approved with no
+      matching fingerprint record, or
+      whose newest per-artifact
+      fingerprint no longer matches those
+      bytes, is a review error. A forced
+      permit records itself as forced
+      with an operator-supplied reason.
+      Tamper-evidence, not enforcement.
+    </Summary>
+    <Problem>
+      HEAD 4213085 on
+      feat/approval-fingerprint, cut from
+      main at that commit, packaged 6.2.0,
+      tree clean, active empty before this
+      bundle, lint 0/0, archive 47. Those
+      numbers are a snapshot (F33).
+
+      RM-GOVERNED-PATH D18 is the charter.
+      gate approve writes status approved
+      onto the artifact it approved and
+      records a fingerprint of those
+      bytes. A status approved that
+      carries no matching approval record,
+      or whose fingerprint no longer
+      matches the bytes, is a reportable
+      defect. A non-interactive escape
+      hatch ships with this change, not
+      after it. This is tamper-evidence,
+      not enforcement: a single actor
+      with write access can still author
+      the status, the record, and the
+      fingerprint. Do not report this as
+      human-in-the-loop enforced.
+      RM-VERIFIED-APPROVAL is the later
+      plan that would need a second party.
+
+      ---
+
+      Measured write path, not inherited.
+      src/gates/command.ts:15 and :334
+      still say the gate never authors
+      status. gateSubCommand description
+      at :126 says it does not change
+      status. runGate at :89-108 evaluates,
+      and on a permitting approve observes
+      HEAD and calls recordGateDecision.
+      It does not touch spec.xml or
+      plan.xml. evaluateApproveGate
+      (src/gates/core.ts:259-298) returns
+      permit or refuse from unresolved
+      IC-* / INV-* clarifications only;
+      it writes nothing and does not
+      spawn git (core.test.ts:1550).
+      README.md:192-197 repeats the
+      never-author-status sentence and
+      describes approve as evaluate and
+      record.
+
+      ngrace-plan requirement 15
+      (skills/ngrace/ngrace-plan/SKILL.md:68)
+      and the hard rule at :113 mandate
+      a second gate approve at the plan
+      stage and say the gate records a
+      Decision and does not itself set
+      status. ngrace-spec status_rules
+      still treat approved as an authored
+      write after a lexicon phrase.
+
+      ---
+
+      Measured Decision shape (F81).
+      GateDecisionRecord
+      (src/gates/ledger.ts:109-114) has
+      gate, decision, requirements, and
+      optional baseCommit. No fingerprint,
+      no artifact identity, no forced
+      flag. recordGateDecision at :407-422
+      writes attributes gate and decision,
+      and baseCommit only on a permitting
+      approve. Children are Requirement
+      only. validateLedgerDecisionsSection
+      (src/artifact/grammar.ts:901-910)
+      and parseDecisionNode
+      (src/gates/ledger.ts:619-622) raise
+      ledger.invalid-decision on any
+      non-Requirement child. Extra
+      attributes are already accepted:
+      the grammar loop does not close
+      the attribute set, and
+      core.test.ts:1533 plants baseCommit
+      on a valid permitting approve.
+      A child element for the fingerprint
+      is the shape F81 recorded would
+      invalidate the event the detection
+      rule keys on.
+
+      ---
+
+      Measured read-order, at the
+      decision site, not from a comment.
+      firstStoredBaseCommit
+      (src/gates/ledger.ts:644-653),
+      used at :411-415, copies the first
+      non-empty baseCommit in document
+      order onto later permitting
+      approve writes. That is
+      first-observation-wins, and it is
+      a once-ever fact about when the
+      change started. readPermittingDecision
+      at :848 is any-permit via some(),
+      not newest. latestReviewVerdict is
+      newest-governs. The DecisionListResult
+      comment at :123 says newest-governs
+      scan; the permit reader does not
+      do that. F81's pointer at :120 is
+      stale. A fingerprint that copied
+      first-observation-wins would pin
+      the first artifact's bytes onto
+      every later Decision and leave
+      F95 unpaid.
+
+      ---
+
+      F95, re-measured this session,
+      not inherited. 11 of 47 archived
+      bundles carry two permitting
+      approve Decision elements
+      (F95's dated ten of 46 plus
+      archive/C-CRITERION-CLOSE-EVIDENCE/).
+      Zero fingerprint attributes in
+      the archive. On
+      archive/C-CURSOR-TASK-RESOLVER/
+      the pair is byte-identical
+      including baseCommit, because
+      first-observation-wins copies
+      the spec-approve object name
+      onto the plan-stage write.
+      Following the skill is what
+      authors the unorderable record.
+
+      ---
+
+      Archive status, re-measured.
+      44 applied/applied, 2
+      superseded/superseded,
+      1 superseded with no plan
+      (archive/C-LEDGER-READ-ABSENCE/).
+      Zero status equals approved.
+      D1.4's non-retroactive trigger
+      was required because applied was
+      the legitimate historical method.
+      Detection that keys on status
+      equals approved is silent on this
+      archive without a grandfather
+      table. The live compatibility
+      window is this bundle's own
+      spec and plan, which will be
+      approved before the writer
+      exists.
+
+      ---
+
+      Existing digest. digestProjectFile
+      (src/grace-cursor.ts:1754-1762)
+      SHA-256 hashes on-disk file bytes
+      to lowercase hex. WriteEvidence
+      File digest attributes store that
+      form. No artifact-fingerprint
+      helper exists on the gate.
+
+      ---
+
+      F83 / F83.1. A close-bound check
+      emitted as a lint warning makes a
+      0/0 lint bar fail on a warning
+      about itself. Review findings are
+      not lint issues
+      (archive/C-CRITERION-CLOSE-EVIDENCE/
+      spec.xml:111-116). P3.7's
+      applied-without-record finding is
+      not shipped; the live precedent
+      for a reportable defect that must
+      not break 0/0 is review.
+
+      ---
+
+      F66. This spec decides README.md
+      and examples/ in a Goal or NonGoal
+      body. F61. This spec names argv
+      tokens and exported functions in
+      any comment body and does not
+      write dashed CLI flags inside XML
+      comments. F43. This artifact binds
+      semantics; tests assert literal
+      bytes.
+    </Problem>
+    <Goals>
+      <Goal>
+        A permitting recorded gate approve
+        surgically sets the targeted
+        artifact's root status attribute
+        to approved, then records on that
+        Decision a fingerprint of the
+        file bytes after that write, plus
+        an artifact attribute naming spec
+        or plan. The write is the
+        sanctioned draft-to-approved
+        transition. Apply and archive
+        still do not write status.
+      </Goal>
+      <Goal>
+        The fingerprint is per-Decision,
+        not first-observation-wins. A
+        later permitting approve of the
+        same or the other artifact
+        appends a new Decision with that
+        invocation's bytes. It never
+        copies an earlier fingerprint
+        and never rewrites a recorded
+        Decision (RM-GOVERNED-PATH D9).
+        baseCommit stays first-observation-wins
+        as shipped by
+        archive/C-BUNDLE-BASE-REF/.
+      </Goal>
+      <Goal>
+        ngrace review with argv token
+        change emits a catalogued
+        review.* error when a spec or
+        plan whose status is approved
+        has no matching newest
+        fingerprint-bearing permitting
+        approve Decision for that
+        artifact, or when that newest
+        fingerprint no longer equals the
+        file bytes. The finding is not
+        a lint change.* code.
+      </Goal>
+      <Goal>
+        A non-interactive forced permit
+        is requested with argv token
+        force plus a non-empty argv
+        token reason. It records
+        attributes forced true and
+        reason on that Decision, still
+        writes status, still fingerprints,
+        and bypasses only the unresolved
+        IC-* / INV-* refuse. A reader
+        can tell it from a ratified
+        permit by the forced attribute
+        being present and true.
+      </Goal>
+      <Goal>
+        Skill text this bundle owns
+        teaches that write path:
+        ngrace-spec status_rules and
+        ngrace-plan requirement 15 plus
+        the hard rule, and ngrace-reviewer
+        checklist names the review
+        finding. Packaged mirrors stay
+        byte-identical.
+      </Goal>
+      <Goal>
+        README.md is in scope for the
+        never-author-status sentence
+        (README.md:192-197), the gate
+        approve table row, and the
+        skillTextLines total / totalBytes
+        cell (README.md:299) if a
+        SKILL.md rewrite moves those
+        figures. examples/ is unchanged;
+        no user-visible surface. Silence
+        would fail
+        checkDocsAndExamplesDecision.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting).
+        Gate record path, Decision
+        attributes, review detector,
+        skill text, and README lifecycle
+        prose. Tiers never skip argv
+        token assertions final.
+      </Constraint>
+      <Constraint>
+        Binding: RM-GOVERNED-PATH D18
+        (charter), D9 (append-only),
+        D5.2 (this is not a
+        compatibility break on archives
+        if detection keys on status
+        approved; do not bump
+        NGRACE_ARTIFACT_VERSION), D5.5
+        (CHANGELOG.md is generated; the
+        release note is the commit body),
+        D16, D17; F2 / D18 ceiling
+        (detection, not prevention);
+        F43, F44, F45, F56 / F67, F61,
+        F66, F80, F81, F83, F83.1, F95,
+        F101. F33: do not freeze suite
+        counts, archive counts,
+        review-code cardinality, or line
+        numbers this change moves.
+      </Constraint>
+      <Constraint>
+        Tamper-evidence, not enforcement.
+        Summary, Goals, Constraints,
+        skill sentences this bundle
+        edits, and README prose this
+        bundle edits must not claim that
+        human-in-the-loop is enforced,
+        that a human read the bytes, or
+        that forging approval is
+        impossible. The record says that
+        an approval happened and what
+        bytes it covered. Whether a
+        human actually read them stays
+        outside the record, and the
+        artifacts say so.
+      </Constraint>
+      <Constraint>
+        Decided here: attribute, not
+        child. fingerprint, artifact,
+        forced, and reason are attributes
+        on the permitting approve
+        Decision. A child element is
+        forbidden: grammar.ts:901-910 and
+        ledger.ts:619-622 raise
+        ledger.invalid-decision for any
+        non-Requirement child, which
+        would make the event unreadable
+        (F81). Historical Decisions
+        without these attributes stay
+        valid. parseDecisionNode copies
+        the new attributes onto
+        GateDecisionRecord when present
+        and still returns invalid only
+        for the children it already
+        rejects.
+      </Constraint>
+      <Constraint>
+        Decided here: what is
+        fingerprinted. The whole on-disk
+        bytes of the targeted file
+        (spec.xml or plan.xml), after
+        the surgical status write, as
+        SHA-256 lowercase hex, the same
+        algorithm digestProjectFile
+        already uses at
+        src/grace-cursor.ts:1762. Not a
+        canonicalised parse. Not
+        design-context.xml. Not
+        run-ledger.xml. Refuse, apply,
+        and archive Decisions never
+        carry fingerprint or artifact.
+      </Constraint>
+      <Constraint>
+        Decided here: status write then
+        hash. The sanctioned writer
+        replaces only the root status
+        attribute on the target file
+        (draft to approved). If the
+        root is already approved, it
+        does not rewrite bytes. It does
+        not round-trip the document
+        through serializeGraceXmlDocument.
+        The fingerprint is taken from
+        the file bytes after that step.
+        argv token record false evaluates
+        and prints, writes no status,
+        appends no Decision, and takes
+        no fingerprint.
+      </Constraint>
+      <Constraint>
+        Decided here: which artifact,
+        and re-approval. Default target,
+        in order: spec whose status is
+        not approved; else plan.xml
+        present whose status is not
+        approved; else plan.xml present
+        (re-approval or redundant
+        plan-stage run); else spec.
+        Optional argv token artifact
+        with values spec or plan
+        overrides. A legitimately
+        amended already-approved
+        artifact is re-approved by
+        appending a new Decision whose
+        fingerprint is the new bytes
+        (D9). Matching re-approve of
+        the same artifact still appends;
+        it does not refuse. Terminal
+        statuses (applied, superseded,
+        cancelled, rejected) refuse the
+        status write even under force.
+      </Constraint>
+      <Constraint>
+        Decided here: fingerprint
+        read-order. Writer: each
+        permitting approve stores its
+        own fingerprint and artifact;
+        it never copies an earlier
+        fingerprint. That is the
+        opposite of firstStoredBaseCommit
+        at ledger.ts:411-415.
+        Detection: newest-governs per
+        artifact. The newest permitting
+        approve Decision whose artifact
+        attribute names that file and
+        whose fingerprint attribute is
+        non-empty is the matching
+        record. Compare that value to
+        SHA-256 of the current file
+        bytes. any-permit some() at
+        ledger.ts:848 is unchanged and
+        is not this reader.
+      </Constraint>
+      <Constraint>
+        Decided here: who writes, when.
+        Status write, fingerprint, and
+        artifact identity run in the
+        approve command's record path,
+        never inside evaluateApproveGate.
+        evaluateApproveGate stays
+        clarification-only and git-free.
+        Force is also command-path: when
+        argv token force is true and
+        argv token reason is non-empty,
+        a clarification refuse is
+        recorded as a permit with
+        forced true and the supplied
+        reason, status is written, and
+        bytes are fingerprinted.
+        Requirement children still
+        report the failed check. Force
+        without a non-empty reason
+        writes nothing. Reason without
+        force is not stored. Omit
+        forced when not used; do not
+        write forced false. Boolean
+        space form for force is refused
+        the same way F18 already refuses
+        it for argv token record.
+      </Constraint>
+      <Constraint>
+        Decided here: detection home
+        and trigger. ngrace review,
+        catalogued review.* error,
+        process-audit family. Fires
+        only when that file's root
+        status is approved. Applied,
+        draft, superseded, cancelled,
+        and rejected are silent. Lint
+        does not emit this defect (F83).
+        gate apply does not refuse on
+        it (F2 / D18: detection, not
+        enforcement). Existing archives
+        are applied or superseded and
+        stay 0/0 with no grandfather
+        table. This bundle's own spec
+        and plan will be approved
+        before the writer exists; after
+        the writer lands, review is
+        correct to fire until the new
+        approve write stamps them. Do
+        not grandfather this bundle.
+        F101: a new review.* code
+        forces src/verification/localize.test.ts
+        cardinality pins to stay
+        exhaustive (admissible XOR
+        excluded).
+      </Constraint>
+      <Constraint>
+        Gate purity is revised for
+        approve only. A29.2 /
+        command.ts:15 still holds for
+        apply, archive, and verdict.
+        D1 still leaves approved to
+        applied as a later verb
+        (lifecycle finish / P3.1).
+        This bundle does not implement
+        D1, D1.5 apply-force, or P3.7.
+      </Constraint>
+      <Constraint>
+        Skill edits this bundle may
+        make: ngrace-spec status_rules
+        and workflow (after a sufficient
+        lexicon phrase, run gate approve;
+        the gate writes status; do not
+        hand-write); ngrace-plan
+        requirement 15 and the hard rule
+        (the gate writes status and
+        records the fingerprint; refuse
+        still means unresolved IC-* /
+        INV-* unless force); ngrace-reviewer
+        checklist (approved status needs
+        a matching fingerprint record).
+        Do not add D19 or D20 sentences.
+        Do not rewrite ngrace-execute
+        close ownership. Packaged
+        mirrors under
+        plugins/ngrace/skills/ngrace/
+        stay byte-identical for each
+        edited SKILL.md.
+      </Constraint>
+      <Constraint>
+        Forced write surface the later
+        plan must scope, including every
+        pin this deliverable moves:
+
+        src/gates/command.ts,
+        src/gates/ledger.ts, and gate
+        tests (status write, fingerprint
+        attributes, force / reason /
+        artifact argv, record-false
+        writes nothing, descriptions
+        no longer say approve never
+        authors status);
+
+        src/review/core.ts,
+        src/review/catalog.ts, and
+        review tests (approved-without-
+        matching-fingerprint detector);
+
+        src/verification/localize.test.ts
+        (F101 cardinality);
+
+        skills/ngrace/ngrace-spec/SKILL.md,
+        skills/ngrace/ngrace-plan/SKILL.md,
+        skills/ngrace/ngrace-reviewer/SKILL.md
+        and their packaged mirrors;
+
+        src/test-support/token-accounting.test.ts
+        and README.md:192-197 and :299;
+
+        src/query/command.test.ts only
+        if the CLI Overview table row
+        shape this change edits would
+        fail listLiveInvocations;
+
+        this bundle's spec.xml,
+        design-context.xml, and a later
+        plan-authoring pass's plan.xml.
+
+        Walk of the same kind (byte,
+        line, or count pin over skills,
+        commands, or artifacts).
+        Searched: 810, 56110, skillTextLines,
+        totalBytes, referencesTotal,
+        perSkill exact toBe, published-skill
+        cardinality 16, never author
+        status, does not change status,
+        does not itself set status.
+
+        C-APPROVAL-SCOPE owns D19 / D20
+        skill sentences. This bundle
+        edits only the fingerprint and
+        approve write path.
+      </Constraint>
+      <Constraint>
+        This spec does not author
+        AC-SUITE-AND-LINT and must not
+        Satisfies-link lint-after-archive
+        to any task. Post-archive lint
+        0/0 is CloseEvidence on
+        AC-CLOSE-LINT. Task-observable
+        suite is AC-SUITE-AND-CI.
+        F56 / F67: FIX_DISTINCT_SIGNATURE_BUDGET
+        is 4, so a task may plan at most
+        three distinct fail signatures.
+        F80: one red evidences one
+        property. F45: do not manufacture
+        a red for a HEAD-true property.
+        AC-PIN-REMEASURE is a bounding
+        pin (F84), not a manufactured
+        red. AC-ARCHIVE-SILENT,
+        AC-APPLY-UNCHANGED, and
+        AC-EVALUATE-UNCHANGED have
+        HEAD-true halves; redden only
+        the new writer, the new
+        attributes, and the new detector.
+      </Constraint>
+      <Constraint>
+        F61: no two adjacent hyphens
+        inside any XML comment body.
+        Name argv tokens. F66: README.md
+        and examples/ are decided in
+        Goals and NonGoals. Do not edit
+        docs/plans/**, the phase board,
+        CHANGELOG.md, any version
+        surface, or
+        .ngrace/changes/archive/**.
+        Packaged version at authoring:
+        6.2.0. No product version bump.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Phrase attestation naming the
+        lexicon phrase and the bytes it
+        covered. That is F88.3 candidate
+        (b) in
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md,
+        not ratified. D18's ceiling
+        stands: the record does not
+        prove a human read the bytes.
+      </NonGoal>
+      <NonGoal>
+        D19 / D20 skill text, ngrace-execute
+        close-ownership sentences,
+        co-draft (C-CO-DRAFT), or
+        supersede verb (C-SUPERSEDE-VERB).
+        Owner: C-APPROVAL-SCOPE for D19
+        and D20; C-CO-DRAFT and
+        C-SUPERSEDE-VERB for those
+        named bundles.
+      </NonGoal>
+      <NonGoal>
+        RM-VERIFIED-APPROVAL, an
+        external second party, or
+        replacing approved-contract-drift
+        with this fingerprint.
+        Owner: docs/plans/README.md
+        entries RM-VERIFIED-APPROVAL
+        and RM-GITLESS-INTEGRITY.
+      </NonGoal>
+      <NonGoal>
+        lifecycle finish, writing
+        applied, P3.7 hand-written
+        applied detection, or D1.5
+        forced apply. Owner: P3.1 /
+        P3.7 / D1. This hatch is
+        approve-only.
+      </NonGoal>
+      <NonGoal>
+        Canonicalising the artifact
+        before hashing, fingerprinting
+        design-context.xml, requiring
+        fingerprint on refuse / apply /
+        archive Decisions, or making
+        extra Decision attributes an
+        error. Historical unfingerprinted
+        Decisions stay valid.
+      </NonGoal>
+      <NonGoal>
+        A lint change.* code, a
+        gate apply refuse, a status
+        snapshot field, or an
+        NGRACE_ARTIFACT_VERSION bump
+        for this detection. Review is
+        the home.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no
+        user-visible surface. Owner:
+        unchanged; no user-visible
+        surface.
+      </NonGoal>
+      <NonGoal>
+        README.md except the
+        never-author-status sentence
+        and gate approve row named in
+        Goals, and the skillTextLines
+        cell if a SKILL.md rewrite
+        moves the published figures.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-FINGERPRINT-ATTR>
+        A permitting recorded approve
+        Decision carries attribute
+        fingerprint whose value is
+        SHA-256 lowercase hex of the
+        targeted artifact file bytes,
+        and attribute artifact whose
+        value is spec or plan. Those
+        are attributes, never children.
+        A non-Requirement child still
+        raises ledger.invalid-decision.
+        Historical Decisions without
+        the attributes stay valid.
+        HEAD today: GateDecisionRecord
+        has no such fields
+        (src/gates/ledger.ts:109-114);
+        extra attributes already parse.
+        Failure conditions: a child
+        element; a canonicalised parse
+        instead of file bytes; refuse
+        or apply Decisions carrying
+        fingerprint.
+      </AC-FINGERPRINT-ATTR>
+      <AC-PER-DECISION>
+        Two permitting approve writes
+        in one bundle produce two
+        Decisions. The second stores
+        its own fingerprint of the
+        artifact it targeted and does
+        not copy the first fingerprint.
+        baseCommit on the second still
+        copies the first stored value
+        when one exists
+        (src/gates/ledger.ts:411-415).
+        The Decision list only grows.
+        HEAD today: the second Decision
+        is often byte-identical to the
+        first (F95). Failure conditions:
+        first-observation-wins on
+        fingerprint; rewriting the
+        earlier Decision; the pair
+        remaining indistinguishable
+        when spec and plan were both
+        targeted.
+      </AC-PER-DECISION>
+      <AC-STATUS-WRITE>
+        A permitting recorded approve
+        whose target root status is
+        draft writes approved onto that
+        root attribute and does not
+        re-serialize the rest of the
+        file through
+        serializeGraceXmlDocument. A
+        target already approved is not
+        rewritten before hashing.
+        apply and archive recorded
+        permits do not write status.
+        HEAD today: runGate never
+        touches spec.xml or plan.xml
+        (src/gates/command.ts:89-108).
+        Failure conditions: round-trip
+        serialize; apply writing
+        approved; status written on
+        argv token record false.
+      </AC-STATUS-WRITE>
+      <AC-RECORD-FALSE>
+        Stay-true plus write isolation.
+        argv token record false on
+        approve still evaluates and
+        prints, writes no Decision, no
+        status, and no fingerprint.
+        HEAD today: record false writes
+        no Decision (core.test.ts:1189).
+        Do not manufacture a red for
+        the no-Decision half (F45).
+        Redden the new half: status
+        bytes unchanged. Failure
+        conditions: dry-run writes
+        approved; dry-run takes a
+        fingerprint.
+      </AC-RECORD-FALSE>
+      <AC-EVALUATE-UNCHANGED>
+        Stay-true. evaluateApproveGate
+        still refuses only on unresolved
+        IC-* / INV-* clarifications,
+        still writes nothing, and still
+        does not spawn git. Assumptions
+        still never become requirements.
+        HEAD today: src/gates/core.ts:259-298
+        and core.test.ts:1550. Do not
+        manufacture a red (F45). Redden
+        only if evaluate grows a
+        fingerprint or status write.
+        Failure conditions: evaluate
+        writes status; evaluate hashes;
+        evaluate calls git.
+      </AC-EVALUATE-UNCHANGED>
+      <AC-FORCE-HATCH>
+        argv token force with a
+        non-empty argv token reason on
+        approve, when evaluate would
+        refuse for unresolved IC-* /
+        INV-*, records a permit with
+        forced true and that reason,
+        writes status, and fingerprints.
+        Requirement children still
+        show the failed check. Force
+        with empty or missing reason
+        writes nothing and exits
+        non-zero. A permit without
+        force omits the forced
+        attribute. Boolean space form
+        for force is refused the same
+        way argv token record space
+        form is (F18). HEAD today: no
+        force argv exists on approve.
+        Failure conditions: force
+        without reason still writes;
+        forced permit drops the
+        fingerprint; ratified permits
+        carry forced false; force
+        writes status onto applied
+        or superseded.
+      </AC-FORCE-HATCH>
+      <AC-REVIEW-DETECTS>
+        ngrace review with argv token
+        change emits a catalogued
+        review.* error, not a lint
+        change.* code, when spec.xml
+        or plan.xml has status approved
+        and either no permitting approve
+        Decision with a non-empty
+        fingerprint for that artifact
+        exists, or the newest such
+        Decision's fingerprint is not
+        SHA-256 of the current file
+        bytes. Draft, applied,
+        superseded, cancelled, and
+        rejected do not emit it.
+        Forced permits count as matching
+        records when the fingerprint
+        matches. HEAD today: review has
+        no approval-fingerprint reader.
+        Failure conditions: lint emits
+        it; apply refuses on it; applied
+        archives emit it; a forced
+        matching record still finds.
+      </AC-REVIEW-DETECTS>
+      <AC-ARCHIVE-SILENT>
+        Stay-true plus detector
+        isolation. After this lands,
+        bun run ngrace lint with argv
+        token path set to this
+        repository root against the
+        existing archives adds no new
+        error and no new warning on
+        those bundles. ngrace review
+        without argv token change does
+        not raise the new finding on
+        those applied or superseded
+        archives. HEAD today: archives
+        are 0/0 lint and none have
+        status approved. Do not
+        manufacture a red against them
+        (F45). Failure conditions: an
+        existing archive warns or
+        errors at lint; the new review
+        finding fires on applied.
+      </AC-ARCHIVE-SILENT>
+      <AC-APPLY-UNCHANGED>
+        Stay-true. gate apply still
+        does not write status and still
+        does not refuse because a
+        fingerprint is missing or
+        mismatched. HEAD today: apply
+        requirements are plan-present
+        and review-verdict
+        (src/gates/core.ts:301-328).
+        Do not manufacture a red (F45).
+        Failure conditions: apply
+        becomes the detector; apply
+        writes approved.
+      </AC-APPLY-UNCHANGED>
+      <AC-SKILL-WRITE-PATH>
+        After the skill rewrite,
+        ngrace-spec status_rules say
+        that after a sufficient lexicon
+        phrase the operator runs gate
+        approve and that command writes
+        status; they do not teach a
+        hand-written approved. ngrace-plan
+        requirement 15 and the hard rule
+        say the same gate writes status
+        and records the fingerprint, and
+        no longer say the gate does not
+        itself set status. ngrace-reviewer
+        review_checklist names the
+        approved-without-matching-
+        fingerprint finding. None of
+        those edits claim
+        human-in-the-loop is enforced.
+        None of them add D19 or D20
+        sentences. Packaged mirrors
+        match. HEAD today: requirement
+        15 says the gate does not set
+        status (skills/ngrace/ngrace-plan/SKILL.md:68).
+        Failure conditions: skills still
+        teach a hand-written approved
+        as the sanctioned write; D19
+        per-step sentences land here;
+        a HITL-enforced claim.
+      </AC-SKILL-WRITE-PATH>
+      <AC-README-GATE>
+        README.md Change lifecycle
+        prose no longer says gates
+        never author status as a
+        blanket. The gate approve row
+        says a permitting recorded
+        approve writes approved onto
+        the targeted spec or plan and
+        records a fingerprint. Apply
+        and archive rows still do not
+        write status. listLiveInvocations
+        still has a matching approve
+        row. HEAD today: README.md:192-197
+        says never author status.
+        Failure conditions: blanket
+        never-author remains; approve
+        row silent on the write;
+        apply row claims a status write.
+      </AC-README-GATE>
+      <AC-PIN-REMEASURE>
+        Task-observable bounding pin
+        (F84); a later plan
+        Satisfies-links this to the
+        task that rewrites any SKILL.md.
+        After that rewrite,
+        src/test-support/token-accounting.test.ts
+        pins and the README.md:299
+        measurement cell both match a
+        fresh skillTextLines() measure
+        (totalBytes, and total if the
+        rewrite moves the line count).
+        One re-measurement updates
+        every place the figure is
+        published. Do not manufacture
+        a red for the pin at HEAD (F45).
+        HEAD today: total 810,
+        totalBytes 56110, in both the
+        test pin and the README cell.
+      </AC-PIN-REMEASURE>
+      <AC-SUITE-AND-CI>
+        Task-observable; a later plan
+        Satisfies-links this. bun test
+        green for touched packages
+        (gates, review, catalog,
+        localize, skill-contracts,
+        token-accounting, query command
+        README pins, and any other
+        test this deliverable forces).
+        bun run ./scripts/validate-marketplace.ts
+        exits 0. A task that Satisfies
+        this criterion must put those
+        commands in its Verification
+        block. This criterion does not
+        include lint. HEAD today: those
+        commands are green; that green
+        is the baseline, not this
+        change's evidence.
+      </AC-SUITE-AND-CI>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0 on this
+        repository root, including
+        this bundle after apply and
+        archive.
+        <CloseEvidence>
+          <Command>bun run ngrace lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GATES />
+      <M-REVIEW />
+      <M-SKILLS />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/gates/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/verification/localize.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Red-first on AC-FINGERPRINT-ATTR,
+        AC-PER-DECISION, AC-STATUS-WRITE,
+        AC-FORCE-HATCH, AC-REVIEW-DETECTS,
+        the new half of AC-RECORD-FALSE,
+        AC-SKILL-WRITE-PATH, and
+        AC-README-GATE, each property
+        its own red (F80), split across
+        tasks so no task plans more than
+        three distinct signatures or
+        repeats a signatureKey (F56,
+        F67). AC-EVALUATE-UNCHANGED,
+        AC-ARCHIVE-SILENT, and
+        AC-APPLY-UNCHANGED are HEAD-true
+        stay-true halves, not reds
+        (F45). AC-PIN-REMEASURE is a
+        bounding pin (F84), not a red.
+        AC-SUITE-AND-CI is task-observable
+        suite evidence. Post-archive
+        lint 0/0 is AC-CLOSE-LINT
+        CloseEvidence, evaluated at
+        gate verdict on the applied
+        archive, not claimed by a task
+        pass.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Extra attributes on Decision
+        will keep parsing as valid.
+        If a later grammar change
+        closes the attribute set,
+        fingerprint as an attribute
+        would need that grammar to
+        admit it; the child-element
+        shape stays forbidden (F81).
+      </Assumption>
+      <Assumption>
+        digestProjectFile will keep
+        SHA-256 lowercase hex of file
+        bytes. This bundle may import
+        it or duplicate that one-liner
+        in the gate record path; it
+        does not have to edit
+        src/grace-cursor.ts.
+      </Assumption>
+      <Assumption>
+        Root lint fail-on stays errors.
+        0/0 as quoted counts is
+        AC-CLOSE-LINT CloseEvidence
+        using argv token fail-on set
+        to warnings.
+      </Assumption>
+      <Assumption>
+        M-TEST-SUPPORT Path is
+        src/test-support/fixtures.ts.
+        The pin file is
+        token-accounting.test.ts in
+        the same directory. Naming
+        M-TEST-SUPPORT covers that pin
+        the way
+        archive/C-CRITERION-CLOSE-EVIDENCE/
+        did.
+      </Assumption>
+      <Assumption>
+        ngrace-execute SKILL.md:42
+        saying the gate does not itself
+        author status is about the
+        apply/archive close, which this
+        bundle does not change. C-APPROVAL-SCOPE
+        / D20 owns any rewrite of that
+        sentence.
+      </Assumption>
+    </Assumptions>
+    <DesignReferences>
+      <UserResearch>docs/plans/active/RM-GOVERNED-PATH/decisions.md</UserResearch>
+    </DesignReferences>
+  </C-APPROVAL-FINGERPRINT>
+</NgraceChangeSpec>
