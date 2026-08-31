@@ -7183,6 +7183,32 @@ with a real but unrecorded red. It is a **fourth** reddenable property in the pa
 plan that copies the predecessor's three-red T-002 split will breach the distinct-signature budget
 ([F56](#f56)) unless it re-splits.
 
+### F123 — a superseded plan's unreached targets are reported as `review.confidently-wrong`. **[verified]**
+
+`ngrace review` reports two `review.confidently-wrong` findings against
+`.ngrace/changes/archive/C-SUPERSEDE-VERB/plan.xml` — its `TargetAssertions` `MustExist`
+`src/grace-supersede.ts` and `src/grace-supersede.test.ts`, neither of which is on disk. They appear
+with or without `--change`, so they are not scoped to the bundle under review; running
+`review --change C-SUPERSEDE-COMMAND` surfaces findings whose `file` is the *predecessor's* plan.
+
+**Not general noise, and not currently a defect.** The other three superseded bundles produce zero
+findings, because their targets were edits to files that already existed. `C-SUPERSEDE-VERB` is the
+first superseded plan whose target state included a file that never came to exist. The finding is
+**transient by construction**: it clears when `C-SUPERSEDE-COMMAND` lands `src/grace-supersede.ts`,
+in the same way `change.graph-anchors-miss-write-scope` clears when the declared path appears.
+
+**The question it raises is real and is not answered here.** A superseded plan's target state was
+deliberately abandoned, so calling its assertions *confidently wrong* is true in letter and
+misleading in spirit — the fingerprint audit already takes the other view for a comparable case,
+skipping any artifact whose root status is not `approved` (`src/review/core.ts:1686`). Whether the
+target audit should skip `superseded` roots the same way belongs to whichever bundle next opens
+`src/review/core.ts`; it is recorded here so that bundle inherits the question rather than
+rediscovering it.
+
+**Watch item, not an action.** If a future superseded plan targets a file that is never created by
+any successor, this finding becomes permanent rather than transient, and the argument above stops
+holding.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
