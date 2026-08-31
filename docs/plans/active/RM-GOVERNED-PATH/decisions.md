@@ -6796,6 +6796,38 @@ the tool reported a plausible number rather than failing.**
 **The rule.** Before searching a `.ngrace` XML artifact for a phrase, flatten whitespace. A phrase
 count from `grep` over these files is evidence of nothing unless the phrase is a single token.
 
+### F112 — the approved spec orders a red for a property true both before and after. **[verified]**
+
+`AC-RECORD-FALSE` (`.ngrace/changes/active/C-APPROVAL-FINGERPRINT/spec.xml:1218-1232`) says *"Do not
+manufacture a red for the no-Decision half (F45). **Redden the new half: status bytes unchanged.**"*
+and `VerificationIntent` (`:1604-1609`) lists that half as red-first.
+
+**Measured: both halves are true at HEAD.** `runGate` (`src/gates/command.ts:89-108`) writes no status
+at all — it evaluates, observes HEAD on a permitting approve, and calls `recordGateDecision`. So
+"`record false` leaves status bytes unchanged" is trivially true today, and it stays true under a
+*correct* implementation of the writer. **The only way to observe it failing is to ship a writer that
+ignores the record flag first** — deliberately wrong production code.
+
+**This is [F102](#f102) recurring, and the authority approved it.** F102 was recorded one bundle
+earlier, from `C-CRITERION-CLOSE-EVIDENCE`'s `skip-on-active`, and states the test exactly: a planned
+red must be false at HEAD **and** false under a correct implementation. The rule existed, was
+written down, and was not applied at approval. Third instance of this shape in the roadmap.
+
+**The spec also contradicts itself**, which is what makes the resolution safe: its `Constraints`
+(`:1046-1057`) and its own F45 citation say do not manufacture reds, while the `AC` imperative and
+`VerificationIntent` say redden. The plan resolves toward F45 and the Constraints, treating write
+isolation as a **T-001 bounding pin** rather than a recorded fail signature.
+
+**Not superseded.** The resolution changes no deliverable — only whether a fail event is recorded —
+and declining to fabricate a red is strictly more honest than obeying the sentence. Recorded as a
+**documented plan deviation from an approved spec**, to be disclosed in the close verdict, in the
+shape used for the defects found in `C-CRITERION-CLOSE-EVIDENCE`'s approved artifacts.
+
+**The rule, restated because writing it down was not enough.** At *approval* time, for every criterion
+that orders a red, evaluate the property against HEAD **and** against a correct implementation. If it
+holds in both, it is an F45 exemption named at authoring, never a signature. Reviewing a spec means
+executing its instructions in the head, not reading them.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield

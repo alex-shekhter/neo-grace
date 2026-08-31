@@ -1,0 +1,1382 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-APPROVAL-FINGERPRINT>
+    <IntentSummary>
+      gate approve becomes the sanctioned
+      writer of draft to approved and
+      records a per-Decision fingerprint
+      of the bytes it wrote plus artifact
+      spec or plan. Force with a non-empty
+      reason is the escape hatch. Review
+      and status both consume
+      classifyApprovedArtifact: never-asked
+      and mismatch are review errors;
+      unfingerprinted Decisions are silent
+      on that catalog; status re-sources
+      approved-contract-drift with git as
+      fallback. Tamper-evidence, not
+      enforcement. README.md is the
+      never-author-status sentence, the
+      gate approve row, and the
+      skillTextLines cell. examples/
+      unchanged.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-APPROVAL-FINGERPRINT/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-APPROVAL-FINGERPRINT/plan.xml</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-LOCALIZE</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export type GateDecisionRecord = {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>baseCommit?: string;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>function firstStoredBaseCommit</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>result.decisions.some((entry) =&gt; entry.gate === gate &amp;&amp; entry.decision === "permit")</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>if (req.tag !== "Requirement")</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>evaluate/record; never author status</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>does not change status</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>never authors status or archives bundles</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>const GATE_SUBCOMMANDS = new Set(["approve", "apply", "archive", "verdict"])</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>export function evaluateApproveGate</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>approved-contract-drift</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>Hard stop: an approved spec.xml or plan.xml changed. Restore it or supersede and replan through a new C-* bundle.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>function collectApprovedContractDrift</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>return trackedChangedFiles.has(`${bundlePath}/spec.xml`) || trackedChangedFiles.has(`${bundlePath}/plan.xml`);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>hard-stops approved contract drift instead of reporting the bundle ready</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>newly created untracked approved bundle</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(allReviewCodes()).toHaveLength(16)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/verification/localize.test.ts</File>
+        <Text>expect(catalog.length).toBe(16)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/verification/localize.test.ts</File>
+        <Text>expect(excludedReviewCodesForLocalization()).toHaveLength(13)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.test.ts</File>
+        <Text>expect(sites.length).toBe(25)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.total).toBe(810)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.totalBytes).toBe(56110)</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>they never author `status`</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>**810 lines** / **56110 UTF-8 bytes**</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>The gate records a Decision and does not itself set status.</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>Do not set plan status to approved without a permitting `ngrace gate approve` result.</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>Set `status="approved"` only after a sufficient phrase from `approval_lexicon`.</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>&lt;review_checklist&gt;</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function classifyApprovedArtifact</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>fingerprint?: string</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.approval-never-asked</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.approved-fingerprint-mismatch</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>that command writes status</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-LOCALIZE</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-LOCALIZE</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function classifyApprovedArtifact</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>function firstStoredBaseCommit</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>result.decisions.some((entry) =&gt; entry.gate === gate &amp;&amp; entry.decision === "permit")</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>if (req.tag !== "Requirement")</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>const GATE_SUBCOMMANDS = new Set(["approve", "apply", "archive", "verdict"])</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>export function evaluateApproveGate</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>approved-contract-drift</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>Hard stop: an approved spec.xml or plan.xml changed. Restore it or supersede and replan through a new C-* bundle.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>classifyApprovedArtifact</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.approval-never-asked</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.approved-fingerprint-mismatch</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>that command writes status</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>the gate writes status and records the fingerprint</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>unfingerprinted Decision silent</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>hard-stops approved contract drift instead of reporting the bundle ready</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>newly created untracked approved bundle</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/command.ts</File>
+        <Text>evaluate/record; never author status</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/command.ts</File>
+        <Text>never authors status or archives bundles</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-status.ts</File>
+        <Text>return trackedChangedFiles.has(`${bundlePath}/spec.xml`) || trackedChangedFiles.has(`${bundlePath}/plan.xml`);</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.totalBytes).toBe(56110)</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>README.md</File>
+        <Text>they never author `status`</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>README.md</File>
+        <Text>**810 lines** / **56110 UTF-8 bytes**</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>The gate records a Decision and does not itself set status.</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>Set `status="approved"` only after a sufficient phrase from `approval_lexicon`.</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-LOCALIZE</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/gates/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/verification/localize.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-status.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/lint/catalog.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/query/command.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GATES />
+        <M-REVIEW />
+        <M-LOCALIZE />
+        <M-STATUS />
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GATES />
+        <V-M-REVIEW />
+        <V-M-LOCALIZE />
+        <V-M-STATUS />
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/gates/ledger.ts</File>
+      <File>src/gates/command.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/review/core.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/grace-status.ts</File>
+      <File>src/grace-status.test.ts</File>
+      <File>src/verification/localize.test.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/query/command.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>README.md</File>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>.ngrace/changes/active/C-APPROVAL-FINGERPRINT/spec.xml</File>
+      <File>.ngrace/changes/active/C-APPROVAL-FINGERPRINT/design-context.xml</File>
+      <File>.ngrace/changes/active/C-APPROVAL-FINGERPRINT/plan.xml</File>
+      <File>.ngrace/changes/active/C-APPROVAL-FINGERPRINT/run.xml</File>
+      <File>.ngrace/changes/active/C-APPROVAL-FINGERPRINT/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-APPROVAL-FINGERPRINT/run/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Record per-Decision fingerprint and write draft to approved</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (fingerprint-attr): before any production
+            edit, in its own tool round trip, add a bun test in
+            src/gates/core.test.ts. A permitting recorded approve
+            of a draft spec writes a Decision whose attributes
+            include fingerprint (SHA-256 lowercase hex of the
+            on-disk spec.xml bytes after the status write) and
+            artifact with value spec. Those are attributes, never
+            children. A non-Requirement child still makes
+            parseDecisionNode return invalid. A historical
+            Decision without those attributes still lists as
+            valid. Refuse and apply Decisions do not carry
+            fingerprint or artifact. Do not assert per-Decision
+            distinctness or the surgical status write in this
+            case. HEAD today: GateDecisionRecord has no such
+            fields (src/gates/ledger.ts:109-114). Record fail,
+            signature kind test key fingerprint-attr. Run only
+            this case. Do not land the writer in this round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (per-decision): before the same production
+            edit, in its own tool round trip, add a bun test in
+            src/gates/core.test.ts. Two permitting approve writes
+            in one bundle, first targeting spec then plan via
+            default target order, produce two Decisions. The
+            second stores its own fingerprint of plan.xml and
+            does not copy the first fingerprint. baseCommit on
+            the second still copies the first stored value when
+            one exists. The Decision list only grows. The pair is
+            distinguishable by artifact and fingerprint. Do not
+            assert child-element invalidity in this case. HEAD
+            today: the second Decision is often byte-identical to
+            the first (F95). Record fail, signature kind test key
+            per-decision. Run only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (status-write): before the same production
+            edit, in its own tool round trip, add a bun test in
+            src/gates/core.test.ts. A permitting recorded approve
+            whose target root status is draft writes approved onto
+            that root attribute and does not re-serialize the rest
+            of the file through serializeGraceXmlDocument (byte
+            identity except that attribute). A target already
+            approved is not rewritten before hashing. apply and
+            archive recorded permits do not write status. argv
+            token record false writes no status (isolation pin
+            in this case's siblings, not a second recorded red;
+            HEAD already holds it). Do not assert fingerprint
+            attribute shape in this case. HEAD today: runGate
+            never touches spec.xml or plan.xml
+            (src/gates/command.ts:89-108). Record fail, signature
+            kind test key status-write. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): in the approve
+            command record path, never inside evaluateApproveGate,
+            select the target (spec whose status is not approved;
+            else plan.xml present whose status is not approved;
+            else plan.xml present; else spec), surgically replace
+            only the root status attribute when it is draft, hash
+            whole file bytes with SHA-256 lowercase hex (import
+            digestProjectFile or duplicate that one-liner; do not
+            edit src/grace-cursor.ts), and record fingerprint and
+            artifact on that Decision. recordGateDecision never
+            copies an earlier fingerprint. Parse copies the new
+            attributes when present, including forced and reason
+            so T-002 can fill them. Omit forced when unused.
+            Descriptions no longer say approve never authors
+            status; apply, archive, and verdict still do not write
+            status. GATE_SUBCOMMANDS is unchanged. Then record
+            pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-FINGERPRINT-ATTR />
+          <AC-PER-DECISION />
+          <AC-STATUS-WRITE />
+          <AC-RECORD-FALSE />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Forced permit hatch and approve command argv</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (force-hatch): before adding argv tokens
+            force, reason, and artifact, in its own tool round
+            trip, add a bun test in src/gates/core.test.ts.
+            Unresolved IC-* clarification, argv token force with
+            a non-empty argv token reason: records a permit with
+            forced true and that reason, writes status, and
+            fingerprints. Requirement children still show the
+            failed check. Force with empty or missing reason
+            writes nothing and exits non-zero. A permit without
+            force omits the forced attribute. Boolean space form
+            for force is refused the same way argv token record
+            space form is. Terminal statuses (applied,
+            superseded, cancelled, rejected) refuse the status
+            write even under force. Sibling it()s for those
+            guards are the same property, not extra recorded
+            reds. Optional argv token artifact with values spec
+            or plan overrides default targeting (bounding, not a
+            second red). HEAD today: no force argv exists on
+            approve. Record fail, signature kind test key
+            force-hatch. Run only this case. Do not land the
+            hatch in this round trip.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): force is
+            command-path. When argv token force is true and argv
+            token reason is non-empty, a clarification refuse is
+            recorded as a permit with forced true and the supplied
+            reason; status is written; bytes are fingerprinted.
+            evaluateApproveGate stays clarification-only and
+            git-free (AC-EVALUATE-UNCHANGED; stay-true; do not
+            record a fail). gate apply still does not write
+            status and still does not refuse on a missing or
+            mismatched fingerprint (AC-APPLY-UNCHANGED;
+            stay-true; do not record a fail). Split approve args
+            from the shared factory as needed so force, reason,
+            and artifact live on approve only. Update
+            src/query/command.test.ts boolean-site exact pins
+            (sites.length is 25 at HEAD; adding force as boolean
+            moves that count; F33: re-measure, do not freeze the
+            post-change number in this plan). Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-FORCE-HATCH />
+          <AC-EVALUATE-UNCHANGED />
+          <AC-APPLY-UNCHANGED />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>classifyApprovedArtifact consumed by review and status</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (review-never-asked): before adding the
+            classifier or catalog codes, in its own tool round
+            trip, add a bun test. Active spec status approved,
+            no permitting approve Decision at all. ngrace review
+            with argv token change emits
+            review.approval-never-asked at error, not a lint
+            change.* code. status does not emit
+            approved-contract-drift (row one is not drift).
+            Sibling it()s: draft, applied, superseded,
+            cancelled, rejected do not emit the finding; a
+            ledger with no permitting approve at all is row one
+            for every approved artifact; review without argv
+            token change does not raise it on applied archives.
+            Those guards are not extra recorded reds. Do not
+            assert mismatch in this case. HEAD today: review has
+            no approval-fingerprint reader. Record fail,
+            signature kind test key review-never-asked. Run only
+            this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (fingerprint-compare): before the same
+            production, in its own tool round trip, add a bun
+            test. Applying Decision has a non-empty fingerprint
+            that is not SHA-256 of current file bytes, including
+            after that edit is committed and when only one of
+            spec or plan is approved. Review emits
+            review.approved-fingerprint-mismatch. status emits
+            approved-contract-drift. Hard-stop message at
+            src/grace-status.ts:316 is unchanged. Forced permits
+            count as matching records when the fingerprint
+            matches (guard, not a second red). Do not assert
+            never-asked in this case. HEAD today: collector
+            reads porcelain and requires both statuses approved
+            (src/grace-status.ts:654-662). Record fail, signature
+            kind test key fingerprint-compare. Run only this
+            case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (git-unavailable): before the same
+            production, in its own tool round trip, add a bun
+            test in src/grace-status.test.ts. Approved artifact,
+            applying Decision carries no fingerprint, git
+            unavailable: typed absence (AbsenceValue verdict
+            unable-to-determine, reason names git unavailable).
+            chooseNextAction reports not evaluable and must not
+            emit the healthy-project sentence. Do not emit
+            ready-to-execute. Do not mint a second derived
+            state. Do not assert review catalog errors in this
+            case. HEAD today: unavailable porcelain yields an
+            empty tracked set and looks clean for this state.
+            Record fail, signature kind test key
+            git-unavailable. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84):
+            classifyApprovedArtifact is a new export from
+            src/gates/ledger.ts. It owns the porcelain read
+            (tracked vs untracked; untracked does not fire).
+            status and review both call it and pass no
+            changed-file set. Neither reimplements the
+            three-way test or the git fallback. Newest-governs
+            per artifact as the spec Constraints decide; when
+            none carry artifact, an unfingerprinted permitting
+            approve counts for every approved artifact.
+            readPermittingDecision some() is unchanged.
+            Catalog: two process-audit error codes named above;
+            bound expansion in src/lint/catalog.test.ts; not on
+            PREFIX_COVERED_LEGACY_CODES. Update
+            src/review/core.test.ts allReviewCodes length pins
+            and src/verification/localize.test.ts cardinality
+            (admissible XOR excluded) as bounding pins (F101,
+            F33: do not freeze the post-change counts in this
+            plan). Keep audit-regressions title phrases
+            "approved contract drift" and "newly created
+            untracked approved bundle" or update that pin in
+            the same task. Stay-true, do not record fails:
+            row three review silence; no-fingerprint
+            tracked-changed still fires status drift (git
+            fallback); untracked still does not; matching
+            fingerprint plus tracked-changed does not emit
+            drift (F19 payoff, bounding after production).
+            Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+          <Command>bun test src/grace-status.test.ts</Command>
+          <Command>bun test src/verification/localize.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-REVIEW-DETECTS />
+          <AC-STATUS-DRIFT-SOURCE />
+        </Satisfies>
+      </T-003>
+      <T-004>
+        <Title>Teach the write path, remeasure skill pins</Title>
+        <DependsOn>T-002 T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (skill-spec-write-path): before editing
+            ngrace-spec SKILL.md, in its own tool round trip,
+            add a bun test in scripts/skill-contracts.test.ts.
+            Canonical ngrace-spec status_rules say that after a
+            sufficient lexicon phrase the operator runs gate
+            approve and that command writes status; they do not
+            teach a hand-written approved as the sanctioned
+            write. Do not assert plan or reviewer text in this
+            case. HEAD today: Set status approved only after a
+            sufficient phrase (skills/ngrace/ngrace-spec/SKILL.md:24).
+            Record fail, signature kind test key
+            skill-spec-write-path. Run only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (skill-plan-write-path): before editing
+            ngrace-plan SKILL.md, in its own tool round trip,
+            add a bun test in scripts/skill-contracts.test.ts.
+            Requirement 15 and the hard rule say the same gate
+            writes status and records the fingerprint, and no
+            longer say the gate does not itself set status.
+            Refuse still means unresolved IC-* / INV-* unless
+            force. Do not assert spec or reviewer text in this
+            case. HEAD today: skills/ngrace/ngrace-plan/SKILL.md:68
+            and :113. Record fail, signature kind test key
+            skill-plan-write-path. Run only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (skill-reviewer-three-way): before editing
+            ngrace-reviewer SKILL.md, in its own tool round trip,
+            add a bun test in scripts/skill-contracts.test.ts.
+            review_checklist names the three-way finding:
+            never-asked and mismatch error; unfingerprinted
+            Decision silent. Do not assert spec or plan text in
+            this case. HEAD today: the checklist has no such
+            line (skills/ngrace/ngrace-reviewer/SKILL.md:37-49).
+            Record fail, signature kind test key
+            skill-reviewer-three-way. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then remasure then pass (F84): rewrite
+            those three canonical SKILL.md files as the reds
+            require. None of those edits claim
+            human-in-the-loop is enforced. None of them add D19
+            or D20 sentences. Do not edit ngrace-execute. Copy
+            each canonical SKILL.md onto its packaged mirror so
+            the files stay byte-identical. After the rewrites,
+            run skillTextLines() and update
+            src/test-support/token-accounting.test.ts pins and
+            the README.md:299 measurement cell together (totalBytes,
+            and total if the line count moves). Do not record
+            the pre-remeasure token-accounting fail as a planned
+            signature. Keep existing skill-contracts pin
+            strings that this rewrite does not retire. Then
+            record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SKILL-WRITE-PATH />
+          <AC-PIN-REMEASURE />
+        </Satisfies>
+      </T-004>
+      <T-005>
+        <Title>README gate row, suite, archive silence</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (readme-gate): before editing README.md
+            Change lifecycle prose, in its own tool round trip,
+            add a bun test (scripts/skill-contracts.test.ts or
+            src/query/command.test.ts). README.md Change
+            lifecycle prose no longer says gates never author
+            status as a blanket. The gate approve row says a
+            permitting recorded approve writes approved onto the
+            targeted spec or plan and records a fingerprint.
+            Apply and archive rows still do not write status.
+            listLiveInvocations still has a matching approve
+            row. Do not assert skill text in this case. HEAD
+            today: README.md:192-197. Record fail, signature
+            kind test key readme-gate. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then suite then pass (F84): update the
+            README.md lifecycle sentence and gate approve row
+            as the red requires. Do not claim HITL is enforced.
+            bun test is green for the touched packages this
+            deliverable forces, bun test is green, and
+            validate-marketplace exits 0. Root lint adds no new
+            error and no new warning on the existing archives.
+            ngrace review without argv token change does not
+            raise the new finding on those applied or
+            superseded archives (AC-ARCHIVE-SILENT; stay-true;
+            do not manufacture a red against them). Do not
+            claim post-archive lint 0/0 at this task pass
+            (AC-CLOSE-LINT is CloseEvidence, not Satisfies).
+            Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test src/gates/core.test.ts src/review/core.test.ts src/grace-status.test.ts src/verification/localize.test.ts src/lint/catalog.test.ts src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>bun run ngrace lint --path .</Command>
+        </Verification>
+        <Satisfies>
+          <AC-README-GATE />
+          <AC-SUITE-AND-CI />
+          <AC-ARCHIVE-SILENT />
+        </Satisfies>
+      </T-005>
+    </ImplementationPlan>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: a0bf8b8d2f13c537b7e440d839678de9bc367114
+      (branch feat/approval-fingerprint). Preflight: ngrace lint
+      argv token path . argv token assertions current is 0/0.
+      Spec is approved and immutable. Do not amend it. Do not
+      run gate approve on this plan in this pass. If execute
+      shows the spec is wrong, stop and report. Do not rebase:
+      a later ledger pins baseCommit to a commit on this branch.
+
+      Ceremony tier T2. Stop and re-spec rather than adding a
+      lint change.* code, a gate apply refuse, a status snapshot
+      field, an NGRACE_ARTIFACT_VERSION bump, a second derived
+      state, fingerprinting design-context.xml, requiring
+      fingerprint on refuse / apply / archive Decisions, making
+      extra Decision attributes an error, a child element for
+      the digest, first-observation-wins on fingerprint,
+      canonicalising before hash, D19 / D20 sentences, editing
+      ngrace-execute, docs/plans, CHANGELOG.md, any version
+      surface, examples/, references/ templates, or
+      .ngrace/changes/archive. Packaged version stays 6.2.0.
+      No product version bump. Tamper-evidence, not
+      enforcement: edited skill sentences and README prose
+      must not claim HITL is enforced, that a human read the
+      bytes, or that forging approval is impossible.
+
+      F61: name exported functions and argv tokens in this
+      comment. Never two adjacent hyphens.
+      F42: plan assertions bind to exported names, issue
+      codes, and exact source literals, never to AC ids.
+      F50: cursor companions are listed at authoring.
+      F74: cite cross-plan decisions as PLAN-ID Dn.
+      F111: when checking these artifacts for a phrase,
+      flatten whitespace first.
+      F33: do not freeze suite totals, archive counts,
+      review-code cardinality, skillTextLines figures, or
+      boolean-site counts this change moves. Re-measure
+      at execute.
+
+      plan new Satisfies-linked every ordinary spec AC-* to
+      T-001 and correctly omitted AC-CLOSE-LINT. This plan
+      redistributes Satisfies as the table below.
+
+      ════════════════════════════════════
+      D0. Tasks, reds, F56, F67, F80
+      ════════════════════════════════════
+      | Task | work | Satisfies | planned
+        kind+key pairs |
+      | T-001 | Decision attributes;
+          per-Decision writer;
+          surgical status write;
+          default target order
+        | AC-FINGERPRINT-ATTR,
+          AC-PER-DECISION,
+          AC-STATUS-WRITE,
+          AC-RECORD-FALSE
+        | test:fingerprint-attr,
+          test:per-decision,
+          test:status-write |
+      | T-002 | force / reason /
+          artifact argv; evaluate
+          and apply stay-true
+        | AC-FORCE-HATCH,
+          AC-EVALUATE-UNCHANGED,
+          AC-APPLY-UNCHANGED
+        | test:force-hatch |
+      | T-003 | classifyApprovedArtifact;
+          both consumers; two
+          review.* codes; F101 pins
+        | AC-REVIEW-DETECTS,
+          AC-STATUS-DRIFT-SOURCE
+        | test:review-never-asked,
+          test:fingerprint-compare,
+          test:git-unavailable |
+      | T-004 | three SKILL.md
+          rewrites; mirrors;
+          remasure
+        | AC-SKILL-WRITE-PATH,
+          AC-PIN-REMEASURE
+        | test:skill-spec-write-path,
+          test:skill-plan-write-path,
+          test:skill-reviewer-three-way |
+      | T-005 | README lifecycle;
+          suite; archive silence
+        | AC-README-GATE,
+          AC-SUITE-AND-CI,
+          AC-ARCHIVE-SILENT
+        | test:readme-gate |
+
+      File ownership (parallel-safety):
+      T-001 writes src/gates/ledger.ts,
+      src/gates/command.ts,
+      src/gates/core.test.ts.
+      T-002 DependsOn T-001 and writes
+      src/gates/command.ts,
+      src/gates/core.test.ts,
+      src/query/command.test.ts.
+      T-003 DependsOn T-001 only and
+      writes src/gates/ledger.ts,
+      src/review/core.ts,
+      src/review/catalog.ts,
+      src/review/core.test.ts,
+      src/grace-status.ts,
+      src/grace-status.test.ts,
+      src/verification/localize.test.ts,
+      src/lint/catalog.test.ts.
+      T-002 and T-003 write disjoint
+      files after T-001, so they are
+      parallel-safe.
+      T-004 DependsOn T-002 T-003
+      (plan skill names force; reviewer
+      names the catalog codes) and
+      writes the three SKILL.md pairs,
+      src/test-support/token-accounting.test.ts,
+      README.md measurement cell,
+      scripts/skill-contracts.test.ts.
+      T-005 DependsOn T-004 because
+      both write README.md, and writes
+      the lifecycle prose plus suite
+      evidence.
+
+      Signature keys the executor
+      must record (kind test):
+        T-001  test:fingerprint-attr
+        T-001  test:per-decision
+        T-001  test:status-write
+        T-002  test:force-hatch
+        T-003  test:review-never-asked
+        T-003  test:fingerprint-compare
+        T-003  test:git-unavailable
+        T-004  test:skill-spec-write-path
+        T-004  test:skill-plan-write-path
+        T-004  test:skill-reviewer-three-way
+        T-005  test:readme-gate
+
+      Per-task distinct pairs:
+      T-001 3, T-002 1, T-003 3,
+      T-004 3, T-005 1. No key
+      repeats inside a task. Cap is
+      three distinct pairs per task.
+      Keys name the property, not
+      the file stem (F67).
+
+      Record each fail by running
+      only that case (bun test name
+      pattern) so the second
+      property is actually observed
+      (F80). Never fail and pass in
+      one tool call. Never a
+      retrospective red via stash.
+      Never a red backed only by a
+      shell grep.
+
+      F45, named at authoring, not
+      reddened:
+      AC-EVALUATE-UNCHANGED (HEAD
+      true; redden only if evaluate
+      grows a fingerprint, a status
+      write, or a git spawn);
+      AC-APPLY-UNCHANGED (HEAD true);
+      AC-ARCHIVE-SILENT (HEAD true
+      on the applied/superseded
+      archives);
+      AC-RECORD-FALSE no-Decision
+      half (HEAD true,
+      core.test.ts:1189) and status
+      bytes unchanged (also HEAD
+      true: runGate never touches
+      spec.xml; isolation is a
+      bounding pin after T-001's
+      writer, not a fail-at-HEAD);
+      AC-REVIEW-DETECTS row three
+      silence (HEAD true: no reader;
+      still true once the reader
+      skips unfingerprinted
+      Decisions);
+      git fallback: no-fingerprint
+      tracked-changed still fires
+      approved-contract-drift (HEAD
+      true at :584);
+      untracked approved bundle
+      still does not (HEAD true at
+      :605);
+      matching fingerprint plus
+      tracked-changed does not emit
+      drift (F19 payoff; bounding
+      after T-003 production, not a
+      recorded fail);
+      AC-PIN-REMEASURE numbers at
+      HEAD (F84 bounding pin, not a
+      red);
+      catalog / localize / boolean
+      site completeness after the
+      same-task writes (bounding,
+      not a red).
+      Do not record the
+      token-accounting fail that
+      appears after the skill
+      rewrite and before remasure
+      as a planned signature.
+
+      F82 / F83: this plan does not
+      Satisfies-link AC-CLOSE-LINT
+      to any task. AC-SUITE-AND-CI
+      is the task-observable suite
+      bar on T-005. Post-archive
+      lint 0/0 is CloseEvidence,
+      evaluated at gate verdict on
+      the applied archive.
+
+      ════════════════════════════════════
+      D1. Writer (T-001)
+      ════════════════════════════════════
+      Attribute, not child.
+      fingerprint, artifact, forced,
+      and reason are attributes on
+      the permitting approve
+      Decision. parseDecisionNode
+      copies them when present.
+      Non-Requirement children still
+      raise ledger.invalid-decision.
+      Historical Decisions without
+      the attributes stay valid.
+      Refuse, apply, and archive
+      Decisions never carry
+      fingerprint or artifact.
+
+      What is hashed: whole on-disk
+      bytes of spec.xml or plan.xml
+      after the surgical status
+      write, SHA-256 lowercase hex,
+      same algorithm
+      digestProjectFile already
+      uses. Not a canonicalised
+      parse. Not design-context.xml.
+      Not run-ledger.xml.
+
+      Status write then hash. Replace
+      only the root status attribute
+      (draft to approved). If already
+      approved, do not rewrite bytes.
+      Do not round-trip through
+      serializeGraceXmlDocument.
+      Hash the file bytes after that
+      step. argv token record false
+      stays inside the existing
+      record-skip branch: evaluate
+      and print, write no Decision,
+      no status, no fingerprint.
+
+      Default target, in order: spec
+      whose status is not approved;
+      else plan.xml present whose
+      status is not approved; else
+      plan.xml present; else spec.
+      Matching re-approve still
+      appends (D9).
+
+      Writer: each permitting approve
+      stores its own fingerprint and
+      artifact; it never copies an
+      earlier fingerprint. Opposite
+      of firstStoredBaseCommit.
+      baseCommit stays
+      first-observation-wins.
+
+      F68 / F80 on T-001 as the
+      three Criterion reds name.
+
+      ════════════════════════════════════
+      D2. Force hatch (T-002)
+      ════════════════════════════════════
+      Command-path only. evaluateApproveGate
+      stays clarification-only and
+      git-free. When argv token force
+      is true and argv token reason is
+      non-empty, a clarification refuse
+      is recorded as a permit with
+      forced true and that reason.
+      Requirement children still report
+      the failed check. Force without
+      a non-empty reason writes
+      nothing. Reason without force is
+      not stored. Omit forced when not
+      used; do not write forced false.
+      Boolean space form for force is
+      refused by defineGraceCommand
+      the same way argv token record
+      is. Terminal statuses refuse the
+      status write even under force.
+      Optional argv token artifact
+      values spec or plan override
+      default targeting.
+
+      Adding force as a boolean moves
+      src/query/command.test.ts
+      sites.length from 25. Re-measure
+      at execute (F33). That pin is
+      bounding, not a red.
+
+      ════════════════════════════════════
+      D3. Classifier (T-003)
+      ════════════════════════════════════
+      classifyApprovedArtifact is the
+      single export. status and review
+      both call it. They pass no
+      changed-file set. The classifier
+      owns the porcelain read
+      (git status porcelain v1 -z;
+      tracked vs untracked; untracked
+      does not fire). Two sets is F60
+      later. Review must not feed
+      listRepositoryChangedFiles
+      (that helper does not split
+      untracked) into the classifier.
+
+      Detection: newest-governs per
+      artifact, then the three-way
+      trigger. When at least one
+      permitting approve Decision
+      carries an artifact attribute,
+      the applying Decision for a
+      file is the newest whose
+      artifact names spec or plan as
+      that file. When none carry
+      artifact (pre-writer twins,
+      F95), an unfingerprinted
+      permitting approve Decision
+      counts for every approved
+      artifact in the bundle.
+      any-permit some() at
+      ledger.ts:848 is unchanged and
+      is not this reader.
+
+      Per approved artifact:
+      (1) applying Decision carries a
+      non-empty fingerprint: compare
+      SHA-256 of current file bytes
+      (git is not consulted); mismatch
+      is row two; match is clean even
+      if tracked-changed.
+      (2) else no fingerprint: existing
+      git tracked-changed reading.
+      (3) else git unavailable: typed
+      absence, never silence that
+      reads as clean.
+
+      Review, argv token change,
+      process-audit family, error:
+      row one emits
+      review.approval-never-asked;
+      row two emits
+      review.approved-fingerprint-mismatch;
+      row three silent. Lint does not
+      emit these. Apply does not
+      refuse on them. Applied, draft,
+      superseded, cancelled, rejected
+      are silent.
+
+      status: keep the state name
+      approved-contract-drift and the
+      hard-stop message at
+      src/grace-status.ts:316. The
+      state fires on row two and on
+      (2) when an unfingerprinted
+      approved artifact is
+      tracked-changed. It does not
+      fire on row one. It does not
+      fire on (1) match. No second
+      derived state. Drop the
+      both-approved conjunct.
+      collectApprovedContractDrift
+      maps the classification; it
+      does not reimplement.
+
+      F101: new review.* codes force
+      src/verification/localize.test.ts
+      cardinality pins (admissible XOR
+      excluded) and the
+      src/review/core.test.ts
+      allReviewCodes length pins.
+      Bound-expand the two constants
+      in src/lint/catalog.test.ts.
+      Do not put them on
+      PREFIX_COVERED_LEGACY_CODES.
+      Do not freeze the post-change
+      counts in this plan (F33).
+
+      A committed edit to an
+      unfingerprinted approved
+      artifact stays silent on both
+      surfaces (F109.2). Do not treat
+      that remainder as covered.
+
+      ════════════════════════════════════
+      D4. Skills and remasure (T-004)
+      ════════════════════════════════════
+      ngrace-spec status_rules and
+      workflow: after a sufficient
+      lexicon phrase, run gate
+      approve; the gate writes
+      status; do not hand-write.
+      ngrace-plan requirement 15 and
+      the hard rule: the gate writes
+      status and records the
+      fingerprint; refuse still means
+      unresolved IC-* / INV-* unless
+      force.
+      ngrace-reviewer checklist:
+      never-asked and mismatch error;
+      unfingerprinted Decision
+      silent.
+      Keep CloseEvidence teaching
+      phrases, clarification teaching,
+      and ngrace-plan requirement 6
+      forced-scope phrases. Do not
+      write D19 or D20 sentences. Do
+      not mention a bare D-number as
+      a new skill rule. Do not edit
+      ngrace-execute. Do not edit
+      references/ templates
+      (referencesTotal stays unmoved).
+      Copy each canonical SKILL.md
+      onto its packaged mirror.
+
+      One remasure updates every
+      place the figure is published
+      (token-accounting.test.ts and
+      README.md:299). F84, not a red.
+
+      ════════════════════════════════════
+      D5. README (T-005)
+      ════════════════════════════════════
+      Change lifecycle prose no
+      longer says gates never author
+      status as a blanket. The gate
+      approve row names the write and
+      the fingerprint. Apply and
+      archive rows still do not write
+      status. listLiveInvocations
+      still has a matching approve
+      row (adding args does not add
+      an invocation).
+
+      ════════════════════════════════════
+      D6. ObservedWriteScope
+      ════════════════════════════════════
+      Re-derived against the tree at
+      a0bf8b8d2f13c537b7e440d839678de9bc367114,
+      not copied from the spec list.
+
+      Forced writes:
+        src/gates/ledger.ts
+        src/gates/command.ts
+        src/gates/core.test.ts
+        src/review/core.ts
+        src/review/catalog.ts
+        src/review/core.test.ts
+        src/grace-status.ts
+        src/grace-status.test.ts
+        src/verification/localize.test.ts
+        src/lint/catalog.test.ts
+        src/query/command.test.ts
+        src/test-support/token-accounting.test.ts
+        scripts/skill-contracts.test.ts
+        README.md
+        the three canonical SKILL.md
+        and their packaged mirrors
+        this bundle's plan.xml
+
+      Listed as permission (this
+      run may not write them):
+        spec.xml (approved,
+        immutable);
+        design-context.xml;
+        scripts/audit-regressions.test.ts
+        (only if a rewritten test
+        title is an evidence pin).
+
+      Cursor companions listed so
+      OWS is complete at authoring
+      (F50): run.xml, run-ledger.xml,
+      run/**.
+
+      Held by non-edit:
+        src/gates/core.ts (evaluate
+        stays clarification-only);
+        src/grace-cursor.ts
+        (digestProjectFile may be
+        imported, not edited);
+        ngrace-execute SKILL.md;
+        package.json version;
+        examples/.
+
+      Deliberately excluded
+      (stop and re-spec):
+        docs/plans/**,
+        CHANGELOG.md,
+        version surfaces,
+        .ngrace/changes/archive,
+        a lint change.* code,
+        NGRACE_ARTIFACT_VERSION.
+
+      GraphAnchors cover every
+      module owning a module-ownable
+      src/ file in this scope:
+      M-GATES (command.ts, ledger.ts),
+      M-REVIEW (review/core.ts,
+      review/catalog.ts),
+      M-STATUS (grace-status.ts).
+      M-LOCALIZE, M-SKILLS, and
+      M-TEST-SUPPORT are spec
+      AffectedAreas; localize.ts
+      itself is not written (only
+      the test pin). Test files,
+      skills, README, and scripts
+      are not module-ownable.
+
+      ════════════════════════════════════
+      D7. Baseline N predictions
+      ════════════════════════════════════
+      Load-bearing flips (not a
+      frozen post-change count):
+        A  MustContain command.ts
+           evaluate/record; never
+           author status
+        B  MustContain command.ts
+           never authors status or
+           archives bundles
+        C  MustNotContain ledger.ts
+           classifyApprovedArtifact
+        D  MustNotContain ledger.ts
+           fingerprint?: string
+        E  MustContain status.ts
+           trackedChangedFiles.has
+           spec.xml return in
+           collectApprovedContractDrift
+        F  MustNotContain catalog.ts
+           review.approval-never-asked
+        G  MustContain plan skill
+           does not itself set status
+        H  MustContain spec skill
+           Set status approved only
+           after a sufficient phrase
+        I  MustContain README
+           they never author status
+        J  MustContain token-accounting
+           totalBytes 56110
+        K  MustContain README cell
+           810 lines / 56110
+
+      Stay-true (not in N):
+      MustExist / MustVerify;
+      version 6.2.0;
+      firstStoredBaseCommit;
+      readPermittingDecision some();
+      non-Requirement child check;
+      GATE_SUBCOMMANDS;
+      evaluateApproveGate export;
+      approved-contract-drift name;
+      hard-stop message;
+      audit title phrases;
+      CloseEvidence teaching.
+
+        After plan approval, before
+        any task: N = 0. Flag if
+        N ≠ 0.
+        After T-001 (A, B, D): N
+        moves.
+        After T-003 (C, E, F): N
+        moves.
+        After T-004 (G, H, J, K):
+        N moves.
+        After T-005 (I): N complete.
+        Lint 0/0 at close only,
+        after apply and archive
+        (AC-CLOSE-LINT). Never
+        weaken a BaselineAssertion
+        to move a lint count.
+
+      ════════════════════════════════════
+      D8. Execution discipline
+      ════════════════════════════════════
+      One open epoch per task, or
+      as the execute skill requires.
+      Each planned red is its own
+      tool round trip: write the
+      failing test first, record
+      cursor attempt outcome fail
+      with the signature named in
+      D0 (run only that case), then
+      land production in a later
+      round trip, then add bounding
+      pins, then record pass (F84).
+
+      T-002 and T-003 may run in
+      parallel after T-001.
+      T-004 waits for both.
+      T-005 waits for T-004.
+
+      Do not set plan status to
+      approved. Do not run gate
+      approve.
+    -->
+  </C-APPROVAL-FINGERPRINT>
+</NgraceChangePlan>
