@@ -7191,6 +7191,12 @@ plan that copies the predecessor's three-red T-002 split will breach the distinc
 with or without `--change`, so they are not scoped to the bundle under review; running
 `review --change C-SUPERSEDE-COMMAND` surfaces findings whose `file` is the *predecessor's* plan.
 
+> **Count corrected.** This entry originally said *"two"* findings. That was a present-state
+> measurement with a shelf life of one dispatch. Once `C-SUPERSEDE-COMMAND`'s draft plan existed,
+> the same detector reported its `TargetAssertions` too: **four** under `--severity error`, **five**
+> unfiltered including the `docs/plans/**` scope finding. Cite the mechanism, not the number —
+> see [F124](#f124).
+
 **Not general noise, and not currently a defect.** The other three superseded bundles produce zero
 findings, because their targets were edits to files that already existed. `C-SUPERSEDE-VERB` is the
 first superseded plan whose target state included a file that never came to exist. The finding is
@@ -7208,6 +7214,34 @@ rediscovering it.
 **Watch item, not an action.** If a future superseded plan targets a file that is never created by
 any successor, this finding becomes permanent rather than transient, and the argument above stops
 holding.
+
+### F124 — a completeness claim with a conditional member, and why this one does not force a supersede. **[verified]**
+
+`C-SUPERSEDE-COMMAND`'s approved spec opens its forced-write inventory with *"Forced write surface
+the later plan must scope, **including every pin this deliverable moves**"* (`spec.xml:975-978`) and
+then lists *"`scripts/skill-contracts.test.ts` **if the pinned substrings move**"* (`:1038-1039`).
+T-005 adds three skill-path reds to that file, so the write is unconditional and the *"if"* is
+wrong. Same class as [F120](#f120), one file smaller — and in the very spec written to repair F120.
+
+**It does not force a second supersede, and the difference is the whole lesson.** F120's defect was
+a plan whose `ObservedWriteScope` **omitted** a forced write; that is caught after execution by
+`review.scope-outside-write-scope` and `review.write-evidence-outside-scope`, and it made
+`AC-SUITE-AND-CI` and the declaration jointly unsatisfiable. Here the plan **declares** the path
+unconditionally, which is stricter than the spec's prose, and measurement agrees: lint reports only
+the authorized `D12`/`F19` window and nothing compares spec prose to a plan's declaration at error
+severity. A plan stricter than its spec's prose is not the failure mode; a plan looser than reality
+is. Recorded so the next reader does not treat "another completeness claim" as automatically the
+same disposition.
+
+**A second trap in the same area, worth the execution brief.**
+`scripts/release-check.test.ts:506` extracts the allowlist with `/^ {2}"(src\/[^"]+)",$/gm` —
+exactly two leading spaces and a trailing comma. Existing members are two-space indented
+(`scripts/release-check.ts:98`). An otherwise correct four-space insertion leaves that pin red after
+an honest edit, and the failure reads as a missing entry rather than a formatting one.
+
+**The standing point.** [F122](#f122) said one instance of a class is an existence proof, not an
+inventory. This adds the converse: an inventory that qualifies one of its own members with *"if"*
+has not enumerated it, it has deferred the question to whoever reads it next.
 
 ## D19 — an approval covers the current step only
 
