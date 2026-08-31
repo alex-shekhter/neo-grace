@@ -23,6 +23,10 @@
 //   ReviewVerdictRecord
 //   ReviewVerdictScope
 //   hasPermittingDecision
+//   classifyApprovedArtifact
+//   stampApproveArtifact
+//   ApprovedArtifactClassification
+//   ApprovedArtifactName
 //   latestReviewVerdict
 //   listGateDecisions
 //   listReviewVerdicts
@@ -44,6 +48,7 @@
  * Section boundary: duplicate or validator-rejected section is invalid, not first-wins (A32.1 / 68).
  */
 
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -112,6 +117,14 @@ export type GateDecisionRecord = {
   requirements: GateRequirementRecord[];
   /** First observed HEAD object name on a permitting approve. Omitted when never observed. */
   baseCommit?: string;
+  /** SHA-256 lowercase hex of the targeted artifact bytes after the status write. */
+  fingerprint?: string;
+  /** Which artifact this permitting approve targeted. */
+  artifact?: "spec" | "plan";
+  /** Present and true only on a forced permit. Omit when unused; never store false. */
+  forced?: boolean;
+  /** Operator-supplied reason stored only with forced true. */
+  reason?: string;
 };
 
 /** Newest-governs read of the Verdicts section (A31.2). Invalid is never skipped. */
@@ -413,6 +426,13 @@ export function recordGateDecision(
     const incoming = (decision.baseCommit ?? "").trim();
     const value = stored ?? (incoming || undefined);
     if (value) attributes.baseCommit = value;
+    if (decision.fingerprint) attributes.fingerprint = decision.fingerprint;
+    if (decision.artifact) attributes.artifact = decision.artifact;
+    if (decision.forced === true) {
+      attributes.forced = "true";
+      const reason = (decision.reason ?? "").trim();
+      if (reason) attributes.reason = reason;
+    }
   }
   section.children.push({
     tag: "Decision",
@@ -638,6 +658,13 @@ function parseDecisionNode(child: GraceXmlNode): GateDecisionRecord | { invalid:
   };
   const baseCommit = (child.attributes.baseCommit ?? "").trim();
   if (baseCommit) record.baseCommit = baseCommit;
+  const fingerprint = (child.attributes.fingerprint ?? "").trim();
+  if (fingerprint) record.fingerprint = fingerprint;
+  const artifact = (child.attributes.artifact ?? "").trim();
+  if (artifact === "spec" || artifact === "plan") record.artifact = artifact;
+  if ((child.attributes.forced ?? "").trim() === "true") record.forced = true;
+  const reason = (child.attributes.reason ?? "").trim();
+  if (reason) record.reason = reason;
   return record;
 }
 
@@ -868,3 +895,167 @@ export function hasPermittingDecision(
 
 /** Exported for tests — tags admitted as non-epoch ledger sections. */
 export const LEDGER_NON_EPOCH_SECTIONS = LEDGER_BUNDLE_SECTIONS;
+
+export type ApprovedArtifactName = "spec" | "plan";
+
+export type ApprovedArtifactClassification =
+  | { kind: "never-asked" }
+  | { kind: "mismatch" }
+  | { kind: "match" }
+  | { kind: "unfingerprinted"; trackedChanged: boolean }
+  | { kind: "git-unavailable"; absence: { verdict: "unable-to-determine"; reason: string } };
+
+function applyingApproveDecision(
+  decisions: GateDecisionRecord[],
+  artifact: ApprovedArtifactName,
+): GateDecisionRecord | undefined {
+  const permits = decisions.filter((entry) => entry.gate === "approve" && entry.decision === "permit");
+  const named = permits.filter((entry) => entry.artifact === "spec" || entry.artifact === "plan");
+  if (named.length > 0) {
+    const forFile = permits.filter((entry) => entry.artifact === artifact);
+    return forFile.length > 0 ? forFile[forFile.length - 1] : undefined;
+  }
+  return permits.length > 0 ? permits[permits.length - 1] : undefined;
+}
+
+function readTrackedChangedFiles(projectRoot: string):
+  | { kind: "ok"; tracked: Set<string> }
+  | { kind: "unavailable" } {
+  const statusResult = Bun.spawnSync({
+    cmd: ["git", "-c", "status.relativePaths=true", "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", "."],
+    cwd: projectRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (statusResult.exitCode !== 0) return { kind: "unavailable" };
+  const output = new TextDecoder().decode(statusResult.stdout);
+  const records = output.split("\0");
+  const tracked = new Set<string>();
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index];
+    if (!record || record.length < 4) continue;
+    const status = record.slice(0, 2);
+    if (status.includes("R") || status.includes("C")) {
+      index += 1;
+    }
+    if (status === "??") continue;
+    const filePath = record.slice(3).replaceAll("\\", "/").replace(/^\.\//, "");
+    if (!filePath || filePath.startsWith("../") || filePath === ".." || path.posix.isAbsolute(filePath)) continue;
+    tracked.add(filePath);
+  }
+  return { kind: "ok", tracked };
+}
+
+/**
+ * Three-way classification of one approved spec or plan. Owns the porcelain read.
+ * Callers pass no changed-file set.
+ */
+export function classifyApprovedArtifact(
+  projectRoot: string,
+  changeId: string,
+  artifact: ApprovedArtifactName,
+): ApprovedArtifactClassification {
+  const listed = readGateDecisions(projectRoot, changeId);
+  const decisions = listed.state === "ok" ? listed.decisions : [];
+  const applying = applyingApproveDecision(decisions, artifact);
+  if (!applying) return { kind: "never-asked" };
+  const fingerprint = (applying.fingerprint ?? "").trim();
+  if (fingerprint) {
+    const filePath = path.join(
+      resolveChangeBundle(projectRoot, changeId),
+      artifact === "spec" ? "spec.xml" : "plan.xml",
+    );
+    const digest = createHash("sha256").update(readFileSync(filePath)).digest("hex");
+    return digest === fingerprint ? { kind: "match" } : { kind: "mismatch" };
+  }
+  const porcelain = readTrackedChangedFiles(projectRoot);
+  if (porcelain.kind === "unavailable") {
+    return {
+      kind: "git-unavailable",
+      absence: { verdict: "unable-to-determine", reason: "git unavailable" },
+    };
+  }
+  const bundlePath = path
+    .relative(path.resolve(projectRoot), resolveChangeBundle(projectRoot, changeId))
+    .replaceAll(path.sep, "/");
+  const relative = `${bundlePath}/${artifact === "spec" ? "spec.xml" : "plan.xml"}`;
+  return { kind: "unfingerprinted", trackedChanged: porcelain.tracked.has(relative) };
+}
+
+function rootOpeningTag(fileText: string): string | undefined {
+  const end = fileText.indexOf(">");
+  if (end < 0) return undefined;
+  return fileText.slice(0, end + 1);
+}
+
+function rootStatusFromFile(filePath: string): string | undefined {
+  const text = readFileSync(filePath, "utf8");
+  const open = rootOpeningTag(text);
+  if (!open) return undefined;
+  const key = 'status="';
+  const start = open.indexOf(key);
+  if (start < 0) return undefined;
+  const from = start + key.length;
+  const end = open.indexOf('"', from);
+  if (end < 0) return undefined;
+  return open.slice(from, end);
+}
+
+function writeDraftRootToApproved(filePath: string): void {
+  const text = readFileSync(filePath, "utf8");
+  const open = rootOpeningTag(text);
+  if (!open) return;
+  const needle = 'status="draft"';
+  const idx = open.indexOf(needle);
+  if (idx < 0) return;
+  const next = `${open.slice(0, idx)}status="approved"${open.slice(idx + needle.length)}${text.slice(open.length)}`;
+  writeFileSync(filePath, next);
+}
+
+function selectApproveTarget(
+  bundlePath: string,
+  artifact?: ApprovedArtifactName,
+): { artifact: ApprovedArtifactName; filePath: string } {
+  const specPath = path.join(bundlePath, "spec.xml");
+  const planPath = path.join(bundlePath, "plan.xml");
+  if (artifact === "spec") {
+    if (!existsSync(specPath)) {
+      throw new GraceCommandError("not-found", "spec.xml not found in the change bundle.");
+    }
+    return { artifact: "spec", filePath: specPath };
+  }
+  if (artifact === "plan") {
+    if (!existsSync(planPath)) {
+      throw new GraceCommandError("not-found", "plan.xml not found in the change bundle.");
+    }
+    return { artifact: "plan", filePath: planPath };
+  }
+  const specExists = existsSync(specPath);
+  const planExists = existsSync(planPath);
+  const specStatus = specExists ? rootStatusFromFile(specPath) : undefined;
+  const planStatus = planExists ? rootStatusFromFile(planPath) : undefined;
+  if (specExists && specStatus !== "approved") {
+    return { artifact: "spec", filePath: specPath };
+  }
+  if (planExists && planStatus !== "approved") {
+    return { artifact: "plan", filePath: planPath };
+  }
+  if (planExists) {
+    return { artifact: "plan", filePath: planPath };
+  }
+  return { artifact: "spec", filePath: specPath };
+}
+
+/** Surgical draft-to-approved write, then SHA-256 of the on-disk bytes. Command-path only. */
+export function stampApproveArtifact(
+  projectRoot: string,
+  changeId: string,
+  artifact?: ApprovedArtifactName,
+): { artifact: ApprovedArtifactName; fingerprint: string } {
+  const target = selectApproveTarget(resolveChangeBundle(projectRoot, changeId), artifact);
+  writeDraftRootToApproved(target.filePath);
+  return {
+    artifact: target.artifact,
+    fingerprint: createHash("sha256").update(readFileSync(target.filePath)).digest("hex"),
+  };
+}

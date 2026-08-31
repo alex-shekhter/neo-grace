@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -1696,5 +1697,366 @@ describe("CloseEvidence gate verdict evaluator", () => {
     const reviewSrc = readFileSync(path.join(import.meta.dir, "../review/command.ts"), "utf8");
     expect(reviewSrc).not.toMatch(/closeEvidence|close-evidence/);
     expect(gateSrc).not.toMatch(/closeEvidence|close-evidence/);
+  });
+});
+
+function sha256File(filePath: string): string {
+  return createHash("sha256").update(readFileSync(filePath)).digest("hex");
+}
+
+function draftBundle(root: string, changeId = "C-GATE") {
+  writeChangeBundleFixture(root, {
+    changeId,
+    location: "active",
+    specStatus: "draft",
+    planStatus: "draft",
+  });
+  return path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
+}
+
+describe("C-APPROVAL-FINGERPRINT T-001", () => {
+  it("fingerprint-attr: permitting recorded approve of a draft spec writes fingerprint and artifact attributes", () => {
+    const root = tempProject();
+    const bundle = draftBundle(root);
+    const specPath = path.join(bundle, "spec.xml");
+
+    const result = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(result.status).toBe(0);
+
+    const ledgerXml = readFileSync(fixtureLedgerPath(root), "utf8");
+    const tag = decisionOpenTags(ledgerXml)[0]!;
+    expect(tag).toContain(`gate="approve"`);
+    expect(tag).toContain(`decision="permit"`);
+    expect(tag).toContain(`fingerprint="${sha256File(specPath)}"`);
+    expect(tag).toContain(`artifact="spec"`);
+    const decisionXml = decisionElements(ledgerXml)[0]!;
+    expect(decisionXml).not.toMatch(/<(fingerprint|artifact)[\s>]/);
+
+    writeFileSync(
+      path.join(bundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-GATE>`
+        + `<Decisions><Decision gate="approve" decision="permit"><Fingerprint>abc</Fingerprint></Decision></Decisions>`
+        + `</C-GATE></NgraceRunLedger>`,
+    );
+    const invalid = readGateDecisions(root, "C-GATE");
+    expect(invalid.state).toBe("invalid");
+    if (invalid.state === "invalid") {
+      expect(invalid.code).toBe("ledger.invalid-decision");
+    }
+
+    writeFileSync(
+      path.join(bundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-GATE>`
+        + `<Decisions><Decision gate="approve" decision="permit" /></Decisions>`
+        + `</C-GATE></NgraceRunLedger>`,
+    );
+    const historical = listGateDecisions(root, "C-GATE");
+    expect(historical).toHaveLength(1);
+    expect(historical[0]?.gate).toBe("approve");
+    expect(historical[0]?.decision).toBe("permit");
+
+    const refuseRoot = tempProject();
+    const refuseBundle = activeBundle(refuseRoot);
+    writeFileSync(
+      path.join(refuseBundle, "spec.xml"),
+      readFileSync(path.join(refuseBundle, "spec.xml"), "utf8").replace(
+        "</C-GATE>",
+        `<Clarifications><Clarification><IC-EXAMPLE /></Clarification></Clarifications></C-GATE>`,
+      ),
+    );
+    const refused = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", refuseRoot, "--record=true"],
+    );
+    expect(refused.status).toBe(1);
+    for (const refuseTag of decisionOpenTags(readFileSync(fixtureLedgerPath(refuseRoot), "utf8"))) {
+      expect(refuseTag).not.toContain("fingerprint=");
+      expect(refuseTag).not.toContain("artifact=");
+    }
+
+    const applyRoot = tempProject();
+    activeBundle(applyRoot);
+    recordReviewVerdict(applyRoot, "C-GATE", { outcome: "pass" });
+    const applied = runGateCli(
+      ["apply", "--change", "C-GATE", "--path", applyRoot, "--record=true"],
+    );
+    expect(applied.status).toBe(0);
+    for (const applyTag of decisionOpenTags(readFileSync(fixtureLedgerPath(applyRoot), "utf8"))) {
+      expect(applyTag).not.toContain("fingerprint=");
+      expect(applyTag).not.toContain("artifact=");
+    }
+  });
+
+  it("per-decision: second approve stores its own plan fingerprint and does not copy the first", () => {
+    const root = tempProject();
+    const bundle = draftBundle(root);
+    const specPath = path.join(bundle, "spec.xml");
+    const planPath = path.join(bundle, "plan.xml");
+    const head = initGitWithCommit(root, "A");
+
+    const first = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(first.status).toBe(0);
+    const ledgerAfterFirst = readFileSync(fixtureLedgerPath(root), "utf8");
+    const firstDecisionBytes = decisionElements(ledgerAfterFirst)[0]!;
+    const firstTags = decisionOpenTags(ledgerAfterFirst);
+    expect(firstTags).toHaveLength(1);
+    expect(firstTags[0]).toContain(`artifact="spec"`);
+    expect(firstTags[0]).toContain(`fingerprint="${sha256File(specPath)}"`);
+    expect(firstTags[0]).toContain(`baseCommit="${head}"`);
+
+    const second = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(second.status).toBe(0);
+    const ledgerAfterSecond = readFileSync(fixtureLedgerPath(root), "utf8");
+    const decisions = decisionElements(ledgerAfterSecond);
+    expect(decisions).toHaveLength(2);
+    expect(decisions[0]).toBe(firstDecisionBytes);
+    const secondTags = decisionOpenTags(ledgerAfterSecond);
+    expect(secondTags[1]).toContain(`artifact="plan"`);
+    expect(secondTags[1]).toContain(`fingerprint="${sha256File(planPath)}"`);
+    expect(secondTags[1]).toContain(`baseCommit="${head}"`);
+    expect(secondTags[1]).not.toContain(`fingerprint="${sha256File(specPath)}"`);
+    expect(secondTags[0]).not.toBe(secondTags[1]);
+  });
+
+  it("status-write: draft root becomes approved with byte identity except that attribute", () => {
+    const root = tempProject();
+    const bundle = draftBundle(root);
+    const specPath = path.join(bundle, "spec.xml");
+    const planPath = path.join(bundle, "plan.xml");
+    const specBefore = readFileSync(specPath, "utf8");
+    const planBefore = readFileSync(planPath, "utf8");
+    expect(specBefore).toContain('status="draft"');
+
+    const recorded = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(recorded.status).toBe(0);
+    const specAfter = readFileSync(specPath, "utf8");
+    expect(specAfter).toBe(specBefore.replace('status="draft"', 'status="approved"'));
+    expect(readFileSync(planPath, "utf8")).toBe(planBefore);
+
+    const approvedRoot = tempProject();
+    const approvedBundle = activeBundle(approvedRoot);
+    const approvedSpecBefore = readFileSync(path.join(approvedBundle, "spec.xml"), "utf8");
+    const approvedPlanBefore = readFileSync(path.join(approvedBundle, "plan.xml"), "utf8");
+    expect(approvedSpecBefore).toContain('status="approved"');
+    const reapprove = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", approvedRoot, "--record=true"],
+    );
+    expect(reapprove.status).toBe(0);
+    expect(readFileSync(path.join(approvedBundle, "spec.xml"), "utf8")).toBe(approvedSpecBefore);
+    expect(readFileSync(path.join(approvedBundle, "plan.xml"), "utf8")).toBe(approvedPlanBefore);
+
+    const applyRoot = tempProject();
+    const applyBundle = activeBundle(applyRoot);
+    const applySpecBefore = readFileSync(path.join(applyBundle, "spec.xml"), "utf8");
+    const applyPlanBefore = readFileSync(path.join(applyBundle, "plan.xml"), "utf8");
+    recordReviewVerdict(applyRoot, "C-GATE", { outcome: "pass" });
+    const applied = runGateCli(
+      ["apply", "--change", "C-GATE", "--path", applyRoot, "--record=true"],
+    );
+    expect(applied.status).toBe(0);
+    expect(readFileSync(path.join(applyBundle, "spec.xml"), "utf8")).toBe(applySpecBefore);
+    expect(readFileSync(path.join(applyBundle, "plan.xml"), "utf8")).toBe(applyPlanBefore);
+    const archived = runGateCli(
+      ["archive", "--change", "C-GATE", "--path", applyRoot, "--record=true"],
+    );
+    expect(archived.status).toBe(0);
+    expect(readFileSync(path.join(applyBundle, "spec.xml"), "utf8")).toBe(applySpecBefore);
+    expect(readFileSync(path.join(applyBundle, "plan.xml"), "utf8")).toBe(applyPlanBefore);
+
+    const dryRoot = tempProject();
+    const dryBundle = draftBundle(dryRoot);
+    const drySpecBefore = readFileSync(path.join(dryBundle, "spec.xml"), "utf8");
+    const dryPlanBefore = readFileSync(path.join(dryBundle, "plan.xml"), "utf8");
+    const dryRun = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", dryRoot, "--record=false"],
+    );
+    expect(dryRun.status).toBe(0);
+    expect(readFileSync(path.join(dryBundle, "spec.xml"), "utf8")).toBe(drySpecBefore);
+    expect(readFileSync(path.join(dryBundle, "plan.xml"), "utf8")).toBe(dryPlanBefore);
+    expect(existsSync(fixtureLedgerPath(dryRoot))).toBe(false);
+  });
+});
+
+function plantUnresolvedIc(specPath: string): void {
+  writeFileSync(
+    specPath,
+    readFileSync(specPath, "utf8").replace(
+      "</C-GATE>",
+      `<Clarifications><Clarification><IC-EXAMPLE /></Clarification></Clarifications></C-GATE>`,
+    ),
+  );
+}
+
+describe("C-APPROVAL-FINGERPRINT T-002", () => {
+  it("force-hatch: force plus reason records a forced permit, writes status, and fingerprints", () => {
+    const root = tempProject();
+    const bundle = draftBundle(root);
+    const specPath = path.join(bundle, "spec.xml");
+    plantUnresolvedIc(specPath);
+    const specBefore = readFileSync(specPath, "utf8");
+    expect(evaluateApproveGate(root, "C-GATE").decision).toBe("refuse");
+
+    const forced = runGateCli([
+      "approve",
+      "--change",
+      "C-GATE",
+      "--path",
+      root,
+      "--force",
+      "--reason",
+      "operator override",
+    ]);
+    expect(forced.status).toBe(0);
+    const specAfter = readFileSync(specPath, "utf8");
+    expect(specAfter).toBe(specBefore.replace('status="draft"', 'status="approved"'));
+    const ledgerXml = readFileSync(fixtureLedgerPath(root), "utf8");
+    const tag = decisionOpenTags(ledgerXml)[0]!;
+    expect(tag).toContain(`decision="permit"`);
+    expect(tag).toContain(`forced="true"`);
+    expect(tag).toContain(`reason="operator override"`);
+    expect(tag).toContain(`fingerprint="${sha256File(specPath)}"`);
+    expect(tag).toContain(`artifact="spec"`);
+    const decisionXml = decisionElements(ledgerXml)[0]!;
+    expect(decisionXml).toContain('id="no-unresolved-ic-inv-clarification"');
+    expect(decisionXml).toContain('present="false"');
+
+    const missingReasonRoot = tempProject();
+    const missingReasonBundle = draftBundle(missingReasonRoot);
+    plantUnresolvedIc(path.join(missingReasonBundle, "spec.xml"));
+    const missingSpecBefore = readFileSync(path.join(missingReasonBundle, "spec.xml"), "utf8");
+    const missing = runGateCli([
+      "approve",
+      "--change",
+      "C-GATE",
+      "--path",
+      missingReasonRoot,
+      "--force",
+    ]);
+    expect(missing.status).toBe(1);
+    expect(readFileSync(path.join(missingReasonBundle, "spec.xml"), "utf8")).toBe(missingSpecBefore);
+    expect(existsSync(fixtureLedgerPath(missingReasonRoot))).toBe(false);
+
+    const emptyReason = runGateCli([
+      "approve",
+      "--change",
+      "C-GATE",
+      "--path",
+      missingReasonRoot,
+      "--force",
+      "--reason",
+      "",
+    ]);
+    expect(emptyReason.status).toBe(1);
+    expect(readFileSync(path.join(missingReasonBundle, "spec.xml"), "utf8")).toBe(missingSpecBefore);
+    expect(existsSync(fixtureLedgerPath(missingReasonRoot))).toBe(false);
+
+    const cleanRoot = tempProject();
+    draftBundle(cleanRoot);
+    const clean = runGateCli([
+      "approve",
+      "--change",
+      "C-GATE",
+      "--path",
+      cleanRoot,
+      "--record=true",
+    ]);
+    expect(clean.status).toBe(0);
+    const cleanTag = decisionOpenTags(readFileSync(fixtureLedgerPath(cleanRoot), "utf8"))[0]!;
+    expect(cleanTag).toContain(`decision="permit"`);
+    expect(cleanTag).not.toContain("forced=");
+    expect(cleanTag).not.toContain("reason=");
+
+    const spaceRoot = tempProject();
+    draftBundle(spaceRoot);
+    const space = runGateCli([
+      "approve",
+      "--change",
+      "C-GATE",
+      "--path",
+      spaceRoot,
+      "--force",
+      "true",
+      "--reason",
+      "because",
+    ]);
+    expect(space.status).toBe(1);
+    const spaceLines = space.stderr.replace(/\n$/, "").split("\n");
+    expect(spaceLines.length).toBe(1);
+    expect(spaceLines[0]).toContain("--force=true");
+    expect(spaceLines[0]).toContain("--no-force");
+    expect(spaceLines[0]).toContain("bare `--force` means true");
+    expect(existsSync(fixtureLedgerPath(spaceRoot))).toBe(false);
+
+    for (const status of ["applied", "superseded", "cancelled", "rejected"] as const) {
+      const terminalRoot = tempProject();
+      writeChangeBundleFixture(terminalRoot, {
+        changeId: "C-GATE",
+        location: "active",
+        specStatus: status,
+        planStatus: status,
+      });
+      const terminalSpec = path.join(
+        terminalRoot,
+        ARTIFACT_DIR,
+        "changes",
+        "active",
+        "C-GATE",
+        "spec.xml",
+      );
+      plantUnresolvedIc(terminalSpec);
+      const terminalBefore = readFileSync(terminalSpec, "utf8");
+      const terminal = runGateCli([
+        "approve",
+        "--change",
+        "C-GATE",
+        "--path",
+        terminalRoot,
+        "--force",
+        "--reason",
+        "because",
+      ]);
+      expect(terminal.status).toBe(0);
+      expect(readFileSync(terminalSpec, "utf8")).toBe(terminalBefore);
+    }
+
+    const artifactRoot = tempProject();
+    const artifactBundle = draftBundle(artifactRoot);
+    const artifactSpec = path.join(artifactBundle, "spec.xml");
+    const artifactPlan = path.join(artifactBundle, "plan.xml");
+    const specBeforeOverride = readFileSync(artifactSpec, "utf8");
+    const planBeforeOverride = readFileSync(artifactPlan, "utf8");
+    const override = runGateCli([
+      "approve",
+      "--change",
+      "C-GATE",
+      "--path",
+      artifactRoot,
+      "--artifact",
+      "plan",
+    ]);
+    expect(override.status).toBe(0);
+    expect(readFileSync(artifactSpec, "utf8")).toBe(specBeforeOverride);
+    expect(readFileSync(artifactPlan, "utf8")).toBe(
+      planBeforeOverride.replace('status="draft"', 'status="approved"'),
+    );
+    expect(decisionOpenTags(readFileSync(fixtureLedgerPath(artifactRoot), "utf8"))[0]).toContain(
+      `artifact="plan"`,
+    );
+  });
+
+  it("evaluateApproveGate stays clarification-only and git-free", () => {
+    const source = readFileSync(path.join(import.meta.dir, "core.ts"), "utf8");
+    const fn = source.slice(source.indexOf("export function evaluateApproveGate"));
+    const body = fn.slice(0, fn.indexOf("\nexport function", 1));
+    expect(body).not.toMatch(/\bgit\b/);
+    expect(body).not.toMatch(/spawnSync|Bun\.spawnSync|rev-parse/);
+    expect(body).not.toMatch(/fingerprint|writeFileSync|createHash/);
   });
 });

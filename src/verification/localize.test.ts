@@ -427,13 +427,13 @@ describe("review admissibility — closed by name (A42.4 / A41.5)", () => {
   it("every REVIEW_CATALOG code is either admissible or excluded (exhaustive)", () => {
     const catalog = allReviewCodes();
     // C-CRITERION-CLOSE-EVIDENCE adds review.close-evidence-unevaluated (excluded from localization by omission).
-    expect(catalog.length).toBe(16);
+    expect(catalog.length).toBe(18);
     for (const code of catalog) {
       const admitted = isAdmissibleLocalizationReviewCode(code);
       const excluded = excludedReviewCodesForLocalization().includes(code);
       expect(admitted !== excluded).toBe(true);
     }
-    expect(excludedReviewCodesForLocalization()).toHaveLength(13);
+    expect(excludedReviewCodesForLocalization()).toHaveLength(15);
   });
 
   it("filter keeps only the three; never invents a divergence index", () => {

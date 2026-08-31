@@ -29,7 +29,7 @@ describe("token-accounting (D15)", () => {
     // then re-measure — total stayed 779 (in-place line-neutral rewrite of four budget sites
     // + resume How; not a target written toward). Pin remains exact toBe of that measure.
     const measured = skillTextLines();
-    expect(measured.total).toBe(810);
+    expect(measured.total).toBe(811);
     expect(measured.perSkill["ngrace-fix"]).toBe(32);
     expect(Object.keys(measured.perSkill).length).toBe(16);
     // Sanity: known skills present
@@ -52,8 +52,8 @@ describe("token-accounting (D15)", () => {
     // plan and reviewer skills moved both figures: 806 → 810 lines and
     // 55486 → 56110 bytes.
     const measured = skillTextLines();
-    expect(measured.total).toBe(810);
-    expect(measured.totalBytes).toBe(56110);
+    expect(measured.total).toBe(811);
+    expect(measured.totalBytes).toBe(56399);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

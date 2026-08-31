@@ -21,7 +21,7 @@ Optional design-context copy-source: `references/design-context-template.xml`.
 </shape_sources>
 
 <status_rules>
-Create `spec.xml` as `status="draft"`. Set `status="approved"` only after a sufficient phrase from `approval_lexicon`. Rejected or cancelled specs move to archive with terminal status. Do not create or edit `plan.xml` in this skill.
+Create `spec.xml` as `status="draft"`. After a sufficient phrase from `approval_lexicon`, run `ngrace gate approve --change C-ID`; that command writes status. Do not hand-write `status="approved"`. Rejected or cancelled specs move to archive with terminal status. Do not create or edit `plan.xml` in this skill.
 </status_rules>
 
 <docs_and_examples>
@@ -113,7 +113,7 @@ Optional `DesignReferences` under the `C-*` wrapper. Children and their validato
 3. Create a deterministic uppercase-kebab `C-*` change id.
 4. Write `spec.xml` with `ngrace spec new` as the primary write path. Use `references/change-spec-template.xml` as the teaching source for optional sections. Prefer `AC-*` acceptance criteria. Add `DesignReferences` when design sources exist.
 5. If rationale, alternatives, scenarios, or external constraints would otherwise bloat the spec, write non-normative `design-context.xml` from `references/design-context-template.xml`.
-6. If approval is not a sufficient phrase from `approval_lexicon`, leave `spec.xml` as `status="draft"` and report the approval step needed.
+6. If approval is not a sufficient phrase from `approval_lexicon`, leave `spec.xml` as `status="draft"` and report the approval step needed. After a sufficient phrase, run `ngrace gate approve --change C-ID`; that command writes status. Do not hand-write approved.
 </workflow>
 
 <hard_rules>

@@ -46,6 +46,7 @@ unrelated blank-line edits. Use those IDs in your report; do not invent parallel
 - Optional `DesignReferences` use http(s) Figma URLs and project-contained `UserResearch` paths.
 - Mechanized findings from `ngrace review` are addressed or explicitly deferred with reasons.
 - An applied-archive CloseEvidence `AC-*` must have a recorded evaluation on a Verdict.
+- Approved spec/plan: never-asked and mismatch error; unfingerprinted Decision silent.
 </review_checklist>
 
 <ceremony_tier_review>

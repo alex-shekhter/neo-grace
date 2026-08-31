@@ -6423,6 +6423,433 @@ empty. Note this is the shape an author most wants to write.
 anything about behaviour. Chain shell steps as sibling `Command` elements, never with `&&`.
 Companion to [F43](#f43) and [F61](#f61).
 
+### F95.1 correction — the twin count is 11, and its denominator is 43, not 46. **[verified]**
+
+[F95](#f95) recorded "ten of 46" and flagged itself as a dated measurement. Re-measured
+2026-08-30 with a per-occurrence count (these `run-ledger.xml` files are a **single line**, so
+`grep -c` counts lines and silently caps at 1):
+
+**11 bundles** carry two permitting approve `Decision` elements — the original ten plus
+`C-CRITERION-CLOSE-EVIDENCE`, which reproduced the defect after F95 was written.
+
+**The denominator is wrong in both records.** 47 directories exist under `archive/`, but only
+**43** contain a `run-ledger.xml`: `C-ABSENCE-VALUE`, `C-ATTEMPT-LOG`, `C-LEDGER-READ-ABSENCE`
+and `C-RUN-LEDGER` have none and could never carry the twin. The honest figure is **11 of 43
+ledger-bearing archives**.
+
+**The rule.** State the denominator you actually measured over. "Of 46 archives" implies 46 could
+have carried it; four cannot.
+
+### F106 — `missingApplyGateRecord` is dead code that reads as a working detector. **[verified]**
+
+`missingApplyGateRecord` (`src/gates/core.ts:507-510`) is exported, documented in the module-map
+comment at `core.ts:22`, and has **zero call sites** anywhere in `src/` or `scripts/` — production
+or test. Verified by grep excluding its own definition and comment.
+
+This matters because it was cited as load-bearing. `C-CRITERION-CLOSE-EVIDENCE`'s approved plan
+argued the post-archive hole could not be closed because "nothing detects a missing archive
+`Decision` — `missingApplyGateRecord` checks *apply*." True as far as it goes, and the conclusion
+survives, but the stronger fact is that it checks **nothing**, because nobody calls it. An
+exported name in a module map is not evidence that a check runs.
+
+**The rule.** Before citing a detector as a reason a hole is open or closed, grep for its call
+sites. `C-APPROVAL-FINGERPRINT`'s detection half must not assume any existing detector is wired
+up.
+
+### F107 — `status` tells the operator to author a new bundle to explain the bundle being authored. **[verified]**
+
+With one active bundle in draft-spec state, `ngrace status` reports its own two files as
+unexplained drift and prints:
+
+> Use `$ngrace-refresh` to reconcile unexplained repository changes through a new
+> `NgraceChangeSpec` and `NgraceChangePlan`.
+
+Observed on `C-APPROVAL-FINGERPRINT` at draft-spec: derived states
+`draft-spec, unexplained-observed-drift`; unexplained paths are that bundle's own `spec.xml` and
+`design-context.xml`.
+
+**This is systematic, not incidental.** Drift is "explained" only by an **approved or applied**
+scope. A draft spec is neither, and it has no plan, so a bundle can never explain its own files
+while being authored. **Every** bundle passes through this state, so the tool advises authoring a
+second bundle to explain the first, every time — and `ngrace-status`'s own skill text calls
+draft-spec-with-no-plan the normal intermediate state.
+
+Raised by the executor unprompted while reporting on an unrelated task, and confirmed here.
+
+**The rule.** Suggested-next-action text must be suppressed, or reworded, when the unexplained
+paths are the in-flight bundle's own artifacts. Not yet assigned to a named bundle.
+
+### F108 — a bundle that ships a detector over its own governed artifacts cannot close honestly. **[verified]**
+
+`C-APPROVAL-FINGERPRINT` was drafted as one bundle: `gate approve` becomes the sanctioned
+`draft → approved` writer **and** `review` reports an `approved` artifact with no matching
+fingerprint. That pair is circular, and the cycle is structural, not an authoring slip:
+
+1. Execution requires an **approved** plan.
+2. Approval is hand-authored today, so the bundle's own spec and plan become `approved` **before**
+   its writer exists — therefore unstamped.
+3. Its own detector fires on `approved` plus no matching fingerprint.
+4. So the scoped review at its own close reports its own artifacts.
+5. Silencing that means running the writer the bundle is shipping, and **that run mints a
+   permitting approve `Decision` indistinguishable from a ratified one with no human phrase behind
+   it** — inside the bundle whose subject is approval honesty.
+
+The draft's answer was a Constraint reading "do not grandfather this bundle", which accepts the
+cycle rather than removing it, and left the re-stamp bound by prose rather than by a criterion.
+
+**The resolution, decided by the maintainer 2026-08-30: split writer from detector.** The writer
+ships first with no detector, so nothing fires and nothing needs grandfathering. The detector ships
+second and **its own spec and plan are approved using the writer**, so they are stamped from birth
+and the first artifacts it governs are its own. Detection power is unchanged: a hand-written
+`approved` carrying no `Decision` still trips the detector, and pre-writer bundles are silent only
+because they archive as `applied`.
+
+**The rule.** When a bundle would ship both a state and the check that reports on that state, ask
+whether the check governs the bundle's own artifacts during its own close. If it does, the halves
+are two bundles. A grandfather clause for the authoring bundle is the smell.
+
+### F108.1 correction — the cycle breaks with one authority step; the split was not structurally required. **[verified]**
+
+[F108](#f108) concluded that a bundle shipping both a state and the check over that state must be
+two bundles, and the maintainer ratified a split on that reasoning. **The executor refused the
+premise and was right.** Recorded here rather than rewritten in place, because the wrong reasoning
+is the part worth keeping.
+
+**What F108 got wrong.** It treated "run the writer to stamp this bundle's own artifacts" as
+necessarily dishonest. That is true of **the executor** running it — a permitting `Decision` with no
+human phrase behind it. It is false of **the authority** running it after the maintainer re-issues a
+phrase from the closed lexicon: that is a real ratification of those exact bytes, and
+[D20](#d20) already puts the close on the authority. F108 encoded a process assumption — that the
+human would not re-phrase — as a registry split.
+
+**What the split cost, and what reverting buys.** The split opened a detection window in which a
+hand-written `approved` was silent again until the detector bundle shipped; it left the `artifact`
+attribute with no reader, a dead attribute if that bundle ever slipped, which is the defect class
+this project otherwise polices; and it spent a whole bundle on a step the close already had room
+for. Reverting also gives the mechanism a property the split could not: **the first fingerprinted
+`Decision` in existence is a genuine human approval of exact bytes**, and the bundle that invents
+stamping is stamped.
+
+**The close step this adds.** After the writer lands and before the close review: the maintainer
+re-issues the lexicon phrase, the authority runs `ngrace gate approve` against the spec and against
+the plan, and the review then passes because both carry a matching fingerprint. **The detector
+enforces its own bootstrapping** — an unstamped pair makes the close review report, so the omission
+is visible rather than silent.
+
+**A consequence to state rather than discover.** `gate apply` is followed by hand-authoring
+`status="applied"` onto the spec and plan, which **changes those bytes**, so the fingerprint taken at
+`approved` deliberately stops matching from that point on. This is correct only because detection is
+silent on `applied`. Any future widening of the trigger to `applied` would report every archived
+bundle at once.
+
+**The corrected rule.** When a bundle would ship both a state and the check over that state, ask
+whether the check governs the bundle's own artifacts during its own close. If it does, it needs a
+ratifying act inside the close — not necessarily a second bundle. Split only when no such act is
+available.
+
+### F108.2 correction — the bootstrap was a trigger defect, not a split and not a ratifying act. **[verified]**
+
+[F108](#f108) asked the right question — does this check govern the authoring bundle's own artifacts
+at its own close? — and answered "split the bundle", which was wrong. [F108.1](#f1081) refused the
+split, which was right, and proposed a **ratifying act inside the close**: the maintainer re-issues
+the lexicon phrase and the authority stamps the pair before the close review. **That half is also
+wrong, and the executor refused it on two grounds, both verified.**
+
+1. **The detector checks that a stamp exists and matches, never that a human ratified.** An executor
+   running `gate approve` after the writer lands satisfies the criterion and violates the constraint
+   with nothing machine-visible. F108.1's sentence *"the detector enforces its own bootstrapping"* is
+   an overclaim: it is D18's own ceiling — tamper-evidence, not enforcement — applied to the very
+   stamp F108.1 wanted to be the genuine first.
+2. **It fires only if the close review runs, and nothing refuses a skip** — the residual recorded on
+   [`C-CRITERION-CLOSE-EVIDENCE`](../../../../.ngrace/changes/archive/C-CRITERION-CLOSE-EVIDENCE/).
+   Apply does not refuse; hand-author `applied` and the trigger goes silent. An unstamped pair can
+   archive cleanly.
+
+A third observation is right with a nuance: the recorded hash stays a true historical fact about the
+approved bytes, but **automatic** verification stops at apply, because hand-authoring `applied`
+changes those bytes. So the stamp is not a durable property of the archive. A second fingerprint
+taken over the applied bytes is what would make it one; that is scheduled separately.
+
+**The actual defect was the trigger.** It collapsed three different situations into one. Split them:
+
+| state | meaning | verdict |
+|---|---|---|
+| `approved`, **no** permitting approve `Decision` at all | never asked | **error** |
+| `approved`, `Decision` **with** a fingerprint that does not match the bytes | contract drifted | **error** |
+| `approved`, `Decision` carrying **no** fingerprint | approved before the writer existed | **silent** |
+
+The third row dissolves the bootstrap. This bundle's own spec and plan receive an unfingerprinted
+approve `Decision` when the maintainer ratifies them, because `ngrace-plan` requirement 15 mints one
+— verified: the bundle has no `run-ledger.xml` yet, so that is exactly what will happen. They land in
+row three, the detector is correctly silent, and **no mid-execution stamp and no unenforceable
+constraint are needed.**
+
+Row one is the case D18 was written for: its sequencing paragraph says the floor is the half that
+would have caught both measured runs, *"since neither ever requested an approval at all."*
+
+**Costs, stated rather than discovered.** This bundle is never itself stamped — the same
+cobbler's-children property the split had, accepted because the stamp's virtue was unenforceable
+anyway. And row three is a permanent legacy escape: an unfingerprinted `Decision` reads as
+pre-writer forever. After this ships every `gate approve` fingerprints, so row three can only arise
+from a pre-ship bundle or a hand-edited ledger — and hand-editing the ledger is exactly the
+deliberate, visible act D18 accepts rather than prevents.
+
+**The corrected rule.** When a check would govern the authoring bundle's own artifacts, look first
+for a trigger that distinguishes *never asked* from *asked before the mechanism existed*. Reach for a
+split or a ratifying act only when no such distinction exists. A process bound only by prose, called
+structure, is the shape this project has been burned by.
+
+### F109 — the fingerprint detector and `approved-contract-drift` would answer one question from two sources. **[verified]**
+
+`RM-GITLESS-INTEGRITY` section 4 states the precondition outright: the digest work *"replaces
+`approved-contract-drift`'s git reading. It does not run beside it. Two surfaces answering 'did the
+approved contract change?' from two different sources is the exact defect `C-REPORT-HONESTY` was
+written to remove"* ([F14](#f14), [F15](#f15)). The draft spec carried a NonGoal saying it does
+**not** replace that state — shipping precisely the disqualifying condition.
+
+**Measured.** `collectApprovedContractDrift` (`src/grace-status.ts:654-662`) is fed by
+`trackedChangedFiles`, parsed from **git status porcelain**. The fingerprint detector is a strict
+superset on three independent axes:
+
+1. **Git's reading is blind after a commit.** Commit an edit to an approved spec and the state
+   clears; a fingerprint mismatch persists. In this repository everything is committed, so the two
+   disagree routinely, not at the margins.
+2. **Git's requires `specStatus` and `planStatus` both `approved`** (`:656`). The fingerprint check is
+   per artifact. With a plan still missing it cannot fire at all.
+3. **Git's requires git.** `listRepositoryChangedFiles` returns `available: false` on failure and the
+   set is empty. The fingerprint check is git-free, which is `RM-GITLESS-INTEGRITY`'s objective.
+
+There is no case where the git reading catches something the fingerprint misses, so keeping both
+means `ngrace status` reporting clean on a contract that provably changed.
+
+**Maintainer ruling, 2026-08-30: replace it in this bundle.** Re-source the collector, keep the
+`approved-contract-drift` state name and the hard-stop message at `src/grace-status.ts:316`, delete
+the git reading. Open nuance for the spec: *absent record* and *mismatched record* are different
+conditions collapsing onto one legacy state name, and a missing record is not a drift.
+
+### F109.1 correction — the superset claim was measured against the wrong design, and row three is not time-bounded. **[verified]**
+
+Two corrections in one entry, both raised by the executor, both verified. They correct
+[F109](#f109) and [F108.2](#f1082), which were authored separately and never checked against each
+other.
+
+**1. [F109](#f109)'s "strict superset" is false once [F108.2](#f1082) row three exists.**
+`collectApprovedContractDrift` (`src/grace-status.ts:654-662`) has **no fingerprint dependency** — it
+fires on any uncommitted edit to an approved spec/plan pair. The superset argument was measured for
+*fingerprinted* artifacts only. Combine the two amendments as originally written — delete the git
+reading, keep row three silent — and an approved artifact carrying an **unfingerprinted** `Decision`,
+edited uncommitted, is watched by **nothing**. Today git catches it.
+
+The affected population is nearly exactly one bundle: **this one, during its own execution window**,
+when the executor is actively editing files. Shipping both amendments as drafted would have left the
+bundle that invents fingerprinting the only bundle unwatched by the state whose git reading it
+deletes.
+
+**The resolution, ruled by the maintainer 2026-08-30: a precedence chain, not a deletion.** Inside
+one collector, per artifact:
+
+1. a fingerprinted `Decision` is present → compare the bytes to the fingerprint;
+2. else → the existing git tracked-changed reading;
+3. else (git unavailable) → typed absence.
+
+This still satisfies `RM-GITLESS-INTEGRITY` section 4. Its objection, and the
+[`C-REPORT-HONESTY`](#f14) precedent behind it, is to **two independent implementations** computing
+one answer and drifting apart — the [F60](#f60) shape. A single collector with a documented
+precedence chain is not that: exactly one answer per artifact, from the best evidence available. The
+git branch becomes dead code on its own once row three empties, and can then be deleted with no
+coverage argument.
+
+**The requirement that keeps this from becoming F60 later:** `status` and `review` must consume **one
+computed classification**, not each implement the three-way test.
+
+**2. [F108.2](#f1082)'s bound on row three was too small.** It said row three "can only arise from a
+pre-ship bundle or a hand-edited ledger". **A mixed-version CLI is a third source**: an older binary
+run after this ships writes the same unfingerprinted `Decision`, and it reads as pre-writer forever.
+Verified — the published package and this tree are both `6.2.0`, and [F99](#f99) already records that
+installers of a published version keep running the pre-fix writer until a release. **Row three is not
+time-bounded**, which is a further argument for keeping the git fallback rather than deleting it.
+
+**The rule.** When two amendments to one artifact are authored separately, evaluate them **together**
+before either is approved. Both were individually sound; their combination opened the hole.
+
+### F109.2 correction — the git fallback is permanent, not transitional, and it does not cover the source that makes it permanent. **[verified]**
+
+[F109.1](#f1091) contains two sentences that cannot both be true, and the executor named the
+contradiction. Both corrections below are accepted.
+
+**1. "Dead code once row three empties" contradicts "row three is not time-bounded."** F109.1 asserted
+both. Row three does not empty: hand-edited ledgers are deliberate and available at any time, and a
+mixed-version CLI writes unfingerprinted `Decision`s for as long as any older binary is in use —
+which, for a published npm package, is indefinite. **So the git branch never becomes dead code on a
+calendar, and the "retirement path" F109.1 promised is a wish.**
+
+The honest framing: **the precedence chain is permanent infrastructure, not a shim.** Retirement, if
+it ever happens, is a *per-project runtime condition* — no applying `Decision` in that operator's
+corpus lacks a fingerprint — not a release milestone. The spec words it that way.
+
+This does not reopen [F109](#f109). `RM-GITLESS-INTEGRITY` section 4 forbids **two independent
+implementations** of one answer drifting apart. One collector with a documented precedence chain,
+consumed by both surfaces through a single exported classifier, is not that — and remains not that
+when the chain is permanent.
+
+**2. Keeping git as a fallback does not cover the mixed-version case that makes row three
+permanent.** F109.1 offered the standing nature of row three as an argument for the fallback. The
+fallback catches **uncommitted** edits only: git's reading is porcelain-based
+(`src/grace-status.ts:654-662`). A mixed-version binary writes an unfingerprinted `Decision`, the
+operator commits an edit, and both surfaces stay silent — review by row three, git by having nothing
+to see. **That is the original git weakness, unchanged.** The fallback is strictly better than
+deletion and strictly worse than a fingerprint; it is not a fix for the standing source.
+
+**The rule.** An argument that a gap is permanent is not an argument that a partial mitigation closes
+it. State what the mitigation covers — here, uncommitted edits to unfingerprinted approved artifacts
+— and what it leaves open.
+
+### F19's accepted transient is retired by `C-APPROVAL-FINGERPRINT`, as a consequence of precedence 1. **[verified]**
+
+*(Wording corrected by [F109.3](#f1093): F19 ruled its subject not a defect. This is a premise change, not a defect fix.)*
+
+[F19](#f19) recorded that authoring `status="approved"` puts a bundle into
+`approved-contract-drift` until the approval is committed, printing the hard stop at
+`src/grace-status.ts:316`. It was ruled **not a product defect** on the reasoning that *"the check
+cannot observe approval time"*, so its false window — between authoring the status and committing it
+— was accepted as a transient worth keeping.
+
+**The fingerprint gives the check exactly that ability.** Under precedence 1, an approved artifact
+whose bytes match its recorded fingerprint is not drifting, regardless of whether the change is
+committed. The false window closes, and the protection F19 called the real one — *"an approved
+contract silently edited mid-execution"* — is preserved and strengthened, because a fingerprint
+mismatch is durable where a porcelain reading is erased by a commit.
+
+The executor surfaced this as an unremarked behaviour change bound only as a failure condition. **It
+is a payoff and should be named as one**, so a later reader does not mistake the disappearance of the
+hard stop for a regression.
+
+### F109.3 correction — four wording errors in F109.2 and the briefs that carried it. **[verified]**
+
+All four raised by the executor, all against text the authority wrote, none affecting the design.
+Recorded because each one would mislead a later reader about what was decided and why.
+
+**1. F19 was never a defect, so nothing about it is "the defect being paid."** [F19](#f19) says
+outright *"**Not a product defect.**"* It recorded an observed behaviour and **accepted** the
+transient, on the reasoning that the check cannot observe approval time. What this bundle changes is
+that **premise**, not a verdict: the check can now observe the approved bytes, so the accepted false
+window stops occurring. The honest phrasing is that `C-APPROVAL-FINGERPRINT` **retires F19's accepted
+transient by removing its premise** — not that it fixes a defect F19 ruled absent. The registry entry
+is corrected to say so.
+
+**2. The contradiction was in F109.1 and the brief, not in the spec.** [F109.2](#f1092) said "two
+sentences that cannot both be true" in a way that implicated the drafted spec. It did not: the spec
+already scoped emptying to the **operator's corpus**, a per-project runtime condition, which
+coexists with row three never emptying globally. The sentence that was actually wrong was F109.1's
+product-level *"a later bundle can then delete it"* — deletion as a release milestone. Corpus-scoped
+retirement stands.
+
+**3. "The fallback does not cover the mixed-version case" compresses two different facts.**
+Mixed-version is a standing **source** of row three. The coverage axis is **commit state**, not
+source: the fallback covers *uncommitted* edits to unfingerprinted approved artifacts from any
+source, mixed-version included, and misses *committed* ones from any source. Stating it by source
+mislabels which artifacts are exposed.
+
+**4. "The row-three gap" mislabels the leftover.** Row three is *review silence on unfingerprinted
+`Decision`s* — deliberate, and the mechanism that dissolves the bootstrap. The leftover is a
+different thing: *a committed edit to an unfingerprinted approved artifact, silent on both
+surfaces*. The brief required that phrase and the executor kept it under instruction while flagging
+it. Naming them as one gap would make a deliberate design choice look like an unclosed hole.
+
+**The rule.** An instruction that forces specific wording into a normative artifact is an
+authority-authored sentence, and it inherits the authority's errors. When an executor reports that a
+required phrase is wrong, the phrase is the thing to fix, not the report.
+
+### F110 — a non-normative bundle artifact carries the same accuracy bar for the claims it makes. **[verified]**
+
+An amendment brief corrected two authority-authored sentences in `spec.xml` and scoped itself to
+that file. `design-context.xml` carried the same three falsified sentences and kept them. The
+executor flagged it, declined to edit outside scope, and said it would not sign that artifact as
+written.
+
+**The scoping was the authority's error.** This is the second instance in one session of amending a
+claim and leaving the text that amendment falsifies still standing — the same rule as
+[F109.3](#f1093)'s, one level up: an amendment must authorise the sweep of **everything** it
+falsifies, across every artifact frozen with the bundle.
+
+**The rule, in the executor's formulation and adopted here.** Non-normative means an artifact
+**cannot bind a plan** — not that it **may misstate a decision**. So:
+
+- **Same bar** for every claim it makes about what was decided, measured, or ruled.
+- **Lower bar** only for completeness, and it must never invent a requirement.
+
+`design-context.xml` is frozen with the bundle and read by future authors. **A wrong explanation of a
+right spec is how a closed error comes back.** Every future amendment brief must name each frozen
+bundle artifact that still carries a falsified sentence, not only the normative one.
+
+### F111 — plain `grep` under-reports these artifacts, because they wrap phrases across lines. **[verified]**
+
+Checking the F110 sweep, a plain `grep` for three phrases in `design-context.xml` returned **one**
+hit. A whitespace-flattened search returned **three** — the executor's report was exact and the
+authority's spot check was wrong.
+
+These XML artifacts are authored in narrow columns, so any phrase longer than a few words is split
+across lines and no line contains it. This is the same class as [F95.1](#f951)'s `grep -c` error,
+where a single-line `run-ledger.xml` capped a count at 1: **the file's shape defeated the tool, and
+the tool reported a plausible number rather than failing.**
+
+**The rule.** Before searching a `.ngrace` XML artifact for a phrase, flatten whitespace. A phrase
+count from `grep` over these files is evidence of nothing unless the phrase is a single token.
+
+### F112 — the approved spec orders a red for a property true both before and after. **[verified]**
+
+`AC-RECORD-FALSE` (`.ngrace/changes/active/C-APPROVAL-FINGERPRINT/spec.xml:1218-1232`) says *"Do not
+manufacture a red for the no-Decision half (F45). **Redden the new half: status bytes unchanged.**"*
+and `VerificationIntent` (`:1604-1609`) lists that half as red-first.
+
+**Measured: both halves are true at HEAD.** `runGate` (`src/gates/command.ts:89-108`) writes no status
+at all — it evaluates, observes HEAD on a permitting approve, and calls `recordGateDecision`. So
+"`record false` leaves status bytes unchanged" is trivially true today, and it stays true under a
+*correct* implementation of the writer. **The only way to observe it failing is to ship a writer that
+ignores the record flag first** — deliberately wrong production code.
+
+**This is [F102](#f102) recurring, and the authority approved it.** F102 was recorded one bundle
+earlier, from `C-CRITERION-CLOSE-EVIDENCE`'s `skip-on-active`, and states the test exactly: a planned
+red must be false at HEAD **and** false under a correct implementation. The rule existed, was
+written down, and was not applied at approval. Third instance of this shape in the roadmap.
+
+**The spec also contradicts itself**, which is what makes the resolution safe: its `Constraints`
+(`:1046-1057`) and its own F45 citation say do not manufacture reds, while the `AC` imperative and
+`VerificationIntent` say redden. The plan resolves toward F45 and the Constraints, treating write
+isolation as a **T-001 bounding pin** rather than a recorded fail signature.
+
+**Not superseded.** The resolution changes no deliverable — only whether a fail event is recorded —
+and declining to fabricate a red is strictly more honest than obeying the sentence. Recorded as a
+**documented plan deviation from an approved spec**, to be disclosed in the close verdict, in the
+shape used for the defects found in `C-CRITERION-CLOSE-EVIDENCE`'s approved artifacts.
+
+**The rule, restated because writing it down was not enough.** At *approval* time, for every criterion
+that orders a red, evaluate the property against HEAD **and** against a correct implementation. If it
+holds in both, it is an F45 exemption named at authoring, never a signature. Reviewing a spec means
+executing its instructions in the head, not reading them.
+
+### F113 — the approved spec ordered a typed-absence value onto a surface whose key set is frozen. **[verified]**
+
+`AC-STATUS-DRIFT-SOURCE` requires the status surface to report **typed absence** when git is
+unavailable and no fingerprint exists, in D5's idiom. But `src/grace-status.test.ts:354` pins the
+`StatusResult` top-level key set — *"keeps schemaVersion 1.0.0 and adds no StatusResult top-level
+key"* — so any typed-absence **field** is a new derived key by another name and breaks that pin.
+
+The spec asked for something the product forbids. The executor resolved it by surfacing absence only
+through `chooseNextAction` (`src/grace-status.ts:321`, *"Not evaluable: git unavailable."*), adding no
+JSON key, and reported the conflict rather than quietly picking one side.
+
+**The resolution is right and its limit should be stated.** Absence is now **human-readable text, not
+a machine-readable field**, so a JSON consumer cannot detect *not evaluable* programmatically. D5's
+idiom is served for an operator reading output and only partly served for a consumer parsing it.
+Widening `StatusResult` is a separate change that must retire or amend that pin deliberately.
+
+**Second defect found in this approved spec at execution time**, after [F112](#f112), both surfaced
+by the executor. Both are the same class: **the spec ordered something without checking it against a
+pin or a rule the product already enforces.** Spec review has to execute the criteria against the
+tree, not read them for plausibility — the same conclusion F112 reached, now with a second instance
+in one bundle.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
@@ -6580,10 +7007,10 @@ below; it is not given a slot.
 | # | Name | Charter | Pays | Status |
 |---|---|---|---|---|
 | 1 | **`C-CRITERION-CLOSE-EVIDENCE`** | A close/verdict-bound acceptance-criterion state, so post-archive lint 0/0 is authorable rather than reinvented as an unsatisfiable `AC-*`. Named here 2026-08-15. No existing name covers it: no `C-CRITERION*` / `C-CLOSE-EVIDENCE` in this directory; [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/) archived the workaround, not a third `AC-*` state. | [F82](#f82), [F83](#f83), [F83.1](#f831). F82 is already discharged as *practice* by `C-DRIFT-HONESTY`; this bundle is the product state that would make that practice authorable. F83's P2.6 / P2.4 halves were paid by the same archive; the live remainder is F83.1. | **Delivered** 2026-08-30, archived as [`C-CRITERION-CLOSE-EVIDENCE`](../../../../.ngrace/changes/archive/C-CRITERION-CLOSE-EVIDENCE/). Closed with [F100](#f100)–[F105](#f105). The residual hole is unpaid by design: after the archive move no gate is required to run, so the close-evidence verdict is skippable — `review` detects a skip, nothing refuses one. `C-ARCHIVE-CURSOR` / P3.1 own the mandatory post-archive act. |
-| 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18): a `Decision` records what it permits. No existing name: D18 named none; `C-BUNDLE-BASE-REF` shipped `baseCommit`, not an artifact fingerprint. | [F95](#f95), and [F81](#f81) as a consequence of the dated "five" (superseded by F95's ten of 46). Unblocks [D19](#d19), [D20](#d20), and the [co-draft candidate](#decision-candidate--co-draft-the-pair-not-ratified), all of which already name fingerprints that do not exist. | **Authorized to start.** Prerequisite of position 5. |
+| 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18) entire: `gate approve` becomes the sanctioned `draft` to `approved` writer, records a per-`Decision` fingerprint of the bytes it wrote plus the artifact it targeted, ships the forced-permit escape hatch, **and** `review` reports an `approved` spec or plan whose newest per-artifact fingerprint is absent or no longer matches. Briefly split into a writer half and a detector half on 2026-08-30 and re-merged the same day; see [F108](#f108) and [F108.1](#f1081). | [F95](#f95) / [F95.1](#f951), [F81](#f81), [F109](#f109), and retires [F19](#f19)'s accepted transient by removing its premise — F19 ruled its subject **not** a defect, so this is a premise change, not a defect fix ([F109.3](#f1093)). | **Delivered** 2026-08-31, archived as [`C-APPROVAL-FINGERPRINT`](../../../../.ngrace/changes/archive/C-APPROVAL-FINGERPRINT/). Closed with [F112](#f112) and [F113](#f113), both defects in its own approved spec found at execution. Detection uses the three-way trigger of [F108.2](#f1082), so no bootstrap stamp was needed: the bundle carries exactly one unfingerprinted approve `Decision` and its own artifacts sit in the silent third row. It re-sources `approved-contract-drift` through one shared classifier with the git reading demoted to a fallback ([F109.1](#f1091)), and retires [F19](#f19)'s accepted transient. **First bundle to author a `CloseEvidence` criterion and have it evaluated at close** — `AC-CLOSE-LINT` recorded `Exit 0 / Result pass` on the applied archive. Residual limits recorded, not closed: row three is permanent, the git fallback misses committed edits, and this bundle is never itself stamped. Prerequisite of position 5. |
 | 3 | **`C-SUPERSEDE-VERB`** | A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name. | [F86.1](#f861), [F86.2](#f862). | **Ordered, not deferred.** |
 | 4 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
-| 5 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after 2, and only if ratified after the re-measure. Unratified. |
+| 5 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after position 2, whose writer mints the fingerprint it depends on, and only if ratified after the re-measure. Unratified. |
 
 **Named by this directory, not in the 2026-08-15 order.**
 

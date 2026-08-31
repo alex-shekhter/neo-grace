@@ -767,7 +767,7 @@ describe("listBooleanFlags live inventory (anti-F10)", () => {
 
     // Re-measured at execute via this walker. Plan-authoring HEAD 4bf483c: 24.
     // F23: exact pin, not a lower bound. F12.2: this run's number is the source of truth.
-    expect(sites.length).toBe(25);
+    expect(sites.length).toBe(26);
 
     // review and doctor included in the walk (0 booleans today).
     expect(sites.some((s) => s.path.startsWith("review"))).toBe(false);
@@ -991,7 +991,7 @@ describe("AC-CLASS-COVERAGE (T-003)", () => {
     const roots = liveCommandRoots();
     const sites = listBooleanFlags([...roots]);
     // Re-measure at execute (F12.2). Plan authoring: 24. F23: exact pin.
-    expect(sites.length).toBe(25);
+    expect(sites.length).toBe(26);
 
     for (const site of sites) {
       const node = commandAtPath(roots as never, site.path);
@@ -1004,7 +1004,7 @@ describe("AC-CLASS-COVERAGE (T-003)", () => {
 
   it("pure refuse covers every collected live flag name for space true and space false", () => {
     const sites = listBooleanFlags([...liveCommandRoots()]);
-    expect(sites.length).toBe(25);
+    expect(sites.length).toBe(26);
     const names = [...new Set(sites.map((s) => s.name))];
     for (const name of names) {
       const long = `--${name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/_/g, "-").toLowerCase()}`;

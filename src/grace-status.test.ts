@@ -576,14 +576,59 @@ describe("ngrace status", () => {
     runGit(root, ["add", "."]);
     runGit(root, ["commit", "-m", "test: baseline"]);
     const planFile = path.join(root, `${ARTIFACT_DIR}/changes/active/C-IMMUTABLE/plan.xml`);
+    const digest = createHash("sha256").update(readFileSync(planFile)).digest("hex");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-IMMUTABLE/run-ledger.xml`,
+      `<NgraceRunLedger graceVersion="1.0"><C-IMMUTABLE><Decisions><Decision gate="approve" decision="permit" fingerprint="${digest}" artifact="plan" /></Decisions></C-IMMUTABLE></NgraceRunLedger>`,
+    );
     writeFileSync(planFile, readFileSync(planFile, "utf8").replace("Apply the change.", "Apply the edited change."));
+    runGit(root, ["add", "."]);
+    runGit(root, ["commit", "-m", "test: edit approved plan"]);
 
     const result = collectProjectStatus(root);
     const change = result.changes.find((entry) => entry.changeId === "C-IMMUTABLE")!;
-    expect(result.observedDrift.unexplainedFiles).toContain(".ngrace/changes/active/C-IMMUTABLE/plan.xml");
     expect(change.derivedStates).toContain("approved-contract-drift");
     expect(change.derivedStates).not.toContain("ready-to-execute");
     expect(result.nextAction).toContain("Hard stop");
+  });
+
+  it("unfingerprinted tracked-changed approved artifact still fires approved-contract-drift", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-FALLBACK", { specStatus: "approved", planStatus: "approved" });
+    initGitRepo(root);
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-FALLBACK/run-ledger.xml`,
+      `<NgraceRunLedger graceVersion="1.0"><C-FALLBACK><Decisions><Decision gate="approve" decision="permit" /></Decisions></C-FALLBACK></NgraceRunLedger>`,
+    );
+    const planFile = path.join(root, `${ARTIFACT_DIR}/changes/active/C-FALLBACK/plan.xml`);
+    writeFileSync(planFile, readFileSync(planFile, "utf8").replace("Apply the change.", "Apply the edited change."));
+
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-FALLBACK")!;
+    expect(change.derivedStates).toContain("approved-contract-drift");
+    expect(result.nextAction).toContain("Hard stop");
+  });
+
+  it("matching fingerprint plus tracked-changed does not emit approved-contract-drift", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-MATCH", { specStatus: "approved", planStatus: "approved" });
+    initGitRepo(root);
+    const planFile = path.join(root, `${ARTIFACT_DIR}/changes/active/C-MATCH/plan.xml`);
+    writeFileSync(planFile, readFileSync(planFile, "utf8").replace("Apply the change.", "Apply the edited change."));
+    const digest = createHash("sha256").update(readFileSync(planFile)).digest("hex");
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-MATCH/run-ledger.xml`,
+      `<NgraceRunLedger graceVersion="1.0"><C-MATCH><Decisions><Decision gate="approve" decision="permit" fingerprint="${digest}" artifact="plan" /></Decisions></C-MATCH></NgraceRunLedger>`,
+    );
+
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-MATCH")!;
+    expect(change.derivedStates).not.toContain("approved-contract-drift");
   });
 
   it("does not confuse a newly created untracked approved bundle with post-approval contract drift", () => {
@@ -994,5 +1039,24 @@ describe("C-REPORT-HONESTY T-002 status membership", () => {
     expect(statusSrc).toMatch(/from\s+["']\.\/artifact\/run-membership["']/);
     expect(statusSrc).toMatch(/listLooseEvents/);
     expect(statusSrc).toMatch(/listRunOrphans/);
+  });
+
+  it("git-unavailable: unfingerprinted approved artifact is typed absence, not clean", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-ABS", { specStatus: "approved", planStatus: "approved" });
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-ABS/run-ledger.xml`,
+      `<NgraceRunLedger graceVersion="1.0"><C-ABS><Decisions><Decision gate="approve" decision="permit" /></Decisions></C-ABS></NgraceRunLedger>`,
+    );
+    const result = collectProjectStatus(root);
+    const change = result.changes.find((entry) => entry.changeId === "C-ABS")!;
+    expect(result.nextAction.toLowerCase()).toContain("not evaluable");
+    expect(result.nextAction).toMatch(/git unavailable/i);
+    expect(result.nextAction).not.toContain("Project is healthy");
+    expect(change.derivedStates).not.toContain("ready-to-execute");
+    expect(change.derivedStates).not.toContain("approved-contract-drift");
+    expect(result.derivedStates).not.toContain("approved-contract-drift");
   });
 });

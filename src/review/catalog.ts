@@ -11,6 +11,8 @@
 //   ATTEMPT_PAIR_FINDING_CODE
 //   WRITE_EVIDENCE_SCOPE_FINDING_CODE
 //   CLOSE_EVIDENCE_ABSENCE_FINDING_CODE
+//   APPROVAL_NEVER_ASKED_FINDING_CODE
+//   APPROVAL_FINGERPRINT_MISMATCH_FINDING_CODE
 //   REVIEW_CATALOG
 //   REVIEW_ISSUE_SEVERITIES
 //   ReviewIssueGuide
@@ -74,6 +76,11 @@ export const WRITE_EVIDENCE_SCOPE_FINDING_CODE =
  */
 export const CLOSE_EVIDENCE_ABSENCE_FINDING_CODE =
   "review.close-evidence-unevaluated" as const;
+
+export const APPROVAL_NEVER_ASKED_FINDING_CODE = "review.approval-never-asked" as const;
+
+export const APPROVAL_FINGERPRINT_MISMATCH_FINDING_CODE =
+  "review.approved-fingerprint-mismatch" as const;
 
 export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
   // --- Family A: corpus pattern codes ---
@@ -241,6 +248,35 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
     ],
     severity: "error",
     derivedFrom: "C-CRITERION-CLOSE-EVIDENCE",
+    family: "process-audit",
+  },
+  [APPROVAL_NEVER_ASKED_FINDING_CODE]: {
+    code: APPROVAL_NEVER_ASKED_FINDING_CODE,
+    title: "Approved Artifact Was Never Asked",
+    explanation:
+      "An approved spec.xml or plan.xml has no applying permitting approve Decision. "
+      + "The record says an approval happened and what bytes it covered; this finding "
+      + "means that record is missing. Tamper-evidence, not enforcement.",
+    remediation: [
+      "Run ngrace gate approve so the gate writes approved and records a fingerprint, or restore the artifact to draft.",
+      "Do not treat this finding as a lint change.* code and do not refuse gate apply on it.",
+    ],
+    severity: "error",
+    derivedFrom: "C-APPROVAL-FINGERPRINT",
+    family: "process-audit",
+  },
+  [APPROVAL_FINGERPRINT_MISMATCH_FINDING_CODE]: {
+    code: APPROVAL_FINGERPRINT_MISMATCH_FINDING_CODE,
+    title: "Approved Artifact Fingerprint Does Not Match",
+    explanation:
+      "The applying permitting approve Decision has a fingerprint that is not SHA-256 of the "
+      + "current file bytes. The contract drifted after approval. Tamper-evidence, not enforcement.",
+    remediation: [
+      "Restore the approved bytes, or re-approve the amended artifact so a new Decision fingerprints the new bytes.",
+      "Do not treat this finding as a lint change.* code and do not refuse gate apply on it.",
+    ],
+    severity: "error",
+    derivedFrom: "C-APPROVAL-FINGERPRINT",
     family: "process-audit",
   },
   [WRITE_EVIDENCE_SCOPE_FINDING_CODE]: {
