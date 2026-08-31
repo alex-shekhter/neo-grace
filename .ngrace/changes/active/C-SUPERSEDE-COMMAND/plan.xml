@@ -1,0 +1,1124 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-SUPERSEDE-COMMAND>
+    <IntentSummary>
+      Add a top-level ngrace supersede root, defined in
+      src/grace-supersede.ts and registered from src/grace.ts
+      by a static import, that is the sanctioned superseded
+      close: surgical status writes on the active spec and on
+      plan.xml when that file exists, a Replacement element
+      naming a different already-existing C-* on each written
+      artifact, and a same-filesystem rename into archive/.
+      The replacement directory is required, not created.
+      Every write, including renameSync, stays in
+      src/gates/ledger.ts so the five-file writeFileSync
+      allowlist does not grow. F114 is repaired on that
+      shared writer before any new caller is wired.
+      package.json files and PACK_ALLOWED_EXACT both gain
+      src/grace-supersede.ts in the same production.
+      README.md gains a CLI Overview row for the new root
+      and a skillTextLines remeasure if SKILL.md rewrites
+      move the published figures. examples/ is unchanged.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>scripts/release-check.ts</Value></MustExist>
+      <MustExist><Value>scripts/release-check.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-explainer/references/contract-driven-dev.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-explainer/references/contract-driven-dev.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-SUPERSEDE-COMMAND/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-SUPERSEDE-COMMAND/plan.xml</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustNotExist><Value>src/grace-supersede.ts</Value></MustNotExist>
+      <MustNotExist><Value>src/grace-supersede.test.ts</Value></MustNotExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export type GateId = "approve" | "apply" | "archive";</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>function writeDraftRootToApproved</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>const needle = 'status="draft"';</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>if (idx &lt; 0) return;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function stampApproveArtifact</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>const GATE_SUBCOMMANDS = new Set(["approve", "apply", "archive", "verdict"])</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.test.ts</File>
+        <Text>status-write: draft root becomes approved with byte identity except that attribute</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace.ts</File>
+        <Text>from "./grace-generate"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.test.ts</File>
+        <Text>expect(sites.length).toBe(26)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>pins writeFileSync|mkdirSync to graph, cursor, gates ledger, dart, and generate only</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>Apply, archive, and verdict still do not write status and never move a bundle.</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>**811 lines** / **56399 UTF-8 bytes**</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.total).toBe(811)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.totalBytes).toBe(56399)</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>Create a new `C-*` bundle</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>mark the old bundle superseded</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>Supersede and replan instead of editing an approved conflict in place.</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>Hard stop; supersede and replan.</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-explainer/references/contract-driven-dev.md</File>
+        <Text>create a replacement `C-*` bundle and mark the old bundle superseded</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/skill-contracts.test.ts</File>
+        <Text>mark the old bundle superseded</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/release-check.ts</File>
+        <Text>const PACK_ALLOWED_EXACT = new Set([</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace.ts</File>
+        <Text>from "./grace-supersede"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/query/command.test.ts</File>
+        <Text>name: "supersede"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>package.json</File>
+        <Text>"src/grace-supersede.ts"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/release-check.ts</File>
+        <Text>"src/grace-supersede.ts"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>README.md</File>
+        <Text>ngrace supersede</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-generate.ts</File>
+        <Text>supersedeCommand</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>renameSync</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-supersede.ts</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.ts</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>scripts/release-check.ts</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-explainer/references/contract-driven-dev.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-explainer/references/contract-driven-dev.md</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"src/grace-supersede.ts"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/release-check.ts</File>
+        <Text>"src/grace-supersede.ts"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace.ts</File>
+        <Text>from "./grace-generate"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace.ts</File>
+        <Text>from "./grace-supersede"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.test.ts</File>
+        <Text>name: "supersede"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.test.ts</File>
+        <Text>expect(sites.length).toBe(26)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export type GateId = "approve" | "apply" | "archive";</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function stampApproveArtifact</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function supersedeChangeBundle</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>renameSync</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>const GATE_SUBCOMMANDS = new Set(["approve", "apply", "archive", "verdict"])</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.test.ts</File>
+        <Text>status-write: draft root becomes approved with byte identity except that attribute</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-supersede.ts</File>
+        <Text>defineGraceCommand</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-supersede.ts</File>
+        <Text>LINKS: M-CLI</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>ngrace supersede</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>Apply, archive, and verdict still do not write status and never move a bundle.</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>ngrace supersede</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>Create a new `C-*` bundle</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>mark the old bundle superseded</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>ngrace supersede</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-explainer/references/contract-driven-dev.md</File>
+        <Text>ngrace supersede</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>pins writeFileSync|mkdirSync to graph, cursor, gates ledger, dart, and generate only</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>if (idx &lt; 0) return;</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-supersede.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-supersede.ts</File>
+        <Text>mkdirSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-generate.ts</File>
+        <Text>supersedeCommand</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/gates/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-supersede.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/query/command.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-cursor.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/release-check.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:packed</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-GATES />
+        <M-SKILLS />
+        <M-QUERY />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-GATES />
+        <V-M-SKILLS />
+        <V-M-QUERY />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/gates/ledger.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/grace-supersede.ts</File>
+      <File>src/grace-supersede.test.ts</File>
+      <File>src/grace.ts</File>
+      <File>package.json</File>
+      <File>scripts/release-check.ts</File>
+      <File>src/query/command.test.ts</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>skills/ngrace/ngrace-explainer/references/contract-driven-dev.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-explainer/references/contract-driven-dev.md</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+      <File>.ngrace/changes/active/C-SUPERSEDE-COMMAND/spec.xml</File>
+      <File>.ngrace/changes/active/C-SUPERSEDE-COMMAND/design-context.xml</File>
+      <File>.ngrace/changes/active/C-SUPERSEDE-COMMAND/plan.xml</File>
+      <File>.ngrace/changes/active/C-SUPERSEDE-COMMAND/run.xml</File>
+      <File>.ngrace/changes/active/C-SUPERSEDE-COMMAND/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-SUPERSEDE-COMMAND/run/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Repair F114 on the shared surgical writer</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (f114-single-quoted-write): before any
+            production edit, in its own tool round trip, add a
+            bun test in src/gates/core.test.ts. A draft whose
+            opening-tag status uses single quotes is written
+            the same way a double-quoted draft is: value
+            swapped to approved, quote character preserved,
+            rest of the file byte-identical. This case is
+            stampApproveArtifact only (draft to approved). Do
+            not assert the throw-on-miss path in this case.
+            Do not assert the supersede verb; it does not
+            exist yet. HEAD today: writeDraftRootToApproved
+            searches one double-quoted draft needle and
+            returns with no write when that substring is
+            absent. Record fail, signature kind test key
+            f114-single-quoted-write. Run only this case.
+            Do not land the writer repair in this round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (f114-throw-on-miss): before the same
+            production edit, in its own tool round trip, add a
+            bun test in src/gates/core.test.ts. A fixture whose
+            grammar parse (parseGraceXmlArtifact, the same
+            parse lint uses) reads root status draft, but
+            whose opening-tag status needle is not locatable
+            as either quote style (whitespace around the
+            equals is the planted miss), causes the writer to
+            throw a GraceCommandError. stampApproveArtifact
+            does not fingerprint. No Decision is appended.
+            Exit is nonzero. printGateEvaluation may still
+            print the already-computed permit and set exit 1
+            on recordingError; do not change evaluateGate to
+            refuse. First assertion is the throw / no
+            Decision / no fingerprint, not status-still-draft.
+            Do not assert the single-quoted successful write
+            in this case. HEAD today: that path returns,
+            fingerprints, and records. Record fail, signature
+            kind test key f114-throw-on-miss. Run only this
+            case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): generalize
+            rootStatusFromFile and writeDraftRootToApproved
+            (or a helper they both call) so opening-tag
+            status handles single-quoted and double-quoted
+            forms, preserving the quote character and swapping
+            only the value. When parseGraceXmlArtifact reads
+            root status draft and the surgical needle was not
+            applied, the writer throws; it does not return.
+            The already-approved re-approve no-op stays:
+            parsed status is not draft, so the loud refuse
+            does not fire. The double-quoted
+            draft-to-approved byte-identity pin
+            (core.test.ts status-write case) stays. Do not
+            expand classifyApprovedArtifact or the
+            approved-only guards. Do not add a supersede
+            caller in this task. Do not edit
+            src/gates/command.ts. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-WRITER-NO-SILENT />
+          <AC-GATE-UNCHANGED />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Register ngrace supersede and land files plus PACK_ALLOWED_EXACT</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (root-command): before creating
+            src/grace-supersede.ts or registering it, in its
+            own tool round trip, add a bun test in
+            src/query/command.test.ts. ngrace supersede is a
+            live top-level root: defined in
+            src/grace-supersede.ts, registered in src/grace.ts
+            by a static import of that module, present in
+            liveCommandRoots, branded with
+            BOOLEAN_SPACE_GUARD_BRAND. It is not under gate,
+            spec, or plan, and it is not exported from
+            src/grace-generate.ts. First assertion is
+            liveCommandRoots membership of name supersede
+            plus the static import string in src/grace.ts.
+            Do not import src/grace-supersede.ts from the
+            asserting test (the module does not exist yet).
+            Do not edit liveCommandRoots() in this round trip.
+            Do not assert README table text in this case.
+            Do not assert PACK_ALLOWED_EXACT in this case.
+            HEAD today: src/grace.ts subCommands and
+            liveCommandRoots have no such name. Record fail,
+            signature kind test key root-command. Run only
+            this case. Do not land the command in this round
+            trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (readme-row): before editing README.md,
+            in its own tool round trip, add a bun test in
+            src/query/command.test.ts. README.md CLI Overview
+            tables contain an ngrace supersede token that
+            listLiveInvocations accepts. Do not assert
+            liveCommandRoots membership in this case. Do not
+            redden the stay-true sentence that apply, archive,
+            and verdict never move a bundle. HEAD today:
+            README.md CLI Overview has no supersede row.
+            Record fail, signature kind test key readme-row.
+            Run only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (pack-allowlist): before editing
+            package.json or scripts/release-check.ts, in its
+            own tool round trip, add a bun test in
+            src/grace-supersede.test.ts (create that test
+            file as the red vehicle). PACK_ALLOWED_EXACT in
+            scripts/release-check.ts contains
+            src/grace-supersede.ts. First assertion is that
+            membership, read from the PACK_ALLOWED_EXACT set
+            literal in scripts/release-check.ts bytes, not
+            from package.json files. Do not import
+            src/grace-supersede.ts in this case. Do not edit
+            scripts/release-check.test.ts. Do not redden the
+            correspondence test being green at HEAD (F45).
+            HEAD today: neither list contains
+            src/grace-supersede.ts. Record fail, signature
+            kind test key pack-allowlist. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): create
+            src/grace-supersede.ts as the command def only,
+            branded with defineGraceCommand, with
+            MODULE_CONTRACT LINKS M-CLI (same shape as
+            src/grace-doctor.ts; no new graph module). That
+            LINKS set is what clears
+            change.graph-anchors-miss-write-scope once the
+            file exists. argv token change and argv token
+            replacement are required strings; argv token
+            path defaults as the other roots do. Register it
+            in src/grace.ts by a static import at the same
+            site as the other roots; liveCommandRoots imports
+            it the same way. Add one package.json files
+            entry, src/grace-supersede.ts, next to the other
+            src/grace-*.ts paths; no other package.json
+            field; version stays 6.2.0. In the same
+            production, add that same path as a two-space
+            indented src/ member of PACK_ALLOWED_EXACT in
+            scripts/release-check.ts, matching existing
+            exact-set members (the correspondence test
+            extracts /^ {2}"(src\/[^"]+)",$/). Do not edit
+            PACK_ALLOWED_PREFIXES, PACK_FORBIDDEN, or
+            scripts/release-check.test.ts. Do not derive
+            PACK_ALLOWED_EXACT from package.json files. Do
+            not relax PACK_ALLOWED_EXACT. Add the README.md
+            CLI Overview row in the same production as the
+            liveCommandRoots edit so the existing overview
+            pin stays green. The new file must not contain
+            the identifiers writeFileSync or mkdirSync,
+            including in imports. run() throws a
+            GraceCommandError whose message does not mention
+            replacement (a not-implemented stub). Do not
+            implement the missing-replacement refuse. Do not
+            call supersedeChangeBundle (it does not exist
+            yet). Do not write status, do not insert a
+            Replacement element, do not rename. Do not add a
+            boolean argv (sites.length stays 26). Then
+            record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-supersede.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test scripts/release-check.test.ts</Command>
+          <Command>bun run release:check</Command>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-ROOT-COMMAND />
+          <AC-README-ROW />
+          <AC-PACK-ALLOWLIST />
+          <AC-WRITE-SURFACE />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>Refuse a missing, equal, or malformed replacement</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (require-replacement): before replacing
+            the T-002 stub run(), in its own tool round trip,
+            add a bun test in src/grace-supersede.test.ts.
+            The verb refuses with a nonzero GraceCommandError
+            and writes nothing when the replacement id is
+            missing as a directory under active/ or archive/,
+            when it equals the change id, or when it is not a
+            well-formed C-*. It does not call
+            renderChangeSpec or writeSpecNew. First assertion
+            is the thrown GraceCommandError message naming
+            that the replacement id is missing as a directory
+            (string match on the error message). Do not put
+            liveCommandRoots membership first. Do not put
+            nonzero-exit-and-no-writes first: that holds for
+            unknown commands at HEAD (F121) and for T-002's
+            stub. Sibling it()s for self-replacement and
+            malformed id are the same property, not extra
+            recorded reds. Do not manufacture a red for spec
+            new still creating skeletons. After T-002, run()
+            throws a not-implemented error that does not
+            mention replacement, so this message match is
+            false at task start. Record fail, signature kind
+            test key require-replacement. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): replace the
+            T-002 stub run() with the refuse paths this task
+            reddened. Validate change id and replacement id
+            before any write. Refuse when the replacement
+            directory is missing, when it equals the change
+            id, or when it is not a well-formed C-*. Do not
+            call renderChangeSpec, writeSpecNew, or
+            supersedeChangeBundle. Do not write status, do
+            not insert a Replacement element, do not rename.
+            A well-formed pair whose replacement directory
+            exists still throws the not-implemented
+            GraceCommandError (happy path is T-004). The
+            command file still must not contain writeFileSync
+            or mkdirSync. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-supersede.test.ts</Command>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-REQUIRE-REPLACEMENT />
+        </Satisfies>
+      </T-003>
+      <T-004>
+        <Title>Surgical superseded write, Replacement element, move and rollback</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (surgical-write): before adding
+            supersedeChangeBundle, in its own tool round
+            trip, add a bun test in src/gates/core.test.ts.
+            A successful invocation whose spec root status is
+            draft or approved writes superseded onto that
+            root attribute surgically: opening-tag attribute
+            only, both quote styles, preserving the quote
+            character, no serializeGraceXmlDocument of the
+            spec or plan. When plan.xml exists it receives
+            the same status write. The rest of each file is
+            byte-identical aside from the status swap and
+            the Replacement insert. First assertion is the
+            status attribute value superseded (read the file
+            even if exit is nonzero). Do not assert the
+            inserted element's tag name in this case. Do not
+            assert the directory move in this case. HEAD
+            today: stampApproveArtifact writes approved only;
+            T-003's command does not write superseded.
+            Record fail, signature kind test key
+            surgical-write. Run only this case. Do not land
+            the writer in this round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (shape-replacement): before the same
+            production edit, in its own tool round trip, add
+            a bun test. When replacementChangeIds is empty,
+            this verb inserts a Replacement element whose
+            text is the replacement id as the first child of
+            the wrapper. When the existing set is exactly
+            that id, no second element is inserted. This
+            verb does not write a ReplacementChange element
+            and does not write a direct C-* child. First
+            assertion is the inserted tag name Replacement
+            (string match on the file bytes). Do not assert
+            status-attribute identity in this case. Do not
+            assert the directory move in this case. Do not
+            redden the checker still accepting the other two
+            shapes. HEAD today: nothing writes a Replacement
+            element. Record fail, signature kind test key
+            shape-replacement. Run only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (move-and-rollback): before the same
+            production edit, in its own tool round trip, add
+            a bun test in src/grace-supersede.test.ts. After
+            the artifact writes succeed, renameSync moves the
+            bundle directory from active/C-* to archive/C-*.
+            Companions move with it. On any throw after the
+            first artifact write, original bytes are restored
+            under active/ and the command exits nonzero. A
+            subsequent invocation against a bundle still
+            under active/ with both present artifacts already
+            superseded and naming exactly the requested
+            replacement performs the rename and does not
+            rewrite those artifacts. First assertion is the
+            directory location (active vs archive). Do not
+            assert status or Replacement bytes in this case.
+            Sibling it()s for spec-only, open-epoch still
+            moves, EXDEV refuse-after-rollback, and already
+            archived as superseded with that replacement are
+            the same property, not extra recorded reds. HEAD
+            today: renameSync has zero production call sites;
+            T-003 does not move. Record fail, signature kind
+            test key move-and-rollback. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): new export
+            supersedeChangeBundle from src/gates/ledger.ts
+            next to stampApproveArtifact, sharing
+            rootOpeningTag. Status needles are both quote
+            styles of the source value (draft or approved),
+            preserving the quote character. Insert a
+            Replacement element as first child of the
+            wrapper when replacementChangeIds is empty;
+            leave bytes alone when the existing set is
+            exactly the requested id. writeFileSync of
+            spec/plan bytes, mkdirSync if any, and
+            renameSync stay in ledger.ts. Wire
+            src/grace-supersede.ts to call that export; the
+            command file still must not contain writeFileSync
+            or mkdirSync. Validate, write spec then plan if
+            present, then renameSync. On throw after the
+            first write, restore original bytes while still
+            under active/. Resume skips matching writes and
+            does the rename. EXDEV is refuse after rollback,
+            not copy-then-delete. Spec without plan: write
+            spec only; do not invent a plan. Do not append a
+            Decision. Do not expand GateId. Do not add
+            unlinkSync or rmSync call sites. Do not close
+            replacementChangeIds. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+          <Command>bun test src/grace-supersede.test.ts</Command>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SURGICAL-WRITE />
+          <AC-SHAPE-STAY-VALID />
+          <AC-MOVE-AND-ROLLBACK />
+          <AC-NO-LEDGER-DECISION />
+          <AC-WRITE-SURFACE />
+        </Satisfies>
+      </T-004>
+      <T-005>
+        <Title>Teach the supersede verb and remeasure skill pins</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (skill-plan-path): before editing
+            ngrace-plan SKILL.md, in its own tool round trip,
+            add a bun test in scripts/skill-contracts.test.ts.
+            approved_plan_immutability says: create the
+            replacement C-* first with spec new, then run
+            ngrace supersede; replacement-first is the only
+            linting order; it names
+            change.invalid-active-status,
+            change.archive-status-mismatch,
+            change.superseded-missing-replacement,
+            change.superseded-self-replacement, and
+            change.superseded-replacement-not-found; it does
+            not teach a hand-written superseded status or a
+            hand mv. Keep the existing substrings Create a
+            new C-* bundle and mark the old bundle
+            superseded. Do not assert execute or explainer
+            text in this case. HEAD today:
+            skills/ngrace/ngrace-plan/SKILL.md approved_plan_immutability
+            is create-then-mark with no checks. Record fail,
+            signature kind test key skill-plan-path. Run
+            only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (skill-execute-path): before editing
+            ngrace-execute SKILL.md, in its own tool round
+            trip, add a bun test in
+            scripts/skill-contracts.test.ts. preflight and
+            the durable-state-changed row name ngrace
+            supersede instead of folklore supersede and
+            replan. Do not assert plan or explainer text in
+            this case. Do not add D19 or D20 sentences.
+            HEAD today: skills/ngrace/ngrace-execute/SKILL.md
+            preflight and recovery_decision_table still say
+            supersede and replan. Record fail, signature
+            kind test key skill-execute-path. Run only this
+            case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (skill-explainer-path): before editing
+            the explainer reference, in its own tool round
+            trip, add a bun test in
+            scripts/skill-contracts.test.ts.
+            ngrace-explainer
+            references/contract-driven-dev.md names ngrace
+            supersede. Do not assert plan or execute skill
+            text in this case. Do not add D19 or D20
+            sentences. HEAD today: that file is the folklore
+            sentence. Record fail, signature kind test key
+            skill-explainer-path. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then remeasure then pass (F84): rewrite
+            those three canonical files as the reds require.
+            Copy each edited canonical file onto its packaged
+            mirror so the files stay byte-identical, including
+            the explainer reference. After the rewrites, run
+            skillTextLines() and update
+            src/test-support/token-accounting.test.ts pins
+            and the README.md measurement cell together
+            (totalBytes, and total if the line count moves).
+            Do not record the pre-remeasure token-accounting
+            fail as a planned signature. Do not edit the
+            CLI Overview supersede row except as that
+            remeasure requires of the measurement cell.
+            Keep existing skill-contracts pin strings that
+            this rewrite does not retire. Do not edit
+            ngrace-cli. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SKILL-PATH />
+          <AC-PIN-REMEASURE />
+        </Satisfies>
+      </T-005>
+      <T-006>
+        <Title>Suite, packed ship proof, stay-true pins</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Task-observable suite (F84), not a red:
+            bun test is green for the touched packages this
+            deliverable forces (gates ledger and core F114
+            tests, grace-supersede, query command README
+            pins, cursor write-surface inventory,
+            skill-contracts, token-accounting,
+            scripts/release-check.test.ts, and any other
+            test this deliverable forces). bun test is
+            green. bun run ./scripts/validate-marketplace.ts
+            exits 0. bun run validate:packed exits 0 and is
+            the command that proves src/grace-supersede.ts
+            shipped. bun test scripts/release-check.test.ts
+            is green (files and PACK_ALLOWED_EXACT still
+            correspond). bun run release:check exits 0
+            (collectPackedFileErrors against the packed
+            tarball, F122 pin 2). Do not manufacture a red
+            for validate:packed being green at HEAD.
+            Stay-true, do not record fails: GateId remains
+            approve, apply, archive; apply, archive, and
+            verdict still do not write status and still do
+            not move bundles; replacementChangeIds still
+            accepts all three shapes; the writeFileSync
+            allowlist remains the closed five-file list;
+            unlink/rm call sites remain four. Do not claim
+            post-archive lint 0/0 at this task pass. Then
+            record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+          <Command>bun test src/grace-supersede.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test scripts/release-check.test.ts</Command>
+          <Command>bun test</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>bun run validate:packed</Command>
+          <Command>bun run release:check</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SUITE-AND-CI />
+          <AC-GATE-UNCHANGED />
+          <AC-NO-LEDGER-DECISION />
+          <AC-SHAPE-STAY-VALID />
+          <AC-WRITE-SURFACE />
+        </Satisfies>
+      </T-006>
+    </ImplementationPlan>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: de177092075c78b304a4c7d88433a1d6c3091e50
+      (branch feat/supersede-verb). Preflight: ngrace lint
+      argv token path . argv token assertions current is 0/0.
+      Spec fingerprint
+      d34c4373ed56072c7383359bd4eda369b9183ef7e8a61dced0c4af612a90084d
+      matches the approve Decision on run-ledger.xml.
+      Spec is approved and immutable. Do not amend it. Do not
+      run gate approve on this plan in this pass. If execute
+      shows the spec is wrong, stop and report.
+
+      Ceremony tier T2. Stop and re-spec rather than: a gate
+      supersede subcommand; an extra root from
+      src/grace-generate.ts; a command file under src/gates/;
+      growing the writeFileSync allowlist to six; creating the
+      replacement skeleton; copy-then-rmSync; a new GateId
+      member; a Decision with gate archive; closing
+      replacementChangeIds; deriving PACK_ALLOWED_EXACT from
+      package.json files; relaxing PACK_ALLOWED_EXACT; an
+      exception list in this plan; D19 / D20 sentences; a
+      supersede lexicon phrase; editing ngrace-cli; editing
+      scripts/packed-cli-smoke.ts; editing
+      scripts/release-check.test.ts; extending the
+      scale-ergonomics files pin; docs/plans; CHANGELOG.md;
+      any version surface; examples/; or
+      .ngrace/changes/archive. Packaged version stays 6.2.0.
+      No product version bump.
+
+      F61: name exported functions and argv tokens in this
+      comment. Never two adjacent hyphens.
+      F42: plan assertions bind to exported names, issue
+      codes, and exact source literals, never to AC ids.
+      F50: cursor companions are listed at authoring.
+      F74: cite cross-plan decisions as PLAN-ID Dn.
+      F111: when checking these artifacts for a phrase,
+      flatten whitespace first.
+      F33: do not freeze suite totals, archive counts,
+      command-root cardinality, or skillTextLines figures
+      this change moves. Re-measure at execute.
+      F67: signature keys are the names below, not the test
+      file stem.
+
+      plan new Satisfies-linked every ordinary spec AC-* to
+      T-001 and correctly omitted AC-CLOSE-LINT. This plan
+      redistributes Satisfies as the table below.
+
+      ════════════════════════════════════
+      D0. Tasks, reds, F56, F67, F80
+      ════════════════════════════════════
+      | Task | work | Satisfies | planned
+        kind+key pairs |
+      | T-001 | F114 quote styles;
+          F114 throw-on-miss
+        | AC-WRITER-NO-SILENT,
+          AC-GATE-UNCHANGED
+        | test:f114-single-quoted-write,
+          test:f114-throw-on-miss |
+      | T-002 | root + static import
+          + files entry + README
+          row + PACK_ALLOWED_EXACT
+        | AC-ROOT-COMMAND,
+          AC-README-ROW,
+          AC-PACK-ALLOWLIST,
+          AC-WRITE-SURFACE
+        | test:root-command,
+          test:readme-row,
+          test:pack-allowlist |
+      | T-003 | refuse missing,
+          equal, or malformed
+          replacement
+        | AC-REQUIRE-REPLACEMENT
+        | test:require-replacement |
+      | T-004 | surgical superseded
+          write; Replacement
+          element; renameSync +
+          rollback + resume
+        | AC-SURGICAL-WRITE,
+          AC-SHAPE-STAY-VALID,
+          AC-MOVE-AND-ROLLBACK,
+          AC-NO-LEDGER-DECISION,
+          AC-WRITE-SURFACE
+        | test:surgical-write,
+          test:shape-replacement,
+          test:move-and-rollback |
+      | T-005 | three skill rewrites;
+          packaged mirrors;
+          remeasure
+        | AC-SKILL-PATH,
+          AC-PIN-REMEASURE
+        | test:skill-plan-path,
+          test:skill-execute-path,
+          test:skill-explainer-path |
+      | T-006 | suite including
+          validate:packed and
+          release:check; stay-true
+          bounding pins
+        | AC-SUITE-AND-CI,
+          AC-GATE-UNCHANGED,
+          AC-NO-LEDGER-DECISION,
+          AC-SHAPE-STAY-VALID,
+          AC-WRITE-SURFACE
+        | none (not a red) |
+
+      Per-task planned red counts: T-001 2, T-002 3, T-003 1,
+      T-004 3, T-005 3, T-006 0. None repeats a signatureKey.
+      None exceeds 3.
+
+      AC-CLOSE-LINT is CloseEvidence. No task Satisfies it.
+      No task Verification block runs ngrace lint.
+
+      ════════════════════════════════════
+      D1. Why require-replacement is not in T-002
+      ════════════════════════════════════
+      The predecessor T-002 had three reds: root-command,
+      readme-row, require-replacement. AC-PACK-ALLOWLIST is a
+      fourth reddenable property in that packaging and
+      registration production. Copying the old split and
+      adding pack-allowlist would plan four distinct
+      signatures on one task (F56, F122).
+
+      files, PACK_ALLOWED_EXACT, creating
+      src/grace-supersede.ts, the static import, liveCommandRoots,
+      and the README CLI Overview row are one production:
+      a files entry without PACK_ALLOWED_EXACT fails
+      bun test scripts/release-check.test.ts; a static
+      import without the files entry fails validate:packed;
+      liveCommandRoots without the README row fails the
+      existing overview pin at src/query/command.test.ts:870-918.
+      Those three reds fill T-002's budget.
+
+      require-replacement cannot join them. It cannot join
+      T-001 (the command does not exist; F114 must land
+      before any new caller). It cannot join T-004 (that
+      task already has three reds). T-003 is therefore one
+      red. Thin is the least bad split.
+
+      ════════════════════════════════════
+      D2. files and PACK_ALLOWED_EXACT
+      ════════════════════════════════════
+      T-002 owns both, in the same production as creating
+      src/grace-supersede.ts and the static import from
+      src/grace.ts. A commit that imported the file without
+      the files entry would fail validate:packed. A commit
+      that listed the path before the file existed would
+      ship a files entry npm omits. A commit that added
+      the files entry without PACK_ALLOWED_EXACT would fail
+      bun test scripts/release-check.test.ts (declared array)
+      and bun run release:check (packed tarball, F122).
+      Same task avoids all four. Add the PACK_ALLOWED_EXACT
+      member as a two-space indented src/ quoted path with
+      a trailing comma so the correspondence extractor at
+      scripts/release-check.test.ts:506 matches it. Do not
+      prove shipment by asserting the JSON array in a unit
+      test; bun run validate:packed in T-006 is the ship
+      proof. T-002 still runs release:check so pin 2 is
+      observed at the task that lands the two edits.
+
+      ════════════════════════════════════
+      D3. F114 lands before the new caller
+      ════════════════════════════════════
+      T-001 repairs writeDraftRootToApproved /
+      rootStatusFromFile. T-002 registers the command as a
+      stub. T-003 implements refuse. T-004 is the first
+      production caller of supersedeChangeBundle, and it
+      reuses the repaired quote helper.
+
+      Why not supersede-writer first: shipping a second
+      caller of the known-silent function is the defect the
+      spec exists to refuse.
+
+      ════════════════════════════════════
+      D4. F121 first assertion
+      ════════════════════════════════════
+      require-replacement's first assertion is the
+      GraceCommandError message naming a missing replacement
+      directory. Nonzero-exit-and-no-writes is true at HEAD
+      for any unknown command and true after T-002 for the
+      not-implemented stub. Do not key that red on either.
+
+      ════════════════════════════════════
+      D5. Packaged skill mirrors
+      ════════════════════════════════════
+      T-005 owns the sync. Each canonical edit is copied
+      onto plugins/ngrace/skills/ngrace/* before that task
+      records pass, including the explainer reference.
+
+      ════════════════════════════════════
+      D6. Write surface
+      ════════════════════════════════════
+      src/grace-supersede.ts defines the command and
+      delegates every write, including renameSync, to
+      src/gates/ledger.ts. The closed five-file
+      writeFileSync list does not grow. Do not edit
+      src/grace-cursor.test.ts unless a new writeFileSync
+      path appears (it must not). Do not edit
+      src/grace-generate.ts, scripts/packed-cli-smoke.ts,
+      scripts/release-check.test.ts, or
+      src/artifact/scale-ergonomics.test.ts.
+      scripts/release-check.ts is a declared write (F120,
+      F120.1). scripts/skill-contracts.test.ts is a
+      declared write because T-005 adds tests there even
+      if the existing substrings stay.
+
+      ════════════════════════════════════
+      D7. Green at every task boundary
+      ════════════════════════════════════
+      T-001: approve handles both quotes and throws on miss.
+      Existing status-write and re-approve pins stay. No new
+      command. validate:packed unchanged.
+      T-002: command exists as a not-implemented stub,
+      refuse paths do not exist yet, files entry and
+      PACK_ALLOWED_EXACT and static import and README row
+      land together so packed, correspondence, release:check,
+      and the overview pin stay green. Happy-path write
+      tests do not exist yet, so the suite stays green. The
+      live verb is incomplete (validate argv, throw
+      not-implemented). That incompleteness is the least
+      bad split: putting refuse in T-002 would be a fourth
+      red.
+      T-003: missing, equal, and malformed replacement
+      refuse. Happy path still throws not-implemented.
+      Write tests do not exist yet, so the suite stays green.
+      T-004: the verb is the sanctioned close. Suite of
+      touched tests green.
+      T-005: skills and mirrors match; token pin remeasured.
+      T-006: full suite plus packed plus release:check.
+
+      ════════════════════════════════════
+      D8. Predicted lint while the plan is draft
+      ════════════════════════════════════
+      change.graph-anchors-miss-write-scope on
+      src/grace-supersede.ts. linksByPath is built from
+      files on disk, so a module-ownable OWS path named
+      before the file exists cannot show LINKS: M-CLI.
+      D12 / F19 / F119: this error is the window, not a plan
+      defect. Do not drop the path from OWS (requirement 6).
+      Do not stub the file in the plan-authoring pass.
+      T-002 writes the file with LINKS M-CLI and the error
+      clears. Name this error in the plan-approve commit
+      body.
+
+      review.confidently-wrong on the archived predecessor
+      TargetAssertions MustExist of src/grace-supersede.ts
+      and src/grace-supersede.test.ts is F123, transient,
+      and not work for this bundle. Those findings are
+      review, not lint. Do not plan tasks against them.
+    -->
+  </C-SUPERSEDE-COMMAND>
+</NgraceChangePlan>
