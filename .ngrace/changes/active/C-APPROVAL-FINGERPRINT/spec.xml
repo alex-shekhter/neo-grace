@@ -6,12 +6,25 @@
       targeted spec or plan, and records
       on that permitting Decision a
       per-Decision fingerprint of the
-      artifact bytes it just wrote.
-      status equals approved with no
-      matching fingerprint record, or
-      whose newest per-artifact
-      fingerprint no longer matches those
-      bytes, is a review error. A forced
+      artifact bytes it just wrote,
+      plus an artifact attribute naming
+      spec or plan. Review classifies
+      an approved spec or plan three
+      ways: no permitting approve
+      Decision at all is an error
+      (never asked); a Decision whose
+      fingerprint does not match the
+      current bytes is an error
+      (contract drifted); a Decision
+      carrying no fingerprint is
+      silent (approved before the
+      writer existed). This bundle
+      re-sources approved-contract-drift
+      from those records, with the
+      existing git tracked-changed
+      reading as fallback, and keeps
+      the state name and hard-stop
+      message. A forced
       permit records itself as forced
       with an operator-supplied reason.
       Tamper-evidence, not enforcement.
@@ -22,7 +35,8 @@
       main at that commit, packaged 6.2.0,
       tree clean, active empty before this
       bundle, lint 0/0, archive 47. Those
-      numbers are a snapshot (F33).
+      numbers and that commit are a
+      snapshot (F33), not live HEAD.
 
       RM-GOVERNED-PATH D18 is the charter.
       gate approve writes status approved
@@ -131,13 +145,19 @@
       ---
 
       F95, re-measured this session,
-      not inherited. 11 of 47 archived
-      bundles carry two permitting
-      approve Decision elements
-      (F95's dated ten of 46 plus
+      not inherited. 11 of 43
+      ledger-bearing archives carry
+      two permitting approve Decision
+      elements (F95.1; F95's dated
+      ten of 46 plus
       archive/C-CRITERION-CLOSE-EVIDENCE/).
-      Zero fingerprint attributes in
-      the archive. On
+      Four of 47 archive directories
+      have no run-ledger.xml
+      (C-ABSENCE-VALUE, C-ATTEMPT-LOG,
+      C-LEDGER-READ-ABSENCE,
+      C-RUN-LEDGER) and could never
+      carry the twin. Zero fingerprint
+      attributes in the archive. On
       archive/C-CURSOR-TASK-RESOLVER/
       the pair is byte-identical
       including baseCommit, because
@@ -161,11 +181,58 @@
       Detection that keys on status
       equals approved is silent on this
       archive without a grandfather
-      table. The live compatibility
-      window is this bundle's own
-      spec and plan, which will be
-      approved before the writer
-      exists.
+      table. F108.2: the live trigger
+      is three-way, not approved with
+      no matching fingerprint. Row
+      one, no permitting approve
+      Decision at all, is never asked
+      (error); that is the D18 case,
+      since neither measured run
+      requested an approval at all.
+      Row two, a Decision with a
+      fingerprint that does not match
+      the current bytes, is contract
+      drifted (error). Row three, a
+      Decision carrying no
+      fingerprint, is approved before
+      the writer existed (silent).
+      This bundle has no
+      run-ledger.xml; ngrace-plan
+      requirement 15 will mint an
+      unfingerprinted approve Decision
+      when the maintainer ratifies,
+      which is row three, so the
+      detector is correctly silent
+      here. No mid-execution stamp.
+      This bundle is never itself
+      stamped. Row three is a
+      permanent legacy escape: after
+      this ships every gate approve
+      fingerprints, so that row can
+      arise from a pre-ship bundle,
+      a hand-edited ledger, or a
+      mixed-version CLI (an older
+      binary writing the same
+      unfingerprinted Decision).
+      It is not bounded in time.
+      Hand-editing the ledger is
+      the deliberate visible act D18
+      accepts rather than prevents.
+
+      gate apply is followed by
+      hand-authoring status applied
+      onto the spec and plan, which
+      changes those bytes, so the
+      fingerprint taken at approved
+      stops matching from that
+      moment. That is correct only
+      because detection is silent on
+      applied. A post-archive check
+      that the fingerprint matches
+      the bytes is vacuous or false,
+      not evidence. Widening the
+      trigger to applied would report
+      every archived bundle at once.
 
       ---
 
@@ -185,11 +252,137 @@
       about itself. Review findings are
       not lint issues
       (archive/C-CRITERION-CLOSE-EVIDENCE/
-      spec.xml:111-116). P3.7's
+      spec.xml:111-116). This bundle
+      still authors AC-CLOSE-LINT as
+      CloseEvidence rather than as an
+      unmapped AC-*. P3.7's
       applied-without-record finding is
       not shipped; the live precedent
       for a reportable defect that must
       not break 0/0 is review.
+
+      ---
+
+      F106, verified this session,
+      not inherited.
+      missingApplyGateRecord
+      (src/gates/core.ts:507-510) is
+      exported, in the module map at
+      core.ts:22, and has zero call
+      sites in src/ or scripts/. It is
+      not a working detector. This
+      bundle's detector is a review.*
+      finding, not that export.
+
+      ---
+
+      approved-contract-drift already
+      exists (src/grace-status.ts:389,
+      hard stop at :316).
+      collectApprovedContractDrift at
+      :654-662 is fed by
+      trackedChangedFiles, parsed from
+      git status porcelain. It requires
+      specStatus and planStatus both
+      approved (:656) and goes blind
+      once an edit is committed. F109
+      measured a strict superset and
+      said delete the git reading.
+      F109.1 withdraws that: the
+      superset is false once row three
+      exists, because :654-662 has no
+      fingerprint dependency. Delete
+      the git reading and keep row
+      three silent, and an approved
+      artifact carrying an
+      unfingerprinted Decision, edited
+      uncommitted, is watched by
+      nothing. Demote git to a
+      fallback inside one collector,
+      per artifact: fingerprinted
+      Decision present, compare bytes
+      to that fingerprint; else the
+      existing git tracked-changed
+      reading; else git unavailable,
+      typed absence (report not
+      evaluable, never silence that
+      reads as clean). RM-GITLESS-INTEGRITY
+      section 4 objects to two
+      independent implementations
+      computing one answer (F60,
+      C-REPORT-HONESTY F14, F15). A
+      single collector with this
+      precedence is not that: exactly
+      one answer per artifact, from
+      the best evidence available.
+      status and review both consume
+      classifyApprovedArtifact; they
+      do not each implement the
+      three-way test. Keep the state
+      name and the hard-stop message.
+      This is a behaviour change to a
+      user-visible derived state.
+
+      F19 recorded that authoring
+      status approved puts a bundle
+      into approved-contract-drift
+      until the approval is
+      committed, printing the hard
+      stop at
+      src/grace-status.ts:316. It
+      was ruled not a product
+      defect: the check cannot
+      observe approval time, and
+      the false window is exactly
+      that uncommitted interval.
+      A fingerprint gives the
+      check that ability. Under
+      precedence 1, an approved
+      artifact whose bytes match
+      its recorded fingerprint is
+      not drifting, committed or
+      not. The false window
+      closes. The protection F19
+      called the real one, an
+      approved contract silently
+      edited mid-execution, is
+      strengthened: a fingerprint
+      mismatch is durable, where
+      a porcelain reading is
+      erased by the next commit.
+      The disappearance of that
+      hard stop on a matching
+      uncommitted approval is
+      F19's accepted transient
+      retired by removing its
+      premise, not a regression.
+
+      F109.2: the precedence
+      chain is permanent
+      infrastructure, not a shim.
+      Row three does not empty:
+      hand-edited ledgers and
+      mixed-version CLIs are
+      standing sources. The git
+      fallback covers uncommitted
+      edits to unfingerprinted
+      approved artifacts. It
+      leaves open a committed
+      edit to an unfingerprinted
+      approved artifact: silent
+      on both surfaces, review
+      by row three, git by
+      porcelain having nothing
+      to see. That is the
+      original git weakness,
+      unchanged. Retirement, if
+      it ever happens, is a
+      per-project runtime
+      condition: no applying
+      Decision in the operator's
+      corpus lacks a
+      fingerprint. It is not a
+      release milestone.
 
       ---
 
@@ -233,16 +426,73 @@
       </Goal>
       <Goal>
         ngrace review with argv token
-        change emits a catalogued
-        review.* error when a spec or
-        plan whose status is approved
-        has no matching newest
-        fingerprint-bearing permitting
-        approve Decision for that
-        artifact, or when that newest
-        fingerprint no longer equals the
-        file bytes. The finding is not
-        a lint change.* code.
+        change classifies an approved
+        spec or plan three ways and
+        emits a catalogued review.*
+        error only on row one (no
+        permitting approve Decision at
+        all) and row two (newest
+        applying Decision has a
+        fingerprint that is not SHA-256
+        of the current file bytes).
+        Row three (a Decision carrying
+        no fingerprint) is silent.
+        The finding is not a lint
+        change.* code.
+      </Goal>
+      <Goal>
+        This bundle re-sources
+        approved-contract-drift from
+        the fingerprint records, with
+        the existing git
+        tracked-changed reading as
+        fallback. That is a behaviour
+        change to a user-visible
+        derived state: the collector
+        becomes per-artifact, and
+        durable across commit when a
+        fingerprint exists. The state
+        name and the hard-stop message
+        at src/grace-status.ts:316
+        stay. The state fires on row
+        two, and on the git fallback
+        when an unfingerprinted
+        approved artifact is
+        tracked-changed. It does not
+        fire on row one. No second
+        derived state. status and
+        review both consume the
+        exported function
+        classifyApprovedArtifact.
+      </Goal>
+      <Goal>
+        Precedence 1 retires
+        F19's accepted transient
+        by removing its premise.
+        An approved artifact whose
+        bytes match its recorded
+        fingerprint is not
+        drifting, committed or
+        not. The false window F19
+        accepted, between
+        authoring status approved
+        and committing it, closes.
+        The protection F19 called
+        the real one, an approved
+        contract silently edited
+        mid-execution, is
+        strengthened: a
+        fingerprint mismatch is
+        durable, where a porcelain
+        reading is erased by the
+        next commit. The
+        disappearance of the hard
+        stop at
+        src/grace-status.ts:316 on
+        a matching uncommitted
+        approval is that payoff,
+        not a regression (F19,
+        F109.2).
       </Goal>
       <Goal>
         A non-interactive forced permit
@@ -264,9 +514,9 @@
         ngrace-spec status_rules and
         ngrace-plan requirement 15 plus
         the hard rule, and ngrace-reviewer
-        checklist names the review
-        finding. Packaged mirrors stay
-        byte-identical.
+        checklist names the three-way
+        review finding. Packaged
+        mirrors stay byte-identical.
       </Goal>
       <Goal>
         README.md is in scope for the
@@ -305,7 +555,11 @@
         (detection, not prevention);
         F43, F44, F45, F56 / F67, F61,
         F66, F80, F81, F83, F83.1, F95,
-        F101. F33: do not freeze suite
+        F95.1, F101, F106, F108.2,
+        F109, F109.1, F109.2,
+        F19. F108.1's
+        close-time stamp is withdrawn.
+        F33: do not freeze suite
         counts, archive counts,
         review-code cardinality, or line
         numbers this change moves.
@@ -344,7 +598,10 @@
         GateDecisionRecord when present
         and still returns invalid only
         for the children it already
-        rejects.
+        rejects. The artifact attribute
+        has a reader in this bundle:
+        the detector, newest-governs
+        per artifact.
       </Constraint>
       <Constraint>
         Decided here: what is
@@ -412,14 +669,24 @@
         opposite of firstStoredBaseCommit
         at ledger.ts:411-415.
         Detection: newest-governs per
-        artifact. The newest permitting
-        approve Decision whose artifact
-        attribute names that file and
-        whose fingerprint attribute is
-        non-empty is the matching
-        record. Compare that value to
-        SHA-256 of the current file
-        bytes. any-permit some() at
+        artifact, then the three-way
+        trigger. When at least one
+        permitting approve Decision
+        carries an artifact attribute,
+        the applying Decision for a
+        file is the newest whose
+        artifact names spec or plan as
+        that file. When none carry
+        artifact (pre-writer twins,
+        F95), an unfingerprinted
+        permitting approve Decision
+        counts for every approved
+        artifact in the bundle;
+        without that reading this
+        bundle's requirement-15
+        Decision would look like row
+        one and the bootstrap would
+        return. any-permit some() at
         ledger.ts:848 is unchanged and
         is not this reader.
       </Constraint>
@@ -452,31 +719,194 @@
       </Constraint>
       <Constraint>
         Decided here: detection home
-        and trigger. ngrace review,
-        catalogued review.* error,
-        process-audit family. Fires
-        only when that file's root
-        status is approved. Applied,
-        draft, superseded, cancelled,
-        and rejected are silent. Lint
+        and three-way trigger. ngrace
+        review, catalogued review.*
+        error, process-audit family.
+        Per approved artifact: row one,
+        no applying Decision, is a
+        review error (never asked).
+        A ledger with no permitting
+        approve Decision at all is
+        row one for every approved
+        artifact. Row two, the
+        applying Decision has a
+        non-empty fingerprint that is
+        not SHA-256 of the current
+        file bytes, is a review error
+        (contract drifted). Row three,
+        the applying Decision carries
+        no fingerprint (attribute
+        absent or empty), is silent
+        (pre-writer). Applied, draft,
+        superseded, cancelled, and
+        rejected are silent. Lint
         does not emit this defect (F83).
         gate apply does not refuse on
         it (F2 / D18: detection, not
         enforcement). Existing archives
         are applied or superseded and
         stay 0/0 with no grandfather
-        table. This bundle's own spec
-        and plan will be approved
-        before the writer exists; after
-        the writer lands, review is
-        correct to fire until the new
-        approve write stamps them. Do
-        not grandfather this bundle.
-        F101: a new review.* code
-        forces src/verification/localize.test.ts
+        table. F101: a new review.*
+        code forces
+        src/verification/localize.test.ts
         cardinality pins to stay
         exhaustive (admissible XOR
         excluded).
+      </Constraint>
+      <Constraint>
+        Decided here: applied silences
+        detection, and the bytes have
+        already changed. gate apply is
+        followed by hand-authoring
+        status applied onto the spec
+        and plan, which changes those
+        bytes. The fingerprint taken
+        at approved then no longer
+        matches. That is correct only
+        because detection is silent
+        on applied. A post-archive
+        check that the fingerprint
+        matches the current bytes is
+        vacuous or false, not
+        evidence. Any future widening
+        of the trigger to applied
+        would report every archived
+        bundle at once.
+      </Constraint>
+      <Constraint>
+        Costs, stated rather than
+        discovered. This bundle is
+        never itself stamped. Row
+        three is a permanent legacy
+        escape: an unfingerprinted
+        Decision reads as pre-writer
+        forever. After this ships
+        every gate approve
+        fingerprints, so row three
+        can arise from a pre-ship
+        bundle, a hand-edited ledger,
+        or a mixed-version CLI (an
+        older binary writing the same
+        unfingerprinted Decision). It
+        is not bounded in time
+        (F109.2).
+        Hand-editing the ledger is
+        the deliberate visible act D18
+        accepts rather than prevents.
+        No close-time stamp. No
+        inverted Constraint that the
+        authority re-issues the phrase
+        and stamps before the close
+        review. The executor is not
+        bound by a who-may-mint
+        sentence, because nothing
+        mints a stamp on this bundle.
+      </Constraint>
+      <Constraint>
+        Decided here: re-source
+        approved-contract-drift, do
+        not delete the git reading.
+        This is a behaviour change to
+        a user-visible derived state.
+        classifyApprovedArtifact is a
+        new export from
+        src/gates/ledger.ts. status
+        and review both call it.
+        Neither reimplements the
+        three-way test or the git
+        fallback. Two copies of this
+        logic is F60 reproduced
+        inside the bundle that exists
+        to remove a duplicated answer.
+        collectApprovedContractDrift
+        maps that classification onto
+        the derived state; it does
+        not reimplement. Per artifact:
+        a fingerprinted applying
+        Decision is present, compare
+        the file bytes to that
+        fingerprint (git is not
+        consulted); else the existing
+        git tracked-changed reading
+        (trackedChangedFiles from
+        porcelain; untracked does not
+        fire); else git unavailable,
+        typed absence (AbsenceValue
+        verdict unable-to-determine,
+        reason names git unavailable;
+        chooseNextAction reports not
+        evaluable and must not emit
+        the healthy-project sentence;
+        do not emit ready-to-execute).
+        Keep the state name and the
+        hard-stop message at
+        src/grace-status.ts:316.
+        The state fires on row two,
+        and on git tracked-changed
+        when the applying Decision
+        has no fingerprint. Row one
+        is not drift; review reports
+        it. Row three is silent on
+        the catalogued review.*
+        error. No second derived
+        state: inventing one would
+        churn the vocabulary this
+        bundle keeps on purpose, and
+        collapsing row one onto the
+        existing name would make the
+        hard-stop message a lie.
+        Other process-audit findings
+        also do not mint a status
+        state; nextAction may still
+        read ready-to-execute on row
+        one until the operator runs
+        review. F109's "strict
+        superset" is false once row
+        three exists (F109.1). The
+        git fallback covers
+        uncommitted edits to
+        unfingerprinted approved
+        artifacts; it does not
+        cover a committed edit to
+        an unfingerprinted
+        approved artifact, which
+        stays silent on both
+        surfaces (review by row
+        three, git by porcelain
+        clean). That is the
+        original git weakness,
+        unchanged (F109.2). This
+        is not two independent
+        implementations answering
+        one question (the F60
+        shape RM-GITLESS-INTEGRITY
+        section 4 forbids). It is
+        one collector, one answer
+        per artifact, from the
+        best evidence available.
+        status and review must
+        not pass different
+        changed-file sets into
+        classifyApprovedArtifact.
+        Either the classifier
+        owns the porcelain read,
+        or both surfaces pass one
+        shared set from the same
+        helper (trackedChangedFiles
+        from porcelain). Two sets
+        is F60 later. The
+        precedence chain is
+        permanent infrastructure,
+        not a shim. Retirement,
+        if it ever happens, is a
+        per-project runtime
+        condition: no applying
+        Decision in the
+        operator's corpus lacks a
+        fingerprint. It is not a
+        release milestone. That
+        retirement is not this
+        bundle's work.
       </Constraint>
       <Constraint>
         Gate purity is revised for
@@ -501,9 +931,11 @@
         records the fingerprint; refuse
         still means unresolved IC-* /
         INV-* unless force); ngrace-reviewer
-        checklist (approved status needs
-        a matching fingerprint record).
-        Do not add D19 or D20 sentences.
+        checklist (three-way: never-asked
+        and mismatch error;
+        unfingerprinted Decision
+        silent). Do not add D19 or
+        D20 sentences.
         Do not rewrite ngrace-execute
         close ownership. Packaged
         mirrors under
@@ -523,15 +955,45 @@
         artifact argv, record-false
         writes nothing, descriptions
         no longer say approve never
-        authors status);
+        authors status;
+        classifyApprovedArtifact is a
+        new export from
+        src/gates/ledger.ts);
 
         src/review/core.ts,
         src/review/catalog.ts, and
-        review tests (approved-without-
-        matching-fingerprint detector);
+        review tests (three-way
+        detector calls
+        classifyApprovedArtifact:
+        never-asked and mismatch
+        error, unfingerprinted
+        Decision silent);
 
         src/verification/localize.test.ts
-        (F101 cardinality);
+        (F101 cardinality; M-LOCALIZE
+        owns that Path);
+
+        src/grace-status.ts and
+        src/grace-status.test.ts
+        (F109 / F109.1 / F109.2:
+        re-source
+        approved-contract-drift via
+        classifyApprovedArtifact; keep
+        the state name and the
+        hard-stop at :316; git
+        tracked-changed is the
+        fallback, not deleted; typed
+        absence when git unavailable;
+        update the tests at :584 and
+        :605, plus a no-fingerprint
+        tracked-changed case and a
+        git-unavailable case);
+
+        scripts/audit-regressions.test.ts
+        only if a rewritten test
+        title is an evidence pin
+        (ids approved-contract-drift,
+        untracked-approved-bundle);
 
         skills/ngrace/ngrace-spec/SKILL.md,
         skills/ngrace/ngrace-plan/SKILL.md,
@@ -562,8 +1024,11 @@
 
         C-APPROVAL-SCOPE owns D19 / D20
         skill sentences. This bundle
-        edits only the fingerprint and
-        approve write path.
+        edits the fingerprint, the
+        approve write path, the
+        review detector, and the
+        approved-contract-drift
+        source.
       </Constraint>
       <Constraint>
         This spec does not author
@@ -582,11 +1047,14 @@
         AC-PIN-REMEASURE is a bounding
         pin (F84), not a manufactured
         red. AC-ARCHIVE-SILENT,
-        AC-APPLY-UNCHANGED, and
-        AC-EVALUATE-UNCHANGED have
-        HEAD-true halves; redden only
-        the new writer, the new
-        attributes, and the new detector.
+        AC-APPLY-UNCHANGED,
+        AC-EVALUATE-UNCHANGED, and
+        row three of AC-REVIEW-DETECTS
+        have HEAD-true halves; redden
+        only the new writer, the new
+        attributes, rows one and two
+        of the detector, and the
+        status-source replacement.
       </Constraint>
       <Constraint>
         F61: no two adjacent hyphens
@@ -625,12 +1093,20 @@
       </NonGoal>
       <NonGoal>
         RM-VERIFIED-APPROVAL, an
-        external second party, or
-        replacing approved-contract-drift
-        with this fingerprint.
-        Owner: docs/plans/README.md
-        entries RM-VERIFIED-APPROVAL
-        and RM-GITLESS-INTEGRITY.
+        external second party, or a
+        second status derived state
+        for never-asked or
+        unfingerprinted Decisions.
+        approved-contract-drift keeps
+        its name and hard-stop
+        message; its source is
+        classifyApprovedArtifact with
+        git as fallback, in this
+        bundle (F109 / F109.1 /
+        F109.2). Owner:
+        docs/plans/README.md entry
+        RM-VERIFIED-APPROVAL for the
+        named later plan.
       </NonGoal>
       <NonGoal>
         lifecycle finish, writing
@@ -800,28 +1276,176 @@
       </AC-FORCE-HATCH>
       <AC-REVIEW-DETECTS>
         ngrace review with argv token
-        change emits a catalogued
-        review.* error, not a lint
-        change.* code, when spec.xml
-        or plan.xml has status approved
-        and either no permitting approve
-        Decision with a non-empty
-        fingerprint for that artifact
-        exists, or the newest such
-        Decision's fingerprint is not
-        SHA-256 of the current file
-        bytes. Draft, applied,
-        superseded, cancelled, and
-        rejected do not emit it.
-        Forced permits count as matching
-        records when the fingerprint
-        matches. HEAD today: review has
-        no approval-fingerprint reader.
+        change classifies each approved
+        spec.xml or plan.xml three ways
+        and emits a catalogued review.*
+        error, not a lint change.* code,
+        only on row one and row two.
+        Row one: status approved and no
+        applying Decision (including
+        no permitting approve Decision
+        in the ledger at all). Error
+        (never asked).
+        Row two: the applying Decision
+        has a non-empty fingerprint
+        that is not SHA-256 of the
+        current file bytes. Error
+        (contract drifted). Row three:
+        the applying Decision carries
+        no fingerprint (attribute
+        absent or empty). Silent.
+        Draft, applied, superseded,
+        cancelled, and rejected do not
+        emit it. Forced permits count
+        as matching records when the
+        fingerprint matches. Redden
+        rows one and two. Do not
+        manufacture a red for row
+        three silence (F45); that
+        half is detector isolation,
+        HEAD-true because no reader
+        exists today and still true
+        once the reader skips
+        unfingerprinted Decisions.
+        HEAD today: review has no
+        approval-fingerprint reader.
+        The detector calls
+        classifyApprovedArtifact
+        (src/gates/ledger.ts) and
+        does not reimplement the
+        three-way test. Row three
+        remains silent on the
+        catalogued error even when
+        git fallback classifies
+        tracked-changed; status maps
+        that case to
+        approved-contract-drift
+        (AC-STATUS-DRIFT-SOURCE).
         Failure conditions: lint emits
         it; apply refuses on it; applied
         archives emit it; a forced
-        matching record still finds.
+        matching record still finds;
+        row three emits; row one is
+        silent; row two is silent.
       </AC-REVIEW-DETECTS>
+      <AC-STATUS-DRIFT-SOURCE>
+        classifyApprovedArtifact is a
+        new export from
+        src/gates/ledger.ts.
+        collectApprovedContractDrift
+        and the review detector both
+        call it. Neither reimplements
+        the three-way test or the git
+        fallback. status and review
+        must not pass different
+        changed-file sets into the
+        classifier: either it owns
+        the porcelain read, or both
+        surfaces pass one shared set
+        from trackedChangedFiles.
+        Two sets is F60 later. Per
+        approved artifact the
+        function classifies: (1)
+        applying Decision carries a
+        non-empty fingerprint:
+        compare SHA-256 of current
+        file bytes to that
+        fingerprint (git is not
+        consulted); mismatch is row
+        two; match is clean even if
+        the file is tracked-changed
+        (F19's accepted transient
+        retired by removing its
+        premise). (2) else, no
+        fingerprint: the existing
+        git tracked-changed reading
+        (trackedChangedFiles from
+        porcelain; untracked does
+        not fire). A tracked-changed
+        approved spec or plan is
+        drift for the status state.
+        (2) covers uncommitted
+        edits only. A committed
+        edit to an unfingerprinted
+        approved artifact is
+        silent on both surfaces
+        (F109.2). That remainder
+        is the original git
+        weakness; the chain does
+        not close it. (3) else
+        git unavailable: typed
+        absence, not silence that
+        reads as clean.
+        AbsenceValue verdict
+        unable-to-determine, reason
+        names git unavailable.
+        chooseNextAction reports not
+        evaluable and must not emit
+        the healthy-project sentence.
+        Do not emit ready-to-execute.
+        Do not mint a second derived
+        state. The derived state name
+        remains
+        approved-contract-drift. The
+        hard-stop message at
+        src/grace-status.ts:316 is
+        unchanged. The state fires on
+        row two, including after the
+        edit is committed and when
+        only one of spec or plan is
+        approved, and on (2) when an
+        unfingerprinted approved
+        artifact is tracked-changed.
+        It does not fire on row one.
+        It does not fire on (2) when
+        git is clean. HEAD today:
+        :654-662 reads
+        trackedChangedFiles and
+        requires both statuses
+        approved.
+        src/grace-status.test.ts:584
+        plants a fingerprint-bearing
+        Decision then edits the bytes
+        so the state still fires for
+        mismatch, not for git dirt.
+        A second case with no
+        fingerprint and
+        tracked-changed still fires
+        (the git fallback; F109.1).
+        :605 keeps not-containing the
+        state for an untracked
+        approved bundle with no
+        fingerprint (untracked is
+        still not tracked-changed). A
+        git-unavailable case with no
+        fingerprint does not look
+        clean. Failure conditions:
+        porcelain still feeds a second
+        independent collector; status
+        or review reimplements the
+        three-way test; status and
+        review pass different
+        changed-file sets into the
+        classifier; the state name
+        changes; the hard-stop
+        message changes; row one
+        emits the state; a committed
+        mismatch is silent; a matching
+        fingerprint still emits
+        because git is dirty (that
+        silence is F19's accepted
+        transient retired by
+        removing its premise, not a
+        regression); unfingerprinted
+        tracked-changed is silent; a
+        committed unfingerprinted
+        edit is treated as covered;
+        git unavailable yields the
+        healthy-project sentence; a
+        second derived state appears;
+        the both-approved conjunct
+        remains.
+      </AC-STATUS-DRIFT-SOURCE>
       <AC-ARCHIVE-SILENT>
         Stay-true plus detector
         isolation. After this lands,
@@ -871,9 +1495,11 @@
         no longer say the gate does not
         itself set status. ngrace-reviewer
         review_checklist names the
-        approved-without-matching-
-        fingerprint finding. None of
-        those edits claim
+        three-way finding: never-asked
+        and mismatch error;
+        unfingerprinted Decision
+        silent. None of those edits
+        claim
         human-in-the-loop is enforced.
         None of them add D19 or D20
         sentences. Packaged mirrors
@@ -930,7 +1556,8 @@
         Satisfies-links this. bun test
         green for touched packages
         (gates, review, catalog,
-        localize, skill-contracts,
+        localize, grace-status,
+        skill-contracts,
         token-accounting, query command
         README pins, and any other
         test this deliverable forces).
@@ -957,6 +1584,8 @@
     <AffectedAreas>
       <M-GATES />
       <M-REVIEW />
+      <M-LOCALIZE />
+      <M-STATUS />
       <M-SKILLS />
       <M-TEST-SUPPORT />
     </AffectedAreas>
@@ -964,6 +1593,7 @@
       <ExpectedCommand>bun test src/gates/core.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test src/verification/localize.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-status.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
@@ -973,7 +1603,9 @@
       <ExpectedEvidence>
         Red-first on AC-FINGERPRINT-ATTR,
         AC-PER-DECISION, AC-STATUS-WRITE,
-        AC-FORCE-HATCH, AC-REVIEW-DETECTS,
+        AC-FORCE-HATCH, rows one and two
+        of AC-REVIEW-DETECTS,
+        AC-STATUS-DRIFT-SOURCE,
         the new half of AC-RECORD-FALSE,
         AC-SKILL-WRITE-PATH, and
         AC-README-GATE, each property
@@ -982,10 +1614,11 @@
         three distinct signatures or
         repeats a signatureKey (F56,
         F67). AC-EVALUATE-UNCHANGED,
-        AC-ARCHIVE-SILENT, and
-        AC-APPLY-UNCHANGED are HEAD-true
-        stay-true halves, not reds
-        (F45). AC-PIN-REMEASURE is a
+        AC-ARCHIVE-SILENT,
+        AC-APPLY-UNCHANGED, and row
+        three of AC-REVIEW-DETECTS are
+        HEAD-true stay-true halves, not
+        reds (F45). AC-PIN-REMEASURE is a
         bounding pin (F84), not a red.
         AC-SUITE-AND-CI is task-observable
         suite evidence. Post-archive
@@ -1042,6 +1675,23 @@
         bundle does not change. C-APPROVAL-SCOPE
         / D20 owns any rewrite of that
         sentence.
+      </Assumption>
+      <Assumption>
+        This bundle still has no
+        run-ledger.xml at ratification,
+        so ngrace-plan requirement 15
+        will mint an unfingerprinted
+        approve Decision. That is row
+        three, not a stamp the
+        executor or the authority
+        performs after the writer
+        lands. Git fallback watches
+        uncommitted edits of those
+        approved files during the
+        execution window (F109.1).
+        A committed edit of those
+        same files stays silent on
+        both surfaces (F109.2).
       </Assumption>
     </Assumptions>
     <DesignReferences>

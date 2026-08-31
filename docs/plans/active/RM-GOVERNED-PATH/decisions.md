@@ -6760,6 +6760,42 @@ it. Naming them as one gap would make a deliberate design choice look like an un
 authority-authored sentence, and it inherits the authority's errors. When an executor reports that a
 required phrase is wrong, the phrase is the thing to fix, not the report.
 
+### F110 — a non-normative bundle artifact carries the same accuracy bar for the claims it makes. **[verified]**
+
+An amendment brief corrected two authority-authored sentences in `spec.xml` and scoped itself to
+that file. `design-context.xml` carried the same three falsified sentences and kept them. The
+executor flagged it, declined to edit outside scope, and said it would not sign that artifact as
+written.
+
+**The scoping was the authority's error.** This is the second instance in one session of amending a
+claim and leaving the text that amendment falsifies still standing — the same rule as
+[F109.3](#f1093)'s, one level up: an amendment must authorise the sweep of **everything** it
+falsifies, across every artifact frozen with the bundle.
+
+**The rule, in the executor's formulation and adopted here.** Non-normative means an artifact
+**cannot bind a plan** — not that it **may misstate a decision**. So:
+
+- **Same bar** for every claim it makes about what was decided, measured, or ruled.
+- **Lower bar** only for completeness, and it must never invent a requirement.
+
+`design-context.xml` is frozen with the bundle and read by future authors. **A wrong explanation of a
+right spec is how a closed error comes back.** Every future amendment brief must name each frozen
+bundle artifact that still carries a falsified sentence, not only the normative one.
+
+### F111 — plain `grep` under-reports these artifacts, because they wrap phrases across lines. **[verified]**
+
+Checking the F110 sweep, a plain `grep` for three phrases in `design-context.xml` returned **one**
+hit. A whitespace-flattened search returned **three** — the executor's report was exact and the
+authority's spot check was wrong.
+
+These XML artifacts are authored in narrow columns, so any phrase longer than a few words is split
+across lines and no line contains it. This is the same class as [F95.1](#f951)'s `grep -c` error,
+where a single-line `run-ledger.xml` capped a count at 1: **the file's shape defeated the tool, and
+the tool reported a plausible number rather than failing.**
+
+**The rule.** Before searching a `.ngrace` XML artifact for a phrase, flatten whitespace. A phrase
+count from `grep` over these files is evidence of nothing unless the phrase is a single token.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
