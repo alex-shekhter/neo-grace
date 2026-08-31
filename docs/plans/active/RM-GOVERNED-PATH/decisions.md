@@ -7023,6 +7023,12 @@ is no fourth form, and "it will be green" is not a stop condition — *"report w
 
 ### F120 — the approved plan's `ObservedWriteScope` omits a write the spec's own packaging ruling forces. **[verified]**
 
+> **Resolution superseded.** This entry's original disposition — *"close with the
+> deviation recorded, and do not supersede"* — was overturned by [F120.1](#f1201) and by the
+> maintainer. `C-SUPERSEDE-VERB` was superseded and archived; `C-SUPERSEDE-COMMAND` replaces it.
+> The finding below is accurate on the defect and stale on the remedy. Per [F27.1](#f271), a
+> disposition that changed says so before its body, not after it.
+
 `C-SUPERSEDE-VERB` execution wrote `scripts/release-check.ts`, the only changed file absent from the
 approved plan's `ObservedWriteScope`. The write is **not discretionary**.
 `scripts/release-check.test.ts:494-513` requires every `src/` path in `package.json#files` to also
@@ -7144,6 +7150,38 @@ gate record standing in for work the gate did not do — [F86](#f86)'s defect, a
 **What F120 got right and keeps.** The write was forced, the plan's declaration was wrong, the gap
 came from a spec review that stopped at the first pin on `package.json#files`, and amending an
 approved plan in place is prohibited.
+
+### F122 — what actually pins `package.json#files`, enumerated. **[verified]**
+
+The inventory whose absence produced [F120](#f120). Six readers; **two** fail when a new
+`src/*.ts` path is added to `files` without a second edit. Reported by the executor, spot-checked
+against source.
+
+| # | Reader | Fails a new `src/` files entry? |
+|---|---|---|
+| 1 | `scripts/release-check.test.ts:494-513` — every `src/` path in `pkg.files` must be in `PACK_ALLOWED_EXACT` (`scripts/release-check.ts:84-101`) or `PACK_ALLOWED_PREFIXES` (`:103-111`) | **Yes** — `bun test scripts/release-check.test.ts` |
+| 2 | `scripts/release-check.ts:127-139` `collectPackedFileErrors` — same allowlist, applied to packed tarball paths rather than the JSON array | **Yes** — `bun run release:check`, and so `validate:release` / `prepublishOnly` |
+| 3 | `src/artifact/scale-ergonomics.test.ts:368-380` — four historical `src/grace-*.ts` plus `src/gates`, `src/review`, `!src/review/scorer.ts` | No |
+| 4 | `scripts/validate-marketplace.ts:324-330` — requires the two `!` exclusions only | No |
+| 5 | `scripts/release-checklist.ts:253-256` — same two exclusions | No |
+| 6 | `scripts/packed-cli-smoke.ts:139-167` — packs and runs the CLI | Fails a **static import of an omitted file**; does not fail files-present / allowlist-absent |
+
+**The two that fail are not the same check.** Pin 1 compares the declared array; pin 2 compares what
+`npm pack` actually emitted. A change can satisfy one and not the other, and they surface in
+different commands — `bun test` versus `release:check`. The authority found pin 3, correctly ruled
+it would not catch a missing entry, and stopped, which is how a **false completeness claim** reached
+an approved spec: `C-SUPERSEDE-VERB`'s Constraint reads *"Forced write surface the later plan must
+scope, including every pin this deliverable moves"* and then omits `scripts/release-check.ts`.
+
+**The rule.** One instance of a class is an existence proof, not an inventory. A spec sentence
+claiming to enumerate *every* member of a class is a completeness claim, and completeness claims
+require a search that was actually run — the same standard applied to any absence claim.
+
+**Also recorded:** `AC-PACK-ALLOWLIST` in `C-SUPERSEDE-COMMAND` makes this coupling a reddenable
+criterion, which closes [F121](#f121)'s second half — the allowlist membership change that shipped
+with a real but unrecorded red. It is a **fourth** reddenable property in the packaging area, so a
+plan that copies the predecessor's three-red T-002 split will breach the distinct-signature budget
+([F56](#f56)) unless it re-splits.
 
 ## D19 — an approval covers the current step only
 
@@ -7303,7 +7341,8 @@ below; it is not given a slot.
 |---|---|---|---|---|
 | 1 | **`C-CRITERION-CLOSE-EVIDENCE`** | A close/verdict-bound acceptance-criterion state, so post-archive lint 0/0 is authorable rather than reinvented as an unsatisfiable `AC-*`. Named here 2026-08-15. No existing name covers it: no `C-CRITERION*` / `C-CLOSE-EVIDENCE` in this directory; [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/) archived the workaround, not a third `AC-*` state. | [F82](#f82), [F83](#f83), [F83.1](#f831). F82 is already discharged as *practice* by `C-DRIFT-HONESTY`; this bundle is the product state that would make that practice authorable. F83's P2.6 / P2.4 halves were paid by the same archive; the live remainder is F83.1. | **Delivered** 2026-08-30, archived as [`C-CRITERION-CLOSE-EVIDENCE`](../../../../.ngrace/changes/archive/C-CRITERION-CLOSE-EVIDENCE/). Closed with [F100](#f100)–[F105](#f105). The residual hole is unpaid by design: after the archive move no gate is required to run, so the close-evidence verdict is skippable — `review` detects a skip, nothing refuses one. `C-ARCHIVE-CURSOR` / P3.1 own the mandatory post-archive act. |
 | 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18) entire: `gate approve` becomes the sanctioned `draft` to `approved` writer, records a per-`Decision` fingerprint of the bytes it wrote plus the artifact it targeted, ships the forced-permit escape hatch, **and** `review` reports an `approved` spec or plan whose newest per-artifact fingerprint is absent or no longer matches. Briefly split into a writer half and a detector half on 2026-08-30 and re-merged the same day; see [F108](#f108) and [F108.1](#f1081). | [F95](#f95) / [F95.1](#f951), [F81](#f81), [F109](#f109), and retires [F19](#f19)'s accepted transient by removing its premise — F19 ruled its subject **not** a defect, so this is a premise change, not a defect fix ([F109.3](#f1093)). | **Delivered** 2026-08-31, archived as [`C-APPROVAL-FINGERPRINT`](../../../../.ngrace/changes/archive/C-APPROVAL-FINGERPRINT/). Closed with [F112](#f112) and [F113](#f113), both defects in its own approved spec found at execution. Detection uses the three-way trigger of [F108.2](#f1082), so no bootstrap stamp was needed: the bundle carries exactly one unfingerprinted approve `Decision` and its own artifacts sit in the silent third row. It re-sources `approved-contract-drift` through one shared classifier with the git reading demoted to a fallback ([F109.1](#f1091)), and retires [F19](#f19)'s accepted transient. **First bundle to author a `CloseEvidence` criterion and have it evaluated at close** — `AC-CLOSE-LINT` recorded `Exit 0 / Result pass` on the applied archive. Residual limits recorded, not closed: row three is permanent, the git fallback misses committed edits, and this bundle is never itself stamped. Prerequisite of position 5. |
-| 3 | **`C-SUPERSEDE-VERB`** | A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name. | [F86.1](#f861), [F86.2](#f862). | **Ordered, not deferred.** |
+| 3 | **`C-SUPERSEDE-VERB`** | A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name. | [F86.1](#f861), [F86.2](#f862). | **Superseded** 2026-08-31, archived as [`C-SUPERSEDE-VERB`](../../../../.ngrace/changes/archive/C-SUPERSEDE-VERB/), replaced by `C-SUPERSEDE-COMMAND` (row 3a). Executed to completion, then rejected at the scope audit: its approved plan's `ObservedWriteScope` omitted `scripts/release-check.ts`, and its spec carried a false completeness claim about the pins the deliverable moves ([F120](#f120), [F122](#f122)). Production reverted; nothing durable was folded, so the archived ledger holds two approve Decisions and no execution record. |
+| 3a | **`C-SUPERSEDE-COMMAND`** | The `ngrace supersede` verb, carrying forward `C-SUPERSEDE-VERB`'s deliverable and both maintainer rulings, with the `package.json#files` → `PACK_ALLOWED_EXACT` coupling declared rather than discovered. | [F86.1](#f861), [F86.2](#f862), [F120](#f120), [F122](#f122); closes [F121](#f121)'s second half. | **Active**, spec `draft`. |
 | 4 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
 | 5 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after position 2, whose writer mints the fingerprint it depends on, and only if ratified after the re-measure. Unratified. |
 | 6 | **`C-CI-CLAIM-PIN`** | Correct `CONTRIBUTING.md`'s claim that `validate:ci` does not run `validate:packed`, and derive the guidance table's script claims from `package.json` instead of restating them. Named here 2026-08-31. No existing name: the doc surface is unguarded — `CONTRIBUTING.md` is not a governed file (`ngrace file show` returns `not-found`) and `scripts/check-teaching-surface.ts` covers only `README.md` and `examples/`. | [F117](#f117). | **Ordered, not deferred** — after position 3. Doc-side fix, settled by history: the table was written in `36f8fa3` (PR #5) when it was true, and `validate:packed` entered `validate:ci` later in `0a4b1b3` (PR #32), a change that was *strengthening* CI. Nothing is removed from `validate:ci`. |
