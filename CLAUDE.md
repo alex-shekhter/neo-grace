@@ -59,6 +59,30 @@ Never write a brief that refers to "your draft" or otherwise assumes the executo
 work. Point at the artifact by path and tell it to read it. A cold-safe brief still works for a warm
 executor; a warm brief fails a cold one, so cold is the only safe default.
 
+## Evidence Standard For The Authority
+
+The authority holds the executor to `file:line` citations and pasted command tails, and tells it a
+hand-written claim of green is not evidence. **The same standard applies to the authority's own
+claims.** Four rules, each written after a measured failure:
+
+1. **A finding is never evidence of present state.** Entries in `decisions.md` are dated claims.
+   Before citing `F<n>`, check the code it describes; if the code has moved, the finding is history.
+   `F27`'s headline ("`ObservedWriteScope` … never compared") was restated as live twice after
+   `C-DECLARED-WRITES` had paid it.
+2. **"X does not exist" is a search result, not an inference.** Any claim that a mechanism, remedy,
+   or precedent is missing requires the grep, the command run, or the archive listing *first*.
+   Absence claims are the most expensive errors this repository has recorded.
+3. **Read an artifact's definition before giving it a role in an argument** — what writes it, what
+   consumes it. `run.xml` and `run/` are unfolded loose events; the durable record is
+   `run-ledger.xml`. Inferring a role from a filename produced a whole fabricated decision.
+4. **No decision reaches the maintainer on an unverified premise.** Before presenting options, list
+   the facts the options depend on and verify each one. A wrong premise costs the maintainer a turn
+   spent refuting instead of deciding, which is worse than a slow answer.
+
+When presenting a decision, give **itemized variants with explicit pros and cons**, then the
+recommendation and why the runner-up loses — never prose, and never a single recommendation with the
+alternatives implied.
+
 ## How To Think About Changes
 
 - Skill text changes are product changes.
