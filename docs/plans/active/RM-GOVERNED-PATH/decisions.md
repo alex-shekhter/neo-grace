@@ -7021,6 +7021,70 @@ an expected verification result, the authority either ran that exact command aga
 artifact shape, or cites the ledger entry that rules on the window, or says neither and asks. There
 is no fourth form, and "it will be green" is not a stop condition — *"report what it says"* is.
 
+### F120 — the approved plan's `ObservedWriteScope` omits a write the spec's own packaging ruling forces. **[verified]**
+
+`C-SUPERSEDE-VERB` execution wrote `scripts/release-check.ts`, the only changed file absent from the
+approved plan's `ObservedWriteScope`. The write is **not discretionary**.
+`scripts/release-check.test.ts:494-513` requires every `src/` path in `package.json#files` to also
+appear in `PACK_ALLOWED_EXACT`, and states its own reason: adding a file to the published package
+*"must be a conscious second edit, so the list cannot be derived without making the check vacuous."*
+So the `files` entry the maintainer ruled into this bundle cannot land without a second edit that
+the approved plan does not declare. `AC-SUITE-AND-CI` (`bun test` green) and that
+`ObservedWriteScope` cannot both be satisfied. The executor made the write and reported it rather
+than leaving the suite red; that is the correct order of precedence.
+
+**The gap is the authority's, from the spec review.** Asked what pins `package.json#files`, the
+review found `src/artifact/scale-ergonomics.test.ts:368`, correctly ruled that it would not catch a
+missing entry, and stopped at one pin. `scripts/release-check.test.ts:494` — the pin that actually
+fails — was never found. The spec's packaging analysis inherited that gap and the plan's
+`ObservedWriteScope` inherited it from the spec. One instance of a class is not the class; a survey
+that stops at the first hit is an existence proof, not an inventory.
+
+**The remedy the authority first proposed is prohibited.** It recommended amending the approved
+plan's `ObservedWriteScope` and re-approving. `ngrace-plan`'s `approved_plan_immutability` names
+`ObservedWriteScope` in its own list of fields that must not be refreshed in place, and routes any
+change through a replacement `C-*` plus `ngrace supersede`. The maintainer caught it. An authority
+that has read a rule into a bundle's acceptance criteria is not thereby governed by it — this
+roadmap's own [F89](#f89) point, arriving from the other direction.
+
+**Resolution: close with the deviation recorded, and do not supersede.** Superseding a complete,
+green implementation over one missing path would rebuild the whole bundle to carry the same code.
+The omission has no mechanical consequence today, because
+[F27](#f27) already established that `ObservedWriteScope` is *declared and digested but never
+compared* — found the same way, when `C-ESCALATION-HONESTY` T-001 edited a file its plan did not
+declare, and that bundle closed. This is the **second** recorded instance of that class.
+
+**What it costs, stated so the archive is not silently wrong.** `ObservedWriteScope` is read by
+`grace-cursor.ts:1461` for repository-intersection and task-identity recovery, so an incomplete one
+weakens that inference for this bundle. More importantly, `C-PLAN-SCOPE-PATHS` is queued to start
+comparing declared scope against real writes: when it lands, this bundle's archived
+`ObservedWriteScope` is **known-incomplete**, not evidence of a clean run. That is the whole reason
+to record this rather than let it pass as a footnote — and it is the second instance arguing that
+the bundle should be given a slot in the order rather than left named-but-unpositioned.
+
+### F121 — two thin reds in an otherwise conforming execution. **[verified]**
+
+Both self-reported by the executor; neither blocks the close.
+
+**1. `require-replacement`'s first assertion was HEAD-true.** *"No new directory, source unchanged,
+nonzero exit"* holds at HEAD for any unknown command, so it does not discriminate the behaviour
+under test. The recorded fail came from `combinedOutput` matching `/replacement/i` against citty's
+usage text — a red against a string in a help message, not against the refuse path. The approved
+plan ordered it anyway. Same family as [F102](#f102) and [F112](#f112), one generation on: not a
+property true both before and after, but a property whose *first* clause is, with the discriminating
+work done by a clause that tests the wrong surface.
+
+**2. The allowlist-membership change shipped with no recorded red.** Adding
+`src/grace-supersede.ts` to `PACK_ALLOWED_EXACT` changed a HEAD-false property to true, and
+`bun test` was genuinely red before the edit — the evidence existed. It was never routed through a
+`cursor attempt`, because T-005 was planned as a suite-observation task with zero reds and the write
+was not in any task's scope. An unrecorded true red is better than a manufactured one and worse than
+a recorded one; it leaves the ledger claiming less work than was done.
+
+**The rule.** When an execution is forced outside the plan, the forcing evidence is worth a recorded
+attempt even though no task owns it. The alternative is a run ledger that is accurate about
+everything it mentions and silent about the part that changed the release surface.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
