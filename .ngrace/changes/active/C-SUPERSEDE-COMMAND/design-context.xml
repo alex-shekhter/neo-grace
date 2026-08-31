@@ -1,0 +1,555 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-SUPERSEDE-COMMAND</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    Why these decisions, measured
+    against the current write path,
+    not inherited from the charter
+    sentence. This bundle replaces
+    C-SUPERSEDE-VERB. The verb
+    decisions below are unchanged.
+    The packaging second edit is
+    the reason the predecessor
+    could not close.
+
+    Command home. F86.2 listed the
+    live roots and noted that gate
+    already has four subcommands
+    while spec and plan expose new
+    only. Adding a root moves
+    liveCommandRoots and the README
+    CLI Overview tables; that is
+    what those pins are for. Putting
+    the verb under gate would be
+    the cheaper command-surface
+    edit and the worse product:
+    GateId is closed at
+    src/gates/ledger.ts:103 to
+    approve, apply, archive;
+    verdict is already the special
+    case that records without being
+    a GateId; C-APPROVAL-FINGERPRINT
+    revised A29.2 for approve only.
+    A status-writing directory move
+    under gate would be a second
+    purity hole, and would teach
+    that every lifecycle close is a
+    gate even when nothing is
+    evaluated. Putting it under
+    spec (or plan) would name one
+    artifact and then write the
+    other plus move the directory.
+    A top-level supersede root is
+    the thing the operator says.
+
+    Implementation home. The
+    sanctioned status writer is
+    writeDraftRootToApproved /
+    stampApproveArtifact in
+    src/gates/ledger.ts. This verb
+    is a sibling export in that
+    file so the writeFileSync
+    allowlist does not grow a path.
+    The command def is a new
+    src/grace-supersede.ts plus a
+    package.json files entry
+    (maintainer ruling). Putting
+    an extra root in
+    src/grace-generate.ts, or a
+    file under src/gates/ which
+    already ships as a directory,
+    would hide a new lifecycle
+    root where packaging already
+    includes it. The new file
+    defines the command and
+    delegates every write,
+    including renameSync, to
+    ledger.ts, so the five-file
+    writeFileSync allowlist does
+    not grow. bun run
+    validate:packed is the ship
+    proof: grace.ts statically
+    imports the new module, so a
+    missing files entry fails the
+    packed install. That proof
+    does not catch a files entry
+    that PACK_ALLOWED_EXACT lacks.
+    scripts/release-check.test.ts:494-513
+    does: bun test
+    scripts/release-check.test.ts
+    fails until
+    scripts/release-check.ts
+    gains the path. That second
+    edit is declared here because
+    C-SUPERSEDE-VERB discovered it
+    in execution (F120). F114 is
+    repaired on that shared writer
+    in this bundle because a
+    second caller of a known-silent
+    function is worse than a mixed
+    write surface. Shape: both
+    quote styles, and a throw when
+    the grammar parse says draft
+    and the needle missed.
+
+    Require, do not create. The
+    registry says atomically with
+    the replacement. F86.2 says
+    the replacement directory must
+    already exist or lint is red.
+    Those are not the same claim.
+    Creating a skeleton would
+    duplicate spec new, and would
+    leave the operator authoring
+    the successor after the old
+    contract had been archived.
+    ngrace-plan already says
+    create-then-mark. The only
+    currently-legal order is
+    replacement-first. The verb
+    should perform that order, not
+    invert it. Atomically means
+    the five operations (F115:
+    status on spec, status on
+    plan, a replacement reference
+    on both, and the move) are
+    one invocation against a successor
+    that already has a directory.
+
+    Failure. The honest
+    intermediate states are
+    unrepresentable (F19.1, F86.2).
+    Validate first. Write, then
+    renameSync. renameSync of a
+    directory on one filesystem is
+    the closest thing this process
+    has to an atomic move; the
+    lint-red window is the gap
+    between the last writeFileSync
+    and that rename. On throw,
+    restore original bytes while
+    still under active/. That is
+    writeAndVerifyLedger's
+    priorBytes restore
+    (src/gates/ledger.ts:248-249)
+    applied to spec/plan, without
+    the unlinkSync of a newly
+    created file, because these
+    files already existed. A
+    killed process that leaves
+    superseded in active/ is the
+    lint error the brief names;
+    the same verb resumes by
+    recognizing matching
+    superseded bytes and doing
+    only the rename. copy-into-archive
+    then rmSync-active would
+    produce two directories with
+    the same C-* id for a window,
+    and there is no
+    change.duplicate-bundle-id
+    check; it would also add an
+    rmSync call site the A15.1
+    pin forbids.
+
+    Shape. Three accepted forms,
+    one corpus writer. All three
+    superseded archives write a
+    Replacement element as the
+    first child of the wrapper.
+    Tests plant the other two.
+    The verb writes the corpus
+    shape. Closing the checker
+    would be a grammar change
+    this bundle does not need
+    and would redden any future
+    hand-authored
+    ReplacementChange.
+
+    Ledger. F86's sharpest
+    finding is that the ledger
+    ends at archive=permit and
+    cannot show the folklore
+    close happened. That finding
+    is about a gate Decision
+    standing in for a transition
+    the gate did not perform.
+    Supersede has no gate.
+    Appending a Decision would
+    require expanding GateId or
+    lying that archive ran. The
+    Replacement element is a
+    lint-checked successor
+    pointer applied-close never
+    had. Status-on-artifact
+    without a Decision is what
+    F86 called a gap when a
+    gate had already recorded
+    permit; it is not a gap
+    when no gate is in the
+    story (F115). The record of
+    this transition is the
+    archived bundle's status and
+    Replacement element. That
+    record is a state, not an
+    event: it carries no time,
+    actor, or evidence that the
+    verb ran.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      gate supersede subcommand.
+      Rejected. GateId is closed.
+      A29.2 was revised for
+      approve only. Archive
+      evaluates and does not
+      move; teaching a sibling
+      that does both writes and
+      a move would make the
+      gate family a mixed
+      evaluate-and-mutate
+      surface. The README
+      sentence that apply,
+      archive, and verdict never
+      move a bundle would have
+      to become a lie or a
+      special case list.
+    </Alternative>
+    <Alternative>
+      spec supersede (or plan
+      supersede). Rejected. spec
+      new writes one skeleton
+      file. This verb writes
+      spec and plan and moves
+      the directory. ngrace-plan,
+      not ngrace-spec, is the
+      skill that currently
+      describes the close.
+    </Alternative>
+    <Alternative>
+      Create the replacement
+      skeleton inside the verb.
+      Rejected. Duplicates
+      writeSpecNew. Inverts
+      replacement-first. Leaves
+      the successor unauthored
+      after the predecessor has
+      left active/. The
+      replacement is a content
+      decision, not a filesystem
+      side-effect of abandoning
+      the old bundle.
+    </Alternative>
+    <Alternative>
+      Move first, then write
+      status. Rejected. A
+      draft or approved artifact
+      under archive/ is
+      change.invalid-archive-status.
+      If the writes then fail,
+      recovery is an archive
+      bundle with the wrong
+      status. Write-then-rename
+      with byte rollback keeps
+      the unrepresentable window
+      inside one process.
+    </Alternative>
+    <Alternative>
+      Copy modified files into
+      archive/C-* then rmSync
+      active/C-*. Rejected.
+      Two directories with one
+      C-* id for a window, and
+      no duplicate-id check.
+      rmSync of the bundle
+      directory would be a
+      fifth call site on
+      src/grace-cursor.test.ts:515-547.
+    </Alternative>
+    <Alternative>
+      Append a Decision with a
+      new GateId member
+      superseded. Rejected.
+      Expands a closed union
+      for an event that never
+      evaluated requirements.
+      Would make F86's defect
+      (a Decision that does not
+      mean the transition
+      happened) into an API.
+    </Alternative>
+    <Alternative>
+      Append a Decision with
+      gate archive. Rejected.
+      The archive gate did not
+      run. no-open-epoch is not
+      a supersede requirement.
+    </Alternative>
+    <Alternative>
+      Write ReplacementChange,
+      or a direct C-* child, or
+      close the checker to one
+      shape. Rejected. Corpus
+      is Replacement. Checker
+      plurality is already
+      tested. Closing it is a
+      grammar change with a
+      blast radius this verb
+      does not need.
+    </Alternative>
+    <Alternative>
+      Extra root from
+      src/grace-generate.ts
+      (scaffoldCommand pattern).
+      Rejected by maintainer
+      ruling. Generate already
+      ships; hiding a lifecycle
+      root there is a packaging
+      dodge. The honest cost is
+      a new src/grace-supersede.ts
+      plus a files entry, proved
+      by bun run validate:packed.
+    </Alternative>
+    <Alternative>
+      Command file under
+      src/gates/. Rejected. That
+      directory already ships
+      whole in package.json
+      files, so the new file
+      would appear in the tarball
+      with no files-list delta.
+      Same dodge. The verb is
+      not a gate.
+    </Alternative>
+    <Alternative>
+      New src/grace-supersede.ts
+      that itself writeFileSyncs
+      spec and plan. Rejected.
+      The writeFileSync allowlist
+      would grow to six, which
+      is a separate spec decision
+      with its own criterion.
+      This spec keeps the closed
+      five-file list by
+      delegating every write to
+      ledger.ts.
+    </Alternative>
+    <Alternative>
+      F114 normalise-only.
+      Rejected. Quote-style
+      handling writes the known
+      fixture but leaves the
+      silent return for any other
+      form lint already reads as
+      draft. The binding
+      requirement is no silent
+      no-op after permit.
+    </Alternative>
+    <Alternative>
+      F114 refuse-only. Rejected.
+      A legal draft the grammar
+      accepts would become
+      un-approvable. rootStatusFromFile
+      currently cannot even see
+      the F114 fixture as draft,
+      so a refuse keyed on parsed
+      draft would not fire.
+    </Alternative>
+    <Alternative>
+      Require a lexicon phrase
+      before the verb writes.
+      Rejected. D19 / D20 and
+      any supersede phrase are
+      C-APPROVAL-SCOPE. This
+      verb is the sanctioned
+      writer, the same way spec
+      new is, not a second
+      approve gate.
+    </Alternative>
+    <Alternative>
+      Derive PACK_ALLOWED_EXACT
+      from package.json files so
+      a new files entry needs no
+      second edit. Rejected. The
+      correspondence test's own
+      comment
+      (scripts/release-check.test.ts:496-501)
+      says that derivation makes
+      the check vacuous. This
+      spec does not close that
+      pin.
+    </Alternative>
+    <Alternative>
+      Relax PACK_ALLOWED_EXACT or
+      add an exception list in
+      plan.xml so the predecessor
+      undeclared write can close.
+      Rejected. F9.10.1: a
+      declaration authored by the
+      party under examination
+      cannot be that examination's
+      ground truth. The
+      remediation on
+      review.write-evidence-outside-scope
+      forbids both by name.
+    </Alternative>
+    <Alternative>
+      Amend C-SUPERSEDE-VERB's
+      approved ObservedWriteScope
+      in place. Rejected.
+      approved_plan_immutability
+      names ObservedWriteScope
+      among fields that must not
+      be refreshed in place.
+      Replacement-first is the
+      only order that lints.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Applied-close verb
+      (lifecycle finish / P3.1)
+      that writes applied and
+      moves. Owner: P3.1 /
+      C-ARCHIVE-CURSOR. This
+      bundle is superseded-only.
+    </Decision>
+    <Decision>
+      D19 / D20 skill sentences
+      and any supersede lexicon
+      phrase. Owner:
+      C-APPROVAL-SCOPE.
+    </Decision>
+    <Decision>
+      Cross-device EXDEV
+      copy-then-delete, if a
+      platform this CLI claims
+      ever hits it. This bundle
+      refuses after rollback.
+    </Decision>
+    <Decision>
+      A duplicate-bundle-id lint
+      when the same C-* exists
+      under both active/ and
+      archive/. Not required to
+      ship this verb; named so
+      it is not silently dropped.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Happy path, replacement
+      first. Operator runs spec
+      new C-NEW, authors it,
+      then ngrace supersede with
+      argv token change C-OLD
+      and argv token replacement
+      C-NEW. C-OLD spec and plan
+      become superseded, each
+      gain a Replacement element
+      naming C-NEW, and the
+      directory lands under
+      archive/. C-NEW is
+      untouched. Lint 0/0.
+    </Scenario>
+    <Scenario>
+      Spec-only source, matching
+      C-LEDGER-READ-ABSENCE.
+      plan.xml is absent. The
+      verb writes spec only and
+      moves. It does not invent
+      a plan.
+    </Scenario>
+    <Scenario>
+      Replacement already named.
+      Spec and plan already
+      contain a Replacement
+      element whose text is
+      C-NEW, still draft or
+      approved under active/.
+      The verb writes status
+      only, does not insert a
+      second element, then
+      moves.
+    </Scenario>
+    <Scenario>
+      Missing replacement
+      directory. Refuse, no
+      writes, no move, no
+      skeleton created.
+    </Scenario>
+    <Scenario>
+      Self-replacement. Refuse.
+      change.superseded-self-replacement
+      is the checker this refuse
+      satisfies in advance.
+    </Scenario>
+    <Scenario>
+      Rename throws after
+      status writes. Original
+      spec and plan bytes are
+      restored under active/.
+      Exit nonzero. Lint sees
+      the pre-invocation tree.
+    </Scenario>
+    <Scenario>
+      Process killed after
+      writes, before rename.
+      Spec (and plan if
+      present) read superseded
+      under active/, which is
+      change.invalid-active-status.
+      Re-running the same
+      command with the same
+      replacement completes
+      the rename and does not
+      rewrite matching bytes.
+    </Scenario>
+    <Scenario>
+      Already archived as
+      superseded with that
+      replacement. Refuse,
+      already done, nonzero.
+      No rewrite of archive/.
+    </Scenario>
+    <Scenario>
+      Open epoch on the old
+      bundle. The verb still
+      moves. It does not fold
+      and does not consult
+      no-open-epoch. Abandoned
+      work keeps its ledger
+      and run/ as companions.
+    </Scenario>
+    <Scenario>
+      argv token record is not
+      declared. An unrecognized
+      dashed flag is refused by
+      defineGraceCommand the
+      same way other roots
+      refuse one.
+    </Scenario>
+    <Scenario>
+      Single-quoted draft.
+      Opening-tag status uses
+      single quotes; lint reads
+      draft. gate approve writes
+      approved, preserving the
+      quote character, and
+      fingerprints those bytes.
+      The same fixture under
+      this verb writes
+      superseded the same way.
+    </Scenario>
+    <Scenario>
+      Grammar-parsed draft whose
+      opening tag has no
+      locatable status needle.
+      The writer throws. No
+      Decision. Bytes unchanged.
+      Exit nonzero. Evaluation
+      may still print permit
+      (A31.5 recordingError).
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>

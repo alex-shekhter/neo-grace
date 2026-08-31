@@ -1,5 +1,6 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
   <C-SUPERSEDE-VERB>
+    <Replacement>C-SUPERSEDE-COMMAND</Replacement>
     <Summary>
       Add a top-level ngrace supersede verb that
       is the sanctioned writer of the superseded
