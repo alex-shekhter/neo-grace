@@ -6850,6 +6850,65 @@ pin or a rule the product already enforces.** Spec review has to execute the cri
 tree, not read them for plausibility — the same conclusion F112 reached, now with a second instance
 in one bundle.
 
+### F114 — the approve writer matches one quote style and no-ops silently on the other. **[verified]**
+
+`writeDraftRootToApproved` (`src/gates/ledger.ts:1004-1013`), shipped by
+[`C-APPROVAL-FINGERPRINT`](../../../../.ngrace/changes/archive/C-APPROVAL-FINGERPRINT/), searches the
+root opening tag for the **literal** `status="draft"` and returns silently when it is absent
+(`:1009-1010`). Single-quoted attributes are legal XML: I parsed
+`<NgraceChangeSpec graceVersion='1.0' status='draft'>` and got **0 issues** with
+`status` read as `draft`.
+
+**The failure is silent in both directions.** On such an artifact `ngrace gate approve` still prints
+`permit`, still appends a `Decision`, and still records a fingerprint — **of bytes that still say
+`draft`**. The status is never written. And because the three-way detector fires only on
+`approved`, nothing reports the artifact afterwards. An operator sees a permitting approve and a
+recorded fingerprint over an unapproved document.
+
+Every artifact this repo generates uses double quotes (`spec new` renders them), so the corpus is
+unaffected today. The product ships to other repositories, where a hand-authored or
+externally-generated artifact is not obliged to match.
+
+This is the *"silence must not read as will pass"* class the roadmap exists to remove, shipped by the
+bundle whose subject was approval honesty, and found one bundle later by the executor.
+
+**The rule.** A writer that locates its target by literal string must either normalise first or refuse
+loudly when the target is absent. A silent `return` in a writer the caller has already reported as
+permitting is indistinguishable from success.
+
+### F115 — corrections to F86.2 and to the authority's spec brief. **[verified]**
+
+Four, all raised by the executor.
+
+**1. F86.2's operation count does not add up.** It says *"four hand writes"* plus a move, and the
+registry repeats *"the four writes plus the move"*. The close it describes is **five** operations:
+`status` on `spec.xml`, `status` on `plan.xml`, a replacement reference on **both**, and the
+directory move. One close, two counts.
+
+**2. F86.2's `src/gates/command.ts:336-340` citation is stale.** The gate subcommand map is now at
+`:426-429`; `C-APPROVAL-FINGERPRINT` grew that file. Verified.
+
+**3. The brief's "both are defensible" was wrong.** It offered *create the replacement* and *require
+it* as a genuine fork. Create is not coherent: the measured close authors the successor as a **real
+spec** while the predecessor is still the live contract, then marks. A skeleton minted as a
+side-effect of abandoning the predecessor is `spec new` with a surprise archive, and it inverts the
+only operator order that has ever produced a linting successor. The charter's *"atomically with the
+replacement"* means the replacement **reference** is part of the same verb, not that the verb absorbs
+`spec new`.
+
+**4. The brief's ledger-gap equivalence was wrong.** It said a supersede verb writing nothing to the
+ledger *"reproduces exactly"* [F86](#f86)'s gap. It does not. F86's gap is a **permitting archive
+`Decision` after which folklore performs the transition** — a gate record standing in for work the
+gate did not do. There is no supersede gate; expanding the closed `GateId`
+(`src/gates/ledger.ts:103`) to mint one would report an evaluation that never ran, which is a worse
+honesty defect. Superseding already leaves a lint-checked machine record the applied-close never had:
+`status="superseded"` **plus** a `Replacement` naming the successor, both enforced by the grammar.
+The residual is narrower and should be stated as such — the record is a **state, not an event**: it
+carries no time, actor, or evidence that the verb ran.
+
+**The rule.** Before calling two situations the same defect, name the mechanism of each. "No record"
+and "a record of the wrong thing" have different repairs.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
