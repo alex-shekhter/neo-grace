@@ -12,7 +12,8 @@
 //   gateCommand
 // END_MODULE_MAP
 /**
- * ngrace gate <approve|apply|archive|verdict> — evaluate/record; never author status (A29.2, A31.1).
+ * ngrace gate <approve|apply|archive|verdict> — evaluate and record.
+ * Approve writes draft to approved and fingerprints those bytes; apply, archive, and verdict do not write status (A29.2, A31.1).
  */
 
 import { defineCommand } from "citty";
@@ -23,6 +24,7 @@ import {
   parseReviewVerdictScope,
   recordGateDecision,
   recordReviewVerdict,
+  stampApproveArtifact,
   type GateId,
   type ReviewVerdictOutcome,
   type ReviewVerdictRecord,
@@ -84,9 +86,20 @@ function runGate(
   projectRoot: string,
   changeId: string,
   gate: GateId,
-  options: { record?: boolean; format?: "text" | "json" },
+  options: {
+    record?: boolean;
+    format?: "text" | "json";
+    force?: boolean;
+    reason?: string;
+    artifact?: "spec" | "plan";
+  },
 ): GateEvaluation {
   const evaluation = evaluateGate(projectRoot, changeId, gate);
+  if (gate === "approve" && options.force) {
+    if (evaluation.decision === "refuse") {
+      evaluation.decision = "permit";
+    }
+  }
   if (options.record !== false) {
     const decision = evaluationToDecision(evaluation);
     if (decision) {
@@ -94,6 +107,13 @@ function runGate(
         if (gate === "approve" && decision.decision === "permit") {
           const observed = observeHeadObjectName(projectRoot);
           if (observed) decision.baseCommit = observed;
+          if (options.force) {
+            decision.forced = true;
+            decision.reason = (options.reason ?? "").trim();
+          }
+          const stamped = stampApproveArtifact(projectRoot, changeId, options.artifact);
+          decision.artifact = stamped.artifact;
+          decision.fingerprint = stamped.fingerprint;
         }
         recordGateDecision(projectRoot, changeId, decision);
       } catch (error) {
@@ -118,35 +138,60 @@ function parseOutcome(value: unknown): ReviewVerdictOutcome {
   return outcome;
 }
 
-function gateSubCommand(gate: GateId) {
+const GATE_SHARED_ARGS = {
+  change: {
+    type: "string" as const,
+    description: "Change bundle id (C-*)",
+    required: true,
+  },
+  path: {
+    type: "string" as const,
+    description: "Project root",
+    default: ".",
+  },
+  format: {
+    type: "string" as const,
+    description: "text or json",
+    default: "text",
+  },
+  record: {
+    type: "boolean" as const,
+    description: "Append the decision to run-ledger.xml Decisions (default true)",
+    default: true,
+  },
+};
+
+function parseArtifactArg(value: unknown): "spec" | "plan" | undefined {
+  if (value === undefined || value === "") return undefined;
+  const token = String(value);
+  if (token === "spec" || token === "plan") return token;
+  throw new GraceCommandError(
+    "invalid-arguments",
+    `Unsupported artifact \`${token}\`. Use spec or plan.`,
+  );
+}
+
+function printGateEvaluation(evaluation: GateEvaluation, format: "text" | "json"): void {
+  if (format === "json") {
+    console.log(JSON.stringify({ schemaVersion: "1.0.0", ok: true, ...evaluation }, null, 2));
+  } else {
+    console.log(formatGateEvaluation(evaluation));
+  }
+  if (evaluation.decision === "refuse" || evaluation.recordingError) {
+    process.exitCode = 1;
+  }
+}
+
+function gateSubCommand(gate: GateId, description?: string) {
   // defineGraceCommand: refuse --record true|false space form before any ledger write (F18).
   return defineGraceCommand({
     meta: {
       name: gate,
-      description: `Evaluate the ${gate} transition gate and record the decision (does not change status).`,
+      description:
+        description
+        ?? `Evaluate the ${gate} transition gate and record the decision (does not change status).`,
     },
-    args: {
-      change: {
-        type: "string",
-        description: "Change bundle id (C-*)",
-        required: true,
-      },
-      path: {
-        type: "string",
-        description: "Project root",
-        default: ".",
-      },
-      format: {
-        type: "string",
-        description: "text or json",
-        default: "text",
-      },
-      record: {
-        type: "boolean",
-        description: "Append the decision to run-ledger.xml Decisions (default true)",
-        default: true,
-      },
-    },
+    args: GATE_SHARED_ARGS,
     async run(context) {
       const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
       await runGraceCommand(format, async () => {
@@ -154,15 +199,59 @@ function gateSubCommand(gate: GateId) {
         const projectRoot = String(context.args.path ?? ".");
         const record = context.args.record !== false;
         const evaluation = runGate(projectRoot, changeId, gate, { record, format });
-        if (format === "json") {
-          console.log(JSON.stringify({ schemaVersion: "1.0.0", ok: true, ...evaluation }, null, 2));
-        } else {
-          console.log(formatGateEvaluation(evaluation));
-        }
-        if (evaluation.decision === "refuse" || evaluation.recordingError) {
-          process.exitCode = 1;
-        }
+        printGateEvaluation(evaluation, format);
       }, `gate ${gate} failed`);
+    },
+  });
+}
+
+function approveSubCommand() {
+  return defineGraceCommand({
+    meta: {
+      name: "approve",
+      description:
+        "Evaluate the approve gate, write draft to approved on the targeted spec or plan, and record a fingerprint of those bytes.",
+    },
+    args: {
+      ...GATE_SHARED_ARGS,
+      force: {
+        type: "boolean" as const,
+        description: "Record a clarification refuse as a forced permit when reason is non-empty",
+        default: false,
+      },
+      reason: {
+        type: "string" as const,
+        description: "Required with force; stored on that forced permit",
+      },
+      artifact: {
+        type: "string" as const,
+        description: "spec or plan; overrides default target order",
+      },
+    },
+    async run(context) {
+      const format = String(context.args.format ?? "text") === "json" ? "json" : "text";
+      await runGraceCommand(format, async () => {
+        const force = context.args.force === true;
+        const reason = String(context.args.reason ?? "").trim();
+        if (force && !reason) {
+          throw new GraceCommandError(
+            "invalid-arguments",
+            "argv token force requires a non-empty argv token reason",
+          );
+        }
+        const artifact = parseArtifactArg(context.args.artifact);
+        const changeId = String(context.args.change);
+        const projectRoot = String(context.args.path ?? ".");
+        const record = context.args.record !== false;
+        const evaluation = runGate(projectRoot, changeId, "approve", {
+          record,
+          format,
+          force,
+          reason: force ? reason : undefined,
+          artifact,
+        });
+        printGateEvaluation(evaluation, format);
+      }, "gate approve failed");
     },
   });
 }
@@ -331,10 +420,10 @@ export const gateCommand = defineGraceCommand({
   meta: {
     name: "gate",
     description:
-      "Evaluate transition gates (approve / apply / archive) or record a review verdict. Records in run-ledger.xml; never authors status or archives bundles.",
+      "Evaluate transition gates (approve / apply / archive) or record a review verdict. Records in run-ledger.xml. Approve writes draft to approved and fingerprints those bytes; apply, archive, and verdict do not write status or move bundles.",
   },
   subCommands: {
-    approve: gateSubCommand("approve"),
+    approve: approveSubCommand(),
     apply: gateSubCommand("apply"),
     archive: gateSubCommand("archive"),
     verdict: verdictSubCommand,

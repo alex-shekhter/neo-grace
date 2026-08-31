@@ -285,3 +285,40 @@ describe("fork attribution", () => {
     expect(history).not.toContain("github.com/alex-shekhter/neo-grace/commit/");
   });
 });
+
+describe("C-APPROVAL-FINGERPRINT T-004 skill write path", () => {
+  it("skill-spec-write-path: ngrace-spec status_rules say gate approve writes status", () => {
+    const spec = read("skills/ngrace/ngrace-spec/SKILL.md");
+    expect(spec).toContain("that command writes status");
+    expect(spec).not.toContain(
+      'Set `status="approved"` only after a sufficient phrase from `approval_lexicon`.',
+    );
+  });
+
+  it("skill-plan-write-path: ngrace-plan requirement 15 says the gate writes status and records the fingerprint", () => {
+    const plan = read("skills/ngrace/ngrace-plan/SKILL.md");
+    expect(plan).toContain("the gate writes status and records the fingerprint");
+    expect(plan).not.toContain("The gate records a Decision and does not itself set status.");
+  });
+
+  it("skill-reviewer-three-way: review_checklist names never-asked, mismatch, and unfingerprinted Decision silent", () => {
+    const reviewer = read("skills/ngrace/ngrace-reviewer/SKILL.md");
+    expect(reviewer).toContain("unfingerprinted Decision silent");
+  });
+});
+
+describe("C-APPROVAL-FINGERPRINT T-005", () => {
+  it("readme-gate: Change lifecycle prose no longer blankets never-author status; approve row names the write and fingerprint", () => {
+    const readme = read("README.md");
+    expect(readme).not.toContain("they never author `status`");
+    expect(readme).toContain(
+      "a permitting recorded approve writes approved onto the targeted spec or plan and records a fingerprint",
+    );
+    const applyRow = readme.split("\n").find((line) => line.includes("`ngrace gate apply"));
+    const archiveRow = readme.split("\n").find((line) => line.includes("`ngrace gate archive"));
+    expect(applyRow).toBeDefined();
+    expect(archiveRow).toBeDefined();
+    expect(applyRow).not.toMatch(/writes approved|records a fingerprint/i);
+    expect(archiveRow).not.toMatch(/writes approved|records a fingerprint/i);
+  });
+});

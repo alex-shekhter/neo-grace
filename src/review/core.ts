@@ -78,7 +78,7 @@ import {
   type LooseEvent,
   type WriteEvidenceSnapshot,
 } from "../grace-cursor";
-import { listGateDecisions } from "../gates/ledger";
+import { classifyApprovedArtifact, listGateDecisions } from "../gates/ledger";
 import { CODE_EXTENSIONS } from "../language-registry";
 import {
   getModuleImplementationFiles,
@@ -88,6 +88,8 @@ import {
 import {
   ATTEMPT_PAIR_FINDING_CODE,
   CLOSE_EVIDENCE_ABSENCE_FINDING_CODE,
+  APPROVAL_NEVER_ASKED_FINDING_CODE,
+  APPROVAL_FINGERPRINT_MISMATCH_FINDING_CODE,
   REVIEW_ISSUE_SEVERITIES,
   WRITE_EVIDENCE_SCOPE_FINDING_CODE,
   REVIEW_CATALOG,
@@ -1460,6 +1462,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
   if (runProcess) {
     if (options.changeId) {
       findings.push(...auditCloseEvidenceUnevaluated(root, options.changeId));
+      findings.push(...auditApprovedArtifact(root, options.changeId));
       const changeId = options.changeId;
       const resolved = resolveChangePlanPath(root, changeId);
       if (!resolved) {
@@ -1669,6 +1672,45 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
 type ScopeChangedFilesResolution =
   | { kind: "files"; files: string[]; source: "explicit" | "base" | "porcelain" | "recorded-base"; baseRef?: string }
   | { kind: "absence"; absence: AbsenceValue };
+
+function auditApprovedArtifact(root: string, changeId: string): ReviewFinding[] {
+  let bundlePath: string;
+  try {
+    bundlePath = resolveChangeBundle(root, changeId);
+  } catch {
+    return [];
+  }
+  const out: ReviewFinding[] = [];
+  for (const artifact of ["spec", "plan"] as const) {
+    const filePath = path.join(bundlePath, `${artifact}.xml`);
+    if (!existsSync(filePath)) continue;
+    if (readGraceXmlArtifact(filePath).root?.attributes.status !== "approved") continue;
+    const classification = classifyApprovedArtifact(root, changeId, artifact);
+    const rel = path.relative(root, filePath).replaceAll("\\", "/");
+    if (classification.kind === "never-asked") {
+      out.push(
+        makeFinding(
+          APPROVAL_NEVER_ASKED_FINDING_CODE,
+          rel,
+          `approved ${artifact}.xml has no applying permitting approve Decision.`,
+          APPROVAL_NEVER_ASKED_FINDING_CODE,
+          artifact,
+        ),
+      );
+    } else if (classification.kind === "mismatch") {
+      out.push(
+        makeFinding(
+          APPROVAL_FINGERPRINT_MISMATCH_FINDING_CODE,
+          rel,
+          `approved ${artifact}.xml fingerprint does not match the current file bytes.`,
+          APPROVAL_FINGERPRINT_MISMATCH_FINDING_CODE,
+          artifact,
+        ),
+      );
+    }
+  }
+  return out;
+}
 
 function auditCloseEvidenceUnevaluated(root: string, changeId: string): ReviewFinding[] {
   let bundlePath: string;

@@ -189,12 +189,11 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 
 ### Change lifecycle: gates, run ledger, and review
 
-These carry the execute lifecycle. Gates evaluate and record a decision; they never author `status`
-and never move a bundle. `ngrace review` never records a verdict. The separation is the point.
+These carry the execute lifecycle. A permitting recorded approve writes approved onto the targeted spec or plan and records a fingerprint. Apply, archive, and verdict still do not write status and never move a bundle. `ngrace review` never records a verdict. The separation is the point.
 
 | Command | What It Does |
 | --- | --- |
-| `ngrace gate approve --change C-ID` | Evaluate the approve transition (unresolved `IC-*` / `INV-*` clarifications refuse) and record the decision |
+| `ngrace gate approve --change C-ID` | a permitting recorded approve writes approved onto the targeted spec or plan and records a fingerprint |
 | `ngrace gate apply --change C-ID` | Evaluate the apply transition — a recorded review verdict of some outcome is required |
 | `ngrace gate archive --change C-ID` | Evaluate the archive transition (an open epoch refuses) |
 | `ngrace gate verdict --change C-ID --outcome pass\|fail\|unable-to-determine` | Record judgment in `run-ledger.xml`; optional `--reason`, `--note`, `--scope task\|wave\|bundle`, `--classification implementation\|plan` |
@@ -296,7 +295,7 @@ skip depth (adversarial probe, mutation audit, checklist volume).
 
 | What | Subject / state | Normalized stdout bytes | Commit |
 |---|---|---|---|
-| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **810 lines** / **56110 UTF-8 bytes** | pin in `token-accounting.test.ts` |
+| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **811 lines** / **56399 UTF-8 bytes** | pin in `token-accounting.test.ts` |
 | `skillTextLines().referencesTotal` | package root | **1433 lines** (includes recovery.md) | same instrument |
 | `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `f641334` (the squashed Phase 11 merge; release cut updates) |
 | `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |

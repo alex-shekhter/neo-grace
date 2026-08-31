@@ -65,7 +65,7 @@ Produce `plan.xml` with `ngrace plan new` as the primary write path. Use `refere
 | 12 | Every task has non-empty verification commands. |
 | 13 | Surface stale-state and coexistence warnings from preflight lint. |
 | 14 | Reject unsupported scope glob syntax instead of guessing. |
-| 15 | Before setting `plan.xml` to `approved`, run `ngrace gate approve --change C-ID`. Refuse means unresolved Clarifications on IC-* / INV-*; do not approve when refused. The gate records a Decision and does not itself set status. |
+| 15 | Before the plan is approved, run `ngrace gate approve --change C-ID`. Refuse means unresolved Clarifications on IC-* / INV-* unless force; the gate writes status and records the fingerprint. |
 | 16 | Optional typed holes use `<Clarifications><Clarification><IC-*|INV-*|AC-* /></Clarification></Clarifications>` — exactly one self-closing IC-*, INV-*, or AC-* child; never a target attribute and never a prose `[NEEDS CLARIFICATION]` marker. |
 | 17 | Every authorizing spec must decide `README.md` and `examples/` in a Goal, Constraint, or NonGoal. Silence fails. Enforcement is `checkDocsAndExamplesDecision`. |
 </must_do>
@@ -110,6 +110,6 @@ Never invent a "skip plan" path. If the user wants an ungoverned edit, refuse an
 </validation>
 
 <hard_rules>
-Do not implement code, silently approve a plan, overwrite an approved plan, or mutate current graph/verification artifacts while planning. Semantic anchors are canonical XML tags, never attributes. Do not set plan status to approved without a permitting `ngrace gate approve` result.
+Do not implement code, silently approve a plan, overwrite an approved plan, or mutate current graph/verification artifacts while planning. Semantic anchors are canonical XML tags, never attributes. Do not hand-write plan status to approved; a permitting `ngrace gate approve` writes status and records the fingerprint.
 </hard_rules>
 </skill>

@@ -124,6 +124,10 @@ function collectEmittedIssueCodes(srcRoot: string): string[] {
     "review.write-evidence-outside-scope",
     // makeFinding(CLOSE_EVIDENCE_ABSENCE_FINDING_CODE, …) — constant, not a string literal
     "review.close-evidence-unevaluated",
+    // makeFinding(APPROVAL_NEVER_ASKED_FINDING_CODE, …) — constant, not a string literal
+    "review.approval-never-asked",
+    // makeFinding(APPROVAL_FINGERPRINT_MISMATCH_FINDING_CODE, …) — constant, not a string literal
+    "review.approved-fingerprint-mismatch",
   ]) {
     codes.add(code);
   }
@@ -560,6 +564,13 @@ describe("catalog exact-guide completeness (C-TOKEN-INTEGRITY T-005 / C-CURSOR-I
     expect(hasExactSurfaceGuide(closeAbsence)).toBe(true);
     expect(REVIEW_PREFIX_COVERED_LEGACY_CODES.includes(closeAbsence)).toBe(false);
     expect(PREFIX_COVERED_LEGACY_CODES.includes(closeAbsence)).toBe(false);
+    for (const approvalCode of ["review.approval-never-asked", "review.approved-fingerprint-mismatch"] as const) {
+      expect(getExactLintIssueGuide(approvalCode)).toBeUndefined();
+      expect(guideFor(approvalCode)).toBeDefined();
+      expect(hasExactSurfaceGuide(approvalCode)).toBe(true);
+      expect(REVIEW_PREFIX_COVERED_LEGACY_CODES.includes(approvalCode)).toBe(false);
+      expect(PREFIX_COVERED_LEGACY_CODES.includes(approvalCode)).toBe(false);
+    }
     // A still-uncatalogued review code remains a review-surface orphan, not a lint orphan.
     const future = "review.future-uncatalogued-probe";
     expect(getExactLintIssueGuide(future)).toBeUndefined();

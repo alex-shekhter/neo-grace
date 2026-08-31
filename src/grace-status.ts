@@ -31,7 +31,7 @@ import { skillRef } from "./artifact/types";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./artifact/projections";
 import { collectActiveChangeScopes, collectAppliedChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope, type AppliedChangeScope } from "./artifact/scope";
 import { readGraceXmlArtifact } from "./artifact/xml";
-import { readPermittingDecision } from "./gates/ledger";
+import { classifyApprovedArtifact, readPermittingDecision } from "./gates/ledger";
 import { collectModuleHealth } from "./query/health";
 import { loadGraceArtifactIndex } from "./query/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -310,10 +310,16 @@ function deriveChangeStates(facts: ChangeBundleFacts): string[] {
   return [...new Set(states)];
 }
 
-function chooseNextAction(result: Omit<StatusResult, "nextAction">) {
+function chooseNextAction(
+  result: Omit<StatusResult, "nextAction">,
+  approvalIntegrityAbsence?: { verdict: "unable-to-determine"; reason: string },
+) {
   if (result.projectKind === "grace3") return `Use ${skillRef("migrate")} to migrate legacy GRACE 3 docs to ${ARTIFACT_DIR} artifacts.`;
   if (result.projectKind === "none") return `Run ${skillRef("init")} to create a neo-grace ${ARTIFACT_DIR} skeleton.`;
   if (result.derivedStates.includes("approved-contract-drift")) return "Hard stop: an approved spec.xml or plan.xml changed. Restore it or supersede and replan through a new C-* bundle.";
+  if (approvalIntegrityAbsence) {
+    return `Not evaluable: ${approvalIntegrityAbsence.reason}.`;
+  }
   if (result.derivedStates.includes("stale-plan")) return "Supersede and replan the stale approved change; do not edit the approved plan or continue execution.";
   if (result.integrity.errors > 0) return "Run ngrace lint --path <project-root> and fix neo-grace integrity errors.";
   if (result.derivedStates.includes("unexplained-observed-drift")) return `Use ${skillRef("refresh")} to reconcile unexplained repository changes through a new NgraceChangeSpec and NgraceChangePlan.`;
@@ -381,13 +387,18 @@ export function collectProjectStatus(projectRoot: string, options: { includeModu
   ];
   const collectedDrift = collectObservedDrift(root, activeScopes, appliedScopes, buildDriftRouteIndex(root, graph, verification));
   const observedDrift = collectedDrift.drift;
-  const approvedContractDrift = collectApprovedContractDrift(root, activeScopes, collectedDrift.trackedChangedFiles);
+  const classifiedDrift = collectApprovedContractDrift(root, activeScopes);
+  const approvedContractDrift = classifiedDrift.drifted;
   const changes = rawChanges.map((change) => {
-    if (!approvedContractDrift.has(change.changeId)) return change;
-    return {
-      ...change,
-      derivedStates: [...new Set([...change.derivedStates.filter((state) => state !== "ready-to-execute"), "approved-contract-drift"])],
-    };
+    let derivedStates = change.derivedStates;
+    if (approvedContractDrift.has(change.changeId)) {
+      derivedStates = [...new Set([...derivedStates.filter((state) => state !== "ready-to-execute"), "approved-contract-drift"])];
+    }
+    if (classifiedDrift.absence) {
+      derivedStates = derivedStates.filter((state) => state !== "ready-to-execute");
+    }
+    if (derivedStates === change.derivedStates) return change;
+    return { ...change, derivedStates };
   });
   const derivedStates = new Set<string>();
   if (overlapIssues.length > 0) derivedStates.add("scope-overlap");
@@ -446,7 +457,7 @@ export function collectProjectStatus(projectRoot: string, options: { includeModu
     moduleHealthLoadError,
     analysisCoverage: lint.analysisCoverage,
   };
-  return { ...partial, nextAction: chooseNextAction(partial) };
+  return { ...partial, nextAction: chooseNextAction(partial, classifiedDrift.absence) };
 }
 
 export function formatStatusText(result: StatusResult) {
@@ -651,14 +662,28 @@ function buildDriftRouteIndex(root: string, graph: GraphProjection, verification
   return routes;
 }
 
-function collectApprovedContractDrift(root: string, activeScopes: ActiveChangeScope[], trackedChangedFiles: ReadonlySet<string>): Set<string> {
-  return new Set(activeScopes
-    .filter((scope) => scope.specStatus === "approved" && scope.planStatus === "approved")
-    .filter((scope) => {
-      const bundlePath = path.relative(root, scope.bundlePath).replaceAll(path.sep, "/");
-      return trackedChangedFiles.has(`${bundlePath}/spec.xml`) || trackedChangedFiles.has(`${bundlePath}/plan.xml`);
-    })
-    .map((scope) => scope.changeId));
+function collectApprovedContractDrift(
+  root: string,
+  activeScopes: ActiveChangeScope[],
+): {
+  drifted: Set<string>;
+  absence?: { verdict: "unable-to-determine"; reason: string };
+} {
+  const drifted = new Set<string>();
+  let absence: { verdict: "unable-to-determine"; reason: string } | undefined;
+  for (const scope of activeScopes) {
+    for (const artifact of ["spec", "plan"] as const) {
+      const status = artifact === "spec" ? scope.specStatus : scope.planStatus;
+      if (status !== "approved") continue;
+      const classification = classifyApprovedArtifact(root, scope.changeId, artifact);
+      if (classification.kind === "mismatch") drifted.add(scope.changeId);
+      if (classification.kind === "unfingerprinted" && classification.trackedChanged) {
+        drifted.add(scope.changeId);
+      }
+      if (classification.kind === "git-unavailable") absence = classification.absence;
+    }
+  }
+  return { drifted, absence };
 }
 
 function resolveFormat(format: unknown, json: unknown) {

@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it } from "bun:test";
+import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { GraceCommandError } from "../query/errors";
+import { collectProjectStatus } from "../grace-status";
 
 import { validateRunLedgerArtifact } from "../artifact/grammar";
 import { writeChangeBundleFixture, writeMinimalNgraceProject } from "../artifact/test-fixtures";
@@ -753,6 +755,10 @@ function writeScopedPlan(
 `;
   const planPath = path.join(dir, "plan.xml");
   writeFileSync(planPath, body);
+  writeFileSync(
+    path.join(dir, "run-ledger.xml"),
+    `<NgraceRunLedger graceVersion="1.0"><${changeId}><Decisions><Decision gate="approve" decision="permit" /></Decisions></${changeId}></NgraceRunLedger>`,
+  );
   return planPath;
 }
 
@@ -1846,7 +1852,7 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     expect(allReviewCodes()).toContain(ATTEMPT_PAIR_FINDING_CODE);
     expect(allReviewCodes()).not.toContain(RETIRED_ATTEMPT_PAIR_CODE);
     // C-CRITERION-CLOSE-EVIDENCE adds review.close-evidence-unevaluated (15 → 16).
-    expect(allReviewCodes()).toHaveLength(16);
+    expect(allReviewCodes()).toHaveLength(18);
     expect(guideFor(RETIRED_ATTEMPT_PAIR_CODE)).toBeUndefined();
     const catalogTest = readFileSync(
       path.join(import.meta.dir, "../lint/catalog.test.ts"),
@@ -2170,7 +2176,7 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     expect(guide!.code).toBe(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
     expect(guide!.severity).toBe("error");
     expect(allReviewCodes()).toContain(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
-    expect(allReviewCodes()).toHaveLength(16);
+    expect(allReviewCodes()).toHaveLength(18);
     // Porcelain sibling still distinct.
     expect(guideFor("review.scope-outside-write-scope")!.severity).toBe("error");
   });
@@ -3114,5 +3120,159 @@ describe("CloseEvidence review absence detector", () => {
       changedFiles: ["src/example.ts"],
     });
     expect(result.findings.some((f) => f.code === "review.close-evidence-unevaluated")).toBe(false);
+  });
+});
+
+describe("C-APPROVAL-FINGERPRINT T-003", () => {
+  it("review-never-asked: approved spec with no permitting approve emits review.approval-never-asked", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-REV",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+    });
+    const result = runReview(root, {
+      changeId: "C-REV",
+      patterns: false,
+      joinEngine: false,
+      changedFiles: [],
+    });
+    const hits = result.findings.filter((f) => f.code === "review.approval-never-asked");
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits.every((f) => f.severity === "error")).toBe(true);
+    expect(result.findings.some((f) => f.code.startsWith("change."))).toBe(false);
+
+    const status = collectProjectStatus(root);
+    const change = status.changes.find((entry) => entry.changeId === "C-REV")!;
+    expect(change.derivedStates).not.toContain("approved-contract-drift");
+
+    for (const st of ["draft", "applied", "superseded", "cancelled", "rejected"] as const) {
+      const other = ensureTempRoot();
+      writeMinimalNgraceProject(other);
+      writeChangeBundleFixture(other, {
+        changeId: "C-REV",
+        location: "active",
+        specStatus: st,
+        planStatus: st,
+      });
+      const silent = runReview(other, {
+        changeId: "C-REV",
+        patterns: false,
+        joinEngine: false,
+        changedFiles: [],
+      });
+      expect(silent.findings.some((f) => f.code === "review.approval-never-asked")).toBe(false);
+    }
+
+    const archiveRoot = ensureTempRoot();
+    writeMinimalNgraceProject(archiveRoot);
+    writeChangeBundleFixture(archiveRoot, {
+      changeId: "C-REV",
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    const unscoped = runReview(archiveRoot, { patterns: false, joinEngine: false });
+    expect(unscoped.findings.some((f) => f.code === "review.approval-never-asked")).toBe(false);
+  });
+
+  it("fingerprint-compare: mismatched fingerprint is a review error and approved-contract-drift", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-REV",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "draft",
+    });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "active", "C-REV");
+    writeFileSync(
+      path.join(bundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-REV>`
+        + `<Decisions><Decision gate="approve" decision="permit" fingerprint="${"0".repeat(64)}" artifact="spec" /></Decisions>`
+        + `</C-REV></NgraceRunLedger>`,
+    );
+    expect(gitInReview(root, ["init"]).status).toBe(0);
+    gitInReview(root, ["config", "user.email", "t@t"]);
+    gitInReview(root, ["config", "user.name", "t"]);
+    gitInReview(root, ["config", "commit.gpgsign", "false"]);
+    gitInReview(root, ["add", "-A"]);
+    expect(gitInReview(root, ["commit", "-m", "baseline"]).status).toBe(0);
+    writeFileSync(
+      path.join(bundle, "spec.xml"),
+      readFileSync(path.join(bundle, "spec.xml"), "utf8").replace("Fixture change.", "Edited fixture."),
+    );
+    gitInReview(root, ["add", "-A"]);
+    expect(gitInReview(root, ["commit", "-m", "edit"]).status).toBe(0);
+
+    const result = runReview(root, {
+      changeId: "C-REV",
+      patterns: false,
+      joinEngine: false,
+      changedFiles: [],
+    });
+    const hits = result.findings.filter((f) => f.code === "review.approved-fingerprint-mismatch");
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits.every((f) => f.severity === "error")).toBe(true);
+    expect(result.findings.some((f) => f.code === "review.approval-never-asked")).toBe(false);
+
+    const status = collectProjectStatus(root);
+    const change = status.changes.find((entry) => entry.changeId === "C-REV")!;
+    expect(change.derivedStates).toContain("approved-contract-drift");
+    expect(status.nextAction).toBe(
+      "Hard stop: an approved spec.xml or plan.xml changed. Restore it or supersede and replan through a new C-* bundle.",
+    );
+
+    const matchRoot = ensureTempRoot();
+    writeMinimalNgraceProject(matchRoot);
+    writeChangeBundleFixture(matchRoot, {
+      changeId: "C-REV",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+    });
+    const matchBundle = path.join(matchRoot, ARTIFACT_DIR, "changes", "active", "C-REV");
+    const matchSpec = path.join(matchBundle, "spec.xml");
+    const digest = createHash("sha256").update(readFileSync(matchSpec)).digest("hex");
+    writeFileSync(
+      path.join(matchBundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-REV>`
+        + `<Decisions><Decision gate="approve" decision="permit" fingerprint="${digest}" artifact="spec" forced="true" reason="because" /></Decisions>`
+        + `</C-REV></NgraceRunLedger>`,
+    );
+    const matched = runReview(matchRoot, {
+      changeId: "C-REV",
+      patterns: false,
+      joinEngine: false,
+      changedFiles: [],
+    });
+    expect(matched.findings.some((f) => f.code === "review.approved-fingerprint-mismatch")).toBe(false);
+  });
+
+  it("unfingerprinted Decision is silent on the catalogued review errors", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-REV",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+    });
+    writeFileSync(
+      path.join(root, ARTIFACT_DIR, "changes", "active", "C-REV", "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-REV>`
+        + `<Decisions><Decision gate="approve" decision="permit" /></Decisions>`
+        + `</C-REV></NgraceRunLedger>`,
+    );
+    const result = runReview(root, {
+      changeId: "C-REV",
+      patterns: false,
+      joinEngine: false,
+      changedFiles: [],
+    });
+    expect(result.findings.some((f) => f.code === "review.approval-never-asked")).toBe(false);
+    expect(result.findings.some((f) => f.code === "review.approved-fingerprint-mismatch")).toBe(false);
   });
 });
