@@ -7085,6 +7085,66 @@ a recorded one; it leaves the ledger claiming less work than was done.
 attempt even though no task owns it. The alternative is a run ledger that is accurate about
 everything it mentions and silent about the part that changed the release surface.
 
+### F27.1 amendment — F27's headline is stale; `C-DECLARED-WRITES` paid it. **[verified]**
+
+[F27](#f27)'s title still reads *"`ObservedWriteScope` is declared and digested, but never
+compared."* That was true when written and is false now. `C-DECLARED-WRITES` shipped **both** halves
+the finding asked for, and `src/review/core.ts:155` names F27 as its subject. Two codes exist today:
+
+- `review.scope-outside-write-scope` — repository changed files against the plan's declaration
+  (`src/review/core.ts:1033`).
+- `review.write-evidence-outside-scope` — durable `WriteEvidence` paths, the tool-generated git
+  digests on cursor attempts, against the same declaration (`:1097`).
+
+Measured on `C-SUPERSEDE-VERB` after execution: `ngrace review --change C-SUPERSEDE-VERB` returns
+**three** findings, two of them naming `scripts/release-check.ts`, one from each audit. The scope
+audit reports *"ran over 48 changed file(s) against ObservedWriteScope … 2 out-of-scope"*. Nothing
+about this is silent.
+
+**F27's body is still accurate and its headline is not.** The body enumerates the `scope.*` shape
+and overlap checks and `change.graph-anchors-miss-write-scope`, and says *those* never compare the
+declaration to what was written. That remains true. The headline generalizes to every surface, and
+`review` is now a counterexample.
+
+**Why this is worth its own entry.** A reader who cites the headline without reading the body will
+restate a paid defect as a live one. That is exactly what the authority did in [F120](#f120), twice
+in one session, and it produced a recommendation that the product already forbids. A finding whose
+defect was later paid should say so in its first sentence; this ledger has no convention for that,
+and the absence is now a measured cost, not a tidiness complaint.
+
+**Observed while measuring, not yet ruled.** The changed-file audit flags
+`docs/plans/**` edits — the authority's own roadmap commits — as out of scope for whatever bundle is
+active, while the `WriteEvidence` audit filters that prefix (`src/review/core.ts:1066`). So finding
+one on this bundle is `decisions.md`, which no bundle will ever declare. Whether the changed-file
+audit should adopt the same filter is a question for the bundle that takes this area, not something
+to fix in passing.
+
+### F120.1 correction — three wrong statements in F120 and in the recommendation it carried. **[verified]**
+
+**1. "No mechanical consequence today" is false.** F120 said the undeclared write has no mechanical
+consequence because `ObservedWriteScope` is never compared. `ngrace review` returns three findings
+naming it. See [F27.1](#f271).
+
+**2. The proposed remedy is already forbidden by the product.** The authority recommended recording
+a machine-readable deviation that would make the check pass — an exception list by another name. The
+remediation text on `review.write-evidence-outside-scope` says, in the tool's own words: *"Do not
+widen `ObservedWriteScope` semantics to swallow the breach; do not author an exception list in
+`plan.xml`"*, citing [F9.10.1](#f9101). F9.10.1's argument is that a declaration authored by the
+party under examination cannot be that examination's ground truth. A deviation record written by the
+executor whose scope discipline is being audited is the same object under a different name. The
+maintainer rejected the recommendation before this was found; the ledger already contained the
+reason.
+
+**3. "Ready to close" was wrong.** The bundle cannot close honestly while three review findings
+stand. `gate apply` requires a recorded review `Verdict` and blocks on its absence
+(`src/gates/core.ts:371-388`; `requirement(id, required, present, message)` sets
+`blocking = required && !present`). Recording `--outcome pass` over three open findings would be a
+gate record standing in for work the gate did not do — [F86](#f86)'s defect, authored deliberately.
+
+**What F120 got right and keeps.** The write was forced, the plan's declaration was wrong, the gap
+came from a spec review that stopped at the first pin on `package.json#files`, and amending an
+approved plan in place is prohibited.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
