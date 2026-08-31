@@ -6704,7 +6704,9 @@ deletion and strictly worse than a fingerprint; it is not a fix for the standing
 it. State what the mitigation covers — here, uncommitted edits to unfingerprinted approved artifacts
 — and what it leaves open.
 
-### F19 is paid by `C-APPROVAL-FINGERPRINT`, as a consequence of precedence 1. **[verified]**
+### F19's accepted transient is retired by `C-APPROVAL-FINGERPRINT`, as a consequence of precedence 1. **[verified]**
+
+*(Wording corrected by [F109.3](#f1093): F19 ruled its subject not a defect. This is a premise change, not a defect fix.)*
 
 [F19](#f19) recorded that authoring `status="approved"` puts a bundle into
 `approved-contract-drift` until the approval is committed, printing the hard stop at
@@ -6721,6 +6723,42 @@ mismatch is durable where a porcelain reading is erased by a commit.
 The executor surfaced this as an unremarked behaviour change bound only as a failure condition. **It
 is a payoff and should be named as one**, so a later reader does not mistake the disappearance of the
 hard stop for a regression.
+
+### F109.3 correction — four wording errors in F109.2 and the briefs that carried it. **[verified]**
+
+All four raised by the executor, all against text the authority wrote, none affecting the design.
+Recorded because each one would mislead a later reader about what was decided and why.
+
+**1. F19 was never a defect, so nothing about it is "the defect being paid."** [F19](#f19) says
+outright *"**Not a product defect.**"* It recorded an observed behaviour and **accepted** the
+transient, on the reasoning that the check cannot observe approval time. What this bundle changes is
+that **premise**, not a verdict: the check can now observe the approved bytes, so the accepted false
+window stops occurring. The honest phrasing is that `C-APPROVAL-FINGERPRINT` **retires F19's accepted
+transient by removing its premise** — not that it fixes a defect F19 ruled absent. The registry entry
+is corrected to say so.
+
+**2. The contradiction was in F109.1 and the brief, not in the spec.** [F109.2](#f1092) said "two
+sentences that cannot both be true" in a way that implicated the drafted spec. It did not: the spec
+already scoped emptying to the **operator's corpus**, a per-project runtime condition, which
+coexists with row three never emptying globally. The sentence that was actually wrong was F109.1's
+product-level *"a later bundle can then delete it"* — deletion as a release milestone. Corpus-scoped
+retirement stands.
+
+**3. "The fallback does not cover the mixed-version case" compresses two different facts.**
+Mixed-version is a standing **source** of row three. The coverage axis is **commit state**, not
+source: the fallback covers *uncommitted* edits to unfingerprinted approved artifacts from any
+source, mixed-version included, and misses *committed* ones from any source. Stating it by source
+mislabels which artifacts are exposed.
+
+**4. "The row-three gap" mislabels the leftover.** Row three is *review silence on unfingerprinted
+`Decision`s* — deliberate, and the mechanism that dissolves the bootstrap. The leftover is a
+different thing: *a committed edit to an unfingerprinted approved artifact, silent on both
+surfaces*. The brief required that phrase and the executor kept it under instruction while flagging
+it. Naming them as one gap would make a deliberate design choice look like an unclosed hole.
+
+**The rule.** An instruction that forces specific wording into a normative artifact is an
+authority-authored sentence, and it inherits the authority's errors. When an executor reports that a
+required phrase is wrong, the phrase is the thing to fix, not the report.
 
 ## D19 — an approval covers the current step only
 
@@ -6879,7 +6917,7 @@ below; it is not given a slot.
 | # | Name | Charter | Pays | Status |
 |---|---|---|---|---|
 | 1 | **`C-CRITERION-CLOSE-EVIDENCE`** | A close/verdict-bound acceptance-criterion state, so post-archive lint 0/0 is authorable rather than reinvented as an unsatisfiable `AC-*`. Named here 2026-08-15. No existing name covers it: no `C-CRITERION*` / `C-CLOSE-EVIDENCE` in this directory; [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/) archived the workaround, not a third `AC-*` state. | [F82](#f82), [F83](#f83), [F83.1](#f831). F82 is already discharged as *practice* by `C-DRIFT-HONESTY`; this bundle is the product state that would make that practice authorable. F83's P2.6 / P2.4 halves were paid by the same archive; the live remainder is F83.1. | **Delivered** 2026-08-30, archived as [`C-CRITERION-CLOSE-EVIDENCE`](../../../../.ngrace/changes/archive/C-CRITERION-CLOSE-EVIDENCE/). Closed with [F100](#f100)–[F105](#f105). The residual hole is unpaid by design: after the archive move no gate is required to run, so the close-evidence verdict is skippable — `review` detects a skip, nothing refuses one. `C-ARCHIVE-CURSOR` / P3.1 own the mandatory post-archive act. |
-| 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18) entire: `gate approve` becomes the sanctioned `draft` to `approved` writer, records a per-`Decision` fingerprint of the bytes it wrote plus the artifact it targeted, ships the forced-permit escape hatch, **and** `review` reports an `approved` spec or plan whose newest per-artifact fingerprint is absent or no longer matches. Briefly split into a writer half and a detector half on 2026-08-30 and re-merged the same day; see [F108](#f108) and [F108.1](#f1081). | [F95](#f95) / [F95.1](#f951), [F81](#f81), [F109](#f109), and [F19](#f19) as a consequence of precedence 1. | **Authorized to start.** Detection uses the three-way trigger of [F108.2](#f1082), so no bootstrap stamp is needed. It re-sources `approved-contract-drift` from the fingerprint and **demotes** the git reading to a fallback rather than deleting it, per [F109](#f109) / [F109.1](#f1091). Prerequisite of position 5. |
+| 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18) entire: `gate approve` becomes the sanctioned `draft` to `approved` writer, records a per-`Decision` fingerprint of the bytes it wrote plus the artifact it targeted, ships the forced-permit escape hatch, **and** `review` reports an `approved` spec or plan whose newest per-artifact fingerprint is absent or no longer matches. Briefly split into a writer half and a detector half on 2026-08-30 and re-merged the same day; see [F108](#f108) and [F108.1](#f1081). | [F95](#f95) / [F95.1](#f951), [F81](#f81), [F109](#f109), and retires [F19](#f19)'s accepted transient by removing its premise — F19 ruled its subject **not** a defect, so this is a premise change, not a defect fix ([F109.3](#f1093)). | **Authorized to start.** Detection uses the three-way trigger of [F108.2](#f1082), so no bootstrap stamp is needed. It re-sources `approved-contract-drift` from the fingerprint and **demotes** the git reading to a fallback rather than deleting it, per [F109](#f109) / [F109.1](#f1091). Prerequisite of position 5. |
 | 3 | **`C-SUPERSEDE-VERB`** | A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name. | [F86.1](#f861), [F86.2](#f862). | **Ordered, not deferred.** |
 | 4 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
 | 5 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after position 2, whose writer mints the fingerprint it depends on, and only if ratified after the re-measure. Unratified. |
