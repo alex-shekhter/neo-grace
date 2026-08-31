@@ -6269,7 +6269,7 @@ candidate now says the same: co-draft as written would *worsen* F95.
 
 The missing mechanism is [D18](#d18)'s fingerprint. What actually pays F95 is
 **`C-APPROVAL-FINGERPRINT`** — position 2 of the [named-bundle registry](#named-bundle-registry),
-authorized to start. `C-CO-DRAFT` is position 6, ordered *after* it, and the registry
+authorized to start. `C-CO-DRAFT` is position 5, ordered *after* it, and the registry
 records that it does **not** pay F95.
 
 ### F96 — `MustNotContain` binds a substring, so a rewording satisfies it while the prohibited behaviour remains. **[verified]**
@@ -6508,6 +6508,45 @@ because they archive as `applied`.
 whether the check governs the bundle's own artifacts during its own close. If it does, the halves
 are two bundles. A grandfather clause for the authoring bundle is the smell.
 
+### F108.1 correction — the cycle breaks with one authority step; the split was not structurally required. **[verified]**
+
+[F108](#f108) concluded that a bundle shipping both a state and the check over that state must be
+two bundles, and the maintainer ratified a split on that reasoning. **The executor refused the
+premise and was right.** Recorded here rather than rewritten in place, because the wrong reasoning
+is the part worth keeping.
+
+**What F108 got wrong.** It treated "run the writer to stamp this bundle's own artifacts" as
+necessarily dishonest. That is true of **the executor** running it — a permitting `Decision` with no
+human phrase behind it. It is false of **the authority** running it after the maintainer re-issues a
+phrase from the closed lexicon: that is a real ratification of those exact bytes, and
+[D20](#d20) already puts the close on the authority. F108 encoded a process assumption — that the
+human would not re-phrase — as a registry split.
+
+**What the split cost, and what reverting buys.** The split opened a detection window in which a
+hand-written `approved` was silent again until the detector bundle shipped; it left the `artifact`
+attribute with no reader, a dead attribute if that bundle ever slipped, which is the defect class
+this project otherwise polices; and it spent a whole bundle on a step the close already had room
+for. Reverting also gives the mechanism a property the split could not: **the first fingerprinted
+`Decision` in existence is a genuine human approval of exact bytes**, and the bundle that invents
+stamping is stamped.
+
+**The close step this adds.** After the writer lands and before the close review: the maintainer
+re-issues the lexicon phrase, the authority runs `ngrace gate approve` against the spec and against
+the plan, and the review then passes because both carry a matching fingerprint. **The detector
+enforces its own bootstrapping** — an unstamped pair makes the close review report, so the omission
+is visible rather than silent.
+
+**A consequence to state rather than discover.** `gate apply` is followed by hand-authoring
+`status="applied"` onto the spec and plan, which **changes those bytes**, so the fingerprint taken at
+`approved` deliberately stops matching from that point on. This is correct only because detection is
+silent on `applied`. Any future widening of the trigger to `applied` would report every archived
+bundle at once.
+
+**The corrected rule.** When a bundle would ship both a state and the check over that state, ask
+whether the check governs the bundle's own artifacts during its own close. If it does, it needs a
+ratifying act inside the close — not necessarily a second bundle. Split only when no such act is
+available.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
@@ -6665,11 +6704,10 @@ below; it is not given a slot.
 | # | Name | Charter | Pays | Status |
 |---|---|---|---|---|
 | 1 | **`C-CRITERION-CLOSE-EVIDENCE`** | A close/verdict-bound acceptance-criterion state, so post-archive lint 0/0 is authorable rather than reinvented as an unsatisfiable `AC-*`. Named here 2026-08-15. No existing name covers it: no `C-CRITERION*` / `C-CLOSE-EVIDENCE` in this directory; [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/) archived the workaround, not a third `AC-*` state. | [F82](#f82), [F83](#f83), [F83.1](#f831). F82 is already discharged as *practice* by `C-DRIFT-HONESTY`; this bundle is the product state that would make that practice authorable. F83's P2.6 / P2.4 halves were paid by the same archive; the live remainder is F83.1. | **Delivered** 2026-08-30, archived as [`C-CRITERION-CLOSE-EVIDENCE`](../../../../.ngrace/changes/archive/C-CRITERION-CLOSE-EVIDENCE/). Closed with [F100](#f100)–[F105](#f105). The residual hole is unpaid by design: after the archive move no gate is required to run, so the close-evidence verdict is skippable — `review` detects a skip, nothing refuses one. `C-ARCHIVE-CURSOR` / P3.1 own the mandatory post-archive act. |
-| 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18)'s **writer half**: `gate approve` becomes the sanctioned `draft` to `approved` writer and records, on that permitting `Decision`, a per-`Decision` fingerprint of the bytes it wrote plus the artifact it targeted, with the forced-permit escape hatch. **Ships no detector** — see [F108](#f108). | [F95](#f95) / [F95.1](#f951), [F81](#f81). | **Authorized to start.** Prerequisite of positions 3 and 6. |
-| 3 | **`C-APPROVAL-AUDIT`** | [D18](#d18)'s **detector half**: `review` reports an `approved` spec or plan whose newest per-artifact fingerprint record is absent or no longer matches the file bytes, plus the skill and README text for the new write path. Named here 2026-08-30. No existing name covers it: position 2 is the writer; `approved-contract-drift` (`src/grace-status.ts:389`) is a **git-based** detection that an approved artifact changed, not a record-match check, and this bundle does not replace it. | [F108](#f108), and the detection half of [D18](#d18). | **Blocked on position 2** — its own spec and plan must be approved by position 2's writer so they are stamped from birth. |
-| 4 | **`C-SUPERSEDE-VERB`** | A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name. | [F86.1](#f861), [F86.2](#f862). | **Ordered, not deferred.** |
-| 5 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
-| 6 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after position 2, whose writer mints the fingerprint it depends on, and only if ratified after the re-measure. Unratified. |
+| 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18) entire: `gate approve` becomes the sanctioned `draft` to `approved` writer, records a per-`Decision` fingerprint of the bytes it wrote plus the artifact it targeted, ships the forced-permit escape hatch, **and** `review` reports an `approved` spec or plan whose newest per-artifact fingerprint is absent or no longer matches. Briefly split into a writer half and a detector half on 2026-08-30 and re-merged the same day; see [F108](#f108) and [F108.1](#f1081). | [F95](#f95) / [F95.1](#f951), [F81](#f81). | **Authorized to start.** Its close carries an added step: the maintainer re-issues the lexicon phrase and the authority stamps this bundle's own spec and plan before the close review. Prerequisite of position 5. |
+| 3 | **`C-SUPERSEDE-VERB`** | A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name. | [F86.1](#f861), [F86.2](#f862). | **Ordered, not deferred.** |
+| 4 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
+| 5 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after position 2, whose writer mints the fingerprint it depends on, and only if ratified after the re-measure. Unratified. |
 
 **Named by this directory, not in the 2026-08-15 order.**
 
