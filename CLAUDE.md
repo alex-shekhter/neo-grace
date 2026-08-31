@@ -48,6 +48,17 @@ This repo is mainly about methodology content, skill instructions, and marketpla
 - For CLI changes, run `bun run validate:cli` and exercise `ngrace lint` against a complete temporary or fixture neo-grace project. This packaging repository hosts a thin `.ngrace` tree for dogfooding; `bun run ngrace lint --path .` is expected to pass. That green result depends on `.ngrace-lint.json` (`ignoredDirs: ["examples", "scripts"]`): `examples/` is a nested project covered by `validate:examples`, and `scripts/` adoption (including `M-RELEASE-AUTOMATION`) is deferred to a later `C-*` — without that config, root lint reports twenty real errors under `scripts/`.
 - Do not assume every directory under `skills/ngrace/` is published; the actual shipped set is declared in `.claude-plugin/marketplace.json`.
 
+## Briefing The Executor
+
+Implementation work is dispatched to a separate executor agent. **Always assume its context is
+cold.** Every brief must be self-contained: what this repository is, where artifacts live, the role
+split, and the instruction to refresh its installed `ngrace` skills from `skills/ngrace/*` before
+reading any source, because the installed copies have drifted on nearly every bundle.
+
+Never write a brief that refers to "your draft" or otherwise assumes the executor remembers earlier
+work. Point at the artifact by path and tell it to read it. A cold-safe brief still works for a warm
+executor; a warm brief fails a cold one, so cold is the only safe default.
+
 ## How To Think About Changes
 
 - Skill text changes are product changes.
