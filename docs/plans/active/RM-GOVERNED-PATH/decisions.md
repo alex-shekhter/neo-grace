@@ -7243,6 +7243,52 @@ an honest edit, and the failure reads as a missing entry rather than a formattin
 inventory. This adds the converse: an inventory that qualifies one of its own members with *"if"*
 has not enumerated it, it has deferred the question to whoever reads it next.
 
+### F125 — a green suite proved nothing about three real defects. **[verified]**
+
+`C-SUPERSEDE-COMMAND` was reported complete with 1562 passing tests and five green validators.
+Exercising the CLI and running the validators the report omitted found three defects.
+
+**1. The delivered code did not typecheck.** `src/grace-supersede.ts` called `runGraceCommand` with
+two of its three required arguments (`src/query/errors.ts:112-116`). Bun strips types without
+checking them, so the suite was silent; `bunx tsc --noEmit` is the only surface that sees it, and it
+runs as a pre-commit hook, so **no commit could land** until it was fixed. The execution report's
+evidence list omitted `typecheck` — and so did the EVIDENCE line of the authority's brief, which
+asked for `bun test`, marketplace, `validate:packed`, `release:check`, and lint.
+
+**2. An undocumented test-only injection bag.** `supersedeChangeBundle` grew an optional
+`io: { renameSync? }` because EXDEV cannot be provoked through a spawned CLI and `chmod` yields
+`EACCES`. The house precedent is `grace-cursor.ts:1053`, whose `injectFailure*` hooks carry a comment
+explaining exactly that. Kept, now documented the same way.
+
+**3. An error message that claimed more than it checked.** The already-archived refuse said the
+bundle was *"already archived as superseded with that replacement"* for **any** archive-only id,
+including one archived as `applied`. The refuse was right; the sentence was not.
+
+**The fourth finding is the one worth keeping.** Defect 3's test pinned the message with
+`/already done|already archived/i` — a regex the over-claiming sentence satisfied just as well as an
+accurate one. **The test could not tell the two apart, so it was not testing the property it
+named.** A green assertion is evidence only to the extent its matcher discriminates, and a loose
+regex over an error string usually does not.
+
+**The rule, now in `CLAUDE.md`.** A passing suite is a precondition, never the evidence. Before
+accepting delivered work the authority builds a throwaway project, drives the real CLI through the
+happy path and every refuse path, takes a byte-level diff wherever the change claims to be surgical,
+and runs **every** validator rather than the subset the executor reported. Doing that here proved
+the supersede diff contained exactly the status attribute and the `<Replacement>` insert, that no
+ledger Decision was minted, and that both F114 properties reproduce end to end — none of which the
+assertion count showed.
+
+**Two smaller things recorded rather than hidden.** The close-evidence verdict was recorded
+correctly on the first post-archive run; the authority searched the ledger for the string
+`CloseEvidence` when the recorded children carry the criterion's own tag, concluded wrongly that it
+had not run, and re-ran it. The bundle therefore carries **three** verdicts where two suffice. It was
+left standing: hand-editing a durable ledger to tidy away one's own redundant command is a worse act
+than the redundancy. Separately, `review.scope-outside-write-scope` now fires on `CLAUDE.md` as well
+as `docs/plans/**` — both authority commits on the shared branch, neither a write of any task. The
+`WriteEvidence` audit, which is the one that rejected the predecessor, stayed clean throughout. That
+asymmetry is `F27.1`'s observation growing a second instance and belongs to the bundle that next
+opens `src/review/core.ts`.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
@@ -7402,7 +7448,7 @@ below; it is not given a slot.
 | 1 | **`C-CRITERION-CLOSE-EVIDENCE`** | A close/verdict-bound acceptance-criterion state, so post-archive lint 0/0 is authorable rather than reinvented as an unsatisfiable `AC-*`. Named here 2026-08-15. No existing name covers it: no `C-CRITERION*` / `C-CLOSE-EVIDENCE` in this directory; [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/) archived the workaround, not a third `AC-*` state. | [F82](#f82), [F83](#f83), [F83.1](#f831). F82 is already discharged as *practice* by `C-DRIFT-HONESTY`; this bundle is the product state that would make that practice authorable. F83's P2.6 / P2.4 halves were paid by the same archive; the live remainder is F83.1. | **Delivered** 2026-08-30, archived as [`C-CRITERION-CLOSE-EVIDENCE`](../../../../.ngrace/changes/archive/C-CRITERION-CLOSE-EVIDENCE/). Closed with [F100](#f100)–[F105](#f105). The residual hole is unpaid by design: after the archive move no gate is required to run, so the close-evidence verdict is skippable — `review` detects a skip, nothing refuses one. `C-ARCHIVE-CURSOR` / P3.1 own the mandatory post-archive act. |
 | 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18) entire: `gate approve` becomes the sanctioned `draft` to `approved` writer, records a per-`Decision` fingerprint of the bytes it wrote plus the artifact it targeted, ships the forced-permit escape hatch, **and** `review` reports an `approved` spec or plan whose newest per-artifact fingerprint is absent or no longer matches. Briefly split into a writer half and a detector half on 2026-08-30 and re-merged the same day; see [F108](#f108) and [F108.1](#f1081). | [F95](#f95) / [F95.1](#f951), [F81](#f81), [F109](#f109), and retires [F19](#f19)'s accepted transient by removing its premise — F19 ruled its subject **not** a defect, so this is a premise change, not a defect fix ([F109.3](#f1093)). | **Delivered** 2026-08-31, archived as [`C-APPROVAL-FINGERPRINT`](../../../../.ngrace/changes/archive/C-APPROVAL-FINGERPRINT/). Closed with [F112](#f112) and [F113](#f113), both defects in its own approved spec found at execution. Detection uses the three-way trigger of [F108.2](#f1082), so no bootstrap stamp was needed: the bundle carries exactly one unfingerprinted approve `Decision` and its own artifacts sit in the silent third row. It re-sources `approved-contract-drift` through one shared classifier with the git reading demoted to a fallback ([F109.1](#f1091)), and retires [F19](#f19)'s accepted transient. **First bundle to author a `CloseEvidence` criterion and have it evaluated at close** — `AC-CLOSE-LINT` recorded `Exit 0 / Result pass` on the applied archive. Residual limits recorded, not closed: row three is permanent, the git fallback misses committed edits, and this bundle is never itself stamped. Prerequisite of position 5. |
 | 3 | **`C-SUPERSEDE-VERB`** | A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name. | [F86.1](#f861), [F86.2](#f862). | **Superseded** 2026-08-31, archived as [`C-SUPERSEDE-VERB`](../../../../.ngrace/changes/archive/C-SUPERSEDE-VERB/), replaced by `C-SUPERSEDE-COMMAND` (row 3a). Executed to completion, then rejected at the scope audit: its approved plan's `ObservedWriteScope` omitted `scripts/release-check.ts`, and its spec carried a false completeness claim about the pins the deliverable moves ([F120](#f120), [F122](#f122)). Production reverted; nothing durable was folded, so the archived ledger holds two approve Decisions and no execution record. |
-| 3a | **`C-SUPERSEDE-COMMAND`** | The `ngrace supersede` verb, carrying forward `C-SUPERSEDE-VERB`'s deliverable and both maintainer rulings, with the `package.json#files` → `PACK_ALLOWED_EXACT` coupling declared rather than discovered. | [F86.1](#f861), [F86.2](#f862), [F120](#f120), [F122](#f122); closes [F121](#f121)'s second half. | **Active**, spec `draft`. |
+| 3a | **`C-SUPERSEDE-COMMAND`** | The `ngrace supersede` verb, carrying forward `C-SUPERSEDE-VERB`'s deliverable and both maintainer rulings, with the `package.json#files` → `PACK_ALLOWED_EXACT` coupling declared rather than discovered. | [F86.1](#f861), [F86.2](#f862), [F120](#f120), [F122](#f122); closes [F121](#f121)'s second half. | **Delivered** 2026-08-31, archived as [`C-SUPERSEDE-COMMAND`](../../../../.ngrace/changes/archive/C-SUPERSEDE-COMMAND/). Six tasks, reds 2/3/1/3/3/0, no write outside `ObservedWriteScope`. Closed with [F125](#f125): three defects a green 1562-test suite did not surface, found by exercising the CLI and running the validators the report omitted. `AC-CLOSE-LINT` CloseEvidence evaluated to `Exit 0 / Result pass`; post-archive lint 0/0. |
 | 4 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
 | 5 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after position 2, whose writer mints the fingerprint it depends on, and only if ratified after the re-measure. Unratified. |
 | 6 | **`C-CI-CLAIM-PIN`** | Correct `CONTRIBUTING.md`'s claim that `validate:ci` does not run `validate:packed`, and derive the guidance table's script claims from `package.json` instead of restating them. Named here 2026-08-31. No existing name: the doc surface is unguarded — `CONTRIBUTING.md` is not a governed file (`ngrace file show` returns `not-found`) and `scripts/check-teaching-surface.ts` covers only `README.md` and `examples/`. | [F117](#f117). | **Ordered, not deferred** — after position 3. Doc-side fix, settled by history: the table was written in `36f8fa3` (PR #5) when it was true, and `validate:packed` entered `validate:ci` later in `0a4b1b3` (PR #32), a change that was *strengthening* CI. Nothing is removed from `validate:ci`. |
