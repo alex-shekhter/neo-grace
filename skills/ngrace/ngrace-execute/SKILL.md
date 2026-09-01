@@ -5,13 +5,13 @@ description: Execute an approved neo-grace NgraceChangePlan in sequential or par
 
 <skill>
 <preflight>
-Require one active bundle with approved, identity-matched `spec.xml` and `plan.xml`. Approved plans are immutable. Read context, projections, assertions, scopes, task dependencies, and verification before editing. Load the task slice with `ngrace context --task T-NNN --change C-ID` (Purpose is quotation, not paraphrase; archived subjects are measurement-only). Reject phase-incompatible plans before writes: `MustPassCommand` must be leaf project evidence, and neither target assertions nor post-write task verification may invoke `--assertions current` or nest GRACE lifecycle commands. Run `ngrace supersede` instead of editing an approved conflict in place.
+Require one active bundle with approved, identity-matched `spec.xml` and `plan.xml`. Approved plans are immutable. Read context, projections, assertions, scopes, task dependencies, and verification before editing. Load the task slice with `ngrace context --task T-NNN --change C-ID` (Purpose is quotation, not paraphrase; archived subjects are measurement-only). Reject phase-incompatible plans before writes: `MustPassCommand` contains leaf project evidence such as tests, typecheck, build, format, or package checks. Do not put a current-mode lint of this project root in TargetAssertions. Current mode means the command text contains `--assertions current`, or it invokes `ngrace lint` and omits `--assertions`. The restriction matches command text; it does not resolve `bun run <script>` through package.json, and it does not apply to `--help` or to lint of a different project root. Do not put a current-mode lint of this root in post-write task verification. Run `ngrace supersede` instead of editing an approved conflict in place.
 </preflight>
 
 <assertion_commands>
 - Active-baseline preflight before observed writes: `ngrace lint --path PROJECT --assertions current`
 - Selected baseline: `ngrace lint --path PROJECT --change C-ID --assertions baseline` (add `--run-commands` when the baseline declares `MustPassCommand`)
-- Selected target without commands: `ngrace lint --path PROJECT --change C-ID --assertions target`
+- Selected target without commands: `ngrace lint --path PROJECT --change C-ID --assertions target`. Selected `--assertions target` without `--run-commands` is a structural query; unevaluated `MustPassCommand` / `MustPassBudget` is reported as `assertion.command-not-evaluated` and does not fail that query's exit.
 - Selected target with command evidence: `ngrace lint --path PROJECT --change C-ID --assertions target --run-commands`
 - Final end-state validation: `ngrace lint --path PROJECT --change C-ID --assertions final` (add `--run-commands` when the target declares `MustPassCommand`)
 - Parallel preflight: `ngrace lint --path PROJECT --parallel-preflight`

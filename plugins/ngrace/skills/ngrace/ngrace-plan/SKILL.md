@@ -99,8 +99,8 @@ Never invent a "skip plan" path. If the user wants an ungoverned edit, refuse an
 <command_phase_rules>
 - `current` is an active-baseline preflight and is valid only before observed writes begin.
 - `baseline` is the selected pre-edit gate, `target` is selected post-edit evidence, and `final` is the outer apply/archive gate owned by `ngrace-execute`.
-- `MustPassCommand` contains leaf project evidence such as tests, typecheck, build, format, or package checks. Never place `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside it.
-- Never put `--assertions current` in `TargetAssertions` or in task verification that runs after writes. Use selected target/final lint externally instead.
+- `MustPassCommand` contains leaf project evidence such as tests, typecheck, build, format, or package checks. Do not put a current-mode lint of this project root in TargetAssertions. Current mode means the command text contains `--assertions current`, or it invokes `ngrace lint` and omits `--assertions`. The restriction matches command text; it does not resolve `bun run <script>` through package.json, and it does not apply to `--help` or to lint of a different project root. Use selected target/final lint externally instead.
+- Never put `--assertions current` in task verification that runs after writes. Use selected target/final lint externally instead.
 </command_phase_rules>
 
 <validation>

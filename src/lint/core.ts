@@ -783,8 +783,8 @@ export function formatTextReport(result: LintResult, options: { remediate?: bool
   const lead =
     n > 0
       ? n === 1
-        ? `Baseline expectation: 1 expected while a C-* change is in progress (assertion.* errors below).`
-        : `Baseline expectations: ${n} expected while a C-* change is in progress (assertion.* errors below).`
+        ? "Baseline assertion failures: 1. Current mode cannot tell whether writes have started. If the baseline is still the intended state, this is real breakage. If writes have started, use --assertions target --change C-ID."
+        : `Baseline assertion failures: ${n}. Current mode cannot tell whether writes have started. If the baseline is still the intended state, these are real breakage. If writes have started, use --assertions target --change C-ID.`
       : null;
 
   const lines = [
@@ -806,6 +806,15 @@ export function formatTextReport(result: LintResult, options: { remediate?: bool
     const mLabel = m === 1 ? "class" : "classes";
     const reasons = m > 0 ? ` (${result.summary.asState.unevaluable.join(", ")})` : "";
     lines.push(`evaluated ${n} ${nLabel}; ${m} ${mLabel} not evaluable at this state${reasons}`);
+  }
+
+  if (result.assertionMode === "target" && result.commandsEnabled === false) {
+    const unevaluated = result.issues.filter((issue) => issue.code === "assertion.command-not-evaluated").length;
+    if (unevaluated === 1) {
+      lines.push("1 command assertion not evaluated; it does not fail this structural target query.");
+    } else if (unevaluated > 1) {
+      lines.push(`${unevaluated} command assertions not evaluated; they do not fail this structural target query.`);
+    }
   }
 
   if (result.issues.length === 0) {

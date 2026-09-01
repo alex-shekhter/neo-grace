@@ -51,9 +51,11 @@ describe("token-accounting (D15)", () => {
     // C-CRITERION-CLOSE-EVIDENCE T-005: CloseEvidence teaching in the spec,
     // plan and reviewer skills moved both figures: 806 → 810 lines and
     // 55486 → 56110 bytes.
+    // C-LINT-PHASE-HONESTY T-005: MustPassCommand doctrine rewrite moved
+    // totalBytes 56971 → 58400; line total stayed 812.
     const measured = skillTextLines();
     expect(measured.total).toBe(812);
-    expect(measured.totalBytes).toBe(56971);
+    expect(measured.totalBytes).toBe(58400);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

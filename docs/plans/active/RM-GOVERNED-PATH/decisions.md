@@ -7669,6 +7669,49 @@ remedy is part of the deliverable and must be exercised end to end. A message is
 its sentences are true; it is honest when following it works. Adding a remedy to an error string is
 a promise, and promises get the same empirical test as behaviour.
 
+### F133 — twice in one plan, an approved change asserted a blast radius it had not traced. **[verified]**
+
+`C-LINT-PHASE-HONESTY` executed cleanly, but two defects in the **approved plan** surfaced at
+implementation. The executor caught both, reported the scope breach before making the write, and was
+right about each. They look unrelated and share one root.
+
+**(a) `ObservedWriteScope` omitted a write the plan's own criteria force.** T-005 rewrites the
+`MustPassCommand` doctrine across four canonical skill files. `src/test-support/token-accounting.test.ts`
+pins `skillTextLines().totalBytes` to an exact number, and the full suite is inside `validate:ci`,
+which the plan carries as a `MustPassCommand`. So the skill rewrite necessarily falsifies a pinned
+test that a target assertion requires to pass. Measured independently after execution: `total` stayed
+**812**, `totalBytes` moved **56971 → 58400**. The edit was forced and unscoped; the plan's 19-entry
+scope did not name the file.
+
+**This is [F120](#f120)'s class, and the second time this exact pin has been the instrument** — the
+same byte sum was re-measured under `C-BOUND-VERDICT` (F129/F131's bundle) as a *planned* task, and
+here it recurred as an *unplanned* breach.
+
+**(b) The plan located a mechanism at the wrong layer.** The archive exemption was specified as
+lint's `skipActivePhaseIssues` (`src/lint/core.ts:533-577`), which is lint-only. But
+`extractAssertionsWithIssues` has another consumer: `collectOperationalValidationErrors`
+(`src/query/core.ts:93-97`) flatMaps over **both** `changesActiveDir` and `changesArchiveDir`. Once
+T-001 widened the matcher to catch implicit-current lint, the 21 archived plans carrying
+`bun run ngrace lint --path .` began erroring there, making `module`, `context`, and `localize`
+report `invalid-project`. The executor relocated the skip into `validateAssertionPhase` itself
+(`src/artifact/assertions.ts:287-298`). Verified after: `module show`, `context`, and `query` all
+exit 0, and `validate:ci` exits 0.
+
+**The shared root, which is the useful part.** Both are the same failure at different scales: **the
+plan asserted what a change would touch without tracing it.** (a) never traced that editing a skill
+file moves a number some test pins. (b) never traced that the function being changed has callers
+outside the module being changed. Neither is a coding error; both are unfollowed edges.
+
+**The rule.** Before approving a plan, for every file it will edit, ask *what asserts on this file's
+content* — and for every function it will change, ask *who else calls this*. Grep for the pin and
+grep for the callers. `ObservedWriteScope` is the closure of the edit, not the list of files whose
+names appear in the intent, and a mechanism belongs at the layer all its consumers share, not at the
+one the plan happened to be reading.
+
+**Neither defect required a supersede.** (a) was a scope breach reported before the write, with the
+approved criteria unchanged; (b) is an implementation location, and the approved criterion
+(`AC-ARCHIVE-EXEMPT`) is satisfied more completely by the relocated skip than by the specified one.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield

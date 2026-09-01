@@ -250,22 +250,63 @@ export function extractAssertionsWithIssues(
   return { assertions, issues };
 }
 
+function flattenCommandText(command: string): string {
+  return command.replace(/\s+/g, " ").trim();
+}
+
+function invokesNgraceLintSubcommand(text: string): boolean {
+  return /(?:^|[;&|]\s*)(?:bun\s+run\s+)?ngrace\s+lint(?:\s|$|[;&|])/i.test(text)
+    || /(?:^|[;&|]\s*)(?:bun\s+run\s+)?(?:\.\/)?src\/grace\.ts\s+lint(?:\s|$|[;&|])/i.test(text);
+}
+
+function isCurrentAssertionMode(text: string): boolean {
+  const hasCurrent = /(?:^|\s)--assertions(?:\s+|=)(?:current|["']current["'])(?=\s|$|[;&|])/i.test(text);
+  const hasAssertionsToken = /(?:^|\s)--assertions(?:\s+|=)/.test(text);
+  return hasCurrent || !hasAssertionsToken;
+}
+
+function isThisProjectRootPath(text: string): boolean {
+  const matches = [...text.matchAll(/(?:^|\s)--path(?:\s+|=)([^\s;&|]+)/gi)];
+  if (matches.length === 0) {
+    return true;
+  }
+  return matches.every((match) => {
+    const value = (match[1] ?? "").replace(/^["']|["']$/g, "");
+    return value === "." || value === "./";
+  });
+}
+
+function isCurrentModeLintOfThisProjectRoot(command: string): boolean {
+  const text = flattenCommandText(command);
+  return invokesNgraceLintSubcommand(text)
+    && !text.includes("--help")
+    && isCurrentAssertionMode(text)
+    && isThisProjectRootPath(text);
+}
+
+function isArchivedPlanFile(planFile: string): boolean {
+  return planFile.replace(/\\/g, "/").includes(`/${ARTIFACT_DIR}/changes/archive/`);
+}
+
 function validateAssertionPhase(
   planFile: string,
   section: "BaselineAssertions" | "TargetAssertions",
   assertion: Omit<GraceAssertion, "file">,
 ): NgraceIssue[] {
+  if (isArchivedPlanFile(planFile)) {
+    return [];
+  }
   if (section !== "TargetAssertions" || assertion.kind !== "MustPassCommand") {
     return [];
   }
 
   return assertion.values
-    .filter((command) => /(?:^|\s)--assertions(?:\s+|=)(?:current|["']current["'])(?=\s|$|[;&|])/i.test(command))
+    .filter((command) => isCurrentModeLintOfThisProjectRoot(command))
     .map((command) => issue(
       "error",
       "assertion.phase-incompatible-command",
       planFile,
-      `TargetAssertions MustPassCommand must not invoke --assertions current: ${command}. Current mode evaluates active approved baselines and becomes stale after target writes; keep MustPassCommand as leaf project evidence and run selected target/final lint as the outer gate.`,
+      `TargetAssertions MustPassCommand must not invoke current-mode lint of this project root (explicit --assertions current or omitted --assertions): ${command}. Current mode evaluates active approved baselines and becomes stale after target writes; keep MustPassCommand as leaf project evidence and run selected target/final lint as the outer gate.`,
     ));
 }
 

@@ -13,11 +13,12 @@ Use this when a CI run or reviewer mentions a specific lint code and you want th
 ```bash
 ngrace lint --path /path/to/project --assertions current --remediate --fail-on warnings
 ngrace lint --path /path/to/project --change C-ADD-AUTH --assertions baseline --run-commands
+ngrace lint --path /path/to/project --change C-ADD-AUTH --assertions target
 ngrace lint --path /path/to/project --change C-ADD-AUTH --assertions target --run-commands
 ngrace lint --path /path/to/project --change C-ADD-AUTH --assertions final --run-commands
 ```
 
-Current mode is the active-baseline preflight and should run only before observed writes. Baseline, target, and final modes require one approved identity-matched active change. Final mode is the outer apply/archive gate: it performs full project validation, evaluates the selected target, preserves unrelated approved baseline checks, and skips only the selected plan's superseded baseline. `MustPassCommand` remains unevaluated unless `--run-commands` is supplied and must contain leaf project checks rather than nested GRACE lifecycle commands.
+Current mode is the active-baseline preflight and should run only before observed writes. Baseline, target, and final modes require one approved identity-matched active change. Final mode is the outer apply/archive gate: it performs full project validation, evaluates the selected target, preserves unrelated approved baseline checks, and skips only the selected plan's superseded baseline. `MustPassCommand` contains leaf project evidence such as tests, typecheck, build, format, or package checks. Do not put a current-mode lint of this project root in TargetAssertions. Current mode means the command text contains `--assertions current`, or it invokes `ngrace lint` and omits `--assertions`. The restriction matches command text; it does not resolve `bun run <script>` through package.json, and it does not apply to `--help` or to lint of a different project root. Use selected target/final lint externally instead. Selected `--assertions target` without `--run-commands` is a structural query; unevaluated `MustPassCommand` / `MustPassBudget` is reported as `assertion.command-not-evaluated` and does not fail that query's exit.
 
 ## Parallel-Safe Preflight
 

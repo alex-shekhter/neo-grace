@@ -165,7 +165,7 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | --- | --- |
 | `ngrace lint --path <root> --assertions current` | Run the pre-implementation full-project check, including baselines of active approved changes; do not use it as post-edit target/final evidence |
 | `ngrace lint --path <root> --change C-ID --assertions baseline [--run-commands]` | Validate the immutable selected baseline before implementation; command assertions run only when explicitly enabled |
-| `ngrace lint --path <root> --change C-ID --assertions target --run-commands` | Validate selected target assertions and explicitly opt into `MustPassCommand` execution |
+| `ngrace lint --path <root> --change C-ID --assertions target [--run-commands]` | Validate selected target assertions. Without `--run-commands` this is a structural query: unevaluated `MustPassCommand` / `MustPassBudget` is reported as `assertion.command-not-evaluated` and does not fail that query's exit; add `--run-commands` to execute declared commands |
 | `ngrace lint --path <root> --change C-ID --assertions final [--run-commands]` | Run the final full-project gate, evaluate the selected target, and keep unrelated approved baselines active without re-evaluating the selected baseline |
 | `ngrace lint --path <root> --change C-ID --as <status>` | Preview artifact-pure lint and gate checks as if the selected change carried that lifecycle status; reports classes that cannot be evaluated |
 | `ngrace lint --path <root> --parallel-preflight` | Run the explicit approved-plan scope coexistence gate required for parallel-safe execution |
@@ -211,7 +211,7 @@ These carry the execute lifecycle. A permitting recorded approve writes approved
 | `ngrace context --task T-NNN --change C-ID` | Emit a task slice: the modules, files, and verification that task needs. Selection, never compression |
 | `ngrace context --skills [--change C-ID]` | Emit a skill recommendation for the current state. Advisory — the CLI cannot unload a skill from a host |
 
-`MustPassCommand` entries are leaf project evidence such as tests, typecheck, build, format, or package checks. Do not nest `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside plan assertions; selected target/final lint is the external orchestration gate.
+`MustPassCommand` contains leaf project evidence such as tests, typecheck, build, format, or package checks. Do not put a current-mode lint of this project root in TargetAssertions. Current mode means the command text contains `--assertions current`, or it invokes `ngrace lint` and omits `--assertions`. The restriction matches command text; it does not resolve `bun run <script>` through package.json, and it does not apply to `--help` or to lint of a different project root. Use selected target/final lint externally instead.
 
 Output modes:
 
@@ -298,8 +298,8 @@ skip depth (adversarial probe, mutation audit, checklist volume).
 
 | What | Subject / state | Normalized stdout bytes | Commit |
 |---|---|---|---|
-| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **812 lines** / **56971 UTF-8 bytes** | pin in `token-accounting.test.ts` |
-| `skillTextLines().referencesTotal` | package root | **1433 lines** (includes recovery.md) | same instrument |
+| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **812 lines** / **58400 UTF-8 bytes** | pin in `token-accounting.test.ts` |
+| `skillTextLines().referencesTotal` | package root | **1435 lines** (includes recovery.md) | same instrument |
 | `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `f641334` (the squashed Phase 11 merge; release cut updates) |
 | `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |
 | `ngrace doctor --path <polyglot>` | polyglot | **1907** (state-dependent) | same |

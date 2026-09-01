@@ -201,8 +201,10 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
       "A MustPassCommand or MustPassBudget assertion was not run because command execution was not "
       + "opted in. This is an absence of evidence, not a command failure.",
     remediation: [
+      "Selected --assertions target without --run-commands is a structural target query: this code is reported and does not fail that query's exit.",
+      "Do not treat a skipped command as an executed pass; the absence reason is this code.",
       "Pass --run-commands when the selected assertion mode should execute declared commands.",
-      "Do not treat a skipped command as a pass; the absence reason is this code.",
+      "--assertions final without --run-commands still fails on this code.",
     ],
     issueClass: "absence",
     derivedFrom: "MustPassCommand/MustPassBudget without --run-commands produced no evaluation; silence would look like success.",
@@ -332,7 +334,7 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
   },
   "assertion.phase-incompatible-command": {
     title: "Phase-Incompatible Assertion Command",
-    explanation: "A target command assertion invokes current-mode lifecycle lint. Current mode evaluates active approved baselines, so it is a pre-implementation check and cannot serve as target or final evidence after writes begin.",
+    explanation: "A target command assertion invokes current-mode lint of this project root (explicit --assertions current or omitted --assertions). Current mode evaluates active approved baselines, so it is a pre-implementation check and cannot serve as target or final evidence after writes begin.",
     remediation: ["Keep MustPassCommand entries as leaf project evidence such as tests, typecheck, build, format, or package checks.", "Run selected target or final GRACE lint as the outer execution gate instead of nesting it inside the plan."],
   },
   "assertion.invalid-pattern": {
