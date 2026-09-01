@@ -7409,6 +7409,40 @@ getting attention.
 the act that erases the evidence of what the revert cost. Deciding whether cheaper amendment beats
 supersede requires that number, and today no one can produce it for any bundle in this archive.
 
+### F129 — the walkthrough's close set was measured in the wrong tree. **[verified]**
+
+`C-BOUND-VERDICT`'s draft spec constrains the walkthrough fix with *"do not fingerprint the example;
+Ack is the close"*, on a measurement of **2 × `review.approval-never-asked`** against
+`examples/polyglot` — findingIds `c5980412021913df` and `df7d9d42a95148c2`. That measurement is
+accurate and it is taken in the wrong place.
+
+**It measures the checked-in fixture, where `gate approve` has never run.** The validator runs
+`gate approve` at **lifecycle.1** (`scripts/validate-walkthrough.ts:192`); the verdict it must fix is
+at **lifecycle.8** (`:282`). Between them the tree acquires applying approve Decisions with
+fingerprints for both artifacts, which is exactly what `review.approval-never-asked` reports the
+absence of. The finding set at the close is therefore **not** the set the spec was designed against.
+
+**Nor does the other visible finding carry.** `lifecycle.3` produces
+`review.scope-outside-write-scope` by handing `runReview` an explicit
+`changedFiles: ["services/api/internal/router/router.go"]` (`:205-208`) — a synthetic demonstration,
+not tree state. `lifecycle.4` immediately asserts that plain review has no errors (`:213-216`).
+
+So the close plausibly faces an **empty** finding set, in which case the walkthrough needs only the
+empty-set bound form and teaches no acknowledgment at all — and the spec's constraint has it
+backwards, because step 1 already fingerprints the example.
+
+**Why the difference is not cosmetic.** It decides what the adoption surface *teaches*. Acking
+`review.approval-never-asked` in the first document a new user reads would demonstrate waving away
+the self-certification warning that [F88](#f88) and
+[`RM-VERIFIED-APPROVAL`](../RM-VERIFIED-APPROVAL/review.md) exist to raise — habituation taught by
+example, in the one file most likely to be copied. A clean bound close teaches the opposite.
+
+**The rule.** A measurement of a fixture is not a measurement of the state a command reaches. When a
+criterion depends on what some step *observes*, measure at that step, in the tree that step runs in,
+after every preceding step has run. The static artifact and the live sequence are different objects,
+and this ledger now has instances of that confusion from both the authority ([F119](#f119),
+[F123](#f123)) and the executor.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
