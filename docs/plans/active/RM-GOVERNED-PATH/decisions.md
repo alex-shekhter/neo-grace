@@ -7411,6 +7411,11 @@ supersede requires that number, and today no one can produce it for any bundle i
 
 ### F129 — the walkthrough's close set was measured in the wrong tree. **[verified]**
 
+> **Partly wrong; corrected by [F129.1](#f1291).** The diagnosis — that the set was measured in the
+> fixture rather than in the tree the close runs in — holds. Two specific claims below do not: only
+> the **plan** acquires an approve Decision between lifecycle.1 and lifecycle.8, and the close
+> therefore faces **one** finding, not an empty set.
+
 `C-BOUND-VERDICT`'s draft spec constrains the walkthrough fix with *"do not fingerprint the example;
 Ack is the close"*, on a measurement of **2 × `review.approval-never-asked`** against
 `examples/polyglot` — findingIds `c5980412021913df` and `df7d9d42a95148c2`. That measurement is
@@ -7442,6 +7447,43 @@ criterion depends on what some step *observes*, measure at that step, in the tre
 after every preceding step has run. The static artifact and the live sequence are different objects,
 and this ledger now has instances of that confusion from both the authority ([F119](#f119),
 [F123](#f123)) and the executor.
+
+### F129.1 correction — only the plan is attested, and the walkthrough under-approves. **[verified]**
+
+[F129](#f129) said that between lifecycle.1 and lifecycle.8 *"both artifacts acquire applying approve
+Decisions with fingerprints"*, and concluded the close *"plausibly faces an empty finding set"*. Both
+are false, measured by driving the CLI over a scratch copy of `examples/polyglot`:
+
+| step | result |
+|---|---|
+| bare `gate approve` (lifecycle.1) | `artifacts stamped: ['plan']` |
+| `review --change` at that point | **1** finding — `review.approval-never-asked`, `df7d9d42a95148c2`, on `spec.xml` |
+| after `gate approve --artifact spec` | **0** findings |
+
+**The cause is `selectApproveTarget` (`src/gates/ledger.ts:1256-1267`).** It returns `spec` only when
+the spec is *not* `approved`, then `plan` when the plan is not, then falls through to `plan`
+unconditionally. `examples/polyglot` ships **both** artifacts at `status="approved"`, so a bare
+approve takes the fallthrough and attests the plan. Running it a second time attests the plan again.
+
+**So the walkthrough under-approves, and that is a defect in the adoption surface.** The first
+document a new user reads teaches `ngrace gate approve --change C-ADD-KEYBOARD-NAV`, and that command
+silently leaves the spec unattested. The `review.approval-never-asked` finding at the close is not
+noise to be acknowledged — **it is correct, and it is reporting a real gap the walkthrough itself
+created.**
+
+**The executor took the right branch of a brief that did not offer it.** The amendment brief posed
+empty-or-ack; the measured case was neither. Acking that finding on the adoption surface would have
+taught users to wave away the self-certification warning [F88](#f88) exists to raise. Completing the
+approval instead makes the walkthrough teach *"you actually ask — spec and plan"*, and the close is
+then a genuinely empty bound set. A binary offered by a brief is not evidence that the world has two
+cases.
+
+**Named for its own bundle, not grafted here.** Bare `gate approve` on a bundle whose artifacts are
+already `approved` is not discoverable: it targets `plan`, reports success, and a user with no
+knowledge of `--artifact` can never attest the spec. The plausible repair is that a bare approve
+should target whatever **lacks an attestation** rather than defaulting to `plan`. That is a product
+behaviour change with its own reds, outside `C-BOUND-VERDICT`'s spec, and it wants a slot on the
+registry.
 
 ## D19 — an approval covers the current step only
 
