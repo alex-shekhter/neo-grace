@@ -7289,6 +7289,313 @@ as `docs/plans/**` — both authority commits on the shared branch, neither a wr
 asymmetry is `F27.1`'s observation growing a second instance and belongs to the bundle that next
 opens `src/review/core.ts`.
 
+### F126 — the authority approved a completeness claim it had already measured to be false. **[verified]**
+
+`C-VERDICT-EVIDENCE`'s approved spec opens its forced-write inventory with *"including every pin this
+deliverable moves"* and never names `src/review/outcomes.test.ts`. Measured: that file holds **14**
+of the 41 `recordReviewVerdict` call sites the contract change forces (`src/gates/core.test.ts` holds
+the other 27).
+
+**This is the third instance of the class and the first that cannot be excused as an incomplete
+search.** [F120](#f120) was a plan omitting a forced write; [F124](#f124) was a spec qualifying an
+enumerated member with *"if"*. Here the authority had **already run the measurement** — it counted 41
+sites across *both* files, wrote that number and both filenames into the plan-authoring brief, and
+then approved a spec whose inventory named only one of them. The failure was not searching; it was
+never reconciling an artifact against a measurement already in hand.
+
+**The rule this adds.** When the authority supplies a measurement to a brief, that measurement is a
+test the approved artifact must pass. Before giving an approval phrase effect, check the artifact
+against every number and every path the authority itself has produced in the same bundle. A
+measurement that lives only in a brief and never in the artifact it was measured for is decoration.
+
+**Disposition: record, do not supersede** — the same reasoning [F124](#f124) settled. The plan
+**declares** `src/review/outcomes.test.ts`, so it is stricter than the spec's prose, and measurement
+agrees: lint reports 0/0 over 200 artifacts. A plan looser than reality is the failure mode; a plan
+stricter than its spec is not.
+
+**Two smaller corrections in the same report.**
+
+*The authority's brief made a false existence claim.* It instructed the executor to read the
+bundle's `design-context.xml`. The bundle contains `spec.xml`, `plan.xml`, and `run-ledger.xml`
+only. The executor reported the absence as a search result rather than inventing the file — rule 2
+of the evidence standard, applied against the authority that wrote it.
+
+*And the executor was wrong once, for the first time on this roadmap.* It reported the fingerprint
+skip as `src/review/core.ts:1688`, correcting a `:1687` it had itself supplied one dispatch earlier.
+Measured: `grep -n 'attributes.status !== "approved"'` returns exactly one line, **1687**. Its paired
+claim was right — `isDocsPlansPath` is `:1050`, and the spec's `:1043-1048` is stale. Recorded
+because a refusal record that is never checked becomes an authority of its own, which is the failure
+this ledger exists to prevent.
+
+### F127 — an approved plan that requires a suite green while forbidding the write that green needs. **[verified]**
+
+`C-VERDICT-EVIDENCE` T-008's criterion requires *"`bun run validate:ci` exits 0"*. `validate:ci`
+runs `validate:examples` (`package.json:73`), which runs `scripts/validate-walkthrough.ts`, whose
+lifecycle step 8 closes with `gate verdict --outcome pass --scope bundle` and no `--ack-finding`
+(`:281-283`). This bundle makes exactly that close a refuse. Measured:
+
+```
+- lifecycle.8 verdict: expected outcome=pass, exit=1
+- lifecycle.8 apply: expected Decision: permit, exit=1
+WALKTHROUGH.md documents output the tool no longer produces. Fix the doc or the tool.
+```
+
+The spec NonGoal and the plan both freeze `examples/` (`plan.xml:16`, `:905`), and neither
+`examples/` nor `scripts/validate-walkthrough.ts` is in `ObservedWriteScope`. **The two requirements
+cannot both hold.**
+
+**Third instance of one class, all in artifacts this authority approved.** [F120](#f120): a plan whose
+`ObservedWriteScope` omitted a write `AC-SUITE-AND-CI` forced. [F126](#f126): a spec whose
+completeness claim omitted a file already measured. Now a plan that demands a validator pass while
+forbidding the only edit that lets it. The shared shape is a **suite requirement and a scope
+restriction written in different sections and never checked against each other**.
+
+**The rule.** Before approving, take every command a task must pass, expand what that command
+actually runs, and confirm each thing it touches is either already green or inside the declared
+scope. `validate:ci` is a chain of ten scripts; approving "it exits 0" is approving all ten.
+
+**Caught before the write, which is the one improvement here.** The executor stopped at the boundary
+and reported instead of making the forced edit and disclosing it afterwards, because the execution
+brief said to report a breach *before* making it. That instruction was added after F120 cost a
+complete execution; it worked the first time it was tested. T-001–T-007 are complete, in scope, and
+green; nothing needs reverting to keep the record honest.
+
+**The walkthrough edit is not optional and not scope creep.** This bundle changes the close protocol;
+`WALKTHROUGH.md` documents the close protocol. A successor that ships the contract without updating
+the document ships a teaching surface that instructs users to run a command the tool now refuses. The
+validator says so in its own failure text.
+
+### F128 — the archive records an expensive supersede and a cheap one identically. **[verified]**
+
+Counting supersedes is the wrong metric — the maintainer's point, and checking it found that the
+right metric is not merely uncollected but **actively erased**.
+
+Measured across every superseded bundle:
+
+| bundle | tasks in plan | epochs | attempts | verdicts | actually executed |
+|---|---|---|---|---|---|
+| `C-CURSOR-TASK-SENTINEL` | 3 | 0 | 0 | 0 | no |
+| `C-CURSOR-TASK-IDENTITY` | 3 | 1 | 0 | 1 | partially |
+| `C-LEDGER-READ-ABSENCE` | — | no ledger | — | — | no |
+| `C-SUPERSEDE-VERB` | 5 | **0** | **0** | **0** | **all five tasks, eleven reds** |
+
+`C-SUPERSEDE-VERB` is indistinguishable in the durable record from a bundle superseded before
+anyone wrote a line.
+
+**The mechanism, and why the bias runs the wrong way.** `run/` holds loose events until
+`cursor fold` writes them into `run-ledger.xml` ([F125](#f125) is where the authority first got
+`run.xml` wrong). A bundle rejected mid-execution has not folded — folding is a close-time act — so
+reverting discards the only record that work happened. **The more a supersede throws away, the more
+likely the archive shows zero.** Any future measurement drawn from the archive will systematically
+report the expensive cases as free.
+
+**This invalidates an argument the authority had already published.**
+`RM-PILOT-APPROVAL`'s §6 recommended deferring the pilot proposal on the strength of "4 of 50
+archived bundles superseded (8%) versus 2 of the last 4". That comparison mixes a discarded spec
+draft with two discarded executions and calls both `1`. The count is real; as a proxy for cost it is
+unsound, and it is unsound in the direction that made deferring look better than it is. Corrected in
+that document rather than left standing.
+
+**What survives is an accident.** The only evidence of what the two recent supersedes cost is the
+recovery patches the authority happened to export before reverting — 35,778 and 76,496 bytes of
+discarded diff — which live outside the repository and exist by improvisation, not design.
+
+**The inversion worth naming.** This roadmap's spine is [F86](#f86): *a gate record standing in for
+work the gate did not do*. This is the mirror image — **no record at all for work that was done and
+then thrown away**. Both are the ledger failing to describe reality; only one of them has been
+getting attention.
+
+**The rule.** Cost is recorded at the moment of discard or it is not recorded. A revert must not be
+the act that erases the evidence of what the revert cost. Deciding whether cheaper amendment beats
+supersede requires that number, and today no one can produce it for any bundle in this archive.
+
+### F129 — the walkthrough's close set was measured in the wrong tree. **[verified]**
+
+> **Partly wrong; corrected by [F129.1](#f1291).** The diagnosis — that the set was measured in the
+> fixture rather than in the tree the close runs in — holds. Two specific claims below do not: only
+> the **plan** acquires an approve Decision between lifecycle.1 and lifecycle.8, and the close
+> therefore faces **one** finding, not an empty set.
+
+`C-BOUND-VERDICT`'s draft spec constrains the walkthrough fix with *"do not fingerprint the example;
+Ack is the close"*, on a measurement of **2 × `review.approval-never-asked`** against
+`examples/polyglot` — findingIds `c5980412021913df` and `df7d9d42a95148c2`. That measurement is
+accurate and it is taken in the wrong place.
+
+**It measures the checked-in fixture, where `gate approve` has never run.** The validator runs
+`gate approve` at **lifecycle.1** (`scripts/validate-walkthrough.ts:192`); the verdict it must fix is
+at **lifecycle.8** (`:282`). Between them the tree acquires applying approve Decisions with
+fingerprints for both artifacts, which is exactly what `review.approval-never-asked` reports the
+absence of. The finding set at the close is therefore **not** the set the spec was designed against.
+
+**Nor does the other visible finding carry.** `lifecycle.3` produces
+`review.scope-outside-write-scope` by handing `runReview` an explicit
+`changedFiles: ["services/api/internal/router/router.go"]` (`:205-208`) — a synthetic demonstration,
+not tree state. `lifecycle.4` immediately asserts that plain review has no errors (`:213-216`).
+
+So the close plausibly faces an **empty** finding set, in which case the walkthrough needs only the
+empty-set bound form and teaches no acknowledgment at all — and the spec's constraint has it
+backwards, because step 1 already fingerprints the example.
+
+**Why the difference is not cosmetic.** It decides what the adoption surface *teaches*. Acking
+`review.approval-never-asked` in the first document a new user reads would demonstrate waving away
+the self-certification warning that [F88](#f88) and
+[`RM-VERIFIED-APPROVAL`](../RM-VERIFIED-APPROVAL/review.md) exist to raise — habituation taught by
+example, in the one file most likely to be copied. A clean bound close teaches the opposite.
+
+**The rule.** A measurement of a fixture is not a measurement of the state a command reaches. When a
+criterion depends on what some step *observes*, measure at that step, in the tree that step runs in,
+after every preceding step has run. The static artifact and the live sequence are different objects,
+and this ledger now has instances of that confusion from both the authority ([F119](#f119),
+[F123](#f123)) and the executor.
+
+### F129.1 correction — only the plan is attested, and the walkthrough under-approves. **[verified]**
+
+[F129](#f129) said that between lifecycle.1 and lifecycle.8 *"both artifacts acquire applying approve
+Decisions with fingerprints"*, and concluded the close *"plausibly faces an empty finding set"*. Both
+are false, measured by driving the CLI over a scratch copy of `examples/polyglot`:
+
+| step | result |
+|---|---|
+| bare `gate approve` (lifecycle.1) | `artifacts stamped: ['plan']` |
+| `review --change` at that point | **1** finding — `review.approval-never-asked`, `df7d9d42a95148c2`, on `spec.xml` |
+| after `gate approve --artifact spec` | **0** findings |
+
+**The cause is `selectApproveTarget` (`src/gates/ledger.ts:1256-1267`).** It returns `spec` only when
+the spec is *not* `approved`, then `plan` when the plan is not, then falls through to `plan`
+unconditionally. `examples/polyglot` ships **both** artifacts at `status="approved"`, so a bare
+approve takes the fallthrough and attests the plan. Running it a second time attests the plan again.
+
+**So the walkthrough under-approves, and that is a defect in the adoption surface.** The first
+document a new user reads teaches `ngrace gate approve --change C-ADD-KEYBOARD-NAV`, and that command
+silently leaves the spec unattested. The `review.approval-never-asked` finding at the close is not
+noise to be acknowledged — **it is correct, and it is reporting a real gap the walkthrough itself
+created.**
+
+**The executor took the right branch of a brief that did not offer it.** The amendment brief posed
+empty-or-ack; the measured case was neither. Acking that finding on the adoption surface would have
+taught users to wave away the self-certification warning [F88](#f88) exists to raise. Completing the
+approval instead makes the walkthrough teach *"you actually ask — spec and plan"*, and the close is
+then a genuinely empty bound set. A binary offered by a brief is not evidence that the world has two
+cases.
+
+**Named for its own bundle, not grafted here.** Bare `gate approve` on a bundle whose artifacts are
+already `approved` is not discoverable: it targets `plan`, reports success, and a user with no
+knowledge of `--artifact` can never attest the spec. The plausible repair is that a bare approve
+should target whatever **lacks an attestation** rather than defaulting to `plan`. That is a product
+behaviour change with its own reds, outside `C-BOUND-VERDICT`'s spec, and it wants a slot on the
+registry.
+
+### F130 — the plan skill forbids in prose what the linter permits, and misses in code what it means to forbid. **[verified]**
+
+The executor stopped on a conflict between `skills/ngrace/ngrace-plan/SKILL.md:102` — *"Never place
+`ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside it"* — and the approved
+spec's `AC-SUITE-AND-CI`, which requires `bun run validate:ci` to exit 0. `validate:ci` member 5 is
+`validate:examples` (`package.json:69`), which runs `ngrace lint --path examples/polyglot`. Command
+text versus what the command runs. **Fifteenth consecutive report to refuse a premise, and right
+again.**
+
+**First, the conflict is not where it was reported.** `bun run validate:ci` is a `MustPassCommand` at
+`plan.xml:348-350`, inside **`TargetAssertions`** — not inside T-010. T-010 lists the same command
+under `<Verification><Command>` (`plan.xml:1057`), an anchor the rule does not name. The session
+prompt placed it in T-010; a fix aimed there would have edited the wrong block.
+
+**The enforced contract is much narrower than the sentence.** `assertion.phase-incompatible-command`
+fires only on a regex for a literal `--assertions current` in a `TargetAssertions` `MustPassCommand`
+(`src/artifact/assertions.ts:262`). Its stated rationale, in both the code message (`:268`) and the
+catalog (`src/lint/catalog.ts:335`), is **phase staleness** — "current mode evaluates active approved
+baselines… cannot serve as target or final evidence after writes begin." The rule is not about
+lifecycle purity. It is about a stale baseline masquerading as post-write evidence.
+
+**The hazard was checked for and is absent.** Default assertion mode *is* `current`
+(`src/grace-lint.ts:88`), so `validate:examples` does run a current-mode lint — the flag is implicit,
+not the mode. But it runs against `examples/polyglot`, a different root, whose only active change
+`C-ADD-KEYBOARD-NAV` asserts solely on `apps/web/src/components/LedgerTable.tsx` and
+`.example-test.ts`. This plan's one write under `examples/` is `WALKTHROUGH.md`, which appears in no
+assertion in that tree. Nothing this bundle writes can stale that baseline.
+
+**Precedent, counted across all 50 archived plans.** 40 carry `validate:ci` inside a
+`MustPassCommand`. **22 carry a bare `bun run ngrace lint --path .`** — a lifecycle command, on the
+governed root, in current mode by default — *directly* inside `MustPassCommand`, which violates
+SKILL.md:102 on the command-text reading too. All 22 closed and archived; root lint is 0/0 today.
+`C-BOUND-VERDICT` is **more** conservative than those 22, not less.
+
+**Ruling (maintainer, 2026-09-01): reading A for this bundle — the rule governs command text.** The
+plan conforms and is approved unchanged. Reading B was rejected on measurement: it treats the rule as
+violated where the harm the rule names does not exist, and would retroactively condemn 40 closed
+bundles. The rule is *not* to be read as resolving package scripts transitively; that boundary is
+part of the ruling.
+
+**Two defects fall out, and they are one sentence seen from two sides.**
+
+- **D-a, prose.** SKILL.md:102 forbids what 22 archived plans do and what the linter never checks.
+  Dead letter as written.
+- **D-b, code.** The detector matches only an *explicit* `--assertions current`, but current is the
+  default. So `bun run ngrace lint --path .` in `TargetAssertions` — the thing 22 archived plans
+  actually contain — is precisely the staleness hazard, undetected.
+
+Fixing the prose alone leaves the gap; fixing the code alone leaves text forbidding more than the
+code checks. **One bundle, `C-PHASE-RULE-PIN`, registry row 7.**
+
+**Why it is ordered rather than grafted, and why that is not deferral under [D11](#d11).** Neither
+`skills/ngrace/ngrace-plan/SKILL.md` nor its packaged mirror is in `C-BOUND-VERDICT`'s 28-entry
+`ObservedWriteScope` (`plan.xml`, `ObservedWriteScope`). Folding the fix in requires amending an
+approved spec — the supersede that ended `C-VERDICT-EVIDENCE`. That is a conflict, which is the
+condition D11 requires.
+
+**The fix is measurably safe, checked before naming it.** Archived plans are evaluated with
+`skipActivePhaseIssues = true` (`src/lint/core.ts:535-536`), so a tightened detector cannot turn the
+22 archived bundles red; active plans do receive it (`:530`). Neither active plan in either tree —
+`C-BOUND-VERDICT` and `examples/polyglot`'s `C-ADD-KEYBOARD-NAV` — carries a lifecycle command in
+`TargetAssertions`. So the tightening regresses **zero** live artifacts and must be proven on
+fixtures, with root lint 0/0 and `validate:ci` exit 0 as the non-regression evidence.
+
+**Verified at this HEAD:** `bun run validate:ci` exits 0, all ten members green, so the spec's
+"already green at this HEAD or inside the forced write surface" claim holds; `validate-walkthrough.ts`
+and `examples/polyglot/WALKTHROUGH.md` are both in `ObservedWriteScope` for when this change makes
+them red. Also corrected: the session prompt's archive count of 52 is **51**.
+
+### F131 — the close-boundary instruction suppressed the run record, and a successful bundle archives as if nothing ran. **[verified]**
+
+The execution brief's §2 said the executor stops after T-010 and listed the close acts it must not
+perform: *"Do not run `cursor advance`, `cursor fold`, `ngrace review --change`, `gate verdict`,
+`gate apply`, `gate archive`."* The intent was to reserve the **close** for the authority. The
+executor read it as forbidding cursor events **at all**, and said so under `DEVIATIONS`: *"No cursor
+attempt/fold records — brief forbids them."* It reported the omission rather than hiding it.
+
+**Measured after the close.** `ngrace status --path . --json` reported `epochCount: 0`,
+`openEpochCount: 0` for a bundle of **10 tasks with 16 planned reds**. `cursor fold` at the close
+printed *"No loose run/ events to fold for C-BOUND-VERDICT."* and exited 0. The archive gate
+permitted on `no-open-epoch: required=true present=true — run/ empty`. The archived
+`run-ledger.xml` contains exactly two sections, `Decisions` and `Verdicts`, and **zero** `Epoch`
+elements.
+
+**So the durable record cannot show that ten tasks ran, or that sixteen reds were driven to green.**
+Everything this bundle proves about its own execution lives in the report text and in my probes,
+neither of which is in the archive.
+
+**This is [F128](#f128) instantiated from the opposite direction.** F128 recorded that a *discarded*
+mid-execution bundle erases its own record, because `run/` holds loose events until `cursor fold` and
+folding is a close-time act. Here a **successful** bundle reaches the archive with the same
+emptiness, for a different reason: the instrumentation was never emitted at all. F128 argued that
+recording cost at the moment of discard is prior to deciding `RM-PILOT-APPROVAL`. This finding
+widens that: the archive does not reliably record cost on the **success** path either, so a supersede
+and a clean execution are still indistinguishable in the durable record.
+
+**The cause is the brief, not the executor.** The close boundary was written as a flat list of
+forbidden commands, and `cursor advance` appears in both roles — the executor's execution-time
+instrumentation and the authority's close-time terminal event. The paragraph never distinguished
+them.
+
+**The remedy, for the brief template rather than the product.** The close-boundary paragraph must
+separate *execution-time* cursor events (the executor's, **required**: open an epoch, mark task
+progress, record attempts) from *close-time* cursor acts (the authority's, forbidden to the
+executor: the terminal event and the fold). Until then every bundle briefed from this template
+archives hollow.
+
+**Not retro-fitted.** Opening an epoch after the fact and terminalling it would have manufactured a
+run record for work already finished — an epoch with no attempts and no reds, dated at the close.
+The empty record is the honest one, and it stands.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
@@ -7452,6 +7759,7 @@ below; it is not given a slot.
 | 4 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
 | 5 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after position 2, whose writer mints the fingerprint it depends on, and only if ratified after the re-measure. Unratified. |
 | 6 | **`C-CI-CLAIM-PIN`** | Correct `CONTRIBUTING.md`'s claim that `validate:ci` does not run `validate:packed`, and derive the guidance table's script claims from `package.json` instead of restating them. Named here 2026-08-31. No existing name: the doc surface is unguarded — `CONTRIBUTING.md` is not a governed file (`ngrace file show` returns `not-found`) and `scripts/check-teaching-surface.ts` covers only `README.md` and `examples/`. | [F117](#f117). | **Ordered, not deferred** — after position 3. Doc-side fix, settled by history: the table was written in `36f8fa3` (PR #5) when it was true, and `validate:packed` entered `validate:ci` later in `0a4b1b3` (PR #32), a change that was *strengthening* CI. Nothing is removed from `validate:ci`. |
+| 7 | **`C-PHASE-RULE-PIN`** | Reconcile the plan skill's `MustPassCommand` restriction with the contract the linter actually enforces, and close the detector's implicit-`current` gap. Prose: `skills/ngrace/ngrace-plan/SKILL.md:102` forbids what 22 archived plans do and what lint never checks. Code: `src/artifact/assertions.ts:262` matches only an explicit `--assertions current`, though current is the default (`src/grace-lint.ts:88`). Both sides plus the packaged mirror. Named here 2026-09-01. | [F130](#f130). | **Ordered, not deferred** — after `C-BOUND-VERDICT`. The skill file and its mirror are outside that bundle's `ObservedWriteScope`, so grafting the fix would require amending an approved spec; that conflict is the [D11](#d11) condition. Safe by measurement: archived plans are exempt (`src/lint/core.ts:535-536`) and no active plan in either tree carries a lifecycle command in `TargetAssertions`. Must **not** resolve package scripts transitively — that is the rejected reading B. |
 
 **Named by this directory, not in the 2026-08-15 order.**
 

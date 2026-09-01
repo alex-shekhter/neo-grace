@@ -87,6 +87,7 @@ const REQUIRED_LIFECYCLE_PROSE = [
   "gate verdict",
   "cursor fold",
   "gate archive",
+  "artifact spec",
 ];
 
 const LIFECYCLE_STEPS = 8;
@@ -183,6 +184,12 @@ for (const breakage of BREAKS) {
       failures.push(`forbidden prose (${ban.id}): ${ban.why}`);
     }
   }
+  if (!/review --change C-ADD-KEYBOARD-NAV[\s\S]{0,400}Findings:\s*0/.test(prose)) {
+    failures.push("lifecycle prose: WALKTHROUGH.md must document ngrace review --change C-ADD-KEYBOARD-NAV showing Findings: 0");
+  }
+  if (/ack-finding[\s\S]{0,120}approval-never-asked|approval-never-asked[\s\S]{0,120}ack-finding/.test(prose)) {
+    failures.push("lifecycle prose: WALKTHROUGH.md must not Ack review.approval-never-asked");
+  }
 }
 
 // Lifecycle on scratch (D16: each step fails when its token is removed — witnesses in A76).
@@ -193,8 +200,22 @@ for (const breakage of BREAKS) {
     if (approve.exitCode !== 0 || !approve.stdout.includes("Decision: permit")) {
       failures.push(`lifecycle.1 approve: expected Decision: permit, exit=${approve.exitCode}`);
     }
+    const approveSpec = runCli(
+      ["gate", "approve", "--change", "C-ADD-KEYBOARD-NAV", "--artifact", "spec"],
+      root,
+    );
+    if (approveSpec.exitCode !== 0 || !approveSpec.stdout.includes("Decision: permit")) {
+      failures.push(`lifecycle.1 approve spec: expected Decision: permit, exit=${approveSpec.exitCode}`);
+    }
     if (!existsSync(path.join(root, ".ngrace/changes/active/C-ADD-KEYBOARD-NAV/run-ledger.xml"))) {
       failures.push("lifecycle.1 approve: run-ledger.xml missing after permit");
+    }
+    const ledgerAfterFirst = readFileSync(
+      path.join(root, ".ngrace/changes/active/C-ADD-KEYBOARD-NAV/run-ledger.xml"),
+      "utf8",
+    );
+    if (!ledgerAfterFirst.includes('artifact="spec"') || !ledgerAfterFirst.includes('artifact="plan"')) {
+      failures.push("lifecycle.1 approve: expected fingerprints for both spec and plan");
     }
 
     const slice = runCli(["context", "--task", "T-001", "--change", "C-ADD-KEYBOARD-NAV"], root);
@@ -276,6 +297,14 @@ for (const breakage of BREAKS) {
     const fold = runCli(["cursor", "fold", "--change", "C-ADD-KEYBOARD-NAV"], root);
     if (fold.exitCode !== 0 || !fold.stdout.includes("Fold applied")) {
       failures.push(`lifecycle.7 fold: expected Fold applied, exit=${fold.exitCode}`);
+    }
+
+    const closeReview = runReview(root, { changeId: "C-ADD-KEYBOARD-NAV", changedFiles: [] });
+    if (closeReview.findings.length !== 0) {
+      failures.push(
+        `lifecycle.8 pre-verdict review: expected Findings: 0, got ${closeReview.findings.length} `
+          + `(${closeReview.findings.map((finding) => finding.code).join(", ")})`,
+      );
     }
 
     const verdict = runCli(

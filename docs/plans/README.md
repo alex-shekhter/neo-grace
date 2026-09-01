@@ -11,6 +11,7 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 | `RM-GITLESS-INTEGRITY` | Gitless artifact integrity: what the tool knows about what it approved | `draft` | — | — | _not written_ — see [review.md](./active/RM-GITLESS-INTEGRITY/review.md) |
 | `RM-VERIFIED-APPROVAL` | Verified approval: making ratification something the agent cannot assert | `draft` | — | — | _not written_ — see [review.md](./active/RM-VERIFIED-APPROVAL/review.md) |
 | `RM-DESIGN-EVIDENCE` | Design evidence an agent can actually use: visual references, recordings, and the behaviour text that carries them | `draft` | — | — | _not written_ — see [review.md](./active/RM-DESIGN-EVIDENCE/review.md) |
+| `RM-PILOT-APPROVAL` | Pilot approval: a ratified artifact that may be amended a bounded number of times | `draft` | — | — | _not written_ — see [review.md](./active/RM-PILOT-APPROVAL/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
@@ -60,6 +61,32 @@ not have caught them. The fourth run asked; the product still cannot tell that a
 
 **Not scheduled.** The repo-local floor ships first regardless: `gate approve` writing status with a
 fingerprint, and lint reporting `approved` without a matching record.
+
+### `RM-PILOT-APPROVAL` — recorded 2026-09-01
+
+Immutability begins at approval, but the only test that can falsify a plan is executing it — which
+happens afterwards. So a defect only running the code can reveal costs a whole bundle to correct.
+Measured: **4 of 50 archived bundles are superseded (8%), but 2 of the last 4**, both for a
+**scope declaration** rather than a design error ([F120](./active/RM-GOVERNED-PATH/decisions.md),
+[F127](./active/RM-GOVERNED-PATH/decisions.md)).
+
+The proposal is a **pilot** state in which an approved spec and plan may be amended a bounded number
+of times — three — after which the artifact hardens and further change requires a supersede. It is
+idiomatic rather than novel: the codebase already budgets attempts one level down
+(`FIX_SIGNATURE_REPEAT_BUDGET = 2`, `FIX_DISTINCT_SIGNATURE_BUDGET = 4`). Exhaustion is the signal —
+a bundle burning all three has a design problem, not a typo — and the count doubles as the
+instrument for measuring whether review is improving.
+
+An attempt budget, **not** a clock: elapsed time is arbitrary, gameable by racing a deadline, and
+invisible to later readers, while a count carries an actor and a reason per increment. Five
+constraints decide whether it holds, the first being that **every amendment re-ratifies** with its
+own phrase and fingerprint — otherwise pilot is not cheaper supersede but approval that does not
+bind, which `C-APPROVAL-FINGERPRINT` closed.
+
+**Not scheduled, deliberately.** The recent supersede rate is better explained by review failures
+than by the product: all three instances are one defect class, and three new review rules each would
+have caught one. The recorded position is to measure two to three more bundles under those rules
+first, and build this only if the rate holds.
 
 ### `RM-DESIGN-EVIDENCE` — recorded 2026-08-13
 

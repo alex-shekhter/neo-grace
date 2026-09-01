@@ -4,7 +4,12 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import { ARTIFACT_DIR } from "../artifact/paths";
-import { readLedgerWrapper, recordReviewVerdict } from "../gates/ledger";
+import {
+  computeVerdictSnapshotDigest,
+  readLedgerWrapper,
+  recordReviewVerdict,
+  type ReviewVerdictRecord,
+} from "../gates/ledger";
 import {
   PLAN_QUALITY_PROXY_CAVEAT,
   collectPlanQualityReport,
@@ -15,6 +20,19 @@ import {
 
 function createRoot() {
   return mkdtempSync(path.join(os.tmpdir(), "grace-plan-quality-"));
+}
+
+function libraryBoundPass(
+  changeId: string,
+  extra: Partial<Omit<ReviewVerdictRecord, "outcome">> = {},
+): ReviewVerdictRecord {
+  const findings = extra.findings ?? [];
+  return {
+    ...extra,
+    outcome: "pass",
+    findings,
+    snapshotDigest: extra.snapshotDigest ?? computeVerdictSnapshotDigest(changeId, findings),
+  };
 }
 
 function writeFile(root: string, rel: string, contents: string) {
@@ -107,7 +125,7 @@ describe("plan-quality report (D10 / Phase 10)", () => {
     writeMinimalProject(root);
     writeBundle(root, "C-UNSCOPED");
     // Write without scope — the failure mode is inventing bundle because it "looks" bundle-shaped.
-    recordReviewVerdict(root, "C-UNSCOPED", { outcome: "pass", note: "looks like a bundle close" });
+    recordReviewVerdict(root, "C-UNSCOPED", libraryBoundPass("C-UNSCOPED", { note: "looks like a bundle close" }));
     const report = collectPlanQualityReport(root);
     expect(report.verdictsTotal).toBe(1);
     expect(report.scopeNotRecorded).toBe(1);
@@ -243,10 +261,7 @@ describe("plan-quality report (D10 / Phase 10)", () => {
     const root = createRoot();
     writeMinimalProject(root);
     writeBundle(root, "C-CAVEAT");
-    recordReviewVerdict(root, "C-CAVEAT", {
-      outcome: "pass",
-      scope: "bundle",
-    });
+    recordReviewVerdict(root, "C-CAVEAT", libraryBoundPass("C-CAVEAT", { scope: "bundle" }));
     const report = collectPlanQualityReport(root);
     expect(report.proxyCaveat).toBe(PLAN_QUALITY_PROXY_CAVEAT);
     expect(report.summary.endsWith(PLAN_QUALITY_PROXY_CAVEAT) || report.summary.includes(PLAN_QUALITY_PROXY_CAVEAT)).toBe(
@@ -263,7 +278,7 @@ describe("plan-quality report (D10 / Phase 10)", () => {
     const root = createRoot();
     writeMinimalProject(root);
     writeBundle(root, "C-CLEAN");
-    recordReviewVerdict(root, "C-CLEAN", { outcome: "pass", scope: "bundle" });
+    recordReviewVerdict(root, "C-CLEAN", libraryBoundPass("C-CLEAN", { scope: "bundle" }));
     const report = collectPlanQualityReport(root);
     expect(report.unreadable).toEqual([]);
     expect(report.verdictsTotal).toBe(1);
@@ -277,8 +292,8 @@ describe("plan-quality report (D10 / Phase 10)", () => {
     writeMinimalProject(root);
     writeBundle(root, "C-GOOD");
     writeBundle(root, "C-BAD");
-    recordReviewVerdict(root, "C-GOOD", { outcome: "pass", scope: "bundle" });
-    recordReviewVerdict(root, "C-BAD", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GOOD", libraryBoundPass("C-GOOD", { scope: "bundle" }));
+    recordReviewVerdict(root, "C-BAD", libraryBoundPass("C-BAD"));
     // Hand-corrupt: invalid scope token — only reachable by edit, not by writer.
     const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-BAD", "run-ledger.xml");
     const raw = readFileSync(ledgerPath, "utf8");
@@ -308,7 +323,7 @@ describe("plan-quality report (D10 / Phase 10)", () => {
     const root = createRoot();
     writeMinimalProject(root);
     writeBundle(root, "C-ONLY");
-    recordReviewVerdict(root, "C-ONLY", { outcome: "pass" });
+    recordReviewVerdict(root, "C-ONLY", libraryBoundPass("C-ONLY"));
     const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-ONLY", "run-ledger.xml");
     writeFileSync(
       ledgerPath,
@@ -377,8 +392,8 @@ describe("plan-quality report (D10 / Phase 10)", () => {
     writeMinimalProject(root);
     writeBundle(root, "C-GOOD");
     writeBundle(root, "C-TRUNC");
-    recordReviewVerdict(root, "C-GOOD", { outcome: "pass", scope: "bundle" });
-    recordReviewVerdict(root, "C-TRUNC", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GOOD", libraryBoundPass("C-GOOD", { scope: "bundle" }));
+    recordReviewVerdict(root, "C-TRUNC", libraryBoundPass("C-TRUNC"));
     const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-TRUNC", "run-ledger.xml");
     const full = readFileSync(ledgerPath, "utf8");
     writeFileSync(ledgerPath, full.slice(0, Math.floor(full.length / 2)));
@@ -439,7 +454,7 @@ describe("plan-quality report (D10 / Phase 10)", () => {
     writeMinimalProject(root);
     writeBundle(root, "C-GOOD");
     writeBundle(root, "C-BADROOT");
-    recordReviewVerdict(root, "C-GOOD", { outcome: "pass", scope: "bundle" });
+    recordReviewVerdict(root, "C-GOOD", libraryBoundPass("C-GOOD", { scope: "bundle" }));
     const ledgerPath = path.join(
       root,
       ARTIFACT_DIR,

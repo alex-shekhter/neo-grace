@@ -30,10 +30,13 @@ import {
   recordGateDecision,
   recordReviewVerdict,
   stampApproveArtifact,
+  computeVerdictSnapshotDigest,
+  type ReviewVerdictRecord,
 } from "./ledger";
 import { GraceCommandError } from "../query/errors";
 import { advanceCursor, foldEpoch, listLooseEvents, recordAttempt, showCursor } from "../grace-cursor";
 import { formatGateEvaluation, gateCommand } from "./command";
+import { runReview } from "../review/core";
 
 const tempRoots: string[] = [];
 const REPO_ROOT = path.resolve(import.meta.dir, "../..");
@@ -44,6 +47,23 @@ function tempProject(): string {
   tempRoots.push(root);
   writeMinimalNgraceProject(root);
   return root;
+}
+
+function libraryBoundPass(
+  changeId: string,
+  extra: Partial<Omit<ReviewVerdictRecord, "outcome">> = {},
+): ReviewVerdictRecord {
+  const findings = extra.findings ?? [];
+  return {
+    ...extra,
+    outcome: "pass",
+    findings,
+    snapshotDigest: extra.snapshotDigest ?? computeVerdictSnapshotDigest(changeId, findings),
+  };
+}
+
+function ackFindingCliArgs(root: string, changeId: string): string[] {
+  return runReview(root, { changeId }).findings.flatMap((finding) => ["--ack-finding", finding.findingId]);
 }
 
 afterEach(() => {
@@ -114,7 +134,7 @@ describe("ledger Verdicts and Decisions (A30)", () => {
       classification: "plan",
       constituentTasksPassed: true,
     });
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     const all = listReviewVerdicts(root, "C-GATE");
     expect(all[0]?.scope).toBe("wave");
     expect(all[0]?.classification).toBe("plan");
@@ -137,12 +157,11 @@ describe("ledger Verdicts and Decisions (A30)", () => {
     const root = tempProject();
     activeBundle(root);
     expect(() =>
-      recordReviewVerdict(root, "C-GATE", {
-        outcome: "pass",
+      recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE", {
         scope: "task",
         task: "T-001",
         constituentTasksPassed: true,
-      }),
+      })),
     ).toThrow(/constituentTasksPassed applies only to wave-scoped fail verdicts/);
     // Silent path would have stored a pass with no ctp — ensure nothing was written.
     expect(listReviewVerdicts(root, "C-GATE")).toHaveLength(0);
@@ -151,7 +170,7 @@ describe("ledger Verdicts and Decisions (A30)", () => {
   it("corr 185: gates still fail closed on truncated ledger (no throw, no permit)", () => {
     const root = tempProject();
     activeBundle(root);
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     const ledgerPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-GATE", "run-ledger.xml");
     const full = readFileSync(ledgerPath, "utf8");
     writeFileSync(ledgerPath, full.slice(0, Math.floor(full.length / 2)));
@@ -169,7 +188,7 @@ describe("ledger Verdicts and Decisions (A30)", () => {
   it("survives fold of a later epoch without losing sections (A30 probe)", () => {
     const root = tempProject();
     const bundle = activeBundle(root);
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     recordGateDecision(root, "C-GATE", {
       gate: "approve",
       decision: "permit",
@@ -209,7 +228,7 @@ describe("correction 62 — invocable verdict writer", () => {
     expect(evaluateApplyGate(root, "C-GATE").decision).toBe("refuse");
 
     const recorded = runGateCli(
-      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root, "--format", "json"],
+      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root, "--format", "json", ...ackFindingCliArgs(root, "C-GATE")],
       root,
     );
     expect(recorded.status).toBe(0);
@@ -236,7 +255,7 @@ describe("correction 63 — malformed newest verdict does not promote older", ()
   it("refuses when newest is outcome=failed after an older pass", () => {
     const root = tempProject();
     const bundle = activeBundle(root);
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     const ledgerPath = path.join(bundle, "run-ledger.xml");
     let xml = readFileSync(ledgerPath, "utf8");
     // Exact A31 fixture: older valid + newer malformed.
@@ -263,7 +282,7 @@ describe("correction 63 — malformed newest verdict does not promote older", ()
   it("listReviewVerdicts throws rather than silently dropping invalid entries", () => {
     const root = tempProject();
     const bundle = activeBundle(root);
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     const ledgerPath = path.join(bundle, "run-ledger.xml");
     let xml = readFileSync(ledgerPath, "utf8");
     xml = xml.replace("</Verdicts>", `<Verdict outcome="failed" /></Verdicts>`);
@@ -322,15 +341,15 @@ describe("correction 68 — newest-governs at the section boundary (A32.1)", () 
   it("silent direction: one well-formed section, newest of several entries governs", () => {
     const root = tempProject();
     activeBundle(root);
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     recordReviewVerdict(root, "C-GATE", { outcome: "fail" });
     const latest = readLatestReviewVerdict(root, "C-GATE");
     expect(latest.state).toBe("present");
     if (latest.state === "present") {
       expect(latest.verdict.outcome).toBe("fail");
     }
-    // fail is a recorded verdict — apply permits under D11 (any recorded outcome).
-    expect(evaluateApplyGate(root, "C-GATE").decision).toBe("permit");
+    expect(evaluateApplyGate(root, "C-GATE").decision).toBe("refuse");
+    expect(evaluateApplyGate(root, "C-GATE").issues.some((issue) => issue.code === "gate.apply.outcome-fail")).toBe(true);
     expect(evaluateApplyGate(root, "C-GATE").verdict?.outcome).toBe("fail");
   });
 
@@ -404,7 +423,7 @@ describe("correction 64 — apply requires approved plan, not existsSync", () =>
       specStatus: "approved",
       planStatus: "draft",
     });
-    recordReviewVerdict(root, "C-DRAFT", { outcome: "pass" });
+    recordReviewVerdict(root, "C-DRAFT", libraryBoundPass("C-DRAFT"));
     const result = evaluateApplyGate(root, "C-DRAFT");
     expect(result.decision).toBe("refuse");
     expect(result.issues.some((i) => i.code === "gate.apply.no-plan")).toBe(true);
@@ -455,7 +474,7 @@ describe("correction 66 — recorder validates before write and keeps the answer
     const root = tempProject();
     const bundle = activeBundle(root);
     // Seed a clean pass verdict, then corrupt it in place so the tree is invalid.
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     const ledgerPath = path.join(bundle, "run-ledger.xml");
     let xml = readFileSync(ledgerPath, "utf8");
     xml = xml.replace('outcome="pass"', 'outcome="failed"');
@@ -493,7 +512,7 @@ describe("correction 66 — recorder validates before write and keeps the answer
   it("CLI apply reports decision when recording fails", () => {
     const root = tempProject();
     const bundle = activeBundle(root);
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     const ledgerPath = path.join(bundle, "run-ledger.xml");
     let xml = readFileSync(ledgerPath, "utf8");
     xml = xml.replace('outcome="pass"', 'outcome="bogus"');
@@ -695,7 +714,7 @@ describe("C-GRAMMAR-SEAM T-002 apply gate on lint-clean Satisfied AC Clarificati
     );
     assertClarificationShapeClean(root);
 
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     const refused = evaluateApplyGate(root, "C-GATE");
     expect(refused.issues.some((issue) => issue.code === "gate.apply.clarification-unresolved")).toBe(true);
     expect(applySatisfiedAcRequirement(refused)?.present).toBe(false);
@@ -721,7 +740,7 @@ describe("C-GRAMMAR-SEAM T-002 apply gate on lint-clean Satisfied AC Clarificati
     );
     assertClarificationShapeClean(root);
 
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     const result = evaluateApplyGate(root, "C-GATE");
     expect(result.issues.some((issue) => issue.code === "gate.apply.clarification-unresolved")).toBe(false);
     expect(applySatisfiedAcRequirement(result)?.present).toBe(true);
@@ -772,7 +791,7 @@ describe("apply gate", () => {
       specStatus: "approved",
       // planStatus omitted → no plan.xml
     });
-    recordReviewVerdict(root, "C-NOPLAN", { outcome: "pass" });
+    recordReviewVerdict(root, "C-NOPLAN", libraryBoundPass("C-NOPLAN"));
     const result = evaluateApplyGate(root, "C-NOPLAN");
     expect(result.decision).toBe("refuse");
     expect(result.issues.some((i) => i.code === "gate.apply.no-plan")).toBe(true);
@@ -945,7 +964,7 @@ describe("C-REPORT-HONESTY T-005 apply verdict diagnostics (P0.7)", () => {
     const root = tempProject();
     activeBundle(root);
     expect(evaluateApplyGate(root, "C-GATE").decision).toBe("refuse");
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     // Immediate — no re-read loop, no delay, no flush.
     const result = evaluateApplyGate(root, "C-GATE");
     expect(result.decision).toBe("permit");
@@ -957,7 +976,7 @@ describe("archive gate (A30.1 deadlock)", () => {
   it("permits with recorded apply decision and verdict when run/ empty", () => {
     const root = tempProject();
     const bundle = activeBundle(root);
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     recordGateDecision(root, "C-GATE", {
       gate: "apply",
       decision: "permit",
@@ -970,7 +989,7 @@ describe("archive gate (A30.1 deadlock)", () => {
   it("refuses when one loose run/ event exists", () => {
     const root = tempProject();
     const bundle = activeBundle(root);
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     mkdirSync(path.join(bundle, "run"), { recursive: true });
     writeFileSync(
       path.join(bundle, "run", "1-T-001-progress.xml"),
@@ -1236,7 +1255,7 @@ describe("C-FLAG-HONESTY T-002 — gate --record space form (F18)", () => {
   it("A31.4: gate approve|apply|archive|verdict still resolve under --record=false", () => {
     const root = tempProject();
     activeBundle(root);
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
 
     for (const gate of ["approve", "apply", "archive"] as const) {
       const result = runGateCli(
@@ -1252,7 +1271,7 @@ describe("C-FLAG-HONESTY T-002 — gate --record space form (F18)", () => {
     }
 
     const verdict = runGateCli(
-      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root, "--format", "json"],
+      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root, "--format", "json", ...ackFindingCliArgs(root, "C-GATE")],
       root,
     );
     expect(verdict.status).toBe(0);
@@ -1333,7 +1352,7 @@ describe("C-LEGIBLE-FAILURE T-002 — three exits and single classification", ()
     {
       const root = tempProject();
       const bundle = activeBundle(root);
-      recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+      recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
       const w = readLedgerWrapper(bundle, "C-GATE");
       expect(w.state).toBe("ok");
       if (w.state === "ok") {
@@ -1350,7 +1369,7 @@ describe("C-LEGIBLE-FAILURE T-002 — three exits and single classification", ()
     const root = tempProject();
     activeBundle(root);
     expect(evaluateApplyGate(root, "C-GATE").decision).toBe("refuse");
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     expect(evaluateApplyGate(root, "C-GATE").decision).toBe("permit");
     expect(evaluateApproveGate(root, "C-GATE").decision).toBe("permit");
   });
@@ -1506,7 +1525,7 @@ describe("C-BUNDLE-BASE-REF T-001 characterization", () => {
       ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
     );
     expect(refused.status).toBe(1);
-    recordReviewVerdict(root, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(root, "C-GATE", libraryBoundPass("C-GATE"));
     const applied = runGateCli(
       ["apply", "--change", "C-GATE", "--path", root, "--record=true"],
     );
@@ -1599,7 +1618,7 @@ describe("CloseEvidence gate verdict evaluator", () => {
     const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-GATE");
     writeCloseEvidenceSpec(path.join(bundle, "spec.xml"), "true");
     const recorded = runGateCli(
-      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root, "--format", "json"],
+      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root, "--format", "json", ...ackFindingCliArgs(root, "C-GATE")],
       root,
     );
     expect(recorded.status).toBe(0);
@@ -1658,7 +1677,7 @@ describe("CloseEvidence gate verdict evaluator", () => {
       "false",
     );
     const recorded = runGateCli(
-      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root],
+      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root, ...ackFindingCliArgs(root, "C-GATE")],
       root,
     );
     expect(recorded.status).toBe(0);
@@ -1680,7 +1699,7 @@ describe("CloseEvidence gate verdict evaluator", () => {
       "false",
     );
     const recorded = runGateCli(
-      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root],
+      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root, ...ackFindingCliArgs(root, "C-GATE")],
       root,
     );
     expect(recorded.status).toBe(0);
@@ -1779,7 +1798,7 @@ describe("C-APPROVAL-FINGERPRINT T-001", () => {
 
     const applyRoot = tempProject();
     activeBundle(applyRoot);
-    recordReviewVerdict(applyRoot, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(applyRoot, "C-GATE", libraryBoundPass("C-GATE"));
     const applied = runGateCli(
       ["apply", "--change", "C-GATE", "--path", applyRoot, "--record=true"],
     );
@@ -1858,7 +1877,7 @@ describe("C-APPROVAL-FINGERPRINT T-001", () => {
     const applyBundle = activeBundle(applyRoot);
     const applySpecBefore = readFileSync(path.join(applyBundle, "spec.xml"), "utf8");
     const applyPlanBefore = readFileSync(path.join(applyBundle, "plan.xml"), "utf8");
-    recordReviewVerdict(applyRoot, "C-GATE", { outcome: "pass" });
+    recordReviewVerdict(applyRoot, "C-GATE", libraryBoundPass("C-GATE"));
     const applied = runGateCli(
       ["apply", "--change", "C-GATE", "--path", applyRoot, "--record=true"],
     );
@@ -2179,6 +2198,241 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
     expect(readFileSync(changeArtifactPath(approved, "C-OLD", "spec.xml")!, "utf8")).toMatch(
       /\bstatus="superseded"/,
     );
+  });
+});
+
+describe("C-BOUND-VERDICT T-001 persist digest", () => {
+  it("persist-unbound: pass with no snapshotDigest throws and writes nothing", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    expect(() => recordReviewVerdict(root, "C-GATE", { outcome: "pass" })).toThrow(GraceCommandError);
+    expect(existsSync(ledgerPath)).toBe(false);
+  });
+
+  it("persist-unbound: empty finding set still refuses pass without snapshotDigest", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    expect(() =>
+      recordReviewVerdict(root, "C-GATE", { outcome: "pass", findings: [] } as ReviewVerdictRecord),
+    ).toThrow(GraceCommandError);
+    expect(existsSync(ledgerPath)).toBe(false);
+  });
+
+  it("identity-stale-digest: pass with Finding children and a non-canonical digest throws and writes nothing", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    const findings = [
+      {
+        code: "review.scope-outside-write-scope",
+        file: "src/example.ts",
+        findingId: "aaaaaaaaaaaaaaaa",
+        severity: "error",
+        ruleId: "scope-outside-write-scope",
+        anchorOrHunkKey: "src/example.ts",
+        message: "outside ObservedWriteScope",
+      },
+    ];
+    expect(() =>
+      recordReviewVerdict(root, "C-GATE", {
+        outcome: "pass",
+        snapshotDigest: "0".repeat(64),
+        findings,
+      } as ReviewVerdictRecord),
+    ).toThrow(GraceCommandError);
+    expect(existsSync(ledgerPath)).toBe(false);
+  });
+
+  it("cli-invokes-review: gate verdict pass records snapshotDigest of runReview displayed findings", () => {
+    const root = tempProject();
+    activeBundle(root);
+    const recorded = runGateCli(
+      ["verdict", "--change", "C-GATE", "--outcome", "pass", "--path", root, "--format", "json", ...ackFindingCliArgs(root, "C-GATE")],
+      root,
+    );
+    expect(recorded.status).toBe(0);
+    const stored = listReviewVerdicts(root, "C-GATE")[0] as { snapshotDigest?: string } | undefined;
+    expect(stored?.snapshotDigest).toBeDefined();
+    const displayed = runReview(root, { changeId: "C-GATE" }).findings;
+    const canonical = createHash("sha256")
+      .update(
+        JSON.stringify({
+          changeId: "C-GATE",
+          findings: [...displayed]
+            .sort(
+              (a, b) =>
+                a.code.localeCompare(b.code)
+                || a.file.localeCompare(b.file)
+                || a.findingId.localeCompare(b.findingId),
+            )
+            .map((f) => ({ code: f.code, file: f.file, findingId: f.findingId })),
+        }),
+      )
+      .digest("hex");
+    expect(stored?.snapshotDigest).toBe(canonical);
+  });
+});
+
+describe("C-BOUND-VERDICT T-002 Ack matching", () => {
+  it("persist-ack-mismatch: extra, missing, or unknown Ack findingIds throw and write nothing", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    const findings = [
+      {
+        code: "review.scope-outside-write-scope",
+        file: "src/example.ts",
+        findingId: "aaaaaaaaaaaaaaaa",
+        severity: "error",
+        ruleId: "scope-outside-write-scope",
+        anchorOrHunkKey: "src/example.ts",
+        message: "outside ObservedWriteScope",
+      },
+    ];
+    const snapshotDigest = computeVerdictSnapshotDigest("C-GATE", findings);
+    expect(() =>
+      recordReviewVerdict(root, "C-GATE", {
+        outcome: "pass",
+        snapshotDigest,
+        findings,
+        acks: [],
+      }),
+    ).toThrow(GraceCommandError);
+    expect(existsSync(ledgerPath)).toBe(false);
+
+    expect(() =>
+      recordReviewVerdict(root, "C-GATE", {
+        outcome: "pass",
+        snapshotDigest,
+        findings,
+        acks: [{ findingId: "bbbbbbbbbbbbbbbb", snapshotDigest }],
+      }),
+    ).toThrow(GraceCommandError);
+    expect(existsSync(ledgerPath)).toBe(false);
+  });
+
+  it("persist-ack-mismatch: CLI ack-finding that does not match the displayed set one-for-one", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    const recorded = runGateCli(
+      [
+        "verdict",
+        "--change",
+        "C-GATE",
+        "--outcome",
+        "pass",
+        "--path",
+        root,
+        "--ack-finding",
+        "ffffffffffffffff",
+      ],
+      root,
+    );
+    expect(recorded.status).not.toBe(0);
+    expect(`${recorded.stderr}${recorded.stdout}`).not.toMatch(/Unknown argument|Unrecognized argument/i);
+    expect(existsSync(ledgerPath)).toBe(false);
+  });
+
+  it("identity-cross-change: findingId from another change's same code and file does not satisfy pass", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, {
+      changeId: "C-OTHER",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+    });
+    const bundle = activeBundle(root);
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    const findings = [
+      {
+        code: "review.scope-outside-write-scope",
+        file: "src/example.ts",
+        findingId: "cccccccccccccccc",
+        severity: "error",
+        ruleId: "scope-outside-write-scope",
+        anchorOrHunkKey: "src/example.ts",
+        message: "outside ObservedWriteScope",
+      },
+    ];
+    const digestOther = computeVerdictSnapshotDigest("C-OTHER", findings);
+    const digestHere = computeVerdictSnapshotDigest("C-GATE", findings);
+    expect(() =>
+      recordReviewVerdict(root, "C-GATE", {
+        outcome: "pass",
+        snapshotDigest: digestHere,
+        findings,
+        acks: [{ findingId: "cccccccccccccccc", snapshotDigest: digestOther }],
+      }),
+    ).toThrow(GraceCommandError);
+    expect(existsSync(ledgerPath)).toBe(false);
+  });
+});
+
+describe("C-BOUND-VERDICT T-003 apply binding", () => {
+  function plantNewestVerdict(bundle: string, verdictXml: string): void {
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    let xml = readFileSync(ledgerPath, "utf8");
+    xml = xml.replace(/<Verdict\b[^>]*(?:\/>|>[\s\S]*?<\/Verdict>)/, verdictXml);
+    writeFileSync(ledgerPath, xml);
+  }
+
+  it("apply-unbound: evaluateApplyGate refuses pass without snapshotDigest as gate.apply.unbound-pass", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    recordReviewVerdict(root, "C-GATE", { outcome: "fail" });
+    plantNewestVerdict(bundle, `<Verdict outcome="pass" />`);
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(result.issues.some((issue) => issue.code === "gate.apply.unbound-pass")).toBe(true);
+    expect(result.issues.some((issue) => issue.code === "gate.apply.no-verdict")).toBe(false);
+  });
+
+  it("apply-digest-mismatch: evaluateApplyGate refuses when snapshotDigest does not match Finding children", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    recordReviewVerdict(root, "C-GATE", { outcome: "fail" });
+    plantNewestVerdict(
+      bundle,
+      `<Verdict outcome="pass" snapshotDigest="${"0".repeat(64)}"><Finding code="review.scope-outside-write-scope" file="src/example.ts" findingId="aaaaaaaaaaaaaaaa" severity="error" ruleId="scope-outside-write-scope" anchorOrHunkKey="src/example.ts" message="outside" /></Verdict>`,
+    );
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(result.issues.some((issue) => issue.code === "gate.apply.digest-mismatch")).toBe(true);
+  });
+
+  it("apply-unacked: evaluateApplyGate refuses when Ack children are not the persisted findingId set", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    recordReviewVerdict(root, "C-GATE", { outcome: "fail" });
+    const findings = [
+      {
+        code: "review.write-evidence-outside-scope",
+        file: "src/example.ts",
+        findingId: "dddddddddddddddd",
+      },
+    ];
+    const snapshotDigest = computeVerdictSnapshotDigest("C-GATE", findings);
+    plantNewestVerdict(
+      bundle,
+      `<Verdict outcome="pass" snapshotDigest="${snapshotDigest}"><Finding code="review.write-evidence-outside-scope" file="src/example.ts" findingId="dddddddddddddddd" severity="error" ruleId="write-evidence-outside-scope" anchorOrHunkKey="src/example.ts" message="undeclared write" /></Verdict>`,
+    );
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(result.issues.some((issue) => issue.code === "gate.apply.ack-mismatch")).toBe(true);
+  });
+});
+
+describe("C-BOUND-VERDICT T-004 apply refuses fail", () => {
+  it("apply-fail-refuses: evaluateApplyGate refuses newest outcome fail as gate.apply.outcome-fail", () => {
+    const root = tempProject();
+    activeBundle(root);
+    recordReviewVerdict(root, "C-GATE", { outcome: "fail" });
+    const result = evaluateApplyGate(root, "C-GATE");
+    expect(result.decision).toBe("refuse");
+    expect(result.issues.some((issue) => issue.code === "gate.apply.outcome-fail")).toBe(true);
   });
 });
 

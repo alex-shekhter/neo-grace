@@ -46,7 +46,7 @@ Run mechanized detectors first:
 ngrace review --path . --change C-ID
 ```
 
-Then form judgment. Record with `ngrace gate verdict` (this role does not write status).
+Then form judgment. Record the bound verdict with `ngrace gate verdict --outcome <token>` and `--ack-finding` once per displayed findingId (this role does not write status).
 
 ## What to check
 

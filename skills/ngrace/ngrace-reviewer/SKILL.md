@@ -11,8 +11,9 @@ Detached review is a **host capability**, not a skill instruction alone (§5.2).
 2. Use a role preset whose **tool allowlist is read-only** (see `ngrace-setup-subagents` roles).
 3. Run mechanized detectors first: `ngrace review --path PROJECT [--change C-ID]`.
 4. Form judgment from CLI findings plus your checklist; do not invent a second measurement instrument.
-5. Record the outcome with `ngrace gate verdict --change C-ID --outcome <token>` (closed set in
-   ngrace-cli `references/verdicts.md`). `ngrace review` never writes Verdicts, Decisions, or status.
+5. Record the bound verdict with `ngrace gate verdict --change C-ID --outcome <token>` and
+   `--ack-finding` once per displayed findingId (closed set in ngrace-cli `references/verdicts.md`).
+   `ngrace review` never writes Verdicts, Decisions, or status.
 
 On hosts that cannot spawn a cold subagent or enforce a tool allowlist, detachment degrades to an
 honor system. Record that honestly using the absence outcome and `host-capability-missing` reason

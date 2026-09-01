@@ -357,3 +357,23 @@ describe("C-SUPERSEDE-COMMAND T-005", () => {
   });
 });
 
+describe("C-BOUND-VERDICT T-006 skill split", () => {
+  it("skill-execute-rule9: execute rule 9 runs ngrace review with --change and stops; does not invoke gate verdict", () => {
+    const execute = read("skills/ngrace/ngrace-execute/SKILL.md");
+    const rules = execute.split("<execution_rules>")[1]?.split("</execution_rules>")[0] ?? "";
+    const rule9 = rules.split(/\n(?=\d+\. )/).find((block) => block.startsWith("9. ")) ?? "";
+    expect(rule9).toContain("ngrace review");
+    expect(rule9).toContain("--change");
+    expect(rule9).toMatch(/\bstop\b/i);
+    expect(rule9).not.toContain("record with `ngrace gate verdict --change C-ID --outcome <token>`");
+    expect(execute).toContain("<recovery_decision_table>");
+    expect(execute).toContain("<assertion_commands>");
+    const reviewer = read("skills/ngrace/ngrace-reviewer/SKILL.md");
+    const checklist = reviewer.match(/<review_checklist>[\s\S]*?<\/review_checklist>/)?.[0] ?? "";
+    expect(checklist).toContain("CloseEvidence");
+    expect(checklist).toContain("unfingerprinted Decision silent");
+    expect(execute).not.toContain("D19");
+    expect(execute).not.toContain("D20");
+  });
+});
+

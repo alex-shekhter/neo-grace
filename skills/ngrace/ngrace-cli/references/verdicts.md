@@ -9,10 +9,12 @@ they do not restate these tokens. Issue codes and absence reasons stay in the bi
 - `fail` — checked and not acceptable
 - `unable-to-determine` — no honest verdict was possible (absence)
 
-Record with `ngrace gate verdict --change C-ID --outcome pass|fail|unable-to-determine [--reason …] [--note …]`.
+Record with `ngrace gate verdict --change C-ID --outcome pass|fail|unable-to-determine [--reason …] [--note …] [--ack-finding <id>]`.
 Stored on the change bundle in `run-ledger.xml` under `<Verdicts><Verdict outcome="…" reason="…"/></Verdicts>`
-(sibling to `Epoch-N`; not a loose `run/` event). The apply gate requires a recorded verdict of any
-outcome, including `unable-to-determine` (D11).
+(sibling to `Epoch-N`; not a loose `run/` event). Apply refuses outcome `fail`, an unbound pass
+(no `snapshotDigest`), a digest mismatch, and Ack children that do not match the persisted
+findingIds. Ack identity is the triple changeId plus snapshotDigest plus findingId. `unable-to-determine`
+with `host-capability-missing` still follows project `gateFailOn`.
 
 ### Mechanized findings vs recorded verdicts
 
