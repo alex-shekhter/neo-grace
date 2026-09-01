@@ -4,12 +4,12 @@ kind: context
 status: draft
 supersededBy: null
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-09-01
 baseline: null
 targets: []
 normative: false
 plan: null
-related: [RM-GOVERNED-PATH, RM-GITLESS-INTEGRITY]
+related: [RM-GOVERNED-PATH, RM-GITLESS-INTEGRITY, RM-PILOT-APPROVAL]
 ---
 
 # Verified approval: making ratification something the agent cannot assert
@@ -96,6 +96,15 @@ protocol; solvable only by making ratification **rare and consequential**. D1's 
 reaching for that distinction — machine-evaluable transitions versus human ones — even if it drew the
 line in the wrong place.
 
+**Added 2026-09-01: [`RM-PILOT-APPROVAL`](../RM-PILOT-APPROVAL/review.md) pulls directly against
+this constraint.** That proposal lets an approved spec and plan be amended a bounded number of times
+— three — before hardening, so a bundle could carry **up to four ratifications per artifact, eight
+per bundle**, where it carries two today. Under a one-time-code protocol every one of those is a
+human round trip. The two entries are individually sound and jointly in tension: pilot buys cheaper
+correction by making ratification *more frequent*, and this entry's hardest failure mode is
+ratification becoming *routine*. Whichever ships second inherits the collision, and it is decided in
+§5's unit-of-approval question, not in either document's own terms.
+
 **Availability becomes a correctness question.** Offline runs, CI, and air-gapped adoption all need a
 designed answer, and the honest one is typed absence — *"policy unverified: attestation service
 unreachable"* — never silent permissiveness. Follow D1.5's precedent: it ships `--force` for apply
@@ -117,7 +126,15 @@ than "a tool you run", and adoption cost changes with it. That cost lands on P4'
 - What is the unit of approval? Per spec, per bundle, or per batch? This is the same question as
   habituation, asked in the protocol.
 - Does a superseded or amended artifact invalidate its attestation? It must, or an approved spec can
-  be edited afterwards — the defect `RM-GITLESS-INTEGRITY` records.
+  be edited afterwards — the defect `RM-GITLESS-INTEGRITY` records. **Partly answered by shipped
+  behaviour as of 2026-08-31**: the fingerprint audit skips any artifact whose root status is not
+  `approved` (`src/review/core.ts:1687`), so superseding *escapes* the audit rather than invalidating
+  an attestation, and an edit to a still-`approved` artifact is reported as a mismatch. For a code
+  protocol that is the wrong default — escaping and invalidating are different acts — and
+  [F123](../RM-GOVERNED-PATH/decisions.md) records the adjacent question on the target audit.
+- **How many attestations does one bundle need?** Two today (spec, plan). Under `RM-PILOT-APPROVAL`,
+  up to eight. The unit-of-approval question above is no longer only about habituation; it now sets
+  the cost of another entry on this board.
 - Would this have prevented the measured runs? **The first two, no** — they bypassed the request
   entirely. The fourth asked; a bound code would have given that ask something the product can
   check. Only the detection half stops a run that never requests. Any plan that ships the service
@@ -126,9 +143,21 @@ than "a tool you run", and adoption cost changes with it. That cost lands on P4'
 ## 6. Why it is not scheduled
 
 `RM-GOVERNED-PATH` P3 and P4 are outstanding, and P3's own step detail is being rewritten against the
-brownfield evidence. **The cheap floor should ship first regardless of this plan:** `gate approve`
-writing status, recording a fingerprint, and `lint` reporting `approved` without a matching record.
-That is tamper-evidence, it is repo-local, it needs no service, and it is the half that would have
-caught the first two measured runs (neither requested). The fourth run requested; the floor would
-still have given that request a record the product currently lacks. This entry is what comes
-**after** that, not instead of it.
+brownfield evidence.
+
+**The cheap floor this entry waited on has shipped** — `C-APPROVAL-FINGERPRINT`, 2026-08-31, PR #62.
+`gate approve` is now the sanctioned `draft` → `approved` writer (`src/gates/command.ts:114`) and
+records a fingerprint of the bytes it wrote. Detection landed on **`review` and `status`, not
+`lint`** as this section originally predicted: `review.approval-never-asked` and
+`review.approval-fingerprint-mismatch` (`src/review/catalog.ts:80,82`), plus the
+`approved-contract-drift` derived state in `status` (`src/grace-status.ts:319,395`). A reader
+following the old sentence to `lint` would have found nothing, which is why the surfaces are named
+here.
+
+So the prerequisite is met and the argument for deferral is now only sequencing, not readiness. What
+that floor delivers is **tamper-evidence**: it would have caught the first two measured runs, which
+never requested approval at all, and it gives the fourth run's request a record the product
+previously lacked. What it does not deliver is **verifiability** — the floor cannot distinguish a
+human's phrase from an agent typing the same word, which is [F88](../RM-GOVERNED-PATH/decisions.md)'s
+actual defect and this entry's whole subject. That gap is unchanged by the floor and is the reason
+this stays on the board.

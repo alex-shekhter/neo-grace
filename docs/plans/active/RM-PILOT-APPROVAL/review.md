@@ -115,9 +115,14 @@ state-versus-event distinction [F115](../RM-GOVERNED-PATH/decisions.md) drew abo
 - **What does an exhausted budget do?** Refuse further amendment and require supersede, or pause
   pending an explicit maintainer decision as the fix budget does. The second is closer to existing
   behaviour.
-- **Does pilot interact with `RM-VERIFIED-APPROVAL`?** If ratification becomes verifiable rather
-  than merely tamper-evident, each amendment needs its own code, and three amendments mean three
-  round trips to the human. That may make the budget's real cost higher than it looks.
+- **Pilot and [`RM-VERIFIED-APPROVAL`](../RM-VERIFIED-APPROVAL/review.md) pull against each other.**
+  That entry names habituation as its most likely failure mode — a human issued codes routinely
+  pastes them unread — and says it is *"solvable only by making ratification rare and
+  consequential."* Pilot makes ratification more frequent by design: up to four ratifications per
+  artifact and eight per bundle, against two today, each one a human round trip under a code
+  protocol. Both entries are individually sound and jointly in tension. The collision is decided by
+  that entry's unit-of-approval question, not inside either document, and **whichever ships second
+  inherits it**.
 
 ## 6. Why it was not scheduled, and why that argument is now withdrawn
 
