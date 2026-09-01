@@ -7485,6 +7485,75 @@ should target whatever **lacks an attestation** rather than defaulting to `plan`
 behaviour change with its own reds, outside `C-BOUND-VERDICT`'s spec, and it wants a slot on the
 registry.
 
+### F130 — the plan skill forbids in prose what the linter permits, and misses in code what it means to forbid. **[verified]**
+
+The executor stopped on a conflict between `skills/ngrace/ngrace-plan/SKILL.md:102` — *"Never place
+`ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside it"* — and the approved
+spec's `AC-SUITE-AND-CI`, which requires `bun run validate:ci` to exit 0. `validate:ci` member 5 is
+`validate:examples` (`package.json:69`), which runs `ngrace lint --path examples/polyglot`. Command
+text versus what the command runs. **Fifteenth consecutive report to refuse a premise, and right
+again.**
+
+**First, the conflict is not where it was reported.** `bun run validate:ci` is a `MustPassCommand` at
+`plan.xml:348-350`, inside **`TargetAssertions`** — not inside T-010. T-010 lists the same command
+under `<Verification><Command>` (`plan.xml:1057`), an anchor the rule does not name. The session
+prompt placed it in T-010; a fix aimed there would have edited the wrong block.
+
+**The enforced contract is much narrower than the sentence.** `assertion.phase-incompatible-command`
+fires only on a regex for a literal `--assertions current` in a `TargetAssertions` `MustPassCommand`
+(`src/artifact/assertions.ts:262`). Its stated rationale, in both the code message (`:268`) and the
+catalog (`src/lint/catalog.ts:335`), is **phase staleness** — "current mode evaluates active approved
+baselines… cannot serve as target or final evidence after writes begin." The rule is not about
+lifecycle purity. It is about a stale baseline masquerading as post-write evidence.
+
+**The hazard was checked for and is absent.** Default assertion mode *is* `current`
+(`src/grace-lint.ts:88`), so `validate:examples` does run a current-mode lint — the flag is implicit,
+not the mode. But it runs against `examples/polyglot`, a different root, whose only active change
+`C-ADD-KEYBOARD-NAV` asserts solely on `apps/web/src/components/LedgerTable.tsx` and
+`.example-test.ts`. This plan's one write under `examples/` is `WALKTHROUGH.md`, which appears in no
+assertion in that tree. Nothing this bundle writes can stale that baseline.
+
+**Precedent, counted across all 50 archived plans.** 40 carry `validate:ci` inside a
+`MustPassCommand`. **22 carry a bare `bun run ngrace lint --path .`** — a lifecycle command, on the
+governed root, in current mode by default — *directly* inside `MustPassCommand`, which violates
+SKILL.md:102 on the command-text reading too. All 22 closed and archived; root lint is 0/0 today.
+`C-BOUND-VERDICT` is **more** conservative than those 22, not less.
+
+**Ruling (maintainer, 2026-09-01): reading A for this bundle — the rule governs command text.** The
+plan conforms and is approved unchanged. Reading B was rejected on measurement: it treats the rule as
+violated where the harm the rule names does not exist, and would retroactively condemn 40 closed
+bundles. The rule is *not* to be read as resolving package scripts transitively; that boundary is
+part of the ruling.
+
+**Two defects fall out, and they are one sentence seen from two sides.**
+
+- **D-a, prose.** SKILL.md:102 forbids what 22 archived plans do and what the linter never checks.
+  Dead letter as written.
+- **D-b, code.** The detector matches only an *explicit* `--assertions current`, but current is the
+  default. So `bun run ngrace lint --path .` in `TargetAssertions` — the thing 22 archived plans
+  actually contain — is precisely the staleness hazard, undetected.
+
+Fixing the prose alone leaves the gap; fixing the code alone leaves text forbidding more than the
+code checks. **One bundle, `C-PHASE-RULE-PIN`, registry row 7.**
+
+**Why it is ordered rather than grafted, and why that is not deferral under [D11](#d11).** Neither
+`skills/ngrace/ngrace-plan/SKILL.md` nor its packaged mirror is in `C-BOUND-VERDICT`'s 28-entry
+`ObservedWriteScope` (`plan.xml`, `ObservedWriteScope`). Folding the fix in requires amending an
+approved spec — the supersede that ended `C-VERDICT-EVIDENCE`. That is a conflict, which is the
+condition D11 requires.
+
+**The fix is measurably safe, checked before naming it.** Archived plans are evaluated with
+`skipActivePhaseIssues = true` (`src/lint/core.ts:535-536`), so a tightened detector cannot turn the
+22 archived bundles red; active plans do receive it (`:530`). Neither active plan in either tree —
+`C-BOUND-VERDICT` and `examples/polyglot`'s `C-ADD-KEYBOARD-NAV` — carries a lifecycle command in
+`TargetAssertions`. So the tightening regresses **zero** live artifacts and must be proven on
+fixtures, with root lint 0/0 and `validate:ci` exit 0 as the non-regression evidence.
+
+**Verified at this HEAD:** `bun run validate:ci` exits 0, all ten members green, so the spec's
+"already green at this HEAD or inside the forced write surface" claim holds; `validate-walkthrough.ts`
+and `examples/polyglot/WALKTHROUGH.md` are both in `ObservedWriteScope` for when this change makes
+them red. Also corrected: the session prompt's archive count of 52 is **51**.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
@@ -7648,6 +7717,7 @@ below; it is not given a slot.
 | 4 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
 | 5 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after position 2, whose writer mints the fingerprint it depends on, and only if ratified after the re-measure. Unratified. |
 | 6 | **`C-CI-CLAIM-PIN`** | Correct `CONTRIBUTING.md`'s claim that `validate:ci` does not run `validate:packed`, and derive the guidance table's script claims from `package.json` instead of restating them. Named here 2026-08-31. No existing name: the doc surface is unguarded — `CONTRIBUTING.md` is not a governed file (`ngrace file show` returns `not-found`) and `scripts/check-teaching-surface.ts` covers only `README.md` and `examples/`. | [F117](#f117). | **Ordered, not deferred** — after position 3. Doc-side fix, settled by history: the table was written in `36f8fa3` (PR #5) when it was true, and `validate:packed` entered `validate:ci` later in `0a4b1b3` (PR #32), a change that was *strengthening* CI. Nothing is removed from `validate:ci`. |
+| 7 | **`C-PHASE-RULE-PIN`** | Reconcile the plan skill's `MustPassCommand` restriction with the contract the linter actually enforces, and close the detector's implicit-`current` gap. Prose: `skills/ngrace/ngrace-plan/SKILL.md:102` forbids what 22 archived plans do and what lint never checks. Code: `src/artifact/assertions.ts:262` matches only an explicit `--assertions current`, though current is the default (`src/grace-lint.ts:88`). Both sides plus the packaged mirror. Named here 2026-09-01. | [F130](#f130). | **Ordered, not deferred** — after `C-BOUND-VERDICT`. The skill file and its mirror are outside that bundle's `ObservedWriteScope`, so grafting the fix would require amending an approved spec; that conflict is the [D11](#d11) condition. Safe by measurement: archived plans are exempt (`src/lint/core.ts:535-536`) and no active plan in either tree carries a lifecycle command in `TargetAssertions`. Must **not** resolve package scripts transitively — that is the rejected reading B. |
 
 **Named by this directory, not in the 2026-08-15 order.**
 
