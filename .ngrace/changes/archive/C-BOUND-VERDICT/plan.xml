@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-BOUND-VERDICT>
     <IntentSummary>
       Bind gate verdict so a pass cannot stand in
