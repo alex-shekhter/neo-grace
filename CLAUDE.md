@@ -116,6 +116,15 @@ claims.** Four rules, each written after a measured failure:
    argument. Silently contradicting a prior decision costs the maintainer a turn and reopens a
    question that was already paid for.
 
+**Escape markup in XML artifacts; never strip it.** When a spec, plan, design-context, or skill XML
+block must name a tag, attribute form, or angle-bracketed token, write it as character data with
+entities (`&lt;`, `&gt;`, `&amp;`). Do **not** paraphrase the brackets away to keep the document
+well-formed — `bun run &lt;script&gt;` and `&lt;kind id="discarded"&gt;` are the house form. [F43](docs/plans/active/RM-GOVERNED-PATH/decisions.md)
+established that an XML artifact cannot quote unescaped XML, so a criterion binding artifact prose to
+an emitted message containing tags is unsatisfiable; its remedy is that markup-byte assertions belong
+in a TypeScript test, **not** that the artifact may paraphrase. Escaping is mandatory and stripping
+is not the escape hatch.
+
 **Verify empirically, and verify before briefing, not after the report.** Every claim above is a
 measurement, not a recollection. Drive the real CLI against a throwaway project, probe both
 directions so a refusal discriminates rather than merely fails, and do this *before* writing a brief

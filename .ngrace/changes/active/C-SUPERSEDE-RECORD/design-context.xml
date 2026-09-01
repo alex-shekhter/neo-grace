@@ -5,12 +5,19 @@
     F134.2 shrunk the discard charter to
     two requirements: fold inside the
     verb, and document that supersede
-    discards governance never code. The
-    spec is those two. The layer, the
-    no-epoch skip, and the borrowed
-    terminal are the decisions that make
-    the first requirement implementable
-    without a new kind.
+    discards governance never code. Those
+    two still stand. The range-close that
+    makes fold possible is no longer a
+    borrowed terminal. D21 ruled that if
+    the operation cannot be represented
+    truthfully without breaking the skill
+    rule that forbids the binary from
+    emitting terminal, the schema gives
+    way, not the rule. A discarded kind
+    meaning abandoned is therefore in
+    scope, on a different and stronger
+    ground than the legibility argument
+    F134.2 correctly rejected.
 
     Rename already preserves run/. The
     HEAD probe archived
@@ -53,21 +60,45 @@
       CLI already only delegates.
     </Alternative>
     <Alternative>
+      Auto-emit kind=terminal from
+      supersede (the draft's first
+      design). Satisfies fold and
+      grammar without a new kind.
+      Rejected by D21: emitting
+      terminal is a completion
+      judgment the binary must not
+      derive. F134.2 remains correct
+      that no surface claims the work
+      completed; that is not enough
+      once the binary itself writes
+      the lie.
+    </Alternative>
+    <Alternative>
       Relax fold's terminal check when
       the caller is supersede, and fold
-      an unterminated range. Avoids
-      emitting a kind whose skill text
-      says "the epoch's work is
-      finished". Rejected: grammar
+      an unterminated range. Avoids a
+      new kind. Rejected: grammar
       validates the written Epoch with
       the same terminal requirement
       (ledger.range-unterminated). Fold
-      verify would fail unless grammar
-      changed too. Two invariants
-      versus emitting one existing
-      kind. F134.2 already measured
-      that no consumer claims
-      completion.
+      must not be relaxed. D21's third
+      option — a kind meaning abandoned
+      — is the one that keeps both
+      invariants and the skill rule.
+    </Alternative>
+    <Alternative>
+      Map discarded to CursorState
+      complete. No new state. cursor
+      show would print State: complete
+      for an abandoned bundle, which
+      F134.2 tolerated as a nit when
+      it was inherited from terminal.
+      Rejected: KNOWN_KIND_STATE would
+      then assert the completion D21
+      forbids. A new state discarded
+      is cheap (complete itself has
+      three definitional non-test
+      sites in grace-cursor.ts).
     </Alternative>
     <Alternative>
       Document only in ngrace-cli.
@@ -89,7 +120,11 @@
       applies: a skill edit forces the
       byte pin, so those files are
       named in the spec rather than
-      discovered at execution.
+      discovered at execution. The
+      kind marker is additionally
+      required by the completeness
+      test at
+      src/grace-cursor.test.ts:3213.
     </Alternative>
   </Alternatives>
   <DeferredDecisions>
@@ -101,19 +136,16 @@
       Effort accounting. The bundle
       after that.
     </Decision>
-    <Decision>
-      State: complete naming on an
-      abandoned bundle. F134.2 nit.
-    </Decision>
   </DeferredDecisions>
   <Scenarios>
     <Scenario>
       Abandoned mid-execution, open
-      epoch, no terminal. supersede
-      emits terminal on the last
+      epoch, no range-closer. supersede
+      emits discarded on the last
       task, folds, archives. Ledger
       holds the attempts. Replacement
-      keeps the code.
+      keeps the code. No terminal
+      event is added by the verb.
     </Scenario>
     <Scenario>
       Never executed, spec-only, no
@@ -129,7 +161,15 @@
     <Scenario>
       Already terminated but not
       folded. Skip the extra
-      terminal, fold, archive.
+      discarded, fold, archive.
+    </Scenario>
+    <Scenario>
+      recover --fix on an open epoch
+      with no range-closer. Still
+      emits only a covering opened.
+      Fold remains blocked until the
+      operator emits terminal or
+      supersede emits discarded.
     </Scenario>
   </Scenarios>
 </NgraceChangeDesignContext>

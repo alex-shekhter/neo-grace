@@ -8041,9 +8041,14 @@ conclusion, and rejecting the weak form was correct.
 - The length-and-exact-list pin at `src/grace-cursor.test.ts:3199-3201` moves 9 → 10.
 - Fold's range-close test (`:2556-2559`) must accept the new kind as a range-closer beside
   `terminal`, and grammar's `ledger.range-unterminated` with it.
-- A `CursorState` may be needed. **This is cheaper than it looks:** every non-test reference to an
-  existing state (`paused-pending-approval`, 7 sites) lives inside `grace-cursor.ts` alone, so state
-  handling is centralised in one file.
+- A `CursorState` may be needed. **Correction, 2026-09-01:** this decision first said every non-test
+  reference to `paused-pending-approval` was "7 sites … inside `grace-cursor.ts` alone". **False.**
+  The authority grepped the *quoted* string and reported the result as the count of all references;
+  measured properly there are **14 non-test hits across two files** — `src/grace-cursor.ts` and
+  `src/lint/catalog.ts:896`. Same error family as reading an exit code through a pipe ([F135](#f135)):
+  a proxy measured, the thing reported. **The conclusion survives on a different measurement:**
+  `complete` itself has only three non-test sites, all definitional in `src/grace-cursor.ts` (union
+  `:163`, `CURSOR_STATES :172`, terminal map `:317`), so adding a state beside it is cheap.
 - The `<kind>` list in `ngrace-execute/SKILL.md` and its packaged mirror.
 
 **The standing rule.** Before contorting an operation to fit the schema, ask whether the schema can
