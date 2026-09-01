@@ -8004,6 +8004,52 @@ the executor. It does not implement D18. Not created here.
 
 ---
 
+
+## D21 — a schema that cannot represent an operation truthfully is the thing that is wrong
+
+**Decided 2026-09-01 by the maintainer**, on the `C-SUPERSEDE-RECORD` design question. His words:
+
+> If an operation cannot be represented truthfully under the current schema without breaking a
+> foundational skill rule, the constraint is wrong, not the rule.
+
+**The situation.** `ngrace supersede` must fold before archiving or the discarded bundle's cost is
+never recorded ([F134](#f134), [F134.1](#f1341)). Fold refuses without a `terminal` event inside the
+covering allocation (`src/grace-cursor.ts:2556-2559`). But `terminal` is defined as a **completion
+judgment**, and the skills explicitly forbid the binary from deriving one —
+`skills/ngrace/ngrace-execute/SKILL.md:87`: *"Emitting terminal is a judgment about completion, not
+structural state the binary can derive — `recover --fix` does **not** emit terminal."*
+
+So an automated supersede had exactly three options: emit `terminal` from the binary and break the
+foundational rule; relax fold's range-close invariant; or add an event kind meaning *abandoned*.
+
+**The ruling selects the third**, and generalises: when the only ways to represent a real operation
+are to break a rule or to lie, the schema's expressive gap is the defect. **A `discarded` kind is
+therefore back in scope**, and `AC-NO-NEW-KIND` is withdrawn from the draft spec.
+
+**This does not make [F134.2](#f1342) wrong; it makes its scope explicit.** F134.2 rejected a new
+kind as a *legibility* fix and was correct on that question: measured, no surface claims the
+abandoned work completed — `cursor show` reports `Complete: n/a`, and `superseded` dominates every
+status projection. The kind now returns on a **different and stronger justification**: not that the
+record reads ambiguously, but that the binary cannot produce the record at all without asserting a
+completion that did not happen. The authority's original argument was the weak form of a right
+conclusion, and rejecting the weak form was correct.
+
+**Measured scope of the change**, before it is briefed:
+
+- `KNOWN_KIND_STATE` (`src/grace-cursor.ts:308-319`) gains one entry; `KNOWN_EVENT_KINDS` is
+  definitionally its keys (`:327`).
+- The length-and-exact-list pin at `src/grace-cursor.test.ts:3199-3201` moves 9 → 10.
+- Fold's range-close test (`:2556-2559`) must accept the new kind as a range-closer beside
+  `terminal`, and grammar's `ledger.range-unterminated` with it.
+- A `CursorState` may be needed. **This is cheaper than it looks:** every non-test reference to an
+  existing state (`paused-pending-approval`, 7 sites) lives inside `grace-cursor.ts` alone, so state
+  handling is centralised in one file.
+- The `<kind>` list in `ngrace-execute/SKILL.md` and its packaged mirror.
+
+**The standing rule.** Before contorting an operation to fit the schema, ask whether the schema can
+express it. Reach for a rule exemption only after the representation question has been answered, and
+never resolve the conflict by having a binary assert a human judgment.
+
 ## Slip register — 2026-08-15
 
 Every governance slip of the last two days, and the mechanism that must
