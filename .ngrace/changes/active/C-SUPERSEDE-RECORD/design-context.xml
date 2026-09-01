@@ -19,6 +19,28 @@
     ground than the legibility argument
     F134.2 correctly rejected.
 
+    The maintainer then ruled that
+    discarded works only in the supersede
+    flow. Mapping the kind onto complete
+    would have KNOWN_KIND_STATE assert
+    the completion D21 forbids; a new
+    CursorState discarded is the cheap
+    honest map (complete itself has three
+    definitional non-test sites). Leaving
+    cursor advance --kind discarded legal
+    with the skill forbidding misuse is
+    the advisory-rule shape
+    C-PHASE-RULE-PIN existed to close.
+    Refusing only at the CLI layer, with
+    advanceCursor still accepting the
+    kind, is that same advisory rule one
+    layer down. The export surface that
+    actually confines the kind is one
+    purpose-named function,
+    discardAndFoldEpoch, whose only
+    production caller is
+    supersedeChangeBundle.
+
     Rename already preserves run/. The
     HEAD probe archived
     run/1-T-001-opened.xml. The defect
@@ -93,12 +115,55 @@
       for an abandoned bundle, which
       F134.2 tolerated as a nit when
       it was inherited from terminal.
-      Rejected: KNOWN_KIND_STATE would
-      then assert the completion D21
+      Rejected by the maintainer:
+      KNOWN_KIND_STATE would then
+      assert the completion D21
       forbids. A new state discarded
       is cheap (complete itself has
       three definitional non-test
       sites in grace-cursor.ts).
+    </Alternative>
+    <Alternative>
+      Leave cursor advance --kind
+      discarded legal, and forbid
+      misuse in ngrace-execute
+      cursor_kinds. Tests and a hand
+      fold-before-supersede could
+      emit it on the same write path
+      as terminal. Rejected by the
+      maintainer: the rule is
+      advisory, and advisory rules
+      here do not hold. The
+      MustPassCommand prohibition sat
+      in skill prose while 21
+      archived plans broke it —
+      C-PHASE-RULE-PIN's subject.
+    </Alternative>
+    <Alternative>
+      Refuse discarded only at the
+      CLI layer; leave advanceCursor
+      accepting the kind so tests can
+      pass it. Rejected: a general
+      kind parameter that accepts
+      discarded from any caller is
+      the same advisory rule one
+      layer down. An earlier brief
+      version that specified this
+      was withdrawn.
+    </Alternative>
+    <Alternative>
+      Have supersedeChangeBundle call
+      advanceCursor with
+      kind=discarded, then foldEpoch.
+      No new export. Rejected: that
+      keeps discarded as a legal
+      parameter of the general event
+      writer. The confinement the
+      ruling asked for is a
+      purpose-named export whose
+      name states its single purpose,
+      not a parameter anyone may
+      pass.
     </Alternative>
     <Alternative>
       Document only in ngrace-cli.
@@ -141,27 +206,45 @@
     <Scenario>
       Abandoned mid-execution, open
       epoch, no range-closer. supersede
-      emits discarded on the last
-      task, folds, archives. Ledger
-      holds the attempts. Replacement
-      keeps the code. No terminal
-      event is added by the verb.
+      calls discardAndFoldEpoch, which
+      writes discarded on the last
+      task through writeEventFile,
+      folds, and returns. Ledger holds
+      the attempts. Replacement keeps
+      the code. No terminal event is
+      added by the verb.
+    </Scenario>
+    <Scenario>
+      Same open-epoch shape, but the
+      caller is cursor advance --kind
+      discarded or advanceCursor with
+      that kind. Refuse:
+      invalid-arguments, the reserved
+      message naming ngrace supersede,
+      no new run/ file. Discrimination
+      against the scenario above.
     </Scenario>
     <Scenario>
       Never executed, spec-only, no
-      run/. supersede skips fold,
+      run/. discardAndFoldEpoch sees
+      no loose events, returns without
+      invoking foldEpoch. supersede
       writes superseded, archives.
       Same as today, exit 0.
     </Scenario>
     <Scenario>
       Already folded, empty run/,
       still active (EXDEV retry).
-      Skip fold, write, rename.
+      discardAndFoldEpoch takes the
+      no-loose-events skip, then
+      write, rename.
     </Scenario>
     <Scenario>
       Already terminated but not
-      folded. Skip the extra
-      discarded, fold, archive.
+      folded. discardAndFoldEpoch
+      sees a range-closer, skips the
+      extra discarded, foldEpoch,
+      archive.
     </Scenario>
     <Scenario>
       recover --fix on an open epoch
