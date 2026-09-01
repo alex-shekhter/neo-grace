@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-VERDICT-EVIDENCE>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-VERDICT-EVIDENCE><Replacement>C-BOUND-VERDICT</Replacement>
     <IntentSummary>
       Bind gate verdict so a pass cannot stand in
       for a review that never ran. src/gates/command.ts

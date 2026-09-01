@@ -1,60 +1,97 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-VERDICT-EVIDENCE>
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-BOUND-VERDICT>
     <Summary>
-      Bind the review Verdict so it cannot
-      stand in for a review that never ran.
-      gate verdict re-runs ngrace review for
-      the named change, persists that finding
-      set onto the Verdict, and records
-      explicit Ack children against specific
-      finding identities. Apply refuses an
-      unbound pass, a digest mismatch, an
-      Ack that does not match the persisted
-      set, and outcome fail. GateId stays
-      closed. ngrace review stays read-only.
-      A scope-breach finding is
+      Replacement of C-VERDICT-EVIDENCE.
+      Same binding: gate verdict re-runs
+      ngrace review for the named change,
+      persists that finding set onto the
+      Verdict, and records explicit Ack
+      children against specific finding
+      identities. Apply refuses an unbound
+      pass, a digest mismatch, an Ack that
+      does not match the persisted set, and
+      outcome fail. GateId stays closed.
+      ngrace review stays read-only. A
+      scope-breach finding is
       acknowledgeable; process-integrity
       failures of the close are not.
+      The teaching close is in scope:
+      examples/polyglot/WALKTHROUGH.md and
+      scripts/validate-walkthrough.ts
+      document and prove the empty-set
+      bound close after both artifacts
+      are approved. They do not ack
+      review.approval-never-asked.
     </Summary>
     <Problem>
-      HEAD 13a8a45 on feat/verdict-evidence,
+      HEAD 611fca6 on feat/verdict-evidence,
       packaged 6.2.0, tree clean after the
-      C-SUPERSEDE-COMMAND merge. Those
-      numbers and that commit are a snapshot
-      (F33), not live HEAD.
+      C-VERDICT-EVIDENCE execution was
+      reverted. Those numbers and that
+      commit are a snapshot (F33), not live
+      HEAD.
 
       Named-bundle registry in
       docs/plans/active/RM-GOVERNED-PATH/decisions.md
-      has no existing name for this charter.
-      Positions 1 through 3a are delivered
-      or superseded. C-VERDICT-EVIDENCE is
-      minted here. G4 is the brief label,
-      not a registry name.
+      has no C-BOUND-* token. C-VERDICT-EVIDENCE
+      is the predecessor this bundle
+      replaces; it is not a registry row
+      (G4 was the brief label). Positions
+      1 through 3a are delivered or
+      superseded. C-BOUND-VERDICT is
+      minted here.
+
+      C-VERDICT-EVIDENCE was executed
+      through T-007 and stopped at T-008
+      before an out-of-scope write. Its
+      approved plan is unsatisfiable
+      (F127): T-008 requires bun run
+      validate:ci to exit 0; validate:ci
+      runs validate:examples, which runs
+      scripts/validate-walkthrough.ts,
+      whose lifecycle step 8 closes with
+      gate verdict --outcome pass and no
+      --ack-finding (:281-283) — the exact
+      close the bundle turns into a refuse.
+      The predecessor NonGoal and plan both
+      froze examples/, and neither
+      examples/ nor the validator was in
+      ObservedWriteScope. Same class as
+      F120 and F126. The maintainer ruled
+      supersede, revert, re-plan,
+      re-execute. The execution is
+      reverted. This spec is the
+      replacement-first successor. The
+      approved C-VERDICT-EVIDENCE spec was
+      correct on the binding and wrong on
+      the teaching-surface freeze.
 
       ---
 
       Measured: a Verdict is an unbound
       assertion. recordReviewVerdict
-      (src/gates/ledger.ts:264-353) stores
+      (src/gates/ledger.ts:264-354) stores
       outcome, reason, note, scope, task,
       wave, classification, and on an
       applied archive the CloseEvidence
       evaluation children. It stores no
       review finding, no findingId, and no
       digest of a finding set.
-      parseVerdictNode (:597-629) reads
+      parseVerdictNode (:597-630) reads
       attributes and body text only.
       The command description
       (src/gates/command.ts:262-263) says
       it does not form the judgment.
 
-      evaluateApplyGate (src/gates/core.ts:360-419)
+      evaluateApplyGate (src/gates/core.ts:360-421)
       requires a newest Verdict to be
       present (:370-391). It does not read
       findings. core.test.ts:332-334 states
       the live D11 rule: fail is a recorded
       verdict and apply permits. README.md:135
-      and skills/ngrace/ngrace-cli/references/verdicts.md:14-15
+      (workflow step 10) and :197 (CLI
+      Overview apply row) and
+      skills/ngrace/ngrace-cli/references/verdicts.md:13-15
       repeat that any recorded outcome,
       including unable-to-determine, satisfies
       apply. An agent that never ran review,
@@ -121,7 +158,7 @@
       opens src/review/core.ts to answer.
 
       F123: detectConfidentlyWrong MustExist
-      half (:490-517) walks every plan.xml
+      half (:486-517) walks every plan.xml
       under .ngrace/changes and does not
       read root status. A superseded plan
       whose target file never existed
@@ -141,6 +178,75 @@
       review.scope-outside-write-scope.
       Both are authority commits on a
       shared branch, never a task write.
+
+      ---
+
+      Measured during the predecessor
+      execution and re-measured here, so
+      the replacement does not rediscover
+      them as empty-set lies.
+
+      runReview on writeMinimalNgraceProject
+      plus writeChangeBundleFixture
+      (approved spec, approved plan,
+      changeId set) displays 3 findings:
+      review.approval-never-asked on
+      spec.xml and plan.xml, and
+      review.confidently-wrong on the
+      fixture Marker
+      [Example][run][BLOCK_RUN]. Any
+      criterion that treats that fixture
+      as an empty bound pass is false.
+
+      Checked-in examples/polyglot
+      change-scoped review --change
+      C-ADD-KEYBOARD-NAV (no gate
+      approve has run) displays 2
+      findings, both
+      review.approval-never-asked
+      (plan.xml c5980412021913df,
+      spec.xml df7d9d42a95148c2).
+      That is the fixture, not the
+      close. Unscoped review --path
+      examples/polyglot displays 0
+      (core.test.ts:1519-1524).
+
+      Measured in a scratch copy of
+      the validator sequence
+      (scripts/validate-walkthrough.ts
+      lifecycle.1 bare gate approve,
+      then cursor
+      open / verification-unavailable
+      / terminal / fold, then
+      ngrace review --change
+      C-ADD-KEYBOARD-NAV at the
+      lifecycle.8 moment, default
+      warning threshold): displayed
+      set is 1 finding,
+      review.approval-never-asked
+      on spec.xml,
+      findingId df7d9d42a95148c2.
+      Bare gate approve with no
+      --artifact fingerprints only
+      the plan. selectApproveTarget
+      (src/gates/ledger.ts:1258-1265)
+      skips an already-approved
+      spec and defaults to plan
+      when both artifacts ship
+      status="approved". A second
+      bare approve still targets
+      plan. Spec never gets an
+      applying permitting Decision.
+      lifecycle.3's
+      review.scope-outside-write-scope
+      is a library call with
+      explicit changedFiles
+      (:205-208) and does not
+      persist. The walkthrough's
+      documented close at
+      WALKTHROUGH.md:266 is unbound
+      pass over that one remaining
+      finding.
     </Problem>
     <Goals>
       <Goal>
@@ -174,11 +280,35 @@
         (D18, F2).
       </Goal>
       <Goal>
-        README.md workflow step 10 and the
-        CLI Overview gate verdict row teach
-        the bound form. examples/ is
-        unchanged; no user-visible example
-        surface.
+        README.md workflow step 10, the
+        CLI Overview apply row, and the
+        CLI Overview gate verdict row
+        teach the bound form: fail refuses
+        apply, pass requires argv token
+        ack-finding. The apply row is in
+        scope because it is the same D11
+        "some outcome" sentence as step
+        10; leaving it would make the page
+        disagree with itself.
+      </Goal>
+      <Goal>
+        examples/polyglot/WALKTHROUGH.md
+        documents the bound close, and
+        scripts/validate-walkthrough.ts
+        proves it. The proving command is
+        bun run ./scripts/validate-walkthrough.ts.
+        The close the walkthrough
+        teaches is the empty-set
+        bound form after both
+        artifacts are approved in
+        the scratch sequence. It
+        does not teach
+        --ack-finding over
+        review.approval-never-asked.
+        Shipping the contract without that
+        document would instruct users to
+        run a command the tool refuses
+        (F127).
       </Goal>
     </Goals>
     <Constraints>
@@ -573,7 +703,7 @@
         isDocsPlansPath. The
         WriteEvidence docs/plans hole
         stays as named on
-        src/review/core.ts:1043-1048.
+        src/review/core.ts:1042-1048.
         Porcelain findings on
         docs/plans/** and on CLAUDE.md
         remain acknowledgeable. This
@@ -593,18 +723,36 @@
         package.json files edit. No
         PACK_ALLOWED_EXACT edit.
         No new command root. liveCommandRoots
-        (src/query/command.test.ts:836-853)
+        (src/query/command.test.ts:836-854)
         is untouched as a membership
         set. README CLI Overview gains
         argv tokens on the existing
-        gate verdict row, not a new
-        row. Do not expand
+        gate verdict row, and the
+        existing apply row drops the
+        D11 "some outcome" permit;
+        not a new row. Do not expand
         src/artifact/scale-ergonomics.test.ts:368.
         Do not edit
         scripts/release-check.ts,
         scripts/release-check.test.ts,
         scripts/validate-marketplace.ts,
         or scripts/release-checklist.ts.
+        Do not edit
+        src/artifact/grammar.ts:
+        validateLedgerVerdictsSection
+        (:794-852) constrains Verdicts
+        children to Verdict and Verdict
+        attributes; it does not close
+        Verdict children. CloseEvidence
+        AC-* children already persist
+        without a grammar inventory
+        entry. Finding and Ack ride
+        that same opening.
+        Do not edit
+        src/artifact/test-fixtures.ts
+        to swallow the fixture Marker
+        finding and fake an empty
+        review.
       </Constraint>
       <Constraint>
         Skill edits this bundle makes:
@@ -626,8 +774,14 @@
         apply, identity triple);
         skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md
         (record with ack-finding;
-        keep "Mechanized review.*
-        findings are acknowledged").
+        keep the live bullet whose
+        bytes are Mechanized
+        `review.*` findings are
+        acknowledged — backticks
+        around review.*; a target
+        MustContain of the
+        unbackticked phrase cannot
+        match).
         Do not add D19 or D20
         sentences (skill-contracts
         :348-349). Packaged mirrors
@@ -636,6 +790,115 @@
         edited file. ngrace-cli
         SKILL.md inventory stays the
         README table.
+      </Constraint>
+      <Constraint>
+        Teaching close, decided here.
+        examples/polyglot/WALKTHROUGH.md
+        and scripts/validate-walkthrough.ts
+        are declared deliverables.
+        Do not edit other files under
+        examples/. Do not add
+        run-ledger.xml to the
+        checked-in polyglot bundle;
+        the fixture stays
+        unfingerprinted on disk.
+
+        The walkthrough close is the
+        empty-set bound form. It is
+        reached by fingerprinting
+        both artifacts in the scratch
+        sequence, not by Ack of
+        review.approval-never-asked.
+        lifecycle.1 today runs one
+        bare gate approve and
+        fingerprints only plan; the
+        remaining close finding is
+        spec never-asked
+        (df7d9d42a95148c2). The
+        walkthrough and validator
+        add gate approve --artifact
+        spec so both artifacts have
+        applying permitting
+        Decisions with fingerprints.
+        Measured: after that extra
+        approve, change-scoped
+        review at lifecycle.8
+        displays zero findings.
+        gate verdict --outcome pass
+        stores the empty-set digest
+        and takes no ack-finding
+        flags. Apply still permits.
+
+        The lesson this document
+        teaches: you actually ask
+        (approve spec and plan);
+        then you close bound to the
+        empty displayed set. It
+        does not teach waving
+        review.approval-never-asked
+        with --ack-finding. That
+        warning is F88 /
+        RM-VERIFIED-APPROVAL; the
+        adoption surface must not
+        habituate past it.
+
+        Unscoped polyglot review
+        stays 0 findings
+        (src/review/core.test.ts:1519-1524).
+        The walkthrough documents
+        ngrace review --change
+        C-ADD-KEYBOARD-NAV showing
+        Findings: 0, then
+        gate verdict --outcome pass
+        --scope bundle with no
+        ack-finding. The validator's
+        lifecycle.8 argv is that
+        empty-set bound close, not
+        the unbound pass at :281-283
+        and not an ack-finding close.
+      </Constraint>
+      <Constraint>
+        validate:ci expansion, measured
+        from package.json script
+        validate:ci. Ten members:
+        typecheck (bunx tsc --noEmit);
+        test (bun test --timeout=30000);
+        validate:cli (bun test
+        --timeout=120000
+        src/grace-lint.test.ts
+        src/grace-status.test.ts
+        src/grace-query.test.ts);
+        ./scripts/validate-marketplace.ts;
+        validate:examples (ngrace lint
+        --path examples/polyglot
+        --fail-on errors AND
+        ./scripts/validate-walkthrough.ts);
+        validate:determinism (bun test
+        --timeout=120000
+        src/review/core.test.ts
+        src/review/scorer.test.ts AND
+        ./scripts/validate-determinism.ts);
+        validate:packed
+        (./scripts/packed-cli-smoke.ts);
+        validate:schema-reference
+        (./scripts/generate-schema-reference.ts
+        check);
+        validate:skeleton-templates
+        (./scripts/generate-skeleton-templates.ts
+        check);
+        validate:teaching-surface
+        (./scripts/check-teaching-surface.ts
+        check, including
+        checkDocsAndExamplesDecision
+        on every active spec.xml).
+        Requiring validate:ci to exit 0
+        is requiring all ten. Each
+        member is either already green
+        at this HEAD or inside the
+        forced write surface. The
+        predecessor froze examples/
+        while requiring this chain
+        (F127). This spec does not.
       </Constraint>
       <Constraint>
         Forced write surface the later
@@ -658,8 +921,16 @@
         remediation, attempt-pair
         --note protocol, skill-contracts
         execute and reviewer pins,
-        README CLI Overview and
-        workflow step 10.
+        README CLI Overview apply and
+        gate verdict rows and workflow
+        step 10, WALKTHROUGH.md close
+        and the second lifecycle.1
+        approve (--artifact spec),
+        validate-walkthrough.ts
+        lifecycle.1 --artifact spec
+        and lifecycle.8 empty-set
+        bound close, outcomes.test.ts
+        recordReviewVerdict call sites.
 
         src/gates/ledger.ts
         (ReviewVerdictRecord,
@@ -680,7 +951,8 @@
         snapshotDigest; argv token
         ack-finding, repeatable;
         pass refuses without a
-        matching set);
+        matching set; production
+        caller at :393);
 
         src/gates/core.ts
         (apply binding requirements
@@ -697,10 +969,21 @@
         (D11 fail-permits pin at
         :332-334 is the HEAD-true
         property this bundle turns
-        false; red that. Presence
+        false; red that. CLI unbound
+        pass at :206-223 is the same
+        property through the command
+        surface; red that. Presence
         still required.
         unable-to-determine
-        host-capability path stays);
+        host-capability path stays.
+        27 recordReviewVerdict call
+        sites);
+
+        src/review/outcomes.test.ts
+        (14 recordReviewVerdict call
+        sites; F126: the predecessor
+        inventory omitted this file
+        while claiming every pin);
 
         src/review/core.ts
         (F123 MustExist skip;
@@ -717,7 +1000,15 @@
         characterization; allReviewCodes
         length 18 at :1855 and :2179
         stays 18 because this bundle
-        adds no review.* code);
+        adds no review.* code;
+        polyglot unscoped empty at
+        :1519-1524 stays 0;
+        :1851 OR-regex over
+        gate verdict or --note or
+        findingId is stay-true:
+        Ack remediation keeps
+        findingId, so the pin does
+        not force a second write);
 
         src/review/catalog.ts
         (attempt-pair remediation
@@ -752,8 +1043,13 @@
 
         src/test-support/token-accounting.test.ts
         and README.md workflow step 10,
+        CLI Overview apply row,
         CLI Overview gate verdict row,
         and the skillTextLines cell;
+
+        examples/polyglot/WALKTHROUGH.md;
+
+        scripts/validate-walkthrough.ts;
 
         this bundle's spec.xml and a
         later plan-authoring pass's
@@ -769,6 +1065,8 @@
         scripts/release-checklist.ts,
         scripts/packed-cli-smoke.ts,
         src/artifact/scale-ergonomics.test.ts,
+        src/artifact/grammar.ts,
+        src/artifact/test-fixtures.ts,
         src/grace-cursor.test.ts
         write-surface allowlist
         (stays the closed five;
@@ -779,7 +1077,11 @@
         writeFileSync),
         ngrace-cli/SKILL.md,
         ngrace-explainer references,
-        examples/.
+        examples/ other than
+        examples/polyglot/WALKTHROUGH.md,
+        scripts/ other than
+        skill-contracts.test.ts and
+        validate-walkthrough.ts.
       </Constraint>
       <Constraint>
         F56 / F67:
@@ -804,9 +1106,7 @@
         this bundle turns false.
         Post-archive lint 0/0 is
         CloseEvidence on AC-CLOSE-LINT,
-        not a task Satisfies. This spec
-        does not author
-        AC-SUITE-AND-LINT.
+        not a task Satisfies.
       </Constraint>
     </Constraints>
     <NonGoals>
@@ -875,19 +1175,19 @@
         SKILL.md:10, C-CI-CLAIM-PIN.
       </NonGoal>
       <NonGoal>
-        examples/ unchanged; no
-        user-visible surface. Owner:
-        unchanged; no user-visible
-        surface.
+        examples/ other than
+        examples/polyglot/WALKTHROUGH.md.
+        Owner: unchanged; no
+        user-visible example surface
+        beyond the close protocol this
+        bundle changes.
       </NonGoal>
       <NonGoal>
         README.md except workflow
         step 10, the CLI Overview
-        gate verdict row this
-        deliverable moves, and the
-        skillTextLines cell if a
-        SKILL.md rewrite moves the
-        published figures.
+        apply row, the CLI Overview
+        gate verdict row, and the
+        skillTextLines cell.
       </NonGoal>
       <NonGoal>
         Skipping applied plans in
@@ -898,6 +1198,22 @@
         audit. Owner: the F123
         Constraint; applied targets
         should still exist.
+      </NonGoal>
+      <NonGoal>
+        Adding run-ledger.xml to the
+        checked-in polyglot example,
+        or editing
+        src/artifact/test-fixtures.ts
+        so the standard fixture is
+        empty. Owner: the
+        teaching-close Constraint
+        (checked-in tree stays
+        unfingerprinted) and
+        AC-EMPTY-BOUND. The
+        walkthrough scratch
+        sequence does fingerprint
+        both artifacts via gate
+        approve; that is in scope.
       </NonGoal>
     </NonGoals>
     <AcceptanceCriteria>
@@ -921,7 +1237,9 @@
         (ledger.ts:351-353);
         evaluateApplyGate treats
         presence as enough
-        (core.ts:385-391). Red the
+        (core.ts:385-391);
+        core.test.ts:206-223 is the
+        CLI unbound pass. Red the
         unbound pass. Failure
         conditions: CLI pass that
         does not invoke runReview
@@ -943,22 +1261,37 @@
         records the empty-set digest
         and accepts zero ack-finding
         flags. Apply permits that
-        bound empty pass. HEAD today: a
-        pass with no children other
-        than CloseEvidence on
-        applied archives is the
-        only shape. Red that a pass
-        without a digest is refused
-        even when review is clean.
+        bound empty pass. The
+        standard fixture
+        writeMinimalNgraceProject plus
+        writeChangeBundleFixture
+        (approved spec, approved plan,
+        changeId set) is not that
+        case: it displays 3 findings
+        (review.approval-never-asked
+        x2, review.confidently-wrong).
+        Tests that need an empty
+        displayed set must construct
+        one; they must not treat the
+        standard fixture as empty.
+        HEAD today: a pass with no
+        children other than
+        CloseEvidence on applied
+        archives is the only shape.
+        Red that a pass without a
+        digest is refused even when
+        the displayed set is empty.
         Do not redden "zero
-        ack-finding on a clean
-        review" after the writer
-        exists (that is the
-        post-fix pass). Failure
-        conditions: clean review
-        still stores no digest;
-        clean review requires a
-        dummy ack-finding.
+        ack-finding on a genuinely
+        empty displayed set" after
+        the writer exists (that is
+        the post-fix pass). Failure
+        conditions: empty displayed
+        set still stores no digest;
+        empty displayed set requires
+        a dummy ack-finding; the
+        standard 3-finding fixture is
+        treated as empty.
       </AC-EMPTY-BOUND>
       <AC-IDENTITY>
         An Ack is accepted only
@@ -1130,7 +1463,12 @@
         unfingerprinted Decision
         silent, recovery table, and
         absence of D19/D20 remain
-        true. HEAD today: execute
+        true. contract-reviewer.md
+        keeps the live bullet
+        Mechanized `review.*`
+        findings are acknowledged
+        (backticks around review.*).
+        HEAD today: execute
         rule 9 says record with
         gate verdict
         (ngrace-execute/SKILL.md:42).
@@ -1139,7 +1477,10 @@
         instructed to record the
         verdict; reviewer told not
         to record; D19 or D20
-        words added; mirrors drift.
+        words added; mirrors drift;
+        a MustContain quotes the
+        unbackticked phrase and
+        misses the live bullet.
       </AC-SKILL-SPLIT>
       <AC-README-ROW>
         README.md workflow step 10
@@ -1148,6 +1489,11 @@
         of some outcome including
         unable-to-determine as if
         fail permitted. The CLI
+        Overview apply row no
+        longer says a recorded
+        review verdict of some
+        outcome is required as if
+        fail permitted. The CLI
         Overview gate verdict row
         names argv token ack-finding.
         src/query/command.test.ts
@@ -1155,19 +1501,70 @@
         row. skillTextLines total
         and totalBytes are
         re-measured, not frozen.
-        HEAD today: README.md:135
-        and :200 teach unbound
+        HEAD today: README.md:135,
+        :197, and :200 teach unbound
         presence. Red the step-10
-        sentence and the missing
-        ack-finding token as two
-        properties. Failure
-        conditions: step 10 still
-        says any outcome permits;
-        Overview omits ack-finding;
+        sentence, the apply-row
+        sentence, and the missing
+        ack-finding token as three
+        properties (F80), split so
+        no task exceeds three
+        distinct signatures (F56).
+        Failure conditions: step 10
+        still says any outcome
+        permits; apply row still
+        says some outcome; Overview
+        omits ack-finding;
         published line/byte cell
         disagrees with
         skillTextLines().
       </AC-README-ROW>
+      <AC-WALKTHROUGH-BOUND>
+        examples/polyglot/WALKTHROUGH.md
+        documents a bound close:
+        gate approve of both spec
+        and plan (bare approve plus
+        --artifact spec), then
+        ngrace review --change
+        C-ADD-KEYBOARD-NAV showing
+        Findings: 0, then
+        gate verdict --outcome pass
+        --scope bundle with no
+        ack-finding (empty-set
+        digest still stored).
+        scripts/validate-walkthrough.ts
+        lifecycle.1 fingerprints
+        both artifacts; lifecycle.8
+        runs that empty-set close
+        and apply still permits.
+        The command that proves the
+        walkthrough close is bound
+        is bun run
+        ./scripts/validate-walkthrough.ts.
+        HEAD today: WALKTHROUGH.md:266
+        is unbound pass; validator
+        :192 fingerprints only plan;
+        :281-283 has no digest and
+        no ack-finding; the
+        lifecycle.8 displayed set
+        after the current sequence
+        is one
+        review.approval-never-asked
+        (spec.xml df7d9d42a95148c2).
+        Red the unbound documented
+        close. Failure conditions:
+        walkthrough still documents
+        unbound pass; walkthrough
+        acks
+        review.approval-never-asked;
+        validator still fingerprints
+        only plan at lifecycle.1;
+        validator still expects
+        unbound pass; unscoped
+        polyglot review grows a
+        finding; example lint
+        regresses.
+      </AC-WALKTHROUGH-BOUND>
       <AC-REMEDIATION>
         REVIEW_CATALOG remediation
         for review.attempt-pair-unsubstantiated
@@ -1189,10 +1586,14 @@
       </AC-REMEDIATION>
       <AC-SUITE-AND-CI>
         bun test, bunx tsc --noEmit,
-        bun run ./scripts/validate-marketplace.ts,
-        bun run validate:packed, and
-        bun run validate:ci are green
-        after the production edits.
+        and bun run validate:ci are
+        green after the production
+        edits. validate:ci is the
+        ten-member chain in the
+        validate:ci Constraint; it
+        includes validate:examples
+        and therefore
+        scripts/validate-walkthrough.ts.
         Task-observable. Do not
         Satisfies-link post-archive
         lint to a task.
@@ -1215,6 +1616,7 @@
     <VerificationIntent>
       <ExpectedCommand>bun test src/gates/core.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/review/outcomes.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
       <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
@@ -1222,7 +1624,9 @@
       <ExpectedCommand>bun test</ExpectedCommand>
       <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
       <ExpectedCommand>bun run validate:packed</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-walkthrough.ts</ExpectedCommand>
       <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
       <ExpectedEvidence>
         Red-first on AC-BOUND-PASS,
         AC-EMPTY-BOUND, both
@@ -1230,9 +1634,10 @@
         AC-FAIL-REFUSES-APPLY, the
         three properties of
         AC-APPLY-CRITICAL, AC-F123,
-        AC-SKILL-SPLIT, both
+        AC-SKILL-SPLIT, the three
         properties of AC-README-ROW,
-        and AC-REMEDIATION, each
+        AC-WALKTHROUGH-BOUND, and
+        AC-REMEDIATION, each
         property its own red (F80),
         split across tasks so no
         task plans more than three
@@ -1243,17 +1648,23 @@
         not reds (F45). AC-SUITE-AND-CI
         is task-observable suite
         evidence and includes
-        bunx tsc --noEmit (F125).
-        Post-archive lint 0/0 is
-        AC-CLOSE-LINT CloseEvidence,
-        evaluated at gate verdict on
-        the applied archive, not
-        claimed by a task pass.
+        bunx tsc --noEmit (F125) and
+        the expanded validate:ci
+        chain (F127). Post-archive
+        lint 0/0 is AC-CLOSE-LINT
+        CloseEvidence, evaluated at
+        gate verdict on the applied
+        archive, not claimed by a
+        task pass. The walkthrough
+        close is proved by
+        bun run ./scripts/validate-walkthrough.ts,
+        which validate:ci includes
+        via validate:examples.
       </ExpectedEvidence>
     </VerificationIntent>
     <Assumptions>
       <Assumption>
-        HEAD 13a8a45, packaged 6.2.0,
+        HEAD 611fca6, packaged 6.2.0,
         and "tree clean" are a
         snapshot (F33), not
         criteria. This change does
@@ -1264,7 +1675,7 @@
         stays acyclic because nothing
         under src/review/* imports
         gates/command (measured at
-        amend; review/core.ts:81 is
+        this HEAD; review/core.ts:81 is
         the ledger cycle that forbids
         the previous caller). A later
         import of gates/command from
@@ -1321,6 +1732,37 @@
         code keeps that pin. New
         codes in this bundle are
         gate.apply.* only.
+      </Assumption>
+      <Assumption>
+        The polyglot fixture
+        findingIds c5980412021913df
+        (plan) and df7d9d42a95148c2
+        (spec) are stable while
+        code, file, and
+        anchorOrHunkKey stay. This
+        bundle does not edit the
+        example spec or plan, so
+        those ids remain the
+        checked-in fixture set.
+        They are not the close set.
+        After the walkthrough's
+        two-artifact approve, the
+        close displayed set is
+        empty.
+      </Assumption>
+      <Assumption>
+        validateLedgerVerdictsSection
+        will admit Finding and Ack
+        children without a grammar.ts
+        edit, because it does not
+        inspect Verdict children
+        (measured :794-852). If a
+        later lint of a bound
+        Verdict refuses those
+        children, stop and report;
+        do not silently add a
+        grammar write outside the
+        forced surface.
       </Assumption>
     </Assumptions>
     <DesignReferences>
@@ -1381,6 +1823,42 @@
         and do not add CLAUDE.md to
         that hole. Ack is the remedy.
       </Clarification>
+      <Clarification resolved="true">
+        <AC-EMPTY-BOUND />
+        Resolved: the standard
+        approved fixture is not an
+        empty review. Measured: 3
+        findings. Empty-set bound
+        pass is a constructed
+        displayed-zero case, not
+        that fixture.
+      </Clarification>
+      <Clarification resolved="true">
+        <AC-WALKTHROUGH-BOUND />
+        Resolved: examples/ is a
+        deliverable, not a freeze.
+        The proving command is
+        bun run ./scripts/validate-walkthrough.ts.
+        The close is the empty-set
+        bound form, reached by
+        approving spec and plan in
+        the scratch sequence. Do
+        not ack
+        review.approval-never-asked
+        on the walkthrough. Do not
+        add a ledger to the
+        checked-in example.
+      </Clarification>
+      <Clarification resolved="true">
+        <AC-README-ROW />
+        Resolved: the CLI Overview
+        apply row is in scope. It is
+        the same D11 "some outcome"
+        sentence as workflow step
+        10. Leaving it would make
+        README.md disagree with
+        itself after fail-refuses.
+      </Clarification>
     </Clarifications>
-  </C-VERDICT-EVIDENCE>
+  </C-BOUND-VERDICT>
 </NgraceChangeSpec>
