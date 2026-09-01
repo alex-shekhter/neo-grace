@@ -7763,6 +7763,44 @@ an `[error]` line, and a write scope missing two files. That is evidence that ch
 produced more care, not less. It is **confounded** and must not be read as settling pilot: these
 amendments carried no ratification cost, which is the variable pilot actually changes.
 
+### F134.1 — the first supersede in this repository that preserved its own cost, and the two gaps it exposed. **[verified]**
+
+`C-LINT-PHASE-HONESTY` was superseded on the maintainer's ruling rather than closed, deliberately, to
+begin collecting the cost data [F134](#f134) showed the archive was not recording. The sequence was
+**`cursor advance --kind terminal` → `cursor fold` → `ngrace supersede`**, and it worked:
+
+| | `C-SUPERSEDE-VERB` (2026-08) | `C-LINT-PHASE-HONESTY` (2026-09-01) |
+|---|---|---|
+| `run/` in archive | **absent** | present |
+| Epochs | 0 | **1** |
+| attempts | 0 | **10** (4 fail, 6 pass) |
+| failure signatures | none | 4, all named |
+| approve Decisions | 2 | 2 |
+
+Same class of event, five tasks each, and the difference is entirely the fold. **`ngrace supersede`
+does not fold** — `src/grace-supersede.ts` contains no reference to `run/`, `Epoch`, or fold — so
+without the manual two steps the record is destroyed by the act meant to record it.
+
+**Gap 1 — the discard is recorded with a borrowed verb.** `cursor advance --kind terminal` asserts
+that T-005 *terminated*. It did not; the bundle was abandoned mid-flight. The nine event kinds
+(`opened, progress, resume, attempt, verification-unavailable, command-run, pause, terminal,
+escalation`) contain **no** kind meaning "discarded", so fold's precondition can only be satisfied by
+claiming a completion that did not happen. The record above is therefore accurate in its numbers and
+wrong in its verb. **This discard, recorded with the wrong word, is the motivating case for the
+discard bundle.**
+
+**Gap 2 — nothing documents whether a supersede discards the work.** Searched: the verb's own
+description is *"Write superseded onto an active change bundle, name its replacement, and move it
+into archive"*, and no skill or README text states what happens to the implementation. The answer,
+established by precedent at [F127](#f127) — *"T-001–T-007 are complete, in scope, and green; nothing
+needs reverting"* — is that **supersede discards governance, never code.** The replacement carries
+the implementation forward. A reader could equally well assume the opposite, and the difference is
+the entire cost model: this supersede cost one re-authored spec and plan, not five re-executed tasks.
+
+Both gaps belong to the discard bundle, chartered as the first of three instrument bundles the
+maintainer approved on 2026-09-01: **discard → amendment counter → effort**. Recording them at
+charter time is scoping, not deferral.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield

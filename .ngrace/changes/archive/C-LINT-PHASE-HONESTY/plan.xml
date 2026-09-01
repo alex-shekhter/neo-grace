@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-LINT-PHASE-HONESTY>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-LINT-PHASE-HONESTY><Replacement>C-LINT-PHASE-HONESTY-2</Replacement>
     <IntentSummary>
       Make current-mode lint honest about phase: stop claiming a
       C-* change is in progress when that is inferred from approved
