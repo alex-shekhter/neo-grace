@@ -1,0 +1,649 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-LINT-PHASE-HONESTY>
+    <IntentSummary>
+      Make current-mode lint honest about phase: stop claiming a
+      C-* change is in progress when that is inferred from approved
+      status alone, keep failing baseline assertion.* issues as
+      errors, and explain the dual possibility on the text lead
+      line. Make selected --assertions target without --run-commands
+      an explicitly-structural query whose assertion.command-not-evaluated
+      issues stay error-severity and stay in the Errors count, but
+      do not gate that query's exit. Close the detector's
+      implicit-current gap against current-mode lint of this project
+      root in TargetAssertions MustPassCommand. Rewrite the
+      MustPassCommand doctrine once, as that property, across all
+      ten surfaces.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-ASSERTIONS</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/assertions.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/assertions.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>examples/cli/README.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-cli/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-explainer/references/verification-driven-dev.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-explainer/references/verification-driven-dev.md</Value></MustExist>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>expected while a C-* change is in progress</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-lint.ts</File>
+        <Text>return result.summary.errors &gt; 0;</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-lint.ts</File>
+        <Text>assertion.command-not-evaluated</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>--assertions(?:\s+|=)(?:current</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>leaf project evidence</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>This is an absence of evidence, not a command failure.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>function finalizeResult</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>--assertions current</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>deliverable forces</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>skill-footprint</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>fixtures that construct</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>review.write-evidence-outside-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>--change C-ID --assertions target --run-commands</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>D19</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>D20</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>Do not nest `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside plan assertions</Text>
+      </MustContain>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-ASSERTIONS</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-ASSERTIONS</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/assertions.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/assertions.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustNotContain>
+        <File>src/lint/core.ts</File>
+        <Text>expected while a C-* change is in progress</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>Current mode cannot tell whether writes have started.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>does not fail this structural target query</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>function finalizeResult</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-lint.ts</File>
+        <Text>assertion.command-not-evaluated</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>leaf project evidence</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>omitted --assertions</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/assertions.ts</File>
+        <Text>this project root</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>This is an absence of evidence, not a command failure.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>omitted --assertions</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>this project root</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>structural target query</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>does not fail that query</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>Do not put a current-mode lint of this project root in TargetAssertions</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>--assertions current</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>deliverable forces</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>skill-footprint</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>fixtures that construct</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>review.write-evidence-outside-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>--change C-ID --assertions target --run-commands</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>D19</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>D20</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-ASSERTIONS</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/lint/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/assertions.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-lint.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/skill-contracts.test.ts src/review/core.test.ts src/artifact/grammar.test.ts src/query/command.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:examples</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-LINT-CORE />
+        <M-ASSERTIONS />
+        <M-LINT-CATALOG />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-LINT-CORE />
+        <V-M-ASSERTIONS />
+        <V-M-LINT-CATALOG />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/lint/core.ts</File>
+      <File>src/lint/core.test.ts</File>
+      <File>src/artifact/assertions.ts</File>
+      <File>src/artifact/assertions.test.ts</File>
+      <File>src/grace-lint.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>README.md</File>
+      <File>examples/cli/README.md</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-cli/SKILL.md</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>skills/ngrace/ngrace-explainer/references/verification-driven-dev.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-explainer/references/verification-driven-dev.md</File>
+    </ObservedWriteScope>
+    <!--
+      Waves: T-001 || T-002 (file-disjoint), then T-003, then T-004, then T-005.
+      C-PHASE-RULE-PIN is already archive/superseded with Replacement
+      C-LINT-PHASE-HONESTY; do not run ngrace supersede.
+      Do not add a src/*.ts file. Do not edit finalizeResult's count
+      formula. Do not exempt by issueClass. Do not put current-mode
+      lint of this project root in TargetAssertions or in post-write
+      task Verification. bun run validate:ci is permitted MustPassCommand
+      (command-text ruling). After T-002, current-mode lint of this root
+      will fail this plan's own baseline MustContain of the old lead
+      phrase; that is expected; do not revert the baseline pin.
+      Red budgets: at most 3 distinct signatureKeys per task; never
+      the same key twice. Record fail in its own tool round trip,
+      then edit, then pass. Never fail and pass in one tool call.
+      Report a scope breach BEFORE making a write outside ObservedWriteScope.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Tighten the current-mode matcher and name omitted --assertions</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-DETECT-CURRENT />
+          <AC-SILENT-CONFORMING />
+          <AC-ARCHIVE-EXEMPT />
+          <AC-NO-TRANSITIVE />
+          <AC-DIAGNOSTIC-TEXT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Write tests first in src/artifact/assertions.test.ts and
+            src/grace-lint.test.ts. Keep the existing explicit
+            --assertions current cases red-on-that-input
+            (assertions.test.ts rejects current-mode lifecycle lint
+            nested inside target command evidence; grace-lint.test.ts
+            rejects target command evidence that recursively invokes
+            current baseline lint). Do not replace those cases.
+            Add siblings for implicit-current of this project root
+            and the silent-conforming cases. Covered invocation
+            forms: ngrace lint, bun run ngrace lint, and
+            src/grace.ts lint, each with --path . omitted or set to
+            . or ./. Default lintGraceProject() with no
+            assertionMode option still reports
+            assertion.phase-incompatible-command on an active plan
+            whose TargetAssertions MustPassCommand is implicit-current
+            lint of this root. Add the implicit-current archived
+            case beside the existing explicit-current archived case
+            in grace-lint.test.ts; archived plans must not emit the
+            code. Silent-conforming fixtures, in
+            assertions.test.ts, not live artifacts: bun run
+            validate:ci; bun run lint; bun run ngrace:lint; ngrace
+            lint --assertions baseline; ngrace lint --assertions
+            target; ngrace lint --assertions final; ngrace lint
+            --path examples/polyglot; ngrace lint --help; ngrace
+            status --path .; ngrace review --path .; ngrace gate
+            --help. Planned red 1 of 2: signature-kind test-fail,
+            signature-key detect-implicit-current-root. Record fail
+            in its own tool round trip before the matcher edit.
+          </Criterion>
+          <Criterion>
+            Then tighten validateAssertionPhase in
+            src/artifact/assertions.ts. Matcher is command text
+            only, after flattening whitespace. A Command is
+            current-mode lint of this project root iff all of:
+            (1) it invokes ngrace lint, bun run ngrace lint, or
+            src/grace.ts lint as a subcommand; (2) it does not
+            contain --help; (3) it contains --assertions current
+            (optional = and quotes) or it contains no --assertions
+            token; (4) it has no --path token, or the --path /
+            --path= value is . or ./. Never read package.json and
+            never resolve bun run &lt;script&gt; into script bodies.
+            Detector stays on TargetAssertions MustPassCommand only.
+            Do not add a src/*.ts file. Do not edit
+            src/grace-cursor.ts. Do not change the
+            assertion.command-not-evaluated catalog entry in this
+            task.
+          </Criterion>
+          <Criterion>
+            Update the issue message in validateAssertionPhase and
+            the src/lint/catalog.ts assertion.phase-incompatible-command
+            explanation so both name omitted --assertions as current
+            mode and name this project root. Keep the phrase leaf
+            project evidence in the message. Keep the
+            Phase-Incompatible title. Planned red 2 of 2, only if
+            the matcher lands before the message names those two
+            facts: signature-kind test-fail, signature-key
+            phase-incompatible-diagnostic-text. Prefer landing
+            matcher and diagnostic copy in one production edit
+            after the first recorded fail so this second key is
+            unused. Do not repeat detect-implicit-current-root.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/assertions.test.ts src/grace-lint.test.ts src/lint/catalog.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Replace the in-progress lead line without silencing baseline errors</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-HONEST-LEAD />
+          <AC-NO-SILENCE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Write tests first in src/lint/core.test.ts. Replace the
+            expected while a C-* change is in progress assertions
+            with the new lead-line text. Keep the severity pin at
+            src/lint/core.test.ts:251 (failing MustNotExist remains
+            severity error) and the D13 JSON-key pin (JSON.stringify
+            of the result gains no new top-level key; no
+            baselineExpectationCount / baselineFramingCount). Keep
+            N=0 leading with neo-grace Lint Report and emitting no
+            baseline lead line. Keep TargetAssertions-only
+            extraction issues producing no lead line alone. Keep
+            archived plan baselines syntax-only contributing 0 to N.
+            Keep malformed BaselineAssertions including extraction
+            issues in N. Plural N=2 uses failures: 2 and these are
+            real breakage. The lead line must not contain expected
+            or in progress and must not name --assertions final.
+            Exact singular N=1 operator-facing text: Baseline
+            assertion failures: 1. Current mode cannot tell whether
+            writes have started. If the baseline is still the
+            intended state, this is real breakage. If writes have
+            started, use --assertions target --change C-ID.
+            Planned red 1 of 1: signature-kind test-fail,
+            signature-key honest-lead-line-wording. Record fail in
+            its own tool round trip before editing formatTextReport.
+          </Criterion>
+          <Criterion>
+            Then change formatTextReport in src/lint/core.ts only.
+            Keep evaluateCurrentBaseline
+            (assertionMode === current &amp;&amp; status === approved)
+            as evaluation, not an in-progress claim. Do not skip
+            that evaluation. Do not infer writes-started from git
+            dirty, the ledger, or ObservedWriteScope. Do not add a
+            fifth assertion mode. Do not change finalizeResult's
+            count formula. Do not add a new issue code on the
+            failing-baseline path. After this edit, current-mode
+            lint of this project root will fail this plan's
+            baseline MustContain of the old lead phrase; that is
+            expected; do not revert the baseline pin; do not put
+            current-mode lint of this root in this task's
+            Verification.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/lint/core.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Make selected target without commands a structural query</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-STRUCTURAL-TARGET />
+          <AC-STRUCTURAL-STILL-FAILS />
+          <AC-ABSENCE-VISIBLE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Write tests first. Keep the C-COMMAND fixture at
+            src/grace-lint.test.ts:412 pinning the code and
+            issueClass on target without --run-commands. Keep the
+            existing --run-commands spawn after advanceCursor at
+            :436. Add: summary.errors equals the error-severity
+            count (1 when that code is the only error); CLI spawn
+            of --assertions target --change C-COMMAND without
+            --run-commands exits 0 and JSON issues still contain
+            the code; --fail-on warnings on that same spawn still
+            exits non-zero; --assertions final --change C-COMMAND
+            without --run-commands still exits non-zero with the
+            code counted in summary.errors. Pin a coexisting
+            MustExist so the gate is over non-exempt errors, not
+            exit 0 when this code is the only error. Pin that
+            current-mode CLI spawn of C-COMMAND still exits 0 and
+            current-mode CLI spawn of the failing-baseline fixture
+            still exits 1. The same structural-query holds for
+            MustPassBudget on the C-SYSTEMS fixture at :1071.
+            Pin in src/lint/core.test.ts that summary.errors equals
+            the count of error-severity issues in every mode,
+            including this structural query, and that formatTextReport
+            prints Errors: matching summary.errors and, after the
+            Errors/Warnings lines, the structural-query note.
+            Exact singular N=1 note: 1 command assertion not
+            evaluated; it does not fail this structural target
+            query. Plural N&gt;1 uses N command assertions not
+            evaluated; they do not fail this structural target
+            query. The listed issues still render as [error]
+            lines. The note must not contain expected or in
+            progress. JSON.stringify still has the D13 key set
+            and no new top-level key. Planned red 1 of 2:
+            signature-kind test-fail, signature-key
+            structural-target-exit-zero. Record fail in its own
+            tool round trip before editing shouldFail.
+          </Criterion>
+          <Criterion>
+            Then change shouldFail in src/grace-lint.ts:137-147,
+            called at :292. The default --fail-on errors gate is
+            over non-exempt error-severity issues. The exempt set
+            is assertion.command-not-evaluated when
+            result.assertionMode is target and
+            result.commandsEnabled is false; otherwise empty.
+            Omitting either conjunct is unsatisfiable. A
+            coexisting non-exempt error still fails the exit.
+            Do not implement the gate as exit 0 when this code is
+            the only error. --fail-on warnings still fails because
+            it reads summary.issues. --fail-on never is untouched.
+            --assertions final, --assertions baseline, and
+            --assertions target with --run-commands do not get this
+            exemption. Do not exempt analysis.runtime-missing,
+            analysis.no-adapter, or graph.path-no-adapter. Do not
+            change issueClass, do not rename the code, do not drop
+            it from issues[], do not change current-mode skip, do
+            not change LintSeverity, do not change finalizeResult.
+            Keep evaluateTargetComplete and
+            completeFromStructuralAndCommandEvidence unchanged.
+            Do not add a new flag. LintResult already carries
+            assertionMode and commandsEnabled.
+          </Criterion>
+          <Criterion>
+            Add the structural-query note in formatTextReport in
+            src/lint/core.ts after the Errors/Warnings lines.
+            Keep T-002's honest lead line; do not revert it.
+            Amend assertion.command-not-evaluated remediation in
+            src/lint/catalog.ts so it names the structural target
+            query (reported, does not fail that query's exit) and
+            still says a skipped command is not an executed pass.
+            Name that --assertions final without --run-commands
+            still fails on this code. Do not claim --run-commands
+            works without a declared task in scope. Keep the
+            catalog sentence This is an absence of evidence, not a
+            command failure. Keep listAbsenceCatalogCodes equal to
+            analysis.no-adapter, analysis.runtime-missing,
+            assertion.command-not-evaluated, graph.path-no-adapter
+            (do not edit src/lint/catalog.test.ts; it is outside
+            ObservedWriteScope; the existing pin must stay green).
+            Planned red 2 of 2, only if the note is still missing
+            after shouldFail lands: signature-kind test-fail,
+            signature-key structural-query-note. Do not repeat
+            structural-target-exit-zero.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-lint.test.ts src/lint/core.test.ts src/lint/catalog.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Prove default mode and clean-tree exits are unchanged</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-DEFAULT-UNCHANGED />
+          <AC-CLEAN-NONREGRESSION />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Omitting --assertions still selects current. There is
+            no fifth assertion mode and no additional flag that
+            means phase. resolveAssertionMode still accepts exactly
+            current|baseline|target|final. The lint command
+            assertions default remains current. Pin this in
+            src/grace-lint.test.ts if a dedicated omit-flag spawn
+            is not already present; do not add a new src/*.ts file.
+            Planned reds: none. If a pin is missing, add it green
+            against HEAD-after-T-003 rather than manufacturing a red.
+          </Criterion>
+          <Criterion>
+            On a project with no failing current-mode baseline
+            issues, error count, warning count, issue codes, and
+            JSON top-level keys are unchanged. Fixture proof: the
+            N=0 case in src/lint/core.test.ts still leads with the
+            title. Live proof that is allowed as a task command:
+            bun run validate:examples exits 0 (polyglot current-mode
+            0/0 is inside that script; command text is bun run
+            validate:examples, which the detector must stay silent
+            on). Do not put bun run ngrace lint --path . in this
+            task's Verification; that live root 0/0 is CloseEvidence
+            on AC-CLOSE-LINT, post-archive only. Do not change
+            scripts/validate-walkthrough.ts or
+            scripts/packed-cli-smoke.ts.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/lint/core.test.ts src/artifact/assertions.test.ts src/grace-lint.test.ts</Command>
+          <Command>bun run validate:examples</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Rewrite MustPassCommand doctrine across the ten surfaces</Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-DOCTRINE-TEN />
+          <AC-PIN-SURVIVAL />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Before any wording edit, in its own tool round trip,
+            run bun test scripts/skill-contracts.test.ts
+            src/review/core.test.ts src/artifact/grammar.test.ts
+            src/query/command.test.ts and confirm exit 0. That pin
+            check is the first act of this task, not a follow-up.
+            Planned reds: none. If a later wording edit drops a
+            pin, record fail once with signature-kind test-fail,
+            signature-key doctrine-pin-survival, restore the pin,
+            and pass; do not repeat that key.
+          </Criterion>
+          <Criterion>
+            Then rewrite the MustPassCommand doctrine once across
+            all ten files as the property, not a verb list that
+            condemns ngrace status, --help, or lint of a different
+            project root. Canonical sentence, adapted to each
+            surface: MustPassCommand contains leaf project evidence
+            such as tests, typecheck, build, format, or package
+            checks. Do not put a current-mode lint of this project
+            root in TargetAssertions. Current mode means the
+            command text contains --assertions current, or it
+            invokes ngrace lint and omits --assertions. The
+            restriction matches command text; it does not resolve
+            bun run &lt;script&gt; through package.json, and it does
+            not apply to --help or to lint of a different project
+            root. Use selected target/final lint externally instead.
+            The ten files: README.md (MustPassCommand doctrine
+            paragraph, currently line 214), examples/cli/README.md
+            (Current-mode paragraph, currently line 20),
+            skills/ngrace/ngrace-cli/SKILL.md
+            lifecycle_command_contract,
+            skills/ngrace/ngrace-execute/SKILL.md preflight
+            phase-incompatible clause,
+            skills/ngrace/ngrace-explainer/references/verification-driven-dev.md
+            (plan-assertions paragraph, currently line 85),
+            skills/ngrace/ngrace-plan/SKILL.md command_phase_rules
+            MustPassCommand bullets, and the four
+            plugins/ngrace/skills/ngrace/ mirrors of those skill
+            files. Canonical and packaged skill bodies for each
+            edited skill must end byte-identical. Do not drop any
+            pinned substring listed in the authorizing spec
+            Constraints. Do not edit
+            scripts/skill-contracts.test.ts or
+            src/review/core.test.ts to weaken a pin.
+          </Criterion>
+          <Criterion>
+            State the structural-query property on the surfaces
+            that already describe selected target without
+            --run-commands, without restating the CLI inventory in
+            the cli skill. Canonical sentence, adapted: selected
+            --assertions target without --run-commands is a
+            structural query; unevaluated MustPassCommand /
+            MustPassBudget is reported as
+            assertion.command-not-evaluated and does not fail that
+            query's exit. Surfaces: README.md CLI Overview target
+            row (currently line 168; match the baseline row's
+            optional [--run-commands] form; keep an ngrace lint
+            token in the first cell so src/query/command.test.ts
+            stays green; do not edit src/query/command.test.ts),
+            examples/cli/README.md (add the without-flag
+            invocation beside the existing --run-commands line),
+            skills/ngrace/ngrace-cli/SKILL.md
+            lifecycle_command_contract,
+            skills/ngrace/ngrace-execute/SKILL.md Selected target
+            without commands bullet, and the two
+            plugins/ngrace/skills/ngrace/ mirrors of those skill
+            files. Keep the execute skill's existing
+            --change C-ID --assertions target --run-commands pin.
+            Execute-skill prose may still tell operators not to
+            put current-mode lint of this root in post-write task
+            verification. Do not edit examples/polyglot. Do not
+            edit CHANGELOG.md. Do not edit
+            docs/plans/active/RM-GOVERNED-PATH/decisions.md.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/skill-contracts.test.ts src/review/core.test.ts src/artifact/grammar.test.ts src/query/command.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-LINT-PHASE-HONESTY>
+</NgraceChangePlan>
