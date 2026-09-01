@@ -97,6 +97,31 @@ claims.** Four rules, each written after a measured failure:
    authority's own or a subagent's; larger ones go to the executor. See also [D11](docs/plans/active/RM-GOVERNED-PATH/decisions.md),
    which refuses any deferral without a dependency or a conflict.
 
+8. **Measure the population, never a sample.** Any number that will be written into a finding, a
+   brief, or a decision comes from the whole set, produced by a command that can be pasted, and
+   carried with the date it was taken. Never generalize from spot-checked files: `grep -l` finds the
+   set, but reading three of them and writing that content onto the count is fabrication with a true
+   premise. `grep -c` counts *lines*, not occurrences, and these artifacts wrap phrases across lines
+   — flatten whitespace first. Counts also expire (F123): a corpus count changes the moment a bundle
+   archives, so re-measure at citation rather than quoting an earlier turn. F130.1 was written after
+   a three-file sample became a 22-file claim, and the five files the sample missed were the ones
+   that changed the argument.
+
+9. **Before proposing to change a behaviour, find the decision that created it.** Search the
+   archived bundles and `decisions.md` for the acceptance criterion that put it there, and read the
+   reasoning. Much of what looks like an oversight is a shipped ruling with a counterweight — the
+   current-mode lint framing was deliberately chosen by `C-REPORT-HONESTY`, whose derivation calls
+   the obvious "fix" unacceptable because it would stop catching real breakage. A proposal may still
+   overturn such a ruling, but it must **say** that it is overturning one and answer the original
+   argument. Silently contradicting a prior decision costs the maintainer a turn and reopens a
+   question that was already paid for.
+
+**Verify empirically, and verify before briefing, not after the report.** Every claim above is a
+measurement, not a recollection. Drive the real CLI against a throwaway project, probe both
+directions so a refusal discriminates rather than merely fails, and do this *before* writing a brief
+— a gap the executor has to find is a gap that was cheaper to measure. When the executor corrects a
+number, re-measure it independently and record the correction against the finding that carried it.
+
 When presenting a decision, give **itemized variants with explicit pros and cons**, then the
 recommendation and why the runner-up loses — never prose, and never a single recommendation with the
 alternatives implied.

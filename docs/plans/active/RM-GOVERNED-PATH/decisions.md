@@ -7596,6 +7596,38 @@ archives hollow.
 run record for work already finished — an epoch with no attempts and no reds, dated at the close.
 The empty record is the honest one, and it stands.
 
+### F130.1 correction — F130's archived-corpus count is wrong, and the corpus is more varied than it claimed. **[verified]**
+
+[F130](#f130) says *"**22 carry a bare `bun run ngrace lint --path .`**"*. That is wrong. The executor
+measured the whole corpus; I re-measured independently and got the same numbers:
+
+| claim in F130 | measured |
+|---|---|
+| 22 archived plans carry `bun run ngrace lint --path .` | **21** carry exactly that text |
+| — | **22** carry *some* bare `ngrace` lifecycle invocation |
+| 40 archived plans carry `validate:ci` | **41** |
+
+**How the error was made.** I grepped for `ngrace (lint\|status\|review\|gate\|cursor\|query)`, got 22
+plans, sampled **three**, saw `bun run ngrace lint --path .` in each, and wrote the sample's content
+onto the population's count. A three-file sample is not a measurement of 51 files.
+
+**The five commands the sample missed change the argument, not just the number.** The other bare
+invocations are `ngrace context --help`, `ngrace gate --help`, `ngrace review --help`,
+`ngrace verification localize --help`, and `ngrace review --path examples/polyglot`. Four are
+**`--help` probes**, which evaluate nothing and carry no phase hazard at all; the fifth reviews a
+*different* project root. So the archived corpus does **not** show 22 instances of the hazard. It
+shows 21 instances of one hazardous form and 5 harmless ones that any command-name-based prohibition
+would condemn along with it. That is an argument for naming the *property* rather than the verb, and
+F130 could not make it because F130 had not looked.
+
+**The `validate:ci` count moved for a legitimate reason** — `C-BOUND-VERDICT` archived between the two
+measurements. 40 was true when taken. This is [F123](#f123)'s class: a count with a one-dispatch shelf
+life, correct at measurement and stale at citation. Cite the date with the number, or re-measure.
+
+**F130's ruling is unaffected.** The maintainer's command-text reading still holds, and the executor
+independently confirmed the reason: a transitive reading would newly condemn **41** archived
+`validate:ci` assertions.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
