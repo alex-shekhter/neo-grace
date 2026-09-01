@@ -10,8 +10,9 @@
       without --run-commands — an explicitly-structural
       query that stays answerable when the plan carries
       MustPassCommand: report assertion.command-not-evaluated
-      and do not fail that query's exit on that code
-      alone. Close the detector's implicit-current gap
+      as an error with an honest severity count, and
+      do not let that code gate that query's exit.
+      Close the detector's implicit-current gap
       against current-mode lint of this project root in
       TargetAssertions MustPassCommand. Rewrite the
       MustPassCommand doctrine once, as that property,
@@ -93,11 +94,28 @@
       via records. evaluateTargetComplete
       (src/grace-cursor.ts:1523-1560) treats that
       code as complete undefined / not-run, not as
-      complete false. The CLI exit gate does not:
-      shouldFail (src/grace-lint.ts:137-147) is
-      purely severity-based, and finalizeResult
-      (src/lint/core.ts:251-256) counts every
-      error-severity issue. Catalog
+      complete false. The CLI exit gate does not yet:
+      shouldFail (src/grace-lint.ts:137-147),
+      called at :292, is purely severity-based
+      today — --fail-on never returns false,
+      --fail-on warnings fails on
+      summary.issues &gt; 0, default --fail-on
+      errors fails on summary.errors &gt; 0.
+      finalizeResult (src/lint/core.ts:251-256)
+      counts every error-severity issue. That
+      count is honest and stays. Putting the
+      exemption in the count would print
+      Errors: 0 while still listing an [error]
+      line — a false statement in the other
+      direction, the opposite of this bundle's
+      purpose. --fail-on never already reports
+      Errors: 1 and exits 0 (measured 2026-09-01
+      at HEAD 99d8356 on a project.missing-grace
+      tree and on artifact.missing-grace-version).
+      There is no invariant that Errors: N
+      implies exit 1. The structural query uses
+      that existing decoupling: keep the count,
+      change the default-errors gate. Catalog
       assertion.command-not-evaluated
       (src/lint/catalog.ts:198-210) already says
       "This is an absence of evidence, not a
@@ -186,36 +204,52 @@
       <Goal>
         Make selected --assertions target without
         --run-commands an explicitly-structural
-        query. When that query's only error-severity
-        issues are assertion.command-not-evaluated,
-        the process exits 0 under default --fail-on
-        errors. The issue remains in result.issues
-        with code assertion.command-not-evaluated,
-        severity error, and issueClass absence.
-        summary.errors counts failing errors only:
-        it excludes assertion.command-not-evaluated
-        when assertionMode is target and
-        commandsEnabled is false. shouldFail stays
-        severity-based on summary.errors
-        (src/grace-lint.ts:137-147); do not edit
-        src/grace-lint.ts. Other error-severity
-        issues still count and still fail the exit,
-        including when they coexist with this code.
-        --fail-on warnings still fails because
-        summary.issues includes the reported
-        absence. --assertions final, --assertions
-        baseline, and --assertions target with
-        --run-commands do not get this exemption.
-        Do not exempt analysis.runtime-missing,
-        analysis.no-adapter, or graph.path-no-adapter.
+        query. shouldFail at
+        src/grace-lint.ts:137-147, called at :292,
+        computes the default --fail-on errors gate
+        over non-exempt error-severity issues.
+        The exempt set is
+        assertion.command-not-evaluated when
+        result.assertionMode is target and
+        result.commandsEnabled is false; otherwise
+        empty. A coexisting non-exempt error still
+        fails the exit. Do not implement the gate
+        as "exit 0 when this code is the only
+        error" by special-case count — that would
+        also green --assertions final, which still
+        fails. --fail-on warnings still fails
+        because it reads summary.issues, which
+        includes the reported absence. --fail-on
+        never is untouched. --assertions final,
+        --assertions baseline, and --assertions
+        target with --run-commands do not get this
+        exemption. Do not exempt
+        analysis.runtime-missing, analysis.no-adapter,
+        or graph.path-no-adapter. The issue remains
+        in result.issues with code
+        assertion.command-not-evaluated, severity
+        error, and issueClass absence. LintResult
+        already carries assertionMode and
+        commandsEnabled (src/lint/core.ts:225-227);
+        shouldFail may read those fields. Do not
+        add a new flag.
       </Goal>
       <Goal>
-        When that structural-query exemption applies
-        and N&gt;0 assertion.command-not-evaluated
-        issues are listed, formatTextReport emits
-        Errors: matching summary.errors and, after
-        the Errors/Warnings lines, one note. Exact
-        operator-facing text, singular N=1:
+        summary.errors remains a pure severity
+        count in every mode, including this
+        structural query: it equals the number of
+        error-severity issues. finalizeResult at
+        src/lint/core.ts:251-256 stays that
+        formula. The previously flagged invariant
+        split — text report listing an [error]
+        line while printing Errors: 0 — is
+        refused and gone. When the structural-query
+        exemption applies and N&gt;0
+        assertion.command-not-evaluated issues are
+        listed, formatTextReport prints Errors:
+        matching summary.errors (here N) and,
+        after the Errors/Warnings lines, one note.
+        Exact operator-facing text, singular N=1:
         1 command assertion not evaluated; it does
         not fail this structural target query.
         Plural N&gt;1 uses "N command assertions not
@@ -224,6 +258,8 @@
         as [error] lines. The note must not contain
         "expected" or "in progress". JSON.stringify
         of the result gains no new top-level key.
+        JSON summary.errors is the same severity
+        count as HEAD; it is not an exit-code echo.
       </Goal>
       <Goal>
         Keep evaluateTargetComplete and
@@ -363,9 +399,10 @@
       <Constraint>
         Ceremony tier T2 (cross-cutting): lint core
         banner, assertions detector, catalog copy,
-        summary.errors structural-query exemption,
-        four canonical skill files plus packaged
-        mirrors, README.md, and examples/cli/README.md.
+        CLI exit-gate structural-query exemption
+        in shouldFail, four canonical skill files
+        plus packaged mirrors, README.md, and
+        examples/cli/README.md.
       </Constraint>
       <Constraint>
         This spec amends AC-BASELINE-LINT-FRAMING
@@ -392,7 +429,7 @@
         not decide that the CLI exit of an
         explicitly-structural --assertions target
         query must be non-zero when this code is
-        the only error. Evidence: shouldFail has
+        present. Evidence: shouldFail has
         no issueClass awareness; no test in the
         ten absence-code test files pins this code
         to a non-zero process exit; cursor already
@@ -400,11 +437,15 @@
         Exit 0 is green for the question asked
         (is the structure right). It is not a claim
         that commands ran. Silently dropping the
-        issue would be the contradiction; reporting
-        it while exiting 0 is not. Do not change
-        issueClass, do not rename the code, do not
-        drop it from issues[], do not change
-        current-mode skip.
+        issue, or printing Errors: 0 while listing
+        it as [error], would be the contradiction;
+        reporting it with an honest count while
+        not gating that query's exit is not. Do not
+        change issueClass, do not rename the code,
+        do not drop it from issues[], do not change
+        current-mode skip. The carve-out is this
+        one code in shouldFail's default --fail-on
+        errors branch, not an issueClass skip.
       </Constraint>
       <Constraint>
         Binding ruling 2026-09-01: the
@@ -431,8 +472,12 @@
         code or severity. Do not add a new issue
         code on the failing-baseline path. The
         structural-query exemption is target mode
-        only and does not change current-mode
-        counts on a clean tree.
+        only, lives in the CLI exit gate, and does
+        not change current-mode counts on a clean
+        tree. finalizeResult is unchanged, so a
+        current-mode or final run that today exits
+        1 on summary.errors &gt; 0 still does:
+        those modes have an empty exempt set.
       </Constraint>
       <Constraint>
         Do not change LintSeverity or
@@ -451,9 +496,11 @@
         Detector stays in validateAssertionPhase
         (src/artifact/assertions.ts). Catalog copy
         stays in src/lint/catalog.ts. The
-        structural-query exemption stays in
-        finalizeResult and formatTextReport in
-        src/lint/core.ts.
+        structural-query exit exemption lives in
+        shouldFail in src/grace-lint.ts. The
+        structural-query note stays in
+        formatTextReport in src/lint/core.ts.
+        finalizeResult stays a pure severity count.
       </Constraint>
       <Constraint>
         Do not change the default assertion mode.
@@ -476,14 +523,22 @@
       </Constraint>
       <Constraint>
         After this change, summary.errors equals
-        the count of error-severity issues that are
-        not structural-query-exempt. The exempt
-        set is assertion.command-not-evaluated when
+        the count of error-severity issues in every
+        mode, including selected target without
+        --run-commands. Pin that equality in
+        src/lint/core.test.ts. JSON summary.errors
+        is unchanged from HEAD: a pure severity
+        count, not an exit-code echo. --fail-on
+        never already proved there is no invariant
+        that Errors: N implies exit 1. The
+        structural-query exemption lives in
+        shouldFail's default --fail-on errors
+        branch: the gate is over non-exempt
+        error-severity issues. The exempt set is
+        assertion.command-not-evaluated when
         assertionMode is target and commandsEnabled
-        is false; otherwise empty. Pin that
-        equality in src/lint/core.test.ts. JSON
-        summary.errors therefore matches the CLI
-        exit under default --fail-on errors.
+        is false; otherwise empty. Omitting either
+        conjunct is unsatisfiable.
       </Constraint>
       <Constraint>
         Archived plans remain exempt from
@@ -587,6 +642,7 @@
         src/lint/core.test.ts,
         src/artifact/assertions.ts,
         src/artifact/assertions.test.ts,
+        src/grace-lint.ts,
         src/grace-lint.test.ts,
         src/lint/catalog.ts,
         README.md,
@@ -601,7 +657,7 @@
         plugins/ngrace/skills/ngrace/ngrace-explainer/references/verification-driven-dev.md.
         Do not declare a production path that has
         not been located. Do not add
-        src/grace-lint.ts, src/grace-cursor.ts,
+        src/grace-cursor.ts,
         src/grace-status.ts, src/grace-doctor.ts,
         src/review/scorer.ts,
         scripts/validate-walkthrough.ts, or
@@ -628,15 +684,25 @@
         src/grace-lint.test.ts C-COMMAND fixture
         (currently :407-456) keeps pinning the
         code and issueClass on target without
-        --run-commands; add that summary.errors is
-        0 when that code is the only error, that
-        the CLI spawn of --assertions target
+        --run-commands; add that summary.errors
+        equals the error-severity count (1 when
+        that code is the only error), that the
+        CLI spawn of --assertions target
         --change C-COMMAND without --run-commands
-        exits 0, and that --assertions final
-        --change C-COMMAND without --run-commands
-        still exits non-zero with the code counted
-        in summary.errors. Keep the existing
-        --run-commands spawn after cursor advance.
+        exits 0, that --fail-on warnings on that
+        same spawn still exits non-zero, and that
+        --assertions final --change C-COMMAND
+        without --run-commands still exits
+        non-zero with the code counted in
+        summary.errors. Pin a coexisting
+        MustExist so the gate is over non-exempt
+        errors, not "exit 0 when this code is the
+        only error". Pin that current-mode CLI
+        spawn of C-COMMAND still exits 0 and
+        current-mode CLI spawn of the
+        failing-baseline fixture still exits 1.
+        Keep the existing --run-commands spawn
+        after cursor advance.
       </Constraint>
       <Constraint>
         This bundle replaces C-PHASE-RULE-PIN as
@@ -692,11 +758,19 @@
         this code as non-structural.
       </NonGoal>
       <NonGoal>
-        Do not change src/grace-lint.ts. shouldFail
-        stays a pure read of summary.errors /
-        summary.issues. Owner: unchanged; the
-        exemption is the count, not a second axis
-        in the CLI wrapper.
+        Do not change finalizeResult's count
+        formula (src/lint/core.ts:251-256).
+        summary.errors stays the count of
+        error-severity issues in every mode.
+        Owner: this spec; the exemption is the
+        CLI exit gate, not the count.
+      </NonGoal>
+      <NonGoal>
+        Do not add a fourth --fail-on policy and
+        do not tell operators to pass
+        --fail-on never for this query.
+        --fail-on never would also hide a
+        coexisting real error. Owner: this spec.
       </NonGoal>
       <NonGoal>
         examples/polyglot is unchanged; no
@@ -780,10 +854,15 @@
         omitted or false: issues[] contains
         assertion.command-not-evaluated with
         severity error and issueClass absence;
-        summary.errors is 0; summary.issues is
-        at least 1. formatTextReport lists the
-        issue as [error], prints Errors: 0, and
-        includes the structural-query note.
+        summary.errors equals the count of
+        error-severity issues (here 1);
+        summary.issues is at least 1.
+        formatTextReport lists the issue as
+        [error], prints Errors: 1 matching
+        summary.errors, and includes the
+        structural-query note. The previously
+        flagged invariant split (Errors: 0 with
+        an [error] line) is gone.
         JSON.stringify of the result still has
         the D13 key set and no new top-level
         key. A CLI spawn of ngrace lint --path
@@ -798,7 +877,11 @@
       </AC-STRUCTURAL-TARGET>
       <AC-STRUCTURAL-STILL-FAILS>
         The structural-query exemption does not
-        hide real defects. Target mode without
+        hide real defects. The gate is over
+        non-exempt error-severity issues on the
+        default --fail-on errors branch; it is
+        not "exit 0 when this code is the only
+        error". Target mode without
         --run-commands still has summary.errors
         &gt; 0 and CLI exit 1 when a
         non-exempt error is present, including:
@@ -807,14 +890,17 @@
         when --change is omitted; and
         assertion.command-not-evaluated coexisting
         with a failing MustExist (the MustExist
-        still counts). --assertions final without
-        --run-commands on the C-COMMAND fixture
-        still emits assertion.command-not-evaluated,
-        counts it in summary.errors, and the CLI
-        spawn exits non-zero. --fail-on warnings
-        on a structural target query that has
-        only this absence still fails. Proven in
-        src/grace-lint.test.ts.
+        still counts and still fails the exit).
+        --assertions final without --run-commands
+        on the C-COMMAND fixture still emits
+        assertion.command-not-evaluated, counts
+        it in summary.errors, and the CLI spawn
+        exits non-zero. --fail-on warnings on a
+        structural target query that has only
+        this absence still fails. --fail-on never
+        is untouched. Current-mode CLI spawn of
+        the failing-baseline fixture still exits
+        1. Proven in src/grace-lint.test.ts.
       </AC-STRUCTURAL-STILL-FAILS>
       <AC-ABSENCE-VISIBLE>
         A fix that deletes assertion.command-not-evaluated
@@ -983,12 +1069,16 @@
         Structural-query tests prove target without
         --run-commands on a MustPassCommand plan
         reports assertion.command-not-evaluated,
-        summary.errors 0, CLI exit 0, and the text
-        note; that a coexisting MustExist still
-        fails; that final without --run-commands
-        still fails; that current mode still skips
-        the code; that issueClass and severity are
-        unchanged. Detector fixtures prove both
+        summary.errors equals the error-severity
+        count, text Errors: N matches that count,
+        CLI exit 0, and the text note; that a
+        coexisting MustExist still fails the exit;
+        that final without --run-commands still
+        fails; that --fail-on warnings still fails;
+        that current mode still skips the code and
+        still exits 1 on a failing baseline; that
+        issueClass and severity are unchanged.
+        Detector fixtures prove both
         directions of the current-mode flag on
         this-root lint, and stay silent on
         validate:ci, on lint with --assertions
@@ -1044,12 +1134,15 @@
         accepts status draft.
       </Assumption>
       <Assumption>
-        Implementing the exemption in
-        finalizeResult rather than shouldFail
-        keeps src/grace-lint.ts out of the write
-        surface and keeps JSON summary.errors
-        aligned with the CLI exit. That is the
-        intended layer, not a workaround.
+        Implementing the exemption in shouldFail
+        rather than finalizeResult keeps
+        summary.errors a pure severity count in
+        every mode, including JSON, and uses the
+        existing --fail-on decoupling. That is
+        the intended layer. LintResult already
+        carries assertionMode and commandsEnabled,
+        so the (result, failOn) signature can
+        stay.
       </Assumption>
     </Assumptions>
   </C-LINT-PHASE-HONESTY>
