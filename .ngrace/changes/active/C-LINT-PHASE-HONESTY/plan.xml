@@ -263,6 +263,8 @@
       <File>plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md</File>
       <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
       <File>plugins/ngrace/skills/ngrace/ngrace-explainer/references/verification-driven-dev.md</File>
+      <File>.ngrace/changes/active/C-LINT-PHASE-HONESTY/spec.xml</File>
+      <File>.ngrace/changes/active/C-LINT-PHASE-HONESTY/plan.xml</File>
     </ObservedWriteScope>
     <!--
       Waves: T-001 || T-002 (file-disjoint), then T-003, then T-004, then T-005.
