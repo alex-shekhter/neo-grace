@@ -231,6 +231,8 @@ Output modes:
 
 Lint, status, and projection-backed navigation fail closed: invalid options, invalid grammar, malformed active assertions/scopes, duplicate ownership, missing routed files, or ambiguous targets produce structured results or a nonzero error envelope. Unrecognized arguments are rejected and usage is printed. JSON command failures emit one stable `{ "schemaVersion": "1.0.0", "ok": false, "error": { ... } }` envelope on stdout; text failures emit one concise actionable line without a stack trace.
 
+The process exit code is governed by `--fail-on` (`errors` by default, or `warnings` | `never`), not by the reported error count, and the two are deliberately decoupled: `ngrace lint --fail-on never` reports `Errors: N` and still exits `0`. Machine consumers must therefore choose which signal they read. The exit code answers *did this invocation fail its policy*; `summary.errors` in `--format json` answers *how many error-severity issues were found*. A consumer that treats `summary.errors > 0` as failure will read an invocation as failed wherever the policy does not fail it, so read the exit code for pass/fail and `summary` for detail.
+
 ## Grep-First Navigation
 
 Prefer this order when narrowing scope:
