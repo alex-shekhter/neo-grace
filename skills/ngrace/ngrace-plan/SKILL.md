@@ -29,7 +29,7 @@ Optional-section teaching source: `references/change-plan-template.xml`.
 <approved_plan_immutability>
 - If `plan.xml` already exists with status `approved`, stop before writing.
 - Do not refresh `BaselineAssertions`, `TargetAssertions`, `DurableScope`, `ObservedWriteScope`, or tasks in place.
-- Create a new `C-*` bundle and mark the old bundle superseded with an explicit replacement reference.
+- Create a new `C-*` bundle and mark the old bundle superseded with an explicit replacement reference: create the replacement first with `ngrace spec new`, then run `ngrace supersede`. Replacement-first is the only linting order. Named checks: `change.invalid-active-status`, `change.archive-status-mismatch`, `change.superseded-missing-replacement`, `change.superseded-self-replacement`, and `change.superseded-replacement-not-found`. Do not hand-write a superseded status or move the bundle directory by hand.
 </approved_plan_immutability>
 
 <approval_lexicon>

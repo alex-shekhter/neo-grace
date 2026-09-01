@@ -5,7 +5,7 @@ description: Execute an approved neo-grace NgraceChangePlan in sequential or par
 
 <skill>
 <preflight>
-Require one active bundle with approved, identity-matched `spec.xml` and `plan.xml`. Approved plans are immutable. Read context, projections, assertions, scopes, task dependencies, and verification before editing. Load the task slice with `ngrace context --task T-NNN --change C-ID` (Purpose is quotation, not paraphrase; archived subjects are measurement-only). Reject phase-incompatible plans before writes: `MustPassCommand` must be leaf project evidence, and neither target assertions nor post-write task verification may invoke `--assertions current` or nest GRACE lifecycle commands. Supersede and replan instead of editing an approved conflict in place.
+Require one active bundle with approved, identity-matched `spec.xml` and `plan.xml`. Approved plans are immutable. Read context, projections, assertions, scopes, task dependencies, and verification before editing. Load the task slice with `ngrace context --task T-NNN --change C-ID` (Purpose is quotation, not paraphrase; archived subjects are measurement-only). Reject phase-incompatible plans before writes: `MustPassCommand` must be leaf project evidence, and neither target assertions nor post-write task verification may invoke `--assertions current` or nest GRACE lifecycle commands. Run `ngrace supersede` instead of editing an approved conflict in place.
 </preflight>
 
 <assertion_commands>
@@ -25,7 +25,7 @@ Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires
 | state | required action |
 | clean-to-start | Run selected baseline, then execute tasks. |
 | partial-observed-writes | Inspect the declared observed scope and ask whether to resume or revert. |
-| durable-state-changed | Hard stop; supersede and replan. Approved assertions are immutable. |
+| durable-state-changed | Hard stop; run `ngrace supersede`. Approved assertions are immutable. |
 | target-already-satisfied | Run final end-state validation, opted-in command evidence when declared, durable reconciliation, and ask for explicit apply confirmation. |
 | unsafe-unknown-drift | Hard stop and report unexplained files. |
 </recovery_decision_table>

@@ -96,6 +96,7 @@ const PACK_ALLOWED_EXACT = new Set([
   "src/grace-lint.ts",
   "src/grace-module.ts",
   "src/grace-status.ts",
+  "src/grace-supersede.ts",
   "src/grace-verification.ts",
   "src/language-registry.ts",
 ]);

@@ -6850,6 +6850,445 @@ pin or a rule the product already enforces.** Spec review has to execute the cri
 tree, not read them for plausibility — the same conclusion F112 reached, now with a second instance
 in one bundle.
 
+### F114 — the approve writer matches one quote style and no-ops silently on the other. **[verified]**
+
+`writeDraftRootToApproved` (`src/gates/ledger.ts:1004-1013`), shipped by
+[`C-APPROVAL-FINGERPRINT`](../../../../.ngrace/changes/archive/C-APPROVAL-FINGERPRINT/), searches the
+root opening tag for the **literal** `status="draft"` and returns silently when it is absent
+(`:1009-1010`). Single-quoted attributes are legal XML: I parsed
+`<NgraceChangeSpec graceVersion='1.0' status='draft'>` and got **0 issues** with
+`status` read as `draft`.
+
+**The failure is silent in both directions.** On such an artifact `ngrace gate approve` still prints
+`permit`, still appends a `Decision`, and still records a fingerprint — **of bytes that still say
+`draft`**. The status is never written. And because the three-way detector fires only on
+`approved`, nothing reports the artifact afterwards. An operator sees a permitting approve and a
+recorded fingerprint over an unapproved document.
+
+Every artifact this repo generates uses double quotes (`spec new` renders them), so the corpus is
+unaffected today. The product ships to other repositories, where a hand-authored or
+externally-generated artifact is not obliged to match.
+
+This is the *"silence must not read as will pass"* class the roadmap exists to remove, shipped by the
+bundle whose subject was approval honesty, and found one bundle later by the executor.
+
+**The rule.** A writer that locates its target by literal string must either normalise first or refuse
+loudly when the target is absent. A silent `return` in a writer the caller has already reported as
+permitting is indistinguishable from success.
+
+### F115 — corrections to F86.2 and to the authority's spec brief. **[verified]**
+
+Four, all raised by the executor.
+
+**1. F86.2's operation count does not add up.** It says *"four hand writes"* plus a move, and the
+registry repeats *"the four writes plus the move"*. The close it describes is **five** operations:
+`status` on `spec.xml`, `status` on `plan.xml`, a replacement reference on **both**, and the
+directory move. One close, two counts.
+
+**2. F86.2's `src/gates/command.ts:336-340` citation is stale.** The gate subcommand map is now at
+`:426-429`; `C-APPROVAL-FINGERPRINT` grew that file. Verified.
+
+**3. The brief's "both are defensible" was wrong.** It offered *create the replacement* and *require
+it* as a genuine fork. Create is not coherent: the measured close authors the successor as a **real
+spec** while the predecessor is still the live contract, then marks. A skeleton minted as a
+side-effect of abandoning the predecessor is `spec new` with a surprise archive, and it inverts the
+only operator order that has ever produced a linting successor. The charter's *"atomically with the
+replacement"* means the replacement **reference** is part of the same verb, not that the verb absorbs
+`spec new`.
+
+**4. The brief's ledger-gap equivalence was wrong.** It said a supersede verb writing nothing to the
+ledger *"reproduces exactly"* [F86](#f86)'s gap. It does not. F86's gap is a **permitting archive
+`Decision` after which folklore performs the transition** — a gate record standing in for work the
+gate did not do. There is no supersede gate; expanding the closed `GateId`
+(`src/gates/ledger.ts:103`) to mint one would report an evaluation that never ran, which is a worse
+honesty defect. Superseding already leaves a lint-checked machine record the applied-close never had:
+`status="superseded"` **plus** a `Replacement` naming the successor, both enforced by the grammar.
+The residual is narrower and should be stated as such — the record is a **state, not an event**: it
+carries no time, actor, or evidence that the verb ran.
+
+**The rule.** Before calling two situations the same defect, name the mechanism of each. "No record"
+and "a record of the wrong thing" have different repairs.
+
+### F116 — the surgical needle is narrower than the parser on more than one axis, so quote normalisation alone does not close F114. **[verified]**
+
+[F114](#f114) recorded the repair as an **OR**: normalise both quote styles, *or* refuse loudly. The
+executor answered **AND**, and the measurement says it is right.
+
+Parsing four opening tags that a reader would all call `draft`, and asking separately whether the
+writer's literal `status="draft"` needle is present:
+
+| form | parsed status | `status="draft"` needle found |
+|---|---|---|
+| `status="draft"` | `draft` | yes |
+| `status='draft'` | `draft` | **no** |
+| `status = "draft"` | `draft` | **no** |
+| attribute on its own line | `draft` | yes |
+
+The needle misses on **two** axes, not one. Quote normalisation repairs row two and leaves row three
+writing nothing while the caller has already printed `permit`. So normalise-only is not a complete
+repair, and refuse-only turns a legal, lint-green draft into a document that can be neither approved
+nor superseded. Both halves are load-bearing.
+
+**The refuse must key on the grammar parse, not on the surgical reader.** `rootStatusFromFile`
+(`src/gates/ledger.ts:991-1001`) opens with the *same* narrow literal `'status="'`, so it returns
+`undefined` on rows two and three. A refuse conditioned on *"the surgical reader says draft"* can
+never fire on exactly the inputs that need it — it would ship as dead code that reads like a
+guarantee. Conditioning it on `parseGraceXmlArtifact` is what makes the property live.
+
+**The rule.** When a writer and a reader disagree about what a document says, the repair is not to
+teach the writer one more form the reader accepts. It is to make the writer prove it changed
+something, measured against the *authoritative* parse.
+
+### F117 — `CONTRIBUTING.md` states the opposite of what `package.json` runs. **[verified]**
+
+`CONTRIBUTING.md:46` says `validate:release` *"adds `release:check` and `validate:packed`, which
+`validate:ci` does not run"*. `package.json:73`'s `validate:ci` chain contains
+`bun run validate:packed`. The parenthetical rationale below the table repeats the claim.
+
+The sentence is false as written, and it is false in the direction that costs work: a contributor
+reads it as *"CI will not catch my packaging change"* and reaches for the heavier script, or trusts
+the sentence over the manifest. It also weakens the ship proof this bundle leans on — a spec that
+cites `validate:packed` as CI-run evidence should not be contradicted by the contributor guide.
+
+**Out of scope for `C-SUPERSEDE-VERB`.** Found after the spec's Constraints landed; a doc-only fix
+grafted onto an in-flight bundle is exactly the scope drift the constraint list exists to prevent.
+It needs its own change.
+
+### F118 — corrections to the authority's amendment brief. **[verified]**
+
+Three, all raised by the executor, all upheld on measurement.
+
+**1. `src/gates/ledger.ts` was already on the write surface.** The brief said the F114 repair
+*"enters"* it into the write allowlist and asked the spec to justify that as a deliberate in-scope
+repair. It is already one of the five files `src/grace-cursor.test.ts:484-513` allows, and this
+bundle was going to edit it anyway for the superseded writer. F114 is a **second reason** to edit a
+file already in scope, not a first appearance — the justification the brief asked for is answering a
+question nobody asked.
+
+**2. "Still prints `permit`" is not the writer's silence.** The brief folded the permit print into
+the F114 defect. `evaluateGate` returns `permit` *before* the writer runs
+(`src/gates/command.ts:97-118`); the stamp is inside the recording `try`, so a throw becomes
+`recordingError`, appends no `Decision`, writes no fingerprint, and `printGateEvaluation` sets a
+nonzero exit (`:180-182`). Suppressing the permit text would mix evaluation with recording and
+collide with A31.5, which exists precisely so a recording failure cannot swallow the evaluation the
+caller asked for. Naming the honest evaluation as the defect is [F86](#f86)'s error read backwards.
+
+**3. The five-operation count is the spec+plan close.** [F115](#f115) fixed F86.2's count at five; the
+brief then reused five as though it covered every bundle. A spec-only bundle is **three** operations.
+The corpus has exactly one such archived bundle, `C-LEDGER-READ-ABSENCE`. Repeating a corrected
+integer in a context the correction did not cover is the same off-by-one, one generation later.
+
+**Corpus measured while checking this.** Three superseded bundles
+(`C-LEDGER-READ-ABSENCE` spec-only, `C-CURSOR-TASK-IDENTITY`, `C-CURSOR-TASK-SENTINEL`), five
+superseded artifacts, every one carrying a `<Replacement>` element naming a different existing `C-*`,
+and every bundle with a `plan.xml` carrying the status on **both** files. The verb's target shape is
+the shape the archive already has. Separately: **zero** artifacts in this repository use a
+single-quoted root attribute, so F116's row two is reachable only through a constructed fixture —
+which is an argument for the fixture, not against the repair, because the grammar accepts the form
+from any project the CLI is pointed at.
+
+### F119 — the authority's brief made F62's error, on the roadmap that records F62. **[verified]**
+
+The plan-authoring brief for `C-SUPERSEDE-VERB` ended: *"Stop after `plan.xml` is drafted and lint
+is green."* Measured after authoring: **1 error**,
+`change.graph-anchors-miss-write-scope`, because `ObservedWriteScope` names
+`src/grace-supersede.ts` before that file exists. `linksByPath` is built from files on disk, so the
+check cannot resolve a path the change has not yet created.
+
+This is the **third** instance of the class on this roadmap and the first the authority committed
+after writing the rule down. [F62](#f62) recorded the same code, on the same artifact shape, for
+`C-SCHEMA-REFERENCE`'s `src/artifact/schema-reference.ts`, and closed with: *"A prompt may state an
+expected lint result only when the authority has run that exact command against that exact artifact
+shape, or when the ledger already rules on the window."* Both conditions were available and neither
+was used — [D12](#d12) authorizes the window and [F19](#f19) already rules that the approval commit
+carries the predicted error and names it in the body.
+
+**The window is real and the alternatives are worse**, which is why it is authorized rather than
+repaired here. Dropping the path from `ObservedWriteScope` fails the spec's declared-writes
+requirement; stubbing the file to satisfy the checker is production work performed to make a lint
+run green, which is the failure mode `AC-HEAD-RED` exists to prevent. Precedent confirms the
+transient closes on its own: `C-SCHEMA-REFERENCE` shipped in `3e5c3d8` (PR #46) and that path lints
+clean today.
+
+**Why the phrasing mattered even though the executor ignored it.** A stop condition stated as an
+expected number is an instruction to produce that number. This executor measured and reported the
+discrepancy; that is the behaviour the standing report-by-exception field is for, not a reason to
+keep writing briefs that require it. The correction is not "be more careful with predictions" — it
+is to **state the window and ask for a measurement**, which costs the same to write.
+
+**The rule, restated because restating it is apparently not enough.** When a brief is about to name
+an expected verification result, the authority either ran that exact command against that exact
+artifact shape, or cites the ledger entry that rules on the window, or says neither and asks. There
+is no fourth form, and "it will be green" is not a stop condition — *"report what it says"* is.
+
+### F120 — the approved plan's `ObservedWriteScope` omits a write the spec's own packaging ruling forces. **[verified]**
+
+> **Resolution superseded.** This entry's original disposition — *"close with the
+> deviation recorded, and do not supersede"* — was overturned by [F120.1](#f1201) and by the
+> maintainer. `C-SUPERSEDE-VERB` was superseded and archived; `C-SUPERSEDE-COMMAND` replaces it.
+> The finding below is accurate on the defect and stale on the remedy. Per [F27.1](#f271), a
+> disposition that changed says so before its body, not after it.
+
+`C-SUPERSEDE-VERB` execution wrote `scripts/release-check.ts`, the only changed file absent from the
+approved plan's `ObservedWriteScope`. The write is **not discretionary**.
+`scripts/release-check.test.ts:494-513` requires every `src/` path in `package.json#files` to also
+appear in `PACK_ALLOWED_EXACT`, and states its own reason: adding a file to the published package
+*"must be a conscious second edit, so the list cannot be derived without making the check vacuous."*
+So the `files` entry the maintainer ruled into this bundle cannot land without a second edit that
+the approved plan does not declare. `AC-SUITE-AND-CI` (`bun test` green) and that
+`ObservedWriteScope` cannot both be satisfied. The executor made the write and reported it rather
+than leaving the suite red; that is the correct order of precedence.
+
+**The gap is the authority's, from the spec review.** Asked what pins `package.json#files`, the
+review found `src/artifact/scale-ergonomics.test.ts:368`, correctly ruled that it would not catch a
+missing entry, and stopped at one pin. `scripts/release-check.test.ts:494` — the pin that actually
+fails — was never found. The spec's packaging analysis inherited that gap and the plan's
+`ObservedWriteScope` inherited it from the spec. One instance of a class is not the class; a survey
+that stops at the first hit is an existence proof, not an inventory.
+
+**The remedy the authority first proposed is prohibited.** It recommended amending the approved
+plan's `ObservedWriteScope` and re-approving. `ngrace-plan`'s `approved_plan_immutability` names
+`ObservedWriteScope` in its own list of fields that must not be refreshed in place, and routes any
+change through a replacement `C-*` plus `ngrace supersede`. The maintainer caught it. An authority
+that has read a rule into a bundle's acceptance criteria is not thereby governed by it — this
+roadmap's own [F89](#f89) point, arriving from the other direction.
+
+**Resolution: close with the deviation recorded, and do not supersede.** Superseding a complete,
+green implementation over one missing path would rebuild the whole bundle to carry the same code.
+The omission has no mechanical consequence today, because
+[F27](#f27) already established that `ObservedWriteScope` is *declared and digested but never
+compared* — found the same way, when `C-ESCALATION-HONESTY` T-001 edited a file its plan did not
+declare, and that bundle closed. This is the **second** recorded instance of that class.
+
+**What it costs, stated so the archive is not silently wrong.** `ObservedWriteScope` is read by
+`grace-cursor.ts:1461` for repository-intersection and task-identity recovery, so an incomplete one
+weakens that inference for this bundle. More importantly, `C-PLAN-SCOPE-PATHS` is queued to start
+comparing declared scope against real writes: when it lands, this bundle's archived
+`ObservedWriteScope` is **known-incomplete**, not evidence of a clean run. That is the whole reason
+to record this rather than let it pass as a footnote — and it is the second instance arguing that
+the bundle should be given a slot in the order rather than left named-but-unpositioned.
+
+### F121 — two thin reds in an otherwise conforming execution. **[verified]**
+
+Both self-reported by the executor; neither blocks the close.
+
+**1. `require-replacement`'s first assertion was HEAD-true.** *"No new directory, source unchanged,
+nonzero exit"* holds at HEAD for any unknown command, so it does not discriminate the behaviour
+under test. The recorded fail came from `combinedOutput` matching `/replacement/i` against citty's
+usage text — a red against a string in a help message, not against the refuse path. The approved
+plan ordered it anyway. Same family as [F102](#f102) and [F112](#f112), one generation on: not a
+property true both before and after, but a property whose *first* clause is, with the discriminating
+work done by a clause that tests the wrong surface.
+
+**2. The allowlist-membership change shipped with no recorded red.** Adding
+`src/grace-supersede.ts` to `PACK_ALLOWED_EXACT` changed a HEAD-false property to true, and
+`bun test` was genuinely red before the edit — the evidence existed. It was never routed through a
+`cursor attempt`, because T-005 was planned as a suite-observation task with zero reds and the write
+was not in any task's scope. An unrecorded true red is better than a manufactured one and worse than
+a recorded one; it leaves the ledger claiming less work than was done.
+
+**The rule.** When an execution is forced outside the plan, the forcing evidence is worth a recorded
+attempt even though no task owns it. The alternative is a run ledger that is accurate about
+everything it mentions and silent about the part that changed the release surface.
+
+### F27.1 amendment — F27's headline is stale; `C-DECLARED-WRITES` paid it. **[verified]**
+
+[F27](#f27)'s title still reads *"`ObservedWriteScope` is declared and digested, but never
+compared."* That was true when written and is false now. `C-DECLARED-WRITES` shipped **both** halves
+the finding asked for, and `src/review/core.ts:155` names F27 as its subject. Two codes exist today:
+
+- `review.scope-outside-write-scope` — repository changed files against the plan's declaration
+  (`src/review/core.ts:1033`).
+- `review.write-evidence-outside-scope` — durable `WriteEvidence` paths, the tool-generated git
+  digests on cursor attempts, against the same declaration (`:1097`).
+
+Measured on `C-SUPERSEDE-VERB` after execution: `ngrace review --change C-SUPERSEDE-VERB` returns
+**three** findings, two of them naming `scripts/release-check.ts`, one from each audit. The scope
+audit reports *"ran over 48 changed file(s) against ObservedWriteScope … 2 out-of-scope"*. Nothing
+about this is silent.
+
+**F27's body is still accurate and its headline is not.** The body enumerates the `scope.*` shape
+and overlap checks and `change.graph-anchors-miss-write-scope`, and says *those* never compare the
+declaration to what was written. That remains true. The headline generalizes to every surface, and
+`review` is now a counterexample.
+
+**Why this is worth its own entry.** A reader who cites the headline without reading the body will
+restate a paid defect as a live one. That is exactly what the authority did in [F120](#f120), twice
+in one session, and it produced a recommendation that the product already forbids. A finding whose
+defect was later paid should say so in its first sentence; this ledger has no convention for that,
+and the absence is now a measured cost, not a tidiness complaint.
+
+**Observed while measuring, not yet ruled.** The changed-file audit flags
+`docs/plans/**` edits — the authority's own roadmap commits — as out of scope for whatever bundle is
+active, while the `WriteEvidence` audit filters that prefix (`src/review/core.ts:1066`). So finding
+one on this bundle is `decisions.md`, which no bundle will ever declare. Whether the changed-file
+audit should adopt the same filter is a question for the bundle that takes this area, not something
+to fix in passing.
+
+### F120.1 correction — three wrong statements in F120 and in the recommendation it carried. **[verified]**
+
+**1. "No mechanical consequence today" is false.** F120 said the undeclared write has no mechanical
+consequence because `ObservedWriteScope` is never compared. `ngrace review` returns three findings
+naming it. See [F27.1](#f271).
+
+**2. The proposed remedy is already forbidden by the product.** The authority recommended recording
+a machine-readable deviation that would make the check pass — an exception list by another name. The
+remediation text on `review.write-evidence-outside-scope` says, in the tool's own words: *"Do not
+widen `ObservedWriteScope` semantics to swallow the breach; do not author an exception list in
+`plan.xml`"*, citing [F9.10.1](#f9101). F9.10.1's argument is that a declaration authored by the
+party under examination cannot be that examination's ground truth. A deviation record written by the
+executor whose scope discipline is being audited is the same object under a different name. The
+maintainer rejected the recommendation before this was found; the ledger already contained the
+reason.
+
+**3. "Ready to close" was wrong.** The bundle cannot close honestly while three review findings
+stand. `gate apply` requires a recorded review `Verdict` and blocks on its absence
+(`src/gates/core.ts:371-388`; `requirement(id, required, present, message)` sets
+`blocking = required && !present`). Recording `--outcome pass` over three open findings would be a
+gate record standing in for work the gate did not do — [F86](#f86)'s defect, authored deliberately.
+
+**What F120 got right and keeps.** The write was forced, the plan's declaration was wrong, the gap
+came from a spec review that stopped at the first pin on `package.json#files`, and amending an
+approved plan in place is prohibited.
+
+### F122 — what actually pins `package.json#files`, enumerated. **[verified]**
+
+The inventory whose absence produced [F120](#f120). Six readers; **two** fail when a new
+`src/*.ts` path is added to `files` without a second edit. Reported by the executor, spot-checked
+against source.
+
+| # | Reader | Fails a new `src/` files entry? |
+|---|---|---|
+| 1 | `scripts/release-check.test.ts:494-513` — every `src/` path in `pkg.files` must be in `PACK_ALLOWED_EXACT` (`scripts/release-check.ts:84-101`) or `PACK_ALLOWED_PREFIXES` (`:103-111`) | **Yes** — `bun test scripts/release-check.test.ts` |
+| 2 | `scripts/release-check.ts:127-139` `collectPackedFileErrors` — same allowlist, applied to packed tarball paths rather than the JSON array | **Yes** — `bun run release:check`, and so `validate:release` / `prepublishOnly` |
+| 3 | `src/artifact/scale-ergonomics.test.ts:368-380` — four historical `src/grace-*.ts` plus `src/gates`, `src/review`, `!src/review/scorer.ts` | No |
+| 4 | `scripts/validate-marketplace.ts:324-330` — requires the two `!` exclusions only | No |
+| 5 | `scripts/release-checklist.ts:253-256` — same two exclusions | No |
+| 6 | `scripts/packed-cli-smoke.ts:139-167` — packs and runs the CLI | Fails a **static import of an omitted file**; does not fail files-present / allowlist-absent |
+
+**The two that fail are not the same check.** Pin 1 compares the declared array; pin 2 compares what
+`npm pack` actually emitted. A change can satisfy one and not the other, and they surface in
+different commands — `bun test` versus `release:check`. The authority found pin 3, correctly ruled
+it would not catch a missing entry, and stopped, which is how a **false completeness claim** reached
+an approved spec: `C-SUPERSEDE-VERB`'s Constraint reads *"Forced write surface the later plan must
+scope, including every pin this deliverable moves"* and then omits `scripts/release-check.ts`.
+
+**The rule.** One instance of a class is an existence proof, not an inventory. A spec sentence
+claiming to enumerate *every* member of a class is a completeness claim, and completeness claims
+require a search that was actually run — the same standard applied to any absence claim.
+
+**Also recorded:** `AC-PACK-ALLOWLIST` in `C-SUPERSEDE-COMMAND` makes this coupling a reddenable
+criterion, which closes [F121](#f121)'s second half — the allowlist membership change that shipped
+with a real but unrecorded red. It is a **fourth** reddenable property in the packaging area, so a
+plan that copies the predecessor's three-red T-002 split will breach the distinct-signature budget
+([F56](#f56)) unless it re-splits.
+
+### F123 — a superseded plan's unreached targets are reported as `review.confidently-wrong`. **[verified]**
+
+`ngrace review` reports two `review.confidently-wrong` findings against
+`.ngrace/changes/archive/C-SUPERSEDE-VERB/plan.xml` — its `TargetAssertions` `MustExist`
+`src/grace-supersede.ts` and `src/grace-supersede.test.ts`, neither of which is on disk. They appear
+with or without `--change`, so they are not scoped to the bundle under review; running
+`review --change C-SUPERSEDE-COMMAND` surfaces findings whose `file` is the *predecessor's* plan.
+
+> **Count corrected.** This entry originally said *"two"* findings. That was a present-state
+> measurement with a shelf life of one dispatch. Once `C-SUPERSEDE-COMMAND`'s draft plan existed,
+> the same detector reported its `TargetAssertions` too: **four** under `--severity error`, **five**
+> unfiltered including the `docs/plans/**` scope finding. Cite the mechanism, not the number —
+> see [F124](#f124).
+
+**Not general noise, and not currently a defect.** The other three superseded bundles produce zero
+findings, because their targets were edits to files that already existed. `C-SUPERSEDE-VERB` is the
+first superseded plan whose target state included a file that never came to exist. The finding is
+**transient by construction**: it clears when `C-SUPERSEDE-COMMAND` lands `src/grace-supersede.ts`,
+in the same way `change.graph-anchors-miss-write-scope` clears when the declared path appears.
+
+**The question it raises is real and is not answered here.** A superseded plan's target state was
+deliberately abandoned, so calling its assertions *confidently wrong* is true in letter and
+misleading in spirit — the fingerprint audit already takes the other view for a comparable case,
+skipping any artifact whose root status is not `approved` (`src/review/core.ts:1686`). Whether the
+target audit should skip `superseded` roots the same way belongs to whichever bundle next opens
+`src/review/core.ts`; it is recorded here so that bundle inherits the question rather than
+rediscovering it.
+
+**Watch item, not an action.** If a future superseded plan targets a file that is never created by
+any successor, this finding becomes permanent rather than transient, and the argument above stops
+holding.
+
+### F124 — a completeness claim with a conditional member, and why this one does not force a supersede. **[verified]**
+
+`C-SUPERSEDE-COMMAND`'s approved spec opens its forced-write inventory with *"Forced write surface
+the later plan must scope, **including every pin this deliverable moves**"* (`spec.xml:975-978`) and
+then lists *"`scripts/skill-contracts.test.ts` **if the pinned substrings move**"* (`:1038-1039`).
+T-005 adds three skill-path reds to that file, so the write is unconditional and the *"if"* is
+wrong. Same class as [F120](#f120), one file smaller — and in the very spec written to repair F120.
+
+**It does not force a second supersede, and the difference is the whole lesson.** F120's defect was
+a plan whose `ObservedWriteScope` **omitted** a forced write; that is caught after execution by
+`review.scope-outside-write-scope` and `review.write-evidence-outside-scope`, and it made
+`AC-SUITE-AND-CI` and the declaration jointly unsatisfiable. Here the plan **declares** the path
+unconditionally, which is stricter than the spec's prose, and measurement agrees: lint reports only
+the authorized `D12`/`F19` window and nothing compares spec prose to a plan's declaration at error
+severity. A plan stricter than its spec's prose is not the failure mode; a plan looser than reality
+is. Recorded so the next reader does not treat "another completeness claim" as automatically the
+same disposition.
+
+**A second trap in the same area, worth the execution brief.**
+`scripts/release-check.test.ts:506` extracts the allowlist with `/^ {2}"(src\/[^"]+)",$/gm` —
+exactly two leading spaces and a trailing comma. Existing members are two-space indented
+(`scripts/release-check.ts:98`). An otherwise correct four-space insertion leaves that pin red after
+an honest edit, and the failure reads as a missing entry rather than a formatting one.
+
+**The standing point.** [F122](#f122) said one instance of a class is an existence proof, not an
+inventory. This adds the converse: an inventory that qualifies one of its own members with *"if"*
+has not enumerated it, it has deferred the question to whoever reads it next.
+
+### F125 — a green suite proved nothing about three real defects. **[verified]**
+
+`C-SUPERSEDE-COMMAND` was reported complete with 1562 passing tests and five green validators.
+Exercising the CLI and running the validators the report omitted found three defects.
+
+**1. The delivered code did not typecheck.** `src/grace-supersede.ts` called `runGraceCommand` with
+two of its three required arguments (`src/query/errors.ts:112-116`). Bun strips types without
+checking them, so the suite was silent; `bunx tsc --noEmit` is the only surface that sees it, and it
+runs as a pre-commit hook, so **no commit could land** until it was fixed. The execution report's
+evidence list omitted `typecheck` — and so did the EVIDENCE line of the authority's brief, which
+asked for `bun test`, marketplace, `validate:packed`, `release:check`, and lint.
+
+**2. An undocumented test-only injection bag.** `supersedeChangeBundle` grew an optional
+`io: { renameSync? }` because EXDEV cannot be provoked through a spawned CLI and `chmod` yields
+`EACCES`. The house precedent is `grace-cursor.ts:1053`, whose `injectFailure*` hooks carry a comment
+explaining exactly that. Kept, now documented the same way.
+
+**3. An error message that claimed more than it checked.** The already-archived refuse said the
+bundle was *"already archived as superseded with that replacement"* for **any** archive-only id,
+including one archived as `applied`. The refuse was right; the sentence was not.
+
+**The fourth finding is the one worth keeping.** Defect 3's test pinned the message with
+`/already done|already archived/i` — a regex the over-claiming sentence satisfied just as well as an
+accurate one. **The test could not tell the two apart, so it was not testing the property it
+named.** A green assertion is evidence only to the extent its matcher discriminates, and a loose
+regex over an error string usually does not.
+
+**The rule, now in `CLAUDE.md`.** A passing suite is a precondition, never the evidence. Before
+accepting delivered work the authority builds a throwaway project, drives the real CLI through the
+happy path and every refuse path, takes a byte-level diff wherever the change claims to be surgical,
+and runs **every** validator rather than the subset the executor reported. Doing that here proved
+the supersede diff contained exactly the status attribute and the `<Replacement>` insert, that no
+ledger Decision was minted, and that both F114 properties reproduce end to end — none of which the
+assertion count showed.
+
+**Two smaller things recorded rather than hidden.** The close-evidence verdict was recorded
+correctly on the first post-archive run; the authority searched the ledger for the string
+`CloseEvidence` when the recorded children carry the criterion's own tag, concluded wrongly that it
+had not run, and re-ran it. The bundle therefore carries **three** verdicts where two suffice. It was
+left standing: hand-editing a durable ledger to tidy away one's own redundant command is a worse act
+than the redundancy. Separately, `review.scope-outside-write-scope` now fires on `CLAUDE.md` as well
+as `docs/plans/**` — both authority commits on the shared branch, neither a write of any task. The
+`WriteEvidence` audit, which is the one that rejected the predecessor, stayed clean throughout. That
+asymmetry is `F27.1`'s observation growing a second instance and belongs to the bundle that next
+opens `src/review/core.ts`.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
@@ -7008,9 +7447,11 @@ below; it is not given a slot.
 |---|---|---|---|---|
 | 1 | **`C-CRITERION-CLOSE-EVIDENCE`** | A close/verdict-bound acceptance-criterion state, so post-archive lint 0/0 is authorable rather than reinvented as an unsatisfiable `AC-*`. Named here 2026-08-15. No existing name covers it: no `C-CRITERION*` / `C-CLOSE-EVIDENCE` in this directory; [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/) archived the workaround, not a third `AC-*` state. | [F82](#f82), [F83](#f83), [F83.1](#f831). F82 is already discharged as *practice* by `C-DRIFT-HONESTY`; this bundle is the product state that would make that practice authorable. F83's P2.6 / P2.4 halves were paid by the same archive; the live remainder is F83.1. | **Delivered** 2026-08-30, archived as [`C-CRITERION-CLOSE-EVIDENCE`](../../../../.ngrace/changes/archive/C-CRITERION-CLOSE-EVIDENCE/). Closed with [F100](#f100)–[F105](#f105). The residual hole is unpaid by design: after the archive move no gate is required to run, so the close-evidence verdict is skippable — `review` detects a skip, nothing refuses one. `C-ARCHIVE-CURSOR` / P3.1 own the mandatory post-archive act. |
 | 2 | **`C-APPROVAL-FINGERPRINT`** | [D18](#d18) entire: `gate approve` becomes the sanctioned `draft` to `approved` writer, records a per-`Decision` fingerprint of the bytes it wrote plus the artifact it targeted, ships the forced-permit escape hatch, **and** `review` reports an `approved` spec or plan whose newest per-artifact fingerprint is absent or no longer matches. Briefly split into a writer half and a detector half on 2026-08-30 and re-merged the same day; see [F108](#f108) and [F108.1](#f1081). | [F95](#f95) / [F95.1](#f951), [F81](#f81), [F109](#f109), and retires [F19](#f19)'s accepted transient by removing its premise — F19 ruled its subject **not** a defect, so this is a premise change, not a defect fix ([F109.3](#f1093)). | **Delivered** 2026-08-31, archived as [`C-APPROVAL-FINGERPRINT`](../../../../.ngrace/changes/archive/C-APPROVAL-FINGERPRINT/). Closed with [F112](#f112) and [F113](#f113), both defects in its own approved spec found at execution. Detection uses the three-way trigger of [F108.2](#f1082), so no bootstrap stamp was needed: the bundle carries exactly one unfingerprinted approve `Decision` and its own artifacts sit in the silent third row. It re-sources `approved-contract-drift` through one shared classifier with the git reading demoted to a fallback ([F109.1](#f1091)), and retires [F19](#f19)'s accepted transient. **First bundle to author a `CloseEvidence` criterion and have it evaluated at close** — `AC-CLOSE-LINT` recorded `Exit 0 / Result pass` on the applied archive. Residual limits recorded, not closed: row three is permanent, the git fallback misses committed edits, and this bundle is never itself stamped. Prerequisite of position 5. |
-| 3 | **`C-SUPERSEDE-VERB`** | A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name. | [F86.1](#f861), [F86.2](#f862). | **Ordered, not deferred.** |
+| 3 | **`C-SUPERSEDE-VERB`** | A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name. | [F86.1](#f861), [F86.2](#f862). | **Superseded** 2026-08-31, archived as [`C-SUPERSEDE-VERB`](../../../../.ngrace/changes/archive/C-SUPERSEDE-VERB/), replaced by `C-SUPERSEDE-COMMAND` (row 3a). Executed to completion, then rejected at the scope audit: its approved plan's `ObservedWriteScope` omitted `scripts/release-check.ts`, and its spec carried a false completeness claim about the pins the deliverable moves ([F120](#f120), [F122](#f122)). Production reverted; nothing durable was folded, so the archived ledger holds two approve Decisions and no execution record. |
+| 3a | **`C-SUPERSEDE-COMMAND`** | The `ngrace supersede` verb, carrying forward `C-SUPERSEDE-VERB`'s deliverable and both maintainer rulings, with the `package.json#files` → `PACK_ALLOWED_EXACT` coupling declared rather than discovered. | [F86.1](#f861), [F86.2](#f862), [F120](#f120), [F122](#f122); closes [F121](#f121)'s second half. | **Delivered** 2026-08-31, archived as [`C-SUPERSEDE-COMMAND`](../../../../.ngrace/changes/archive/C-SUPERSEDE-COMMAND/). Six tasks, reds 2/3/1/3/3/0, no write outside `ObservedWriteScope`. Closed with [F125](#f125): three defects a green 1562-test suite did not surface, found by exercising the CLI and running the validators the report omitted. `AC-CLOSE-LINT` CloseEvidence evaluated to `Exit 0 / Result pass`; post-archive lint 0/0. |
 | 4 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
 | 5 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after position 2, whose writer mints the fingerprint it depends on, and only if ratified after the re-measure. Unratified. |
+| 6 | **`C-CI-CLAIM-PIN`** | Correct `CONTRIBUTING.md`'s claim that `validate:ci` does not run `validate:packed`, and derive the guidance table's script claims from `package.json` instead of restating them. Named here 2026-08-31. No existing name: the doc surface is unguarded — `CONTRIBUTING.md` is not a governed file (`ngrace file show` returns `not-found`) and `scripts/check-teaching-surface.ts` covers only `README.md` and `examples/`. | [F117](#f117). | **Ordered, not deferred** — after position 3. Doc-side fix, settled by history: the table was written in `36f8fa3` (PR #5) when it was true, and `validate:packed` entered `validate:ci` later in `0a4b1b3` (PR #32), a change that was *strengthening* CI. Nothing is removed from `validate:ci`. |
 
 **Named by this directory, not in the 2026-08-15 order.**
 

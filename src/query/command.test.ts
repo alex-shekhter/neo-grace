@@ -15,6 +15,7 @@ import { graphCommand } from "../grace-graph";
 import { lintCommand } from "../grace-lint";
 import { moduleCommand } from "../grace-module";
 import { statusCommand } from "../grace-status";
+import { supersedeCommand } from "../grace-supersede";
 import { verificationCommand } from "../grace-verification";
 import { gateCommand } from "../gates/command";
 import { reviewCommand } from "../review/command";
@@ -837,6 +838,7 @@ function liveCommandRoots() {
     { name: "gate", command: gateCommand },
     { name: "cursor", command: cursorCommand },
     { name: "status", command: statusCommand },
+    { name: "supersede", command: supersedeCommand },
     { name: "lint", command: lintCommand },
     { name: "module", command: moduleCommand },
     { name: "file", command: fileCommand },
@@ -1332,5 +1334,22 @@ describe("undeclared flag tokens (AC-UNRECOGNIZED-ARGS)", () => {
     const version = spawnText(spawnGrace(["--version"]));
     expect(version.exitCode).toBe(0);
     expect(version.stdout).toContain("6.2.0");
+  });
+});
+
+describe("C-SUPERSEDE-COMMAND T-002", () => {
+  it("root-command: liveCommandRoots includes supersede and grace.ts statically imports it", () => {
+    const names = liveCommandRoots().map((root) => root.name);
+    expect(names).toContain("supersede");
+    const graceSrc = readFileSync(path.resolve(import.meta.dir, "../grace.ts"), "utf8");
+    expect(graceSrc).toContain('from "./grace-supersede"');
+    const generateSrc = readFileSync(path.resolve(import.meta.dir, "../grace-generate.ts"), "utf8");
+    expect(generateSrc).not.toContain("supersedeCommand");
+  });
+
+  it("readme-row: CLI Overview tables contain an ngrace supersede token", () => {
+    const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");
+    const documented = new Set(documentedOverviewTokens(readme));
+    expect(documented.has("ngrace supersede")).toBe(true);
   });
 });

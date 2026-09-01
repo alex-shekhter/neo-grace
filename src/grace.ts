@@ -27,6 +27,7 @@ import { gateCommand } from "./gates/command";
 import { lintCommand } from "./grace-lint";
 import { moduleCommand } from "./grace-module";
 import { statusCommand } from "./grace-status";
+import { supersedeCommand } from "./grace-supersede";
 import { verificationCommand } from "./grace-verification";
 import { reviewCommand } from "./review/command";
 import { ARTIFACT_DIR } from "./artifact/paths";
@@ -52,6 +53,7 @@ const main = defineGraceCommand({
     scaffold: scaffoldCommand,
     spec: specCommand,
     status: statusCommand,
+    supersede: supersedeCommand,
     verification: verificationCommand,
   },
 });

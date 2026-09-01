@@ -55,7 +55,7 @@ Requirements (.ngrace/context/requirements.xml)
 
 Never jump levels. If requirements are unclear — stop and clarify with the user.
 
-Approved plans are immutable execution evidence. If baseline/target assertions, scopes, tasks, or verification gates need to change after approval, create a replacement `C-*` bundle and mark the old bundle superseded; do not refresh an approved plan in place.
+Approved plans are immutable execution evidence. If baseline/target assertions, scopes, tasks, or verification gates need to change after approval, create a replacement `C-*` bundle and run `ngrace supersede`; do not refresh an approved plan in place.
 
 ## Governed Autonomy (PCAM)
 
