@@ -86,6 +86,17 @@ claims.** Four rules, each written after a measured failure:
    claims to be surgical. `bun test` green is a precondition, never the evidence. This is automatic
    and does not wait to be asked.
 
+6. **One message, the whole picture.** When reporting defects, enumerate **every** known issue at
+   once — blocking and cosmetic together — never the blocker first and the nits after it is fixed.
+   Serial disclosure costs the maintainer a decision per item and hides the true size of the
+   remaining work.
+
+7. **No debt is carried forward. This is the law.** A defect found is a defect fixed before the
+   work is handed on — not filed as a follow-up, not noted in a report, not deferred to a later
+   bundle. Sizing decides the *actor*, never whether it gets fixed: the smallest changes are the
+   authority's own or a subagent's; larger ones go to the executor. See also [D11](docs/plans/active/RM-GOVERNED-PATH/decisions.md),
+   which refuses any deferral without a dependency or a conflict.
+
 When presenting a decision, give **itemized variants with explicit pros and cons**, then the
 recommendation and why the runner-up loses — never prose, and never a single recommendation with the
 alternatives implied.

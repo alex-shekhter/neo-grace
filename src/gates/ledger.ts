@@ -25,6 +25,7 @@
 //   hasPermittingDecision
 //   classifyApprovedArtifact
 //   stampApproveArtifact
+//   supersedeChangeBundle
 //   ApprovedArtifactClassification
 //   ApprovedArtifactName
 //   latestReviewVerdict
@@ -49,13 +50,14 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { spawnShellCommand } from "../artifact/assertions";
 import { isCloseBoundCriterion, validateRunLedgerArtifact } from "../artifact/grammar";
+import { ARTIFACT_DIR } from "../artifact/paths";
 import { ANCHOR_PATTERNS, ARTIFACT_TAG_PREFIX, NGRACE_ARTIFACT_VERSION } from "../artifact/types";
-import { cloneXmlNode, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "../artifact/xml";
+import { cloneXmlNode, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "../artifact/xml";
 import { serializeGraceXmlDocument } from "../artifact/xml-serialize";
 import { resolveChangeBundle } from "../grace-cursor";
 import { GraceCommandError } from "../query/errors";
@@ -988,28 +990,247 @@ function rootOpeningTag(fileText: string): string | undefined {
   return fileText.slice(0, end + 1);
 }
 
+type CompactStatusAttribute = {
+  quote: '"' | "'";
+  value: string;
+  start: number;
+  end: number;
+};
+
+function locateCompactStatus(open: string, quote: '"' | "'"): CompactStatusAttribute | undefined {
+  const key = `status=${quote}`;
+  const start = open.indexOf(key);
+  if (start < 0) return undefined;
+  const from = start + key.length;
+  const end = open.indexOf(quote, from);
+  if (end < 0) return undefined;
+  return { quote, value: open.slice(from, end), start, end };
+}
+
+function findCompactStatusAttribute(open: string): CompactStatusAttribute | undefined {
+  const doubleQuoted = locateCompactStatus(open, '"');
+  const singleQuoted = locateCompactStatus(open, "'");
+  if (doubleQuoted && singleQuoted) {
+    return doubleQuoted.start < singleQuoted.start ? doubleQuoted : singleQuoted;
+  }
+  return doubleQuoted ?? singleQuoted;
+}
+
 function rootStatusFromFile(filePath: string): string | undefined {
   const text = readFileSync(filePath, "utf8");
   const open = rootOpeningTag(text);
   if (!open) return undefined;
-  const key = 'status="';
-  const start = open.indexOf(key);
-  if (start < 0) return undefined;
-  const from = start + key.length;
-  const end = open.indexOf('"', from);
-  if (end < 0) return undefined;
-  return open.slice(from, end);
+  return findCompactStatusAttribute(open)?.value;
+}
+
+function withOpeningTagStatus(text: string, to: string): string | undefined {
+  const open = rootOpeningTag(text);
+  if (!open) return undefined;
+  const found = findCompactStatusAttribute(open);
+  if (!found) return undefined;
+  return `${open.slice(0, found.start)}status=${found.quote}${to}${found.quote}${open.slice(found.end + 1)}${text.slice(open.length)}`;
 }
 
 function writeDraftRootToApproved(filePath: string): void {
   const text = readFileSync(filePath, "utf8");
   const open = rootOpeningTag(text);
-  if (!open) return;
-  const needle = 'status="draft"';
-  const idx = open.indexOf(needle);
-  if (idx < 0) return;
-  const next = `${open.slice(0, idx)}status="approved"${open.slice(idx + needle.length)}${text.slice(open.length)}`;
-  writeFileSync(filePath, next);
+  const found = open ? findCompactStatusAttribute(open) : undefined;
+  if (open && found && found.value === "draft") {
+    const next = withOpeningTagStatus(text, "approved");
+    if (next !== undefined) {
+      writeFileSync(filePath, next);
+      return;
+    }
+  }
+  const parsed = parseGraceXmlArtifact(filePath, text);
+  if (parsed.root?.attributes.status === "draft") {
+    throw new GraceCommandError(
+      "invalid-project",
+      `Could not locate a compact opening-tag status attribute to write on ${filePath}; grammar parse reads status draft.`,
+    );
+  }
+}
+
+function changeLocationDir(projectRoot: string, location: "active" | "archive", changeId: string): string {
+  return path.join(projectRoot, ARTIFACT_DIR, "changes", location, changeId);
+}
+
+function replacementIdsFromWrapper(wrapper: GraceXmlNode): string[] {
+  return [...new Set(wrapper.children.flatMap((child) => {
+    if (ANCHOR_PATTERNS.change.test(child.tag)) return [child.tag];
+    if (
+      (child.tag === "Replacement" || child.tag === "ReplacementChange")
+      && ANCHOR_PATTERNS.change.test(child.text.trim())
+    ) {
+      return [child.text.trim()];
+    }
+    return [];
+  }))];
+}
+
+function insertReplacementElement(text: string, wrapperTag: string, replacementId: string): string {
+  const open = rootOpeningTag(text);
+  if (!open) {
+    throw new GraceCommandError("invalid-project", "Change artifact is missing a root opening tag.");
+  }
+  const rest = text.slice(open.length);
+  const match = rest.match(new RegExp(`<${wrapperTag}\\b[^>]*>`));
+  if (!match || match.index === undefined) {
+    throw new GraceCommandError("invalid-project", `Could not locate wrapper opening tag ${wrapperTag}.`);
+  }
+  const at = open.length + match.index + match[0].length;
+  return `${text.slice(0, at)}<Replacement>${replacementId}</Replacement>${text.slice(at)}`;
+}
+
+function nextSupersededArtifactBytes(filePath: string, replacementId: string): string {
+  const text = readFileSync(filePath, "utf8");
+  const parsed = parseGraceXmlArtifact(filePath, text);
+  const status = parsed.root?.attributes.status;
+  const wrapper = parsed.root?.children.find((child) => ANCHOR_PATTERNS.change.test(child.tag));
+  if (!wrapper) {
+    throw new GraceCommandError("invalid-project", `Change artifact ${filePath} is missing a C-* wrapper.`);
+  }
+  let next = text;
+  if (status === "draft" || status === "approved") {
+    const swapped = withOpeningTagStatus(text, "superseded");
+    if (swapped === undefined) {
+      throw new GraceCommandError(
+        "invalid-project",
+        `Could not locate a compact opening-tag status attribute to write on ${filePath}; grammar parse reads status ${status}.`,
+      );
+    }
+    next = swapped;
+  } else if (status === "superseded") {
+    next = text;
+  } else {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Cannot supersede a ${status ?? "missing-status"} artifact at ${filePath}.`,
+    );
+  }
+  const existing = replacementIdsFromWrapper(wrapper);
+  if (existing.length === 0) {
+    return insertReplacementElement(next, wrapper.tag, replacementId);
+  }
+  if (existing.length === 1 && existing[0] === replacementId) {
+    return next;
+  }
+  throw new GraceCommandError(
+    "invalid-arguments",
+    `Existing replacement set on ${filePath} is not empty and is not exactly ${replacementId}.`,
+  );
+}
+
+function isExdev(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && (error as { code?: unknown }).code === "EXDEV";
+}
+
+/**
+ * Surgical superseded write, Replacement insert, and same-filesystem rename. Command-path only.
+ *
+ * The `io` bag exists solely to test the EXDEV refuse-after-rollback path: a cross-device rename
+ * cannot be provoked through a spawned CLI, and chmod yields EACCES rather than EXDEV. It follows
+ * the precedent of the injectFailure* hooks at grace-cursor.ts:1053 — unreachable from the CLI,
+ * shipped with this module because the write surface is one file, and kept so the rollback
+ * ordering stays mechanically testable without a second test-only package.
+ */
+export function supersedeChangeBundle(
+  projectRoot: string,
+  changeId: string,
+  replacementId: string,
+  io: { renameSync?: typeof renameSync } = {},
+): void {
+  if (!ANCHOR_PATTERNS.change.test(changeId)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Change id '${changeId}' does not match the accepted pattern C- then uppercase kebab.`,
+    );
+  }
+  if (!ANCHOR_PATTERNS.change.test(replacementId)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Replacement id '${replacementId}' does not match the accepted pattern C- then uppercase kebab.`,
+    );
+  }
+  if (replacementId === changeId) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Replacement ${replacementId} equals the change being superseded.`,
+    );
+  }
+  const activeDir = changeLocationDir(projectRoot, "active", changeId);
+  const archiveDir = changeLocationDir(projectRoot, "archive", changeId);
+  const replacementActive = changeLocationDir(projectRoot, "active", replacementId);
+  const replacementArchive = changeLocationDir(projectRoot, "archive", replacementId);
+  if (!existsSync(replacementActive) && !existsSync(replacementArchive)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Replacement ${replacementId} is missing as a directory under active/ or archive/.`,
+    );
+  }
+  if (existsSync(archiveDir) && !existsSync(activeDir)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Change ${changeId} is already under archive/ and not under active/; supersede only moves an active bundle.`,
+    );
+  }
+  if (!existsSync(activeDir) || !statSync(activeDir).isDirectory()) {
+    throw new GraceCommandError(
+      "not-found",
+      `Change ${changeId} is not a directory under active/.`,
+    );
+  }
+  if (existsSync(archiveDir)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Archive destination already exists for ${changeId}.`,
+    );
+  }
+  const specPath = path.join(activeDir, "spec.xml");
+  const planPath = path.join(activeDir, "plan.xml");
+  if (!existsSync(specPath)) {
+    throw new GraceCommandError("not-found", `spec.xml not found in ${changeId}.`);
+  }
+  const specBefore = readFileSync(specPath, "utf8");
+  const planExists = existsSync(planPath);
+  const planBefore = planExists ? readFileSync(planPath, "utf8") : undefined;
+  const nextSpec = nextSupersededArtifactBytes(specPath, replacementId);
+  const nextPlan = planExists ? nextSupersededArtifactBytes(planPath, replacementId) : undefined;
+  let wroteSpec = false;
+  let wrotePlan = false;
+  try {
+    if (nextSpec !== specBefore) {
+      writeFileSync(specPath, nextSpec);
+      wroteSpec = true;
+    }
+    if (planExists && nextPlan !== undefined && nextPlan !== planBefore) {
+      writeFileSync(planPath, nextPlan);
+      wrotePlan = true;
+    }
+    const archiveParent = path.dirname(archiveDir);
+    if (!existsSync(archiveParent)) {
+      mkdirSync(archiveParent, { recursive: true });
+    }
+    (io.renameSync ?? renameSync)(activeDir, archiveDir);
+  } catch (error) {
+    if (wrotePlan && planBefore !== undefined && existsSync(planPath)) {
+      writeFileSync(planPath, planBefore);
+    }
+    if (wroteSpec && existsSync(specPath)) {
+      writeFileSync(specPath, specBefore);
+    }
+    if (isExdev(error)) {
+      throw new GraceCommandError(
+        "invalid-project",
+        `Cross-device rename (EXDEV) is refused after rollback for ${changeId}.`,
+      );
+    }
+    if (error instanceof GraceCommandError) throw error;
+    throw new GraceCommandError(
+      "invalid-project",
+      `Supersede failed after rollback: ${error instanceof Error ? error.message : String(error)}.`,
+    );
+  }
 }
 
 function selectApproveTarget(
