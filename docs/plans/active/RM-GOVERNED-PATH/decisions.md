@@ -7628,6 +7628,47 @@ life, correct at measurement and stale at citation. Cite the date with the numbe
 independently confirmed the reason: a transitive reading would newly condemn **41** archived
 `validate:ci` assertions.
 
+### F132 — the honest lead line points operators at a remedy that fails for 94% of plans. **[verified]**
+
+`C-LINT-PHASE-HONESTY`'s draft `AC-HONEST-LEAD` replaces the false "expected while a C-* change is in
+progress" with an honest lead that names a remedy: *"If writes have started, use
+`--assertions target --change C-ID` (or `--assertions final`)."* The wording is right. **The remedy
+is not reachable.**
+
+Measured on throwaway projects built from `writeMinimalNgraceProject`, with a baseline falsified the
+way a real edit falsifies it (the `MODULE_CONTRACT` header preserved, so nothing else is red):
+
+| plan's `TargetAssertions` | bare lint | `--assertions target --change C-ID` |
+|---|---|---|
+| no `MustPassCommand` | exit 1 | **exit 0, Errors: 0** |
+| carries `MustPassCommand` | exit 1 | **exit 1** — `assertion.command-not-evaluated` |
+
+Adding `--run-commands` does not rescue it; it refuses before linting at all:
+
+```
+Cannot record command-run: no declared task is in scope. Use cursor advance on a declared
+T-NNN so a loose event exists, or leave run.xml naming a declared task.
+```
+
+So the third door needs a cursor event, and [F131](#f131) established that cursor events can be
+absent for an entire bundle — `C-BOUND-VERDICT` archived with zero.
+
+**The proportion is what makes this blocking.** Of 51 plans on disk carrying `TargetAssertions`,
+**48 carry a `MustPassCommand`** — 94%. The remedy works only for the 3 that do not. An operator who
+follows the new, honest message hits a second wall in the overwhelming majority of real cases.
+
+**The cause is the authority's scope ruling, not the executor's spec.** The spec brief scoped
+`assertion.command-not-evaluated` out on the grounds that it carries its own shipped doctrine
+(`C-ABSENCE-VALUE`) and that folding it in would double the rulings the bundle overturns. That
+reasoning still holds in isolation. What neither party noticed is that **the thing scoped out is the
+remedy the new message advertises.** The executor flagged the absence code in `AMBIGUITIES` exactly
+as briefed; the brief never asked it to check whether the escape hatch worked.
+
+**The generalisable rule.** When a change replaces a diagnostic with one that *names a remedy*, the
+remedy is part of the deliverable and must be exercised end to end. A message is not honest because
+its sentences are true; it is honest when following it works. Adding a remedy to an error string is
+a promise, and promises get the same empirical test as behaviour.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield

@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
-  <C-PHASE-RULE-PIN>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-PHASE-RULE-PIN><Replacement>C-LINT-PHASE-HONESTY</Replacement>
     <Summary>
       Reconcile the plan skill's MustPassCommand
       restriction with the contract the linter
