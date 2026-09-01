@@ -132,7 +132,7 @@ For a new neo-grace project:
 7. Run `ngrace status --path /path/to/project --json`.
 8. Run `$ngrace-execute` and choose sequential or parallel-safe mode. Parallel-safe mode additionally requires `ngrace lint --path /path/to/project --parallel-preflight`. Per task, `ngrace context --task T-NNN --change C-ID` emits the slice; each verification cycle is recorded with `ngrace cursor attempt` (or `ngrace cursor verification-unavailable` when it could not run), and each epoch is closed with `ngrace cursor fold`.
 9. Before apply/archive, run `ngrace lint --path /path/to/project --change C-ID --assertions final`; add `--run-commands` when the target declares `MustPassCommand`.
-10. Run `ngrace review --path /path/to/project --change C-ID` for mechanized findings, form judgment (detached where the host allows it), and record it with `ngrace gate verdict`. Then `ngrace gate apply --change C-ID` and `ngrace gate archive --change C-ID`. Apply requires a recorded verdict of *some* outcome — including `unable-to-determine` with a reason. It is never silently green.
+10. Run `ngrace review --path /path/to/project --change C-ID` for mechanized findings, form judgment (detached where the host allows it), and record a bound verdict with `ngrace gate verdict` and `--ack-finding` once per displayed findingId. Then `ngrace gate apply --change C-ID` and `ngrace gate archive --change C-ID`. Apply refuses `fail` and an unbound pass. Pass requires `--ack-finding` matching the displayed set (omit when empty). It is never silently green.
 
 Existing GRACE 3 projects should run `$ngrace-migrate` and review the migration report before writing `.ngrace` artifacts.
 
@@ -194,10 +194,10 @@ These carry the execute lifecycle. A permitting recorded approve writes approved
 | Command | What It Does |
 | --- | --- |
 | `ngrace gate approve --change C-ID` | a permitting recorded approve writes approved onto the targeted spec or plan and records a fingerprint |
-| `ngrace gate apply --change C-ID` | Evaluate the apply transition — a recorded review verdict of some outcome is required |
+| `ngrace gate apply --change C-ID` | Evaluate the apply transition — bound pass required; fail and unbound pass refuse |
 | `ngrace gate archive --change C-ID` | Evaluate the archive transition (an open epoch refuses) |
 | `ngrace supersede --change C-ID --replacement C-ID` | Write superseded onto the active spec and plan when present, name the replacement, and move the bundle into archive. The replacement directory must already exist |
-| `ngrace gate verdict --change C-ID --outcome pass\|fail\|unable-to-determine` | Record judgment in `run-ledger.xml`; optional `--reason`, `--note`, `--scope task\|wave\|bundle`, `--classification implementation\|plan` |
+| `ngrace gate verdict --change C-ID --outcome pass\|fail\|unable-to-determine [--ack-finding <id>]` | Record bound judgment in `run-ledger.xml`; optional `--reason`, `--note`, `--scope task\|wave\|bundle`, `--classification implementation\|plan`; `--ack-finding` once per displayed findingId on pass |
 | `ngrace review --path <root> [--change C-ID] [--base <ref>] [--severity <token>]` | Mechanized detectors and process audits with deterministic finding IDs; with `--change`, an `ObservedWriteScope` scope audit |
 | `ngrace cursor show --change C-ID` | Show durable run position (never writes; recovers rather than blocks) |
 | `ngrace cursor regenerate --change C-ID [--apply]` | Re-derive `run.xml` from ledger, loose events, and codebase evidence (dry-run by default) |
@@ -296,7 +296,7 @@ skip depth (adversarial probe, mutation audit, checklist volume).
 
 | What | Subject / state | Normalized stdout bytes | Commit |
 |---|---|---|---|
-| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **811 lines** / **56812 UTF-8 bytes** | pin in `token-accounting.test.ts` |
+| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **812 lines** / **56971 UTF-8 bytes** | pin in `token-accounting.test.ts` |
 | `skillTextLines().referencesTotal` | package root | **1433 lines** (includes recovery.md) | same instrument |
 | `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `f641334` (the squashed Phase 11 merge; release cut updates) |
 | `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |
@@ -333,7 +333,7 @@ Selling them as unconditional would be the confidence-without-check failure this
 | --- | --- | --- |
 | Detached review | Separate instance, cold context, no implementer transcript | Honor system — same agent may self-review |
 | Read-only reviewer | Tool allowlist with no write tools (enforced by host) | Instruction-only; a misbehaving agent can still write |
-| Apply requires a review verdict | Still required by `ngrace gate apply` (existence of a recorded outcome) | Still required — but the verdict may be `unable-to-determine` with reason `host-capability-missing` when detachment was impossible |
+| Apply requires a review verdict | Still required by `ngrace gate apply` — a bound pass, with `--ack-finding` matching the displayed set; `fail` and an unbound pass refuse | Still required — but the verdict may be `unable-to-determine` with reason `host-capability-missing` when detachment was impossible |
 
 Project policy `gateFailOn` in `.ngrace-lint.json` (`errors` \| `warnings` \| `never`) controls whether a missing or host-capability verdict is fatal at apply. It is never silently green.
 

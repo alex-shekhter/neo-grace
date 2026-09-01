@@ -42,6 +42,7 @@ import { loadGraceLintConfig } from "../lint/config";
 import type { GateFailOn } from "../lint/types";
 import { GATE_CATALOG, type GateIssueGuide } from "./catalog";
 import {
+  computeVerdictSnapshotDigest,
   readPermittingDecision,
   readLatestReviewVerdict,
   readLedgerVerdictsSurface,
@@ -390,6 +391,34 @@ export function evaluateApplyGate(projectRoot: string, changeId: string): GateEv
         `outcome=${verdict.outcome}${verdict.reason ? ` reason=${verdict.reason}` : ""}`,
       ),
     );
+    if (verdict.outcome === "fail") {
+      issues.push(guideIssue("gate.apply.outcome-fail", `changeId=${changeId}`));
+    }
+    if (verdict.outcome === "pass") {
+      const digest = (verdict.snapshotDigest ?? "").trim();
+      const findings = verdict.findings ?? [];
+      if (!digest) {
+        issues.push(guideIssue("gate.apply.unbound-pass", `changeId=${changeId}`));
+      } else {
+        const expected = computeVerdictSnapshotDigest(changeId, findings);
+        if (digest !== expected) {
+          issues.push(guideIssue("gate.apply.digest-mismatch", `changeId=${changeId}`));
+        }
+        const findingIds = findings.map((finding) => finding.findingId);
+        const acks = verdict.acks ?? [];
+        const ackIds = acks.map((ack) => ack.findingId);
+        const findingSet = new Set(findingIds);
+        const ackSet = new Set(ackIds);
+        const oneForOne =
+          ackIds.length === findingIds.length
+          && ackSet.size === findingSet.size
+          && findingIds.every((id) => ackSet.has(id));
+        const digestAligned = acks.every((ack) => ack.snapshotDigest === digest);
+        if (!oneForOne || !digestAligned) {
+          issues.push(guideIssue("gate.apply.ack-mismatch", `changeId=${changeId}`));
+        }
+      }
+    }
     if (verdict.reason === "host-capability-missing") {
       // Verdict exists (D11 satisfied as a record); whether host-capability absence blocks is project policy.
       const blocks = failOn === "errors";

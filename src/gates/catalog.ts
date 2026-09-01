@@ -67,6 +67,49 @@ export const GATE_CATALOG: Record<string, GateIssueGuide> = {
     ],
     severity: "error",
   },
+  "gate.apply.unbound-pass": {
+    code: "gate.apply.unbound-pass",
+    title: "Apply Refuses An Unbound Pass Verdict",
+    explanation:
+      "outcome pass must carry snapshotDigest bound to the persisted Finding children. A pass with no digest is not a review that ran.",
+    remediation: [
+      "Record pass through `ngrace gate verdict` so runReview supplies snapshotDigest.",
+      "Do not hand-write a pass Verdict without a digest, including the empty-set digest.",
+    ],
+    severity: "error",
+  },
+  "gate.apply.digest-mismatch": {
+    code: "gate.apply.digest-mismatch",
+    title: "Apply Refuses A Verdict Whose Digest Does Not Match Findings",
+    explanation:
+      "snapshotDigest must equal the canonical SHA-256 of changeId plus Finding children sorted by code, file, and findingId. Apply reads persisted children and does not re-run review.",
+    remediation: [
+      "Re-record the verdict with `ngrace gate verdict` instead of editing Finding children or snapshotDigest by hand.",
+    ],
+    severity: "error",
+  },
+  "gate.apply.ack-mismatch": {
+    code: "gate.apply.ack-mismatch",
+    title: "Apply Refuses A Pass Whose Acks Do Not Match Persisted Findings",
+    explanation:
+      "outcome pass requires Ack children one-for-one with persisted findingIds, each carrying the Verdict snapshotDigest. A review.* finding about the work, including write-evidence-outside-scope, is acknowledgeable.",
+    remediation: [
+      "Pass `--ack-finding` once per displayed findingId from `ngrace review --change`.",
+      "Do not author an ObservedWriteScope exception list.",
+    ],
+    severity: "error",
+  },
+  "gate.apply.outcome-fail": {
+    code: "gate.apply.outcome-fail",
+    title: "Apply Refuses A Fail Verdict",
+    explanation:
+      "A recorded outcome fail is the human reject. Presence of a verdict remains required; fail is not a permitting close. Switch to ngrace supersede.",
+    remediation: [
+      "Record outcome pass with matching `--ack-finding` flags if the work should close.",
+      "Or run `ngrace supersede` when the reject stands.",
+    ],
+    severity: "error",
+  },
   "gate.apply.invalid-verdict": {
     code: "gate.apply.invalid-verdict",
     title: "Newest Review Verdict Is Unreadable",

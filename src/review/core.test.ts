@@ -3276,3 +3276,102 @@ describe("C-APPROVAL-FINGERPRINT T-003", () => {
     expect(result.findings.some((f) => f.code === "review.approved-fingerprint-mismatch")).toBe(false);
   });
 });
+
+describe("C-BOUND-VERDICT T-005 F123 MustExist skip", () => {
+  function writeMissingMustExistPlan(root: string, changeId: string, status: string): void {
+    const changeDir = path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
+    mkdirSync(changeDir, { recursive: true });
+    writeFileSync(
+      path.join(changeDir, "plan.xml"),
+      `<NgraceChangePlan graceVersion="1.0" status="${status}"><${changeId}>
+  <IntentSummary>F123</IntentSummary>
+  <BaselineAssertions><MustExist><Value>src/example.ts</Value></MustExist></BaselineAssertions>
+  <TargetAssertions><MustExist><Value>build/artifacts/f123-absent.bin</Value></MustExist></TargetAssertions>
+  <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors><VerificationAnchors><V-M-EXAMPLE /></VerificationAnchors></DurableScope>
+  <ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>
+  <ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+</${changeId}></NgraceChangePlan>`,
+    );
+  }
+
+  it("f123-superseded-skip: superseded, rejected, and cancelled MustExist of an absent path is silent", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeMissingMustExistPlan(root, "C-SUPERSEDED", "superseded");
+    const superseded = runPatternDetectors(root).filter(
+      (finding) =>
+        finding.code === "review.confidently-wrong"
+        && finding.message.includes("build/artifacts/f123-absent.bin"),
+    );
+    expect(superseded).toHaveLength(0);
+
+    const rejectedRoot = ensureTempRoot();
+    writeMinimalNgraceProject(rejectedRoot);
+    writeMissingMustExistPlan(rejectedRoot, "C-REJECTED", "rejected");
+    expect(
+      runPatternDetectors(rejectedRoot).filter(
+        (finding) =>
+          finding.code === "review.confidently-wrong"
+          && finding.message.includes("build/artifacts/f123-absent.bin"),
+      ),
+    ).toHaveLength(0);
+
+    const cancelledRoot = ensureTempRoot();
+    writeMinimalNgraceProject(cancelledRoot);
+    writeMissingMustExistPlan(cancelledRoot, "C-CANCELLED", "cancelled");
+    expect(
+      runPatternDetectors(cancelledRoot).filter(
+        (finding) =>
+          finding.code === "review.confidently-wrong"
+          && finding.message.includes("build/artifacts/f123-absent.bin"),
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("applied MustExist of an absent path still fires", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeMissingMustExistPlan(root, "C-APPLIED", "applied");
+    expect(
+      runPatternDetectors(root).some(
+        (finding) =>
+          finding.code === "review.confidently-wrong"
+          && finding.message.includes("build/artifacts/f123-absent.bin"),
+      ),
+    ).toBe(true);
+  });
+
+  it("porcelain still reports CLAUDE.md and docs/plans outside ObservedWriteScope", () => {
+    const findings = auditScopeOutsideWriteScope(
+      ["CLAUDE.md", "docs/plans/active/RM-X/plan.md", "src/example.ts"],
+      ["src/example.ts"],
+      [],
+    );
+    expect(findings.some((finding) => finding.file === "CLAUDE.md")).toBe(true);
+    expect(findings.some((finding) => finding.file === "docs/plans/active/RM-X/plan.md")).toBe(true);
+    expect(findings.some((finding) => finding.file === "src/example.ts")).toBe(false);
+  });
+
+  it("WriteEvidence still skips docs/plans and still reports CLAUDE.md", () => {
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-WE",
+      writeEvidencePaths: ["CLAUDE.md", "docs/plans/active/RM-X/plan.md", "src/secret.ts"],
+      scopeFiles: ["src/example.ts"],
+      scopeGlobs: [],
+    });
+    expect(findings.some((finding) => finding.file.startsWith("docs/plans/"))).toBe(false);
+    expect(findings.some((finding) => finding.file === "CLAUDE.md")).toBe(true);
+    expect(findings.some((finding) => finding.file === "src/secret.ts")).toBe(true);
+  });
+});
+
+describe("C-BOUND-VERDICT T-008 catalog remediation", () => {
+  it("remediation-note-protocol: attempt-pair no longer keys findingId in argv token note; WriteEvidence names Ack", () => {
+    const attempt = guideFor(ATTEMPT_PAIR_FINDING_CODE)!;
+    expect(attempt.remediation.join("\n")).not.toMatch(/findingId=<id>/);
+    expect(attempt.remediation.join("\n")).not.toMatch(/--note "[^"]*findingId/);
+    const writeEvidence = guideFor(WRITE_EVIDENCE_SCOPE_FINDING_CODE)!;
+    expect(writeEvidence.remediation.join("\n")).toMatch(/exception list/);
+    expect(writeEvidence.remediation.join("\n")).toMatch(/\bAck\b/);
+  });
+});

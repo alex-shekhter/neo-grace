@@ -493,6 +493,10 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
     const abs = path.join(root, planRel);
     const artifact = readGraceXmlArtifact(abs);
     if (!artifact.root) continue;
+    const planStatus = (artifact.root.attributes.status ?? "").trim();
+    if (planStatus === "superseded" || planStatus === "rejected" || planStatus === "cancelled") {
+      continue;
+    }
     const identity = scopeIdentityFromPlanRel(planRel);
     for (const node of walkNodes(artifact.root)) {
       if (node.tag !== "MustExist") continue;

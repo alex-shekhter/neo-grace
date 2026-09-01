@@ -235,7 +235,10 @@ using only commands the binary actually ships. Run these against a **scratch cop
 ```bash
 # From a scratch copy of examples/polyglot (or accept local ledger writes):
 ngrace gate approve --change C-ADD-KEYBOARD-NAV --path .
-# → Decision: permit  (writes run-ledger.xml)
+# → Decision: permit  (fingerprints plan; writes run-ledger.xml)
+
+ngrace gate approve --change C-ADD-KEYBOARD-NAV --artifact spec --path .
+# → Decision: permit  (fingerprints spec)
 
 ngrace context --task T-001 --change C-ADD-KEYBOARD-NAV --path .
 # → task slice: modules, write scope, verification — selection, never a dump
@@ -263,9 +266,13 @@ ngrace cursor advance --change C-ADD-KEYBOARD-NAV --task T-001 --kind terminal -
 ngrace cursor fold --change C-ADD-KEYBOARD-NAV --path .
 # → Fold applied
 
+ngrace review --change C-ADD-KEYBOARD-NAV --path .
+# → Findings: 0
+
 ngrace gate verdict --change C-ADD-KEYBOARD-NAV --outcome pass --scope bundle --path .
+# empty-set bound pass: no --ack-finding; snapshotDigest of the empty displayed set is still stored
 ngrace gate apply --change C-ADD-KEYBOARD-NAV --path .
-# → Decision: permit (requires a recorded verdict; cleanliness is not the gate)
+# → Decision: permit (bound empty pass; fail and unbound pass refuse)
 
 ngrace gate archive --change C-ADD-KEYBOARD-NAV --path .
 # → Decision: permit when there is no open epoch

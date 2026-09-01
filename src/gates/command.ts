@@ -20,6 +20,7 @@ import { defineCommand } from "citty";
 
 import { evaluateGate, evaluationToDecision, type GateEvaluation } from "./core";
 import {
+  computeVerdictSnapshotDigest,
   parseResolutionClassification,
   parseReviewVerdictScope,
   recordGateDecision,
@@ -28,12 +29,39 @@ import {
   type GateId,
   type ReviewVerdictOutcome,
   type ReviewVerdictRecord,
+  type VerdictFindingRecord,
 } from "./ledger";
 import { defineGraceCommand } from "../query/command";
 import { GraceCommandError, runGraceCommand } from "../query/errors";
+import { runReview } from "../review/core";
 import { computeConstituentTasksPassed } from "../review/outcomes";
 
 const GATE_SUBCOMMANDS = new Set(["approve", "apply", "archive", "verdict"]);
+
+function collectAckFindingArgs(rawArgs: string[], parsed: unknown): string[] {
+  const fromRaw: string[] = [];
+  for (let i = 0; i < rawArgs.length; i += 1) {
+    const token = rawArgs[i]!;
+    if (token === "--ack-finding") {
+      const next = rawArgs[i + 1];
+      if (next !== undefined && !next.startsWith("-")) {
+        fromRaw.push(next);
+        i += 1;
+      }
+      continue;
+    }
+    if (token.startsWith("--ack-finding=")) {
+      fromRaw.push(token.slice("--ack-finding=".length));
+    }
+  }
+  if (fromRaw.length > 0) return fromRaw;
+  if (Array.isArray(parsed)) {
+    return parsed.map((value) => String(value).trim()).filter((value) => value !== "");
+  }
+  if (parsed === undefined || parsed === null) return [];
+  const text = String(parsed).trim();
+  return text ? [text] : [];
+}
 
 export function formatGateEvaluation(evaluation: GateEvaluation): string {
   const lines = [
@@ -304,6 +332,11 @@ const verdictSubCommand = defineCommand({
       description:
         "Optional true|false for wave-scoped fail. When omitted on wave+fail, computed from ledger and stored (or absence reason).",
     },
+    "ack-finding": {
+      type: "string",
+      description:
+        "Repeatable findingId to Ack for outcome pass. Required once per displayed finding. Omit when the displayed set is empty.",
+    },
     path: {
       type: "string",
       description: "Project root",
@@ -348,6 +381,16 @@ const verdictSubCommand = defineCommand({
           : "";
       const classification = classRaw ? parseResolutionClassification(classRaw) : undefined;
 
+      const displayed = runReview(projectRoot, { changeId }).findings;
+      const findings: VerdictFindingRecord[] = displayed.map((finding) => ({
+        code: finding.code,
+        file: finding.file,
+        findingId: finding.findingId,
+        severity: finding.severity,
+        ruleId: finding.ruleId,
+        anchorOrHunkKey: finding.anchorOrHunkKey,
+        message: finding.message,
+      }));
       const payload: ReviewVerdictRecord = {
         outcome,
         reason: reason || undefined,
@@ -356,7 +399,15 @@ const verdictSubCommand = defineCommand({
         task,
         wave,
         classification,
+        findings,
+        snapshotDigest: computeVerdictSnapshotDigest(changeId, findings),
       };
+      if (outcome === "pass") {
+        payload.acks = collectAckFindingArgs(context.rawArgs, context.args["ack-finding"]).map((findingId) => ({
+          findingId,
+          snapshotDigest: payload.snapshotDigest!,
+        }));
+      }
 
       const ctpArgPresent =
         context.args["constituent-tasks-passed"] !== undefined &&

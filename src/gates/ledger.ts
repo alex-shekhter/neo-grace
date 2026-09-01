@@ -22,6 +22,9 @@
 //   ReviewVerdictOutcome
 //   ReviewVerdictRecord
 //   ReviewVerdictScope
+//   VerdictAckRecord
+//   VerdictFindingRecord
+//   computeVerdictSnapshotDigest
 //   hasPermittingDecision
 //   classifyApprovedArtifact
 //   stampApproveArtifact
@@ -73,6 +76,21 @@ export type ReviewVerdictScope = "task" | "wave" | "bundle";
 /** Stored at resolution (rule 13) — implementation vs plan defect (D10). */
 export type ResolutionClassification = "implementation" | "plan";
 
+export type VerdictFindingRecord = {
+  code: string;
+  file: string;
+  findingId: string;
+  severity: string;
+  ruleId: string;
+  anchorOrHunkKey: string;
+  message: string;
+};
+
+export type VerdictAckRecord = {
+  findingId: string;
+  snapshotDigest: string;
+};
+
 export type ReviewVerdictRecord = {
   outcome: ReviewVerdictOutcome;
   /** D5 reason when outcome is an absence (e.g. host-capability-missing). */
@@ -100,7 +118,38 @@ export type ReviewVerdictRecord = {
   constituentTasksPassed?: boolean;
   /** D5 reason when constituentTasksPassed could not be determined. */
   constituentTasksPassedReason?: string;
+  /** SHA-256 of changeId plus findings sorted by (code, file, findingId). Required on pass. */
+  snapshotDigest?: string;
+  /** Persisted displayed findings bound to snapshotDigest. */
+  findings?: VerdictFindingRecord[];
+  /** Pass-only acknowledgements of persisted findingIds. */
+  acks?: VerdictAckRecord[];
 };
+
+/** Canonical snapshot digest: SHA-256 of changeId plus findings sorted by (code, file, findingId). */
+export function computeVerdictSnapshotDigest(
+  changeId: string,
+  findings: Array<{ code: string; file: string; findingId: string }>,
+): string {
+  const sorted = [...findings].sort(
+    (a, b) =>
+      a.code.localeCompare(b.code)
+      || a.file.localeCompare(b.file)
+      || a.findingId.localeCompare(b.findingId),
+  );
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        changeId,
+        findings: sorted.map((finding) => ({
+          code: finding.code,
+          file: finding.file,
+          findingId: finding.findingId,
+        })),
+      }),
+    )
+    .digest("hex");
+}
 
 export type GateId = "approve" | "apply" | "archive";
 export type GateDecisionValue = "permit" | "refuse";
@@ -295,6 +344,39 @@ export function recordReviewVerdict(
     );
   }
 
+  const findings = verdict.findings ?? [];
+  const digest = (verdict.snapshotDigest ?? "").trim();
+  if (verdict.outcome === "pass" && !digest) {
+    throw new GraceCommandError("invalid-arguments", "outcome pass requires snapshotDigest");
+  }
+  if (digest) {
+    const expected = computeVerdictSnapshotDigest(changeId, findings);
+    if (digest !== expected) {
+      throw new GraceCommandError(
+        "invalid-arguments",
+        "snapshotDigest does not match the canonical digest of Finding children",
+      );
+    }
+  }
+  const acks = verdict.acks ?? [];
+  if (verdict.outcome === "pass") {
+    const findingIds = findings.map((finding) => finding.findingId);
+    const ackIds = acks.map((ack) => ack.findingId);
+    const findingSet = new Set(findingIds);
+    const ackSet = new Set(ackIds);
+    const oneForOne =
+      ackIds.length === findingIds.length
+      && ackSet.size === findingSet.size
+      && findingIds.every((id) => ackSet.has(id));
+    const digestAligned = acks.every((ack) => ack.snapshotDigest === digest);
+    if (!oneForOne || !digestAligned) {
+      throw new GraceCommandError(
+        "invalid-arguments",
+        "outcome pass requires Ack findingIds that match Finding children one-for-one with the Verdict snapshotDigest",
+      );
+    }
+  }
+
   // Stored fields only — never invent scope or classification defaults (D5 / corr 182).
   const stored: ReviewVerdictRecord = {
     outcome: verdict.outcome,
@@ -304,6 +386,8 @@ export function recordReviewVerdict(
     ...(verdict.task ? { task: verdict.task } : {}),
     ...(verdict.wave ? { wave: verdict.wave } : {}),
     ...(verdict.classification ? { classification: verdict.classification } : {}),
+    ...(digest ? { snapshotDigest: digest, findings } : {}),
+    ...(verdict.acks && verdict.acks.length > 0 ? { acks: verdict.acks } : {}),
   };
   if (verdict.scope === "wave" && verdict.outcome === "fail") {
     if (verdict.constituentTasksPassed !== undefined) {
@@ -343,10 +427,34 @@ export function recordReviewVerdict(
   if (stored.constituentTasksPassedReason) {
     attributes.constituentTasksPassedReason = stored.constituentTasksPassedReason;
   }
+  if (stored.snapshotDigest) attributes.snapshotDigest = stored.snapshotDigest;
+  const findingChildren: GraceXmlNode[] = (stored.findings ?? []).map((finding) => ({
+    tag: "Finding",
+    attributes: {
+      code: finding.code,
+      file: finding.file,
+      findingId: finding.findingId,
+      severity: finding.severity,
+      ruleId: finding.ruleId,
+      anchorOrHunkKey: finding.anchorOrHunkKey,
+      message: finding.message,
+    },
+    children: [],
+    text: "",
+  }));
+  const ackChildren: GraceXmlNode[] = (stored.acks ?? []).map((ack) => ({
+    tag: "Ack",
+    attributes: {
+      findingId: ack.findingId,
+      snapshotDigest: ack.snapshotDigest,
+    },
+    children: [],
+    text: "",
+  }));
   section.children.push({
     tag: "Verdict",
     attributes,
-    children: closeChildren,
+    children: [...findingChildren, ...ackChildren, ...closeChildren],
     text: stored.note ?? "",
   });
   writeAndVerifyLedger(bundlePath, root);
@@ -626,6 +734,31 @@ function parseVerdictNode(child: GraceXmlNode): ReviewVerdictRecord | { invalid:
   if (child.attributes.constituentTasksPassedReason?.trim()) {
     record.constituentTasksPassedReason = child.attributes.constituentTasksPassedReason.trim();
   }
+  if (child.attributes.snapshotDigest?.trim()) {
+    record.snapshotDigest = child.attributes.snapshotDigest.trim();
+  }
+  const findings: VerdictFindingRecord[] = [];
+  const acks: VerdictAckRecord[] = [];
+  for (const node of child.children) {
+    if (node.tag === "Finding") {
+      findings.push({
+        code: node.attributes.code ?? "",
+        file: node.attributes.file ?? "",
+        findingId: node.attributes.findingId ?? "",
+        severity: node.attributes.severity ?? "",
+        ruleId: node.attributes.ruleId ?? "",
+        anchorOrHunkKey: node.attributes.anchorOrHunkKey ?? "",
+        message: node.attributes.message ?? "",
+      });
+    } else if (node.tag === "Ack") {
+      acks.push({
+        findingId: node.attributes.findingId ?? "",
+        snapshotDigest: node.attributes.snapshotDigest ?? "",
+      });
+    }
+  }
+  if (record.snapshotDigest) record.findings = findings;
+  if (acks.length > 0) record.acks = acks;
   return record;
 }
 

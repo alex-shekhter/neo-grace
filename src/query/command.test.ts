@@ -1353,3 +1353,31 @@ describe("C-SUPERSEDE-COMMAND T-002", () => {
     expect(documented.has("ngrace supersede")).toBe(true);
   });
 });
+
+describe("C-BOUND-VERDICT T-007 README bound form", () => {
+  it("readme-step-10: workflow step 10 no longer treats any recorded outcome as applying", () => {
+    const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");
+    const step10 = readme.split("\n").find((line) => line.startsWith("10. ")) ?? "";
+    expect(step10).toContain("ngrace review");
+    expect(step10).not.toContain("Apply requires a recorded verdict of *some* outcome");
+  });
+
+  it("readme-apply-row: CLI Overview apply row no longer says some outcome is required as if fail permitted", () => {
+    const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");
+    const applyRow = readme.split("\n").find((line) => line.startsWith("| `ngrace gate apply"));
+    expect(applyRow).toBeDefined();
+    expect(applyRow).not.toContain("a recorded review verdict of some outcome is required");
+  });
+
+  it("readme-ack-finding: CLI Overview gate verdict row names argv token ack-finding", () => {
+    const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");
+    const afterHeading = readme.split("## CLI Overview\n")[1];
+    const overview = afterHeading?.split(/^## /m)[0] ?? "";
+    const rows = overview.split("\n").filter((line) => line.startsWith("| `ngrace "));
+    const verdictRow = rows.find((line) => {
+      const cell = line.match(/`([^`]+)`/)?.[1] ?? "";
+      return /\bverdict\b/.test(cell) && /\[?--ack-finding(?:\s|>|\]|\||$)/.test(cell);
+    });
+    expect(verdictRow).toBeDefined();
+  });
+});

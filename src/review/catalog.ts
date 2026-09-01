@@ -224,12 +224,12 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
       + "detection requiring adjudication, not automatic bundle failure. "
       + "cursor attempt stays quiet at write time.",
     remediation: [
-      "If the fail was fabricated or nothing outside `.ngrace/` actually changed: record a free-text "
-        + "reason on `ngrace gate verdict --change C-ID --outcome … --note \"findingId=<id>: <reason>\"` "
-        + "keyed by this finding's stable findingId (D8.6). A bare \"reviewed\" flag is not enough.",
+      "If the fail was fabricated or nothing outside `.ngrace/` actually changed: record a bound "
+        + "`ngrace gate verdict --change C-ID --outcome pass` with `--ack-finding` equal to this "
+        + "finding's stable findingId. A bare \"reviewed\" flag is not enough.",
       "If the pair should have shown real work: re-run red-first honestly — do not stage a "
         + "retrospective red (F9.1). Record a real fail before the authored fix lands.",
-      "Do not invent a finding-clearance ledger schema here; gate verdict --note carries the reason.",
+      "Do not invent a finding-clearance ledger schema here; Ack children on the Verdict carry the identity.",
     ],
     severity: "warning",
     derivedFrom: "F9.10 / F31 / F32 / C-SUBSTANTIATION-HONESTY",
@@ -292,7 +292,8 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
       "Add the path to ObservedWriteScope at plan time (including what the deliverable forces — "
         + "skill-footprint pin, rule fixtures), or revert the out-of-scope write.",
       "Do not widen ObservedWriteScope semantics to swallow the breach; do not author an exception "
-        + "list in plan.xml (F9.10.1).",
+        + "list in plan.xml (F9.10.1). Ack of this finding's identity is the close path that does "
+        + "not widen ObservedWriteScope.",
     ],
     severity: "error",
     derivedFrom: "F27 / F27.1 / F27.2 / C-DECLARED-WRITES",
