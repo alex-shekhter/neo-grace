@@ -1,0 +1,1386 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-VERDICT-EVIDENCE>
+    <Summary>
+      Bind the review Verdict so it cannot
+      stand in for a review that never ran.
+      gate verdict re-runs ngrace review for
+      the named change, persists that finding
+      set onto the Verdict, and records
+      explicit Ack children against specific
+      finding identities. Apply refuses an
+      unbound pass, a digest mismatch, an
+      Ack that does not match the persisted
+      set, and outcome fail. GateId stays
+      closed. ngrace review stays read-only.
+      A scope-breach finding is
+      acknowledgeable; process-integrity
+      failures of the close are not.
+    </Summary>
+    <Problem>
+      HEAD 13a8a45 on feat/verdict-evidence,
+      packaged 6.2.0, tree clean after the
+      C-SUPERSEDE-COMMAND merge. Those
+      numbers and that commit are a snapshot
+      (F33), not live HEAD.
+
+      Named-bundle registry in
+      docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      has no existing name for this charter.
+      Positions 1 through 3a are delivered
+      or superseded. C-VERDICT-EVIDENCE is
+      minted here. G4 is the brief label,
+      not a registry name.
+
+      ---
+
+      Measured: a Verdict is an unbound
+      assertion. recordReviewVerdict
+      (src/gates/ledger.ts:264-353) stores
+      outcome, reason, note, scope, task,
+      wave, classification, and on an
+      applied archive the CloseEvidence
+      evaluation children. It stores no
+      review finding, no findingId, and no
+      digest of a finding set.
+      parseVerdictNode (:597-629) reads
+      attributes and body text only.
+      The command description
+      (src/gates/command.ts:262-263) says
+      it does not form the judgment.
+
+      evaluateApplyGate (src/gates/core.ts:360-419)
+      requires a newest Verdict to be
+      present (:370-391). It does not read
+      findings. core.test.ts:332-334 states
+      the live D11 rule: fail is a recorded
+      verdict and apply permits. README.md:135
+      and skills/ngrace/ngrace-cli/references/verdicts.md:14-15
+      repeat that any recorded outcome,
+      including unable-to-determine, satisfies
+      apply. An agent that never ran review,
+      or that ran it, saw findings, and
+      recorded pass anyway, satisfies the
+      gate.
+
+      That is F86's defect class (a gate
+      record standing in for work the gate
+      did not do) sitting on the honesty
+      check. F120.1 named the same lie
+      for recording pass over three open
+      findings.
+
+      ---
+
+      Detection of undeclared writes is
+      not the gap. C-DECLARED-WRITES shipped
+      both audits F27 asked for. F27's
+      headline is stale (F27.1). Live codes:
+
+      review.scope-outside-write-scope from
+      auditScopeOutsideWriteScope
+      (src/review/core.ts:1012-1039),
+      porcelain / base / explicit changed
+      files, skipping only isCliLifecyclePath
+      (:1023-1024).
+
+      review.write-evidence-outside-scope from
+      auditWriteEvidenceOutsideScope
+      (:1072-1103), WriteEvidence paths,
+      skipping isCliLifecyclePath and
+      isDocsPlansPath (:1085-1089).
+
+      Nothing requires those findings to be
+      looked at, acknowledged, or carried
+      into the bundle. ngrace review is
+      ephemeral: review/command.ts:14 and
+      :24-26, A35.2 corr 81, never writes
+      Verdicts, Decisions, or status.
+      Re-running review after archive
+      recomputes against the then tree
+      and will not reproduce what was seen
+      at close.
+
+      ---
+
+      findingId (src/review/core.ts:323-335)
+      is sha256 of auditOrPatternId, file,
+      anchorOrHunkKey, and ruleId, truncated
+      to 16 hex. It is not change-scoped.
+      The same code plus file plus anchor
+      in a later bundle hashes to the same
+      id. An ack keyed on findingId or on
+      code alone transfers. That is D18's
+      lesson applied to findings:
+      review.write-evidence-outside-scope
+      recurs across bundles (F27.1 measured
+      it on C-SUPERSEDE-VERB).
+
+      ---
+
+      Inherited questions this bundle
+      opens src/review/core.ts to answer.
+
+      F123: detectConfidentlyWrong MustExist
+      half (:490-517) walks every plan.xml
+      under .ngrace/changes and does not
+      read root status. A superseded plan
+      whose target file never existed
+      reports review.confidently-wrong.
+      The fingerprint audit at :1687 skips
+      any artifact whose status is not
+      approved. Those predicates are not
+      the same subject.
+
+      F27.1 asymmetry: WriteEvidence
+      filters docs/plans via isDocsPlansPath
+      (:1050-1053, :1088-1089). Porcelain
+      does not. CLAUDE.md is not in that
+      filter. A changed CLAUDE.md or
+      docs/plans path on the porcelain
+      / --base set raises
+      review.scope-outside-write-scope.
+      Both are authority commits on a
+      shared branch, never a task write.
+    </Problem>
+    <Goals>
+      <Goal>
+        A pass Verdict recorded at close
+        is bound to a tool-generated
+        snapshot of ngrace review for
+        that change: persisted Finding
+        children plus a snapshotDigest,
+        and one Ack child per persisted
+        finding that names that finding's
+        identity. Future audits read the
+        Verdict, not a recomputed review.
+      </Goal>
+      <Goal>
+        Apply refuses when that binding
+        is missing or false: unbound pass,
+        digest mismatch, Ack of an id not
+        in the persisted set, or
+        outcome fail. unable-to-determine
+        with host-capability-missing stays
+        on the existing gateFailOn path.
+      </Goal>
+      <Goal>
+        The examining party (detached
+        reviewer where the host allows it,
+        otherwise the operator) records
+        the bound verdict. The implementing
+        executor does not. Skills state
+        that split. The CLI does not claim
+        to prevent a dishonest invocation
+        (D18, F2).
+      </Goal>
+      <Goal>
+        README.md workflow step 10 and the
+        CLI Overview gate verdict row teach
+        the bound form. examples/ is
+        unchanged; no user-visible example
+        surface.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting).
+        AffectedAreas span M-GATES,
+        M-REVIEW, M-SKILLS, M-QUERY, and
+        M-TEST-SUPPORT. Tiers change
+        section depth, never whether gates
+        run.
+      </Constraint>
+      <Constraint>
+        Do not expand GateId
+        (src/gates/ledger.ts:105) or
+        VALID_GATES (:160). F115: minting
+        a gate for an act no evaluation
+        performed reports an evaluation
+        that never ran. An acknowledgment
+        is a response to a review that
+        did run, so it rides on the
+        existing Verdict recorder, which
+        is already not a GateId.
+        LEDGER_BUNDLE_SECTIONS (:155) and
+        LEDGER_NON_EPOCH_SECTIONS (:899)
+        stay Verdicts and Decisions. Do
+        not add a third ledger section.
+      </Constraint>
+      <Constraint>
+        Do not change ObservedWriteScope
+        semantics, glob matching, or
+        declared-writes comparison.
+        Do not author an exception list
+        in plan.xml (F9.10.1;
+        review.write-evidence-outside-scope
+        remediation at
+        src/review/catalog.ts:291-295).
+        A human Ack of a specific finding
+        identity is not an exception list
+        and does not widen scope.
+      </Constraint>
+      <Constraint>
+        ngrace review stays read-only
+        (A35.2 corr 81;
+        src/review/command.ts:14, :24-26).
+        It does not write the snapshot.
+        Persist happens inside
+        recordReviewVerdict, which already
+        writes run-ledger.xml through
+        src/gates/ledger.ts. Findings,
+        snapshotDigest, and Ack children
+        arrive as data on that record
+        (ledger.ts:264-268). ledger.ts
+        does not import or call
+        runReview. Do not add
+        writeFileSync or mkdirSync to
+        src/review/. The five-file
+        allowlist at
+        src/grace-cursor.test.ts:484-513
+        stays those five files.
+      </Constraint>
+      <Constraint>
+        Snapshot production, decided
+        here. On gate verdict,
+        src/gates/command.ts calls
+        runReview for the named change
+        with the same default severity
+        threshold the CLI uses
+        (warning when omitted;
+        src/review/command.ts:56-59).
+        command.ts maps every displayed
+        finding onto the
+        ReviewVerdictRecord, computes
+        snapshotDigest from those
+        findings, and passes that
+        record into
+        recordReviewVerdict, which
+        persists each as a Finding
+        child of the new Verdict: code,
+        file, findingId, severity,
+        ruleId, anchorOrHunkKey,
+        message. snapshotDigest is
+        SHA-256 of the canonical
+        serialization of {changeId,
+        findings sorted by (code, file,
+        findingId) of those fields}.
+        No timestamp enters the digest.
+        Apply does not re-run review;
+        it reads the persisted
+        children. Re-running after
+        archive is not the evidence.
+      </Constraint>
+      <Constraint>
+        Caller location, decided here
+        because the ledger import is a
+        cycle. src/review/core.ts:81
+        imports classifyApprovedArtifact
+        and listGateDecisions from
+        ../gates/ledger; runReview is
+        :1439. Importing runReview into
+        ledger.ts closes
+        gates/ledger → review/core →
+        gates/ledger. A new src/*.ts
+        to break that cycle is refused
+        (no-new-file Constraint).
+        command.ts is the caller.
+        Nothing under src/review/*
+        imports gates/command
+        (measured). command.ts:34
+        already imports
+        ../review/outcomes, so the
+        layering is established.
+        Production review/*.ts has
+        zero writeFileSync/mkdirSync
+        (measured; tests excepted),
+        so A35.2 and the five-file
+        allowlist stay.
+
+        Unbound-pass refuse split,
+        decided here. ledger.ts does
+        not call runReview and cannot
+        know that a review ran. What
+        it still verifies on the
+        record it was given is
+        internal consistency:
+        (a) outcome pass requires a
+        snapshotDigest (an unbound
+        record refuses persist);
+        (b) snapshotDigest equals the
+        canonical digest of those
+        Finding children (command.ts
+        computes; ledger.ts
+        recomputes and refuses
+        mismatch);
+        (c) on pass, Ack findingIds
+        match those children
+        one-for-one.
+        Extra, missing, or unknown
+        ids, or a digest mismatch:
+        recordReviewVerdict throws
+        GraceCommandError and writes
+        nothing. Those three checks
+        are tamper-evidence of the
+        persisted record (F2, D18).
+        They do not prevent a caller
+        from handing an empty finding
+        set plus that empty-set
+        digest; ledger cannot tell
+        "runReview returned []" from
+        "the caller invented []"
+        without calling runReview.
+
+        What moves to command.ts is
+        the "review ran" half:
+        gate verdict always calls
+        runReview before
+        recordReviewVerdict; there is
+        no argv to skip it. That is
+        prevention of the default
+        unbound CLI close, not
+        prevention of a dishonest
+        library call (the Goal already
+        refuses that claim).
+        evaluateApplyGate still reads
+        persisted children and does
+        not re-run review; its refuse
+        set (unbound digest, digest
+        mismatch, Ack mismatch,
+        outcome fail) is the same
+        tamper-evidence half.
+
+        This does not weaken the
+        guarantee already scoped.
+        An unbound pass is no longer
+        the default successful close
+        through ngrace gate verdict.
+        Forging a bound pass by
+        calling recordReviewVerdict
+        with invented findings remains
+        a visible library act, same
+        class as D18.
+      </Constraint>
+      <Constraint>
+        Finding-set identity, decided
+        here, because findingId is not
+        change-scoped (src/review/core.ts:323-335).
+        An Ack is valid only as the
+        triple changeId plus
+        snapshotDigest plus findingId
+        against the newest Verdict on
+        that same change. Code alone is
+        forbidden (D18;
+        review.write-evidence-outside-scope
+        recurs). findingId alone is
+        forbidden (same hash on a later
+        bundle). Sorted path set without
+        the digest is forbidden (a later
+        review that adds a finding on
+        a path already present would
+        silently inherit the old Ack).
+        The digest is what makes the
+        set non-transferable across
+        time and across bundles.
+      </Constraint>
+      <Constraint>
+        Pass recording, decided here.
+        outcome pass requires argv token
+        ack-finding once per persisted
+        displayed finding, value equal
+        to that findingId. Zero findings:
+        no ack-finding flags, but the
+        empty-set digest is still stored
+        so the pass is bound to that
+        empty finding set. Binding to
+        "a review that ran" is the
+        command.ts call, not a ledger
+        inference from emptiness.
+        Extra, missing, or unknown
+        ids: recordReviewVerdict throws
+        GraceCommandError, writes
+        nothing. There is no ack-all
+        flag. argv token note remains
+        optional free text and is not
+        the clearance mechanism; the
+        findingId= note protocol in
+        src/review/catalog.ts:226-232
+        is replaced by Ack children.
+      </Constraint>
+      <Constraint>
+        Fail recording, decided here.
+        outcome fail: command.ts re-runs
+        review, passes Finding children
+        and the digest into
+        recordReviewVerdict, and does
+        not require Ack children.
+        evaluateApplyGate refuses
+        outcome fail. That
+        narrows RM-AGENT-RELIABILITY D11
+        ("applied requires a recorded
+        review verdict, not a clean one";
+        docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md:733-742
+        and core.test.ts:332-334).
+        Presence remains required.
+        Cleanliness of findings remains
+        not required: a pass with
+        complete Acks of open findings
+        still permits. Fail is the
+        human reject and the switch to
+        supersede, not a permitting
+        close. unable-to-determine with
+        reason host-capability-missing
+        is unchanged and still uses
+        gateFailOn
+        (src/gates/core.ts:393-409).
+        A bound pass is retroactive
+        only for apply on active
+        bundles after this writer
+        ships. Archived applied
+        bundles are not re-applied
+        (D5.2: do not turn a legitimate
+        historical close into an error).
+      </Constraint>
+      <Constraint>
+        Critical, decided here, is not
+        a finding severity and is not
+        a path class. Critical means
+        the close would be a lie if it
+        proceeded, and an Ack cannot
+        make it true. Closed set:
+        (1) pass with no snapshotDigest
+        (unbound, including a pass that
+        names no digest of an empty
+        set);
+        (2) snapshotDigest on the
+        Verdict that does not match the
+        canonical digest of its own
+        Finding children;
+        (3) an Ack whose findingId is
+        not among those children, or
+        whose digest does not equal the
+        Verdict digest;
+        (4) outcome fail.
+        Those refuse apply and the
+        operator switches to ngrace
+        supersede. They are not
+        acknowledgeable. (1)-(3) are
+        tamper-evidence of the
+        persisted record: ledger
+        refuses them at persist, apply
+        refuses them on read, neither
+        re-runs review. (4) is apply
+        prevention of a reject close
+        (fail still records). The
+        "review ran" half of unbound
+        pass lives only on command.ts
+        and is CLI-default prevention,
+        not library-call prevention.
+
+        Not critical, and
+        acknowledgeable: every live
+        review.* finding about the
+        work, including
+        review.scope-outside-write-scope,
+        review.write-evidence-outside-scope,
+        review.attempt-pair-unsubstantiated,
+        review.confidently-wrong,
+        review.test-assertion-weakened,
+        and C-APPROVAL-FINGERPRINT's
+        never-asked and mismatch codes.
+        Acking them does not widen
+        ObservedWriteScope. Rejecting
+        them is outcome fail, then
+        supersede. If the rejected
+        finding is an undeclared write
+        already on disk, the operator
+        reverts those writes before
+        supersede; that revert is not
+        this bundle's verb.
+
+        The post-execution trap in the
+        brief is the C-SUPERSEDE-VERB
+        class: an undeclared forced
+        write, already executed, on a
+        release-surface file. Defining
+        critical as "touches the
+        release surface" would make
+        that class unacknowledgeable
+        and un-closeable without
+        revert-then-supersede, with no
+        honest pass path. That
+        definition is refused here.
+        That class is acknowledgeable.
+        The operator may still reject
+        it; that is a decision, not a
+        critical classification.
+      </Constraint>
+      <Constraint>
+        Who records, decided here.
+        F9.10.1: a declaration authored
+        by the party under examination
+        cannot be that examination's
+        ground truth. The implementing
+        executor must not invoke gate
+        verdict. ngrace-execute rule 9
+        changes from "record with
+        ngrace gate verdict" to: run
+        ngrace review --change C-ID,
+        report the findingIds, stop,
+        and wait for the examining
+        party to record the bound
+        verdict. The examining party
+        is a detached reviewer where
+        the host allows it, otherwise
+        the operator. ngrace-reviewer
+        and the contract-reviewer role
+        keep forming judgment and
+        recording the bound verdict
+        with ack-finding flags; they
+        are not the executor.
+        This is tamper-evidence, not
+        enforcement (D18). A single
+        actor with write access can
+        still run review, copy the
+        ids, and record pass. What
+        changes is that an unbound
+        pass is no longer the default
+        successful close.
+      </Constraint>
+      <Constraint>
+        F123, decided here. The
+        MustExist half of
+        detectConfidentlyWrong skips a
+        plan.xml whose root status is
+        superseded, rejected, or
+        cancelled. It does not skip
+        applied (those targets should
+        still exist). It does not copy
+        the fingerprint audit's
+        status !== approved predicate
+        at src/review/core.ts:1687;
+        that audit's subject is
+        approval fingerprints, which
+        exist only for approved
+        artifacts. Marker-not-emitted
+        detection is unchanged.
+      </Constraint>
+      <Constraint>
+        F27.1 porcelain question,
+        decided here. Do not give
+        auditScopeOutsideWriteScope
+        the isDocsPlansPath skip.
+        Do not add CLAUDE.md to
+        isDocsPlansPath. The
+        WriteEvidence docs/plans hole
+        stays as named on
+        src/review/core.ts:1043-1048.
+        Porcelain findings on
+        docs/plans/** and on CLAUDE.md
+        remain acknowledgeable. This
+        bundle's remedy for authority
+        concurrent work is Ack, not a
+        second path-class swallow.
+        Charter point 1 forbids
+        widening scope semantics to
+        hide a breach; growing the
+        named hole to CLAUDE.md, or
+        copying it onto porcelain,
+        would be that swallow now
+        that Ack exists.
+      </Constraint>
+      <Constraint>
+        No new src/*.ts file. No
+        package.json files edit. No
+        PACK_ALLOWED_EXACT edit.
+        No new command root. liveCommandRoots
+        (src/query/command.test.ts:836-853)
+        is untouched as a membership
+        set. README CLI Overview gains
+        argv tokens on the existing
+        gate verdict row, not a new
+        row. Do not expand
+        src/artifact/scale-ergonomics.test.ts:368.
+        Do not edit
+        scripts/release-check.ts,
+        scripts/release-check.test.ts,
+        scripts/validate-marketplace.ts,
+        or scripts/release-checklist.ts.
+      </Constraint>
+      <Constraint>
+        Skill edits this bundle makes:
+        skills/ngrace/ngrace-execute/SKILL.md
+        rule 9 (executor runs review
+        and stops; does not invoke
+        gate verdict);
+        skills/ngrace/ngrace-reviewer/SKILL.md
+        (persist-on-verdict, Ack
+        protocol; keep A35.2; keep
+        the review_checklist
+        CloseEvidence and
+        unfingerprinted Decision
+        silent sentences
+        scripts/skill-contracts.test.ts:93-98
+        and :304-306 pin);
+        skills/ngrace/ngrace-cli/references/verdicts.md
+        (bound pass, fail refuses
+        apply, identity triple);
+        skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md
+        (record with ack-finding;
+        keep "Mechanized review.*
+        findings are acknowledged").
+        Do not add D19 or D20
+        sentences (skill-contracts
+        :348-349). Packaged mirrors
+        under plugins/ngrace/skills/ngrace/
+        stay byte-identical for each
+        edited file. ngrace-cli
+        SKILL.md inventory stays the
+        README table.
+      </Constraint>
+      <Constraint>
+        Forced write surface the later
+        plan must scope, including
+        every pin this deliverable
+        moves. Searched: writeFileSync,
+        mkdirSync, liveCommandRoots,
+        listLiveInvocations, GateId,
+        VALID_GATES, LEDGER_BUNDLE_SECTIONS,
+        allReviewCodes, allGateCodes,
+        collectEmittedIssueCodes,
+        skillTextLines, package.json
+        files, PACK_ALLOWED_EXACT,
+        PACK_ALLOWED_PREFIXES,
+        isDocsPlansPath, detectConfidentlyWrong,
+        recordReviewVerdict,
+        parseVerdictNode,
+        evaluateApplyGate,
+        review.write-evidence-outside-scope
+        remediation, attempt-pair
+        --note protocol, skill-contracts
+        execute and reviewer pins,
+        README CLI Overview and
+        workflow step 10.
+
+        src/gates/ledger.ts
+        (ReviewVerdictRecord,
+        recordReviewVerdict,
+        parseVerdictNode; Finding and
+        Ack children; snapshotDigest;
+        CloseEvidence children remain
+        valid; does not import
+        runReview; persist-time
+        digest and Ack consistency
+        against the children it was
+        given);
+
+        src/gates/command.ts
+        (calls runReview; maps
+        displayed findings onto the
+        record; computes
+        snapshotDigest; argv token
+        ack-finding, repeatable;
+        pass refuses without a
+        matching set);
+
+        src/gates/core.ts
+        (apply binding requirements
+        and fail refuse);
+
+        src/gates/catalog.ts
+        (new gate.apply.* codes for
+        unbound, digest mismatch,
+        unacked or unknown Ack, and
+        outcome fail; collectEmittedIssueCodes
+        will see guideIssue sites);
+
+        src/gates/core.test.ts
+        (D11 fail-permits pin at
+        :332-334 is the HEAD-true
+        property this bundle turns
+        false; red that. Presence
+        still required.
+        unable-to-determine
+        host-capability path stays);
+
+        src/review/core.ts
+        (F123 MustExist skip;
+        runReview callable from
+        src/gates/command.ts, not from
+        ledger.ts; do not add
+        isDocsPlansPath to porcelain;
+        do not add CLAUDE.md to
+        isDocsPlansPath);
+
+        src/review/core.test.ts
+        (F123; CLAUDE.md still fires
+        on porcelain as a stay-true
+        characterization; allReviewCodes
+        length 18 at :1855 and :2179
+        stays 18 because this bundle
+        adds no review.* code);
+
+        src/review/catalog.ts
+        (attempt-pair remediation
+        drops the --note findingId
+        protocol; write-evidence
+        remediation names Ack as the
+        close path and still forbids
+        an exception list);
+
+        src/review/command.ts
+        (description stays never
+        writes Verdicts);
+
+        src/query/command.test.ts
+        (README gate verdict row
+        names argv token ack-finding,
+        same shape as the severity
+        row at :936-947);
+
+        skills/ngrace/ngrace-execute/SKILL.md,
+        skills/ngrace/ngrace-reviewer/SKILL.md,
+        skills/ngrace/ngrace-cli/references/verdicts.md,
+        skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md,
+        plus packaged mirrors of each;
+
+        scripts/skill-contracts.test.ts
+        (keep or update the pinned
+        reviewer and execute
+        substrings this rewrite
+        touches; the pins exist, so
+        the file is in scope);
+
+        src/test-support/token-accounting.test.ts
+        and README.md workflow step 10,
+        CLI Overview gate verdict row,
+        and the skillTextLines cell;
+
+        this bundle's spec.xml and a
+        later plan-authoring pass's
+        plan.xml.
+
+        Not on the write surface:
+        src/grace.ts,
+        src/grace-generate.ts,
+        package.json,
+        scripts/release-check.ts,
+        scripts/release-check.test.ts,
+        scripts/validate-marketplace.ts,
+        scripts/release-checklist.ts,
+        scripts/packed-cli-smoke.ts,
+        src/artifact/scale-ergonomics.test.ts,
+        src/grace-cursor.test.ts
+        write-surface allowlist
+        (stays the closed five;
+        this bundle writes through
+        ledger.ts which is already
+        on it; command.ts calls
+        runReview and does not gain
+        writeFileSync),
+        ngrace-cli/SKILL.md,
+        ngrace-explainer references,
+        examples/.
+      </Constraint>
+      <Constraint>
+        F56 / F67:
+        FIX_DISTINCT_SIGNATURE_BUDGET
+        is 4, so a task may plan at
+        most three distinct fail
+        signatures. F80: one red
+        evidences one property. F45 /
+        F102 / F112: do not manufacture
+        a red for a HEAD-true property
+        that a correct implementation
+        keeps true. allReviewCodes
+        length 18, the five-file
+        writeFileSync allowlist,
+        liveCommandRoots membership,
+        GateId, A35.2, CloseEvidence
+        on applied archive, and the
+        host-capability failOn path
+        are stay-true. The D11
+        fail-permits pin is not
+        stay-true; it is the property
+        this bundle turns false.
+        Post-archive lint 0/0 is
+        CloseEvidence on AC-CLOSE-LINT,
+        not a task Satisfies. This spec
+        does not author
+        AC-SUITE-AND-LINT.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Expanding GateId, adding a
+        gate ack or gate snapshot
+        subcommand, or a third
+        ledger section. Owner:
+        unchanged; F115 and the
+        GateId Constraint.
+      </NonGoal>
+      <NonGoal>
+        Making ngrace review write.
+        Owner: A35.2; persist is on
+        recordReviewVerdict in
+        ledger.ts. command.ts calls
+        runReview and does not write.
+      </NonGoal>
+      <NonGoal>
+        A CLI guarantee that the
+        executor cannot invoke gate
+        verdict. Owner: F2 and D18.
+        Skills forbid it; unbound
+        pass is refused; forging a
+        bound pass remains a
+        visible act.
+      </NonGoal>
+      <NonGoal>
+        RM-VERIFIED-APPROVAL, one-time
+        codes, TTY-only confirmation,
+        or comparing git authors.
+        Owner: that named roadmap.
+        D18 already records the
+        revisable path.
+      </NonGoal>
+      <NonGoal>
+        Changing ObservedWriteScope,
+        adding a plan.xml exception
+        list, or widening
+        isDocsPlansPath to CLAUDE.md
+        or copying it onto porcelain.
+        Owner: F9.10.1 and charter
+        point 1. Ack is the remedy.
+      </NonGoal>
+      <NonGoal>
+        lifecycle finish, writing
+        applied, P3.1, P3.7, or
+        teaching gate apply or
+        archive to set status or
+        move a bundle. Owner: those
+        named bundles. A29.2 stays.
+      </NonGoal>
+      <NonGoal>
+        A new src/*.ts file,
+        package.json files, or
+        PACK_ALLOWED_EXACT. Owner:
+        unchanged; no user-visible
+        packaging surface.
+      </NonGoal>
+      <NonGoal>
+        D19 / D20 skill sentences,
+        co-draft, ngrace-cli inventory
+        restatement, or C-CI-CLAIM-PIN.
+        Owner: C-APPROVAL-SCOPE,
+        C-CO-DRAFT, ngrace-cli
+        SKILL.md:10, C-CI-CLAIM-PIN.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no
+        user-visible surface. Owner:
+        unchanged; no user-visible
+        surface.
+      </NonGoal>
+      <NonGoal>
+        README.md except workflow
+        step 10, the CLI Overview
+        gate verdict row this
+        deliverable moves, and the
+        skillTextLines cell if a
+        SKILL.md rewrite moves the
+        published figures.
+      </NonGoal>
+      <NonGoal>
+        Skipping applied plans in
+        detectConfidentlyWrong, or
+        copying the fingerprint
+        audit's approved-only
+        predicate onto the target
+        audit. Owner: the F123
+        Constraint; applied targets
+        should still exist.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-BOUND-PASS>
+        gate verdict --outcome pass
+        (src/gates/command.ts) re-runs
+        runReview for the change,
+        passes Finding children and
+        snapshotDigest into
+        recordReviewVerdict, and
+        refuses with a nonzero
+        GraceCommandError and no
+        write when argv token
+        ack-finding does not match
+        that displayed set one-for-one.
+        A pass with no snapshotDigest
+        cannot be recorded
+        (ledger persist refuse).
+        HEAD today: recordReviewVerdict
+        writes outcome only
+        (ledger.ts:351-353);
+        evaluateApplyGate treats
+        presence as enough
+        (core.ts:385-391). Red the
+        unbound pass. Failure
+        conditions: CLI pass that
+        does not invoke runReview
+        (command.ts); pass recorded
+        with no digest (ledger);
+        pass recorded with missing,
+        extra, or unknown
+        ack-finding (ledger). Direct
+        recordReviewVerdict with an
+        invented empty finding set
+        plus matching digest is the
+        D18 library bypass, not this
+        criterion's red.
+      </AC-BOUND-PASS>
+      <AC-EMPTY-BOUND>
+        When command.ts calls
+        runReview and that run
+        displays zero findings, pass
+        records the empty-set digest
+        and accepts zero ack-finding
+        flags. Apply permits that
+        bound empty pass. HEAD today: a
+        pass with no children other
+        than CloseEvidence on
+        applied archives is the
+        only shape. Red that a pass
+        without a digest is refused
+        even when review is clean.
+        Do not redden "zero
+        ack-finding on a clean
+        review" after the writer
+        exists (that is the
+        post-fix pass). Failure
+        conditions: clean review
+        still stores no digest;
+        clean review requires a
+        dummy ack-finding.
+      </AC-EMPTY-BOUND>
+      <AC-IDENTITY>
+        An Ack is accepted only
+        when changeId, snapshotDigest,
+        and findingId all match the
+        newest Verdict on that
+        change. A findingId taken
+        from a different change's
+        review of the same code and
+        file does not satisfy pass
+        on this change. A digest
+        from an earlier review of
+        this change that does not
+        match the Finding children
+        just produced does not
+        satisfy pass. HEAD today:
+        findingId is not
+        change-scoped
+        (core.ts:323-335) and
+        nothing stores a digest.
+        Red the cross-change
+        findingId reuse and the
+        stale-digest case as two
+        properties, two reds (F80).
+        Failure conditions: code
+        alone or findingId alone
+        clears pass; a previous
+        bundle's snapshot satisfies
+        this one.
+      </AC-IDENTITY>
+      <AC-FAIL-REFUSES-APPLY>
+        gate verdict --outcome fail
+        (command.ts) re-runs
+        runReview, passes Finding
+        children and digest into
+        recordReviewVerdict, and
+        does not require Ack.
+        evaluateApplyGate
+        decision is refuse when the
+        newest verdict outcome is
+        fail, with a catalogued
+        gate.apply.* code. HEAD
+        today: core.test.ts:332-334
+        expects fail to permit.
+        Red that. unable-to-determine
+        with host-capability-missing
+        still follows gateFailOn
+        (stay-true; F45). Failure
+        conditions: fail still
+        permits apply; fail requires
+        Ack children; host-capability
+        path regresses.
+      </AC-FAIL-REFUSES-APPLY>
+      <AC-APPLY-CRITICAL>
+        evaluateApplyGate refuses
+        pass when snapshotDigest is
+        absent, when it does not
+        match the canonical digest
+        of the Verdict's Finding
+        children, or when Ack
+        children are not exactly
+        that findingId set. It does
+        not re-run review. It still
+        refuses when no Verdict
+        exists (gate.apply.no-verdict
+        stays). HEAD today: no such
+        requirements. Red unbound
+        pass at apply, digest
+        mismatch, and unacked
+        error as three properties,
+        three reds, split across
+        tasks so no task exceeds
+        three distinct signatures
+        (F56). Failure conditions:
+        apply re-runs review;
+        apply permits unbound pass;
+        apply treats a
+        write-evidence-outside-scope
+        finding as unacknowledgeable.
+      </AC-APPLY-CRITICAL>
+      <AC-NO-GATEID>
+        GateId remains the union
+        approve, apply, archive
+        (ledger.ts:105). VALID_GATES
+        remains that set (:160).
+        LEDGER_BUNDLE_SECTIONS
+        remains Verdicts and
+        Decisions (:155). No new
+        command root. ngrace review
+        still writes no Verdicts,
+        Decisions, or status.
+        writeFileSync|mkdirSync
+        production grep still
+        matches only the five files
+        at grace-cursor.test.ts:484-513.
+        allReviewCodes() length stays
+        18. HEAD today: all of these
+        are true. Do not redden
+        them (F45). Failure
+        conditions: GateId grows;
+        a ReviewSnapshots section
+        appears; review/command.ts
+        or review/core.ts gains
+        writeFileSync; a new
+        review.* catalog code
+        ships in this bundle.
+      </AC-NO-GATEID>
+      <AC-F123>
+        detectConfidentlyWrong does
+        not emit review.confidently-wrong
+        for a MustExist on a plan.xml
+        whose root status is
+        superseded, rejected, or
+        cancelled, even when the
+        target path is absent.
+        It still emits for an
+        approved or applied plan
+        whose MustExist target is
+        absent. HEAD today:
+        C-SUPERSEDE-VERB's archived
+        plan would fire (F123).
+        Red the superseded skip.
+        Do not redden applied
+        MustExist still firing
+        (stay-true on a constructed
+        applied fixture). Failure
+        conditions: skipped by
+        copying status !== approved;
+        applied plans also skipped;
+        marker-not-emitted half
+        skipped.
+      </AC-F123>
+      <AC-PORCELAIN-AUTHORITY>
+        auditScopeOutsideWriteScope
+        still reports CLAUDE.md and
+        docs/plans/** when they appear
+        in changedFiles and are not
+        in ObservedWriteScope.
+        auditWriteEvidenceOutsideScope
+        still skips docs/plans/** and
+        still does not skip CLAUDE.md.
+        isDocsPlansPath is not
+        extended. HEAD today: that
+        split is the code at
+        core.ts:1022-1024 vs
+        :1088-1089. Stay-true
+        characterization, not a red
+        (F45). Failure conditions:
+        porcelain adopts
+        isDocsPlansPath; CLAUDE.md
+        is added to isDocsPlansPath.
+      </AC-PORCELAIN-AUTHORITY>
+      <AC-SKILL-SPLIT>
+        ngrace-execute rule 9 tells
+        the executor to run ngrace
+        review --change C-ID and
+        stop; it does not tell the
+        executor to invoke gate
+        verdict. ngrace-reviewer
+        and contract-reviewer record
+        the bound verdict with
+        ack-finding. verdicts.md
+        states that apply refuses
+        fail and unbound pass, and
+        that Ack identity is the
+        triple. Packaged mirrors
+        match. skill-contracts pins
+        on CloseEvidence,
+        unfingerprinted Decision
+        silent, recovery table, and
+        absence of D19/D20 remain
+        true. HEAD today: execute
+        rule 9 says record with
+        gate verdict
+        (ngrace-execute/SKILL.md:42).
+        Red that sentence. Failure
+        conditions: executor still
+        instructed to record the
+        verdict; reviewer told not
+        to record; D19 or D20
+        words added; mirrors drift.
+      </AC-SKILL-SPLIT>
+      <AC-README-ROW>
+        README.md workflow step 10
+        no longer says apply
+        requires a recorded verdict
+        of some outcome including
+        unable-to-determine as if
+        fail permitted. The CLI
+        Overview gate verdict row
+        names argv token ack-finding.
+        src/query/command.test.ts
+        pins that token on that
+        row. skillTextLines total
+        and totalBytes are
+        re-measured, not frozen.
+        HEAD today: README.md:135
+        and :200 teach unbound
+        presence. Red the step-10
+        sentence and the missing
+        ack-finding token as two
+        properties. Failure
+        conditions: step 10 still
+        says any outcome permits;
+        Overview omits ack-finding;
+        published line/byte cell
+        disagrees with
+        skillTextLines().
+      </AC-README-ROW>
+      <AC-REMEDIATION>
+        REVIEW_CATALOG remediation
+        for review.attempt-pair-unsubstantiated
+        no longer tells the reader
+        to put findingId in argv
+        token note. Remediation for
+        review.write-evidence-outside-scope
+        still forbids an exception
+        list in plan.xml and names
+        Ack of the specific identity
+        as the close path that does
+        not widen ObservedWriteScope.
+        HEAD today: catalog.ts:226-232
+        and :291-295. Red the note
+        protocol. Failure conditions:
+        --note remains the documented
+        clearance; Ack is described
+        as widening scope.
+      </AC-REMEDIATION>
+      <AC-SUITE-AND-CI>
+        bun test, bunx tsc --noEmit,
+        bun run ./scripts/validate-marketplace.ts,
+        bun run validate:packed, and
+        bun run validate:ci are green
+        after the production edits.
+        Task-observable. Do not
+        Satisfies-link post-archive
+        lint to a task.
+      </AC-SUITE-AND-CI>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0 with
+        fail-on warnings.
+        <CloseEvidence>
+          <Command>bun run ngrace lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GATES />
+      <M-REVIEW />
+      <M-SKILLS />
+      <M-QUERY />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/gates/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bunx tsc --noEmit</ExpectedCommand>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:packed</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Red-first on AC-BOUND-PASS,
+        AC-EMPTY-BOUND, both
+        properties of AC-IDENTITY,
+        AC-FAIL-REFUSES-APPLY, the
+        three properties of
+        AC-APPLY-CRITICAL, AC-F123,
+        AC-SKILL-SPLIT, both
+        properties of AC-README-ROW,
+        and AC-REMEDIATION, each
+        property its own red (F80),
+        split across tasks so no
+        task plans more than three
+        distinct signatures (F56,
+        F67). AC-NO-GATEID and
+        AC-PORCELAIN-AUTHORITY are
+        HEAD-true stay-true halves,
+        not reds (F45). AC-SUITE-AND-CI
+        is task-observable suite
+        evidence and includes
+        bunx tsc --noEmit (F125).
+        Post-archive lint 0/0 is
+        AC-CLOSE-LINT CloseEvidence,
+        evaluated at gate verdict on
+        the applied archive, not
+        claimed by a task pass.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        HEAD 13a8a45, packaged 6.2.0,
+        and "tree clean" are a
+        snapshot (F33), not
+        criteria. This change does
+        not bump the product version.
+      </Assumption>
+      <Assumption>
+        command.ts → review/core
+        stays acyclic because nothing
+        under src/review/* imports
+        gates/command (measured at
+        amend; review/core.ts:81 is
+        the ledger cycle that forbids
+        the previous caller). A later
+        import of gates/command from
+        src/review/* would recreate
+        a cycle, contradict the
+        no-new-file Constraint, and
+        must stop and report rather
+        than add a file.
+      </Assumption>
+      <Assumption>
+        CloseEvidence children on
+        an applied-archive Verdict
+        remain beside Finding and
+        Ack children. parseVerdictNode
+        must keep accepting
+        CloseEvidence. The
+        pass-refuses-when-CloseEvidence-failed
+        guard at ledger.ts:321-329
+        stays.
+      </Assumption>
+      <Assumption>
+        scripts/skill-contracts.test.ts
+        reviewer pins (CloseEvidence,
+        applied-archive, recorded
+        evaluation, unfingerprinted
+        Decision silent) and execute
+        pins (recovery table,
+        assertion commands, no D19
+        or D20) can survive the
+        rule 9 rewrite. If a pin
+        string must move, that test
+        file is already on the
+        forced write surface.
+      </Assumption>
+      <Assumption>
+        ngrace-cli SKILL.md:10 keeps
+        deferring inventory to the
+        README table, so this bundle
+        does not edit that skill
+        body.
+      </Assumption>
+      <Assumption>
+        Root lint fail-on stays
+        errors. 0/0 as quoted counts
+        is AC-CLOSE-LINT CloseEvidence
+        using argv token fail-on set
+        to warnings.
+      </Assumption>
+      <Assumption>
+        allReviewCodes length 18 is
+        current at
+        src/review/core.test.ts:1855
+        and :2179. Adding no review.*
+        code keeps that pin. New
+        codes in this bundle are
+        gate.apply.* only.
+      </Assumption>
+    </Assumptions>
+    <DesignReferences>
+      <UserResearch>docs/plans/active/RM-GOVERNED-PATH/decisions.md</UserResearch>
+    </DesignReferences>
+    <Clarifications>
+      <Clarification resolved="true">
+        <AC-BOUND-PASS />
+        Resolved: command.ts calls
+        runReview; ledger.ts does not
+        (cycle at review/core.ts:81).
+        Persist-time and apply
+        unbound-pass refuses are
+        digest-and-children
+        consistency (tamper-evidence).
+        "Review ran" is command.ts
+        only (prevention of the
+        default CLI close, not of a
+        library bypass).
+      </Clarification>
+      <Clarification resolved="true">
+        <AC-APPLY-CRITICAL />
+        Resolved: critical is the
+        closed process-integrity
+        refuse set on apply, not a
+        review.* severity and not
+        "touches the release
+        surface." The
+        C-SUPERSEDE-VERB class is
+        acknowledgeable.
+      </Clarification>
+      <Clarification resolved="true">
+        <AC-IDENTITY />
+        Resolved: identity is
+        changeId plus snapshotDigest
+        plus findingId. Code alone
+        and findingId alone transfer.
+      </Clarification>
+      <Clarification resolved="true">
+        <AC-SKILL-SPLIT />
+        Resolved: executor does not
+        record the verdict. Detached
+        reviewer or operator does.
+        CLI prevention is not
+        claimed.
+      </Clarification>
+      <Clarification resolved="true">
+        <AC-F123 />
+        Resolved: skip superseded,
+        rejected, cancelled MustExist
+        only. Do not copy
+        status !== approved.
+      </Clarification>
+      <Clarification resolved="true">
+        <AC-PORCELAIN-AUTHORITY />
+        Resolved: do not align
+        porcelain with isDocsPlansPath
+        and do not add CLAUDE.md to
+        that hole. Ack is the remedy.
+      </Clarification>
+    </Clarifications>
+  </C-VERDICT-EVIDENCE>
+</NgraceChangeSpec>
