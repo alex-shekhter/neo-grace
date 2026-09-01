@@ -1,0 +1,135 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-SUPERSEDE-RECORD</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    F134.2 shrunk the discard charter to
+    two requirements: fold inside the
+    verb, and document that supersede
+    discards governance never code. The
+    spec is those two. The layer, the
+    no-epoch skip, and the borrowed
+    terminal are the decisions that make
+    the first requirement implementable
+    without a new kind.
+
+    Rename already preserves run/. The
+    HEAD probe archived
+    run/1-T-001-opened.xml. The defect
+    is not that files vanish on
+    renameSync; it is that the durable
+    instrument (Epoch, attempts,
+    status.epochCount) is not written.
+    C-SUPERSEDE-VERB's absent run/ is a
+    revert artifact, not proof that
+    supersede deletes loose events.
+    Folding before the move is still
+    required: archive measurements read
+    Epoch-N, not leftover run/ files.
+
+    The brief's "exit 0, silently" for
+    unterminated fold is false at this
+    HEAD: exit 1, stderr "unterminated
+    range for w0". F131's "exited 0"
+    for the no-events message is also
+    false today (C-PHASE-RULE-PIN and
+    C-SUPERSEDE-VERB both exit 1). The
+    spec uses the measured refuse, not
+    the brief's recollection.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Fold only in the CLI handler
+      (src/grace-supersede.ts:72-95).
+      Leaves supersedeChangeBundle as a
+      write+rename helper. The EXDEV
+      test would not fold, which is
+      convenient, and the comment
+      "Command-path only" would stay
+      literally true. Rejected: F133.
+      The product verb has two callers;
+      a mechanism at the handler does
+      not reach the function the tests
+      and any future caller use. The
+      CLI already only delegates.
+    </Alternative>
+    <Alternative>
+      Relax fold's terminal check when
+      the caller is supersede, and fold
+      an unterminated range. Avoids
+      emitting a kind whose skill text
+      says "the epoch's work is
+      finished". Rejected: grammar
+      validates the written Epoch with
+      the same terminal requirement
+      (ledger.range-unterminated). Fold
+      verify would fail unless grammar
+      changed too. Two invariants
+      versus emitting one existing
+      kind. F134.2 already measured
+      that no consumer claims
+      completion.
+    </Alternative>
+    <Alternative>
+      Document only in ngrace-cli.
+      Rejected: ngrace-cli's
+      shape_sources says the live
+      inventory is the README table
+      bound to listLiveInvocations,
+      and forbids restating it there.
+    </Alternative>
+    <Alternative>
+      Skip skill-text edits and change
+      only meta.description and README.
+      Smaller blast radius (no
+      token-accounting pin). Rejected
+      for the agent readers: plan and
+      execute are the surfaces that
+      tell an agent to run the verb.
+      --help is not. F133 still
+      applies: a skill edit forces the
+      byte pin, so those files are
+      named in the spec rather than
+      discovered at execution.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Amendment counter. Next
+      instrument bundle.
+    </Decision>
+    <Decision>
+      Effort accounting. The bundle
+      after that.
+    </Decision>
+    <Decision>
+      State: complete naming on an
+      abandoned bundle. F134.2 nit.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Abandoned mid-execution, open
+      epoch, no terminal. supersede
+      emits terminal on the last
+      task, folds, archives. Ledger
+      holds the attempts. Replacement
+      keeps the code.
+    </Scenario>
+    <Scenario>
+      Never executed, spec-only, no
+      run/. supersede skips fold,
+      writes superseded, archives.
+      Same as today, exit 0.
+    </Scenario>
+    <Scenario>
+      Already folded, empty run/,
+      still active (EXDEV retry).
+      Skip fold, write, rename.
+    </Scenario>
+    <Scenario>
+      Already terminated but not
+      folded. Skip the extra
+      terminal, fold, archive.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>

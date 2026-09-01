@@ -7848,6 +7848,53 @@ legibility nit, not scoped.
 An inference from a definition is not a measurement of what a surface reports, and the cheapest fix
 is usually the one that adds nothing.
 
+### F135 — the authority superseded before the replacement existed, and a `spec new` skeleton is never inert. **[verified]**
+
+`ngrace supersede` requires the replacement bundle's directory to exist. To satisfy that, the
+authority ran `ngrace spec new C-LINT-PHASE-HONESTY-2`, superseded, and committed after checking
+**only `ngrace lint`** — which was 0/0 — without running the rest of the validator set. That is
+precedence rule 5's subset error, committed by the party that writes the rule into every brief.
+
+**A `spec new` skeleton turns `validate:ci` red the moment it exists.**
+`scripts/check-teaching-surface.ts:237` requires **every active spec** to name both `README.md` and
+`examples/` in a `Goal`, `Constraint`, or `NonGoal`; the generated skeleton names neither. Measured:
+
+```
+C-SUPERSEDE-RECORD:      PASS
+C-LINT-PHASE-HONESTY-2:  FAIL
+```
+
+The skeleton cannot simply be removed — deleting it raises
+`change.superseded-replacement-not-found` on both artifacts of the superseded bundle. So the
+placeholder is load-bearing and red at the same time.
+
+**The correct order is the one the executor used and the authority did not.** For
+`C-PHASE-RULE-PIN` → `C-LINT-PHASE-HONESTY`, the replacement spec was **authored first**, then the
+predecessor superseded. Superseding toward an empty directory buys a red validator until the
+replacement is written.
+
+**The archive ratchet caught the F133 breach, exactly as designed.** Archiving the bundle added
+`["C-LINT-PHASE-HONESTY", "src/test-support/token-accounting.test.ts"]` to the product multiset at
+`src/review/core.test.ts:1963`, failing `bun test` and `validate:determinism`. The list already
+carried `["C-EXECUTION-CONTRACT", "src/test-support/token-accounting.test.ts"]` with the note *"the
+write was forced, not discretionary. Recorded, not excused."* — **the third bundle to move this same
+pin.** The pair is now recorded with its own note. Recording is the strict act; leaving the ratchet
+red would merely have disarmed the suite for every later bundle.
+
+**Two errors in the authority's brief, both found by the executor.**
+
+1. *"fold refuses with `unterminated range for w0` … exit 0, silently"* — **false**. Fold exits **1**
+   with that message on stderr. The authority measured it as `... | tail -6; echo "exit=$?"`, which
+   reports **`tail`'s** status, not the command's. Every exit code sampled through a pipe in this
+   session is suspect; this one reached a brief as a fact.
+2. *"the loose events under `run/` are lost"* — **wrong verb**. `renameSync` preserves `run/`; what
+   is lost is the **`Epoch`**. `C-SUPERSEDE-VERB`'s absent directory is a separate artifact, not
+   proof that supersede deletes. The defect is "not folded", which is still worth paying.
+
+**The rule.** Read an exit code from the command, never through a pipe — `cmd >out 2>err; echo $?`.
+And after any write that adds an artifact to `.ngrace/`, run the whole validator set, not the one
+validator that happens to be fast.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield

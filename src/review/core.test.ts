@@ -1968,6 +1968,14 @@ const WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET: ReadonlyArray<readonly [string, stri
   // The approved ObservedWriteScope did not name that file; the write was
   // forced, not discretionary. Recorded, not excused.
   ["C-CRITERION-CLOSE-EVIDENCE", "src/verification/localize.test.ts"],
+  // C-LINT-PHASE-HONESTY: rewriting the MustPassCommand doctrine across four
+  // SKILL.md files necessarily moves skillTextLines().totalBytes, which this
+  // file pins (56971 -> 58400; line total stayed 812). The approved
+  // ObservedWriteScope did not name it; the write was forced, not
+  // discretionary, and was reported before it was made. Third bundle to hit
+  // this same pin (F133). The bundle was superseded over it rather than
+  // closed; the pair records what the archive holds. Recorded, not excused.
+  ["C-LINT-PHASE-HONESTY", "src/test-support/token-accounting.test.ts"],
 ];
 
 describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
