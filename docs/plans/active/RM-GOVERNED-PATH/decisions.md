@@ -7327,6 +7327,44 @@ claim was right — `isDocsPlansPath` is `:1050`, and the spec's `:1043-1048` is
 because a refusal record that is never checked becomes an authority of its own, which is the failure
 this ledger exists to prevent.
 
+### F127 — an approved plan that requires a suite green while forbidding the write that green needs. **[verified]**
+
+`C-VERDICT-EVIDENCE` T-008's criterion requires *"`bun run validate:ci` exits 0"*. `validate:ci`
+runs `validate:examples` (`package.json:73`), which runs `scripts/validate-walkthrough.ts`, whose
+lifecycle step 8 closes with `gate verdict --outcome pass --scope bundle` and no `--ack-finding`
+(`:281-283`). This bundle makes exactly that close a refuse. Measured:
+
+```
+- lifecycle.8 verdict: expected outcome=pass, exit=1
+- lifecycle.8 apply: expected Decision: permit, exit=1
+WALKTHROUGH.md documents output the tool no longer produces. Fix the doc or the tool.
+```
+
+The spec NonGoal and the plan both freeze `examples/` (`plan.xml:16`, `:905`), and neither
+`examples/` nor `scripts/validate-walkthrough.ts` is in `ObservedWriteScope`. **The two requirements
+cannot both hold.**
+
+**Third instance of one class, all in artifacts this authority approved.** [F120](#f120): a plan whose
+`ObservedWriteScope` omitted a write `AC-SUITE-AND-CI` forced. [F126](#f126): a spec whose
+completeness claim omitted a file already measured. Now a plan that demands a validator pass while
+forbidding the only edit that lets it. The shared shape is a **suite requirement and a scope
+restriction written in different sections and never checked against each other**.
+
+**The rule.** Before approving, take every command a task must pass, expand what that command
+actually runs, and confirm each thing it touches is either already green or inside the declared
+scope. `validate:ci` is a chain of ten scripts; approving "it exits 0" is approving all ten.
+
+**Caught before the write, which is the one improvement here.** The executor stopped at the boundary
+and reported instead of making the forced edit and disclosing it afterwards, because the execution
+brief said to report a breach *before* making it. That instruction was added after F120 cost a
+complete execution; it worked the first time it was tested. T-001–T-007 are complete, in scope, and
+green; nothing needs reverting to keep the record honest.
+
+**The walkthrough edit is not optional and not scope creep.** This bundle changes the close protocol;
+`WALKTHROUGH.md` documents the close protocol. A successor that ships the contract without updating
+the document ships a teaching surface that instructs users to run a command the tool now refuses. The
+validator says so in its own failure text.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
