@@ -53,7 +53,7 @@ describe("token-accounting (D15)", () => {
     // 55486 → 56110 bytes.
     const measured = skillTextLines();
     expect(measured.total).toBe(811);
-    expect(measured.totalBytes).toBe(56399);
+    expect(measured.totalBytes).toBe(56812);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

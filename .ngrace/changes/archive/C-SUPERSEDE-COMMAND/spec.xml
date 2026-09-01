@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-SUPERSEDE-COMMAND>
     <Summary>
       Replacement of C-SUPERSEDE-VERB. Same

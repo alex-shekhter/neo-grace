@@ -38,6 +38,7 @@
     "src/grace-lint.ts",
     "src/grace-module.ts",
     "src/grace-status.ts",
+    "src/grace-supersede.ts",
     "src/grace-verification.ts",
     "src/artifact",
     "src/language-registry.ts",

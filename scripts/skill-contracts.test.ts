@@ -322,3 +322,38 @@ describe("C-APPROVAL-FINGERPRINT T-005", () => {
     expect(archiveRow).not.toMatch(/writes approved|records a fingerprint/i);
   });
 });
+
+describe("C-SUPERSEDE-COMMAND T-005", () => {
+  it("skill-plan-path: approved_plan_immutability teaches spec new then ngrace supersede", () => {
+    const plan = read("skills/ngrace/ngrace-plan/SKILL.md");
+    const section = plan.split("<approved_plan_immutability>")[1]?.split("</approved_plan_immutability>")[0] ?? "";
+    expect(section).toContain("ngrace supersede");
+    expect(section).toContain("spec new");
+    expect(section).toContain("change.invalid-active-status");
+    expect(section).toContain("change.archive-status-mismatch");
+    expect(section).toContain("change.superseded-missing-replacement");
+    expect(section).toContain("change.superseded-self-replacement");
+    expect(section).toContain("change.superseded-replacement-not-found");
+    expect(section).toContain("Create a new `C-*` bundle");
+    expect(section).toContain("mark the old bundle superseded");
+    expect(section).not.toMatch(/\bmv\b/);
+  });
+
+  it("skill-execute-path: preflight and durable-state-changed name ngrace supersede", () => {
+    const execute = read("skills/ngrace/ngrace-execute/SKILL.md");
+    const preflight = execute.split("<preflight>")[1]?.split("</preflight>")[0] ?? "";
+    expect(preflight).toContain("ngrace supersede");
+    const table = execute.split("<recovery_decision_table>")[1]?.split("</recovery_decision_table>")[0] ?? "";
+    expect(table).toContain("ngrace supersede");
+    expect(execute).not.toContain("D19");
+    expect(execute).not.toContain("D20");
+  });
+
+  it("skill-explainer-path: contract-driven-dev.md names ngrace supersede", () => {
+    const explainer = read("skills/ngrace/ngrace-explainer/references/contract-driven-dev.md");
+    expect(explainer).toContain("ngrace supersede");
+    expect(explainer).not.toContain("D19");
+    expect(explainer).not.toContain("D20");
+  });
+});
+

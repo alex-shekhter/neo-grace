@@ -29,7 +29,9 @@ import {
   readPermittingDecision,
   recordGateDecision,
   recordReviewVerdict,
+  stampApproveArtifact,
 } from "./ledger";
+import { GraceCommandError } from "../query/errors";
 import { advanceCursor, foldEpoch, listLooseEvents, recordAttempt, showCursor } from "../grace-cursor";
 import { formatGateEvaluation, gateCommand } from "./command";
 
@@ -2060,3 +2062,123 @@ describe("C-APPROVAL-FINGERPRINT T-002", () => {
     expect(body).not.toMatch(/fingerprint|writeFileSync|createHash/);
   });
 });
+
+describe("C-SUPERSEDE-COMMAND T-001", () => {
+  it("f114-single-quoted-write: single-quoted draft becomes approved preserving quote", () => {
+    const root = tempProject();
+    const bundle = draftBundle(root);
+    const specPath = path.join(bundle, "spec.xml");
+    const planPath = path.join(bundle, "plan.xml");
+    const specBefore = readFileSync(specPath, "utf8").replace('status="draft"', "status='draft'");
+    writeFileSync(specPath, specBefore);
+    expect(specBefore).toContain("status='draft'");
+    const planBefore = readFileSync(planPath, "utf8");
+
+    const recorded = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(recorded.status).toBe(0);
+    const specAfter = readFileSync(specPath, "utf8");
+    expect(specAfter).toBe(specBefore.replace("status='draft'", "status='approved'"));
+    expect(readFileSync(planPath, "utf8")).toBe(planBefore);
+  });
+
+  it("f114-throw-on-miss: grammar-parsed draft with unlocatable needle throws", () => {
+    const root = tempProject();
+    const bundle = draftBundle(root);
+    const specPath = path.join(bundle, "spec.xml");
+    const specBefore = readFileSync(specPath, "utf8").replace('status="draft"', 'status = "draft"');
+    writeFileSync(specPath, specBefore);
+
+    expect(() => stampApproveArtifact(root, "C-GATE")).toThrow(GraceCommandError);
+    expect(existsSync(fixtureLedgerPath(root))).toBe(false);
+
+    const recorded = runGateCli(
+      ["approve", "--change", "C-GATE", "--path", root, "--record=true"],
+    );
+    expect(recorded.status).not.toBe(0);
+    expect(existsSync(fixtureLedgerPath(root))).toBe(false);
+    expect(recorded.stdout + recorded.stderr).not.toMatch(/fingerprint="/);
+  });
+});
+
+function runSupersedeCli(args: string[]) {
+  return spawnSync("bun", ["run", GRACE_BIN, "supersede", ...args], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    env: process.env,
+  });
+}
+
+function changeArtifactPath(root: string, changeId: string, fileName: string): string | undefined {
+  for (const location of ["active", "archive"] as const) {
+    const filePath = path.join(root, ARTIFACT_DIR, "changes", location, changeId, fileName);
+    if (existsSync(filePath)) return filePath;
+  }
+  return undefined;
+}
+
+describe("C-SUPERSEDE-COMMAND T-004", () => {
+  it("surgical-write: spec and plan status become superseded for both quote styles", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, {
+      changeId: "C-OLD",
+      location: "active",
+      specStatus: "draft",
+      planStatus: "draft",
+    });
+    writeChangeBundleFixture(root, {
+      changeId: "C-NEW",
+      location: "active",
+      specStatus: "draft",
+      planStatus: "draft",
+    });
+    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    const specAfter = readFileSync(changeArtifactPath(root, "C-OLD", "spec.xml")!, "utf8");
+    expect(specAfter).toMatch(/\bstatus="superseded"/);
+    const planAfter = readFileSync(changeArtifactPath(root, "C-OLD", "plan.xml")!, "utf8");
+    expect(planAfter).toMatch(/\bstatus="superseded"/);
+
+    const quoted = tempProject();
+    writeChangeBundleFixture(quoted, {
+      changeId: "C-OLD",
+      location: "active",
+      specStatus: "draft",
+      planStatus: "draft",
+    });
+    writeChangeBundleFixture(quoted, {
+      changeId: "C-NEW",
+      location: "active",
+      specStatus: "draft",
+      planStatus: "draft",
+    });
+    const quotedSpecPath = path.join(quoted, ARTIFACT_DIR, "changes", "active", "C-OLD", "spec.xml");
+    writeFileSync(
+      quotedSpecPath,
+      readFileSync(quotedSpecPath, "utf8").replace('status="draft"', "status='draft'"),
+    );
+    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", quoted]);
+    expect(readFileSync(changeArtifactPath(quoted, "C-OLD", "spec.xml")!, "utf8")).toMatch(
+      /\bstatus='superseded'/,
+    );
+
+    const approved = tempProject();
+    writeChangeBundleFixture(approved, {
+      changeId: "C-OLD",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+    });
+    writeChangeBundleFixture(approved, {
+      changeId: "C-NEW",
+      location: "active",
+      specStatus: "draft",
+      planStatus: "draft",
+    });
+    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", approved]);
+    expect(readFileSync(changeArtifactPath(approved, "C-OLD", "spec.xml")!, "utf8")).toMatch(
+      /\bstatus="superseded"/,
+    );
+  });
+});
+
