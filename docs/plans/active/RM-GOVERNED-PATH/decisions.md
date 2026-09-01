@@ -7289,6 +7289,44 @@ as `docs/plans/**` — both authority commits on the shared branch, neither a wr
 asymmetry is `F27.1`'s observation growing a second instance and belongs to the bundle that next
 opens `src/review/core.ts`.
 
+### F126 — the authority approved a completeness claim it had already measured to be false. **[verified]**
+
+`C-VERDICT-EVIDENCE`'s approved spec opens its forced-write inventory with *"including every pin this
+deliverable moves"* and never names `src/review/outcomes.test.ts`. Measured: that file holds **14**
+of the 41 `recordReviewVerdict` call sites the contract change forces (`src/gates/core.test.ts` holds
+the other 27).
+
+**This is the third instance of the class and the first that cannot be excused as an incomplete
+search.** [F120](#f120) was a plan omitting a forced write; [F124](#f124) was a spec qualifying an
+enumerated member with *"if"*. Here the authority had **already run the measurement** — it counted 41
+sites across *both* files, wrote that number and both filenames into the plan-authoring brief, and
+then approved a spec whose inventory named only one of them. The failure was not searching; it was
+never reconciling an artifact against a measurement already in hand.
+
+**The rule this adds.** When the authority supplies a measurement to a brief, that measurement is a
+test the approved artifact must pass. Before giving an approval phrase effect, check the artifact
+against every number and every path the authority itself has produced in the same bundle. A
+measurement that lives only in a brief and never in the artifact it was measured for is decoration.
+
+**Disposition: record, do not supersede** — the same reasoning [F124](#f124) settled. The plan
+**declares** `src/review/outcomes.test.ts`, so it is stricter than the spec's prose, and measurement
+agrees: lint reports 0/0 over 200 artifacts. A plan looser than reality is the failure mode; a plan
+stricter than its spec is not.
+
+**Two smaller corrections in the same report.**
+
+*The authority's brief made a false existence claim.* It instructed the executor to read the
+bundle's `design-context.xml`. The bundle contains `spec.xml`, `plan.xml`, and `run-ledger.xml`
+only. The executor reported the absence as a search result rather than inventing the file — rule 2
+of the evidence standard, applied against the authority that wrote it.
+
+*And the executor was wrong once, for the first time on this roadmap.* It reported the fingerprint
+skip as `src/review/core.ts:1688`, correcting a `:1687` it had itself supplied one dispatch earlier.
+Measured: `grep -n 'attributes.status !== "approved"'` returns exactly one line, **1687**. Its paired
+claim was right — `isDocsPlansPath` is `:1050`, and the spec's `:1043-1048` is stale. Recorded
+because a refusal record that is never checked becomes an authority of its own, which is the failure
+this ledger exists to prevent.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
