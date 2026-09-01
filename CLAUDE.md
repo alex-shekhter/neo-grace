@@ -79,6 +79,13 @@ claims.** Four rules, each written after a measured failure:
    the facts the options depend on and verify each one. A wrong premise costs the maintainer a turn
    spent refuting instead of deciding, which is worse than a slow answer.
 
+5. **A passing suite is not verification — exercise the product.** Tests are written by the party
+   under examination and can be falsified, tautological, or aimed at the wrong surface. Before
+   accepting delivered work, the authority builds a throwaway project and drives the real CLI
+   through the behaviour: the happy path, each refuse path, and a byte-level diff where the change
+   claims to be surgical. `bun test` green is a precondition, never the evidence. This is automatic
+   and does not wait to be asked.
+
 When presenting a decision, give **itemized variants with explicit pros and cons**, then the
 recommendation and why the runner-up loses — never prose, and never a single recommendation with the
 alternatives implied.
