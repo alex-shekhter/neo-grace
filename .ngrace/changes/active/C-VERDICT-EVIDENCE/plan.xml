@@ -1,0 +1,1059 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-VERDICT-EVIDENCE>
+    <IntentSummary>
+      Bind gate verdict so a pass cannot stand in
+      for a review that never ran. src/gates/command.ts
+      calls runReview, computes snapshotDigest, and
+      passes Finding and Ack data into
+      recordReviewVerdict. ledger.ts persists and
+      checks digest and Ack consistency; it does not
+      import runReview. evaluateApplyGate refuses
+      unbound pass, digest mismatch, Ack mismatch,
+      and outcome fail. GateId stays closed. ngrace
+      review stays read-only. F123 skips superseded,
+      rejected, and cancelled MustExist. Porcelain
+      keeps the F27.1 split. Skills split recorder
+      from executor. examples/ is unchanged.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.ts</Value></MustExist>
+      <MustExist><Value>src/gates/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/outcomes.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/command.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-cli/references/verdicts.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-cli/references/verdicts.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-VERDICT-EVIDENCE/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-VERDICT-EVIDENCE/plan.xml</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export type GateId = "approve" | "apply" | "archive";</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export type ReviewVerdictRecord = {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function recordReviewVerdict(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>import { computeConstituentTasksPassed } from "../review/outcomes";</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>const verdict = recordReviewVerdict(projectRoot, changeId, payload);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.test.ts</File>
+        <Text>fail is a recorded verdict — apply permits under D11 (any recorded outcome).</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/catalog.ts</File>
+        <Text>gate.apply.no-verdict</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>import { classifyApprovedArtifact, listGateDecisions } from "../gates/ledger";</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>if (readGraceXmlArtifact(filePath).root?.attributes.status !== "approved") continue;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>findingId=&lt;id&gt;: &lt;reason&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/command.ts</File>
+        <Text>Does not record verdicts or change status</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>record with `ngrace gate verdict --change C-ID --outcome &lt;token&gt;`</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>Apply requires a recorded verdict of *some* outcome</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-cli/references/verdicts.md</File>
+        <Text>The apply gate requires a recorded verdict of any</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(allReviewCodes()).toHaveLength(18);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>pins writeFileSync|mkdirSync to graph, cursor, gates ledger, dart, and generate only</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.total).toBe(811)</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>from "../review/core"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/command.ts</File>
+        <Text>from "../review/core"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/command.ts</File>
+        <Text>runReview</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/command.ts</File>
+        <Text>ack-finding</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/catalog.ts</File>
+        <Text>gate.apply.unbound-pass</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/core.ts</File>
+        <Text>gate.apply.outcome-fail</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.ts</Value></MustExist>
+      <MustExist><Value>src/gates/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/outcomes.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/command.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-cli/references/verdicts.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-cli/references/verdicts.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export type GateId = "approve" | "apply" | "archive";</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>snapshotDigest</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>from "../review/core"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>runReview</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/command.ts</File>
+        <Text>ack-finding</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/catalog.ts</File>
+        <Text>gate.apply.unbound-pass</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/catalog.ts</File>
+        <Text>gate.apply.digest-mismatch</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/catalog.ts</File>
+        <Text>gate.apply.ack-mismatch</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/catalog.ts</File>
+        <Text>gate.apply.outcome-fail</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>gate.apply.outcome-fail</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/core.ts</File>
+        <Text>gate.apply.no-verdict</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/command.ts</File>
+        <Text>Does not record verdicts or change status</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>import { classifyApprovedArtifact, listGateDecisions } from "../gates/ledger";</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(allReviewCodes()).toHaveLength(18);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>pins writeFileSync|mkdirSync to graph, cursor, gates ledger, dart, and generate only</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md</File>
+        <Text>Mechanized review.* findings are acknowledged</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/skill-contracts.test.ts</File>
+        <Text>unfingerprinted Decision silent</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>from "../review/core"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/core.test.ts</File>
+        <Text>fail is a recorded verdict — apply permits under D11 (any recorded outcome).</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/catalog.ts</File>
+        <Text>findingId=&lt;id&gt;: &lt;reason&gt;</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>record with `ngrace gate verdict --change C-ID --outcome &lt;token&gt;`</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>README.md</File>
+        <Text>Apply requires a recorded verdict of *some* outcome</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>from "../gates/command"</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/gates/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/review/outcomes.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/query/command.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-cursor.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bunx tsc --noEmit</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:packed</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GATES />
+        <M-REVIEW />
+        <M-SKILLS />
+        <M-QUERY />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GATES />
+        <V-M-REVIEW />
+        <V-M-SKILLS />
+        <V-M-QUERY />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/gates/ledger.ts</File>
+      <File>src/gates/command.ts</File>
+      <File>src/gates/core.ts</File>
+      <File>src/gates/catalog.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/review/outcomes.test.ts</File>
+      <File>src/review/core.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/review/command.ts</File>
+      <File>src/query/command.test.ts</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>skills/ngrace/ngrace-cli/references/verdicts.md</File>
+      <File>skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-cli/references/verdicts.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-setup-subagents/references/roles/contract-reviewer.md</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+      <File>.ngrace/changes/active/C-VERDICT-EVIDENCE/spec.xml</File>
+      <File>.ngrace/changes/active/C-VERDICT-EVIDENCE/plan.xml</File>
+      <File>.ngrace/changes/active/C-VERDICT-EVIDENCE/run.xml</File>
+      <File>.ngrace/changes/active/C-VERDICT-EVIDENCE/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-VERDICT-EVIDENCE/run/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Persist digest on pass; command.ts calls runReview; migrate pass sites</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (persist-unbound): before any
+            production edit, in its own tool round trip,
+            add a bun test in src/gates/core.test.ts.
+            recordReviewVerdict with outcome pass and no
+            snapshotDigest throws GraceCommandError and
+            writes nothing. Sibling it(), same property,
+            not an extra recorded red: the same refuse
+            when the finding set is empty (AC-EMPTY-BOUND
+            clean-review fixture). Do not assert Ack
+            matching in this case. Do not assert apply
+            in this case. Do not import runReview from
+            ledger.ts. HEAD today: recordReviewVerdict
+            writes outcome only (ledger.ts:351-353).
+            Record fail, signature kind test key
+            persist-unbound. Run only this case. Do not
+            land the persist refuse in this round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (identity-stale-digest): before
+            the same production edit, in its own tool
+            round trip, add a bun test in
+            src/gates/core.test.ts. recordReviewVerdict
+            with outcome pass, Finding children, and a
+            snapshotDigest that is not the canonical
+            digest of those children throws
+            GraceCommandError and writes nothing. Do
+            not assert cross-change findingId in this
+            case. Do not assert Ack matching in this
+            case. HEAD today: extra fields on the
+            record are ignored and the write succeeds.
+            Record fail, signature kind test key
+            identity-stale-digest. Run only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (cli-invokes-review): before
+            editing src/gates/command.ts, in its own
+            tool round trip, add a bun test in
+            src/gates/core.test.ts. ngrace gate verdict
+            with argv token outcome pass records a
+            snapshotDigest equal to the canonical
+            digest of runReview displayed findings for
+            that change (warning when omitted). First
+            assertion is that the persisted Verdict
+            has snapshotDigest. Do not assert argv
+            token ack-finding in this case. Do not
+            replace the existing correction-62 CLI
+            test; add this case beside it. HEAD today:
+            that CLI path writes outcome only
+            (command.ts:393). Record fail, signature
+            kind test key cli-invokes-review. Run only
+            this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84):
+            extend ReviewVerdictRecord with findings,
+            snapshotDigest, and Ack data (the type at
+            ledger.ts:76-103 has none of those fields
+            today). Export a digest helper from
+            ledger.ts. recordReviewVerdict persists
+            Finding children and snapshotDigest,
+            requires snapshotDigest on pass, recomputes
+            the canonical digest, and refuses mismatch.
+            It does not import runReview. command.ts
+            calls runReview for the named change with
+            the same default severity as ngrace review,
+            computes snapshotDigest, and passes that
+            record in. No argv skips the call. Do not
+            require Ack children yet. Do not add a
+            new src/*.ts file. Do not expand GateId.
+            Migrate every outcome-pass
+            recordReviewVerdict site (measured 31:
+            22 in src/gates/core.test.ts, 9 in
+            src/review/outcomes.test.ts) through a
+            helper that supplies the empty-set digest
+            and no Ack children. Leave the 7 fail and
+            3 unable-to-determine sites. That
+            migration is not a red. Keep the
+            correction-62 CLI test green: a clean
+            fixture is an empty bound pass. Then
+            record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+          <Command>bun test src/review/outcomes.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-BOUND-PASS />
+          <AC-EMPTY-BOUND />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Ack matching on persist and argv token ack-finding</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (persist-ack-mismatch): before
+            adding Ack matching, in its own tool round
+            trip, add a bun test in
+            src/gates/core.test.ts. recordReviewVerdict
+            with outcome pass, a bound digest, and
+            extra, missing, or unknown Ack findingIds
+            throws GraceCommandError and writes
+            nothing. Sibling it(), same property, not
+            an extra recorded red: ngrace gate verdict
+            argv token ack-finding that does not match
+            the displayed set one-for-one. Zero
+            findings still accepts zero ack-finding
+            flags (do not redden that; it is the
+            post-T-001 pass). HEAD today: T-001
+            persists pass without checking Acks.
+            Record fail, signature kind test key
+            persist-ack-mismatch. Run only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (identity-cross-change): before
+            the same production edit, in its own tool
+            round trip, add a bun test in
+            src/gates/core.test.ts. A findingId taken
+            from a different change's review of the
+            same code and file does not satisfy pass
+            on this change. First assertion is the
+            throw / no write. Do not assert stale
+            digest in this case (T-001 paid that).
+            HEAD today: findingId is not change-scoped
+            (review/core.ts:323-335) and T-001 does
+            not check Ack membership. Record fail,
+            signature kind test key
+            identity-cross-change. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84):
+            recordReviewVerdict on pass requires Ack
+            children one-for-one with persisted
+            Finding findingIds; extra, missing, or
+            unknown ids throw and write nothing.
+            command.ts grows repeatable argv token
+            ack-finding and maps those values onto
+            the record. There is no ack-all flag.
+            argv token note stays optional free text
+            and is not the clearance mechanism. Fail
+            still does not require Ack. Do not import
+            runReview into ledger.ts. Then record
+            pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-BOUND-PASS />
+          <AC-IDENTITY />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>Apply refuses unbound pass, digest mismatch, and Ack mismatch</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (apply-unbound): before editing
+            evaluateApplyGate, in its own tool round
+            trip, add a bun test in
+            src/gates/core.test.ts. evaluateApplyGate
+            refuses outcome pass when snapshotDigest
+            is absent, with catalogued code
+            gate.apply.unbound-pass. Plant the Verdict
+            as fixture XML; do not call
+            recordReviewVerdict (T-001 persist already
+            refuses that shape). Do not re-run review
+            in apply. Do not assert digest mismatch
+            or Ack mismatch in this case.
+            gate.apply.no-verdict stays. HEAD today:
+            presence of a pass is enough
+            (core.ts:385-391). Record fail, signature
+            kind test key apply-unbound. Run only
+            this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (apply-digest-mismatch): before
+            the same production edit, in its own tool
+            round trip, add a bun test in
+            src/gates/core.test.ts. evaluateApplyGate
+            refuses when snapshotDigest does not match
+            the canonical digest of the Verdict's
+            Finding children, with catalogued code
+            gate.apply.digest-mismatch. Plant fixture
+            XML. Do not assert unbound or Ack
+            mismatch in this case. HEAD today: apply
+            does not read Finding children. Record
+            fail, signature kind test key
+            apply-digest-mismatch. Run only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (apply-unacked): before the
+            same production edit, in its own tool
+            round trip, add a bun test in
+            src/gates/core.test.ts. evaluateApplyGate
+            refuses when Ack children are not exactly
+            the persisted findingId set, with
+            catalogued code gate.apply.ack-mismatch.
+            A write-evidence-outside-scope finding on
+            those children is acknowledgeable; do not
+            treat it as unacknowledgeable. Plant
+            fixture XML. HEAD today: apply does not
+            read Ack children. Record fail, signature
+            kind test key apply-unacked. Run only
+            this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): add
+            gate.apply.unbound-pass,
+            gate.apply.digest-mismatch, and
+            gate.apply.ack-mismatch to GATE_CATALOG.
+            evaluateApplyGate emits them via
+            guideIssue (so collectEmittedIssueCodes
+            sees the sites) and refuses. It reads
+            persisted children; it does not call
+            runReview. parseVerdictNode keeps
+            accepting CloseEvidence. Do not edit
+            src/lint/catalog.test.ts; it walks
+            GATE_CATALOG. Do not expand GateId. Then
+            record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-APPLY-CRITICAL />
+        </Satisfies>
+      </T-003>
+      <T-004>
+        <Title>Apply refuses outcome fail</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (apply-fail-refuses): before
+            changing the D11 fail-permits pin, in its
+            own tool round trip, add a bun test in
+            src/gates/core.test.ts. evaluateApplyGate
+            decision is refuse when the newest verdict
+            outcome is fail, with catalogued code
+            gate.apply.outcome-fail. Fail persist
+            still does not require Ack. First
+            assertion is decision refuse / that code.
+            Do not put newest-governs first: that
+            stays. Do not redden
+            unable-to-determine with
+            host-capability-missing (stay-true; F45;
+            core.ts:393-409). HEAD today:
+            core.test.ts:332-334 expects fail to
+            permit. Record fail, signature kind test
+            key apply-fail-refuses. Run only this
+            case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): add
+            gate.apply.outcome-fail to GATE_CATALOG.
+            evaluateApplyGate refuses newest outcome
+            fail. Presence remains required.
+            Cleanliness of findings remains not
+            required: a pass with complete Acks of
+            open findings still permits. Keep the
+            host-capability failOn path. command.ts
+            fail re-runs runReview and passes
+            findings plus digest without requiring
+            Ack. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-FAIL-REFUSES-APPLY />
+        </Satisfies>
+      </T-004>
+      <T-005>
+        <Title>F123 superseded MustExist skip; porcelain stay-true</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (f123-superseded-skip): before
+            editing detectConfidentlyWrong, in its own
+            tool round trip, add a bun test in
+            src/review/core.test.ts.
+            detectConfidentlyWrong does not emit
+            review.confidently-wrong for a MustExist
+            on a plan.xml whose root status is
+            superseded, rejected, or cancelled, even
+            when the target path is absent. First
+            assertion is that the superseded fixture
+            is silent. Sibling it()s for rejected and
+            cancelled are the same property, not extra
+            recorded reds. Do not redden applied
+            MustExist still firing (stay-true on a
+            constructed applied fixture). Do not copy
+            status !== approved. Marker-not-emitted
+            half is unchanged. HEAD today: the
+            MustExist walk at review/core.ts:490-517
+            does not read root status. Record fail,
+            signature kind test key
+            f123-superseded-skip. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): skip
+            MustExist when the plan root status is
+            superseded, rejected, or cancelled. Do
+            not skip applied. Do not copy the
+            fingerprint audit predicate at
+            review/core.ts:1688. Do not give
+            auditScopeOutsideWriteScope the
+            isDocsPlansPath skip. Do not add
+            CLAUDE.md to isDocsPlansPath. Add
+            stay-true characterization that porcelain
+            still reports CLAUDE.md and docs/plans/**
+            (core.ts:1022-1024 vs :1088-1089); do not
+            record a fail for those (F45).
+            allReviewCodes length stays 18. Then
+            record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-F123 />
+          <AC-PORCELAIN-AUTHORITY />
+        </Satisfies>
+      </T-005>
+      <T-006>
+        <Title>Executor stops at review; README bound form; remasure skillTextLines</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (skill-execute-rule9): before
+            editing ngrace-execute SKILL.md, in its
+            own tool round trip, add a bun test in
+            scripts/skill-contracts.test.ts. execute
+            rule 9 tells the executor to run ngrace
+            review with argv token change and stop;
+            it does not tell the executor to invoke
+            gate verdict. Keep the recovery table,
+            assertion commands, CloseEvidence, and
+            unfingerprinted Decision silent pins.
+            Do not add D19 or D20 sentences
+            (skill-contracts :348-349). Do not assert
+            README text in this case. HEAD today:
+            ngrace-execute/SKILL.md:42 says record
+            with gate verdict. Record fail, signature
+            kind test key skill-execute-rule9. Run
+            only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (readme-step-10): before
+            editing README.md, in its own tool round
+            trip, add a bun test in
+            src/query/command.test.ts. Workflow step
+            10 no longer says apply requires a
+            recorded verdict of some outcome
+            including unable-to-determine as if fail
+            permitted. Do not assert the Overview
+            ack-finding token in this case. Do not
+            edit the Overview apply row (spec NonGoal:
+            README except step 10, the gate verdict
+            row, and the skillTextLines cell). HEAD
+            today: README.md:135 teaches unbound
+            presence. Record fail, signature kind
+            test key readme-step-10. Run only this
+            case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (readme-ack-finding): before
+            the same README edit, in its own tool
+            round trip, add a bun test in
+            src/query/command.test.ts. README CLI
+            Overview gate verdict row names argv
+            token ack-finding, same shape as the
+            severity row at command.test.ts:936-947.
+            Do not add a new Overview row. Do not
+            assert step 10 in this case. HEAD today:
+            README.md:200 has no ack-finding token.
+            Record fail, signature kind test key
+            readme-ack-finding. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then remeasure then pass (F84):
+            rewrite execute rule 9; ngrace-reviewer
+            and contract-reviewer record the bound
+            verdict with ack-finding; keep A35.2;
+            keep "Mechanized review.* findings are
+            acknowledged"; keep reviewer CloseEvidence
+            and unfingerprinted Decision silent
+            sentences. verdicts.md states apply
+            refuses fail and unbound pass, and Ack
+            identity is the triple. Copy each edited
+            canonical file onto its packaged mirror
+            so the files stay byte-identical. After
+            the rewrites, run skillTextLines() and
+            update token-accounting.test.ts pins and
+            the README.md measurement cell together
+            (totalBytes, and total if the line count
+            moves). Do not record the pre-remeasure
+            token-accounting fail as a planned
+            signature. Do not edit ngrace-cli
+            SKILL.md. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SKILL-SPLIT />
+          <AC-README-ROW />
+        </Satisfies>
+      </T-006>
+      <T-007>
+        <Title>Replace attempt-pair note protocol with Ack remediation</Title>
+        <DependsOn>T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (remediation-note-protocol):
+            before editing src/review/catalog.ts, in
+            its own tool round trip, add a bun test
+            in src/review/core.test.ts.
+            REVIEW_CATALOG remediation for
+            review.attempt-pair-unsubstantiated no
+            longer tells the reader to put findingId
+            in argv token note. Remediation for
+            review.write-evidence-outside-scope still
+            forbids an exception list in plan.xml and
+            names Ack of the specific identity as the
+            close path that does not widen
+            ObservedWriteScope. Keep the
+            core.test.ts:1851 regex green by retaining
+            gate verdict and findingId in the new
+            Ack remediation (stay-true; do not record
+            a fail for it). HEAD today:
+            catalog.ts:226-232 is the note protocol.
+            Record fail, signature kind test key
+            remediation-note-protocol. Run only this
+            case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): drop
+            the note findingId protocol; name Ack as
+            the close path; keep the exception-list
+            forbid. allReviewCodes length stays 18.
+            review/command.ts description still never
+            writes Verdicts. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-REMEDIATION />
+        </Satisfies>
+      </T-007>
+      <T-008>
+        <Title>Suite, typecheck, packed ship proof, stay-true pins</Title>
+        <DependsOn>T-007</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Task-observable suite (F84), not a red:
+            bun test is green. bunx tsc --noEmit
+            exits 0 (F125). bun run
+            ./scripts/validate-marketplace.ts exits 0.
+            bun run validate:packed exits 0. bun run
+            validate:ci exits 0. Stay-true, do not
+            record fails: GateId remains approve,
+            apply, archive; VALID_GATES remains that
+            set; LEDGER_BUNDLE_SECTIONS remains
+            Verdicts and Decisions; no new command
+            root; liveCommandRoots membership
+            unchanged; ngrace review still writes no
+            Verdicts, Decisions, or status;
+            writeFileSync|mkdirSync production grep
+            still matches only the five files at
+            grace-cursor.test.ts:484-513;
+            allReviewCodes() length stays 18;
+            host-capability failOn path stays;
+            CloseEvidence on applied archive stays;
+            porcelain still reports CLAUDE.md and
+            docs/plans/**. Do not claim post-archive
+            lint 0/0 at this task pass. Then record
+            pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+          <Command>bun test src/review/outcomes.test.ts</Command>
+          <Command>bun test src/review/core.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+          <Command>bunx tsc --noEmit</Command>
+          <Command>bun test</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>bun run validate:packed</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SUITE-AND-CI />
+          <AC-NO-GATEID />
+        </Satisfies>
+      </T-008>
+    </ImplementationPlan>
+    <!--
+      DESIGN (binding for implementers)
+
+      Plan-authoring HEAD: 49740b05540ee7fa85f0cacf15e57955074c9ab8
+      (branch feat/verdict-evidence). Preflight: ngrace lint
+      argv token path . argv token assertions current is 0/0.
+      Spec fingerprint
+      3b177f41bbfe02e14926bc3d4bd51cef0058af48212ca87efa339f9319d0e0a3
+      matches the approve Decision on run-ledger.xml
+      (gate approve, artifact spec). Spec is approved and
+      immutable. Do not amend it. Do not run gate approve
+      on this plan in this pass. If execute shows the spec
+      is wrong, stop and report.
+
+      No design-context.xml exists beside this spec
+      (searched .ngrace/changes/active/C-VERDICT-EVIDENCE/;
+      only spec.xml and run-ledger.xml were present).
+      Do not create one. Do not re-propose a rejected
+      alternative.
+
+      Ceremony tier T2. Stop and re-spec rather than:
+      importing runReview into ledger.ts; adding a new
+      src/*.ts file; expanding GateId or VALID_GATES;
+      adding a third ledger section; making ngrace review
+      write; growing the writeFileSync allowlist; editing
+      package.json files or PACK_ALLOWED_EXACT; a new
+      command root; editing ngrace-cli SKILL.md; editing
+      scripts/release-check.ts or its test; editing
+      scripts/validate-marketplace.ts;
+      scripts/release-checklist.ts;
+      scripts/packed-cli-smoke.ts; extending
+      scale-ergonomics.test.ts:368; copying
+      isDocsPlansPath onto porcelain; adding CLAUDE.md
+      to isDocsPlansPath; an exception list in this plan;
+      D19 / D20 sentences; examples/; docs/plans;
+      CHANGELOG.md; any version surface; or
+      .ngrace/changes/archive. Packaged version stays
+      6.2.0. No product version bump.
+
+      F61: name exported functions and argv tokens in this
+      comment. Never two adjacent hyphens.
+      F42: plan assertions bind to exported names, issue
+      codes, and exact source literals, never to AC ids.
+      F50: cursor companions are listed at authoring.
+      F74: cite cross-plan decisions as PLAN-ID Dn.
+      F111: when checking these artifacts for a phrase,
+      flatten whitespace first.
+      F33: do not freeze suite totals, archive counts,
+      command-root cardinality, or skillTextLines figures
+      this change moves. Re-measure at execute.
+      F67: signature keys are the names below, not the test
+      file stem.
+
+      plan new Satisfies-linked every ordinary spec AC-* to
+      T-001 and correctly omitted AC-CLOSE-LINT. This plan
+      redistributes Satisfies as the table below.
+
+      Searched, not assumed:
+      recordReviewVerdict call sites (rg): 41 test calls
+      (27 in src/gates/core.test.ts, 14 in
+      src/review/outcomes.test.ts) plus the production
+      caller command.ts:393 plus the definition
+      ledger.ts:264. Classified: 31 pass, 7 fail, 3
+      unable-to-determine.
+      src/review/* imports of gates/command: none.
+      Production src/review/*.ts writeFileSync|mkdirSync:
+      none (tests excepted).
+      grammar.ts validateLedgerVerdictsSection:783-855
+      walks Verdicts children (must be Verdict) and
+      Verdict attributes; it does not walk Verdict
+      children. CloseEvidence AC-* children already
+      persist. Finding and Ack children do not force
+      a grammar.ts write.
+      collectEmittedIssueCodes (lint/catalog.test.ts:37)
+      skips gates/catalog.ts and scans guideIssue in
+      production files. New gate.apply.* codes plus
+      guideIssue sites in core.ts do not force
+      lint/catalog.test.ts (it walks GATE_CATALOG).
+      isDocsPlansPath lives at review/core.ts:1050.
+      Fingerprint skip lives at :1688.
+
+      Digest helper lives in ledger.ts (command.ts
+      already imports ./ledger). No new file.
+
+      Catalog codes this plan names:
+      gate.apply.unbound-pass,
+      gate.apply.digest-mismatch,
+      gate.apply.ack-mismatch,
+      gate.apply.outcome-fail.
+
+      ════════════════════════════════════
+      D0. Tasks, reds, F56, F67, F80
+      ════════════════════════════════════
+      | Task | work | Satisfies | planned
+        kind+key pairs |
+      | T-001 | persist digest;
+          command.ts calls runReview;
+          migrate 31 pass sites
+        | AC-BOUND-PASS,
+          AC-EMPTY-BOUND
+        | test:persist-unbound,
+          test:identity-stale-digest,
+          test:cli-invokes-review
+          (empty-unbound is a sibling
+          it() of persist-unbound, not
+          a fourth signature; F56) |
+      | T-002 | Ack matching;
+          argv token ack-finding
+        | AC-BOUND-PASS,
+          AC-IDENTITY
+        | test:persist-ack-mismatch,
+          test:identity-cross-change
+          (CLI ack mismatch is a
+          sibling it() of
+          persist-ack-mismatch) |
+      | T-003 | apply unbound,
+          digest mismatch, Ack
+          mismatch
+        | AC-APPLY-CRITICAL
+        | test:apply-unbound,
+          test:apply-digest-mismatch,
+          test:apply-unacked |
+      | T-004 | apply refuses fail
+        | AC-FAIL-REFUSES-APPLY
+        | test:apply-fail-refuses |
+      | T-005 | F123 skip;
+          porcelain stay-true
+        | AC-F123,
+          AC-PORCELAIN-AUTHORITY
+        | test:f123-superseded-skip |
+      | T-006 | skill split; README
+          step 10; Overview
+          ack-finding; remasure
+        | AC-SKILL-SPLIT,
+          AC-README-ROW
+        | test:skill-execute-rule9,
+          test:readme-step-10,
+          test:readme-ack-finding |
+      | T-007 | catalog note protocol
+        | AC-REMEDIATION
+        | test:remediation-note-protocol |
+      | T-008 | suite
+        | AC-SUITE-AND-CI,
+          AC-NO-GATEID
+        | none |
+
+      D1. Migration of the 41 test call sites lands in
+      T-001, the task that introduces the persist refuse.
+      Why: 31 pass sites become the library-bypass form
+      the spec already scoped (empty-set digest, no Acks).
+      That is not a red. Leaving them for a later task
+      makes T-001's bun test src/gates/core.test.ts ungreen
+      except by unplanned signatures. A prior task that
+      writes unused fields is waste. Fail (7) and
+      unable-to-determine (3) are not pass, so persist
+      (a) does not require digest; leave them. The
+      D11 fail-permits pin at core.test.ts:332-334 is
+      T-004's red, not this migration.
+
+      D2. command.ts is updated in T-001, not deferred
+      to T-002. Why: core.test.ts:206-223 already
+      invokes gate verdict outcome pass. Persist refuse
+      without the CLI caller supplying a digest turns
+      that existing test into an unplanned red. The
+      spec also forbids a skip argv, so T-001 must not
+      ship a CLI empty-digest bypass. cli-invokes-review
+      is therefore a T-001 red, and EMPTY-BOUND's
+      no-digest fixture is siblinged under
+      persist-unbound to keep T-001 at three signatures.
+
+      D3. Apply-time unbound / mismatch reds plant
+      fixture XML. They must not call
+      recordReviewVerdict, which T-001 already refuses
+      for those shapes.
+
+      D4. src/review/outcomes.test.ts is in
+      ObservedWriteScope. The spec's forced-write
+      inventory omitted it. The 14 call sites are
+      measured. A plan stricter than spec prose is
+      not the F120 failure mode (F124).
+
+      D5. README Overview apply row (README.md:197)
+      still says "some outcome". Spec NonGoal forbids
+      editing README except step 10, the gate verdict
+      row, and the skillTextLines cell. Do not edit
+      line 197.
+    -->
+  </C-VERDICT-EVIDENCE>
+</NgraceChangePlan>
