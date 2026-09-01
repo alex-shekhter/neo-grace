@@ -7712,6 +7712,57 @@ one the plan happened to be reading.
 approved criteria unchanged; (b) is an implementation location, and the approved criterion
 (`AC-ARCHIVE-EXEMPT`) is satisfied more completely by the relocated skip than by the specified one.
 
+### F134 — the amendment count pilot calls its measuring instrument does not exist, and this bundle is the case that proves it. **[verified]**
+
+[`RM-PILOT-APPROVAL`](../RM-PILOT-APPROVAL/review.md) rests on a measurement: *"The budget is also the
+measuring instrument. The amendment count is a number, per bundle, **in the ledger**. It answers 'are
+the review rules working?' without anyone tallying supersedes by hand."* (`review.md:80-81`)
+
+**No such number is recorded, and `C-LINT-PHASE-HONESTY` is the sharpest demonstration so far.**
+
+What it actually cost to reach an approved, executed bundle, measured from git on `feat/lint-phase-honesty`:
+
+| event | commit |
+|---|---|
+| predecessor `C-PHASE-RULE-PIN` drafted | `3090ded` |
+| predecessor superseded, replacement drafted | `33f6e9a` |
+| spec amendment 1 — scope widened to the absence code | `99d8356` |
+| spec amendment 2 — exemption moved to the exit gate | `5cdb34a` |
+| spec approved | `659e552` |
+| plan drafted | `f7217e1` |
+| plan amendment 1 — bundle artifacts added to `ObservedWriteScope` | `5a036e4` |
+| plan approved | `4909689` |
+
+**One supersede, three amendments, and a forced scope breach at execution ([F133](#f133)).**
+
+What the ledger carries before the close: **2 `Decision` entries** (one spec approve, one plan
+approve) and nothing else. After the close it gains verdicts and the folded epoch. At no point does
+it record that a predecessor was discarded or that the artifacts were amended three times. The
+superseded predecessor archived with **`spec.xml` alone — no `run-ledger.xml` at all.**
+
+So the instrument reads **"clean, approved first try"** for a bundle that took a discarded
+predecessor and three amendments to get right.
+
+**This is [F128](#f128) reaching the decision it was blocking.** F128 recorded that the archive cannot
+measure what a supersede costs and concluded that *recording cost at the moment of discard is prior to
+deciding pilot*. That ordering is now load-bearing rather than theoretical: pilot's central claim —
+that expense is the pressure producing care — cannot be tested against an archive that prices every
+bundle at zero.
+
+**Why the gap is specifically pre-approval.** Execution cost *is* recorded, once `cursor fold`
+consolidates the loose `run/` events; this bundle emitted 15 of them across an open epoch. The blind
+spot is everything before the approve Decision: drafting, amending, and discarding all happen while
+`status="draft"`, where nothing writes to the ledger. Pilot moves amendment *after* approval, which
+is exactly the region the ledger already covers — so pilot would be measurable **if** the same
+counter also captured the pre-approval history it is meant to be compared against.
+
+**The honest reading of this bundle as evidence.** Its three amendments were cheap — all pre-approval,
+none requiring re-ratification — and each was driven by a measurement that caught a real defect: a
+scope too narrow to make its own remedy reachable, a count that would have printed `Errors: 0` beside
+an `[error]` line, and a write scope missing two files. That is evidence that cheap amendment
+produced more care, not less. It is **confounded** and must not be read as settling pilot: these
+amendments carried no ratification cost, which is the variable pilot actually changes.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
