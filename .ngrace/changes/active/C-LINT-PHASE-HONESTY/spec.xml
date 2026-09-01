@@ -5,9 +5,14 @@
       claiming a C-* change is in progress when that is
       inferred from approved status alone, keep failing
       baseline assertion.* issues as errors, and explain
-      the dual possibility on the text lead line. Close
-      the detector's implicit-current gap against
-      current-mode lint of this project root in
+      the dual possibility on the text lead line. Make
+      the named remedy — selected --assertions target
+      without --run-commands — an explicitly-structural
+      query that stays answerable when the plan carries
+      MustPassCommand: report assertion.command-not-evaluated
+      and do not fail that query's exit on that code
+      alone. Close the detector's implicit-current gap
+      against current-mode lint of this project root in
       TargetAssertions MustPassCommand. Rewrite the
       MustPassCommand doctrine once, as that property,
       across all ten surfaces. Replacement of the
@@ -54,6 +59,50 @@
       it no longer claims those errors are expected
       because a C-* is in progress.
 
+      The honest lead line names a remedy: use
+      --assertions target --change C-ID. That remedy
+      does not work for plans that carry
+      MustPassCommand. Measured 2026-09-01 at HEAD
+      33f6e9a on throwaway projects from
+      writeMinimalNgraceProject with a falsified
+      baseline (MustNotExist src/example.ts, body
+      edited, MODULE_CONTRACT kept): without
+      MustPassCommand, selected target exits 0 and
+      Errors: 0; with MustPassCommand, selected target
+      exits 1 on assertion.command-not-evaluated
+      (src/artifact/assertions.ts:321). Selected
+      final without --run-commands fails the same
+      way. Adding --run-commands refuses before
+      linting: "Cannot record command-run: no
+      declared task is in scope." F132. Of 51
+      plan.xml files under .ngrace/changes,
+      48 carry MustPassCommand (the three that do
+      not are C-CALIBRATION, C-CALIBRATION-CONTEXT,
+      C-CALIBRATION-PROVENANCE). The previous draft
+      scoped that code out; the thing scoped out is
+      the escape hatch the new message advertises.
+      It is now in scope.
+
+      The product already has the structural-query
+      concept. ngrace-execute lists "Selected target
+      without commands" as its own invocation.
+      completeFromStructuralAndCommandEvidence
+      (src/grace-cursor.ts:2592-2636) filters
+      assertion.command-not-evaluated out of
+      structural errors and joins command evidence
+      via records. evaluateTargetComplete
+      (src/grace-cursor.ts:1523-1560) treats that
+      code as complete undefined / not-run, not as
+      complete false. The CLI exit gate does not:
+      shouldFail (src/grace-lint.ts:137-147) is
+      purely severity-based, and finalizeResult
+      (src/lint/core.ts:251-256) counts every
+      error-severity issue. Catalog
+      assertion.command-not-evaluated
+      (src/lint/catalog.ts:198-210) already says
+      "This is an absence of evidence, not a
+      command failure."
+
       Adjacent, and in scope as the other half of the
       same honesty defect: assertion.phase-incompatible-command
       matches only an explicit --assertions current on
@@ -99,14 +148,17 @@
         cannot tell whether writes have started. If
         the baseline is still the intended state,
         this is real breakage. If writes have started,
-        use --assertions target --change C-ID (or
-        --assertions final).
+        use --assertions target --change C-ID.
         Plural N&gt;1 uses "failures: N" and "these
         are real breakage" with the same remainder.
         N=0 is unchanged: first line is
         neo-grace Lint Report and no baseline lead
         line is emitted. JSON.stringify of the result
         gains no new top-level key (D13).
+        Do not name --assertions final as the same
+        remedy: final without --run-commands still
+        fails on assertion.command-not-evaluated, and
+        --run-commands is a separate cursor-scope wall.
       </Goal>
       <Goal>
         Keep current as the default assertion mode
@@ -130,6 +182,58 @@
         and hide real baseline breakage. Do not infer
         writes-started from git dirty, the ledger,
         or ObservedWriteScope.
+      </Goal>
+      <Goal>
+        Make selected --assertions target without
+        --run-commands an explicitly-structural
+        query. When that query's only error-severity
+        issues are assertion.command-not-evaluated,
+        the process exits 0 under default --fail-on
+        errors. The issue remains in result.issues
+        with code assertion.command-not-evaluated,
+        severity error, and issueClass absence.
+        summary.errors counts failing errors only:
+        it excludes assertion.command-not-evaluated
+        when assertionMode is target and
+        commandsEnabled is false. shouldFail stays
+        severity-based on summary.errors
+        (src/grace-lint.ts:137-147); do not edit
+        src/grace-lint.ts. Other error-severity
+        issues still count and still fail the exit,
+        including when they coexist with this code.
+        --fail-on warnings still fails because
+        summary.issues includes the reported
+        absence. --assertions final, --assertions
+        baseline, and --assertions target with
+        --run-commands do not get this exemption.
+        Do not exempt analysis.runtime-missing,
+        analysis.no-adapter, or graph.path-no-adapter.
+      </Goal>
+      <Goal>
+        When that structural-query exemption applies
+        and N&gt;0 assertion.command-not-evaluated
+        issues are listed, formatTextReport emits
+        Errors: matching summary.errors and, after
+        the Errors/Warnings lines, one note. Exact
+        operator-facing text, singular N=1:
+        1 command assertion not evaluated; it does
+        not fail this structural target query.
+        Plural N&gt;1 uses "N command assertions not
+        evaluated; they do not fail this structural
+        target query." The listed issues still render
+        as [error] lines. The note must not contain
+        "expected" or "in progress". JSON.stringify
+        of the result gains no new top-level key.
+      </Goal>
+      <Goal>
+        Keep evaluateTargetComplete and
+        completeFromStructuralAndCommandEvidence
+        unchanged. Fold-time complete stays
+        three-valued: this code still means
+        complete undefined / not-run, not
+        complete true. The CLI structural-query
+        exit answers a different question from
+        fold-time complete.
       </Goal>
       <Goal>
         Tighten validateAssertionPhase so
@@ -177,6 +281,19 @@
         Phase-Incompatible title.
       </Goal>
       <Goal>
+        Keep the catalog sentence "This is an
+        absence of evidence, not a command failure."
+        Amend assertion.command-not-evaluated
+        remediation so it names the structural
+        target query (reported, does not fail that
+        query's exit) and still says a skipped
+        command is not an executed pass. Name that
+        --assertions final without --run-commands
+        still fails on this code. Do not claim
+        --run-commands works without a declared
+        task in scope.
+      </Goal>
+      <Goal>
         Rewrite the MustPassCommand doctrine once
         across all ten surfaces as this property,
         not a list of verbs. Canonical sentence:
@@ -211,11 +328,42 @@
         surrounding sentence; do not drop a pinned
         substring listed in Constraints.
       </Goal>
+      <Goal>
+        State the structural-query property on the
+        surfaces that already describe selected
+        target without --run-commands, without
+        restating the CLI inventory in the cli
+        skill. Canonical sentence, adapted to each
+        surface: selected --assertions target
+        without --run-commands is a structural
+        query; unevaluated MustPassCommand /
+        MustPassBudget is reported as
+        assertion.command-not-evaluated and does
+        not fail that query's exit. The surfaces:
+        README.md CLI Overview target row (currently
+        line 168; it presently requires
+        --run-commands and would contradict the
+        named remedy), examples/cli/README.md (add
+        the without-flag invocation beside the
+        existing --run-commands line),
+        skills/ngrace/ngrace-cli/SKILL.md
+        lifecycle_command_contract,
+        skills/ngrace/ngrace-execute/SKILL.md
+        "Selected target without commands" bullet,
+        and the two plugins/ngrace/skills/ngrace/
+        mirrors of those skill files. Keep the
+        execute skill's existing
+        --change C-ID --assertions target --run-commands
+        pin. Do not edit src/query/command.test.ts
+        unless a README table edit drops an
+        ngrace lint token, which this one must not.
+      </Goal>
     </Goals>
     <Constraints>
       <Constraint>
         Ceremony tier T2 (cross-cutting): lint core
         banner, assertions detector, catalog copy,
+        summary.errors structural-query exemption,
         four canonical skill files plus packaged
         mirrors, README.md, and examples/cli/README.md.
       </Constraint>
@@ -230,6 +378,33 @@
         The original objection — silencing current-mode
         baseline issues would hide real breakage —
         is answered by not silencing them.
+      </Constraint>
+      <Constraint>
+        This spec answers C-ABSENCE-VALUE without
+        silently contradicting it. C-ABSENCE-VALUE
+        decided classification and reporting:
+        optional issueClass from exact catalog
+        entries, assertion.command-not-evaluated as
+        issueClass absence, "This is an absence of
+        evidence, not a command failure," current-mode
+        skip of unevaluated commands as deliberate,
+        doctor partitioning by issueClass. It did
+        not decide that the CLI exit of an
+        explicitly-structural --assertions target
+        query must be non-zero when this code is
+        the only error. Evidence: shouldFail has
+        no issueClass awareness; no test in the
+        ten absence-code test files pins this code
+        to a non-zero process exit; cursor already
+        excludes it from structural complete.
+        Exit 0 is green for the question asked
+        (is the structure right). It is not a claim
+        that commands ran. Silently dropping the
+        issue would be the contradiction; reporting
+        it while exiting 0 is not. Do not change
+        issueClass, do not rename the code, do not
+        drop it from issues[], do not change
+        current-mode skip.
       </Constraint>
       <Constraint>
         Binding ruling 2026-09-01: the
@@ -254,7 +429,10 @@
         baseline may move, and this bundle moves
         presentation of those failures, not their
         code or severity. Do not add a new issue
-        code on the failing-baseline path.
+        code on the failing-baseline path. The
+        structural-query exemption is target mode
+        only and does not change current-mode
+        counts on a clean tree.
       </Constraint>
       <Constraint>
         Do not change LintSeverity or
@@ -263,20 +441,49 @@
         (src/lint/types.ts:40,
         src/artifact/types.ts:304). A third
         bucket is a type change through the
-        catalog and every consumer.
+        catalog and every consumer. Do not
+        downgrade assertion.command-not-evaluated
+        to warning.
       </Constraint>
       <Constraint>
         Do not add a new src/*.ts file. Banner
         stays in src/lint/core.ts formatTextReport.
         Detector stays in validateAssertionPhase
         (src/artifact/assertions.ts). Catalog copy
-        stays in src/lint/catalog.ts.
+        stays in src/lint/catalog.ts. The
+        structural-query exemption stays in
+        finalizeResult and formatTextReport in
+        src/lint/core.ts.
       </Constraint>
       <Constraint>
         Do not change the default assertion mode.
         Do not add --phase, --writes-started, or
         any second axis for the same concept as
         --assertions current|baseline|target|final.
+        Do not add a --structural flag. Selected
+        target without --run-commands already is
+        the structural query.
+      </Constraint>
+      <Constraint>
+        Do not implement the exemption as "every
+        issueClass absence skips the exit."
+        analysis.runtime-missing is fail-closed
+        (scripts/packed-cli-smoke.ts:188-193 pins
+        missing runtime to non-zero status).
+        analysis.no-adapter and graph.path-no-adapter
+        are already warnings. The carve-out is one
+        code, one mode, one opt-in state.
+      </Constraint>
+      <Constraint>
+        After this change, summary.errors equals
+        the count of error-severity issues that are
+        not structural-query-exempt. The exempt
+        set is assertion.command-not-evaluated when
+        assertionMode is target and commandsEnabled
+        is false; otherwise empty. Pin that
+        equality in src/lint/core.test.ts. JSON
+        summary.errors therefore matches the CLI
+        exit under default --fail-on errors.
       </Constraint>
       <Constraint>
         Archived plans remain exempt from
@@ -291,23 +498,32 @@
         MustPassCommand only. Do not extend it to
         BaselineAssertions, task Verification
         Command, MustPassBudget, or other assertion
-        kinds.
+        kinds. The structural-query exemption does
+        apply to MustPassBudget because that kind
+        emits the same assertion.command-not-evaluated
+        code (src/artifact/assertions.ts:579).
       </Constraint>
       <Constraint>
         README.md is in scope: rewrite the
         MustPassCommand doctrine paragraph
         (currently line 214) to the property in
-        Goals. Do not edit the CLI Overview table
-        unless a cell would then contradict the
-        property; the current-mode row already
-        states the property.
+        Goals. Amend the CLI Overview target row
+        (currently line 168) because requiring
+        --run-commands would contradict the
+        structural remedy the lead line names;
+        match the baseline row's optional
+        [--run-commands] form. The current-mode
+        row already states its property.
       </Constraint>
       <Constraint>
         examples/ is in scope via
         examples/cli/README.md only: rewrite the
         Current-mode paragraph (currently line 20)
         so its MustPassCommand sentence states the
-        property. examples/polyglot is unchanged;
+        property, and add the structural target
+        invocation (no --run-commands) beside the
+        existing --run-commands line.
+        examples/polyglot is unchanged;
         no user-visible polyglot surface. Its live
         plan does not carry a lifecycle command in
         MustPassCommand.
@@ -384,7 +600,12 @@
         plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md,
         plugins/ngrace/skills/ngrace/ngrace-explainer/references/verification-driven-dev.md.
         Do not declare a production path that has
-        not been located.
+        not been located. Do not add
+        src/grace-lint.ts, src/grace-cursor.ts,
+        src/grace-status.ts, src/grace-doctor.ts,
+        src/review/scorer.ts,
+        scripts/validate-walkthrough.ts, or
+        scripts/check-teaching-surface.ts.
       </Constraint>
       <Constraint>
         Existing tests that already prove explicit
@@ -404,13 +625,26 @@
         D13 JSON-key pin; replace the
         "expected while a C-* change is in progress"
         assertions with the new lead-line text.
+        src/grace-lint.test.ts C-COMMAND fixture
+        (currently :407-456) keeps pinning the
+        code and issueClass on target without
+        --run-commands; add that summary.errors is
+        0 when that code is the only error, that
+        the CLI spawn of --assertions target
+        --change C-COMMAND without --run-commands
+        exits 0, and that --assertions final
+        --change C-COMMAND without --run-commands
+        still exits non-zero with the code counted
+        in summary.errors. Keep the existing
+        --run-commands spawn after cursor advance.
       </Constraint>
       <Constraint>
         This bundle replaces C-PHASE-RULE-PIN as
-        the F130 repair and amends
-        AC-BASELINE-LINT-FRAMING. It is the
-        successor of named-bundle registry row 7.
-        Do not edit docs/plans/active/RM-GOVERNED-PATH/decisions.md
+        the F130 repair, amends
+        AC-BASELINE-LINT-FRAMING, and pays F132.
+        It is the successor of named-bundle
+        registry row 7. Do not edit
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md
         in this bundle; the authority updates the
         registry.
       </Constraint>
@@ -424,16 +658,11 @@
         not a later bundle.
       </NonGoal>
       <NonGoal>
-        Do not touch the typed-absence doctrine or
-        the three absence codes
-        (analysis.no-adapter,
-        analysis.runtime-missing,
-        assertion.command-not-evaluated).
-        --assertions target --change C-ID reporting
-        assertion.command-not-evaluated as an error
-        unless --run-commands is passed is adjacent
-        friction with its own shipped doctrine from
-        C-ABSENCE-VALUE. Owner: a later bundle.
+        Do not change the --run-commands
+        cursor-scope refusal ("Cannot record
+        command-run: no declared task is in
+        scope"). The structural query does not
+        need that door. Owner: a later bundle.
       </NonGoal>
       <NonGoal>
         Do not change src/grace-status.ts,
@@ -447,13 +676,27 @@
         equivalent when they count in-progress
         baseline failures as integrity errors;
         that presentation gap is adjacent, owner a
-        later bundle.
+        later bundle. Doctor continues to miss
+        assertion.command-not-evaluated under
+        current mode (C-ABSENCE-VALUE A5.2);
+        this spec does not reopen that.
       </NonGoal>
       <NonGoal>
         Do not change src/grace-cursor.ts. Both of
         its lintGraceProject call sites already
-        pass assertionMode: "target" and are
-        unaffected.
+        pass assertionMode: "target" and filter
+        issues by code, not summary.errors.
+        evaluateTargetComplete and
+        completeFromStructuralAndCommandEvidence
+        stay. Owner: unchanged; already treats
+        this code as non-structural.
+      </NonGoal>
+      <NonGoal>
+        Do not change src/grace-lint.ts. shouldFail
+        stays a pure read of summary.errors /
+        summary.issues. Owner: unchanged; the
+        exemption is the count, not a second axis
+        in the CLI wrapper.
       </NonGoal>
       <NonGoal>
         examples/polyglot is unchanged; no
@@ -463,7 +706,8 @@
       <NonGoal>
         CHANGELOG.md is unedited (D5.5). Newly
         erroring command-text forms of
-        assertion.phase-incompatible-command are
+        assertion.phase-incompatible-command, and
+        the structural-query exit change, are
         named in the conventional-commit body.
         Owner: the commit that lands this bundle.
       </NonGoal>
@@ -474,7 +718,10 @@
         add a new issue code, do not add a new
         src/*.ts file, do not introduce a third
         severity, do not infer writes-started
-        from git or the ledger.
+        from git or the ledger, do not exempt
+        every issueClass absence from the exit,
+        do not make fold-time complete true when
+        this code is present.
       </NonGoal>
     </NonGoals>
     <AcceptanceCriteria>
@@ -489,12 +736,12 @@
         started. If the baseline is still the
         intended state, this is real breakage.
         If writes have started, use --assertions
-        target --change C-ID (or --assertions
-        final).
+        target --change C-ID.
         The underlying assertion.MustNotExist
         issue remains severity error. The lead
         line does not contain "expected" or
-        "in progress". Plural N=2 uses
+        "in progress". The lead line does not
+        name --assertions final. Plural N=2 uses
         "failures: 2" and "these are real
         breakage". N=0 still leads with
         neo-grace Lint Report and emits no
@@ -523,6 +770,67 @@
         criterion. This is the surviving half of
         AC-BASELINE-LINT-FRAMING.
       </AC-NO-SILENCE>
+      <AC-STRUCTURAL-TARGET>
+        Given an active approved plan whose
+        TargetAssertions include MustPassCommand
+        (the C-COMMAND fixture shape) and no
+        other failing target assertions,
+        lintGraceProject with assertionMode
+        target, changeId set, and runCommands
+        omitted or false: issues[] contains
+        assertion.command-not-evaluated with
+        severity error and issueClass absence;
+        summary.errors is 0; summary.issues is
+        at least 1. formatTextReport lists the
+        issue as [error], prints Errors: 0, and
+        includes the structural-query note.
+        JSON.stringify of the result still has
+        the D13 key set and no new top-level
+        key. A CLI spawn of ngrace lint --path
+        ROOT --assertions target --change
+        C-COMMAND (no --run-commands) exits 0
+        and the JSON issues array still contains
+        the code. The same holds when the
+        unevaluated assertion is MustPassBudget
+        (C-SYSTEMS fixture). Proven in
+        src/grace-lint.test.ts and
+        src/lint/core.test.ts.
+      </AC-STRUCTURAL-TARGET>
+      <AC-STRUCTURAL-STILL-FAILS>
+        The structural-query exemption does not
+        hide real defects. Target mode without
+        --run-commands still has summary.errors
+        &gt; 0 and CLI exit 1 when a
+        non-exempt error is present, including:
+        a failing MustExist / MustVerify on the
+        selected target; assertion.change-required
+        when --change is omitted; and
+        assertion.command-not-evaluated coexisting
+        with a failing MustExist (the MustExist
+        still counts). --assertions final without
+        --run-commands on the C-COMMAND fixture
+        still emits assertion.command-not-evaluated,
+        counts it in summary.errors, and the CLI
+        spawn exits non-zero. --fail-on warnings
+        on a structural target query that has
+        only this absence still fails. Proven in
+        src/grace-lint.test.ts.
+      </AC-STRUCTURAL-STILL-FAILS>
+      <AC-ABSENCE-VISIBLE>
+        A fix that deletes assertion.command-not-evaluated
+        from issues[], changes its issueClass, or
+        changes its severity fails this criterion.
+        Catalog listAbsenceCatalogCodes still
+        equals analysis.no-adapter,
+        analysis.runtime-missing,
+        assertion.command-not-evaluated,
+        graph.path-no-adapter. The catalog
+        explanation still contains "This is an
+        absence of evidence, not a command
+        failure." Current-mode lint of the
+        C-COMMAND fixture still does not emit
+        the code (skipUnevaluatedCommands stays).
+      </AC-ABSENCE-VISIBLE>
       <AC-CLEAN-NONREGRESSION>
         On a project with no failing current-mode
         baseline issues, error count, warning
@@ -614,13 +922,18 @@
         packaged skill bodies for each edited
         skill are byte-identical.
         bun run ./scripts/validate-marketplace.ts
-        exits 0.
+        exits 0. The structural-query surfaces
+        named in Goals state that selected target
+        without --run-commands reports
+        assertion.command-not-evaluated and does
+        not fail that query's exit.
       </AC-DOCTRINE-TEN>
       <AC-PIN-SURVIVAL>
         After the skill and README edits,
         bun test scripts/skill-contracts.test.ts
         src/review/core.test.ts
         src/artifact/grammar.test.ts
+        src/query/command.test.ts
         exits 0. Those tests are not in the
         forced write surface; the wording change
         must not make them red.
@@ -631,7 +944,8 @@
         are already green at this HEAD or inside
         the forced write surface: typecheck;
         bun test (includes the detector, framing,
-        catalog, skill-contract, and review pins);
+        catalog, skill-contract, review pins, and
+        the structural-query exit pins);
         validate:cli; validate-marketplace;
         validate:examples (polyglot 0 errors plus
         scripts/validate-walkthrough.ts, which
@@ -643,7 +957,7 @@
         for a README.md and examples/ decision,
         which Goals and Constraints already make).
         <CloseEvidence>
-          <Command>bun test src/lint/core.test.ts src/artifact/assertions.test.ts src/grace-lint.test.ts scripts/skill-contracts.test.ts src/review/core.test.ts</Command>
+          <Command>bun test src/lint/core.test.ts src/artifact/assertions.test.ts src/grace-lint.test.ts scripts/skill-contracts.test.ts src/review/core.test.ts src/query/command.test.ts</Command>
           <Command>bun run ./scripts/validate-marketplace.ts</Command>
           <Command>bun run validate:examples</Command>
           <Command>bun run ngrace lint --path . --fail-on warnings</Command>
@@ -658,22 +972,32 @@
     </AffectedAreas>
     <VerificationIntent>
       <ExpectedCommand>bun test src/lint/core.test.ts src/artifact/assertions.test.ts src/grace-lint.test.ts</ExpectedCommand>
-      <ExpectedCommand>bun test scripts/skill-contracts.test.ts src/review/core.test.ts src/artifact/grammar.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/skill-contracts.test.ts src/review/core.test.ts src/artifact/grammar.test.ts src/query/command.test.ts</ExpectedCommand>
       <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
       <ExpectedCommand>bun run validate:examples</ExpectedCommand>
       <ExpectedEvidence>
         Framing tests prove the new lead line, the
         surviving error severity, N=0 unchanged,
-        and D13 JSON keys unchanged. Detector
-        fixtures prove both directions of the
-        current-mode flag on this-root lint, and
-        stay silent on validate:ci, on lint with
-        --assertions baseline|target|final, on
-        lint of a different project root, on
-        --help, on ngrace status and other
-        non-lint subcommands, on bun run lint /
-        bun run ngrace:lint as script names, and
-        on archived plans with either the explicit
+        D13 JSON keys unchanged, and that the lead
+        does not name --assertions final.
+        Structural-query tests prove target without
+        --run-commands on a MustPassCommand plan
+        reports assertion.command-not-evaluated,
+        summary.errors 0, CLI exit 0, and the text
+        note; that a coexisting MustExist still
+        fails; that final without --run-commands
+        still fails; that current mode still skips
+        the code; that issueClass and severity are
+        unchanged. Detector fixtures prove both
+        directions of the current-mode flag on
+        this-root lint, and stay silent on
+        validate:ci, on lint with --assertions
+        baseline|target|final, on lint of a
+        different project root, on --help, on
+        ngrace status and other non-lint
+        subcommands, on bun run lint / bun run
+        ngrace:lint as script names, and on
+        archived plans with either the explicit
         or the implicit form. Live root and
         polyglot current-mode lint stay 0/0.
         bun run ngrace lint --path . --fail-on
@@ -684,13 +1008,17 @@
     <Assumptions>
       <Assumption>
         T2 is the right tier: four modules, ten
-        doctrine files, and a shipped-ruling
-        amendment, still one package.
+        doctrine files, structural-query copy on
+        the surfaces that already name selected
+        target without commands, and a
+        shipped-ruling amendment, still one
+        package.
       </Assumption>
       <Assumption>
-        The exact lead-line text in Goals is the
-        sentence to implement unless the approver
-        edits this spec before approval.
+        The exact lead-line text and
+        structural-query note in Goals are the
+        sentences to implement unless the
+        approver edits this spec before approval.
       </Assumption>
       <Assumption>
         The canonical doctrine sentence in Goals
@@ -714,6 +1042,14 @@
         (draft, no run-ledger, no approve
         Decision). nextSupersededArtifactBytes
         accepts status draft.
+      </Assumption>
+      <Assumption>
+        Implementing the exemption in
+        finalizeResult rather than shouldFail
+        keeps src/grace-lint.ts out of the write
+        surface and keeps JSON summary.errors
+        aligned with the CLI exit. That is the
+        intended layer, not a workaround.
       </Assumption>
     </Assumptions>
   </C-LINT-PHASE-HONESTY>
