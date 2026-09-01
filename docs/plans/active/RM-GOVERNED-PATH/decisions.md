@@ -7801,6 +7801,53 @@ Both gaps belong to the discard bundle, chartered as the first of three instrume
 maintainer approved on 2026-09-01: **discard → amendment counter → effort**. Recording them at
 charter time is scoping, not deferral.
 
+### F134.2 correction — the borrowed verb is an optimization, not a gap, and the discard bundle shrinks. **[verified]**
+
+[F134.1](#f1341) called `cursor advance --kind terminal` on an abandoned bundle *"accurate in its
+numbers and wrong in its verb"*, and named a new `discarded` event kind as the motivating requirement
+for the discard bundle. **The maintainer challenged that framing and was right.** Measured on the
+archived `C-LINT-PHASE-HONESTY`:
+
+```
+ngrace cursor show --change C-LINT-PHASE-HONESTY
+  State: complete        <- cursor lifecycle state (no open epoch)
+  Complete: n/a          <- work-completion judgment
+```
+
+```
+ngrace status --json
+  specStatus: superseded   planStatus: superseded   location: archive
+  epochCount: 1   openEpochCount: 0   derivedStates: []
+```
+
+**No surface claims the work completed.** The work-completion field reads `n/a`, and `superseded`
+dominates every status projection. The discard is therefore fully recoverable today from
+`status="superseded"` plus the `Replacement` pointer plus the folded epoch and its attempts — three
+existing artifacts, no new concept.
+
+**What F134.1 got wrong.** It reasoned from the kind's *definition* — "emitting terminal is a
+judgment about completion" — to a conclusion about the *record*, without checking what the record
+actually surfaces. That is precedence rule 3 applied by half: the definition was read, but the
+consumers were not. `State: complete` is a cursor-lifecycle name, not a claim about the work, and the
+field that would carry such a claim says `n/a`.
+
+**What survives, and it is the expensive half.** `ngrace supersede` still does not fold, and that is a
+measured defect, not a naming preference: `C-SUPERSEDE-VERB` archived `epochs=0 attempts=0` for five
+executed tasks, while `C-LINT-PHASE-HONESTY` — same class of event, same task count — archived with
+Epoch 1, 10 attempts and 4 named signatures, purely because terminal-and-fold were run by hand first.
+A step that must be remembered, and whose omission silently destroys the record, belongs inside the
+verb. Also surviving: nothing documents that supersede discards governance and never code
+([F127](#f127) precedent), and a reader may reasonably assume the opposite.
+
+**So the discard bundle is two requirements, not three:** fold inside `supersede` (no-op when no epoch
+exists, since `C-PHASE-RULE-PIN` was superseded having never executed), and document the
+code-versus-governance boundary. The `State: complete` naming on an abandoned bundle is recorded as a
+legibility nit, not scoped.
+
+**The rule this pays for.** Before proposing a new concept to make a record honest, query the record.
+An inference from a definition is not a measurement of what a surface reports, and the cheapest fix
+is usually the one that adds nothing.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
