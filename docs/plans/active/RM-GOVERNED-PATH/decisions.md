@@ -7554,6 +7554,48 @@ fixtures, with root lint 0/0 and `validate:ci` exit 0 as the non-regression evid
 and `examples/polyglot/WALKTHROUGH.md` are both in `ObservedWriteScope` for when this change makes
 them red. Also corrected: the session prompt's archive count of 52 is **51**.
 
+### F131 — the close-boundary instruction suppressed the run record, and a successful bundle archives as if nothing ran. **[verified]**
+
+The execution brief's §2 said the executor stops after T-010 and listed the close acts it must not
+perform: *"Do not run `cursor advance`, `cursor fold`, `ngrace review --change`, `gate verdict`,
+`gate apply`, `gate archive`."* The intent was to reserve the **close** for the authority. The
+executor read it as forbidding cursor events **at all**, and said so under `DEVIATIONS`: *"No cursor
+attempt/fold records — brief forbids them."* It reported the omission rather than hiding it.
+
+**Measured after the close.** `ngrace status --path . --json` reported `epochCount: 0`,
+`openEpochCount: 0` for a bundle of **10 tasks with 16 planned reds**. `cursor fold` at the close
+printed *"No loose run/ events to fold for C-BOUND-VERDICT."* and exited 0. The archive gate
+permitted on `no-open-epoch: required=true present=true — run/ empty`. The archived
+`run-ledger.xml` contains exactly two sections, `Decisions` and `Verdicts`, and **zero** `Epoch`
+elements.
+
+**So the durable record cannot show that ten tasks ran, or that sixteen reds were driven to green.**
+Everything this bundle proves about its own execution lives in the report text and in my probes,
+neither of which is in the archive.
+
+**This is [F128](#f128) instantiated from the opposite direction.** F128 recorded that a *discarded*
+mid-execution bundle erases its own record, because `run/` holds loose events until `cursor fold` and
+folding is a close-time act. Here a **successful** bundle reaches the archive with the same
+emptiness, for a different reason: the instrumentation was never emitted at all. F128 argued that
+recording cost at the moment of discard is prior to deciding `RM-PILOT-APPROVAL`. This finding
+widens that: the archive does not reliably record cost on the **success** path either, so a supersede
+and a clean execution are still indistinguishable in the durable record.
+
+**The cause is the brief, not the executor.** The close boundary was written as a flat list of
+forbidden commands, and `cursor advance` appears in both roles — the executor's execution-time
+instrumentation and the authority's close-time terminal event. The paragraph never distinguished
+them.
+
+**The remedy, for the brief template rather than the product.** The close-boundary paragraph must
+separate *execution-time* cursor events (the executor's, **required**: open an epoch, mark task
+progress, record attempts) from *close-time* cursor acts (the authority's, forbidden to the
+executor: the terminal event and the fold). Until then every bundle briefed from this template
+archives hollow.
+
+**Not retro-fitted.** Opening an epoch after the fact and terminalling it would have manufactured a
+run record for work already finished — an epoch with no attempts and no reds, dated at the close.
+The empty record is the honest one, and it stands.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
