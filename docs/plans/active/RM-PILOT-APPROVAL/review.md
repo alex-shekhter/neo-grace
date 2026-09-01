@@ -29,8 +29,8 @@ would show the plan wrong arrives during **execution**, which happens afterwards
 only running the code can reveal costs a whole bundle to correct — new spec, new plan, two more
 approval phrases, full re-execution.
 
-Measured against the archive: **4 of 50 archived bundles are superseded (8%)**, but **2 of the last
-4** were, and both for the same reason.
+Counted against the archive: 4 of 50 archived bundles are superseded, 2 of them in the last 4
+bundles. **That count is not a cost measurement and should not be read as one** — see §7.
 
 - [F120](../RM-GOVERNED-PATH/decisions.md) — `C-SUPERSEDE-VERB`'s approved plan omitted
   `scripts/release-check.ts` from `ObservedWriteScope`, which
@@ -119,16 +119,53 @@ state-versus-event distinction [F115](../RM-GOVERNED-PATH/decisions.md) drew abo
   than merely tamper-evident, each amendment needs its own code, and three amendments mean three
   round trips to the human. That may make the budget's real cost higher than it looks.
 
-## 6. Why it is not scheduled
+## 6. Why it was not scheduled, and why that argument is now withdrawn
 
-The 50% recent supersede rate is better explained by review failures than by the product. All three
-instances were one defect class, and three rules now exist that each would have caught one —
-expand what a required command actually runs before approving it, reconcile an artifact against
-measurements already taken, and report a scope breach *before* making the write. The last one has
-already worked on its first test: seven completed tasks survived `C-VERDICT-EVIDENCE`'s block where
-zero survived `C-SUPERSEDE-VERB`'s.
+The original position here was: the recent supersede rate is better explained by review failures than
+by the product, so measure two to three more bundles under the new rules before building anything.
+All three instances were one defect class ([F120](../RM-GOVERNED-PATH/decisions.md),
+[F126](../RM-GOVERNED-PATH/decisions.md), [F127](../RM-GOVERNED-PATH/decisions.md)), and three rules
+now exist that each would have caught one — expand what a required command actually runs before
+approving it, reconcile an artifact against measurements already taken, and report a scope breach
+*before* making the write. The last has worked on its first test: seven completed tasks survived
+`C-VERDICT-EVIDENCE`'s block where zero survived `C-SUPERSEDE-VERB`'s.
 
-Building pilot before establishing that those rules do not work would remove the pressure that
-produced them, and would answer a process problem with a permanent grammar change. **The recorded
-position is: measure two to three more bundles under the new rules; if the rate holds, build this —
-narrow, event-counted, and re-ratified per amendment.**
+**That reasoning rested on a metric that cannot see what it claims to measure**
+([F128](../RM-GOVERNED-PATH/decisions.md)). Those three review rules are still real and still worth
+having. But "measure two to three more bundles" is not a plan, because there is nothing to measure
+with. §7 replaces it.
+
+## 7. The measurement problem, which is prior to the decision
+
+Counting supersedes treats a discarded spec draft and a discarded five-task execution as the same
+event. The number that matters is time and tokens spent on work later thrown away — and that number
+is not merely uncollected, it is **erased by the act of discarding**.
+
+`run/` holds loose events until `cursor fold` writes them into `run-ledger.xml`, and folding is a
+close-time act. A bundle rejected mid-execution has not folded, so reverting destroys the only record
+that the work happened. Measured across the archive:
+
+| bundle | tasks in plan | epochs | attempts | actually executed |
+|---|---|---|---|---|
+| `C-CURSOR-TASK-SENTINEL` | 3 | 0 | 0 | no |
+| `C-CURSOR-TASK-IDENTITY` | 3 | 1 | 0 | partially |
+| `C-SUPERSEDE-VERB` | 5 | **0** | **0** | **all five tasks, eleven reds** |
+
+`C-SUPERSEDE-VERB` is indistinguishable from a bundle superseded before anyone wrote a line. **The
+bias runs against the expensive cases**: the more a supersede throws away, the more likely the
+archive shows nothing. The only surviving evidence of what the two recent supersedes cost is two
+recovery patches — 35,778 and 76,496 bytes of discarded diff — exported by improvisation, outside the
+repository, and not required by any process.
+
+This is the mirror of [F86](../RM-GOVERNED-PATH/decisions.md), the finding this whole roadmap turns
+on: there, a gate record standing in for work the gate did not do; here, no record at all for work
+that was done and thrown away.
+
+**So the sequencing is:** record the cost of discarded work at the moment of discard — attempts
+reached, tasks completed, diff size, and whatever token accounting the harness can supply — before
+deciding whether a bounded amendment budget beats a supersede. Without it, both the case *for* pilot
+and the case for deferring it are assertions. With it, the budget in §3 becomes self-measuring: the
+amendment count and the discarded-cost figure answer the question directly.
+
+That recording requirement is small, independent of pilot, and useful whether or not pilot is ever
+built.

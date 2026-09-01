@@ -7365,6 +7365,50 @@ green; nothing needs reverting to keep the record honest.
 the document ships a teaching surface that instructs users to run a command the tool now refuses. The
 validator says so in its own failure text.
 
+### F128 — the archive records an expensive supersede and a cheap one identically. **[verified]**
+
+Counting supersedes is the wrong metric — the maintainer's point, and checking it found that the
+right metric is not merely uncollected but **actively erased**.
+
+Measured across every superseded bundle:
+
+| bundle | tasks in plan | epochs | attempts | verdicts | actually executed |
+|---|---|---|---|---|---|
+| `C-CURSOR-TASK-SENTINEL` | 3 | 0 | 0 | 0 | no |
+| `C-CURSOR-TASK-IDENTITY` | 3 | 1 | 0 | 1 | partially |
+| `C-LEDGER-READ-ABSENCE` | — | no ledger | — | — | no |
+| `C-SUPERSEDE-VERB` | 5 | **0** | **0** | **0** | **all five tasks, eleven reds** |
+
+`C-SUPERSEDE-VERB` is indistinguishable in the durable record from a bundle superseded before
+anyone wrote a line.
+
+**The mechanism, and why the bias runs the wrong way.** `run/` holds loose events until
+`cursor fold` writes them into `run-ledger.xml` ([F125](#f125) is where the authority first got
+`run.xml` wrong). A bundle rejected mid-execution has not folded — folding is a close-time act — so
+reverting discards the only record that work happened. **The more a supersede throws away, the more
+likely the archive shows zero.** Any future measurement drawn from the archive will systematically
+report the expensive cases as free.
+
+**This invalidates an argument the authority had already published.**
+`RM-PILOT-APPROVAL`'s §6 recommended deferring the pilot proposal on the strength of "4 of 50
+archived bundles superseded (8%) versus 2 of the last 4". That comparison mixes a discarded spec
+draft with two discarded executions and calls both `1`. The count is real; as a proxy for cost it is
+unsound, and it is unsound in the direction that made deferring look better than it is. Corrected in
+that document rather than left standing.
+
+**What survives is an accident.** The only evidence of what the two recent supersedes cost is the
+recovery patches the authority happened to export before reverting — 35,778 and 76,496 bytes of
+discarded diff — which live outside the repository and exist by improvisation, not design.
+
+**The inversion worth naming.** This roadmap's spine is [F86](#f86): *a gate record standing in for
+work the gate did not do*. This is the mirror image — **no record at all for work that was done and
+then thrown away**. Both are the ledger failing to describe reality; only one of them has been
+getting attention.
+
+**The rule.** Cost is recorded at the moment of discard or it is not recorded. A revert must not be
+the act that erases the evidence of what the revert cost. Deciding whether cheaper amendment beats
+supersede requires that number, and today no one can produce it for any bundle in this archive.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
