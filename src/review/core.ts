@@ -1455,6 +1455,8 @@ function loadAttemptPairsFromBundle(
 // Public entry
 // ---------------------------------------------------------------------------
 
+const NO_CHANGE_SUPPLIED_REASON = "no --change supplied";
+
 export function runReview(projectRoot: string, options: ReviewOptions = {}): ReviewResult {
   const root = path.resolve(projectRoot);
   const runPatterns = options.patterns !== false;
@@ -1556,7 +1558,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
 
     // C-SUBSTANTIATION-HONESTY: fail→pass identical-tree audit + absence record (F31).
     if (!options.changeId) {
-      const reason = "no --change supplied";
+      const reason = NO_CHANGE_SUPPLIED_REASON;
       attemptPairAudit = {
         status: "not-run",
         reason,
@@ -1598,7 +1600,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
 
     // C-DECLARED-WRITES: WriteEvidence paths vs ObservedWriteScope (F27 / F31 absence).
     if (!options.changeId) {
-      const reason = "no --change supplied";
+      const reason = NO_CHANGE_SUPPLIED_REASON;
       writeEvidenceScopeAudit = {
         status: "not-run",
         reason,
@@ -1657,7 +1659,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
     }
 
     if (!options.changeId) {
-      const reason = "no --change supplied";
+      const reason = NO_CHANGE_SUPPLIED_REASON;
       amendmentCountAudit = {
         status: "not-run",
         reason,
