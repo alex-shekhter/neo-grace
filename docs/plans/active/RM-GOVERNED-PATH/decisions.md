@@ -8249,6 +8249,37 @@ bundle's ceremony is charged against a decision that never arrives. The rule was
 stopping condition existed only in conversation; it is recorded here so a later session does not
 inherit an unbounded mandate.
 
+
+### D22.1 correction — the two halves are about different things, and one bundle cannot be both. **[verified]**
+
+[D22](#d22) argues that a small bundle is *"the more informative sample, because it isolates ceremony
+cost from work cost"*, and separately that *"the collection ends when `C-AMENDMENT-COUNT` ships"*.
+**The executor showed those cannot both apply to `C-REASON-CONSTANTS`**, which is sequenced **after**
+that bundle's apply. Either the sample is this bundle and the stop comes after it, or the stop is the
+counter and this is an ordinary cleanup. As drafted, D22 asserted both.
+
+**The resolution, and the halves stay — they simply govern different things.**
+
+- **Half 1 — full ceremony for every bundle — is standing practice, not a sampling device.** It holds
+  before and after the counter, for reasons that never depended on measurement: a selective record is
+  the defect [F134](#f134) named, and ceremony skipped by size is ceremony skipped exactly where the
+  record is cheapest to falsify.
+- **Half 2 — the end of the collection — is about *deliberate* sampling only.** Before the counter,
+  ceremony is paid partly *in order to* generate a datum, and that cost is chosen. After it, the
+  numbers accrue from data the ledger already holds, so nothing need be run for measurement's sake.
+
+**Therefore `C-REASON-CONSTANTS` is an ordinary T1 cleanup that pays full ceremony under half 1**, and
+its cost is captured by the counter automatically. **It is not "the informative sample"** — that
+argument belonged to bundles running *before* the instrument existed, and by its own sequencing this
+one does not. The spec should carry half 1's reasoning and the stopping rule as context, not claim to
+be a measurement.
+
+**What the drafting error was.** Two true arguments were fused into one decision because they arrived
+in the same conversation turn: *why pay ceremony at all* and *when does deliberate collection stop*.
+They answer different questions and have different lifetimes. Recorded so a later reader does not
+inherit the contradiction, and so no future bundle justifies itself as a sample after the instrument
+has shipped.
+
 ## Slip register — 2026-08-15
 
 Every governance slip of the last two days, and the mechanism that must

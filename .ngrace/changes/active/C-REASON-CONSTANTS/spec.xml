@@ -28,8 +28,11 @@
       (C-DECLARED-WRITES)
 
       C-AMENDMENT-COUNT (approved spec,
-      draft plan at this HEAD) adds a
-      third for amendmentCountAudit,
+      approved plan at this HEAD,
+      fingerprint
+      a95bdcea901fe7b290a148b7a986d4a25b96dbe8c9280e682a0a7502aa4ff018)
+      adds a third for
+      amendmentCountAudit,
       specified to reuse the same phrase
       (plan.xml:518 reuse `no --change
       supplied`). Extracting the constant
@@ -92,6 +95,28 @@
         M-REVIEW). Gates still run.
       </Constraint>
       <Constraint>
+        D22 — full ceremony until the
+        counter ships, and that is what
+        ends the collection. This bundle
+        takes T1 even though the
+        deliverable is one constant. A
+        selective record is the defect
+        F134 named: skipping ceremony
+        whenever a diff looks small
+        would sample only the expensive
+        cases and bias the number the
+        sampling exists to produce. A
+        small bundle is the more
+        informative sample, because it
+        isolates ceremony cost from work
+        cost; every other data point
+        confounds the two. The
+        collection ends when
+        C-AMENDMENT-COUNT lands, after
+        which the numbers accrue on
+        their own.
+      </Constraint>
+      <Constraint>
         Sequencing. Do not apply this
         bundle until C-AMENDMENT-COUNT
         is applied. That bundle adds the
@@ -116,8 +141,9 @@
         cleanup into a contract. The
         wording is already pinned by
         /no --change/ on the runtime
-        value (src/review/core.test.ts:1824
-        and :2076). That is enough.
+        value (src/review/core.test.ts:1824,
+        :1827, :2076, and :2079). That
+        is enough.
       </Constraint>
       <Constraint>
         Wording is frozen. The initializer
@@ -223,9 +249,10 @@
       <NonGoal>
         Rewriting src/review/core.test.ts
         to pin the constant by name. The
-        existing regex pins at :1817 and
-        :2072 stay as they are. Owner:
-        unchanged; value unchanged.
+        existing regex pins at :1824,
+        :1827, :2076, and :2079 stay as
+        they are. Owner: unchanged;
+        value unchanged.
       </NonGoal>
       <NonGoal>
         A new src/*.ts file or a shared
@@ -313,9 +340,10 @@
         on WriteEvidence scope audit,
         Attempt-pair audit, and Amendment
         count. The tests at
-        src/review/core.test.ts:1817 and
-        :2072 stay green without being
-        rewritten to import the constant.
+        src/review/core.test.ts:1824,
+        :1827, :2076, and :2079 stay
+        green without being rewritten to
+        import the constant.
         Discrimination: changing the
         initializer so it no longer
         matches /no --change/ must fail
@@ -416,20 +444,21 @@
       <Assumption>
         C-AMENDMENT-COUNT applies with
         the third site using the same
-        quoted phrase, as its draft plan
-        at plan.xml:518 requires (reuse
-        `no --change supplied`). If that
-        bundle lands a different sentence,
-        this spec's frozen wording is
-        wrong and must be amended, not
-        silently followed.
+        quoted phrase, as its approved
+        plan at plan.xml:518 requires
+        (reuse `no --change supplied`).
+        If that bundle lands a different
+        sentence, this spec's frozen
+        wording is wrong and must be
+        amended, not silently followed.
       </Assumption>
       <Assumption>
         The regex pins at
-        src/review/core.test.ts:1824 and
-        :2076 remain /no --change/ on the
-        runtime value and are not rewritten
-        by C-AMENDMENT-COUNT into an
+        src/review/core.test.ts:1824,
+        :1827, :2076, and :2079 remain
+        /no --change/ on the runtime
+        value and are not rewritten by
+        C-AMENDMENT-COUNT into an
         identifier import. A source-grep
         test that counts the quoted
         literal is not assumed.
