@@ -7895,6 +7895,52 @@ red would merely have disarmed the suite for every later bundle.
 And after any write that adds an artifact to `.ngrace/`, run the whole validator set, not the one
 validator that happens to be fast.
 
+### F136 — an approved spec whose forced write surface no plan can anchor. **[verified]**
+
+`C-SUPERSEDE-RECORD`'s approved spec forces `src/lint/catalog.ts` into the write surface (its
+Constraints name the file twice, so `ledger.range-unterminated`'s explanation can name the closer
+set). That file declares `LINKS: M-LINT-CATALOG` (`src/lint/catalog.ts:5`). The spec's
+`AffectedAreas` are `M-GATES`, `M-CLI`, `M-CURSOR`, `M-GRAMMAR`, `M-SKILLS` — **`M-LINT-CATALOG` is
+not among them.**
+
+**Both horns fail, measured in the real tree, not inferred:**
+
+| plan's `GraphAnchors` | result |
+|---|---|
+| without `M-LINT-CATALOG` | **1 error** — `change.graph-anchors-miss-write-scope`: *"ObservedWriteScope path src/lint/catalog.ts is not linked to any GraphAnchors module"* |
+| with `M-LINT-CATALOG` | **1 warning** — `change.plan-scope-exceeds-spec`: *"Plan DurableScope includes M-LINT-CATALOG, which the approved spec never mentions"* |
+
+The spec's own `AC-CLOSE-LINT` is `bun run ngrace lint --path . --fail-on warnings`, so the warning
+fails the close as surely as the error does. And the warning survives archiving: spec→plan coverage
+is explicitly *"Run for active and archive"* (`src/artifact/grammar.ts:1303-1306`), and the only
+exemption is `status === "superseded"` (`:1838-1842`) — **`applied` is not exempt**.
+
+**So no plan can satisfy this approved spec.** The fix is one element, `&lt;M-LINT-CATALOG /&gt;`, in
+a frozen artifact.
+
+**This is [F127](#f127)'s class, one level up and one stage earlier.** F127 was an approved *plan*
+that required a suite green while forbidding the write that green needed. This is an approved *spec*
+that forces a file into scope while omitting the module that file belongs to. The shared shape is
+unchanged: **a requirement and a restriction written in different sections of one artifact and never
+checked against each other.**
+
+**Caught before any production write, which is the improvement.** The executor found it while
+authoring the plan, chose the warning over the error as the lesser breach, and reported the dilemma
+rather than silently taking either horn. Nothing needs reverting: no source file has been touched.
+
+**The rule this pays for, and it is the authority's.** Before approving a spec, take every file the
+spec forces into scope, read its `LINKS:` header, and confirm the owning module appears in
+`AffectedAreas`. The authority's own plan brief told the executor to do exactly this — *"derive each
+file's owner from its `LINKS:` header rather than guessing"* — and never ran the check against the
+spec it had already approved. The instruction was right; applying it only downstream was the error.
+
+**Cost, for the `RM-PILOT-APPROVAL` record.** This is the cheapest defect the strict path has yet
+priced: caught at plan-authoring time, zero production writes, zero executed tasks. Under the current
+rules the remedy is a supersede — re-author, re-approve, re-plan — for a **one-element** omission.
+Under the proposed amendment budget it would be amendment 1 of 3 with a fresh ratification. Recorded
+here because [F134](#f134) established that the archive prices such events at nothing, and this one
+should be counted when pilot is decided.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
