@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-SUPERSEDE-RECORD-2>
     <Summary>
       Make ngrace supersede fold any open epoch
