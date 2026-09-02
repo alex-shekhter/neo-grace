@@ -1,0 +1,1032 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-SUPERSEDE-RECORD-2>
+    <Summary>
+      Make ngrace supersede fold any open epoch
+      before it archives, so the discarded
+      bundle keeps its run record, and document
+      that the verb discards governance, never
+      code. Range-close with a new discarded
+      kind, not by emitting terminal. The kind
+      is unreachable except through that
+      abandon: advanceCursor refuses it, and
+      one purpose-named export is the only
+      production writer. No new src file.
+    </Summary>
+    <Problem>
+      This spec replaces C-SUPERSEDE-RECORD.
+      That approved spec forced
+      src/lint/catalog.ts into the write
+      surface while omitting M-LINT-CATALOG
+      from AffectedAreas (the module that
+      file declares at
+      src/lint/catalog.ts:5). No plan could
+      satisfy both
+      change.graph-anchors-miss-write-scope
+      and change.plan-scope-exceeds-spec
+      under AC-CLOSE-LINT's --fail-on
+      warnings (F136). Charter, criteria,
+      and rulings are unchanged. The
+      correction is the missing
+      AffectedAreas element.
+
+      ngrace supersede writes superseded, names
+      the replacement, and renames the bundle
+      into archive/. It does not fold. Measured
+      2026-09-01 on this tree:
+
+      C-SUPERSEDE-VERB (five tasks executed):
+      archive has run-ledger.xml with 3 approve
+      Decisions, 0 Epoch elements, 0 attempts;
+      run/ is absent; status epochCount=0.
+      C-LINT-PHASE-HONESTY (five tasks, same
+      class of event): Epoch-1, 10 attempts
+      (4 fail, 6 pass), 4 named signatures;
+      run/ present and empty after fold;
+      epochCount=1. The only difference is
+      that the second had cursor advance
+      --kind terminal and cursor fold run by
+      hand first. src/grace-supersede.ts
+      contains no reference to fold, Epoch,
+      or run/.
+
+      Probe of HEAD (temp project,
+      writeMinimalNgraceProject): open an
+      epoch with no terminal, then supersede.
+      Exit 0. Archive holds
+      run/1-T-001-opened.xml and no
+      run-ledger.xml. Rename preserves loose
+      files; it does not write an Epoch. The
+      measuring instrument
+      (status.epochCount, ledger attempts)
+      therefore prices the discard at zero.
+      That is F128 / F134.1 / F134.2.
+
+      Fold does not no-op on a never-executed
+      bundle. cursor fold --change
+      C-PHASE-RULE-PIN prints "No loose run/
+      events to fold for C-PHASE-RULE-PIN."
+      and exits 1 (stderr; stdout empty).
+      The same refuse hits C-SUPERSEDE-VERB
+      (ledger with Decisions, 0 Epochs, no
+      loose events). Calling foldEpoch
+      unconditionally from supersede would
+      refuse the C-PHASE-RULE-PIN shape.
+
+      Fold's unterminated-range check is not
+      silent. Probe: opened event, no
+      terminal, cursor fold exits 1, stderr
+      "unterminated range for w0", no ledger
+      written, loose files remain. Grammar
+      also requires a terminal inside every
+      live allocation
+      (src/artifact/grammar.ts:1119-1127
+      ledger.range-unterminated). So a
+      discarded open epoch cannot fold
+      unless a range-closing event sits in
+      range.
+
+      An earlier draft closed that
+      range by auto-emitting kind=terminal
+      from the verb. That is a lie: terminal
+      is a completion judgment, and
+      skills/ngrace/ngrace-execute/SKILL.md:87
+      forbids the binary from deriving one
+      — "recover --fix does **not** emit
+      terminal." D21 (2026-09-01) ruled
+      that if an operation cannot be
+      represented truthfully under the
+      current schema without breaking that
+      rule, the constraint is wrong, not
+      the rule. The schema therefore gains
+      a discarded kind meaning abandoned,
+      and supersede emits that kind, not
+      terminal.
+
+      A later draft left
+      cursor advance --kind discarded
+      legal on the same write path as
+      other known kinds, with the skill
+      forbidding its misuse. That makes
+      the restriction advisory. Advisory
+      rules here do not hold: the
+      MustPassCommand prohibition sat in
+      skill prose while 21 archived plans
+      broke it, which is why
+      C-PHASE-RULE-PIN exists. A general
+      kind parameter that accepts
+      discarded from any caller — CLI or
+      library — is the same advisory rule
+      one layer down. discarded must be
+      unreachable except through an
+      abandon.
+
+      This is not a reversal of F134.2.
+      F134.2 rejected a new kind as a
+      legibility fix and was correct:
+      measured on archived
+      C-LINT-PHASE-HONESTY, cursor show
+      reports State: complete (cursor
+      lifecycle) and Complete: n/a
+      (work-completion); status reports
+      specStatus=superseded,
+      planStatus=superseded,
+      epochCount=1, derivedStates=[].
+      No surface claims the abandoned work
+      completed. The kind returns on a
+      different and stronger ground: the
+      binary cannot produce the folded
+      record at all without asserting a
+      completion that did not happen.
+
+      Nothing in the verb description, README
+      CLI row, or skills states that supersede
+      discards governance and never code.
+      F127's recorded close is the precedent:
+      T-001-T-007 complete, in scope, and
+      green; nothing needs reverting. The
+      replacement carries implementation
+      forward. A reader may assume the
+      opposite; that difference is the whole
+      cost model.
+
+      RM-PILOT-APPROVAL review.md:80 calls an
+      amendment count in the ledger "the
+      measuring instrument". An archive that
+      prices discarded executions at zero
+      cannot support that decision. This
+      bundle is the first of the three
+      instrument bundles F134.1 named
+      (discard, then amendment counter, then
+      effort). The latter two stay out.
+    </Problem>
+    <Goals>
+      <Goal>
+        supersedeChangeBundle folds any open
+        epoch into run-ledger.xml before the
+        status write and rename, so an
+        abandoned execution archives with
+        its Epoch, attempts, and signatures
+        intact without the operator running
+        a range-closer and fold by hand.
+      </Goal>
+      <Goal>
+        When that fold needs a range-closer,
+        the verb emits kind=discarded, never
+        kind=terminal. discarded means the
+        epoch was abandoned. terminal keeps
+        its meaning: the operator judged the
+        work finished.
+      </Goal>
+      <Goal>
+        discarded is unreachable except
+        through that abandon. advanceCursor
+        refuses kind=discarded. The CLI
+        inherits the refusal because it
+        forwards --kind to advanceCursor.
+        One purpose-named export in
+        src/grace-cursor.ts writes the
+        event through the module-private
+        writer and folds. supersedeChangeBundle
+        is the only production caller.
+      </Goal>
+      <Goal>
+        A bundle that never executed
+        (C-PHASE-RULE-PIN shape: no loose
+        run/ events) still supersedes. Fold
+        is skipped, not invoked.
+      </Goal>
+      <Goal>
+        Document on the verb itself and on
+        the README.md CLI Overview row that
+        supersede discards the governance
+        record, never the code, and that it
+        folds first. Teach the same two
+        facts where agents are told to run
+        the verb (ngrace-plan
+        approved_plan_immutability and
+        ngrace-execute preflight). Teach
+        discarded in ngrace-execute
+        cursor_kinds: the operator never
+        emits this kind; ngrace supersede
+        is the verb that does.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting:
+        M-GATES write surface, M-CLI command
+        description, M-CURSOR fold/advance
+        and kind map, M-GRAMMAR
+        range-unterminated, M-LINT-CATALOG
+        closer-set catalog copy, M-SKILLS
+        teaching). Gates still run.
+      </Constraint>
+      <Constraint>
+        Layer: put the abandon-fold inside
+        supersedeChangeBundle
+        (src/gates/ledger.ts:1270), before
+        the superseded status write and
+        renameSync. Only two callers of
+        supersedeChangeBundle exist:
+        src/grace-supersede.ts:89 (CLI) and
+        src/grace-supersede.test.ts:327,334
+        (EXDEV injection). The CLI already
+        only validates then delegates.
+        ledger.ts:65 already imports
+        resolveChangeBundle from
+        ../grace-cursor; grace-cursor.ts
+        imports nothing from gates/. Calling
+        discardAndFoldEpoch from ledger.ts
+        follows that existing edge. Do not
+        put the fold only in the CLI
+        handler: that is F133's wrong-layer
+        miss, and the EXDEV test would then
+        exercise a subset of the verb. Do
+        not add a new src/*.ts file.
+        C-SUPERSEDE-VERB died that way.
+        One new export is required:
+        discardAndFoldEpoch in
+        src/grace-cursor.ts, listed in that
+        file's MODULE_MAP (MAP_MODE
+        EXPORTS). Do not export a general
+        discarded emitter. Do not import
+        advanceCursor into ledger.ts.
+      </Constraint>
+      <Constraint>
+        Sequence inside
+        supersedeChangeBundle, after the
+        existing validation and before any
+        spec/plan byte write: call
+        discardAndFoldEpoch, then the
+        existing status write, Replacement
+        insert, rename. discardAndFoldEpoch
+        (src/grace-cursor.ts, beside
+        foldEpoch): (1) list loose run/
+        events for the bundle; (2) if none,
+        return without invoking foldEpoch;
+        (3) if loose events exist and no
+        range-closing kind sits inside the
+        effective covering allocation,
+        write a discarded event through
+        writeEventFile (module-private) on
+        the last loose event's task — do
+        not call advanceCursor; (4) call
+        foldEpoch. Step 3 consults
+        RANGE_CLOSING_KINDS; do not
+        duplicate the closer predicate.
+        If discardAndFoldEpoch throws,
+        write nothing superseded and leave
+        the bundle under active/. Stdout of
+        the CLI stays the archive-relative
+        path; do not add fold chatter.
+      </Constraint>
+      <Constraint>
+        discarded is a range closer, not a
+        completion judgment. D21: the
+        schema gives way, not the skill
+        rule that forbids the binary from
+        emitting terminal. F134.2 remains
+        correct on the question it asked
+        (legibility of the record); this
+        kind does not re-open that
+        question. Fold
+        (src/grace-cursor.ts:2556-2559)
+        and grammar
+        (src/artifact/grammar.ts:1119-1127
+        ledger.range-unterminated) both
+        accept discarded as a range-closer
+        beside terminal. terminal's
+        meaning is unchanged: the operator
+        judged the work finished. Do not
+        relax fold's unterminated check on
+        the general cursor fold path.
+        recover --fix, writeCoveringOpened,
+        and auto-open still emit no
+        range-closing event (neither
+        terminal nor discarded).
+        writeCoveringOpened's comment
+        (src/grace-cursor.ts:684, "never
+        emits terminal") widens to the
+        closer set.
+      </Constraint>
+      <Constraint>
+        Reachability: discarded is
+        unreachable except through
+        discardAndFoldEpoch.
+        advanceCursor refuses
+        kind: "discarded" with
+        GraceCommandError code
+        invalid-arguments and message
+        kind "discarded" is reserved;
+        ngrace supersede writes it when
+        abandoning an open epoch.
+        The refuse sits in the existing
+        reserved-kind branch
+        (src/grace-cursor.ts:961-972)
+        beside attempt,
+        verification-unavailable, and
+        escalation. The CLI advance
+        handler
+        (src/grace-cursor.ts:3278-3280)
+        keeps forwarding --kind straight
+        to advanceCursor; do not add a
+        discarded-specific check in the
+        defineCommand block. Tests
+        construct discarded through
+        discardAndFoldEpoch or by writing
+        ledger XML directly for grammar
+        cases — never by passing the kind
+        to advanceCursor except in the
+        refuse assertion. The
+        ngrace-execute cursor_kinds
+        entry says the operator never
+        emits this kind and names
+        ngrace supersede as the verb
+        that does.
+      </Constraint>
+      <Constraint>
+        Kind set: append discarded to
+        KNOWN_KIND_STATE after escalation
+        so the existing nine keys stay in
+        order. KNOWN_EVENT_KINDS is
+        definitionally its keys
+        (src/grace-cursor.ts:327). The
+        length-and-exact-list pin at
+        src/grace-cursor.test.ts:3199-3201
+        moves 9 to 10 and adds
+        "discarded" as the last member.
+        ngrace-execute cursor_kinds gains
+        a structural
+        &lt;kind id="discarded"&gt;
+        after escalation, plus the
+        packaged mirror. The completeness
+        test at
+        src/grace-cursor.test.ts:3213
+        fails if the skill marker is
+        missing.
+      </Constraint>
+      <Constraint>
+        CursorState mapping: discarded
+        maps to a new CursorState
+        discarded, appended to the union
+        and to CURSOR_STATES after
+        complete (src/grace-cursor.ts:157-173).
+        Mapping to complete would make
+        cursor show print State: complete
+        for an abandoned bundle. F134.2
+        called that a legibility nit when
+        it was inherited from emitting
+        terminal. Choosing it after adding
+        discarded would have
+        KNOWN_KIND_STATE assert the
+        completion D21 forbids. Mapping to
+        paused, idle, or
+        paused-pending-approval is the
+        wrong lifecycle. A new state is
+        cheap: complete itself has three
+        non-test sites, all definitional
+        in grace-cursor.ts (union, array,
+        terminal map). parseCursorState
+        already keys off CURSOR_STATES;
+        grammar does not enum-check State
+        (grace-cursor.test.ts:1054). Do
+        not make discarded an escalation
+        resolver: an escalated-then-
+        superseded bundle may still
+        derive paused-pending-approval,
+        matching today's terminal+fold
+        twin (grace-cursor.test.ts:1471).
+        This bundle does not change
+        escalation stickiness.
+      </Constraint>
+      <Constraint>
+        Range-close predicate lives once.
+        grace-cursor.ts already imports
+        from artifact/grammar.ts;
+        grammar.ts must not import
+        grace-cursor.ts (cycle). Export
+        RANGE_CLOSING_KINDS from
+        grammar.ts as a frozen list
+        [terminal, discarded], list it in
+        that file's MODULE_MAP (MAP_MODE
+        EXPORTS), and have fold's
+        validateEventsAgainstAllocations,
+        grammar's
+        ledger.range-unterminated, and
+        discardAndFoldEpoch's already-
+        closed skip all consult it. A
+        test that imports
+        RANGE_CLOSING_KINDS and
+        KNOWN_EVENT_KINDS asserts every
+        closer is a known kind (F10: do
+        not parse source). Do not put the
+        set in a new src/*.ts file. The
+        grammar issue message
+        (src/artifact/grammar.ts:1127,
+        "has no terminal event") and the
+        catalog explanation/remediation
+        for ledger.range-unterminated
+        (src/lint/catalog.ts:761-766)
+        name the closer set. Catalog
+        remediation still tells the
+        operator to emit terminal or to
+        abandon with ngrace supersede;
+        it must not tell them to pass
+        --kind discarded to cursor
+        advance.
+      </Constraint>
+      <Constraint>
+        Work-completion stays terminal-
+        only. src/review/outcomes.ts:392
+        uses kind === "terminal" as the
+        constituent-task pass signal for
+        a wave. Do not add discarded
+        there. Complete on cursor show
+        stays a target-assertions field
+        (evaluateTargetComplete), not a
+        function of the range-closer.
+      </Constraint>
+      <Constraint>
+        Crash window: fold-then-rename
+        means an EXDEV after a successful
+        fold leaves the bundle under
+        active/ with a closed epoch and
+        no loose events. The existing
+        spec/plan rollback still applies.
+        Re-invoking supersede takes the
+        no-loose-events skip inside
+        discardAndFoldEpoch and retries
+        the write+rename. The EXDEV test
+        must keep refusing after
+        rollback; it may now observe a
+        folded ledger under active/.
+      </Constraint>
+      <Constraint>
+        Documentation lands on these
+        files, and only these: (1)
+        src/grace-supersede.ts
+        meta.description; (2) README.md
+        CLI Overview row for ngrace
+        supersede; (3)
+        skills/ngrace/ngrace-plan/SKILL.md
+        approved_plan_immutability, plus
+        the packaged mirror; (4)
+        skills/ngrace/ngrace-execute/SKILL.md
+        preflight and cursor_kinds, plus
+        the packaged mirror. Both skill
+        edits state the two facts: the
+        verb folds any open epoch (no-op
+        when none exists), and it
+        discards governance, never code.
+        cursor_kinds states when
+        discarded is emitted (ngrace
+        supersede abandoning an open
+        epoch with no closer), that the
+        operator never emits this kind,
+        that ngrace supersede is the
+        verb that does, that it maps to
+        State discarded, that it closes
+        a range beside terminal, and
+        that recover --fix does not
+        emit it. Do not restate the
+        command inventory in ngrace-cli;
+        that skill defers inventory to
+        the README table bound to
+        listLiveInvocations. The advance
+        help string at
+        src/grace-cursor.ts:3233
+        (opened/progress/pause/resume/terminal)
+        stays the kinds advanceCursor
+        accepts. Do not add discarded to
+        that parenthetical: reserved
+        kinds (attempt,
+        verification-unavailable,
+        escalation, discarded) are
+        taught on their own surfaces,
+        not as legal --kind values.
+        The advance defineCommand block
+        must not contain the string
+        discarded.
+      </Constraint>
+      <Constraint>
+        Wording must not collide with
+        pinned strings. scripts/skill-contracts.test.ts:57
+        and :327-339 require
+        approved_plan_immutability to
+        keep "mark the old bundle
+        superseded", "ngrace supersede",
+        "spec new", the five
+        change.superseded-* check names,
+        "Create a new `C-*` bundle", and
+        to not match \bmv\b.
+        :342-349 require ngrace-execute
+        preflight and
+        recovery_decision_table to keep
+        "ngrace supersede" and to
+        contain neither D19 nor D20.
+        src/query/command.test.ts:1350-1353
+        requires the README token
+        `ngrace supersede` to remain.
+        Skill-text edits move
+        skillTextLines().totalBytes
+        (and total if the line count
+        moves); declare
+        src/test-support/token-accounting.test.ts
+        and the README.md measurement
+        cell as forced companions
+        (F133 / F51). Re-measure after
+        the skill edit; do not leave
+        58400. The recover --fix pins
+        that currently assert no
+        terminal and would stay green
+        if --fix emitted discarded:
+        src/grace-cursor.test.ts:2616,
+        :2794, :2799, :2814. Widen those
+        four to no range-closing kind.
+        :2768 and :2818 assert a
+        pre-seeded terminal at id 20 on
+        the damaged shape (length 1);
+        keep that pin and add that
+        --fix did not also emit
+        discarded.
+      </Constraint>
+      <Constraint>
+        README.md CLI Overview row is
+        in scope. examples/ is not.
+        Do not require bun run
+        validate:ci: that script runs
+        validate:teaching-surface, which
+        currently exits 1 because the
+        sibling active skeleton
+        C-LINT-PHASE-HONESTY-2 names
+        neither README.md nor examples/
+        (scripts/check-teaching-surface.ts:237
+        checkDocsAndExamplesDecision).
+        Measured 2026-09-01 at this HEAD
+        (exit codes from the command, not
+        through a pipe): typecheck, test,
+        validate:cli,
+        bun run ./scripts/validate-marketplace.ts,
+        validate:examples,
+        validate:determinism,
+        validate:packed,
+        validate:schema-reference,
+        validate:skeleton-templates all
+        exit 0; validate:teaching-surface
+        exits 1. Require those nine
+        individually. Omit only
+        validate:teaching-surface, and
+        name why: C-LINT-PHASE-HONESTY-2
+        is a spec new skeleton that names
+        neither README.md nor examples/.
+        That is ordered, not deferred —
+        it resolves when that sibling
+        spec is authored, which the
+        maintainer has sequenced after
+        this bundle and the two that
+        follow it (amendment counter,
+        then effort). Filling that
+        sibling is not this bundle
+        (F127). The MustPassCommand
+        restriction governs command
+        text, never what a command
+        transitively runs; never resolve
+        bun run &lt;script&gt; through
+        package.json. None of the nine
+        is a current-mode lint of this
+        root.
+      </Constraint>
+      <Constraint>
+        Forced write surface, traced
+        2026-09-01: src/gates/ledger.ts
+        (call discardAndFoldEpoch; still
+        does not import advanceCursor),
+        src/grace-supersede.ts
+        (description; still delegates),
+        src/grace-supersede.test.ts
+        ("open epoch still moves" at
+        :197 currently asserts archive
+        run/ exists after an unterminated
+        open epoch — that is the defect;
+        rewrite it to assert a folded
+        Epoch containing discarded and no
+        foldable loose events),
+        src/grace-cursor.ts
+        (KNOWN_KIND_STATE, CursorState,
+        CURSOR_STATES, discardAndFoldEpoch
+        export and MODULE_MAP listing,
+        advanceCursor reserved-kind
+        refuse, fold range-close,
+        recover --fix / writeCoveringOpened
+        comments; do not add discarded
+        to the advance help
+        parenthetical),
+        src/grace-cursor.test.ts
+        (length-10 pin, completeness,
+        reserved-kind refuse,
+        recover --fix no-closer pins,
+        caller grep),
+        src/artifact/grammar.ts
+        (RANGE_CLOSING_KINDS export,
+        MODULE_MAP, ledger.range-unterminated
+        check and message),
+        src/artifact/grammar.test.ts
+        (discarded closes a range via
+        ledger XML, not advanceCursor;
+        progress still does not),
+        src/lint/catalog.ts
+        (LINKS: M-LINT-CATALOG;
+        ledger.range-unterminated
+        explanation and remediation name
+        the closer set),
+        README.md (CLI row and, if skill
+        bytes move, the measurement
+        cell),
+        skills/ngrace/ngrace-plan/SKILL.md,
+        plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md,
+        skills/ngrace/ngrace-execute/SKILL.md,
+        plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md,
+        src/test-support/token-accounting.test.ts.
+        Do not add a new src/*.ts file.
+        Do not edit src/review/outcomes.ts.
+      </Constraint>
+      <Constraint>
+        This bundle replaces
+        C-SUPERSEDE-RECORD (F136). Do not
+        edit that bundle. Do not widen
+        the charter: amendment counter
+        and effort accounting remain the
+        next two instrument bundles.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Amendment counter and effort
+        accounting. Next two instrument
+        bundles, already ordered.
+      </NonGoal>
+      <NonGoal>
+        Making discarded an escalation
+        resolver, or renaming State:
+        complete on a bundle that was
+        closed with terminal. Escalation
+        stickiness and terminal's map to
+        complete stay.
+      </NonGoal>
+      <NonGoal>
+        Reverting or deleting
+        implementation files when a
+        bundle is superseded. The
+        replacement carries the code
+        forward (F127).
+      </NonGoal>
+      <NonGoal>
+        Filling or editing
+        C-LINT-PHASE-HONESTY-2. Leave
+        that skeleton alone.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no
+        user-visible surface there.
+        Owner: unchanged.
+      </NonGoal>
+      <NonGoal>
+        Relaxing fold's unterminated
+        check for ordinary cursor fold,
+        changing evaluateTargetComplete,
+        treating discarded as
+        work-completion in
+        computeConstituentTasksPassed,
+        or adding fold output to
+        supersede stdout.
+      </NonGoal>
+      <NonGoal>
+        Requiring bun run
+        validate:teaching-surface or bun
+        run validate:ci. Owner: the
+        sibling C-LINT-PHASE-HONESTY-2
+        spec, sequenced after this
+        bundle and the two that follow
+        it.
+      </NonGoal>
+      <NonGoal>
+        A second discarded check at the
+        CLI advance handler, a general
+        discarded emitter, or making
+        cursor advance --kind discarded
+        legal. Owner: this bundle's
+        reachability constraint, which
+        forbids those shapes.
+      </NonGoal>
+      <NonGoal>
+        Teaching XML-escaping hard rules
+        in ngrace-spec or ngrace-plan.
+        Owner: unchanged; out of scope
+        here.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-FOLD-BEFORE-ARCHIVE>
+        On a throwaway project, open an
+        epoch (advanceCursor openEpoch,
+        no range-closer), run ngrace
+        supersede --change C-OLD
+        --replacement C-NEW. Exit 0.
+        The archived C-OLD has a
+        run-ledger.xml Epoch containing
+        the opened event, a
+        kind=discarded event, no
+        kind=terminal event added by
+        the verb, and no foldable loose
+        events under run/. status for
+        that change reports epochCount
+        greater than 0. HEAD today
+        archives the opened file and no
+        ledger; that probe must go red
+        first, then green.
+      </AC-FOLD-BEFORE-ARCHIVE>
+      <AC-NO-EPOCH-NOOP>
+        supersede of a spec-only active
+        bundle with no run/ directory
+        (C-PHASE-RULE-PIN shape) exits 0
+        and archives. It must not invoke
+        foldEpoch in a way that surfaces
+        "No loose run/ events to fold"
+        (that CLI currently exits 1).
+        Existing spec-only supersede
+        tests stay green.
+      </AC-NO-EPOCH-NOOP>
+      <AC-DISCARDED-KIND>
+        KNOWN_EVENT_KINDS is the ten
+        kinds opened, progress, resume,
+        attempt, verification-unavailable,
+        command-run, pause, terminal,
+        escalation, discarded.
+        bun test src/grace-cursor.test.ts
+        keeps the length-and-exact-list
+        pin green at 10 with discarded
+        last. ngrace-execute cursor_kinds
+        has a structural
+        &lt;kind id="…"&gt; marker for each,
+        including
+        &lt;kind id="discarded"&gt;.
+        That discarded entry states the
+        operator never emits this kind
+        and names ngrace supersede as
+        the verb that does.
+        KNOWN_KIND_STATE maps discarded
+        to CursorState discarded, not to
+        complete. Packaged ngrace-execute
+        stays byte-identical to
+        canonical.
+      </AC-DISCARDED-KIND>
+      <AC-DISCARDED-REFUSE>
+        Both directions on one throwaway
+        shape: open an epoch with
+        advanceCursor openEpoch, no
+        range-closer, replacement bundle
+        present. (1) Refuse:
+        advanceCursor with
+        kind: "discarded" throws
+        GraceCommandError whose code is
+        invalid-arguments and whose
+        message is exactly kind
+        "discarded" is reserved;
+        ngrace supersede writes it when
+        abandoning an open epoch. The
+        refuse writes no new run/ file.
+        ngrace cursor advance --change
+        C-OLD --task T-001 --kind
+        discarded on that same tree
+        exits nonzero; stderr is that
+        same message; no
+        discarded-specific branch
+        exists in the CLI advance
+        defineCommand block (it still
+        forwards --kind). (2) Permit:
+        ngrace supersede --change C-OLD
+        --replacement C-NEW on that
+        same shape exits 0; the
+        archived run-ledger.xml Epoch
+        contains a discarded event and
+        no verb-emitted terminal. A
+        refuse never contrasted with
+        this permit is not a
+        discrimination.
+      </AC-DISCARDED-REFUSE>
+      <AC-DISCARDED-CALLER>
+        discardAndFoldEpoch is the only
+        production writer of discarded.
+        Named grep, run from the repo
+        root: rg -n 'discardAndFoldEpoch'
+        src --glob '!*.test.ts' hits
+        only src/grace-cursor.ts
+        (MODULE_MAP listing and the
+        export) and src/gates/ledger.ts
+        (import and the call inside
+        supersedeChangeBundle). Named
+        grep: rg -n 'kind: "discarded"'
+        src --glob '!*.test.ts' hits
+        only the writeEventFile call
+        inside discardAndFoldEpoch.
+        Tests may import
+        discardAndFoldEpoch. No other
+        production file names it.
+      </AC-DISCARDED-CALLER>
+      <AC-RANGE-CLOSE>
+        Fold and grammar both accept
+        discarded as a range-closer
+        beside terminal. On a throwaway
+        project, opened then ngrace
+        supersede exits 0 and writes an
+        Epoch containing discarded
+        (do not prove this by cursor
+        advance --kind discarded then
+        cursor fold). opened then
+        progress then fold still exits 1
+        with unterminated range.
+        terminal still closes a range.
+        recover --fix still emits
+        neither terminal nor discarded
+        (existing recover --fix tests,
+        widened to the closer set as
+        named in Constraints, stay
+        green). grammar.test.ts admits a
+        discarded-closed allocation by
+        writing ledger XML directly and
+        still reports
+        ledger.range-unterminated on
+        progress-only.
+      </AC-RANGE-CLOSE>
+      <AC-GOVERNANCE-NOT-CODE>
+        src/grace-supersede.ts
+        meta.description and the README.md
+        CLI Overview description cell for
+        ngrace supersede both state that
+        the verb folds any open epoch and
+        that it discards governance, never
+        code. ngrace-plan
+        approved_plan_immutability and
+        ngrace-execute preflight state the
+        same two facts. ngrace supersede
+        --help prints the new description.
+        Packaged mirrors stay
+        byte-identical to canonical.
+      </AC-GOVERNANCE-NOT-CODE>
+      <AC-NO-NEW-FILE>
+        git status after the change shows
+        no new file under src/*.ts.
+        scripts/release-check.ts
+        PACK_ALLOWED_EXACT is not grown
+        by a new exact member.
+      </AC-NO-NEW-FILE>
+      <AC-PINS-HOLD>
+        bun test src/grace-supersede.test.ts,
+        bun test src/grace-cursor.test.ts,
+        bun test src/artifact/grammar.test.ts,
+        bun test scripts/skill-contracts.test.ts,
+        bun test src/query/command.test.ts,
+        and bun test
+        src/test-support/token-accounting.test.ts
+        all exit 0. The skill-contract
+        pinned phrases listed in
+        Constraints still appear. The
+        token-accounting pin matches the
+        post-edit skillTextLines()
+        measure, not the pre-edit 58400.
+      </AC-PINS-HOLD>
+      <AC-VALIDATOR-FLOOR>
+        Each of these nine exits 0 after
+        the change, run as the command
+        text named, not via bun run
+        validate:ci: bun run typecheck;
+        bun run test; bun run validate:cli;
+        bun run ./scripts/validate-marketplace.ts;
+        bun run validate:examples;
+        bun run validate:determinism;
+        bun run validate:packed;
+        bun run validate:schema-reference;
+        bun run validate:skeleton-templates.
+        validate:teaching-surface is not
+        required. Exit codes are read
+        from the command, never through
+        a pipe.
+      </AC-VALIDATOR-FLOOR>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0.
+        <CloseEvidence>
+          <Command>bun run ngrace lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GATES />
+      <M-CLI />
+      <M-CURSOR />
+      <M-GRAMMAR />
+      <M-LINT-CATALOG />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run typecheck</ExpectedCommand>
+      <ExpectedCommand>bun run test</ExpectedCommand>
+      <ExpectedCommand>bun run validate:cli</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:examples</ExpectedCommand>
+      <ExpectedCommand>bun run validate:determinism</ExpectedCommand>
+      <ExpectedCommand>bun run validate:packed</ExpectedCommand>
+      <ExpectedCommand>bun run validate:schema-reference</ExpectedCommand>
+      <ExpectedCommand>bun run validate:skeleton-templates</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-supersede.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-cursor.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/artifact/grammar.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        Red-first: the HEAD probe
+        (unterminated open epoch then
+        supersede) archives loose run/
+        and no Epoch; after this change
+        it archives a folded Epoch with
+        a discarded event, no
+        verb-emitted terminal, and no
+        foldable loose events. Spec-only
+        supersede still exits 0.
+        advanceCursor kind=discarded
+        refuses invalid-arguments on
+        that same open-epoch shape;
+        supersede on it still folds.
+        recover --fix still emits no
+        range-closer. --help and the
+        README row carry both
+        documented facts. Root lint
+        --fail-on warnings is 0/0. The
+        nine validators named above
+        exit 0; teaching-surface is
+        omitted because of the sibling
+        skeleton. Exercise the real CLI
+        on a throwaway project, not only
+        the unit tests. Do not use
+        current-mode lint of this root
+        as a target assertion.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        F134.2's consumer measurement
+        still holds after emitting
+        discarded: Complete stays a
+        target-assertions field, not a
+        function of the range-closer, so
+        a superseded folded bundle does
+        not start claiming the work
+        completed. State: discarded is
+        the cursor-lifecycle name, not
+        a work-completion claim.
+      </Assumption>
+      <Assumption>
+        listLooseEvents empty is the
+        right skip predicate. A bundle
+        with only unparseable run/
+        orphans (C-TOKEN-INTEGRITY NaN
+        shape) has no foldable events
+        and should skip the same way;
+        this bundle does not add orphan
+        recovery to supersede.
+      </Assumption>
+      <Assumption>
+        Importing discardAndFoldEpoch
+        from grace-cursor into ledger.ts
+        creates no cycle. Confirmed
+        2026-09-01: ledger.ts:65 already
+        imports resolveChangeBundle;
+        grace-cursor.ts has no gates
+        import; calibration/ does not
+        import gates/ledger. Importing
+        RANGE_CLOSING_KINDS from grammar
+        into grace-cursor follows the
+        existing edge
+        (grace-cursor.ts:116-120 already
+        imports four grammar exports).
+        writeEventFile at
+        src/grace-cursor.ts:3005 is not
+        exported; discardAndFoldEpoch
+        can call it from the same
+        module. The CLI advance handler
+        forwards --kind at :3280, so
+        the library refuse is the CLI
+        refuse; a second check would be
+        a duplicate, not a tightening.
+      </Assumption>
+      <Assumption>
+        Appending discarded after
+        escalation in KNOWN_KIND_STATE
+        keeps Object.keys insertion
+        order stable for the existing
+        nine, so the exact-list pin
+        grows only by a last member.
+      </Assumption>
+    </Assumptions>
+  </C-SUPERSEDE-RECORD-2>
+</NgraceChangeSpec>

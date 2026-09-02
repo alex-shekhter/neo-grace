@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="draft">
-  <C-SUPERSEDE-RECORD>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-SUPERSEDE-RECORD><Replacement>C-SUPERSEDE-RECORD-2</Replacement>
     <IntentSummary>
       Make ngrace supersede fold any open epoch before it
       archives, so a discarded bundle keeps its Epoch, attempts,

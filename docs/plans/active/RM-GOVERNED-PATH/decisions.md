@@ -7941,6 +7941,41 @@ Under the proposed amendment budget it would be amendment 1 of 3 with a fresh ra
 here because [F134](#f134) established that the archive prices such events at nothing, and this one
 should be counted when pilot is decided.
 
+### F136.1 correction — the two horns are not symmetric, and the spec's defect is wider than its `AffectedAreas`. **[verified]**
+
+[F136](#f136) said the anchored and unanchored plans both "fail the close". **That is imprecise, and
+the executor measured why.**
+
+- `change.graph-anchors-miss-write-scope` is **active-plans-only**. `validateGraphAnchorsOwnWriteScope`
+  (`src/lint/core.ts:734-738`) is documented *"Active plans only … Archives are not in activeScopes
+  and are not evaluated (decision D / A53)."* So the unanchored plan errors **during execution**, and
+  the error **disappears** once archived.
+- `change.plan-scope-exceeds-spec` **does** survive `applied`, because spec→plan coverage runs on
+  archives and exempts only `superseded` (`src/artifact/grammar.ts:1303-1306`, `:1838-1842`).
+
+So the failures are at **different stages**, not two forms of the same one. The conclusion is
+unchanged and the executor states it better than F136 did: **a truthful plan still cannot close this
+spec.** Omit `src/lint/catalog.ts` from `ObservedWriteScope` and the declared write surface is a lie,
+since the Constraints force the file; include it without the module and active lint errors before the
+close is reached; include both and the warning outlives the archive.
+
+**Two further corrections.**
+
+1. F136 quoted the error text as if complete. The live message **appends** the diagnostic tail —
+   `(file LINKS: …; GraphAnchors: …)`. Quoting a prefix as the message is the same class as measuring
+   a proxy and reporting the thing.
+2. The authority's replacement brief called `C-SUPERSEDE-RECORD`'s Constraints *"unchanged and
+   correct"*, and instructed that only `AffectedAreas` needed the fix. **That was wrong**: the spec's
+   ceremony module list omitted `M-LINT-CATALOG` too. One omission had two homes in the same artifact,
+   and the brief's confident scoping would have carried the second one forward untouched. The
+   executor corrected both.
+
+**What this sharpens in the rule.** `CLAUDE.md` now says to read the `LINKS:` header of every forced
+file and confirm the owning module is in `AffectedAreas`. The stronger form: confirm it in **every
+place the spec enumerates modules** — `AffectedAreas` and any ceremony or scope listing — because a
+module list that appears twice can be wrong twice, and fixing the copy you happened to look at leaves
+the other.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield

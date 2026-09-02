@@ -117,7 +117,10 @@ claims.** Four rules, each written after a measured failure:
    question that was already paid for.
 
 **Before approving a spec, anchor every file it forces into scope.** For each file the spec's
-Constraints name, read its `LINKS:` header and confirm the owning module appears in `AffectedAreas`.
+Constraints name, read its `LINKS:` header and confirm the owning module appears in **every place the spec
+enumerates modules** — `AffectedAreas` and any ceremony or scope listing. A module list that
+appears twice can be wrong twice, and fixing the copy you happened to look at leaves the other
+([F136.1](docs/plans/active/RM-GOVERNED-PATH/decisions.md)).
 A spec that forces `src/lint/catalog.ts` while omitting `M-LINT-CATALOG` cannot be satisfied by any
 plan: without the anchor the plan raises `change.graph-anchors-miss-write-scope` as an **error**;
 with it, `change.plan-scope-exceeds-spec` as a **warning** — and a `CloseEvidence` criterion running

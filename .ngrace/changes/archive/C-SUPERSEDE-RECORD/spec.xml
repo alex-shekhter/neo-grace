@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-SUPERSEDE-RECORD>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-SUPERSEDE-RECORD><Replacement>C-SUPERSEDE-RECORD-2</Replacement>
     <Summary>
       Make ngrace supersede fold any open epoch
       before it archives, so the discarded
