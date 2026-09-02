@@ -1060,3 +1060,133 @@ describe("C-REPORT-HONESTY T-002 status membership", () => {
     expect(result.derivedStates).not.toContain("approved-contract-drift");
   });
 });
+
+describe("C-AMENDMENT-COUNT T-002 status surfaces", () => {
+  function writeLedger(root: string, changeId: string, inner: string) {
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/${changeId}/run-ledger.xml`,
+      `<NgraceRunLedger graceVersion="1.0"><${changeId}><Decisions>${inner}</Decisions></${changeId}></NgraceRunLedger>`,
+    );
+  }
+
+  function addReplacement(root: string, changeId: string, target: string, location: "active" | "archive" = "archive") {
+    const relative = `${ARTIFACT_DIR}/changes/${location}/${changeId}/spec.xml`;
+    const spec = readFileSync(path.join(root, relative), "utf8");
+    writeProjectFile(
+      root,
+      relative,
+      spec.replace(`<${changeId}>`, `<${changeId}><Replacement>${target}</Replacement>`),
+    );
+  }
+
+  it("JSON always includes both counts as numbers including 0", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-ZERO", { specStatus: "draft", planStatus: "draft" });
+    const change = collectProjectStatus(root).changes.find((entry) => entry.changeId === "C-ZERO")!;
+    expect(Object.prototype.hasOwnProperty.call(change, "reRatificationCount")).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(change, "supersedeChainDepth")).toBe(true);
+    expect(change.reRatificationCount).toBe(0);
+    expect(change.supersedeChainDepth).toBe(0);
+  });
+
+  it("two same-fingerprint spec permits report reRatificationCount 0; distinct B reports 1", () => {
+    const same = createProject();
+    writeMinimalNgraceProject(same);
+    writeChange(same, "C-NOOP", { specStatus: "approved", planStatus: "draft" });
+    writeLedger(
+      same,
+      "C-NOOP",
+      `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`,
+    );
+    expect(collectProjectStatus(same).changes.find((entry) => entry.changeId === "C-NOOP")?.reRatificationCount).toBe(0);
+
+    const distinct = createProject();
+    writeMinimalNgraceProject(distinct);
+    writeChange(distinct, "C-EDIT", { specStatus: "approved", planStatus: "draft" });
+    writeLedger(
+      distinct,
+      "C-EDIT",
+      `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="bbb" artifact="spec"></Decision>`,
+    );
+    expect(collectProjectStatus(distinct).changes.find((entry) => entry.changeId === "C-EDIT")?.reRatificationCount).toBe(1);
+  });
+
+  it("first spec approve plus first plan approve stays reRatificationCount 0", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeChange(root, "C-BOTH", { specStatus: "approved", planStatus: "approved" });
+    writeLedger(
+      root,
+      "C-BOTH",
+      `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="bbb" artifact="plan"></Decision>`,
+    );
+    expect(collectProjectStatus(root).changes.find((entry) => entry.changeId === "C-BOTH")?.reRatificationCount).toBe(0);
+  });
+
+  it("live repo reports reRatificationCount 0, both keys as numbers, and measured chain depths", () => {
+    const result = collectProjectStatus(REPO_ROOT);
+    const expectedDepth: Record<string, number> = {
+      "C-CURSOR-TASK-SENTINEL": 0,
+      "C-CURSOR-TASK-IDENTITY": 1,
+      "C-CURSOR-TASK-RESOLVER": 2,
+      "C-PHASE-RULE-PIN": 0,
+      "C-LINT-PHASE-HONESTY": 1,
+      "C-LINT-PHASE-HONESTY-2": 2,
+      "C-SUPERSEDE-VERB": 0,
+      "C-SUPERSEDE-COMMAND": 1,
+      "C-SUPERSEDE-RECORD": 0,
+      "C-SUPERSEDE-RECORD-2": 1,
+      "C-VERDICT-EVIDENCE": 0,
+      "C-BOUND-VERDICT": 1,
+      "C-LEDGER-READ-ABSENCE": 0,
+      "C-LEGIBLE-FAILURE": 1,
+    };
+    expect(result.changes.length).toBeGreaterThan(0);
+    for (const change of result.changes) {
+      expect(typeof change.reRatificationCount).toBe("number");
+      expect(typeof change.supersedeChainDepth).toBe("number");
+      expect(change.reRatificationCount).toBe(0);
+      if (change.changeId in expectedDepth) {
+        expect(change.supersedeChainDepth).toBe(expectedDepth[change.changeId]);
+      }
+    }
+  });
+
+  it("formatStatusText omits zero counts and prints non-zero re-ratifications and supersede-depth", () => {
+    const zeros = createProject();
+    writeMinimalNgraceProject(zeros);
+    writeChange(zeros, "C-ZERO", { specStatus: "draft", planStatus: "draft" });
+    const zeroText = formatStatusText(collectProjectStatus(zeros));
+    expect(zeroText).not.toContain("re-ratifications=");
+    expect(zeroText).not.toContain("supersede-depth=");
+
+    const chain = createProject();
+    writeMinimalNgraceProject(chain);
+    writeChange(chain, "C-CHAIN-A", { location: "archive", specStatus: "superseded", planStatus: "superseded" });
+    writeChange(chain, "C-CHAIN-B", { location: "archive", specStatus: "superseded", planStatus: "superseded" });
+    writeChange(chain, "C-CHAIN-C", { specStatus: "approved", planStatus: "approved" });
+    addReplacement(chain, "C-CHAIN-A", "C-CHAIN-B");
+    addReplacement(chain, "C-CHAIN-B", "C-CHAIN-C");
+    const chainText = formatStatusText(collectProjectStatus(chain));
+    const tipLine = chainText.split("\n").find((line) => line.includes("C-CHAIN-C")) ?? "";
+    expect(tipLine).toContain("supersede-depth=2");
+
+    const edited = createProject();
+    writeMinimalNgraceProject(edited);
+    writeChange(edited, "C-EDIT", { specStatus: "approved", planStatus: "draft" });
+    writeLedger(
+      edited,
+      "C-EDIT",
+      `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="bbb" artifact="spec"></Decision>`,
+    );
+    const editedText = formatStatusText(collectProjectStatus(edited));
+    const editedLine = editedText.split("\n").find((line) => line.includes("C-EDIT")) ?? "";
+    expect(editedLine).toContain("re-ratifications=1");
+  });
+});

@@ -31,7 +31,7 @@ import { skillRef } from "./artifact/types";
 import { buildGraphProjection, buildVerificationProjection, type GraphProjection, type VerificationProjection } from "./artifact/projections";
 import { collectActiveChangeScopes, collectAppliedChangeScopes, createDurableOwnershipIndex, detectScopeOverlaps, detectUnsafeConcurrentExecution, observedWriteScopeContains, type ActiveChangeScope, type AppliedChangeScope } from "./artifact/scope";
 import { readGraceXmlArtifact } from "./artifact/xml";
-import { classifyApprovedArtifact, readPermittingDecision } from "./gates/ledger";
+import { classifyApprovedArtifact, readAmendmentInstrument, readPermittingDecision } from "./gates/ledger";
 import { collectModuleHealth } from "./query/health";
 import { loadGraceArtifactIndex } from "./query/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -76,6 +76,10 @@ export type ChangeBundleStatus = {
     code?: string;
     detail?: string;
   };
+  /** Fingerprinted approve-permit transitions on this bundle. Always set, including 0. */
+  reRatificationCount: number;
+  /** Reverse Replacement walk depth. Always set, including 0. */
+  supersedeChainDepth: number;
 };
 
 /** neo-grace status result for text or JSON output. */
@@ -221,6 +225,7 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
         ? 0
         : undefined;
     const taskCount = existsSync(planFile) ? countPlanTasks(planFile) : undefined;
+    const amendment = readAmendmentInstrument(root, changeId);
 
     return {
       changeId,
@@ -234,6 +239,8 @@ function collectChangeBundleStatuses(root: string, location: "active" | "archive
       orphanCount: orphanCount > 0 ? orphanCount : undefined,
       taskCount,
       applyGateRecord,
+      reRatificationCount: amendment.reRatificationCount,
+      supersedeChainDepth: amendment.supersedeChainDepth,
     } satisfies ChangeBundleStatus;
   });
 }
@@ -495,8 +502,12 @@ export function formatStatusText(result: StatusResult) {
         }
       }
       const taskPart = change.taskCount !== undefined ? ` tasks=${change.taskCount}` : "";
+      const amendmentPart =
+        change.reRatificationCount > 0 || change.supersedeChainDepth > 0
+          ? ` re-ratifications=${change.reRatificationCount} supersede-depth=${change.supersedeChainDepth}`
+          : "";
       lines.push(
-        `- ${change.changeId} [${change.location}] spec=${change.specStatus ?? "missing"} plan=${change.planStatus ?? "missing"}${epochPart}${taskPart} states=${change.derivedStates.join(",") || "none"}`,
+        `- ${change.changeId} [${change.location}] spec=${change.specStatus ?? "missing"} plan=${change.planStatus ?? "missing"}${epochPart}${taskPart}${amendmentPart} states=${change.derivedStates.join(",") || "none"}`,
       );
     }
   }
