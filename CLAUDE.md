@@ -107,6 +107,14 @@ claims.** Four rules, each written after a measured failure:
    a three-file sample became a 22-file claim, and the five files the sample missed were the ones
    that changed the argument.
 
+   **Match the position, not just the string.** Three wrong numbers in one session all came from a
+   pattern that found the right text in the wrong place: an exit code read through a pipe (`| tail`
+   reports *tail's* status), a count of a *quoted* string reported as the count of all references,
+   and `status="superseded"` matched inside a Constraint's prose and counted as a superseded bundle.
+   Constrain the match to the structural position the claim is about — the root element, the command
+   rather than the pipeline, non-test files — and prefer parsing the artifact over grepping it when
+   the claim is about structure.
+
 9. **Before proposing to change a behaviour, find the decision that created it.** Search the
    archived bundles and `decisions.md` for the acceptance criterion that put it there, and read the
    reasoning. Much of what looks like an oversight is a shipped ruling with a counterweight — the
