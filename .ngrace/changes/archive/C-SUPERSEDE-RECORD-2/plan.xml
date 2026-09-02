@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-SUPERSEDE-RECORD-2>
     <IntentSummary>
       Make ngrace supersede fold any open epoch before it archives, so a
