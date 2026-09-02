@@ -8404,3 +8404,38 @@ chartered to build, and built it correctly. Not an argument to change the deriva
 reported supersedes as re-ratifications would conflate two different costs, and
 [D21](#d21) says the schema must represent the operation truthfully. The finding is about **how the
 number is read**, not how it is computed.
+
+## D23 — pilot is decided on `supersedeChainDepth`, not on the amendment count
+
+**Decided 2026-09-02 by the maintainer**, on [F139](#f139), at the close of `C-AMENDMENT-COUNT` —
+the moment [D22.1](#d221) names as the end of the deliberate collection, when pilot becomes
+decidable.
+
+**The premise that forced the decision.** `RM-PILOT-APPROVAL:80` calls the amendment count "the
+measuring instrument". The instrument now exists and works — a synthetic re-ratification reads 1, a
+revert reads 2 — and it reads **zero on every bundle in the corpus**. That zero is honest: verified
+independently of the derivation by parsing all 53 ledgers on disk, no bundle has ever had an approved
+spec or plan amended and re-approved at a changed fingerprint. This project does not correct by
+amending; when a spec is wrong it supersedes the whole bundle. The correction cost is carried
+entirely by `supersedeChainDepth`, which reads > 0 on 8 of 59 change objects.
+
+**The variants put to the maintainer, and why the runners-up lose.**
+
+| | Variant | For | Against |
+|---|---|---|---|
+| **A** | **Decide pilot on `supersedeChainDepth`**; treat the amendment counter as instrumentation for a mechanism not yet used. | Uses the signal the project actually generates. Costs nothing and delays nothing. Keeps both counters meaning exactly one thing. | The pilot's own wording named amendments, so the criterion is being read against a different number than it says. |
+| **B** | Widen the instrument to report both costs under one heading. | Makes the number legible at a glance without knowing which verb the project uses. | [D21](#d21) forbids conflating two costs in a derivation that must represent the operation truthfully. Buys presentation with a schema ruling. |
+| **C** | Defer pilot until `C-LINT-PHASE-HONESTY-2` produces the first non-zero `reRatificationCount`. | Truest to the criterion as written; decides on the named number rather than a substitute. | That bundle is last in the order, so it pays a full branch of delay for a single data point — and one datum would not make the count informative anyway. |
+
+**Ruled: A.** The counter stays as built and stays honest. **Its zero must never be read as "amendment
+is cheap"** — it means amendment is not the correction verb here, and a future reader who forgets that
+will draw the opposite conclusion from the same number.
+
+**What this does not do.** It does not change the derivation, retitle either counter, or amend
+`RM-PILOT-APPROVAL`. `reRatificationCount` remains bundle-internal and `supersedeChainDepth`
+cross-bundle, exactly as `C-AMENDMENT-COUNT` shipped them. If this project ever starts amending
+approved artifacts in place, the instrument is already there and the reading flips back without code.
+
+**Sequencing note.** The ruling was given while the executor held the tree for the
+`C-REASON-CONSTANTS` plan and was recorded once that plan landed, so the write could not surface in
+that bundle's scope audit as a new out-of-scope file.
