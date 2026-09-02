@@ -8483,3 +8483,37 @@ bundle's files by listing its directory, not by recalling what the last bundle c
 **What was not damaged.** The executor followed the plan over the brief, flagged both errors in
 `WRONG`, and delivered a conforming execution. The cost was one contradiction the executor had to
 resolve — cheap this time, and only because it refused an instruction from the authority.
+
+### F141 — bytes and lines are not derivable from `WriteEvidence`, so the effort bundle's stated source cannot supply its stated measure. **[verified]**
+
+Measured **2026-09-02**, before briefing the effort-accounting bundle.
+
+**The standing direction contains a factual error.** It reads, in both the session brief and the
+authority's handoff: prefer *"verifiable churn (bytes/lines derivable from `WriteEvidence`
+digests)"* over self-reported tokens. **Bytes and lines are not derivable from a digest.** A sha256
+says *that* content differs, never *how much*.
+
+**What the record actually holds.** `snapshotWriteEvidence`
+([src/grace-cursor.ts:1769](../../../../src/grace-cursor.ts)) maps each changed path through
+`digestProjectFile`, producing `path` plus a content digest. Measured across **every** `run-ledger.xml`
+on disk, the only attribute any `File` element carries is `digest=` — no size, no line count, no
+mode. The intermediate states are never committed, so git cannot recover them afterwards either: at
+close time git sees the net diff, not the rework.
+
+**What *is* derivable from the ledger alone, and it is not nothing.** Per bundle: the count of
+distinct files written; the number of attempts touching each; and, because each attempt snapshots
+every changed path, **how many times a file's digest changed across attempts** — rework depth. That
+last is a truer effort signal than diff size: rewriting one file five times is effort in a way a
+large one-shot diff is not, and it is exactly the cost a ceremony study wants. It is also already
+half-consumed — the attempt-pair audit reads these digests to find fail→pass pairs with an identical
+tree.
+
+**Why this had to be settled before the brief.** Writing the spec brief first would have baked the
+false premise into an approved artifact, and the executor would have discovered mid-execution that
+its stated source cannot produce its stated measure — the [F119](#f119) class, one bundle after
+[F140](#f140) was recorded for the same failure to check a brief's claims against the artifact it
+governs. The remedy is a decision on verified premises, not a spec that inherits the error.
+
+**Not yet decided.** Whether the instrument reports rework depth from data already held (no new
+record, following `C-AMENDMENT-COUNT`'s precedent) or records size at snapshot time (a new record,
+against that precedent) is the maintainer's call, with the variants and their costs put to him.
