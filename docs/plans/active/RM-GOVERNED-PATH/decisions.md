@@ -8517,3 +8517,56 @@ governs. The remedy is a decision on verified premises, not a spec that inherits
 **Not yet decided.** Whether the instrument reports rework depth from data already held (no new
 record, following `C-AMENDMENT-COUNT`'s precedent) or records size at snapshot time (a new record,
 against that precedent) is the maintainer's call, with the variants and their costs put to him.
+
+### F142 — the breaker exists and refuses, but its window resets on every resume, so there is no global cap. **[verified]**
+
+Measured **2026-09-02**, by driving the real `recordAttempt` against a throwaway project, not by
+reading the suite. Prompted by a maintainer request for a rework circuit breaker with cycle
+detection and invalidation of spec and plan.
+
+**Three of the four parts already exist. One does not, and one is a deliberate ruling.**
+
+| Requested | Status |
+|---|---|
+| circuit breaker on rework | **exists** — triggers R (same signature twice) and D (four distinct), `C-ESCALATION-HONESTY` |
+| "not try new attempt" | **already enforced** — the next attempt is hard-refused |
+| max *total* rework attempts | **absent** — the window resets on every resume |
+| cycle detection | **absent** |
+| invalidate spec and plan | **absent, and deliberately so** |
+
+**The probe.** Three fails on one task, same signature `test-fail:alpha`:
+
+```
+attempt 1: accepted; escalated=false
+attempt 2: accepted; escalated=true          <- trigger R
+attempt 3: REFUSED -> gate.attempt.escalated: task T-001 is
+           paused-pending-approval; resolve with ngrace cursor resume
+           before further attempts.
+spec.xml  status="approved"
+plan.xml  status="approved"
+```
+
+The refusal is real, and **spec and plan are untouched** — the breaker stops the work and never
+touches governance.
+
+**The gap that makes "max rework attempts" a true request.** The budget window is
+`windowStart = lastResolvingResumeId(events, task)`
+([src/grace-cursor.ts:1709](../../../../src/grace-cursor.ts), `:1721`): every escalation-clearing
+resume starts the count again from zero. The per-window cap is 2 same / 4 distinct; **the number of
+windows is unbounded.** Escalate → resume → escalate → resume repeats forever, and each resume is
+individually legitimate because it carries the `--reason` that `C-ESCALATION-HONESTY` requires. The
+same signature recurring across windows is precisely what a window-scoped counter cannot see, which
+is why cycle detection and the global cap are one problem rather than two.
+
+**Why the missing invalidation is a ruling, not an oversight — [rule 9](../../../../CLAUDE.md).**
+`C-ESCALATION-HONESTY` chose `paused-pending-approval` deliberately, **rejected** renaming it, and
+designed a state "that holds until a deliberate, auditable replan decision is written". Its message
+says *"replan decision owed; task has not failed."* Auto-invalidating spec and plan would replace a
+human replan decision with a machine one. Any proposal to do it must answer that argument, and must
+answer [D21](#d21) — the record would have to say a breaker superseded the bundle, never imply a
+human ruled — and the standing rule that ratification travels as bytes.
+
+**What is already the right shape for it.** `supersede` writes `superseded`, names a replacement, and
+by [F127](#f127) **discards governance and never code** — which is exactly "invalidate spec and plan,
+keep what was built". The verb exists; what does not exist is anything that fires it automatically,
+and any account of who names the replacement when no human is in the loop.
