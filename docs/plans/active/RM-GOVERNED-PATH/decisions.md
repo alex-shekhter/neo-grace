@@ -8570,3 +8570,45 @@ human ruled — and the standing rule that ratification travels as bytes.
 by [F127](#f127) **discards governance and never code** — which is exactly "invalidate spec and plan,
 keep what was built". The verb exists; what does not exist is anything that fires it automatically,
 and any account of who names the replacement when no human is in the loop.
+
+## D24 — the rework circuit is a ceiling on escalations, not an auto-supersede
+
+**Decided 2026-09-02 by the maintainer**, on [F142](#f142), variant **A** of three.
+
+**What ships.** A **cross-window recurrence detector** and a **global cap**, and on trip a terminal
+escalation state that **refuses `resume`**. Governance is untouched by the machine: spec and plan keep
+their status, and a human still supersedes if the bundle is to die. What changes is that after a
+proven loop, `resume` is no longer an available exit — invalidation becomes the *only* way out
+instead of an automatic act.
+
+**This extends [C-ESCALATION-HONESTY](../../../../.ngrace/changes/archive/C-ESCALATION-HONESTY/); it
+does not overturn it.** That bundle's ruling — a state "that holds until a deliberate, auditable
+replan decision is written", with the task explicitly *not* failed — survives intact for the first
+escalation and every ordinary one. The new state governs only the case that bundle never
+contemplated: the same failure recurring **across** windows, which its window-scoped counter cannot
+see by construction (`windowStart = lastResolvingResumeId`).
+
+**The variants, and why the runners-up lose.**
+
+| | Variant | For | Against |
+|---|---|---|---|
+| **A** | **Detector + global cap; terminal state refuses `resume`.** | Delivers the hard stop and the cycle detection with **no unauthored governance artifact**. Preserves the human replan ruling. Leaves B reachable later as a policy change once the detector has data. | Does not literally write `superseded`; it makes invalidation the only exit rather than performing it. |
+| **B** | On trip, the CLI **auto-supersedes** the bundle. | Literally the request: governance invalidated, code preserved, which is what `supersede` already means ([F127](#f127)). | `supersede` must **name a replacement**. An auto-generated successor is a governance artifact no human authored — self-certification in a new place, against the standing rule that ratification travels as bytes. Overturns `C-ESCALATION-HONESTY` outright. |
+| **C** | Detector **reports only**; recurrence surfaces in `review` / `status`. | Cheapest; no ruling conflict. | Stops nothing, and the maintainer's request was that the system stop trying. [F139](#f139) had just shown what an instrument nobody acts on is worth. |
+
+**Ruled: A.** B is not rejected on its idea but on the replacement-authorship hole; if it is ever
+revisited, that question must be answered first rather than discovered at execution.
+
+**Named `C-REWORK-CIRCUIT`.** Searched before minting: the territory holds `C-ESCALATION-HONESTY`
+(the breaker's honesty), `C-ATTEMPT-LOG`, `C-ATTEMPT-PAIR-FINDING`, `C-FIX-SHAPE`, and
+`C-FIX-FLAG-HONESTY`. **None covers a cross-window ceiling**, so this is a new name rather than a
+synonym for an existing charter.
+
+**The forced write surface is wider than the deliverable, and that is the trap.** The fix-budget
+thresholds are asserted in prose at three passages of `skills/ngrace/ngrace-execute/SKILL.md` **and
+its packaged mirror**, and a live test builds required substrings from the live constants
+(`fixBudgetSkillRequiredSubstrings`, `src/grace-cursor.test.ts:3203`) so prose and code cannot
+diverge. Editing that skill text moves `skillTextLines` — pinned at **817 / 58931** in
+`src/test-support/token-accounting.test.ts` — exactly as `C-SUPERSEDE-RECORD-2` moved it from
+812 / 58400 and recorded the delta in a comment. A spec that names the code and forgets the prose,
+the mirror, or the pin is the [F133](#f133) / [F136](#f136) defect again.
