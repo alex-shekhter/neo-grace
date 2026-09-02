@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-REASON-CONSTANTS>
     <IntentSummary>
       Extract one file-level unexported const

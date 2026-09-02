@@ -8439,3 +8439,47 @@ approved artifacts in place, the instrument is already there and the reading fli
 **Sequencing note.** The ruling was given while the executor held the tree for the
 `C-REASON-CONSTANTS` plan and was recorded once that plan landed, so the write could not surface in
 that bundle's scope audit as a new out-of-scope file.
+
+### F140 — the authority's brief required a green the ruling forbids, one bundle after being warned. **[verified]**
+
+Measured **2026-09-02**, on the executor's tenth consecutive correction of the authority.
+
+**The defect.** The execution brief for `C-REASON-CONSTANTS` said, in its verify section: *"Root lint
+must be 0 errors / 0 warnings when you finish."* That requirement is unsatisfiable by a conforming
+execution, and the plan says so in `T-004`: root lint is forbidden in task `Verification` and is bound
+to `AC-CLOSE-LINT` as **post-archive** `CloseEvidence`. After the required write, current-mode lint
+correctly reports **2** errors — this bundle's own `BaselineAssertions`, falsified by the writes they
+require, exactly as `C-AMENDMENT-COUNT` reported **9** one bundle earlier.
+
+**Why it is worse than a wrong number.** The only way to obey the brief literally is to weaken the
+baselines until they stay green — the precise defect the plan's own trap list warns against, and the
+one that makes a ledger worthless. The brief therefore instructed the executor to falsify the record
+in order to satisfy a sentence the authority wrote without checking it against the plan it had
+already approved.
+
+**It is the class [CLAUDE.md rule 9](../../../../CLAUDE.md) names.** Current-mode lint framing was
+deliberately chosen by `C-REPORT-HONESTY`, whose derivation calls the obvious "fix" unacceptable. The
+brief contradicted that shipped ruling **silently** — no argument, no acknowledgement that a ruling
+was being overturned. Rule 9 exists for exactly this and was not applied.
+
+**The aggravating fact.** The authority had run the `C-AMENDMENT-COUNT` close in the same session,
+seen the 9 baseline errors, written *"Do not claim 0/0 before then"* into the handoff, and then wrote
+the opposite requirement into the next brief. The knowledge was present and current; it simply was
+not carried across the artifact boundary from close to brief.
+
+**Second defect, same brief.** §1 listed `design-context.xml` as a file of the
+`C-REASON-CONSTANTS` bundle. It is not on disk — that bundle has `spec.xml`, `plan.xml`,
+`run-ledger.xml`, `run.xml`, and `run/`. The authority generalized a file list from the previous
+bundle, which does have one, without listing the directory it was describing. That is
+[rule 8](../../../../CLAUDE.md)'s sampling error in a new place: a structure claim taken from one
+member of a set and written onto another.
+
+**The rule.** A brief's success criteria must be **derived from the approved plan's own criteria**,
+never composed independently and never carried over from a previous bundle. Before writing any
+"must be green" line, name which `AcceptanceCriterion` it implements and check whether that criterion
+is task-bound or close-bound — a close-bound criterion can never be a task-time gate. And enumerate a
+bundle's files by listing its directory, not by recalling what the last bundle contained.
+
+**What was not damaged.** The executor followed the plan over the brief, flagged both errors in
+`WRONG`, and delivered a conforming execution. The cost was one contradiction the executor had to
+resolve — cheap this time, and only because it refused an instruction from the authority.
