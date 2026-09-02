@@ -8213,6 +8213,42 @@ conclusion, and rejecting the weak form was correct.
 express it. Reach for a rule exemption only after the representation question has been answered, and
 never resolve the conflict by having a binary assert a human judgment.
 
+
+## D22 — full ceremony until the counter ships, and that is what ends the collection
+
+**Decided 2026-09-02 by the maintainer.** His words: *"full ceremony for now. we are still
+collecting stats for the `pilot`"*, and on the stopping rule, *"I agree with your stopping rule."*
+
+**The decision has two halves.**
+
+**1. Every bundle takes the full ceremony, however small its diff.** `C-REASON-CONSTANTS` extracts a
+single named constant; the executor observed that a whole bundle — spec, plan, two approvals,
+execution, close — is heavy beside that diff, and asked whether it was worth it. It is, and not
+merely for consistency's sake: **a selective record is the defect [F134](#f134) named.** An archive
+that prices some bundles at zero is what made pilot undecidable. Skipping ceremony whenever a diff
+looks small would sample only the expensive cases and bias the very number the sampling exists to
+produce.
+
+**A small bundle is also the more informative sample.** It isolates ceremony cost from work cost.
+Every other point on the curve confounds them — `C-LINT-PHASE-HONESTY` was five tasks plus a
+supersede; `C-SUPERSEDE-RECORD-2` carried a real design question. A one-constant change is nearly
+pure overhead, which makes it the best measurement of what the ceremony itself costs.
+
+**2. The collection ends when `C-AMENDMENT-COUNT` ships.** Until then, bundles are run partly *in
+order to* generate samples, and that cost is deliberate. Once the counter lands, re-ratifications and
+supersede-chain depth are derived from data the ledger already holds, so the numbers accrue on their
+own and no bundle need be run for the sake of measurement. **That converts "collecting stats" from an
+activity into a property of the system** — which is what `RM-PILOT-APPROVAL:80` meant by calling the
+count "the measuring instrument".
+
+**So pilot is decided on:** what the counter reports, plus the hand-recorded costs in
+[F134](#f134), [F136](#f136), [F137](#f137), and this bundle. Not on an open-ended tally.
+
+**Why a stopping rule was needed at all.** Without one, "still collecting" runs indefinitely and each
+bundle's ceremony is charged against a decision that never arrives. The rule was proposed because the
+stopping condition existed only in conversation; it is recorded here so a later session does not
+inherit an unbounded mandate.
+
 ## Slip register — 2026-08-15
 
 Every governance slip of the last two days, and the mechanism that must
