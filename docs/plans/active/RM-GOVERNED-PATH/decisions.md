@@ -8017,6 +8017,42 @@ acknowledging means recording that the write happened, naming who made it, and c
 sanctioned. Here the writer is the gate, the act is its documented job, and the evidence is a
 one-line diff.
 
+### F138 — five wrong measurements in one session, all the same shape: the pattern was narrower than the claim. **[verified]**
+
+The authority produced five false or overstated measurements across this session's bundles. The
+executor caught every one. They are not five mistakes; they are one mistake made five times.
+
+| claim | what was measured | truth |
+|---|---|---|
+| fold "exits 0, silently" | `$?` after `\| tail` — **tail's** status | fold exits **1** with a stderr message |
+| `paused-pending-approval`, "7 sites in one file" | the **quoted** string only | **14** hits across **two** files |
+| "9 superseded bundles" | `status="superseded"` anywhere in the file | **8** — one match was inside a Constraint's **prose** |
+| red budgets at `grace-cursor.ts:179`/`:185` | the **JSDoc openers** | the consts are at `:183`/`:189` |
+| "no precedent: no named reason constants" | `const [A-Z_]*REASON[A-Z_]* =` | **`NO_BASE_COMMIT_CAVEAT`** at `src/review/core.ts:1781`, same file |
+
+**The shape.** In every case the pattern was a proxy for the claim rather than the claim itself — a
+pipeline instead of a command, a quoted form instead of all forms, any position instead of the root
+element, a comment instead of the declaration, one naming convention instead of the category. The
+string found was always real; it was never the thing asserted.
+
+**The fifth is the expensive one, and it is the class `CLAUDE.md` rule 2 already names.** *"'X does
+not exist' is a search result, not an inference"* — the authority ran the search, so the rule was
+obeyed in form. What the rule did not say is that **an absence claim requires a pattern wider than
+the claim.** "No named reason constants exist" cannot be tested by a pattern demanding the token
+`REASON` in the identifier; the constant that disproved it is called `NO_BASE_COMMIT_CAVEAT` and
+lives eleven lines from code the same brief cited.
+
+**Consequence, and why it was cheap this time.** The brief told the executor it was establishing a
+new pattern from nothing and should keep it minimal. It was in fact following an existing local
+convention — which is a better argument for the same design, and the executor made it. Had the
+brief's premise been load-bearing rather than decorative, the bundle would have been scoped against
+a precedent that already existed.
+
+**The rule.** Before writing an absence claim, invert it: name what a counter-example would look
+like, and search for **that**, in every form it could take. If the claim is "no X exists", the
+pattern must not encode an assumption about how X is spelled. And prefer parsing structure over
+grepping text whenever the claim is about structure rather than words.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield

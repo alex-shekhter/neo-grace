@@ -71,7 +71,11 @@ claims.** Four rules, each written after a measured failure:
    `C-DECLARED-WRITES` had paid it.
 2. **"X does not exist" is a search result, not an inference.** Any claim that a mechanism, remedy,
    or precedent is missing requires the grep, the command run, or the archive listing *first*.
-   Absence claims are the most expensive errors this repository has recorded.
+   Absence claims are the most expensive errors this repository has recorded. **The pattern must be
+   wider than the claim**: before writing "no X exists", name what a counter-example would look like
+   and search for *that*, in every form it could take. "No named reason constants exist" was
+   disproved by `NO_BASE_COMMIT_CAVEAT`, which the search missed because the pattern demanded the
+   token `REASON` in the identifier ([F138](docs/plans/active/RM-GOVERNED-PATH/decisions.md)).
 3. **Read an artifact's definition before giving it a role in an argument** — what writes it, what
    consumes it. `run.xml` and `run/` are unfolded loose events; the durable record is
    `run-ledger.xml`. Inferring a role from a filename produced a whole fabricated decision.
