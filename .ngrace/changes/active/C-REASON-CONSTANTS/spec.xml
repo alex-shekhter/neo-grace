@@ -28,9 +28,7 @@
       (C-DECLARED-WRITES)
 
       C-AMENDMENT-COUNT (approved spec,
-      approved plan at this HEAD,
-      fingerprint
-      a95bdcea901fe7b290a148b7a986d4a25b96dbe8c9280e682a0a7502aa4ff018)
+      approved plan at this HEAD)
       adds a third for
       amendmentCountAudit,
       specified to reuse the same phrase
@@ -95,26 +93,26 @@
         M-REVIEW). Gates still run.
       </Constraint>
       <Constraint>
-        D22 — full ceremony until the
-        counter ships, and that is what
-        ends the collection. This bundle
-        takes T1 even though the
-        deliverable is one constant. A
-        selective record is the defect
-        F134 named: skipping ceremony
-        whenever a diff looks small
-        would sample only the expensive
-        cases and bias the number the
-        sampling exists to produce. A
-        small bundle is the more
-        informative sample, because it
-        isolates ceremony cost from work
-        cost; every other data point
-        confounds the two. The
-        collection ends when
-        C-AMENDMENT-COUNT lands, after
-        which the numbers accrue on
-        their own.
+        D22 / D22.1 — full ceremony is
+      standing practice, and the
+      deliberate collection ends when the
+      counter ships. This bundle takes T1
+      even though the deliverable is one
+      constant. A selective record is the
+      defect F134 named: skipping ceremony
+      whenever a diff looks small would
+      sample only the expensive cases and
+      bias the number the sampling exists
+      to produce. That reason does not
+      depend on measurement and outlives
+      the collection. This bundle is
+      sequenced after C-AMENDMENT-COUNT is
+      applied, so by D22 half 2 it is not
+      part of the deliberate collection and
+      does not claim to be a sample; its
+      cost is captured by the counter
+      automatically. It is an ordinary T1
+      cleanup paying the standing ceremony.
       </Constraint>
       <Constraint>
         Sequencing. Do not apply this
