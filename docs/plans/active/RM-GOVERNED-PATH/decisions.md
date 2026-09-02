@@ -8567,7 +8567,8 @@ answer [D21](#d21) — the record would have to say a breaker superseded the bun
 human ruled — and the standing rule that ratification travels as bytes.
 
 **What is already the right shape for it.** `supersede` writes `superseded`, names a replacement, and
-by [F127](#f127) **discards governance and never code** — which is exactly "invalidate spec and plan,
+by [F134.1](#f1341), on the precedent of [F127](#f127)'s close, **discards governance and never code**
+— which is exactly "invalidate spec and plan,
 keep what was built". The verb exists; what does not exist is anything that fires it automatically,
 and any account of who names the replacement when no human is in the loop.
 
@@ -8593,7 +8594,7 @@ see by construction (`windowStart = lastResolvingResumeId`).
 | | Variant | For | Against |
 |---|---|---|---|
 | **A** | **Detector + global cap; terminal state refuses `resume`.** | Delivers the hard stop and the cycle detection with **no unauthored governance artifact**. Preserves the human replan ruling. Leaves B reachable later as a policy change once the detector has data. | Does not literally write `superseded`; it makes invalidation the only exit rather than performing it. |
-| **B** | On trip, the CLI **auto-supersedes** the bundle. | Literally the request: governance invalidated, code preserved, which is what `supersede` already means ([F127](#f127)). | `supersede` must **name a replacement**. An auto-generated successor is a governance artifact no human authored — self-certification in a new place, against the standing rule that ratification travels as bytes. Overturns `C-ESCALATION-HONESTY` outright. |
+| **B** | On trip, the CLI **auto-supersedes** the bundle. | Literally the request: governance invalidated, code preserved, which is what `supersede` already means ([F134.1](#f1341)). | `supersede` must **name a replacement**. An auto-generated successor is a governance artifact no human authored — self-certification in a new place, against the standing rule that ratification travels as bytes. Overturns `C-ESCALATION-HONESTY` outright. |
 | **C** | Detector **reports only**; recurrence surfaces in `review` / `status`. | Cheapest; no ruling conflict. | Stops nothing, and the maintainer's request was that the system stop trying. [F139](#f139) had just shown what an instrument nobody acts on is worth. |
 
 **Ruled: A.** B is not rejected on its idea but on the replacement-authorship hole; if it is ever
@@ -8612,3 +8613,36 @@ diverge. Editing that skill text moves `skillTextLines` — pinned at **817 / 58
 `src/test-support/token-accounting.test.ts` — exactly as `C-SUPERSEDE-RECORD-2` moved it from
 812 / 58400 and recorded the delta in a comment. A spec that names the code and forgets the prose,
 the mirror, or the pin is the [F133](#f133) / [F136](#f136) defect again.
+
+### F143 — the authority mis-cited a finding into a ruling, and the wrong citation propagated for a whole session. **[verified]**
+
+Measured **2026-09-02**, on the executor's eleventh consecutive correction of the authority.
+
+**Three errors in one brief, all confirmed independently before acceptance.**
+
+| Claim in the brief | Truth |
+|---|---|
+| *"Per `F127`, supersede discards governance, never code"* | The rule is stated at **[F134.1](#f1341)** gap 2; it cites F127's **close** as the precedent. F127 itself is *"an approved plan that requires a suite green while forbidding the write that green needs"* — a different defect. |
+| *"the predecessor was superseded for a defect in its `ObservedWriteScope`"* | [F133](#f133) says outright *"**Neither defect required a supersede**"*. [F134.1](#f1341): superseded *"on the maintainer's ruling rather than closed, **deliberately, to begin collecting the cost data**"*. The scope defect was real and was **not** the cause. |
+| *"the code … is in the tree right now, at commit `2b35230`"* | HEAD is `df8e366`. **Seven** of the eighteen ratified production paths were edited afterwards by `C-SUPERSEDE-RECORD-2` (`ff1804a`) — measured by `comm -12` over the two commits' file lists. |
+
+**The third would have been a defect in the artifact, not just in prose.** A ratification criterion
+phrased as *byte-identical to `2b35230`* is satisfiable only by **reverting `C-SUPERSEDE-RECORD-2`**.
+The executor caught it and wrote the criterion as *diff-empty against the tree at plan approval*
+instead, which is the claim a ratification actually wants to make.
+
+**The first is the one worth a finding.** The mis-citation did not originate in the brief — it was
+carried in the session's own standing notes, copied into the handoff, repeated in two briefs, and
+then **written by the authority into `D24`**, a recorded ruling, where it would have outlived the
+session as a false cross-reference in the permanent record. A wrong citation is cheap to write and
+expensive to remove: it propagates by being copied, and every copy looks like corroboration.
+Corrected at every live site — two in `D24`, two in the handoff — and measured across the population
+first rather than fixed where it happened to be noticed. Older handoff prose describing F127
+correctly was left alone, which is how the drift was dated.
+
+**The rule.** **A citation is a claim and gets the same treatment as a number.** Before attaching an
+`F<n>` or `D<n>` to a statement, open it and read its headline; if the finding merely *supplies
+precedent* for the rule, cite the finding that **states** the rule and name the precedent separately.
+Restating a slogan with an identifier attached is not a citation — it is a claim that a specific
+artifact says a specific thing, and [rule 1](../../../../CLAUDE.md) already holds that a finding is
+never evidence of present state.
