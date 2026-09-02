@@ -1,0 +1,683 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-SUPERSEDE-RECORD-2>
+    <IntentSummary>
+      Make ngrace supersede fold any open epoch before it archives, so a
+      discarded bundle keeps its Epoch, attempts, and signatures. Range-close
+      with a new discarded kind and CursorState, not by emitting terminal.
+      discarded is unreachable except through discardAndFoldEpoch in
+      src/grace-cursor.ts; advanceCursor refuses the kind; supersedeChangeBundle
+      is the only production caller. Document that the verb discards
+      governance, never code, and that it folds first. No new src/*.ts file.
+      Amendment counter and effort accounting stay out.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.ts</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>export const FIX_SIGNATURE_REPEAT_BUDGET = 2;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>export const FIX_DISTINCT_SIGNATURE_BUDGET = 4;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>expect(KNOWN_EVENT_KINDS.length).toBe(9);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>"escalation",</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>discardAndFoldEpoch</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>RANGE_CLOSING_KINDS</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>advanceCursor</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>discardAndFoldEpoch</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>e.kind === "terminal"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>event.kind === "terminal"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>has no terminal event.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>A used allocation range has no terminal event, so the worker may have died mid-flight.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>Emit a terminal event for each used range before fold.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>never emits terminal (A29.2 / F12).</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>Append a structural run event (opened/progress/pause/resume/terminal). Use `cursor attempt` for verification cycles.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-supersede.ts</File>
+        <Text>Write superseded onto an active change bundle, name its replacement, and move it into archive.</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>Write superseded onto the active spec and plan when present, name the replacement, and move the bundle into archive. The replacement directory must already exist</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>**812 lines** / **58400 UTF-8 bytes**</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.totalBytes).toBe(58400);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-supersede.test.ts</File>
+        <Text>move-and-rollback: open epoch still moves</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-supersede.test.ts</File>
+        <Text>expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD", "run"))).toBe(true);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>kind === "attempt" || kind === "verification-unavailable" || kind === "escalation"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/outcomes.ts</File>
+        <Text>kind === "terminal"</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>mark the old bundle superseded</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>ngrace supersede</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>ngrace supersede</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>D19</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>D20</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>&lt;kind id="discarded"&gt;</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.ts</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>expect(KNOWN_EVENT_KINDS.length).toBe(10);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>"discarded",</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>discarded: "discarded"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>| "discarded"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>discardAndFoldEpoch</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>discardAndFoldEpoch</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>advanceCursor</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>discarded: "complete"</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>RANGE_CLOSING_KINDS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>RANGE_CLOSING_KINDS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>kind "discarded" is reserved; ngrace supersede writes it when abandoning an open epoch.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>Append a structural run event (opened/progress/pause/resume/terminal). Use `cursor attempt` for verification cycles.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-supersede.ts</File>
+        <Text>folds any open epoch</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-supersede.ts</File>
+        <Text>governance, never code</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>folds any open epoch</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>governance, never code</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>ngrace supersede</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>folds any open epoch</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>governance, never code</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>mark the old bundle superseded</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>Create a new `C-*` bundle</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>&lt;kind id="discarded"&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>folds any open epoch</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>governance, never code</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>&lt;kind id="discarded"&gt;</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>D19</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>D20</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>toBe(58400)</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>README.md</File>
+        <Text>**58400 UTF-8 bytes**</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/review/outcomes.ts</File>
+        <Text>kind === "terminal"</Text>
+      </MustContain>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/grace-supersede.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-cursor.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/grammar.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/query/command.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run typecheck</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run test</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:cli</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:examples</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:determinism</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:packed</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:schema-reference</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:skeleton-templates</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GATES />
+        <M-CLI />
+        <M-CURSOR />
+        <M-GRAMMAR />
+        <M-LINT-CATALOG />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GATES />
+        <V-M-CLI />
+        <V-M-CURSOR />
+        <V-M-GRAMMAR />
+        <V-M-LINT-CATALOG />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/gates/ledger.ts</File>
+      <File>src/grace-supersede.ts</File>
+      <File>src/grace-supersede.test.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>README.md</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+    </ObservedWriteScope>
+    <!--
+      Sequential: T-001, then T-002, then T-003. Not a parallel-safe batch.
+      Red budgets: at most 3 distinct signatureKeys per task; never the same key twice.
+      Record fail in its own tool round trip, then edit, then pass.
+      Do not put a current-mode lint of this project root in TargetAssertions or in
+      post-write task Verification. AC-CLOSE-LINT CloseEvidence is post-archive only.
+      Recover-pin widening is T-001 (closer set). Token-accounting remeasure is T-001
+      (the only SKILL.md byte change). T-002 and T-003 must not edit SKILL.md.
+      Do not add a new src/*.ts file. Do not edit src/review/outcomes.ts.
+      Do not copy C-SUPERSEDE-RECORD. Do not gate the library against supersede.
+      Do not add a discarded check in the advance defineCommand block.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Add discarded as a range-closer, refuse it on advance, and teach the verb</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-DISCARDED-KIND />
+          <AC-RANGE-CLOSE />
+          <AC-GOVERNANCE-NOT-CODE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Write tests first in src/grace-cursor.test.ts and
+            src/artifact/grammar.test.ts. Move the length-and-exact-list pin
+            at src/grace-cursor.test.ts:3199-3201 from 9 to 10 and add
+            "discarded" as the last member after escalation. Completeness
+            at :3213 stays tied to imported KNOWN_EVENT_KINDS; do not parse
+            source (F10). Add a test that imports RANGE_CLOSING_KINDS and
+            KNOWN_EVENT_KINDS and asserts every closer is a known kind.
+            In grammar.test.ts, admit a discarded-closed allocation by
+            writing ledger XML directly (never advanceCursor with
+            kind discarded except in the refuse assertion) and keep
+            progress-only reporting ledger.range-unterminated. Add the
+            reserved-kind refuse: advanceCursor with kind: "discarded"
+            throws GraceCommandError code invalid-arguments whose message
+            is exactly kind "discarded" is reserved; ngrace supersede
+            writes it when abandoning an open epoch, and writes no new
+            run/ file. Widen the four absence pins at
+            src/grace-cursor.test.ts:2616, :2794, :2799, :2814 from
+            no terminal to no range-closing kind (consult
+            RANGE_CLOSING_KINDS; do not duplicate the closer predicate).
+            Keep the collect pins at :2768 and :2818 (pre-seeded terminal
+            at id 20, length 1) and add that recover --fix did not also
+            emit discarded: after --fix on the damaged path, terminals
+            stay length 1 at id 20 and no event has kind discarded.
+            :2814/:2818 are seed assertions; do not force --fix into the
+            :2810 seed-only test. Planned reds (at most 3, never repeat):
+            signature-kind test-fail, signature-key known-kinds-length-10;
+            signature-kind test-fail, signature-key grammar-discarded-closes-range;
+            signature-kind test-fail, signature-key advance-refuses-discarded.
+            Prefer one production edit after the first recorded fail so the
+            second and third keys stay unused. Record fail in its own tool
+            round trip before the production edit. Recover-pin widening is
+            green-to-green; do not spend a fail attempt on it.
+          </Criterion>
+          <Criterion>
+            Then in src/grace-cursor.ts: append discarded to
+            KNOWN_KIND_STATE after escalation mapping to CursorState
+            discarded, not complete. Append discarded to the CursorState
+            union and to CURSOR_STATES after complete. Do not make
+            discarded an escalation resolver. Add discarded to the
+            reserved-kind branch at src/grace-cursor.ts:961-972 beside
+            attempt, verification-unavailable, and escalation, with the
+            exact reserved message above. The CLI advance handler at
+            :3278-3280 keeps forwarding --kind straight to advanceCursor;
+            the advance defineCommand block must not contain the string
+            discarded; keep the help parenthetical
+            opened/progress/pause/resume/terminal exactly. Fold's
+            validateEventsAgainstAllocations at :2556-2559 consults
+            RANGE_CLOSING_KINDS (imported from artifact/grammar.ts on the
+            existing edge at :116-120) instead of kind === "terminal"
+            only. Widen writeCoveringOpened's comment at :684 and the
+            recover --fix help that currently says never emits terminal
+            to the closer set. recover --fix, writeCoveringOpened, and
+            auto-open still emit no range-closing event. Do not add a
+            new src/*.ts file. Do not export a general discarded emitter.
+            Do not add discardAndFoldEpoch in this task.
+          </Criterion>
+          <Criterion>
+            In src/artifact/grammar.ts export RANGE_CLOSING_KINDS as a
+            frozen list [terminal, discarded], list it in that file's
+            MODULE_MAP (MAP_MODE EXPORTS), and have
+            ledger.range-unterminated at :1118-1127 consult it. The
+            issue message currently "has no terminal event" names the
+            closer set. Do not relax fold's unterminated check on the
+            general cursor fold path. In src/lint/catalog.ts
+            ledger.range-unterminated explanation and remediation
+            (:761-766) name the closer set. Remediation still tells the
+            operator to emit terminal or to abandon with ngrace supersede;
+            it must not tell them to pass --kind discarded to cursor
+            advance. Do not edit src/review/outcomes.ts;
+            computeConstituentTasksPassed stays kind === "terminal".
+            Complete on cursor show stays evaluateTargetComplete.
+          </Criterion>
+          <Criterion>
+            Documentation in this same task, and only on these files:
+            (1) src/grace-supersede.ts meta.description states that the
+            verb folds any open epoch (no-op when none exists) and that
+            it discards governance, never code; (2) README.md CLI
+            Overview row for ngrace supersede states the same two facts
+            and keeps the token ngrace supersede; (3)
+            skills/ngrace/ngrace-plan/SKILL.md approved_plan_immutability
+            states the same two facts and keeps the pinned phrases
+            "mark the old bundle superseded", "ngrace supersede",
+            "spec new", the five change.superseded-* check names,
+            "Create a new `C-*` bundle", and does not match \bmv\b;
+            (4) skills/ngrace/ngrace-execute/SKILL.md preflight states
+            the same two facts and still contains "ngrace supersede"
+            in preflight and recovery_decision_table, and contains
+            neither D19 nor D20. cursor_kinds gains a structural
+            &lt;kind id="discarded"&gt; after escalation (the
+            completeness regex requires that opening tag, not a
+            self-closing form). That entry states: the operator never
+            emits this kind; ngrace supersede is the verb that does;
+            it is emitted when ngrace supersede abandons an open epoch
+            with no closer; it maps to State discarded; it closes a
+            range beside terminal; recover --fix does not emit it.
+            Copy each edited canonical skill body onto its packaged
+            mirror so they end byte-identical:
+            plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md and
+            plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md.
+            Do not restate the command inventory in ngrace-cli.
+            After the skill edit, re-measure skillTextLines().totalBytes
+            and update src/test-support/token-accounting.test.ts and the
+            README.md measurement cell; do not leave 58400. This is the
+            only SKILL.md byte change in the bundle; T-002 and T-003
+            must not edit SKILL.md. ngrace supersede --help prints the
+            new description.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts src/artifact/grammar.test.ts src/lint/catalog.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts src/query/command.test.ts src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run ngrace supersede --help</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Fold through discardAndFoldEpoch inside supersedeChangeBundle</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-FOLD-BEFORE-ARCHIVE />
+          <AC-NO-EPOCH-NOOP />
+          <AC-DISCARDED-REFUSE />
+          <AC-DISCARDED-CALLER />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Rewrite the defect test first at
+            src/grace-supersede.test.ts:197 "open epoch still moves".
+            Today it asserts archive run/ exists after an unterminated
+            open epoch. Rewrite it to: open an epoch with advanceCursor
+            openEpoch and no range-closer, run ngrace supersede
+            --change C-OLD --replacement C-NEW, exit 0; archived C-OLD
+            has a run-ledger.xml Epoch containing the opened event, a
+            kind=discarded event, no kind=terminal event added by the
+            verb, and no foldable loose events under run/; do not prove
+            this by cursor advance --kind discarded then cursor fold.
+            On that same throwaway shape, also assert the refuse half of
+            AC-DISCARDED-REFUSE: advanceCursor kind: "discarded" throws
+            the reserved invalid-arguments message and writes no new
+            run/ file; ngrace cursor advance --change C-OLD --task T-001
+            --kind discarded exits nonzero with that same message; no
+            discarded-specific branch exists in the CLI advance
+            defineCommand block. A refuse never contrasted with the
+            permit is not a discrimination. Planned reds (at most 3,
+            never repeat): signature-kind test-fail, signature-key
+            open-epoch-folded-discarded. Record fail in its own tool
+            round trip before the production edit. Prefer that one fail
+            so a second key stays unused.
+          </Criterion>
+          <Criterion>
+            Then add export function discardAndFoldEpoch in
+            src/grace-cursor.ts beside foldEpoch, listed in that file's
+            MODULE_MAP (MAP_MODE EXPORTS). Sequence: (1) list loose run/
+            events for the bundle; (2) if none, return without invoking
+            foldEpoch; (3) if loose events exist and no range-closing
+            kind sits inside the effective covering allocation, write a
+            discarded event through writeEventFile (module-private) on
+            the last loose event's task — do not call advanceCursor;
+            (4) call foldEpoch. Step 3 consults RANGE_CLOSING_KINDS; do
+            not duplicate the closer predicate. Tests may import
+            discardAndFoldEpoch. Tests construct discarded through
+            discardAndFoldEpoch or by writing ledger XML directly —
+            never by passing the kind to advanceCursor except in the
+            refuse assertion. Do not add a new src/*.ts file. Do not
+            export a general discarded emitter.
+          </Criterion>
+          <Criterion>
+            Call discardAndFoldEpoch from supersedeChangeBundle in
+            src/gates/ledger.ts:1270 after the existing validation and
+            before any spec/plan byte write, then the existing status
+            write, Replacement insert, rename. ledger.ts already imports
+            resolveChangeBundle from ../grace-cursor at :65; add
+            discardAndFoldEpoch on that existing edge. Do not import
+            advanceCursor into ledger.ts. Do not put the fold only in
+            the CLI handler (src/grace-supersede.ts:72-95 still only
+            validates then delegates). If discardAndFoldEpoch throws,
+            write nothing superseded and leave the bundle under active/.
+            CLI stdout stays the archive-relative path; do not add fold
+            chatter. A spec-only active bundle with no run/ directory
+            still supersedes exit 0; discardAndFoldEpoch must not invoke
+            foldEpoch in a way that surfaces "No loose run/ events to
+            fold" (that CLI currently exits 1). Existing spec-only
+            supersede tests stay green. EXDEV at
+            src/grace-supersede.test.ts:327,334 keeps refusing after
+            rollback; spec/plan rollback still applies; the test may
+            now observe a folded ledger under active/. Re-invoking
+            supersede takes the no-loose-events skip. Named grep from
+            the repo root, production only: rg -n 'discardAndFoldEpoch'
+            src --glob '!*.test.ts' hits only src/grace-cursor.ts
+            (MODULE_MAP listing and the export) and src/gates/ledger.ts
+            (import and the call inside supersedeChangeBundle). Named
+            grep: rg -n 'kind: "discarded"' src --glob '!*.test.ts'
+            hits only the writeEventFile call inside
+            discardAndFoldEpoch. On a throwaway project, opened then
+            progress then fold still exits 1 with unterminated range;
+            terminal still closes a range. Exercise the real CLI, not
+            only the unit tests.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-supersede.test.ts src/grace-cursor.test.ts src/artifact/grammar.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Hold pins, keep the src file set, and run the nine validators</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-PINS-HOLD />
+          <AC-NO-NEW-FILE />
+          <AC-VALIDATOR-FLOOR />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            bun test src/grace-supersede.test.ts,
+            bun test src/grace-cursor.test.ts,
+            bun test src/artifact/grammar.test.ts,
+            bun test scripts/skill-contracts.test.ts,
+            bun test src/query/command.test.ts, and
+            bun test src/test-support/token-accounting.test.ts
+            all exit 0. The skill-contract pinned phrases listed in
+            Constraints still appear. The token-accounting pin matches
+            the post-edit skillTextLines() measure, not the pre-edit
+            58400. Planned reds: none. If a pin dropped, record fail
+            once with signature-kind test-fail, signature-key
+            pin-survival, restore the pin, and pass; do not repeat
+            that key.
+          </Criterion>
+          <Criterion>
+            git status after the change shows no new file under
+            src/*.ts. scripts/release-check.ts PACK_ALLOWED_EXACT is
+            not grown by a new exact member. Do not edit
+            src/review/outcomes.ts. Do not edit
+            C-LINT-PHASE-HONESTY-2. Do not edit examples/.
+          </Criterion>
+          <Criterion>
+            Each of these nine exits 0, run as the command text named,
+            not via bun run validate:ci. Read exit codes from the
+            command, never through a pipe: bun run typecheck;
+            bun run test; bun run validate:cli;
+            bun run ./scripts/validate-marketplace.ts;
+            bun run validate:examples; bun run validate:determinism;
+            bun run validate:packed; bun run validate:schema-reference;
+            bun run validate:skeleton-templates.
+            validate:teaching-surface is not required: the sibling
+            C-LINT-PHASE-HONESTY-2 is a spec new skeleton that names
+            neither README.md nor examples/
+            (scripts/check-teaching-surface.ts:237
+            checkDocsAndExamplesDecision). That is ordered, not
+            deferred. None of the nine is a current-mode lint of this
+            root. validate:examples lints examples/polyglot (a
+            different project root) plus the walkthrough script.
+            Do not put bun run ngrace lint --path . or
+            bun run ngrace lint --path . --fail-on warnings in this
+            task's Verification; that live root 0/0 is CloseEvidence
+            on AC-CLOSE-LINT, post-archive only.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-supersede.test.ts src/grace-cursor.test.ts src/artifact/grammar.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts src/query/command.test.ts src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run typecheck</Command>
+          <Command>bun run test</Command>
+          <Command>bun run validate:cli</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>bun run validate:examples</Command>
+          <Command>bun run validate:determinism</Command>
+          <Command>bun run validate:packed</Command>
+          <Command>bun run validate:schema-reference</Command>
+          <Command>bun run validate:skeleton-templates</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-SUPERSEDE-RECORD-2>
+</NgraceChangePlan>
