@@ -7976,6 +7976,47 @@ place the spec enumerates modules** — `AffectedAreas` and any ceremony or scop
 module list that appears twice can be wrong twice, and fixing the copy you happened to look at leaves
 the other.
 
+### F137 — the gate writes two artifacts the review then reports as out-of-scope writes. **[verified]**
+
+`C-SUPERSEDE-RECORD-2` executed cleanly with **no scope breach by the executor**. Its close review
+nevertheless reports two errors:
+
+```
+review.scope-outside-write-scope .ngrace/changes/active/C-SUPERSEDE-RECORD-2/plan.xml
+review.scope-outside-write-scope .ngrace/changes/active/C-SUPERSEDE-RECORD-2/spec.xml
+```
+
+**Neither was written by the executor.** Measured against the ledger's recorded base
+`1091e223`: `spec.xml`'s only diff is `status="draft"` → `status="approved"`, and `plan.xml` is
+byte-unchanged since its own approval commit. Both writes are `gate approve`'s — the tool stamping
+status, which `stampApproveArtifact` is the sanctioned writer for since `C-APPROVAL-FINGERPRINT`.
+
+**The asymmetry is in `isCliLifecyclePath`** (`src/review/core.ts:1011-1012`). It exempts `run.xml`,
+`run-ledger.xml`, and `run/` as "tool-owned lifecycle paths … not agent out-of-scope work" — the F11
+rule — but **not `spec.xml` or `plan.xml`**, which the gate also owns and also writes. So the review
+classifies a lifecycle write as agent work for two files and not for three.
+
+**The house workaround is per-plan and was forgotten immediately.** `C-BOUND-VERDICT` listed its four
+bundle artifacts in `ObservedWriteScope` precisely to silence this. Nine bundles later the authority
+found the same two findings on `C-LINT-PHASE-HONESTY`, fixed it there by adding the entries, wrote
+that *"acking noise trains the reviewer to ack"* — and then approved `C-SUPERSEDE-RECORD-2`'s plan
+without applying the lesson. **A remedy that must be remembered per artifact is not a remedy.**
+
+**This is not the executor's defect and not an authoring defect in the ordinary sense.** The plan
+declares the write surface the *executor* touches, correctly and completely. Requiring it also to
+declare files the *tool* writes conflates two different scopes in one element.
+
+**The fix belongs in the product, not in every plan.** Either `isCliLifecyclePath` covers the two
+artifacts the approve gate stamps, or the scope audit compares against the executor's writes rather
+than every changed file. Chartered as a registry item; it is small, it is entirely inside
+`src/review/core.ts`, and it removes a recurring class of ackable noise from every future close.
+
+**Until it ships, these findings are acknowledged at the bound verdict, not excused.** The
+distinction matters and is the one strictness cares about: excusing means letting a real breach pass;
+acknowledging means recording that the write happened, naming who made it, and confirming it was
+sanctioned. Here the writer is the gate, the act is its documented job, and the evidence is a
+one-line diff.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield

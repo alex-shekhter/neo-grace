@@ -196,7 +196,7 @@ These carry the execute lifecycle. A permitting recorded approve writes approved
 | `ngrace gate approve --change C-ID` | a permitting recorded approve writes approved onto the targeted spec or plan and records a fingerprint |
 | `ngrace gate apply --change C-ID` | Evaluate the apply transition — bound pass required; fail and unbound pass refuse |
 | `ngrace gate archive --change C-ID` | Evaluate the archive transition (an open epoch refuses) |
-| `ngrace supersede --change C-ID --replacement C-ID` | Write superseded onto the active spec and plan when present, name the replacement, and move the bundle into archive. The replacement directory must already exist |
+| `ngrace supersede --change C-ID --replacement C-ID` | Write superseded onto the active spec and plan when present, name the replacement, and move the bundle into archive. The replacement directory must already exist. The verb folds any open epoch (no-op when none exists). Discards governance, never code. |
 | `ngrace gate verdict --change C-ID --outcome pass\|fail\|unable-to-determine [--ack-finding <id>]` | Record bound judgment in `run-ledger.xml`; optional `--reason`, `--note`, `--scope task\|wave\|bundle`, `--classification implementation\|plan`; `--ack-finding` once per displayed findingId on pass |
 | `ngrace review --path <root> [--change C-ID] [--base <ref>] [--severity <token>]` | Mechanized detectors and process audits with deterministic finding IDs; with `--change`, an `ObservedWriteScope` scope audit |
 | `ngrace cursor show --change C-ID` | Show durable run position (never writes; recovers rather than blocks) |
@@ -298,7 +298,7 @@ skip depth (adversarial probe, mutation audit, checklist volume).
 
 | What | Subject / state | Normalized stdout bytes | Commit |
 |---|---|---|---|
-| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **812 lines** / **58400 UTF-8 bytes** | pin in `token-accounting.test.ts` |
+| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **817 lines** / **58931 UTF-8 bytes** | pin in `token-accounting.test.ts` |
 | `skillTextLines().referencesTotal` | package root | **1435 lines** (includes recovery.md) | same instrument |
 | `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `f641334` (the squashed Phase 11 merge; release cut updates) |
 | `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |

@@ -8,7 +8,7 @@ import {
   writeChangeBundleFixture,
   writeMinimalNgraceProject,
 } from "./artifact/test-fixtures";
-import { validateNgraceProject } from "./artifact/grammar";
+import { RANGE_CLOSING_KINDS, validateNgraceProject } from "./artifact/grammar";
 import { snapshotProjectTree } from "./test-support/fixtures";
 import {
   advanceCursor,
@@ -82,6 +82,10 @@ function createProject() {
   const root = path.join(os.tmpdir(), `grace-cursor-${crypto.randomUUID()}`);
   mkdirSync(root, { recursive: true });
   return root;
+}
+
+function isRangeClosingKind(kind: string): boolean {
+  return (RANGE_CLOSING_KINDS as readonly string[]).includes(kind);
 }
 
 function seedBundle(root: string, changeId = "C-RUN") {
@@ -1037,6 +1041,7 @@ describe("signature fix budget R/D (C-ESCALATION-HONESTY / AC-SIGNATURE-BUDGET-S
 describe("cursor state parsed (AC-CURSOR-STATE-PARSED)", () => {
   it("unrecognized written state degrades; show still answers; lint still reports", () => {
     expect(parseCursorState("paused-pending-approval")).toEqual({ state: "paused-pending-approval" });
+    expect(parseCursorState("discarded")).toEqual({ state: "discarded" });
     expect(parseCursorState("shipped")).toEqual({ invalid: "shipped" });
 
     const root = createProject();
@@ -1266,6 +1271,79 @@ describe("CLI attempt surface (A20.4 / correction 40)", () => {
     expect(() => advanceCursor(root, "C-RUN", { task: "T-001", kind: "escalation" })).toThrow(
       /reserved|escalation/i,
     );
+  });
+
+  it("advanceCursor kind discarded is reserved and writes no run file", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    const before = readdirSync(path.join(bundle, "run")).sort();
+    let caught: unknown;
+    try {
+      advanceCursor(root, "C-RUN", { task: "T-001", kind: "discarded" });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(GraceCommandError);
+    expect((caught as GraceCommandError).code).toBe("invalid-arguments");
+    expect((caught as GraceCommandError).message).toBe(
+      'kind "discarded" is reserved; ngrace supersede writes it when abandoning an open epoch.',
+    );
+    expect(readdirSync(path.join(bundle, "run")).sort()).toEqual(before);
+  });
+
+  it("AC-DISCARDED-CALLER: discardAndFoldEpoch production sites are cursor export and ledger call", () => {
+    const result = Bun.spawnSync({
+      cmd: ["rg", "-n", "discardAndFoldEpoch", "src", "--glob", "!*.test.ts"],
+      cwd: path.join(import.meta.dir, ".."),
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).toBe(0);
+    const lines = new TextDecoder().decode(result.stdout).split("\n").filter(Boolean);
+    const files = [...new Set(lines.map((line) => line.split(":")[0]))].sort();
+    expect(files).toEqual(["src/gates/ledger.ts", "src/grace-cursor.ts"]);
+    expect(lines.some((line) => line.includes("src/grace-cursor.ts") && line.includes("export function discardAndFoldEpoch"))).toBe(true);
+    expect(lines.some((line) => line.includes("src/gates/ledger.ts") && /discardAndFoldEpoch\(/.test(line))).toBe(true);
+  });
+
+  it("AC-DISCARDED-CALLER: kind discarded write is only inside discardAndFoldEpoch", () => {
+    const result = Bun.spawnSync({
+      cmd: ["rg", "-n", 'kind: "discarded"', "src", "--glob", "!*.test.ts"],
+      cwd: path.join(import.meta.dir, ".."),
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).toBe(0);
+    const lines = new TextDecoder().decode(result.stdout).split("\n").filter(Boolean);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("src/grace-cursor.ts:");
+    const cursorSrc = readFileSync(path.join(import.meta.dir, "grace-cursor.ts"), "utf8");
+    const fnStart = cursorSrc.indexOf("export function discardAndFoldEpoch");
+    const fnEnd = cursorSrc.indexOf("\nexport function", fnStart + 1);
+    expect(fnStart).toBeGreaterThanOrEqual(0);
+    expect(fnEnd).toBeGreaterThan(fnStart);
+    expect(cursorSrc.slice(fnStart, fnEnd)).toContain('kind: "discarded"');
+  });
+
+  it("fold accepts a discarded-closed allocation written as loose events", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, "1-T-001-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="99" /></NgraceRunEvent>`,
+    );
+    writeFileSync(
+      path.join(runDir, "2-T-001-discarded.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="discarded"/>`,
+    );
+    const folded = foldEpoch(root, "C-RUN");
+    expect(folded.applied).toBe(true);
+    const ledger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(ledger).toContain('kind="discarded"');
+    expect(ledger).not.toMatch(/kind="terminal"/);
   });
 
   it("cursor attempt and verification-unavailable subcommands are registered", () => {
@@ -2612,8 +2690,8 @@ describe("C-RECOVER-FOLDABLE T-001: effective allocation supersession (F13 / D9 
     for (const [name, content] of beforeFiles) {
       expect(readFileSync(path.join(bundle, "run", name), "utf8")).toBe(content);
     }
-    // --fix must not emit terminal (A29.2 / F12).
-    expect(listLooseEvents(bundle).some((e) => e.kind === "terminal")).toBe(false);
+    // --fix must not emit a range-closing kind (A29.2 / F12).
+    expect(listLooseEvents(bundle).some((e) => isRangeClosingKind(e.kind))).toBe(false);
     const cover = fixed.validAllocations[0]!;
     expect(cover.from).toBeLessThanOrEqual(1);
     // Ceiling: max(covering requirement, openedId + 98)
@@ -2768,6 +2846,7 @@ describe("C-RECOVER-FOLDABLE T-002: damaged-shape repair", () => {
     const terminals = listLooseEvents(bundle).filter((e) => e.kind === "terminal");
     expect(terminals).toHaveLength(1);
     expect(terminals[0]!.id).toBe(20);
+    expect(listLooseEvents(bundle).some((e) => e.kind === "discarded")).toBe(false);
     expect(fixed.coveringAllocation).toBe("present");
     expect(fixed.foldBlocked).toBe(false);
     const cover = fixed.validAllocations[0]!;
@@ -2791,12 +2870,12 @@ describe("C-RECOVER-FOLDABLE T-003: clean no-terminal E2E (no withTerminal pre-s
     const root = createProject();
     // Explicitly no terminal anywhere — withTerminal must not be used to satisfy this path.
     const bundle = seedF8Shape(root, { validIds: [1, 2, 3], withTerminal: false });
-    expect(listLooseEvents(bundle).some((e) => e.kind === "terminal")).toBe(false);
+    expect(listLooseEvents(bundle).some((e) => isRangeClosingKind(e.kind))).toBe(false);
     const nanPath = path.join(bundle, "run", "NaN-T-001-opened.xml");
     const nanBefore = readFileSync(nanPath, "utf8");
 
     recoverCursor(root, "C-RUN", { fix: "extend-allocation" });
-    expect(listLooseEvents(bundle).some((e) => e.kind === "terminal")).toBe(false);
+    expect(listLooseEvents(bundle).some((e) => isRangeClosingKind(e.kind))).toBe(false);
     // Intervening work within headroom, then operator terminal.
     advanceCursor(root, "C-RUN", { task: "T-001", kind: "progress" });
     advanceCursor(root, "C-RUN", { task: "T-001", kind: "terminal" });
@@ -2811,7 +2890,7 @@ describe("C-RECOVER-FOLDABLE T-003: clean no-terminal E2E (no withTerminal pre-s
     // Clean path uses withTerminal: false; damaged path places terminal outside dead [1,19].
     const rootClean = createProject();
     const clean = seedF8Shape(rootClean, { validIds: [1, 2, 3], withTerminal: false });
-    expect(listLooseEvents(clean).every((e) => e.kind !== "terminal")).toBe(true);
+    expect(listLooseEvents(clean).every((e) => !isRangeClosingKind(e.kind))).toBe(true);
 
     const rootDamaged = createProject();
     const damaged = seedDamagedTokenShape(rootDamaged);
@@ -3195,8 +3274,8 @@ describe("KNOWN_EVENT_KINDS export and ngrace-execute completeness (C-EXECUTION-
       const resolved = cursorStateForEventKind(kind);
       expect("state" in resolved).toBe(true);
     }
-    // Denominator is the export alone — currently 9 keys of KNOWN_KIND_STATE.
-    expect(KNOWN_EVENT_KINDS.length).toBe(9);
+    // Denominator is the export alone — currently 10 keys of KNOWN_KIND_STATE.
+    expect(KNOWN_EVENT_KINDS.length).toBe(10);
     expect([...KNOWN_EVENT_KINDS]).toEqual([
       "opened",
       "progress",
@@ -3207,7 +3286,15 @@ describe("KNOWN_EVENT_KINDS export and ngrace-execute completeness (C-EXECUTION-
       "pause",
       "terminal",
       "escalation",
+      "discarded",
     ]);
+    expect(cursorStateForEventKind("discarded")).toEqual({ state: "discarded" });
+  });
+
+  it("every RANGE_CLOSING_KINDS member is a known event kind", () => {
+    for (const kind of RANGE_CLOSING_KINDS) {
+      expect(KNOWN_EVENT_KINDS).toContain(kind);
+    }
   });
 
   it("ngrace-execute documents every exported kind with a structural <kind id> marker", () => {

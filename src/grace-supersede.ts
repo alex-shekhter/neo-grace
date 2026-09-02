@@ -49,7 +49,7 @@ export const supersedeCommand = defineGraceCommand({
   meta: {
     name: "supersede",
     description:
-      "Write superseded onto an active change bundle, name its replacement, and move it into archive.",
+      "Write superseded onto an active change bundle, name its replacement, and move it into archive. The verb folds any open epoch (no-op when none exists). Discards governance, never code.",
   },
   args: {
     change: {

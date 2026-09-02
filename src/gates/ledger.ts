@@ -62,7 +62,7 @@ import { ARTIFACT_DIR } from "../artifact/paths";
 import { ANCHOR_PATTERNS, ARTIFACT_TAG_PREFIX, NGRACE_ARTIFACT_VERSION } from "../artifact/types";
 import { cloneXmlNode, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "../artifact/xml";
 import { serializeGraceXmlDocument } from "../artifact/xml-serialize";
-import { resolveChangeBundle } from "../grace-cursor";
+import { discardAndFoldEpoch, resolveChangeBundle } from "../grace-cursor";
 import { GraceCommandError } from "../query/errors";
 
 export type ReviewVerdictOutcome = "pass" | "fail" | "unable-to-determine";
@@ -1324,6 +1324,7 @@ export function supersedeChangeBundle(
   if (!existsSync(specPath)) {
     throw new GraceCommandError("not-found", `spec.xml not found in ${changeId}.`);
   }
+  discardAndFoldEpoch(projectRoot, changeId);
   const specBefore = readFileSync(specPath, "utf8");
   const planExists = existsSync(planPath);
   const planBefore = planExists ? readFileSync(planPath, "utf8") : undefined;

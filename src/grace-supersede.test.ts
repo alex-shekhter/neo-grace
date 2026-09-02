@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { ARTIFACT_DIR } from "./artifact/paths";
 import { writeChangeBundleFixture, writeMinimalNgraceProject } from "./artifact/test-fixtures";
-import { advanceCursor } from "./grace-cursor";
+import { advanceCursor, listLooseEvents } from "./grace-cursor";
 import { supersedeChangeBundle } from "./gates/ledger";
 import { GraceCommandError } from "./query/errors";
 
@@ -38,6 +38,14 @@ function runSupersedeCli(args: string[]) {
 
 function combinedOutput(result: ReturnType<typeof runSupersedeCli>): string {
   return `${result.stdout ?? ""}${result.stderr ?? ""}`;
+}
+
+function runCursorAdvanceCli(args: string[]) {
+  return spawnSync("bun", ["run", GRACE_BIN, "cursor", "advance", ...args], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    env: process.env,
+  });
 }
 
 describe("C-SUPERSEDE-COMMAND T-002", () => {
@@ -188,13 +196,17 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       specStatus: "draft",
       planStatus: "draft",
     });
-    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    const specOnly = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    expect(specOnly.status).toBe(0);
+    expect(combinedOutput(specOnly)).not.toMatch(/No loose run\/ events to fold/);
     const archiveDir = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD");
     expect(existsSync(archiveDir)).toBe(true);
     expect(existsSync(path.join(archiveDir, "plan.xml"))).toBe(false);
   });
 
   it("move-and-rollback: open epoch still moves", () => {
+    const reserved =
+      'kind "discarded" is reserved; ngrace supersede writes it when abandoning an open epoch.';
     const root = tempProject();
     writeChangeBundleFixture(root, {
       changeId: "C-OLD",
@@ -208,10 +220,74 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       specStatus: "draft",
       planStatus: "draft",
     });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "active", "C-OLD");
     advanceCursor(root, "C-OLD", { task: "T-001", openEpoch: true });
-    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
-    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD"))).toBe(true);
-    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD", "run"))).toBe(true);
+    const beforeRun = readdirSync(path.join(bundle, "run")).sort();
+
+    let caught: unknown;
+    try {
+      advanceCursor(root, "C-OLD", { task: "T-001", kind: "discarded" });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(GraceCommandError);
+    expect((caught as GraceCommandError).code).toBe("invalid-arguments");
+    expect((caught as GraceCommandError).message).toBe(reserved);
+    expect(readdirSync(path.join(bundle, "run")).sort()).toEqual(beforeRun);
+
+    const cliRefuse = runCursorAdvanceCli([
+      "--change",
+      "C-OLD",
+      "--task",
+      "T-001",
+      "--kind",
+      "discarded",
+      "--path",
+      root,
+    ]);
+    expect(cliRefuse.status).not.toBe(0);
+    expect(combinedOutput(cliRefuse)).toContain(reserved);
+    expect(readdirSync(path.join(bundle, "run")).sort()).toEqual(beforeRun);
+
+    const cursorSrc = readFileSync(path.resolve(import.meta.dir, "./grace-cursor.ts"), "utf8");
+    const advanceStart = cursorSrc.indexOf("advance: defineCommand({");
+    const attemptStart = cursorSrc.indexOf("attempt: defineCommand({", advanceStart);
+    expect(advanceStart).toBeGreaterThanOrEqual(0);
+    expect(attemptStart).toBeGreaterThan(advanceStart);
+    expect(cursorSrc.slice(advanceStart, attemptStart)).not.toContain("discarded");
+
+    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe(path.join(ARTIFACT_DIR, "changes", "archive", "C-OLD").replaceAll(path.sep, "/"));
+    expect(combinedOutput(result)).not.toMatch(/\bFold\b/i);
+
+    const archiveDir = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD");
+    expect(existsSync(archiveDir)).toBe(true);
+    const ledger = readFileSync(path.join(archiveDir, "run-ledger.xml"), "utf8");
+    expect(ledger).toMatch(/<Epoch-1\b/);
+    expect(ledger).toContain('kind="opened"');
+    expect(ledger).toContain('kind="discarded"');
+    expect(ledger).not.toContain('kind="terminal"');
+    expect(listLooseEvents(archiveDir)).toHaveLength(0);
+  });
+
+  it("ordinary cursor fold still refuses an unterminated range on the real CLI", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, {
+      changeId: "C-OLD",
+      location: "active",
+      specStatus: "draft",
+      planStatus: "draft",
+    });
+    advanceCursor(root, "C-OLD", { task: "T-001", openEpoch: true });
+    advanceCursor(root, "C-OLD", { task: "T-001", kind: "progress" });
+    const fold = spawnSync("bun", ["run", GRACE_BIN, "cursor", "fold", "--change", "C-OLD", "--path", root], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      env: process.env,
+    });
+    expect(fold.status).not.toBe(0);
+    expect(`${fold.stdout ?? ""}${fold.stderr ?? ""}`).toMatch(/unterminated range/);
   });
 
   it("move-and-rollback: a bundle already under archive/ and not under active/ refuses", () => {

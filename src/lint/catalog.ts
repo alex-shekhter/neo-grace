@@ -760,9 +760,12 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
   },
   "ledger.range-unterminated": {
     title: "Ledger Range Unterminated",
-    explanation: "A used allocation range has no terminal event, so the worker may have died mid-flight.",
-    remediation: ["Emit a terminal event for each used range before fold.", "Mark the epoch incomplete if the worker is gone."],
-    derivedFrom: "A used range with no terminal event is a mid-flight death; silent success would be confidently wrong (D2).",
+    explanation: "A used allocation range has no terminal or discarded event, so the worker may have died mid-flight.",
+    remediation: [
+      "Emit a terminal event for each used range before fold.",
+      "Or abandon the open epoch with ngrace supersede.",
+    ],
+    derivedFrom: "A used range with no terminal or discarded event is a mid-flight death; silent success would be confidently wrong (D2).",
     proposedBy: "confidently-wrong",
   },
   "ledger.duplicate-verdicts-section": {
