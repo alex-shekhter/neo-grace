@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="draft">
+<NgraceChangePlan graceVersion="1.0" status="approved">
   <C-AMENDMENT-COUNT>
     <IntentSummary>
       Derive two per-bundle counts from data the ledger already
