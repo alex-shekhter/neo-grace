@@ -1,0 +1,644 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-AMENDMENT-COUNT>
+    <IntentSummary>
+      Derive two per-bundle counts from data the ledger already
+      holds and surface them: reRatificationCount (fingerprinted
+      approve Decision transitions, not distinct-minus-one) and
+      supersedeChainDepth (cycle-guarded reverse Replacement
+      walk). Export readAmendmentInstrument from
+      src/gates/ledger.ts; status JSON/text and review consume
+      it. No new ledger section, event kind, or src/*.ts file.
+      applyingApproveDecision stays tip-only and unexported.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>V-M-GATES</Value></MustExist>
+      <MustExist><Value>V-M-STATUS</Value></MustExist>
+      <MustExist><Value>V-M-REVIEW</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>function applyingApproveDecision(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>return forFile.length &gt; 0 ? forFile[forFile.length - 1] : undefined;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>const applying = applyingApproveDecision(decisions, artifact);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>const LEDGER_BUNDLE_SECTIONS = new Set(["Verdicts", "Decisions"]);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function readGateDecisions</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>readAmendmentInstrument</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>AmendmentInstrument</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function applyingApproveDecision</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>replacementChangeIds</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>export type ChangeBundleStatus = {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>schemaVersion: "1.0.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>orphanCount?: number;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>export function formatStatusText(result: StatusResult)</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-status.ts</File>
+        <Text>reRatificationCount</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-status.ts</File>
+        <Text>supersedeChainDepth</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>it("keeps schemaVersion 1.0.0 and adds no StatusResult top-level key", () =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>"analysisCoverage",</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>attemptPairAudit?: AttemptPairAuditReport;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>schemaVersion: "1.0.0"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>amendmentCountAudit</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>AmendmentCountAuditReport</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>Amendment count:</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("ReviewResult top-level keys stay the existing nine names", () =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>"writeEvidenceScopeAudit",</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>"amendmentCountAudit"</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.total).toBe(817);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.totalBytes).toBe(58931);</Text>
+      </MustContain>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>V-M-GATES</Value></MustExist>
+      <MustExist><Value>V-M-STATUS</Value></MustExist>
+      <MustExist><Value>V-M-REVIEW</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>function applyingApproveDecision(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>return forFile.length &gt; 0 ? forFile[forFile.length - 1] : undefined;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>const applying = applyingApproveDecision(decisions, artifact);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>const LEDGER_BUNDLE_SECTIONS = new Set(["Verdicts", "Decisions"]);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>readAmendmentInstrument</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>AmendmentInstrument</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function applyingApproveDecision</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>replacementChangeIds</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>reRatificationCount: number</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>supersedeChainDepth: number</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>schemaVersion: "1.0.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>re-ratifications=</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>supersede-depth=</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>it("keeps schemaVersion 1.0.0 and adds no StatusResult top-level key", () =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>"analysisCoverage",</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>amendmentCountAudit</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>AmendmentCountAuditReport</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>Amendment count:</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>schemaVersion: "1.0.0"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>existing nine names</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>"amendmentCountAudit"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.total).toBe(817);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.totalBytes).toBe(58931);</Text>
+      </MustContain>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/gates/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-status.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run typecheck</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run test</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:cli</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:examples</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:determinism</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:packed</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:schema-reference</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:skeleton-templates</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GATES />
+        <M-STATUS />
+        <M-REVIEW />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GATES />
+        <V-M-STATUS />
+        <V-M-REVIEW />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/gates/ledger.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/grace-status.ts</File>
+      <File>src/grace-status.test.ts</File>
+      <File>src/review/core.ts</File>
+      <File>src/review/core.test.ts</File>
+    </ObservedWriteScope>
+    <!--
+      Sequential: T-001, then T-002, then T-003, then T-004. Not a parallel-safe batch.
+      Red budgets: at most 3 distinct signatureKeys per task; never the same key twice.
+      Record fail in its own tool round trip, then edit, then pass.
+      Do not put a current-mode lint of this project root in TargetAssertions or in
+      post-write task Verification. AC-CLOSE-LINT CloseEvidence is post-archive only.
+      Do not add a new src/*.ts file. Do not add a ledger section or event kind.
+      applyingApproveDecision stays tip-only and unexported.
+      ReviewResult nine-to-ten key move is T-003. StatusResult top-level allowlist
+      and token-accounting 817/58931 do not move.
+      Do not edit skills/ngrace/*, README.md, src/review/catalog.ts,
+      src/artifact/grammar.ts, or C-LINT-PHASE-HONESTY-2.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Export readAmendmentInstrument from ledger.ts with both counts</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-DERIVE-NOT-RECORD />
+          <AC-UNFINGERPRINTED />
+          <AC-REVERT-TRANSITION />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Write tests first in src/gates/core.test.ts. Import
+            readAmendmentInstrument from ./ledger. Cover the
+            derivation cases the spec names for that file: no-op
+            re-approve (two spec permits, same fingerprint) is 0;
+            distinct spec fingerprints A then B is 1;
+            two unnamed unfingerprinted approve permits are 0, and
+            a later named fingerprinted permit on that ledger is
+            still baseline 0; first spec approve plus first plan
+            approve (different fingerprints, different artifact)
+            is 0; three fingerprinted spec permits A, B, A is 2
+            not 1; chain depth 0 (no predecessor), 1 (one
+            predecessor), and 2 (two-step). Unreadable Decisions
+            (readGateDecisions not state ok) is reRatificationCount 0.
+            Refuse Decisions, apply/archive gates, empty fingerprint,
+            and unnamed-artifact entries do not participate and do
+            not reset the previous fingerprint. Forced permits
+            participate when they carry artifact and fingerprint.
+            Identical fingerprints in a row add 0. Construct
+            ledgers and Replacement pointers by writing XML in a
+            throwaway; do not add a recorded count field to prove
+            the numbers. Planned reds (at most 3, never repeat):
+            signature-kind test-fail, signature-key
+            amendment-instrument-export; signature-kind test-fail,
+            signature-key amendment-revert-is-two. Record the
+            export-absent fail in its own tool round trip before
+            the production edit. Prefer that one fail so the
+            revert key stays unused unless a distinct-minus-one
+            implementation leaves A,B,A at 1.
+          </Criterion>
+          <Criterion>
+            Then in src/gates/ledger.ts, beside listGateDecisions
+            and applyingApproveDecision, export type
+            AmendmentInstrument with reRatificationCount: number
+            and supersedeChainDepth: number, and export function
+            readAmendmentInstrument(projectRoot, changeId) that
+            returns both. List both names in that file's MODULE_MAP
+            (MAP_MODE EXPORTS). Do not add a new src/*.ts file.
+            Do not add a Decision attribute, event kind, or ledger
+            section; LEDGER_BUNDLE_SECTIONS stays the set
+            Verdicts, Decisions. Do not export
+            applyingApproveDecision. Do not change its body: it
+            still returns forFile[forFile.length - 1] (tip only).
+            classifyApprovedArtifact remains the only production
+            caller of applyingApproveDecision. Do not import
+            replacementChangeIds from grammar; re-read XML in
+            ledger.ts with the three shapes grammar already
+            accepts (child C-* tag, Replacement text, or
+            ReplacementChange text matching
+            ANCHOR_PATTERNS.change). If spec.xml and plan.xml
+            both name a pointer and they differ, spec wins;
+            else spec, else plan.
+          </Criterion>
+          <Criterion>
+            reRatificationCount: read the Decision list via
+            readGateDecisions. If the list is not state ok, the
+            count is 0. Consider only entries where gate is
+            approve, decision is permit, artifact is spec or plan,
+            and fingerprint is a non-empty string. Group by
+            artifact. Walk each group in list order (ledger write
+            order). The first fingerprinted permit for that
+            artifact is the baseline and counts 0. Each later
+            fingerprinted permit whose fingerprint differs from
+            the previous fingerprinted permit in that group adds 1.
+            Sum spec and plan. This is a transition count, not
+            distinct-set-minus-one: A then B then A is 2, not 1.
+            Do not inherit reRatificationCount along a supersede
+            chain; that number is per bundle.
+          </Criterion>
+          <Criterion>
+            supersedeChainDepth: reverse-walk Replacement pointers
+            across active/ and archive/. A predecessor of B is a
+            bundle whose spec.xml (else plan.xml, if spec has no
+            pointer) names B via those three shapes. Depth(B) is
+            0 when B has no predecessor; otherwise 1 + max depth
+            of its predecessors. Guard cycles with a visited set
+            and treat a cycle as depth 0 from the repeated node
+            so the walk terminates. The surviving tip of a
+            two-step chain reports 2. git diff against pre-change
+            src/artifact and the Decision writer in src/gates
+            shows no new recorded field. Exercise the library on
+            throwaway ledgers, not only string matches.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Surface both counts on status JSON and non-zero status text</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-NOOP-RERATIFY />
+          <AC-SPEC-PLUS-PLAN />
+          <AC-CHAIN-THIS-REPO />
+          <AC-STATUS-TEXT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Write tests first in src/grace-status.test.ts. JSON:
+            every ChangeBundleStatus has reRatificationCount and
+            supersedeChainDepth as numbers, including 0; do not
+            omit zeros (unlike orphanCount). A throwaway with two
+            fingerprinted spec approve permits of the same bytes
+            reports reRatificationCount 0; discrimination: a
+            second fingerprint B ≠ A reports 1. First spec
+            approve plus first plan approve stays 0. Live-repo:
+            collectProjectStatus on this repository reports
+            reRatificationCount 0 on every change, both keys
+            present as numbers, and these supersedeChainDepth
+            values: C-CURSOR-TASK-SENTINEL 0,
+            C-CURSOR-TASK-IDENTITY 1, C-CURSOR-TASK-RESOLVER 2,
+            C-PHASE-RULE-PIN 0, C-LINT-PHASE-HONESTY 1,
+            C-LINT-PHASE-HONESTY-2 2, C-SUPERSEDE-VERB 0,
+            C-SUPERSEDE-COMMAND 1, C-SUPERSEDE-RECORD 0,
+            C-SUPERSEDE-RECORD-2 1, C-VERDICT-EVIDENCE 0,
+            C-BOUND-VERDICT 1, C-LEDGER-READ-ABSENCE 0,
+            C-LEGIBLE-FAILURE 1. Do not edit
+            C-LINT-PHASE-HONESTY-2 to make this pass. HEAD today
+            omits both keys; that live-repo probe must go red
+            first, then green. Text: formatStatusText on a change
+            with both counts 0 does not contain
+            re-ratifications= or supersede-depth=; on
+            supersedeChainDepth 2 it contains supersede-depth=2;
+            on reRatificationCount 1 it contains
+            re-ratifications=1. The StatusResult top-level
+            allowlist pin at src/grace-status.test.ts:354-376
+            stays green without growing the allowed set; do not
+            add a StatusResult top-level key; schemaVersion stays
+            1.0.0. Fingerprint-compare tests in this file stay
+            green (tip-only classifyApprovedArtifact). Planned
+            reds (at most 3, never repeat): signature-kind
+            test-fail, signature-key status-json-keys-absent;
+            signature-kind test-fail, signature-key
+            status-text-nonzero. Record the JSON-keys fail in its
+            own tool round trip before the production edit.
+            Prefer that one fail so the text key stays unused.
+          </Criterion>
+          <Criterion>
+            Then in src/grace-status.ts, ChangeBundleStatus gains
+            reRatificationCount: number and supersedeChainDepth:
+            number, both always set, including 0. Wire
+            collectChangeBundleStatuses (and/or
+            collectProjectStatus) as a consumer of the ledger
+            derivation; it may build the reverse Replacement map
+            once per collectProjectStatus rather than rescanning
+            per bundle. The exported readAmendmentInstrument
+            still scans for the single-change review caller. Do
+            not put the count only in this file. formatStatusText
+            at :463 appends a single space-prefixed pair
+            ` re-ratifications=N supersede-depth=M` on a change
+            line when either number is greater than 0. Zeros stay
+            in JSON only. Do not invent a new section. Do not
+            change schemaVersion. Existing epochs=/orphans=/tasks=
+            printing stays. ApplyingApproveDecision fingerprint
+            tests stay green. Exercise bun run ngrace status
+            --json --path . and ngrace status --path . on this
+            repository, not only the unit tests.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-status.test.ts src/gates/core.test.ts</Command>
+          <Command>bun run ngrace status --json --path .</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Add the review amendment-count audit and move the nine-name pin to ten</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-REVIEW-AUDIT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Write tests first in src/review/core.test.ts, and in
+            the same edit move both exact-key pins. The pin at
+            :2724-2734 and the pin at :3005-3017 titled
+            "ReviewResult top-level keys stay the existing nine
+            names" become ten names: add "amendmentCountAudit"
+            to both arrays, keep the sort order the assertion
+            uses, and retitle :3005 so it does not say nine.
+            schemaVersion stays 1.0.0. New tests: unscoped
+            runReview (no changeId) sets
+            amendmentCountAudit.status to not-run with a reason
+            that names --change (reuse `no --change supplied`);
+            formatReviewResult
+            contains `Amendment count: not-run` and that reason;
+            unscoped omission of the line is a failure. Scoped
+            review after a first approve (or a throwaway with
+            both counts 0) sets status ran, both numbers, even
+            when both are 0, and formatReviewResult contains
+            `Amendment count: re-ratifications=0 supersede-depth=0 for C-ID`.
+            Fingerprint-compare tests in this file stay green.
+            Planned reds (at most 3, never repeat): signature-kind
+            test-fail, signature-key review-result-keys-ten;
+            signature-kind test-fail, signature-key
+            review-audit-unscoped-not-run; signature-kind
+            test-fail, signature-key review-audit-scoped-ran.
+            Record the keys-ten fail in its own tool round trip
+            before the production edit. Prefer one production
+            edit after that first fail so the second and third
+            keys stay unused. Do not spend a fail on the retitle
+            itself once the array already expects ten names.
+          </Criterion>
+          <Criterion>
+            Then in src/review/core.ts: export type
+            AmendmentCountAuditReport and list it in this file's
+            MODULE_MAP. ReviewResult gains optional
+            amendmentCountAudit with the same presence rule as
+            attemptPairAudit: set whenever process audits ran;
+            unscoped review sets status not-run with a reason
+            that names --change; scoped review sets status
+            ran and both numbers, even when both are 0. Populate
+            it from readAmendmentInstrument (already an import
+            edge to ../gates/ledger at classifyApprovedArtifact /
+            listGateDecisions; add the new name on that edge).
+            formatReviewResult prints
+            `Amendment count: re-ratifications=N supersede-depth=M for C-ID`
+            when ran, and
+            `Amendment count: not-run — &lt;reason&gt;`
+            otherwise, beside the other audit lines. Extend the
+            empty-findings honesty check so a not-run or
+            unable-to-determine amendmentCountAudit suppresses
+            "No review findings", matching attemptPairAudit
+            (F31). Do not add a review.* finding code. Do not
+            edit src/review/catalog.ts. Counts are a measurement,
+            not a defect. schemaVersion stays 1.0.0. Do not add
+            a new src/*.ts file. Exercise ngrace review --path
+            on a throwaway with no change flag, then with the
+            change flag, not only the unit tests.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts src/gates/core.test.ts src/grace-status.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Hold pins, keep the src file set, and run the nine validators</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-PINS-HOLD />
+          <AC-NO-NEW-FILE />
+          <AC-VALIDATOR-FLOOR />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            bun test src/gates/core.test.ts,
+            bun test src/grace-status.test.ts,
+            bun test src/review/core.test.ts, and
+            bun test src/test-support/token-accounting.test.ts
+            all exit 0. The StatusResult top-level allowlist
+            still has exactly the names pinned at
+            src/grace-status.test.ts:359-375. Both ReviewResult
+            exact-key assertions include amendmentCountAudit and
+            no longer say nine. skillTextLines total is 817 and
+            totalBytes is 58931; do not edit any SKILL.md. Planned
+            reds: none. If a pin dropped, record fail once with
+            signature-kind test-fail, signature-key pin-survival,
+            restore the pin, and pass; do not repeat that key.
+          </Criterion>
+          <Criterion>
+            git status after the change shows no new file under
+            src/*.ts. scripts/release-check.ts PACK_ALLOWED_EXACT
+            is not grown by a new exact member. Do not edit
+            src/review/catalog.ts, src/artifact/grammar.ts,
+            src/grace.ts, README.md, any SKILL.md, or
+            C-LINT-PHASE-HONESTY-2. Do not edit examples/.
+            applyingApproveDecision remains unexported and
+            tip-only.
+          </Criterion>
+          <Criterion>
+            Each of these nine exits 0, run as the command text
+            named, not via bun run validate:ci. Read exit codes
+            from the command, never through a pipe: bun run
+            typecheck; bun run test; bun run validate:cli;
+            bun run ./scripts/validate-marketplace.ts;
+            bun run validate:examples; bun run validate:determinism;
+            bun run validate:packed; bun run validate:schema-reference;
+            bun run validate:skeleton-templates.
+            validate:teaching-surface is not required: the sibling
+            C-LINT-PHASE-HONESTY-2 is a spec new skeleton that
+            names neither README.md nor examples/
+            (scripts/check-teaching-surface.ts:237
+            checkDocsAndExamplesDecision). That is ordered, not
+            deferred. None of the nine is a current-mode lint of
+            this root. validate:examples lints examples/polyglot
+            (a different project root) plus the walkthrough script.
+            Do not put bun run ngrace lint --path . or
+            bun run ngrace lint --path . --fail-on warnings in
+            this task's Verification; that live root 0/0 is
+            CloseEvidence on AC-CLOSE-LINT, post-archive only.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/gates/core.test.ts src/grace-status.test.ts src/review/core.test.ts src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run typecheck</Command>
+          <Command>bun run test</Command>
+          <Command>bun run validate:cli</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>bun run validate:examples</Command>
+          <Command>bun run validate:determinism</Command>
+          <Command>bun run validate:packed</Command>
+          <Command>bun run validate:schema-reference</Command>
+          <Command>bun run validate:skeleton-templates</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-AMENDMENT-COUNT>
+</NgraceChangePlan>
