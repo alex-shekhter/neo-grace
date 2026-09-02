@@ -116,6 +116,16 @@ claims.** Four rules, each written after a measured failure:
    argument. Silently contradicting a prior decision costs the maintainer a turn and reopens a
    question that was already paid for.
 
+**Before approving a spec, anchor every file it forces into scope.** For each file the spec's
+Constraints name, read its `LINKS:` header and confirm the owning module appears in `AffectedAreas`.
+A spec that forces `src/lint/catalog.ts` while omitting `M-LINT-CATALOG` cannot be satisfied by any
+plan: without the anchor the plan raises `change.graph-anchors-miss-write-scope` as an **error**;
+with it, `change.plan-scope-exceeds-spec` as a **warning** — and a `CloseEvidence` criterion running
+`--fail-on warnings` fails on either. Coverage validation runs on archives too and exempts only
+`superseded`, never `applied`, so the contradiction survives the close. This is [F136](docs/plans/active/RM-GOVERNED-PATH/decisions.md);
+the authority had already written the `LINKS:` check into the plan brief and never ran it against the
+spec it had approved.
+
 **Escape markup in XML artifacts; never strip it.** When a spec, plan, design-context, or skill XML
 block must name a tag, attribute form, or angle-bracketed token, write it as character data with
 entities (`&lt;`, `&gt;`, `&amp;`). Do **not** paraphrase the brackets away to keep the document
