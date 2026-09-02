@@ -8363,3 +8363,44 @@ are not silently dropped. None is work.
 | `C-X` | Example id in [review.md](./review.md). |
 | `C-CURSOR` | Abbreviation of `C-CURSOR-INTEGRITY` in the cursor derivation. |
 | `C-TOKEN` | Abbreviation of `C-TOKEN-INTEGRITY` in the cursor derivation. |
+
+### F139 — the amendment instrument works, and reads zero across the entire corpus. **[verified]**
+
+Measured **2026-09-02**, at the close of `C-AMENDMENT-COUNT`, against the corpus as it stands after
+that bundle archived. Counts expire ([F123](#f123)); re-measure at citation.
+
+`ngrace status --format json` reports 59 change objects. Of those:
+
+| counter | bundles > 0 | detail |
+|---|---|---|
+| `supersedeChainDepth` | **8** | two two-step chains: `C-CURSOR-TASK-RESOLVER`=2, `C-LINT-PHASE-HONESTY-2`=2 |
+| `reRatificationCount` | **0** | no bundle, anywhere, in any state |
+
+**The zero is a true reading, not a wiring defect.** Verified independently of the code under
+examination, by parsing every `run-ledger.xml` on disk rather than re-reading the derivation that
+produces the status field: of **53** bundles carrying a ledger, **0** contain an `approve`/`permit`
+`Decision` on `spec` or `plan` whose `fingerprint` differs from the previous approve of that same
+artifact. The probes that accepted the bundle stand — a synthetic re-ratification reads 1 and a
+revert reads 2 — so the instrument discriminates. It simply has nothing to count here.
+
+**Why, and this is the finding.** `reRatificationCountFromDecisions`
+([src/gates/ledger.ts:1138](../../../../src/gates/ledger.ts)) is **bundle-internal**: it counts how
+many times *one bundle's own* spec or plan was amended and re-approved at a changed fingerprint.
+`chainDepth` is **cross-bundle**. This repository has never corrected an approved artifact by
+amending it; when a spec has been wrong — three times this week alone
+([F133](#f133), [F135](#f135), [F136](#f136)) — the whole bundle was **superseded**. The correction
+cost is therefore carried entirely by `supersedeChainDepth`, and the amendment counter is measuring
+a mechanism the project does not use.
+
+**Consequence for [D22.1](#d221).** The deliberate ceremony collection ends when
+`C-AMENDMENT-COUNT` applies, which this close reaches, and pilot then becomes decidable "on what the
+counter reports". What the counter reports is **zero**. A pilot decision must not be read off that
+number as though it meant *low amendment cost*; it means *amendment is not the correction verb here*.
+The signal the pilot actually needs is in the supersede chain, and the first non-zero
+`reRatificationCount` this corpus can produce is still ahead of it, not behind.
+
+**What this is not.** Not a defect in `C-AMENDMENT-COUNT`, which built the instrument it was
+chartered to build, and built it correctly. Not an argument to change the derivation: a counter that
+reported supersedes as re-ratifications would conflate two different costs, and
+[D21](#d21) says the schema must represent the operation truthfully. The finding is about **how the
+number is read**, not how it is computed.
