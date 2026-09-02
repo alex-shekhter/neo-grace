@@ -1,0 +1,431 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-REASON-CONSTANTS>
+    <IntentSummary>
+      Extract one file-level unexported const
+      NO_CHANGE_SUPPLIED_REASON in src/review/core.ts,
+      initialized to the present phrase
+      "no --change supplied". The three
+      !options.changeId not-run arms inside
+      runReview assign reason from that const.
+      Those arms are not functions: they are the
+      local reports attemptPairAudit,
+      writeEvidenceScopeAudit, and
+      amendmentCountAudit. The quoted literal
+      occurs once, as the initializer. No export,
+      no MODULE_MAP entry, no new file, no wording
+      change. C-AMENDMENT-COUNT is already applied
+      (archive); the third site is present at this HEAD.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>V-M-REVIEW</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function runReview(projectRoot: string, options: ReviewOptions = {}): ReviewResult {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>let attemptPairAudit: AttemptPairAuditReport | undefined;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>let writeEvidenceScopeAudit: WriteEvidenceScopeAuditReport | undefined;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>let amendmentCountAudit: AmendmentCountAuditReport | undefined;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>const reason = "no --change supplied"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>const NO_BASE_COMMIT_CAVEAT = "no base commit — cannot attribute pre-existing changes"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>NO_CHANGE_SUPPLIED_REASON</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(report.attemptPairAudit?.reason).toMatch(/no --change/);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(report.writeEvidenceScopeAudit?.reason).toMatch(/no --change/i);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(report.amendmentCountAudit?.reason).toContain("no --change supplied");</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("ReviewResult top-level keys stay the existing ten names", () =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>"amendmentCountAudit",</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>existing nine names</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>NO_CHANGE_SUPPLIED_REASON</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.total).toBe(817);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.totalBytes).toBe(58931);</Text>
+      </MustContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>V-M-REVIEW</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function runReview(projectRoot: string, options: ReviewOptions = {}): ReviewResult {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>const NO_CHANGE_SUPPLIED_REASON = "no --change supplied"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>const reason = NO_CHANGE_SUPPLIED_REASON</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>let attemptPairAudit: AttemptPairAuditReport | undefined;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>let writeEvidenceScopeAudit: WriteEvidenceScopeAuditReport | undefined;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>let amendmentCountAudit: AmendmentCountAuditReport | undefined;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>const NO_BASE_COMMIT_CAVEAT = "no base commit — cannot attribute pre-existing changes"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>const reason = "no --change supplied"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>export const NO_CHANGE_SUPPLIED_REASON</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>//   NO_CHANGE_SUPPLIED_REASON</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(report.attemptPairAudit?.reason).toMatch(/no --change/);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(report.writeEvidenceScopeAudit?.reason).toMatch(/no --change/i);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(report.amendmentCountAudit?.reason).toContain("no --change supplied");</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("ReviewResult top-level keys stay the existing ten names", () =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>"amendmentCountAudit",</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>existing nine names</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>NO_CHANGE_SUPPLIED_REASON</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.total).toBe(817);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.totalBytes).toBe(58931);</Text>
+      </MustContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run typecheck</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run test</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:cli</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:examples</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:determinism</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:packed</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:schema-reference</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:skeleton-templates</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+    </ObservedWriteScope>
+    <!--
+      Sequential: T-001, then T-002, then T-003, then T-004. Not a parallel-safe batch.
+      Red budgets: at most 3 distinct signatureKeys per task; never the same key twice.
+      Record fail in its own tool round trip, then edit, then pass.
+      Do not put a current-mode lint of this project root in TargetAssertions or in
+      post-write task Verification. AC-CLOSE-LINT CloseEvidence is post-archive only.
+      Do not add a new src file. Do not export the const. Do not list it in MODULE_MAP.
+      Do not rewrite tests to import the identifier. Do not change the printed phrase.
+      C-AMENDMENT-COUNT is already applied; the three not-run arms exist at this HEAD.
+      Do not edit src/review/catalog.ts, src/review/core.test.ts,
+      src/test-support/token-accounting.test.ts, src/gates/ledger.ts,
+      scripts/release-check.ts, README.md, any SKILL.md, examples/,
+      or C-LINT-PHASE-HONESTY-2.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Add NO_CHANGE_SUPPLIED_REASON and wire the three not-run arms</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-ONE-CONST />
+          <AC-THREE-SITES />
+          <AC-NO-EXPORT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Locate by structure, not by a remembered line number.
+            attemptPairAudit, writeEvidenceScopeAudit, and
+            amendmentCountAudit are not functions. They are
+            optional fields on ReviewResult and local let
+            bindings inside runReview. The three not-run arms
+            are the consecutive if (!options.changeId) blocks
+            in runReview's if (runProcess) body, after the
+            scoped if (options.changeId) scope-audit block
+            and after the optional testFileDiffs / lintCodes /
+            hunkCoverage probes. Each arm currently starts
+            with const reason = "no --change supplied" and
+            assigns that reason onto one of the three local
+            reports. Measured at HEAD 5556fd2: those
+            assignments are at src/review/core.ts:1559
+            (attemptPairAudit), :1601
+            (writeEvidenceScopeAudit), and :1660
+            (amendmentCountAudit). Do not search for
+            function attemptPairAudit.
+          </Criterion>
+          <Criterion>
+            In src/review/core.ts only, add a file-level
+            unexported const immediately above
+            export function runReview (measured :1458),
+            same shape as NO_BASE_COMMIT_CAVEAT (measured
+            :1833; leave that const where it is):
+            const NO_CHANGE_SUPPLIED_REASON = "no --change supplied"
+            Do not rephrase the initializer. Do not export.
+            Do not add the name to MODULE_MAP (MAP_MODE is
+            EXPORTS). Consumed only inside this file.
+          </Criterion>
+          <Criterion>
+            In each of the three not-run arms, replace
+            const reason = "no --change supplied"
+            with
+            const reason = NO_CHANGE_SUPPLIED_REASON
+            so the quoted string occurs once in the file,
+            as the initializer. A fourth production
+            assignment of that quoted string is a failure.
+            Do not extract the parameterized template
+            literals (change bundle ${changeId} not found
+            under active/ or archive/, and no plan found
+            for ${changeId} under active/ or archive/).
+            Do not add a new src file. Do not edit
+            src/review/core.test.ts or any other file.
+            Planned reds (at most 3, never repeat):
+            signature-kind command-fail, signature-key
+            quoted-phrase-not-yet-once. Record that fail
+            in its own tool round trip by running the
+            once-count verification command before the
+            production edit (it exits 1 while the quoted
+            string occurs three times). Then edit, then
+            pass. Prefer that one fail so the other keys
+            stay unused. Do not add a test that imports
+            the identifier.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun -e 'const t = await Bun.file("src/review/core.ts").text(); if ((t.match(/"no --change supplied"/g) ?? []).length !== 1) process.exit(1)'</Command>
+          <Command>bun -e 'const t = await Bun.file("src/review/core.ts").text(); if ((t.match(/const reason = NO_CHANGE_SUPPLIED_REASON/g) ?? []).length !== 3) process.exit(1)'</Command>
+          <Command>bun -e 'const t = await Bun.file("src/review/core.ts").text(); if (t.includes("export const NO_CHANGE_SUPPLIED_REASON")) process.exit(1)'</Command>
+          <Command>bun -e 'const t = await Bun.file("src/review/core.ts").text(); const map = t.slice(t.indexOf("START_MODULE_MAP"), t.indexOf("END_MODULE_MAP")); if (map.includes("NO_CHANGE_SUPPLIED_REASON")) process.exit(1)'</Command>
+          <Command>bun -e 'import { globSync, readFileSync } from "node:fs"; const hits = []; for (const f of globSync("src/**/*.test.ts")) { if (readFileSync(f, "utf8").includes("NO_CHANGE_SUPPLIED_REASON")) hits.push(f); } if (hits.length) process.exit(1)'</Command>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Keep unscoped review wording on the three not-run audits</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-WORDING-UNCHANGED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Unscoped bun run ngrace review --path . still
+            prints not-run — no --change supplied on
+            WriteEvidence scope audit, Attempt-pair audit,
+            and Amendment count. Read the exit code from
+            that command, never through a pipe. Wording
+            does not change. Do not rewrite
+            src/review/core.test.ts. The existing pins at
+            :1824, :1827, :2076, :2079, and the
+            C-AMENDMENT-COUNT pins at :3398 and :3401,
+            stay green without importing the constant.
+            Discrimination: changing the initializer so
+            it no longer matches /no --change/ must fail
+            those tests; keeping the value and switching
+            the three arms to the const must not.
+            Planned reds: none.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run ngrace review --path .</Command>
+          <Command>bun test src/review/core.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Hold ReviewResult key pins and skillTextLines 817/58931</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-PINS-HOLD />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            bun test src/review/core.test.ts and bun test
+            src/test-support/token-accounting.test.ts both
+            exit 0. skillTextLines total is 817 and
+            totalBytes is 58931. Do not retitle or grow
+            the ReviewResult exact-key pins; both arrays
+            already include amendmentCountAudit and the
+            titled pin says ten names. Do not edit any
+            SKILL.md. Planned reds: none. If a pin
+            dropped, record fail once with signature-kind
+            test-fail, signature-key pin-survival, restore
+            the pin, and pass; do not repeat that key.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Keep the src file set and run the nine validators</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-NO-NEW-FILE />
+          <AC-VALIDATOR-FLOOR />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            git status after the change shows no new file
+            under src. scripts/release-check.ts
+            PACK_ALLOWED_EXACT is not grown by a new exact
+            member. Do not edit src/review/catalog.ts,
+            src/gates/ledger.ts, src/gates/core.test.ts,
+            src/review/core.test.ts,
+            src/test-support/token-accounting.test.ts,
+            README.md, examples/, any SKILL.md, or
+            C-LINT-PHASE-HONESTY-2.
+          </Criterion>
+          <Criterion>
+            Each of these nine exits 0, run as the command
+            text named, not via bun run validate:ci. Read
+            exit codes from the command, never through a
+            pipe: bun run typecheck; bun run test; bun run
+            validate:cli; bun run
+            ./scripts/validate-marketplace.ts; bun run
+            validate:examples; bun run
+            validate:determinism; bun run validate:packed;
+            bun run validate:schema-reference; bun run
+            validate:skeleton-templates.
+            validate:teaching-surface is not required: the
+            sibling C-LINT-PHASE-HONESTY-2 is a spec new
+            skeleton that names neither README.md nor
+            examples/ (scripts/check-teaching-surface.ts:237
+            checkDocsAndExamplesDecision). That is ordered,
+            not deferred. None of the nine is a
+            current-mode lint of this root.
+            validate:examples lints examples/polyglot (a
+            different project root) plus the walkthrough
+            script. Do not put bun run ngrace lint --path .
+            or bun run ngrace lint --path . --fail-on
+            warnings in this task's Verification; that live
+            root 0/0 is CloseEvidence on AC-CLOSE-LINT,
+            post-archive only.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run typecheck</Command>
+          <Command>bun run test</Command>
+          <Command>bun run validate:cli</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>bun run validate:examples</Command>
+          <Command>bun run validate:determinism</Command>
+          <Command>bun run validate:packed</Command>
+          <Command>bun run validate:schema-reference</Command>
+          <Command>bun run validate:skeleton-templates</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-REASON-CONSTANTS>
+</NgraceChangePlan>
