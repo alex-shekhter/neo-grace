@@ -8831,3 +8831,43 @@ scene-setting gets restated for free, and its expiry is silent.
 run the command that reads it (`git fetch`, `gh pr view`), in the turn you make the claim. And when a
 piece of evidence appears that could only exist if a background premise were false, treat that as the
 signal to re-measure the premise, not merely as data about its own subject.
+
+### F147 — a CloseEvidence command that cannot fail records a pass it never tested. **[verified]**
+
+Measured **2026-09-02** while verifying the draft `C-REWORK-CIRCUIT` spec, before approval.
+
+**The defect.** `AC-PROTOCOL-COMMIT-BODY` binds a substantive claim — that every commit touching
+`skills/ngrace/ngrace-execute/SKILL.md` or `src/grace-cursor.ts` names `FIX_ESCALATION_CEILING` by
+value, names `paused-pending-supersede`, states that resume is refused, and states that spec/plan
+status is not written — to this close-bound command:
+
+```
+git log --format=%B
+```
+
+**That command prints commit bodies and exits 0 unconditionally.** Measured: exit 0 normally, and
+exit 0 even with `--grep` matching nothing. It does not filter to the commits the criterion is about
+and has no failing path at all.
+
+`evaluateCloseEvidenceChildren` ([src/gates/ledger.ts](../../../../src/gates/ledger.ts)) runs each
+`Command` and records `Result` as `pass` unless the exit is non-zero. So this criterion would archive
+`&lt;Exit&gt;0&lt;/Exit&gt;&lt;Result&gt;pass&lt;/Result&gt;` **whatever the commit messages said** —
+a governance record certifying a check that never ran. That is worse than a wrong number: a wrong
+number is falsifiable, and this is a **manufactured pass**.
+
+**Not systemic — measured, not assumed.** All 19 `CloseEvidence` commands in the corpus were
+enumerated. Eighteen are `ngrace lint --fail-on warnings`, a validator script, or a `bun test` run,
+each of which exits non-zero on failure. `git log --format=%B` is the **only** command that cannot
+discriminate, and it appears only in this unapproved draft. No archived bundle carries one.
+
+**The linter cannot catch it.** `change.close-evidence-incomplete` fires on a missing or empty
+`Command`; `change.close-evidence-and-satisfied` fires when a close-bound criterion is also task-
+mapped. **Neither asks whether the command has a failing path.** Completeness is checked; power is
+not — the same gap shape as [F132](#f132), where a check was well-formed and pointed somewhere
+useless.
+
+**The rule.** **A `CloseEvidence` command must be able to fail for the reason its criterion names.**
+Before approving one, run it against a tree that violates the criterion and confirm a non-zero exit;
+if no such invocation exists, the criterion is not close-verifiable and must be reworded, moved to a
+task, or dropped. A command chosen because it *prints* the relevant material is not evidence — the
+gate reads the exit code, never the output.
