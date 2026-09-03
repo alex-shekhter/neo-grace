@@ -8,13 +8,14 @@ import { spawnSync } from "node:child_process";
 import { validateNgraceProject } from "../artifact/grammar";
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { writeChangeBundleFixture, writeMinimalNgraceProject } from "../artifact/test-fixtures";
-import { allGateCodes, isGateIssueCode } from "./catalog";
+import { allGateCodes, GATE_CATALOG, isGateIssueCode } from "./catalog";
 import {
   evaluateApproveGate,
   evaluateApplyGate,
   evaluateApplyGateArtifact,
   evaluateArchiveGate,
   evaluateAttemptGate,
+  evaluateAttemptOnBundle,
   evaluateGate,
   evaluationToDecision,
   resolveProjectGateFailOn,
@@ -35,7 +36,7 @@ import {
   type ReviewVerdictRecord,
 } from "./ledger";
 import { GraceCommandError } from "../query/errors";
-import { advanceCursor, foldEpoch, listLooseEvents, recordAttempt, showCursor } from "../grace-cursor";
+import { advanceCursor, foldEpoch, listLooseEvents, recordAttempt, resumeCursor, showCursor } from "../grace-cursor";
 import { formatGateEvaluation, gateCommand } from "./command";
 import { runReview } from "../review/core";
 
@@ -1099,6 +1100,65 @@ describe("escalated attempt refusal", () => {
         signature: { kind: "test", key: "c" },
       }),
     ).toThrow(/gate\.attempt\.escalated/);
+  });
+
+  function tripCircuit(root: string, changeId = "C-GATE", task = "T-001") {
+    advanceCursor(root, changeId, { task, openEpoch: true, from: 1, to: 20 });
+    const sig = { kind: "test", key: "a" };
+    recordAttempt(root, changeId, { task, outcome: "fail", signature: sig });
+    recordAttempt(root, changeId, { task, outcome: "fail", signature: sig });
+    resumeCursor(root, changeId, task, { reason: "replan: after first R" });
+    recordAttempt(root, changeId, { task, outcome: "fail", signature: sig });
+    const tripped = recordAttempt(root, changeId, { task, outcome: "fail", signature: sig });
+    expect(tripped.circuit).toBe(true);
+    expect(tripped.position.state).toBe("paused-pending-supersede");
+    return tripped;
+  }
+
+  it("GATE_CATALOG registers gate.attempt.circuit-tripped; remediation names supersede not resume", () => {
+    const guide = GATE_CATALOG["gate.attempt.circuit-tripped"];
+    expect(guide).toBeDefined();
+    expect(guide!.code).toBe("gate.attempt.circuit-tripped");
+    expect(guide!.severity).toBe("error");
+    const remediation = guide!.remediation.join(" ");
+    expect(remediation).toMatch(/supersede/i);
+    expect(remediation).not.toMatch(/resume/i);
+  });
+
+  it("evaluateAttemptGate refuses circuit-tripped before ordinary escalation", () => {
+    const circuitOnly = evaluateAttemptGate("C-X", "T-001", [], ["T-001"]);
+    expect(circuitOnly.decision).toBe("refuse");
+    expect(circuitOnly.issues[0]?.code).toBe("gate.attempt.circuit-tripped");
+    const both = evaluateAttemptGate("C-X", "T-001", ["T-001"], ["T-001"]);
+    expect(both.decision).toBe("refuse");
+    expect(both.issues[0]?.code).toBe("gate.attempt.circuit-tripped");
+    expect(both.issues.some((issue) => issue.code === "gate.attempt.escalated")).toBe(false);
+  });
+
+  it("evaluateAttemptOnBundle and recordAttempt both refuse circuit-tripped tasks", () => {
+    const root = tempProject();
+    activeBundle(root);
+    tripCircuit(root);
+    const gate = evaluateAttemptOnBundle(root, "C-GATE", "T-001");
+    expect(gate.decision).toBe("refuse");
+    expect(gate.issues[0]?.code).toBe("gate.attempt.circuit-tripped");
+    let caught: unknown;
+    try {
+      recordAttempt(root, "C-GATE", {
+        task: "T-001",
+        outcome: "fail",
+        signature: { kind: "test", key: "c" },
+      });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(GraceCommandError);
+    expect((caught as GraceCommandError).code).toBe("invalid-arguments");
+    expect((caught as GraceCommandError).message).toMatch(/gate\.attempt\.circuit-tripped/);
+    expect((caught as GraceCommandError).message).toMatch(/paused-pending-supersede/);
+    expect((caught as GraceCommandError).message).toMatch(/supersede/);
+    expect((caught as GraceCommandError).message).not.toMatch(/resume/);
+    expect((caught as GraceCommandError).issues).toEqual(["gate.attempt.circuit-tripped"]);
   });
 });
 

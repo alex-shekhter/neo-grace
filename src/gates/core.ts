@@ -34,6 +34,7 @@ import { listLooseEvents, listRunOrphans } from "../artifact/run-membership";
 import { ANCHOR_PATTERNS } from "../artifact/types";
 import { readGraceXmlArtifact, walkNodes } from "../artifact/xml";
 import {
+  listUnresolvedCircuitTrippedTasks,
   listUnresolvedEscalatedTasks,
   listAccountingEvents,
   resolveChangeBundle,
@@ -226,16 +227,39 @@ function readPlanStatus(bundlePath: string): string | undefined {
 }
 
 /**
- * Pure attempt gate: refuse when task is in escalatedTasks (A21.1 / A22.3).
- * No grace-cursor IO — caller supplies the set (anti-pattern 9 / no import cycle).
+ * Pure attempt gate: refuse circuit-tripped tasks first, then escalatedTasks
+ * (A21.1 / A22.3 / C-REWORK-CIRCUIT). No grace-cursor IO — caller supplies the
+ * sets (anti-pattern 9 / no import cycle).
  */
 export function evaluateAttemptGate(
   changeId: string,
   task: string,
   escalatedTasks: readonly string[],
+  circuitTrippedTasks: readonly string[] = [],
 ): GateEvaluation {
   const requirements: GateRequirementRecord[] = [];
   const issues: GateIssue[] = [];
+  const notCircuit = !circuitTrippedTasks.includes(task);
+  requirements.push(
+    requirement(
+      "task-not-circuit-tripped",
+      true,
+      notCircuit,
+      notCircuit
+        ? undefined
+        : `task ${task} is in circuitTrippedTasks: ${circuitTrippedTasks.join(", ")}`,
+    ),
+  );
+  if (!notCircuit) {
+    issues.push(guideIssue("gate.attempt.circuit-tripped", task));
+    return {
+      gate: "attempt",
+      changeId,
+      decision: "refuse",
+      requirements,
+      issues,
+    };
+  }
   const free = !escalatedTasks.includes(task);
   requirements.push(
     requirement(
@@ -525,8 +549,10 @@ export function evaluateAttemptOnBundle(
   task: string,
 ): GateEvaluation {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
-  const escalated = listUnresolvedEscalatedTasks(listAccountingEvents(bundlePath));
-  return evaluateAttemptGate(changeId, task, escalated);
+  const stream = listAccountingEvents(bundlePath);
+  const circuitTripped = listUnresolvedCircuitTrippedTasks(stream);
+  const escalated = listUnresolvedEscalatedTasks(stream);
+  return evaluateAttemptGate(changeId, task, escalated, circuitTripped);
 }
 
 /**

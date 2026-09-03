@@ -163,6 +163,18 @@ export const GATE_CATALOG: Record<string, GateIssueGuide> = {
     ],
     severity: "error",
   },
+  "gate.attempt.circuit-tripped": {
+    code: "gate.attempt.circuit-tripped",
+    title: "Further Attempts Refused On Circuit-Tripped Task",
+    explanation:
+      "A task in circuitTrippedTasks has exhausted FIX_ESCALATION_CEILING. Further attempts are "
+      + "refused. paused-pending-supersede is not cleared by a replan; ngrace supersede is the exit.",
+    remediation: [
+      "End the stuck task with ngrace supersede of the bundle (a human act that names a replacement).",
+      "Do not continue attempts on a paused-pending-supersede task.",
+    ],
+    severity: "error",
+  },
 };
 
 /** True when a code is a gate.* code (for D14 boundary assertions). */

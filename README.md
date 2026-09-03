@@ -203,7 +203,7 @@ These carry the execute lifecycle. A permitting recorded approve writes approved
 | `ngrace cursor regenerate --change C-ID [--apply]` | Re-derive `run.xml` from ledger, loose events, and codebase evidence (dry-run by default) |
 | `ngrace cursor advance --change C-ID` | Append a structural run event and keep the epoch in progress |
 | `ngrace cursor pause --change C-ID` | Pause the open epoch without closing it |
-| `ngrace cursor resume --change C-ID` | Resume a paused epoch; clearing an escalation requires `--reason` |
+| `ngrace cursor resume --change C-ID` | Resume a paused epoch; clearing an ordinary escalation requires `--reason`. A circuit-tripped (`paused-pending-supersede`) task cannot be resumed — `ngrace supersede` is the exit. |
 | `ngrace cursor fold --change C-ID` | Fold a terminated epoch into `run-ledger.xml` |
 | `ngrace cursor recover --change C-ID` | Diagnose (and optionally `--fix`) an unreadable or incomplete cursor |
 | `ngrace cursor attempt --change C-ID --task T-NNN --outcome pass\|fail` | Record a verification cycle; signature required on fail. Optional `--claimed-confidence` is write-only analysis data no gate reads |
@@ -298,7 +298,7 @@ skip depth (adversarial probe, mutation audit, checklist volume).
 
 | What | Subject / state | Normalized stdout bytes | Commit |
 |---|---|---|---|
-| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **817 lines** / **58931 UTF-8 bytes** | pin in `token-accounting.test.ts` |
+| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **822 lines** / **60325 UTF-8 bytes** | pin in `token-accounting.test.ts` |
 | `skillTextLines().referencesTotal` | package root | **1435 lines** (includes recovery.md) | same instrument |
 | `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `f641334` (the squashed Phase 11 merge; release cut updates) |
 | `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |
