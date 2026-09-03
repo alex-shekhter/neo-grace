@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="draft">
+<NgraceChangePlan graceVersion="1.0" status="approved">
   <C-APPROVE-TIME-REVIEW>
     <IntentSummary>
       Teach approve-time ngrace review before gate approve
