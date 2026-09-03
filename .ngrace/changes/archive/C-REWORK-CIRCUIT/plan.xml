@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-REWORK-CIRCUIT>
     <IntentSummary>
       Extend C-ESCALATION-HONESTY with FIX_ESCALATION_CEILING = 2
