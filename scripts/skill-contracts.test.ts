@@ -377,3 +377,216 @@ describe("C-BOUND-VERDICT T-006 skill split", () => {
   });
 });
 
+function skillSection(text: string, tag: string): string {
+  return text.match(new RegExp(`<${tag}>[\\s\\S]*?</${tag}>`))?.[0] ?? "";
+}
+
+function numberedItem(text: string, n: number): string {
+  return text.split(/\n(?=\d+\. )/).find((block) => block.startsWith(`${n}. `)) ?? "";
+}
+
+describe("C-APPROVE-TIME-REVIEW T-001 ngrace-spec", () => {
+  describe("spec-review-before-approve", () => {
+    it("status_rules instructs ngrace review before gate approve and keeps that command writes status", () => {
+      const statusRules = skillSection(read("skills/ngrace/ngrace-spec/SKILL.md"), "status_rules");
+      expect(statusRules).toContain("ngrace review --path . --change C-ID");
+      expect(statusRules).toContain("does not record a verdict");
+      expect(statusRules).toContain("that command writes status");
+      const reviewAt = statusRules.indexOf("ngrace review --path . --change C-ID");
+      const approveAt = statusRules.indexOf("ngrace gate approve");
+      expect(reviewAt).toBeGreaterThanOrEqual(0);
+      expect(approveAt).toBeGreaterThan(reviewAt);
+    });
+
+    it("workflow step 6 instructs ngrace review before gate approve and keeps that command writes status", () => {
+      const step6 = numberedItem(skillSection(read("skills/ngrace/ngrace-spec/SKILL.md"), "workflow"), 6);
+      expect(step6).toContain("ngrace review --path . --change C-ID");
+      expect(step6).toContain("does not record a verdict");
+      expect(step6).toContain("that command writes status");
+      const reviewAt = step6.indexOf("ngrace review --path . --change C-ID");
+      const approveAt = step6.indexOf("ngrace gate approve");
+      expect(reviewAt).toBeGreaterThanOrEqual(0);
+      expect(approveAt).toBeGreaterThan(reviewAt);
+    });
+
+    it("status_rules states the F150 expected findings and ObservedWriteScope ban", () => {
+      const statusRules = skillSection(read("skills/ngrace/ngrace-spec/SKILL.md"), "status_rules");
+      expect(statusRules).toContain("did not run (no plan)");
+      expect(statusRules).toContain("ran over 0 pairs");
+      expect(statusRules).toContain("not substantiation");
+      expect(statusRules).toContain("review.scope-outside-write-scope");
+      expect(statusRules).toContain("spec.xml");
+      expect(statusRules).toContain("plan.xml");
+      expect(statusRules).toContain("decisions.md");
+      expect(statusRules).toContain("do not add those paths to ObservedWriteScope");
+    });
+
+    it("workflow step 6 states the F150 expected findings and ObservedWriteScope ban", () => {
+      const step6 = numberedItem(skillSection(read("skills/ngrace/ngrace-spec/SKILL.md"), "workflow"), 6);
+      expect(step6).toContain("did not run (no plan)");
+      expect(step6).toContain("ran over 0 pairs");
+      expect(step6).toContain("not substantiation");
+      expect(step6).toContain("review.scope-outside-write-scope");
+      expect(step6).toContain("spec.xml");
+      expect(step6).toContain("plan.xml");
+      expect(step6).toContain("decisions.md");
+      expect(step6).toContain("do not add those paths to ObservedWriteScope");
+    });
+  });
+
+  describe("spec-lexicon-request-site", () => {
+    it("approval_lexicon keeps the closed set and adds the F152 rules", () => {
+      const lexicon = skillSection(read("skills/ngrace/ngrace-spec/SKILL.md"), "approval_lexicon");
+      expect(lexicon).toContain("approved");
+      expect(lexicon).toContain("I approve");
+      expect(lexicon).toContain("approve this spec");
+      expect(lexicon).toContain("looks good");
+      expect(lexicon).toContain("continue");
+      expect(lexicon).toContain("any question");
+      expect(lexicon).toContain("one approval request per message");
+      expect(lexicon).toContain("record the ratifying phrase verbatim");
+      expect(lexicon).toContain("bound to the artifact id and stage");
+    });
+
+    it("workflow step 6 quotes the sufficient phrases bound to C-ID and spec stage", () => {
+      const step6 = numberedItem(skillSection(read("skills/ngrace/ngrace-spec/SKILL.md"), "workflow"), 6);
+      expect(step6).toContain("C-ID at spec stage");
+      expect(step6).toContain("approved");
+      expect(step6).toContain("I approve");
+      expect(step6).toContain("approve this spec");
+    });
+
+    it("workflow step 2 is not lexicon ratification and must not run gate approve", () => {
+      const step2 = numberedItem(skillSection(read("skills/ngrace/ngrace-spec/SKILL.md"), "workflow"), 2);
+      expect(step2).toContain("not lexicon ratification");
+      expect(step2).not.toContain("ngrace gate approve");
+    });
+  });
+
+  describe("spec-xml-escape", () => {
+    it("hard_rules states the XML-escaping rule and markup-byte assertions belong in a TypeScript test", () => {
+      const hardRules = skillSection(read("skills/ngrace/ngrace-spec/SKILL.md"), "hard_rules");
+      expect(hardRules).toContain(
+        "When a spec, plan, design-context, or skill XML block must name a tag, attribute form, or angle-bracketed token",
+      );
+      expect(hardRules).toContain("write it as character data with entities");
+      expect(hardRules).toContain("&lt;");
+      expect(hardRules).toContain("&gt;");
+      expect(hardRules).toContain("&amp;");
+      expect(hardRules).toContain("do not paraphrase the brackets away");
+      expect(hardRules).toContain("markup-byte assertions belong in a TypeScript test");
+    });
+  });
+});
+
+function mustDoRow(plan: string, n: number): string {
+  const mustDo = skillSection(plan, "must_do");
+  return mustDo.split("\n").find((line) => line.startsWith(`| ${n} |`)) ?? "";
+}
+
+describe("C-APPROVE-TIME-REVIEW T-002 ngrace-plan", () => {
+  describe("plan-review-before-approve", () => {
+    it("must_do rule 15 instructs ngrace review before gate approve and keeps the fingerprint pin", () => {
+      const plan = read("skills/ngrace/ngrace-plan/SKILL.md");
+      const row15 = mustDoRow(plan, 15);
+      expect(row15).toContain("ngrace review --path . --change C-ID");
+      expect(row15).toContain("does not record a verdict");
+      expect(row15).toContain("the gate writes status and records the fingerprint");
+      const reviewAt = row15.indexOf("ngrace review --path . --change C-ID");
+      const approveAt = row15.indexOf("ngrace gate approve");
+      expect(reviewAt).toBeGreaterThanOrEqual(0);
+      expect(approveAt).toBeGreaterThan(reviewAt);
+      expect(mustDoRow(plan, 16).startsWith("| 16 |")).toBe(true);
+      expect(mustDoRow(plan, 17).startsWith("| 17 |")).toBe(true);
+    });
+
+    it("must_do rule 15 states the F150 expected findings and ObservedWriteScope ban", () => {
+      const row15 = mustDoRow(read("skills/ngrace/ngrace-plan/SKILL.md"), 15);
+      expect(row15).toContain("did not run (no plan)");
+      expect(row15).toContain("ran over 0 pairs");
+      expect(row15).toContain("not substantiation");
+      expect(row15).toContain("review.scope-outside-write-scope");
+      expect(row15).toContain("spec.xml");
+      expect(row15).toContain("plan.xml");
+      expect(row15).toContain("decisions.md");
+      expect(row15).toContain("do not add those paths to ObservedWriteScope");
+    });
+  });
+
+  describe("plan-lexicon-request-site", () => {
+    it("approval_lexicon keeps the closed set and adds the F152 rules", () => {
+      const lexicon = skillSection(read("skills/ngrace/ngrace-plan/SKILL.md"), "approval_lexicon");
+      expect(lexicon).toContain("approved");
+      expect(lexicon).toContain("I approve");
+      expect(lexicon).toContain("approve this plan");
+      expect(lexicon).toContain("looks good");
+      expect(lexicon).toContain("continue");
+      expect(lexicon).toContain("any question");
+      expect(lexicon).toContain("one approval request per message");
+      expect(lexicon).toContain("record the ratifying phrase verbatim");
+      expect(lexicon).toContain("bound to the artifact id and stage");
+    });
+
+    it("rule 15 quotes the sufficient phrases bound to C-ID and plan stage", () => {
+      const row15 = mustDoRow(read("skills/ngrace/ngrace-plan/SKILL.md"), 15);
+      expect(row15).toContain("C-ID at plan stage");
+      expect(row15).toContain("approved");
+      expect(row15).toContain("I approve");
+      expect(row15).toContain("approve this plan");
+    });
+  });
+
+  describe("plan-xml-escape", () => {
+    it("hard_rules states the XML-escaping rule and markup-byte assertions belong in a TypeScript test", () => {
+      const hardRules = skillSection(read("skills/ngrace/ngrace-plan/SKILL.md"), "hard_rules");
+      expect(hardRules).toContain(
+        "When a spec, plan, design-context, or skill XML block must name a tag, attribute form, or angle-bracketed token",
+      );
+      expect(hardRules).toContain("write it as character data with entities");
+      expect(hardRules).toContain("&lt;");
+      expect(hardRules).toContain("&gt;");
+      expect(hardRules).toContain("&amp;");
+      expect(hardRules).toContain("do not paraphrase the brackets away");
+      expect(hardRules).toContain("markup-byte assertions belong in a TypeScript test");
+    });
+  });
+});
+
+describe("C-APPROVE-TIME-REVIEW T-003 ngrace-reviewer", () => {
+  describe("reviewer-three-moments", () => {
+    it("mechanized_first names spec-approve, plan-approve, and before close judgment", () => {
+      const reviewer = read("skills/ngrace/ngrace-reviewer/SKILL.md");
+      const block = skillSection(reviewer, "mechanized_first");
+      expect(block).toContain("spec-approve");
+      expect(block).toContain("plan-approve");
+      expect(block).toContain("before close judgment");
+      expect(block).toContain("ngrace review --path . --change C-ID");
+      expect(block).not.toContain("Always run before judgment");
+      expect(reviewer).toContain("unfingerprinted Decision silent");
+    });
+  });
+
+  describe("reviewer-expected-findings", () => {
+    it("states the F150 expected findings and ObservedWriteScope ban", () => {
+      const reviewer = read("skills/ngrace/ngrace-reviewer/SKILL.md");
+      expect(reviewer).toContain("did not run (no plan)");
+      expect(reviewer).toContain("ran over 0 pairs");
+      expect(reviewer).toContain("not substantiation");
+      expect(reviewer).toContain("review.scope-outside-write-scope");
+      expect(reviewer).toContain("spec.xml");
+      expect(reviewer).toContain("plan.xml");
+      expect(reviewer).toContain("decisions.md");
+      expect(reviewer).toContain("do not add those paths to ObservedWriteScope");
+      expect(reviewer).not.toContain("review.zero-or-more-swallow");
+    });
+  });
+});
+
+
+
+
+
+
+
+
+

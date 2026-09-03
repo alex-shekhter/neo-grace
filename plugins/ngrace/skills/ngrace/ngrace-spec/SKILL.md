@@ -21,7 +21,9 @@ Optional design-context copy-source: `references/design-context-template.xml`.
 </shape_sources>
 
 <status_rules>
-Create `spec.xml` as `status="draft"`. After a sufficient phrase from `approval_lexicon`, run `ngrace gate approve --change C-ID`; that command writes status. Do not hand-write `status="approved"`. Rejected or cancelled specs move to archive with terminal status. Do not create or edit `plan.xml` in this skill.
+Create `spec.xml` as `status="draft"`. After a sufficient phrase from `approval_lexicon`, run `ngrace review --path . --change C-ID` (does not record a verdict), then `ngrace gate approve --change C-ID`; that command writes status. Do not hand-write `status="approved"`. Rejected or cancelled specs move to archive with terminal status. Do not create or edit `plan.xml` in this skill.
+
+At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve `review.scope-outside-write-scope` on the bundle's own spec.xml, plan.xml, and (when that file changed) decisions.md is expected; do not add those paths to ObservedWriteScope.
 </status_rules>
 
 <docs_and_examples>
@@ -40,6 +42,8 @@ Named non-approvals, closed:
 - any question
 
 A question is not an approval even when it contains an approving word.
+
+When requesting ratification of a written spec, quote the sufficient phrases bound to the artifact id and stage in the same breath. Use one approval request per message, one artifact, nothing else asked. Then record the ratifying phrase verbatim — the bytes the human wrote, never a paraphrase.
 </approval_lexicon>
 
 <strict_contract>
@@ -110,16 +114,17 @@ Optional `DesignReferences` under the `C-*` wrapper. Children and their validato
 
 <workflow>
 1. Ask one focused question at a time until goal, scope, constraints, non-goals, acceptance criteria, affected areas, verification expectations, and ceremony tier are clear.
-2. Propose a concise design summary and explicit assumptions. Ask for approval before writing an approved spec. Only a sufficient phrase from `approval_lexicon` is approval.
+2. Propose a concise design summary and explicit assumptions. Ask for approval before writing an approved spec. Only a sufficient phrase from `approval_lexicon` is approval. This pre-write ask is not lexicon ratification of a written spec: do not run the approve gate, do not combine it with the ratification request in the same message, and do not treat a lexicon phrase as permission to skip approve-time review of the written artifact.
 3. Create a deterministic uppercase-kebab `C-*` change id.
 4. Write `spec.xml` with `ngrace spec new` as the primary write path. Use `references/change-spec-template.xml` as the teaching source for optional sections. Prefer `AC-*` acceptance criteria. Add `DesignReferences` when design sources exist.
 5. If rationale, alternatives, scenarios, or external constraints would otherwise bloat the spec, write non-normative `design-context.xml` from `references/design-context-template.xml`.
-6. If approval is not a sufficient phrase from `approval_lexicon`, leave `spec.xml` as `status="draft"` and report the approval step needed. After a sufficient phrase, run `ngrace gate approve --change C-ID`; that command writes status. Do not hand-write approved.
+6. If approval is not a sufficient phrase from `approval_lexicon`, leave `spec.xml` as `status="draft"` and report the approval step needed. After a sufficient phrase, run `ngrace review --path . --change C-ID` (does not record a verdict), then `ngrace gate approve --change C-ID`; that command writes status. Do not hand-write approved. Request ratification of C-ID at spec stage with a sufficient phrase: `approved`, `I approve`, or `approve this spec`. At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve `review.scope-outside-write-scope` on the bundle's own spec.xml, plan.xml, and (when that file changed) decisions.md is expected; do not add those paths to ObservedWriteScope.
 </workflow>
 
 <hard_rules>
 - `spec.xml` is the source of truth for `ngrace-plan`; design context never adds requirements.
 - Do not implement code, mutate current graph/verification state, or create retroactive change bundles.
 - Recommend `ngrace lint --path <project-root> --assertions current` as a pre-implementation active-baseline check after writing the bundle; never present it as target or final evidence.
+- When a spec, plan, design-context, or skill XML block must name a tag, attribute form, or angle-bracketed token, write it as character data with entities (`&lt;` `&gt;` `&amp;`); do not paraphrase the brackets away to keep the document well-formed; markup-byte assertions belong in a TypeScript test.
 </hard_rules>
 </skill>

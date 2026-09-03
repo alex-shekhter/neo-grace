@@ -20,7 +20,7 @@ function extractBlock(text: string, tag: string): string | null {
   return match ? match[1]! : null;
 }
 
-/** Return non-zero when spec or plan (either tree) lacks approval_lexicon or a named non-approval. */
+/** Return non-zero when spec or plan (either tree) lacks approval_lexicon, a named non-approval, or the F152 needle. */
 export function checkApprovalLexicon(root: string): number {
   for (const relative of LEXICON_SKILLS) {
     const file = path.join(root, relative);
@@ -35,6 +35,9 @@ export function checkApprovalLexicon(root: string): number {
       if (!block.includes(needle)) {
         return 1;
       }
+    }
+    if (!block.includes("one approval request per message")) {
+      return 1;
     }
   }
   return 0;

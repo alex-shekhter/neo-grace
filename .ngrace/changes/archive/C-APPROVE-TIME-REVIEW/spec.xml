@@ -1,0 +1,774 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-APPROVE-TIME-REVIEW>
+    <Summary>
+      Four concerns, named together because the
+      scope is deliberate rather than accreted:
+      (1) teach ngrace review --change as a step
+      before ngrace gate approve at spec-approve
+      and at plan-approve (F149); (2) teach what
+      a clean approve-time review looks like,
+      including the partial-review caveat and
+      the expected scope findings, and never
+      widen ObservedWriteScope to silence them
+      (F150); (3) show the closed approval
+      lexicon whenever ratification of a written
+      spec or plan is requested, one request per
+      message naming one artifact, and record
+      the phrase verbatim (F152); (4) give the
+      XML-escaping rule a hard-rule home in
+      ngrace-spec and ngrace-plan (F43). This
+      bundle does not change review detectors
+      and does not widen the closed lexicon.
+    </Summary>
+    <Problem>
+      Registry row C-APPROVE-TIME-REVIEW in
+      docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      (heading Named-bundle registry, named
+      2026-09-03, amended by F150, carrying
+      F152) charters this bundle. F149, F150,
+      F152, and the carried F43 skill-homes
+      item are the paid findings. This spec
+      does not restate those records in place
+      of them.
+
+      At HEAD ed0661a the three skills jump
+      from a sufficient phrase to gate approve
+      with no review step. ngrace-spec
+      &lt;status_rules&gt; and workflow step 6
+      both say: after a sufficient phrase from
+      approval_lexicon, run ngrace gate approve.
+      ngrace-plan &lt;must_do&gt; rule 15 says:
+      before the plan is approved, run ngrace
+      gate approve. ngrace-reviewer
+      &lt;mechanized_first&gt; says only
+      "Always run before judgment". ngrace-execute
+      rule 9 already runs review before apply
+      and archive; that is close-time, not
+      approve-time. Searched 2026-09-03 across
+      skills/ngrace for a "run ngrace review
+      before gate approve" instruction: no
+      match. The closest "run X before Y"
+      shapes with a worked invocation are
+      execute rule 9, plan rule 15, plan
+      preflight lint, and reviewer
+      &lt;mechanized_first&gt;'s fenced
+      ngrace review --path . --change C-ID.
+      Follow that shape; do not invent a new
+      one.
+
+      F150: an instruction that produces
+      unexplained errors on first use is a
+      trap. The scope audit diffs against the
+      recorded base; the bundle's own spec.xml,
+      plan.xml, and decisions.md are never in
+      ObservedWriteScope. At plan-approve those
+      paths report review.scope-outside-write-scope.
+      At spec-approve there is no plan on disk.
+      Measured 2026-09-03 on this bundle's
+      own spec-approve review: Scope audit
+      not-run (no plan found);
+      WriteEvidence scope audit not-run (no
+      plan found); Attempt-pair audit ran
+      over 0 fail-to-pass pairs (0 findings).
+      The registry row's phrase that all
+      three report not-run is false for
+      attempt-pair: that audit runs when
+      --change is set, even with no plan.
+      A pre-approval green without the
+      not-run caveat on scope and
+      WriteEvidence is F147's
+      manufactured-pass shape in a new
+      place. Vacuous attempt-pair is not a
+      substantiation pass.
+
+      F152: the closed lexicon guards the word
+      and not the referent, and is never shown
+      to the person who must say it. Four
+      copies exist: ngrace-spec and ngrace-plan
+      in skills/ngrace/ and the two packaged
+      mirrors. Spec versus plan differ by one
+      line (approve this spec versus approve
+      this plan). The shared display rules can
+      be wrong twice. The maintainer decided
+      the set stays closed; the fix is display,
+      not vocabulary.
+
+      F43: escape markup with entities; never
+      paraphrase brackets away to keep a
+      document well-formed. Markup-byte
+      assertions belong in a TypeScript test.
+      Neither ngrace-spec nor ngrace-plan
+      &lt;hard_rules&gt; currently states this.
+      Searched 2026-09-03 across skills/ngrace
+      SKILL.md for escap, entity, paraphrase,
+      angle-bracket: no teaching of the rule.
+    </Problem>
+    <Goals>
+      <Goal>
+        Intent, four concerns at once. (1) F149:
+        ngrace review --path . --change C-ID
+        runs after a sufficient lexicon phrase
+        and before ngrace gate approve, at the
+        spec stage and at the plan stage.
+        ngrace-reviewer names three moments:
+        spec-approve, plan-approve, and before
+        close judgment. (2) F150: that same
+        instruction ships the partial-review
+        caveat and names the expected
+        review.scope-outside-write-scope
+        findings; it never tells anyone to
+        widen ObservedWriteScope. (3) F152:
+        the closed lexicon is quoted whenever
+        ratification of a written spec or plan
+        is requested, bound to the artifact id
+        and stage; one request per message;
+        the ratifying phrase is recorded
+        verbatim. (4) F43: ngrace-spec and
+        ngrace-plan &lt;hard_rules&gt; state
+        the XML-escaping rule.
+      </Goal>
+      <Goal>
+        Pin the new teaching in
+        scripts/skill-contracts.test.ts and
+        extend scripts/check-teaching-surface.ts
+        checkApprovalLexicon so the three F152
+        rules are asserted against every path
+        in LEXICON_SKILLS, not against a
+        sample of one (F136.1).
+      </Goal>
+      <Goal>
+        README.md updates the skillTextLines
+        measurement cell if a SKILL.md rewrite
+        moves the published figures. examples/
+        is unchanged; no user-visible surface
+        there.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting:
+        M-SKILLS ngrace-spec, ngrace-plan, and
+        ngrace-reviewer teaching plus packaged
+        mirrors; M-TEST-SUPPORT token-accounting
+        pin). Gates still run. Roadmap:
+        RM-GOVERNED-PATH Named-bundle registry
+        row C-APPROVE-TIME-REVIEW on F149,
+        amended by F150, carrying F152 and the
+        F43 skill-homes item. Spec only in this
+        authoring pass; status remains "draft";
+        do not author plan.xml until the spec
+        is approved (F4 two-stage). Do not run
+        gate approve or any gate. Do not record
+        any cursor event. Read-only inspection
+        is permitted (F151): cursor show,
+        status, review, lint, file show, git
+        log, git diff.
+      </Constraint>
+      <Constraint>
+        Binding findings and rulings, named so
+        this spec cannot silently contradict
+        them (CLAUDE.md rule 9): F149 (review
+        at spec-approve and plan-approve; do
+        not narrow detectZeroOrMoreSwallow),
+        F150 (name expected scope findings;
+        never widen ObservedWriteScope to
+        silence them), F152 (lexicon stays
+        closed; show it; one request; record
+        verbatim), F43 (escape markup; never
+        strip it), F149.1 (archive
+        zero-or-more-swallow is
+        C-REVIEW-ARCHIVE-SCOPE, not this
+        bundle), F136/F136.1 (anchor every
+        forced file; a shared rule authored
+        more than once can be wrong more than
+        once), F147 (CloseEvidence commands
+        must discriminate), F148 (a requirement
+        and a restriction in one artifact must
+        both hold), D5.5 (CHANGELOG.md is
+        generated), F45 (do not manufacture a
+        red for a HEAD-true property), F80
+        (one red evidences one property),
+        F56/F67 (at most three distinct fail
+        signatures per task).
+      </Constraint>
+      <Constraint>
+        AffectedAreas is a closed list and
+        binds the plan
+        (change.plan-scope-exceeds-spec). A
+        plan that needs a module not named
+        here is a stop-and-report. Module
+        lists in this spec (this ceremony
+        constraint, AffectedAreas, and the
+        module-ownership Assumption) must name
+        the same two: M-SKILLS,
+        M-TEST-SUPPORT.
+      </Constraint>
+      <Constraint>
+        Forced write surface, traced 2026-09-03
+        at HEAD ed0661a. For each file: LINKS
+        header if any, owning module, and
+        where that module appears
+        (AffectedAreas, this ceremony
+        constraint, module-ownership
+        Assumption). Cite homes by section
+        name, not by line number: this
+        bundle's tasks will grow those files.
+
+        skills/ngrace/ngrace-spec/SKILL.md —
+        owned by M-SKILLS (graph Summary:
+        canonical skill sources; Type UTILITY;
+        no Path). isModuleOwnableWritePath
+        false (not under src/). Homes: (1)
+        F149 in &lt;status_rules&gt; and
+        workflow step 6 — both currently jump
+        from a sufficient phrase to gate
+        approve; insert the review step
+        before that command, keeping the
+        existing "that command writes status"
+        pin. (2) F150 expected-findings and
+        the partial-review caveat travel with
+        that same instruction, not only in
+        ngrace-reviewer. (3) F152 in
+        &lt;approval_lexicon&gt;; workflow
+        step 6 is the ratification request
+        site and must quote that block bound
+        to C-ID and stage. Workflow step 2's
+        pre-write ask is not lexicon
+        ratification and must not trigger
+        gate approve. (4) F43 in
+        &lt;hard_rules&gt;. Packaged mirror
+        plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md
+        stays byte-identical.
+
+        skills/ngrace/ngrace-plan/SKILL.md —
+        owned by M-SKILLS; not module-ownable.
+        Homes: (1) F149 amends &lt;must_do&gt;
+        rule 15 in place — do not insert a
+        new numbered row (that would shift
+        16 and 17). Rule 15 keeps "the gate
+        writes status and records the
+        fingerprint" and runs review before
+        that command. (2) F150 expected
+        findings travel with rule 15. (3)
+        F152 in &lt;approval_lexicon&gt;.
+        (4) F43 in &lt;hard_rules&gt;.
+        Packaged mirror
+        plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md
+        stays byte-identical.
+
+        skills/ngrace/ngrace-reviewer/SKILL.md
+        — owned by M-SKILLS; not
+        module-ownable. Homes: F149/F150
+        broaden &lt;mechanized_first&gt; from
+        one moment ("Always run before
+        judgment") to three (spec-approve,
+        plan-approve, before close judgment).
+        Keep the worked invocation
+        ngrace review --path . --change C-ID.
+        Name expected
+        review.scope-outside-write-scope on
+        the bundle's own spec.xml / plan.xml
+        / decisions.md, the spec-approve
+        caveat (scope and WriteEvidence
+        not-run; attempt-pair ran over 0
+        pairs is not substantiation), and
+        the ban on widening
+        ObservedWriteScope. Do not
+        add an approval_lexicon to reviewer
+        (it does not request spec/plan
+        ratification). Keep the
+        "unfingerprinted Decision silent"
+        pin. Packaged mirror
+        plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md
+        stays byte-identical.
+
+        scripts/skill-contracts.test.ts —
+        no LINKS; not module-ownable
+        (scripts/, and *.test.ts). Must gain
+        assertions for the new teaching on
+        canonical ngrace-spec, ngrace-plan,
+        and ngrace-reviewer. The existing
+        "published skill mirrors" test covers
+        packaged copies by byte identity.
+        Keep the C-APPROVAL-FINGERPRINT pins:
+        spec contains "that command writes
+        status"; plan contains "the gate
+        writes status and records the
+        fingerprint"; reviewer contains
+        "unfingerprinted Decision silent".
+
+        scripts/check-teaching-surface.ts —
+        no LINKS; not module-ownable. Already
+        constrains lexicon presence and the
+        three named non-approvals on
+        LEXICON_SKILLS (the four spec/plan
+        copies). Must gain F152 needles
+        inside the approval_lexicon block so
+        the existing four-path iterator, not
+        a sample, is what a reviewer and CI
+        check. scripts/check-teaching-surface.test.ts
+        must cover a copy that has the
+        lexicon and named non-approvals but
+        lacks an F152 needle.
+
+        src/test-support/token-accounting.test.ts
+        — no file-level LINKS; M-TEST-SUPPORT
+        by the module Path
+        src/test-support/fixtures.ts (LINKS:
+        M-TEST-SUPPORT on
+        src/test-support/token-accounting.ts,
+        which this bundle does not edit).
+        Pins skillTextLines().total = 823 and
+        totalBytes = 60545, measured live
+        2026-09-03 via
+        bun -e 'import { skillTextLines } from "./src/test-support/token-accounting.ts";
+        console.log(skillTextLines().total, skillTextLines().totalBytes)'.
+        Re-measure after the prose exists; do
+        not choose the new numbers in this
+        spec. README.md measurement cell
+        publishes the same two numbers.
+
+        README.md — no LINKS (root document);
+        not module-ownable. Measurement cell
+        only, if the pin moves. No new CLI
+        command: review already exists.
+
+        Do not edit src/review/*,
+        src/gates/*, src/test-support/token-accounting.ts,
+        skills/ngrace/ngrace-execute/SKILL.md,
+        or src/artifact/grammar.test.ts
+        TEACHING_FILES (already constrains
+        Clarification child-anchor form in
+        spec and plan skills; do not break
+        it; do not add review teaching
+        there). Do not rewrite anything
+        under .ngrace/changes/archive/.
+      </Constraint>
+      <Constraint>
+        Both skill trees always: edit
+        canonical skills/ngrace/ngrace-spec/SKILL.md,
+        skills/ngrace/ngrace-plan/SKILL.md,
+        and
+        skills/ngrace/ngrace-reviewer/SKILL.md,
+        and keep the three packaged mirrors
+        under plugins/ngrace/skills/ngrace/
+        synchronized in the same change.
+        scripts/validate-marketplace.ts
+        requires packaged-vs-canonical parity
+        via git diff --no-index.
+      </Constraint>
+      <Constraint>
+        Follow the existing "run X before Y"
+        shape: execute rule 9 and reviewer
+        &lt;mechanized_first&gt; already teach
+        ngrace review --path . --change C-ID
+        at a named moment with a worked
+        invocation. Plan rule 15 already uses
+        "Before the plan is approved, run
+        ngrace gate approve --change C-ID".
+        Amend those shapes. Do not invent a
+        second review CLI or a different
+        flag set.
+      </Constraint>
+      <Constraint>
+        F152 applies to requests to ratify a
+        written spec or plan, bound to that
+        artifact's C-ID and stage (spec or
+        plan). The closed sufficient set and
+        the named non-approvals do not change.
+        Workflow step 2's pre-write
+        design-summary ask is not that
+        request: it must not run gate
+        approve, must not be combined in the
+        same message with the ratification
+        request, and must not treat a lexicon
+        phrase as permission to skip
+        approve-time review of the written
+        artifact.
+      </Constraint>
+      <Constraint>
+        README.md is in scope as named above.
+        examples/ is not (NonGoal). This
+        bundle does not touch any product
+        version surface: not package.json
+        version, README packaged-version
+        marker, openpackage.yml,
+        .claude-plugin/marketplace.json, or
+        plugins/ngrace/.claude-plugin/plugin.json.
+        CHANGELOG.md remains unedited and
+        generated (D5.5). Archives under
+        .ngrace/changes/archive/ and
+        docs/plans/archive/ are never edited.
+        decisions.md is not amended.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first
+        regressions for the new skill-contract
+        needles (a skill missing the review
+        step fails; a lexicon copy missing an
+        F152 needle fails; a reviewer skill
+        that still says only "before
+        judgment" fails). F23: exact toBe /
+        toContain on the new needles, not
+        weaker bounds. Do not manufacture a
+        red for HEAD-true CloseEvidence
+        completeness (F45). Probe every
+        CloseEvidence command on this spec
+        against a violating tree and a
+        restored tree before approval (F147).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Narrowing detectZeroOrMoreSwallow,
+        changing its severity, or scoping it
+        to changes/active/. Owner:
+        C-REVIEW-ARCHIVE-SCOPE on F149.1.
+        F149 ratified that the detector's
+        eagerness on live plans is
+        deliberate. This bundle does not
+        teach that archive finding as
+        expected-clean.
+      </NonGoal>
+      <NonGoal>
+        Widening ObservedWriteScope to
+        include the bundle's own spec.xml,
+        plan.xml, or decisions.md, or
+        teaching anyone to do that. Owner:
+        F150. Those writes belong to gate
+        approve and to the authority, not to
+        the implementing executor.
+      </NonGoal>
+      <NonGoal>
+        Widening the closed approval lexicon
+        (adding "this spec is approved",
+        "plan is approved", or any other
+        phrase). Owner: F152 maintainer
+        ruling. The fix is display, not
+        vocabulary.
+      </NonGoal>
+      <NonGoal>
+        Editing ngrace-execute rule 9.
+        Owner: C-BOUND-VERDICT; that rule
+        already runs review before apply and
+        archive. This bundle is approve-time.
+      </NonGoal>
+      <NonGoal>
+        Editing src/review/*, src/gates/*,
+        or the review catalog. Owner:
+        C-REVIEW-ARCHIVE-SCOPE for the
+        archive-scan defect; this bundle
+        teaches when to run the existing
+        surface.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no user-visible
+        review, lexicon, or escaping surface
+        there. Owner: unchanged; no
+        user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        Any product version bump or edit to
+        version surfaces. Hand-editing
+        CHANGELOG.md (D5.5). Editing
+        docs/plans/archive/,
+        .ngrace/changes/archive/, or
+        decisions.md. Filling, fixing, or
+        editing any other bundle. Editing
+        src/test-support/token-accounting.ts
+        (the helper); only the test pin and
+        README cell move.
+      </NonGoal>
+      <NonGoal>
+        Adding review or lexicon teaching to
+        src/artifact/grammar.test.ts
+        TEACHING_FILES. Owner: C-GRAMMAR-SEAM;
+        that list constrains Clarification
+        child-anchor form. This bundle must
+        not break those assertions and must
+        not extend that list.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-REVIEW-BEFORE-APPROVE>
+        After a sufficient lexicon phrase and
+        before ngrace gate approve, ngrace-spec
+        &lt;status_rules&gt; and workflow
+        step 6, and ngrace-plan &lt;must_do&gt;
+        rule 15, instruct
+        ngrace review --path . --change C-ID
+        (does not record a verdict). Rule 15
+        is amended in place; requirement
+        numbers 16 and 17 do not shift.
+        ngrace-reviewer &lt;mechanized_first&gt;
+        names three moments: spec-approve,
+        plan-approve, and before close
+        judgment, and keeps the same worked
+        invocation. Existing pins remain:
+        spec "that command writes status";
+        plan "the gate writes status and
+        records the fingerprint"; reviewer
+        "unfingerprinted Decision silent".
+        Failure conditions: review taught
+        only in reviewer; rule 15 replaced
+        by a new row; execute rule 9 rewritten;
+        gate approve still the first command
+        after the phrase.
+      </AC-REVIEW-BEFORE-APPROVE>
+      <AC-EXPECTED-FINDINGS>
+        The approve-time review instruction
+        in ngrace-spec, ngrace-plan, and
+        ngrace-reviewer states all of: at
+        spec-approve the scope and
+        WriteEvidence audits report not-run
+        (no plan), and attempt-pair reports
+        ran over 0 pairs — a green covers
+        pattern detectors and artifact
+        checks only, not a scope pass, and
+        a 0-pair attempt-pair is not
+        substantiation; at plan-approve
+        review.scope-outside-write-scope on
+        the bundle's own spec.xml, plan.xml,
+        and (when that file changed on the
+        branch) decisions.md is expected;
+        do not add those paths to
+        ObservedWriteScope to silence the
+        finding. Other findings are not
+        expected-clean. Failure conditions:
+        instruction claims attempt-pair is
+        not-run at spec-approve; instruction
+        omits the scope/WriteEvidence
+        not-run caveat; instruction tells
+        the reader to widen
+        ObservedWriteScope; F149.1's
+        archive firing is taught as
+        expected-clean.
+      </AC-EXPECTED-FINDINGS>
+      <AC-LEXICON-PROTOCOL>
+        Each of the four LEXICON_SKILLS
+        paths' &lt;approval_lexicon&gt; keeps
+        the closed sufficient set and the
+        named non-approvals, and adds the
+        three F152 rules in that block: show
+        the closed lexicon whenever
+        ratification of a written spec or
+        plan is requested, quoting the
+        sufficient phrases bound to the
+        artifact id and stage in the same
+        breath; one approval request per
+        message, one artifact, nothing else
+        asked; record the ratifying phrase
+        verbatim (the bytes the human wrote,
+        never a paraphrase). Spec versus plan
+        still differ only in "approve this
+        spec" versus "approve this plan"
+        among the sufficient phrases.
+        ngrace-spec workflow step 6 quotes
+        the lexicon bound to C-ID and spec
+        stage. ngrace-plan's approval request
+        does the same for the plan stage.
+        Failure conditions: a copy is updated
+        and another is not; the closed set
+        gains a phrase; F152 rules live only
+        outside the iterated block; step 2
+        treats a lexicon phrase as gate
+        approve.
+      </AC-LEXICON-PROTOCOL>
+      <AC-XML-ESCAPE>
+        ngrace-spec and ngrace-plan
+        &lt;hard_rules&gt; (canonical and
+        packaged) state: when a spec, plan,
+        design-context, or skill XML block
+        must name a tag, attribute form, or
+        angle-bracketed token, write it as
+        character data with entities
+        (&amp;lt; &amp;gt; &amp;amp;); do
+        not paraphrase the brackets away to
+        keep the document well-formed;
+        markup-byte assertions belong in a
+        TypeScript test. Failure conditions:
+        only one of the two skills; only
+        canonical; the rule is restated as
+        "do not mention tags".
+      </AC-XML-ESCAPE>
+      <AC-CONTRACT-PINS>
+        scripts/skill-contracts.test.ts
+        asserts the new teaching on
+        canonical ngrace-spec, ngrace-plan,
+        and ngrace-reviewer (review before
+        gate approve; expected findings and
+        the ObservedWriteScope ban; three
+        reviewer moments; F43 hard-rule
+        needles). scripts/check-teaching-surface.ts
+        checkApprovalLexicon iterates
+        LEXICON_SKILLS and fails if any of
+        the four copies' approval_lexicon
+        block lacks an F152 needle.
+        scripts/check-teaching-surface.test.ts
+        covers a copy that has the lexicon
+        and named non-approvals but lacks an
+        F152 needle. Failure conditions:
+        assertions sample one skill; packaged
+        copies are assumed rather than
+        iterated or mirror-checked; existing
+        C-APPROVAL-FINGERPRINT pins drop.
+      </AC-CONTRACT-PINS>
+      <AC-TOKEN-PIN>
+        After the SKILL.md rewrite,
+        src/test-support/token-accounting.test.ts
+        pins and the README.md measurement
+        cell match a fresh skillTextLines()
+        measure. Do not leave 823 / 60545 if
+        the rewrite moved them. Failure
+        conditions: pin left stale; README
+        cell disagrees with the pin; numbers
+        chosen before the prose existed.
+      </AC-TOKEN-PIN>
+      <AC-MIRRORS>
+        The three packaged mirrors of
+        ngrace-spec, ngrace-plan, and
+        ngrace-reviewer are byte-identical
+        to canonical. Failure conditions:
+        only canonical edited.
+      </AC-MIRRORS>
+      <AC-NO-REVIEW-CORE>
+        Stay-true. src/review/ is not
+        edited. HEAD today: detectZeroOrMoreSwallow
+        still walks archives. Do not
+        manufacture a red (F45).
+        <CloseEvidence>
+          <Command>git diff --exit-code ed0661a -- src/review/</Command>
+        </CloseEvidence>
+      </AC-NO-REVIEW-CORE>
+      <AC-CHANGELOG-UNTOUCHED>
+        CHANGELOG.md is not edited by this
+        bundle (D5.5). Verified against the
+        branch point ed0661a, so a staged or
+        committed edit fails and an unedited
+        file passes; both directions were
+        probed at authoring.
+        <CloseEvidence>
+          <Command>git diff --exit-code ed0661a -- CHANGELOG.md</Command>
+        </CloseEvidence>
+      </AC-CHANGELOG-UNTOUCHED>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-SKILLS />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/check-teaching-surface.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --fail-on warnings</ExpectedCommand>
+      <ExpectedEvidence>
+        After landing: each of the three
+        canonical skills teaches review
+        before gate approve at the named
+        home; expected findings and the
+        ObservedWriteScope ban travel with
+        that instruction; reviewer names
+        three moments; all four
+        approval_lexicon copies carry the
+        three F152 rules and the closed set
+        is unchanged; spec and plan
+        hard_rules state XML-escaping;
+        packaged mirrors byte-identical;
+        skill-contracts and
+        check-teaching-surface tests fail
+        on a missing needle; token pin
+        re-measured; README cell matches;
+        examples/ untouched; CHANGELOG.md
+        untouched; src/review/ untouched;
+        ngrace-execute untouched. Red-first
+        on the contract tests, not only a
+        green suite. Do not use current-mode
+        lint of this root as a target
+        assertion.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Module ownership from
+        .ngrace/graph/main.xml at authoring
+        HEAD ed0661a: M-SKILLS canonical
+        skills/ngrace/ (packaged mirror
+        separate, no Path); M-TEST-SUPPORT
+        Path src/test-support/fixtures.ts.
+        No other modules. If implement
+        discovers src/review/*, src/gates/*,
+        or ngrace-execute must change,
+        stop-and-report and re-spec — do
+        not silently expand (F133 / F136).
+      </Assumption>
+      <Assumption>
+        Anticipated write scope (plan OWS
+        must not exceed without re-spec):
+        skills/ngrace/ngrace-spec/SKILL.md,
+        skills/ngrace/ngrace-plan/SKILL.md,
+        skills/ngrace/ngrace-reviewer/SKILL.md,
+        plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md,
+        plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md,
+        plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md,
+        scripts/skill-contracts.test.ts,
+        scripts/check-teaching-surface.ts,
+        scripts/check-teaching-surface.test.ts,
+        src/test-support/token-accounting.test.ts,
+        README.md.
+        None of those paths is
+        module-ownable except that
+        M-TEST-SUPPORT owns the pin via
+        Path src/test-support/fixtures.ts.
+        Do not add src/test-support/token-accounting.ts
+        to OWS.
+      </Assumption>
+      <Assumption>
+        ngrace-execute rule 9 already
+        teaches review before apply and
+        archive (C-BOUND-VERDICT T-006
+        skill-execute-rule9). This bundle
+        does not restate that rule and
+        does not treat close-time review as
+        unpaid.
+      </Assumption>
+      <Assumption>
+        At HEAD ed0661a plus this draft spec,
+        bun ./src/grace.ts review --change
+        C-APPROVE-TIME-REVIEW --path . printed:
+        Scope audit not-run (no plan);
+        WriteEvidence scope audit not-run
+        (no plan); Attempt-pair audit ran
+        over 0 fail-to-pass pairs (0
+        findings); Amendment count
+        re-ratifications=0 supersede-depth=0;
+        Findings: 1 error,
+        review.zero-or-more-swallow on
+        archive C-REWORK-CIRCUIT
+        (id=d83478517d6b5e30). No
+        review.scope-outside-write-scope
+        (scope did not run). F149.1 is
+        chartered to C-REVIEW-ARCHIVE-SCOPE;
+        this spec names it and does not
+        teach it as expected-clean. Teach
+        the measured audit statuses, not
+        the registry row's "all three
+        not-run" phrase.
+      </Assumption>
+      <Assumption>
+        Version bump is a NonGoal. Current
+        packaged version at authoring is
+        whatever README / package.json /
+        openpackage / marketplace /
+        plugin.json already agree on; this
+        bundle does not move them.
+      </Assumption>
+    </Assumptions>
+  </C-APPROVE-TIME-REVIEW>
+</NgraceChangeSpec>

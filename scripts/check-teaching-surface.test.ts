@@ -22,6 +22,7 @@ const COMPLETE_LEXICON = `<approval_lexicon>
 Sufficient approving phrases: the standalone word approved; the phrase I approve; the phrase approve this spec or approve this plan matching the artifact.
 Named non-approvals: looks good; continue; any question.
 A question is not an approval even when it contains an approving word.
+Use one approval request per message, one artifact, nothing else asked. Then record the ratifying phrase verbatim.
 </approval_lexicon>
 `;
 
@@ -90,6 +91,24 @@ Named non-approvals: continue; any question.
     plantSkills(root, completeBodies());
     expect(checkApprovalLexicon(root)).toBe(0);
   });
+
+  it("lexicon-f152-needle: returns non-zero when an otherwise complete lexicon lacks one approval request per message", () => {
+    const root = isolatedRoot();
+    const missingF152 = `<approval_lexicon>
+Sufficient approving phrases: the standalone word approved; the phrase I approve; the phrase approve this spec or approve this plan matching the artifact.
+Named non-approvals: looks good; continue; any question.
+A question is not an approval even when it contains an approving word.
+</approval_lexicon>
+`;
+    plantSkills(
+      root,
+      completeBodies({
+        "skills/ngrace/ngrace-spec/SKILL.md": missingF152,
+      }),
+    );
+    expect(checkApprovalLexicon(root)).not.toBe(0);
+  });
+
 
   it("does not write in check mode", () => {
     const root = isolatedRoot();
