@@ -1,0 +1,673 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-EVIDENCE-DISCRIMINATION>
+    <IntentSummary>
+      Ship change.close-evidence-undiscriminating as a
+      warning sibling of change.close-evidence-incomplete:
+      allowlist by command shape, polyglot defaults from
+      the five shipped adapters plus this product's lint
+      driver plus git diff with --exit-code, additive
+      closeEvidenceCommandShapes escape, and an explain
+      guide that states the cheap-class limit. Canonical
+      and packaged ngrace-spec stay byte-identical.
+      README documents the key. This repo lists its three
+      opaque CloseEvidence prefixes in .ngrace-lint.json.
+      Version surfaces, CHANGELOG.md, examples/, archives,
+      and decisions.md stay untouched.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/config.ts</Value></MustExist>
+      <MustExist><Value>src/lint/config.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/types.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>.ngrace-lint.json</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-EVIDENCE-DISCRIMINATION/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-EVIDENCE-DISCRIMINATION/plan.xml</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-LINT-TYPES</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>change.close-evidence-incomplete</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>function validateSpecAcceptanceCriteria</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>change.close-evidence-incomplete</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>change.close-evidence-and-satisfied</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/config.ts</File>
+        <Text>Supported keys: ignoredDirs, unverifiedLanguages, codeExtensions, documentAnchorLimit, documentByteLimit, gateFailOn.</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/types.ts</File>
+        <Text>export type GraceLintConfig</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.total).toBe(822)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.totalBytes).toBe(60325)</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>**822 lines** / **60325 UTF-8 bytes**</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>&lt;acceptance_criteria_anchors&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>A close-bound `AC-*` is a child `CloseEvidence` that contains at least one non-empty `Command`.</Text>
+      </MustContain>
+      <MustContain>
+        <File>.ngrace-lint.json</File>
+        <Text>"ignoredDirs"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>change.close-evidence-undiscriminating</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>change.close-evidence-undiscriminating</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>config.invalid-close-evidence-command-shapes</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/config.ts</File>
+        <Text>closeEvidenceCommandShapes</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/lint/types.ts</File>
+        <Text>closeEvidenceCommandShapes</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.ngrace-lint.json</File>
+        <Text>closeEvidenceCommandShapes</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>README.md</File>
+        <Text>closeEvidenceCommandShapes</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>change.close-evidence-undiscriminating</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-LINT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/config.ts</Value></MustExist>
+      <MustExist><Value>src/lint/config.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/types.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>.ngrace-lint.json</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-LINT-TYPES</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>change.close-evidence-incomplete</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>change.close-evidence-undiscriminating</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>change.close-evidence-undiscriminating</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>config.invalid-close-evidence-command-shapes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>pytest --collect-only</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>cargo test --no-run</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/config.ts</File>
+        <Text>closeEvidenceCommandShapes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/types.ts</File>
+        <Text>closeEvidenceCommandShapes</Text>
+      </MustContain>
+      <MustContain>
+        <File>.ngrace-lint.json</File>
+        <Text>bun run ./scripts/validate-marketplace.ts</Text>
+      </MustContain>
+      <MustContain>
+        <File>.ngrace-lint.json</File>
+        <Text>bun run validate:examples</Text>
+      </MustContain>
+      <MustContain>
+        <File>.ngrace-lint.json</File>
+        <Text>bun run validate:teaching-surface</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>closeEvidenceCommandShapes</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>change.close-evidence-undiscriminating</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>necessary but not sufficient</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/lint/config.ts</File>
+        <Text>Supported keys: ignoredDirs, unverifiedLanguages, codeExtensions, documentAnchorLimit, documentByteLimit, gateFailOn.</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>from "./core"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>from "../lint/core"</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-LINT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/artifact/grammar.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/lint/catalog.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/lint/config.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-lint.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run typecheck</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run test</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:cli</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:examples</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:determinism</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:packed</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:schema-reference</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:skeleton-templates</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+        <M-LINT-CATALOG />
+        <M-LINT-CORE />
+        <M-LINT-TYPES />
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GRAMMAR />
+        <V-M-LINT-CATALOG />
+        <V-M-LINT-CORE />
+        <V-M-LINT-TYPES />
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/lint/config.ts</File>
+      <File>src/lint/config.test.ts</File>
+      <File>src/lint/types.ts</File>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+      <File>.ngrace-lint.json</File>
+    </ObservedWriteScope>
+    <!--
+      Sequential: T-001, T-002, T-003, T-004. Not a parallel-safe batch.
+      Red budgets: at most 3 distinct signatureKeys per task; never the
+      same key twice. Record fail in its own tool round trip, then edit,
+      then pass. FIX_ESCALATION_CEILING is 2; a second escalation on the
+      same task is circuit and resume cannot clear it.
+      Do not put a current-mode lint of this project root in
+      TargetAssertions or in post-write task Verification.
+      AC-CLOSE-LINT CloseEvidence is post-archive only.
+      AC-CHANGELOG-UNTOUCHED is close-bound; neither is a Satisfies target.
+      Self-hosting order: T-001 makes closeEvidenceCommandShapes a
+      supported key so writing it cannot emit config.unknown-key.
+      T-001 does not write .ngrace-lint.json and does not emit
+      change.close-evidence-undiscriminating, so this root stays 0/0
+      with no detector. T-002 ships the detector and this repo's three
+      opaque prefixes in the same task, so there is never a task
+      boundary where the detector is live and the escape is missing
+      (that intermediate would warn on the five archived opaque
+      Commands). Config file before parser emits config.unknown-key
+      at error. Detector before parser-and-escape warns on this
+      repo's own corpus. T-003 is skill, mirror, token pin, and
+      README. T-004 holds pins and runs named validators.
+      .ngrace-lint.json is not module-ownable (isModuleOwnableWritePath
+      is src/ only and false for this path); no archived
+      ObservedWriteScope lists it; it is exempt from
+      change.graph-anchors-miss-write-scope. Do not add a new src/*.ts
+      file. Do not edit src/lint/core.ts, src/lint/adapters/*,
+      src/language-registry.ts, src/gates/*, src/review/*, examples/,
+      CHANGELOG.md, version surfaces, archives, or decisions.md.
+      Cite the assertion, the describe, or the identifier, never a
+      line number, in any task that grows the file it points into.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Config key closeEvidenceCommandShapes types parser and unknown-key message</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-CONFIG-ESCAPE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first (record output, F12.2): before edits, loadGraceLintConfig
+            on a temp project whose .ngrace-lint.json is
+            { "closeEvidenceCommandShapes": ["bun run validate:examples"] }
+            emits config.unknown-key, and the unknown-key message does not
+            name closeEvidenceCommandShapes. Planned reds (at most 3, never
+            repeat): signature-kind test-fail, signature-key
+            config-unknown-key-new-field. Record fail in its own tool round
+            trip before the production edit. Prefer that one fail so a
+            second key stays unused. Do not manufacture a red for HEAD-true
+            completeness behaviour (F45).
+          </Criterion>
+          <Criterion>
+            Add closeEvidenceCommandShapes?: string[] to GraceLintConfig in
+            src/lint/types.ts, documented as an additive command-prefix
+            escape that cannot remove a default. Add the key to
+            SUPPORTED_KEYS in src/lint/config.ts. Parse it as an array of
+            non-empty strings (reject non-array, non-string, empty-string,
+            and whitespace-only entries) with
+            config.invalid-close-evidence-command-shapes at error. Name
+            closeEvidenceCommandShapes in the config.unknown-key message
+            (that message enumerates supported keys). Add an exact catalog
+            guide for config.invalid-close-evidence-command-shapes in
+            src/lint/catalog.ts in the same production edit as the emission
+            so collectEmittedIssueCodes never sees an unguided code.
+            Do not put the new code on PREFIX_COVERED_LEGACY_CODES.
+            Module Path for this work is src/lint/core.ts via LINKS
+            M-LINT-CORE on config.ts; do not edit src/lint/core.ts.
+            Do not emit change.close-evidence-undiscriminating. Do not
+            write .ngrace-lint.json. Do not add a new src/*.ts file.
+            Do not edit grammar.ts, SKILL.md, README.md, or adapters.
+          </Criterion>
+          <Criterion>
+            AC-CONFIG-ESCAPE parser half: a well-formed array of non-empty
+            strings loads with no issues and appears on the returned config;
+            a non-array or empty-string entry emits
+            config.invalid-close-evidence-command-shapes at error (exact
+            toBe on code and severity, F23); an unknown key still emits
+            config.unknown-key and that message names
+            closeEvidenceCommandShapes. Tests live under describe
+            loadGraceLintConfig in src/lint/config.test.ts. Do not yet
+            honor prefixes in validateSpecAcceptanceCriteria (T-002).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/lint/config.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Discriminating-shape table detector catalog guide and repo escape prefixes</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SIBLING-WARNING />
+          <AC-DEFAULT-SHAPES />
+          <AC-NO-TRANSITIVE-RESOLVE />
+          <AC-EXPLAIN-LIMIT />
+          <AC-REPO-ESCAPE />
+          <AC-NO-NEW-ARGV />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-001: closeEvidenceCommandShapes is a supported
+            key. Red-first: a complete CloseEvidence Command whose text
+            is git log --format=%B does not yet emit
+            change.close-evidence-undiscriminating from
+            validateSpecAcceptanceCriteria. Planned reds (at most 3,
+            never repeat): signature-kind test-fail, signature-key
+            undiscriminating-does-not-warn. Record fail in its own tool
+            round trip before the production edit. Prefer that one fail.
+            Add the exact catalog guide for
+            change.close-evidence-undiscriminating in the same production
+            edit as the emission so collectEmittedIssueCodes never sees
+            an unguided code.
+          </Criterion>
+          <Criterion>
+            Named constant DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES in
+            src/artifact/grammar.ts listing every row of the spec table
+            and no other row: bun-test (tokens bun, test), vitest
+            (token vitest), jest (token jest), node-test (tokens node,
+            --test), pytest (token pytest), python-unittest (tokens
+            python or python3, -m, unittest), dart-test (tokens dart,
+            test), go-test (tokens go, test), cargo-test (tokens cargo,
+            test), ngrace-lint-fail-on (tokens ngrace, lint, --fail-on),
+            grace-ts-lint-fail-on (a token whose path basename is
+            grace.ts, plus tokens lint and --fail-on),
+            git-diff-exit-code (tokens git, diff, --exit-code). Matcher
+            name closeEvidenceCommandIsDiscriminating: flatten
+            whitespace, require tokens as whitespace-delimited tokens,
+            match if any one shape matches. Matching a runner token
+            does not inspect non-assertive flags. Command text only:
+            do not open package.json, Makefile, justfile, or any script
+            body, and do not resolve bun run &lt;script&gt;. When
+            projectRoot is set, import loadGraceLintConfig from
+            src/lint/config.ts (not src/lint/core.ts; that import is a
+            cycle) and honor closeEvidenceCommandShapes as additive
+            prefixes (flattened text equals an entry or starts with the
+            entry followed by a space). When projectRoot is omitted,
+            defaults only. If that import is blocked, stop-and-report.
+            List the constant in MODULE_MAP if exported.
+          </Criterion>
+          <Criterion>
+            AC-SIBLING-WARNING: a complete CloseEvidence Command that
+            matches no default and no configured prefix emits
+            change.close-evidence-undiscriminating at warning from
+            validateSpecAcceptanceCriteria, sibling of
+            change.close-evidence-incomplete. git log --format=%B
+            warns. true warns. git diff without --exit-code warns.
+            Empty or missing Command still emits
+            change.close-evidence-incomplete at error, not the new
+            warning. change.close-evidence-and-satisfied is unchanged
+            in code, severity, and message family. Exact toBe on the
+            new code and severity (F23). Update existing
+            grammar.test.ts CloseEvidence fixtures that use Command
+            text true (close-bound-exempt and
+            close-evidence-and-satisfied) to a default discriminating
+            shape such as bun test so those tests keep evidencing
+            completeness and Satisfies-conflict in isolation (F80).
+            Do not edit src/gates/*, src/review/*,
+            src/grace-generate.test.ts, or src/artifact/skeletons.test.ts.
+          </Criterion>
+          <Criterion>
+            AC-DEFAULT-SHAPES: flattened Commands that carry every
+            required token of a default shape do not emit the new
+            warning, including bun test, a Command containing token
+            vitest, a Command containing token jest, node --test,
+            pytest, python -m unittest, python3 -m pytest, dart test,
+            go test, cargo test, bun run ngrace lint --path . --fail-on
+            warnings, bun ./src/grace.ts lint --path . --fail-on
+            warnings, git diff --exit-code -- CHANGELOG.md.
+            pytest --collect-only and cargo test --no-run also do not
+            warn (cheap class). Defaults must not include this repo's
+            three opaque prefixes. AC-NO-TRANSITIVE-RESOLVE: bun run
+            ./scripts/validate-marketplace.ts and bun run
+            validate:teaching-surface warn unless those exact prefixes
+            are configured. AC-REPO-ESCAPE runtime: bun run
+            validate:examples warns with no config and does not warn
+            when that string is a configured prefix; write this
+            repository's .ngrace-lint.json closeEvidenceCommandShapes
+            to the three opaque prefixes in this same task (additive
+            to ignoredDirs; do not drop ignoredDirs). A fixture that
+            omits the key still warns. Config cannot remove a default.
+          </Criterion>
+          <Criterion>
+            AC-EXPLAIN-LIMIT: exact catalog guide for
+            change.close-evidence-undiscriminating states that the
+            rule catches only the cheap class, and names
+            pytest --collect-only, cargo test --no-run, go test -run
+            matching nothing, and git diff --exit-code over the wrong
+            paths as cases a green rule does not prove. Extend the
+            existing describe CloseEvidence change.* exact guides so
+            the new code is exact and not on PREFIX_COVERED_LEGACY_CODES.
+            bun ./src/grace.ts lint --explain
+            change.close-evidence-undiscriminating exits 0 and prints
+            that guide. AC-NO-NEW-ARGV: src/grace.ts command
+            registration and lint / gate / review arg maps gain no new
+            token; the new code is a catalog entry consumed by existing
+            explain. Do not edit src/grace.ts, src/grace-lint.ts,
+            src/gates/*, or src/review/*. Do not add a new src/*.ts file.
+            Do not yet edit SKILL.md, token-accounting.test.ts, or the
+            README measurement cell.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts</Command>
+          <Command>bun test src/lint/config.test.ts</Command>
+          <Command>bun ./src/grace.ts lint --explain change.close-evidence-undiscriminating</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Skill CloseEvidence teaching packaged mirror token pin and README config</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-SKILL-MIRROR />
+          <AC-README-CONFIG />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-002: the linter already emits and explains
+            change.close-evidence-undiscriminating. Red-first: the
+            ngrace-spec acceptance_criteria_anchors CloseEvidence bullet
+            still teaches completeness only (non-empty Command) and does
+            not mention discriminating shape, configured prefix, or
+            change.close-evidence-undiscriminating. Planned reds (at
+            most 3, never repeat): signature-kind test-fail, signature-key
+            skill-teaches-completeness-only. Record fail in its own tool
+            round trip before the production edit. Prefer that one fail.
+          </Criterion>
+          <Criterion>
+            AC-SKILL-MIRROR: under acceptance_criteria_anchors, keep the
+            existing completeness sentence and add that a non-empty
+            Command is necessary but not sufficient, that the Command
+            must match a discriminating shape or a configured prefix,
+            and that explain of change.close-evidence-undiscriminating
+            states the cheap-class limit. Edit canonical
+            skills/ngrace/ngrace-spec/SKILL.md and copy byte-identical
+            to plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md in the
+            same task. Do not rewrite ngrace-plan, ngrace-reviewer,
+            ngrace-execute, or ngrace-cli. scripts/skill-contracts.test.ts
+            spec-teaches-close-evidence must still pass (CloseEvidence
+            and Command remain in that section).
+          </Criterion>
+          <Criterion>
+            Stay-true on the ngrace-spec rewrite: both SKILL.md
+            paths listed in TEACHING_FILES (canonical and
+            packaged ngrace-spec) keep the child-anchor teaching
+            and introduce no Clarification target= form, so
+            T-002's already-passing Verification command bun
+            test src/artifact/grammar.test.ts stays green. That
+            command's describe C-GRAMMAR-SEAM T-004 teaching
+            files and template copy-fixture iterates
+            TEACHING_FILES and requires each file does not
+            contain Clarification target=, does not match
+            target="(IC|INV|AC)-, and satisfies
+            teachesChildAnchorForm: either a
+            &lt;Clarification&gt;&lt;IC-... child example or the
+            phrase about a self-closing IC-*, INV-*, or AC-*
+            child. Dropping that teaching or introducing a
+            target= form turns T-002's green red; this task's
+            restraint is why that earlier verification still
+            holds.
+          </Criterion>
+          <Criterion>
+            After both skill copies are written, measure
+            skillTextLines().total and totalBytes with the live helper:
+            bun -e 'import { skillTextLines } from "./src/test-support/token-accounting.ts";
+            console.log(skillTextLines().total, skillTextLines().totalBytes)'.
+            Update src/test-support/token-accounting.test.ts so both pins
+            are exact toBe of that measured pair (F23, never a range).
+            Follow the C-REWORK-CIRCUIT adjacent comment form on the
+            totalBytes pin: record the delta, do not leave 822 / 60325
+            as the current pin. Update the README.md measurement cell
+            to the same two numbers. The new numbers must be measured
+            after the prose exists, never chosen first and written toward.
+            git diff --no-index --exit-code clean between the two SKILL.md
+            paths; bun run ./scripts/validate-marketplace.ts green for
+            packaged-vs-canonical.
+          </Criterion>
+          <Criterion>
+            AC-README-CONFIG: document closeEvidenceCommandShapes as the
+            additive escape for novel discriminating CloseEvidence
+            commands, next to the existing .ngrace-lint.json keys
+            (codeExtensions / unverifiedLanguages in the config paragraph).
+            examples/ is not edited. Version surfaces stay untouched.
+            CHANGELOG.md stays untouched. No new src/*.ts file.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>git diff --no-index --exit-code skills/ngrace/ngrace-spec/SKILL.md plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Hold pins and run named validators</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Token-accounting pins match the post-edit skillTextLines()
+            measure, not as an unrecorded 822 / 60325, with an adjacent
+            comment recording the delta. README.md measurement cell
+            matches the same two numbers. bun test
+            src/artifact/grammar.test.ts, bun test src/lint/catalog.test.ts,
+            bun test src/lint/config.test.ts, bun test
+            src/test-support/token-accounting.test.ts, and bun test
+            scripts/skill-contracts.test.ts all exit 0. Planned reds:
+            none. If a pin dropped, record fail once with signature-kind
+            test-fail, signature-key pin-survival, restore the pin, and
+            pass; do not repeat that key.
+          </Criterion>
+          <Criterion>
+            Each of these named commands exits 0, run as the command
+            text named, not via bun run validate:ci. Read exit codes
+            from the command, never through a pipe: bun run typecheck;
+            bun run test; bun run validate:cli;
+            bun run ./scripts/validate-marketplace.ts;
+            bun run validate:examples; bun run validate:determinism;
+            bun run validate:packed; bun run validate:schema-reference;
+            bun run validate:skeleton-templates.
+            validate:teaching-surface is not required. None of these is
+            a current-mode lint of this root. Do not put
+            bun run ngrace lint --path . or
+            bun ./src/grace.ts lint --path . --fail-on warnings in this
+            task's Verification; that live root 0/0 is CloseEvidence
+            on AC-CLOSE-LINT, post-archive only.
+          </Criterion>
+          <Criterion>
+            Counterweight: suite green is not achieved by deleting the
+            new warning tests, putting the three opaque prefixes in
+            DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES, skipping the skill
+            mirror, or restoring the 822 / 60325 pin without a measured
+            delta comment. No edits under archive/ or decisions.md;
+            no CHANGELOG.md; no version, marketplace, or openpackage
+            surfaces; no examples/. No new src/*.ts file.
+            src/grace.ts command registration and lint / gate / review
+            arg maps still gain no new token.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts</Command>
+          <Command>bun test src/lint/config.test.ts</Command>
+          <Command>bun test src/grace-lint.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun run typecheck</Command>
+          <Command>bun run test</Command>
+          <Command>bun run validate:cli</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>bun run validate:examples</Command>
+          <Command>bun run validate:determinism</Command>
+          <Command>bun run validate:packed</Command>
+          <Command>bun run validate:schema-reference</Command>
+          <Command>bun run validate:skeleton-templates</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-EVIDENCE-DISCRIMINATION>
+</NgraceChangePlan>
