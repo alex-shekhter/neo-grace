@@ -1,0 +1,790 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-REWORK-CIRCUIT>
+    <Summary>
+      Extend C-ESCALATION-HONESTY with a cross-window ceiling: the
+      first in-window breaker fire (trigger R or D) stays
+      paused-pending-approval with an auditable --reason resume;
+      the second in-window breaker fire on the same task enters a
+      new terminal cursor state that refuses resume. Governance is
+      untouched — spec and plan keep their status. A human still
+      supersedes if the bundle is to die. Churn figures are
+      evidence on the escalation, never a trip condition.
+    </Summary>
+    <Problem>
+      C-ESCALATION-HONESTY already stops a window: trigger R fires
+      on two fails of the same FailureSignature (exact kind + key),
+      trigger D on four distinct signatures, and the next attempt
+      is hard-refused with gate.attempt.escalated. What that bundle
+      cannot see, by construction, is a loop that crosses windows.
+      windowStart = lastResolvingResumeId (src/grace-cursor.ts:1709,
+      :1721): every escalation-clearing resume restarts both
+      counters. Escalate → resume --reason → escalate → resume
+      repeats without bound, and a signature that recurs across
+      windows is invisible to a window-scoped counter.
+
+      Measured 2026-09-02 at HEAD e5aced5664b389f68caf791baf034a4b01ad0444
+      (F142's probe class, by reading the live functions, not by
+      restating the finding): CursorState is absent | idle |
+      in-progress | paused | paused-pending-approval | complete |
+      discarded. KNOWN_KIND_STATE maps escalation →
+      paused-pending-approval and resume → in-progress.
+      ESCALATION_RESOLVER_KINDS is the singleton set {"resume"}.
+      FIX_SIGNATURE_REPEAT_BUDGET = 2. FIX_DISTINCT_SIGNATURE_BUDGET
+      = 4. There is no third constant, no cross-window counter, and
+      no cursor state that means "resume will not clear this".
+
+      D24 (2026-09-02, maintainer, variant A of three) charters this
+      bundle: a cross-window recurrence detector and a global cap;
+      on trip, a terminal escalation state that refuses resume.
+      Variant B (auto-supersede) was rejected because supersede must
+      name a replacement, and an auto-generated successor is a
+      governance artifact no human authored. Variant C (report only)
+      was rejected because it stops nothing. This spec implements A
+      and does not reintroduce B: it must not write status onto
+      spec.xml or plan.xml.
+
+      F144 (2026-09-02) measured that file-rewrite depth does not
+      discriminate a failing bundle from a shipping one, and the
+      corpus holds no positive example of the failure a churn
+      ceiling would detect. Re-measured 2026-09-02 at this HEAD
+      (File path is element text, digest is the only attribute;
+      .ngrace/ excluded; rewrite = digest differs from the previous
+      recorded digest of that path). 54 run-ledger.xml files under
+      .ngrace/changes; 42 bundles carry attempt events (40 applied,
+      2 superseded). Mean deepest-file rewrite count 2.33 applied /
+      3.00 superseded. The six deepest are all applied:
+      C-FINDING-SEVERITIES 7/4, C-BUNDLE-BASE-REF 5/3,
+      C-DRIFT-HONESTY 5/2, C-ESCALATION-HONESTY 5/2,
+      C-EXPLAIN-COVERAGE 5/3, C-TEACHING-SURFACE 5/11. F144's 41 / 39
+      / 2.38 have aged by one applied bundle; the six named rows
+      still hold. The ruling F144 yields: churn is the payload,
+      recurrence is the trigger. Churn must not be the trip
+      condition at any threshold this corpus can justify.
+    </Problem>
+    <Goals>
+      <Goal>
+        Keep C-ESCALATION-HONESTY intact for the ordinary first
+        escalation. Trigger R (2 same-signature fails in the current
+        window) and trigger D (4 distinct failing signatures in the
+        current window), evaluated R before D, still write kind
+        escalation, still enter paused-pending-approval, still say
+        the task has not failed, and still clear on a non-empty
+        --reason resume. That bundle's window rule, signature
+        equality (exact kind and exact key), and "passes never
+        escalate" all survive. This extends that ruling; it does
+        not overturn it.
+      </Goal>
+      <Goal>
+        Ship one new named constant FIX_ESCALATION_CEILING = 2
+        beside FIX_SIGNATURE_REPEAT_BUDGET and
+        FIX_DISTINCT_SIGNATURE_BUDGET. Unit: escalations per task,
+        counting kind=escalation plus kind=circuit events for that
+        task across the whole accounting stream (not the current
+        window). When an in-window R or D decision would fire and
+        that count is already &gt;= 1, write kind=circuit instead of
+        kind=escalation and enter paused-pending-supersede. The
+        second breaker fire is the proven loop; the first remains
+        the human replan checkpoint.
+      </Goal>
+      <Goal>
+        A circuit-tripped task refuses resume (both ngrace cursor
+        resume and ngrace cursor advance --kind resume) before any
+        write, with a stable coded refuse that names
+        paused-pending-supersede and ngrace supersede as the exit.
+        Resume must not resolve circuit: ESCALATION_RESOLVER_KINDS
+        stays the singleton {"resume"} and continues to resolve
+        only ordinary escalation. Further attempts on that task
+        stay refused. Spec.xml and plan.xml status are not written.
+        The only exit that ends the stuck task is human supersede
+        of the bundle.
+      </Goal>
+      <Goal>
+        Attach file-level churn evidence to both the ordinary
+        first escalation and the circuit trip, computed from
+        WriteEvidence the ledger already holds (path as File
+        element text, digest as the only File attribute; F141).
+        The message names which files were rewritten how many
+        times across how many windows, and which signatures
+        recurred across windows when any did. Churn is never
+        consulted as a trip predicate.
+      </Goal>
+      <Goal>
+        Canonical skills/ngrace/ngrace-execute/SKILL.md and
+        packaged plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md
+        remain byte-identical after the skill edit, checked by
+        bun run ./scripts/validate-marketplace.ts. The live-constant
+        substring helper fixBudgetSkillRequiredSubstrings gains a
+        third entry built from FIX_ESCALATION_CEILING so prose and
+        code cannot diverge on the ceiling, the same way they
+        cannot diverge on R=2 and D=4.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting: M-CURSOR kind/state/budget
+        and resume refuse, M-GATES attempt-gate catalog and
+        evaluateAttemptGate, M-SKILLS ngrace-execute protocol
+        plus packaged mirror, M-TEST-SUPPORT token-accounting
+        pin). Gates still run. Roadmap: RM-GOVERNED-PATH D24 on
+        F142, extending C-ESCALATION-HONESTY. Spec only in this
+        authoring pass; status remains "draft"; do not author
+        plan.xml until the spec is approved (F4 two-stage). Do
+        not run gate approve, any gate, or any cursor command
+        in this dispatch.
+      </Constraint>
+      <Constraint>
+        Binding findings and rulings, named so this spec cannot
+        silently contradict them (CLAUDE.md rule 9): F142 (the
+        window resets; invalidation of spec/plan is a ruling, not
+        an oversight), D24 variant A (detector + cap; terminal
+        state refuses resume; do not auto-supersede), F144 (churn
+        is payload, recurrence is trigger), F141 (WriteEvidence is
+        path plus sha256 only), D21 (a schema that cannot represent
+        the operation truthfully is the defect — CursorState cannot
+        say "resume will not clear this" today), F21/F22 and
+        C-ESCALATION-HONESTY (ordinary first escalation, including
+        the rejected rename of paused-pending-approval), F9.8
+        (honest red-first is not thrash; a single fail of a prior
+        window's signature after resume must not trip), F43
+        (escape markup; never strip it), F133/F136 (anchor every
+        forced file's LINKS module in every module list), D5.5
+        (CHANGELOG.md is generated), D13 (recorded surfaces stay
+        honest).
+      </Constraint>
+      <Constraint>
+        Cycle, cap, state, grain, and churn are decided in this
+        spec, not deferred to the plan. The plan may choose
+        function names and XML children on the circuit event, but
+        must not reopen: what counts as a cycle, the constant name
+        and value, the new state and kind names, that resume is
+        refused, that scope is per task, or that churn is not a
+        trip. Sequence table (budget window still from last
+        resolving resume of an ordinary escalation; signature
+        equality = exact kind and exact key; R then D in-window;
+        ceiling evaluated only when R or D would fire):
+
+        | Sequence | Result |
+        | fail(A) | no |
+        | fail(A), fail(A) | ordinary escalation, trigger R, paused-pending-approval |
+        | then --reason resume, fail(A) | no (F9.8: one fail in the new window is red-first, not a loop) |
+        | then fail(A) again | circuit, paused-pending-supersede (second in-window R) |
+        | fail(A,B,C,D) | ordinary escalation, trigger D |
+        | then --reason resume, fail(E,F,G,H) | circuit (second in-window D; recurrence list may be empty) |
+        | fail(A), fail(A), --reason resume, fail(B), fail(B) | circuit (second in-window R, different signature; recurrence list empty for A/B as a pair) |
+        | verification-unavailable ×2 | no |
+        | T-001 circuit, T-002 fail(A) | T-002 still in its first window; T-001 remaining circuit-tripped |
+
+        A, B, C, D, E, F, G, H are pairwise-distinct (kind, key)
+        pairs. Resume after circuit is refused on both entry paths
+        and writes nothing. Spec/plan status stay approved.
+      </Constraint>
+      <Constraint>
+        New event kind circuit maps in KNOWN_KIND_STATE to
+        paused-pending-supersede. Unrecognized kinds still must
+        not resolve to in-progress (cursorStateForEventKind).
+        kind=circuit is reserved in advanceCursor the same way
+        escalation and discarded are: the operator never emits it;
+        recordAttempt writes it when the ceiling trips. It is not
+        a RANGE_CLOSING_KINDS member (that set stays terminal and
+        discarded). C-ESCALATION-HONESTY's NonGoal of no new kinds
+        is overturned for this one kind only, on D21: overloading
+        kind=escalation to mean two states would make the
+        exhaustive kind→state map a lie, and an unrecognized kind
+        falling through to in-progress is the defect that map
+        exists to prevent. Resume remains the sole member of
+        ESCALATION_RESOLVER_KINDS.
+      </Constraint>
+      <Constraint>
+        CursorState gains paused-pending-supersede. The existing
+        union cannot represent "resume is refused" honestly:
+        paused-pending-approval is defined as cleared by resume;
+        paused is ordinary pause; complete is a completion
+        judgment; discarded is supersede's abandon of an epoch
+        and would claim governance already ended. D21 applies:
+        add the state rather than reuse one of those four. Bundle
+        -level CursorPosition is paused-pending-supersede while
+        any task is circuit-tripped (takes precedence over
+        paused-pending-approval). Per-task: a sibling that is not
+        circuit-tripped may still attempt and may still resume an
+        ordinary escalation.
+      </Constraint>
+      <Constraint>
+        Policy for attempt refuse on a circuit-tripped task lives
+        in M-GATES, not only as an inlined string in recordAttempt.
+        Today recordAttempt throws gate.attempt.escalated while
+        evaluateAttemptGate consults listUnresolvedEscalatedTasks
+        only (src/gates/core.ts:232-250, :522-529). A circuit kind
+        that is not in that set would make the gate permit what
+        recordAttempt refuses. Add gate.attempt.circuit-tripped to
+        GATE_CATALOG (src/gates/catalog.ts; LINKS: M-GATES). Its
+        remediation must name ngrace supersede, never resume.
+        Do not reuse gate.attempt.escalated: that entry's
+        remediation is "Resolve with ngrace cursor resume", which
+        would be a lie for the circuit case. Resume refuse may use
+        invalid-arguments (the C-ESCALATION-HONESTY reason-missing
+        shape) or a sibling gate.resume.circuit-tripped; either
+        way it names paused-pending-supersede and supersede, and
+        it fires before write.
+      </Constraint>
+      <Constraint>
+        AffectedAreas is a closed list and binds the plan
+        (change.plan-scope-exceeds-spec). A plan that needs a
+        module not named here is a stop-and-report. Module lists
+        in this spec (this ceremony constraint, AffectedAreas,
+        and the module-ownership Assumption) must name the same
+        four: M-CURSOR, M-GATES, M-SKILLS, M-TEST-SUPPORT.
+      </Constraint>
+      <Constraint>
+        Forced write surface, traced 2026-09-02 at e5aced5. For
+        each file: LINKS header if any, owning module, and where
+        that module appears (AffectedAreas, this ceremony
+        constraint, module-ownership Assumption).
+
+        src/grace-cursor.ts — LINKS: M-CURSOR (line 6). CursorState,
+        CURSOR_STATES, KNOWN_KIND_STATE, FIX_ESCALATION_CEILING,
+        fixBudgetSkillRequiredSubstrings, deriveStateFromEvents,
+        recordAttempt, advanceCursor reserved-kind refuse, resume
+        refuse, formatEscalationMessage, CLI resume description.
+        Tests co-located as src/grace-cursor.test.ts (no file-level
+        LINKS; isModuleOwnableWritePath excludes *.test.ts).
+
+        src/gates/catalog.ts — LINKS: M-GATES (line 5). New
+        gate.attempt.circuit-tripped (and resume sibling if used).
+
+        src/gates/core.ts — LINKS: M-GATES (line 5).
+        evaluateAttemptGate / evaluateAttemptOnBundle must refuse
+        circuit-tripped tasks. Tests co-located as
+        src/gates/core.test.ts (no file-level LINKS).
+
+        skills/ngrace/ngrace-execute/SKILL.md — owned by M-SKILLS
+        (graph Summary: canonical skill sources; Type UTILITY; no
+        Path). Packaged mirror
+        plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md has
+        no owning graph module; packaging parity is
+        scripts/validate-marketplace.ts. Measured passages that
+        already assert the live R/D substrings (flattened
+        whitespace, 2026-09-02): "2 failed attempts of the same
+        signature" ×3 and "4 distinct failing signatures" ×3
+        (execution rule 5; attempt Meaning; escalation When).
+        Resume When/Meaning/How must state that resume does not
+        clear circuit. A new &lt;kind id="circuit"&gt; marker is
+        required (KNOWN_EVENT_KINDS completeness at
+        src/grace-cursor.test.ts:3313). The length-10 pin at
+        src/grace-cursor.test.ts:3291 becomes 11.
+
+        src/test-support/token-accounting.test.ts — no file-level
+        LINKS; M-TEST-SUPPORT by the module Path
+        src/test-support/fixtures.ts (LINKS: M-TEST-SUPPORT line 5)
+        and C-ESCALATION-HONESTY / C-SUPERSEDE-RECORD-2 precedent.
+        Pins skillTextLines().total = 817 and totalBytes = 58931,
+        measured live 2026-09-02 via
+        bun -e 'import { skillTextLines } from "./src/test-support/token-accounting.ts";
+        console.log(skillTextLines().total, skillTextLines().totalBytes)'.
+        Follow C-SUPERSEDE-RECORD-2's adjacent comment exactly
+        (812 → 817 lines and 58400 → 58931 bytes): record the
+        delta, do not leave 817 / 58931. README.md measurement
+        cell publishes the same two numbers
+        (src/test-support/token-accounting.test.ts:69-72).
+
+        README.md — no LINKS (root document). CLI Overview resume
+        row currently: "Resume a paused epoch; clearing an
+        escalation requires `--reason`". Update it so a reader
+        is not told that every escalation-class pause is
+        resumable. Measurement cell if the pin moves. The live
+        -invocation token tests in src/query/command.test.ts bind
+        the token, not the description; description honesty is
+        still this bundle's.
+
+        Do not add a new src/*.ts file. Do not edit
+        src/artifact/grammar.ts (circuit is not a range closer;
+        State is not enum-checked there). Do not edit
+        src/lint/catalog.ts (cursor.empty-escalated-task's
+        paused-pending-approval sentence remains true for the
+        ordinary first escalation).
+      </Constraint>
+      <Constraint>
+        README.md is in scope as named above. examples/ is not
+        (NonGoal). Do not require bun run validate:ci and do not
+        require bun run validate:teaching-surface. Measured
+        2026-09-02 at e5aced5, exit codes from the command, never
+        through a pipe: bun run validate:teaching-surface exits 0.
+        C-LINT-PHASE-HONESTY-2 is archived status=applied and
+        names both README.md and examples/; it is no longer an
+        active skeleton. The omission is this dispatch brief's
+        standing floor (require the nine validators individually),
+        not a red sibling. The nine, by command text: bun run
+        typecheck; bun run test; bun run validate:cli;
+        bun run ./scripts/validate-marketplace.ts;
+        bun run validate:examples; bun run validate:determinism;
+        bun run validate:packed; bun run validate:schema-reference;
+        bun run validate:skeleton-templates. The MustPassCommand
+        restriction governs command text, never what a command
+        transitively runs; never resolve bun run &lt;script&gt;
+        through package.json. None of the nine is a current-mode
+        lint of this root.
+      </Constraint>
+      <Constraint>
+        Both skill trees always: edit canonical
+        skills/ngrace/ngrace-execute/SKILL.md and keep
+        plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md
+        synchronized in the same change.
+        scripts/validate-marketplace.ts requires
+        packaged-vs-canonical parity via git diff --no-index.
+      </Constraint>
+      <Constraint>
+        This bundle does not touch any product version surface:
+        not package.json version, README packaged-version marker,
+        openpackage.yml, .claude-plugin/marketplace.json, or
+        plugins/ngrace/.claude-plugin/plugin.json. CHANGELOG.md
+        remains unedited and generated (D5.5). Archives under
+        .ngrace/changes/archive/ and docs/plans/archive/ are
+        never edited. decisions.md is not amended.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first regressions for each
+        behavioural AC. Sequence criteria pin exact escalate vs
+        circuit vs neither, the resulting CursorState, and that
+        spec/plan status is unchanged. Resume-refuse tests pin
+        that no resume event is written and the task remains
+        circuit-tripped. Prose/enforcement agreement must fail
+        under a deliberate mutation of either side (skill omitting
+        the ceiling value, code changing FIX_ESCALATION_CEILING
+        without the skill substring, or skill still implying that
+        every paused-pending-approval-class pause resumes). F23:
+        exact toBe / exact refuse, not weaker bounds.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Auto-superseding on trip (D24 variant B). supersede must
+        name a replacement; an auto-generated successor is a
+        governance artifact no human authored. If an implementation
+        writes status onto spec.xml or plan.xml, it has drifted
+        into B. Owner: D24, which rejected B on the replacement
+        -authorship hole.
+      </NonGoal>
+      <NonGoal>
+        Report-only recurrence (D24 variant C). Owner: D24, which
+        rejected C because the request was that the system stop
+        trying; F139 showed what an instrument nobody acts on is
+        worth.
+      </NonGoal>
+      <NonGoal>
+        A churn-based trip condition at any threshold. Owner:
+        F144. A ceiling at "3 files rewritten 5 times" would have
+        invalidated the six deepest applied bundles, including
+        C-ESCALATION-HONESTY — the bundle that built the budget
+        this one extends. Re-measured 2026-09-02: those six rows
+        still hold. There is still no positive example of the
+        target failure in this corpus (the two superseded
+        attempt-bearing bundles are C-CURSOR-TASK-IDENTITY and
+        C-LINT-PHASE-HONESTY, both governance, not thrash).
+      </NonGoal>
+      <NonGoal>
+        Detecting a cycle as a repeated sequence of signatures,
+        or as a WriteEvidence digest-set returning after
+        diverging. Owner: this spec's cycle decision. Sequence
+        detection punishes a confused agent that invents new keys
+        (the case trigger D already bounds in-window) and misses
+        the named gap (the same signature across windows). A
+        digest-set cycle can only see path plus sha256 (F141) and
+        F144 shows rewriting the same files is what shipping work
+        looks like. The honest cycle is the in-window breaker
+        firing a second time.
+      </NonGoal>
+      <NonGoal>
+        A first-reappearance trip: fail(A) in window 2 after
+        window 1 already escalated on A. Owner: F9.8 / 
+        C-ESCALATION-HONESTY. After a documented replan, one fail
+        of the same signature is honest red-first of the new
+        approach, not a proven loop. The loop is the in-window
+        breaker firing again.
+      </NonGoal>
+      <NonGoal>
+        A bundle-level ceiling (trip when any N tasks in the
+        bundle have escalated, or when the bundle's tasks each
+        loop once as a single bundle trip). Owner: this spec's
+        grain decision. The existing R/D budget is per task;
+        changing the grain would punish a five-task plan whose
+        tasks each take one ordinary replan. A task that loops
+        twice trips that task; siblings may continue; supersede
+        of the bundle remains the exit if that task is required.
+      </NonGoal>
+      <NonGoal>
+        Renaming paused-pending-approval, making resume an
+        escalation resolver for circuit, adding circuit to
+        RANGE_CLOSING_KINDS, or emitting terminal from the
+        binary on trip. Owner: C-ESCALATION-HONESTY (state name
+        retained; resume is the ordinary resolver) and
+        C-SUPERSEDE-RECORD-2 / D21 (discarded, not terminal, is
+        how an abandon closes a range; this bundle is not an
+        abandon).
+      </NonGoal>
+      <NonGoal>
+        A new operator verb (cursor invalidate, cursor abandon,
+        cursor circuit-clear). Owner: D24 — the exit is the
+        existing supersede verb, used by a human. Inventing a
+        second invalidation path is B with extra steps.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no user-visible cursor resume or
+        escalation surface there. Owner: unchanged; no
+        user-visible surface. Measured 2026-09-02: zero matches
+        for resume / escalat / fix budget under examples/.
+      </NonGoal>
+      <NonGoal>
+        Requiring bun run validate:teaching-surface or bun run
+        validate:ci. Owner: this dispatch brief's standing floor
+        (the nine validators by command text). Measured
+        2026-09-02: teaching-surface exits 0; the historical
+        sibling C-LINT-PHASE-HONESTY-2 is archived applied.
+      </NonGoal>
+      <NonGoal>
+        Any product version bump or edit to version surfaces.
+        Hand-editing CHANGELOG.md (D5.5). Editing
+        docs/plans/archive/, .ngrace/changes/archive/, or
+        decisions.md. Filling, fixing, or editing any other
+        bundle.
+      </NonGoal>
+      <NonGoal>
+        Broader skill rewrites (ngrace-cli, ngrace-plan,
+        ngrace-explainer, ngrace-migrate capability map). The
+        migrate map's "budget of 2 escalating to replan" line is
+        historical v3 correspondence, not this protocol.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-FIRST-ESCALATION-UNCHANGED>
+        Under a fresh budget window, the C-ESCALATION-HONESTY
+        sequence table still holds for the first breaker fire.
+        fail(A), fail(A) writes kind=escalation, state
+        paused-pending-approval, trigger R, and the message still
+        says the task has not failed / replan decision is owed.
+        fail(A,B,C,D) writes ordinary escalation, trigger D.
+        --reason resume still clears that task, opens a new
+        window, and returns in-progress when no other task is
+        stuck. Spec.xml and plan.xml status are unchanged.
+        Failure conditions: first R or D writes circuit; first
+        escalation refuses resume; message claims the task failed;
+        status on spec or plan is written.
+      </AC-FIRST-ESCALATION-UNCHANGED>
+      <AC-CEILING-TRIPS-ON-SECOND>
+        FIX_ESCALATION_CEILING = 2, counting kind=escalation plus
+        kind=circuit events per task across the accounting stream.
+        After ordinary R (or D) and a reason-bearing resume, the
+        next in-window R (or D) writes kind=circuit, not
+        escalation; CursorState is paused-pending-supersede;
+        KNOWN_KIND_STATE maps circuit to that state. Unrecognized
+        kinds still do not resolve to in-progress.
+        KNOWN_EVENT_KINDS length pin is 11 and includes circuit.
+        Failure conditions: second breaker fire writes escalation
+        again; ceiling is 3; count is windows or signature
+        recurrences only, so a second D with new keys never
+        trips; circuit maps to paused-pending-approval or
+        discarded; unknown kind becomes in-progress.
+      </AC-CEILING-TRIPS-ON-SECOND>
+      <AC-RED-FIRST-AFTER-RESUME>
+        After ordinary escalation on A and a reason-bearing
+        resume, a single fail(A) in the new window does not
+        escalate and does not trip the circuit. A second fail(A)
+        in that window does trip the circuit. Failure conditions:
+        first reappearance of A after resume writes circuit
+        (punishes F9.8 red-first); second fail(A) in the new
+        window only writes another ordinary escalation.
+      </AC-RED-FIRST-AFTER-RESUME>
+      <AC-RESUME-REFUSES-CIRCUIT>
+        When a task is circuit-tripped, ngrace cursor resume and
+        ngrace cursor advance --kind resume for that task refuse
+        with a non-zero exit / GraceCommandError before writing a
+        resume event, without clearing the circuit set, and
+        without writing spec or plan status. The refuse names
+        paused-pending-supersede and ngrace supersede as the
+        exit. It must not tell the operator to pass --reason and
+        continue. Ordinary resume (task not escalated and not
+        circuit-tripped) still works without --reason.
+        Escalation-clearing resume on a still-ordinary
+        paused-pending-approval task still requires --reason.
+        Failure conditions: resume writes; circuit cleared;
+        message advises --reason continue; only one of the two
+        entry paths enforces; ordinary pause/resume broken.
+      </AC-RESUME-REFUSES-CIRCUIT>
+      <AC-ATTEMPT-REFUSES-CIRCUIT>
+        Further attempts on a circuit-tripped task are refused.
+        evaluateAttemptGate (or the sibling that receives the
+        circuit set) refuses with gate.attempt.circuit-tripped,
+        which is registered in GATE_CATALOG, and whose
+        remediation names supersede, not resume.
+        recordAttempt refuses the same tasks. Reusing
+        gate.attempt.escalated for this case fails the criterion
+        (that code's remediation currently says resume). Failure
+        conditions: attempts accepted; gate permits and
+        recordAttempt refuses (or the reverse); catalog missing;
+        remediation says resume.
+      </AC-ATTEMPT-REFUSES-CIRCUIT>
+      <AC-PER-TASK-GRAIN>
+        Circuit is per task. T-001 circuit-tripped does not
+        prevent T-002 from recording attempts in T-002's own
+        window, and does not prevent T-002 from a reason-bearing
+        resume of T-002's own ordinary escalation. Bundle-level
+        state is paused-pending-supersede while any task is
+        circuit-tripped. Failure conditions: one task's circuit
+        freezes sibling attempts; bundle state stays
+        paused-pending-approval while a circuit-tripped task
+        exists.
+      </AC-PER-TASK-GRAIN>
+      <AC-CHURN-IS-PAYLOAD>
+        Ordinary first escalation and circuit trip both carry
+        file-level churn in the user-visible message: each
+        non-.ngrace/ WriteEvidence path (File element text) with
+        a content digest, how many times that digest differed
+        from the previous recorded digest of that path on this
+        task's attempts in id order, and how many budget windows
+        those attempts spanned. Circuit also names which
+        FailureSignatures (kind:key) appeared in two or more
+        windows, or that none did when the ceiling tripped on
+        distinct-signature escalations. Changing rewrite counts
+        without a second in-window R or D must not trip.
+        Unavailable WriteEvidence is omitted, not invented.
+        Failure conditions: churn consulted as a predicate;
+        message omits paths or counts on a trip that has
+        available evidence; .ngrace/ paths listed as product
+        churn; bytes or lines claimed (F141: not derivable).
+      </AC-CHURN-IS-PAYLOAD>
+      <AC-NO-GOVERNANCE-WRITE>
+        On circuit trip, spec.xml and plan.xml status attributes
+        are byte-identical to before the fail that tripped.
+        No Replacement is written. ngrace supersede remains a
+        human act and still requires --replacement. Failure
+        conditions: status becomes superseded; a successor
+        bundle is created; Replacement is authored by the
+        breaker.
+      </AC-NO-GOVERNANCE-WRITE>
+      <AC-PROSE-ENFORCEMENT-AGREE>
+        skills/ngrace/ngrace-execute/SKILL.md states the ceiling
+        in every place that describes when the fix budget stops
+        work, including execution rule 5 and the attempt /
+        escalation kind entries, without implying that resume
+        always clears a budget pause. A &lt;kind id="circuit"&gt;
+        marker exists, documents that the operator never emits
+        it, that recordAttempt writes it when the ceiling trips,
+        that state is paused-pending-supersede, and that resume
+        will not clear it. Resume When/Meaning/How states the
+        refuse. fixBudgetSkillRequiredSubstrings returns three
+        live-constant substrings, the third built from
+        FIX_ESCALATION_CEILING in the same digits-mid-sentence
+        shape as the existing two (plan picks the exact English
+        around the number; tests pin the helper to the live
+        constant so mutating the constant without the skill
+        fails). Kind-set completeness alone does not satisfy
+        this AC. Failure conditions: skill omits the ceiling
+        value; skill still says every escalation-class pause
+        resumes; helper stays two entries; only kind inventory
+        is asserted.
+      </AC-PROSE-ENFORCEMENT-AGREE>
+      <AC-SKILL-MIRROR-IDENTICAL>
+        After the change, skills/ngrace/ngrace-execute/SKILL.md
+        and plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md
+        are byte-identical (git diff --no-index clean /
+        validate-marketplace packaged-vs-canonical check green).
+        Failure conditions: only canonical edited; drift left
+        for a later cleanup; eye-check claimed without
+        validator.
+      </AC-SKILL-MIRROR-IDENTICAL>
+      <AC-PINS-HOLD>
+        src/grace-cursor.test.ts KNOWN_EVENT_KINDS length is 11
+        and the exact list includes circuit.
+        src/test-support/token-accounting.test.ts pin matches
+        the post-edit skillTextLines() measure, not the pre-edit
+        817 / 58931, with an adjacent comment recording the
+        delta in the C-SUPERSEDE-RECORD-2 form. README.md
+        measurement cell matches the same two numbers. bun test
+        src/grace-cursor.test.ts, bun test src/gates/core.test.ts,
+        bun test src/test-support/token-accounting.test.ts, and
+        bun test src/query/command.test.ts all exit 0.
+      </AC-PINS-HOLD>
+      <AC-VALIDATOR-FLOOR>
+        Each of these nine exits 0 after the change, run as the
+        command text named, not via bun run validate:ci: bun run
+        typecheck; bun run test; bun run validate:cli;
+        bun run ./scripts/validate-marketplace.ts;
+        bun run validate:examples; bun run validate:determinism;
+        bun run validate:packed; bun run validate:schema-reference;
+        bun run validate:skeleton-templates.
+        validate:teaching-surface is not required. Exit codes
+        are read from the command, never through a pipe.
+      </AC-VALIDATOR-FLOOR>
+      <AC-CHANGELOG-UNTOUCHED>
+        CHANGELOG.md is not edited by this bundle
+        (D5.5: the changelog entry is written in the
+        commit message, not in the file). Verified
+        against the branch point e5aced5, so a staged
+        or committed edit fails and an unedited file
+        passes; both directions were probed at
+        authoring.
+
+        This criterion replaces AC-PROTOCOL-COMMIT-BODY,
+        which bound a commit-message claim to
+        git log --format=%B. That command prints bodies
+        and exits 0 unconditionally, so the gate would
+        have recorded Result pass whatever the messages
+        said (F147). Per D26 the commit-body expectation
+        is not machine verifiable at close and moves to
+        the execution brief as an instruction, rather
+        than standing as a criterion nothing can refute.
+        <CloseEvidence>
+          <Command>git diff --exit-code e5aced5 -- CHANGELOG.md</Command>
+        </CloseEvidence>
+      </AC-CHANGELOG-UNTOUCHED>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0.
+        <CloseEvidence>
+          <Command>bun run ngrace lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CURSOR />
+      <M-GATES />
+      <M-SKILLS />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run typecheck</ExpectedCommand>
+      <ExpectedCommand>bun run test</ExpectedCommand>
+      <ExpectedCommand>bun run validate:cli</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:examples</ExpectedCommand>
+      <ExpectedCommand>bun run validate:determinism</ExpectedCommand>
+      <ExpectedCommand>bun run validate:packed</ExpectedCommand>
+      <ExpectedCommand>bun run validate:schema-reference</ExpectedCommand>
+      <ExpectedCommand>bun run validate:skeleton-templates</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-cursor.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/gates/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        Red-first on a throwaway project, driving the real CLI,
+        not only the suite: first fail(A)×2 still paused-pending
+        -approval and --reason resume still continues; after that
+        resume, fail(A)×2 writes circuit, paused-pending-supersede,
+        resume refused on both entry paths with no event written,
+        further attempts refused with gate.attempt.circuit-tripped,
+        spec/plan status still approved. Second-window D with new
+        keys also circuits. Single fail(A) after resume does not.
+        T-002 still works while T-001 is circuit-tripped. Message
+        lists churn paths and cross-window signatures or honestly
+        says none recurred. Skill contains the live ceiling
+        substring and a &lt;kind id="circuit"&gt; marker; mirror
+        identical; token pin re-measured; README resume row no
+        longer implies every budget pause resumes. Nine named
+        validators exit 0; teaching-surface omitted by this
+        spec's floor. Do not use current-mode lint of this root
+        as a target assertion.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Cycle definition (open question 1). A cycle is the
+        in-window breaker (trigger R or D) firing a second time
+        on the same task — equivalently, a FailureSignature
+        appearing in two windows only as evidence, not as an
+        earlier trip. Rejected: repeated signature sequence
+        (overfits; confused agents invent keys; misses the
+        named cross-window gap). Rejected: WriteEvidence
+        digest-set returning after diverging (F141 limits
+        visibility to path+sha256; F144 shows rewrite of the
+        same files is shipping work). Rejected: first
+        reappearance of a prior-window signature after resume
+        (F9.8: that fail is honest red-first of the replan).
+      </Assumption>
+      <Assumption>
+        Cap and unit (open question 2). Constant
+        FIX_ESCALATION_CEILING = 2, counting escalations per
+        task (kind=escalation plus kind=circuit on that task,
+        whole stream). Why this unit: each ordinary escalation
+        is the human-visible checkpoint that already required a
+        --reason resume; the second checkpoint is the proven
+        loop. Why 2: measured 2026-09-02 across every archived
+        run-ledger.xml, 8 tasks have ever escalated, each
+        exactly once, each with a matching resume; max
+        escalations on one task = 1; tasks with 2+ = 0. N=2
+        therefore has no false positive in this corpus and is
+        the minimum that preserves the first C-ESCALATION-HONESTY
+        checkpoint. N=3 would allow two failed replans with no
+        positive example to calibrate against. Rejected:
+        counting windows (windows = escalations + 1, off-by-one
+        vs the checkpoint the human already paid). Rejected:
+        counting recurrences of one signature as the only unit
+        (misses the D-loop: four new keys, resume, four new
+        keys). Recurrence of one signature across windows is
+        the detector's evidence payload on the same trip, not a
+        second threshold.
+      </Assumption>
+      <Assumption>
+        State and exit (open question 3). New CursorState
+        paused-pending-supersede, new event kind circuit,
+        cleared only by human ngrace supersede of the bundle.
+        ESCALATION_RESOLVER_KINDS stays {"resume"} and does not
+        resolve circuit. Existing union members cannot say this
+        honestly (D21): paused-pending-approval is resume-cleared
+        by definition; discarded claims supersede already
+        happened; complete is a completion judgment. No new
+        operator verb.
+      </Assumption>
+      <Assumption>
+        Grain (open question 4). Per task, matching the existing
+        budget. A bundle whose tasks each take one ordinary
+        replan must not trip. A bundle whose tasks each loop
+        (two escalations each) trips each looping task
+        individually; that is already N circuit states, and
+        supersede of the bundle is still the exit if those
+        tasks are required. Sibling progress is information,
+        not a leak.
+      </Assumption>
+      <Assumption>
+        Churn evidence (open question 5). Computed from
+        WriteEvidence already on attempt events: walk the
+        task's attempts in id order; for each File whose path
+        (element text) is not under .ngrace/ and whose digest
+        attribute is a content digest, if that digest differs
+        from the previous recorded digest of that path, count a
+        rewrite. Present in the message, sorted by rewrite
+        count descending, with window count and recurring
+        signatures. Attached to ordinary first escalation
+        (this-window churn, to inform the replan) and to
+        circuit (cross-window totals). Never a trip predicate.
+        F144's six applied deepest-churn bundles, re-measured
+        2026-09-02, would all have been invalidated by a
+        "3 files × 5 rewrites" ceiling; that is why this
+        spec forbids that ceiling.
+      </Assumption>
+      <Assumption>
+        Module ownership from .ngrace/graph/main.xml at
+        authoring HEAD e5aced5: M-CURSOR Path
+        src/grace-cursor.ts; M-GATES Path src/gates/core.ts
+        (catalog.ts declares the same LINKS); M-SKILLS
+        canonical skills/ngrace/ (packaged mirror separate, no
+        Path); M-TEST-SUPPORT Path src/test-support/fixtures.ts.
+        No other modules. If implement discovers grammar or
+        lint-catalog must change, stop-and-report and re-spec
+        — do not silently expand (F133 / F136).
+      </Assumption>
+      <Assumption>
+        Anticipated write scope (plan OWS must not exceed
+        without re-spec): src/grace-cursor.ts,
+        src/grace-cursor.test.ts, src/gates/catalog.ts,
+        src/gates/core.ts, src/gates/core.test.ts,
+        skills/ngrace/ngrace-execute/SKILL.md,
+        plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md,
+        src/test-support/token-accounting.test.ts,
+        README.md.
+      </Assumption>
+      <Assumption>
+        Version bump is a NonGoal. Current packaged version at
+        authoring is whatever README / package.json /
+        openpackage / marketplace / plugin.json already agree
+        on; this bundle does not move them.
+      </Assumption>
+    </Assumptions>
+  </C-REWORK-CIRCUIT>
+</NgraceChangeSpec>
