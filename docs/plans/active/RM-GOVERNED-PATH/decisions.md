@@ -8646,3 +8646,51 @@ precedent* for the rule, cite the finding that **states** the rule and name the 
 Restating a slogan with an identifier attached is not a citation — it is a claim that a specific
 artifact says a specific thing, and [rule 1](../../../../CLAUDE.md) already holds that a finding is
 never evidence of present state.
+
+### F144 — file-rewrite depth does not discriminate a failing bundle from a shipping one, and the corpus holds no example of the failure it would detect. **[verified]**
+
+Measured **2026-09-02**, at the maintainer's proposal that repeatedly rewriting a small file set —
+*"changed these 3 files already 5 times"* — implies the spec and plan are wrong and should be
+re-created. The **data** is the right data; the **inference** is not supported here.
+
+**Method.** For every `run-ledger.xml` on disk, walk the `attempt` events in order and count, per
+path, how many times that path's digest differs from its previous recorded digest. `.ngrace/`
+artifacts excluded, so this counts product work. Definition matters and a different one moves the
+totals; it does not move the conclusion.
+
+**Result, sorted by the deepest single file in each bundle.**
+
+| bundle | status | max rewrites of one file | files rewritten |
+|---|---|---|---|
+| `C-FINDING-SEVERITIES` | **applied** | 7 | 4 |
+| `C-TEACHING-SURFACE` | **applied** | 5 | 11 |
+| `C-BUNDLE-BASE-REF` | **applied** | 5 | 3 |
+| `C-DRIFT-HONESTY` | **applied** | 5 | 2 |
+| `C-ESCALATION-HONESTY` | **applied** | 5 | 2 |
+| `C-EXPLAIN-COVERAGE` | **applied** | 5 | 3 |
+
+41 bundles carry attempt events: **39 applied, 2 superseded.** Mean deepest-file rewrite count is
+**2.38 for applied** and **3.00 for superseded** — the superseded mean is higher, but n=2 is noise,
+and **every one of the highest-churn bundles shipped.**
+
+**`C-BUNDLE-BASE-REF` is the proposal's own example — three files, five rewrites — and it applied.**
+A ceiling set at that shape would have invalidated six successful bundles, `C-ESCALATION-HONESTY`
+among them: the bundle that built the fix budget this work extends.
+
+**The corpus contains no positive example of the target failure.** Both superseded bundles were
+superseded for **governance** reasons — a scope defect ([F133](#f133)) and the maintainer's
+deliberate cost-collection supersede ([F134.1](#f1341)) — not because an agent thrashed. There is
+therefore nothing here to calibrate a threshold against, and the only visible signal points the wrong
+way. Deep rewriting of a few files is what careful iteration looks like: write, test, refine. That is
+the red-first loop working.
+
+**What the signal is good for.** Churn is better evidence than bytes ([F141](#f141)): derivable from
+data the ledger already holds, retroactive across every bundle, and it names *where* effort
+concentrated. The discriminator is not depth but **depth without progress** — the same files rewritten
+while the same failure recurs. That is the cross-window recurrence [D24](#d24) already charters.
+
+**The rule this yields for `C-REWORK-CIRCUIT`: churn is the payload, recurrence is the trigger.**
+Attaching the churn evidence to an escalation turns "trigger R fired again" into "these three files
+have been rewritten five times across four windows against the same signature", which is the evidence
+a human needs to conclude the plan's decomposition is wrong — and under `D24` that conclusion stays
+human. Churn must **not** be the trip condition on its own, at any threshold this corpus can justify.
