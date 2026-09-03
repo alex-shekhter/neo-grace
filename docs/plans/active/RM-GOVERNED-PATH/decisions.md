@@ -8926,3 +8926,60 @@ all exit 0 — so an allowlist catches only the cheap class. `git diff --exit-co
 paths* passes any linter and proves nothing. **The linter catches the cheap class; the authority runs
 the command against a violating tree before approving.** A green rule must not be read as evidence
 that the harder check happened.
+
+### F148 — an approved plan whose task verification demands the marker a later task was told to withhold. **[verified]**
+
+Measured **2026-09-03**, at close verification of `C-REWORK-CIRCUIT`. Found by the **executor**, at
+execution, and declared rather than worked around silently. **The authority approved the plan.**
+
+**The contradiction, in the approved plan's own bytes.** T-001's named verification is the whole
+file:
+
+```
+<Verification><Command>bun test src/grace-cursor.test.ts</Command></Verification>
+```
+
+T-001's third criterion orders the pin moved — *"Move the length-and-exact-list pin at
+src/grace-cursor.test.ts:3291 from 10 to 11 and add `circuit` as the last member after discarded"*
+(`plan.xml:296-396`). That same file carries
+`it("ngrace-execute documents every exported kind with a structural <kind id> marker")`
+(`src/grace-cursor.test.ts:3329-3360`), whose **sole denominator is the imported
+`KNOWN_EVENT_KINDS`** and which reads `skills/ngrace/ngrace-execute/SKILL.md` from disk. So the
+instant `circuit` enters the export, T-001's own verification requires `&lt;kind id="circuit"&gt;` in
+the skill.
+
+T-005's red-first criterion states the opposite for its own start: *"`&lt;kind id="circuit"&gt;` is
+absent"*, and T-005 is the task that adds it (`plan.xml:554-627`). **Both cannot hold.** The plan's
+sequencing comment reinforces the split — *"T-005 lands the third with the skill"* — while never
+noticing that T-001's verification had already reached into T-005's file.
+
+**Not a scope breach.** Both `SKILL.md` paths are in `ObservedWriteScope` (`plan.xml:263-273`), so
+the executor's resolution — a T-001 stub marker expanded into full prose in T-005 — wrote nothing
+unscoped. Verified at HEAD: the marker is substantive, not a stub
+(`skills/ngrace/ngrace-execute/SKILL.md:99-102`, four documented lines: operator never emits it,
+`recordAttempt` writes it, state is `paused-pending-supersede`, resume will not clear it). The
+intermediate stub is the executor's declared account; a squashed implementation commit cannot show
+it, and that is stated here rather than asserted as measured.
+
+**The rule this pays for.** **When a task's verification command is a whole test file, that task
+inherits every assertion in that file.** A later task forbidden from touching what those assertions
+require is a contradiction, whatever the intent of the split. Before approving a plan: for each
+task, expand its `Verification` command into the assertions it actually runs, then check every
+later task's *"absent"* / *"not yet"* instruction against that set. A file-granular verification
+command is a file-granular commitment.
+
+**The second defect, same artifact.** The plan cites `:3291` for the length pin and `:3313` for
+completeness. Both were **true when written** — verified against `a995f3b`, the pre-implementation
+tree, where `:3291` is `expect(KNOWN_EVENT_KINDS.length).toBe(10);` and `:3313` opens the
+completeness `it(`. Both are **false at HEAD**: the pin is at `:3305` and `:3313` is now `"pause",`
+inside the exact-list literal. **A line number in a plan whose own tasks add code above it is a
+coordinate with an expiry date.** Cite the assertion, the `describe` block, or the identifier —
+never the line — in any plan that grows the file it points into.
+
+**Class and cost.** This is [F127](#f127)'s shape exactly — an approved plan whose requirement and
+whose restriction are written in different sections and never checked against each other — inside
+the wider [F133](#f133)/[F136](#f136) family of untraced blast radius. **The improvement is where it
+was caught:** F136 was caught at plan authoring, F127 by supersede; this one at execution, by the
+executor, with the workaround declared. No supersede is required. The approved criteria are
+unchanged, both tasks' intent is satisfied, and every `AC` T-001 and T-005 name is met by the
+delivered tree.
