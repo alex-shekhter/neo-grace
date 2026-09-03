@@ -8804,3 +8804,30 @@ the case it must be taught to allow, and this entry is the specification of that
 an unmerged branch is a conflict in D11's sense: the branch cannot proceed, and the governed path has
 no active bundle to attach the repair to. The exemption resolves that deadlock rather than widening
 the path.
+
+### F146.1 correction — "nothing pushed" was carried for a whole session while CI logs proved otherwise. **[verified]**
+
+Measured **2026-09-02**, when `gh pr create` refused because
+[PR #65](https://github.com/alex-shekhter/neo-grace/pull/65) already existed.
+
+The session's opening notes said *"Nothing is pushed."* True when written. The authority restated it
+in nearly every report and wrote it into the standing handoff after 54 commits, **never once running
+`git fetch`**. Measured at correction: local and `origin/feat/lint-phase-honesty` are both
+`3828d2b` — 0 ahead, 0 behind. The branch had been pushed throughout.
+
+**The evidence was already in hand and was read without updating the belief.** CI failure logs were
+pasted into this session and diagnosed in detail — and CI output *is* proof of a push, since
+`.github/workflows/validate.yml` triggers on `pull_request`. The authority reasoned carefully about
+*what* the logs said and never asked *how they could exist*.
+
+**Third instance of one shape today**, after [F143](#f143) (a mis-citation restated until it entered a
+ruling) and [F146](#f146) (a green suite on one machine reported as a green branch). The root is
+identical and [rule 1](../../../../CLAUDE.md) already names it: **a claim from an earlier turn is not
+evidence of present state.** What these three add is that the rule binds hardest to *background*
+facts — the ones nobody re-reads because they were never in dispute. A premise that arrives as
+scene-setting gets restated for free, and its expiry is silent.
+
+**The rule.** Before any claim about remote or published state — pushed, open, merged, released —
+run the command that reads it (`git fetch`, `gh pr view`), in the turn you make the claim. And when a
+piece of evidence appears that could only exist if a background premise were false, treat that as the
+signal to re-measure the premise, not merely as data about its own subject.
