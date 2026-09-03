@@ -8344,7 +8344,7 @@ below; it is not given a slot.
 | **`C-PLAN-SCOPE-PATHS`** | Structured spec path bound compared to `ObservedWriteScope`, at error. Named by [F94](#f94). | F94, and [F52](#f52)'s load-bearing weakness. | Named; not in the order. |
 | **`C-GOVERNANCE-ORDER`** | Refuse a module-contract / graph write with no approved change that owns it. Named by the slip register. | [F88.1](#f881), [F88.1.1](#f8811). | Named; not in the order. |
 | **`C-EVIDENCE-DISCRIMINATION`** | A lint rule refusing a `CloseEvidence` command with no failing path: allowlist by command **shape** (not a denylist of binaries), configurable in `.ngrace-lint.json`, polyglot defaults, warning severity with a documented escape. Named here 2026-09-02 by [D26](#d26). Searched before minting: `C-CRITERION-CLOSE-EVIDENCE` created the state, `C-CALIBRATION-COMMAND-EVIDENCE` / `C-COMMAND-EVIDENCE-RECORDED` / `C-FOLD-USES-RECORDED-COMMAND-EVIDENCE` / `C-VERDICT-EVIDENCE` are adjacent; none asks whether a recorded command can fail. | [F147](#f147). `change.close-evidence-incomplete` checks a `Command` exists and `change.close-evidence-and-satisfied` checks task mapping; neither checks power. | **Named 2026-09-02; not in the order.** Must judge command text only ([`C-PHASE-RULE-PIN`](#named-bundle-registry)'s rejected reading B forbids resolving package scripts transitively). Its `--explain` must say the rule catches only the cheap class: `pytest --collect-only`, `cargo test --no-run` and `git diff --exit-code` over the wrong paths all exit 0. |
-| **`C-APPROVE-TIME-REVIEW`** | Teach `ngrace review --change` as a step **before** `ngrace gate approve`, at both the spec and the plan stage: `ngrace-spec` approve step, `ngrace-plan` rule 15, and `ngrace-reviewer` broadened from one moment ("before judgment") to three. **Must ship the partial-review caveat, corrected by [F150.1](#f1501)**: at **spec** approve the scope and WriteEvidence audits report `not-run` (no plan on disk) while the attempt-pair audit *runs* and reports `ran over 0 fail→pass pair(s)` — a clean line over an empty denominator, which is a **weaker** signal than `not-run` and reads as substantiation. Quote each audit's actual status string per stage; a grouping phrase is how [F147](#f147)'s manufactured-pass shape gets taught. Named here 2026-09-03 by [F149](#f149), **amended by [F150](#f150)**: the bundle must also ship what a clean approve-time review looks like, because at **plan** approve the scope audit reports the bundle's own `spec.xml` / `plan.xml` / `decisions.md` as out-of-scope writes on every bundle (at **spec** approve it does not run at all, and naming those findings as expected there teaches a not-run audit as if it had spoken — [F150.1](#f1501)) — an instruction that produces unexplained errors on first use is a trap, not guidance. **Also carries [F152](#f152)**: show the closed approval lexicon whenever approval is requested, one approval request per message naming one artifact, and record the ratifying phrase verbatim — three concerns in this bundle now (approve-time review, F150's expected-findings guidance, F152's lexicon rules), plus the carried XML-escaping item, and its Intent must say so rather than let scope accrete. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` covers the phrase and the close acts ([D19](#d19)/[D20](#d20)), `C-REVIEW-SURFACE` created the detector surface; **none says when review runs.** | [F149](#f149), and retroactively [F136](#f136) and [F148](#f148) — both were catchable by a review the artifact was still editable for. | **Next after `C-EVIDENCE-DISCRIMINATION`.** Candidate to carry the carried item *"the XML-escaping rule's skill homes"* — same two skill files, same rule shape; the spec author decides, and says which. Collides with `C-EVIDENCE-DISCRIMINATION` on `skills/ngrace/ngrace-spec/SKILL.md` and the `skillTextLines` pins, so **sequential, never concurrent**. |
+| **`C-APPROVE-TIME-REVIEW`** | Teach `ngrace review --change` as a step **before** `ngrace gate approve`, at both the spec and the plan stage: `ngrace-spec` approve step, `ngrace-plan` rule 15, and `ngrace-reviewer` broadened from one moment ("before judgment") to three. **Must ship the partial-review caveat, corrected by [F150.1](#f1501)**: at **spec** approve the scope and WriteEvidence audits report `not-run` (no plan on disk) while the attempt-pair audit *runs* and reports `ran over 0 fail→pass pair(s)` — a clean line over an empty denominator, which is a **weaker** signal than `not-run` and reads as substantiation. Quote each audit's actual status string per stage; a grouping phrase is how [F147](#f147)'s manufactured-pass shape gets taught. Named here 2026-09-03 by [F149](#f149), **amended by [F150](#f150)**: the bundle must also ship what a clean approve-time review looks like, because at **plan** approve the scope audit reports the bundle's own `spec.xml` and `plan.xml` as out-of-scope writes on every bundle (`decisions.md` only when it changed *after* the recorded base — [F150.2](#f1502)), and the `WriteEvidence` audit reports a third status there, `unable-to-determine`, distinct from its spec-stage `not-run` (at **spec** approve it does not run at all, and naming those findings as expected there teaches a not-run audit as if it had spoken — [F150.1](#f1501)) — an instruction that produces unexplained errors on first use is a trap, not guidance. **Also carries [F152](#f152)**: show the closed approval lexicon whenever approval is requested, one approval request per message naming one artifact, and record the ratifying phrase verbatim — three concerns in this bundle now (approve-time review, F150's expected-findings guidance, F152's lexicon rules), plus the carried XML-escaping item, and its Intent must say so rather than let scope accrete. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` covers the phrase and the close acts ([D19](#d19)/[D20](#d20)), `C-REVIEW-SURFACE` created the detector surface; **none says when review runs.** | [F149](#f149), and retroactively [F136](#f136) and [F148](#f148) — both were catchable by a review the artifact was still editable for. | **Next after `C-EVIDENCE-DISCRIMINATION`.** Candidate to carry the carried item *"the XML-escaping rule's skill homes"* — same two skill files, same rule shape; the spec author decides, and says which. Collides with `C-EVIDENCE-DISCRIMINATION` on `skills/ngrace/ngrace-spec/SKILL.md` and the `skillTextLines` pins, so **sequential, never concurrent**. |
 | **`C-REVIEW-ARCHIVE-SCOPE`** | Restrict `detectZeroOrMoreSwallow` to plans under `changes/active/`, and rule on `detectSelfReferential`'s plan loop, which carries the same missing guard and fires on nothing today. `detectConfidentlyWrong` **keeps** its archive scan — its `MustExist` targets assert present-tree state — so the change must state why the two differ rather than applying one rule to all three. Named here 2026-09-03 by [F149.1](#f1491). Searched before minting: `C-REVIEW-LANGUAGE-SCOPE` is the closest precedent (it fixed three review false positives) but by marker-scan scoping, not archive scoping; not a synonym. | [F149.1](#f1491). | **After `C-APPROVE-TIME-REVIEW`.** Ordered, not deferred: the cost is one ack per close, recurring forever, and the fix is measured at one line with the ratchet intact. |
 
 **Sweep remainder — mentioned, missing from disk, not a chartered bundle.** Recorded so they
@@ -9317,3 +9317,50 @@ both mistake *absence of a check* for *absence of a problem*.
 The registry row is corrected accordingly. **The two stages differ and the teaching must say so:** at
 spec approve the scope and `WriteEvidence` audits do not run at all; at plan approve they run and
 report the bundle's own governance artifacts.
+
+### F150.2 correction — it is two findings, not three, and the `WriteEvidence` audit has a third status string. **[verified]**
+
+Measured **2026-09-03** at `c50a48e` on `C-APPROVE-TIME-REVIEW`'s plan-stage review. Two more errors
+in [F150](#f150), both the authority's, both found by running the thing rather than describing it.
+
+**(a) "Three errors, on every bundle, forever" overstates it.** The plan-stage review returned
+**two** `review.scope-outside-write-scope` findings — `spec.xml` and `plan.xml` — and **no**
+`decisions.md` finding, despite a finding having been recorded on this branch:
+
+```
+Scope audit: ran over 3 changed file(s) … (input: recorded-base 3e6e4301ec96c959…)
+git diff --name-only 3e6e430 HEAD
+  → .ngrace/changes/active/C-APPROVE-TIME-REVIEW/run-ledger.xml
+    .ngrace/changes/active/C-APPROVE-TIME-REVIEW/spec.xml
+```
+
+**The recorded base is set at `gate approve` time**, so a `decisions.md` write that lands *before*
+the spec-draft commit is outside the diff window and never appears; one that lands *after* it does.
+Here `f2ebc7c` (F150.1) preceded `3e6e430`, so it is invisible to the audit. F150's body was hedged
+correctly — *"plus `decisions.md` whenever a finding was recorded on the branch"* — and then its own
+bolded line dropped the condition. **The invariant is two; the third is contingent on commit order
+relative to the recorded base.**
+
+**(b) A third status string, unmeasured until now.** [F150.1](#f1501) established that audit statuses
+must be quoted per stage rather than grouped. It named two: `not-run` at spec approve, and
+attempt-pair's `ran over 0`. The plan stage produces a third:
+
+| audit | spec approve | plan approve |
+|---|---|---|
+| Scope | `not-run — no plan found` | `ran over 3 changed file(s)` |
+| WriteEvidence | `not-run — no plan found` | **`unable-to-determine — no WriteEvidence in ledger`** |
+| Attempt-pair | `ran over 0 fail→pass pair(s)` | `ran over 0 fail→pass pair(s)` |
+
+`unable-to-determine` is neither `not-run` nor a clean result: the plan exists, so the audit is
+reachable, but the ledger holds no `WriteEvidence` because nothing has been implemented. **Three
+distinct statuses across two stages for three audits, and no two of them mean the same thing.**
+
+**Why this keeps happening, and it is the same error each time.** F150, F150.1 and now F150.2 are one
+mistake repeated: **describing a tool's output from memory of its shape instead of from its bytes.**
+Each correction came from someone actually running the command at a stage the authority had not run
+it at. The rule from F150.1 stands and is now doubly paid for — **quote the status string, per audit,
+per stage, measured at that stage** — with one addition: **the set of statuses is not closed until
+every stage has been run**, so teaching that enumerates them must say which stages were measured.
+
+The charter row is corrected: the guidance this bundle ships must show all three statuses per stage,
+and must not promise a fixed count of scope findings.
