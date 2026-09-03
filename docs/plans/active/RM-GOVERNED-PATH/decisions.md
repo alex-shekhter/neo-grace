@@ -8694,3 +8694,34 @@ Attaching the churn evidence to an escalation turns "trigger R fired again" into
 have been rewritten five times across four windows against the same signature", which is the evidence
 a human needs to conclude the plan's decomposition is wrong — and under `D24` that conclusion stays
 human. Churn must **not** be the trip condition on its own, at any threshold this corpus can justify.
+
+### F145 — the authority committed the executor's tree mid-flight, and shipped a brief with no execution mode. **[verified]**
+
+Measured **2026-09-02**, at the close of `C-LINT-PHASE-HONESTY-2`. Two authority defects, one found by
+the authority and one by the executor — its twelfth consecutive correction.
+
+**Defect 1 — `git add -A` while the executor held the tree.** Recording [F144](#f144) mid-dispatch, the
+authority staged with `git add -A` and swept **all nineteen** of the executor's in-flight run artifacts
+into `b43b45c`, a commit whose message describes only a finding about churn. `git log --diff-filter=A`
+on `run.xml` named that commit, which is how it was caught. In a repository whose product *is* an
+honest execution record, a commit that does not describe its own contents is not a cosmetic problem.
+Split on the unpushed branch into `23cb3e7` (the finding) and `300b315` (the execution), each
+describing what it carries.
+
+**The standing rule already existed and names only reads.** *"No repo reads while the executor works —
+the tree is mid-edit."* The authority obeyed it as written and then **wrote** to the tree, which is
+strictly worse: a read returns stale data, a write takes ownership of files another agent is still
+producing. **Extend the rule: while an executor holds the tree, the authority neither reads nor
+writes it — and `git add -A` is a write.** When a finding must be recorded mid-dispatch, stage the
+specific paths (`git add <path>`), never the working tree.
+
+**Defect 2 — the brief demanded a ceremony it did not parameterize.** The execute brief required the
+`ngrace-execute` ceremony, whose mode-selection block demands an explicit `sequential` or
+`parallel-safe` token, and then supplied neither; the plan carried only a prose comment that
+`T-001`–`T-005` are independent. The executor had to **choose sequential itself** and said so. A brief
+that mandates a skill's ceremony inherits that skill's required inputs: read the skill's own
+selection blocks and supply every token they demand, or the executor is left inventing governance.
+
+**Neither defect damaged the bundle.** Execution was conforming, production was untouched, and the
+ledger is honest. Both were paid before the close rather than filed — the standing law that a defect
+found is a defect fixed.
