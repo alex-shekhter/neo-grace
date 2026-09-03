@@ -1,0 +1,732 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-APPROVE-TIME-REVIEW>
+    <IntentSummary>
+      Teach approve-time ngrace review before gate approve
+      at spec and plan, ship the partial-review caveat and
+      expected scope findings without widening
+      ObservedWriteScope, display the closed lexicon on
+      each ratification request, and state the XML-escaping
+      rule in spec and plan hard_rules. By-skill split:
+      rewrite each SKILL.md once with every concern that
+      lives there, copy the packaged mirror in the same
+      trip, and add only that skill's new contract pins
+      so whole-file skill-contracts verification cannot
+      demand a later skill's teaching.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-APPROVE-TIME-REVIEW/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-APPROVE-TIME-REVIEW/plan.xml</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>V-M-SKILLS</Value></MustExist>
+      <MustExist><Value>V-M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>that command writes status</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>&lt;Clarification&gt;&lt;IC-</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>the gate writes status and records the fingerprint</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>checkDocsAndExamplesDecision</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>Always run before judgment:</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>ngrace review --path . --change C-ID</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>unfingerprinted Decision silent</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>Before setting `applied` or archiving: run `ngrace review --path . --change C-ID`</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/skill-contracts.test.ts</File>
+        <Text>that command writes status</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/skill-contracts.test.ts</File>
+        <Text>the gate writes status and records the fingerprint</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/skill-contracts.test.ts</File>
+        <Text>unfingerprinted Decision silent</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkApprovalLexicon</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>skills/ngrace/ngrace-spec/SKILL.md</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>skills/ngrace/ngrace-plan/SKILL.md</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.total).toBe(823)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/token-accounting.test.ts</File>
+        <Text>expect(measured.totalBytes).toBe(60545)</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>**823 lines** / **60545 UTF-8 bytes**</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>ngrace review --path . --change C-ID</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>ngrace review --path . --change C-ID</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>review.scope-outside-write-scope</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>review.scope-outside-write-scope</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>review.scope-outside-write-scope</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>markup-byte assertions belong in a TypeScript test</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>markup-byte assertions belong in a TypeScript test</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>one approval request per message</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>one approval request per message</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>spec-approve</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>one approval request per message</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>ngrace review --path . --change C-ID</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>that command writes status</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>review.scope-outside-write-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>one approval request per message</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>markup-byte assertions belong in a TypeScript test</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>&lt;Clarification&gt;&lt;IC-</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>ngrace review --path . --change C-ID</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>the gate writes status and records the fingerprint</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>review.scope-outside-write-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>one approval request per message</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>markup-byte assertions belong in a TypeScript test</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>checkDocsAndExamplesDecision</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>spec-approve</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>plan-approve</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>ngrace review --path . --change C-ID</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>review.scope-outside-write-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>unfingerprinted Decision silent</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>Before setting `applied` or archiving: run `ngrace review --path . --change C-ID`</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/skill-contracts.test.ts</File>
+        <Text>that command writes status</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/skill-contracts.test.ts</File>
+        <Text>the gate writes status and records the fingerprint</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/skill-contracts.test.ts</File>
+        <Text>unfingerprinted Decision silent</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>one approval request per message</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>Always run before judgment:</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/grammar.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+    </ObservedWriteScope>
+    <!--
+      Split is by skill, not by concern. F149 and F150 travel as
+      one instruction in each home, so a concern split would edit
+      the same paragraph twice. Runner-up cost: by-concern would
+      land contract assertions with the teaching they describe,
+      but would rewrite each SKILL.md four times and would split
+      an instruction the spec says must travel together.
+      Sequential on skill-contracts.test.ts: T-001, T-002, T-003.
+      T-004 DependsOn T-002 only (both LEXICON_SKILLS homes already
+      carry F152 text) and writes disjoint files from T-003, so
+      T-003 and T-004 are parallel-safe. T-005 DependsOn T-003
+      and T-004.
+      F148: bun test scripts/skill-contracts.test.ts inherits every
+      assertion in that file. New assertions are skill-scoped in
+      the same task that rewrites that skill, added as a new
+      describe, never folded into an existing multi-skill it().
+      Early tasks do not verify token-accounting.test.ts or
+      check-teaching-surface tests, and do not run validate:ci,
+      because those commands would demand T-004 or T-005 work.
+      Token remasure is T-005 only; do not record the stale pin
+      after a SKILL.md rewrite as a planned signature (F45 / F84).
+      F56: at most three distinct fail signatures per task.
+      F80: one red one property; sibling it()s in the same case
+      are the same property, not extra recorded reds.
+      Cite the section name, describe, or identifier, never a
+      line number, in any task that grows the file it points into.
+      Do not add spec.xml, plan.xml, or decisions.md to
+      ObservedWriteScope (F150). Do not put a current-mode lint
+      of this project root in TargetAssertions or in post-write
+      task Verification. AC-CLOSE-LINT, AC-NO-REVIEW-CORE, and
+      AC-CHANGELOG-UNTOUCHED are CloseEvidence, not Satisfies.
+      Preserve grammar.test.ts TEACHING_FILES child-anchor form
+      via the child-example arm (&lt;Clarification&gt;&lt;IC-)
+      or the self-closing-child phrase; do not extend that list;
+      do not add Clarification target=. ngrace-reviewer is not
+      in TEACHING_FILES.
+      Do not edit ngrace-execute, src/review, src/gates,
+      token-accounting.ts (the helper), CHANGELOG.md, version
+      surfaces, examples/, archives, or decisions.md.
+      Packaged mirrors are copied in the same production trip
+      as the canonical skill (AC-MIRRORS).
+      isModuleOwnableWritePath is false for every ObservedWriteScope
+      path (none is a non-test src/ file). M-TEST-SUPPORT is in
+      GraphAnchors because it owns the pin via Path
+      src/test-support/fixtures.ts; the helper file is not in
+      ObservedWriteScope.
+      Signature keys the executor must record (kind test):
+        T-001  spec-review-before-approve
+        T-001  spec-lexicon-request-site
+        T-001  spec-xml-escape
+        T-002  plan-review-before-approve
+        T-002  plan-lexicon-request-site
+        T-002  plan-xml-escape
+        T-003  reviewer-three-moments
+        T-003  reviewer-expected-findings
+        T-004  lexicon-f152-needle
+      Per-task distinct pairs: T-001 3, T-002 3, T-003 2,
+      T-004 1, T-005 0. No key repeats inside a task.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Rewrite ngrace-spec approve-time review lexicon and XML-escape</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-REVIEW-BEFORE-APPROVE />
+          <AC-EXPECTED-FINDINGS />
+          <AC-LEXICON-PROTOCOL />
+          <AC-XML-ESCAPE />
+          <AC-CONTRACT-PINS />
+          <AC-MIRRORS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (spec-review-before-approve): before editing
+            ngrace-spec SKILL.md, in its own tool round trip, add a
+            bun test in scripts/skill-contracts.test.ts under a new
+            describe for this task. Canonical ngrace-spec
+            &lt;status_rules&gt; and workflow step 6 instruct
+            ngrace review --path . --change C-ID after a sufficient
+            lexicon phrase and before ngrace gate approve (does not
+            record a verdict), keep that command writes status, and
+            the same instruction states all of: at spec-approve the
+            scope and WriteEvidence audits report not-run (no plan),
+            attempt-pair reports ran over 0 pairs and that is not
+            substantiation, at plan-approve
+            review.scope-outside-write-scope on the bundle's own
+            spec.xml, plan.xml, and (when that file changed)
+            decisions.md is expected, and do not add those paths to
+            ObservedWriteScope. Exact toContain (F23). Sibling it()s
+            for status_rules versus step 6, and for the expected-findings
+            needles in those same homes, are the same property, not
+            extra recorded reds. Do not assert plan or reviewer text
+            in this case. Do not fold these needles into an existing
+            multi-skill it(). HEAD today: both homes jump from a
+            sufficient phrase to gate approve with no review step
+            and no review.scope-outside-write-scope. Record fail,
+            signature kind test key spec-review-before-approve.
+            Run only this case. Do not land production in this round
+            trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (spec-lexicon-request-site): before editing
+            ngrace-spec SKILL.md, in its own tool round trip, add a
+            bun test in scripts/skill-contracts.test.ts under the
+            same new describe. Canonical ngrace-spec
+            &lt;approval_lexicon&gt; keeps the closed sufficient set
+            (approved, I approve, approve this spec) and the named
+            non-approvals (looks good, continue, any question), and
+            adds the three F152 rules in that block, including the
+            phrase one approval request per message and record the
+            ratifying phrase verbatim. Workflow step 6 quotes the
+            sufficient phrases bound to C-ID and spec stage. Workflow
+            step 2's pre-write ask is not lexicon ratification and
+            must not run gate approve. Do not assert plan or reviewer
+            text in this case. Do not add a phrase to the closed set.
+            Do not add an approval_lexicon to reviewer. HEAD today:
+            the block has the closed set only; step 6 does not quote
+            it bound to C-ID and stage. Record fail, signature kind
+            test key spec-lexicon-request-site. Run only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (spec-xml-escape): before editing
+            ngrace-spec SKILL.md, in its own tool round trip, add a
+            bun test in scripts/skill-contracts.test.ts under the
+            same new describe. Canonical ngrace-spec &lt;hard_rules&gt;
+            states: when a spec, plan, design-context, or skill XML
+            block must name a tag, attribute form, or angle-bracketed
+            token, write it as character data with entities
+            (&amp;lt; &amp;gt; &amp;amp;); do not paraphrase the
+            brackets away to keep the document well-formed;
+            markup-byte assertions belong in a TypeScript test.
+            Do not assert plan text in this case. HEAD today:
+            &lt;hard_rules&gt; has no such sentence. Record fail,
+            signature kind test key spec-xml-escape. Run only this
+            case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): rewrite canonical
+            ngrace-spec SKILL.md as the three reds require. F149 and
+            F150 travel as one instruction in &lt;status_rules&gt;
+            and workflow step 6; do not invent a second review CLI
+            or a different flag set. Keep the C-APPROVAL-FINGERPRINT
+            pin that command writes status. Keep the child-example
+            arm &lt;Clarification&gt;&lt;IC- so grammar.test.ts
+            TEACHING_FILES stays true; do not write Clarification
+            target=; do not edit grammar.test.ts. Do not teach
+            review.zero-or-more-swallow as expected-clean. Copy
+            the canonical file onto
+            plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md in
+            the same trip. Do not edit ngrace-plan, ngrace-reviewer,
+            ngrace-execute, check-teaching-surface.ts,
+            token-accounting.test.ts, README.md, src/review,
+            src/gates, CHANGELOG.md, version surfaces, examples/,
+            archives, or decisions.md. Do not remasure the token
+            pin. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Rewrite ngrace-plan rule 15 lexicon and XML-escape</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-REVIEW-BEFORE-APPROVE />
+          <AC-EXPECTED-FINDINGS />
+          <AC-LEXICON-PROTOCOL />
+          <AC-XML-ESCAPE />
+          <AC-CONTRACT-PINS />
+          <AC-MIRRORS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-001: spec skill already teaches review
+            before gate approve. AC-HEAD-RED
+            (plan-review-before-approve): before editing
+            ngrace-plan SKILL.md, in its own tool round trip, add a
+            bun test in scripts/skill-contracts.test.ts under a new
+            describe for this task. Canonical ngrace-plan
+            &lt;must_do&gt; rule 15 is amended in place (numbers 16
+            and 17 do not shift) to instruct ngrace review --path .
+            --change C-ID after a sufficient lexicon phrase and
+            before ngrace gate approve, keeps the gate writes status
+            and records the fingerprint, and the same instruction
+            states the F150 expected-findings and ObservedWriteScope
+            ban (spec-approve not-run caveat, attempt-pair ran over
+            0 pairs is not substantiation, plan-approve
+            review.scope-outside-write-scope on spec.xml, plan.xml,
+            and decisions.md when that file changed, do not widen
+            ObservedWriteScope). Exact toContain (F23). Sibling it()s
+            for rule 15 versus expected-findings needles in that
+            home are the same property. Do not assert spec or
+            reviewer text in this case. Do not fold these needles
+            into an existing multi-skill it() or into T-001's
+            describe. HEAD today: rule 15 jumps to gate approve
+            with no review step. Record fail, signature kind test
+            key plan-review-before-approve. Run only this case.
+            Do not land production in this round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (plan-lexicon-request-site): before editing
+            ngrace-plan SKILL.md, in its own tool round trip, add a
+            bun test in scripts/skill-contracts.test.ts under the
+            same new describe. Canonical ngrace-plan
+            &lt;approval_lexicon&gt; keeps the closed sufficient set
+            (approved, I approve, approve this plan) and the named
+            non-approvals, and adds the three F152 rules in that
+            block, including one approval request per message and
+            record the ratifying phrase verbatim. Spec versus plan
+            still differ only in approve this spec versus approve
+            this plan among the sufficient phrases. The plan's
+            ratification request quotes those phrases bound to
+            C-ID and plan stage. Do not assert spec or reviewer
+            text in this case. Do not add a phrase to the closed
+            set. HEAD today: the block has the closed set only.
+            Record fail, signature kind test key
+            plan-lexicon-request-site. Run only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (plan-xml-escape): before editing
+            ngrace-plan SKILL.md, in its own tool round trip, add a
+            bun test in scripts/skill-contracts.test.ts under the
+            same new describe. Canonical ngrace-plan &lt;hard_rules&gt;
+            states the same XML-escaping rule as T-001, including
+            markup-byte assertions belong in a TypeScript test.
+            Do not assert spec text in this case. HEAD today:
+            &lt;hard_rules&gt; has no such sentence. Record fail,
+            signature kind test key plan-xml-escape. Run only this
+            case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): rewrite canonical
+            ngrace-plan SKILL.md as the three reds require. Amend
+            rule 15 in place; do not insert a new numbered row.
+            Keep checkDocsAndExamplesDecision and the clarification
+            child-anchor teaching so grammar.test.ts TEACHING_FILES
+            stays true; do not write Clarification target=; do not
+            edit grammar.test.ts. Do not teach
+            review.zero-or-more-swallow as expected-clean. Copy the
+            canonical file onto
+            plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md in
+            the same trip. Do not edit ngrace-spec, ngrace-reviewer,
+            ngrace-execute, check-teaching-surface.ts,
+            token-accounting.test.ts, README.md, src/review,
+            src/gates, CHANGELOG.md, version surfaces, examples/,
+            archives, or decisions.md. Do not remasure the token
+            pin. Keep T-001's spec contract pins green. Then record
+            pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Rewrite ngrace-reviewer mechanized_first approve-time moments</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-REVIEW-BEFORE-APPROVE />
+          <AC-EXPECTED-FINDINGS />
+          <AC-CONTRACT-PINS />
+          <AC-MIRRORS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-002: spec and plan already teach review
+            before gate approve. AC-HEAD-RED (reviewer-three-moments):
+            before editing ngrace-reviewer SKILL.md, in its own tool
+            round trip, add a bun test in scripts/skill-contracts.test.ts
+            under a new describe for this task. Canonical
+            ngrace-reviewer &lt;mechanized_first&gt; names three
+            moments: spec-approve, plan-approve, and before close
+            judgment, and keeps the worked invocation ngrace review
+            --path . --change C-ID. It no longer says only Always
+            run before judgment. Keep unfingerprinted Decision silent.
+            Do not assert spec or plan text in this case. Do not add
+            an approval_lexicon to reviewer. Do not fold these needles
+            into an existing multi-skill it(). HEAD today:
+            &lt;mechanized_first&gt; says only Always run before
+            judgment and has no spec-approve or plan-approve.
+            Record fail, signature kind test key
+            reviewer-three-moments. Run only this case. Do not land
+            production in this round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (reviewer-expected-findings): before editing
+            ngrace-reviewer SKILL.md, in its own tool round trip,
+            add a bun test in scripts/skill-contracts.test.ts under
+            the same new describe. Canonical ngrace-reviewer states
+            the F150 expected-findings and ObservedWriteScope ban:
+            at spec-approve scope and WriteEvidence report not-run
+            (no plan), attempt-pair ran over 0 pairs is not
+            substantiation; at plan-approve
+            review.scope-outside-write-scope on spec.xml, plan.xml,
+            and decisions.md when that file changed is expected;
+            do not add those paths to ObservedWriteScope; other
+            findings are not expected-clean. Do not teach
+            review.zero-or-more-swallow as expected-clean. Do not
+            assert spec or plan text in this case. HEAD today: no
+            review.scope-outside-write-scope in this skill. Record
+            fail, signature kind test key reviewer-expected-findings.
+            Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): rewrite canonical
+            ngrace-reviewer SKILL.md as the two reds require. Keep
+            the worked invocation and unfingerprinted Decision
+            silent. Do not edit ngrace-execute rule 9. ngrace-reviewer
+            is not in grammar.test.ts TEACHING_FILES; do not add it.
+            Copy the canonical file onto
+            plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md
+            in the same trip. Do not edit ngrace-spec, ngrace-plan,
+            check-teaching-surface.ts, token-accounting.test.ts,
+            README.md, src/review, src/gates, CHANGELOG.md, version
+            surfaces, examples/, archives, or decisions.md. Do not
+            remasure the token pin. Keep T-001 and T-002 contract
+            pins green. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Pin F152 needles in checkApprovalLexicon for every LEXICON_SKILLS copy</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-LEXICON-PROTOCOL />
+          <AC-CONTRACT-PINS />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-002: both canonical lexicon copies already
+            carry the F152 rules inside &lt;approval_lexicon&gt;.
+            AC-HEAD-RED (lexicon-f152-needle): before editing
+            checkApprovalLexicon, in its own tool round trip, add a
+            test in scripts/check-teaching-surface.test.ts that
+            checkApprovalLexicon returns non-zero on an isolated-root
+            copy that has the lexicon and the named non-approvals
+            but lacks an F152 needle (one approval request per
+            message). HEAD today: COMPLETE_LEXICON has no such
+            needle and checkApprovalLexicon returns zero on it.
+            The new assert fails. Record fail, signature kind test
+            key lexicon-f152-needle. Run only this case. Do not land
+            production in this round trip. Do not sample one live
+            skill path; the red is the isolated fixture (F136.1).
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84): extend
+            checkApprovalLexicon so it iterates LEXICON_SKILLS
+            (the existing four-path list, not a copied second list)
+            and fails if any copy's &lt;approval_lexicon&gt; block
+            lacks the F152 needle one approval request per message.
+            Keep the existing named-non-approval checks. Update
+            COMPLETE_LEXICON so the existing returns-zero case still
+            holds. Do not add F152 assertions that sample one skill
+            in skill-contracts.test.ts. Do not edit SKILL.md files,
+            token-accounting.test.ts, README.md, ngrace-execute,
+            src/review, or src/gates. Live skills already carry the
+            needle from T-001 and T-002; packaged copies follow by
+            T-001/T-002 mirror copies. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun run validate:teaching-surface</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Remeasure skillTextLines pin and README cell</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+          <Task>T-004</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-TOKEN-PIN />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            DependsOn T-003 and T-004: all three SKILL.md rewrites
+            and the F152 iterator exist. After the prose exists,
+            run skillTextLines() via
+            bun -e 'import { skillTextLines } from "./src/test-support/token-accounting.ts";
+            console.log(skillTextLines().total, skillTextLines().totalBytes)'
+            and update src/test-support/token-accounting.test.ts
+            exact toBe pins and the README.md measurement cell to
+            that fresh pair together. Follow the adjacent precedent
+            comment's form and record the delta. Exact toBe, never
+            a range (F23). If the pair did not move, leave 823 /
+            60545 and record that the measure matched. Do not
+            choose the numbers before measuring. Do not record the
+            stale-pin fail that appears after T-001 through T-003
+            as a planned signature (F45 / F84). Do not edit
+            src/test-support/token-accounting.ts (the helper).
+            Do not edit SKILL.md files, check-teaching-surface.ts,
+            ngrace-execute, src/review, src/gates, CHANGELOG.md,
+            version surfaces, examples/, archives, or decisions.md.
+            Keep T-001 through T-004 pins green. No planned red.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-APPROVE-TIME-REVIEW>
+</NgraceChangePlan>
