@@ -8344,6 +8344,8 @@ below; it is not given a slot.
 | **`C-PLAN-SCOPE-PATHS`** | Structured spec path bound compared to `ObservedWriteScope`, at error. Named by [F94](#f94). | F94, and [F52](#f52)'s load-bearing weakness. | Named; not in the order. |
 | **`C-GOVERNANCE-ORDER`** | Refuse a module-contract / graph write with no approved change that owns it. Named by the slip register. | [F88.1](#f881), [F88.1.1](#f8811). | Named; not in the order. |
 | **`C-EVIDENCE-DISCRIMINATION`** | A lint rule refusing a `CloseEvidence` command with no failing path: allowlist by command **shape** (not a denylist of binaries), configurable in `.ngrace-lint.json`, polyglot defaults, warning severity with a documented escape. Named here 2026-09-02 by [D26](#d26). Searched before minting: `C-CRITERION-CLOSE-EVIDENCE` created the state, `C-CALIBRATION-COMMAND-EVIDENCE` / `C-COMMAND-EVIDENCE-RECORDED` / `C-FOLD-USES-RECORDED-COMMAND-EVIDENCE` / `C-VERDICT-EVIDENCE` are adjacent; none asks whether a recorded command can fail. | [F147](#f147). `change.close-evidence-incomplete` checks a `Command` exists and `change.close-evidence-and-satisfied` checks task mapping; neither checks power. | **Named 2026-09-02; not in the order.** Must judge command text only ([`C-PHASE-RULE-PIN`](#named-bundle-registry)'s rejected reading B forbids resolving package scripts transitively). Its `--explain` must say the rule catches only the cheap class: `pytest --collect-only`, `cargo test --no-run` and `git diff --exit-code` over the wrong paths all exit 0. |
+| **`C-APPROVE-TIME-REVIEW`** | Teach `ngrace review --change` as a step **before** `ngrace gate approve`, at both the spec and the plan stage: `ngrace-spec` approve step, `ngrace-plan` rule 15, and `ngrace-reviewer` broadened from one moment ("before judgment") to three. **Must ship the partial-review caveat**: with no plan on disk the scope, WriteEvidence and attempt-pair audits all report `not-run`, so a pre-approval green covers pattern detectors and artifact checks only — unstated, that is [F147](#f147)'s manufactured-pass shape in a new place. Named here 2026-09-03 by [F149](#f149). Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` covers the phrase and the close acts ([D19](#d19)/[D20](#d20)), `C-REVIEW-SURFACE` created the detector surface; **none says when review runs.** | [F149](#f149), and retroactively [F136](#f136) and [F148](#f148) — both were catchable by a review the artifact was still editable for. | **Next after `C-EVIDENCE-DISCRIMINATION`.** Candidate to carry the carried item *"the XML-escaping rule's skill homes"* — same two skill files, same rule shape; the spec author decides, and says which. Collides with `C-EVIDENCE-DISCRIMINATION` on `skills/ngrace/ngrace-spec/SKILL.md` and the `skillTextLines` pins, so **sequential, never concurrent**. |
+| **`C-REVIEW-ARCHIVE-SCOPE`** | Restrict `detectZeroOrMoreSwallow` to plans under `changes/active/`, and rule on `detectSelfReferential`'s plan loop, which carries the same missing guard and fires on nothing today. `detectConfidentlyWrong` **keeps** its archive scan — its `MustExist` targets assert present-tree state — so the change must state why the two differ rather than applying one rule to all three. Named here 2026-09-03 by [F149.1](#f1491). Searched before minting: `C-REVIEW-LANGUAGE-SCOPE` is the closest precedent (it fixed three review false positives) but by marker-scan scoping, not archive scoping; not a synonym. | [F149.1](#f1491). | **After `C-APPROVE-TIME-REVIEW`.** Ordered, not deferred: the cost is one ack per close, recurring forever, and the fix is measured at one line with the ratchet intact. |
 
 **Sweep remainder — mentioned, missing from disk, not a chartered bundle.** Recorded so they
 are not silently dropped. None is work.
@@ -9076,3 +9078,70 @@ written and is now stale — **25 Command children / 11 distinct across 61 specs
 (23 / 9 across 60, excluding `C-EVIDENCE-DISCRIMINATION`'s own draft). [F123](#f123): a corpus count
 expires the moment a bundle archives, so it is re-measured at citation, never quoted from an earlier
 turn.
+
+### F149.1 correction — the single firing is immortal, and the authorable fix is a location filter, not a regex. **[verified]**
+
+[F149](#f149) reported *"one firing in 58 plans"* and concluded there was no tax. **The count was
+right and the cost was wrong**, and the authority supplied that premise to the maintainer, who
+ratified on it.
+
+**How it surfaced.** Running `ngrace review --change C-EVIDENCE-DISCRIMINATION` before approving its
+spec — F149's own new practice, on its first case — returned one finding, and it was
+`review.zero-or-more-swallow` on **`.ngrace/changes/archive/C-REWORK-CIRCUIT/plan.xml`**: a review of
+one bundle reporting a defect in a different, already-archived one.
+
+**Why that changes the arithmetic.** `detectZeroOrMoreSwallow` walks all of `.ngrace/changes/`,
+archives included, and an archived plan is immutable and fingerprinted. `gate verdict --outcome
+pass` requires an `Ack` for **every** displayed finding. So the single firing is not a one-time
+event: it is **one mandatory ack on every future close, forever.** That is [F137](#f137)'s cost
+profile exactly — the recurring-ackable-noise argument F149 dismissed. It does not hold because the
+detector fires often; it holds because the one firing never goes away.
+
+**And the ratified remedy is unavailable here.** F149's decision rested on the catalog's own
+remediation — *"rewrite titles that claim sequencing"* — being the intended fix for a false positive.
+That remedy requires an editable artifact. `C-REWORK-CIRCUIT`'s plan is archived and fingerprinted,
+so for this instance **no remedy exists at all**.
+
+**The scan is not uniform, measured.** Three detectors walk `changes/`:
+
+| detector | guard | fires on archive |
+|---|---|---|
+| `detectConfidentlyWrong` (`src/review/core.ts:505`) | skips `superseded` / `rejected` / `cancelled` — the [F123](#f123) remedy | no |
+| `detectSelfReferential` plan loop (`:586`) | **none** | not currently |
+| `detectZeroOrMoreSwallow` (`:818`) | **none** | **yes** |
+
+**The fix, probed 2026-09-03 and reverted.** Restricting `detectZeroOrMoreSwallow` to
+`changes/active/`:
+
+```
+bun test src/review/core.test.ts   → 160 pass / 0 fail
+bun run validate:ci                → exit 0
+  zero-or-more-swallow: 2/2          ← corpus ratchet intact
+  determinism gate: PASS
+ngrace review --change …           → Findings: 0   (was 1)
+```
+
+It survives the ratchet because `corpus-zo-02` builds its fixture at
+`.ngrace/changes/**active**/C-CORPUS-ZO2/`. `src/review/core.ts` was restored byte-identical after
+the probe.
+
+**Why location, and why not for all three.** [F123](#f123)'s rule is that an archived plan is
+history, not present state. A `confidently-wrong` finding on an applied plan asserts something about
+the **present tree** — a `MustExist` target should still exist — so that detector is right to scan
+archives. A `zero-or-more-swallow` finding on an archived plan asserts something about a **decision
+already executed**: the tasks ran, in whatever order they ran, and nothing is actionable. The two
+differ in what they assert, not in where they look, and the change must say so.
+
+**This does not overturn F149's ruling; it restores the condition that ruling depends on.** F149 held
+that the detector's eagerness is deliberate *because* a false positive can be reworded away. A
+location filter changes nothing about eagerness on live plans — it scopes the detector to precisely
+the window in which its own remedy exists. F149's process rule (review at approve time) stands
+unchanged and is what surfaced this.
+
+**The authority's error, named.** F149 measured a **count** and reported it as a **cost**. A finding
+on an immutable artifact does not expire; a rate per plan is the wrong denominator when the
+denominator that matters is *closes*. [Rule 8](../../../../CLAUDE.md) says to measure the population —
+this measured the right population and then answered a different question with it.
+
+Chartered as [`C-REVIEW-ARCHIVE-SCOPE`](#named-bundle-registry), ordered after
+`C-APPROVE-TIME-REVIEW`. **Ordered, not deferred.**
