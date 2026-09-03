@@ -8725,3 +8725,45 @@ selection blocks and supply every token they demand, or the executor is left inv
 **Neither defect damaged the bundle.** Execution was conforming, production was untouched, and the
 ledger is honest. Both were paid before the close rather than filed — the standing law that a defect
 found is a defect fixed.
+
+### F146 — a green suite on one machine is not a green branch, and the gap was an undeclared binary. **[verified]**
+
+Measured **2026-09-02**, when CI failed a branch the authority had reported green.
+
+**The claim that was wrong.** The authority reported *"all ten validators exit 0"* and *"the branch
+is green end to end"*, having run `bun run validate:ci` on macOS with bun 1.4.0. CI runs bun 1.3.14 on
+`ubuntu-latest` **and** `windows-latest`. Both jobs failed the same two tests.
+
+**The defect.** `C-SUPERSEDE-RECORD-2`'s two `AC-DISCARDED-CALLER` tests shelled out to **`rg`**:
+
+```
+Bun.spawnSync({ cmd: ["rg", "-n", "discardAndFoldEpoch", "src", "--glob", "!*.test.ts"], ... })
+```
+
+Three separate faults in one construct, all invisible locally:
+
+1. **`rg` is an undeclared dependency.** It appears in no `package.json`, `CONTRIBUTING.md`, or
+   `README.md`. It was on the authority's `PATH` at `/opt/homebrew/bin/rg`, which is the whole reason
+   the tests passed there. `Bun.spawnSync` on a missing binary **throws `ENOENT`**, which surfaces as a
+   bare test failure with no assertion detail — exactly what CI printed.
+2. **The assertions hardcode POSIX separators** (`expect(files).toEqual(["src/gates/ledger.ts", …])`).
+   Windows `rg` emits `src\gates\ledger.ts`, so fixing fault 1 alone would have turned the Linux job
+   green and left the Windows job red. **Two defects were stacked, the first masking the second.**
+3. **Only this one file shelled out to `rg`** in the entire repository — a single-site anomaly no other
+   test shared, and therefore one no other test's success could vouch for.
+
+**The fix, ruled by the maintainer (variant A).** Both tests now scan `src/` in-process with the
+`readdirSync` / `readFileSync` / `path` already imported, normalising separators with
+`replaceAll("\\", "/")`. No external binary, no separator assumption. Verified by probe in both
+directions: planting `kind: "discarded"` in another production file fails the second test, and
+planting a `discardAndFoldEpoch` reference in another file fails the first, with the probe file
+restored byte-identically. The exact `windows-compatibility` job command now reports 310 pass / 0 fail,
+where it reported 310 / 2 fail.
+
+**The rule.** **A suite is green on the machine that ran it, and nowhere else.** Before reporting a
+branch as green, name the environments CI actually uses — read the workflow, do not assume one job —
+and treat any difference in OS, runtime version, or available tooling as unverified. In particular, a
+test that shells out to a binary asserts that binary is present everywhere the suite runs; that is a
+dependency claim, and it belongs in the manifest or not in the test. `Bun.spawnSync` failing with
+`ENOENT` is indistinguishable from an assertion failure in CI output, so the cost of finding it falls
+entirely on whoever reads the log.

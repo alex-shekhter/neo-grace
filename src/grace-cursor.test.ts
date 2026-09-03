@@ -118,6 +118,33 @@ function initGitBaseline(root: string) {
   runGit(root, ["commit", "-m", "test: baseline"]);
 }
 
+/**
+ * Literal-substring hits across production sources under src/, excluding *.test.ts.
+ * In-process on purpose: shelling out to `rg` made these assertions depend on an
+ * undeclared external binary that is absent on CI, and on POSIX path separators
+ * that Windows does not emit. Paths are repo-relative and always "/"-joined.
+ */
+function productionSourceHits(needle: string): { file: string; text: string }[] {
+  const srcRoot = import.meta.dir;
+  const hits: { file: string; text: string }[] = [];
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const absolute = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(absolute);
+        continue;
+      }
+      if (entry.name.endsWith(".test.ts")) continue;
+      const relative = `src/${path.relative(srcRoot, absolute).replaceAll("\\", "/")}`;
+      for (const text of readFileSync(absolute, "utf8").split("\n")) {
+        if (text.includes(needle)) hits.push({ file: relative, text });
+      }
+    }
+  };
+  walk(srcRoot);
+  return hits;
+}
+
 describe("cursor show / regenerate write surface (AC-WRITE-SURFACE)", () => {
   it("cursor show leaves the tree byte-identical", () => {
     const root = createProject();
@@ -1293,31 +1320,17 @@ describe("CLI attempt surface (A20.4 / correction 40)", () => {
   });
 
   it("AC-DISCARDED-CALLER: discardAndFoldEpoch production sites are cursor export and ledger call", () => {
-    const result = Bun.spawnSync({
-      cmd: ["rg", "-n", "discardAndFoldEpoch", "src", "--glob", "!*.test.ts"],
-      cwd: path.join(import.meta.dir, ".."),
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    expect(result.exitCode).toBe(0);
-    const lines = new TextDecoder().decode(result.stdout).split("\n").filter(Boolean);
-    const files = [...new Set(lines.map((line) => line.split(":")[0]))].sort();
+    const hits = productionSourceHits("discardAndFoldEpoch");
+    const files = [...new Set(hits.map((hit) => hit.file))].sort();
     expect(files).toEqual(["src/gates/ledger.ts", "src/grace-cursor.ts"]);
-    expect(lines.some((line) => line.includes("src/grace-cursor.ts") && line.includes("export function discardAndFoldEpoch"))).toBe(true);
-    expect(lines.some((line) => line.includes("src/gates/ledger.ts") && /discardAndFoldEpoch\(/.test(line))).toBe(true);
+    expect(hits.some((hit) => hit.file === "src/grace-cursor.ts" && hit.text.includes("export function discardAndFoldEpoch"))).toBe(true);
+    expect(hits.some((hit) => hit.file === "src/gates/ledger.ts" && /discardAndFoldEpoch\(/.test(hit.text))).toBe(true);
   });
 
   it("AC-DISCARDED-CALLER: kind discarded write is only inside discardAndFoldEpoch", () => {
-    const result = Bun.spawnSync({
-      cmd: ["rg", "-n", 'kind: "discarded"', "src", "--glob", "!*.test.ts"],
-      cwd: path.join(import.meta.dir, ".."),
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    expect(result.exitCode).toBe(0);
-    const lines = new TextDecoder().decode(result.stdout).split("\n").filter(Boolean);
-    expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain("src/grace-cursor.ts:");
+    const hits = productionSourceHits('kind: "discarded"');
+    expect(hits).toHaveLength(1);
+    expect(hits[0]!.file).toBe("src/grace-cursor.ts");
     const cursorSrc = readFileSync(path.join(import.meta.dir, "grace-cursor.ts"), "utf8");
     const fnStart = cursorSrc.indexOf("export function discardAndFoldEpoch");
     const fnEnd = cursorSrc.indexOf("\nexport function", fnStart + 1);
