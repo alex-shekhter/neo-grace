@@ -138,6 +138,11 @@ export type GraceLintConfig = {
    * Distinct from per-command --fail-on on lint/status.
    */
   gateFailOn?: GateFailOn;
+  /**
+   * Additive command-prefix escape for CloseEvidence discriminating shapes.
+   * Each entry is a flattened command prefix. The list cannot remove a default.
+   */
+  closeEvidenceCommandShapes?: string[];
 };
 
 /** Defaults for document-size pressure warnings (Phase 8 / G-16). */

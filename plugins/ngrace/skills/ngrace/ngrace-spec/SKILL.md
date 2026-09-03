@@ -99,6 +99,7 @@ Rules:
 - `AC-*` ids are uppercase kebab (`AC-[A-Z0-9]+(?:-[A-Z0-9]+)*`).
 - Each `AC-*` id is unique within the spec and must contain non-empty text.
 - A close-bound `AC-*` is a child `CloseEvidence` that contains at least one non-empty `Command`. CloseEvidence is a child of `AC-*`, never an attribute. Forgotten `AC-*` (no Satisfies, no complete CloseEvidence) still warn unmapped.
+- A non-empty `Command` is necessary but not sufficient: the Command must match a discriminating shape or a configured prefix. `ngrace lint --explain change.close-evidence-undiscriminating` states the cheap-class limit.
 - Legacy free-text or `<Criterion>` children remain valid; when no `AC-*` is present, criteria mapping is skipped for backward compatibility.
 - `AffectedAreas` should name real `M-*` / `DF-*` / `IC-*` anchors (not prose alone) so plan DurableScope coverage can be validated.
 </acceptance_criteria_anchors>

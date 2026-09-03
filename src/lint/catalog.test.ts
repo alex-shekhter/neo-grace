@@ -443,12 +443,25 @@ describe("catalog issueClass (A5.1 route 2, A6.1)", () => {
 });
 
 describe("CloseEvidence change.* exact guides", () => {
-  it("both new change.* codes have exact guides and are not prefix-allowlisted", () => {
-    for (const code of ["change.close-evidence-incomplete", "change.close-evidence-and-satisfied"] as const) {
+  it("CloseEvidence change.* codes have exact guides and are not prefix-allowlisted", () => {
+    for (const code of [
+      "change.close-evidence-incomplete",
+      "change.close-evidence-and-satisfied",
+      "change.close-evidence-undiscriminating",
+    ] as const) {
       expect(getExactLintIssueGuide(code)).toBeDefined();
       expect(PREFIX_COVERED_LEGACY_CODES.includes(code)).toBe(false);
       expect(classifyIssueCode(code)).toBe("exact");
     }
+  });
+
+  it("change.close-evidence-undiscriminating states the cheap-class limit", () => {
+    const guide = getExactLintIssueGuide("change.close-evidence-undiscriminating");
+    expect(guide?.explanation).toContain("cheap class");
+    expect(guide?.explanation).toContain("pytest --collect-only");
+    expect(guide?.explanation).toContain("cargo test --no-run");
+    expect(guide?.explanation).toContain("go test -run matching nothing");
+    expect(guide?.explanation).toContain("git diff --exit-code over the wrong paths");
   });
 });
 

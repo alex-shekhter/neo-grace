@@ -29,7 +29,7 @@ describe("token-accounting (D15)", () => {
     // then re-measure — total stayed 779 (in-place line-neutral rewrite of four budget sites
     // + resume How; not a target written toward). Pin remains exact toBe of that measure.
     const measured = skillTextLines();
-    expect(measured.total).toBe(822);
+    expect(measured.total).toBe(823);
     expect(measured.perSkill["ngrace-fix"]).toBe(32);
     expect(Object.keys(measured.perSkill).length).toBe(16);
     // Sanity: known skills present
@@ -57,9 +57,11 @@ describe("token-accounting (D15)", () => {
     // moved 812 → 817 lines and 58400 → 58931 bytes.
     // C-REWORK-CIRCUIT T-005: ceiling + circuit kind + resume refuse teaching
     // moved 817 → 822 lines and 58931 → 60325 bytes.
+    // C-EVIDENCE-DISCRIMINATION T-003: CloseEvidence discriminating-shape teaching
+    // in ngrace-spec moved 822 → 823 lines and 60325 → 60545 bytes.
     const measured = skillTextLines();
-    expect(measured.total).toBe(822);
-    expect(measured.totalBytes).toBe(60325);
+    expect(measured.total).toBe(823);
+    expect(measured.totalBytes).toBe(60545);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

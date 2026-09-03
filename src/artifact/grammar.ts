@@ -14,7 +14,9 @@
 //   NGRACE_OPTIONAL_CONTEXT_ARTIFACTS
 //   NgraceValidationResult
 //   RANGE_CLOSING_KINDS
+//   DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES
 //   classifySemanticAnchorTag
+//   closeEvidenceCommandIsDiscriminating
 //   cursorEscalatedTasks
 //   cursorNamedTask
 //   planTaskIds
@@ -61,6 +63,7 @@ import {
 } from "./types";
 import { ARTIFACT_DIR, ProjectPathError, resolveContainedProjectPath } from "./paths";
 import { childText, readGraceXmlArtifact, walkNodes, type GraceXmlNode, type ParsedGraceXmlArtifact } from "./xml";
+import { loadGraceLintConfig } from "../lint/config";
 
 const STANDARD_ROOT_TAGS = new Set<string>(NGRACE_ROOT_TAGS);
 const CHANGE_ROOT_TAGS = new Set([`${ARTIFACT_TAG_PREFIX}ChangeSpec`, `${ARTIFACT_TAG_PREFIX}ChangePlan`]);
@@ -88,6 +91,128 @@ const TASK_REQUIRED_SECTIONS = ["Title", "DependsOn", "AcceptanceCriteria", "Ver
 
 /** Kinds that close a used allocation range for fold and ledger.range-unterminated. */
 export const RANGE_CLOSING_KINDS = Object.freeze(["terminal", "discarded"] as const);
+
+/**
+ * Default CloseEvidence command shapes (command text only). A Command matches
+ * when every required token of any one row is present as a whitespace-delimited
+ * token. Matching a runner token does not inspect non-assertive flags.
+ */
+export const DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES = Object.freeze([
+  {
+    id: "bun-test",
+    match(tokens: readonly string[]): boolean {
+      return tokens.includes("bun") && tokens.includes("test");
+    },
+  },
+  {
+    id: "vitest",
+    match(tokens: readonly string[]): boolean {
+      return tokens.includes("vitest");
+    },
+  },
+  {
+    id: "jest",
+    match(tokens: readonly string[]): boolean {
+      return tokens.includes("jest");
+    },
+  },
+  {
+    id: "node-test",
+    match(tokens: readonly string[]): boolean {
+      return tokens.includes("node") && tokens.includes("--test");
+    },
+  },
+  {
+    id: "pytest",
+    match(tokens: readonly string[]): boolean {
+      return tokens.includes("pytest");
+    },
+  },
+  {
+    id: "python-unittest",
+    match(tokens: readonly string[]): boolean {
+      return (tokens.includes("python") || tokens.includes("python3"))
+        && tokens.includes("-m")
+        && tokens.includes("unittest");
+    },
+  },
+  {
+    id: "dart-test",
+    match(tokens: readonly string[]): boolean {
+      return tokens.includes("dart") && tokens.includes("test");
+    },
+  },
+  {
+    id: "go-test",
+    match(tokens: readonly string[]): boolean {
+      return tokens.includes("go") && tokens.includes("test");
+    },
+  },
+  {
+    id: "cargo-test",
+    match(tokens: readonly string[]): boolean {
+      return tokens.includes("cargo") && tokens.includes("test");
+    },
+  },
+  {
+    id: "ngrace-lint-fail-on",
+    match(tokens: readonly string[]): boolean {
+      return tokens.includes("ngrace") && tokens.includes("lint") && tokens.includes("--fail-on");
+    },
+  },
+  {
+    id: "grace-ts-lint-fail-on",
+    match(tokens: readonly string[]): boolean {
+      return tokens.some((token) => path.basename(token) === "grace.ts")
+        && tokens.includes("lint")
+        && tokens.includes("--fail-on");
+    },
+  },
+  {
+    id: "git-diff-exit-code",
+    match(tokens: readonly string[]): boolean {
+      return tokens.includes("git") && tokens.includes("diff") && tokens.includes("--exit-code");
+    },
+  },
+] as const);
+
+function flattenCloseEvidenceCommandText(commandText: string): string {
+  return commandText.trim().replace(/\s+/g, " ");
+}
+
+function commandMatchesConfiguredPrefix(flattened: string, extraPrefixes: readonly string[]): boolean {
+  return extraPrefixes.some((raw) => {
+    const prefix = flattenCloseEvidenceCommandText(raw);
+    return prefix.length > 0 && (flattened === prefix || flattened.startsWith(`${prefix} `));
+  });
+}
+
+/** True when flattened command text matches a default shape or a configured prefix. */
+export function closeEvidenceCommandIsDiscriminating(
+  commandText: string,
+  extraPrefixes: readonly string[] = [],
+): boolean {
+  const flattened = flattenCloseEvidenceCommandText(commandText);
+  if (!flattened) {
+    return false;
+  }
+  const tokens = flattened.split(" ");
+  if (DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES.some((shape) => shape.match(tokens))) {
+    return true;
+  }
+  return commandMatchesConfiguredPrefix(flattened, extraPrefixes);
+}
+
+function loadCloseEvidenceCommandPrefixes(projectRoot: string | undefined): readonly string[] {
+  if (!projectRoot) {
+    return [];
+  }
+  const { config, issues } = loadGraceLintConfig(projectRoot);
+  if (issues.some((issue) => issue.code === "config.invalid-close-evidence-command-shapes")) {
+    return [];
+  }
+  return config?.closeEvidenceCommandShapes ?? [];
+}
 const ASSERTION_SECTION_TAGS = new Set([
   "MustExist",
   "MustNotExist",
@@ -575,7 +700,7 @@ export function validateChangeArtifact(
         result.issues,
       );
       validateMeaningfulRequiredSections(artifact.file, wrapper, SPEC_REQUIRED_SECTIONS, result.issues);
-      validateSpecAcceptanceCriteria(artifact.file, wrapper, result.issues);
+      validateSpecAcceptanceCriteria(artifact.file, wrapper, result.issues, projectRoot);
       validateSpecDesignReferences(artifact.file, wrapper, projectRoot, result.issues);
       validateClarificationsSection(artifact.file, wrapper, result.issues);
     } else {
@@ -1667,7 +1792,13 @@ function validateClarificationsSection(file: string, wrapper: GraceXmlNode, issu
   }
 }
 
-function validateSpecAcceptanceCriteria(file: string, wrapper: GraceXmlNode, issues: NgraceIssue[]): void {
+function validateSpecAcceptanceCriteria(
+  file: string,
+  wrapper: GraceXmlNode,
+  issues: NgraceIssue[],
+  projectRoot?: string,
+): void {
+  const extraPrefixes = loadCloseEvidenceCommandPrefixes(projectRoot);
   for (const section of wrapper.children.filter((child) => child.tag === "AcceptanceCriteria")) {
     const seen = new Set<string>();
     for (const node of walkNodes(section)) {
@@ -1710,6 +1841,22 @@ function validateSpecAcceptanceCriteria(file: string, wrapper: GraceXmlNode, iss
               `Acceptance criterion ${node.tag} CloseEvidence must contain at least one non-empty Command.`,
             ),
           );
+          continue;
+        }
+        for (const command of child.children) {
+          if (command.tag !== "Command") continue;
+          const text = command.text.trim();
+          if (!text) continue;
+          if (!closeEvidenceCommandIsDiscriminating(text, extraPrefixes)) {
+            issues.push(
+              issue(
+                "warning",
+                "change.close-evidence-undiscriminating",
+                file,
+                `Acceptance criterion ${node.tag} CloseEvidence Command ${JSON.stringify(flattenCloseEvidenceCommandText(text))} matches no discriminating shape and no configured prefix.`,
+              ),
+            );
+          }
         }
       }
     }

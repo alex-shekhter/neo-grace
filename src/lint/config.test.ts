@@ -40,6 +40,42 @@ describe("loadGraceLintConfig", () => {
     expect(issues[0]?.message).toContain("ignoredDirs");
     expect(issues[0]?.message).toContain("unverifiedLanguages");
     expect(issues[0]?.message).toContain("documentAnchorLimit");
+    expect(issues[0]?.message).toContain("closeEvidenceCommandShapes");
+  });
+
+  it("accepts closeEvidenceCommandShapes as an array of non-empty strings", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-lint-cfg-"));
+    writeConfig(root, JSON.stringify({ closeEvidenceCommandShapes: ["bun run validate:examples"] }));
+    const { config, issues } = loadGraceLintConfig(root);
+    expect(issues).toEqual([]);
+    expect(config?.closeEvidenceCommandShapes).toEqual(["bun run validate:examples"]);
+  });
+
+  it("rejects a non-array closeEvidenceCommandShapes at error", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-lint-cfg-"));
+    writeConfig(root, JSON.stringify({ closeEvidenceCommandShapes: "bun run validate:examples" }));
+    const { issues } = loadGraceLintConfig(root);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.code).toBe("config.invalid-close-evidence-command-shapes");
+    expect(issues[0]?.severity).toBe("error");
+  });
+
+  it("rejects an empty-string closeEvidenceCommandShapes entry at error", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-lint-cfg-"));
+    writeConfig(root, JSON.stringify({ closeEvidenceCommandShapes: [""] }));
+    const { issues } = loadGraceLintConfig(root);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.code).toBe("config.invalid-close-evidence-command-shapes");
+    expect(issues[0]?.severity).toBe("error");
+  });
+
+  it("rejects a whitespace-only closeEvidenceCommandShapes entry at error", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-lint-cfg-"));
+    writeConfig(root, JSON.stringify({ closeEvidenceCommandShapes: ["   "] }));
+    const { issues } = loadGraceLintConfig(root);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.code).toBe("config.invalid-close-evidence-command-shapes");
+    expect(issues[0]?.severity).toBe("error");
   });
 
   it("accepts document size limit keys", () => {

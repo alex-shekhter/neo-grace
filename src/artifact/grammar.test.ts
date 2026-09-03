@@ -4,9 +4,11 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import {
+  closeEvidenceCommandIsDiscriminating,
   collectAcceptanceCriteriaIds,
   collectCloseBoundCriterionIds,
   collectSatisfiedAcceptanceCriteria,
+  DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES,
   validateArtifactRoot,
   validateChangeArtifact,
   validateChangeDesignContextArtifact,
@@ -1108,7 +1110,7 @@ describe("spec→plan coverage (G-05 / AC-*)", () => {
   it("close-bound-exempt: complete CloseEvidence AC-* does not warn unmapped", () => {
     const spec = validSpec().replace(
       "<AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria>",
-      "<AcceptanceCriteria><AC-CLOSE>Close bound.<CloseEvidence><Command>true</Command></CloseEvidence></AC-CLOSE><AC-ORDINARY>Ordinary criterion.</AC-ORDINARY></AcceptanceCriteria>",
+      "<AcceptanceCriteria><AC-CLOSE>Close bound.<CloseEvidence><Command>bun test</Command></CloseEvidence></AC-CLOSE><AC-ORDINARY>Ordinary criterion.</AC-ORDINARY></AcceptanceCriteria>",
     );
     const plan = validPlan(task("T-001"));
     const result = validateNgraceProject(projectWithBundle(spec, plan));
@@ -1139,6 +1141,7 @@ describe("spec→plan coverage (G-05 / AC-*)", () => {
     const incomplete = result.issues.filter((i) => i.code === "change.close-evidence-incomplete");
     expect(incomplete.length).toBeGreaterThanOrEqual(3);
     expect(incomplete.every((i) => i.severity === "error")).toBe(true);
+    expect(result.issues.some((i) => i.code === "change.close-evidence-undiscriminating")).toBe(false);
     const incompleteIds = incomplete.map((i) => i.message).join(" ");
     expect(incompleteIds).toContain("AC-EMPTY-CE");
     expect(incompleteIds).toContain("AC-NO-CMD");
@@ -1153,7 +1156,7 @@ describe("spec→plan coverage (G-05 / AC-*)", () => {
   it("close-evidence-and-satisfied: Satisfies of a complete CloseEvidence AC-* is an error", () => {
     const spec = validSpec().replace(
       "<AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria>",
-      "<AcceptanceCriteria><AC-CLOSE>Close bound.<CloseEvidence><Command>true</Command></CloseEvidence></AC-CLOSE></AcceptanceCriteria>",
+      "<AcceptanceCriteria><AC-CLOSE>Close bound.<CloseEvidence><Command>bun test</Command></CloseEvidence></AC-CLOSE></AcceptanceCriteria>",
     );
     const plan = validPlan(
       `<T-001><Title>T-001 title</Title><DependsOn></DependsOn><Satisfies><AC-CLOSE /></Satisfies><AcceptanceCriteria><Criterion>T-001 accepted.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001>`,
@@ -1174,6 +1177,108 @@ describe("spec→plan coverage (G-05 / AC-*)", () => {
     const codes = result.issues.map((i) => i.code);
     expect(codes).toContain("change.unknown-acceptance-criterion");
     expect(codes).not.toContain("change.close-evidence-and-satisfied");
+  });
+
+  function specWithCloseCommand(command: string): string {
+    return validSpec().replace(
+      "<AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria>",
+      `<AcceptanceCriteria><AC-CLOSE>Close bound.<CloseEvidence><Command>${command}</Command></CloseEvidence></AC-CLOSE></AcceptanceCriteria>`,
+    );
+  }
+
+  function closeEvidenceIssues(root: string) {
+    return validateNgraceProject(root).issues.filter((i) => i.code.startsWith("change.close-evidence-"));
+  }
+
+  it("undiscriminating: git log, true, and git diff without --exit-code warn", () => {
+    for (const command of ["git log --format=%B", "true", "git diff"] as const) {
+      const issues = closeEvidenceIssues(projectWithBundle(specWithCloseCommand(command), validPlan(task("T-001"))));
+      const undiscriminating = issues.filter((i) => i.code === "change.close-evidence-undiscriminating");
+      expect(undiscriminating).toHaveLength(1);
+      expect(undiscriminating[0]?.severity).toBe("warning");
+      expect(issues.some((i) => i.code === "change.close-evidence-incomplete")).toBe(false);
+    }
+  });
+
+  it("default discriminating shapes and cheap-class flags do not warn", () => {
+    const commands = [
+      "bun test",
+      "vitest run",
+      "jest",
+      "node --test",
+      "pytest",
+      "python -m unittest",
+      "python3 -m pytest",
+      "dart test",
+      "go test",
+      "cargo test",
+      "bun run ngrace lint --path . --fail-on warnings",
+      "bun ./src/grace.ts lint --path . --fail-on warnings",
+      "git diff --exit-code -- CHANGELOG.md",
+      "pytest --collect-only",
+      "cargo test --no-run",
+    ];
+    for (const command of commands) {
+      const issues = closeEvidenceIssues(projectWithBundle(specWithCloseCommand(command), validPlan(task("T-001"))));
+      expect(issues.some((i) => i.code === "change.close-evidence-undiscriminating"), command).toBe(false);
+      expect(issues.some((i) => i.code === "change.close-evidence-incomplete"), command).toBe(false);
+    }
+  });
+
+  it("opaque bun run scripts warn unless those exact prefixes are configured", () => {
+    const opaque = [
+      "bun run ./scripts/validate-marketplace.ts",
+      "bun run validate:teaching-surface",
+      "bun run validate:examples",
+    ];
+    for (const command of opaque) {
+      const without = closeEvidenceIssues(projectWithBundle(specWithCloseCommand(command), validPlan(task("T-001"))));
+      expect(without.some((i) => i.code === "change.close-evidence-undiscriminating"), command).toBe(true);
+      const root = projectWithBundle(specWithCloseCommand(command), validPlan(task("T-001")));
+      writeProjectFile(root, ".ngrace-lint.json", JSON.stringify({ closeEvidenceCommandShapes: [command] }));
+      const withPrefix = closeEvidenceIssues(root);
+      expect(withPrefix.some((i) => i.code === "change.close-evidence-undiscriminating"), command).toBe(false);
+    }
+  });
+
+  it("configured prefixes are additive and cannot remove a default", () => {
+    const root = projectWithBundle(specWithCloseCommand("bun test"), validPlan(task("T-001")));
+    writeProjectFile(root, ".ngrace-lint.json", JSON.stringify({ closeEvidenceCommandShapes: ["true"] }));
+    expect(closeEvidenceIssues(root).some((i) => i.code === "change.close-evidence-undiscriminating")).toBe(false);
+    const logRoot = projectWithBundle(specWithCloseCommand("git log --format=%B"), validPlan(task("T-001")));
+    writeProjectFile(logRoot, ".ngrace-lint.json", JSON.stringify({ closeEvidenceCommandShapes: ["true"] }));
+    expect(closeEvidenceIssues(logRoot).some((i) => i.code === "change.close-evidence-undiscriminating")).toBe(true);
+  });
+
+  it("omitting projectRoot uses defaults only", () => {
+    const artifact = parseGraceXmlArtifact("spec.xml", specWithCloseCommand("bun run validate:examples"));
+    const result = validateChangeArtifact(artifact, "active");
+    const undiscriminating = result.issues.filter((i) => i.code === "change.close-evidence-undiscriminating");
+    expect(undiscriminating).toHaveLength(1);
+    expect(undiscriminating[0]?.severity).toBe("warning");
+    expect(closeEvidenceCommandIsDiscriminating("bun test")).toBe(true);
+    expect(closeEvidenceCommandIsDiscriminating("bun run validate:examples")).toBe(false);
+    expect(closeEvidenceCommandIsDiscriminating("bun run validate:examples", ["bun run validate:examples"])).toBe(true);
+  });
+
+  it("DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES lists the spec table and no opaque prefixes", () => {
+    expect(DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES.map((shape) => shape.id)).toEqual([
+      "bun-test",
+      "vitest",
+      "jest",
+      "node-test",
+      "pytest",
+      "python-unittest",
+      "dart-test",
+      "go-test",
+      "cargo-test",
+      "ngrace-lint-fail-on",
+      "grace-ts-lint-fail-on",
+      "git-diff-exit-code",
+    ]);
+    expect(closeEvidenceCommandIsDiscriminating("bun run ./scripts/validate-marketplace.ts")).toBe(false);
+    expect(closeEvidenceCommandIsDiscriminating("bun run validate:examples")).toBe(false);
+    expect(closeEvidenceCommandIsDiscriminating("bun run validate:teaching-surface")).toBe(false);
   });
 });
 

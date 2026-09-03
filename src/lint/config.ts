@@ -24,6 +24,7 @@ const SUPPORTED_KEYS = new Set([
   "documentAnchorLimit",
   "documentByteLimit",
   "gateFailOn",
+  "closeEvidenceCommandShapes",
 ]);
 
 export function loadGraceLintConfig(projectRoot: string): { config: GraceLintConfig | null; issues: LintIssue[] } {
@@ -55,7 +56,7 @@ export function loadGraceLintConfig(projectRoot: string): { config: GraceLintCon
         severity: "error",
         code: "config.unknown-key",
         file: CONFIG_FILE_NAME,
-        message: `Unsupported key \`${key}\` in ${CONFIG_FILE_NAME}. Supported keys: ignoredDirs, unverifiedLanguages, codeExtensions, documentAnchorLimit, documentByteLimit, gateFailOn.`,
+        message: `Unsupported key \`${key}\` in ${CONFIG_FILE_NAME}. Supported keys: ignoredDirs, unverifiedLanguages, codeExtensions, documentAnchorLimit, documentByteLimit, gateFailOn, closeEvidenceCommandShapes.`,
       });
     }
 
@@ -118,6 +119,21 @@ export function loadGraceLintConfig(projectRoot: string): { config: GraceLintCon
           code: "config.invalid-gate-fail-on",
           file: CONFIG_FILE_NAME,
           message: "`gateFailOn` must be one of: errors, warnings, never.",
+        });
+      }
+    }
+
+    if (parsed.closeEvidenceCommandShapes !== undefined) {
+      const invalid = !Array.isArray(parsed.closeEvidenceCommandShapes)
+        || parsed.closeEvidenceCommandShapes.some(
+          (value) => typeof value !== "string" || value.trim().length === 0,
+        );
+      if (invalid) {
+        issues.push({
+          severity: "error",
+          code: "config.invalid-close-evidence-command-shapes",
+          file: CONFIG_FILE_NAME,
+          message: "`closeEvidenceCommandShapes` must be an array of non-empty strings.",
         });
       }
     }
