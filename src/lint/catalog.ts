@@ -84,6 +84,16 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     explanation: `\`ignoredDirs\` in ${CONFIG_FILE_NAME} must be an array of directory names.`,
     remediation: ["Use the form [\"vendor\", \"third_party\"].", "Remove the key to lint every directory."],
   },
+  "config.invalid-close-evidence-command-shapes": {
+    title: "Invalid closeEvidenceCommandShapes Config",
+    explanation:
+      `\`closeEvidenceCommandShapes\` in ${CONFIG_FILE_NAME} must be an array of non-empty strings, `
+      + "each a flattened CloseEvidence command prefix additive to the default discriminating shapes.",
+    remediation: [
+      "Use the form [\"bun run validate:examples\"].",
+      "Remove the key to keep only the default discriminating shapes.",
+    ],
+  },
   "analysis.no-adapter": {
     title: "No Language Adapter For Governed File",
     explanation:
@@ -280,6 +290,19 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     remediation: [
       "Remove the AC-* from the task Satisfies list.",
       "Or remove CloseEvidence from the spec criterion if it is actually task-mapped.",
+    ],
+  },
+  "change.close-evidence-undiscriminating": {
+    title: "CloseEvidence Command Is Undiscriminating",
+    explanation:
+      "A complete CloseEvidence Command matches no default discriminating shape and no configured "
+      + "closeEvidenceCommandShapes prefix. The rule catches only the cheap class: it does not prove "
+      + "the command can fail. pytest --collect-only, cargo test --no-run, go test -run matching "
+      + "nothing, and git diff --exit-code over the wrong paths still exit 0, so a green rule is not "
+      + "evidence that the harder check happened.",
+    remediation: [
+      "Use a default discriminating shape such as bun test, pytest, go test, cargo test, ngrace lint --fail-on, or git diff --exit-code.",
+      `Or add a flattened command prefix to closeEvidenceCommandShapes in ${CONFIG_FILE_NAME} (additive; it cannot remove a default).`,
     ],
   },
   "change.unknown-acceptance-criterion": {

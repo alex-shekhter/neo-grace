@@ -80,6 +80,8 @@ TypeScript/JavaScript semantic analysis is bundled and compiler-backed. Governed
 
 `codeExtensions` is additive to the built-in set, so it can add governance for a language but never remove it for another. Those files then get module contracts, `LINKS:`, semantic blocks, health, and drift detection. Export verification still requires an adapter, which is why the second key is there: it acknowledges that `MODULE_MAP` parity is unverified for those files rather than pretending it was checked. Run `ngrace doctor` to see which of your languages are adapter-backed.
 
+`closeEvidenceCommandShapes` is the additive escape for novel discriminating CloseEvidence commands: an array of flattened command prefixes in `.ngrace-lint.json`. It cannot remove a default shape. Opaque aliases such as `bun run <script>` warn unless listed there; `ngrace lint --explain change.close-evidence-undiscriminating` states the cheap-class limit.
+
 ## Install
 
 **The CLI is required, not optional.** Install the skills first, then the CLI — both are needed for a working GRACE setup.
@@ -298,7 +300,7 @@ skip depth (adversarial probe, mutation audit, checklist volume).
 
 | What | Subject / state | Normalized stdout bytes | Commit |
 |---|---|---|---|
-| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **822 lines** / **60325 UTF-8 bytes** | pin in `token-accounting.test.ts` |
+| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **823 lines** / **60545 UTF-8 bytes** | pin in `token-accounting.test.ts` |
 | `skillTextLines().referencesTotal` | package root | **1435 lines** (includes recovery.md) | same instrument |
 | `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `f641334` (the squashed Phase 11 merge; release cut updates) |
 | `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |

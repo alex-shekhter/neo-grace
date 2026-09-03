@@ -1,0 +1,791 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-EVIDENCE-DISCRIMINATION>
+    <Summary>
+      Ship a lint warning that refuses a CloseEvidence
+      Command whose text has no failing path: allowlist
+      by command shape, polyglot defaults derived from
+      the shipped language adapters, a
+      .ngrace-lint.json additive escape, and an
+      --explain text that states the cheap-class limit.
+      Completeness is already linted; power is not.
+    </Summary>
+    <Problem>
+      Registry row C-EVIDENCE-DISCRIMINATION in
+      docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      (heading Named-bundle registry, named 2026-09-02)
+      charters this bundle. D26 in the same file is the
+      binding ruling. F147 is the paid finding. This
+      spec does not restate them in place of those
+      records.
+
+      evaluateCloseEvidenceChildren records Result
+      pass unless the Command exits non-zero. A
+      Command that cannot fail therefore archives a
+      pass it never tested. F147's specimen was
+      git log --format=%B bound to a commit-body
+      claim; measured exit 0 even with --grep matching
+      nothing.
+
+      change.close-evidence-incomplete fires on a
+      missing or empty Command
+      (src/artifact/grammar.ts validateSpecAcceptanceCriteria).
+      change.close-evidence-and-satisfied fires when
+      a close-bound criterion is also task-mapped.
+      Neither asks whether the command has a failing
+      path. Completeness is checked; power is not.
+
+      Re-measured 2026-09-03 at HEAD 42aa4df, every
+      spec.xml under .ngrace/changes/{archive,active}/
+      parsed with parseGraceXmlArtifact (60 specs,
+      active empty before this bundle). 23
+      CloseEvidence Command children, 9 distinct
+      flattened texts. Zero git log. Five instances
+      (three distinct texts) are opaque bun run
+      &lt;script&gt; forms the shape allowlist must
+      flag: bun run ./scripts/validate-marketplace.ts
+      (2), bun run validate:examples (2), bun run
+      validate:teaching-surface (1). The other 18
+      match a default shape (bun test, ngrace lint
+      plus --fail-on, or git diff --exit-code).
+    </Problem>
+    <Goals>
+      <Goal>
+        Emit a new sibling lint code
+        change.close-evidence-undiscriminating at
+        warning when a complete CloseEvidence
+        Command's flattened text matches no default
+        discriminating shape and no configured
+        extra prefix. Keep
+        change.close-evidence-incomplete and
+        change.close-evidence-and-satisfied
+        unchanged in code, severity, and message
+        family.
+      </Goal>
+      <Goal>
+        Allowlist by command shape, never a denylist
+        of binaries. git diff without --exit-code
+        warns; git diff --exit-code does not. The
+        flag decides. Defaults are polyglot and
+        derived from the five shipped adapters
+        (LANGUAGE_ADAPTERS) plus this product's
+        lint driver plus the git shape D26 measured.
+        A hardcoded set of this repository's
+        package.json scripts is rejected.
+      </Goal>
+      <Goal>
+        Config-driven escape: new
+        .ngrace-lint.json key
+        closeEvidenceCommandShapes, an array of
+        non-empty strings, each a flattened command
+        prefix, additive to the defaults, unable to
+        remove a default. Closest key-shape
+        precedent is codeExtensions (additive to a
+        built-in set). Closest acknowledgement
+        precedent is unverifiedLanguages.
+      </Goal>
+      <Goal>
+        ngrace lint --explain
+        change.close-evidence-undiscriminating
+        states the cheap-class limit: well-known
+        runners have non-assertive modes
+        (pytest --collect-only, cargo test --no-run,
+        go test -run matching nothing) and
+        git diff --exit-code over the wrong paths
+        still exits 0. A green rule is not evidence
+        that the harder check happened.
+      </Goal>
+      <Goal>
+        README.md documents closeEvidenceCommandShapes
+        next to the existing config keys, and the
+        skillTextLines measurement cell if a SKILL.md
+        rewrite moves the published figures.
+        examples/ is unchanged; no user-visible
+        CloseEvidence surface there.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting:
+        M-GRAMMAR CloseEvidence power check,
+        M-LINT-CATALOG exact guide,
+        M-LINT-CORE config parser,
+        M-LINT-TYPES GraceLintConfig field,
+        M-SKILLS ngrace-spec teaching plus
+        packaged mirror,
+        M-TEST-SUPPORT token-accounting pin).
+        Gates still run. Roadmap: RM-GOVERNED-PATH
+        D26 on F147. Spec only in this authoring
+        pass; status remains "draft"; do not author
+        plan.xml until the spec is approved (F4
+        two-stage). Do not run gate approve, any
+        gate, or any cursor command in this
+        dispatch.
+      </Constraint>
+      <Constraint>
+        Binding findings and rulings, named so this
+        spec cannot silently contradict them
+        (CLAUDE.md rule 9): F147 (a CloseEvidence
+        command that cannot fail records a pass it
+        never tested), D26 (allowlist by shape,
+        config-driven polyglot defaults, warning
+        with documented escape, command text only,
+        --explain states the cheap-class limit),
+        C-PHASE-RULE-PIN rejected reading B (do
+        not resolve bun run &lt;script&gt; through
+        package.json, Makefile, or justfile),
+        C-REPORT-HONESTY (do not silently overturn
+        current-mode lint framing), F43 (escape
+        markup; never strip it), F133/F136 (anchor
+        every forced file's LINKS module in every
+        module list), D5.5 (CHANGELOG.md is
+        generated), D13 (recorded surfaces stay
+        honest), F45 (do not manufacture a red for
+        a HEAD-true property), F80 (one red
+        evidences one property), F56/F67 (at most
+        three distinct fail signatures per task).
+      </Constraint>
+      <Constraint>
+        AffectedAreas is a closed list and binds
+        the plan (change.plan-scope-exceeds-spec).
+        A plan that needs a module not named here
+        is a stop-and-report. Module lists in this
+        spec (this ceremony constraint,
+        AffectedAreas, and the module-ownership
+        Assumption) must name the same six:
+        M-GRAMMAR, M-LINT-CATALOG, M-LINT-CORE,
+        M-LINT-TYPES, M-SKILLS, M-TEST-SUPPORT.
+      </Constraint>
+      <Constraint>
+        Forced write surface, traced 2026-09-03
+        at HEAD 42aa4df. For each file: LINKS
+        header if any, owning module, and where
+        that module appears (AffectedAreas, this
+        ceremony constraint, module-ownership
+        Assumption).
+
+        src/artifact/grammar.ts — LINKS: M-GRAMMAR
+        (line 5). Sibling emission of
+        change.close-evidence-undiscriminating
+        next to change.close-evidence-incomplete
+        inside validateSpecAcceptanceCriteria.
+        Default shape table is a named constant
+        in this file. Tests co-located as
+        src/artifact/grammar.test.ts (no
+        file-level LINKS; isModuleOwnableWritePath
+        excludes *.test.ts).
+
+        src/lint/catalog.ts — LINKS: M-LINT-CATALOG
+        (line 5). Exact guide for
+        change.close-evidence-undiscriminating
+        (and config.invalid-close-evidence-command-shapes
+        if the parser grows that code). Explanation
+        must state the cheap-class limit named in
+        Goals. Tests co-located as
+        src/lint/catalog.test.ts (extend the
+        existing "CloseEvidence change.* exact
+        guides" describe so the new code is exact
+        and not prefix-allowlisted).
+
+        src/lint/config.ts — LINKS: M-LINT-CORE
+        (line 5). Add closeEvidenceCommandShapes
+        to SUPPORTED_KEYS, parse it as an array
+        of non-empty strings, reject any other
+        shape with
+        config.invalid-close-evidence-command-shapes,
+        and name the new key in the
+        config.unknown-key message (that message
+        enumerates supported keys). Tests
+        co-located as src/lint/config.test.ts.
+        Module Path is src/lint/core.ts. Do not
+        edit src/lint/core.ts. grammar.ts may
+        import loadGraceLintConfig from this
+        file when projectRoot is set; it must
+        not import src/lint/core.ts (cycle:
+        lint/core.ts already imports grammar.ts).
+        If that import is blocked, stop-and-report
+        rather than threading the detector
+        through core.ts.
+
+        src/lint/types.ts — LINKS: M-LINT-TYPES
+        (line 5). Add closeEvidenceCommandShapes?:
+        string[] to GraceLintConfig, documented
+        as additive command-prefix escape.
+
+        skills/ngrace/ngrace-spec/SKILL.md —
+        owned by M-SKILLS (graph Summary:
+        canonical skill sources; Type UTILITY;
+        no Path). Under
+        acceptance_criteria_anchors, the
+        CloseEvidence bullet currently teaches
+        completeness only (non-empty Command).
+        Add that the Command must match a
+        discriminating shape or a configured
+        prefix, and that
+        ngrace lint --explain
+        change.close-evidence-undiscriminating
+        states the cheap-class limit. Packaged
+        mirror
+        plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md
+        stays byte-identical
+        (scripts/validate-marketplace.ts).
+
+        src/test-support/token-accounting.test.ts
+        — no file-level LINKS; M-TEST-SUPPORT by
+        the module Path src/test-support/fixtures.ts
+        (LINKS: M-TEST-SUPPORT line 5). Pins
+        skillTextLines().total = 822 and
+        totalBytes = 60325, measured live
+        2026-09-03 via
+        bun -e 'import { skillTextLines } from "./src/test-support/token-accounting.ts";
+        console.log(skillTextLines().total, skillTextLines().totalBytes)'.
+        Follow C-REWORK-CIRCUIT's adjacent
+        comment form: record the delta, do not
+        leave 822 / 60325. README.md measurement
+        cell publishes the same two numbers.
+
+        README.md — no LINKS (root document).
+        Document closeEvidenceCommandShapes next
+        to codeExtensions / unverifiedLanguages
+        (the config paragraph around README.md
+        lines 73-81). Measurement cell if the
+        pin moves.
+
+        .ngrace-lint.json — no LINKS, not a
+        graph-owned file
+        (isModuleOwnableWritePath is src/ only).
+        This marketplace package must list the
+        three opaque CloseEvidence prefixes
+        already in applied or superseded specs
+        so that after the rule ships,
+        bun ./src/grace.ts lint --path . --fail-on
+        warnings stays 0/0. Those prefixes are
+        the documented escape used here, not
+        default allowlist members.
+
+        Do not add a new src/*.ts file. Do not
+        edit src/lint/adapters/*, src/language-registry.ts,
+        src/gates/*, or src/review/*. Do not
+        rewrite anything under
+        .ngrace/changes/archive/.
+      </Constraint>
+      <Constraint>
+        Default discriminating shapes, command
+        text only, flattened whitespace, required
+        tokens present as whitespace-delimited
+        tokens (a flag such as --exit-code is a
+        token). A Command matches if it matches
+        any one shape. Plan may pick the matcher
+        helper's name; it may not add or drop a
+        row of this table without re-spec.
+
+        bun-test: tokens bun, test. Source:
+        js-ts adapter TEST_IMPORTS includes
+        bun:test (src/lint/adapters/typescript.ts
+        createTypeScriptAdapter).
+        vitest: token vitest. Source: same
+        TEST_IMPORTS.
+        jest: token jest. Source: same
+        TEST_IMPORTS.
+        node-test: tokens node, --test. Source:
+        same TEST_IMPORTS includes node:test.
+        pytest: token pytest. Source: python
+        adapter analyzer (src/lint/adapters/python.ts
+        names pytest).
+        python-unittest: tokens (python or
+        python3), -m, unittest. Source: same
+        analyzer names unittest.
+        dart-test: tokens dart, test. Source:
+        dart toolchain; the dart adapter has no
+        test-runner constant.
+        go-test: tokens go, test. Source: D26
+        names go test; the go adapter has no
+        test-runner constant.
+        cargo-test: tokens cargo, test. Source:
+        D26 names cargo test; the rust adapter
+        has no test-runner constant.
+        ngrace-lint-fail-on: tokens ngrace,
+        lint, --fail-on. Source: this product.
+        grace-ts-lint-fail-on: a token whose
+        path basename is grace.ts, plus tokens
+        lint and --fail-on. Source: this
+        product's src/grace.ts driver.
+        git-diff-exit-code: tokens git, diff,
+        --exit-code. Source: D26 measured
+        example (git diff exits 0 on a dirty
+        tree; git diff --exit-code exits 1).
+
+        Matching a runner token does not inspect
+        non-assertive flags. pytest --collect-only
+        and cargo test --no-run therefore do not
+        warn. That is the cheap class; the
+        --explain text must say so.
+      </Constraint>
+      <Constraint>
+        Command text only. The detector must not
+        open package.json, Makefile, justfile, or
+        any script body, and must not resolve
+        bun run &lt;script&gt;, npm test, or
+        npm run &lt;name&gt; into what the alias
+        runs. Opaque aliases warn unless listed
+        under closeEvidenceCommandShapes. This is
+        C-PHASE-RULE-PIN's rejected reading B,
+        inherited by D26.
+      </Constraint>
+      <Constraint>
+        Warning severity, not error. --fail-on
+        warnings is standard at close, so a
+        warning still blocks an unjustified close
+        without making a novel discriminating
+        command unauthorable. The escape is the
+        config prefix list, not a per-issue
+        suppress and not lowering severity.
+        Searched 2026-09-03 across src/lint for
+        ignoreCode, disabledRules, suppressedCodes,
+        skipCodes, exceptCodes, allowCodes,
+        lint-ignore, ngrace-ignore: no per-issue
+        suppress exists. Do not invent one.
+        unverifiedLanguages remains the
+        acknowledgement precedent;
+        codeExtensions remains the additive-set
+        precedent; OutOfPlanScope is a plan
+        hatch with Reason, not a lint suppress.
+      </Constraint>
+      <Constraint>
+        The rule applies to every complete
+        CloseEvidence Command on active and
+        archived specs, including superseded.
+        validateSpecAcceptanceCriteria already
+        runs regardless of status; do not add
+        an archive exemption. Existing opaque
+        commands in this repository are true
+        positives of the cheap class (the
+        linter cannot know a script fails) and
+        are silenced only by this repo's
+        closeEvidenceCommandShapes entries, not
+        by a grandfather and not by putting
+        those scripts in the default table.
+      </Constraint>
+      <Constraint>
+        Both skill trees always: edit canonical
+        skills/ngrace/ngrace-spec/SKILL.md and
+        keep
+        plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md
+        synchronized in the same change.
+        scripts/validate-marketplace.ts requires
+        packaged-vs-canonical parity via
+        git diff --no-index.
+      </Constraint>
+      <Constraint>
+        README.md is in scope as named above.
+        examples/ is not (NonGoal). This bundle
+        does not touch any product version
+        surface: not package.json version,
+        README packaged-version marker,
+        openpackage.yml,
+        .claude-plugin/marketplace.json, or
+        plugins/ngrace/.claude-plugin/plugin.json.
+        CHANGELOG.md remains unedited and
+        generated (D5.5). Archives under
+        .ngrace/changes/archive/ and
+        docs/plans/archive/ are never edited.
+        decisions.md is not amended.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first regressions
+        for the new warning (undiscriminating
+        command warns; discriminating default
+        does not; config prefix silences; opaque
+        bun run &lt;script&gt; warns without
+        config). F23: exact toBe on the new
+        code and severity, not weaker bounds.
+        Do not manufacture a red for HEAD-true
+        completeness behaviour (F45). Probe
+        every CloseEvidence command on this spec
+        against a violating tree and a restored
+        tree before approval (F147).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        A denylist of binaries (git, true, head,
+        printf, find). Owner: D26. git diff
+        --exit-code is discriminating; banning
+        git would reject it. The non-assertive
+        space across consumer projects is
+        unbounded, so a denylist fails open.
+      </NonGoal>
+      <NonGoal>
+        Resolving package.json, Makefile, or
+        justfile to decide whether a script
+        exits non-zero. Owner: D26 /
+        C-PHASE-RULE-PIN rejected reading B.
+        "A script designed to exit non-zero" is
+        an intent claim the linter cannot check.
+      </NonGoal>
+      <NonGoal>
+        Catching non-assertive modes of an
+        allowed runner (pytest --collect-only,
+        cargo test --no-run, go test -run
+        matching nothing) or git diff
+        --exit-code over the wrong paths.
+        Owner: D26 cheap-class limit. The
+        authority still runs the command
+        against a violating tree before
+        approving.
+      </NonGoal>
+      <NonGoal>
+        A per-issue lint suppress, an XML
+        Reason on Command, or raising this
+        diagnostic to error. Owner: D26
+        warning-plus-config-escape, and the
+        2026-09-03 search that found no
+        per-issue suppress in src/lint.
+      </NonGoal>
+      <NonGoal>
+        Changing change.close-evidence-incomplete
+        or change.close-evidence-and-satisfied,
+        the CloseEvidence grammar (Command
+        still required, still a child of
+        &lt;CloseEvidence&gt;), gate verdict
+        evaluation, or review.close-evidence-unevaluated.
+        Owner: C-CRITERION-CLOSE-EVIDENCE, which
+        created those states. This bundle asks
+        whether a recorded command can fail.
+      </NonGoal>
+      <NonGoal>
+        Editing language adapters or
+        src/language-registry.ts. Owner: this
+        spec's default-shape table, which cites
+        those files as sources and does not
+        rewrite them. Polyglot defaults are
+        command shapes, not new adapter
+        exports.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no user-visible
+        CloseEvidence or lint-config surface
+        there. Owner: unchanged; no
+        user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        Any product version bump or edit to
+        version surfaces. Hand-editing
+        CHANGELOG.md (D5.5). Editing
+        docs/plans/archive/,
+        .ngrace/changes/archive/, or
+        decisions.md. Filling, fixing, or
+        editing any other bundle.
+      </NonGoal>
+      <NonGoal>
+        Broader skill rewrites (ngrace-plan,
+        ngrace-reviewer, ngrace-execute,
+        ngrace-cli). This bundle edits only
+        the CloseEvidence completeness bullet
+        in ngrace-spec so prose and the new
+        linter agree (F130's skill/linter
+        split is the defect to not repeat).
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SIBLING-WARNING>
+        A complete CloseEvidence Command whose
+        flattened text matches no default shape
+        and no configured prefix emits
+        change.close-evidence-undiscriminating
+        at warning from validateSpecAcceptanceCriteria,
+        as a sibling of
+        change.close-evidence-incomplete.
+        git log --format=%B warns. true warns.
+        git diff without --exit-code warns.
+        An empty or missing Command still emits
+        change.close-evidence-incomplete at
+        error, not the new warning.
+        change.close-evidence-and-satisfied is
+        unchanged. Failure conditions: new code
+        is an error; denylist of the git binary
+        rejects git diff --exit-code; incomplete
+        Commands are reclassified as the new
+        warning.
+      </AC-SIBLING-WARNING>
+      <AC-DEFAULT-SHAPES>
+        Flattened Commands that carry every
+        required token of a default shape do
+        not emit the new warning:
+        bun test …, a Command containing token
+        vitest, a Command containing token jest,
+        node --test …, pytest …,
+        python -m unittest …, python3 -m pytest …,
+        dart test …, go test …, cargo test …,
+        bun run ngrace lint --path . --fail-on
+        warnings,
+        bun ./src/grace.ts lint --path . --fail-on
+        warnings,
+        git diff --exit-code … -- CHANGELOG.md.
+        pytest --collect-only and cargo test
+        --no-run also do not warn (cheap class).
+        Failure conditions: bun test warns;
+        git diff --exit-code warns; a this-repo
+        package.json script name is required
+        for a default match.
+      </AC-DEFAULT-SHAPES>
+      <AC-CONFIG-ESCAPE>
+        closeEvidenceCommandShapes in
+        .ngrace-lint.json is an array of
+        non-empty strings, additive to defaults,
+        and cannot remove a default. A Command
+        whose flattened text equals an entry or
+        starts with the entry followed by a
+        space does not warn. bun run
+        validate:examples warns with no config
+        and does not warn when that string is
+        a configured prefix. A non-array or
+        empty-string entry emits
+        config.invalid-close-evidence-command-shapes
+        at error. An unknown config key still
+        emits config.unknown-key, and that
+        message names closeEvidenceCommandShapes.
+        Failure conditions: config replaces
+        defaults; detector reads package.json
+        to honour the prefix; malformed values
+        are ignored.
+      </AC-CONFIG-ESCAPE>
+      <AC-NO-TRANSITIVE-RESOLVE>
+        The detector does not read package.json,
+        Makefile, or justfile. bun run
+        ./scripts/validate-marketplace.ts and
+        bun run validate:teaching-surface warn
+        unless those exact prefixes are
+        configured, even if the underlying
+        script exits non-zero on failure.
+        Failure conditions: detector opens
+        those files; a package-script name is
+        treated as discriminating by default.
+      </AC-NO-TRANSITIVE-RESOLVE>
+      <AC-EXPLAIN-LIMIT>
+        ngrace lint --explain
+        change.close-evidence-undiscriminating
+        (and bun ./src/grace.ts lint --explain
+        of the same code) prints an exact
+        catalog guide whose explanation states
+        that the rule catches only the cheap
+        class, and names pytest --collect-only,
+        cargo test --no-run, go test -run
+        matching nothing, and git diff
+        --exit-code over the wrong paths as
+        cases a green rule does not prove.
+        The code is exact-guided and not on
+        PREFIX_COVERED_LEGACY_CODES.
+        Failure conditions: explanation claims
+        the command was shown to fail; cheap
+        -class examples omitted; code is
+        prefix-allowlisted.
+      </AC-EXPLAIN-LIMIT>
+      <AC-REPO-ESCAPE>
+        After the rule lands, this repository's
+        .ngrace-lint.json lists the three opaque
+        prefixes already in the CloseEvidence
+        corpus (bun run
+        ./scripts/validate-marketplace.ts,
+        bun run validate:examples, bun run
+        validate:teaching-surface) so those
+        existing Commands do not warn, while
+        the same Commands warn in a fixture
+        that omits the key. Defaults still do
+        not include those prefixes.
+        Failure conditions: prefixes added to
+        the default table; existing corpus
+        Commands warn at this root after
+        landing; fixture without the key stays
+        silent.
+      </AC-REPO-ESCAPE>
+      <AC-SKILL-MIRROR>
+        skills/ngrace/ngrace-spec/SKILL.md
+        CloseEvidence teaching states that a
+        non-empty Command is necessary but not
+        sufficient, that the Command must match
+        a discriminating shape or a configured
+        prefix, and that --explain of
+        change.close-evidence-undiscriminating
+        states the cheap-class limit. The
+        packaged mirror is byte-identical.
+        token-accounting.test.ts pins and the
+        README.md measurement cell match a
+        fresh skillTextLines() measure after
+        the rewrite. Failure conditions: only
+        canonical edited; pin left at 822 /
+        60325 after a rewrite that moved it;
+        skill still teaches completeness only.
+      </AC-SKILL-MIRROR>
+      <AC-README-CONFIG>
+        README.md documents
+        closeEvidenceCommandShapes as the
+        additive escape for novel
+        discriminating CloseEvidence commands,
+        next to the existing
+        .ngrace-lint.json keys. examples/ is
+        not edited. Failure conditions: config
+        key ships undocumented; examples/
+        rewritten to carry the key.
+      </AC-README-CONFIG>
+      <AC-NO-NEW-ARGV>
+        Stay-true. src/grace.ts command
+        registration and lint / gate / review
+        arg maps gain no new token. The new
+        code is a lint catalog entry consumed
+        by existing --explain. HEAD today: no
+        close-evidence-undiscriminating argv
+        exists. Do not manufacture a red (F45).
+        Failure conditions: a new token is the
+        only way the rule is expressed.
+      </AC-NO-NEW-ARGV>
+      <AC-CHANGELOG-UNTOUCHED>
+        CHANGELOG.md is not edited by this
+        bundle (D5.5: the changelog entry is
+        written in the commit message, not in
+        the file). Verified against the branch
+        point 42aa4df, so a staged or committed
+        edit fails and an unedited file passes;
+        both directions were probed at
+        authoring.
+        <CloseEvidence>
+          <Command>git diff --exit-code 42aa4df -- CHANGELOG.md</Command>
+        </CloseEvidence>
+      </AC-CHANGELOG-UNTOUCHED>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GRAMMAR />
+      <M-LINT-CATALOG />
+      <M-LINT-CORE />
+      <M-LINT-TYPES />
+      <M-SKILLS />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/artifact/grammar.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/lint/catalog.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/lint/config.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-lint.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --fail-on warnings</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --explain change.close-evidence-undiscriminating</ExpectedCommand>
+      <ExpectedEvidence>
+        Red-first on a throwaway project, driving
+        the real CLI, not only the suite: a spec
+        whose CloseEvidence Command is
+        git log --format=%B warns with
+        change.close-evidence-undiscriminating;
+        the same spec with git diff --exit-code
+        does not; bun test does not; bun run
+        validate:examples warns until
+        closeEvidenceCommandShapes lists that
+        prefix and then does not; pytest
+        --collect-only does not warn; --explain
+        names the cheap-class limit.
+        This root after landing is 0/0 with
+        --fail-on warnings because the three
+        opaque prefixes are configured, not
+        because they became defaults. Skill
+        mirror identical; token pin re-measured;
+        README documents the key; examples/
+        untouched; CHANGELOG.md untouched.
+        Do not use current-mode lint of this
+        root as a target assertion.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Module ownership from .ngrace/graph/main.xml
+        at authoring HEAD 42aa4df: M-GRAMMAR Path
+        src/artifact/grammar.ts; M-LINT-CATALOG
+        Path src/lint/catalog.ts; M-LINT-CORE Path
+        src/lint/core.ts (config.ts declares
+        LINKS: M-LINT-CORE); M-LINT-TYPES Path
+        src/lint/types.ts; M-SKILLS canonical
+        skills/ngrace/ (packaged mirror separate,
+        no Path); M-TEST-SUPPORT Path
+        src/test-support/fixtures.ts. No other
+        modules. If implement discovers
+        src/lint/core.ts, src/gates/*, or
+        src/review/* must change, stop-and-report
+        and re-spec — do not silently expand
+        (F133 / F136).
+      </Assumption>
+      <Assumption>
+        Anticipated write scope (plan OWS must
+        not exceed without re-spec):
+        src/artifact/grammar.ts,
+        src/artifact/grammar.test.ts,
+        src/lint/catalog.ts,
+        src/lint/catalog.test.ts,
+        src/lint/config.ts,
+        src/lint/config.test.ts,
+        src/lint/types.ts,
+        skills/ngrace/ngrace-spec/SKILL.md,
+        plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md,
+        src/test-support/token-accounting.test.ts,
+        README.md,
+        .ngrace-lint.json.
+        src/grace-lint.test.ts may be added to
+        OWS if the plan parks an integration
+        fixture there; that file has no
+        file-level LINKS and is not
+        module-ownable (*.test.ts).
+      </Assumption>
+      <Assumption>
+        D26's phrase "six language adapters
+        ship" is false at HEAD 42aa4df.
+        LANGUAGE_ADAPTERS lists five factories:
+        js-ts, python, dart, go, rust
+        (src/language-registry.ts). README.md
+        language table lists the same five as
+        adapter-backed. Defaults in this spec
+        are derived from those five, not from
+        a sixth. CODE_EXTENSIONS also governs
+        java, kotlin, ruby, php, swift, scala,
+        clojure, sql, and shell without
+        adapters; those languages get no extra
+        default CloseEvidence shapes.
+      </Assumption>
+      <Assumption>
+        dart, go, and rust adapters export no
+        test-runner constant (measured
+        2026-09-03: TEST_IMPORTS / pytest /
+        unittest strings exist only in
+        typescript.ts and python.ts). Their
+        default shapes use the language
+        toolchain names D26 already cited
+        (dart test, go test, cargo test).
+      </Assumption>
+      <Assumption>
+        Coverage validation runs on archives
+        and skips only superseded for
+        spec-plan coverage
+        (src/artifact/grammar.ts
+        validateSpecPlanCoverage). CloseEvidence
+        completeness already runs on every spec
+        via validateSpecAcceptanceCriteria, so
+        the new warning would fire on this
+        repo's five opaque Commands unless
+        .ngrace-lint.json lists them. That is
+        why AC-REPO-ESCAPE is in this spec
+        rather than deferred.
+      </Assumption>
+      <Assumption>
+        Version bump is a NonGoal. Current
+        packaged version at authoring is
+        whatever README / package.json /
+        openpackage / marketplace / plugin.json
+        already agree on; this bundle does not
+        move them.
+      </Assumption>
+    </Assumptions>
+  </C-EVIDENCE-DISCRIMINATION>
+</NgraceChangeSpec>

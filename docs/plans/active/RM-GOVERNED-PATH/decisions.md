@@ -8344,6 +8344,8 @@ below; it is not given a slot.
 | **`C-PLAN-SCOPE-PATHS`** | Structured spec path bound compared to `ObservedWriteScope`, at error. Named by [F94](#f94). | F94, and [F52](#f52)'s load-bearing weakness. | Named; not in the order. |
 | **`C-GOVERNANCE-ORDER`** | Refuse a module-contract / graph write with no approved change that owns it. Named by the slip register. | [F88.1](#f881), [F88.1.1](#f8811). | Named; not in the order. |
 | **`C-EVIDENCE-DISCRIMINATION`** | A lint rule refusing a `CloseEvidence` command with no failing path: allowlist by command **shape** (not a denylist of binaries), configurable in `.ngrace-lint.json`, polyglot defaults, warning severity with a documented escape. Named here 2026-09-02 by [D26](#d26). Searched before minting: `C-CRITERION-CLOSE-EVIDENCE` created the state, `C-CALIBRATION-COMMAND-EVIDENCE` / `C-COMMAND-EVIDENCE-RECORDED` / `C-FOLD-USES-RECORDED-COMMAND-EVIDENCE` / `C-VERDICT-EVIDENCE` are adjacent; none asks whether a recorded command can fail. | [F147](#f147). `change.close-evidence-incomplete` checks a `Command` exists and `change.close-evidence-and-satisfied` checks task mapping; neither checks power. | **Named 2026-09-02; not in the order.** Must judge command text only ([`C-PHASE-RULE-PIN`](#named-bundle-registry)'s rejected reading B forbids resolving package scripts transitively). Its `--explain` must say the rule catches only the cheap class: `pytest --collect-only`, `cargo test --no-run` and `git diff --exit-code` over the wrong paths all exit 0. |
+| **`C-APPROVE-TIME-REVIEW`** | Teach `ngrace review --change` as a step **before** `ngrace gate approve`, at both the spec and the plan stage: `ngrace-spec` approve step, `ngrace-plan` rule 15, and `ngrace-reviewer` broadened from one moment ("before judgment") to three. **Must ship the partial-review caveat**: with no plan on disk the scope, WriteEvidence and attempt-pair audits all report `not-run`, so a pre-approval green covers pattern detectors and artifact checks only — unstated, that is [F147](#f147)'s manufactured-pass shape in a new place. Named here 2026-09-03 by [F149](#f149), **amended by [F150](#f150)**: the bundle must also ship what a clean approve-time review looks like, because the scope audit reports the bundle's own `spec.xml` / `plan.xml` / `decisions.md` as out-of-scope writes on **every** bundle — an instruction that produces unexplained errors on first use is a trap, not guidance. **Also carries [F152](#f152)**: show the closed approval lexicon whenever approval is requested, one approval request per message naming one artifact, and record the ratifying phrase verbatim — three concerns in this bundle now (approve-time review, F150's expected-findings guidance, F152's lexicon rules), plus the carried XML-escaping item, and its Intent must say so rather than let scope accrete. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` covers the phrase and the close acts ([D19](#d19)/[D20](#d20)), `C-REVIEW-SURFACE` created the detector surface; **none says when review runs.** | [F149](#f149), and retroactively [F136](#f136) and [F148](#f148) — both were catchable by a review the artifact was still editable for. | **Next after `C-EVIDENCE-DISCRIMINATION`.** Candidate to carry the carried item *"the XML-escaping rule's skill homes"* — same two skill files, same rule shape; the spec author decides, and says which. Collides with `C-EVIDENCE-DISCRIMINATION` on `skills/ngrace/ngrace-spec/SKILL.md` and the `skillTextLines` pins, so **sequential, never concurrent**. |
+| **`C-REVIEW-ARCHIVE-SCOPE`** | Restrict `detectZeroOrMoreSwallow` to plans under `changes/active/`, and rule on `detectSelfReferential`'s plan loop, which carries the same missing guard and fires on nothing today. `detectConfidentlyWrong` **keeps** its archive scan — its `MustExist` targets assert present-tree state — so the change must state why the two differ rather than applying one rule to all three. Named here 2026-09-03 by [F149.1](#f1491). Searched before minting: `C-REVIEW-LANGUAGE-SCOPE` is the closest precedent (it fixed three review false positives) but by marker-scan scoping, not archive scoping; not a synonym. | [F149.1](#f1491). | **After `C-APPROVE-TIME-REVIEW`.** Ordered, not deferred: the cost is one ack per close, recurring forever, and the fix is measured at one line with the ratchet intact. |
 
 **Sweep remainder — mentioned, missing from disk, not a chartered bundle.** Recorded so they
 are not silently dropped. None is work.
@@ -8983,3 +8985,286 @@ was caught:** F136 was caught at plan authoring, F127 by supersede; this one at 
 executor, with the workaround declared. No supersede is required. The approved criteria are
 unchanged, both tasks' intent is satisfied, and every `AC` T-001 and T-005 name is met by the
 delivered tree.
+
+### F149 — the over-match that looked like a defect fires once in 58 plans, and the id-based fix is unauthorable. **[verified]**
+
+Measured **2026-09-03**, after `C-REWORK-CIRCUIT`'s close acked a
+`review.zero-or-more-swallow` finding on its own T-001.
+
+**The firing.** `detectZeroOrMoreSwallow` ([src/review/core.ts:834](../../../../src/review/core.ts))
+fires when a task's `DependsOn` is empty and its `Title` matches
+`/\bafter\b|\bsecond\b|\bthen\b|\bfollow|\bcompletes?\b|\bonce\b.*\bT-\d+/i`. **Five of the six
+alternatives match a bare English word; only the sixth requires a referent.** T-001's title —
+*"Ceiling constant, circuit kind and state, **second breaker fire**, first escalation unchanged"* —
+is domain prose about the breaker, and T-001 is genuinely first, so its empty `DependsOn` is
+correct. A false positive, at `error` severity.
+
+**The authority's first proposal was to require a co-occurring `\bT-\d+\b` on every alternative,
+generalizing the one well-formed branch. That proposal is wrong, and the corpus says so.**
+
+| title | current regex | id-required variant | asserted |
+|---|---|---|---|
+| `Runs once T-001 completes` (`src/review/core.test.ts:222`, substituted) | fires | fires | FIRE |
+| `Second after first` (`src/test-support/defect-corpus.ts:580`, `corpus-zo-02` `apply()`) | fires | **silent** | `mustFire: true` |
+| `Bootstrap utilities` / `Register adapters` (`:323`) | silent | silent | SILENT |
+
+The **ratchet is the corpus entry, not the `it("FIRE …")` test** — the authority anchored on the
+test, whose substituted title happens to carry `T-001`, and missed that the corpus fixture's own
+title does not. `Second after first` is a genuine sequencing claim with no task id, so the id is
+**not** the feature separating a true positive from this false one. The real distinction is
+grammatical — `second` as predicate (*"second **after first**"*) versus attributive (*"second
+**breaker fire**"*) — and that does not survive a regex.
+
+**The population, and it settles the question.** Every `plan.xml` under
+`.ngrace/changes/{archive,active}` parsed for tasks whose `DependsOn` is empty and whose `Title`
+matches the live regex:
+
+```
+plans=58  tasks=247  tasksWithEmptyDependsOn=80  regexHits=1
+ - C-REWORK-CIRCUIT T-001
+```
+
+**One firing in 58 plans, and it is the false positive that started this.** The authority had argued
+that an error-severity false positive *"trains the authority to ack, devaluing the acks that
+matter"*; at 1-in-58 that argument does not hold, and it was reasoning from a sample of one — the
+[F130.1](#f1301) shape again, one instance carried as a rate. **Limitation, stated rather than
+hidden:** this counts titles as they now stand; a title reworded before approval in response to the
+detector would be invisible. No such instance is known and none has been searched for.
+
+**Severity is not a lever, measured.** Review's default display threshold is already `warning`, and
+`gate verdict` requires an ack for **every** displayed finding regardless of severity, so demoting
+`error`→`warning` changes nothing operationally. Only `info` suppresses, which is deletion in
+disguise.
+
+**Decision — no change to the detector.** The eagerness is deliberate: the catalog's own
+remediation reads *"Add the missing dependency edges, **or rewrite titles that claim sequencing**"*
+([src/review/catalog.ts:139](../../../../src/review/catalog.ts)), so title-rewriting is the shipped
+intended remedy, and the one true-positive shape on record needs the bare-word match. **Ratified by
+the maintainer 2026-09-03.**
+
+**The rule this pays for, and it is the whole value of the episode.** Every cost here came from the
+artifact being **frozen** when the finding surfaced. **Run `ngrace review --change` at spec-approve
+and at plan-approve, not only at close.** Run while the title is still editable and the shipped
+remedy costs one word. The same gap produced [F136](#f136) (an anchor check written into a brief and
+never run against the approved spec) and [F148](#f148) (a task-verification contradiction that
+plan-time review would have surfaced). **Three findings, one missing step.**
+
+### D26.1 correction — five language adapters ship, not six. **[verified]**
+
+[D26](#d26) states *"six language adapters ship"* as a premise for the polyglot-defaults constraint.
+**That is false at HEAD.** Reported by the executor while authoring
+`C-EVIDENCE-DISCRIMINATION`'s spec and re-measured independently by the authority on **2026-09-03**
+at `42aa4df`:
+
+```
+bun -e 'import {LANGUAGE_ADAPTERS} from "./src/language-registry.ts"; console.log(LANGUAGE_ADAPTERS.length)'
+→ 5   # js-ts, python, dart, go, rust
+```
+
+`README.md`'s language table lists the same five. **`dart`, `go` and `rust` carry no test-runner
+constant**, so a default shape table cannot derive `dart test`, `go test` or `cargo test` from an
+adapter export; those three come from D26's own prose instead, and the spec records that derivation
+rather than inventing adapter exports.
+
+**D26's ruling is unaffected and stands in full.** The count was decorative — the constraint is that
+defaults must be polyglot and config-driven *because the rule ships to consumer toolchains*, and
+that reasoning does not depend on whether five or six adapters ship. **This is a correction to a
+premise, not an overturning of a decision.**
+
+Recorded because the evidence standard requires it: when the executor corrects a number, the
+authority re-measures independently and **records the correction against the artifact that carried
+it**. Also noted: [F147](#f147)'s *"All 19 `CloseEvidence` commands in the corpus"* was true when
+written and is now stale — **25 Command children / 11 distinct across 61 specs** at this HEAD
+(23 / 9 across 60, excluding `C-EVIDENCE-DISCRIMINATION`'s own draft). [F123](#f123): a corpus count
+expires the moment a bundle archives, so it is re-measured at citation, never quoted from an earlier
+turn.
+
+### F149.1 correction — the single firing is immortal, and the authorable fix is a location filter, not a regex. **[verified]**
+
+[F149](#f149) reported *"one firing in 58 plans"* and concluded there was no tax. **The count was
+right and the cost was wrong**, and the authority supplied that premise to the maintainer, who
+ratified on it.
+
+**How it surfaced.** Running `ngrace review --change C-EVIDENCE-DISCRIMINATION` before approving its
+spec — F149's own new practice, on its first case — returned one finding, and it was
+`review.zero-or-more-swallow` on **`.ngrace/changes/archive/C-REWORK-CIRCUIT/plan.xml`**: a review of
+one bundle reporting a defect in a different, already-archived one.
+
+**Why that changes the arithmetic.** `detectZeroOrMoreSwallow` walks all of `.ngrace/changes/`,
+archives included, and an archived plan is immutable and fingerprinted. `gate verdict --outcome
+pass` requires an `Ack` for **every** displayed finding. So the single firing is not a one-time
+event: it is **one mandatory ack on every future close, forever.** That is [F137](#f137)'s cost
+profile exactly — the recurring-ackable-noise argument F149 dismissed. It does not hold because the
+detector fires often; it holds because the one firing never goes away.
+
+**And the ratified remedy is unavailable here.** F149's decision rested on the catalog's own
+remediation — *"rewrite titles that claim sequencing"* — being the intended fix for a false positive.
+That remedy requires an editable artifact. `C-REWORK-CIRCUIT`'s plan is archived and fingerprinted,
+so for this instance **no remedy exists at all**.
+
+**The scan is not uniform, measured.** Three detectors walk `changes/`:
+
+| detector | guard | fires on archive |
+|---|---|---|
+| `detectConfidentlyWrong` (`src/review/core.ts:505`) | skips `superseded` / `rejected` / `cancelled` — the [F123](#f123) remedy | no |
+| `detectSelfReferential` plan loop (`:586`) | **none** | not currently |
+| `detectZeroOrMoreSwallow` (`:818`) | **none** | **yes** |
+
+**The fix, probed 2026-09-03 and reverted.** Restricting `detectZeroOrMoreSwallow` to
+`changes/active/`:
+
+```
+bun test src/review/core.test.ts   → 160 pass / 0 fail
+bun run validate:ci                → exit 0
+  zero-or-more-swallow: 2/2          ← corpus ratchet intact
+  determinism gate: PASS
+ngrace review --change …           → Findings: 0   (was 1)
+```
+
+It survives the ratchet because `corpus-zo-02` builds its fixture at
+`.ngrace/changes/**active**/C-CORPUS-ZO2/`. `src/review/core.ts` was restored byte-identical after
+the probe.
+
+**Why location, and why not for all three.** [F123](#f123)'s rule is that an archived plan is
+history, not present state. A `confidently-wrong` finding on an applied plan asserts something about
+the **present tree** — a `MustExist` target should still exist — so that detector is right to scan
+archives. A `zero-or-more-swallow` finding on an archived plan asserts something about a **decision
+already executed**: the tasks ran, in whatever order they ran, and nothing is actionable. The two
+differ in what they assert, not in where they look, and the change must say so.
+
+**This does not overturn F149's ruling; it restores the condition that ruling depends on.** F149 held
+that the detector's eagerness is deliberate *because* a false positive can be reworded away. A
+location filter changes nothing about eagerness on live plans — it scopes the detector to precisely
+the window in which its own remedy exists. F149's process rule (review at approve time) stands
+unchanged and is what surfaced this.
+
+**The authority's error, named.** F149 measured a **count** and reported it as a **cost**. A finding
+on an immutable artifact does not expire; a rate per plan is the wrong denominator when the
+denominator that matters is *closes*. [Rule 8](../../../../CLAUDE.md) says to measure the population —
+this measured the right population and then answered a different question with it.
+
+Chartered as [`C-REVIEW-ARCHIVE-SCOPE`](#named-bundle-registry), ordered after
+`C-APPROVE-TIME-REVIEW`. **Ordered, not deferred.**
+
+### F150 — approve-time review reports the bundle's own artifacts as out-of-scope writes, on every bundle, permanently. **[verified]**
+
+Found by the **executor** in its `WRONG` field while authoring `C-EVIDENCE-DISCRIMINATION`'s plan,
+and it is a defect in [F149](#f149)'s new practice, introduced by the authority the day before.
+
+**What happens.** The scope audit diffs against the bundle's **recorded base** and reports every
+changed file absent from `ObservedWriteScope`. At approve time the bundle's own governance artifacts
+are always changed relative to that base and are **never** in `ObservedWriteScope` — they are
+governance, not implementation writes. Measured 2026-09-03 on the plan-stage review of
+`C-EVIDENCE-DISCRIMINATION` (recorded base `a5f070b`):
+
+```
+- [error] review.scope-outside-write-scope …/C-EVIDENCE-DISCRIMINATION/plan.xml   (id=7312b12c37c0068a)
+- [error] review.scope-outside-write-scope …/C-EVIDENCE-DISCRIMINATION/spec.xml   (id=c4e6d414a56bfe7a)
+- [error] review.scope-outside-write-scope docs/plans/active/RM-GOVERNED-PATH/decisions.md (id=4a00eada4f8cf3cf)
+```
+
+**This is not incidental noise; it is structural.** Every bundle that reaches plan approval will show
+its own `plan.xml` and `spec.xml`, plus `decisions.md` whenever a finding was recorded on the branch.
+**Three errors, on every bundle, forever** — and unlike [F137](#f137), which produces the same shape
+at *close*, this fires at the moment the practice is supposed to make approval cheap.
+
+**Why the executor is right that they are not `ObservedWriteScope` defects.** Adding the bundle's own
+artifacts to `ObservedWriteScope` would be worse on two counts: it would exceed the approved spec's
+path ceiling (raising `change.plan-scope-exceeds-spec`), and it would assert that the *implementing
+executor* will edit the plan, which is false — those writes belong to `gate approve` and to the
+authority. The finding is a true statement about the diff and a false statement about the work.
+
+**The consequence for [`C-APPROVE-TIME-REVIEW`](#named-bundle-registry), which this amends.** The
+skills cannot simply say *"run `ngrace review` before `gate approve`"*. A GRACE user following that
+instruction meets three errors on their first bundle and has no way to know they are expected. The
+bundle must therefore ship **both** halves: the instruction, **and** what a clean approve-time review
+looks like — the scope audit's own artifacts excluded or explicitly named as expected, alongside the
+partial-review caveat ([F147](#f147)'s shape) already in the charter. **An instruction that produces
+unexplained errors on first use is not guidance; it is a trap.**
+
+**The authority's error, named.** F149 was ratified on the strength of three cases where an
+approve-time review would have caught a defect cheaply. The practice was never *run* end-to-end
+before being written into `decisions.md` as standing practice and into a brief as a binding ruling —
+the first honest execution of it was this dispatch, by the executor, which is where the defect
+surfaced. [CLAUDE.md](../../../../CLAUDE.md) rule 5 says to exercise the product before accepting
+work; a **new process** is a product too, and this one shipped on reasoning alone.
+
+### F151 — the authority's brief contradicted itself on cursor commands, one bundle after writing F148. **[verified]**
+
+The plan brief for `C-EVIDENCE-DISCRIMINATION` required, in §2, the blocking precondition check:
+
+```
+bun ./src/grace.ts cursor show --change C-EVIDENCE-DISCRIMINATION --path .
+```
+
+while §5 stated *"you are still forbidden to run gates or cursor commands in **this** dispatch"* and
+§9 repeated the prohibition. **Both cannot hold.** The executor ran `cursor show`, took the narrow
+reading (read-only, no epoch, no event, nothing written), and **declared it as a deviation** rather
+than resolving it silently.
+
+**Its resolution is correct.** `cursor show` never writes — the skill describes it as *"Show position
+(never writes; recovers rather than blocks)"*. The prohibition was aimed at cursor **writes**:
+`advance`, `attempt`, `resume`, `fold`. The brief said "cursor commands" and meant "cursor writes".
+
+**This is [F148](#f148)'s own class, committed by the authority in the brief that teaches F148.** §6
+of that brief instructs the executor to walk every task's verification and check it against every
+later prohibition — and the brief itself was never walked the same way. The rule was applied
+downstream and not to the document carrying it, which is exactly [F136](#f136)'s closing sentence.
+
+**The fix, for every future brief.** Prohibitions name the **operation class**, never the command
+surface: *"no cursor write — no `advance`, `attempt`, `resume`, `fold`, no epoch, no recorded
+event"*. Read-only inspection (`cursor show`, `status`, `review`, `lint`, `file show`) is always
+permitted and should be stated as permitted, because a brief that forbids inspection forbids the
+verification it demands elsewhere.
+
+### F152 — the closed approval lexicon guards the word and not the referent, and is never shown to the person who must say it. **[verified]**
+
+Raised by the **maintainer** on 2026-09-03 after four approval exchanges in one session, three of
+which went wrong in different directions. Measured against
+`skills/ngrace/ngrace-plan/SKILL.md` `&lt;approval_lexicon&gt;`, whose sufficient set is closed to
+the standalone word `approved`, the phrase `I approve`, and `approve this plan` matching the
+artifact; its named non-approvals are `looks good`, `continue`, and any question.
+
+| maintainer's phrase | in the closed set | authority's action |
+|---|---|---|
+| *"This spec is approved and you can run `gate approve`"* | not literally | accepted |
+| **`approved`** (standalone) | **yes** | **refused** |
+| *"You have both"* | no | about to refuse |
+| *"Plan is approved"* | not literally | accepted |
+
+**Row two is the finding.** That is the exact lexicon phrase, and it was refused — because two
+things were pending in the same exchange and the referent was ambiguous. **Membership in the closed
+set guaranteed the vocabulary and said nothing about what was being approved.** The instrument
+guards the wrong variable: the risk it was built against is an agent inventing approval from vague
+text, and that risk is as much about referent as about wording.
+
+**Rows one, three and four show the other edge.** Three natural phrasings that name the artifact and
+carry the approving word are all outside the closed set. An instrument that a cooperating maintainer
+fails three times in four attempts is mis-specified, and the person expected to produce the phrase
+**is never shown it** — the authority asked for *"the plan ratification phrase"* without printing
+what phrases exist.
+
+**The ruling, decided by the maintainer, three parts.** Do **not** widen the set — widening
+reintroduces judgment at the boundary, which is the only thing a closed set buys.
+
+1. **Show the lexicon whenever approval is requested.** Quote the sufficient phrases verbatim, bound
+   to the artifact id and stage in the same breath. Never ask for the phrase without printing it.
+   Bind it to the specific artifact each time rather than emitting a static banner, or it becomes
+   ritual and is pasted unread.
+2. **One approval request per message, one artifact, nothing else asked.** This is what broke row
+   two, and the fault was the **authority's**, not the lexicon's: it bundled a permission-to-edit
+   question with the ratification request. A request that names exactly one artifact and asks
+   nothing else makes a bare `approved` unambiguous by construction.
+3. **Record the phrase verbatim** in the commit and the ledger — the bytes the human wrote, never
+   *"the maintainer approved"*. A paraphrase is indistinguishable from an agent asserting its own
+   approval, which is the whole failure the lexicon exists to prevent.
+
+**Surface, measured 2026-09-03.** Four files: `skills/ngrace/ngrace-spec/SKILL.md`,
+`skills/ngrace/ngrace-plan/SKILL.md`, and both packaged mirrors. The spec and plan lexicons are
+byte-identical except one line — `approve this spec` versus `approve this plan` — so the shared rule
+is authored twice and **can be wrong twice** ([F136.1](#f1361)'s hazard). Any spec carrying this must
+require the reviewer to check both, not the one they happened to open.
+
+Folded into [`C-APPROVE-TIME-REVIEW`](#named-bundle-registry), which already targets the approve step
+in these same two skills. That bundle now carries three concerns and must **say so in its own
+Intent** rather than let the scope accrete silently.
