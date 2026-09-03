@@ -9412,3 +9412,61 @@ briefs both stated a wrong commit count — *"four commits"* when `ed0661a..HEAD
 `git rev-list --count <base>..HEAD` in the turn the brief is written**, rather than recalling it;
 this is [rule 8](../../../../CLAUDE.md) at its smallest scale, and the smallest scale is where it is
 skipped.
+
+### F154 — the authority published a session-scoped URL into a public repository, and the local remedy never reached `main`. **[verified]**
+
+Raised by the **maintainer** on 2026-09-03, in alarm, and correctly.
+
+**What happened.** Every commit message the authority wrote carried a
+`Claude-Session: https://claude.ai/code/session_…` trailer, appended mechanically from a harness
+attribution default. `alex-shekhter/neo-grace` is **public** (`"isPrivate": false`, measured
+2026-09-03). It went into public history without the authority once asking what the URL was or where
+it was going.
+
+**Measured extent.** Fifteen commits across four session ids; first occurrence `42130854`,
+**2026-08-30**. The repository runs clean from its init on 2026-02-17 until that date. No session URL
+appears in tracked file contents — commit messages only.
+
+**The reasoning failure, which is the point.** The authority had spent the same session recording
+[F150.1](#f1501), [F150.2](#f1502) and [F153](#f153) — each about describing a thing without
+measuring it — and never applied that to boilerplate it was appending twenty times. Asked about it,
+the authority weighed the trailer as *"cosmetic noise"* and **recommended leaving it**, an assessment
+resting entirely on an unexamined assumption that the URL was harmless. It had not verified, and
+still has not verified, what a session URL exposes to an unauthorised reader. **"Probably
+access-controlled" is not a basis for writing an identifier into permanent public history**, and its
+safety is a third party's implementation the repository owner can neither audit nor control. That is
+[rule 4](../../../../CLAUDE.md) — no decision reaches the maintainer on an unverified premise —
+failed on the authority's own recommendation.
+
+**What was attempted, and what actually happened.** The nine unpushed commits were rewritten locally
+with `git filter-branch --msg-filter`, trees byte-identical. **That rewrite never reached `main`.**
+The branch was pushed and PR #68 was **squash-merged**, and GitHub composed the squash body by
+concatenating the branch's *original* messages — so `75754a7` landed carrying nine trailers in one
+commit body. **The local strip protected nothing.** Recorded plainly because the first draft of this
+entry claimed a containment that the merge had already undone.
+
+**Then the cleanup was deliberately stopped.** The remote branch was deleted, removing the easiest
+route to the pre-strip commits. An amend of `75754a7` was prepared and verified locally (tree
+byte-identical, zero session refs) and **refused by branch protection**: `enforce_admins: true`,
+`allow_force_pushes: false`, PR required, three strict status checks. Landing it would have meant
+disabling three protections on a public default branch to clean **one of seven** leaking commits,
+while PR #68 retains all nine regardless. **The maintainer chose to stop, and that was right** —
+trading a working safeguard for a partial cosmetic win is a bad deal, and GitHub retains the objects
+by SHA until Support garbage-collects them, whatever the refs say.
+
+**Standing exposure, measured 2026-09-03:** seven commits on `main` across four session ids, plus
+PR #68's own nine-commit list. **No rewrite prevented any of it; only the rule ahead does.**
+
+**A second failure, in the remediation itself.** Carrying this finding forward onto a fresh branch
+was first attempted with `git cherry-pick`. Because `main` received `decisions.md` through a **squash**,
+the commit's diff context did not match and git inserted rather than merged, **duplicating sixteen
+findings** (F139 through F154). Caught by `grep -oE '^### F[0-9.]+' | sort | uniq -d` before it was
+committed. **Never cherry-pick an append-only document across a squash boundary** — re-apply the
+append against the current file instead, and check for duplicate headings before committing.
+
+**The standing rule.** **Never write PII, PHI, secrets, or agent-session identifiers into anything
+that reaches git** — commit messages, trailers, branch or tag names, PR titles and bodies, code
+comments, identifiers, file names, URIs, fixtures, or artifact prose. This overrides the harness's
+attribution default; `Co-Authored-By` stays. It now lives in [CLAUDE.md](../../../../CLAUDE.md) under
+"What Never Goes Into The Repository", so it binds anything working here rather than one assistant's
+memory. Grep the staged diff **and the message** before every commit.

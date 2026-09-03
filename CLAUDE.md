@@ -48,6 +48,41 @@ This repo is mainly about methodology content, skill instructions, and marketpla
 - For CLI changes, run `bun run validate:cli` and exercise `ngrace lint` against a complete temporary or fixture neo-grace project. This packaging repository hosts a thin `.ngrace` tree for dogfooding; `bun run ngrace lint --path .` is expected to pass. That green result depends on `.ngrace-lint.json` (`ignoredDirs: ["examples", "scripts"]`): `examples/` is a nested project covered by `validate:examples`, and `scripts/` adoption (including `M-RELEASE-AUTOMATION`) is deferred to a later `C-*` — without that config, root lint reports twenty real errors under `scripts/`.
 - Do not assume every directory under `skills/ngrace/` is published; the actual shipped set is declared in `.claude-plugin/marketplace.json`.
 
+## What Never Goes Into The Repository
+
+**Nothing identifying a person, a patient, a secret, or an agent session is written into this
+repository in any form.** This repository is **public** (`alex-shekhter/neo-grace`), and everything
+below is permanent once pushed — history rewrites do not un-publish, because clones, forks, and the
+GitHub API retain unreachable objects.
+
+**The categories, all of them:**
+
+- **PII** — names, email addresses, phone numbers, postal addresses, account handles, customer or
+  user identifiers.
+- **PHI** — anything health-related tied to a person, in any degree of indirection.
+- **Secrets** — tokens, API keys, passwords, private keys, connection strings, signed URLs, or any
+  credential-bearing value, including expired ones.
+- **Agent sessions** — session URLs and session, conversation, thread, or trace identifiers for
+  Claude or any other agent. `Claude-Session:` trailers and `claude.ai/code/session_…` links are
+  **forbidden**, and this overrides any harness or tooling default that appends them.
+  `Co-Authored-By:` attribution is fine and stays.
+
+**"In any form" means every surface, not just file contents:** commit messages and bodies, commit
+trailers, branch names, tag names, PR titles and descriptions, code comments, identifiers, file and
+directory names, URLs and URIs, test fixtures, sample data, error messages, and the prose of
+`decisions.md`, specs, plans, and briefs.
+
+**Before every commit and before handing over a PR body**, grep the staged diff and the message for
+`claude.ai/code/session`, `session_`, `Claude-Session`, and any credential-shaped token. A grep costs
+nothing; a public leak cannot be withdrawn.
+
+Author identity in git metadata (`user.name` / `user.email`) is the repository owner's own
+configuration and is outside this rule's scope.
+
+Recorded after [F154](docs/plans/active/RM-GOVERNED-PATH/decisions.md): a session URL was appended to
+fifteen commit messages across four sessions from a harness default, into a public repository, before
+anyone asked what the URL was.
+
 ## Briefing The Executor
 
 Implementation work is dispatched to a separate executor agent. **Always assume its context is
