@@ -8767,3 +8767,40 @@ test that shells out to a binary asserts that binary is present everywhere the s
 dependency claim, and it belongs in the manifest or not in the test. `Bun.spawnSync` failing with
 `ENOENT` is indistinguishable from an assertion failure in CI output, so the cost of finding it falls
 entirely on whoever reads the log.
+
+## D25 — a CI-red hotfix on an unmerged branch does not require a change bundle
+
+**Decided 2026-09-02 by the maintainer**, on the [F146](#f146) fix committed at `4004170`, when
+`.ngrace/changes/active` was empty and no bundle owned the write.
+
+**The ruling, as given: hotfix.** The write stands ungoverned, and this entry is the record that
+explains why a production edit exists with no spec, no plan, and no ledger.
+
+**Why a retro-bundle was the wrong alternative.** The choice was between leaving the write governed
+by nothing and authoring a bundle after the fact to describe a change that had already happened. The
+second is worse: a spec written to match a completed diff cannot fail, its `BaselineAssertions`
+describe a tree that no longer exists, and its ledger would record an execution that never occurred.
+That is a **fabricated** governance record, and this repository's whole product is the claim that its
+records are not fabricated. Ungoverned-and-labelled beats governed-and-false.
+
+**The boundary — this is the authority's derivation from a one-word ruling, not the maintainer's own
+words, and he should correct it if it reaches too far.** The exemption covers a change that is *all*
+of the following:
+
+- **on an unmerged branch**, never on `main`;
+- **restoring a red CI to green**, not adding capability;
+- **test-or-tooling only**, with no production behaviour change — `4004170` touched one `.test.ts`
+  file and nothing that ships;
+- **verified in both directions**, so the repaired test is shown to still discriminate rather than
+  merely to pass.
+
+It does **not** license ungoverned production edits, convenience fixes bundled alongside a hotfix, or
+skipping a bundle because one looks expensive. `C-GOVERNANCE-ORDER` — refuse a write with no approved
+change that owns it — remains named and unscheduled in the registry; when it ships, this exemption is
+the case it must be taught to allow, and this entry is the specification of that carve-out.
+
+**Precedent shape.** [D11](#d11) refuses deferral without a dependency or a conflict, and
+[F145](#f145) records that a defect found is a defect fixed before the work is handed on. A red CI on
+an unmerged branch is a conflict in D11's sense: the branch cannot proceed, and the governed path has
+no active bundle to attach the repair to. The exemption resolves that deadlock rather than widening
+the path.
