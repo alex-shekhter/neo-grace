@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-REWORK-CIRCUIT>
     <Summary>
       Extend C-ESCALATION-HONESTY with a cross-window ceiling: the
