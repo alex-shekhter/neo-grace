@@ -8983,3 +8983,96 @@ was caught:** F136 was caught at plan authoring, F127 by supersede; this one at 
 executor, with the workaround declared. No supersede is required. The approved criteria are
 unchanged, both tasks' intent is satisfied, and every `AC` T-001 and T-005 name is met by the
 delivered tree.
+
+### F149 — the over-match that looked like a defect fires once in 58 plans, and the id-based fix is unauthorable. **[verified]**
+
+Measured **2026-09-03**, after `C-REWORK-CIRCUIT`'s close acked a
+`review.zero-or-more-swallow` finding on its own T-001.
+
+**The firing.** `detectZeroOrMoreSwallow` ([src/review/core.ts:834](../../../../src/review/core.ts))
+fires when a task's `DependsOn` is empty and its `Title` matches
+`/\bafter\b|\bsecond\b|\bthen\b|\bfollow|\bcompletes?\b|\bonce\b.*\bT-\d+/i`. **Five of the six
+alternatives match a bare English word; only the sixth requires a referent.** T-001's title —
+*"Ceiling constant, circuit kind and state, **second breaker fire**, first escalation unchanged"* —
+is domain prose about the breaker, and T-001 is genuinely first, so its empty `DependsOn` is
+correct. A false positive, at `error` severity.
+
+**The authority's first proposal was to require a co-occurring `\bT-\d+\b` on every alternative,
+generalizing the one well-formed branch. That proposal is wrong, and the corpus says so.**
+
+| title | current regex | id-required variant | asserted |
+|---|---|---|---|
+| `Runs once T-001 completes` (`src/review/core.test.ts:222`, substituted) | fires | fires | FIRE |
+| `Second after first` (`src/test-support/defect-corpus.ts:580`, `corpus-zo-02` `apply()`) | fires | **silent** | `mustFire: true` |
+| `Bootstrap utilities` / `Register adapters` (`:323`) | silent | silent | SILENT |
+
+The **ratchet is the corpus entry, not the `it("FIRE …")` test** — the authority anchored on the
+test, whose substituted title happens to carry `T-001`, and missed that the corpus fixture's own
+title does not. `Second after first` is a genuine sequencing claim with no task id, so the id is
+**not** the feature separating a true positive from this false one. The real distinction is
+grammatical — `second` as predicate (*"second **after first**"*) versus attributive (*"second
+**breaker fire**"*) — and that does not survive a regex.
+
+**The population, and it settles the question.** Every `plan.xml` under
+`.ngrace/changes/{archive,active}` parsed for tasks whose `DependsOn` is empty and whose `Title`
+matches the live regex:
+
+```
+plans=58  tasks=247  tasksWithEmptyDependsOn=80  regexHits=1
+ - C-REWORK-CIRCUIT T-001
+```
+
+**One firing in 58 plans, and it is the false positive that started this.** The authority had argued
+that an error-severity false positive *"trains the authority to ack, devaluing the acks that
+matter"*; at 1-in-58 that argument does not hold, and it was reasoning from a sample of one — the
+[F130.1](#f1301) shape again, one instance carried as a rate. **Limitation, stated rather than
+hidden:** this counts titles as they now stand; a title reworded before approval in response to the
+detector would be invisible. No such instance is known and none has been searched for.
+
+**Severity is not a lever, measured.** Review's default display threshold is already `warning`, and
+`gate verdict` requires an ack for **every** displayed finding regardless of severity, so demoting
+`error`→`warning` changes nothing operationally. Only `info` suppresses, which is deletion in
+disguise.
+
+**Decision — no change to the detector.** The eagerness is deliberate: the catalog's own
+remediation reads *"Add the missing dependency edges, **or rewrite titles that claim sequencing**"*
+([src/review/catalog.ts:139](../../../../src/review/catalog.ts)), so title-rewriting is the shipped
+intended remedy, and the one true-positive shape on record needs the bare-word match. **Ratified by
+the maintainer 2026-09-03.**
+
+**The rule this pays for, and it is the whole value of the episode.** Every cost here came from the
+artifact being **frozen** when the finding surfaced. **Run `ngrace review --change` at spec-approve
+and at plan-approve, not only at close.** Run while the title is still editable and the shipped
+remedy costs one word. The same gap produced [F136](#f136) (an anchor check written into a brief and
+never run against the approved spec) and [F148](#f148) (a task-verification contradiction that
+plan-time review would have surfaced). **Three findings, one missing step.**
+
+### D26.1 correction — five language adapters ship, not six. **[verified]**
+
+[D26](#d26) states *"six language adapters ship"* as a premise for the polyglot-defaults constraint.
+**That is false at HEAD.** Reported by the executor while authoring
+`C-EVIDENCE-DISCRIMINATION`'s spec and re-measured independently by the authority on **2026-09-03**
+at `42aa4df`:
+
+```
+bun -e 'import {LANGUAGE_ADAPTERS} from "./src/language-registry.ts"; console.log(LANGUAGE_ADAPTERS.length)'
+→ 5   # js-ts, python, dart, go, rust
+```
+
+`README.md`'s language table lists the same five. **`dart`, `go` and `rust` carry no test-runner
+constant**, so a default shape table cannot derive `dart test`, `go test` or `cargo test` from an
+adapter export; those three come from D26's own prose instead, and the spec records that derivation
+rather than inventing adapter exports.
+
+**D26's ruling is unaffected and stands in full.** The count was decorative — the constraint is that
+defaults must be polyglot and config-driven *because the rule ships to consumer toolchains*, and
+that reasoning does not depend on whether five or six adapters ship. **This is a correction to a
+premise, not an overturning of a decision.**
+
+Recorded because the evidence standard requires it: when the executor corrects a number, the
+authority re-measures independently and **records the correction against the artifact that carried
+it**. Also noted: [F147](#f147)'s *"All 19 `CloseEvidence` commands in the corpus"* was true when
+written and is now stale — **25 Command children / 11 distinct across 61 specs** at this HEAD
+(23 / 9 across 60, excluding `C-EVIDENCE-DISCRIMINATION`'s own draft). [F123](#f123): a corpus count
+expires the moment a bundle archives, so it is re-measured at citation, never quoted from an earlier
+turn.
