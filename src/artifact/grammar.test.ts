@@ -666,6 +666,38 @@ describe("run ledger and cursor grammar (Phase 3 / A11)", () => {
     expect(codes(unterminated)).toContain("ledger.range-unterminated");
   });
 
+  it("admits a discarded-closed allocation and still reports progress-only as unterminated", () => {
+    const discardedClosed = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        buildRunLedgerXml("C-X", [{
+          epoch: 1,
+          allocations: [{ worker: "w0", from: 1, to: 10 }],
+          events: [
+            { id: 1, task: "T-001", kind: "opened" },
+            { id: 2, task: "T-001", kind: "discarded" },
+          ],
+        }]),
+      ),
+    );
+    expect(codes(discardedClosed)).not.toContain("ledger.range-unterminated");
+
+    const progressOnly = validateRunLedgerArtifact(
+      parseGraceXmlArtifact(
+        "run-ledger.xml",
+        buildRunLedgerXml("C-X", [{
+          epoch: 1,
+          allocations: [{ worker: "w0", from: 1, to: 10 }],
+          events: [
+            { id: 1, task: "T-001", kind: "opened" },
+            { id: 2, task: "T-001", kind: "progress" },
+          ],
+        }]),
+      ),
+    );
+    expect(codes(progressOnly)).toContain("ledger.range-unterminated");
+  });
+
   it("admits well-formed Verdicts and Decisions; rejects bad outcomes (A30.2)", () => {
     const sectionsOnly = validateRunLedgerArtifact(
       parseGraceXmlArtifact(

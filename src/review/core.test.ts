@@ -1968,6 +1968,14 @@ const WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET: ReadonlyArray<readonly [string, stri
   // The approved ObservedWriteScope did not name that file; the write was
   // forced, not discretionary. Recorded, not excused.
   ["C-CRITERION-CLOSE-EVIDENCE", "src/verification/localize.test.ts"],
+  // C-LINT-PHASE-HONESTY: rewriting the MustPassCommand doctrine across four
+  // SKILL.md files necessarily moves skillTextLines().totalBytes, which this
+  // file pins (56971 -> 58400; line total stayed 812). The approved
+  // ObservedWriteScope did not name it; the write was forced, not
+  // discretionary, and was reported before it was made. Third bundle to hit
+  // this same pin (F133). The bundle was superseded over it rather than
+  // closed; the pair records what the archive holds. Recorded, not excused.
+  ["C-LINT-PHASE-HONESTY", "src/test-support/token-accounting.test.ts"],
 ];
 
 describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
@@ -2714,6 +2722,7 @@ describe("C-BUNDLE-BASE-REF T-003 caveat-json", () => {
     expect(result.scopeAudit?.reason).toContain(NO_BASE_COMMIT_CAVEAT);
     expect(result.schemaVersion).toBe("1.0.0");
     expect(Object.keys(result).sort()).toEqual([
+      "amendmentCountAudit",
       "attemptPairAudit",
       "findings",
       "root",
@@ -2994,9 +3003,10 @@ describe("C-FINDING-SEVERITIES T-004 contract-infos", () => {
     );
   });
 
-  it("ReviewResult top-level keys stay the existing nine names", () => {
+  it("ReviewResult top-level keys stay the existing ten names", () => {
     const result = reviewWithErrorAndWarning();
     expect(Object.keys(result).sort()).toEqual([
+      "amendmentCountAudit",
       "attemptPairAudit",
       "findings",
       "root",
@@ -3373,5 +3383,39 @@ describe("C-BOUND-VERDICT T-008 catalog remediation", () => {
     const writeEvidence = guideFor(WRITE_EVIDENCE_SCOPE_FINDING_CODE)!;
     expect(writeEvidence.remediation.join("\n")).toMatch(/exception list/);
     expect(writeEvidence.remediation.join("\n")).toMatch(/\bAck\b/);
+  });
+});
+
+describe("C-AMENDMENT-COUNT T-003 review audit", () => {
+  it("unscoped review reports amendment count not-run with a reason naming --change", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    const report = runReview(root, {
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(report.amendmentCountAudit?.status).toBe("not-run");
+    expect(report.amendmentCountAudit?.reason).toContain("no --change supplied");
+    const text = formatReviewResult(report);
+    expect(text).toContain("Amendment count: not-run");
+    expect(text).toContain("no --change supplied");
+  });
+
+  it("scoped review with both counts 0 reports ran and prints the pair", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeScopedPlan(root, "C-QUIET", ["src/example.ts"]);
+    const report = runReview(root, {
+      changeId: "C-QUIET",
+      changedFiles: [],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(report.amendmentCountAudit?.status).toBe("ran");
+    expect(report.amendmentCountAudit?.reRatificationCount).toBe(0);
+    expect(report.amendmentCountAudit?.supersedeChainDepth).toBe(0);
+    expect(formatReviewResult(report)).toContain(
+      "Amendment count: re-ratifications=0 supersede-depth=0 for C-QUIET",
+    );
   });
 });

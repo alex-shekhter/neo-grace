@@ -143,6 +143,89 @@ describe("neo-grace assertions", () => {
     expect(result.issues.map((item) => item.code)).toContain("assertion.phase-incompatible-command");
     expect(result.assertions).toHaveLength(0);
     expect(result.issues.map((item) => item.code)).not.toContain("assertion.empty-section");
+    const issue = result.issues.find((item) => item.code === "assertion.phase-incompatible-command");
+    expect(issue?.message).toContain("leaf project evidence");
+    expect(issue?.message).toContain("omitted --assertions");
+    expect(issue?.message).toContain("this project root");
+  });
+
+  const implicitCurrentRootCommands = [
+    "ngrace lint",
+    "ngrace lint --path .",
+    "ngrace lint --path ./",
+    "ngrace lint --path=.",
+    "bun run ngrace lint",
+    "bun run ngrace lint --path .",
+    "bun run ngrace lint --path ./",
+    "src/grace.ts lint",
+    "src/grace.ts lint --path .",
+    "src/grace.ts lint --path ./",
+    "ngrace lint --assertions current",
+    "ngrace lint --assertions=current",
+    "ngrace lint --assertions \"current\"",
+    "bun run ngrace lint --assertions current",
+    "src/grace.ts lint --assertions current",
+  ];
+
+  for (const command of implicitCurrentRootCommands) {
+    it(`rejects implicit-current lint of this project root: ${command}`, () => {
+      const root = createProject();
+      const planFile = path.join(root, "plan.xml");
+      writeFileSync(
+        planFile,
+        `<NgraceChangePlan graceVersion="1.0" status="approved"><C-EXAMPLE><TargetAssertions><MustPassCommand><Command>${command}</Command></MustPassCommand></TargetAssertions></C-EXAMPLE></NgraceChangePlan>`,
+      );
+
+      const result = extractAssertionsWithIssues(planFile, "TargetAssertions");
+      expect(result.issues.map((item) => item.code)).toContain("assertion.phase-incompatible-command");
+      const issue = result.issues.find((item) => item.code === "assertion.phase-incompatible-command");
+      expect(issue?.message).toContain("leaf project evidence");
+      expect(issue?.message).toContain("omitted --assertions");
+      expect(issue?.message).toContain("this project root");
+    });
+  }
+
+  const silentConformingCommands = [
+    "bun run validate:ci",
+    "bun run lint",
+    "bun run ngrace:lint",
+    "ngrace lint --assertions baseline",
+    "ngrace lint --assertions target",
+    "ngrace lint --assertions final",
+    "ngrace lint --path examples/polyglot",
+    "ngrace lint --help",
+    "ngrace status --path .",
+    "ngrace review --path .",
+    "ngrace gate --help",
+  ];
+
+  for (const command of silentConformingCommands) {
+    it(`stays silent on conforming TargetAssertions command: ${command}`, () => {
+      const root = createProject();
+      const planFile = path.join(root, "plan.xml");
+      writeFileSync(
+        planFile,
+        `<NgraceChangePlan graceVersion="1.0" status="approved"><C-EXAMPLE><TargetAssertions><MustPassCommand><Command>${command}</Command></MustPassCommand></TargetAssertions></C-EXAMPLE></NgraceChangePlan>`,
+      );
+
+      const result = extractAssertionsWithIssues(planFile, "TargetAssertions");
+      expect(result.issues.map((item) => item.code)).not.toContain("assertion.phase-incompatible-command");
+      expect(result.assertions).toHaveLength(1);
+    });
+  }
+
+  it("does not emit phase-incompatible-command when extracting an archived plan file", () => {
+    const root = createProject();
+    const planFile = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-HISTORICAL", "plan.xml");
+    mkdirSync(path.dirname(planFile), { recursive: true });
+    writeFileSync(
+      planFile,
+      `<NgraceChangePlan graceVersion="1.0" status="applied"><C-HISTORICAL><TargetAssertions><MustPassCommand><Command>bun run ngrace lint --path .</Command></MustPassCommand></TargetAssertions></C-HISTORICAL></NgraceChangePlan>`,
+    );
+
+    const result = extractAssertionsWithIssues(planFile, "TargetAssertions");
+    expect(result.issues.map((item) => item.code)).not.toContain("assertion.phase-incompatible-command");
+    expect(result.assertions).toHaveLength(1);
   });
 
   it("rejects absolute, traversal, and escaping-symlink File fields during extraction", () => {

@@ -5,13 +5,13 @@ description: Execute an approved neo-grace NgraceChangePlan in sequential or par
 
 <skill>
 <preflight>
-Require one active bundle with approved, identity-matched `spec.xml` and `plan.xml`. Approved plans are immutable. Read context, projections, assertions, scopes, task dependencies, and verification before editing. Load the task slice with `ngrace context --task T-NNN --change C-ID` (Purpose is quotation, not paraphrase; archived subjects are measurement-only). Reject phase-incompatible plans before writes: `MustPassCommand` must be leaf project evidence, and neither target assertions nor post-write task verification may invoke `--assertions current` or nest GRACE lifecycle commands. Run `ngrace supersede` instead of editing an approved conflict in place.
+Require one active bundle with approved, identity-matched `spec.xml` and `plan.xml`. Approved plans are immutable. Read context, projections, assertions, scopes, task dependencies, and verification before editing. Load the task slice with `ngrace context --task T-NNN --change C-ID` (Purpose is quotation, not paraphrase; archived subjects are measurement-only). Reject phase-incompatible plans before writes: `MustPassCommand` contains leaf project evidence such as tests, typecheck, build, format, or package checks. Do not put a current-mode lint of this project root in TargetAssertions. Current mode means the command text contains `--assertions current`, or it invokes `ngrace lint` and omits `--assertions`. The restriction matches command text; it does not resolve `bun run <script>` through package.json, and it does not apply to `--help` or to lint of a different project root. Do not put a current-mode lint of this root in post-write task verification. Run `ngrace supersede` instead of editing an approved conflict in place. The verb folds any open epoch (no-op when none exists) and discards governance, never code.
 </preflight>
 
 <assertion_commands>
 - Active-baseline preflight before observed writes: `ngrace lint --path PROJECT --assertions current`
 - Selected baseline: `ngrace lint --path PROJECT --change C-ID --assertions baseline` (add `--run-commands` when the baseline declares `MustPassCommand`)
-- Selected target without commands: `ngrace lint --path PROJECT --change C-ID --assertions target`
+- Selected target without commands: `ngrace lint --path PROJECT --change C-ID --assertions target`. Selected `--assertions target` without `--run-commands` is a structural query; unevaluated `MustPassCommand` / `MustPassBudget` is reported as `assertion.command-not-evaluated` and does not fail that query's exit.
 - Selected target with command evidence: `ngrace lint --path PROJECT --change C-ID --assertions target --run-commands`
 - Final end-state validation: `ngrace lint --path PROJECT --change C-ID --assertions final` (add `--run-commands` when the target declares `MustPassCommand`)
 - Parallel preflight: `ngrace lint --path PROJECT --parallel-preflight`
@@ -90,6 +90,11 @@ Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires
     When: the fail path exhausts the fix budget and work must stop for a replan decision — on 2 failed attempts of the same signature (trigger R), or on 4 distinct failing signatures (trigger D), evaluated R before D in the current budget window.
     Meaning / state: cursor becomes `paused-pending-approval` — a pause awaiting replan, not a task-failure outcome. The task has not failed; a replan decision is owed.
     How to emit: written automatically by `ngrace cursor attempt` on the fail that exhausts the budget — do not use `cursor advance --kind escalation` (reserved). Clear later with a deliberate `resume` for that task that includes `--reason` recording the replan decision (required when clearing escalation; ordinary resume that does not clear an escalation needs none).
+  </kind>
+  <kind id="discarded">
+    When: `ngrace supersede` abandons an open epoch that has no range-closer.
+    Meaning / state: maps to State `discarded`; closes a range beside terminal. Abandoned, not completed.
+    How to emit: the operator never emits this kind; `ngrace supersede` is the verb that does. `recover --fix` does not emit it.
   </kind>
 </cursor_kinds>
 

@@ -13,6 +13,7 @@
 //   NGRACE_CONTEXT_ARTIFACTS
 //   NGRACE_OPTIONAL_CONTEXT_ARTIFACTS
 //   NgraceValidationResult
+//   RANGE_CLOSING_KINDS
 //   classifySemanticAnchorTag
 //   cursorEscalatedTasks
 //   cursorNamedTask
@@ -84,6 +85,9 @@ const PLAN_REQUIRED_SECTIONS = [
   "ImplementationPlan",
 ] as const;
 const TASK_REQUIRED_SECTIONS = ["Title", "DependsOn", "AcceptanceCriteria", "Verification"] as const;
+
+/** Kinds that close a used allocation range for fold and ledger.range-unterminated. */
+export const RANGE_CLOSING_KINDS = Object.freeze(["terminal", "discarded"] as const);
 const ASSERTION_SECTION_TAGS = new Set([
   "MustExist",
   "MustNotExist",
@@ -1115,16 +1119,19 @@ function validateLedgerEpoch(file: string, epoch: GraceXmlNode): NgraceIssue[] {
       }
     }
 
-    const hasTerminal = events.some(
-      (event) => event.id >= allocation.from && event.id <= allocation.to && event.kind === "terminal",
+    const hasCloser = events.some(
+      (event) =>
+        event.id >= allocation.from
+        && event.id <= allocation.to
+        && (RANGE_CLOSING_KINDS as readonly string[]).includes(event.kind),
     );
-    if (!hasTerminal) {
+    if (!hasCloser) {
       issues.push(
         issue(
           "error",
           "ledger.range-unterminated",
           file,
-          `Allocation ${allocation.worker} [${allocation.from},${allocation.to}] has no terminal event.`,
+          `Allocation ${allocation.worker} [${allocation.from},${allocation.to}] has no terminal or discarded event.`,
         ),
       );
     }

@@ -165,7 +165,7 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | --- | --- |
 | `ngrace lint --path <root> --assertions current` | Run the pre-implementation full-project check, including baselines of active approved changes; do not use it as post-edit target/final evidence |
 | `ngrace lint --path <root> --change C-ID --assertions baseline [--run-commands]` | Validate the immutable selected baseline before implementation; command assertions run only when explicitly enabled |
-| `ngrace lint --path <root> --change C-ID --assertions target --run-commands` | Validate selected target assertions and explicitly opt into `MustPassCommand` execution |
+| `ngrace lint --path <root> --change C-ID --assertions target [--run-commands]` | Validate selected target assertions. Without `--run-commands` this is a structural query: unevaluated `MustPassCommand` / `MustPassBudget` is reported as `assertion.command-not-evaluated` and does not fail that query's exit; add `--run-commands` to execute declared commands |
 | `ngrace lint --path <root> --change C-ID --assertions final [--run-commands]` | Run the final full-project gate, evaluate the selected target, and keep unrelated approved baselines active without re-evaluating the selected baseline |
 | `ngrace lint --path <root> --change C-ID --as <status>` | Preview artifact-pure lint and gate checks as if the selected change carried that lifecycle status; reports classes that cannot be evaluated |
 | `ngrace lint --path <root> --parallel-preflight` | Run the explicit approved-plan scope coexistence gate required for parallel-safe execution |
@@ -196,7 +196,7 @@ These carry the execute lifecycle. A permitting recorded approve writes approved
 | `ngrace gate approve --change C-ID` | a permitting recorded approve writes approved onto the targeted spec or plan and records a fingerprint |
 | `ngrace gate apply --change C-ID` | Evaluate the apply transition — bound pass required; fail and unbound pass refuse |
 | `ngrace gate archive --change C-ID` | Evaluate the archive transition (an open epoch refuses) |
-| `ngrace supersede --change C-ID --replacement C-ID` | Write superseded onto the active spec and plan when present, name the replacement, and move the bundle into archive. The replacement directory must already exist |
+| `ngrace supersede --change C-ID --replacement C-ID` | Write superseded onto the active spec and plan when present, name the replacement, and move the bundle into archive. The replacement directory must already exist. The verb folds any open epoch (no-op when none exists). Discards governance, never code. |
 | `ngrace gate verdict --change C-ID --outcome pass\|fail\|unable-to-determine [--ack-finding <id>]` | Record bound judgment in `run-ledger.xml`; optional `--reason`, `--note`, `--scope task\|wave\|bundle`, `--classification implementation\|plan`; `--ack-finding` once per displayed findingId on pass |
 | `ngrace review --path <root> [--change C-ID] [--base <ref>] [--severity <token>]` | Mechanized detectors and process audits with deterministic finding IDs; with `--change`, an `ObservedWriteScope` scope audit |
 | `ngrace cursor show --change C-ID` | Show durable run position (never writes; recovers rather than blocks) |
@@ -211,7 +211,7 @@ These carry the execute lifecycle. A permitting recorded approve writes approved
 | `ngrace context --task T-NNN --change C-ID` | Emit a task slice: the modules, files, and verification that task needs. Selection, never compression |
 | `ngrace context --skills [--change C-ID]` | Emit a skill recommendation for the current state. Advisory — the CLI cannot unload a skill from a host |
 
-`MustPassCommand` entries are leaf project evidence such as tests, typecheck, build, format, or package checks. Do not nest `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside plan assertions; selected target/final lint is the external orchestration gate.
+`MustPassCommand` contains leaf project evidence such as tests, typecheck, build, format, or package checks. Do not put a current-mode lint of this project root in TargetAssertions. Current mode means the command text contains `--assertions current`, or it invokes `ngrace lint` and omits `--assertions`. The restriction matches command text; it does not resolve `bun run <script>` through package.json, and it does not apply to `--help` or to lint of a different project root. Use selected target/final lint externally instead.
 
 Output modes:
 
@@ -230,6 +230,8 @@ Output modes:
 - `ngrace file exports`: `text`, `json`
 
 Lint, status, and projection-backed navigation fail closed: invalid options, invalid grammar, malformed active assertions/scopes, duplicate ownership, missing routed files, or ambiguous targets produce structured results or a nonzero error envelope. Unrecognized arguments are rejected and usage is printed. JSON command failures emit one stable `{ "schemaVersion": "1.0.0", "ok": false, "error": { ... } }` envelope on stdout; text failures emit one concise actionable line without a stack trace.
+
+The process exit code is governed by `--fail-on` (`errors` by default, or `warnings` | `never`), not by the reported error count, and the two are deliberately decoupled: `ngrace lint --fail-on never` reports `Errors: N` and still exits `0`. Machine consumers must therefore choose which signal they read. The exit code answers *did this invocation fail its policy*; `summary.errors` in `--format json` answers *how many error-severity issues were found*. A consumer that treats `summary.errors > 0` as failure will read an invocation as failed wherever the policy does not fail it, so read the exit code for pass/fail and `summary` for detail.
 
 ## Grep-First Navigation
 
@@ -296,8 +298,8 @@ skip depth (adversarial probe, mutation audit, checklist volume).
 
 | What | Subject / state | Normalized stdout bytes | Commit |
 |---|---|---|---|
-| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **812 lines** / **56971 UTF-8 bytes** | pin in `token-accounting.test.ts` |
-| `skillTextLines().referencesTotal` | package root | **1433 lines** (includes recovery.md) | same instrument |
+| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **817 lines** / **58931 UTF-8 bytes** | pin in `token-accounting.test.ts` |
+| `skillTextLines().referencesTotal` | package root | **1435 lines** (includes recovery.md) | same instrument |
 | `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `f641334` (the squashed Phase 11 merge; release cut updates) |
 | `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |
 | `ngrace doctor --path <polyglot>` | polyglot | **1907** (state-dependent) | same |

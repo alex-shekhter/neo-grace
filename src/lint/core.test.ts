@@ -242,7 +242,7 @@ describe("C-REPORT-HONESTY T-006: AC-BASELINE-LINT-FRAMING", () => {
       location: "active",
       specStatus: "approved",
       planStatus: "approved",
-      // src/example.ts exists in the minimal project → MustNotExist fails (expected while C-* in progress)
+      // src/example.ts exists in the minimal project → MustNotExist fails as a current-mode baseline error
       planBaselineAssertions: `<MustNotExist><Value>src/example.ts</Value></MustNotExist>`,
     });
 
@@ -253,14 +253,15 @@ describe("C-REPORT-HONESTY T-006: AC-BASELINE-LINT-FRAMING", () => {
 
     const report = formatTextReport(result);
     const firstLine = report.split("\n")[0]!;
-    // Singular branch is only reachable when N is exactly 1 — pin wording and count together
-    expect(firstLine).toContain("Baseline expectation: 1");
-    expect(firstLine).toMatch(/expected while a C-\* change is in progress/i);
-    expect(firstLine).not.toMatch(/expectations/i);
-    const countMatch = firstLine.match(/Baseline expectation:\s*(\d+)/i);
+    expect(firstLine).toBe(
+      "Baseline assertion failures: 1. Current mode cannot tell whether writes have started. If the baseline is still the intended state, this is real breakage. If writes have started, use --assertions target --change C-ID.",
+    );
+    expect(firstLine).not.toMatch(/expected/i);
+    expect(firstLine).not.toMatch(/in progress/i);
+    expect(firstLine).not.toContain("--assertions final");
+    const countMatch = firstLine.match(/Baseline assertion failures:\s*(\d+)/i);
     expect(countMatch).not.toBeNull();
     expect(Number(countMatch![1])).toBe(1);
-    // Title is no longer first when N > 0
     expect(report.split("\n")[0]).not.toBe("neo-grace Lint Report");
     expect(report).toContain("neo-grace Lint Report");
   });
@@ -285,9 +286,12 @@ describe("C-REPORT-HONESTY T-006: AC-BASELINE-LINT-FRAMING", () => {
 
     const report = formatTextReport(result);
     const firstLine = report.split("\n")[0]!;
-    expect(firstLine).toContain("Baseline expectations: 2");
-    expect(firstLine).toMatch(/expected while a C-\* change is in progress/i);
-    const countMatch = firstLine.match(/Baseline expectations:\s*(\d+)/i);
+    expect(firstLine).toContain("Baseline assertion failures: 2");
+    expect(firstLine).toContain("these are real breakage");
+    expect(firstLine).not.toMatch(/expected/i);
+    expect(firstLine).not.toMatch(/in progress/i);
+    expect(firstLine).not.toContain("--assertions final");
+    const countMatch = firstLine.match(/Baseline assertion failures:\s*(\d+)/i);
     expect(countMatch).not.toBeNull();
     expect(Number(countMatch![1])).toBe(2);
   });
@@ -301,7 +305,7 @@ describe("C-REPORT-HONESTY T-006: AC-BASELINE-LINT-FRAMING", () => {
     const report = formatTextReport(result);
     expect(report.startsWith("neo-grace Lint Report\n")).toBe(true);
     expect(report.split("\n")[0]).toBe("neo-grace Lint Report");
-    expect(report).not.toMatch(/^Baseline expectation/im);
+    expect(report).not.toMatch(/^Baseline assertion failures/im);
   });
 
   it("TargetAssertions-only extraction issue does not inflate N or produce a lead line alone", () => {
@@ -326,7 +330,7 @@ describe("C-REPORT-HONESTY T-006: AC-BASELINE-LINT-FRAMING", () => {
     const report = formatTextReport(result);
     // No baseline-sourced failures → no lead line from TargetAssertions extraction alone
     expect(report.split("\n")[0]).toBe("neo-grace Lint Report");
-    expect(report).not.toMatch(/^Baseline expectation/im);
+    expect(report).not.toMatch(/^Baseline assertion failures/im);
   });
 
   it("archived plan baselines stay syntax-only and contribute 0 to N", () => {
@@ -348,7 +352,7 @@ describe("C-REPORT-HONESTY T-006: AC-BASELINE-LINT-FRAMING", () => {
 
     const report = formatTextReport(result);
     expect(report.split("\n")[0]).toBe("neo-grace Lint Report");
-    expect(report).not.toMatch(/^Baseline expectation/im);
+    expect(report).not.toMatch(/^Baseline assertion failures/im);
   });
 
   it("malformed BaselineAssertions: N includes extraction issues from that call (design ruling)", () => {
@@ -374,8 +378,9 @@ describe("C-REPORT-HONESTY T-006: AC-BASELINE-LINT-FRAMING", () => {
 
     const report = formatTextReport(result);
     const firstLine = report.split("\n")[0]!;
-    expect(firstLine).toContain("Baseline expectations: 2");
-    const countMatch = firstLine.match(/Baseline expectations:\s*(\d+)/i);
+    expect(firstLine).toContain("Baseline assertion failures: 2");
+    expect(firstLine).toContain("these are real breakage");
+    const countMatch = firstLine.match(/Baseline assertion failures:\s*(\d+)/i);
     expect(countMatch).not.toBeNull();
     expect(Number(countMatch![1])).toBe(2);
   });
@@ -414,6 +419,62 @@ describe("C-REPORT-HONESTY T-006: AC-BASELINE-LINT-FRAMING", () => {
     // Explicitly no cast-property leak
     expect(keys).not.toContain("baselineExpectationCount");
     expect(keys).not.toContain("baselineFramingCount");
+  });
+
+  it("summary.errors equals error-severity count in every mode, including structural target", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-structural-count-"));
+    tempRoots.push(root);
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-STRUCTURAL",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+      planTargetAssertions: `<MustPassCommand><Command>exit 0</Command></MustPassCommand>`,
+    });
+
+    for (const assertionMode of ["current", "baseline", "target", "final"] as const) {
+      const result = lintGraceProject(root, { assertionMode, changeId: "C-STRUCTURAL" });
+      expect(result.summary.errors).toBe(result.issues.filter((issue) => issue.severity === "error").length);
+    }
+
+    const structural = lintGraceProject(root, { assertionMode: "target", changeId: "C-STRUCTURAL" });
+    expect(structural.issues.map((issue) => issue.code)).toContain("assertion.command-not-evaluated");
+    expect(structural.summary.errors).toBe(1);
+    const report = formatTextReport(structural);
+    expect(report).toContain(`Errors: ${structural.summary.errors}`);
+    expect(report).toContain("[error]");
+    const afterWarnings = report.split("\n");
+    const warningsIdx = afterWarnings.findIndex((line) => line.startsWith("Warnings:"));
+    expect(warningsIdx).toBeGreaterThanOrEqual(0);
+    expect(report).toContain("1 command assertion not evaluated; it does not fail this structural target query.");
+    expect(report).not.toMatch(/expected/i);
+    expect(report).not.toMatch(/in progress/i);
+    const keys = jsonTopLevelKeys(structural);
+    expect(keys).not.toContain("baselineExpectationCount");
+    expect(keys).not.toContain("baselineFramingCount");
+  });
+
+  it("plural structural-query note uses they-do-not-fail wording", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-structural-plural-"));
+    tempRoots.push(root);
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId: "C-STRUCTURAL-PLURAL",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+      planTargetAssertions:
+        `<MustPassCommand><Command>exit 0</Command></MustPassCommand>`
+        + `<MustPassCommand><Command>exit 1</Command></MustPassCommand>`,
+    });
+
+    const structural = lintGraceProject(root, { assertionMode: "target", changeId: "C-STRUCTURAL-PLURAL" });
+    const unevaluated = structural.issues.filter((issue) => issue.code === "assertion.command-not-evaluated");
+    expect(unevaluated.length).toBeGreaterThan(1);
+    const report = formatTextReport(structural);
+    expect(report).toContain(`${unevaluated.length} command assertions not evaluated; they do not fail this structural target query.`);
+    expect(report).toContain(`Errors: ${structural.summary.errors}`);
   });
 });
 

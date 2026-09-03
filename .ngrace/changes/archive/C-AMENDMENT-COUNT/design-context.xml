@@ -1,0 +1,258 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-AMENDMENT-COUNT</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    RM-PILOT-APPROVAL review.md:80 wants
+    "a number, per bundle, in the ledger".
+    Read as a stored field, that would be
+    a new record. F134.2 and D21 reject
+    a new record when the existing data
+    already answers the question. The
+    Decision list is the ledger; the
+    Replacement pointers are the supersede
+    graph. Deriving the two numbers and
+    surfacing them is the reading that
+    keeps both sentences: the ledger is
+    the source, not a new home.
+
+    Two numbers, not one. A
+    re-ratification counter on today's
+    archive is 0 everywhere, because
+    amendments still happen while draft.
+    That is the after instrument, live
+    the moment a second fingerprinted
+    approve lands. Supersede-chain depth
+    is the before instrument: eight
+    discarded bundles, two of them
+    two-step chains, three from one
+    session. Reporting only
+    re-ratifications would give pilot
+    nothing to compare against, which
+    is why these instrument bundles
+    were ordered before scheduling
+    pilot.
+
+    Transitions, not distinct-set-minus-one.
+    The brief wrote both formulas. Set
+    cardinality undercounts A→B→A
+    (revert to a previously ratified
+    byte state). "A re-approval whose
+    fingerprint differs" is the event
+    the budget will later consume.
+    No-op re-approve (identical
+    fingerprint) still adds 0 under
+    either formula.
+
+    Chain depth accumulates; re-ratifications
+    do not. Pilot's budget is per bundle,
+    so a replacement starts at 0
+    re-ratifications. A chain is the
+    current regime's accumulated cost
+    of getting one surviving work item,
+    so the tip of SENTINEL→IDENTITY→RESOLVER
+    reports 2. A reader of the survivor
+    who saw only 1 would miss the
+    two-step. Local 0/1 is recoverable
+    from accumulated depth on a linear
+    chain; the reverse is not.
+
+    Surfaces: status --json is the
+    machine archive (already lists
+    applied and superseded bundles).
+    That is the close/archive record
+    without writing a new file into
+    the bundle. Review --change is
+    constraint 5 of the pilot note
+    ("surfaced at close and in review")
+    and follows the attempt-pair
+    not-run honesty bar. Status text
+    prints only non-zero, like
+    orphans=, so 57 zero lines do not
+    drown the signal. No new review.*
+    code: a historical supersede is
+    not a finding.
+
+    Unfingerprinted Decisions (42 of
+    55) are excluded, not guessed.
+    C-EXPLAIN-COVERAGE's two unnamed
+    permits were byte-identical
+    (F40); counting permit-minus-one
+    would have called that an
+    amendment. They must read 0.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Store an incrementing count
+      attribute on each approve
+      Decision, or a new ledger
+      section. Makes the number
+      "in the ledger" literally.
+      Rejected: the history already
+      encodes it, and F134.2
+      rejected a new kind on that
+      ground. A stored field can
+      drift from the Decisions it
+      claims to summarise.
+    </Alternative>
+    <Alternative>
+      Report only re-ratifications.
+      Smaller surface. Rejected:
+      it reads 0 on all 51 ledgers
+      and gives pilot no before.
+      The brief asked for both.
+    </Alternative>
+    <Alternative>
+      Report only supersede-chain
+      depth. Reads history now.
+      Rejected: the moment pilot
+      ships, supersede stops being
+      the amendment equivalent, and
+      the counter would go dark
+      just as the thing it was
+      built to measure starts.
+    </Alternative>
+    <Alternative>
+      Distinct fingerprints minus
+      one, as the brief's formula
+      line. Cheaper, order-free.
+      Rejected: A then B then A is
+      two re-ratifications, one
+      distinct extra. The event
+      the budget will consume is
+      the transition.
+    </Alternative>
+    <Alternative>
+      Do not inherit chain depth;
+      each replacement reports 1.
+      Matches per-bundle budget
+      symmetry. Rejected: status
+      is per-change, and the
+      consumer looking at the
+      surviving tip would see 1
+      for a two-step chain. The
+      before/after comparison is
+      "what did this work item
+      cost", which is accumulated.
+      Re-ratifications stay
+      per-bundle to keep the
+      budget semantics.
+    </Alternative>
+    <Alternative>
+      Inherit re-ratifications
+      along the chain as well.
+      One accumulated cost number.
+      Rejected: mixing a discarded
+      bundle's (today always 0)
+      post-approval count into the
+      survivor would poison the
+      per-bundle budget the moment
+      both numbers are non-zero.
+    </Alternative>
+    <Alternative>
+      Omit the JSON keys when 0,
+      like orphanCount. Smaller
+      payloads. Rejected: this
+      instrument's zero is a
+      measured zero, and omission
+      is how "not implemented"
+      currently looks. Always
+      present as numbers.
+    </Alternative>
+    <Alternative>
+      Add a review.* finding when
+      either count is greater than
+      0. Loud, like a supersede.
+      Rejected: the eight
+      superseded bundles are
+      history, not defects. A
+      finding would fail close on
+      every chain survivor.
+    </Alternative>
+    <Alternative>
+      Print the counts on ngrace
+      gate archive stdout only.
+      Matches "at close" literally.
+      Rejected: archive already
+      moves the bundle into the
+      status archive list, and
+      stdout is not how anyone
+      tallies 51 bundles.
+    </Alternative>
+    <Alternative>
+      Teach the numbers in
+      ngrace-status must_report.
+      Agents would see them.
+      Rejected: the consumer is
+      the maintainer deciding
+      pilot, not an executing
+      agent, and a skill edit
+      moves skillTextLines
+      totalBytes off 58931
+      (F133 / four prior bundles).
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Effort accounting. Next
+      instrument bundle. Prefer
+      WriteEvidence digest churn
+      over self-reported tokens.
+    </Decision>
+    <Decision>
+      Whether an exhausted
+      amendment budget refuses or
+      pauses. RM-PILOT-APPROVAL
+      open question; this bundle
+      does not budget.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      This repository, after the
+      change. status --json: every
+      change has both keys;
+      reRatificationCount is 0
+      everywhere; C-CURSOR-TASK-RESOLVER
+      and C-LINT-PHASE-HONESTY-2
+      report supersedeChainDepth 2;
+      origins of chains report 0.
+    </Scenario>
+    <Scenario>
+      Throwaway, two gate approve
+      runs, no byte change. Two
+      Decision entries, same
+      fingerprint. reRatificationCount
+      0. The no-op must not inflate.
+    </Scenario>
+    <Scenario>
+      Throwaway, spec edited and
+      re-approved so fingerprint
+      differs. reRatificationCount 1.
+      Discrimination against the
+      no-op.
+    </Scenario>
+    <Scenario>
+      Historical shape: two unnamed
+      unfingerprinted approve
+      permits (C-EXPLAIN-COVERAGE /
+      F40). reRatificationCount 0.
+    </Scenario>
+    <Scenario>
+      First spec approve then first
+      plan approve. Two artifacts,
+      two baselines, count 0.
+    </Scenario>
+    <Scenario>
+      Fingerprinted spec permits
+      A, then B, then A.
+      reRatificationCount 2.
+    </Scenario>
+    <Scenario>
+      ngrace review with no
+      --change. Amendment count
+      line is not-run and names
+      --change. With --change,
+      ran, including zeros.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>

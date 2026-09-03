@@ -1,0 +1,760 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-AMENDMENT-COUNT>
+    <Summary>
+      Derive and surface two per-bundle
+      counts from data that already exists:
+      re-ratifications (fingerprinted approve
+      Decision transitions) and supersede-chain
+      depth (reverse Replacement walk). No new
+      ledger section, event kind, or src file.
+      Status JSON, status text, and review
+      are the surfaces. The counts are the
+      measuring instrument RM-PILOT-APPROVAL
+      called for and F134 showed was missing.
+    </Summary>
+    <Problem>
+      RM-PILOT-APPROVAL review.md:80-81 calls
+      an amendment count, per bundle, in the
+      ledger "the measuring instrument". It
+      answers "are the review rules working?"
+      without anyone tallying supersedes by
+      hand. F134 recorded that no such number
+      is produced. This is the second of the
+      three instrument bundles the maintainer
+      ordered (discard, then this counter,
+      then effort). C-SUPERSEDE-RECORD-2
+      shipped the first.
+
+      The raw data already exists. Measured
+      2026-09-01 on this tree at
+      929e69f:
+
+      The ledger accumulates approve
+      Decisions. src/gates/core.test.ts:1812
+      ("per-decision: second approve stores
+      its own plan fingerprint") writes two
+      Decision entries on two gate approve
+      runs. applyingApproveDecision
+      (src/gates/ledger.ts:1043-1053) then
+      throws the history away: it returns
+      forFile[forFile.length - 1], the tip
+      only. classifyApprovedArtifact
+      (:1088-1118) is the only production
+      caller; tip-only is correct for
+      drift classification and must stay.
+
+      51 run-ledger.xml files. 55 approve
+      permit Decision tags, all single-line.
+      13 carry fingerprint (7 artifact=spec,
+      6 artifact=plan). 42 have neither
+      fingerprint nor artifact (pre
+      C-APPROVAL-FINGERPRINT). Distinct
+      fingerprinted fingerprints per
+      artifact, minus one, is 0 on every
+      bundle. Ledger-order transitions of
+      those fingerprints are also 0. Today
+      amendments happen while draft, before
+      any approve Decision exists.
+
+      ngrace status --json per-change keys
+      observed on this root: applyGateRecord,
+      changeId, derivedStates, epochCount,
+      location, openEpochCount, orphanCount,
+      path, planStatus, specStatus, taskCount.
+      orphanCount appears only when greater
+      than 0 (C-TOKEN-INTEGRITY). No
+      re-ratification or chain-depth key.
+
+      Eight archived bundles, not nine, carry
+      status="superseded" with a
+      &lt;Replacement&gt; pointer. Unique
+      targets: 8 of 8. Spec/plan Replacement
+      mismatches: 0. Two-step chains:
+      C-CURSOR-TASK-SENTINEL →
+      C-CURSOR-TASK-IDENTITY →
+      C-CURSOR-TASK-RESOLVER;
+      C-PHASE-RULE-PIN →
+      C-LINT-PHASE-HONESTY →
+      C-LINT-PHASE-HONESTY-2 (active
+      skeleton). Replacement is the current
+      regime's equivalent of an amendment:
+      when an approved artifact must change,
+      the bundle is superseded and re-authored.
+
+      A post-approval re-ratification counter
+      therefore reads 0 on all 51 historical
+      ledgers and only starts measuring once
+      pilot exists. Supersede-chain depth
+      reads real history now. Together they
+      are the before/after comparison. Effort
+      accounting stays the next bundle.
+
+      F134.2 / D21: do not add a record when
+      the existing data answers the question.
+      The Decision history and the
+      Replacement pointers answer it.
+    </Problem>
+    <Goals>
+      <Goal>
+        Export one derivation from
+        src/gates/ledger.ts,
+        readAmendmentInstrument(projectRoot,
+        changeId), that returns both numbers
+        from existing artifacts: the Decision
+        list and the Replacement graph. No
+        new Decision, Verdict, Epoch, event
+        kind, or ledger section.
+      </Goal>
+      <Goal>
+        ngrace status --json includes
+        reRatificationCount and
+        supersedeChainDepth as numbers on
+        every ChangeBundleStatus, including
+        0, including archived bundles, so a
+        consumer can sum the archive without
+        treating omission as "not
+        implemented".
+      </Goal>
+      <Goal>
+        ngrace status text and ngrace review
+        --change print the same two numbers.
+        Review follows the attempt-pair
+        honesty bar: unscoped review is
+        not-run with a reason naming missing
+        --change, never silent.
+      </Goal>
+      <Goal>
+        On this repository after the change,
+        every bundle reports
+        reRatificationCount 0, and the eight
+        superseded chains report the depths
+        measured 2026-09-01 (see
+        AC-CHAIN-THIS-REPO). A throwaway
+        with two fingerprinted spec
+        approvals of different bytes reports
+        reRatificationCount 1.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting:
+        M-GATES derivation, M-STATUS JSON
+        and text, M-REVIEW audit line).
+        Gates still run.
+      </Constraint>
+      <Constraint>
+        Layer: put the derivation in
+        src/gates/ledger.ts beside
+        listGateDecisions and
+        applyingApproveDecision. Status
+        (src/grace-status.ts) and review
+        (src/review/core.ts) are consumers.
+        Do not put the count only in
+        grace-status.ts: review would then
+        import the CLI module, and the
+        EXDEV-style split would reappear
+        (F133). Do not add a new src/*.ts
+        file. C-SUPERSEDE-VERB died that
+        way. applyingApproveDecision stays
+        tip-only and unexported;
+        classifyApprovedArtifact keeps
+        using it. A new exported function
+        readAmendmentInstrument is the
+        history reader. List it, and the
+        returned type AmendmentInstrument,
+        in that file's MODULE_MAP
+        (MAP_MODE EXPORTS).
+      </Constraint>
+      <Constraint>
+        reRatificationCount derivation.
+        Read the Decision list via
+        readGateDecisions. If the list is
+        not state "ok", the count is 0
+        (unreadable is not an amendment;
+        invalid ledgers already surface
+        elsewhere). Consider only entries
+        where gate is approve, decision is
+        permit, artifact is spec or plan,
+        and fingerprint is a non-empty
+        string. Group by artifact. Walk
+        each group in list order (ledger
+        write order). The first
+        fingerprinted permit for that
+        artifact is the baseline and
+        counts 0. Each later fingerprinted
+        permit whose fingerprint differs
+        from the previous fingerprinted
+        permit in that group adds 1. Sum
+        spec and plan. Identical
+        fingerprints in a row add 0
+        (no-op re-approve). Unfingerprinted
+        entries, unnamed-artifact entries,
+        refuse Decisions, and apply/archive
+        gates do not participate and do
+        not reset the previous fingerprint.
+        Forced permits participate when
+        they carry artifact and
+        fingerprint. This is a transition
+        count, not distinct-set-minus-one:
+        A then B then A is 2, not 1. The
+        brief's "distinct minus one"
+        undercounts a revert; "a
+        re-approval whose fingerprint
+        differs" is the event.
+      </Constraint>
+      <Constraint>
+        supersedeChainDepth derivation.
+        Reverse-walk Replacement pointers
+        across active/ and archive/. A
+        predecessor of B is a bundle whose
+        spec.xml (else plan.xml, if spec
+        has no pointer) names B via the
+        same three shapes grammar already
+        accepts (src/artifact/grammar.ts:1438-1445):
+        a child C-* tag, &lt;Replacement&gt;
+        text, or &lt;ReplacementChange&gt;
+        text matching ANCHOR_PATTERNS.change.
+        If spec and plan both name a
+        pointer and they differ, spec
+        wins. Depth(B) is 0 when B has no
+        predecessor; otherwise 1 + max
+        depth of its predecessors. Guard
+        cycles with a visited set and
+        treat a cycle as depth 0 from the
+        repeated node so the walk
+        terminates. Do not inherit
+        reRatificationCount along the
+        chain: that number is per bundle,
+        which is how pilot's budget will
+        be. Chain depth is accumulated
+        cost under today's supersede
+        regime; the surviving tip of a
+        two-step chain reports 2. Do not
+        export grammar's
+        replacementChangeIds; re-read XML
+        in ledger.ts. Do not add M-GRAMMAR
+        to this bundle.
+      </Constraint>
+      <Constraint>
+        Status JSON. ChangeBundleStatus
+        (src/grace-status.ts:42) gains
+        reRatificationCount: number and
+        supersedeChainDepth: number. Both
+        are always set, including 0.
+        Unlike orphanCount, do not omit
+        zeros: omission is how "not yet
+        implemented" hides. Do not add a
+        StatusResult top-level key. Do not
+        change schemaVersion; it stays
+        "1.0.0". The pin at
+        src/grace-status.test.ts:354-376
+        ("keeps schemaVersion 1.0.0 and
+        adds no StatusResult top-level
+        key") must stay green without
+        growing the allowed set.
+        collectChangeBundleStatuses may
+        build the reverse Replacement map
+        once per collectProjectStatus
+        rather than rescanning per bundle;
+        the exported
+        readAmendmentInstrument still
+        scans for the single-change review
+        caller.
+      </Constraint>
+      <Constraint>
+        Status text. formatStatusText
+        (src/grace-status.ts:463) appends
+        ` re-ratifications=N supersede-depth=M`
+        on a change line when either
+        number is greater than 0. Zeros
+        stay in JSON only, matching how
+        orphans= is reserved for a
+        positive orphanCount. Do not
+        invent a new section.
+      </Constraint>
+      <Constraint>
+        Review. ReviewResult
+        (src/review/core.ts:169) gains an
+        optional amendmentCountAudit,
+        same presence rule as
+        attemptPairAudit: set whenever
+        process audits ran; unscoped
+        review sets status not-run with a
+        reason that names missing
+        --change; scoped review sets
+        status ran and both numbers, even
+        when both are 0. Export type
+        AmendmentCountAuditReport and list
+        it in review/core.ts MODULE_MAP.
+        formatReviewResult prints
+        `Amendment count: re-ratifications=N supersede-depth=M for C-ID`
+        when ran, and
+        `Amendment count: not-run — &lt;reason&gt;`
+        otherwise, beside the other audit
+        lines. Do not add a review.*
+        finding code. Do not edit
+        src/review/catalog.ts. Counts are
+        a measurement, not a defect.
+        schemaVersion stays "1.0.0".
+      </Constraint>
+      <Constraint>
+        Wording must not collide with
+        pinned strings. The ReviewResult
+        exact-key pins at
+        src/review/core.test.ts:2724-2734
+        and :3005-3017 ("ReviewResult
+        top-level keys stay the existing
+        nine names") move from nine names
+        to ten: add
+        "amendmentCountAudit" to both
+        arrays, keep the sort order the
+        assertion uses, and retitle :3005
+        so it does not say nine. Do not
+        edit skills/ngrace/*; the
+        skillTextLines().totalBytes pin
+        at
+        src/test-support/token-accounting.test.ts:60
+        stays 58931 and total stays 817.
+        Do not edit README.md. The
+        StatusResult top-level allowlist
+        and schemaVersion 1.0.0 pin stay
+        unchanged. applyingApproveDecision
+        fingerprint-compare tests in
+        src/review/core.test.ts and
+        src/grace-status.test.ts stay
+        green: they still classify from
+        the tip Decision.
+      </Constraint>
+      <Constraint>
+        Forced write surface, traced
+        2026-09-01: src/gates/ledger.ts
+        (LINKS: M-GATES; new export
+        readAmendmentInstrument and type
+        AmendmentInstrument; MODULE_MAP;
+        applyingApproveDecision body
+        unchanged), src/gates/core.test.ts
+        (no LINKS header; derivation
+        cases: no-op re-approve, distinct
+        spec fingerprints, unfingerprinted
+        unnamed pair, spec+plan first
+        approvals are not an amendment,
+        A→B→A is 2, chain depth 0/1/2),
+        src/grace-status.ts (LINKS:
+        M-STATUS; ChangeBundleStatus
+        fields; collect and formatStatusText),
+        src/grace-status.test.ts (no
+        file-level LINKS; JSON always-present
+        zeros; text omits zeros; live-repo
+        chain depths), src/review/core.ts
+        (LINKS: M-REVIEW; ReviewResult
+        field; MODULE_MAP;
+        formatReviewResult; runReview
+        population), src/review/core.test.ts
+        (no file-level LINKS; the two
+        exact-key pins; unscoped not-run;
+        scoped ran including zeros). Do
+        not add a new src/*.ts file. Do
+        not edit src/review/catalog.ts,
+        src/artifact/grammar.ts,
+        src/grace.ts, README.md, or any
+        SKILL.md.
+      </Constraint>
+      <Constraint>
+        README.md is not in scope. Status
+        JSON keys are not documented in
+        the CLI Overview row, and this
+        bundle does not change that row.
+        examples/ is not in scope. Do not
+        require bun run validate:ci: that
+        script runs validate:teaching-surface,
+        which currently exits 1 because
+        the sibling active skeleton
+        C-LINT-PHASE-HONESTY-2 names
+        neither README.md nor examples/
+        (scripts/check-teaching-surface.ts:237
+        checkDocsAndExamplesDecision).
+        Measured 2026-09-01 at this HEAD
+        (exit codes from the command, not
+        through a pipe): typecheck, test,
+        validate:cli,
+        bun run ./scripts/validate-marketplace.ts,
+        validate:examples,
+        validate:determinism,
+        validate:packed,
+        validate:schema-reference,
+        validate:skeleton-templates all
+        exit 0; validate:teaching-surface
+        exits 1. Require those nine
+        individually. Omit only
+        validate:teaching-surface, and
+        name why: C-LINT-PHASE-HONESTY-2
+        is a spec new skeleton. That is
+        ordered, not deferred — it
+        resolves when that sibling spec
+        is authored, which the maintainer
+        has sequenced after this bundle
+        and the effort bundle. Filling
+        that sibling is not this bundle
+        (F127). The MustPassCommand
+        restriction governs command
+        text, never what a command
+        transitively runs; never resolve
+        bun run &lt;script&gt; through
+        package.json. None of the nine
+        is a current-mode lint of this
+        root.
+      </Constraint>
+      <Constraint>
+        This bundle does not implement
+        pilot, does not budget amendments,
+        and does not refuse a fourth
+        re-approval. It only derives and
+        surfaces the instrument. Effort
+        accounting remains the next
+        instrument bundle. Do not
+        reconstruct pre-approval draft
+        edits from git; those left no
+        Decision, and churn is the next
+        bundle's subject.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Recording a new ledger section,
+        Decision attribute, event kind,
+        or stored count. Owner: this
+        bundle's derivation constraint,
+        which forbids a new record
+        because the existing Decision
+        history and Replacement pointers
+        already answer the question
+        (F134.2 / D21).
+      </NonGoal>
+      <NonGoal>
+        Changing applyingApproveDecision
+        to consult history. Tip-only
+        remains correct for
+        approved-contract-drift. Owner:
+        C-APPROVAL-FINGERPRINT, unchanged.
+      </NonGoal>
+      <NonGoal>
+        Pilot state, an amendment budget,
+        a refuse on the fourth
+        re-approval, or any write of
+        status="pilot". Owner:
+        RM-PILOT-APPROVAL, not scheduled.
+      </NonGoal>
+      <NonGoal>
+        Effort accounting, token counts,
+        or WriteEvidence digest churn.
+        Next instrument bundle, already
+        ordered.
+      </NonGoal>
+      <NonGoal>
+        Filling or editing
+        C-LINT-PHASE-HONESTY-2. Leave
+        that skeleton alone.
+      </NonGoal>
+      <NonGoal>
+        README.md unchanged; no CLI
+        Overview or measurement-cell
+        edit. Owner: unchanged; no
+        user-visible command description
+        change.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no
+        user-visible surface there.
+        Owner: unchanged.
+      </NonGoal>
+      <NonGoal>
+        Requiring bun run
+        validate:teaching-surface or bun
+        run validate:ci. Owner: the
+        sibling C-LINT-PHASE-HONESTY-2
+        spec, sequenced after this
+        bundle and the effort bundle.
+      </NonGoal>
+      <NonGoal>
+        Editing skills/ngrace/*,
+        plugins/ngrace/skills/ngrace/*,
+        src/review/catalog.ts,
+        src/artifact/grammar.ts, or
+        src/test-support/token-accounting.test.ts.
+        Owner: unchanged; this bundle
+        does not teach a new verb or
+        finding.
+      </NonGoal>
+      <NonGoal>
+        A new review.* finding when
+        either count is greater than 0.
+        Historical supersedes are not
+        defects. Owner: this bundle's
+        review constraint.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-DERIVE-NOT-RECORD>
+        After the change, no new element
+        name, Decision attribute, or
+        event kind is introduced for
+        these counts. git diff against
+        the pre-change src/artifact and
+        src/gates Decision writer shows
+        no new recorded field. The
+        numbers appear only as derived
+        JSON fields, status text, and a
+        review audit. readAmendmentInstrument
+        is listed in
+        src/gates/ledger.ts MODULE_MAP.
+      </AC-DERIVE-NOT-RECORD>
+      <AC-NOOP-RERATIFY>
+        On a throwaway project, approve a
+        spec (fingerprint A), then
+        ngrace gate approve again with
+        no byte change (fingerprint A).
+        The ledger holds two approve
+        permit Decisions for artifact
+        spec. status --json for that
+        change reports
+        reRatificationCount 0.
+        Discrimination: edit the spec
+        while approved (or restore to
+        draft, edit, re-approve — whichever
+        the current approve path
+        permits), so the second
+        fingerprint is B ≠ A; then
+        reRatificationCount is 1. A
+        refuse never contrasted with
+        this permit is not a
+        discrimination.
+      </AC-NOOP-RERATIFY>
+      <AC-UNFINGERPRINTED>
+        On a throwaway, write a
+        run-ledger.xml with two approve
+        permit Decisions that have
+        neither fingerprint nor artifact
+        (the 42-of-55 historical shape).
+        readAmendmentInstrument reports
+        reRatificationCount 0. Two
+        unnamed unfingerprinted permits
+        must not read as one amendment.
+        A later named fingerprinted
+        permit on the same ledger still
+        counts as baseline 0, not as an
+        increment off the unfingerprinted
+        pair.
+      </AC-UNFINGERPRINTED>
+      <AC-SPEC-PLUS-PLAN>
+        First spec approve plus first
+        plan approve, different
+        fingerprints, different artifact
+        values, is reRatificationCount 0
+        (two baselines, no transition).
+        HEAD today has 17 bundles with
+        exactly two approve permits;
+        those that are spec+plan must
+        stay 0.
+      </AC-SPEC-PLUS-PLAN>
+      <AC-REVERT-TRANSITION>
+        Three fingerprinted spec permits
+        in order A, B, A report
+        reRatificationCount 2, not 1.
+        Distinct-set-minus-one is the
+        wrong formula.
+      </AC-REVERT-TRANSITION>
+      <AC-CHAIN-THIS-REPO>
+        bun run ngrace status --json
+        --path . after the change reports
+        these supersedeChainDepth values
+        on this repository, measured
+        2026-09-01 from the eight
+        &lt;Replacement&gt; pointers:
+        C-CURSOR-TASK-SENTINEL 0,
+        C-CURSOR-TASK-IDENTITY 1,
+        C-CURSOR-TASK-RESOLVER 2,
+        C-PHASE-RULE-PIN 0,
+        C-LINT-PHASE-HONESTY 1,
+        C-LINT-PHASE-HONESTY-2 2,
+        C-SUPERSEDE-VERB 0,
+        C-SUPERSEDE-COMMAND 1,
+        C-SUPERSEDE-RECORD 0,
+        C-SUPERSEDE-RECORD-2 1,
+        C-VERDICT-EVIDENCE 0,
+        C-BOUND-VERDICT 1,
+        C-LEDGER-READ-ABSENCE 0,
+        C-LEGIBLE-FAILURE 1.
+        Every change object, including
+        those, has reRatificationCount
+        0 and both keys present as
+        numbers. HEAD today omits both
+        keys; that probe must go red
+        first, then green. Do not edit
+        C-LINT-PHASE-HONESTY-2 to make
+        this pass.
+      </AC-CHAIN-THIS-REPO>
+      <AC-STATUS-TEXT>
+        formatStatusText on a change
+        with both counts 0 does not
+        contain re-ratifications= or
+        supersede-depth=. On a change
+        with supersedeChainDepth 2 it
+        contains `supersede-depth=2`.
+        On a change with
+        reRatificationCount 1 it
+        contains `re-ratifications=1`.
+      </AC-STATUS-TEXT>
+      <AC-REVIEW-AUDIT>
+        ngrace review --path &lt;throwaway&gt;
+        with no --change: formatReviewResult
+        contains `Amendment count: not-run`
+        and a reason naming --change;
+        ReviewResult.amendmentCountAudit.status
+        is not-run. Same tree, --change
+        C-ID after a first approve:
+        status ran, re-ratifications=0
+        supersede-depth=0, and the JSON
+        field is present. Unscoped
+        omission of the line is a
+        failure (F31 honesty bar).
+      </AC-REVIEW-AUDIT>
+      <AC-NO-NEW-FILE>
+        git status after the change shows
+        no new file under src/*.ts.
+        scripts/release-check.ts
+        PACK_ALLOWED_EXACT is not grown
+        by a new exact member.
+      </AC-NO-NEW-FILE>
+      <AC-PINS-HOLD>
+        bun test src/gates/core.test.ts,
+        bun test src/grace-status.test.ts,
+        bun test src/review/core.test.ts,
+        and bun test
+        src/test-support/token-accounting.test.ts
+        all exit 0. The StatusResult
+        top-level allowlist still has
+        exactly the names pinned at
+        src/grace-status.test.ts:359-375.
+        Both ReviewResult exact-key
+        assertions include
+        amendmentCountAudit and no
+        longer say nine. skillTextLines
+        total is 817 and totalBytes is
+        58931.
+      </AC-PINS-HOLD>
+      <AC-VALIDATOR-FLOOR>
+        Each of these nine exits 0 after
+        the change, run as the command
+        text named, not via bun run
+        validate:ci: bun run typecheck;
+        bun run test; bun run validate:cli;
+        bun run ./scripts/validate-marketplace.ts;
+        bun run validate:examples;
+        bun run validate:determinism;
+        bun run validate:packed;
+        bun run validate:schema-reference;
+        bun run validate:skeleton-templates.
+        validate:teaching-surface is not
+        required. Exit codes are read
+        from the command, never through
+        a pipe.
+      </AC-VALIDATOR-FLOOR>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0.
+        <CloseEvidence>
+          <Command>bun run ngrace lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GATES />
+      <M-STATUS />
+      <M-REVIEW />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run typecheck</ExpectedCommand>
+      <ExpectedCommand>bun run test</ExpectedCommand>
+      <ExpectedCommand>bun run validate:cli</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:examples</ExpectedCommand>
+      <ExpectedCommand>bun run validate:determinism</ExpectedCommand>
+      <ExpectedCommand>bun run validate:packed</ExpectedCommand>
+      <ExpectedCommand>bun run validate:schema-reference</ExpectedCommand>
+      <ExpectedCommand>bun run validate:skeleton-templates</ExpectedCommand>
+      <ExpectedCommand>bun test src/gates/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-status.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        Red-first: HEAD status --json
+        change objects omit
+        reRatificationCount and
+        supersedeChainDepth; after this
+        change every change object has
+        both as numbers, this repo's
+        chain depths match AC-CHAIN-THIS-REPO,
+        and every reRatificationCount is
+        0. Throwaway no-op re-approve
+        stays 0; distinct spec
+        fingerprints become 1; A,B,A
+        becomes 2; unfingerprinted pair
+        stays 0; spec+plan first
+        approvals stay 0. Review unscoped
+        is not-run; scoped ran. Tip-only
+        fingerprint-compare stays green.
+        The nine validators named above
+        exit 0; teaching-surface is
+        omitted because of the sibling
+        skeleton. Exercise the real CLI
+        on a throwaway project and on
+        this repository's archive, not
+        only the unit tests. Do not use
+        current-mode lint of this root
+        as a target assertion.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Replacement is 1:1 in this
+        corpus (8 pointers, 8 unique
+        targets, 0 spec/plan mismatches,
+        2026-09-01). The max-over-
+        predecessors rule is specified
+        so a future fork is defined; it
+        is not observed today.
+      </Assumption>
+      <Assumption>
+        listGateDecisions / readGateDecisions
+        preserve ledger write order. The
+        transition count is meaningless
+        if the list is reordered. Existing
+        per-decision tests treat index 0
+        as the first approve and index 1
+        as the second (core.test.ts:1812).
+      </Assumption>
+      <Assumption>
+        An unreadable Decisions section
+        reporting reRatificationCount 0
+        is acceptable because invalid
+        ledgers already surface through
+        applyGateRecord / lint; this
+        instrument does not grow a third
+        "unknown" JSON state.
+      </Assumption>
+      <Assumption>
+        F134's three pre-approval draft
+        edits on C-LINT-PHASE-HONESTY
+        remain invisible to
+        reRatificationCount. That is
+        correct for this bundle: those
+        edits left no Decision. Chain
+        depth on C-LINT-PHASE-HONESTY-2
+        will read 2 (two discards),
+        which is the current regime's
+        visible cost. Reconstructing
+        draft churn is the effort
+        bundle.
+      </Assumption>
+    </Assumptions>
+  </C-AMENDMENT-COUNT>
+</NgraceChangeSpec>

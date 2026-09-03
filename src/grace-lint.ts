@@ -143,7 +143,10 @@ function shouldFail(result: LintResult, failOn: string) {
     return result.summary.issues > 0;
   }
 
-  return result.summary.errors > 0;
+  const exempt = result.assertionMode === "target" && result.commandsEnabled === false
+    ? new Set(["assertion.command-not-evaluated"])
+    : new Set<string>();
+  return result.issues.some((issue) => issue.severity === "error" && !exempt.has(issue.code));
 }
 
 export const lintCommand = defineGraceCommand({

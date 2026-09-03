@@ -16,6 +16,7 @@
 //   RegexOverStructureScan
 //   ReviewFinding
 //   ReviewOptions
+//   AmendmentCountAuditReport
 //   AttemptPairAuditReport
 //   AttemptPairEvidenceInput
 //   WriteEvidenceScopeAuditReport
@@ -78,7 +79,7 @@ import {
   type LooseEvent,
   type WriteEvidenceSnapshot,
 } from "../grace-cursor";
-import { classifyApprovedArtifact, listGateDecisions } from "../gates/ledger";
+import { classifyApprovedArtifact, listGateDecisions, readAmendmentInstrument } from "../gates/ledger";
 import { CODE_EXTENSIONS } from "../language-registry";
 import {
   getModuleImplementationFiles,
@@ -166,6 +167,15 @@ export type WriteEvidenceScopeAuditReport = {
   absence?: AbsenceValue;
 };
 
+export type AmendmentCountAuditReport = {
+  status: "ran" | "not-run" | "unable-to-determine";
+  reason: string;
+  changeId?: string;
+  reRatificationCount?: number;
+  supersedeChainDepth?: number;
+  absence?: AbsenceValue;
+};
+
 export type ReviewResult = {
   schemaVersion: "1.0.0";
   tool: "ngrace-review";
@@ -188,6 +198,11 @@ export type ReviewResult = {
    * Unscoped → not-run; empty/missing WriteEvidence → unable-to-determine.
    */
   writeEvidenceScopeAudit?: WriteEvidenceScopeAuditReport;
+  /**
+   * Present when process audits ran. Derived re-ratification and supersede-depth
+   * counts. Unscoped → not-run with a reason naming --change.
+   */
+  amendmentCountAudit?: AmendmentCountAuditReport;
   summary: {
     findings: number;
     errors: number;
@@ -1440,6 +1455,8 @@ function loadAttemptPairsFromBundle(
 // Public entry
 // ---------------------------------------------------------------------------
 
+const NO_CHANGE_SUPPLIED_REASON = "no --change supplied";
+
 export function runReview(projectRoot: string, options: ReviewOptions = {}): ReviewResult {
   const root = path.resolve(projectRoot);
   const runPatterns = options.patterns !== false;
@@ -1462,6 +1479,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
   let scopeAudit: ScopeAuditReport | undefined;
   let attemptPairAudit: AttemptPairAuditReport | undefined;
   let writeEvidenceScopeAudit: WriteEvidenceScopeAuditReport | undefined;
+  let amendmentCountAudit: AmendmentCountAuditReport | undefined;
 
   if (runProcess) {
     if (options.changeId) {
@@ -1540,7 +1558,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
 
     // C-SUBSTANTIATION-HONESTY: fail→pass identical-tree audit + absence record (F31).
     if (!options.changeId) {
-      const reason = "no --change supplied";
+      const reason = NO_CHANGE_SUPPLIED_REASON;
       attemptPairAudit = {
         status: "not-run",
         reason,
@@ -1582,7 +1600,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
 
     // C-DECLARED-WRITES: WriteEvidence paths vs ObservedWriteScope (F27 / F31 absence).
     if (!options.changeId) {
-      const reason = "no --change supplied";
+      const reason = NO_CHANGE_SUPPLIED_REASON;
       writeEvidenceScopeAudit = {
         status: "not-run",
         reason,
@@ -1639,6 +1657,41 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
         }
       }
     }
+
+    if (!options.changeId) {
+      const reason = NO_CHANGE_SUPPLIED_REASON;
+      amendmentCountAudit = {
+        status: "not-run",
+        reason,
+        absence: { verdict: "not-run", reason },
+      };
+    } else {
+      const changeId = options.changeId;
+      let bundleResolves = true;
+      try {
+        resolveChangeBundle(root, changeId);
+      } catch {
+        bundleResolves = false;
+      }
+      if (!bundleResolves) {
+        const reason = `change bundle ${changeId} not found under active/ or archive/`;
+        amendmentCountAudit = {
+          status: "not-run",
+          reason,
+          changeId,
+          absence: { verdict: "not-run", reason },
+        };
+      } else {
+        const instrument = readAmendmentInstrument(root, changeId);
+        amendmentCountAudit = {
+          status: "ran",
+          reason: `ran amendment counts for ${changeId}`,
+          changeId,
+          reRatificationCount: instrument.reRatificationCount,
+          supersedeChainDepth: instrument.supersedeChainDepth,
+        };
+      }
+    }
   }
 
   if (scopeAudit) {
@@ -1663,6 +1716,7 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
     scopeAudit,
     attemptPairAudit,
     writeEvidenceScopeAudit,
+    amendmentCountAudit,
     summary: {
       findings: displayed.length,
       errors: displayed.filter((f) => f.severity === "error").length,
@@ -2022,6 +2076,11 @@ export function formatReviewResult(result: ReviewResult): string {
     lines.push("");
   }
 
+  if (result.amendmentCountAudit) {
+    lines.push(formatAmendmentCountAuditLine(result.amendmentCountAudit));
+    lines.push("");
+  }
+
   if (result.findings.length === 0) {
     // A66.4 / rule 11 / F31: "No review findings" is false when a process audit did not run.
     const scopeSkipped =
@@ -2036,7 +2095,11 @@ export function formatReviewResult(result: ReviewResult): string {
       result.writeEvidenceScopeAudit
       && (result.writeEvidenceScopeAudit.status === "not-run"
         || result.writeEvidenceScopeAudit.status === "unable-to-determine");
-    if (!scopeSkipped && !attemptPairSkipped && !writeEvidenceScopeSkipped) {
+    const amendmentCountSkipped =
+      result.amendmentCountAudit
+      && (result.amendmentCountAudit.status === "not-run"
+        || result.amendmentCountAudit.status === "unable-to-determine");
+    if (!scopeSkipped && !attemptPairSkipped && !writeEvidenceScopeSkipped && !amendmentCountSkipped) {
       lines.push("No review findings.");
     }
     return lines.join("\n");
@@ -2068,6 +2131,16 @@ function formatWriteEvidenceScopeAuditLine(audit: WriteEvidenceScopeAuditReport)
   const f = audit.findingCount ?? 0;
   const id = audit.changeId ?? "?";
   return `WriteEvidence scope audit: ran over ${n} path(s) for ${id} (${f} finding(s)).`;
+}
+
+function formatAmendmentCountAuditLine(audit: AmendmentCountAuditReport): string {
+  if (audit.status === "not-run" || audit.status === "unable-to-determine") {
+    return `Amendment count: ${audit.status} — ${audit.reason}`;
+  }
+  const rerat = audit.reRatificationCount ?? 0;
+  const depth = audit.supersedeChainDepth ?? 0;
+  const id = audit.changeId ?? "?";
+  return `Amendment count: re-ratifications=${rerat} supersede-depth=${depth} for ${id}`;
 }
 
 function formatScopeAuditLine(audit: ScopeAuditReport): string {

@@ -45,6 +45,7 @@
 //   deriveAttemptOrdinal
 //   derivePosition
 //   deriveStateFromEvents
+//   discardAndFoldEpoch
 //   digestProjectFile
 //   evaluateTargetComplete
 //   expectedLedgerEventAttributes
@@ -115,6 +116,7 @@ import {
 import {
   cursorNamedTask,
   planTaskIds,
+  RANGE_CLOSING_KINDS,
   validateRunLedgerArtifact,
   validateRunCursorArtifact,
 } from "./artifact/grammar";
@@ -160,7 +162,8 @@ export type CursorState =
   | "in-progress"
   | "paused"
   | "paused-pending-approval"
-  | "complete";
+  | "complete"
+  | "discarded";
 
 /** Closed set for parsing written cursor state (A19.2). */
 export const CURSOR_STATES: readonly CursorState[] = [
@@ -170,6 +173,7 @@ export const CURSOR_STATES: readonly CursorState[] = [
   "paused",
   "paused-pending-approval",
   "complete",
+  "discarded",
 ] as const;
 
 /**
@@ -316,6 +320,7 @@ const KNOWN_KIND_STATE = {
   pause: "paused",
   terminal: "complete",
   escalation: "paused-pending-approval",
+  discarded: "discarded",
 } as const satisfies Record<string, CursorState>;
 
 export type KnownEventKind = keyof typeof KNOWN_KIND_STATE;
@@ -681,7 +686,7 @@ const OPEN_EPOCH_DEFAULT_HEADROOM = 98;
 /**
  * Write a covering opened/Allocation spanning the covering requirement, with ceiling
  * max(requirement, openedId + 98). Shared by recover --fix and auto-open (no carve-out).
- * Append-only (D9); never emits terminal (A29.2 / F12).
+ * Append-only (D9); never emits a range-closing event (terminal or discarded) (A29.2 / F12).
  */
 function writeCoveringOpened(
   bundlePath: string,
@@ -958,16 +963,23 @@ export function advanceCursor(
   if (!ANCHOR_PATTERNS.task.test(task)) {
     throw new GraceCommandError("invalid-arguments", `Task ${JSON.stringify(task)} must be a canonical T-* id.`);
   }
-  // Correction 40: attempt / verification-unavailable / escalation are reserved —
+  // Correction 40: attempt / verification-unavailable / escalation / discarded are reserved —
   // advance would write a bare kind=attempt that still counts against the budget.
-  if (kind === "attempt" || kind === "verification-unavailable" || kind === "escalation") {
+  if (
+    kind === "attempt"
+    || kind === "verification-unavailable"
+    || kind === "escalation"
+    || kind === "discarded"
+  ) {
     throw new GraceCommandError(
       "invalid-arguments",
       kind === "attempt"
         ? `kind "attempt" is reserved; use ngrace cursor attempt --outcome … (and --signature-kind/--signature-key on fail).`
         : kind === "verification-unavailable"
           ? `kind "verification-unavailable" is reserved; use ngrace cursor verification-unavailable --reason ….`
-          : `kind "escalation" is reserved; it is written by the fix budget (trigger R same-signature or D distinct backstop).`,
+          : kind === "escalation"
+            ? `kind "escalation" is reserved; it is written by the fix budget (trigger R same-signature or D distinct backstop).`
+            : `kind "discarded" is reserved; ngrace supersede writes it when abandoning an open epoch.`,
     );
   }
 
@@ -1107,7 +1119,7 @@ export function foldEpoch(
   }
 
   // Membership + density before write (fold owns validation — A11.2).
-  // Terminal required on every *live* effective range; not on superseded history.
+  // A range-closer is required on every *live* effective range; not on superseded history.
   const membershipIssues = validateEventsAgainstAllocations(events, allocations);
   if (membershipIssues.length > 0) {
     throw new GraceCommandError("invalid-project", membershipIssues.join(" "));
@@ -1229,6 +1241,34 @@ export function foldEpoch(
     dryRun: false,
     applied: true,
   };
+}
+
+/**
+ * Abandon an open epoch for ngrace supersede: write discarded when no closer sits
+ * in the effective covering allocation, then fold. No-op when there are no loose
+ * run/ events — does not invoke foldEpoch.
+ */
+export function discardAndFoldEpoch(projectRoot: string, changeId: string): FoldResult | undefined {
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  const events = listLooseEvents(bundlePath);
+  if (events.length === 0) {
+    return;
+  }
+  const allocations = collectEffectiveAllocations(events);
+  const hasCloser = events.some(
+    (event) =>
+      (RANGE_CLOSING_KINDS as readonly string[]).includes(event.kind)
+      && allocations.some((allocation) => event.id >= allocation.from && event.id <= allocation.to),
+  );
+  if (!hasCloser) {
+    const last = events.reduce((current, event) => (event.id >= current.id ? event : current));
+    writeEventFile(bundlePath, {
+      id: nextEventId(bundlePath),
+      task: last.task,
+      kind: "discarded",
+    });
+  }
+  return foldEpoch(projectRoot, changeId);
 }
 
 /** Derive position from ledger → events → optional written cursor → row-3 repository evidence (A13.2). */
@@ -2553,10 +2593,13 @@ function validateEventsAgainstAllocations(events: LooseEvent[], allocations: Ran
         break;
       }
     }
-    const hasTerminal = events.some(
-      (e) => e.id >= allocation.from && e.id <= allocation.to && e.kind === "terminal",
+    const hasCloser = events.some(
+      (e) =>
+        e.id >= allocation.from
+        && e.id <= allocation.to
+        && (RANGE_CLOSING_KINDS as readonly string[]).includes(e.kind),
     );
-    if (!hasTerminal) issues.push(`unterminated range for ${allocation.worker}`);
+    if (!hasCloser) issues.push(`unterminated range for ${allocation.worker}`);
   }
   return issues;
 }
@@ -3479,7 +3522,7 @@ export const cursorCommand = defineGraceCommand({
           description:
             "extend-allocation: extend the effective covering allocation by appending a "
             + "superseding opened/Allocation (last-writer-wins per worker; ceiling "
-            + "max(requirement, openedId+98)). Never rewrites recorded events; never deletes orphans; never emits terminal.",
+            + "max(requirement, openedId+98)). Never rewrites recorded events; never deletes orphans; never emits a range-closing event (terminal or discarded).",
           default: false,
         },
         format: { type: "string", alias: "f", description: "text or json", default: "text" },

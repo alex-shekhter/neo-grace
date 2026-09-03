@@ -71,7 +71,11 @@ claims.** Four rules, each written after a measured failure:
    `C-DECLARED-WRITES` had paid it.
 2. **"X does not exist" is a search result, not an inference.** Any claim that a mechanism, remedy,
    or precedent is missing requires the grep, the command run, or the archive listing *first*.
-   Absence claims are the most expensive errors this repository has recorded.
+   Absence claims are the most expensive errors this repository has recorded. **The pattern must be
+   wider than the claim**: before writing "no X exists", name what a counter-example would look like
+   and search for *that*, in every form it could take. "No named reason constants exist" was
+   disproved by `NO_BASE_COMMIT_CAVEAT`, which the search missed because the pattern demanded the
+   token `REASON` in the identifier ([F138](docs/plans/active/RM-GOVERNED-PATH/decisions.md)).
 3. **Read an artifact's definition before giving it a role in an argument** — what writes it, what
    consumes it. `run.xml` and `run/` are unfolded loose events; the durable record is
    `run-ledger.xml`. Inferring a role from a filename produced a whole fabricated decision.
@@ -96,6 +100,61 @@ claims.** Four rules, each written after a measured failure:
    bundle. Sizing decides the *actor*, never whether it gets fixed: the smallest changes are the
    authority's own or a subagent's; larger ones go to the executor. See also [D11](docs/plans/active/RM-GOVERNED-PATH/decisions.md),
    which refuses any deferral without a dependency or a conflict.
+
+8. **Measure the population, never a sample.** Any number that will be written into a finding, a
+   brief, or a decision comes from the whole set, produced by a command that can be pasted, and
+   carried with the date it was taken. Never generalize from spot-checked files: `grep -l` finds the
+   set, but reading three of them and writing that content onto the count is fabrication with a true
+   premise. `grep -c` counts *lines*, not occurrences, and these artifacts wrap phrases across lines
+   — flatten whitespace first. Counts also expire (F123): a corpus count changes the moment a bundle
+   archives, so re-measure at citation rather than quoting an earlier turn. F130.1 was written after
+   a three-file sample became a 22-file claim, and the five files the sample missed were the ones
+   that changed the argument.
+
+   **Match the position, not just the string.** Three wrong numbers in one session all came from a
+   pattern that found the right text in the wrong place: an exit code read through a pipe (`| tail`
+   reports *tail's* status), a count of a *quoted* string reported as the count of all references,
+   and `status="superseded"` matched inside a Constraint's prose and counted as a superseded bundle.
+   Constrain the match to the structural position the claim is about — the root element, the command
+   rather than the pipeline, non-test files — and prefer parsing the artifact over grepping it when
+   the claim is about structure.
+
+9. **Before proposing to change a behaviour, find the decision that created it.** Search the
+   archived bundles and `decisions.md` for the acceptance criterion that put it there, and read the
+   reasoning. Much of what looks like an oversight is a shipped ruling with a counterweight — the
+   current-mode lint framing was deliberately chosen by `C-REPORT-HONESTY`, whose derivation calls
+   the obvious "fix" unacceptable because it would stop catching real breakage. A proposal may still
+   overturn such a ruling, but it must **say** that it is overturning one and answer the original
+   argument. Silently contradicting a prior decision costs the maintainer a turn and reopens a
+   question that was already paid for.
+
+**Before approving a spec, anchor every file it forces into scope.** For each file the spec's
+Constraints name, read its `LINKS:` header and confirm the owning module appears in **every place the spec
+enumerates modules** — `AffectedAreas` and any ceremony or scope listing. A module list that
+appears twice can be wrong twice, and fixing the copy you happened to look at leaves the other
+([F136.1](docs/plans/active/RM-GOVERNED-PATH/decisions.md)).
+A spec that forces `src/lint/catalog.ts` while omitting `M-LINT-CATALOG` cannot be satisfied by any
+plan: without the anchor the plan raises `change.graph-anchors-miss-write-scope` as an **error**;
+with it, `change.plan-scope-exceeds-spec` as a **warning** — and a `CloseEvidence` criterion running
+`--fail-on warnings` fails on either. Coverage validation runs on archives too and exempts only
+`superseded`, never `applied`, so the contradiction survives the close. This is [F136](docs/plans/active/RM-GOVERNED-PATH/decisions.md);
+the authority had already written the `LINKS:` check into the plan brief and never ran it against the
+spec it had approved.
+
+**Escape markup in XML artifacts; never strip it.** When a spec, plan, design-context, or skill XML
+block must name a tag, attribute form, or angle-bracketed token, write it as character data with
+entities (`&lt;`, `&gt;`, `&amp;`). Do **not** paraphrase the brackets away to keep the document
+well-formed — `bun run &lt;script&gt;` and `&lt;kind id="discarded"&gt;` are the house form. [F43](docs/plans/active/RM-GOVERNED-PATH/decisions.md)
+established that an XML artifact cannot quote unescaped XML, so a criterion binding artifact prose to
+an emitted message containing tags is unsatisfiable; its remedy is that markup-byte assertions belong
+in a TypeScript test, **not** that the artifact may paraphrase. Escaping is mandatory and stripping
+is not the escape hatch.
+
+**Verify empirically, and verify before briefing, not after the report.** Every claim above is a
+measurement, not a recollection. Drive the real CLI against a throwaway project, probe both
+directions so a refusal discriminates rather than merely fails, and do this *before* writing a brief
+— a gap the executor has to find is a gap that was cheaper to measure. When the executor corrects a
+number, re-measure it independently and record the correction against the finding that carried it.
 
 When presenting a decision, give **itemized variants with explicit pros and cons**, then the
 recommendation and why the runner-up loses — never prose, and never a single recommendation with the

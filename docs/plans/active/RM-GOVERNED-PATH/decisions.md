@@ -7596,6 +7596,463 @@ archives hollow.
 run record for work already finished — an epoch with no attempts and no reds, dated at the close.
 The empty record is the honest one, and it stands.
 
+### F130.1 correction — F130's archived-corpus count is wrong, and the corpus is more varied than it claimed. **[verified]**
+
+[F130](#f130) says *"**22 carry a bare `bun run ngrace lint --path .`**"*. That is wrong. The executor
+measured the whole corpus; I re-measured independently and got the same numbers:
+
+| claim in F130 | measured |
+|---|---|
+| 22 archived plans carry `bun run ngrace lint --path .` | **21** carry exactly that text |
+| — | **22** carry *some* bare `ngrace` lifecycle invocation |
+| 40 archived plans carry `validate:ci` | **41** |
+
+**How the error was made.** I grepped for `ngrace (lint\|status\|review\|gate\|cursor\|query)`, got 22
+plans, sampled **three**, saw `bun run ngrace lint --path .` in each, and wrote the sample's content
+onto the population's count. A three-file sample is not a measurement of 51 files.
+
+**The five commands the sample missed change the argument, not just the number.** The other bare
+invocations are `ngrace context --help`, `ngrace gate --help`, `ngrace review --help`,
+`ngrace verification localize --help`, and `ngrace review --path examples/polyglot`. Four are
+**`--help` probes**, which evaluate nothing and carry no phase hazard at all; the fifth reviews a
+*different* project root. So the archived corpus does **not** show 22 instances of the hazard. It
+shows 21 instances of one hazardous form and 5 harmless ones that any command-name-based prohibition
+would condemn along with it. That is an argument for naming the *property* rather than the verb, and
+F130 could not make it because F130 had not looked.
+
+**The `validate:ci` count moved for a legitimate reason** — `C-BOUND-VERDICT` archived between the two
+measurements. 40 was true when taken. This is [F123](#f123)'s class: a count with a one-dispatch shelf
+life, correct at measurement and stale at citation. Cite the date with the number, or re-measure.
+
+**F130's ruling is unaffected.** The maintainer's command-text reading still holds, and the executor
+independently confirmed the reason: a transitive reading would newly condemn **41** archived
+`validate:ci` assertions.
+
+### F132 — the honest lead line points operators at a remedy that fails for 94% of plans. **[verified]**
+
+`C-LINT-PHASE-HONESTY`'s draft `AC-HONEST-LEAD` replaces the false "expected while a C-* change is in
+progress" with an honest lead that names a remedy: *"If writes have started, use
+`--assertions target --change C-ID` (or `--assertions final`)."* The wording is right. **The remedy
+is not reachable.**
+
+Measured on throwaway projects built from `writeMinimalNgraceProject`, with a baseline falsified the
+way a real edit falsifies it (the `MODULE_CONTRACT` header preserved, so nothing else is red):
+
+| plan's `TargetAssertions` | bare lint | `--assertions target --change C-ID` |
+|---|---|---|
+| no `MustPassCommand` | exit 1 | **exit 0, Errors: 0** |
+| carries `MustPassCommand` | exit 1 | **exit 1** — `assertion.command-not-evaluated` |
+
+Adding `--run-commands` does not rescue it; it refuses before linting at all:
+
+```
+Cannot record command-run: no declared task is in scope. Use cursor advance on a declared
+T-NNN so a loose event exists, or leave run.xml naming a declared task.
+```
+
+So the third door needs a cursor event, and [F131](#f131) established that cursor events can be
+absent for an entire bundle — `C-BOUND-VERDICT` archived with zero.
+
+**The proportion is what makes this blocking.** Of 51 plans on disk carrying `TargetAssertions`,
+**48 carry a `MustPassCommand`** — 94%. The remedy works only for the 3 that do not. An operator who
+follows the new, honest message hits a second wall in the overwhelming majority of real cases.
+
+**The cause is the authority's scope ruling, not the executor's spec.** The spec brief scoped
+`assertion.command-not-evaluated` out on the grounds that it carries its own shipped doctrine
+(`C-ABSENCE-VALUE`) and that folding it in would double the rulings the bundle overturns. That
+reasoning still holds in isolation. What neither party noticed is that **the thing scoped out is the
+remedy the new message advertises.** The executor flagged the absence code in `AMBIGUITIES` exactly
+as briefed; the brief never asked it to check whether the escape hatch worked.
+
+**The generalisable rule.** When a change replaces a diagnostic with one that *names a remedy*, the
+remedy is part of the deliverable and must be exercised end to end. A message is not honest because
+its sentences are true; it is honest when following it works. Adding a remedy to an error string is
+a promise, and promises get the same empirical test as behaviour.
+
+### F133 — twice in one plan, an approved change asserted a blast radius it had not traced. **[verified]**
+
+`C-LINT-PHASE-HONESTY` executed cleanly, but two defects in the **approved plan** surfaced at
+implementation. The executor caught both, reported the scope breach before making the write, and was
+right about each. They look unrelated and share one root.
+
+**(a) `ObservedWriteScope` omitted a write the plan's own criteria force.** T-005 rewrites the
+`MustPassCommand` doctrine across four canonical skill files. `src/test-support/token-accounting.test.ts`
+pins `skillTextLines().totalBytes` to an exact number, and the full suite is inside `validate:ci`,
+which the plan carries as a `MustPassCommand`. So the skill rewrite necessarily falsifies a pinned
+test that a target assertion requires to pass. Measured independently after execution: `total` stayed
+**812**, `totalBytes` moved **56971 → 58400**. The edit was forced and unscoped; the plan's 19-entry
+scope did not name the file.
+
+**This is [F120](#f120)'s class, and the second time this exact pin has been the instrument** — the
+same byte sum was re-measured under `C-BOUND-VERDICT` (F129/F131's bundle) as a *planned* task, and
+here it recurred as an *unplanned* breach.
+
+**(b) The plan located a mechanism at the wrong layer.** The archive exemption was specified as
+lint's `skipActivePhaseIssues` (`src/lint/core.ts:533-577`), which is lint-only. But
+`extractAssertionsWithIssues` has another consumer: `collectOperationalValidationErrors`
+(`src/query/core.ts:93-97`) flatMaps over **both** `changesActiveDir` and `changesArchiveDir`. Once
+T-001 widened the matcher to catch implicit-current lint, the 21 archived plans carrying
+`bun run ngrace lint --path .` began erroring there, making `module`, `context`, and `localize`
+report `invalid-project`. The executor relocated the skip into `validateAssertionPhase` itself
+(`src/artifact/assertions.ts:287-298`). Verified after: `module show`, `context`, and `query` all
+exit 0, and `validate:ci` exits 0.
+
+**The shared root, which is the useful part.** Both are the same failure at different scales: **the
+plan asserted what a change would touch without tracing it.** (a) never traced that editing a skill
+file moves a number some test pins. (b) never traced that the function being changed has callers
+outside the module being changed. Neither is a coding error; both are unfollowed edges.
+
+**The rule.** Before approving a plan, for every file it will edit, ask *what asserts on this file's
+content* — and for every function it will change, ask *who else calls this*. Grep for the pin and
+grep for the callers. `ObservedWriteScope` is the closure of the edit, not the list of files whose
+names appear in the intent, and a mechanism belongs at the layer all its consumers share, not at the
+one the plan happened to be reading.
+
+**Neither defect required a supersede.** (a) was a scope breach reported before the write, with the
+approved criteria unchanged; (b) is an implementation location, and the approved criterion
+(`AC-ARCHIVE-EXEMPT`) is satisfied more completely by the relocated skip than by the specified one.
+
+### F134 — the amendment count pilot calls its measuring instrument does not exist, and this bundle is the case that proves it. **[verified]**
+
+[`RM-PILOT-APPROVAL`](../RM-PILOT-APPROVAL/review.md) rests on a measurement: *"The budget is also the
+measuring instrument. The amendment count is a number, per bundle, **in the ledger**. It answers 'are
+the review rules working?' without anyone tallying supersedes by hand."* (`review.md:80-81`)
+
+**No such number is recorded, and `C-LINT-PHASE-HONESTY` is the sharpest demonstration so far.**
+
+What it actually cost to reach an approved, executed bundle, measured from git on `feat/lint-phase-honesty`:
+
+| event | commit |
+|---|---|
+| predecessor `C-PHASE-RULE-PIN` drafted | `3090ded` |
+| predecessor superseded, replacement drafted | `33f6e9a` |
+| spec amendment 1 — scope widened to the absence code | `99d8356` |
+| spec amendment 2 — exemption moved to the exit gate | `5cdb34a` |
+| spec approved | `659e552` |
+| plan drafted | `f7217e1` |
+| plan amendment 1 — bundle artifacts added to `ObservedWriteScope` | `5a036e4` |
+| plan approved | `4909689` |
+
+**One supersede, three amendments, and a forced scope breach at execution ([F133](#f133)).**
+
+What the ledger carries before the close: **2 `Decision` entries** (one spec approve, one plan
+approve) and nothing else. After the close it gains verdicts and the folded epoch. At no point does
+it record that a predecessor was discarded or that the artifacts were amended three times. The
+superseded predecessor archived with **`spec.xml` alone — no `run-ledger.xml` at all.**
+
+So the instrument reads **"clean, approved first try"** for a bundle that took a discarded
+predecessor and three amendments to get right.
+
+**This is [F128](#f128) reaching the decision it was blocking.** F128 recorded that the archive cannot
+measure what a supersede costs and concluded that *recording cost at the moment of discard is prior to
+deciding pilot*. That ordering is now load-bearing rather than theoretical: pilot's central claim —
+that expense is the pressure producing care — cannot be tested against an archive that prices every
+bundle at zero.
+
+**Why the gap is specifically pre-approval.** Execution cost *is* recorded, once `cursor fold`
+consolidates the loose `run/` events; this bundle emitted 15 of them across an open epoch. The blind
+spot is everything before the approve Decision: drafting, amending, and discarding all happen while
+`status="draft"`, where nothing writes to the ledger. Pilot moves amendment *after* approval, which
+is exactly the region the ledger already covers — so pilot would be measurable **if** the same
+counter also captured the pre-approval history it is meant to be compared against.
+
+**The honest reading of this bundle as evidence.** Its three amendments were cheap — all pre-approval,
+none requiring re-ratification — and each was driven by a measurement that caught a real defect: a
+scope too narrow to make its own remedy reachable, a count that would have printed `Errors: 0` beside
+an `[error]` line, and a write scope missing two files. That is evidence that cheap amendment
+produced more care, not less. It is **confounded** and must not be read as settling pilot: these
+amendments carried no ratification cost, which is the variable pilot actually changes.
+
+### F134.1 — the first supersede in this repository that preserved its own cost, and the two gaps it exposed. **[verified]**
+
+`C-LINT-PHASE-HONESTY` was superseded on the maintainer's ruling rather than closed, deliberately, to
+begin collecting the cost data [F134](#f134) showed the archive was not recording. The sequence was
+**`cursor advance --kind terminal` → `cursor fold` → `ngrace supersede`**, and it worked:
+
+| | `C-SUPERSEDE-VERB` (2026-08) | `C-LINT-PHASE-HONESTY` (2026-09-01) |
+|---|---|---|
+| `run/` in archive | **absent** | present |
+| Epochs | 0 | **1** |
+| attempts | 0 | **10** (4 fail, 6 pass) |
+| failure signatures | none | 4, all named |
+| approve Decisions | 2 | 2 |
+
+Same class of event, five tasks each, and the difference is entirely the fold. **`ngrace supersede`
+does not fold** — `src/grace-supersede.ts` contains no reference to `run/`, `Epoch`, or fold — so
+without the manual two steps the record is destroyed by the act meant to record it.
+
+**Gap 1 — the discard is recorded with a borrowed verb.** `cursor advance --kind terminal` asserts
+that T-005 *terminated*. It did not; the bundle was abandoned mid-flight. The nine event kinds
+(`opened, progress, resume, attempt, verification-unavailable, command-run, pause, terminal,
+escalation`) contain **no** kind meaning "discarded", so fold's precondition can only be satisfied by
+claiming a completion that did not happen. The record above is therefore accurate in its numbers and
+wrong in its verb. **This discard, recorded with the wrong word, is the motivating case for the
+discard bundle.**
+
+**Gap 2 — nothing documents whether a supersede discards the work.** Searched: the verb's own
+description is *"Write superseded onto an active change bundle, name its replacement, and move it
+into archive"*, and no skill or README text states what happens to the implementation. The answer,
+established by precedent at [F127](#f127) — *"T-001–T-007 are complete, in scope, and green; nothing
+needs reverting"* — is that **supersede discards governance, never code.** The replacement carries
+the implementation forward. A reader could equally well assume the opposite, and the difference is
+the entire cost model: this supersede cost one re-authored spec and plan, not five re-executed tasks.
+
+Both gaps belong to the discard bundle, chartered as the first of three instrument bundles the
+maintainer approved on 2026-09-01: **discard → amendment counter → effort**. Recording them at
+charter time is scoping, not deferral.
+
+### F134.2 correction — the borrowed verb is an optimization, not a gap, and the discard bundle shrinks. **[verified]**
+
+[F134.1](#f1341) called `cursor advance --kind terminal` on an abandoned bundle *"accurate in its
+numbers and wrong in its verb"*, and named a new `discarded` event kind as the motivating requirement
+for the discard bundle. **The maintainer challenged that framing and was right.** Measured on the
+archived `C-LINT-PHASE-HONESTY`:
+
+```
+ngrace cursor show --change C-LINT-PHASE-HONESTY
+  State: complete        <- cursor lifecycle state (no open epoch)
+  Complete: n/a          <- work-completion judgment
+```
+
+```
+ngrace status --json
+  specStatus: superseded   planStatus: superseded   location: archive
+  epochCount: 1   openEpochCount: 0   derivedStates: []
+```
+
+**No surface claims the work completed.** The work-completion field reads `n/a`, and `superseded`
+dominates every status projection. The discard is therefore fully recoverable today from
+`status="superseded"` plus the `Replacement` pointer plus the folded epoch and its attempts — three
+existing artifacts, no new concept.
+
+**What F134.1 got wrong.** It reasoned from the kind's *definition* — "emitting terminal is a
+judgment about completion" — to a conclusion about the *record*, without checking what the record
+actually surfaces. That is precedence rule 3 applied by half: the definition was read, but the
+consumers were not. `State: complete` is a cursor-lifecycle name, not a claim about the work, and the
+field that would carry such a claim says `n/a`.
+
+**What survives, and it is the expensive half.** `ngrace supersede` still does not fold, and that is a
+measured defect, not a naming preference: `C-SUPERSEDE-VERB` archived `epochs=0 attempts=0` for five
+executed tasks, while `C-LINT-PHASE-HONESTY` — same class of event, same task count — archived with
+Epoch 1, 10 attempts and 4 named signatures, purely because terminal-and-fold were run by hand first.
+A step that must be remembered, and whose omission silently destroys the record, belongs inside the
+verb. Also surviving: nothing documents that supersede discards governance and never code
+([F127](#f127) precedent), and a reader may reasonably assume the opposite.
+
+**So the discard bundle is two requirements, not three:** fold inside `supersede` (no-op when no epoch
+exists, since `C-PHASE-RULE-PIN` was superseded having never executed), and document the
+code-versus-governance boundary. The `State: complete` naming on an abandoned bundle is recorded as a
+legibility nit, not scoped.
+
+**The rule this pays for.** Before proposing a new concept to make a record honest, query the record.
+An inference from a definition is not a measurement of what a surface reports, and the cheapest fix
+is usually the one that adds nothing.
+
+### F135 — the authority superseded before the replacement existed, and a `spec new` skeleton is never inert. **[verified]**
+
+`ngrace supersede` requires the replacement bundle's directory to exist. To satisfy that, the
+authority ran `ngrace spec new C-LINT-PHASE-HONESTY-2`, superseded, and committed after checking
+**only `ngrace lint`** — which was 0/0 — without running the rest of the validator set. That is
+precedence rule 5's subset error, committed by the party that writes the rule into every brief.
+
+**A `spec new` skeleton turns `validate:ci` red the moment it exists.**
+`scripts/check-teaching-surface.ts:237` requires **every active spec** to name both `README.md` and
+`examples/` in a `Goal`, `Constraint`, or `NonGoal`; the generated skeleton names neither. Measured:
+
+```
+C-SUPERSEDE-RECORD:      PASS
+C-LINT-PHASE-HONESTY-2:  FAIL
+```
+
+The skeleton cannot simply be removed — deleting it raises
+`change.superseded-replacement-not-found` on both artifacts of the superseded bundle. So the
+placeholder is load-bearing and red at the same time.
+
+**The correct order is the one the executor used and the authority did not.** For
+`C-PHASE-RULE-PIN` → `C-LINT-PHASE-HONESTY`, the replacement spec was **authored first**, then the
+predecessor superseded. Superseding toward an empty directory buys a red validator until the
+replacement is written.
+
+**The archive ratchet caught the F133 breach, exactly as designed.** Archiving the bundle added
+`["C-LINT-PHASE-HONESTY", "src/test-support/token-accounting.test.ts"]` to the product multiset at
+`src/review/core.test.ts:1963`, failing `bun test` and `validate:determinism`. The list already
+carried `["C-EXECUTION-CONTRACT", "src/test-support/token-accounting.test.ts"]` with the note *"the
+write was forced, not discretionary. Recorded, not excused."* — **the third bundle to move this same
+pin.** The pair is now recorded with its own note. Recording is the strict act; leaving the ratchet
+red would merely have disarmed the suite for every later bundle.
+
+**Two errors in the authority's brief, both found by the executor.**
+
+1. *"fold refuses with `unterminated range for w0` … exit 0, silently"* — **false**. Fold exits **1**
+   with that message on stderr. The authority measured it as `... | tail -6; echo "exit=$?"`, which
+   reports **`tail`'s** status, not the command's. Every exit code sampled through a pipe in this
+   session is suspect; this one reached a brief as a fact.
+2. *"the loose events under `run/` are lost"* — **wrong verb**. `renameSync` preserves `run/`; what
+   is lost is the **`Epoch`**. `C-SUPERSEDE-VERB`'s absent directory is a separate artifact, not
+   proof that supersede deletes. The defect is "not folded", which is still worth paying.
+
+**The rule.** Read an exit code from the command, never through a pipe — `cmd >out 2>err; echo $?`.
+And after any write that adds an artifact to `.ngrace/`, run the whole validator set, not the one
+validator that happens to be fast.
+
+### F136 — an approved spec whose forced write surface no plan can anchor. **[verified]**
+
+`C-SUPERSEDE-RECORD`'s approved spec forces `src/lint/catalog.ts` into the write surface (its
+Constraints name the file twice, so `ledger.range-unterminated`'s explanation can name the closer
+set). That file declares `LINKS: M-LINT-CATALOG` (`src/lint/catalog.ts:5`). The spec's
+`AffectedAreas` are `M-GATES`, `M-CLI`, `M-CURSOR`, `M-GRAMMAR`, `M-SKILLS` — **`M-LINT-CATALOG` is
+not among them.**
+
+**Both horns fail, measured in the real tree, not inferred:**
+
+| plan's `GraphAnchors` | result |
+|---|---|
+| without `M-LINT-CATALOG` | **1 error** — `change.graph-anchors-miss-write-scope`: *"ObservedWriteScope path src/lint/catalog.ts is not linked to any GraphAnchors module"* |
+| with `M-LINT-CATALOG` | **1 warning** — `change.plan-scope-exceeds-spec`: *"Plan DurableScope includes M-LINT-CATALOG, which the approved spec never mentions"* |
+
+The spec's own `AC-CLOSE-LINT` is `bun run ngrace lint --path . --fail-on warnings`, so the warning
+fails the close as surely as the error does. And the warning survives archiving: spec→plan coverage
+is explicitly *"Run for active and archive"* (`src/artifact/grammar.ts:1303-1306`), and the only
+exemption is `status === "superseded"` (`:1838-1842`) — **`applied` is not exempt**.
+
+**So no plan can satisfy this approved spec.** The fix is one element, `&lt;M-LINT-CATALOG /&gt;`, in
+a frozen artifact.
+
+**This is [F127](#f127)'s class, one level up and one stage earlier.** F127 was an approved *plan*
+that required a suite green while forbidding the write that green needed. This is an approved *spec*
+that forces a file into scope while omitting the module that file belongs to. The shared shape is
+unchanged: **a requirement and a restriction written in different sections of one artifact and never
+checked against each other.**
+
+**Caught before any production write, which is the improvement.** The executor found it while
+authoring the plan, chose the warning over the error as the lesser breach, and reported the dilemma
+rather than silently taking either horn. Nothing needs reverting: no source file has been touched.
+
+**The rule this pays for, and it is the authority's.** Before approving a spec, take every file the
+spec forces into scope, read its `LINKS:` header, and confirm the owning module appears in
+`AffectedAreas`. The authority's own plan brief told the executor to do exactly this — *"derive each
+file's owner from its `LINKS:` header rather than guessing"* — and never ran the check against the
+spec it had already approved. The instruction was right; applying it only downstream was the error.
+
+**Cost, for the `RM-PILOT-APPROVAL` record.** This is the cheapest defect the strict path has yet
+priced: caught at plan-authoring time, zero production writes, zero executed tasks. Under the current
+rules the remedy is a supersede — re-author, re-approve, re-plan — for a **one-element** omission.
+Under the proposed amendment budget it would be amendment 1 of 3 with a fresh ratification. Recorded
+here because [F134](#f134) established that the archive prices such events at nothing, and this one
+should be counted when pilot is decided.
+
+### F136.1 correction — the two horns are not symmetric, and the spec's defect is wider than its `AffectedAreas`. **[verified]**
+
+[F136](#f136) said the anchored and unanchored plans both "fail the close". **That is imprecise, and
+the executor measured why.**
+
+- `change.graph-anchors-miss-write-scope` is **active-plans-only**. `validateGraphAnchorsOwnWriteScope`
+  (`src/lint/core.ts:734-738`) is documented *"Active plans only … Archives are not in activeScopes
+  and are not evaluated (decision D / A53)."* So the unanchored plan errors **during execution**, and
+  the error **disappears** once archived.
+- `change.plan-scope-exceeds-spec` **does** survive `applied`, because spec→plan coverage runs on
+  archives and exempts only `superseded` (`src/artifact/grammar.ts:1303-1306`, `:1838-1842`).
+
+So the failures are at **different stages**, not two forms of the same one. The conclusion is
+unchanged and the executor states it better than F136 did: **a truthful plan still cannot close this
+spec.** Omit `src/lint/catalog.ts` from `ObservedWriteScope` and the declared write surface is a lie,
+since the Constraints force the file; include it without the module and active lint errors before the
+close is reached; include both and the warning outlives the archive.
+
+**Two further corrections.**
+
+1. F136 quoted the error text as if complete. The live message **appends** the diagnostic tail —
+   `(file LINKS: …; GraphAnchors: …)`. Quoting a prefix as the message is the same class as measuring
+   a proxy and reporting the thing.
+2. The authority's replacement brief called `C-SUPERSEDE-RECORD`'s Constraints *"unchanged and
+   correct"*, and instructed that only `AffectedAreas` needed the fix. **That was wrong**: the spec's
+   ceremony module list omitted `M-LINT-CATALOG` too. One omission had two homes in the same artifact,
+   and the brief's confident scoping would have carried the second one forward untouched. The
+   executor corrected both.
+
+**What this sharpens in the rule.** `CLAUDE.md` now says to read the `LINKS:` header of every forced
+file and confirm the owning module is in `AffectedAreas`. The stronger form: confirm it in **every
+place the spec enumerates modules** — `AffectedAreas` and any ceremony or scope listing — because a
+module list that appears twice can be wrong twice, and fixing the copy you happened to look at leaves
+the other.
+
+### F137 — the gate writes two artifacts the review then reports as out-of-scope writes. **[verified]**
+
+`C-SUPERSEDE-RECORD-2` executed cleanly with **no scope breach by the executor**. Its close review
+nevertheless reports two errors:
+
+```
+review.scope-outside-write-scope .ngrace/changes/active/C-SUPERSEDE-RECORD-2/plan.xml
+review.scope-outside-write-scope .ngrace/changes/active/C-SUPERSEDE-RECORD-2/spec.xml
+```
+
+**Neither was written by the executor.** Measured against the ledger's recorded base
+`1091e223`: `spec.xml`'s only diff is `status="draft"` → `status="approved"`, and `plan.xml` is
+byte-unchanged since its own approval commit. Both writes are `gate approve`'s — the tool stamping
+status, which `stampApproveArtifact` is the sanctioned writer for since `C-APPROVAL-FINGERPRINT`.
+
+**The asymmetry is in `isCliLifecyclePath`** (`src/review/core.ts:1011-1012`). It exempts `run.xml`,
+`run-ledger.xml`, and `run/` as "tool-owned lifecycle paths … not agent out-of-scope work" — the F11
+rule — but **not `spec.xml` or `plan.xml`**, which the gate also owns and also writes. So the review
+classifies a lifecycle write as agent work for two files and not for three.
+
+**The house workaround is per-plan and was forgotten immediately.** `C-BOUND-VERDICT` listed its four
+bundle artifacts in `ObservedWriteScope` precisely to silence this. Nine bundles later the authority
+found the same two findings on `C-LINT-PHASE-HONESTY`, fixed it there by adding the entries, wrote
+that *"acking noise trains the reviewer to ack"* — and then approved `C-SUPERSEDE-RECORD-2`'s plan
+without applying the lesson. **A remedy that must be remembered per artifact is not a remedy.**
+
+**This is not the executor's defect and not an authoring defect in the ordinary sense.** The plan
+declares the write surface the *executor* touches, correctly and completely. Requiring it also to
+declare files the *tool* writes conflates two different scopes in one element.
+
+**The fix belongs in the product, not in every plan.** Either `isCliLifecyclePath` covers the two
+artifacts the approve gate stamps, or the scope audit compares against the executor's writes rather
+than every changed file. Chartered as a registry item; it is small, it is entirely inside
+`src/review/core.ts`, and it removes a recurring class of ackable noise from every future close.
+
+**Until it ships, these findings are acknowledged at the bound verdict, not excused.** The
+distinction matters and is the one strictness cares about: excusing means letting a real breach pass;
+acknowledging means recording that the write happened, naming who made it, and confirming it was
+sanctioned. Here the writer is the gate, the act is its documented job, and the evidence is a
+one-line diff.
+
+### F138 — five wrong measurements in one session, all the same shape: the pattern was narrower than the claim. **[verified]**
+
+The authority produced five false or overstated measurements across this session's bundles. The
+executor caught every one. They are not five mistakes; they are one mistake made five times.
+
+| claim | what was measured | truth |
+|---|---|---|
+| fold "exits 0, silently" | `$?` after `\| tail` — **tail's** status | fold exits **1** with a stderr message |
+| `paused-pending-approval`, "7 sites in one file" | the **quoted** string only | **14** hits across **two** files |
+| "9 superseded bundles" | `status="superseded"` anywhere in the file | **8** — one match was inside a Constraint's **prose** |
+| red budgets at `grace-cursor.ts:179`/`:185` | the **JSDoc openers** | the consts are at `:183`/`:189` |
+| "no precedent: no named reason constants" | `const [A-Z_]*REASON[A-Z_]* =` | **`NO_BASE_COMMIT_CAVEAT`** at `src/review/core.ts:1781`, same file |
+
+**The shape.** In every case the pattern was a proxy for the claim rather than the claim itself — a
+pipeline instead of a command, a quoted form instead of all forms, any position instead of the root
+element, a comment instead of the declaration, one naming convention instead of the category. The
+string found was always real; it was never the thing asserted.
+
+**The fifth is the expensive one, and it is the class `CLAUDE.md` rule 2 already names.** *"'X does
+not exist' is a search result, not an inference"* — the authority ran the search, so the rule was
+obeyed in form. What the rule did not say is that **an absence claim requires a pattern wider than
+the claim.** "No named reason constants exist" cannot be tested by a pattern demanding the token
+`REASON` in the identifier; the constant that disproved it is called `NO_BASE_COMMIT_CAVEAT` and
+lives eleven lines from code the same brief cited.
+
+**Consequence, and why it was cheap this time.** The brief told the executor it was establishing a
+new pattern from nothing and should keep it minimal. It was in fact following an existing local
+convention — which is a better argument for the same design, and the executor made it. Had the
+brief's premise been load-bearing rather than decorative, the bundle would have been scoped against
+a precedent that already existed.
+
+**The rule.** Before writing an absence claim, invert it: name what a counter-example would look
+like, and search for **that**, in every form it could take. If the claim is "no X exists", the
+pattern must not encode an assumption about how X is spelled. And prefer parsing structure over
+grepping text whenever the claim is about structure rather than words.
+
 ## D19 — an approval covers the current step only
 
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
@@ -7705,6 +8162,124 @@ the executor. It does not implement D18. Not created here.
 
 ---
 
+
+## D21 — a schema that cannot represent an operation truthfully is the thing that is wrong
+
+**Decided 2026-09-01 by the maintainer**, on the `C-SUPERSEDE-RECORD` design question. His words:
+
+> If an operation cannot be represented truthfully under the current schema without breaking a
+> foundational skill rule, the constraint is wrong, not the rule.
+
+**The situation.** `ngrace supersede` must fold before archiving or the discarded bundle's cost is
+never recorded ([F134](#f134), [F134.1](#f1341)). Fold refuses without a `terminal` event inside the
+covering allocation (`src/grace-cursor.ts:2556-2559`). But `terminal` is defined as a **completion
+judgment**, and the skills explicitly forbid the binary from deriving one —
+`skills/ngrace/ngrace-execute/SKILL.md:87`: *"Emitting terminal is a judgment about completion, not
+structural state the binary can derive — `recover --fix` does **not** emit terminal."*
+
+So an automated supersede had exactly three options: emit `terminal` from the binary and break the
+foundational rule; relax fold's range-close invariant; or add an event kind meaning *abandoned*.
+
+**The ruling selects the third**, and generalises: when the only ways to represent a real operation
+are to break a rule or to lie, the schema's expressive gap is the defect. **A `discarded` kind is
+therefore back in scope**, and `AC-NO-NEW-KIND` is withdrawn from the draft spec.
+
+**This does not make [F134.2](#f1342) wrong; it makes its scope explicit.** F134.2 rejected a new
+kind as a *legibility* fix and was correct on that question: measured, no surface claims the
+abandoned work completed — `cursor show` reports `Complete: n/a`, and `superseded` dominates every
+status projection. The kind now returns on a **different and stronger justification**: not that the
+record reads ambiguously, but that the binary cannot produce the record at all without asserting a
+completion that did not happen. The authority's original argument was the weak form of a right
+conclusion, and rejecting the weak form was correct.
+
+**Measured scope of the change**, before it is briefed:
+
+- `KNOWN_KIND_STATE` (`src/grace-cursor.ts:308-319`) gains one entry; `KNOWN_EVENT_KINDS` is
+  definitionally its keys (`:327`).
+- The length-and-exact-list pin at `src/grace-cursor.test.ts:3199-3201` moves 9 → 10.
+- Fold's range-close test (`:2556-2559`) must accept the new kind as a range-closer beside
+  `terminal`, and grammar's `ledger.range-unterminated` with it.
+- A `CursorState` may be needed. **Correction, 2026-09-01:** this decision first said every non-test
+  reference to `paused-pending-approval` was "7 sites … inside `grace-cursor.ts` alone". **False.**
+  The authority grepped the *quoted* string and reported the result as the count of all references;
+  measured properly there are **14 non-test hits across two files** — `src/grace-cursor.ts` and
+  `src/lint/catalog.ts:896`. Same error family as reading an exit code through a pipe ([F135](#f135)):
+  a proxy measured, the thing reported. **The conclusion survives on a different measurement:**
+  `complete` itself has only three non-test sites, all definitional in `src/grace-cursor.ts` (union
+  `:163`, `CURSOR_STATES :172`, terminal map `:317`), so adding a state beside it is cheap.
+- The `<kind>` list in `ngrace-execute/SKILL.md` and its packaged mirror.
+
+**The standing rule.** Before contorting an operation to fit the schema, ask whether the schema can
+express it. Reach for a rule exemption only after the representation question has been answered, and
+never resolve the conflict by having a binary assert a human judgment.
+
+
+## D22 — full ceremony until the counter ships, and that is what ends the collection
+
+**Decided 2026-09-02 by the maintainer.** His words: *"full ceremony for now. we are still
+collecting stats for the `pilot`"*, and on the stopping rule, *"I agree with your stopping rule."*
+
+**The decision has two halves.**
+
+**1. Every bundle takes the full ceremony, however small its diff.** `C-REASON-CONSTANTS` extracts a
+single named constant; the executor observed that a whole bundle — spec, plan, two approvals,
+execution, close — is heavy beside that diff, and asked whether it was worth it. It is, and not
+merely for consistency's sake: **a selective record is the defect [F134](#f134) named.** An archive
+that prices some bundles at zero is what made pilot undecidable. Skipping ceremony whenever a diff
+looks small would sample only the expensive cases and bias the very number the sampling exists to
+produce.
+
+**A small bundle is also the more informative sample.** It isolates ceremony cost from work cost.
+Every other point on the curve confounds them — `C-LINT-PHASE-HONESTY` was five tasks plus a
+supersede; `C-SUPERSEDE-RECORD-2` carried a real design question. A one-constant change is nearly
+pure overhead, which makes it the best measurement of what the ceremony itself costs.
+
+**2. The collection ends when `C-AMENDMENT-COUNT` ships.** Until then, bundles are run partly *in
+order to* generate samples, and that cost is deliberate. Once the counter lands, re-ratifications and
+supersede-chain depth are derived from data the ledger already holds, so the numbers accrue on their
+own and no bundle need be run for the sake of measurement. **That converts "collecting stats" from an
+activity into a property of the system** — which is what `RM-PILOT-APPROVAL:80` meant by calling the
+count "the measuring instrument".
+
+**So pilot is decided on:** what the counter reports, plus the hand-recorded costs in
+[F134](#f134), [F136](#f136), [F137](#f137), and this bundle. Not on an open-ended tally.
+
+**Why a stopping rule was needed at all.** Without one, "still collecting" runs indefinitely and each
+bundle's ceremony is charged against a decision that never arrives. The rule was proposed because the
+stopping condition existed only in conversation; it is recorded here so a later session does not
+inherit an unbounded mandate.
+
+
+### D22.1 correction — the two halves are about different things, and one bundle cannot be both. **[verified]**
+
+[D22](#d22) argues that a small bundle is *"the more informative sample, because it isolates ceremony
+cost from work cost"*, and separately that *"the collection ends when `C-AMENDMENT-COUNT` ships"*.
+**The executor showed those cannot both apply to `C-REASON-CONSTANTS`**, which is sequenced **after**
+that bundle's apply. Either the sample is this bundle and the stop comes after it, or the stop is the
+counter and this is an ordinary cleanup. As drafted, D22 asserted both.
+
+**The resolution, and the halves stay — they simply govern different things.**
+
+- **Half 1 — full ceremony for every bundle — is standing practice, not a sampling device.** It holds
+  before and after the counter, for reasons that never depended on measurement: a selective record is
+  the defect [F134](#f134) named, and ceremony skipped by size is ceremony skipped exactly where the
+  record is cheapest to falsify.
+- **Half 2 — the end of the collection — is about *deliberate* sampling only.** Before the counter,
+  ceremony is paid partly *in order to* generate a datum, and that cost is chosen. After it, the
+  numbers accrue from data the ledger already holds, so nothing need be run for measurement's sake.
+
+**Therefore `C-REASON-CONSTANTS` is an ordinary T1 cleanup that pays full ceremony under half 1**, and
+its cost is captured by the counter automatically. **It is not "the informative sample"** — that
+argument belonged to bundles running *before* the instrument existed, and by its own sequencing this
+one does not. The spec should carry half 1's reasoning and the stopping rule as context, not claim to
+be a measurement.
+
+**What the drafting error was.** Two true arguments were fused into one decision because they arrived
+in the same conversation turn: *why pay ceremony at all* and *when does deliberate collection stop*.
+They answer different questions and have different lifetimes. Recorded so a later reader does not
+inherit the contradiction, and so no future bundle justifies itself as a sample after the instrument
+has shipped.
+
 ## Slip register — 2026-08-15
 
 Every governance slip of the last two days, and the mechanism that must
@@ -7788,3 +8363,471 @@ are not silently dropped. None is work.
 | `C-X` | Example id in [review.md](./review.md). |
 | `C-CURSOR` | Abbreviation of `C-CURSOR-INTEGRITY` in the cursor derivation. |
 | `C-TOKEN` | Abbreviation of `C-TOKEN-INTEGRITY` in the cursor derivation. |
+
+### F139 — the amendment instrument works, and reads zero across the entire corpus. **[verified]**
+
+Measured **2026-09-02**, at the close of `C-AMENDMENT-COUNT`, against the corpus as it stands after
+that bundle archived. Counts expire ([F123](#f123)); re-measure at citation.
+
+`ngrace status --format json` reports 59 change objects. Of those:
+
+| counter | bundles > 0 | detail |
+|---|---|---|
+| `supersedeChainDepth` | **8** | two two-step chains: `C-CURSOR-TASK-RESOLVER`=2, `C-LINT-PHASE-HONESTY-2`=2 |
+| `reRatificationCount` | **0** | no bundle, anywhere, in any state |
+
+**The zero is a true reading, not a wiring defect.** Verified independently of the code under
+examination, by parsing every `run-ledger.xml` on disk rather than re-reading the derivation that
+produces the status field: of **53** bundles carrying a ledger, **0** contain an `approve`/`permit`
+`Decision` on `spec` or `plan` whose `fingerprint` differs from the previous approve of that same
+artifact. The probes that accepted the bundle stand — a synthetic re-ratification reads 1 and a
+revert reads 2 — so the instrument discriminates. It simply has nothing to count here.
+
+**Why, and this is the finding.** `reRatificationCountFromDecisions`
+([src/gates/ledger.ts:1138](../../../../src/gates/ledger.ts)) is **bundle-internal**: it counts how
+many times *one bundle's own* spec or plan was amended and re-approved at a changed fingerprint.
+`chainDepth` is **cross-bundle**. This repository has never corrected an approved artifact by
+amending it; when a spec has been wrong — three times this week alone
+([F133](#f133), [F135](#f135), [F136](#f136)) — the whole bundle was **superseded**. The correction
+cost is therefore carried entirely by `supersedeChainDepth`, and the amendment counter is measuring
+a mechanism the project does not use.
+
+**Consequence for [D22.1](#d221).** The deliberate ceremony collection ends when
+`C-AMENDMENT-COUNT` applies, which this close reaches, and pilot then becomes decidable "on what the
+counter reports". What the counter reports is **zero**. A pilot decision must not be read off that
+number as though it meant *low amendment cost*; it means *amendment is not the correction verb here*.
+The signal the pilot actually needs is in the supersede chain, and the first non-zero
+`reRatificationCount` this corpus can produce is still ahead of it, not behind.
+
+**What this is not.** Not a defect in `C-AMENDMENT-COUNT`, which built the instrument it was
+chartered to build, and built it correctly. Not an argument to change the derivation: a counter that
+reported supersedes as re-ratifications would conflate two different costs, and
+[D21](#d21) says the schema must represent the operation truthfully. The finding is about **how the
+number is read**, not how it is computed.
+
+## D23 — pilot is decided on `supersedeChainDepth`, not on the amendment count
+
+**Decided 2026-09-02 by the maintainer**, on [F139](#f139), at the close of `C-AMENDMENT-COUNT` —
+the moment [D22.1](#d221) names as the end of the deliberate collection, when pilot becomes
+decidable.
+
+**The premise that forced the decision.** `RM-PILOT-APPROVAL:80` calls the amendment count "the
+measuring instrument". The instrument now exists and works — a synthetic re-ratification reads 1, a
+revert reads 2 — and it reads **zero on every bundle in the corpus**. That zero is honest: verified
+independently of the derivation by parsing all 53 ledgers on disk, no bundle has ever had an approved
+spec or plan amended and re-approved at a changed fingerprint. This project does not correct by
+amending; when a spec is wrong it supersedes the whole bundle. The correction cost is carried
+entirely by `supersedeChainDepth`, which reads > 0 on 8 of 59 change objects.
+
+**The variants put to the maintainer, and why the runners-up lose.**
+
+| | Variant | For | Against |
+|---|---|---|---|
+| **A** | **Decide pilot on `supersedeChainDepth`**; treat the amendment counter as instrumentation for a mechanism not yet used. | Uses the signal the project actually generates. Costs nothing and delays nothing. Keeps both counters meaning exactly one thing. | The pilot's own wording named amendments, so the criterion is being read against a different number than it says. |
+| **B** | Widen the instrument to report both costs under one heading. | Makes the number legible at a glance without knowing which verb the project uses. | [D21](#d21) forbids conflating two costs in a derivation that must represent the operation truthfully. Buys presentation with a schema ruling. |
+| **C** | Defer pilot until `C-LINT-PHASE-HONESTY-2` produces the first non-zero `reRatificationCount`. | Truest to the criterion as written; decides on the named number rather than a substitute. | That bundle is last in the order, so it pays a full branch of delay for a single data point — and one datum would not make the count informative anyway. |
+
+**Ruled: A.** The counter stays as built and stays honest. **Its zero must never be read as "amendment
+is cheap"** — it means amendment is not the correction verb here, and a future reader who forgets that
+will draw the opposite conclusion from the same number.
+
+**What this does not do.** It does not change the derivation, retitle either counter, or amend
+`RM-PILOT-APPROVAL`. `reRatificationCount` remains bundle-internal and `supersedeChainDepth`
+cross-bundle, exactly as `C-AMENDMENT-COUNT` shipped them. If this project ever starts amending
+approved artifacts in place, the instrument is already there and the reading flips back without code.
+
+**Sequencing note.** The ruling was given while the executor held the tree for the
+`C-REASON-CONSTANTS` plan and was recorded once that plan landed, so the write could not surface in
+that bundle's scope audit as a new out-of-scope file.
+
+### F140 — the authority's brief required a green the ruling forbids, one bundle after being warned. **[verified]**
+
+Measured **2026-09-02**, on the executor's tenth consecutive correction of the authority.
+
+**The defect.** The execution brief for `C-REASON-CONSTANTS` said, in its verify section: *"Root lint
+must be 0 errors / 0 warnings when you finish."* That requirement is unsatisfiable by a conforming
+execution, and the plan says so in `T-004`: root lint is forbidden in task `Verification` and is bound
+to `AC-CLOSE-LINT` as **post-archive** `CloseEvidence`. After the required write, current-mode lint
+correctly reports **2** errors — this bundle's own `BaselineAssertions`, falsified by the writes they
+require, exactly as `C-AMENDMENT-COUNT` reported **9** one bundle earlier.
+
+**Why it is worse than a wrong number.** The only way to obey the brief literally is to weaken the
+baselines until they stay green — the precise defect the plan's own trap list warns against, and the
+one that makes a ledger worthless. The brief therefore instructed the executor to falsify the record
+in order to satisfy a sentence the authority wrote without checking it against the plan it had
+already approved.
+
+**It is the class [CLAUDE.md rule 9](../../../../CLAUDE.md) names.** Current-mode lint framing was
+deliberately chosen by `C-REPORT-HONESTY`, whose derivation calls the obvious "fix" unacceptable. The
+brief contradicted that shipped ruling **silently** — no argument, no acknowledgement that a ruling
+was being overturned. Rule 9 exists for exactly this and was not applied.
+
+**The aggravating fact.** The authority had run the `C-AMENDMENT-COUNT` close in the same session,
+seen the 9 baseline errors, written *"Do not claim 0/0 before then"* into the handoff, and then wrote
+the opposite requirement into the next brief. The knowledge was present and current; it simply was
+not carried across the artifact boundary from close to brief.
+
+**Second defect, same brief.** §1 listed `design-context.xml` as a file of the
+`C-REASON-CONSTANTS` bundle. It is not on disk — that bundle has `spec.xml`, `plan.xml`,
+`run-ledger.xml`, `run.xml`, and `run/`. The authority generalized a file list from the previous
+bundle, which does have one, without listing the directory it was describing. That is
+[rule 8](../../../../CLAUDE.md)'s sampling error in a new place: a structure claim taken from one
+member of a set and written onto another.
+
+**The rule.** A brief's success criteria must be **derived from the approved plan's own criteria**,
+never composed independently and never carried over from a previous bundle. Before writing any
+"must be green" line, name which `AcceptanceCriterion` it implements and check whether that criterion
+is task-bound or close-bound — a close-bound criterion can never be a task-time gate. And enumerate a
+bundle's files by listing its directory, not by recalling what the last bundle contained.
+
+**What was not damaged.** The executor followed the plan over the brief, flagged both errors in
+`WRONG`, and delivered a conforming execution. The cost was one contradiction the executor had to
+resolve — cheap this time, and only because it refused an instruction from the authority.
+
+### F141 — bytes and lines are not derivable from `WriteEvidence`, so the effort bundle's stated source cannot supply its stated measure. **[verified]**
+
+Measured **2026-09-02**, before briefing the effort-accounting bundle.
+
+**The standing direction contains a factual error.** It reads, in both the session brief and the
+authority's handoff: prefer *"verifiable churn (bytes/lines derivable from `WriteEvidence`
+digests)"* over self-reported tokens. **Bytes and lines are not derivable from a digest.** A sha256
+says *that* content differs, never *how much*.
+
+**What the record actually holds.** `snapshotWriteEvidence`
+([src/grace-cursor.ts:1769](../../../../src/grace-cursor.ts)) maps each changed path through
+`digestProjectFile`, producing `path` plus a content digest. Measured across **every** `run-ledger.xml`
+on disk, the only attribute any `File` element carries is `digest=` — no size, no line count, no
+mode. The intermediate states are never committed, so git cannot recover them afterwards either: at
+close time git sees the net diff, not the rework.
+
+**What *is* derivable from the ledger alone, and it is not nothing.** Per bundle: the count of
+distinct files written; the number of attempts touching each; and, because each attempt snapshots
+every changed path, **how many times a file's digest changed across attempts** — rework depth. That
+last is a truer effort signal than diff size: rewriting one file five times is effort in a way a
+large one-shot diff is not, and it is exactly the cost a ceremony study wants. It is also already
+half-consumed — the attempt-pair audit reads these digests to find fail→pass pairs with an identical
+tree.
+
+**Why this had to be settled before the brief.** Writing the spec brief first would have baked the
+false premise into an approved artifact, and the executor would have discovered mid-execution that
+its stated source cannot produce its stated measure — the [F119](#f119) class, one bundle after
+[F140](#f140) was recorded for the same failure to check a brief's claims against the artifact it
+governs. The remedy is a decision on verified premises, not a spec that inherits the error.
+
+**Not yet decided.** Whether the instrument reports rework depth from data already held (no new
+record, following `C-AMENDMENT-COUNT`'s precedent) or records size at snapshot time (a new record,
+against that precedent) is the maintainer's call, with the variants and their costs put to him.
+
+### F142 — the breaker exists and refuses, but its window resets on every resume, so there is no global cap. **[verified]**
+
+Measured **2026-09-02**, by driving the real `recordAttempt` against a throwaway project, not by
+reading the suite. Prompted by a maintainer request for a rework circuit breaker with cycle
+detection and invalidation of spec and plan.
+
+**Three of the four parts already exist. One does not, and one is a deliberate ruling.**
+
+| Requested | Status |
+|---|---|
+| circuit breaker on rework | **exists** — triggers R (same signature twice) and D (four distinct), `C-ESCALATION-HONESTY` |
+| "not try new attempt" | **already enforced** — the next attempt is hard-refused |
+| max *total* rework attempts | **absent** — the window resets on every resume |
+| cycle detection | **absent** |
+| invalidate spec and plan | **absent, and deliberately so** |
+
+**The probe.** Three fails on one task, same signature `test-fail:alpha`:
+
+```
+attempt 1: accepted; escalated=false
+attempt 2: accepted; escalated=true          <- trigger R
+attempt 3: REFUSED -> gate.attempt.escalated: task T-001 is
+           paused-pending-approval; resolve with ngrace cursor resume
+           before further attempts.
+spec.xml  status="approved"
+plan.xml  status="approved"
+```
+
+The refusal is real, and **spec and plan are untouched** — the breaker stops the work and never
+touches governance.
+
+**The gap that makes "max rework attempts" a true request.** The budget window is
+`windowStart = lastResolvingResumeId(events, task)`
+([src/grace-cursor.ts:1709](../../../../src/grace-cursor.ts), `:1721`): every escalation-clearing
+resume starts the count again from zero. The per-window cap is 2 same / 4 distinct; **the number of
+windows is unbounded.** Escalate → resume → escalate → resume repeats forever, and each resume is
+individually legitimate because it carries the `--reason` that `C-ESCALATION-HONESTY` requires. The
+same signature recurring across windows is precisely what a window-scoped counter cannot see, which
+is why cycle detection and the global cap are one problem rather than two.
+
+**Why the missing invalidation is a ruling, not an oversight — [rule 9](../../../../CLAUDE.md).**
+`C-ESCALATION-HONESTY` chose `paused-pending-approval` deliberately, **rejected** renaming it, and
+designed a state "that holds until a deliberate, auditable replan decision is written". Its message
+says *"replan decision owed; task has not failed."* Auto-invalidating spec and plan would replace a
+human replan decision with a machine one. Any proposal to do it must answer that argument, and must
+answer [D21](#d21) — the record would have to say a breaker superseded the bundle, never imply a
+human ruled — and the standing rule that ratification travels as bytes.
+
+**What is already the right shape for it.** `supersede` writes `superseded`, names a replacement, and
+by [F134.1](#f1341), on the precedent of [F127](#f127)'s close, **discards governance and never code**
+— which is exactly "invalidate spec and plan,
+keep what was built". The verb exists; what does not exist is anything that fires it automatically,
+and any account of who names the replacement when no human is in the loop.
+
+## D24 — the rework circuit is a ceiling on escalations, not an auto-supersede
+
+**Decided 2026-09-02 by the maintainer**, on [F142](#f142), variant **A** of three.
+
+**What ships.** A **cross-window recurrence detector** and a **global cap**, and on trip a terminal
+escalation state that **refuses `resume`**. Governance is untouched by the machine: spec and plan keep
+their status, and a human still supersedes if the bundle is to die. What changes is that after a
+proven loop, `resume` is no longer an available exit — invalidation becomes the *only* way out
+instead of an automatic act.
+
+**This extends [C-ESCALATION-HONESTY](../../../../.ngrace/changes/archive/C-ESCALATION-HONESTY/); it
+does not overturn it.** That bundle's ruling — a state "that holds until a deliberate, auditable
+replan decision is written", with the task explicitly *not* failed — survives intact for the first
+escalation and every ordinary one. The new state governs only the case that bundle never
+contemplated: the same failure recurring **across** windows, which its window-scoped counter cannot
+see by construction (`windowStart = lastResolvingResumeId`).
+
+**The variants, and why the runners-up lose.**
+
+| | Variant | For | Against |
+|---|---|---|---|
+| **A** | **Detector + global cap; terminal state refuses `resume`.** | Delivers the hard stop and the cycle detection with **no unauthored governance artifact**. Preserves the human replan ruling. Leaves B reachable later as a policy change once the detector has data. | Does not literally write `superseded`; it makes invalidation the only exit rather than performing it. |
+| **B** | On trip, the CLI **auto-supersedes** the bundle. | Literally the request: governance invalidated, code preserved, which is what `supersede` already means ([F134.1](#f1341)). | `supersede` must **name a replacement**. An auto-generated successor is a governance artifact no human authored — self-certification in a new place, against the standing rule that ratification travels as bytes. Overturns `C-ESCALATION-HONESTY` outright. |
+| **C** | Detector **reports only**; recurrence surfaces in `review` / `status`. | Cheapest; no ruling conflict. | Stops nothing, and the maintainer's request was that the system stop trying. [F139](#f139) had just shown what an instrument nobody acts on is worth. |
+
+**Ruled: A.** B is not rejected on its idea but on the replacement-authorship hole; if it is ever
+revisited, that question must be answered first rather than discovered at execution.
+
+**Named `C-REWORK-CIRCUIT`.** Searched before minting: the territory holds `C-ESCALATION-HONESTY`
+(the breaker's honesty), `C-ATTEMPT-LOG`, `C-ATTEMPT-PAIR-FINDING`, `C-FIX-SHAPE`, and
+`C-FIX-FLAG-HONESTY`. **None covers a cross-window ceiling**, so this is a new name rather than a
+synonym for an existing charter.
+
+**The forced write surface is wider than the deliverable, and that is the trap.** The fix-budget
+thresholds are asserted in prose at three passages of `skills/ngrace/ngrace-execute/SKILL.md` **and
+its packaged mirror**, and a live test builds required substrings from the live constants
+(`fixBudgetSkillRequiredSubstrings`, `src/grace-cursor.test.ts:3203`) so prose and code cannot
+diverge. Editing that skill text moves `skillTextLines` — pinned at **817 / 58931** in
+`src/test-support/token-accounting.test.ts` — exactly as `C-SUPERSEDE-RECORD-2` moved it from
+812 / 58400 and recorded the delta in a comment. A spec that names the code and forgets the prose,
+the mirror, or the pin is the [F133](#f133) / [F136](#f136) defect again.
+
+### F143 — the authority mis-cited a finding into a ruling, and the wrong citation propagated for a whole session. **[verified]**
+
+Measured **2026-09-02**, on the executor's eleventh consecutive correction of the authority.
+
+**Three errors in one brief, all confirmed independently before acceptance.**
+
+| Claim in the brief | Truth |
+|---|---|
+| *"Per `F127`, supersede discards governance, never code"* | The rule is stated at **[F134.1](#f1341)** gap 2; it cites F127's **close** as the precedent. F127 itself is *"an approved plan that requires a suite green while forbidding the write that green needs"* — a different defect. |
+| *"the predecessor was superseded for a defect in its `ObservedWriteScope`"* | [F133](#f133) says outright *"**Neither defect required a supersede**"*. [F134.1](#f1341): superseded *"on the maintainer's ruling rather than closed, **deliberately, to begin collecting the cost data**"*. The scope defect was real and was **not** the cause. |
+| *"the code … is in the tree right now, at commit `2b35230`"* | HEAD is `df8e366`. **Seven** of the eighteen ratified production paths were edited afterwards by `C-SUPERSEDE-RECORD-2` (`ff1804a`) — measured by `comm -12` over the two commits' file lists. |
+
+**The third would have been a defect in the artifact, not just in prose.** A ratification criterion
+phrased as *byte-identical to `2b35230`* is satisfiable only by **reverting `C-SUPERSEDE-RECORD-2`**.
+The executor caught it and wrote the criterion as *diff-empty against the tree at plan approval*
+instead, which is the claim a ratification actually wants to make.
+
+**The first is the one worth a finding.** The mis-citation did not originate in the brief — it was
+carried in the session's own standing notes, copied into the handoff, repeated in two briefs, and
+then **written by the authority into `D24`**, a recorded ruling, where it would have outlived the
+session as a false cross-reference in the permanent record. A wrong citation is cheap to write and
+expensive to remove: it propagates by being copied, and every copy looks like corroboration.
+Corrected at every live site — two in `D24`, two in the handoff — and measured across the population
+first rather than fixed where it happened to be noticed. Older handoff prose describing F127
+correctly was left alone, which is how the drift was dated.
+
+**The rule.** **A citation is a claim and gets the same treatment as a number.** Before attaching an
+`F<n>` or `D<n>` to a statement, open it and read its headline; if the finding merely *supplies
+precedent* for the rule, cite the finding that **states** the rule and name the precedent separately.
+Restating a slogan with an identifier attached is not a citation — it is a claim that a specific
+artifact says a specific thing, and [rule 1](../../../../CLAUDE.md) already holds that a finding is
+never evidence of present state.
+
+### F144 — file-rewrite depth does not discriminate a failing bundle from a shipping one, and the corpus holds no example of the failure it would detect. **[verified]**
+
+Measured **2026-09-02**, at the maintainer's proposal that repeatedly rewriting a small file set —
+*"changed these 3 files already 5 times"* — implies the spec and plan are wrong and should be
+re-created. The **data** is the right data; the **inference** is not supported here.
+
+**Method.** For every `run-ledger.xml` on disk, walk the `attempt` events in order and count, per
+path, how many times that path's digest differs from its previous recorded digest. `.ngrace/`
+artifacts excluded, so this counts product work. Definition matters and a different one moves the
+totals; it does not move the conclusion.
+
+**Result, sorted by the deepest single file in each bundle.**
+
+| bundle | status | max rewrites of one file | files rewritten |
+|---|---|---|---|
+| `C-FINDING-SEVERITIES` | **applied** | 7 | 4 |
+| `C-TEACHING-SURFACE` | **applied** | 5 | 11 |
+| `C-BUNDLE-BASE-REF` | **applied** | 5 | 3 |
+| `C-DRIFT-HONESTY` | **applied** | 5 | 2 |
+| `C-ESCALATION-HONESTY` | **applied** | 5 | 2 |
+| `C-EXPLAIN-COVERAGE` | **applied** | 5 | 3 |
+
+41 bundles carry attempt events: **39 applied, 2 superseded.** Mean deepest-file rewrite count is
+**2.38 for applied** and **3.00 for superseded** — the superseded mean is higher, but n=2 is noise,
+and **every one of the highest-churn bundles shipped.**
+
+**`C-BUNDLE-BASE-REF` is the proposal's own example — three files, five rewrites — and it applied.**
+A ceiling set at that shape would have invalidated six successful bundles, `C-ESCALATION-HONESTY`
+among them: the bundle that built the fix budget this work extends.
+
+**The corpus contains no positive example of the target failure.** Both superseded bundles were
+superseded for **governance** reasons — a scope defect ([F133](#f133)) and the maintainer's
+deliberate cost-collection supersede ([F134.1](#f1341)) — not because an agent thrashed. There is
+therefore nothing here to calibrate a threshold against, and the only visible signal points the wrong
+way. Deep rewriting of a few files is what careful iteration looks like: write, test, refine. That is
+the red-first loop working.
+
+**What the signal is good for.** Churn is better evidence than bytes ([F141](#f141)): derivable from
+data the ledger already holds, retroactive across every bundle, and it names *where* effort
+concentrated. The discriminator is not depth but **depth without progress** — the same files rewritten
+while the same failure recurs. That is the cross-window recurrence [D24](#d24) already charters.
+
+**The rule this yields for `C-REWORK-CIRCUIT`: churn is the payload, recurrence is the trigger.**
+Attaching the churn evidence to an escalation turns "trigger R fired again" into "these three files
+have been rewritten five times across four windows against the same signature", which is the evidence
+a human needs to conclude the plan's decomposition is wrong — and under `D24` that conclusion stays
+human. Churn must **not** be the trip condition on its own, at any threshold this corpus can justify.
+
+### F145 — the authority committed the executor's tree mid-flight, and shipped a brief with no execution mode. **[verified]**
+
+Measured **2026-09-02**, at the close of `C-LINT-PHASE-HONESTY-2`. Two authority defects, one found by
+the authority and one by the executor — its twelfth consecutive correction.
+
+**Defect 1 — `git add -A` while the executor held the tree.** Recording [F144](#f144) mid-dispatch, the
+authority staged with `git add -A` and swept **all nineteen** of the executor's in-flight run artifacts
+into `b43b45c`, a commit whose message describes only a finding about churn. `git log --diff-filter=A`
+on `run.xml` named that commit, which is how it was caught. In a repository whose product *is* an
+honest execution record, a commit that does not describe its own contents is not a cosmetic problem.
+Split on the unpushed branch into `23cb3e7` (the finding) and `300b315` (the execution), each
+describing what it carries.
+
+**The standing rule already existed and names only reads.** *"No repo reads while the executor works —
+the tree is mid-edit."* The authority obeyed it as written and then **wrote** to the tree, which is
+strictly worse: a read returns stale data, a write takes ownership of files another agent is still
+producing. **Extend the rule: while an executor holds the tree, the authority neither reads nor
+writes it — and `git add -A` is a write.** When a finding must be recorded mid-dispatch, stage the
+specific paths (`git add <path>`), never the working tree.
+
+**Defect 2 — the brief demanded a ceremony it did not parameterize.** The execute brief required the
+`ngrace-execute` ceremony, whose mode-selection block demands an explicit `sequential` or
+`parallel-safe` token, and then supplied neither; the plan carried only a prose comment that
+`T-001`–`T-005` are independent. The executor had to **choose sequential itself** and said so. A brief
+that mandates a skill's ceremony inherits that skill's required inputs: read the skill's own
+selection blocks and supply every token they demand, or the executor is left inventing governance.
+
+**Neither defect damaged the bundle.** Execution was conforming, production was untouched, and the
+ledger is honest. Both were paid before the close rather than filed — the standing law that a defect
+found is a defect fixed.
+
+### F146 — a green suite on one machine is not a green branch, and the gap was an undeclared binary. **[verified]**
+
+Measured **2026-09-02**, when CI failed a branch the authority had reported green.
+
+**The claim that was wrong.** The authority reported *"all ten validators exit 0"* and *"the branch
+is green end to end"*, having run `bun run validate:ci` on macOS with bun 1.4.0. CI runs bun 1.3.14 on
+`ubuntu-latest` **and** `windows-latest`. Both jobs failed the same two tests.
+
+**The defect.** `C-SUPERSEDE-RECORD-2`'s two `AC-DISCARDED-CALLER` tests shelled out to **`rg`**:
+
+```
+Bun.spawnSync({ cmd: ["rg", "-n", "discardAndFoldEpoch", "src", "--glob", "!*.test.ts"], ... })
+```
+
+Three separate faults in one construct, all invisible locally:
+
+1. **`rg` is an undeclared dependency.** It appears in no `package.json`, `CONTRIBUTING.md`, or
+   `README.md`. It was on the authority's `PATH` at `/opt/homebrew/bin/rg`, which is the whole reason
+   the tests passed there. `Bun.spawnSync` on a missing binary **throws `ENOENT`**, which surfaces as a
+   bare test failure with no assertion detail — exactly what CI printed.
+2. **The assertions hardcode POSIX separators** (`expect(files).toEqual(["src/gates/ledger.ts", …])`).
+   Windows `rg` emits `src\gates\ledger.ts`, so fixing fault 1 alone would have turned the Linux job
+   green and left the Windows job red. **Two defects were stacked, the first masking the second.**
+3. **Only this one file shelled out to `rg`** in the entire repository — a single-site anomaly no other
+   test shared, and therefore one no other test's success could vouch for.
+
+**The fix, ruled by the maintainer (variant A).** Both tests now scan `src/` in-process with the
+`readdirSync` / `readFileSync` / `path` already imported, normalising separators with
+`replaceAll("\\", "/")`. No external binary, no separator assumption. Verified by probe in both
+directions: planting `kind: "discarded"` in another production file fails the second test, and
+planting a `discardAndFoldEpoch` reference in another file fails the first, with the probe file
+restored byte-identically. The exact `windows-compatibility` job command now reports 310 pass / 0 fail,
+where it reported 310 / 2 fail.
+
+**The rule.** **A suite is green on the machine that ran it, and nowhere else.** Before reporting a
+branch as green, name the environments CI actually uses — read the workflow, do not assume one job —
+and treat any difference in OS, runtime version, or available tooling as unverified. In particular, a
+test that shells out to a binary asserts that binary is present everywhere the suite runs; that is a
+dependency claim, and it belongs in the manifest or not in the test. `Bun.spawnSync` failing with
+`ENOENT` is indistinguishable from an assertion failure in CI output, so the cost of finding it falls
+entirely on whoever reads the log.
+
+## D25 — a CI-red hotfix on an unmerged branch does not require a change bundle
+
+**Decided 2026-09-02 by the maintainer**, on the [F146](#f146) fix committed at `4004170`, when
+`.ngrace/changes/active` was empty and no bundle owned the write.
+
+**The ruling, as given: hotfix.** The write stands ungoverned, and this entry is the record that
+explains why a production edit exists with no spec, no plan, and no ledger.
+
+**Why a retro-bundle was the wrong alternative.** The choice was between leaving the write governed
+by nothing and authoring a bundle after the fact to describe a change that had already happened. The
+second is worse: a spec written to match a completed diff cannot fail, its `BaselineAssertions`
+describe a tree that no longer exists, and its ledger would record an execution that never occurred.
+That is a **fabricated** governance record, and this repository's whole product is the claim that its
+records are not fabricated. Ungoverned-and-labelled beats governed-and-false.
+
+**The boundary — this is the authority's derivation from a one-word ruling, not the maintainer's own
+words, and he should correct it if it reaches too far.** The exemption covers a change that is *all*
+of the following:
+
+- **on an unmerged branch**, never on `main`;
+- **restoring a red CI to green**, not adding capability;
+- **test-or-tooling only**, with no production behaviour change — `4004170` touched one `.test.ts`
+  file and nothing that ships;
+- **verified in both directions**, so the repaired test is shown to still discriminate rather than
+  merely to pass.
+
+It does **not** license ungoverned production edits, convenience fixes bundled alongside a hotfix, or
+skipping a bundle because one looks expensive. `C-GOVERNANCE-ORDER` — refuse a write with no approved
+change that owns it — remains named and unscheduled in the registry; when it ships, this exemption is
+the case it must be taught to allow, and this entry is the specification of that carve-out.
+
+**Precedent shape.** [D11](#d11) refuses deferral without a dependency or a conflict, and
+[F145](#f145) records that a defect found is a defect fixed before the work is handed on. A red CI on
+an unmerged branch is a conflict in D11's sense: the branch cannot proceed, and the governed path has
+no active bundle to attach the repair to. The exemption resolves that deadlock rather than widening
+the path.
+
+### F146.1 correction — "nothing pushed" was carried for a whole session while CI logs proved otherwise. **[verified]**
+
+Measured **2026-09-02**, when `gh pr create` refused because
+[PR #65](https://github.com/alex-shekhter/neo-grace/pull/65) already existed.
+
+The session's opening notes said *"Nothing is pushed."* True when written. The authority restated it
+in nearly every report and wrote it into the standing handoff after 54 commits, **never once running
+`git fetch`**. Measured at correction: local and `origin/feat/lint-phase-honesty` are both
+`3828d2b` — 0 ahead, 0 behind. The branch had been pushed throughout.
+
+**The evidence was already in hand and was read without updating the belief.** CI failure logs were
+pasted into this session and diagnosed in detail — and CI output *is* proof of a push, since
+`.github/workflows/validate.yml` triggers on `pull_request`. The authority reasoned carefully about
+*what* the logs said and never asked *how they could exist*.
+
+**Third instance of one shape today**, after [F143](#f143) (a mis-citation restated until it entered a
+ruling) and [F146](#f146) (a green suite on one machine reported as a green branch). The root is
+identical and [rule 1](../../../../CLAUDE.md) already names it: **a claim from an earlier turn is not
+evidence of present state.** What these three add is that the rule binds hardest to *background*
+facts — the ones nobody re-reads because they were never in dispute. A premise that arrives as
+scene-setting gets restated for free, and its expiry is silent.
+
+**The rule.** Before any claim about remote or published state — pushed, open, merged, released —
+run the command that reads it (`git fetch`, `gh pr view`), in the turn you make the claim. And when a
+piece of evidence appears that could only exist if a background premise were false, treat that as the
+signal to re-measure the premise, not merely as data about its own subject.

@@ -29,7 +29,7 @@ Optional-section teaching source: `references/change-plan-template.xml`.
 <approved_plan_immutability>
 - If `plan.xml` already exists with status `approved`, stop before writing.
 - Do not refresh `BaselineAssertions`, `TargetAssertions`, `DurableScope`, `ObservedWriteScope`, or tasks in place.
-- Create a new `C-*` bundle and mark the old bundle superseded with an explicit replacement reference: create the replacement first with `ngrace spec new`, then run `ngrace supersede`. Replacement-first is the only linting order. Named checks: `change.invalid-active-status`, `change.archive-status-mismatch`, `change.superseded-missing-replacement`, `change.superseded-self-replacement`, and `change.superseded-replacement-not-found`. Do not hand-write a superseded status or move the bundle directory by hand.
+- Create a new `C-*` bundle and mark the old bundle superseded with an explicit replacement reference: create the replacement first with `ngrace spec new`, then run `ngrace supersede`. The verb folds any open epoch (no-op when none exists) and discards governance, never code. Replacement-first is the only linting order. Named checks: `change.invalid-active-status`, `change.archive-status-mismatch`, `change.superseded-missing-replacement`, `change.superseded-self-replacement`, and `change.superseded-replacement-not-found`. Do not hand-write a superseded status or move the bundle directory by hand.
 </approved_plan_immutability>
 
 <approval_lexicon>
@@ -99,8 +99,8 @@ Never invent a "skip plan" path. If the user wants an ungoverned edit, refuse an
 <command_phase_rules>
 - `current` is an active-baseline preflight and is valid only before observed writes begin.
 - `baseline` is the selected pre-edit gate, `target` is selected post-edit evidence, and `final` is the outer apply/archive gate owned by `ngrace-execute`.
-- `MustPassCommand` contains leaf project evidence such as tests, typecheck, build, format, or package checks. Never place `ngrace lint`, `ngrace status`, or another GRACE lifecycle command inside it.
-- Never put `--assertions current` in `TargetAssertions` or in task verification that runs after writes. Use selected target/final lint externally instead.
+- `MustPassCommand` contains leaf project evidence such as tests, typecheck, build, format, or package checks. Do not put a current-mode lint of this project root in TargetAssertions. Current mode means the command text contains `--assertions current`, or it invokes `ngrace lint` and omits `--assertions`. The restriction matches command text; it does not resolve `bun run <script>` through package.json, and it does not apply to `--help` or to lint of a different project root. Use selected target/final lint externally instead.
+- Never put `--assertions current` in task verification that runs after writes. Use selected target/final lint externally instead.
 </command_phase_rules>
 
 <validation>

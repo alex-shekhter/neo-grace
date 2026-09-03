@@ -1,0 +1,480 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-REASON-CONSTANTS>
+    <Summary>
+      Extract one module-local named constant
+      for the unscoped-review not-run reason
+      "no --change supplied", shared by the
+      three !options.changeId arms in
+      src/review/core.ts after
+      C-AMENDMENT-COUNT lands. Cleanup, not
+      a defect: the literals are consistent
+      today. No new src/*.ts file, no export,
+      no wording change.
+    </Summary>
+    <Problem>
+      ngrace review reports a not-run audit
+      with a free-text reason. The string
+      "no --change supplied" is a literal at
+      two production sites today, both in
+      src/review/core.ts, both on
+      !options.changeId:
+
+      src/review/core.ts:1543
+      attemptPairAudit
+      (C-SUBSTANTIATION-HONESTY)
+
+      src/review/core.ts:1585
+      writeEvidenceScopeAudit
+      (C-DECLARED-WRITES)
+
+      C-AMENDMENT-COUNT (approved spec,
+      approved plan at this HEAD)
+      adds a third for
+      amendmentCountAudit,
+      specified to reuse the same phrase
+      (plan.xml:518 reuse `no --change
+      supplied`). Extracting the constant
+      before that bundle lands would mean
+      adding a literal back immediately
+      afterwards. This bundle is sequenced
+      after C-AMENDMENT-COUNT is applied.
+
+      Three literals that must stay
+      synonymous is how "not run: no
+      --change supplied" and "skipped:
+      --change was not provided" would
+      coexist and mean the same thing.
+      That has not happened. Measured
+      2026-09-02 at HEAD 0313873: the two
+      sites are identical; grep of the
+      second phrasing across the tree
+      returns nothing. Live unscoped
+      `bun run ngrace review --path .`
+      (exit 0, read from the command, not
+      through a pipe) prints:
+
+      WriteEvidence scope audit: not-run — no --change supplied
+      Attempt-pair audit: not-run — no --change supplied
+
+      No Amendment count line yet; that
+      line arrives with C-AMENDMENT-COUNT.
+
+      This is a cleanup, not a defect
+      fix, and not debt. The literals
+      agree today. The bundle exists so
+      they cannot silently diverge.
+    </Problem>
+    <Goals>
+      <Goal>
+        One file-level unexported const
+        NO_CHANGE_SUPPLIED_REASON in
+        src/review/core.ts whose value is
+        exactly the present phrase
+        "no --change supplied". The three
+        !options.changeId not-run arms
+        (attemptPairAudit,
+        writeEvidenceScopeAudit,
+        amendmentCountAudit) assign
+        reason from that const. The quoted
+        literal appears once in the file,
+        as the initializer.
+      </Goal>
+      <Goal>
+        Unscoped ngrace review keeps
+        printing that same reason on every
+        not-run audit that currently uses
+        the literal. Wording does not
+        change.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module change:
+        M-REVIEW). Gates still run.
+      </Constraint>
+      <Constraint>
+        D22 / D22.1 — full ceremony is
+      standing practice, and the
+      deliberate collection ends when the
+      counter ships. This bundle takes T1
+      even though the deliverable is one
+      constant. A selective record is the
+      defect F134 named: skipping ceremony
+      whenever a diff looks small would
+      sample only the expensive cases and
+      bias the number the sampling exists
+      to produce. That reason does not
+      depend on measurement and outlives
+      the collection. This bundle is
+      sequenced after C-AMENDMENT-COUNT is
+      applied, so by D22 half 2 it is not
+      part of the deliberate collection and
+      does not claim to be a sample; its
+      cost is captured by the counter
+      automatically. It is an ordinary T1
+      cleanup paying the standing ceremony.
+      </Constraint>
+      <Constraint>
+        Sequencing. Do not apply this
+        bundle until C-AMENDMENT-COUNT
+        is applied. That bundle adds the
+        third site. Criteria and
+        verification expect three call
+        sites, not the two on this HEAD.
+      </Constraint>
+      <Constraint>
+        Constant. Name
+        NO_CHANGE_SUPPLIED_REASON. File-
+        level const in src/review/core.ts,
+        same shape as NO_BASE_COMMIT_CAVEAT
+        at src/review/core.ts:1781:
+        unexported, not listed in
+        MODULE_MAP (MAP_MODE is EXPORTS).
+        Place it immediately above
+        runReview so the three consumers
+        sit under one name. Do not export.
+        Consumed only inside this file.
+        Exporting invites a test to pin
+        the identifier and turns a local
+        cleanup into a contract. The
+        wording is already pinned by
+        /no --change/ on the runtime
+        value (src/review/core.test.ts:1824,
+        :1827, :2076, and :2079). That
+        is enough.
+      </Constraint>
+      <Constraint>
+        Wording is frozen. The initializer
+        is exactly "no --change supplied".
+        Do not rephrase, shorten, or
+        expand it. Do not invent a second
+        synonymous sentence.
+      </Constraint>
+      <Constraint>
+        Forced write surface, traced
+        2026-09-02: src/review/core.ts
+        (LINKS: M-REVIEW; add the
+        unexported const; three
+        !options.changeId arms read it;
+        MODULE_MAP unchanged). Do not add
+        a new src/*.ts file. Do not edit
+        src/review/catalog.ts,
+        src/gates/ledger.ts,
+        src/gates/core.test.ts,
+        src/review/core.test.ts,
+        src/test-support/token-accounting.test.ts,
+        README.md, examples/, or any
+        SKILL.md.
+      </Constraint>
+      <Constraint>
+        Do not widen. Singleton reason
+        strings stay as they are. The two
+        template-literal duplicates in
+        this same file
+        (`change bundle ${changeId} not
+        found under active/ or archive/`
+        at :1558 and :1605, and
+        `no plan found for ${changeId}
+        under active/ or archive/` at
+        :1473 and :1595) are parameterized
+        and would be helper functions, not
+        one named constant. They are
+        recorded as NonGoals, not forgotten.
+        Effort accounting is a separate
+        ordered bundle.
+      </Constraint>
+      <Constraint>
+        README.md is not in scope.
+        examples/ is not in scope. Do not
+        require bun run validate:ci: that
+        script runs validate:teaching-surface,
+        which currently exits 1 because
+        the sibling active skeleton
+        C-LINT-PHASE-HONESTY-2 names
+        neither README.md nor examples/
+        (scripts/check-teaching-surface.ts:237
+        checkDocsAndExamplesDecision).
+        Require these nine individually.
+        Omit only validate:teaching-surface,
+        and name why: C-LINT-PHASE-HONESTY-2
+        is a spec new skeleton. Filling
+        that sibling is not this bundle
+        (F127). The MustPassCommand
+        restriction governs command text,
+        never what a command transitively
+        runs; never resolve bun run
+        &lt;script&gt; through
+        package.json. None of the nine
+        is a current-mode lint of this
+        root.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Extracting "no-decisions-section"
+        from src/gates/ledger.ts. That
+        pair is a type-literal in a union
+        at :200
+        ({ state: "absent"; reason:
+        "no-decisions-section" }) beside
+        the runtime value at :1014, pinned
+        by src/gates/core.test.ts:400.
+        A type literal beside its value is
+        ordinary TypeScript, not free-text
+        duplication; extracting it forces
+        typeof CONST or as const and can
+        read worse than what is there.
+        "Both appear twice" is not an
+        argument. Owner: unchanged; M-GATES
+        is not in this bundle.
+      </NonGoal>
+      <NonGoal>
+        Extracting the two template-literal
+        reason duplicates in
+        src/review/core.ts named in the
+        widen constraint. They interpolate
+        changeId, so they are functions,
+        not one constant. Owner: this
+        bundle's widen constraint.
+      </NonGoal>
+      <NonGoal>
+        Exporting NO_CHANGE_SUPPLIED_REASON,
+        listing it in MODULE_MAP, or adding
+        a test that imports the identifier.
+        Owner: this bundle's constant
+        constraint.
+      </NonGoal>
+      <NonGoal>
+        Rewriting src/review/core.test.ts
+        to pin the constant by name. The
+        existing regex pins at :1824,
+        :1827, :2076, and :2079 stay as
+        they are. Owner: unchanged;
+        value unchanged.
+      </NonGoal>
+      <NonGoal>
+        A new src/*.ts file or a shared
+        reason-constants module. Owner:
+        this bundle; adding a file is how
+        C-SUPERSEDE-VERB died.
+      </NonGoal>
+      <NonGoal>
+        Changing the printed phrase, adding
+        a review.* finding, or editing
+        src/review/catalog.ts. Owner:
+        unchanged; this is not a behaviour
+        change.
+      </NonGoal>
+      <NonGoal>
+        Filling or editing
+        C-LINT-PHASE-HONESTY-2. Leave
+        that skeleton alone.
+      </NonGoal>
+      <NonGoal>
+        README.md unchanged; no CLI
+        Overview or measurement-cell
+        edit. Owner: unchanged; no
+        user-visible command description
+        change.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no
+        user-visible surface there.
+        Owner: unchanged.
+      </NonGoal>
+      <NonGoal>
+        Requiring bun run
+        validate:teaching-surface or bun
+        run validate:ci. Owner: the
+        sibling C-LINT-PHASE-HONESTY-2
+        spec, sequenced after this
+        bundle's predecessors.
+      </NonGoal>
+      <NonGoal>
+        Editing skills/ngrace/*,
+        plugins/ngrace/skills/ngrace/*,
+        or src/test-support/token-accounting.test.ts.
+        The skillTextLines pin stays
+        817 / 58931. Owner: unchanged;
+        no SKILL.md is in scope.
+      </NonGoal>
+      <NonGoal>
+        Effort accounting, token counts,
+        or WriteEvidence digest churn.
+        Next instrument bundle, already
+        ordered.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-ONE-CONST>
+        After the change, src/review/core.ts
+        declares exactly one
+        NO_CHANGE_SUPPLIED_REASON whose
+        initializer is the quoted string
+        "no --change supplied". That quoted
+        string occurs once in the file.
+        The const is not exported and is
+        not a MODULE_MAP entry.
+      </AC-ONE-CONST>
+      <AC-THREE-SITES>
+        After C-AMENDMENT-COUNT has landed,
+        the three !options.changeId
+        not-run arms assign reason from
+        NO_CHANGE_SUPPLIED_REASON:
+        attemptPairAudit,
+        writeEvidenceScopeAudit, and
+        amendmentCountAudit. A fourth
+        production assignment of that
+        quoted string is a failure. HEAD
+        before C-AMENDMENT-COUNT has two
+        sites; this criterion is not
+        satisfiable until that bundle is
+        applied.
+      </AC-THREE-SITES>
+      <AC-WORDING-UNCHANGED>
+        Unscoped `bun run ngrace review
+        --path .` still prints
+        `not-run — no --change supplied`
+        on WriteEvidence scope audit,
+        Attempt-pair audit, and Amendment
+        count. The tests at
+        src/review/core.test.ts:1824,
+        :1827, :2076, and :2079 stay
+        green without being rewritten to
+        import the constant.
+        Discrimination: changing the
+        initializer so it no longer
+        matches /no --change/ must fail
+        those tests; keeping the value
+        and switching the three arms to
+        the const must not.
+      </AC-WORDING-UNCHANGED>
+      <AC-NO-EXPORT>
+        `export const NO_CHANGE_SUPPLIED_REASON`
+        does not appear. MODULE_MAP in
+        src/review/core.ts does not gain
+        that name. No test file imports
+        it.
+      </AC-NO-EXPORT>
+      <AC-NO-NEW-FILE>
+        git status after the change shows
+        no new file under src/*.ts.
+        scripts/release-check.ts
+        PACK_ALLOWED_EXACT is not grown
+        by a new exact member.
+      </AC-NO-NEW-FILE>
+      <AC-PINS-HOLD>
+        bun test src/review/core.test.ts
+        and bun test
+        src/test-support/token-accounting.test.ts
+        both exit 0. skillTextLines total
+        is 817 and totalBytes is 58931.
+        Do not retitle or grow the
+        ReviewResult exact-key pins;
+        C-AMENDMENT-COUNT already adds
+        amendmentCountAudit to them.
+      </AC-PINS-HOLD>
+      <AC-VALIDATOR-FLOOR>
+        Each of these nine exits 0 after
+        the change, run as the command
+        text named, not via bun run
+        validate:ci: bun run typecheck;
+        bun run test; bun run validate:cli;
+        bun run ./scripts/validate-marketplace.ts;
+        bun run validate:examples;
+        bun run validate:determinism;
+        bun run validate:packed;
+        bun run validate:schema-reference;
+        bun run validate:skeleton-templates.
+        validate:teaching-surface is not
+        required. Exit codes are read
+        from the command, never through
+        a pipe.
+      </AC-VALIDATOR-FLOOR>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0.
+        <CloseEvidence>
+          <Command>bun run ngrace lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run typecheck</ExpectedCommand>
+      <ExpectedCommand>bun run test</ExpectedCommand>
+      <ExpectedCommand>bun run validate:cli</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:examples</ExpectedCommand>
+      <ExpectedCommand>bun run validate:determinism</ExpectedCommand>
+      <ExpectedCommand>bun run validate:packed</ExpectedCommand>
+      <ExpectedCommand>bun run validate:schema-reference</ExpectedCommand>
+      <ExpectedCommand>bun run validate:skeleton-templates</ExpectedCommand>
+      <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        After C-AMENDMENT-COUNT has
+        landed and this change is applied:
+        the quoted string
+        "no --change supplied" occurs
+        once in src/review/core.ts; the
+        three !options.changeId arms
+        reference NO_CHANGE_SUPPLIED_REASON;
+        unscoped `bun run ngrace review
+        --path .` still prints
+        `not-run — no --change supplied`
+        on Attempt-pair, WriteEvidence
+        scope, and Amendment count.
+        The existing /no --change/ tests
+        stay green without importing the
+        const. No new src/*.ts file. The
+        nine validators named above exit
+        0; teaching-surface is omitted
+        because of the sibling skeleton.
+        Exercise the real CLI, not only
+        the unit tests. Do not use
+        current-mode lint of this root
+        as a target assertion.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        C-AMENDMENT-COUNT applies with
+        the third site using the same
+        quoted phrase, as its approved
+        plan at plan.xml:518 requires
+        (reuse `no --change supplied`).
+        If that bundle lands a different
+        sentence, this spec's frozen
+        wording is wrong and must be
+        amended, not silently followed.
+      </Assumption>
+      <Assumption>
+        The regex pins at
+        src/review/core.test.ts:1824,
+        :1827, :2076, and :2079 remain
+        /no --change/ on the runtime
+        value and are not rewritten by
+        C-AMENDMENT-COUNT into an
+        identifier import. A source-grep
+        test that counts the quoted
+        literal is not assumed.
+      </Assumption>
+      <Assumption>
+        NO_BASE_COMMIT_CAVEAT at
+        src/review/core.ts:1781 is the
+        local-const precedent for an
+        unexported named review-reason
+        string. The test file duplicates
+        the sentence at
+        src/review/core.test.ts:2688
+        rather than importing it. This
+        bundle follows that pattern: a
+        REASON-suffixed sibling, not an
+        export, and not a test-file
+        import.
+      </Assumption>
+    </Assumptions>
+  </C-REASON-CONSTANTS>
+</NgraceChangeSpec>

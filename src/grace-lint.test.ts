@@ -455,6 +455,141 @@ describe("lintGraceProject", () => {
     expect(JSON.parse(Buffer.from(cli.stdout).toString("utf8")).assertionMode).toBe("target");
   });
 
+  it("treats selected target without --run-commands as a structural query", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedChange(
+      root,
+      "C-COMMAND",
+      `<MustPassCommand><Command>exit 99</Command></MustPassCommand>`,
+      `<MustPassCommand><Command>${process.platform === "win32" ? "exit /b 0" : "exit 0"}</Command></MustPassCommand>`,
+    );
+
+    const skipped = lintGraceProject(root, { assertionMode: "target", changeId: "C-COMMAND" });
+    const errorCount = skipped.issues.filter((issue) => issue.severity === "error").length;
+    expect(skipped.summary.errors).toBe(errorCount);
+    expect(skipped.summary.errors).toBe(1);
+    expect(skipped.issues.map((issue) => issue.code)).toContain("assertion.command-not-evaluated");
+    const notEvaluated = skipped.issues.find((issue) => issue.code === "assertion.command-not-evaluated");
+    expect(notEvaluated!.issueClass).toBe("absence");
+    expect(notEvaluated!.severity).toBe("error");
+
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const structural = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--change", "C-COMMAND", "--assertions", "target", "--format", "json"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(structural.exitCode).toBe(0);
+    const structuralJson = JSON.parse(Buffer.from(structural.stdout).toString("utf8")) as {
+      issues: Array<{ code: string; severity: string }>;
+      summary: { errors: number };
+    };
+    expect(structuralJson.issues.map((issue) => issue.code)).toContain("assertion.command-not-evaluated");
+    expect(structuralJson.summary.errors).toBe(1);
+
+    const warnFail = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--change", "C-COMMAND", "--assertions", "target", "--fail-on", "warnings", "--format", "json"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(warnFail.exitCode).not.toBe(0);
+
+    const finalCli = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--change", "C-COMMAND", "--assertions", "final", "--format", "json"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(finalCli.exitCode).not.toBe(0);
+    const finalJson = JSON.parse(Buffer.from(finalCli.stdout).toString("utf8")) as {
+      issues: Array<{ code: string }>;
+      summary: { errors: number };
+    };
+    expect(finalJson.issues.map((issue) => issue.code)).toContain("assertion.command-not-evaluated");
+    expect(finalJson.summary.errors).toBeGreaterThan(0);
+
+    const currentCli = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--format", "json"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(currentCli.exitCode).toBe(0);
+    const currentJson = JSON.parse(Buffer.from(currentCli.stdout).toString("utf8")) as { issues: Array<{ code: string }> };
+    expect(currentJson.issues.map((issue) => issue.code)).not.toContain("assertion.command-not-evaluated");
+  });
+
+  it("still fails a structural target query when a non-exempt error coexists", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedChange(
+      root,
+      "C-COMMAND-AND-EXIST",
+      `<MustExist><Value>M-EXAMPLE</Value></MustExist>`,
+      `<MustPassCommand><Command>${process.platform === "win32" ? "exit /b 0" : "exit 0"}</Command></MustPassCommand><MustExist><Value>M-MISSING</Value></MustExist>`,
+    );
+
+    const skipped = lintGraceProject(root, { assertionMode: "target", changeId: "C-COMMAND-AND-EXIST" });
+    expect(skipped.issues.map((issue) => issue.code)).toContain("assertion.command-not-evaluated");
+    expect(skipped.issues.map((issue) => issue.code)).toContain("assertion.MustExist");
+    expect(skipped.summary.errors).toBe(skipped.issues.filter((issue) => issue.severity === "error").length);
+    expect(skipped.summary.errors).toBeGreaterThan(1);
+
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const structural = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--change", "C-COMMAND-AND-EXIST", "--assertions", "target", "--format", "json"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(structural.exitCode).not.toBe(0);
+  });
+
+  it("omitting --assertions still selects current and accepts only the four modes", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const omitted = spawnLintJson(root, []);
+    expect(omitted.exitCode).toBe(0);
+    const omittedJson = JSON.parse(Buffer.from(omitted.stdout).toString("utf8")) as { assertionMode?: string };
+    expect(omittedJson.assertionMode).toBe("current");
+    expect((lintCommand.args as { assertions?: { default?: string } }).assertions?.default).toBe("current");
+
+    const fifth = spawnLintJson(root, ["--assertions", "phase"]);
+    const envelope = parseEnvelope(fifth);
+    expect(fifth.exitCode).not.toBe(0);
+    expect(envelope.ok).toBe(false);
+    expect(envelope.error?.code).toBe("invalid-arguments");
+    expect(envelope.error?.message).toContain("current");
+    expect(envelope.error?.message).toContain("baseline");
+    expect(envelope.error?.message).toContain("target");
+    expect(envelope.error?.message).toContain("final");
+  });
+
+  it("current-mode CLI spawn of a failing baseline still exits 1", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedChange(
+      root,
+      "C-STALE-CLI",
+      `<MustExist><Value>M-NONEXISTENT</Value></MustExist>`,
+      `<MustVerify><Module>M-EXAMPLE</Module></MustVerify>`,
+    );
+
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const currentCli = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--format", "json"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(currentCli.exitCode).not.toBe(0);
+    const currentJson = JSON.parse(Buffer.from(currentCli.stdout).toString("utf8")) as { issues: Array<{ code: string }> };
+    expect(currentJson.issues.map((issue) => issue.code)).toContain("assertion.MustExist");
+  });
+
   it("rejects target command evidence that recursively invokes current baseline lint", () => {
     const root = createProject();
     writeMinimalNgraceProject(root);
@@ -469,6 +604,8 @@ describe("lintGraceProject", () => {
     const issue = current.issues.find((item) => item.code === "assertion.phase-incompatible-command");
     expect(issue?.message).toContain("leaf project evidence");
     expect(issue?.title).toContain("Phase-Incompatible");
+    expect(issue?.message).toContain("omitted --assertions");
+    expect(issue?.message).toContain("this project root");
 
     const final = lintGraceProject(root, { assertionMode: "final", changeId: "C-PHASE-CONFLICT", runCommands: true });
     expect(final.issues.map((item) => item.code)).toContain("assertion.phase-incompatible-command");
@@ -487,6 +624,42 @@ describe("lintGraceProject", () => {
       root,
       `${ARTIFACT_DIR}/changes/archive/C-HISTORICAL/plan.xml`,
       `<NgraceChangePlan graceVersion="1.0" status="applied"><C-HISTORICAL><IntentSummary>Historical plan.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustPassCommand><Command>ngrace lint --path . --assertions current</Command></MustPassCommand></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Historical task</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Done.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-HISTORICAL></NgraceChangePlan>`,
+    );
+
+    expect(lintGraceProject(root).issues.map((item) => item.code)).not.toContain("assertion.phase-incompatible-command");
+  });
+
+  it("rejects implicit-current lint of this project root on default lintGraceProject", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedChange(
+      root,
+      "C-PHASE-IMPLICIT",
+      `<MustExist><Value>M-EXAMPLE</Value></MustExist>`,
+      `<MustPassCommand><Command>bun run ngrace lint --path .</Command></MustPassCommand>`,
+    );
+
+    const current = lintGraceProject(root);
+    const issue = current.issues.find((item) => item.code === "assertion.phase-incompatible-command");
+    expect(issue).toBeDefined();
+    expect(issue?.message).toContain("leaf project evidence");
+    expect(issue?.title).toContain("Phase-Incompatible");
+    expect(issue?.message).toContain("omitted --assertions");
+    expect(issue?.message).toContain("this project root");
+  });
+
+  it("does not apply implicit-current phase policy retroactively to archived plans", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/archive/C-HISTORICAL-IMPLICIT/spec.xml`,
+      `<NgraceChangeSpec graceVersion="1.0" status="applied"><C-HISTORICAL-IMPLICIT><Summary>Historical change.</Summary><Goals><Goal>Preserve history.</Goal></Goals><Constraints><Constraint>Do not rewrite archives.</Constraint></Constraints><NonGoals><NonGoal>New behavior.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>History remains readable.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></C-HISTORICAL-IMPLICIT></NgraceChangeSpec>`,
+    );
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/archive/C-HISTORICAL-IMPLICIT/plan.xml`,
+      `<NgraceChangePlan graceVersion="1.0" status="applied"><C-HISTORICAL-IMPLICIT><IntentSummary>Historical plan.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustPassCommand><Command>bun run ngrace lint --path .</Command></MustPassCommand></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Historical task</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Done.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-HISTORICAL-IMPLICIT></NgraceChangePlan>`,
     );
 
     expect(lintGraceProject(root).issues.map((item) => item.code)).not.toContain("assertion.phase-incompatible-command");
@@ -1078,6 +1251,18 @@ export function run() {
     expect(without.issues.map((i) => i.code)).not.toContain("assertion.MustConform");
     // Target mode evaluates MustPassBudget → command-not-evaluated without --run-commands.
     expect(without.issues.map((i) => i.code)).toContain("assertion.command-not-evaluated");
+    expect(without.summary.errors).toBe(without.issues.filter((i) => i.severity === "error").length);
+
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const structuralBudget = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--change", "C-SYSTEMS", "--assertions", "target", "--format", "json"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(structuralBudget.exitCode).toBe(0);
+    const budgetJson = JSON.parse(Buffer.from(structuralBudget.stdout).toString("utf8")) as { issues: Array<{ code: string }> };
+    expect(budgetJson.issues.map((i) => i.code)).toContain("assertion.command-not-evaluated");
 
     advanceCursor(root, "C-SYSTEMS", {
       task: "T-001",

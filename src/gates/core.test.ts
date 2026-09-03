@@ -31,6 +31,7 @@ import {
   recordReviewVerdict,
   stampApproveArtifact,
   computeVerdictSnapshotDigest,
+  readAmendmentInstrument,
   type ReviewVerdictRecord,
 } from "./ledger";
 import { GraceCommandError } from "../query/errors";
@@ -2433,6 +2434,182 @@ describe("C-BOUND-VERDICT T-004 apply refuses fail", () => {
     const result = evaluateApplyGate(root, "C-GATE");
     expect(result.decision).toBe("refuse");
     expect(result.issues.some((issue) => issue.code === "gate.apply.outcome-fail")).toBe(true);
+  });
+});
+
+describe("C-AMENDMENT-COUNT T-001 readAmendmentInstrument", () => {
+  function writeLedgerDecisions(root: string, changeId: string, inner: string) {
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
+    mkdirSync(bundle, { recursive: true });
+    writeFileSync(
+      path.join(bundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><${changeId}><Decisions>${inner}</Decisions></${changeId}></NgraceRunLedger>`,
+    );
+  }
+
+  function writeBundleSpec(
+    root: string,
+    changeId: string,
+    location: "active" | "archive",
+    inner: string,
+  ) {
+    writeChangeBundleFixture(root, {
+      changeId,
+      location,
+      specStatus: location === "archive" ? "superseded" : "approved",
+      planStatus: location === "archive" ? "superseded" : "approved",
+    });
+    const specPath = path.join(root, ARTIFACT_DIR, "changes", location, changeId, "spec.xml");
+    const spec = readFileSync(specPath, "utf8");
+    writeFileSync(specPath, spec.replace(`<${changeId}>`, `<${changeId}>${inner}`));
+  }
+
+  it("no-op re-approve of the same spec fingerprint is 0", () => {
+    const root = tempProject();
+    activeBundle(root);
+    writeLedgerDecisions(
+      root,
+      "C-GATE",
+      `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`,
+    );
+    expect(readAmendmentInstrument(root, "C-GATE")).toEqual({
+      reRatificationCount: 0,
+      supersedeChainDepth: 0,
+    });
+  });
+
+  it("distinct spec fingerprints A then B is 1", () => {
+    const root = tempProject();
+    activeBundle(root);
+    writeLedgerDecisions(
+      root,
+      "C-GATE",
+      `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="bbb" artifact="spec"></Decision>`,
+    );
+    expect(readAmendmentInstrument(root, "C-GATE").reRatificationCount).toBe(1);
+  });
+
+  it("two unnamed unfingerprinted permits are 0, and a later named fingerprinted permit stays baseline 0", () => {
+    const root = tempProject();
+    activeBundle(root);
+    writeLedgerDecisions(
+      root,
+      "C-GATE",
+      `<Decision gate="approve" decision="permit"></Decision>`
+      + `<Decision gate="approve" decision="permit"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`,
+    );
+    expect(readAmendmentInstrument(root, "C-GATE").reRatificationCount).toBe(0);
+  });
+
+  it("first spec approve plus first plan approve is 0", () => {
+    const root = tempProject();
+    activeBundle(root);
+    writeLedgerDecisions(
+      root,
+      "C-GATE",
+      `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="bbb" artifact="plan"></Decision>`,
+    );
+    expect(readAmendmentInstrument(root, "C-GATE").reRatificationCount).toBe(0);
+  });
+
+  it("three fingerprinted spec permits A, B, A is 2 not 1", () => {
+    const root = tempProject();
+    activeBundle(root);
+    writeLedgerDecisions(
+      root,
+      "C-GATE",
+      `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="bbb" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`,
+    );
+    expect(readAmendmentInstrument(root, "C-GATE").reRatificationCount).toBe(2);
+  });
+
+  it("unreadable Decisions reports reRatificationCount 0", () => {
+    const root = tempProject();
+    const bundle = activeBundle(root);
+    writeFileSync(path.join(bundle, "run-ledger.xml"), "not xml at all <<<");
+    expect(readAmendmentInstrument(root, "C-GATE").reRatificationCount).toBe(0);
+  });
+
+  it("refuse, apply, archive, empty fingerprint, and unnamed-artifact do not participate or reset", () => {
+    const root = tempProject();
+    activeBundle(root);
+    writeLedgerDecisions(
+      root,
+      "C-GATE",
+      `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="refuse" fingerprint="zzz" artifact="spec"></Decision>`
+      + `<Decision gate="apply" decision="permit" fingerprint="zzz" artifact="spec"></Decision>`
+      + `<Decision gate="archive" decision="permit" fingerprint="zzz" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="zzz"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="bbb" artifact="spec"></Decision>`,
+    );
+    expect(readAmendmentInstrument(root, "C-GATE").reRatificationCount).toBe(1);
+  });
+
+  it("forced permits participate when they carry artifact and fingerprint", () => {
+    const root = tempProject();
+    activeBundle(root);
+    writeLedgerDecisions(
+      root,
+      "C-GATE",
+      `<Decision gate="approve" decision="permit" fingerprint="aaa" artifact="spec"></Decision>`
+      + `<Decision gate="approve" decision="permit" fingerprint="bbb" artifact="spec" forced="true" reason="operator"></Decision>`,
+    );
+    expect(readAmendmentInstrument(root, "C-GATE").reRatificationCount).toBe(1);
+  });
+
+  it("chain depth is 0 with no predecessor, 1 with one, and 2 on a two-step tip", () => {
+    const root = tempProject();
+    writeBundleSpec(root, "C-CHAIN-A", "archive", "<Replacement>C-CHAIN-B</Replacement>");
+    writeBundleSpec(root, "C-CHAIN-B", "archive", "<Replacement>C-CHAIN-C</Replacement>");
+    writeBundleSpec(root, "C-CHAIN-C", "active", "");
+    expect(readAmendmentInstrument(root, "C-CHAIN-A").supersedeChainDepth).toBe(0);
+    expect(readAmendmentInstrument(root, "C-CHAIN-B").supersedeChainDepth).toBe(1);
+    expect(readAmendmentInstrument(root, "C-CHAIN-C").supersedeChainDepth).toBe(2);
+  });
+
+  it("cycle-guarded reverse walk terminates with depth 0 at the repeated node", () => {
+    const root = tempProject();
+    writeBundleSpec(root, "C-LOOP-A", "archive", "<Replacement>C-LOOP-B</Replacement>");
+    writeBundleSpec(root, "C-LOOP-B", "archive", "<Replacement>C-LOOP-A</Replacement>");
+    expect(readAmendmentInstrument(root, "C-LOOP-A").supersedeChainDepth).toBe(2);
+    expect(readAmendmentInstrument(root, "C-LOOP-B").supersedeChainDepth).toBe(2);
+  });
+
+  it("spec Replacement wins when plan names a different successor", () => {
+    const root = tempProject();
+    writeBundleSpec(root, "C-SPEC-WIN", "archive", "<Replacement>C-FROM-SPEC</Replacement>");
+    const planPath = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-SPEC-WIN", "plan.xml");
+    const plan = readFileSync(planPath, "utf8");
+    writeFileSync(
+      planPath,
+      plan.replace("<C-SPEC-WIN>", "<C-SPEC-WIN><Replacement>C-FROM-PLAN</Replacement>"),
+    );
+    writeBundleSpec(root, "C-FROM-SPEC", "active", "");
+    writeBundleSpec(root, "C-FROM-PLAN", "active", "");
+    expect(readAmendmentInstrument(root, "C-FROM-SPEC").supersedeChainDepth).toBe(1);
+    expect(readAmendmentInstrument(root, "C-FROM-PLAN").supersedeChainDepth).toBe(0);
+  });
+
+  it("reads a child C-* tag as a predecessor pointer", () => {
+    const root = tempProject();
+    writeBundleSpec(root, "C-SHAPE-CHILD", "archive", "<C-SHAPE-TIP />");
+    writeBundleSpec(root, "C-SHAPE-TIP", "active", "");
+    expect(readAmendmentInstrument(root, "C-SHAPE-TIP").supersedeChainDepth).toBe(1);
+  });
+
+  it("reads ReplacementChange text as a predecessor pointer", () => {
+    const root = tempProject();
+    writeBundleSpec(root, "C-SHAPE-TEXT", "archive", "<ReplacementChange>C-SHAPE-TIP</ReplacementChange>");
+    writeBundleSpec(root, "C-SHAPE-TIP", "active", "");
+    expect(readAmendmentInstrument(root, "C-SHAPE-TIP").supersedeChainDepth).toBe(1);
   });
 });
 

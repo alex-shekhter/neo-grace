@@ -29,6 +29,7 @@
 //   classifyApprovedArtifact
 //   stampApproveArtifact
 //   supersedeChangeBundle
+//   AmendmentInstrument
 //   ApprovedArtifactClassification
 //   ApprovedArtifactName
 //   latestReviewVerdict
@@ -36,6 +37,7 @@
 //   listReviewVerdicts
 //   parseResolutionClassification
 //   parseReviewVerdictScope
+//   readAmendmentInstrument
 //   readGateDecisions
 //   readLatestReviewVerdict
 //   readLedgerVerdictsSurface
@@ -53,7 +55,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { spawnShellCommand } from "../artifact/assertions";
@@ -62,7 +64,7 @@ import { ARTIFACT_DIR } from "../artifact/paths";
 import { ANCHOR_PATTERNS, ARTIFACT_TAG_PREFIX, NGRACE_ARTIFACT_VERSION } from "../artifact/types";
 import { cloneXmlNode, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "../artifact/xml";
 import { serializeGraceXmlDocument } from "../artifact/xml-serialize";
-import { resolveChangeBundle } from "../grace-cursor";
+import { discardAndFoldEpoch, resolveChangeBundle } from "../grace-cursor";
 import { GraceCommandError } from "../query/errors";
 
 export type ReviewVerdictOutcome = "pass" | "fail" | "unable-to-determine";
@@ -1053,6 +1055,117 @@ function applyingApproveDecision(
   return permits.length > 0 ? permits[permits.length - 1] : undefined;
 }
 
+export type AmendmentInstrument = {
+  reRatificationCount: number;
+  supersedeChainDepth: number;
+};
+
+function replacementIdsFromFile(filePath: string): string[] {
+  if (!existsSync(filePath)) return [];
+  const artifact = readGraceXmlArtifact(filePath);
+  const wrapper = artifact.root?.children.find((child) => ANCHOR_PATTERNS.change.test(child.tag));
+  if (!wrapper) return [];
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const child of wrapper.children) {
+    let id: string | undefined;
+    if (ANCHOR_PATTERNS.change.test(child.tag)) id = child.tag;
+    else if (
+      (child.tag === "Replacement" || child.tag === "ReplacementChange")
+      && ANCHOR_PATTERNS.change.test(child.text.trim())
+    ) {
+      id = child.text.trim();
+    }
+    if (id && !seen.has(id)) {
+      seen.add(id);
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
+function replacementIdsForBundle(bundlePath: string): string[] {
+  const specIds = replacementIdsFromFile(path.join(bundlePath, "spec.xml"));
+  if (specIds.length > 0) return specIds;
+  return replacementIdsFromFile(path.join(bundlePath, "plan.xml"));
+}
+
+function listChangeBundleDirs(projectRoot: string): Array<{ changeId: string; bundlePath: string }> {
+  const root = path.resolve(projectRoot);
+  const out: Array<{ changeId: string; bundlePath: string }> = [];
+  for (const location of ["active", "archive"] as const) {
+    const directory = path.join(root, ARTIFACT_DIR, "changes", location);
+    if (!existsSync(directory)) continue;
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (entry.isDirectory() && ANCHOR_PATTERNS.change.test(entry.name)) {
+        out.push({ changeId: entry.name, bundlePath: path.join(directory, entry.name) });
+      }
+    }
+  }
+  return out;
+}
+
+function buildPredecessorMap(projectRoot: string): Map<string, string[]> {
+  const predecessors = new Map<string, string[]>();
+  for (const { changeId, bundlePath } of listChangeBundleDirs(projectRoot)) {
+    for (const target of replacementIdsForBundle(bundlePath)) {
+      const list = predecessors.get(target) ?? [];
+      list.push(changeId);
+      predecessors.set(target, list);
+    }
+  }
+  return predecessors;
+}
+
+function chainDepth(
+  changeId: string,
+  predecessors: Map<string, string[]>,
+  visited: Set<string>,
+): number {
+  if (visited.has(changeId)) return 0;
+  const next = new Set(visited);
+  next.add(changeId);
+  const preds = predecessors.get(changeId) ?? [];
+  if (preds.length === 0) return 0;
+  let max = 0;
+  for (const pred of preds) {
+    const depth = chainDepth(pred, predecessors, next);
+    if (depth > max) max = depth;
+  }
+  return 1 + max;
+}
+
+function reRatificationCountFromDecisions(listed: DecisionListResult): number {
+  if (listed.state !== "ok") return 0;
+  const previous = new Map<"spec" | "plan", string>();
+  let count = 0;
+  for (const entry of listed.decisions) {
+    if (entry.gate !== "approve") continue;
+    if (entry.decision !== "permit") continue;
+    if (entry.artifact !== "spec" && entry.artifact !== "plan") continue;
+    const fingerprint = (entry.fingerprint ?? "").trim();
+    if (!fingerprint) continue;
+    const last = previous.get(entry.artifact);
+    if (last === undefined) {
+      previous.set(entry.artifact, fingerprint);
+      continue;
+    }
+    if (last !== fingerprint) {
+      count += 1;
+      previous.set(entry.artifact, fingerprint);
+    }
+  }
+  return count;
+}
+
+export function readAmendmentInstrument(projectRoot: string, changeId: string): AmendmentInstrument {
+  const listed = readGateDecisions(projectRoot, changeId);
+  return {
+    reRatificationCount: reRatificationCountFromDecisions(listed),
+    supersedeChainDepth: chainDepth(changeId, buildPredecessorMap(projectRoot), new Set()),
+  };
+}
+
 function readTrackedChangedFiles(projectRoot: string):
   | { kind: "ok"; tracked: Set<string> }
   | { kind: "unavailable" } {
@@ -1324,6 +1437,7 @@ export function supersedeChangeBundle(
   if (!existsSync(specPath)) {
     throw new GraceCommandError("not-found", `spec.xml not found in ${changeId}.`);
   }
+  discardAndFoldEpoch(projectRoot, changeId);
   const specBefore = readFileSync(specPath, "utf8");
   const planExists = existsSync(planPath);
   const planBefore = planExists ? readFileSync(planPath, "utf8") : undefined;
