@@ -22,7 +22,7 @@ Never disguise the gap as a clean pass.
 </detachment_contract>
 
 <mechanized_first>
-Always run before judgment:
+Run `ngrace review --path . --change C-ID` at three moments: spec-approve, plan-approve, and before close judgment.
 
 ```bash
 ngrace review --path . --change C-ID
@@ -33,6 +33,8 @@ ngrace review --path . --change C-ID --format json
 The CLI emits deterministic finding IDs for pattern detectors (five RM-AGENT-RELIABILITY D4 patterns) and process audits
 (scope, test weakening, backward-compat, hunk coverage). Finding IDs are stable across reruns and
 unrelated blank-line edits. Use those IDs in your report; do not invent parallel codes.
+
+At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve `review.scope-outside-write-scope` on the bundle's own spec.xml, plan.xml, and (when that file changed) decisions.md is expected; do not add those paths to ObservedWriteScope. Other findings are not expected-clean.
 </mechanized_first>
 
 <review_checklist>

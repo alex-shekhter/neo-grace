@@ -44,6 +44,8 @@ Named non-approvals, closed:
 - any question
 
 A question is not an approval even when it contains an approving word.
+
+When requesting ratification of a written plan, quote the sufficient phrases bound to the artifact id and stage in the same breath. Use one approval request per message, one artifact, nothing else asked. Then record the ratifying phrase verbatim — the bytes the human wrote, never a paraphrase.
 </approval_lexicon>
 
 <must_do>
@@ -65,7 +67,7 @@ Produce `plan.xml` with `ngrace plan new` as the primary write path. Use `refere
 | 12 | Every task has non-empty verification commands. |
 | 13 | Surface stale-state and coexistence warnings from preflight lint. |
 | 14 | Reject unsupported scope glob syntax instead of guessing. |
-| 15 | Before the plan is approved, run `ngrace gate approve --change C-ID`. Refuse means unresolved Clarifications on IC-* / INV-* unless force; the gate writes status and records the fingerprint. |
+| 15 | Before the plan is approved, after a sufficient lexicon phrase, run `ngrace review --path . --change C-ID` (does not record a verdict), then `ngrace gate approve --change C-ID`. Refuse means unresolved Clarifications on IC-* / INV-* unless force; the gate writes status and records the fingerprint. Request ratification of C-ID at plan stage with a sufficient phrase: `approved`, `I approve`, or `approve this plan`. At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve `review.scope-outside-write-scope` on the bundle's own spec.xml, plan.xml, and (when that file changed) decisions.md is expected; do not add those paths to ObservedWriteScope. |
 | 16 | Optional typed holes use `<Clarifications><Clarification><IC-*|INV-*|AC-* /></Clarification></Clarifications>` — exactly one self-closing IC-*, INV-*, or AC-* child; never a target attribute and never a prose `[NEEDS CLARIFICATION]` marker. |
 | 17 | Every authorizing spec must decide `README.md` and `examples/` in a Goal, Constraint, or NonGoal. Silence fails. Enforcement is `checkDocsAndExamplesDecision`. |
 </must_do>
@@ -110,6 +112,6 @@ Never invent a "skip plan" path. If the user wants an ungoverned edit, refuse an
 </validation>
 
 <hard_rules>
-Do not implement code, silently approve a plan, overwrite an approved plan, or mutate current graph/verification artifacts while planning. Semantic anchors are canonical XML tags, never attributes. Do not hand-write plan status to approved; a permitting `ngrace gate approve` writes status and records the fingerprint.
+Do not implement code, silently approve a plan, overwrite an approved plan, or mutate current graph/verification artifacts while planning. Semantic anchors are canonical XML tags, never attributes. Do not hand-write plan status to approved; a permitting `ngrace gate approve` writes status and records the fingerprint. When a spec, plan, design-context, or skill XML block must name a tag, attribute form, or angle-bracketed token, write it as character data with entities (`&lt;` `&gt;` `&amp;`); do not paraphrase the brackets away to keep the document well-formed; markup-byte assertions belong in a TypeScript test.
 </hard_rules>
 </skill>
