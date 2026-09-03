@@ -20,6 +20,7 @@
 //   CursorPosition
 //   CursorState
 //   FIX_DISTINCT_SIGNATURE_BUDGET
+//   FIX_ESCALATION_CEILING
 //   FIX_SIGNATURE_REPEAT_BUDGET
 //   FailureSignature
 //   FileContentEvidence
@@ -64,6 +65,7 @@
 //   listFilesChangedAgainstBase
 //   listRepositoryChangedFiles
 //   listRunOrphans
+//   listUnresolvedCircuitTrippedTasks
 //   listUnresolvedEscalatedTasks
 //   listWindowFailSignatures
 //   OrphanSkipClass
@@ -163,7 +165,8 @@ export type CursorState =
   | "paused"
   | "paused-pending-approval"
   | "complete"
-  | "discarded";
+  | "discarded"
+  | "paused-pending-supersede";
 
 /** Closed set for parsing written cursor state (A19.2). */
 export const CURSOR_STATES: readonly CursorState[] = [
@@ -174,6 +177,7 @@ export const CURSOR_STATES: readonly CursorState[] = [
   "paused-pending-approval",
   "complete",
   "discarded",
+  "paused-pending-supersede",
 ] as const;
 
 /**
@@ -187,6 +191,13 @@ export const FIX_SIGNATURE_REPEAT_BUDGET = 2;
  * the current budget window (backstop for signature-key churn / confusion).
  */
 export const FIX_DISTINCT_SIGNATURE_BUDGET = 4;
+
+/**
+ * Cross-window ceiling: kind=escalation plus kind=circuit events per task across
+ * the whole accounting stream (C-REWORK-CIRCUIT). The first in-window R or D stays
+ * ordinary escalation; the second writes kind=circuit.
+ */
+export const FIX_ESCALATION_CEILING = 2;
 
 /** Escalation decision for the fail path (R before D; at most one fires). */
 export type FixBudgetDecision =
@@ -204,6 +215,7 @@ export function fixBudgetSkillRequiredSubstrings(): readonly string[] {
   return Object.freeze([
     `${FIX_SIGNATURE_REPEAT_BUDGET} failed attempts of the same signature`,
     `${FIX_DISTINCT_SIGNATURE_BUDGET} distinct failing signatures`,
+    `${FIX_ESCALATION_CEILING} escalations per task`,
   ]);
 }
 
@@ -287,6 +299,11 @@ export type CursorPosition = {
    * Phase 5 gates need *which* tasks are blocked, not only that some are.
    */
   escalatedTasks: string[];
+  /**
+   * Tasks with an unresolved circuit trip (C-REWORK-CIRCUIT). Stream-derived;
+   * never written as CircuitTrippedTask children on run.xml. Resume does not clear.
+   */
+  circuitTrippedTasks: string[];
   /** How each recoverable field was obtained. */
   sources: {
     epoch: PositionSource;
@@ -321,6 +338,7 @@ const KNOWN_KIND_STATE = {
   terminal: "complete",
   escalation: "paused-pending-approval",
   discarded: "discarded",
+  circuit: "paused-pending-supersede",
 } as const satisfies Record<string, CursorState>;
 
 export type KnownEventKind = keyof typeof KNOWN_KIND_STATE;
@@ -384,6 +402,25 @@ export function listUnresolvedEscalatedTasks(
 }
 
 /**
+ * Tasks with an unresolved circuit trip (C-REWORK-CIRCUIT).
+ * Per-task set: kind=circuit adds; resume never removes. Sorted for stable output.
+ */
+export function listUnresolvedCircuitTrippedTasks(
+  events: ReadonlyArray<{ id: number; kind: string; task?: string }>,
+): string[] {
+  const ordered = [...events].sort((a, b) => a.id - b.id);
+  const unresolved = new Set<string>();
+  for (const event of ordered) {
+    const taskKey = (event.task ?? "").trim();
+    if (!taskKey) continue;
+    if (event.kind === "circuit") {
+      unresolved.add(taskKey);
+    }
+  }
+  return [...unresolved].sort();
+}
+
+/**
  * Id of the last `resume` that **removed an unresolved escalation** for `task` (A24).
  * Ordinary resumes (nothing to resolve) do not open a budget window.
  * Returns 0 when the task has never had a resolving resume — counter then counts all attempts.
@@ -415,9 +452,12 @@ export function lastResolvingResumeId(
 /**
  * Derive cursor state from the full event stream (A21.1 / A22.1).
  * Escalation is a **per-task** fact: sticky until that task's explicit resolver (`resume`).
- * Bundle-level CursorPosition stays single-valued — paused-pending-approval while any
- * task remains unresolved, otherwise the last non-escalation mapping (correction 43).
- * last-event-wins alone also cleared a still-owed decision (correction 41).
+ * Circuit is also per-task and is never cleared by resume (C-REWORK-CIRCUIT).
+ * Bundle-level CursorPosition stays single-valued — paused-pending-supersede while any
+ * task is circuit-tripped (takes precedence over paused-pending-approval); otherwise
+ * paused-pending-approval while any escalation remains unresolved; otherwise the last
+ * non-sticky mapping (correction 43). last-event-wins alone also cleared a still-owed
+ * decision (correction 41).
  */
 export function deriveStateFromEvents(
   events: ReadonlyArray<{ id: number; kind: string; task?: string }>,
@@ -425,6 +465,7 @@ export function deriveStateFromEvents(
   const ordered = [...events].sort((a, b) => a.id - b.id);
   if (ordered.length === 0) return { state: "idle" };
 
+  const unresolvedCircuits = new Set<string>();
   const unresolvedEscalations = new Set<string>();
   let lastNonSticky:
     | { state: CursorState }
@@ -433,12 +474,17 @@ export function deriveStateFromEvents(
 
   for (const event of ordered) {
     const taskKey = (event.task ?? "").trim();
+    if (event.kind === "circuit") {
+      if (taskKey) unresolvedCircuits.add(taskKey);
+      continue;
+    }
     if (event.kind === "escalation") {
       if (taskKey) unresolvedEscalations.add(taskKey);
       continue;
     }
     if (ESCALATION_RESOLVER_KINDS.has(event.kind)) {
       // resume --task X removes only X; other tasks stay escalated (correction 43).
+      // Circuit is not a member of ESCALATION_RESOLVER_KINDS and is never cleared here.
       if (taskKey) unresolvedEscalations.delete(taskKey);
       lastNonSticky = cursorStateForEventKind(event.kind);
       continue;
@@ -448,6 +494,9 @@ export function deriveStateFromEvents(
     lastNonSticky = cursorStateForEventKind(event.kind);
   }
 
+  if (unresolvedCircuits.size > 0) {
+    return { state: "paused-pending-supersede" };
+  }
   if (unresolvedEscalations.size > 0) {
     return { state: "paused-pending-approval" };
   }
@@ -465,22 +514,31 @@ function positionProjectionFromBundle(
   state?: CursorState;
   degradation?: AbsenceValue;
   escalatedTasks: string[];
+  circuitTrippedTasks: string[];
   task?: string;
 } {
   const stream = listAccountingEvents(bundlePath);
+  const circuitTrippedTasks = listUnresolvedCircuitTrippedTasks(stream);
   const escalatedTasks = listUnresolvedEscalatedTasks(stream);
   const mapped = deriveStateFromEvents(stream);
   const fallback = options.preferredTask ?? options.lastEventTask;
+  const stuck = circuitTrippedTasks.length > 0 ? circuitTrippedTasks : escalatedTasks;
   const task =
-    escalatedTasks.length > 0
-      ? fallback && escalatedTasks.includes(fallback)
+    stuck.length > 0
+      ? fallback && stuck.includes(fallback)
         ? fallback
-        : escalatedTasks[0]
+        : stuck[0]
       : fallback;
   if ("state" in mapped) {
-    return { state: mapped.state, escalatedTasks, task };
+    return { state: mapped.state, escalatedTasks, circuitTrippedTasks, task };
   }
-  return { state: undefined, degradation: mapped.degradation, escalatedTasks, task };
+  return {
+    state: undefined,
+    degradation: mapped.degradation,
+    escalatedTasks,
+    circuitTrippedTasks,
+    task,
+  };
 }
 
 /** Parse a written State element against the widened CursorState union (A19.2). */
@@ -950,6 +1008,7 @@ export function advanceCursor(
       task,
       state: "in-progress",
       escalatedTasks: [],
+      circuitTrippedTasks: [],
       sources: { epoch: "events", task: "events", state: "events" },
       inferred: false,
     };
@@ -963,13 +1022,14 @@ export function advanceCursor(
   if (!ANCHOR_PATTERNS.task.test(task)) {
     throw new GraceCommandError("invalid-arguments", `Task ${JSON.stringify(task)} must be a canonical T-* id.`);
   }
-  // Correction 40: attempt / verification-unavailable / escalation / discarded are reserved —
-  // advance would write a bare kind=attempt that still counts against the budget.
+  // Correction 40: attempt / verification-unavailable / escalation / discarded / circuit
+  // are reserved — advance would write a bare kind=attempt that still counts against the budget.
   if (
     kind === "attempt"
     || kind === "verification-unavailable"
     || kind === "escalation"
     || kind === "discarded"
+    || kind === "circuit"
   ) {
     throw new GraceCommandError(
       "invalid-arguments",
@@ -979,15 +1039,26 @@ export function advanceCursor(
           ? `kind "verification-unavailable" is reserved; use ngrace cursor verification-unavailable --reason ….`
           : kind === "escalation"
             ? `kind "escalation" is reserved; it is written by the fix budget (trigger R same-signature or D distinct backstop).`
-            : `kind "discarded" is reserved; ngrace supersede writes it when abandoning an open epoch.`,
+            : kind === "discarded"
+              ? `kind "discarded" is reserved; ngrace supersede writes it when abandoning an open epoch.`
+              : `kind "circuit" is reserved; it is written by recordAttempt when FIX_ESCALATION_CEILING trips.`,
     );
   }
 
   // C-ESCALATION-HONESTY T-002: escalation-clearing resume requires a recorded reason
   // before any write. Ordinary resume (nothing to clear) keeps reason optional.
+  // C-REWORK-CIRCUIT: circuit-tripped tasks refuse resume on both entry paths before write.
   let resumeChildren: GraceXmlNode[] | undefined;
   if (kind === "resume") {
-    const unresolved = listUnresolvedEscalatedTasks(listAccountingEvents(bundlePath));
+    const stream = listAccountingEvents(bundlePath);
+    const circuitTripped = listUnresolvedCircuitTrippedTasks(stream);
+    if (circuitTripped.includes(task)) {
+      throw new GraceCommandError(
+        "invalid-arguments",
+        `task ${task} is paused-pending-supersede; ngrace supersede is the exit.`,
+      );
+    }
+    const unresolved = listUnresolvedEscalatedTasks(stream);
     const clearingEscalation = unresolved.includes(task);
     const reasonRaw = options.reason;
     const reasonTrimmed = typeof reasonRaw === "string" ? reasonRaw.trim() : "";
@@ -1026,6 +1097,7 @@ export function advanceCursor(
     task: derived.task,
     state: derived.state,
     escalatedTasks: derived.escalatedTasks,
+    circuitTrippedTasks: derived.circuitTrippedTasks,
     sources: { epoch: "events", task: "events", state: "events" },
     inferred: false,
     degradation: derived.degradation,
@@ -1044,6 +1116,7 @@ export function pauseCursor(projectRoot: string, changeId: string, task: string)
  * When the resume clears an unresolved escalation, `options.reason` is required
  * (trimmed non-empty) and is recorded as a `<Reason>` child on the event
  * (C-ESCALATION-HONESTY T-002 / AC-RESUME-REASON-*).
+ * Circuit-tripped tasks refuse before write (C-REWORK-CIRCUIT).
  */
 export function resumeCursor(
   projectRoot: string,
@@ -1226,6 +1299,7 @@ export function foldEpoch(
     task: derived.task,
     state: derived.state,
     escalatedTasks: derived.escalatedTasks,
+    circuitTrippedTasks: derived.circuitTrippedTasks,
     sources: { epoch: "ledger", task: "ledger", state: "ledger" },
     inferred: false,
     degradation: derived.degradation,
@@ -1318,6 +1392,7 @@ export function derivePosition(
         // File EscalatedTask / file ppa are compared only to announce disagreement (D1).
         const stream = listAccountingEvents(bundlePath);
         const escalatedTasks = listUnresolvedEscalatedTasks(stream);
+        const circuitTrippedTasks = listUnresolvedCircuitTrippedTasks(stream);
         const mapped = deriveStateFromEvents(stream);
         const streamState = "state" in mapped ? mapped.state : undefined;
         const streamStateSource: PositionSource =
@@ -1334,8 +1409,13 @@ export function derivePosition(
           fromFile.length === escalatedTasks.length &&
           fromFile.every((t, i) => t === escalatedTasks[i]);
         const fileClaimsPpa = fileState === "paused-pending-approval";
+        const fileClaimsPps = fileState === "paused-pending-supersede";
         const streamClaimsPpa = escalatedTasks.length > 0;
-        const escalationDisagrees = !setsEqual || fileClaimsPpa !== streamClaimsPpa;
+        const streamClaimsCircuit = circuitTrippedTasks.length > 0;
+        const escalationDisagrees =
+          !setsEqual
+          || fileClaimsPpa !== streamClaimsPpa
+          || fileClaimsPps !== streamClaimsCircuit;
 
         let escalationDegradation: AbsenceValue | undefined;
         if (escalationDisagrees) {
@@ -1346,14 +1426,17 @@ export function derivePosition(
           };
         }
 
-        // State: ppa (and its clearance) always from the stream; other states may lag on the cache.
+        // State: circuit and ppa (and their clearance) always from the stream; other states may lag.
         let state: CursorState | undefined;
         let stateSource: PositionSource;
-        if (streamClaimsPpa) {
+        if (streamClaimsCircuit) {
+          state = "paused-pending-supersede";
+          stateSource = streamStateSource;
+        } else if (streamClaimsPpa) {
           state = "paused-pending-approval";
           stateSource = streamStateSource;
-        } else if (fileClaimsPpa || fromFile.length > 0) {
-          // Stale cursor claimed escalation the stream has resolved.
+        } else if (fileClaimsPpa || fromFile.length > 0 || fileClaimsPps) {
+          // Stale cursor claimed escalation/circuit the stream has resolved.
           state = streamState ?? "in-progress";
           stateSource = streamStateSource;
         } else if (streamState === undefined && "degradation" in mapped) {
@@ -1364,12 +1447,13 @@ export function derivePosition(
           stateSource = "cursor";
         }
 
-        // When set non-empty, task from set (correction 45); otherwise cached Task.
+        // Circuit set takes precedence; else escalated set (correction 45); otherwise cached Task.
+        const stuck = circuitTrippedTasks.length > 0 ? circuitTrippedTasks : escalatedTasks;
         const pairedTask =
-          escalatedTasks.length > 0
-            ? task && escalatedTasks.includes(task)
+          stuck.length > 0
+            ? task && stuck.includes(task)
               ? task
-              : escalatedTasks[0]
+              : stuck[0]
             : task;
 
         written = {
@@ -1379,6 +1463,7 @@ export function derivePosition(
           task: pairedTask,
           state,
           escalatedTasks,
+          circuitTrippedTasks,
           sources: { epoch: "cursor", task: "cursor", state: stateSource },
           inferred: false,
           degradation:
@@ -1411,12 +1496,14 @@ export function derivePosition(
     // A21.1 / A23.1: full stream; task from escalated set when non-empty (not last-event-wins alone).
     const stream = listAccountingEvents(bundlePath);
     const escalatedTasks = listUnresolvedEscalatedTasks(stream);
+    const circuitTrippedTasks = listUnresolvedCircuitTrippedTasks(stream);
     const lastTask = lastEvent?.task ?? lastTaskFromLedger(bundlePath);
+    const stuck = circuitTrippedTasks.length > 0 ? circuitTrippedTasks : escalatedTasks;
     const task =
-      escalatedTasks.length > 0
-        ? lastTask && escalatedTasks.includes(lastTask)
+      stuck.length > 0
+        ? lastTask && stuck.includes(lastTask)
           ? lastTask
-          : escalatedTasks[0]
+          : stuck[0]
         : lastTask;
     let state: CursorState | undefined = "idle";
     let kindDegradation: AbsenceValue | undefined;
@@ -1436,10 +1523,11 @@ export function derivePosition(
       task,
       state,
       escalatedTasks,
+      circuitTrippedTasks,
       sources: {
         epoch: events.length > 0 ? "events" : "ledger",
         task:
-          escalatedTasks.length > 0
+          escalatedTasks.length > 0 || circuitTrippedTasks.length > 0
             ? stream.length > 0
               ? events.length > 0
                 ? "events"
@@ -1521,6 +1609,7 @@ function deriveRow3Position(
     complete,
     completeAbsence,
     escalatedTasks: [],
+    circuitTrippedTasks: [],
     sources: {
       epoch: "none",
       task: "inferred",
@@ -1832,7 +1921,9 @@ export type RecordAttemptResult = {
   eventId: number;
   attemptCount: number;
   escalated: boolean;
-  /** Which budget trigger fired when escalated (C-ESCALATION-HONESTY). */
+  /** True when this fail wrote kind=circuit (C-REWORK-CIRCUIT). Mutually exclusive with escalated. */
+  circuit: boolean;
+  /** Which budget trigger fired when escalated or circuit-tripped (C-ESCALATION-HONESTY). */
   trigger?: "R" | "D";
   signatures: FailureSignature[];
   /** Human-readable escalation or progress message (shown verbatim on exhaustion). */
@@ -1842,7 +1933,9 @@ export type RecordAttemptResult = {
 /**
  * Record one verification-cycle attempt (D6). Immediate write — advance precedent (A18.7).
  * On fail, escalates via decideFixBudgetEscalation (R same-signature, D distinct
- * backstop) and transitions to paused-pending-approval (A19.2 / C-ESCALATION-HONESTY).
+ * backstop). The first in-window fire writes kind=escalation / paused-pending-approval;
+ * a second fire on the same task writes kind=circuit / paused-pending-supersede
+ * (A19.2 / C-ESCALATION-HONESTY / C-REWORK-CIRCUIT).
  */
 export function recordAttempt(
   projectRoot: string,
@@ -1882,9 +1975,18 @@ export function recordAttempt(
     claimedConfidenceAttr = parsed.value;
   }
 
-  // A21.1 / A22.3 / A29.10: refuse further attempts on escalated tasks via gate evaluation
-  // (anti-pattern 9 — policy lives in src/gates/, mechanism only calls it).
-  const escalated = listUnresolvedEscalatedTasks(listAccountingEvents(bundlePath));
+  // A21.1 / A22.3 / A29.10 / C-REWORK-CIRCUIT: refuse circuit-tripped first, then escalated.
+  // Policy lives in src/gates/; this inlines the same refuse (no import cycle).
+  const accountingForGate = listAccountingEvents(bundlePath);
+  const circuitTripped = listUnresolvedCircuitTrippedTasks(accountingForGate);
+  if (circuitTripped.includes(task)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `gate.attempt.circuit-tripped: task ${task} is paused-pending-supersede; ngrace supersede is the exit.`,
+      { issues: ["gate.attempt.circuit-tripped"] },
+    );
+  }
+  const escalated = listUnresolvedEscalatedTasks(accountingForGate);
   if (escalated.includes(task)) {
     throw new GraceCommandError(
       "invalid-arguments",
@@ -1919,14 +2021,20 @@ export function recordAttempt(
   const signatures = listWindowFailSignatures(accounting, task);
 
   // Escalation on fail only: R then D (C-ESCALATION-HONESTY). Never attempt-count.
+  // Ceiling evaluated only when R or D would fire (C-REWORK-CIRCUIT).
   if (options.outcome === "fail") {
     const decision = decideFixBudgetEscalation(signatures);
     if (decision.escalate) {
-      const escalationId = nextEventId(bundlePath);
+      const priorClass = accounting.filter(
+        (event) => event.task === task && (event.kind === "escalation" || event.kind === "circuit"),
+      ).length;
+      const tripCircuit = priorClass + 1 >= FIX_ESCALATION_CEILING;
+      const tripKind = tripCircuit ? "circuit" : "escalation";
+      const tripId = nextEventId(bundlePath);
       writeEventFile(bundlePath, {
-        id: escalationId,
+        id: tripId,
         task,
-        kind: "escalation",
+        kind: tripKind,
         children: signatures.map(failureSignatureNode),
       });
       // A22.3 / A23.1: every write path derives — escalatedTasks + task from set.
@@ -1936,19 +2044,26 @@ export function recordAttempt(
         bundlePath,
         epoch: currentOpenEpochHint(bundlePath),
         task: derived.task ?? task,
-        state: derived.state ?? "paused-pending-approval",
+        state:
+          derived.state
+          ?? (tripCircuit ? "paused-pending-supersede" : "paused-pending-approval"),
         escalatedTasks: derived.escalatedTasks,
+        circuitTrippedTasks: derived.circuitTrippedTasks,
         sources: { epoch: "events", task: "events", state: "events" },
         inferred: false,
         degradation: derived.degradation,
       };
       writeCursorFile(bundlePath, position);
-      const message = formatEscalationMessage(task, decision, signatures);
+      const message = formatEscalationMessage(task, decision, signatures, {
+        circuit: tripCircuit,
+        events: accounting,
+      });
       return {
         position,
         eventId: id,
         attemptCount,
-        escalated: true,
+        escalated: !tripCircuit,
+        circuit: tripCircuit,
         trigger: decision.trigger,
         signatures,
         message,
@@ -1964,6 +2079,7 @@ export function recordAttempt(
     task: derived.task ?? task,
     state: derived.state ?? "in-progress",
     escalatedTasks: derived.escalatedTasks,
+    circuitTrippedTasks: derived.circuitTrippedTasks,
     sources: { epoch: "events", task: "events", state: "events" },
     inferred: false,
     degradation: derived.degradation,
@@ -1974,6 +2090,7 @@ export function recordAttempt(
     eventId: id,
     attemptCount,
     escalated: false,
+    circuit: false,
     signatures,
     message:
       options.outcome === "pass"
@@ -2015,6 +2132,7 @@ export function recordVerificationUnavailable(
     task: derived.task ?? task,
     state: derived.state ?? "in-progress",
     escalatedTasks: derived.escalatedTasks,
+    circuitTrippedTasks: derived.circuitTrippedTasks,
     sources: { epoch: "events", task: "events", state: "events" },
     inferred: false,
     degradation: derived.degradation,
@@ -2482,21 +2600,134 @@ function parseWriteEvidenceNode(node: GraceXmlNode): WriteEvidenceSnapshot {
   return { available: true, files };
 }
 
+function isProductChurnPath(relativePath: string): boolean {
+  const normalized = relativePath.replaceAll("\\", "/").replace(/^\.\//, "");
+  return normalized !== ".ngrace" && !normalized.startsWith(".ngrace/");
+}
+
+/** Window start id for each attempt of `task` (last resolving resume strictly before the attempt). */
+function attemptWindowStarts(
+  events: ReadonlyArray<{ id: number; kind: string; task?: string }>,
+  task: string,
+): Map<number, number> {
+  const ordered = [...events].sort((a, b) => a.id - b.id);
+  const unresolved = new Set<string>();
+  let lastResolving = 0;
+  const windows = new Map<number, number>();
+  for (const event of ordered) {
+    const taskKey = (event.task ?? "").trim();
+    if (event.kind === "escalation" && taskKey) {
+      unresolved.add(taskKey);
+    } else if (ESCALATION_RESOLVER_KINDS.has(event.kind) && taskKey) {
+      if (unresolved.has(taskKey)) {
+        unresolved.delete(taskKey);
+        if (taskKey === task) lastResolving = event.id;
+      }
+    }
+    if (event.kind === "attempt" && taskKey === task) {
+      windows.set(event.id, lastResolving);
+    }
+  }
+  return windows;
+}
+
+function computeTaskFileChurn(
+  events: LooseEvent[],
+  task: string,
+  windowStart: number | undefined,
+): { files: Array<{ path: string; rewrites: number }>; windows: number } {
+  const windows = attemptWindowStarts(events, task);
+  const attempts = events
+    .filter((event) => event.task === task && event.kind === "attempt")
+    .filter((event) => windowStart === undefined || event.id > windowStart)
+    .sort((a, b) => a.id - b.id);
+  const lastDigest = new Map<string, string>();
+  const rewrites = new Map<string, number>();
+  const spanned = new Set<number>();
+  for (const attempt of attempts) {
+    spanned.add(windows.get(attempt.id) ?? 0);
+    const payload = readAttemptPayload(attempt);
+    if (!payload.writeEvidence || payload.writeEvidence.available !== true) continue;
+    for (const file of payload.writeEvidence.files) {
+      if (file.kind !== "content") continue;
+      if (!isProductChurnPath(file.path)) continue;
+      const previous = lastDigest.get(file.path);
+      if (previous !== undefined && previous !== file.digest) {
+        rewrites.set(file.path, (rewrites.get(file.path) ?? 0) + 1);
+      }
+      lastDigest.set(file.path, file.digest);
+    }
+  }
+  const files = [...rewrites.entries()]
+    .filter(([, count]) => count > 0)
+    .map(([path, count]) => ({ path, rewrites: count }))
+    .sort((a, b) => b.rewrites - a.rewrites || a.path.localeCompare(b.path));
+  return { files, windows: spanned.size };
+}
+
+function recurringFailureSignatures(events: LooseEvent[], task: string): string[] {
+  const windows = attemptWindowStarts(events, task);
+  const perWindow = new Map<number, Set<string>>();
+  for (const event of events) {
+    if (event.task !== task || event.kind !== "attempt") continue;
+    if (event.attributes.outcome !== "fail") continue;
+    const payload = readAttemptPayload(event);
+    if (!payload.signature) continue;
+    const windowId = windows.get(event.id) ?? 0;
+    const set = perWindow.get(windowId) ?? new Set<string>();
+    set.add(`${payload.signature.kind}:${payload.signature.key}`);
+    perWindow.set(windowId, set);
+  }
+  const counts = new Map<string, number>();
+  for (const set of perWindow.values()) {
+    for (const token of set) {
+      counts.set(token, (counts.get(token) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .filter(([, count]) => count >= 2)
+    .map(([token]) => token)
+    .sort();
+}
+
 /** Escalation message names which trigger fired and that trigger's unit (not attempt count). */
 function formatEscalationMessage(
   task: string,
   decision: Extract<FixBudgetDecision, { escalate: true }>,
   signatures: FailureSignature[],
+  options: { circuit?: boolean; events?: LooseEvent[] } = {},
 ): string {
+  const circuit = options.circuit === true;
+  const stateName = circuit ? "paused-pending-supersede" : "paused-pending-approval";
+  const tail = circuit
+    ? `${stateName} (resume will not clear this; ngrace supersede is the exit).`
+    : `${stateName} (replan decision owed; task has not failed).`;
   const head =
     decision.trigger === "R"
-      ? `Budget exhausted for ${task}: repeated failure signature ${decision.repeated.kind}:${decision.repeated.key} (trigger R) — paused-pending-approval (replan decision owed; task has not failed).`
-      : `Budget exhausted for ${task}: ${FIX_DISTINCT_SIGNATURE_BUDGET} distinct unresolved failures (trigger D, distinctCount=${decision.distinctCount}) — paused-pending-approval (replan decision owed; task has not failed).`;
+      ? `Budget exhausted for ${task}: repeated failure signature ${decision.repeated.kind}:${decision.repeated.key} (trigger R) — ${tail}`
+      : `Budget exhausted for ${task}: ${FIX_DISTINCT_SIGNATURE_BUDGET} distinct unresolved failures (trigger D, distinctCount=${decision.distinctCount}) — ${tail}`;
   const lines = [
     head,
     `Signatures (${signatures.length}):`,
     ...signatures.map((signature, index) => `  ${index + 1}. ${signature.kind}: ${signature.key}`),
   ];
+  if (options.events) {
+    const windowStart = circuit ? undefined : lastResolvingResumeId(options.events, task);
+    const churn = computeTaskFileChurn(options.events, task, windowStart);
+    if (churn.files.length > 0) {
+      const scope = circuit ? "cross-window" : "this-window";
+      const listed = churn.files.map((file) => `${file.path}×${file.rewrites}`).join(", ");
+      lines.push(`Churn (${scope}, windows=${churn.windows}): ${listed}`);
+    }
+    if (circuit) {
+      const recurring = recurringFailureSignatures(options.events, task);
+      lines.push(
+        recurring.length > 0
+          ? `Recurring signatures: ${recurring.join(", ")}`
+          : "Recurring signatures: none",
+      );
+    }
+  }
   return `${lines.join("\n")}\n`;
 }
 
@@ -2521,6 +2752,9 @@ export function formatCursorPosition(position: CursorPosition): string {
   // A5.4 drop site for escalatedTasks (correction 45).
   if (position.escalatedTasks.length > 0) {
     lines.push(`EscalatedTasks: ${position.escalatedTasks.join(", ")}`);
+  }
+  if (position.circuitTrippedTasks.length > 0) {
+    lines.push(`CircuitTrippedTasks: ${position.circuitTrippedTasks.join(", ")}`);
   }
   lines.push(
     completeLine,
@@ -3459,7 +3693,7 @@ export const cursorCommand = defineGraceCommand({
       meta: {
         name: "resume",
         description:
-          "Record a resume event and set cursor in-progress. Clearing an escalation requires --reason (recorded as Reason child).",
+          "Record a resume event and set cursor in-progress. Clearing an ordinary escalation requires --reason. A paused-pending-supersede (circuit) task cannot be resumed; ngrace supersede is the exit.",
       },
       args: {
         path: { type: "string", alias: "p", default: "." },

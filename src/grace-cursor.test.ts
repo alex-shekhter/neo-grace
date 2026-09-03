@@ -21,6 +21,7 @@ import {
   deriveStateFromEvents,
   expectedLedgerEventAttributes,
   FIX_DISTINCT_SIGNATURE_BUDGET,
+  FIX_ESCALATION_CEILING,
   FIX_SIGNATURE_REPEAT_BUDGET,
   fixBudgetSkillRequiredSubstrings,
   foldEpoch,
@@ -32,9 +33,11 @@ import {
   listLedgerEvents,
   listLooseEvents,
   listRunOrphans,
+  listUnresolvedCircuitTrippedTasks,
   listUnresolvedEscalatedTasks,
   listWindowFailSignatures,
   parseCursorState,
+  pauseCursor,
   readAttemptPayload,
   recordAttempt,
   recordVerificationUnavailable,
@@ -768,6 +771,7 @@ describe("signature fix budget R/D (C-ESCALATION-HONESTY / AC-SIGNATURE-BUDGET-S
   it("constants pin R=2 and D=4 exactly (F23)", () => {
     expect(FIX_SIGNATURE_REPEAT_BUDGET).toBe(2);
     expect(FIX_DISTINCT_SIGNATURE_BUDGET).toBe(4);
+    expect(FIX_ESCALATION_CEILING).toBe(2);
   });
 
   it("fail(A) does not escalate", () => {
@@ -1068,6 +1072,7 @@ describe("signature fix budget R/D (C-ESCALATION-HONESTY / AC-SIGNATURE-BUDGET-S
 describe("cursor state parsed (AC-CURSOR-STATE-PARSED)", () => {
   it("unrecognized written state degrades; show still answers; lint still reports", () => {
     expect(parseCursorState("paused-pending-approval")).toEqual({ state: "paused-pending-approval" });
+    expect(parseCursorState("paused-pending-supersede")).toEqual({ state: "paused-pending-supersede" });
     expect(parseCursorState("discarded")).toEqual({ state: "discarded" });
     expect(parseCursorState("shipped")).toEqual({ invalid: "shipped" });
 
@@ -1821,9 +1826,11 @@ describe("budget window from resolving resume (A24 / correction 46)", () => {
     expect(third.escalated).toBe(false);
     expect(third.attemptCount).toBe(1); // window after resolving resume
 
-    const fourth = fail(root, "T-001", "c"); // R again in new window
-    expect(fourth.escalated).toBe(true);
+    const fourth = fail(root, "T-001", "c"); // second in-window R → circuit
+    expect(fourth.escalated).toBe(false);
+    expect(fourth.circuit).toBe(true);
     expect(fourth.trigger).toBe("R");
+    expect(fourth.position.state).toBe("paused-pending-supersede");
     expect(fourth.attemptCount).toBe(2); // not 4
     expect(fourth.signatures).toEqual([
       { kind: "test", key: "c" },
@@ -1831,6 +1838,7 @@ describe("budget window from resolving resume (A24 / correction 46)", () => {
     ]);
     expect(fourth.message).toContain("trigger R");
     expect(fourth.message).toContain("test:c");
+    expect(fourth.message).toContain("paused-pending-supersede");
     expect(fourth.message).not.toContain("test: a");
     expect(fourth.message).not.toMatch(/test: a\b/);
     expect(fourth.message).toMatch(/Signatures \(2\)/);
@@ -1872,13 +1880,15 @@ describe("budget window from resolving resume (A24 / correction 46)", () => {
     expect(afterFold.escalatedTasks).toEqual(["T-001"]);
     expect(listLooseEvents(bundle)).toHaveLength(0);
 
-    // Resume opens a window; two more same-key fails re-escalate R.
+    // Resume opens a window; two more same-key fails trip the circuit (second in-window R).
     advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 100, to: 199 });
     resumeCursor(root, "C-RUN", "T-001", { reason: "replan: open window after fold" });
     fail(root, "T-001", "c");
     const reEsc = fail(root, "T-001", "c");
-    expect(reEsc.escalated).toBe(true);
+    expect(reEsc.escalated).toBe(false);
+    expect(reEsc.circuit).toBe(true);
     expect(reEsc.trigger).toBe("R");
+    expect(reEsc.position.state).toBe("paused-pending-supersede");
     expect(reEsc.attemptCount).toBe(2);
     expect(reEsc.signatures.map((s) => s.key)).toEqual(["c", "c"]);
     expect(reEsc.message).toContain("trigger R");
@@ -2094,8 +2104,10 @@ describe("resume reason on escalation clear (C-ESCALATION-HONESTY T-002)", () =>
       signature: { kind: "test", key: "C" },
       writeEvidence: evidencePaths([]),
     });
-    expect(secondC.escalated).toBe(true);
+    expect(secondC.escalated).toBe(false);
+    expect(secondC.circuit).toBe(true);
     expect(secondC.trigger).toBe("R");
+    expect(secondC.position.state).toBe("paused-pending-supersede");
     expect(secondC.signatures).toEqual([
       { kind: "test", key: "C" },
       { kind: "test", key: "C" },
@@ -3201,12 +3213,13 @@ const NGRACE_EXECUTE_SKILL_PATHS = [
 describe("fix-budget skill prose agrees with constants (C-ESCALATION-HONESTY T-003 / AC-PROSE-ENFORCEMENT-AGREE)", () => {
   /**
    * Bidirectional agreement (both skill trees):
-   * - Mutate FIX_DISTINCT_SIGNATURE_BUDGET (or REPEAT) without skill → required
-   *   substring becomes e.g. "5 distinct failing signatures" → skill still has
-   *   "4 …" → toContain fails (code→skill direction).
-   * - Mutate a skill sentence (drop "4 distinct failing signatures" or restore
-   *   a stale attempt-count claim) while constants stay → toContain / stale
-   *   sweep fails (skill→code direction).
+   * - Mutate FIX_DISTINCT_SIGNATURE_BUDGET (or REPEAT or FIX_ESCALATION_CEILING)
+   *   without skill → required substring becomes e.g. "5 distinct failing
+   *   signatures" or "3 escalations per task" → skill still has the old digits →
+   *   toContain fails (code→skill direction).
+   * - Mutate a skill sentence (drop "4 distinct failing signatures", drop
+   *   "2 escalations per task", or restore a stale attempt-count claim) while
+   *   constants stay → toContain / stale sweep fails (skill→code direction).
    * - Edit only canonical → packaged fails its loop iteration; parity also fails
    *   validate-marketplace (AC-SKILL-MIRROR-IDENTICAL is separate).
    * Kind-set completeness alone does not satisfy this AC (C-EXECUTION-CONTRACT trap).
@@ -3218,6 +3231,7 @@ describe("fix-budget skill prose agrees with constants (C-ESCALATION-HONESTY T-0
     expect([...required]).toEqual([
       `${FIX_SIGNATURE_REPEAT_BUDGET} failed attempts of the same signature`,
       `${FIX_DISTINCT_SIGNATURE_BUDGET} distinct failing signatures`,
+      `${FIX_ESCALATION_CEILING} escalations per task`,
     ]);
 
     for (const rel of NGRACE_EXECUTE_SKILL_PATHS) {
@@ -3287,8 +3301,8 @@ describe("KNOWN_EVENT_KINDS export and ngrace-execute completeness (C-EXECUTION-
       const resolved = cursorStateForEventKind(kind);
       expect("state" in resolved).toBe(true);
     }
-    // Denominator is the export alone — currently 10 keys of KNOWN_KIND_STATE.
-    expect(KNOWN_EVENT_KINDS.length).toBe(10);
+    // Denominator is the export alone — currently 11 keys of KNOWN_KIND_STATE.
+    expect(KNOWN_EVENT_KINDS.length).toBe(11);
     expect([...KNOWN_EVENT_KINDS]).toEqual([
       "opened",
       "progress",
@@ -3300,8 +3314,10 @@ describe("KNOWN_EVENT_KINDS export and ngrace-execute completeness (C-EXECUTION-
       "terminal",
       "escalation",
       "discarded",
+      "circuit",
     ]);
     expect(cursorStateForEventKind("discarded")).toEqual({ state: "discarded" });
+    expect(cursorStateForEventKind("circuit")).toEqual({ state: "paused-pending-supersede" });
   });
 
   it("every RANGE_CLOSING_KINDS member is a known event kind", () => {
@@ -3342,6 +3358,474 @@ describe("KNOWN_EVENT_KINDS export and ngrace-execute completeness (C-EXECUTION-
     for (const kind of KNOWN_EVENT_KINDS) {
       expect(documented.filter((id) => id === kind)).toHaveLength(1);
     }
+  });
+});
+
+describe("C-REWORK-CIRCUIT T-001 — ceiling trips on second breaker fire", () => {
+  const A = { kind: "k", key: "a" };
+  const B = { kind: "k", key: "b" };
+  const C = { kind: "k", key: "c" };
+  const D = { kind: "k", key: "d" };
+  const E = { kind: "k", key: "e" };
+  const F = { kind: "k", key: "f" };
+  const G = { kind: "k", key: "g" };
+  const H = { kind: "k", key: "h" };
+
+  function failSig(
+    root: string,
+    signature: { kind: string; key: string },
+    task = "T-001",
+  ) {
+    return recordAttempt(root, "C-RUN", {
+      task,
+      outcome: "fail",
+      signature,
+      writeEvidence: evidencePaths([]),
+    });
+  }
+
+  function classKinds(bundle: string, task = "T-001") {
+    return listAccountingEvents(bundle)
+      .filter((event) => event.task === task && (event.kind === "escalation" || event.kind === "circuit"))
+      .map((event) => event.kind);
+  }
+
+  function artifactStatus(file: string): string | undefined {
+    return readFileSync(file, "utf8").match(/\bstatus="([^"]+)"/)?.[1];
+  }
+
+  it("fail(A), fail(A), resume, fail(A) does not escalate or circuit (F9.8); second fail(A) writes circuit", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    expect(failSig(root, A).escalated).toBe(false);
+    const first = failSig(root, A);
+    expect(first.escalated).toBe(true);
+    expect(first.trigger).toBe("R");
+    expect(first.position.state).toBe("paused-pending-approval");
+    expect(classKinds(bundle)).toEqual(["escalation"]);
+
+    resumeCursor(root, "C-RUN", "T-001", { reason: "replan: new approach after first R" });
+    const redFirst = failSig(root, A);
+    expect(redFirst.escalated).toBe(false);
+    expect(redFirst.position.state).not.toBe("paused-pending-supersede");
+    expect(classKinds(bundle)).toEqual(["escalation"]);
+
+    const specBefore = readFileSync(path.join(bundle, "spec.xml"), "utf8");
+    const planBefore = readFileSync(path.join(bundle, "plan.xml"), "utf8");
+    const statusBefore = {
+      spec: artifactStatus(path.join(bundle, "spec.xml")),
+      plan: artifactStatus(path.join(bundle, "plan.xml")),
+    };
+    expect(statusBefore).toEqual({ spec: "approved", plan: "approved" });
+
+    const tripped = failSig(root, A);
+    expect(tripped.escalated).toBe(false);
+    expect(tripped.trigger).toBe("R");
+    expect(tripped.position.state).toBe("paused-pending-supersede");
+    expect(classKinds(bundle)).toEqual(["escalation", "circuit"]);
+    expect(tripped.message).toContain("paused-pending-supersede");
+    expect(tripped.message).not.toMatch(/task failed/i);
+    expect(readFileSync(path.join(bundle, "run.xml"), "utf8")).not.toContain("CircuitTrippedTask");
+    expect(artifactStatus(path.join(bundle, "spec.xml"))).toBe(statusBefore.spec);
+    expect(artifactStatus(path.join(bundle, "plan.xml"))).toBe(statusBefore.plan);
+    expect(readFileSync(path.join(bundle, "spec.xml"), "utf8")).toBe(specBefore);
+    expect(readFileSync(path.join(bundle, "plan.xml"), "utf8")).toBe(planBefore);
+    expect(readFileSync(path.join(bundle, "spec.xml"), "utf8")).not.toContain("Replacement");
+    expect(readFileSync(path.join(bundle, "plan.xml"), "utf8")).not.toContain("Replacement");
+  });
+
+  it("second-window D with new keys writes circuit; first D stays escalation", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, A);
+    failSig(root, B);
+    failSig(root, C);
+    const firstD = failSig(root, D);
+    expect(firstD.escalated).toBe(true);
+    expect(firstD.trigger).toBe("D");
+    expect(firstD.position.state).toBe("paused-pending-approval");
+    expect(classKinds(bundle)).toEqual(["escalation"]);
+
+    resumeCursor(root, "C-RUN", "T-001", { reason: "replan: after D" });
+    failSig(root, E);
+    failSig(root, F);
+    failSig(root, G);
+    const secondD = failSig(root, H);
+    expect(secondD.escalated).toBe(false);
+    expect(secondD.trigger).toBe("D");
+    expect(secondD.position.state).toBe("paused-pending-supersede");
+    expect(classKinds(bundle)).toEqual(["escalation", "circuit"]);
+  });
+
+  it("fail(A)×2, resume, fail(B)×2 writes circuit (second in-window R, different signature)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, A);
+    failSig(root, A);
+    resumeCursor(root, "C-RUN", "T-001", { reason: "replan: switch signature" });
+    failSig(root, B);
+    const tripped = failSig(root, B);
+    expect(tripped.escalated).toBe(false);
+    expect(tripped.trigger).toBe("R");
+    expect(tripped.position.state).toBe("paused-pending-supersede");
+    expect(classKinds(bundle)).toEqual(["escalation", "circuit"]);
+  });
+
+  it("verification-unavailable ×2 does not trip the circuit", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    recordVerificationUnavailable(root, "C-RUN", {
+      task: "T-001",
+      absence: { verdict: "not-run", reason: "first skip" },
+    });
+    recordVerificationUnavailable(root, "C-RUN", {
+      task: "T-001",
+      absence: { verdict: "not-run", reason: "second skip" },
+    });
+    expect(showCursor(root, "C-RUN").state).not.toBe("paused-pending-supersede");
+    expect(classKinds(bundle)).toEqual([]);
+  });
+
+  it("circuit is reserved on advanceCursor and is not a range closer", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    const before = readdirSync(path.join(bundle, "run")).sort();
+    let caught: unknown;
+    try {
+      advanceCursor(root, "C-RUN", { task: "T-001", kind: "circuit" });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(GraceCommandError);
+    expect((caught as GraceCommandError).code).toBe("invalid-arguments");
+    expect((caught as GraceCommandError).message).toMatch(/reserved/);
+    expect((caught as GraceCommandError).message).toMatch(/circuit/);
+    expect(readdirSync(path.join(bundle, "run")).sort()).toEqual(before);
+    expect(RANGE_CLOSING_KINDS).not.toContain("circuit");
+  });
+
+  it("unrecognized kinds still do not resolve to in-progress", () => {
+    const mapped = cursorStateForEventKind("not-a-real-kind");
+    expect("unknown" in mapped).toBe(true);
+    expect("state" in mapped ? mapped.state : undefined).not.toBe("in-progress");
+  });
+
+  it("listUnresolvedCircuitTrippedTasks adds on circuit and never removes on resume", () => {
+    const events = [
+      { id: 1, kind: "escalation", task: "T-001" },
+      { id: 2, kind: "resume", task: "T-001" },
+      { id: 3, kind: "circuit", task: "T-001" },
+      { id: 4, kind: "resume", task: "T-001" },
+      { id: 5, kind: "circuit", task: "T-002" },
+    ];
+    expect(listUnresolvedCircuitTrippedTasks(events)).toEqual(["T-001", "T-002"]);
+    expect(listUnresolvedEscalatedTasks(events)).toEqual([]);
+  });
+
+  it("deriveStateFromEvents: circuit takes precedence over paused-pending-approval", () => {
+    expect(
+      deriveStateFromEvents([
+        { id: 1, kind: "circuit", task: "T-001" },
+        { id: 2, kind: "escalation", task: "T-002" },
+      ]),
+    ).toEqual({ state: "paused-pending-supersede" });
+    expect(
+      deriveStateFromEvents([
+        { id: 1, kind: "escalation", task: "T-002" },
+      ]),
+    ).toEqual({ state: "paused-pending-approval" });
+  });
+
+  it("fail(A,B,C,D) still writes ordinary escalation, not circuit", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, A);
+    failSig(root, B);
+    failSig(root, C);
+    const fourth = failSig(root, D);
+    expect(fourth.escalated).toBe(true);
+    expect(fourth.circuit).toBe(false);
+    expect(fourth.trigger).toBe("D");
+    expect(fourth.position.state).toBe("paused-pending-approval");
+    expect(classKinds(bundle)).toEqual(["escalation"]);
+    expect(fourth.message).toMatch(/has not failed|decision owed/i);
+  });
+
+  it("reason-bearing resume after first R returns in-progress and opens a new window", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failSig(root, A);
+    failSig(root, A);
+    const resumed = resumeCursor(root, "C-RUN", "T-001", { reason: "replan: first checkpoint" });
+    expect(resumed.state).toBe("in-progress");
+    expect(resumed.escalatedTasks).toEqual([]);
+    expect(resumed.circuitTrippedTasks).toEqual([]);
+  });
+});
+
+describe("C-REWORK-CIRCUIT T-003 — resume refuses circuit; per-task grain", () => {
+  const A = { kind: "k", key: "a" };
+  const repoRoot = path.resolve(import.meta.dir, "..");
+
+  function failSig(
+    root: string,
+    signature: { kind: string; key: string },
+    task = "T-001",
+    changeId = "C-RUN",
+  ) {
+    return recordAttempt(root, changeId, {
+      task,
+      outcome: "fail",
+      signature,
+      writeEvidence: evidencePaths([]),
+    });
+  }
+
+  function tripCircuit(root: string, task = "T-001") {
+    advanceCursor(root, "C-RUN", { task, openEpoch: true, from: 1, to: 99 });
+    failSig(root, A, task);
+    failSig(root, A, task);
+    resumeCursor(root, "C-RUN", task, { reason: "replan: after first R" });
+    failSig(root, A, task);
+    const tripped = failSig(root, A, task);
+    expect(tripped.circuit).toBe(true);
+    return tripped;
+  }
+
+  function cliResume(root: string, extra: string[] = []) {
+    return Bun.spawnSync({
+      cmd: [
+        process.execPath,
+        "./src/grace.ts",
+        "cursor",
+        "resume",
+        "--change",
+        "C-RUN",
+        "--task",
+        "T-001",
+        "--path",
+        root,
+        ...extra,
+      ],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+  }
+
+  function cliAdvanceResume(root: string, extra: string[] = []) {
+    return Bun.spawnSync({
+      cmd: [
+        process.execPath,
+        "./src/grace.ts",
+        "cursor",
+        "advance",
+        "--kind",
+        "resume",
+        "--change",
+        "C-RUN",
+        "--task",
+        "T-001",
+        "--path",
+        root,
+        ...extra,
+      ],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+  }
+
+  it("resumeCursor and advance --kind resume refuse circuit before write", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    tripCircuit(root);
+    const specBefore = readFileSync(path.join(bundle, "spec.xml"), "utf8");
+    const planBefore = readFileSync(path.join(bundle, "plan.xml"), "utf8");
+    const beforeKinds = listLooseEvents(bundle).map((event) => event.kind);
+    const beforeIds = listLooseEvents(bundle).map((event) => event.id);
+
+    let caught: unknown;
+    try {
+      resumeCursor(root, "C-RUN", "T-001", { reason: "should not clear circuit" });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(GraceCommandError);
+    expect((caught as GraceCommandError).code).toBe("invalid-arguments");
+    expect((caught as GraceCommandError).message).toMatch(/paused-pending-supersede/);
+    expect((caught as GraceCommandError).message).toMatch(/supersede/);
+    expect((caught as GraceCommandError).message).not.toMatch(/--reason/);
+
+    let caughtAdvance: unknown;
+    try {
+      advanceCursor(root, "C-RUN", { task: "T-001", kind: "resume", reason: "should not clear circuit" });
+    } catch (error) {
+      caughtAdvance = error;
+    }
+    expect(caughtAdvance).toBeInstanceOf(GraceCommandError);
+    expect((caughtAdvance as GraceCommandError).code).toBe("invalid-arguments");
+    expect((caughtAdvance as GraceCommandError).message).toMatch(/paused-pending-supersede/);
+    expect((caughtAdvance as GraceCommandError).message).toMatch(/supersede/);
+    expect((caughtAdvance as GraceCommandError).message).not.toMatch(/--reason/);
+
+    expect(listLooseEvents(bundle).map((event) => event.id)).toEqual(beforeIds);
+    expect(listLooseEvents(bundle).some((event) => event.kind === "resume" && !beforeKinds.includes("resume") && event.id > Math.max(...beforeIds))).toBe(false);
+    expect(listLooseEvents(bundle).filter((event) => event.kind === "resume")).toHaveLength(
+      beforeKinds.filter((kind) => kind === "resume").length,
+    );
+    expect(listUnresolvedCircuitTrippedTasks(listAccountingEvents(bundle))).toEqual(["T-001"]);
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-supersede");
+    expect(readFileSync(path.join(bundle, "spec.xml"), "utf8")).toBe(specBefore);
+    expect(readFileSync(path.join(bundle, "plan.xml"), "utf8")).toBe(planBefore);
+  });
+
+  it("real CLI resume and advance --kind resume refuse a circuit-tripped task", () => {
+    const root = createProject();
+    seedBundle(root);
+    tripCircuit(root);
+    const viaResume = cliResume(root, ["--reason", "should not continue"]);
+    expect(viaResume.exitCode).not.toBe(0);
+    const resumeErr = `${new TextDecoder().decode(viaResume.stdout)}${new TextDecoder().decode(viaResume.stderr)}`;
+    expect(resumeErr).toMatch(/paused-pending-supersede/);
+    expect(resumeErr).toMatch(/supersede/);
+    expect(resumeErr).not.toMatch(/pass a reason|pass --reason/i);
+
+    const viaAdvance = cliAdvanceResume(root, ["--reason", "should not continue"]);
+    expect(viaAdvance.exitCode).not.toBe(0);
+    const advanceErr = `${new TextDecoder().decode(viaAdvance.stdout)}${new TextDecoder().decode(viaAdvance.stderr)}`;
+    expect(advanceErr).toMatch(/paused-pending-supersede/);
+    expect(advanceErr).toMatch(/supersede/);
+  });
+
+  it("ordinary pause/resume and escalation-clearing resume stay green; circuit is per task", () => {
+    const root = createProject();
+    seedBundle(root);
+    tripCircuit(root, "T-001");
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-supersede");
+
+    const siblingFail = failSig(root, A, "T-002");
+    expect(siblingFail.escalated).toBe(false);
+    expect(siblingFail.circuit).toBe(false);
+    const siblingEsc = failSig(root, A, "T-002");
+    expect(siblingEsc.escalated).toBe(true);
+    expect(siblingEsc.position.state).toBe("paused-pending-supersede");
+    const siblingResume = resumeCursor(root, "C-RUN", "T-002", { reason: "replan: T-002 own window" });
+    expect(siblingResume.escalatedTasks).toEqual([]);
+    expect(siblingResume.circuitTrippedTasks).toEqual(["T-001"]);
+    expect(showCursor(root, "C-RUN").state).toBe("paused-pending-supersede");
+    expect(failSig(root, { kind: "k", key: "z" }, "T-002").escalated).toBe(false);
+
+    const ordinary = createProject();
+    seedBundle(ordinary);
+    advanceCursor(ordinary, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    pauseCursor(ordinary, "C-RUN", "T-001");
+    const resumed = resumeCursor(ordinary, "C-RUN", "T-001");
+    expect(resumed.state).toBe("in-progress");
+  });
+});
+
+describe("C-REWORK-CIRCUIT T-004 — churn is payload, never a trip predicate", () => {
+  const A = { kind: "k", key: "a" };
+  const B = { kind: "k", key: "b" };
+  const C = { kind: "k", key: "c" };
+  const D = { kind: "k", key: "d" };
+  const E = { kind: "k", key: "e" };
+  const F = { kind: "k", key: "f" };
+  const G = { kind: "k", key: "g" };
+  const H = { kind: "k", key: "h" };
+
+  function failWith(
+    root: string,
+    signature: { kind: string; key: string },
+    files: string[],
+    digests?: Record<string, string>,
+    task = "T-001",
+  ) {
+    return recordAttempt(root, "C-RUN", {
+      task,
+      outcome: "fail",
+      signature,
+      writeEvidence: evidencePaths(files, digests),
+    });
+  }
+
+  it("ordinary first R lists this-window churn paths and rewrite counts", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failWith(root, A, ["src/foo.ts", ".ngrace/changes/active/C-RUN/run.xml"], {
+      "src/foo.ts": "d1",
+      ".ngrace/changes/active/C-RUN/run.xml": "n1",
+    });
+    const second = failWith(root, A, ["src/foo.ts", ".ngrace/changes/active/C-RUN/run.xml"], {
+      "src/foo.ts": "d2",
+      ".ngrace/changes/active/C-RUN/run.xml": "n2",
+    });
+    expect(second.escalated).toBe(true);
+    expect(second.circuit).toBe(false);
+    expect(second.message).toContain("src/foo.ts×1");
+    expect(second.message).toMatch(/Churn \(this-window, windows=1\)/);
+    expect(second.message).not.toContain(".ngrace/");
+    expect(second.message).not.toMatch(/\bbytes\b/i);
+    expect(second.message).not.toMatch(/\blines\b/i);
+  });
+
+  it("five rewrites of one file and only one fail of A stays unescalated", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    for (let i = 0; i < 5; i += 1) {
+      recordAttempt(root, "C-RUN", {
+        task: "T-001",
+        outcome: "pass",
+        writeEvidence: evidencePaths(["src/hot.ts"], { "src/hot.ts": `digest-${i}` }),
+      });
+    }
+    const onlyFail = failWith(root, A, ["src/hot.ts"], { "src/hot.ts": "digest-5" });
+    expect(onlyFail.escalated).toBe(false);
+    expect(onlyFail.circuit).toBe(false);
+    expect(onlyFail.position.state).not.toBe("paused-pending-approval");
+    expect(onlyFail.position.state).not.toBe("paused-pending-supersede");
+  });
+
+  it("circuit message lists cross-window churn and recurring signatures or none", () => {
+    const root = createProject();
+    seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failWith(root, A, ["src/a.ts"], { "src/a.ts": "w1a" });
+    failWith(root, A, ["src/a.ts"], { "src/a.ts": "w1b" });
+    resumeCursor(root, "C-RUN", "T-001", { reason: "replan: after first R" });
+    failWith(root, A, ["src/a.ts"], { "src/a.ts": "w2a" });
+    const tripped = failWith(root, A, ["src/a.ts"], { "src/a.ts": "w2b" });
+    expect(tripped.circuit).toBe(true);
+    expect(tripped.message).toMatch(/Churn \(cross-window, windows=2\)/);
+    expect(tripped.message).toContain("src/a.ts×3");
+    expect(tripped.message).toContain("Recurring signatures: k:a");
+    expect(tripped.message).not.toContain(".ngrace/");
+
+    const root2 = createProject();
+    seedBundle(root2);
+    advanceCursor(root2, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    failWith(root2, A, ["src/x.ts"], { "src/x.ts": "1" });
+    failWith(root2, B, ["src/x.ts"], { "src/x.ts": "2" });
+    failWith(root2, C, ["src/x.ts"], { "src/x.ts": "3" });
+    failWith(root2, D, ["src/x.ts"], { "src/x.ts": "4" });
+    resumeCursor(root2, "C-RUN", "T-001", { reason: "replan: after D" });
+    failWith(root2, E, ["src/x.ts"], { "src/x.ts": "5" });
+    failWith(root2, F, ["src/x.ts"], { "src/x.ts": "6" });
+    failWith(root2, G, ["src/x.ts"], { "src/x.ts": "7" });
+    const secondD = failWith(root2, H, ["src/x.ts"], { "src/x.ts": "8" });
+    expect(secondD.circuit).toBe(true);
+    expect(secondD.message).toContain("Recurring signatures: none");
+    expect(secondD.message).toContain("src/x.ts×7");
   });
 });
 

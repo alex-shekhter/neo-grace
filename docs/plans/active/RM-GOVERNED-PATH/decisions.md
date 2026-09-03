@@ -8343,6 +8343,7 @@ below; it is not given a slot.
 | **`C-ARCHIVE-CURSOR`** | Archive gate requires a cursor lint accepts. Named by [F93](#f93). | F93. Binding on P3.1 / `lifecycle finish`. | Named; not in the order. |
 | **`C-PLAN-SCOPE-PATHS`** | Structured spec path bound compared to `ObservedWriteScope`, at error. Named by [F94](#f94). | F94, and [F52](#f52)'s load-bearing weakness. | Named; not in the order. |
 | **`C-GOVERNANCE-ORDER`** | Refuse a module-contract / graph write with no approved change that owns it. Named by the slip register. | [F88.1](#f881), [F88.1.1](#f8811). | Named; not in the order. |
+| **`C-EVIDENCE-DISCRIMINATION`** | A lint rule refusing a `CloseEvidence` command with no failing path: allowlist by command **shape** (not a denylist of binaries), configurable in `.ngrace-lint.json`, polyglot defaults, warning severity with a documented escape. Named here 2026-09-02 by [D26](#d26). Searched before minting: `C-CRITERION-CLOSE-EVIDENCE` created the state, `C-CALIBRATION-COMMAND-EVIDENCE` / `C-COMMAND-EVIDENCE-RECORDED` / `C-FOLD-USES-RECORDED-COMMAND-EVIDENCE` / `C-VERDICT-EVIDENCE` are adjacent; none asks whether a recorded command can fail. | [F147](#f147). `change.close-evidence-incomplete` checks a `Command` exists and `change.close-evidence-and-satisfied` checks task mapping; neither checks power. | **Named 2026-09-02; not in the order.** Must judge command text only ([`C-PHASE-RULE-PIN`](#named-bundle-registry)'s rejected reading B forbids resolving package scripts transitively). Its `--explain` must say the rule catches only the cheap class: `pytest --collect-only`, `cargo test --no-run` and `git diff --exit-code` over the wrong paths all exit 0. |
 
 **Sweep remainder — mentioned, missing from disk, not a chartered bundle.** Recorded so they
 are not silently dropped. None is work.
@@ -8831,3 +8832,154 @@ scene-setting gets restated for free, and its expiry is silent.
 run the command that reads it (`git fetch`, `gh pr view`), in the turn you make the claim. And when a
 piece of evidence appears that could only exist if a background premise were false, treat that as the
 signal to re-measure the premise, not merely as data about its own subject.
+
+### F147 — a CloseEvidence command that cannot fail records a pass it never tested. **[verified]**
+
+Measured **2026-09-02** while verifying the draft `C-REWORK-CIRCUIT` spec, before approval.
+
+**The defect.** `AC-PROTOCOL-COMMIT-BODY` binds a substantive claim — that every commit touching
+`skills/ngrace/ngrace-execute/SKILL.md` or `src/grace-cursor.ts` names `FIX_ESCALATION_CEILING` by
+value, names `paused-pending-supersede`, states that resume is refused, and states that spec/plan
+status is not written — to this close-bound command:
+
+```
+git log --format=%B
+```
+
+**That command prints commit bodies and exits 0 unconditionally.** Measured: exit 0 normally, and
+exit 0 even with `--grep` matching nothing. It does not filter to the commits the criterion is about
+and has no failing path at all.
+
+`evaluateCloseEvidenceChildren` ([src/gates/ledger.ts](../../../../src/gates/ledger.ts)) runs each
+`Command` and records `Result` as `pass` unless the exit is non-zero. So this criterion would archive
+`&lt;Exit&gt;0&lt;/Exit&gt;&lt;Result&gt;pass&lt;/Result&gt;` **whatever the commit messages said** —
+a governance record certifying a check that never ran. That is worse than a wrong number: a wrong
+number is falsifiable, and this is a **manufactured pass**.
+
+**Not systemic — measured, not assumed.** All 19 `CloseEvidence` commands in the corpus were
+enumerated. Eighteen are `ngrace lint --fail-on warnings`, a validator script, or a `bun test` run,
+each of which exits non-zero on failure. `git log --format=%B` is the **only** command that cannot
+discriminate, and it appears only in this unapproved draft. No archived bundle carries one.
+
+**The linter cannot catch it.** `change.close-evidence-incomplete` fires on a missing or empty
+`Command`; `change.close-evidence-and-satisfied` fires when a close-bound criterion is also task-
+mapped. **Neither asks whether the command has a failing path.** Completeness is checked; power is
+not — the same gap shape as [F132](#f132), where a check was well-formed and pointed somewhere
+useless.
+
+**The rule.** **A `CloseEvidence` command must be able to fail for the reason its criterion names.**
+Before approving one, run it against a tree that violates the criterion and confirm a non-zero exit;
+if no such invocation exists, the criterion is not close-verifiable and must be reworded, moved to a
+task, or dropped. A command chosen because it *prints* the relevant material is not evidence — the
+gate reads the exit code, never the output.
+
+## D26 — an unfalsifiable criterion is reworded, and evidence-discrimination becomes its own bundle
+
+**Decided 2026-09-02 by the maintainer**, on [F147](#f147), in two parts.
+
+**Part 1 — `AC-PROTOCOL-COMMIT-BODY` is reworded, variant C of three.** The criterion bound a
+commit-message claim to `git log --format=%B`, which exits 0 unconditionally, so the gate would have
+archived a pass it never tested. Rejected: **A**, replacing the command with a filtering assertion
+script — it pays a script and a wider write surface for something no other bundle has needed;
+**B**, dropping the criterion outright — it discards a real intent.
+
+Under C the criterion becomes **`AC-CHANGELOG-UNTOUCHED`**, keeping the verifiable half (D5.5:
+`CHANGELOG.md` is not edited) with `git diff --exit-code e5aced5 -- CHANGELOG.md`, **probed in both
+directions before the rewrite**: 0 unedited, 1 on a staged edit, 0 restored. The commit-body
+expectation moves to the execution brief as an instruction. **A requirement that cannot be refuted at
+close does not become a criterion just because it is important** — it becomes a brief.
+
+**Part 2 — the lint gap gets its own bundle, `C-EVIDENCE-DISCRIMINATION`.** Not grafted into
+`C-REWORK-CIRCUIT`, which already forces four modules. Name searched before minting: the territory
+holds `C-CRITERION-CLOSE-EVIDENCE` (which created the `CloseEvidence` state),
+`C-CALIBRATION-COMMAND-EVIDENCE`, `C-COMMAND-EVIDENCE-RECORDED`, `C-FOLD-USES-RECORDED-COMMAND-EVIDENCE`
+and `C-VERDICT-EVIDENCE`; **none covers whether a recorded command can fail.**
+
+**Design constraints that bundle inherits, and the maintainer's correction that produced them.** The
+authority first objected that the proposed allowlist named `vitest`, `jest` and `eslint`, none of
+which this repository uses. **That objection was parochial and was withdrawn**: neo-grace is the
+marketplace package, and the rule ships to consumer projects whose toolchains are their own — what is
+installed *here* says nothing about what the rule must accept *there*. `CLAUDE.md`'s first line says
+exactly this, and the authority grepped the local `package.json` as though this were an application.
+
+What survives, and is strengthened by that reframe:
+
+- **Allowlist by command *shape*, never a denylist of binaries.** Measured: `git diff` exits 0 on a
+  dirty tree, `git diff --exit-code` exits 1. **The flag decides, not the binary**, so banning `git`
+  would reject the discriminating form already used by `C-LINT-PHASE-HONESTY-2`'s `T-006`, and
+  banning `git log` would still miss `git show`, `head`, `printf`, `find` and `true`. A denylist fails
+  open; across arbitrary consumer projects the non-assertive space is unbounded.
+- **Config-driven and polyglot by default.** `.ngrace-lint.json` already carries `codeExtensions`,
+  `unverifiedLanguages`, `gateFailOn` and `ignoredDirs`, and six language adapters ship. A hardcoded
+  set would be wrong for most consumers.
+- **Warning severity with a documented escape.** `AC-CLOSE-LINT` runs `--fail-on warnings`, so a
+  warning still blocks any close that has not justified itself, without making a novel discriminating
+  command unauthorable.
+- **Command text only.** `C-PHASE-RULE-PIN`'s charter and [decisions.md:7525](#) both hold that the
+  restriction must not resolve package scripts transitively — the explicitly rejected reading B. The
+  rule may not open a consumer's `package.json`, `Makefile` or `justfile`, so *"a script designed to
+  exit non-zero"* is an intent claim the linter cannot check; only shape is checkable.
+
+**The limit, and it must be written into the rule's own `--explain` text.** Well-known runners have
+non-assertive modes — `pytest --collect-only`, `cargo test --no-run`, `go test -run` matching nothing
+all exit 0 — so an allowlist catches only the cheap class. `git diff --exit-code` over the *wrong
+paths* passes any linter and proves nothing. **The linter catches the cheap class; the authority runs
+the command against a violating tree before approving.** A green rule must not be read as evidence
+that the harder check happened.
+
+### F148 — an approved plan whose task verification demands the marker a later task was told to withhold. **[verified]**
+
+Measured **2026-09-03**, at close verification of `C-REWORK-CIRCUIT`. Found by the **executor**, at
+execution, and declared rather than worked around silently. **The authority approved the plan.**
+
+**The contradiction, in the approved plan's own bytes.** T-001's named verification is the whole
+file:
+
+```
+<Verification><Command>bun test src/grace-cursor.test.ts</Command></Verification>
+```
+
+T-001's third criterion orders the pin moved — *"Move the length-and-exact-list pin at
+src/grace-cursor.test.ts:3291 from 10 to 11 and add `circuit` as the last member after discarded"*
+(`plan.xml:296-396`). That same file carries
+`it("ngrace-execute documents every exported kind with a structural <kind id> marker")`
+(`src/grace-cursor.test.ts:3329-3360`), whose **sole denominator is the imported
+`KNOWN_EVENT_KINDS`** and which reads `skills/ngrace/ngrace-execute/SKILL.md` from disk. So the
+instant `circuit` enters the export, T-001's own verification requires `&lt;kind id="circuit"&gt;` in
+the skill.
+
+T-005's red-first criterion states the opposite for its own start: *"`&lt;kind id="circuit"&gt;` is
+absent"*, and T-005 is the task that adds it (`plan.xml:554-627`). **Both cannot hold.** The plan's
+sequencing comment reinforces the split — *"T-005 lands the third with the skill"* — while never
+noticing that T-001's verification had already reached into T-005's file.
+
+**Not a scope breach.** Both `SKILL.md` paths are in `ObservedWriteScope` (`plan.xml:263-273`), so
+the executor's resolution — a T-001 stub marker expanded into full prose in T-005 — wrote nothing
+unscoped. Verified at HEAD: the marker is substantive, not a stub
+(`skills/ngrace/ngrace-execute/SKILL.md:99-102`, four documented lines: operator never emits it,
+`recordAttempt` writes it, state is `paused-pending-supersede`, resume will not clear it). The
+intermediate stub is the executor's declared account; a squashed implementation commit cannot show
+it, and that is stated here rather than asserted as measured.
+
+**The rule this pays for.** **When a task's verification command is a whole test file, that task
+inherits every assertion in that file.** A later task forbidden from touching what those assertions
+require is a contradiction, whatever the intent of the split. Before approving a plan: for each
+task, expand its `Verification` command into the assertions it actually runs, then check every
+later task's *"absent"* / *"not yet"* instruction against that set. A file-granular verification
+command is a file-granular commitment.
+
+**The second defect, same artifact.** The plan cites `:3291` for the length pin and `:3313` for
+completeness. Both were **true when written** — verified against `a995f3b`, the pre-implementation
+tree, where `:3291` is `expect(KNOWN_EVENT_KINDS.length).toBe(10);` and `:3313` opens the
+completeness `it(`. Both are **false at HEAD**: the pin is at `:3305` and `:3313` is now `"pause",`
+inside the exact-list literal. **A line number in a plan whose own tasks add code above it is a
+coordinate with an expiry date.** Cite the assertion, the `describe` block, or the identifier —
+never the line — in any plan that grows the file it points into.
+
+**Class and cost.** This is [F127](#f127)'s shape exactly — an approved plan whose requirement and
+whose restriction are written in different sections and never checked against each other — inside
+the wider [F133](#f133)/[F136](#f136) family of untraced blast radius. **The improvement is where it
+was caught:** F136 was caught at plan authoring, F127 by supersede; this one at execution, by the
+executor, with the workaround declared. No supersede is required. The approved criteria are
+unchanged, both tasks' intent is satisfied, and every `AC` T-001 and T-005 name is met by the
+delivered tree.
