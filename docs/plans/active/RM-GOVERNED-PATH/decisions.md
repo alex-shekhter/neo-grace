@@ -8344,7 +8344,7 @@ below; it is not given a slot.
 | **`C-PLAN-SCOPE-PATHS`** | Structured spec path bound compared to `ObservedWriteScope`, at error. Named by [F94](#f94). | F94, and [F52](#f52)'s load-bearing weakness. | Named; not in the order. |
 | **`C-GOVERNANCE-ORDER`** | Refuse a module-contract / graph write with no approved change that owns it. Named by the slip register. | [F88.1](#f881), [F88.1.1](#f8811). | Named; not in the order. |
 | **`C-EVIDENCE-DISCRIMINATION`** | A lint rule refusing a `CloseEvidence` command with no failing path: allowlist by command **shape** (not a denylist of binaries), configurable in `.ngrace-lint.json`, polyglot defaults, warning severity with a documented escape. Named here 2026-09-02 by [D26](#d26). Searched before minting: `C-CRITERION-CLOSE-EVIDENCE` created the state, `C-CALIBRATION-COMMAND-EVIDENCE` / `C-COMMAND-EVIDENCE-RECORDED` / `C-FOLD-USES-RECORDED-COMMAND-EVIDENCE` / `C-VERDICT-EVIDENCE` are adjacent; none asks whether a recorded command can fail. | [F147](#f147). `change.close-evidence-incomplete` checks a `Command` exists and `change.close-evidence-and-satisfied` checks task mapping; neither checks power. | **Named 2026-09-02; not in the order.** Must judge command text only ([`C-PHASE-RULE-PIN`](#named-bundle-registry)'s rejected reading B forbids resolving package scripts transitively). Its `--explain` must say the rule catches only the cheap class: `pytest --collect-only`, `cargo test --no-run` and `git diff --exit-code` over the wrong paths all exit 0. |
-| **`C-APPROVE-TIME-REVIEW`** | Teach `ngrace review --change` as a step **before** `ngrace gate approve`, at both the spec and the plan stage: `ngrace-spec` approve step, `ngrace-plan` rule 15, and `ngrace-reviewer` broadened from one moment ("before judgment") to three. **Must ship the partial-review caveat**: with no plan on disk the scope, WriteEvidence and attempt-pair audits all report `not-run`, so a pre-approval green covers pattern detectors and artifact checks only — unstated, that is [F147](#f147)'s manufactured-pass shape in a new place. Named here 2026-09-03 by [F149](#f149), **amended by [F150](#f150)**: the bundle must also ship what a clean approve-time review looks like, because the scope audit reports the bundle's own `spec.xml` / `plan.xml` / `decisions.md` as out-of-scope writes on **every** bundle — an instruction that produces unexplained errors on first use is a trap, not guidance. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` covers the phrase and the close acts ([D19](#d19)/[D20](#d20)), `C-REVIEW-SURFACE` created the detector surface; **none says when review runs.** | [F149](#f149), and retroactively [F136](#f136) and [F148](#f148) — both were catchable by a review the artifact was still editable for. | **Next after `C-EVIDENCE-DISCRIMINATION`.** Candidate to carry the carried item *"the XML-escaping rule's skill homes"* — same two skill files, same rule shape; the spec author decides, and says which. Collides with `C-EVIDENCE-DISCRIMINATION` on `skills/ngrace/ngrace-spec/SKILL.md` and the `skillTextLines` pins, so **sequential, never concurrent**. |
+| **`C-APPROVE-TIME-REVIEW`** | Teach `ngrace review --change` as a step **before** `ngrace gate approve`, at both the spec and the plan stage: `ngrace-spec` approve step, `ngrace-plan` rule 15, and `ngrace-reviewer` broadened from one moment ("before judgment") to three. **Must ship the partial-review caveat**: with no plan on disk the scope, WriteEvidence and attempt-pair audits all report `not-run`, so a pre-approval green covers pattern detectors and artifact checks only — unstated, that is [F147](#f147)'s manufactured-pass shape in a new place. Named here 2026-09-03 by [F149](#f149), **amended by [F150](#f150)**: the bundle must also ship what a clean approve-time review looks like, because the scope audit reports the bundle's own `spec.xml` / `plan.xml` / `decisions.md` as out-of-scope writes on **every** bundle — an instruction that produces unexplained errors on first use is a trap, not guidance. **Also carries [F152](#f152)**: show the closed approval lexicon whenever approval is requested, one approval request per message naming one artifact, and record the ratifying phrase verbatim — three concerns in this bundle now (approve-time review, F150's expected-findings guidance, F152's lexicon rules), plus the carried XML-escaping item, and its Intent must say so rather than let scope accrete. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` covers the phrase and the close acts ([D19](#d19)/[D20](#d20)), `C-REVIEW-SURFACE` created the detector surface; **none says when review runs.** | [F149](#f149), and retroactively [F136](#f136) and [F148](#f148) — both were catchable by a review the artifact was still editable for. | **Next after `C-EVIDENCE-DISCRIMINATION`.** Candidate to carry the carried item *"the XML-escaping rule's skill homes"* — same two skill files, same rule shape; the spec author decides, and says which. Collides with `C-EVIDENCE-DISCRIMINATION` on `skills/ngrace/ngrace-spec/SKILL.md` and the `skillTextLines` pins, so **sequential, never concurrent**. |
 | **`C-REVIEW-ARCHIVE-SCOPE`** | Restrict `detectZeroOrMoreSwallow` to plans under `changes/active/`, and rule on `detectSelfReferential`'s plan loop, which carries the same missing guard and fires on nothing today. `detectConfidentlyWrong` **keeps** its archive scan — its `MustExist` targets assert present-tree state — so the change must state why the two differ rather than applying one rule to all three. Named here 2026-09-03 by [F149.1](#f1491). Searched before minting: `C-REVIEW-LANGUAGE-SCOPE` is the closest precedent (it fixed three review false positives) but by marker-scan scoping, not archive scoping; not a synonym. | [F149.1](#f1491). | **After `C-APPROVE-TIME-REVIEW`.** Ordered, not deferred: the cost is one ack per close, recurring forever, and the fix is measured at one line with the ratchet intact. |
 
 **Sweep remainder — mentioned, missing from disk, not a chartered bundle.** Recorded so they
@@ -9216,3 +9216,55 @@ surface: *"no cursor write — no `advance`, `attempt`, `resume`, `fold`, no epo
 event"*. Read-only inspection (`cursor show`, `status`, `review`, `lint`, `file show`) is always
 permitted and should be stated as permitted, because a brief that forbids inspection forbids the
 verification it demands elsewhere.
+
+### F152 — the closed approval lexicon guards the word and not the referent, and is never shown to the person who must say it. **[verified]**
+
+Raised by the **maintainer** on 2026-09-03 after four approval exchanges in one session, three of
+which went wrong in different directions. Measured against
+`skills/ngrace/ngrace-plan/SKILL.md` `&lt;approval_lexicon&gt;`, whose sufficient set is closed to
+the standalone word `approved`, the phrase `I approve`, and `approve this plan` matching the
+artifact; its named non-approvals are `looks good`, `continue`, and any question.
+
+| maintainer's phrase | in the closed set | authority's action |
+|---|---|---|
+| *"This spec is approved and you can run `gate approve`"* | not literally | accepted |
+| **`approved`** (standalone) | **yes** | **refused** |
+| *"You have both"* | no | about to refuse |
+| *"Plan is approved"* | not literally | accepted |
+
+**Row two is the finding.** That is the exact lexicon phrase, and it was refused — because two
+things were pending in the same exchange and the referent was ambiguous. **Membership in the closed
+set guaranteed the vocabulary and said nothing about what was being approved.** The instrument
+guards the wrong variable: the risk it was built against is an agent inventing approval from vague
+text, and that risk is as much about referent as about wording.
+
+**Rows one, three and four show the other edge.** Three natural phrasings that name the artifact and
+carry the approving word are all outside the closed set. An instrument that a cooperating maintainer
+fails three times in four attempts is mis-specified, and the person expected to produce the phrase
+**is never shown it** — the authority asked for *"the plan ratification phrase"* without printing
+what phrases exist.
+
+**The ruling, decided by the maintainer, three parts.** Do **not** widen the set — widening
+reintroduces judgment at the boundary, which is the only thing a closed set buys.
+
+1. **Show the lexicon whenever approval is requested.** Quote the sufficient phrases verbatim, bound
+   to the artifact id and stage in the same breath. Never ask for the phrase without printing it.
+   Bind it to the specific artifact each time rather than emitting a static banner, or it becomes
+   ritual and is pasted unread.
+2. **One approval request per message, one artifact, nothing else asked.** This is what broke row
+   two, and the fault was the **authority's**, not the lexicon's: it bundled a permission-to-edit
+   question with the ratification request. A request that names exactly one artifact and asks
+   nothing else makes a bare `approved` unambiguous by construction.
+3. **Record the phrase verbatim** in the commit and the ledger — the bytes the human wrote, never
+   *"the maintainer approved"*. A paraphrase is indistinguishable from an agent asserting its own
+   approval, which is the whole failure the lexicon exists to prevent.
+
+**Surface, measured 2026-09-03.** Four files: `skills/ngrace/ngrace-spec/SKILL.md`,
+`skills/ngrace/ngrace-plan/SKILL.md`, and both packaged mirrors. The spec and plan lexicons are
+byte-identical except one line — `approve this spec` versus `approve this plan` — so the shared rule
+is authored twice and **can be wrong twice** ([F136.1](#f1361)'s hazard). Any spec carrying this must
+require the reviewer to check both, not the one they happened to open.
+
+Folded into [`C-APPROVE-TIME-REVIEW`](#named-bundle-registry), which already targets the approve step
+in these same two skills. That bundle now carries three concerns and must **say so in its own
+Intent** rather than let the scope accrete silently.
