@@ -9364,3 +9364,51 @@ every stage has been run**, so teaching that enumerates them must say which stag
 
 The charter row is corrected: the guidance this bundle ships must show all three statuses per stage,
 and must not promise a fixed count of scope findings.
+
+### F153 — "quote the tool's literal output" collided with a single-source invariant that reserves those literals. **[verified]**
+
+Found by the **executor** at execution of `C-APPROVE-TIME-REVIEW` T-001, declared, and re-measured
+independently by the authority on **2026-09-03**. **The authority approved the spec and the plan that
+carried the contradiction, and the requirement originates in its own [F150.1](#f1501).**
+
+**The mechanism, measured.** `scripts/validate-marketplace.ts:502` declares
+
+```
+const VERDICT_TOKENS = ["unable-to-determine", "satisfied-unverified", "not-run"]
+const VERDICTS_REL   = skills/ngrace/ngrace-cli/references/verdicts.md
+```
+
+and `validateVerdictSingleSource` refuses any **other** file under `skills/` that carries one of
+those tokens — the whole point being that the verdict vocabulary has exactly one home.
+
+**The contradiction.** F150.1 ruled that teaching must **quote each audit's actual status string**
+rather than group them under a summary phrase. The approved spec and plan carry that as a criterion,
+and the teaching lands in `ngrace-spec` / `ngrace-plan` / `ngrace-reviewer`. But **T-001's
+`Verification` includes `bun run ./scripts/validate-marketplace.ts`** — so the criterion demands the
+literal `not-run` in a skill file, and the verification refuses it. **Both cannot hold.** The
+executor's first `validate-marketplace` run exited 1 on exactly that token.
+
+**Resolution, and it costs nothing.** The teaching says *"did not run (no plan)"*. Verified at HEAD:
+`grep -c 'not-run'` is **0** in all three rewritten skills, and the three T-001 verification commands
+were re-run to 0 after the rephrase. **This does not weaken [F150.1](#f1501).** What that rule
+forbade was *grouping three audits under one summary word* — asserting that all three report the same
+thing when they do not. Naming each audit's outcome distinctly in prose satisfies it; the hyphenated
+token was never the point. Read F153 as bounding F150.1's *form*, never its substance.
+
+**Class, and why it is the sharpest instance yet.** This is [F148](#f148)'s shape — a requirement and
+a restriction, in different places, never checked against each other — but the requirement is one the
+**authority itself wrote two dispatches earlier**, and then wrote into a spec whose own verification
+set forbids it. F136's closing sentence again: the rule was applied downstream and never to the
+document carrying it.
+
+**The rule.** **Before mandating that a document quote a tool's literal output, check whether that
+literal is reserved.** A single-source invariant and a quote-verbatim instruction are natural
+enemies, and this repository ships both. The check is one grep against the reserving validator, and
+it belongs in the spec brief that mandates the quoting — not in the execution that discovers it.
+
+**A second, smaller pattern, recorded because it is now consecutive.** The authority's last two
+briefs both stated a wrong commit count — *"four commits"* when `ed0661a..HEAD` was three, then
+*"five"* when it was six. Both were caught by the executor's `FACT CHECK`. **Run
+`git rev-list --count <base>..HEAD` in the turn the brief is written**, rather than recalling it;
+this is [rule 8](../../../../CLAUDE.md) at its smallest scale, and the smallest scale is where it is
+skipped.
