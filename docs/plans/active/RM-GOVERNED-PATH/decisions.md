@@ -8344,7 +8344,7 @@ below; it is not given a slot.
 | **`C-PLAN-SCOPE-PATHS`** | Structured spec path bound compared to `ObservedWriteScope`, at error. Named by [F94](#f94). | F94, and [F52](#f52)'s load-bearing weakness. | Named; not in the order. |
 | **`C-GOVERNANCE-ORDER`** | Refuse a module-contract / graph write with no approved change that owns it. Named by the slip register. | [F88.1](#f881), [F88.1.1](#f8811). | Named; not in the order. |
 | **`C-EVIDENCE-DISCRIMINATION`** | A lint rule refusing a `CloseEvidence` command with no failing path: allowlist by command **shape** (not a denylist of binaries), configurable in `.ngrace-lint.json`, polyglot defaults, warning severity with a documented escape. Named here 2026-09-02 by [D26](#d26). Searched before minting: `C-CRITERION-CLOSE-EVIDENCE` created the state, `C-CALIBRATION-COMMAND-EVIDENCE` / `C-COMMAND-EVIDENCE-RECORDED` / `C-FOLD-USES-RECORDED-COMMAND-EVIDENCE` / `C-VERDICT-EVIDENCE` are adjacent; none asks whether a recorded command can fail. | [F147](#f147). `change.close-evidence-incomplete` checks a `Command` exists and `change.close-evidence-and-satisfied` checks task mapping; neither checks power. | **Named 2026-09-02; not in the order.** Must judge command text only ([`C-PHASE-RULE-PIN`](#named-bundle-registry)'s rejected reading B forbids resolving package scripts transitively). Its `--explain` must say the rule catches only the cheap class: `pytest --collect-only`, `cargo test --no-run` and `git diff --exit-code` over the wrong paths all exit 0. |
-| **`C-APPROVE-TIME-REVIEW`** | Teach `ngrace review --change` as a step **before** `ngrace gate approve`, at both the spec and the plan stage: `ngrace-spec` approve step, `ngrace-plan` rule 15, and `ngrace-reviewer` broadened from one moment ("before judgment") to three. **Must ship the partial-review caveat**: with no plan on disk the scope, WriteEvidence and attempt-pair audits all report `not-run`, so a pre-approval green covers pattern detectors and artifact checks only — unstated, that is [F147](#f147)'s manufactured-pass shape in a new place. Named here 2026-09-03 by [F149](#f149). Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` covers the phrase and the close acts ([D19](#d19)/[D20](#d20)), `C-REVIEW-SURFACE` created the detector surface; **none says when review runs.** | [F149](#f149), and retroactively [F136](#f136) and [F148](#f148) — both were catchable by a review the artifact was still editable for. | **Next after `C-EVIDENCE-DISCRIMINATION`.** Candidate to carry the carried item *"the XML-escaping rule's skill homes"* — same two skill files, same rule shape; the spec author decides, and says which. Collides with `C-EVIDENCE-DISCRIMINATION` on `skills/ngrace/ngrace-spec/SKILL.md` and the `skillTextLines` pins, so **sequential, never concurrent**. |
+| **`C-APPROVE-TIME-REVIEW`** | Teach `ngrace review --change` as a step **before** `ngrace gate approve`, at both the spec and the plan stage: `ngrace-spec` approve step, `ngrace-plan` rule 15, and `ngrace-reviewer` broadened from one moment ("before judgment") to three. **Must ship the partial-review caveat**: with no plan on disk the scope, WriteEvidence and attempt-pair audits all report `not-run`, so a pre-approval green covers pattern detectors and artifact checks only — unstated, that is [F147](#f147)'s manufactured-pass shape in a new place. Named here 2026-09-03 by [F149](#f149), **amended by [F150](#f150)**: the bundle must also ship what a clean approve-time review looks like, because the scope audit reports the bundle's own `spec.xml` / `plan.xml` / `decisions.md` as out-of-scope writes on **every** bundle — an instruction that produces unexplained errors on first use is a trap, not guidance. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` covers the phrase and the close acts ([D19](#d19)/[D20](#d20)), `C-REVIEW-SURFACE` created the detector surface; **none says when review runs.** | [F149](#f149), and retroactively [F136](#f136) and [F148](#f148) — both were catchable by a review the artifact was still editable for. | **Next after `C-EVIDENCE-DISCRIMINATION`.** Candidate to carry the carried item *"the XML-escaping rule's skill homes"* — same two skill files, same rule shape; the spec author decides, and says which. Collides with `C-EVIDENCE-DISCRIMINATION` on `skills/ngrace/ngrace-spec/SKILL.md` and the `skillTextLines` pins, so **sequential, never concurrent**. |
 | **`C-REVIEW-ARCHIVE-SCOPE`** | Restrict `detectZeroOrMoreSwallow` to plans under `changes/active/`, and rule on `detectSelfReferential`'s plan loop, which carries the same missing guard and fires on nothing today. `detectConfidentlyWrong` **keeps** its archive scan — its `MustExist` targets assert present-tree state — so the change must state why the two differ rather than applying one rule to all three. Named here 2026-09-03 by [F149.1](#f1491). Searched before minting: `C-REVIEW-LANGUAGE-SCOPE` is the closest precedent (it fixed three review false positives) but by marker-scan scoping, not archive scoping; not a synonym. | [F149.1](#f1491). | **After `C-APPROVE-TIME-REVIEW`.** Ordered, not deferred: the cost is one ack per close, recurring forever, and the fix is measured at one line with the ratchet intact. |
 
 **Sweep remainder — mentioned, missing from disk, not a chartered bundle.** Recorded so they
@@ -9145,3 +9145,74 @@ this measured the right population and then answered a different question with i
 
 Chartered as [`C-REVIEW-ARCHIVE-SCOPE`](#named-bundle-registry), ordered after
 `C-APPROVE-TIME-REVIEW`. **Ordered, not deferred.**
+
+### F150 — approve-time review reports the bundle's own artifacts as out-of-scope writes, on every bundle, permanently. **[verified]**
+
+Found by the **executor** in its `WRONG` field while authoring `C-EVIDENCE-DISCRIMINATION`'s plan,
+and it is a defect in [F149](#f149)'s new practice, introduced by the authority the day before.
+
+**What happens.** The scope audit diffs against the bundle's **recorded base** and reports every
+changed file absent from `ObservedWriteScope`. At approve time the bundle's own governance artifacts
+are always changed relative to that base and are **never** in `ObservedWriteScope` — they are
+governance, not implementation writes. Measured 2026-09-03 on the plan-stage review of
+`C-EVIDENCE-DISCRIMINATION` (recorded base `a5f070b`):
+
+```
+- [error] review.scope-outside-write-scope …/C-EVIDENCE-DISCRIMINATION/plan.xml   (id=7312b12c37c0068a)
+- [error] review.scope-outside-write-scope …/C-EVIDENCE-DISCRIMINATION/spec.xml   (id=c4e6d414a56bfe7a)
+- [error] review.scope-outside-write-scope docs/plans/active/RM-GOVERNED-PATH/decisions.md (id=4a00eada4f8cf3cf)
+```
+
+**This is not incidental noise; it is structural.** Every bundle that reaches plan approval will show
+its own `plan.xml` and `spec.xml`, plus `decisions.md` whenever a finding was recorded on the branch.
+**Three errors, on every bundle, forever** — and unlike [F137](#f137), which produces the same shape
+at *close*, this fires at the moment the practice is supposed to make approval cheap.
+
+**Why the executor is right that they are not `ObservedWriteScope` defects.** Adding the bundle's own
+artifacts to `ObservedWriteScope` would be worse on two counts: it would exceed the approved spec's
+path ceiling (raising `change.plan-scope-exceeds-spec`), and it would assert that the *implementing
+executor* will edit the plan, which is false — those writes belong to `gate approve` and to the
+authority. The finding is a true statement about the diff and a false statement about the work.
+
+**The consequence for [`C-APPROVE-TIME-REVIEW`](#named-bundle-registry), which this amends.** The
+skills cannot simply say *"run `ngrace review` before `gate approve`"*. A GRACE user following that
+instruction meets three errors on their first bundle and has no way to know they are expected. The
+bundle must therefore ship **both** halves: the instruction, **and** what a clean approve-time review
+looks like — the scope audit's own artifacts excluded or explicitly named as expected, alongside the
+partial-review caveat ([F147](#f147)'s shape) already in the charter. **An instruction that produces
+unexplained errors on first use is not guidance; it is a trap.**
+
+**The authority's error, named.** F149 was ratified on the strength of three cases where an
+approve-time review would have caught a defect cheaply. The practice was never *run* end-to-end
+before being written into `decisions.md` as standing practice and into a brief as a binding ruling —
+the first honest execution of it was this dispatch, by the executor, which is where the defect
+surfaced. [CLAUDE.md](../../../../CLAUDE.md) rule 5 says to exercise the product before accepting
+work; a **new process** is a product too, and this one shipped on reasoning alone.
+
+### F151 — the authority's brief contradicted itself on cursor commands, one bundle after writing F148. **[verified]**
+
+The plan brief for `C-EVIDENCE-DISCRIMINATION` required, in §2, the blocking precondition check:
+
+```
+bun ./src/grace.ts cursor show --change C-EVIDENCE-DISCRIMINATION --path .
+```
+
+while §5 stated *"you are still forbidden to run gates or cursor commands in **this** dispatch"* and
+§9 repeated the prohibition. **Both cannot hold.** The executor ran `cursor show`, took the narrow
+reading (read-only, no epoch, no event, nothing written), and **declared it as a deviation** rather
+than resolving it silently.
+
+**Its resolution is correct.** `cursor show` never writes — the skill describes it as *"Show position
+(never writes; recovers rather than blocks)"*. The prohibition was aimed at cursor **writes**:
+`advance`, `attempt`, `resume`, `fold`. The brief said "cursor commands" and meant "cursor writes".
+
+**This is [F148](#f148)'s own class, committed by the authority in the brief that teaches F148.** §6
+of that brief instructs the executor to walk every task's verification and check it against every
+later prohibition — and the brief itself was never walked the same way. The rule was applied
+downstream and not to the document carrying it, which is exactly [F136](#f136)'s closing sentence.
+
+**The fix, for every future brief.** Prohibitions name the **operation class**, never the command
+surface: *"no cursor write — no `advance`, `attempt`, `resume`, `fold`, no epoch, no recorded
+event"*. Read-only inspection (`cursor show`, `status`, `review`, `lint`, `file show`) is always
+permitted and should be stated as permitted, because a brief that forbids inspection forbids the
+verification it demands elsewhere.
