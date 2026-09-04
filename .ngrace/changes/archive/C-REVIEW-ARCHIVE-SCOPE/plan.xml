@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-REVIEW-ARCHIVE-SCOPE>
     <IntentSummary>
       Restrict detectZeroOrMoreSwallow and
