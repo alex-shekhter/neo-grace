@@ -1,0 +1,442 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-REVIEW-ARCHIVE-SCOPE>
+    <IntentSummary>
+      Restrict detectZeroOrMoreSwallow and
+      detectSelfReferential's plan loop to plans
+      whose scopeIdentityFromPlanRel planLocation
+      is "active". Leave the title regex, the
+      test-file loop, and detectConfidentlyWrong's
+      archive scan plus F123 status guard untouched.
+      Subject finding: review.zero-or-more-swallow
+      on archived C-REWORK-CIRCUIT T-001
+      (findingId d83478517d6b5e30).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>V-M-REVIEW</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/defect-corpus.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-REVIEW-ARCHIVE-SCOPE/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-REVIEW-ARCHIVE-SCOPE/plan.xml</Value></MustExist>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function detectZeroOrMoreSwallow(root: string): ReviewFinding[]</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function detectSelfReferential(root: string): ReviewFinding[]</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function detectConfidentlyWrong(root: string): ReviewFinding[]</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function scopeIdentityFromPlanRel(planRel: string): ScopeAuditIdentity | undefined</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>if (planStatus === "superseded" || planStatus === "rejected" || planStatus === "cancelled")</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>/\bafter\b|\bsecond\b|\bthen\b|\bfollow|\bcompletes?\b|\bonce\b.*\bT-\d+/i</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>listFilesRecursive(root, `${ARTIFACT_DIR}/changes`)</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>if (scopeIdentityFromPlanRel(planRel)?.planLocation !== "active") continue;</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>${ARTIFACT_DIR}/changes/active</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("FIRE zero-or-more-swallow: empty DependsOn with non-corpus sequencing title"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("SILENT zero-or-more-swallow: empty DependsOn without sequencing claim in title"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("FIRE self-referential-comparison: expect(parsed).toEqual(parsed) after JSON.parse"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("f123-superseded-skip: superseded, rejected, and cancelled MustExist of an absent path is silent"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("counterweight: path absent under both active and archive aliases still fires"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>C-REVIEW-ARCHIVE-SCOPE location filter</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/test-support/defect-corpus.ts</File>
+        <Text>const planPath = ".ngrace/changes/active/C-CORPUS-ZO2/plan.xml"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/defect-corpus.ts</File>
+        <Text>const planPath = ".ngrace/changes/active/C-CORPUS-SR/plan.xml"</Text>
+      </MustContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>V-M-REVIEW</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/defect-corpus.ts</Value></MustExist>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function detectZeroOrMoreSwallow(root: string): ReviewFinding[]</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function detectSelfReferential(root: string): ReviewFinding[]</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function detectConfidentlyWrong(root: string): ReviewFinding[]</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function scopeIdentityFromPlanRel(planRel: string): ScopeAuditIdentity | undefined</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>if (scopeIdentityFromPlanRel(planRel)?.planLocation !== "active") continue;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>if (planStatus === "superseded" || planStatus === "rejected" || planStatus === "cancelled")</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>/\bafter\b|\bsecond\b|\bthen\b|\bfollow|\bcompletes?\b|\bonce\b.*\bT-\d+/i</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>listFilesRecursive(root, `${ARTIFACT_DIR}/changes`)</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>${ARTIFACT_DIR}/changes/active</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>describe("C-REVIEW-ARCHIVE-SCOPE location filter"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("SILENT zero-or-more-swallow: archive sequencing title with empty DependsOn"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("FIRE zero-or-more-swallow: active+applied sequencing title with empty DependsOn"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("SILENT self-referential-comparison: archive MustMatchPattern File targeting the plan"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("FIRE confidently-wrong: applied archive MustExist of a missing path"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("detectZeroOrMoreSwallow title regex source stays byte-identical"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("detectConfidentlyWrong plan walk does not skip by planLocation"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("FIRE zero-or-more-swallow: empty DependsOn with non-corpus sequencing title"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("SILENT zero-or-more-swallow: empty DependsOn without sequencing claim in title"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("FIRE self-referential-comparison: expect(parsed).toEqual(parsed) after JSON.parse"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("f123-superseded-skip: superseded, rejected, and cancelled MustExist of an absent path is silent"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("counterweight: path absent under both active and archive aliases still fires"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/defect-corpus.ts</File>
+        <Text>const planPath = ".ngrace/changes/active/C-CORPUS-ZO2/plan.xml"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/test-support/defect-corpus.ts</File>
+        <Text>const planPath = ".ngrace/changes/active/C-CORPUS-SR/plan.xml"</Text>
+      </MustContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/review/scorer.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:determinism</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/core.test.ts</File>
+    </ObservedWriteScope>
+    <!--
+      One task, not two. The production edit is the same
+      first-statement continue in detectZeroOrMoreSwallow
+      and in detectSelfReferential's plan loop. Splitting
+      would force the first task's Verification to filter
+      bun test so it does not inherit the second detector's
+      not-yet cases (F148). There is no dependency and no
+      conflict, so two tasks would be ceremony (D11).
+      AC-SELF-REF-SCOPE names scoping only
+      zero-or-more-swallow as a failure.
+
+      F148 walk: T-001 Verification runs bun test
+      src/review/core.test.ts (every it in that file,
+      including the new describe and every pre-existing
+      case), bun test src/review/scorer.test.ts, and
+      bun run validate:determinism. No later task, so
+      no later "not yet" is demanded.
+
+      Reds (at most 3, never repeat a key):
+        archive-zo-silent
+        archive-sr-silent
+      HEAD-true pins in the same describe are not reds
+      (F45): active+applied fire, CW archive applied
+      MustExist still fires, regex source, live FIRE,
+      corpus-zo-02, corpus-sr-02, test-file FIRE,
+      f123 status skip.
+
+      Do not add spec.xml, plan.xml, or decisions.md
+      to ObservedWriteScope (F150). Do not put a
+      current-mode lint of this project root in
+      TargetAssertions or in post-write task
+      Verification. AC-CLOSE-LINT, AC-SURFACES-UNTOUCHED,
+      and AC-CHANGELOG-UNTOUCHED are CloseEvidence, not
+      Satisfies.
+
+      Cite the function name, describe, or it title,
+      never a line number. Do not edit catalog.ts,
+      scorer.ts, command.ts, gates, defect-corpus.ts,
+      any SKILL.md, README.md, examples/, CHANGELOG.md,
+      version surfaces, archives, or decisions.md.
+      Do not add a new src file. Do not extract or
+      edit the title regex.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Scope plan-walking detectors to active location</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-ACTIVE-ONLY />
+          <AC-LIVE-EAGER />
+          <AC-LOCATION-NOT-STATUS />
+          <AC-SELF-REF-SCOPE />
+          <AC-CW-KEPT />
+          <AC-REGEX-UNTOUCHED />
+          <AC-RATCHET />
+          <AC-NO-NEW-ARGV />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (archive-zo-silent): before
+            editing src/review/core.ts, in its own
+            tool round trip, add a describe
+            C-REVIEW-ARCHIVE-SCOPE location filter
+            in src/review/core.test.ts. Model the
+            fixture helper on writeArchivedPlanWithMustExist
+            in describe C-REPORT-HONESTY T-003 MustExist
+            archive identity (F16): local helper, not
+            a new src file, not an edit of
+            src/artifact/test-fixtures.ts. Write
+            src/example.ts with the BLOCK_RUN marker
+            so the confidently-wrong marker half stays
+            quiet. Filter findings by code and by the
+            fixture plan path. Exact toHaveLength (F23),
+            never toBeGreaterThan.
+            The red it() title is SILENT
+            zero-or-more-swallow: archive sequencing
+            title with empty DependsOn. Two fixtures,
+            same title "Second after first", empty
+            &lt;DependsOn&gt;, location archive: (1)
+            .ngrace/changes/archive/C-HELDOUT-ZO/plan.xml
+            status="applied"; (2)
+            .ngrace/changes/archive/C-HELDOUT-ZO-APPROVED/plan.xml
+            status="approved". Each must have
+            review.zero-or-more-swallow findings
+            toHaveLength(0). HEAD today: both fire
+            because detectZeroOrMoreSwallow walks
+            all of .ngrace/changes with no location
+            continue. A status skip of applied would
+            silence (1) and still fire (2); both
+            silent is location, not status.
+            Record fail, signature kind test key
+            archive-zo-silent. Run only this case.
+            Do not land production in this round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (archive-sr-silent): before
+            editing src/review/core.ts, in its own
+            tool round trip, add under the same
+            describe the it() SILENT
+            self-referential-comparison: archive
+            MustMatchPattern File targeting the plan.
+            Fixture
+            .ngrace/changes/archive/C-HELDOUT-SR/plan.xml
+            status="applied" with a
+            &lt;MustMatchPattern&gt; &lt;File&gt; whose
+            text is that same plan path (the
+            detectSelfReferential plan-loop predicate:
+            file equals posixPlan, or either path
+            ends with the other). Title must not
+            match the sequencing regex. Filter by
+            code review.self-referential-comparison
+            and that file. Exact toHaveLength(0).
+            HEAD today: the plan loop has no location
+            continue, so this fires. Record fail,
+            signature kind test key archive-sr-silent.
+            Run only this case. Do not land production
+            in this round trip. Do not edit the
+            test-file loop. Do not fold this into
+            the archive-zo-silent it().
+          </Criterion>
+          <Criterion>
+            HEAD-true pins in the same describe, not
+            reds (F45). Add them before production.
+            They pass at HEAD. Exact toHaveLength (F23).
+            (1) AC-LOCATION-NOT-STATUS other half /
+            AC-LIVE-EAGER: it() FIRE zero-or-more-swallow:
+            active+applied sequencing title with empty
+            DependsOn. Fixture
+            .ngrace/changes/active/C-HELDOUT-ZO-APPLIED/plan.xml
+            status="applied", title "Second after first",
+            empty &lt;DependsOn&gt;.
+            review.zero-or-more-swallow on that file
+            toHaveLength(1). A status skip of applied
+            would silence this; the archive-zo-silent
+            pair plus this pin must not both be silent.
+            Keep the existing held-out FIRE (Runs once
+            T-001 completes) and SILENT without a
+            sequencing claim; do not retitle them.
+            (2) AC-CW-KEPT: it() FIRE confidently-wrong:
+            applied archive MustExist of a missing path.
+            Fixture under changes/archive/,
+            status="applied", &lt;MustExist&gt; of
+            build/artifacts/c-review-archive-scope-absent.bin,
+            no sequencing title.
+            review.confidently-wrong on that message
+            toHaveLength(1). Also it()
+            detectConfidentlyWrong plan walk does not
+            skip by planLocation: read src/review/core.ts,
+            slice function detectConfidentlyWrong to
+            the next function, expect the slice
+            toContain the F123 status guard
+            (superseded / rejected / cancelled) and
+            not.toContain the active planLocation
+            continue. Keep f123-superseded-skip and
+            the C-REPORT-HONESTY T-003 counterweight
+            (path absent under both aliases still
+            fires). Do not manufacture a red.
+            (3) AC-REGEX-UNTOUCHED: it()
+            detectZeroOrMoreSwallow title regex source
+            stays byte-identical. Slice function
+            detectZeroOrMoreSwallow to the next
+            function; toContain the literal
+            /\bafter\b|\bsecond\b|\bthen\b|\bfollow|\bcompletes?\b|\bonce\b.*\bT-\d+/i
+            including the i flag. Do not extract the
+            regex to a new name.
+            (4) AC-SELF-REF-SCOPE stay-true: keep
+            FIRE self-referential-comparison
+            expect(parsed).toEqual(parsed) after
+            JSON.parse (test-file loop). Keep
+            corpus-sr-02 under
+            .ngrace/changes/active/C-CORPUS-SR/plan.xml.
+            (5) AC-RATCHET stay-true: keep
+            corpus-zo-02 under
+            .ngrace/changes/active/C-CORPUS-ZO2/plan.xml.
+            Do not edit src/test-support/defect-corpus.ts
+            or src/review/scorer.ts.
+            (6) AC-NO-NEW-ARGV: do not edit
+            src/grace.ts, src/review/command.ts, or
+            any arg map. Do not manufacture a red.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84).
+            In src/review/core.ts only, as the first
+            statement of the plan.xml loop inside
+            detectZeroOrMoreSwallow and as the first
+            statement of detectSelfReferential's
+            plan loop (the second listFilesRecursive
+            over .ngrace/changes, the one that walks
+            &lt;MustMatchPattern&gt; File), write
+            exactly
+            if (scopeIdentityFromPlanRel(planRel)?.planLocation !== "active") continue;
+            Do not reimplement location by string
+            includes, by reading status, by walking
+            only changes/active, or by a new helper.
+            Reuse of scopeIdentityFromPlanRel is not
+            an edit of that function. Do not edit
+            detectConfidentlyWrong's plan walk, its
+            F123 status guard, or its marker-scan
+            half. Do not edit the test-file loop
+            above detectSelfReferential's plan loop.
+            The title regex inside
+            detectZeroOrMoreSwallow stays
+            byte-identical; do not extract it. Do
+            not add a new src file. Do not edit
+            src/review/catalog.ts, src/review/scorer.ts,
+            src/review/command.ts, src/gates,
+            src/test-support/defect-corpus.ts, any
+            SKILL.md, README.md, examples/,
+            CHANGELOG.md, version surfaces, archives,
+            or decisions.md. Then the two reds pass,
+            the HEAD-true pins stay green, and
+            bun test src/review/core.test.ts,
+            bun test src/review/scorer.test.ts, and
+            bun run validate:determinism pass, the
+            last reporting zero-or-more-swallow 2/2
+            and a PASS determinism gate. The continue
+            occurs exactly twice in src/review/core.ts.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+          <Command>bun test src/review/scorer.test.ts</Command>
+          <Command>bun run validate:determinism</Command>
+          <Command>bun -e 'const t = await Bun.file("src/review/core.ts").text(); const n = (t.match(/if \(scopeIdentityFromPlanRel\(planRel\)\?\.planLocation !== "active"\) continue;/g) ?? []).length; if (n !== 2) process.exit(1)'</Command>
+          <Command>git diff --exit-code 47a9b99 -- src/grace.ts src/review/catalog.ts src/review/scorer.ts src/review/command.ts src/gates src/test-support/defect-corpus.ts README.md examples/ skills/ CHANGELOG.md</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-REVIEW-ARCHIVE-SCOPE>
+</NgraceChangePlan>

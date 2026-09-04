@@ -586,6 +586,7 @@ function detectSelfReferential(root: string): ReviewFinding[] {
   for (const planRel of listFilesRecursive(root, `${ARTIFACT_DIR}/changes`).filter((f) =>
     f.endsWith("plan.xml"),
   )) {
+    if (scopeIdentityFromPlanRel(planRel)?.planLocation !== "active") continue;
     const abs = path.join(root, planRel);
     const artifact = readGraceXmlArtifact(abs);
     if (!artifact.root) continue;
@@ -820,6 +821,7 @@ function detectZeroOrMoreSwallow(root: string): ReviewFinding[] {
   for (const planRel of listFilesRecursive(root, `${ARTIFACT_DIR}/changes`).filter((f) =>
     f.endsWith("plan.xml"),
   )) {
+    if (scopeIdentityFromPlanRel(planRel)?.planLocation !== "active") continue;
     const abs = path.join(root, planRel);
     const artifact = readGraceXmlArtifact(abs);
     if (!artifact.root) continue;
