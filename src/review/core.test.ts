@@ -3419,3 +3419,148 @@ describe("C-AMENDMENT-COUNT T-003 review audit", () => {
     );
   });
 });
+
+describe("C-REVIEW-ARCHIVE-SCOPE location filter", () => {
+  function emitBlockRun(root: string): void {
+    writeFileSync(
+      path.join(root, "src/example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
+    );
+  }
+
+  function writeHeldOutPlan(
+    root: string,
+    opts: {
+      location: "active" | "archive";
+      changeId: string;
+      status: string;
+      title: string;
+      mustExist?: string;
+      mustMatchPatternFile?: string;
+    },
+  ): string {
+    const dir = path.join(root, ".ngrace/changes", opts.location, opts.changeId);
+    mkdirSync(dir, { recursive: true });
+    const planRel = `.ngrace/changes/${opts.location}/${opts.changeId}/plan.xml`;
+    const extraExist = opts.mustExist
+      ? `<MustExist><Value>${opts.mustExist}</Value></MustExist>`
+      : "";
+    const extraMatch = opts.mustMatchPatternFile
+      ? `<MustMatchPattern><File>${opts.mustMatchPatternFile}</File><Pattern>held-out</Pattern></MustMatchPattern>`
+      : "";
+    writeFileSync(
+      path.join(dir, "plan.xml"),
+      `<NgraceChangePlan graceVersion="1.0" status="${opts.status}"><${opts.changeId}>
+  <IntentSummary>held-out</IntentSummary>
+  <BaselineAssertions><MustExist><Value>src/example.ts</Value></MustExist>${extraExist}${extraMatch}</BaselineAssertions>
+  <TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions>
+  <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>
+  <ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>
+  <ImplementationPlan><T-001><Title>${opts.title}</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+</${opts.changeId}></NgraceChangePlan>`,
+    );
+    return planRel;
+  }
+
+  it("SILENT zero-or-more-swallow: archive sequencing title with empty DependsOn", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    emitBlockRun(root);
+    const appliedRel = writeHeldOutPlan(root, {
+      location: "archive",
+      changeId: "C-HELDOUT-ZO",
+      status: "applied",
+      title: "Second after first",
+    });
+    const approvedRel = writeHeldOutPlan(root, {
+      location: "archive",
+      changeId: "C-HELDOUT-ZO-APPROVED",
+      status: "approved",
+      title: "Second after first",
+    });
+    const findings = runPatternDetectors(root).filter(
+      (f) => f.code === "review.zero-or-more-swallow",
+    );
+    expect(findings.filter((f) => f.file === appliedRel)).toHaveLength(0);
+    expect(findings.filter((f) => f.file === approvedRel)).toHaveLength(0);
+  });
+
+  it("SILENT self-referential-comparison: archive MustMatchPattern File targeting the plan", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    emitBlockRun(root);
+    const planRel = writeHeldOutPlan(root, {
+      location: "archive",
+      changeId: "C-HELDOUT-SR",
+      status: "applied",
+      title: "Held-out self-referential fixture",
+      mustMatchPatternFile: ".ngrace/changes/archive/C-HELDOUT-SR/plan.xml",
+    });
+    const findings = runPatternDetectors(root).filter(
+      (f) => f.code === "review.self-referential-comparison" && f.file === planRel,
+    );
+    expect(findings).toHaveLength(0);
+  });
+
+  it("FIRE zero-or-more-swallow: active+applied sequencing title with empty DependsOn", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    emitBlockRun(root);
+    const planRel = writeHeldOutPlan(root, {
+      location: "active",
+      changeId: "C-HELDOUT-ZO-APPLIED",
+      status: "applied",
+      title: "Second after first",
+    });
+    const findings = runPatternDetectors(root).filter(
+      (f) => f.code === "review.zero-or-more-swallow" && f.file === planRel,
+    );
+    expect(findings).toHaveLength(1);
+  });
+
+  it("FIRE confidently-wrong: applied archive MustExist of a missing path", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    emitBlockRun(root);
+    writeHeldOutPlan(root, {
+      location: "archive",
+      changeId: "C-HELDOUT-CW-ARCH",
+      status: "applied",
+      title: "Held-out confidently-wrong fixture",
+      mustExist: "build/artifacts/c-review-archive-scope-absent.bin",
+    });
+    const findings = runPatternDetectors(root).filter(
+      (f) =>
+        f.code === "review.confidently-wrong"
+        && f.message.includes("build/artifacts/c-review-archive-scope-absent.bin"),
+    );
+    expect(findings).toHaveLength(1);
+  });
+
+  it("detectZeroOrMoreSwallow title regex source stays byte-identical", () => {
+    const source = readFileSync(path.join(import.meta.dir, "core.ts"), "utf8");
+    const start = source.indexOf("function detectZeroOrMoreSwallow");
+    const end = source.indexOf("function detectUnthreadedConstruct");
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const slice = source.slice(start, end);
+    expect(slice).toContain(
+      String.raw`/\bafter\b|\bsecond\b|\bthen\b|\bfollow|\bcompletes?\b|\bonce\b.*\bT-\d+/i`,
+    );
+  });
+
+  it("detectConfidentlyWrong plan walk does not skip by planLocation", () => {
+    const source = readFileSync(path.join(import.meta.dir, "core.ts"), "utf8");
+    const start = source.indexOf("function detectConfidentlyWrong");
+    const end = source.indexOf("function scopeIdentityFromPlanRel");
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const slice = source.slice(start, end);
+    expect(slice).toContain(
+      'if (planStatus === "superseded" || planStatus === "rejected" || planStatus === "cancelled")',
+    );
+    expect(slice).not.toContain(
+      'if (scopeIdentityFromPlanRel(planRel)?.planLocation !== "active") continue;',
+    );
+  });
+});
