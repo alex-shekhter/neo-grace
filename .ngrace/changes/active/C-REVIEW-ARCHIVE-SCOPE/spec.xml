@@ -1,0 +1,655 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-REVIEW-ARCHIVE-SCOPE>
+    <Summary>
+      Restrict detectZeroOrMoreSwallow and
+      detectSelfReferential's plan loop to plans
+      under changes/active/, using the existing
+      scopeIdentityFromPlanRel location predicate.
+      Leave the title regex and live-plan eagerness
+      untouched. detectConfidentlyWrong keeps its
+      archive scan: its &lt;MustExist&gt; targets
+      assert present-tree state, while a
+      zero-or-more-swallow (or plan-as-oracle)
+      finding on an archived plan asserts a
+      decision already executed. Pays F149.1.
+      The subject finding is
+      review.zero-or-more-swallow on archived
+      C-REWORK-CIRCUIT T-001 (findingId
+      d83478517d6b5e30).
+    </Summary>
+    <Problem>
+      Registry row C-REVIEW-ARCHIVE-SCOPE in
+      docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      (heading Named-bundle registry, named
+      2026-09-03 by F149.1) charters this bundle.
+      F149 and F149.1 in the same file are the
+      binding records. This spec does not restate
+      them in place of those records.
+
+      F149 ratified that detectZeroOrMoreSwallow's
+      eagerness is deliberate: the catalog
+      remediation is to add the missing edge or
+      rewrite titles that claim sequencing, and
+      the one true-positive shape on record
+      (corpus-zo-02 title "Second after first")
+      needs the bare-word match. An id-based
+      narrowing was measured unauthorable. That
+      ruling stands and is not reopened.
+
+      F149.1 corrected the cost, not the count.
+      The detector walks all of
+      .ngrace/changes/, archives included.
+      Archived plans are immutable and
+      fingerprinted. gate verdict --outcome pass
+      requires an Ack for every displayed
+      finding. The single firing is therefore
+      one mandatory ack on every future close,
+      forever. Measured 2026-09-03 at HEAD
+      47a9b99 by parsing every plan.xml under
+      .ngrace/changes/{active,archive} with
+      readGraceXmlArtifact / walkNodes and the
+      live title regex: plans=60 (0 active, 60
+      archive; statuses applied=54
+      superseded=6), tasks=297,
+      tasksWithEmptyDependsOn=82, regexHits=1
+      — archive/C-REWORK-CIRCUIT T-001, status
+      applied, title "Ceiling constant, circuit
+      kind and state, second breaker fire, first
+      escalation unchanged", &lt;DependsOn&gt;
+      empty. F149's "1 hit in 58 plans" was
+      true when written and is now stale
+      (F123): two bundles archived since.
+      The hit is unchanged. Five &lt;Ack
+      findingId="d83478517d6b5e30"&gt; children
+      already exist across three archived
+      ledgers (C-REWORK-CIRCUIT,
+      C-EVIDENCE-DISCRIMINATION,
+      C-APPROVE-TIME-REVIEW).
+
+      The ratified remedy — rewrite the title —
+      requires an editable artifact. An archived
+      plan has none. Scoping the detector to
+      plans that are still live restores the
+      condition F149's ruling rests on; it does
+      not overturn the ruling.
+
+      Three detectors walk
+      .ngrace/changes for plan.xml
+      (the complete set in src/review/core.ts,
+      measured 2026-09-03):
+      detectConfidentlyWrong's &lt;MustExist&gt;
+      loop carries a status guard (skip
+      superseded / rejected / cancelled — F123's
+      remedy) and still scans applied archives;
+      detectSelfReferential's plan loop
+      (&lt;MustMatchPattern&gt; File targeting
+      the plan) carries no guard;
+      detectZeroOrMoreSwallow carries no guard.
+      detectSelfReferential's plan loop fires on
+      nothing in this corpus today: 0
+      &lt;MustMatchPattern&gt; nodes in 60
+      plans, 0 self-hits. "Fires on nothing" is
+      a count, not a cost (F149.1's lesson).
+      The same missing guard would make the
+      first archive hit immortal. This bundle
+      applies the same location filter there.
+
+      Q2, verified first: corpus-zo-02
+      (src/test-support/defect-corpus.ts
+      corpus-zo-02-empty-depends-malformed-task)
+      builds and applies at
+      .ngrace/changes/active/C-CORPUS-ZO2/plan.xml.
+      corpus-sr-02
+      (corpus-sr-02-baseline-from-plan-body)
+      builds at
+      .ngrace/changes/active/C-CORPUS-SR/plan.xml.
+      An active-only location filter keeps both
+      ratchets. The determinism gate is
+      scripts/validate-determinism.ts: two-run
+      identity on corpus-re-01 plus
+      scoreCorpus() / ratchetHolds against
+      caughtBaseline; formatCorpusScore prints
+      per-pattern hit/total including
+      zero-or-more-swallow: 2/2. A filter that
+      skipped active/ would miss corpus-zo-02
+      and fail that ratchet.
+    </Problem>
+    <Goals>
+      <Goal>
+        detectZeroOrMoreSwallow inspects only
+        plans whose path location is active
+        (scopeIdentityFromPlanRel planLocation
+        equals "active"). The live regex and
+        empty-&lt;DependsOn&gt; predicate stay
+        byte-identical. Sequencing titles on
+        live plans still fire; the same title
+        under changes/archive/ does not.
+      </Goal>
+      <Goal>
+        detectSelfReferential's plan loop
+        (MustMatchPattern File targeting the
+        plan itself) takes the same location
+        filter in the same change. Its test-file
+        loop is unchanged. corpus-sr-02 still
+        fires.
+      </Goal>
+      <Goal>
+        detectConfidentlyWrong keeps its archive
+        scan and its F123 status guard. A
+        &lt;MustExist&gt; of a missing path on
+        an applied archived plan still fires.
+        This bundle states why that detector
+        differs: it asserts present-tree state,
+        not a decision already executed.
+      </Goal>
+      <Goal>
+        README.md and examples/ are unchanged;
+        no user-visible CLI, config, or review
+        command surface is added. The existing
+        ngrace review command emits one fewer
+        immortal finding.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module change:
+        M-REVIEW only). Gates still run.
+        Roadmap: RM-GOVERNED-PATH Named-bundle
+        registry row C-REVIEW-ARCHIVE-SCOPE on
+        F149.1, ordered after
+        C-APPROVE-TIME-REVIEW (already archived
+        applied at this HEAD). Spec only in
+        this authoring pass; status remains
+        "draft"; do not author plan.xml until
+        the spec is approved (F4 two-stage).
+        Do not run gate approve or any gate.
+        Do not record any cursor event.
+        Read-only inspection is permitted
+        (F151): cursor show, status, review,
+        lint, file show, git log, git diff.
+      </Constraint>
+      <Constraint>
+        Binding findings and rulings, named so
+        this spec cannot silently contradict
+        them (CLAUDE.md rule 9): F149 (do not
+        narrow the regex; eagerness on live
+        plans is deliberate; title rewrite is
+        the shipped remedy), F149.1 (scope to
+        live plans; state why
+        detectConfidentlyWrong keeps its
+        archive scan; rule on
+        detectSelfReferential's plan loop),
+        F123 (detectConfidentlyWrong's status
+        guard skip of superseded / rejected /
+        cancelled is already shipped; do not
+        remove it and do not extend it to
+        skip applied archives), F43 (escape
+        markup; never strip it), F136/F136.1
+        (anchor every forced file; module lists
+        in this spec must agree), F147
+        (CloseEvidence commands must
+        discriminate), F148 (a requirement and
+        a restriction in one artifact must
+        both hold), D5.5 (CHANGELOG.md is
+        generated), F45 (do not manufacture a
+        red for a HEAD-true property), F80
+        (one red evidences one property),
+        F56/F67 (at most three distinct fail
+        signatures per task), D11 (no deferral
+        without a dependency or a conflict).
+      </Constraint>
+      <Constraint>
+        AffectedAreas is a closed list and
+        binds the plan
+        (change.plan-scope-exceeds-spec). A
+        plan that needs a module not named
+        here is a stop-and-report. Module
+        lists in this spec (this ceremony
+        constraint, AffectedAreas, and the
+        module-ownership Assumption) must name
+        the same one: M-REVIEW.
+      </Constraint>
+      <Constraint>
+        Forced write surface, traced 2026-09-03
+        at HEAD 47a9b99. For each file: LINKS
+        header if any, owning module, and
+        where that module appears
+        (AffectedAreas, this ceremony
+        constraint, module-ownership
+        Assumption). Cite homes by function
+        name, not by line number: this
+        bundle's tasks will grow those files.
+        Ownability measured with
+        isModuleOwnableWritePath:
+
+        src/review/core.ts — LINKS: M-REVIEW.
+        isModuleOwnableWritePath true. Graph
+        Path of M-REVIEW. Homes: (1)
+        detectZeroOrMoreSwallow — first
+        statement of the plan.xml loop is
+        if (scopeIdentityFromPlanRel(planRel)?.planLocation !== "active") continue;
+        Do not reimplement location by string
+        includes, status attribute, or a new
+        helper. (2) detectSelfReferential's
+        plan loop (the second
+        listFilesRecursive over
+        .ngrace/changes) — the same
+        first statement. The test-file loop
+        above it is untouched. (3)
+        detectConfidentlyWrong — no edit to
+        its plan walk, its status guard, or
+        its archive scan. Reuse of
+        scopeIdentityFromPlanRel in the other
+        two loops is not an edit of this
+        function. Tests co-located as
+        src/review/core.test.ts (no file-level
+        LINKS; isModuleOwnableWritePath false
+        because *.test.ts).
+
+        Do not add a new src/*.ts file. Do not
+        edit src/review/catalog.ts,
+        src/review/scorer.ts, src/review/command.ts,
+        src/gates/*, src/test-support/defect-corpus.ts
+        (the corpus fixtures already build
+        under active/; do not move them), or
+        any SKILL.md. Do not rewrite anything
+        under .ngrace/changes/archive/.
+      </Constraint>
+      <Constraint>
+        Predicate is location, not status.
+        scopeIdentityFromPlanRel already
+        returns planLocation "active" | "archive"
+        from the path
+        .ngrace/changes/{active|archive}/&lt;id&gt;/plan.xml.
+        In the applied-but-active window
+        (status="applied" still under
+        changes/active/, between the apply
+        status write and the archive mv) a
+        location filter still inspects the
+        plan; a status skip of applied would
+        go silent before the mv. Location is
+        what F149.1 probed and what the
+        corpus fixtures occupy. Status skip
+        of applied is rejected for these two
+        detectors: it would couple them to
+        detectConfidentlyWrong's axis and
+        silence a still-current change. The
+        acceptance tests must discriminate
+        the two predicates: archive+applied
+        silent, active+applied fire.
+      </Constraint>
+      <Constraint>
+        Differentiation, normative: a
+        confidently-wrong &lt;MustExist&gt;
+        finding on an applied archived plan
+        asserts something about the present
+        tree — a shipped target should still
+        exist — so that detector is right to
+        keep scanning archives (F123 already
+        dropped superseded / rejected /
+        cancelled, whose targets are no
+        longer present-tree obligations). A
+        zero-or-more-swallow finding on an
+        archived plan asserts a sequencing
+        decision already executed: the tasks
+        ran, in whatever order they ran, and
+        nothing is actionable; the catalog
+        remedy exists only while the plan is
+        editable. detectSelfReferential's
+        plan loop is the same class: a
+        &lt;MustMatchPattern&gt; that uses
+        the plan as its own oracle is a
+        decision already executed, not a
+        claim about files on disk now. That
+        is why this change scopes those two
+        detectors to changes/active/ and
+        leaves detectConfidentlyWrong's
+        archive walk in place. The two
+        differ in what they assert, not
+        merely in where they look.
+      </Constraint>
+      <Constraint>
+        The title regex inside
+        detectZeroOrMoreSwallow stays
+        byte-identical:
+        /\bafter\b|\bsecond\b|\bthen\b|\bfollow|\bcompletes?\b|\bonce\b.*\bT-\d+/i
+        Do not require a co-occurring
+        \bT-\d+\b, do not drop an
+        alternative, do not extract it to a
+        new name as a way of editing it, and
+        do not change severity. Live-plan
+        eagerness is F149, ratified.
+      </Constraint>
+      <Constraint>
+        README.md is unchanged (NonGoal).
+        examples/ is unchanged (NonGoal).
+        This bundle does not touch any
+        product version surface: not
+        package.json version, README
+        packaged-version marker,
+        openpackage.yml,
+        .claude-plugin/marketplace.json, or
+        plugins/ngrace/.claude-plugin/plugin.json.
+        CHANGELOG.md remains unedited and
+        generated (D5.5). Archives under
+        .ngrace/changes/archive/ and
+        docs/plans/archive/ are never edited.
+        decisions.md is not amended.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first
+        regressions for the new location
+        filter (archive+applied matching
+        title silent; active+applied matching
+        title fires; active approved matching
+        title still fires). F23: exact toBe /
+        toHaveLength on the new silent and
+        fire cases, not weaker bounds. Do
+        not manufacture a red for HEAD-true
+        detectConfidentlyWrong archive
+        behaviour (F45); pin that it still
+        fires. Probe every CloseEvidence
+        command on this spec against a
+        violating tree and a restored tree
+        before approval (F147). Do not use
+        bun run validate:determinism as
+        CloseEvidence (opaque bun run
+        &lt;script&gt; unless configured;
+        it is an ExpectedCommand only).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Narrowing, extracting, or editing the
+        detectZeroOrMoreSwallow title regex,
+        changing its severity, or requiring a
+        task-id co-occurrence. Owner: F149,
+        ratified 2026-09-03. This bundle
+        restores the editable window that
+        ruling assumes; it does not reopen
+        vocabulary.
+      </NonGoal>
+      <NonGoal>
+        Changing detectConfidentlyWrong's
+        archive scan, its F123 status guard,
+        or its marker-scan half. Owner: F123
+        / F149.1. Present-tree &lt;MustExist&gt;
+        claims on applied archives stay in
+        scope for that detector.
+      </NonGoal>
+      <NonGoal>
+        Editing detectSelfReferential's
+        test-file loop (expect(x).toEqual(x)
+        in *.test.ts). Owner: that loop is
+        not plan-walking and has no archive
+        immortality. Only the plan loop is
+        in Goals.
+      </NonGoal>
+      <NonGoal>
+        Moving or rewriting corpus fixtures
+        in src/test-support/defect-corpus.ts,
+        or changing scripts/validate-determinism.ts
+        / src/review/scorer.ts. Owner:
+        unchanged; survival of the ratchet
+        is the reason the fixtures already
+        live under active/.
+      </NonGoal>
+      <NonGoal>
+        Editing src/review/catalog.ts
+        remediation or explanation text.
+        Owner: F149; "rewrite titles that
+        claim sequencing" remains the live
+        remedy. isModuleOwnableWritePath
+        true (LINKS: M-REVIEW) but this
+        bundle must not write it.
+      </NonGoal>
+      <NonGoal>
+        Teaching the archive finding as
+        expected-clean in skills, or editing
+        any SKILL.md / packaged mirror.
+        Owner: C-APPROVE-TIME-REVIEW, already
+        shipped; that bundle named this
+        finding as not expected-clean. This
+        bundle removes the finding instead.
+      </NonGoal>
+      <NonGoal>
+        README.md unchanged; no new CLI
+        token, config key, or review
+        invocation. Owner: unchanged; no
+        user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no user-visible
+        review-detector surface there.
+        Owner: unchanged; no user-visible
+        surface.
+      </NonGoal>
+      <NonGoal>
+        Any product version bump or edit to
+        version surfaces. Hand-editing
+        CHANGELOG.md (D5.5). Editing
+        docs/plans/archive/,
+        .ngrace/changes/archive/, or
+        decisions.md. Filling, fixing, or
+        editing any other bundle. Rewriting
+        C-REWORK-CIRCUIT's archived title.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-ACTIVE-ONLY>
+        detectZeroOrMoreSwallow's plan loop
+        continues past any plan.xml whose
+        scopeIdentityFromPlanRel planLocation
+        is not "active". A fixture plan at
+        .ngrace/changes/archive/C-HELDOUT-ZO/plan.xml
+        with empty &lt;DependsOn&gt; and title
+        "Second after first" (or the
+        C-REWORK-CIRCUIT T-001 title) emits
+        no review.zero-or-more-swallow.
+        Failure conditions: archive path
+        still fires; skip is implemented by
+        reading status rather than
+        scopeIdentityFromPlanRel; a new path
+        helper is introduced.
+      </AC-ACTIVE-ONLY>
+      <AC-LIVE-EAGER>
+        The same detector on a plan at
+        .ngrace/changes/active/… with empty
+        &lt;DependsOn&gt; and a sequencing
+        title still emits
+        review.zero-or-more-swallow. Existing
+        FIRE zero-or-more-swallow
+        (core.test.ts, "Runs once T-001
+        completes") and corpus-zo-02
+        (title "Second after first",
+        mustFire true, surface review)
+        stay green. SILENT without a
+        sequencing claim stays silent.
+        Failure conditions: live plans go
+        silent; regex alternatives drop;
+        corpus-zo-02 mustFire misses.
+      </AC-LIVE-EAGER>
+      <AC-LOCATION-NOT-STATUS>
+        Predicate discrimination. A plan
+        with status="applied", empty
+        &lt;DependsOn&gt;, and a sequencing
+        title: under changes/archive/ it
+        does not fire; under
+        changes/active/ it does fire. A
+        status skip of applied would
+        silence both; this pair must not
+        both be silent. Failure conditions:
+        active+applied silent; archive
+        skipped only when status is not
+        applied.
+      </AC-LOCATION-NOT-STATUS>
+      <AC-SELF-REF-SCOPE>
+        detectSelfReferential's plan loop
+        uses the same
+        scopeIdentityFromPlanRel active
+        filter. corpus-sr-02 (MustMatchPattern
+        File
+        .ngrace/changes/active/C-CORPUS-SR/plan.xml)
+        still fires
+        review.self-referential-comparison.
+        The same MustMatchPattern against a
+        plan under changes/archive/ does not
+        fire. The test-file loop
+        (expect(parsed).toEqual(parsed)) is
+        unchanged. Failure conditions: only
+        zero-or-more-swallow is scoped;
+        corpus-sr-02 misses; test-file FIRE
+        drops.
+      </AC-SELF-REF-SCOPE>
+      <AC-CW-KEPT>
+        Stay-true. detectConfidentlyWrong
+        still walks applied archive plans
+        and still skips superseded /
+        rejected / cancelled. A
+        &lt;MustExist&gt; of a missing path
+        on an applied archived plan still
+        emits review.confidently-wrong.
+        Do not manufacture a red (F45).
+        Failure conditions: archive applied
+        MustExist goes silent; F123 status
+        guard removed.
+      </AC-CW-KEPT>
+      <AC-REGEX-UNTOUCHED>
+        The detectZeroOrMoreSwallow title
+        regex source is byte-identical to
+        HEAD 47a9b99:
+        \bafter\b|\bsecond\b|\bthen\b|\bfollow|\bcompletes?\b|\bonce\b.*\bT-\d+
+        with the i flag. Failure conditions:
+        T-\d+ required on every alternative;
+        an alternative dropped; the regex
+        moved as a way of changing it.
+      </AC-REGEX-UNTOUCHED>
+      <AC-RATCHET>
+        bun test src/review/core.test.ts and
+        bun test src/review/scorer.test.ts
+        pass. scripts/validate-determinism.ts
+        still reports zero-or-more-swallow
+        2/2 and a PASS determinism gate
+        (ExpectedCommand, not CloseEvidence).
+        Failure conditions: corpus-zo-02 or
+        corpus-sr-02 miss; two-run identity
+        diverges.
+      </AC-RATCHET>
+      <AC-NO-NEW-ARGV>
+        Stay-true. src/grace.ts command
+        registration and lint / gate / review
+        arg maps gain no new token. The
+        change is a detector-scope filter
+        consumed by the existing ngrace
+        review command. Do not manufacture
+        a red (F45).
+      </AC-NO-NEW-ARGV>
+      <AC-SURFACES-UNTOUCHED>
+        README.md, examples/, and
+        skills/ are not edited by this
+        bundle. Verified against the branch
+        point 47a9b99, so a staged or
+        committed edit fails and an unedited
+        tree passes; both directions were
+        probed at authoring.
+        <CloseEvidence>
+          <Command>git diff --exit-code 47a9b99 -- README.md examples/ skills/</Command>
+        </CloseEvidence>
+      </AC-SURFACES-UNTOUCHED>
+      <AC-CHANGELOG-UNTOUCHED>
+        CHANGELOG.md is not edited by this
+        bundle (D5.5). Verified against the
+        branch point 47a9b99, so a staged or
+        committed edit fails and an unedited
+        file passes; both directions were
+        probed at authoring.
+        <CloseEvidence>
+          <Command>git diff --exit-code 47a9b99 -- CHANGELOG.md</Command>
+        </CloseEvidence>
+      </AC-CHANGELOG-UNTOUCHED>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/review/scorer.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:determinism</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --fail-on warnings</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts review --change C-REVIEW-ARCHIVE-SCOPE --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        After landing: ngrace review --change
+        of this bundle (and of any other)
+        no longer displays
+        review.zero-or-more-swallow on
+        archive/C-REWORK-CIRCUIT/plan.xml.
+        Active-plan FIRE and corpus-zo-02
+        still fire. corpus-sr-02 still fires;
+        an archived self-referential plan
+        does not. An applied archived
+        MustExist miss still raises
+        review.confidently-wrong. Location
+        not status: active+applied fires,
+        archive+applied does not. Regex
+        source unchanged. Determinism gate
+        PASS with zero-or-more-swallow 2/2.
+        README.md, examples/, skills/,
+        CHANGELOG.md untouched. Red-first on
+        the new silent/fire pair, not only a
+        green suite. Do not use current-mode
+        lint of this root as a target
+        assertion.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Module ownership from
+        .ngrace/graph/main.xml at authoring
+        HEAD 47a9b99: M-REVIEW Path
+        src/review/core.ts (LINKS: M-REVIEW
+        on that file). No other modules. If
+        implement discovers
+        src/review/catalog.ts,
+        src/review/scorer.ts,
+        src/test-support/defect-corpus.ts,
+        or any SKILL.md must change,
+        stop-and-report and re-spec — do
+        not silently expand (F133 / F136).
+      </Assumption>
+      <Assumption>
+        Anticipated write scope (plan OWS
+        must not exceed without re-spec):
+        src/review/core.ts,
+        src/review/core.test.ts.
+        src/review/core.ts is the only
+        module-ownable path; GraphAnchors
+        M-REVIEW covers it. core.test.ts is
+        not module-ownable (*.test.ts).
+      </Assumption>
+      <Assumption>
+        C-APPROVE-TIME-REVIEW is already
+        archived applied at this HEAD, so
+        the registry order "after
+        C-APPROVE-TIME-REVIEW" is satisfied
+        without this bundle waiting. That
+        bundle's NonGoal assigned the
+        archive-scan defect here; this spec
+        is that work.
+      </Assumption>
+      <Assumption>
+        Version bump is a NonGoal. Current
+        packaged version at authoring is
+        whatever README / package.json /
+        openpackage / marketplace /
+        plugin.json already agree on; this
+        bundle does not move them.
+      </Assumption>
+    </Assumptions>
+  </C-REVIEW-ARCHIVE-SCOPE>
+</NgraceChangeSpec>
