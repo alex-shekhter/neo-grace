@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-REVIEW-ARCHIVE-SCOPE>
     <Summary>
       Restrict detectZeroOrMoreSwallow and
