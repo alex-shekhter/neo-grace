@@ -1,0 +1,192 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-CITATION-ANCHOR-REPAIR</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    Identity has to land while
+    decisions.md is still one file.
+    The later split moves F/D bodies;
+    fragments that today collide
+    inside one file become
+    cross-file references whose
+    target is undefined for the
+    whole interval between bundles.
+    Delimiter-preserving slugs make
+    F9.1 and F91 distinct so the
+    engine rewrite is mechanical
+    over a set whose every member
+    has exactly one target.
+
+    This is not preservation of
+    working GitHub links. GitHub
+    heading slugs strip
+    punctuation, so 0 of the
+    current f/d fragments match a
+    generated heading id. Explicit
+    &lt;a id name&gt; anchors are
+    new targets. The first-token
+    strip-dot convention is what
+    authors already typed; keep-dot
+    is what those destinations must
+    become.
+
+    Same-token duplicates (F19,
+    F21, F21 correction, F27.1,
+    F27.1 amendment) are not
+    strip-dot collisions. Keep-dot
+    alone does not separate them.
+    The qualifier-suffix rule is
+    the smallest addition that
+    makes every heading unique
+    without renaming canonical
+    Token — titles and without
+    treating f21-correction as a
+    one-off.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Strip-dot slugs (F9.1 → f91,
+      F108.1 → f1081). Pros: matches
+      every current destination
+      except #f21-correction; no
+      mechanical rewrite of unique
+      dotted citations. Cons: 29
+      collision groups at
+      measurement, including F9.1 /
+      F91; the later split inherits
+      every collision; f21-correction
+      stays a hand-assigned
+      exception. Rejected. This is
+      the earlier proposal the
+      brief retired.
+    </Alternative>
+    <Alternative>
+      Keep-dot only, no qualifier
+      suffix (F9.1 → f9.1; F21
+      correction also → f21). Pros:
+      one rule; eliminates the 26
+      distinct-token strip-dot
+      groups. Cons: three remaining
+      collisions (F19, F21, F27.1);
+      #f21-correction would not
+      match its heading. Rejected.
+      The brief's claim that
+      keep-dot eliminates every
+      collision group is false
+      until the qualifier-suffix
+      clause is added.
+    </Alternative>
+    <Alternative>
+      GitHub full-heading slugs as
+      ids, fragments rewritten to
+      match. Pros: auto-generated
+      heading ids would then match
+      if GitHub's algorithm is
+      reimplemented exactly. Cons:
+      0 of 182 current fragments
+      match those slugs already;
+      ids become long title strings
+      that churn when a heading is
+      edited; the later index wants
+      short stable tokens. Rejected.
+    </Alternative>
+    <Alternative>
+      Keep-dot plus qualifier suffix
+      on same-token duplicates only.
+      Pros: distinct tokens never
+      collide; the three remaining
+      pairs become f19 / f19s, f21 /
+      f21-correction, f27.1 /
+      f27.1-amendment; unique
+      correction headings stay
+      f74.1 so mechanical restore
+      still works; f21-correction
+      is the ordinary suffix, not
+      an exception. Cons: the
+      possessive F19's rule is a
+      third shape, closed here.
+      Chosen.
+    </Alternative>
+    <Alternative>
+      Always suffix correction /
+      amendment even when unique
+      (F74.1 correction →
+      f74.1-correction). Pros:
+      uniform heading-shape to
+      slug. Cons: mechanical
+      restore of #f741 would miss
+      the new id; every unique
+      correction heading becomes a
+      reading case. Rejected.
+    </Alternative>
+    <Alternative>
+      Record the 79 colliding
+      citations as a table in the
+      spec or a new inventory file.
+      Pros: a reviewer can read
+      intent without the diff.
+      Cons: Constraints must not
+      pin counts of a file this
+      bundle changes; the table
+      rots the moment a later
+      sentence is appended; the
+      corrected fragment is already
+      the durable record; the
+      validator proves uniqueness,
+      not intent. Rejected. The
+      git diff of those
+      destinations is the reading
+      record.
+    </Alternative>
+    <Alternative>
+      Put the uniqueness check in
+      ngrace lint. Pros: one
+      diagnostic surface. Cons:
+      docs markdown is outside the
+      lint artifact universe
+      (src/grace-lint.test.ts:1879);
+      adding .md to CODE_EXTENSIONS
+      overturns that test; this
+      file is not an XML artifact.
+      Rejected. scripts/ plus
+      validate:ci is the precedent
+      (validate-determinism.ts).
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Three-genre split, retirement
+      triggers, ceilings, registry.xml,
+      and codifiedIn / taughtIn
+      checks. Owner:
+      C-RECORD-RETIREMENT. This
+      bundle only makes that
+      rewrite mechanical.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Mechanical. [F88.2](#f882)
+      today. Only heading F88.2
+      strip-dots to f882. After
+      apply the destination is
+      #f88.2 and the heading
+      carries id="f88.2".
+    </Scenario>
+    <Scenario>
+      Reading. [F93](#f93) today.
+      Headings F9.3 and F93 both
+      strip-dot to f93. The citing
+      sentence decides. After apply
+      the destination is #f9.3 or
+      #f93, never left as a token
+      that silently binds to F93.
+    </Scenario>
+    <Scenario>
+      Qualifier. [F21 correction](#f21-correction)
+      today already names the
+      suffix this grammar produces.
+      The canonical F21 heading
+      gets id="f21". Both stay.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>

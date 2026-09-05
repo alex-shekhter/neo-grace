@@ -1,0 +1,608 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-CITATION-ANCHOR-REPAIR>
+    <Summary>
+      Give every finding and decision heading
+      in docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      an explicit unique HTML anchor, using a
+      delimiter-preserving slug (F9.1 → f9.1),
+      and rewrite every internal
+      ](#f…) / ](#d…) fragment so it resolves
+      to exactly one of those anchors. Ship a
+      CI check that proves uniqueness. The
+      file does not split, move, or retire
+      any entry. This is identity, not
+      retirement. Links do not work under
+      GitHub heading slugs today; this bundle
+      makes them work for the first time.
+    </Summary>
+    <Problem>
+      Internal citations in
+      docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      are markdown fragments of the form
+      ](#f91) and ](#d281). They follow a
+      first-token convention that strips
+      dots. GitHub heading slugs also strip
+      punctuation, so F9.1 and F91 both
+      reduce to f91, and zero current
+      fragments match a GitHub heading id.
+      No explicit &lt;a id&gt; / &lt;a name&gt;
+      anchors exist. The later retirement
+      split (registry name
+      C-RECORD-RETIREMENT, D28 / D28.1 /
+      F161) moves F/D bodies into other
+      files and turns same-file fragments
+      into cross-file references. Doing
+      that before every heading has exactly
+      one target leaves the colliding
+      fragments undefined for the interval
+      between bundles. This bundle settles
+      identity while the file is still one
+      document. It does not pay F161 and
+      does not implement D28. The authority
+      owns registry writes; this spec does
+      not add a registry row.
+    </Problem>
+    <Goals>
+      <Goal>
+        Assign every heading whose text
+        begins F&lt;n&gt; or D&lt;n&gt;, at
+        any ATX level, exactly one explicit
+        HTML anchor whose id is the
+        delimiter-preserving slug of that
+        heading.
+      </Goal>
+      <Goal>
+        Rewrite every ](#f…) / ](#d…)
+        fragment in that file so it names
+        exactly one of those ids. Mechanical
+        where the strip-dot token matches
+        one heading; by reading the citing
+        sentence where it matches two or
+        more. After apply, this is the first
+        time those fragments resolve, not
+        preservation of working GitHub
+        links.
+      </Goal>
+      <Goal>
+        Ship
+        scripts/validate-citation-anchors.ts
+        on package.json validate:ci. The
+        script exits 0 only when every F/D
+        heading has exactly one matching
+        anchor, ids are unique, and every
+        f/d fragment resolves to exactly
+        one existing id. Discriminating
+        tests plant the refuse paths.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module change).
+        One markdown record file, one CI
+        script and its test, and
+        package.json validate:ci membership.
+        Not T2: no skill, lint-domain, or
+        graph-module write. Not T3: no new
+        product subsystem.
+      </Constraint>
+      <Constraint>
+        Roadmap plan RM-GOVERNED-PATH.
+        Identity is the precondition of
+        D28's later split. Enforcement of
+        uniqueness ships with the anchors,
+        never after.
+      </Constraint>
+      <Constraint>
+        Slug grammar, delimiter-preserving.
+        Primary slug: lowercase of the
+        leading token matching
+        [FD]&lt;digits&gt;(.&lt;digits&gt;)* ,
+        dots kept. F9.1 → f9.1. D28.1 →
+        d28.1. F88.1.1 → f88.1.1. F91 →
+        f91. Strip-dot (F9.1 → f91) is
+        refused because it collides.
+      </Constraint>
+      <Constraint>
+        Same-token disambiguation, closed.
+        Keep-dot does not collide distinct
+        tokens; it still collides when two
+        headings share the same leading
+        token. For those headings only,
+        the heading that is not the
+        canonical Token — title form takes
+        a suffix: a hyphen plus the next
+        word after the token, lowercased
+        (F21 correction → f21-correction;
+        F27.1 amendment →
+        f27.1-amendment). The heading
+        whose first whitespace token is
+        the id token plus 's (F19's …)
+        takes the apostrophe-stripped
+        first token, lowercased (f19s).
+        The canonical Token — heading
+        keeps the primary slug. Qualifier
+        suffixes are not applied to
+        unique correction/amendment
+        headings. This is the ordinary
+        rule that produces f21-correction;
+        it is not a hand-assigned
+        exception to a strip-dot grammar.
+      </Constraint>
+      <Constraint>
+        Anchor form. Immediately before
+        each F/D heading, on its own line,
+        an empty
+        &lt;a id="SLUG" name="SLUG"&gt;&lt;/a&gt;
+        whose SLUG is the grammar above.
+        id is the HTML5 fragment target.
+        name is the custom-anchor form
+        GitHub documents. Both attributes
+        carry the same value. Heading
+        text is unchanged. Pandoc / kramdown
+        {#id} heading suffixes are refused;
+        GitHub does not honour them.
+      </Constraint>
+      <Constraint>
+        Heading population is every ATX
+        heading (levels 1–6) whose text
+        begins F&lt;n&gt; or D&lt;n&gt;. A
+        two-level cut (^### F, ^## D)
+        is refused.
+      </Constraint>
+      <Constraint>
+        Fragment rewrite, two classes.
+        A markdown destination matching
+        ](#f…) or ](#d…) where the token
+        after f/d starts with a digit,
+        plus the existing #f21-correction,
+        is in scope. Mechanical: the
+        strip-dot token matches exactly
+        one F/D heading → rewrite to that
+        heading's keep-dot (or qualifier)
+        slug. Reading: the strip-dot
+        token matches two or more
+        headings → read the citing
+        sentence and rewrite to the
+        intended heading's slug. #f21-correction
+        already names the qualifier slug
+        and stays. Non-f/d fragments
+        (#named-bundle-registry,
+        #slip-register--2026-08-15, and
+        siblings) are unchanged.
+      </Constraint>
+      <Constraint>
+        The corrected fragment is the
+        resolution record. A parallel
+        disambiguation table is not
+        written into this spec, the
+        record file, or a new inventory
+        path. Uniqueness after apply is
+        proved by the validator. The
+        reading of colliding citations
+        is the git diff of those
+        destinations.
+      </Constraint>
+      <Constraint>
+        Validator home:
+        scripts/validate-citation-anchors.ts,
+        invoked from package.json
+        validate:ci (named script
+        validate:citation-anchors running
+        bun ./scripts/validate-citation-anchors.ts).
+        Precedent: scripts/validate-determinism.ts
+        and the validate:determinism
+        member of that chain. Production
+        invocation targets exactly
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md.
+        Tests live at
+        scripts/validate-citation-anchors.test.ts
+        and plant a missing anchor, a
+        duplicate id, an unresolved
+        fragment, and a happy fixture;
+        bun test runs them via the
+        existing test member of
+        validate:ci. The script may take
+        a path for those fixtures.
+        scripts/ stays in
+        .ngrace-lint.json ignoredDirs
+        and is not added to the graph
+        (M-RELEASE-AUTOMATION remains
+        deferred). Do not add a ngrace
+        lint issue code. Do not edit
+        src/grace-lint.ts,
+        src/lint/core.ts,
+        src/lint/catalog.ts, or
+        src/language-registry.ts
+        CODE_EXTENSIONS.
+      </Constraint>
+      <Constraint>
+        decisions.md body text is not
+        rewritten except (1) the inserted
+        empty anchor lines immediately
+        before F/D headings and (2) in-scope
+        fragment destinations. Do not
+        move, merge, reword, or retire
+        any entry. Do not add, remove,
+        or edit any finding, decision, or
+        registry row. Do not change
+        heading text.
+      </Constraint>
+      <Constraint>
+        isDocsPlansPath in
+        src/review/core.ts exempts
+        docs/plans/** from the
+        WriteEvidence audit (F27.1).
+        Do not edit src/review/core.ts.
+        ObservedWriteScope for the later
+        plan must include the record file
+        this bundle edits; that path
+        belongs in ObservedWriteScope
+        because it is in-scope work, not
+        the F150 incidental-decisions.md
+        case.
+      </Constraint>
+      <Constraint>
+        README.md and examples/: both
+        unchanged; no user-visible
+        surface. Owner of any later
+        CONTRIBUTING.md validate:ci
+        table edit: C-CI-CLAIM-PIN.
+      </Constraint>
+      <Constraint>
+        Do not edit anything under
+        docs/plans/archive/ or
+        .ngrace/changes/archive/.
+        docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md
+        is out of scope permanently.
+      </Constraint>
+      <Constraint>
+        Do not pin a scalar count of
+        decisions.md (headings,
+        fragments, collisions, bytes,
+        lines) into a Constraint.
+        Counts expire (F123). Snapshot
+        measurements live in Assumptions
+        and are re-derived at execution.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        The three-genre split, retirement
+        operation, dynamic ceilings,
+        registry.xml, and codifiedIn /
+        taughtIn resolution checks.
+        Owner: C-RECORD-RETIREMENT, the
+        next bundle, still the registry
+        name for that work.
+      </NonGoal>
+      <NonGoal>
+        Expanding ngrace lint to
+        markdown, adding .md to
+        CODE_EXTENSIONS, or removing
+        docs markdown from the
+        outside-the-lint-artifact-universe
+        test. Owner: a later lint-domain
+        bundle; this one must not
+        overturn that test.
+      </NonGoal>
+      <NonGoal>
+        Graph adoption of scripts/ or
+        minting M-RELEASE-AUTOMATION.
+        Owner: the deferred
+        scripts-adoption C-* named in
+        CLAUDE.md.
+      </NonGoal>
+      <NonGoal>
+        Editing skills/ngrace/* or
+        plugins/ngrace/skills/ngrace/*.
+        The four
+        scripts/skill-contracts.test.ts
+        decisions.md pins stay true
+        because the path stays. Owner:
+        unchanged; no teaching-surface
+        edit.
+      </NonGoal>
+      <NonGoal>
+        Editing isDocsPlansPath,
+        auditWriteEvidenceOutsideScope,
+        or any src/review/* file.
+        Owner: F27.1 stands;
+        C-SCOPE-AUDIT-ATTRIBUTION-2
+        already ruled the WriteEvidence
+        side.
+      </NonGoal>
+      <NonGoal>
+        CONTRIBUTING.md validate:ci
+        membership table. Owner:
+        C-CI-CLAIM-PIN.
+      </NonGoal>
+      <NonGoal>
+        README.md and examples/
+        unchanged; no user-visible CLI
+        token, config key, or ngrace
+        command. Owner: unchanged; no
+        user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        Validating non-f/d fragments, or
+        adding explicit anchors to
+        non-F/D headings. Owner:
+        unchanged; GitHub heading slugs
+        already resolve those four
+        destinations.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SLUG-GRAMMAR>
+        Every F/D heading id equals the
+        delimiter-preserving grammar in
+        Constraints: F9.1 is f9.1, not
+        f91; D28.1 is d28.1, not d281;
+        F21 correction is f21-correction;
+        F27.1 amendment is
+        f27.1-amendment; F19's … is f19s;
+        the canonical F19 / F21 / F27.1
+        headings keep f19 / f21 / f27.1.
+        Failure: a strip-dot id; a
+        qualifier suffix on a unique
+        correction heading; two headings
+        sharing an id.
+      </AC-SLUG-GRAMMAR>
+      <AC-EXPLICIT-ANCHORS>
+        Every F/D heading at any ATX
+        level has, on the immediately
+        preceding line, an empty
+        &lt;a id="SLUG" name="SLUG"&gt;&lt;/a&gt;
+        whose SLUG matches the grammar.
+        Heading text is byte-identical to
+        pre-change. Failure: a heading
+        with no preceding anchor; HTML
+        inside the heading line; a
+        {#id} suffix; id and name
+        disagree; a two-level cut that
+        skips H4 findings or H3
+        decisions.
+      </AC-EXPLICIT-ANCHORS>
+      <AC-FRAGMENTS-RESOLVE>
+        Every in-scope ](#f…) / ](#d…)
+        fragment resolves to exactly one
+        existing anchor id in the file.
+        Zero of those fragments resolve
+        under GitHub heading slugs today;
+        after apply they resolve because
+        of the explicit anchors, not
+        because GitHub slugs were
+        preserved. Failure: an unresolved
+        fragment; two anchors for one
+        fragment; a strip-dot destination
+        left pointing at a keep-dot id
+        it no longer names.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+        </CloseEvidence>
+      </AC-FRAGMENTS-RESOLVE>
+      <AC-AMBIGUOUS-READ>
+        Every fragment whose pre-change
+        strip-dot token matched two or
+        more headings is rewritten to the
+        keep-dot or qualifier slug of the
+        heading the citing sentence
+        names. The git diff of those
+        destinations is the reading
+        record. Uniqueness from
+        AC-FRAGMENTS-RESOLVE is necessary
+        and not sufficient here.
+        Failure: a colliding token left
+        as strip-dot so it silently binds
+        to the un-dotted heading; a
+        parallel table substituted for
+        the corrected link.
+      </AC-AMBIGUOUS-READ>
+      <AC-VALIDATOR-CI>
+        package.json validate:ci invokes
+        the named script
+        validate:citation-anchors, which
+        runs
+        bun ./scripts/validate-citation-anchors.ts.
+        A
+        planted missing anchor, duplicate
+        id, or unresolved fragment makes
+        that script exit non-zero, and
+        makes bun test
+        scripts/validate-citation-anchors.test.ts
+        fail. Failure: the script exists
+        but is not on the chain; only
+        bun test covers it; the check
+        lives in ngrace lint.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+        </CloseEvidence>
+      </AC-VALIDATOR-CI>
+      <AC-NO-ARCHIVE-WRITE>
+        git diff against the pre-change
+        tree has no changed path under
+        docs/plans/archive/ or
+        .ngrace/changes/archive/.
+        Failure: any write there,
+        including a fix of a stale
+        citation.
+        <CloseEvidence>
+          <Command>git diff --exit-code -- docs/plans/archive/</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-WRITE>
+      <AC-DOCS-EXAMPLES>
+        README.md and examples/ are
+        byte-identical to the pre-change
+        tree.
+        <CloseEvidence>
+          <Command>git diff --exit-code -- README.md examples/</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No graph module is written.
+      Forced writes are
+      docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      (no LINKS header; isDocsPlansPath),
+      scripts/validate-citation-anchors.ts
+      and
+      scripts/validate-citation-anchors.test.ts
+      (scripts/ is ignoredDirs;
+      M-RELEASE-AUTOMATION deferred),
+      and package.json validate:ci
+      membership only (no LINKS header).
+      Do not mint a synthetic module
+      to fill this section.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test scripts/validate-citation-anchors.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --fail-on warnings</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes, not a
+        green suite. (1) Delete one
+        preceding &lt;a&gt; from a copy
+        of the file: the validator
+        exits non-zero. Restore: pass.
+        (2) Duplicate an id: fail.
+        (3) Point one fragment at a
+        missing id: fail. (4) Leave a
+        strip-dot destination that
+        collides (F9.3 vs F93 both
+        present as keep-dot ids, fragment
+        still #f93 intending F9.3): the
+        uniqueness check cannot catch
+        the wrong unique target; the
+        reading criterion is the git
+        diff of that destination, audited
+        against the citing sentence.
+        (5) git diff --exit-code on
+        docs/plans/archive, examples/,
+        and README.md is empty. (6)
+        Heading lines in decisions.md
+        are unchanged except for the
+        new preceding &lt;a&gt; lines
+        and fragment destinations.
+        Authority mutation probes on a
+        throwaway copy; bun test green
+        is a precondition, not the
+        evidence.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken 2026-09-05
+        at commit
+        a6fefc01095ec18924fd33419caa81ea4dd80dd3,
+        file last written by
+        b0adb696e806447a4405d0d015456d22e0d574a1.
+        wc -l
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md
+        → 10202. bun
+        /tmp/measure-citation-anchors.mjs
+        (heading parse at every ATX
+        level, keep-dot vs strip-dot vs
+        GitHub slug, fragment parse of
+        ](#…)). F/D headings: 287
+        (F H3 202, F H4 27, D H2 22,
+        D H3 36). Unique leading tokens
+        284; three same-token duplicate
+        pairs (F19, F21, F27.1).
+        Two-level cut (^### F, ^## D)
+        keeps 224 and omits 63.
+        Explicit HTML / pandoc anchors:
+        0. ](#…) fragments: 589.
+        In-scope f/d fragments: 568
+        (pattern ^#[fd]&lt;digit&gt; or
+        #f21-correction), 182 distinct
+        destinations, 0 of 182 match a
+        GitHub heading slug, 0 dotted
+        destinations in the file today.
+        Region of those 568: 431 in an
+        F/D body, 15 preamble, 22 slip
+        register, 100 named-bundle
+        registry. Strip-dot collision
+        groups: 29 (26 distinct-token
+        pairs of the F9.1/F91 kind;
+        3 same-token duplicates).
+        Keep-dot collision groups: 3
+        (those same-token duplicates);
+        with the qualifier-suffix rule,
+        0. Cited colliding strip-dot
+        ids: 26 distinct, 79
+        occurrences (the 29 groups
+        minus f97, f103, f111, which
+        collide as headings but have
+        no fragment). Rewrite classes
+        of 182 distinct ids: 117
+        already-keep, 38 mechanical
+        restore-dots (108
+        occurrences), 26 ambiguous-read
+        (79 occurrences), 1 named
+        #f21-correction. Non-f/d
+        fragments (21 occurrences, 4
+        destinations):
+        #named-bundle-registry,
+        #slip-register--2026-08-15,
+        #which-document-tracks-finding-state,
+        #decision-candidate--co-draft-the-pair-not-ratified.
+      </Assumption>
+      <Assumption>
+        Strip-dot collision slugs
+        (29): d11, d12, d13, d14, d21,
+        f101, f102, f103, f111, f112,
+        f121, f122, f131, f132, f19,
+        f21, f271, f51, f81, f82, f91,
+        f92, f93, f94, f95, f96, f97,
+        f98, f99. Cited subset (26):
+        that list without f97, f103,
+        f111.
+      </Assumption>
+      <Assumption>
+        Dot is legal in an HTML5 id
+        (any character except space;
+        WHATWG). Legal in HTML 4.01
+        ids (letters, digits, hyphens,
+        underscores, colons, periods).
+        Legal in a URL fragment
+        without encoding (RFC 3986
+        unreserved). Legal in a
+        CommonMark / GFM destination
+        ](#f9.1). GitHub heading-id
+        generation strips punctuation,
+        so F9.1's auto id is not f9.1;
+        that is why explicit anchors
+        are required rather than
+        relying on heading slugs.
+        GitHub documents custom
+        anchors as
+        &lt;a name="…"&gt;&lt;/a&gt;
+        (docs.github.com basic writing
+        syntax, Custom anchors). HTML5
+        fragment navigation uses id.
+        CSS ID selectors must escape a
+        dot (#f9\.1); this bundle does
+        not style these ids. Pandoc
+        {#id} is not GitHub GFM.
+      </Assumption>
+      <Assumption>
+        ngrace lint does not admit
+        this file. Evidence:
+        src/grace-lint.test.ts:1879
+        leaves docs markdown outside
+        the lint artifact universe;
+        src/language-registry.ts
+        CODE_EXTENSIONS has no .md;
+        .ngrace-lint.json ignoredDirs
+        includes scripts.
+      </Assumption>
+    </Assumptions>
+  </C-CITATION-ANCHOR-REPAIR>
+</NgraceChangeSpec>
