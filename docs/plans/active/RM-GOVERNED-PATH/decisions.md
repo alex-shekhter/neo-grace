@@ -8353,7 +8353,7 @@ ordered, not deferred. One bundle, one branch, merged before the next is cut.
 | **`C-EVIDENCE-DISCRIMINATION`** | A lint rule refusing a `CloseEvidence` command with no failing path: allowlist by command **shape** (not a denylist of binaries), configurable in `.ngrace-lint.json`, polyglot defaults, warning severity with a documented escape. Named here 2026-09-02 by [D26](#d26). Searched before minting: `C-CRITERION-CLOSE-EVIDENCE` created the state, `C-CALIBRATION-COMMAND-EVIDENCE` / `C-COMMAND-EVIDENCE-RECORDED` / `C-FOLD-USES-RECORDED-COMMAND-EVIDENCE` / `C-VERDICT-EVIDENCE` are adjacent; none asks whether a recorded command can fail. | [F147](#f147). `change.close-evidence-incomplete` checks a `Command` exists and `change.close-evidence-and-satisfied` checks task mapping; neither checks power. | **Named 2026-09-02; not in the order.** Must judge command text only ([`C-PHASE-RULE-PIN`](#named-bundle-registry)'s rejected reading B forbids resolving package scripts transitively). Its `--explain` must say the rule catches only the cheap class: `pytest --collect-only`, `cargo test --no-run` and `git diff --exit-code` over the wrong paths all exit 0. |
 | **`C-APPROVE-TIME-REVIEW`** | Teach `ngrace review --change` as a step **before** `ngrace gate approve`, at both the spec and the plan stage: `ngrace-spec` approve step, `ngrace-plan` rule 15, and `ngrace-reviewer` broadened from one moment ("before judgment") to three. **Must ship the partial-review caveat, corrected by [F150.1](#f1501)**: at **spec** approve the scope and WriteEvidence audits report `not-run` (no plan on disk) while the attempt-pair audit *runs* and reports `ran over 0 fail→pass pair(s)` — a clean line over an empty denominator, which is a **weaker** signal than `not-run` and reads as substantiation. Quote each audit's actual status string per stage; a grouping phrase is how [F147](#f147)'s manufactured-pass shape gets taught. Named here 2026-09-03 by [F149](#f149), **amended by [F150](#f150)**: the bundle must also ship what a clean approve-time review looks like, because at **plan** approve the scope audit reports the bundle's own `spec.xml` and `plan.xml` as out-of-scope writes on every bundle (`decisions.md` only when it changed *after* the recorded base — [F150.2](#f1502)), and the `WriteEvidence` audit reports a third status there, `unable-to-determine`, distinct from its spec-stage `not-run` (at **spec** approve it does not run at all, and naming those findings as expected there teaches a not-run audit as if it had spoken — [F150.1](#f1501)) — an instruction that produces unexplained errors on first use is a trap, not guidance. **Also carries [F152](#f152)**: show the closed approval lexicon whenever approval is requested, one approval request per message naming one artifact, and record the ratifying phrase verbatim — three concerns in this bundle now (approve-time review, F150's expected-findings guidance, F152's lexicon rules), plus the carried XML-escaping item, and its Intent must say so rather than let scope accrete. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` covers the phrase and the close acts ([D19](#d19)/[D20](#d20)), `C-REVIEW-SURFACE` created the detector surface; **none says when review runs.** | [F149](#f149), and retroactively [F136](#f136) and [F148](#f148) — both were catchable by a review the artifact was still editable for. | **Next after `C-EVIDENCE-DISCRIMINATION`.** Candidate to carry the carried item *"the XML-escaping rule's skill homes"* — same two skill files, same rule shape; the spec author decides, and says which. Collides with `C-EVIDENCE-DISCRIMINATION` on `skills/ngrace/ngrace-spec/SKILL.md` and the `skillTextLines` pins, so **sequential, never concurrent**. |
 | **`C-REVIEW-ARCHIVE-SCOPE`** | Restrict `detectZeroOrMoreSwallow` to plans under `changes/active/`, and rule on `detectSelfReferential`'s plan loop, which carries the same missing guard and fires on nothing today. `detectConfidentlyWrong` **keeps** its archive scan — its `MustExist` targets assert present-tree state — so the change must state why the two differ rather than applying one rule to all three. Named here 2026-09-03 by [F149.1](#f1491). Searched before minting: `C-REVIEW-LANGUAGE-SCOPE` is the closest precedent (it fixed three review false positives) but by marker-scan scoping, not archive scoping; not a synonym. | [F149.1](#f1491). | **After `C-APPROVE-TIME-REVIEW`.** Ordered, not deferred: the cost is one ack per close, recurring forever, and the fix is measured at one line with the ratchet intact. |
-| **`C-SCOPE-AUDIT-ATTRIBUTION`** | Stop `auditScopeOutsideWriteScope` attributing the approve gate's own writes to the executor: exempt the bundle's `spec.xml` and `plan.xml` in the **changed-files** audit (`src/review/core.ts:1033-1060`, via `isCliLifecyclePath` at `:1013-1031`), and scope the base-diffing audits to bundles under `changes/active/` so a closed or superseded bundle is not re-reported present-tense. **`auditWriteEvidenceOutsideScope` (`:1093-…`) keeps raising on `spec.xml`/`plan.xml`** — there the writer is the executor's own ledger and the claim is a real breach signal. **Overturns a shipped criterion**: `AC-SCOPE-LIFECYCLE-EXCLUSION` (`.ngrace/changes/archive/C-REPORT-HONESTY/plan.xml:469,481`, red at `src/review/core.test.ts:1273-1289`) asserts the current behaviour, recorded as intentional in `brownfield-run4-findings.md:300` for approved-artifact immutability; the spec must say so and answer it with `auditApprovedArtifact` (`:1737-1772`), which enforces immutability byte-exactly via `review.approved-fingerprint-mismatch`. Named here 2026-09-04. Searched before minting: `C-REVIEW-ARCHIVE-SCOPE` scoped the plan-walking detectors and not these audits, `C-PLAN-SCOPE-PATHS` compares the spec bound to `ObservedWriteScope` (a different comparison), `C-DECLARED-WRITES` created the declared-write surface; none touches attribution. `AC-SCOPE-LIFECYCLE-EXCLUSION` is an acceptance criterion, not a bundle name. | [F137](#f137), [F150](#f150), [F155](#f155). | **Position 1 of five, ratified by the maintainer 2026-09-04.** Live cost is two errors at every close; the archive residue is 68 errors across 5 bundles, reachable only on an explicit `--change`. |
+| **`C-SCOPE-AUDIT-ATTRIBUTION`** | Stop `auditScopeOutsideWriteScope` attributing the approve gate's own writes to the executor: exempt the bundle's `spec.xml` and `plan.xml` in the **changed-files** audit (`src/review/core.ts:1033-1060`) through a **sibling predicate keyed on the reviewed change id, never an extension of `isCliLifecyclePath`** — that helper is shared with the WriteEvidence audit (`:1045` and `:1108`), so widening it would silence the breach signal ([F155.1](#f1551)), and scope the base-diffing audits to bundles under `changes/active/` so a closed or superseded bundle is not re-reported present-tense. **`auditWriteEvidenceOutsideScope` (`:1093-…`) keeps raising on `spec.xml`/`plan.xml`** — there the writer is the executor's own ledger and the claim is a real breach signal. **Overturns a shipped criterion**: `AC-SCOPE-LIFECYCLE-EXCLUSION` (`.ngrace/changes/archive/C-REPORT-HONESTY/plan.xml:469,481`, red at `src/review/core.test.ts:1273-1289`) asserts the current behaviour, recorded as intentional in `brownfield-run4-findings.md:300` for approved-artifact immutability; the spec must say so and answer it with `auditApprovedArtifact` (`:1736-1773`), which enforces immutability byte-exactly via `review.approved-fingerprint-mismatch`. Named here 2026-09-04. Searched before minting: `C-REVIEW-ARCHIVE-SCOPE` scoped the plan-walking detectors and not these audits, `C-PLAN-SCOPE-PATHS` compares the spec bound to `ObservedWriteScope` (a different comparison), `C-DECLARED-WRITES` created the declared-write surface; none touches attribution. `AC-SCOPE-LIFECYCLE-EXCLUSION` is an acceptance criterion, not a bundle name. | [F137](#f137), [F150](#f150), [F155](#f155). | **Position 1 of five, ratified by the maintainer 2026-09-04.** Live cost is F137's pair at every close and again at plan-approve. Archive-residue counts are **conditional on tree state and expire** — see [F155.1](#f1551) rather than quoting a number from this row. |
 | **`C-CONSTRAINT-DURABILITY`** | A rule in `skills/ngrace/ngrace-spec/SKILL.md` and its packaged mirror: `Constraints` holds durable scope facts; authoring-pass sequencing (*"spec only in this pass"*, *"status remains draft"*, *"do not author plan.xml until approved"*) belongs to the brief and the gate, never to the artifact that outlives the pass. Named here 2026-09-04 by [F156](#f156). Searched before minting: `C-EXECUTION-CONTRACT` governs the executor's contract, `C-APPROVAL-SCOPE` the phrase and close acts, `C-PLAN-QUALITY` plan-side richness; none says what `Constraints` may contain. | [F156](#f156). | **Position 2 of five, ratified 2026-09-04.** Zero tool findings today by measurement — 24 of 63 archived specs affected, all inside a `<Constraint>`. The archived 24 are **not** rewritten. Prose detection is out of scope (`review.regex-over-structure` is a defect code here); the enforceable half is skill text. |
 | **`C-APPROVE-TARGET-DISCOVERY`** | A bare `ngrace gate approve` targets whatever **lacks an attestation** rather than falling through to `plan`. The fallthrough is `src/gates/ledger.ts:1505-1514` (cited as `:1256-1267` in [F129.1](#f1291), before the file moved), so on a bundle whose spec and plan are both `approved` a bare approve re-stamps `plan`, reports success, and a user who does not know `--artifact` can never attest the spec. Named here 2026-09-04; F129.1 asked for the slot and minted no name. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` owns the phrase and the close acts, `C-APPROVE-TIME-REVIEW` owns *when review runs*; none changes what a bare approve targets. | [F129.1](#f1291). | **Position 4 of five, ratified 2026-09-04.** Product behaviour change with its own reds. |
 | **`C-EFFORT-DEPTH`** | Expose rework depth per bundle and across the archive, reading the durable ledger through `listAccountingEvents` (`src/grace-cursor.ts:1908`) and `computeTaskFileChurn` (`:2634`) — no new record. Bytes and lines stay out: they are not derivable from a digest ([F141](#f141)). Named here 2026-09-04. Searched before minting: `C-AMENDMENT-COUNT` set the precedent of reporting from data already held, `C-REWORK-CIRCUIT` computes churn but emits it only inside an escalation message (`:2716-2721`); neither reports per bundle or retroactively. | [F141](#f141), [F141.1](#f1411). | **Position 5 of five, ratified 2026-09-04**, re-scoped to a reporting surface by [F141.1](#f1411). Coverage measured 2026-09-04: 46 of 63 archived bundles hold attempts, all 46 carry `WriteEvidence`, 39 show depth > 0. Must apply `isProductChurnPath` and re-measure — the probe's figures are a superset. |
@@ -9524,7 +9524,7 @@ immutability."* So excluding the two gate-owned artifacts from `isCliLifecyclePa
 purpose.
 
 **The answer to it.** Immutability is now enforced **byte-exactly and elsewhere**:
-`auditApprovedArtifact` (`src/review/core.ts:1737-1772`) covers **both** artifacts and raises
+`auditApprovedArtifact` (`src/review/core.ts:1736-1773`) covers **both** artifacts and raises
 `review.approved-fingerprint-mismatch` when an `approved` file's bytes drift from the fingerprint
 `gate approve` recorded ([`C-APPROVAL-FINGERPRINT`](#named-bundle-registry)). The scope audit's signal
 is strictly weaker: it knows only that a path appears in a diff, and **cannot tell the gate's
@@ -9567,7 +9567,7 @@ on 2026-09-04 at position 1 of five.
 
 **Citations re-anchored 2026-09-04, because line numbers in earlier findings have moved.**
 `isCliLifecyclePath` `:1013-1031`; `auditScopeOutsideWriteScope` `:1033-1060`;
-`auditWriteEvidenceOutsideScope` from `:1093`; `auditApprovedArtifact` `:1737-1772`;
+`auditWriteEvidenceOutsideScope` from `:1093`; `auditApprovedArtifact` `:1736-1773`;
 `selectApproveTarget`'s fallthrough `src/gates/ledger.ts:1505-1514`, which [F129.1](#f1291) cites as
 `:1256-1267`. Per rule 1 these are dated too: re-check them at citation, do not copy them forward.
 
@@ -9636,3 +9636,86 @@ the executor takes its sequencing from. (b) The durable half is a rule in
 authoring-pass sequencing is the brief's and the gate's. **Skill text is product**, so (b) is a
 bundle. Chartered as [`C-CONSTRAINT-DURABILITY`](#named-bundle-registry), **position 2 of five** in the
 2026-09-04 order. The 24 archived specs are **not** rewritten: an archived artifact is a dated record.
+
+### F155.1 correction — six errors in [F155](#f155) and its charter row, all found by the executor, and two of them are population counts taken from a sample. **[verified]**
+
+The executor's `WRONG` field returned **six** items against the finding and the registry row written
+for it one turn earlier. **All six stand**, each re-measured independently by the authority on
+**2026-09-04** at `86c5787`. Seventeenth consecutive dispatch whose `WRONG` field was right.
+
+**(1) The charter named the wrong mechanism, and the finding's own reasoning disproves it.** The row
+said to exempt `spec.xml`/`plan.xml` *"via `isCliLifecyclePath`"*. That helper is **shared**: called at
+`src/review/core.ts:1045` inside `auditScopeOutsideWriteScope` and at `:1108` inside
+`auditWriteEvidenceOutsideScope`. Widening it would silence the breach signal F155's own two-audit
+paragraph says must keep firing. The exemption must be a **sibling predicate used only by the
+changed-files audit, keyed on the reviewed change id**, failing closed when identity is absent. The
+row is corrected. **The authority wrote the distinction and then wrote a mechanism that violates it in
+the same commit** — a contradiction between two paragraphs of one document, which is [F151](#f151)'s
+shape moved from a brief into a charter.
+
+**(2) "The count grows with every future commit" is overstated.** It grows only when a commit
+introduces a path **not already** in the reported set. `86c5787` edited `decisions.md`, which was
+already among the 64, and the count stayed **64**. The window is open-ended; the cardinality is not
+monotonic in commits.
+
+**(3) "F137's pair … were the only findings" on `C-REVIEW-ARCHIVE-SCOPE` was already stale when
+written.** At `86c5787` that review returns **three**: its own `plan.xml`, its own `spec.xml`, and
+`docs/plans/active/RM-GOVERNED-PATH/decisions.md` — [F150.2](#f1502)'s contingent third, because
+`86c5787` lands after that bundle's recorded base `5edb62ff`. The pair became a triple by the
+authority's own commit, recorded in the same commit that claimed it was a pair.
+
+**(4) "68 errors across 5 bundles" mixes two classes.** 64 base-diffing `scope-outside-write-scope`
+plus 4 `write-evidence-outside-scope` on **test files** — the latter are not the present-tense
+base-diffing class F155 is about, and `C-REVIEW-ARCHIVE-SCOPE`'s own findings were excluded from the
+total. Do not quote a single number for two classes.
+
+**(5) "The other three superseded bundles" is wrong: there are eight superseded bundles, not four.**
+Parsed root `status` across all 63 archived `spec.xml`: **55 `applied`, 8 `superseded`**. The eight are
+`C-CURSOR-TASK-IDENTITY`, `C-CURSOR-TASK-SENTINEL`, `C-LEDGER-READ-ABSENCE`, `C-LINT-PHASE-HONESTY`,
+`C-PHASE-RULE-PIN`, `C-SUPERSEDE-RECORD`, `C-SUPERSEDE-VERB`, `C-VERDICT-EVIDENCE`.
+
+**Why the authority's number was wrong, and it is [F130.1](#f1301) exactly.** The parse that produced
+"4" printed a status column **only for the 24 rows that carried ceremony prose**, and the authority
+read the population off that subset. The instrument was correct and the *denominator* was a sample.
+Worse, the earlier grep on the same question returned **11** (prose matches, [F138](#f138)'s trap), so
+three numbers were produced for one question — 11, 4 and 8 — and only the last is the population.
+**Never read a count off a listing printed for another purpose.**
+
+**(6) `auditApprovedArtifact` does not answer immutability for `applied` bytes.** It skips any artifact
+whose root status is not `approved` (`src/review/core.ts:1747`:
+`if (readGraceXmlArtifact(filePath).root?.attributes.status !== "approved") continue;`), and `gate
+apply` mutates that attribute — so after apply the fingerprint audit is structurally silent, and
+`unfingerprinted` and `git-unavailable` classifications ([`classifyApprovedArtifact`,
+`src/gates/ledger.ts:1201-1231`](../../../../src/gates/ledger.ts)) are silent too. F155 presented the
+audit as *the* byte-exact answer without that boundary. **The overturn still holds and the argument is
+narrower than stated:** while an artifact is `approved` the fingerprint audit is strictly stronger than
+a diff membership test, and for `applied` bytes the guard is the WriteEvidence audit plus git, neither
+of which this bundle weakens. The spec records it as a stated residual rather than discovering it at
+plan time.
+
+**A seventh error, found by the authority's own re-measure and not by the executor: every count in
+F155's population table is conditional on the working tree.** Re-running `review --change` over all 63
+archived bundles at `86c5787` with the untracked draft `spec.xml` present returns a finding on **46**
+bundles, not 6 — the untracked file is reported against **every** bundle whose scope audit falls back
+to porcelain, adding exactly one finding each, and it turns 39 previously silent bundles into
+one-finding bundles. F155's "57 clean / 44 not-run / 17 base-unresolvable / 2 ran" was measured on a
+**clean tree at `faed84a`** and holds only under that condition. **State the tree state with any review
+population count, or the number means nothing.** This is also the strongest evidence yet for the
+finding's thesis: an unrelated, uncommitted file makes 46 closed bundles report a defect.
+
+**Ruling at approval, on the ambiguity the executor raised rather than worked around.** The spec makes
+the archive skip **unconditional on input source** — explicit `--changed-files` does not re-open an
+archived bundle. **Accepted, and this is the intended reading**, for the reason
+[`C-REVIEW-ARCHIVE-SCOPE`](#named-bundle-registry) already ratified on [F149.1](#f1491): a finding
+against an archived plan asserts a decision already executed, whatever supplied the diff. A forensic
+comparison of a closed bundle is a `git diff` question, not a `review --change` question. Recorded as an
+authority ruling at approval, not as a maintainer decision.
+
+**Two premises the authority verified before approving, because the spec's mechanism B turns an audit
+off.** (a) The close sequence runs `review` **twice** — pre-archive under `active/`, where F137's pair
+actually fires and where the executor's scope is audited, and post-archive for the second `gate verdict`
+that evaluates `CloseEvidence`. Mechanism B affects only the second, so **no close loses its scope
+audit**. (b) `resolveScopeChangedFiles` has exactly **one** call site (`src/review/core.ts:1504`),
+inside the scope-audit branch, and `auditTestWeakening` takes `TestFileDiff[]` from elsewhere — so
+skipping it on archive-location reviews cannot silently disable `review.test-assertion-weakened`, which
+this bundle's own `AC-TEST-COUNT` depends on.
