@@ -8357,6 +8357,7 @@ ordered, not deferred. One bundle, one branch, merged before the next is cut.
 | **`C-CONSTRAINT-DURABILITY`** | A rule in `skills/ngrace/ngrace-spec/SKILL.md` and its packaged mirror: `Constraints` holds durable scope facts; authoring-pass sequencing (*"spec only in this pass"*, *"status remains draft"*, *"do not author plan.xml until approved"*) belongs to the brief and the gate, never to the artifact that outlives the pass. Named here 2026-09-04 by [F156](#f156). Searched before minting: `C-EXECUTION-CONTRACT` governs the executor's contract, `C-APPROVAL-SCOPE` the phrase and close acts, `C-PLAN-QUALITY` plan-side richness; none says what `Constraints` may contain. | [F156](#f156). | **Position 2 of five, ratified 2026-09-04.** Zero tool findings today by measurement — 24 of 63 archived specs affected, all inside a `<Constraint>`. The archived 24 are **not** rewritten. Prose detection is out of scope (`review.regex-over-structure` is a defect code here); the enforceable half is skill text. |
 | **`C-APPROVE-TARGET-DISCOVERY`** | A bare `ngrace gate approve` targets whatever **lacks an attestation** rather than falling through to `plan`. The fallthrough is `src/gates/ledger.ts:1505-1514` (cited as `:1256-1267` in [F129.1](#f1291), before the file moved), so on a bundle whose spec and plan are both `approved` a bare approve re-stamps `plan`, reports success, and a user who does not know `--artifact` can never attest the spec. Named here 2026-09-04; F129.1 asked for the slot and minted no name. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` owns the phrase and the close acts, `C-APPROVE-TIME-REVIEW` owns *when review runs*; none changes what a bare approve targets. | [F129.1](#f1291). | **Position 4 of five, ratified 2026-09-04.** Product behaviour change with its own reds. |
 | **`C-EFFORT-DEPTH`** | Expose rework depth per bundle and across the archive, reading the durable ledger through `listAccountingEvents` (`src/grace-cursor.ts:1908`) and `computeTaskFileChurn` (`:2634`) — no new record. Bytes and lines stay out: they are not derivable from a digest ([F141](#f141)). Named here 2026-09-04. Searched before minting: `C-AMENDMENT-COUNT` set the precedent of reporting from data already held, `C-REWORK-CIRCUIT` computes churn but emits it only inside an escalation message (`:2716-2721`); neither reports per bundle or retroactively. | [F141](#f141), [F141.1](#f1411). | **Position 5 of five, ratified 2026-09-04**, re-scoped to a reporting surface by [F141.1](#f1411). Coverage measured 2026-09-04: 46 of 63 archived bundles hold attempts, all 46 carry `WriteEvidence`, 39 show depth > 0. Must apply `isProductChurnPath` and re-measure — the probe's figures are a superset. |
+| **`C-RECORD-RETIREMENT`** | Retire `decisions.md` into three genres — findings, decisions, registry — each with an observable retirement trigger and a line ratchet that refuses growth. `decisions.md` itself **survives as the citation index**: 45 archived immutable artifacts cite its path and 528 internal anchors depend on its headings, so bodies move and anchors stay. The registry becomes machine-readable and its rule is the enforcement core: a live row naming an archived bundle is an error. Content preservation is a verified criterion, not a claim. The four `scripts/skill-contracts.test.ts` teaching sites move with it, canonical plus packaged mirror. `docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md` is out of scope permanently. Named here 2026-09-05 by [D28](#d28). Searched before minting: `C-RECORDED-DEBT` records debt inside a bundle, `C-RECORD-FALSE` is about a false record, `C-TEACHING-SURFACE` covers the docs surface, `C-DRIFT-HONESTY` covered a lint workaround; none addresses record lifecycle. | [F161](#f161), and it pays the cost measured in [F155.1](#f1551) / [F157](#f157) / [F160](#f160), where expired counts and stale citations in a 9940-line file produced three corrections in two sessions. | **Position 2 of six, ratified 2026-09-05.** Enforcement ships with the structure, never after. |
 
 **Sweep remainder — mentioned, missing from disk, not a chartered bundle.** Recorded so they
 are not silently dropped. None is work.
@@ -9938,3 +9939,81 @@ times here. If a figure cannot be re-taken at handover, it does not belong in th
 committing is the cheap one, so the commit lands last — after the prose is already written. The ordering
 that feels natural is the ordering that breaks the block. The countermeasure is mechanical: the state block
 is the **last** thing written, not the first.
+
+## D28 — `decisions.md` is retired into three genres, each with a retirement rule and a size ratchet
+
+**Decided 2026-09-05 by the maintainer**, on the rationale question he put to the authority: *"we need to
+retire decisions.md. Your 3 parts suggestion looks good. One important thing is to make sure that they will
+not grow forever. We need to provide ability to make those parts manageable. Some kind of retire/decay
+routine."*
+
+**The ruling.** The single append-only document is replaced by **three genres** — findings, decisions,
+registry — and **each carries a retirement rule and a size ratchet**. Growth without retirement is the
+defect being fixed; a split alone would reproduce it three times.
+
+**Not a structure question, a lifecycle question.** The parts are the enabling change. The deliverable is
+that every entry has an **observable retirement trigger** and every live part has a **budget that refuses to
+grow**. Chartered as [`C-RECORD-RETIREMENT`](#named-bundle-registry), **position 2** of the order ratified
+2026-09-04, which shifts `C-CONSTRAINT-DURABILITY` to 3, `C-CI-CLAIM-PIN` to 4,
+`C-APPROVE-TARGET-DISCOVERY` to 5 and `C-EFFORT-DEPTH` to 6.
+
+**Enforcement ships with the structure, never after it.** If sizing forces a split, the validator lands
+first or alongside — an unenforced convention is exactly how this file reached 9940 lines.
+
+### F161 — what `decisions.md` actually is, measured, and the four constraints that bind its retirement. **[verified]**
+
+Measured **2026-09-05** at `9b27238`, before any design was proposed.
+
+| measurement | value |
+|---|---|
+| lines / findings / decisions | **9940** / **200** `### F<n>` / **20** `## D<n>` |
+| archived artifacts citing the **literal path** | **45** — 30 `spec.xml`, 15 `plan.xml` |
+| archived artifacts citing a `D<n>` token | **111** |
+| archived artifacts citing an `F<n>` but **not** the path | **26** |
+| internal anchor links inside the file | **465** `(#f…)` + **63** `(#d…)` |
+| other `decisions.md` files | one, `docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md` — **archived, never editable** |
+| tooling that validates its structure | **none.** The only references are `scripts/skill-contracts.test.ts`, which asserts the **skills** teach it, and one path fixture in `src/review/core.test.ts` |
+| ruling governing its structure | **none** — searched before proposing, so there is nothing to overturn |
+
+**Why it exists, so the replacement does not lose the reason.** A change bundle records one change; a
+finding about a *practice* and a ruling that binds *future* bundles have no element to live in. The file is
+the citation backbone — `scripts/skill-contracts.test.ts` asserts the shipped skills reference it in the
+status rules, an execute step, plan rule 15 and the reviewer skill — and the product already accommodates
+it: `isDocsPlansPath` (`src/review/core.ts:1090-1093`) exempts `docs/plans/**` from the WriteEvidence audit
+as F27.1's "authority concurrent roadmap" hole.
+
+**The four constraints, each measured rather than assumed.**
+
+1. **"Retire" cannot mean "delete".** 45 archived, immutable artifacts cite the path and more cite its
+   anchors. Archives are dated records and are never edited ([CLAUDE.md](../../../../CLAUDE.md)), so
+   `decisions.md` must **survive as a stable citation index** whose `### F<n>` and `## D<n>` headings keep
+   resolving. Bodies move; anchors do not.
+2. **528 internal links must be rewritten, not broken.** 465 `(#f…)` plus 63 `(#d…)` become cross-file
+   references the moment bodies move. Mechanical, but it means the change touches nearly every entry, and
+   **content preservation must be a verified criterion** — every heading present before is present after,
+   with no body text lost — not an assertion in a report.
+3. **The teaching surface moves with it.** Four assertion sites in `scripts/skill-contracts.test.ts` pin
+   that the skills name this file; canonical `skills/ngrace/*` **and** the packaged mirror must stay in
+   sync, or `validate-marketplace` fails.
+4. **The archived roadmap's copy is out of scope**, permanently.
+
+**The genre that is actually broken.** The named-bundle registry is **live state edited in place** inside an
+append-only document — delivered rows accumulate closure prose instead of leaving. That is the part with a
+fully checkable retirement rule, and it should be machine-readable rather than prose.
+
+**Retirement triggers, one per genre, each keyed to an observable event.**
+
+| genre | retires when | machine-checkable half |
+|---|---|---|
+| **finding** | the bundle that pays it archives, or the code it describes no longer matches | a **live** finding named as paid by an archived bundle's spec is an error |
+| **decision** | a later decision **overturns it and names it** | an overturned decision without a successor pointer is an error; silent contradiction stays a brief instruction ([D26](#d26)'s precedent) |
+| **registry row** | its bundle archives | a **live** row naming a bundle under `changes/archive/` is an error — the strongest of the three, and the enforcement core |
+
+**The anti-growth guarantee is a ratchet, not a habit.** Each live part carries a line budget in config;
+exceeding it **fails the validator**, and the remedy is retirement, never raising the number. Precedent
+exists and already runs in `validate:ci` — the determinism ratchet (`determinism: ratchet ok (14 caught
+keys)`). A budget that can be raised to pass is not a budget, and that must be stated in the spec.
+
+**What the authority must not do when briefing this.** Do not let the split be authored as a file move with
+a "verified by inspection" claim. Every count above **expires** ([F123](#f123)); re-measure at the spec, and
+require the executor to prove content preservation with a command, not a sentence.
