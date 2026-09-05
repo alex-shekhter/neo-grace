@@ -9867,3 +9867,45 @@ came from.
 printed `Scope audit: not-run — plan for C-PROBE-A resolved under archive/` — mechanism B working
 end-to-end on a real bundle before it has shipped. Read as evidence for the mechanism, not as shipped
 behaviour.
+
+### F159 — the criterion that names a forbidden mutation cannot observe it, in the bundle built to close exactly that class. **[verified]**
+
+Measured **2026-09-05** at `ba10f2b` with the implementation in the working tree, by mutating a full-tree
+copy under `/tmp` and running `bun test src/review/core.test.ts`. Three mutations, one direction each:
+
+| mutation | caught? |
+|---|---|
+| revert the expansion's location gate in `expandScopePathsForArchiveIdentity` | **yes** — 170 pass / 1 fail, the `design-context.xml` fire direction at `src/review/core.test.ts:1027` |
+| make `isReviewedChangeSpecOrPlanPath` read `planLocation` (the spec forbids it) | **yes** — 169 pass / 2 fail, at `:1008` and `:1449` |
+| **add the sibling exemption into `auditWriteEvidenceOutsideScope`** | **NO — 171 pass / 0 fail, exit 0** |
+
+**The third is the one the design forbids.** `AC-WRITE-EVIDENCE-KEPT` states the discriminating breach and
+names its own failure condition — *"WriteEvidence helper skips those paths"* — and no test in the file
+detects that. The reason is precise: the sibling is keyed on `identity.changeId` and **fails closed**, so
+the existing fixture (`raise: undeclared non-lifecycle .ngrace/ path (approved-spec shape)`, WriteEvidence
+path `.ngrace/changes/active/C-X/spec.xml`) passes no matching identity. Under the mutation the sibling
+returns `false`, the path still raises, and the assertion still passes. The pin observes the *behaviour*
+and not the *mechanism*, so it cannot see the mechanism being subverted.
+
+**Why this is not a nit.** The whole architecture of this bundle is "sibling, never a widening", because the
+two audits share `isCliLifecyclePath` and widening it would silence a real breach signal
+([F155.1](#f1551)). The suite therefore protects the two directions that were *discussed* and leaves
+unguarded the one that was *decided*. A future simplifier who folds the sibling into the WriteEvidence
+audit gets a green suite and a silent breach detector.
+
+**The general rule, and it is the third recurrence of one idea.** [F157](#f157) recorded that four tests
+used an artifact path as the vehicle for a property belonging to the expansion, so they would pass
+vacuously once artifact paths went silent. This is the same shape one level up: **a stay-true pin must be
+verified against the mutation it forbids, not merely observed to pass.** "The existing test stays green" is
+not a criterion — green is the state before *and* after the defect. Every `Failure conditions:` clause a
+spec writes is a mutation somebody must actually perform.
+
+**Not an amendment.** `AC-WRITE-EVIDENCE-KEPT` is an approved criterion whose stated failure condition goes
+undetected, so the criterion is **not yet satisfied** and the remedy is inside T-001's existing scope
+(`src/review/core.test.ts` is in `ObservedWriteScope`). The added test is a **pin, not a red** — the
+property is HEAD-true; it is the *fixture* that was blind — so manufacturing a red for it would violate
+[F45](#f45).
+
+**Found by probing, not by reading.** The authority read the production diff and judged it correct, which it
+is. The gap was in what the tests could see, and only a mutation showed it. Reading a diff cannot verify a
+test's discriminating power; only breaking the code can.
