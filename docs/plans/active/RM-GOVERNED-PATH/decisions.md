@@ -9960,6 +9960,47 @@ grow**. Chartered as [`C-RECORD-RETIREMENT`](#named-bundle-registry), **position
 **Enforcement ships with the structure, never after it.** If sizing forces a split, the validator lands
 first or alongside — an unenforced convention is exactly how this file reached 9940 lines.
 
+### D28.1 — the enforcement shape, and the decisions genre retires on codification. **[ratified]**
+
+**Ratified 2026-09-05 by the maintainer**, in two parts, on itemized variants put to him.
+
+**Findings and the registry take the paired shape: eligibility is the enforcement, the ceiling is the
+backstop.** An entry that is **eligible for retirement and still live** is an **error**, reported per entry
+and naming the event that made it eligible; that rule carries no number, so no number can be raised to pass
+it. Each live part *also* carries a **ceiling** with headroom, whose failure message names the retirement
+operation rather than the config key. In normal operation the eligibility rule keeps every part far below
+its ceiling, so the ceiling fires only when retirement is being dodged — which is exactly when it is
+wanted. **The rejected shape was a line budget as the sole enforcement**: it bites at an arbitrary moment
+during legitimate work, names no specific entry as the remedy, and the cheapest way out of it is a config
+edit. Ceiling rather than cliff is [D24](#d24)'s vocabulary, taken deliberately.
+
+**The decisions genre retires on codification, not on being overturned.** The maintainer's ruling, recorded
+verbatim: *"A decision moves from live to retired when its prose invariant is permanently replaced by an
+automated machine check. Trigger: The decision is tagged with `codifiedIn: <lint-rule | test-suite>` (e.g.,
+when D24 is codified into the C-REWORK-CIRCUIT gate). Rationale: The text is no longer needed in the live
+reading set because the compiler/linter now enforces the boundary unconditionally."*
+
+This replaces the *"a later decision overturns it and names it"* trigger proposed in [F161](#f161)'s table,
+which was rare enough to leave the genre growing monotonically. Overturning remains **a** way a decision
+leaves the live set; it is no longer the only one.
+
+**Two resolution checks make the tag evidence rather than a claim, and they ship with it, not after.**
+
+1. **The pointer must resolve.** A `codifiedIn` naming a lint rule id absent from the catalog, or a test
+   that does not exist, is an **error**. Without it a decision retires by *asserting* a check —
+   [F147](#f147)'s manufactured-pass shape moved from close evidence onto governance.
+2. **Removing the named check must fail.** Deleting or renaming a rule or test that a live `codifiedIn` tag
+   names is an **error** while the tag stands. This is what makes *"permanently"* mechanical rather than
+   aspirational: a retired invariant whose enforcement was quietly dropped is unenforced **and** unread,
+   which is worse than either alone.
+
+**Consequence for the spec.** This is the only one of the three triggers that requires evidence of a
+**machine** rather than an event, which makes it the strongest of the three rather than the weakest — but
+only with both checks above. The population it acts on is **measured, never assumed**: how many live
+decisions state an invariant that is already codified today is an open count, and the maintainer's own
+example — [D24](#d24) against `C-REWORK-CIRCUIT`'s ceiling — is a **candidate to verify**, not a fact to
+restate ([F123](#f123)).
+
 ### F161 — what `decisions.md` actually is, measured, and the four constraints that bind its retirement. **[verified]**
 
 Measured **2026-09-05** at `9b27238`, before any design was proposed.
@@ -10008,6 +10049,11 @@ fully checkable retirement rule, and it should be machine-readable rather than p
 | **finding** | the bundle that pays it archives, or the code it describes no longer matches | a **live** finding named as paid by an archived bundle's spec is an error |
 | **decision** | a later decision **overturns it and names it** | an overturned decision without a successor pointer is an error; silent contradiction stays a brief instruction ([D26](#d26)'s precedent) |
 | **registry row** | its bundle archives | a **live** row naming a bundle under `changes/archive/` is an error — the strongest of the three, and the enforcement core |
+
+**Superseded in part by [D28.1](#d281), ratified 2026-09-05.** The **decision** row's trigger above —
+*"a later decision overturns it and names it"* — is replaced by retirement on **codification**, and the
+line budget below is demoted from sole enforcement to a backstop behind an eligibility rule. The finding
+and registry rows stand as written.
 
 **The anti-growth guarantee is a ratchet, not a habit.** Each live part carries a line budget in config;
 exceeding it **fails the validator**, and the remedy is retirement, never raising the number. Precedent
