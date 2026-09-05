@@ -9909,3 +9909,32 @@ property is HEAD-true; it is the *fixture* that was blind — so manufacturing a
 **Found by probing, not by reading.** The authority read the production diff and judged it correct, which it
 is. The gap was in what the tests could see, and only a mutation showed it. Reading a diff cannot verify a
 test's discriminating power; only breaking the code can.
+
+### F160 — the authority's brief state block quotes measurements from a different commit than the one it pins. **[verified]**
+
+Four times on one branch, caught by the executor's `FACT CHECK` or `WRONG` field every time.
+
+| brief | asserted | true state |
+|---|---|---|
+| amendment brief | HEAD `b16cd43`, 6 commits ahead | `f5d524e`, 7 — the F157 commit landed after the brief was written |
+| replacement spec brief | *"clean tree apart from the untracked skeleton"* | the skeleton was **tracked** in `d0f09de` |
+| finish brief | HEAD `0f55c6a` and *"Review … exit 0, 0 findings"* | `0f55c6a` **is** the F159 commit, which fires F150.2 — the 0-finding review was `ba10f2b` |
+| (prior, session prompt) | two consecutive briefs with a wrong commit count | — |
+
+**One cause, not four mistakes.** The state block is composed from measurements taken *before* the
+authority's own commits, and then the brief is handed over *after* them. The sha and the numbers come from
+different moments, so the block is internally inconsistent — it pins a commit at which its own quoted
+figures were never true. Writing "re-measure this yourself" does **not** repair it: a brief that asserts a
+falsehood anchors the executor even when it also invites checking, which is [F131](#f131)'s reason for
+briefs carrying questions rather than facts.
+
+**The rule.** **Never quote a measurement taken at a different commit than the brief pins.** Produce the
+state block in one command sequence *after* the last commit and immediately before handing the path over,
+and include every figure the brief asserts — commit count, lint, suite, and the review's finding count —
+because a review result moves when the authority commits a finding, which is exactly what happened three
+times here. If a figure cannot be re-taken at handover, it does not belong in the brief.
+
+**Why it keeps happening despite being cheap to avoid.** Composing the brief is the expensive act and
+committing is the cheap one, so the commit lands last — after the prose is already written. The ordering
+that feels natural is the ordering that breaks the block. The countermeasure is mechanical: the state block
+is the **last** thing written, not the first.
