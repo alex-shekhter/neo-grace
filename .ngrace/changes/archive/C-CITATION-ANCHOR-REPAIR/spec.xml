@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-CITATION-ANCHOR-REPAIR>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-CITATION-ANCHOR-REPAIR><Replacement>C-CITATION-ANCHOR-REPAIR-2</Replacement>
     <Summary>
       Give every finding and decision heading
       in docs/plans/active/RM-GOVERNED-PATH/decisions.md

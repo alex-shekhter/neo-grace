@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-CITATION-ANCHOR-REPAIR-2>
+    <Summary>Summary of C-CITATION-ANCHOR-REPAIR-2.</Summary>
+    <Goals>
+      <Goal>Goal for C-CITATION-ANCHOR-REPAIR-2.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-CITATION-ANCHOR-REPAIR-2.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-CITATION-ANCHOR-REPAIR-2.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-CITATION-ANCHOR-REPAIR-2.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-CITATION-ANCHOR-REPAIR-2.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-CITATION-ANCHOR-REPAIR-2>
+</NgraceChangeSpec>
