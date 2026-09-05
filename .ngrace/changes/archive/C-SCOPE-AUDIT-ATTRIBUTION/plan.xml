@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-SCOPE-AUDIT-ATTRIBUTION>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-SCOPE-AUDIT-ATTRIBUTION><Replacement>C-SCOPE-AUDIT-ATTRIBUTION-2</Replacement>
     <IntentSummary>
       Stop auditScopeOutsideWriteScope attributing
       the reviewed change id's spec.xml and plan.xml

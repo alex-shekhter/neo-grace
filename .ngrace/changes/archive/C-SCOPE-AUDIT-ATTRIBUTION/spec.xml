@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-SCOPE-AUDIT-ATTRIBUTION>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-SCOPE-AUDIT-ATTRIBUTION><Replacement>C-SCOPE-AUDIT-ATTRIBUTION-2</Replacement>
     <Summary>
       Stop auditScopeOutsideWriteScope attributing
       the approve gate's spec.xml and plan.xml
