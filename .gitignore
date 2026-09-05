@@ -3,3 +3,6 @@ node_modules/
 !docs
 !AGENTS.md
 !CLAUDE.md
+
+# Untracked authority buffer: findings staged during a record freeze (D30).
+.ngrace/scratch/
