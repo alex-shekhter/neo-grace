@@ -1,0 +1,882 @@
+<NgraceChangePlan graceVersion="1.0" status="draft">
+  <C-SCOPE-AUDIT-ATTRIBUTION-2>
+    <IntentSummary>
+      Stop auditScopeOutsideWriteScope attributing
+      the reviewed change id's spec.xml and plan.xml
+      to the executor, via a new unexported sibling
+      isReviewedChangeSpecOrPlanPath used only by
+      that audit, keyed on identity.changeId, failing
+      closed when identity is absent. When
+      resolveChangePlanPath returns location archive,
+      runReview does not run the changed-files audit:
+      Scope audit status is not-run and the reason
+      names archive/. Invert the live
+      AC-SCOPE-LIFECYCLE-EXCLUSION spec.xml/plan.xml
+      red without dropping an expect. Invert
+      it("active plan location is unchanged — no
+      archive alias when still active") so the
+      reviewed id's archive-prefixed plan.xml is
+      silent even with planLocation "active"; keep
+      that title; re-vehicle expansion onto
+      design-context.xml. Correct the live-repo
+      reRatificationCount pin in
+      src/grace-status.test.ts as a measured table.
+      Do not extend isCliLifecyclePath. Do not edit
+      auditWriteEvidenceOutsideScope path-class
+      exclusions, auditApprovedArtifact, or
+      src/grace-status.ts.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>V-M-REVIEW</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-SCOPE-AUDIT-ATTRIBUTION-2/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-SCOPE-AUDIT-ATTRIBUTION-2/plan.xml</Value></MustExist>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function isCliLifecyclePath(rel: string): boolean {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>if (leaf === "run.xml" || leaf === "run-ledger.xml") return true;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>if (leaf === "run" || leaf.startsWith("run/")) return true;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function auditScopeOutsideWriteScope(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>if (isCliLifecyclePath(changed)) continue;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function auditWriteEvidenceOutsideScope(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function auditApprovedArtifact(root: string, changeId: string): ReviewFinding[] {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function resolveChangePlanPath(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function resolveScopeChangedFiles(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function runReview(projectRoot: string, options: ReviewOptions = {}): ReviewResult {</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>function isReviewedChangeSpecOrPlanPath</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>resolved under archive/</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("AC-SCOPE-LIFECYCLE-EXCLUSION: plan.xml and spec.xml are not excluded"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(codes.some((f) =&gt; f.file === ".ngrace/changes/active/C-A/plan.xml")).toBe(true);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(codes.some((f) =&gt; f.file === ".ngrace/changes/active/C-A/spec.xml")).toBe(true);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("active plan location is unchanged — no archive alias when still active"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(fire.some((f) =&gt; f.file === ownArchive)).toBe(true);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("expand is id-scoped: does not alias another change id"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("AC-SCOPE-LIFECYCLE-EXCLUSION counterweight: src/secret.ts alongside lifecycle still fires"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("raise: undeclared non-lifecycle .ngrace/ path (approved-spec shape)"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("spec.xml and plan.xml still raise on WriteEvidence"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("archived plan resolves read-only and audits when diff is supplied (both directions)"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("end-to-end: archived plan + own archive paths clean; other archive red"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("review-never-asked: approved spec with no permitting approve emits review.approval-never-asked"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("fingerprint-compare: mismatched fingerprint is a review error and approved-contract-drift"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("unfingerprinted Decision is silent on the catalogued review errors"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>describe("C-SCOPE-AUDIT-ATTRIBUTION-2"</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>it("live repo reports reRatificationCount 0, both keys as numbers, and measured chain depths"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>expectedReRatification</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>"C-SCOPE-AUDIT-ATTRIBUTION-2": 1</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>V-M-REVIEW</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function isCliLifecyclePath(rel: string): boolean {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>if (leaf === "run.xml" || leaf === "run-ledger.xml") return true;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>if (leaf === "run" || leaf.startsWith("run/")) return true;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function isReviewedChangeSpecOrPlanPath</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>if (isCliLifecyclePath(changed)) continue;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>if (isReviewedChangeSpecOrPlanPath(changed, identity)) continue;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>resolved under archive/</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>export function auditWriteEvidenceOutsideScope(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function auditApprovedArtifact(root: string, changeId: string): ReviewFinding[] {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function resolveScopeChangedFiles(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("AC-SCOPE-LIFECYCLE-EXCLUSION: plan.xml and spec.xml are not excluded"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(codes.some((f) =&gt; f.file === ".ngrace/changes/active/C-A/plan.xml")).toBe(false);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(codes.some((f) =&gt; f.file === ".ngrace/changes/active/C-A/spec.xml")).toBe(false);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(codes.some((f) =&gt; f.file.includes("/run"))).toBe(false);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("active plan location is unchanged — no archive alias when still active"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(fire.some((f) =&gt; f.file === ownArchive)).toBe(false);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>.ngrace/changes/archive/C-MINE/design-context.xml</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("expand is id-scoped: does not alias another change id"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>describe("C-SCOPE-AUDIT-ATTRIBUTION-2"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("AC-IDENTITY-KEYED: C-B spec.xml still raises; omitted identity fail-closed"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("SILENT changed-files audit: archive location is not-run with explicit changed-files"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("FIRE changed-files audit: active+applied still runs"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("AC-SCOPE-LIFECYCLE-EXCLUSION counterweight: src/secret.ts alongside lifecycle still fires"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("raise: undeclared non-lifecycle .ngrace/ path (approved-spec shape)"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("spec.xml and plan.xml still raise on WriteEvidence"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("AC-WRITE-EVIDENCE-ARCHIVE: C-CRITERION-CLOSE-EVIDENCE still raises on localize.test.ts"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("review-never-asked: approved spec with no permitting approve emits review.approval-never-asked"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("fingerprint-compare: mismatched fingerprint is a review error and approved-contract-drift"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("unfingerprinted Decision is silent on the catalogued review errors"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(codes.some((f) =&gt; f.file === ".ngrace/changes/active/C-A/plan.xml")).toBe(true);</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(codes.some((f) =&gt; f.file === ".ngrace/changes/active/C-A/spec.xml")).toBe(true);</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>expect(fire.some((f) =&gt; f.file === ownArchive)).toBe(true);</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("archived plan resolves read-only and audits when diff is supplied (both directions)"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>it("end-to-end: archived plan + own archive paths clean; other archive red"</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>expectedReRatification</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>"C-SCOPE-AUDIT-ATTRIBUTION": 1</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>"C-SCOPE-AUDIT-ATTRIBUTION": 0</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>"C-SCOPE-AUDIT-ATTRIBUTION-2": 1</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-status.test.ts</File>
+        <Text>it("live repo reports reRatificationCount 0, both keys as numbers, and measured chain depths"</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-status.test.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/grace-status.test.ts</File>
+    </ObservedWriteScope>
+    <!--
+      Two tasks, not one. Four properties need a failing
+      red (F80: one red evidences one property):
+      mechanism A silencing, mechanism B not-run, the
+      falsified corr-171 helper, the live-repo pin.
+      F56/F67 cap is three distinct fail signatures per
+      task, so four reds cannot share one task.
+
+      Split follows write surfaces, not ceremony (D11
+      has a dependency: the cap). T-001 writes
+      src/review/core.ts and src/review/core.test.ts
+      (mechanisms A and B share that surface; F148:
+      splitting them would make the first task's
+      bun test src/review/core.test.ts inherit the
+      second mechanism's not-yet reds). T-002 writes
+      src/grace-status.test.ts alone and depends on
+      the ledger rather than the audit, so it does
+      not share a write surface and does not inherit
+      T-001's reds. Empty DependsOn: parallel-safe.
+
+      T-001 reds, three, never a fourth:
+        gate-stamp-silent
+        archive-not-run
+        corr-171-active-archive-alias
+      T-002 reds, one, never a second:
+        live-repo-reratification
+      (pre-existing at HEAD; do not manufacture a
+      new failing it() beside it — F45).
+
+      HEAD-true pins in T-001 are not reds (F45):
+      identity-keyed C-B, fail-closed omitted
+      identity, active+applied still runs,
+      WriteEvidence on spec.xml and plan.xml,
+      F11 run companions, src/secret.ts,
+      fingerprint mismatch and never-asked, live
+      C-CRITERION-CLOSE-EVIDENCE WriteEvidence,
+      isCliLifecyclePath matched set, no new argv,
+      expand is id-scoped byte-identical,
+      design-context.xml expansion pair both
+      directions.
+
+      Do not add spec.xml, plan.xml, or
+      decisions.md to ObservedWriteScope (F150).
+      Do not put a current-mode lint of this
+      project root in TargetAssertions or in
+      post-write task Verification.
+      AC-CLOSE-LINT, AC-SURFACES-UNTOUCHED,
+      AC-CHANGELOG-UNTOUCHED, and
+      AC-STATUS-IMPL-UNTOUCHED are CloseEvidence,
+      not Satisfies.
+
+      Cite the function name, describe, or it
+      title, never a line number. Do not edit
+      catalog.ts, scorer.ts, command.ts, gates,
+      any SKILL.md, README.md, examples/,
+      CHANGELOG.md, version surfaces, archives,
+      decisions.md, or src/grace-status.ts. Do
+      not add a new src file. Do not extend
+      isCliLifecyclePath. Do not edit
+      auditWriteEvidenceOutsideScope path-class
+      exclusions. Do not edit
+      auditApprovedArtifact.
+    -->
+    <ImplementationPlan>
+      <T-001>
+        <Title>Attribute gate stamps and skip archive changed-files audit</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-GATE-STAMP-SILENT />
+          <AC-IDENTITY-KEYED />
+          <AC-WRITE-EVIDENCE-KEPT />
+          <AC-COUNTERWEIGHT-SRC />
+          <AC-LIFECYCLE-RUN-KEPT />
+          <AC-ARCHIVE-NOT-RUN />
+          <AC-LOCATION-NOT-STATUS />
+          <AC-WRITE-EVIDENCE-ARCHIVE />
+          <AC-FINGERPRINT-KEPT />
+          <AC-TEST-COUNT />
+          <AC-CORR-171-ACTIVE-ALIAS />
+          <AC-ALIAS-EXPANSION-SURVIVES />
+          <AC-EXPAND-ID-SCOPED />
+          <AC-NO-NEW-ARGV />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (gate-stamp-silent): before
+            editing src/review/core.ts, in its own
+            tool round trip, rewrite the existing
+            it() AC-SCOPE-LIFECYCLE-EXCLUSION:
+            plan.xml and spec.xml are not excluded
+            in describe C-REPORT-HONESTY T-004
+            scope lifecycle exclusion (F11). Keep
+            that it() title byte-identical. Pass
+            identity { changeId: "C-A",
+            planLocation: "active" } as the fourth
+            argument so the new skip can fire.
+            Invert the two toBe(true) assertions
+            to toBe(false) on
+            .ngrace/changes/active/C-A/plan.xml and
+            .ngrace/changes/active/C-A/spec.xml.
+            Keep the third expect that lifecycle
+            companions stay silent
+            (toBe(false) on /run). Do not drop an
+            expect. Add, in the same it(), the
+            archive-prefix companions
+            .ngrace/changes/archive/C-A/plan.xml and
+            .ngrace/changes/archive/C-A/spec.xml to
+            the changed-file list and two matching
+            toBe(false) expects, so both location
+            prefixes are covered and planLocation
+            does not key the skip. Assertion count
+            in that test does not fall below three.
+            Exact toBe (F23). HEAD today: those
+            four files raise because
+            isCliLifecyclePath does not match
+            spec.xml or plan.xml and no sibling
+            skip exists. Record fail, signature
+            kind test key gate-stamp-silent. Run
+            only this case. Do not land production
+            in this round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (archive-not-run): before
+            editing src/review/core.ts, in its own
+            tool round trip, add describe
+            C-SCOPE-AUDIT-ATTRIBUTION-2 in
+            src/review/core.test.ts. Model archive
+            fixtures on writeScopedPlan already in
+            this file (local helper, not a new src
+            file, not an edit of
+            src/artifact/test-fixtures.ts). The
+            red it() title is SILENT changed-files
+            audit: archive location is not-run
+            with explicit changed-files. Fixture
+            via writeScopedPlan(root, "C-ARCHIVED",
+            ["src/in-scope.ts"], "archive") so the
+            plan is status="approved" under
+            changes/archive/ (location, not
+            status). runReview with changeId
+            C-ARCHIVED, patterns false, joinEngine
+            false, and explicit changedFiles
+            ["src/out-of-scope.ts"]. Expect
+            scopeAudit.status toBe("not-run"),
+            planLocation toBe("archive"),
+            review.scope-outside-write-scope
+            toHaveLength(0). formatReviewResult
+            Scope audit line (the line that
+            begins with "Scope audit:") starts
+            with "Scope audit: not-run", names
+            archive, and does not match ran over.
+            Exact toBe / toHaveLength (F23). HEAD
+            today: that fixture reports status
+            ran and a finding on
+            src/out-of-scope.ts (existing it()
+            archived plan resolves read-only and
+            audits when diff is supplied). Record
+            fail, signature kind test key
+            archive-not-run. Run only this case.
+            Do not land production in this round
+            trip. Do not fold this into
+            gate-stamp-silent. Explicit
+            changed-files must not re-open the
+            archived bundle; that is this red,
+            not a second signature.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (corr-171-active-archive-alias):
+            before editing src/review/core.ts, in
+            its own tool round trip, in describe
+            corr 171 archive identity (A68),
+            it("active plan location is unchanged
+            — no archive alias when still active").
+            Keep that it() title byte-identical.
+            Invert expect(fire.some((f) =&gt;
+            f.file === ownArchive)).toBe(true)
+            to toBe(false): the reviewed id's
+            archive-prefixed plan.xml is silent
+            even with planLocation "active". Keep
+            the second expect (declared active,
+            changed active: silent). Do not drop
+            an expect. In the same it(), add the
+            AC-ALIAS-EXPANSION-SURVIVES pair on
+            a non-empty OWS (empty OWS
+            short-circuits the helper to no
+            findings): changed
+            .ngrace/changes/archive/C-MINE/design-context.xml,
+            OWS
+            .ngrace/changes/active/C-MINE/design-context.xml.
+            With planLocation "active" that
+            archive path still fires (toBe(true));
+            with planLocation "archive" it is
+            silent (toHaveLength(0) on that path,
+            or equivalent exact toBe /
+            toHaveLength). Those two expects are
+            HEAD-true on this reverted base
+            (expansion already aliases any path
+            under the bundle prefix when
+            planLocation is archive; the sibling
+            does not exist yet and would not
+            match design-context.xml anyway).
+            They are pins in this it(), not a
+            fourth fail signature. The inverted
+            ownArchive assertion is the red.
+            Exact toBe / toHaveLength (F23).
+            HEAD today: ownArchive fires because
+            no sibling skip exists. Record fail,
+            signature kind test key
+            corr-171-active-archive-alias. Run
+            only this case. Do not land
+            production in this round trip. Do
+            not fold this into gate-stamp-silent
+            or archive-not-run. Keep it("expand
+            is id-scoped: does not alias another
+            change id") byte-identical in this
+            round: it is not this red.
+          </Criterion>
+          <Criterion>
+            HEAD-true pins in describe
+            C-SCOPE-AUDIT-ATTRIBUTION-2, not reds
+            (F45). Add them before production.
+            They pass at HEAD. Exact toHaveLength
+            / toBe (F23).
+            (1) AC-IDENTITY-KEYED: it()
+            AC-IDENTITY-KEYED: C-B spec.xml still
+            raises; omitted identity fail-closed.
+            Same helper auditScopeOutsideWriteScope,
+            OWS src/in-scope.ts. With identity
+            changeId C-A planLocation active,
+            changed file
+            .ngrace/changes/active/C-B/spec.xml
+            still emits
+            review.scope-outside-write-scope
+            toHaveLength(1) on that file. Without
+            identity (omit the fourth argument),
+            .ngrace/changes/active/C-A/spec.xml
+            still emits toHaveLength(1). Do not
+            reuse the inverted some()/toBe(true)
+            strings; filter by file and code then
+            toHaveLength so TargetAssertions
+            MustNotContain of those inverted
+            strings stays true. A path-class skip
+            of any C-*/spec.xml would silence
+            C-B; a skip that fires without
+            identity would silence C-A.
+            (2) AC-LOCATION-NOT-STATUS other half:
+            it() FIRE changed-files audit:
+            active+applied still runs. Local
+            fixture under
+            changes/active/C-HELDOUT-APPLIED/plan.xml
+            with status="applied" and
+            &lt;ObservedWriteScope&gt; File
+            src/in-scope.ts (do not use an empty
+            OWS; that short-circuits to not-run
+            for the wrong reason). runReview
+            changeId C-HELDOUT-APPLIED, explicit
+            changedFiles ["src/out-of-scope.ts"].
+            scopeAudit.status toBe("ran") and
+            review.scope-outside-write-scope on
+            src/out-of-scope.ts toHaveLength(1).
+            A status skip of applied would
+            silence this; the archive-not-run
+            red plus this pin must not both be
+            not-run. Do not edit writeScopedPlan's
+            default status.
+            (3) AC-WRITE-EVIDENCE-KEPT: keep
+            raise: undeclared non-lifecycle
+            .ngrace/ path (approved-spec shape)
+            and spec.xml and plan.xml still raise
+            on WriteEvidence. Do not manufacture
+            a red.
+            (4) AC-COUNTERWEIGHT-SRC: keep
+            AC-SCOPE-LIFECYCLE-EXCLUSION
+            counterweight: src/secret.ts
+            alongside lifecycle still fires.
+            Do not manufacture a red.
+            (5) AC-LIFECYCLE-RUN-KEPT: keep the
+            F11 lifecycle-only, cross-bundle,
+            fold-deletion, and scratch tests.
+            Add it() isCliLifecyclePath matched
+            set stays run.xml, run-ledger.xml,
+            run/** : slice function
+            isCliLifecyclePath to the next
+            function; toContain
+            run.xml / run-ledger.xml /
+            leaf.startsWith("run/");
+            not.toContain spec.xml;
+            not.toContain plan.xml. Place the
+            new sibling after isCliLifecyclePath
+            so that slice does not include it.
+            Do not manufacture a red.
+            (6) AC-WRITE-EVIDENCE-ARCHIVE: it()
+            AC-WRITE-EVIDENCE-ARCHIVE:
+            C-CRITERION-CLOSE-EVIDENCE still
+            raises on localize.test.ts. Model on
+            live C-EXECUTION-CONTRACT raises on
+            token-accounting.test.ts: runReview
+            of this repo root, changeId
+            C-CRITERION-CLOSE-EVIDENCE,
+            changedFiles [], patterns false.
+            review.write-evidence-outside-scope
+            on src/verification/localize.test.ts
+            toHaveLength(1);
+            writeEvidenceScopeAudit.status
+            toBe("ran"). Keep the archive ratchet
+            pair for that bundle. Do not
+            manufacture a red. Failure of this
+            pin is WriteEvidence scoped to
+            active/.
+            (7) AC-FINGERPRINT-KEPT: keep
+            review-never-asked,
+            fingerprint-compare, and
+            unfingerprinted Decision is silent
+            on the catalogued review errors.
+            Do not manufacture a red. Do not
+            edit auditApprovedArtifact.
+            (8) AC-NO-NEW-ARGV: do not edit
+            src/grace.ts, src/review/command.ts,
+            src/review/catalog.ts, or any arg
+            map. Do not manufacture a red.
+            (9) AC-EXPAND-ID-SCOPED: keep
+            it("expand is id-scoped: does not
+            alias another change id")
+            byte-identical. It calls
+            expandScopePathsForArchiveIdentity
+            directly. Do not rewrite, delete, or
+            convert it to go through
+            auditScopeOutsideWriteScope. Do not
+            manufacture a red.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass (F84).
+            In src/review/core.ts only:
+            (A) Add unexported
+            isReviewedChangeSpecOrPlanPath(rel,
+            identity?: ScopeAuditIdentity):
+            boolean immediately after
+            isCliLifecyclePath. Return false when
+            identity is omitted or
+            identity.changeId is empty (fail
+            closed). Return true only when the
+            normalized path is
+            ARTIFACT_DIR/changes/{active|archive}/
+            concatenated with identity.changeId
+            concatenated with /spec.xml or
+            /plan.xml. Do not consult
+            identity.planLocation. Do not match
+            any other leaf, any other change-id
+            segment, scratch/, or docs/plans/.
+            Do not key the skip on any C-* id
+            (that would be cross-bundle
+            path-class, the F11 shape). Inside
+            auditScopeOutsideWriteScope, after
+            the existing
+            if (isCliLifecyclePath(changed))
+            continue;
+            write
+            if (isReviewedChangeSpecOrPlanPath(changed, identity))
+            continue;
+            Do not add those leaves to
+            isCliLifecyclePath. Do not edit
+            isCliLifecyclePath's matched set.
+            Do not call the sibling from
+            auditWriteEvidenceOutsideScope.
+            Do not edit
+            auditWriteEvidenceOutsideScope
+            path-class exclusions, its
+            isCliLifecyclePath call, or its
+            isDocsPlansPath call. Do not edit
+            auditApprovedArtifact.
+            (B) In runReview's changed-files
+            branch, after resolveChangePlanPath
+            returns a resolved plan, when
+            resolved.location === "archive" set
+            Scope audit status not-run, reason
+            the exact substring
+            resolved under archive/,
+            planLocation archive, absence
+            verdict not-run with that reason,
+            and do not call
+            extractObservedWriteScopeFromPlan,
+            resolveScopeChangedFiles, or
+            auditScopeOutsideWriteScope. Do not
+            implement this as ran-over-N with
+            zero findings. Do not skip by
+            reading plan root status applied or
+            superseded. Do not reimplement
+            location by string includes. Explicit
+            changed-files does not override.
+            An applied plan still under
+            changes/active/ still takes the
+            existing branch (mechanism A then
+            silences only that id's spec.xml /
+            plan.xml). WriteEvidence still runs
+            on archive location.
+            Then rewrite, in the same production
+            round, the tests that currently
+            assert a property this bundle
+            overturns, or bun test stays red:
+            retitle archived plan resolves
+            read-only and audits when diff is
+            supplied (both directions) so it
+            keeps the resolveChangePlanPath
+            location archive asserts and expects
+            Scope audit not-run with explicit
+            changed-files (same shape as the
+            archive-not-run red, not a distinct
+            signature); retitle end-to-end:
+            archived plan + own archive paths
+            clean; other archive red so both
+            runReview calls expect not-run.
+            Carry AC-CORR-171-ACTIVE-ALIAS into
+            this production round with the
+            assertion it becomes: the reviewed
+            id's archive-prefixed plan.xml is
+            silent even with planLocation
+            "active". That inversion was the
+            corr-171-active-archive-alias red
+            and must not be reverted to
+            toBe(true). Keep that it() title.
+            Keep the second expect. Keep the
+            design-context.xml pair in that
+            it() (AC-ALIAS-EXPANSION-SURVIVES);
+            after the sibling those two expects
+            stay discriminating because
+            design-context.xml is not spec.xml
+            or plan.xml. Keep it() expand is
+            id-scoped: does not alias another
+            change id byte-identical. The other
+            helper-level corr 171 tests in that
+            describe stay byte-identical except
+            the one named it(). Declared fail
+            signatures for T-001, three, never
+            a fourth: gate-stamp-silent,
+            archive-not-run,
+            corr-171-active-archive-alias.
+            Do not add a new src file. Do not
+            edit src/review/catalog.ts,
+            src/review/scorer.ts,
+            src/review/command.ts, src/gates,
+            src/grace-status.ts,
+            src/grace-status.test.ts, any
+            SKILL.md, README.md, examples/,
+            CHANGELOG.md, version surfaces,
+            archives, or decisions.md. Then the
+            three declared reds pass, the
+            HEAD-true pins stay green, and
+            bun test src/review/core.test.ts
+            passes. The sibling continue occurs
+            exactly once in src/review/core.ts.
+            isCliLifecyclePath continue still
+            occurs twice.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/review/core.test.ts</Command>
+          <Command>bun -e 'const t = await Bun.file("src/review/core.ts").text(); const n = (t.match(/if \(isReviewedChangeSpecOrPlanPath\(changed, identity\)\) continue;/g) ?? []).length; if (n !== 1) process.exit(1)'</Command>
+          <Command>bun -e 'const t = await Bun.file("src/review/core.ts").text(); const n = (t.match(/if \(isCliLifecyclePath\(changed\)\) continue;/g) ?? []).length; if (n !== 2) process.exit(1)'</Command>
+          <Command>git diff --exit-code d0f09de -- README.md examples/ skills/</Command>
+          <Command>git diff --exit-code d0f09de -- CHANGELOG.md</Command>
+          <Command>git diff --exit-code d0f09de -- src/grace.ts src/review/catalog.ts src/review/scorer.ts src/review/command.ts src/gates src/lint/catalog.ts src/grace-status.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Correct the live-repo reRatificationCount pin as a measured table</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-LIVE-RERATIFICATION />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (live-repo-reratification):
+            the red already exists. Do not
+            manufacture a second (F45). Cite it:
+            it("live repo reports
+            reRatificationCount 0, both keys as
+            numbers, and measured chain depths")
+            in src/grace-status.test.ts fails at
+            HEAD with Expected 0 / Received 1
+            because superseded
+            C-SCOPE-AUDIT-ATTRIBUTION carries
+            reRatificationCount 1 permanently
+            (F158). Record that existing fail,
+            signature kind test key
+            live-repo-reratification. Do not add
+            a new failing it() beside it. Do not
+            edit src/grace-status.ts (production
+            counter is correct;
+            AC-STATUS-IMPL-UNTOUCHED
+            CloseEvidence-pins it). Do not edit
+            src/review/core.ts or
+            src/review/core.test.ts.
+          </Criterion>
+          <Criterion>
+            Rewrite that same it() in
+            src/grace-status.test.ts only.
+            Retitle it because the current title
+            is false. New title:
+            live repo reports measured
+            reRatificationCount table, both keys
+            as numbers, and measured chain
+            depths. Replace the universal
+            expect(change.reRatificationCount).toBe(0)
+            inside the per-change loop with
+            expect(change.reRatificationCount).toBe(expectedReRatification[change.changeId]
+            ?? 0) where expectedReRatification
+            maps C-SCOPE-AUDIT-ATTRIBUTION to 1
+            and every other changeId defaults to
+            0. Keep strict toBe. Do not weaken
+            to toBeGreaterThanOrEqual, not.toBe,
+            or omit. Keep the typeof-number
+            asserts, the per-change loop, and
+            expect(result.changes.length).toBeGreaterThan(0)
+            (do not replace that with an exact
+            length pin). Add to expectedDepth,
+            same idiom as the existing
+            fourteen-row table:
+            "C-SCOPE-AUDIT-ATTRIBUTION": 0 and
+            "C-SCOPE-AUDIT-ATTRIBUTION-2": 1.
+            Keep the existing fourteen rows.
+            Do not pin an expect() count. After
+            this rewrite, bun test
+            src/grace-status.test.ts passes with
+            no production edit. src/grace-status.ts
+            stays byte-identical to authoring
+            HEAD d0f09de. Do not re-record
+            live-repo-reratification as a new
+            key after the rewrite. Declared fail
+            signatures for T-002, one, never a
+            second: live-repo-reratification.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-status.test.ts</Command>
+          <Command>git diff --exit-code d0f09de -- src/grace-status.ts</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-SCOPE-AUDIT-ATTRIBUTION-2>
+</NgraceChangePlan>
