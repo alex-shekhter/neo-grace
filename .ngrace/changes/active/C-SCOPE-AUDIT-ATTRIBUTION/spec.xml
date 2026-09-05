@@ -1,0 +1,857 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-SCOPE-AUDIT-ATTRIBUTION>
+    <Summary>
+      Stop auditScopeOutsideWriteScope attributing
+      the approve gate's spec.xml and plan.xml
+      stamps to the executor, and stop the
+      changed-files (base-diffing) audit
+      re-reporting closed bundles present-tense.
+      Two mechanisms, both required, neither
+      dead: (1) identity-keyed exemption of the
+      reviewed bundle's spec.xml and plan.xml
+      inside the changed-files audit only, via a
+      sibling predicate of isCliLifecyclePath,
+      not an extension of it; (2) when
+      resolveChangePlanPath returns location
+      archive, the changed-files audit is
+      not-run. auditWriteEvidenceOutsideScope
+      keeps raising on spec.xml and plan.xml.
+      Overturns the C-REPORT-HONESTY plan T-004
+      clause that forbids excluding those two
+      files, and the live red
+      AC-SCOPE-LIFECYCLE-EXCLUSION at
+      src/review/core.test.ts. Pays F137, F150,
+      F155. Entirely inside M-REVIEW.
+    </Summary>
+    <Problem>
+      Registry row C-SCOPE-AUDIT-ATTRIBUTION in
+      docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      (heading Named-bundle registry, named
+      2026-09-04 by F155) charters this bundle.
+      F137, F150, F150.2, and F155 in the same
+      file are the binding records. This spec
+      does not restate them in place of those
+      records.
+
+      Two audits read two different inputs and
+      must not be treated alike. Measured at
+      authoring HEAD 86c5787 by reading
+      src/review/core.ts:
+
+      auditScopeOutsideWriteScope (export at
+      the function named that) reads a
+      changed-file set from
+      resolveScopeChangedFiles (explicit
+      --changed-files, --base, recorded approve
+      base, or porcelain). The writer of a
+      path in that set is unknown. isCliLifecyclePath
+      already skips run.xml, run-ledger.xml,
+      and run/** (F11). It does not match
+      spec.xml or plan.xml. The approve gate
+      is the sanctioned writer of those two
+      files (stampApproveArtifact since
+      C-APPROVAL-FINGERPRINT). The audit
+      therefore reports a true statement about
+      the diff and a false statement about the
+      work (F137 at close, F150 at plan
+      approve).
+
+      auditWriteEvidenceOutsideScope (export
+      at the function named that) reads
+      WriteEvidence content paths from the
+      executor's own ledger. A spec.xml or
+      plan.xml entry there is the executor
+      claiming it wrote the approved spec.
+      That is a real breach signal. The
+      function also calls isCliLifecyclePath
+      (F11) and isDocsPlansPath (F27.1). Its
+      doc comment states the immutability
+      intent this bundle must not weaken:
+      non-lifecycle .ngrace/ paths (spec.xml,
+      plan.xml, graph, verification) raise
+      when undeclared.
+
+      Q1, derived from that sharing, not from
+      the registry row's wording. The row
+      names two candidate mechanisms and
+      says "via isCliLifecyclePath". Extending
+      isCliLifecyclePath to spec.xml / plan.xml
+      would skip those paths in both audits,
+      because WriteEvidence calls the same
+      helper. That would silence the breach
+      signal F155 says must keep firing. The
+      exemption therefore cannot be an
+      extension of isCliLifecyclePath. It is a
+      sibling predicate used only by
+      auditScopeOutsideWriteScope, keyed on
+      the reviewed change id already passed as
+      identity (the bundle's spec.xml and
+      plan.xml under
+      .ngrace/changes/{active|archive}/&lt;id&gt;/,
+      both location prefixes). A spec.xml of a
+      different C-* still raises. Direct
+      helper calls without identity fail
+      closed (still raise).
+
+      Mechanism A (that exemption) pays F137
+      and F150 on live bundles under
+      changes/active/. It does not pay F155's
+      unbounded archive case. Measured
+      2026-09-04 at HEAD 86c5787:
+      bun ./src/grace.ts review --change
+      C-VERDICT-EVIDENCE --path . exits 1,
+      Findings: 64, all
+      review.scope-outside-write-scope, Scope
+      audit ran over 108 changed file(s)
+      against recorded-base 72f911c. None of
+      the 64 is C-VERDICT-EVIDENCE's own
+      spec.xml or plan.xml (root status
+      superseded on both artifacts). Classes:
+      spec.xml 12, plan.xml 11 (other
+      bundles), other .ngrace/changes 3,
+      docs/plans 4, src 19, other 15
+      including .ngrace-lint.json. Mechanism
+      A identity-keyed against the reviewed
+      id silences 0 of those 64.
+      Cross-bundle exemption of every
+      C-*/spec.xml would still leave 41 and
+      would hide an executor of C-A editing
+      C-B's spec.
+
+      Mechanism B (scope the changed-files
+      audit to changes/active/) pays F155:
+      when resolveChangePlanPath returns
+      location archive, the audit is not-run
+      and does not call
+      resolveScopeChangedFiles or
+      auditScopeOutsideWriteScope. Status
+      must be not-run (reason names archive
+      location), not ran-over-N with zero
+      findings — that zero-denominator shape
+      is F150.1's trap. Predicate is
+      location, not status: an applied bundle
+      still under active/ (the close window
+      F137 actually occupies) still runs.
+      WriteEvidence is not a base-diffing
+      audit (it reads the ledger, not git
+      diff) and is not scoped to active/.
+
+      Neither mechanism makes the other dead.
+      A alone leaves C-VERDICT-EVIDENCE's 64
+      and C-REVIEW-ARCHIVE-SCOPE's
+      present-tense pair (measured 3 at this
+      HEAD: own spec.xml, own plan.xml, and
+      docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      — F150.2's contingent third, this
+      branch's 86c5787). B alone leaves
+      F137/F150 on every live close and
+      plan-approve, because those fire while
+      location is still active. They overlap
+      only on an archived bundle's own
+      spec.xml/plan.xml; that overlap is not
+      the live cost.
+
+      Q2, the discriminating case a reviewer
+      must still catch after this ships: an
+      executor WriteEvidence path
+      .ngrace/changes/active/C-X/spec.xml
+      (or plan.xml) outside
+      &lt;ObservedWriteScope&gt; still emits
+      review.write-evidence-outside-scope.
+      Existing test "raise: undeclared
+      non-lifecycle .ngrace/ path
+      (approved-spec shape)" at
+      src/review/core.test.ts already holds
+      this. The four immortal live
+      WriteEvidence findings measured at this
+      HEAD are not that shape — they name
+      test files
+      (src/verification/localize.test.ts,
+      src/gates/core.test.ts, and twice
+      src/test-support/token-accounting.test.ts)
+      — and they stay. Counterweights: 
+      src/secret.ts in the changed-file set
+      of an active bundle still emits
+      review.scope-outside-write-scope; a
+      different C-* spec.xml in that set
+      still emits it; F11 run/* stays silent.
+
+      The criterion this bundle overturns,
+      named as CLAUDE.md rule 9 requires.
+      C-REPORT-HONESTY's approved plan T-004
+      Criterion says "Do not exclude
+      plan.xml / spec.xml"
+      (.ngrace/changes/archive/C-REPORT-HONESTY/plan.xml
+      T-004, Satisfies
+      AC-SCOPE-LIFECYCLE-EXCLUSION). The live
+      red "AC-SCOPE-LIFECYCLE-EXCLUSION:
+      plan.xml and spec.xml are not excluded"
+      asserts it. brownfield-run4-findings.md
+      recorded the same as intentional
+      approved-artifact immutability, F11
+      having paid the CLI-lifecycle half.
+      This bundle overturns that clause and
+      that red. It does not overturn F11's
+      run.xml / run-ledger.xml / run/**
+      exclusion, which is the body of the
+      spec-level AC-SCOPE-LIFECYCLE-EXCLUSION
+      in that archived spec.
+
+      The answer to the immutability
+      argument: auditApprovedArtifact already
+      covers spec.xml and plan.xml
+      byte-exactly while root status is
+      approved, via
+      review.approved-fingerprint-mismatch
+      (and review.approval-never-asked when
+      no applying permit exists). The
+      changed-files audit cannot tell the
+      gate's sanctioned status stamp from an
+      agent's edit, which is why it produces
+      F137/F150. Residual limits of
+      auditApprovedArtifact, read from the
+      function and from
+      classifyApprovedArtifact, stated not
+      discovered later: (1) it continues
+      past any artifact whose root status is
+      not approved, so applied / superseded /
+      draft / cancelled / rejected are
+      silent — apply mutates the status
+      attribute, so the approve fingerprint
+      cannot cover post-apply bytes; (2)
+      unfingerprinted Decisions are silent
+      on the catalogued review errors
+      (existing test; F108.2 row three);
+      (3) git-unavailable is returned by
+      classifyApprovedArtifact and ignored
+      by this audit; (4) it runs only when
+      --change is supplied; (5) it inspects
+      only spec.xml and plan.xml; (6)
+      catalog: tamper-evidence, not
+      enforcement, does not refuse gate
+      apply. collectApprovedContractDrift
+      (ngrace status) walks activeScopes
+      only and is not this bundle's surface.
+      Unsanctioned edits to applied archive
+      artifacts remain process plus git;
+      this bundle does not invent a second
+      immutability audit for applied bytes.
+    </Problem>
+    <Goals>
+      <Goal>
+        auditScopeOutsideWriteScope does not
+        emit review.scope-outside-write-scope
+        for the reviewed change id's spec.xml
+        or plan.xml, under either
+        .ngrace/changes/active/&lt;id&gt;/ or
+        .ngrace/changes/archive/&lt;id&gt;/.
+        The skip is a sibling predicate of
+        isCliLifecyclePath, used only by this
+        audit, keyed on identity.changeId.
+        isCliLifecyclePath's matched set
+        stays run.xml, run-ledger.xml, and
+        run/**.
+      </Goal>
+      <Goal>
+        When resolveChangePlanPath returns
+        location archive, runReview does not
+        run the changed-files audit: Scope
+        audit status is not-run, the reason
+        names that the plan resolved under
+        archive/, and neither
+        resolveScopeChangedFiles nor
+        auditScopeOutsideWriteScope is
+        called for that review. Location,
+        not status, and not input source:
+        --changed-files does not re-open an
+        archived bundle. An applied plan
+        still under changes/active/ still
+        runs.
+      </Goal>
+      <Goal>
+        auditWriteEvidenceOutsideScope is
+        unchanged in path-class exclusions.
+        WriteEvidence of spec.xml or plan.xml
+        outside &lt;ObservedWriteScope&gt;
+        still emits
+        review.write-evidence-outside-scope
+        on active and on archive. The four
+        immortal live findings named in
+        Problem stay.
+      </Goal>
+      <Goal>
+        This spec overturns the
+        C-REPORT-HONESTY plan T-004 clause
+        "Do not exclude plan.xml / spec.xml"
+        and inverts the live red at
+        src/review/core.test.ts without
+        dropping an assertion (flipping
+        toBe(true) to toBe(false) does not
+        trip review.test-assertion-weakened;
+        dropping one would). F11's run/**
+        AC-SCOPE-LIFECYCLE-EXCLUSION tests
+        stay green.
+      </Goal>
+      <Goal>
+        README.md and examples/ are unchanged;
+        no user-visible CLI, config, or review
+        command surface is added. Existing
+        ngrace review --change emits fewer
+        misattributed findings.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module change:
+        M-REVIEW only). Gates still run.
+        Roadmap: RM-GOVERNED-PATH Named-bundle
+        registry row C-SCOPE-AUDIT-ATTRIBUTION
+        on F155, position 1 of five ratified
+        2026-09-04, paying F137, F150, F155.
+      </Constraint>
+      <Constraint>
+        Binding findings and rulings, named so
+        this spec cannot silently contradict
+        them (CLAUDE.md rule 9): F137 (gate
+        stamps are not executor writes; the
+        product, not every plan, must stop
+        attributing them), F150 (the same
+        pair at plan-approve; do not add
+        spec.xml / plan.xml to
+        &lt;ObservedWriteScope&gt;), F150.2
+        (decisions.md is contingent on commit
+        order relative to the recorded base;
+        this bundle does not exempt
+        docs/plans/ from the changed-files
+        audit), F155 (both mechanisms; keep
+        WriteEvidence raising on spec.xml /
+        plan.xml; answer the immutability
+        argument with auditApprovedArtifact),
+        F11 / F11.2 (run/** lifecycle
+        exclusion stays), F149.1 /
+        C-REVIEW-ARCHIVE-SCOPE (plan-walking
+        detectors already scoped to active/;
+        do not re-edit those loops), F108.2
+        (unfingerprinted row remains silent
+        on the catalogued review errors),
+        F43 (escape markup; never strip it),
+        F136 / F136.1 (anchor every forced
+        file; module lists in this spec must
+        agree), F147 (CloseEvidence commands
+        must discriminate), F45 (do not
+        manufacture a red for a HEAD-true
+        property), F80 (one red evidences one
+        property), F56 / F67 (at most three
+        distinct fail signatures per task),
+        D11 (no deferral without a dependency
+        or a conflict), D5.5 (CHANGELOG.md is
+        generated), F156 (Constraints hold
+        durable scope facts).
+      </Constraint>
+      <Constraint>
+        AffectedAreas is a closed list and
+        binds the plan
+        (change.plan-scope-exceeds-spec). A
+        plan that needs a module not named
+        here is a stop-and-report. Module
+        lists in this spec (this ceremony
+        constraint, AffectedAreas, and the
+        module-ownership Assumption) must name
+        the same one: M-REVIEW.
+      </Constraint>
+      <Constraint>
+        Forced write surface, traced 2026-09-04
+        at HEAD 86c5787. For each file: LINKS
+        header if any, owning module, and
+        where that module appears
+        (AffectedAreas, this ceremony
+        constraint, module-ownership
+        Assumption). Cite homes by function
+        name, not by line number: this
+        bundle's tasks will grow those files.
+        Ownability measured with
+        isModuleOwnableWritePath:
+
+        src/review/core.ts — LINKS: M-REVIEW.
+        isModuleOwnableWritePath true. Graph
+        Path of M-REVIEW. Homes: (1) a new
+        unexported sibling of
+        isCliLifecyclePath, used only inside
+        auditScopeOutsideWriteScope, matching
+        spec.xml and plan.xml of
+        identity.changeId under
+        .ngrace/changes/{active|archive}/.
+        Do not add those leaves to
+        isCliLifecyclePath. Do not key the
+        skip on any C-* id (that would be
+        cross-bundle path-class, the F11
+        shape). Fail closed when identity is
+        omitted. (2) auditScopeOutsideWriteScope
+        — apply that sibling after the
+        existing isCliLifecyclePath continue.
+        (3) runReview's changed-files branch
+        — when resolveChangePlanPath returns
+        location archive, set Scope audit to
+        not-run with a reason that names
+        archive/, and do not call
+        resolveScopeChangedFiles or
+        auditScopeOutsideWriteScope. Do not
+        implement this as ran-over-N with
+        zero findings. (4)
+        auditWriteEvidenceOutsideScope — no
+        edit to its path-class exclusions, its
+        isCliLifecyclePath call, or its
+        isDocsPlansPath call. (5)
+        auditApprovedArtifact — no edit. (6)
+        isCliLifecyclePath — no edit to the
+        matched set. Tests co-located as
+        src/review/core.test.ts (no file-level
+        LINKS; isModuleOwnableWritePath false
+        because *.test.ts).
+
+        Do not add a new src/*.ts file. Do not
+        edit src/review/catalog.ts,
+        src/review/scorer.ts, src/review/command.ts,
+        src/gates/*, src/lint/catalog.ts, or
+        any SKILL.md. Do not rewrite anything
+        under .ngrace/changes/archive/.
+      </Constraint>
+      <Constraint>
+        Exemption shape, normative: the
+        changed-files skip is identity-keyed
+        to the reviewed change id, both
+        location prefixes, files spec.xml and
+        plan.xml only. It is not a path-class
+        extension of isCliLifecyclePath and
+        not a skip of all
+        .ngrace/changes/**. A spec.xml or
+        plan.xml whose change-id segment
+        differs from identity.changeId still
+        raises. A non-canonical directory
+        (scratch/) still raises. decisions.md
+        and other docs/plans/ paths still
+        raise on the changed-files audit
+        (F150.2 residual on live bundles;
+        F27.1 remains WriteEvidence-only).
+      </Constraint>
+      <Constraint>
+        Archive predicate is location, not
+        status. resolveChangePlanPath already
+        returns location active | archive from
+        the path. In the applied-but-active
+        window a location filter still runs
+        the changed-files audit; a status skip
+        of applied would go silent at close,
+        which is exactly when F137 fires.
+        Mechanism B therefore cannot be
+        implemented as "skip when root status
+        is applied or superseded". Acceptance
+        tests must discriminate: archive
+        location not-run; active+applied
+        still runs the helper (and mechanism
+        A then silences only that bundle's
+        spec.xml / plan.xml).
+      </Constraint>
+      <Constraint>
+        Test rewrite of "AC-SCOPE-LIFECYCLE-EXCLUSION:
+        plan.xml and spec.xml are not
+        excluded": invert the two
+        toBe(true) assertions to toBe(false);
+        pass identity changeId C-A so the
+        new skip can fire; keep the third
+        expect that lifecycle companions stay
+        silent. Do not drop an assertion.
+        Add, do not replace, tests for
+        identity-keyed (C-B spec.xml while
+        reviewing C-A still raises) and for
+        archive not-run versus WriteEvidence
+        still running. Existing F11 lifecycle
+        tests and the src/secret.ts
+        counterweight stay.
+      </Constraint>
+      <Constraint>
+        README.md is unchanged (NonGoal).
+        examples/ is unchanged (NonGoal).
+        This bundle does not touch any
+        product version surface: not
+        package.json version, README
+        packaged-version marker,
+        openpackage.yml,
+        .claude-plugin/marketplace.json, or
+        plugins/ngrace/.claude-plugin/plugin.json.
+        CHANGELOG.md remains unedited and
+        generated (D5.5). Archives under
+        .ngrace/changes/archive/ and
+        docs/plans/archive/ are never edited.
+        decisions.md is not amended.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: red-first on the
+        inverted spec.xml/plan.xml changed-files
+        case and on archive not-run. F23:
+        exact toBe / toHaveLength, not weaker
+        bounds. Do not manufacture a red for
+        HEAD-true WriteEvidence-on-spec.xml
+        (F45); pin that it still fires. Probe
+        every CloseEvidence command on this
+        spec against a violating tree and a
+        restored tree before approval (F147).
+        Do not use bun run &lt;script&gt; as
+        CloseEvidence unless the prefix is
+        configured in .ngrace-lint.json.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Extending isCliLifecyclePath to
+        spec.xml or plan.xml, or otherwise
+        changing its matched set. Owner: F11
+        / F155's "must not be changed
+        together". WriteEvidence calls that
+        helper; extending it would silence
+        the discriminating breach.
+      </NonGoal>
+      <NonGoal>
+        Scoping auditWriteEvidenceOutsideScope
+        to changes/active/, or exempting
+        spec.xml / plan.xml from that audit.
+        Owner: F155 / F27. The four immortal
+        live WriteEvidence findings and the
+        synthetic spec.xml raise stay.
+      </NonGoal>
+      <NonGoal>
+        Exempting docs/plans/ (isDocsPlansPath)
+        from the changed-files audit, including
+        decisions.md. Owner: F27.1 (WriteEvidence
+        only) and F150.2 (contingent third on
+        live bundles remains). Mechanism B
+        removes that third only when the
+        reviewed plan is already under
+        archive/.
+      </NonGoal>
+      <NonGoal>
+        Editing detectZeroOrMoreSwallow,
+        detectSelfReferential, or
+        detectConfidentlyWrong. Owner:
+        C-REVIEW-ARCHIVE-SCOPE, already
+        archived applied. Those are
+        plan-walking detectors; this bundle
+        is the base-diffing half F155 named
+        as unpaid.
+      </NonGoal>
+      <NonGoal>
+        Extending auditApprovedArtifact to
+        applied / superseded / unfingerprinted
+        / git-unavailable, or making it refuse
+        gate apply. Owner: C-APPROVAL-FINGERPRINT
+        residuals (F108.2 row three; catalog
+        tamper-evidence not enforcement).
+        Stated as residual limits in Problem,
+        not closed here.
+      </NonGoal>
+      <NonGoal>
+        Editing src/review/catalog.ts
+        explanations, src/review/scorer.ts,
+        src/review/command.ts, or
+        src/gates/*. Owner: unchanged;
+        catalog WriteEvidence text already
+        says undeclared spec.xml raises, which
+        stays true. isModuleOwnableWritePath
+        true on catalog.ts (LINKS: M-REVIEW)
+        but this bundle must not write it.
+      </NonGoal>
+      <NonGoal>
+        Rewriting archived bundles, including
+        C-REPORT-HONESTY's plan T-004 clause
+        and the four immortal WriteEvidence
+        ledgers. Owner: archives are history.
+        This bundle changes the live audits,
+        not the dated records.
+      </NonGoal>
+      <NonGoal>
+        Teaching expected-clean approve-time
+        review in skills, or editing any
+        SKILL.md / packaged mirror. Owner:
+        C-APPROVE-TIME-REVIEW, already
+        shipped. After this lands, the
+        expected plan-approve scope findings
+        on spec.xml / plan.xml become
+        silent; skill text that still names
+        them as expected is a later
+        consistency item, not this write
+        surface.
+      </NonGoal>
+      <NonGoal>
+        README.md unchanged; no new CLI
+        token, config key, or review
+        invocation. Owner: unchanged; no
+        user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no user-visible
+        review-audit surface there.
+        Owner: unchanged; no user-visible
+        surface.
+      </NonGoal>
+      <NonGoal>
+        Any product version bump or edit to
+        version surfaces. Hand-editing
+        CHANGELOG.md (D5.5). Editing
+        docs/plans/archive/,
+        .ngrace/changes/archive/, or
+        decisions.md.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-GATE-STAMP-SILENT>
+        Given identity changeId C-A and
+        changed files including
+        .ngrace/changes/active/C-A/plan.xml
+        and
+        .ngrace/changes/active/C-A/spec.xml
+        plus F11 lifecycle companions, with
+        &lt;ObservedWriteScope&gt; that does
+        not list those two files,
+        auditScopeOutsideWriteScope emits no
+        review.scope-outside-write-scope on
+        C-A's spec.xml or plan.xml. Lifecycle
+        companions stay silent. Failure
+        conditions: those two files still
+        raise; skip implemented by extending
+        isCliLifecyclePath; skip implemented
+        by emptying .ngrace/changes/**.
+      </AC-GATE-STAMP-SILENT>
+      <AC-IDENTITY-KEYED>
+        The same helper, identity changeId
+        C-A, changed files including
+        .ngrace/changes/active/C-B/spec.xml
+        (a different canonical C-*), still
+        emits review.scope-outside-write-scope
+        on C-B's spec.xml. Without identity,
+        C-A's own spec.xml still raises
+        (fail closed). Failure conditions:
+        any C-*/spec.xml is silenced;
+        omitted identity silences the
+        reviewed id.
+      </AC-IDENTITY-KEYED>
+      <AC-WRITE-EVIDENCE-KEPT>
+        Discriminating breach. WriteEvidence
+        path
+        .ngrace/changes/active/C-X/spec.xml
+        outside &lt;ObservedWriteScope&gt;
+        still emits
+        review.write-evidence-outside-scope.
+        The existing test "raise: undeclared
+        non-lifecycle .ngrace/ path
+        (approved-spec shape)" stays green.
+        The same for plan.xml. Failure
+        conditions: isCliLifecyclePath gained
+        spec.xml / plan.xml leaves; WriteEvidence
+        helper skips those paths.
+      </AC-WRITE-EVIDENCE-KEPT>
+      <AC-COUNTERWEIGHT-SRC>
+        Stay-true. auditScopeOutsideWriteScope
+        on F11 lifecycle paths plus
+        src/secret.ts still emits
+        review.scope-outside-write-scope on
+        src/secret.ts and only that path.
+        Existing counterweight test stays
+        green. Do not manufacture a red (F45).
+      </AC-COUNTERWEIGHT-SRC>
+      <AC-LIFECYCLE-RUN-KEPT>
+        Stay-true. F11 AC-SCOPE-LIFECYCLE-EXCLUSION
+        tests for run.xml, run-ledger.xml,
+        run/** (any C-*, cross-bundle fold,
+        fold deletions, non-canonical scratch
+        still raises) stay green.
+        isCliLifecyclePath matched set is
+        unchanged. Do not manufacture a red
+        (F45).
+      </AC-LIFECYCLE-RUN-KEPT>
+      <AC-ARCHIVE-NOT-RUN>
+        runReview --change of a bundle whose
+        plan.xml resolves under
+        changes/archive/ reports Scope audit
+        status not-run (printed line begins
+        with "Scope audit: not-run") and the
+        reason names archive. It does not
+        report ran over N changed files with
+        zero out-of-scope paths. Explicit
+        --changed-files does not override.
+        Failure conditions: archive review
+        still diffs recorded-base; status is
+        ran with 0 findings; skip is by root
+        status applied or superseded rather
+        than location.
+      </AC-ARCHIVE-NOT-RUN>
+      <AC-LOCATION-NOT-STATUS>
+        Predicate discrimination for mechanism
+        B. A plan with status="applied" under
+        changes/active/ still runs the
+        changed-files audit (mechanism A then
+        silences only that id's spec.xml /
+        plan.xml). The same plan under
+        changes/archive/ is not-run. A status
+        skip of applied would silence both;
+        this pair must not both be not-run.
+        Failure conditions: active+applied
+        not-run; archive skipped only when
+        status is not applied.
+      </AC-LOCATION-NOT-STATUS>
+      <AC-WRITE-EVIDENCE-ARCHIVE>
+        Stay-true. WriteEvidence still runs
+        on archive location. A review of
+        C-CRITERION-CLOSE-EVIDENCE still
+        emits review.write-evidence-outside-scope
+        on src/verification/localize.test.ts
+        (or the fixture equivalent). Do not
+        manufacture a red (F45). Failure
+        conditions: WriteEvidence scoped to
+        active/; the four immortal live
+        findings disappear.
+      </AC-WRITE-EVIDENCE-ARCHIVE>
+      <AC-FINGERPRINT-KEPT>
+        Stay-true. auditApprovedArtifact still
+        emits review.approved-fingerprint-mismatch
+        for an approved spec whose bytes
+        differ from the applying permit
+        fingerprint, and still emits
+        review.approval-never-asked when no
+        applying permit exists. Unfingerprinted
+        Decisions stay silent on those two
+        codes. Do not manufacture a red (F45).
+      </AC-FINGERPRINT-KEPT>
+      <AC-TEST-COUNT>
+        The rewritten
+        "plan.xml and spec.xml are not
+        excluded" test keeps at least its
+        current three expect() calls; the two
+        that today are toBe(true) become
+        toBe(false). Assertion count in that
+        test does not fall.
+        review.test-assertion-weakened must
+        not fire on this rewrite. Failure
+        conditions: an expect dropped;
+        the test deleted and replaced by a
+        smaller one.
+      </AC-TEST-COUNT>
+      <AC-NO-NEW-ARGV>
+        Stay-true. src/grace.ts command
+        registration and lint / gate / review
+        arg maps gain no new token. The
+        change is consumed by the existing
+        ngrace review command. Do not
+        manufacture a red (F45).
+      </AC-NO-NEW-ARGV>
+      <AC-SURFACES-UNTOUCHED>
+        README.md, examples/, and
+        skills/ are not edited by this
+        bundle. Verified against the branch
+        point 86c5787, so a staged or
+        committed edit fails and an unedited
+        tree passes; both directions were
+        probed at authoring.
+        <CloseEvidence>
+          <Command>git diff --exit-code 86c5787 -- README.md examples/ skills/</Command>
+        </CloseEvidence>
+      </AC-SURFACES-UNTOUCHED>
+      <AC-CHANGELOG-UNTOUCHED>
+        CHANGELOG.md is not edited by this
+        bundle (D5.5). Verified against the
+        branch point 86c5787, so a staged or
+        committed edit fails and an unedited
+        file passes; both directions were
+        probed at authoring.
+        <CloseEvidence>
+          <Command>git diff --exit-code 86c5787 -- CHANGELOG.md</Command>
+        </CloseEvidence>
+      </AC-CHANGELOG-UNTOUCHED>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --fail-on warnings</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts review --change C-SCOPE-AUDIT-ATTRIBUTION --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        After landing: ngrace review --change
+        of an active bundle no longer displays
+        review.scope-outside-write-scope on
+        that bundle's spec.xml or plan.xml
+        from the gate stamp. ngrace review
+        --change C-VERDICT-EVIDENCE no longer
+        diffs recorded-base (Scope audit
+        not-run, reason names archive).
+        WriteEvidence of spec.xml still
+        raises. src/secret.ts still raises
+        on the changed-files audit. F11 run/**
+        stays silent. A different C-* spec.xml
+        still raises. Active+applied still
+        runs the changed-files audit.
+        auditApprovedArtifact still fires on
+        approved mismatch and never-asked.
+        The inverted test does not drop
+        expects. README.md, examples/,
+        skills/, CHANGELOG.md untouched.
+        Red-first on the new silent/fire
+        pairs, not only a green suite. Do
+        not use current-mode lint of this
+        root as a target assertion.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Module ownership from
+        .ngrace/graph/main.xml at authoring
+        HEAD 86c5787: M-REVIEW Path
+        src/review/core.ts (LINKS: M-REVIEW
+        on that file). No other modules. If
+        implement discovers
+        src/review/catalog.ts,
+        src/review/scorer.ts,
+        src/review/command.ts, src/gates/*,
+        or any SKILL.md must change,
+        stop-and-report and re-spec — do
+        not silently expand (F133 / F136).
+      </Assumption>
+      <Assumption>
+        Anticipated write scope (plan OWS
+        must not exceed without re-spec):
+        src/review/core.ts,
+        src/review/core.test.ts.
+        src/review/core.ts is the only
+        module-ownable path; GraphAnchors
+        M-REVIEW covers it. core.test.ts is
+        not module-ownable (*.test.ts).
+      </Assumption>
+      <Assumption>
+        C-REVIEW-ARCHIVE-SCOPE is already
+        archived applied at this HEAD, so
+        the unpaid half F155 names is only
+        the base-diffing audits. This spec
+        is that work.
+      </Assumption>
+      <Assumption>
+        Version bump is a NonGoal. Current
+        packaged version at authoring is
+        whatever README / package.json /
+        openpackage / marketplace /
+        plugin.json already agree on; this
+        bundle does not move them.
+      </Assumption>
+      <Assumption>
+        CloseEvidence git diffs use branch
+        point 86c5787. That commit is HEAD
+        at spec authoring; a later amend of
+        this spec does not move the pin.
+      </Assumption>
+    </Assumptions>
+  </C-SCOPE-AUDIT-ATTRIBUTION>
+</NgraceChangeSpec>
