@@ -9719,3 +9719,70 @@ audit**. (b) `resolveScopeChangedFiles` has exactly **one** call site (`src/revi
 inside the scope-audit branch, and `auditTestWeakening` takes `TestFileDiff[]` from elsewhere — so
 skipping it on archive-location reviews cannot silently disable `review.test-assertion-weakened`, which
 this bundle's own `AC-TEST-COUNT` depends on.
+
+### F157 — one mechanism's blast radius was applied to the other, and the authority sampled a describe block one turn after recording that exact error. **[verified]**
+
+`C-SCOPE-AUDIT-ATTRIBUTION`'s approved plan is **unsatisfiable as approved**, found by the executor at
+the first escalation and verified independently at `b16cd43` on **2026-09-04**. The stop was correct and
+no workaround was attempted.
+
+**The contradiction.** T-001 orders the five helper-level tests in
+`describe("corr 171 archive identity (A68)")` kept **byte-identical**. The third of them,
+`it("active plan location is unchanged — no archive alias when still active")`, calls
+`auditScopeOutsideWriteScope` with the reviewed id's **own `plan.xml` under the archive prefix**,
+`ObservedWriteScope` declaring the `active/` twin, identity `{ changeId: "C-MINE", planLocation:
+"active" }`, and asserts `toBe(true)` that it fires. The approved spec's Goal 1 requires the
+identity-keyed skip to cover **both** location prefixes and not to read `planLocation`. Both cannot
+hold. **The spec is right; the plan's byte-identical list is wrong**, so the remedy is a plan amendment,
+not a supersede and not a spec change.
+
+**The error, named exactly.** The plan enumerated the tests **mechanism B** falsifies — the two
+`runReview`-level ones — and applied that blast radius to **mechanism A**, which lives *in the helper*,
+where helper-level tests are precisely what it can break. Two mechanisms, two different surfaces, one
+impact analysis. The authority's execute brief repeated the sentence verbatim.
+
+**And the authority had read the block.** In the approving turn it read tests 1 and 2 of the six — both
+**silent-direction** cases — and stated a property of all six without reading test 3, the
+**fire-direction** case. That is [F130.1](#f1301)'s and [F155.1](#f1551)(5)'s shape for the third time,
+committed **one turn after** F155.1 recorded it. The lesson that keeps not sticking: *reading part of a
+set and describing the set is fabrication with a true premise*, and a set enumerated by a subagent is
+not a set read — the subagent's P8 answer named exactly the two `runReview`-level tests it was asked
+about, which is what it was asked, not what the change touches.
+
+**A second defect the amendment must carry, or coverage silently rots.** Four of the six tests in that
+block use an **artifact** path as the vehicle for a property that belongs to
+`expandScopePathsForArchiveIdentity` (`src/review/core.ts:982-1002`, which aliases any path under the
+bundle prefix and only when `planLocation === "archive"`, `:986`). Once the sibling silences artifact
+paths, those assertions pass **whatever the expansion does** — they go **vacuous rather than red**, which
+is worse than a failure because nothing reports it. `it("expand is id-scoped: does not alias another
+change id")` calls the expansion helper directly and survives as the direct guard. The amendment must
+re-vehicle a discriminating pair onto a non-artifact bundle path.
+
+**Third fail signature, honestly recorded.** The executor recorded
+`test:corr-171-active-archive-alias` after production, because the suite was red and *"the ledger would
+have been false without it"*. That is the right instinct and puts T-001 **at** the three-signature cap
+([F56](#f56)/[F67](#f67)), not over it. The amended plan must declare all three so plan and ledger agree.
+
+**Re-ratification mechanics, measured on a throwaway project rather than read** (2026-09-04, `/tmp`
+project, real CLI, both directions):
+
+| step | result |
+|---|---|
+| `gate approve --artifact spec` on a fresh draft | exit 0, `Decision: permit`, fingerprint recorded, matches `shasum -a 256` |
+| amend approved prose, leave `status="approved"` | `review` **exit 1**, `review.approved-fingerprint-mismatch`; **`lint` exit 0** — drift is a review-only detector |
+| `gate approve --artifact spec` **again** | **exit 0, permitted, no flag needed**; `status` never toggled back to draft |
+| ledger after re-approve | **append-only**: two `Decision` rows, same `baseCommit`, distinct fingerprints; nothing overwritten |
+| `review` after re-approve | exit 0, 0 findings; `Amendment count: re-ratifications=1 supersede-depth=0` |
+| amend again **without** re-approving | mismatch fires again, same finding id — the audit re-derives live, it is not a one-shot |
+
+So amend-and-re-ratify is a supported, recorded operation whose cost lands in the counter
+`C-AMENDMENT-COUNT` shipped for it, and the fingerprint audit is honest in both directions.
+
+**One consequence accepted now rather than discovered at close.** This entry lands *after* the recorded
+base `5f55380`, so the close review will report `decisions.md` as `review.scope-outside-write-scope` —
+[F150.2](#f1502)'s contingent third finding. It will be **acknowledged at the bound verdict, not
+excused**, on the F137 reasoning: the writer is the authority's finding record, not the bundle's work.
+The approved spec's Constraint says flatly *"decisions.md is not amended"*, which is true of the
+executor and false of the authority — a Constraint that describes someone other than the bundle's own
+write surface, which is [F156](#f156)'s family. `C-CONSTRAINT-DURABILITY` should carry that shape too:
+a Constraint states what **this bundle** does, never what the authority will not do.
