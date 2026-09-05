@@ -275,6 +275,7 @@
       Reds (at most 3, never repeat a key):
         gate-stamp-silent
         archive-not-run
+        corr-171-active-archive-alias
       HEAD-true pins in the same work are not reds (F45):
       identity-keyed C-B, fail-closed omitted identity,
       active+applied still runs, WriteEvidence on spec.xml
@@ -570,10 +571,9 @@
             plan.xml). WriteEvidence still runs
             on archive location.
             Then rewrite, in the same production
-            round, the two C-OBSERVABLE-CHECKS
-            tests that currently assert archive
-            still audits, or bun test stays red
-            for a property this bundle overturns:
+            round, the tests that currently
+            assert a property this bundle
+            overturns, or bun test stays red:
             retitle archived plan resolves
             read-only and audits when diff is
             supplied (both directions) so it
@@ -581,13 +581,71 @@
             location archive asserts and expects
             Scope audit not-run with explicit
             changed-files (same shape as the
-            archive-not-run red, not a third
+            archive-not-run red, not a distinct
             signature); retitle end-to-end:
             archived plan + own archive paths
             clean; other archive red so both
             runReview calls expect not-run.
-            Keep the helper-level corr 171 tests
-            in that describe byte-identical.
+            The helper it() active plan
+            location is unchanged — no archive
+            alias when still active in
+            describe corr 171 archive identity
+            (A68) currently asserts toBe(true)
+            that
+            .ngrace/changes/archive/C-MINE/plan.xml
+            fires when identity is { changeId:
+            "C-MINE", planLocation: "active" }
+            and OWS is the active twin. Invert
+            that assertion to toBe(false): the
+            archive-prefixed plan.xml of the
+            reviewed id is silent even when
+            planLocation is "active", because
+            the skip is identity-keyed on both
+            prefixes and does not read
+            planLocation. Do not retitle that
+            it(). Keep the second expect in
+            that it() (declared active, changed
+            active: silent). Four helper tests
+            in that describe use a plan.xml
+            path as the vehicle for
+            expandScopePathsForArchiveIdentity;
+            after the sibling those assertions
+            pass whatever the expansion does
+            (vacuous). Carry the
+            alias-expansion property in the
+            same it() with a discriminating
+            pair on a non-artifact
+            bundle-relative path (sibling
+            matches only spec.xml and plan.xml;
+            expansion aliases any path under
+            .ngrace/changes/{active|archive}/&lt;id&gt;/
+            and only when planLocation is
+            "archive"): changed
+            .ngrace/changes/archive/C-MINE/design-context.xml,
+            OWS
+            .ngrace/changes/active/C-MINE/design-context.xml.
+            With planLocation "active" the
+            archive path still fires
+            (toBe(true)); with planLocation
+            "archive" it is silent
+            (toHaveLength(0)). That pair, in
+            that it(), is the surviving
+            discriminating test of the
+            expansion. Keep it() expand is
+            id-scoped: does not alias another
+            change id byte-identical: it calls
+            expandScopePathsForArchiveIdentity
+            directly and the sibling does not
+            run. The other helper-level corr
+            171 tests in that describe stay
+            byte-identical except this one.
+            Declared fail signatures for
+            T-001, three, never a fourth:
+            gate-stamp-silent, archive-not-run,
+            corr-171-active-archive-alias (this
+            helper; already recorded on the
+            task; do not re-record this key as
+            a new red-first).
             Do not add a new src file. Do not
             edit src/review/catalog.ts,
             src/review/scorer.ts,
@@ -595,8 +653,8 @@
             any SKILL.md, README.md, examples/,
             CHANGELOG.md, version surfaces,
             archives, or decisions.md. Then the
-            two reds pass, the HEAD-true pins
-            stay green, and
+            three declared reds pass, the
+            HEAD-true pins stay green, and
             bun test src/review/core.test.ts
             passes. The sibling continue occurs
             exactly once in src/review/core.ts.
