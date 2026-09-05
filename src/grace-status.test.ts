@@ -1128,8 +1128,11 @@ describe("C-AMENDMENT-COUNT T-002 status surfaces", () => {
     expect(collectProjectStatus(root).changes.find((entry) => entry.changeId === "C-BOTH")?.reRatificationCount).toBe(0);
   });
 
-  it("live repo reports reRatificationCount 0, both keys as numbers, and measured chain depths", () => {
+  it("live repo reports measured reRatificationCount table, both keys as numbers, and measured chain depths", () => {
     const result = collectProjectStatus(REPO_ROOT);
+    const expectedReRatification: Record<string, number> = {
+      "C-SCOPE-AUDIT-ATTRIBUTION": 1,
+    };
     const expectedDepth: Record<string, number> = {
       "C-CURSOR-TASK-SENTINEL": 0,
       "C-CURSOR-TASK-IDENTITY": 1,
@@ -1145,12 +1148,14 @@ describe("C-AMENDMENT-COUNT T-002 status surfaces", () => {
       "C-BOUND-VERDICT": 1,
       "C-LEDGER-READ-ABSENCE": 0,
       "C-LEGIBLE-FAILURE": 1,
+      "C-SCOPE-AUDIT-ATTRIBUTION": 0,
+      "C-SCOPE-AUDIT-ATTRIBUTION-2": 1,
     };
     expect(result.changes.length).toBeGreaterThan(0);
     for (const change of result.changes) {
       expect(typeof change.reRatificationCount).toBe("number");
       expect(typeof change.supersedeChainDepth).toBe("number");
-      expect(change.reRatificationCount).toBe(0);
+      expect(change.reRatificationCount).toBe(expectedReRatification[change.changeId] ?? 0);
       if (change.changeId in expectedDepth) {
         expect(change.supersedeChainDepth).toBe(expectedDepth[change.changeId]);
       }

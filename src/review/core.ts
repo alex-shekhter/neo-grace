@@ -1030,6 +1030,24 @@ function isCliLifecyclePath(rel: string): boolean {
   return false;
 }
 
+/**
+ * Identity-keyed skip for the changed-files audit only.
+ * Never merge into isCliLifecyclePath: that helper is shared with WriteEvidence.
+ */
+function isReviewedChangeSpecOrPlanPath(
+  rel: string,
+  identity?: ScopeAuditIdentity,
+): boolean {
+  if (!identity || identity.changeId === "") return false;
+  const n = normalizeRel(rel);
+  const id = identity.changeId;
+  const activeSpec = `${ARTIFACT_DIR}/changes/active/${id}/spec.xml`;
+  const activePlan = `${ARTIFACT_DIR}/changes/active/${id}/plan.xml`;
+  const archiveSpec = `${ARTIFACT_DIR}/changes/archive/${id}/spec.xml`;
+  const archivePlan = `${ARTIFACT_DIR}/changes/archive/${id}/plan.xml`;
+  return n === activeSpec || n === activePlan || n === archiveSpec || n === archivePlan;
+}
+
 export function auditScopeOutsideWriteScope(
   changedFiles: string[],
   scopeFiles: string[],
@@ -1043,6 +1061,7 @@ export function auditScopeOutsideWriteScope(
   for (const changed of changedFiles.map(normalizeRel)) {
     // F11: tool-owned lifecycle paths are not agent out-of-scope work (any C-*, any source).
     if (isCliLifecyclePath(changed)) continue;
+    if (isReviewedChangeSpecOrPlanPath(changed, identity)) continue;
     if (fileSet.has(changed)) continue;
     const globHit = observedWriteScopeContains({ files: [], globs: expandedGlobs }, changed);
     if (globHit) continue;
@@ -1495,6 +1514,15 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
           status: "not-run",
           reason,
           changeId,
+          absence: { verdict: "not-run", reason },
+        };
+      } else if (resolved.location === "archive") {
+        const reason = `plan for ${changeId} resolved under archive/`;
+        scopeAudit = {
+          status: "not-run",
+          reason,
+          changeId,
+          planLocation: "archive",
           absence: { verdict: "not-run", reason },
         };
       } else {
