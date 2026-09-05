@@ -9786,3 +9786,84 @@ The approved spec's Constraint says flatly *"decisions.md is not amended"*, whic
 executor and false of the authority — a Constraint that describes someone other than the bundle's own
 write surface, which is [F156](#f156)'s family. `C-CONSTRAINT-DURABILITY` should carry that shape too:
 a Constraint states what **this bundle** does, never what the authority will not do.
+
+## D27 — an approved governance artifact is repaired by supersede, not by amend-and-re-ratify, until pilot is decided
+
+**Decided 2026-09-04 by the maintainer**, on [F157](#f157)'s remedy: *"supercede. record decision so d25
+will not confuse in the future. let's wait until we reach pilot phase. we might consider hot fix relaxed
+or something else."*
+
+**The ruling.** When an approved spec or plan is found defective, the route is **`ngrace supersede`** and a
+replacement bundle. **Amend-and-re-ratify is not available.** The CLI permits it — measured in both
+directions, [F157](#f157) — and `C-AMENDMENT-COUNT` counts it, but permitted is not authorised: the
+bounded-amendment regime is [`RM-PILOT-APPROVAL`](../RM-PILOT-APPROVAL/review.md), whose plan is
+**`_not written_`** and which is **"Not scheduled, deliberately"** pending two to three more bundles of
+data. Until it is decided, an amendment to an approved artifact is an unratified governance mode.
+
+**What was done before this ruling, recorded rather than tidied away.** On 2026-09-04 the authority
+amended `C-SCOPE-AUDIT-ATTRIBUTION`'s approved plan and had it re-ratified, producing this
+repository's **first non-zero `reRatificationCount`** — exactly `RM-PILOT-APPROVAL`'s first constraint
+(*"every amendment re-ratifies with its own phrase and fingerprint"*) executed without pilot existing.
+The commits stand; they are a true record of a misstep and are **not** rewritten. This entry is what
+explains them.
+
+**D25 does not reach this case, and that is the confusion this entry exists to prevent.**
+[D25](#d25) exempts a **CI-red hotfix on an unmerged branch** where *"the governed path has no active
+bundle to attach the repair to"* — it was decided when `.ngrace/changes/active` was **empty**. That
+condition is load-bearing, not incidental. A bundle whose own approved plan is defective **has** an
+owner — itself — and the governed remedy exists, so no exemption is needed and none is granted. D25
+covers a red CI with **no eligible bundle**; it does not cover repairing governance, and it never
+licenses editing an artifact's approved bytes.
+
+**Why the stale test pin is not patched under an exemption either.** `src/grace-status.test.ts:1153`
+asserts `reRatificationCount` is 0 for every change in the live repository, which the re-ratification
+falsified. It is a **dated corpus measurement** — `C-AMENDMENT-COUNT`'s plan words it as *"Live-repo:
+`collectProjectStatus` on this repository reports `reRatificationCount 0` on every change"*, in the same
+idiom as the `expectedDepth` table beside it — not a governance tripwire. The **replacement bundle
+carries the correction in its own `ObservedWriteScope`**, fully governed. The circularity that blocked
+this inside the defective bundle does not exist for a fresh one: a first approve per artifact is
+baseline 0 ([`AC-SPEC-PLUS-PLAN`](../../../../.ngrace/changes/archive/C-AMENDMENT-COUNT/spec.xml)), the
+fix is test-only, and `*.test.ts` is not module-ownable (`isModuleOwnableWritePath`), so pulling in a
+test file from another area forces no module into `AffectedAreas` and raises no [F136](#f136) shape.
+
+**The cost, recorded as the pilot datum it is.** One wrong sentence in an approved plan, found by
+executing it, costs: a replacement bundle authored and approved at two stages, a supersede, a revert of
+correct production so the replacement's reds can genuinely fail, and a re-execution. That is precisely
+the arithmetic `RM-PILOT-APPROVAL` was written to argue about, and this instance is of its **motivating
+class** — *"a defect only running the code can reveal"*. **It is one datum and it is confounded**: it
+came from an authority error, not from a review miss, the same confound [F134](#f134) records for the
+pre-approval amendments. It does not decide pilot, and [D23](#d23) holds — pilot is decided on
+`supersedeChainDepth`.
+
+**Left open, explicitly.** A relaxed-hotfix or bounded-amendment carve-out may be considered **when pilot
+is reached**, not before. Nothing in this entry authorises one.
+
+### F158 — the supersede verb's contract, measured, and one non-atomic failure path. **[verified]**
+
+Probed **2026-09-04** on a throwaway project against the real CLI, because [D27](#d27) makes this verb the
+only route for a defective approved artifact and the authority had never driven it.
+
+| question | measured |
+|---|---|
+| replacement state required | **only that its directory exists** (`spec new` is enough) — draft status and absent `plan.xml` are both accepted; the verb does not gate on the replacement's ceremony |
+| missing replacement | refuses, exit 1: `Replacement C-PROBE-B is missing as a directory under active/ or archive/.` |
+| abandoned bundle's artifacts | `spec.xml` and `plan.xml` root status → `superseded`, and `&lt;Replacement&gt;ID&lt;/Replacement&gt;` injected as the first child of the bundle element |
+| open epoch | **folded by the verb itself** — loose `run/*.xml` events land in `run-ledger.xml` under `&lt;Epoch-N&gt;`, `run/` is deleted, `run.xml` and `run-ledger.xml` remain. No separate `cursor fold` is needed |
+| directory | moved `active/` → `archive/` |
+| `supersedeChainDepth` | incremented on the **replacement** (0 → 1), **not** on the abandoned bundle (stays 0) |
+| `reRatificationCount` | **untouched on both** — so a re-ratified bundle carries its count into the archive permanently |
+| source code | **never touched** — `supersedeChangeBundle` (`src/gates/ledger.ts:1383-1481`) writes only the two governance files' status plus the rename, and rolls the bytes back on failure. This substantiates the help text's *"Discards governance, never code"* |
+
+**The defect worth naming.** A supersede that **fails** mid-verb can still leave a side effect: with a
+cursor allocation too narrow to cover the events being folded, the fold errored
+(`event 2 outside every allocation … unterminated range`) **after** appending a loose
+`run/N-T-001-discarded.xml` event. The final rename rolls back cleanly, but the fold-then-write boundary
+does not, so a failed supersede is not a no-op. Not on the governed path for a properly allocated epoch,
+and not chartered here; recorded so the next session that sees an orphan `discarded` event knows where it
+came from.
+
+**One incidental confirmation.** The probe ran the CLI from the working tree, which already carries
+`C-SCOPE-AUDIT-ATTRIBUTION`'s unshipped production, so its `review --change` of the archived bundle
+printed `Scope audit: not-run — plan for C-PROBE-A resolved under archive/` — mechanism B working
+end-to-end on a real bundle before it has shipped. Read as evidence for the mechanism, not as shipped
+behaviour.
