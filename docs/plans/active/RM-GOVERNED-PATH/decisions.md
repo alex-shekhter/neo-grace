@@ -8596,6 +8596,16 @@ contract adoption takes the tail. **1** `C-SCOPE-AUDIT-ATTRIBUTION` (delivered a
 `C-CI-CLAIM-PIN` → **6** `C-APPROVE-TARGET-DISCOVERY` → **7** `C-EFFORT-DEPTH` → **8**
 [`C-FUNCTION-CONTRACT-SURFACE`](#named-bundle-registry). Relative order is otherwise untouched.
 
+**Execution order, extended 2026-09-05 by [D31](#d31).** Identity ships before the engine:
+`C-CITATION-ANCHOR-REPAIR` enters at **2**, `C-RECORD-RETIREMENT` moves to **3**, and every later
+position shifts by one. **1** `C-SCOPE-AUDIT-ATTRIBUTION` (delivered as `-2`) → **2**
+`C-CITATION-ANCHOR-REPAIR` (delivered as `-2`, PR #72) → **3**
+[`C-RECORD-RETIREMENT`](#named-bundle-registry) → **4**
+[`C-MODULE-CONTRACT-GATE`](#named-bundle-registry) → **5** `C-CONSTRAINT-DURABILITY` → **6**
+`C-CI-CLAIM-PIN` → **7** `C-APPROVE-TARGET-DISCOVERY` → **8** `C-EFFORT-DEPTH` → **9**
+[`C-FUNCTION-CONTRACT-SURFACE`](#named-bundle-registry). The identity slot is delivered; relative
+order of the engine and its downstream bundles is otherwise untouched.
+
 | # | Name | Charter | Pays | Status |
 |---|---|---|---|---|
 | 1 | **`C-CRITERION-CLOSE-EVIDENCE`** | A close/verdict-bound acceptance-criterion state, so post-archive lint 0/0 is authorable rather than reinvented as an unsatisfiable `AC-*`. Named here 2026-08-15. No existing name covers it: no `C-CRITERION*` / `C-CLOSE-EVIDENCE` in this directory; [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/) archived the workaround, not a third `AC-*` state. | [F82](#f82), [F83](#f83), [F83.1](#f83.1). F82 is already discharged as *practice* by `C-DRIFT-HONESTY`; this bundle is the product state that would make that practice authorable. F83's P2.6 / P2.4 halves were paid by the same archive; the live remainder is F83.1. | **Delivered** 2026-08-30, archived as [`C-CRITERION-CLOSE-EVIDENCE`](../../../../.ngrace/changes/archive/C-CRITERION-CLOSE-EVIDENCE/). Closed with [F100](#f100)–[F105](#f105). The residual hole is unpaid by design: after the archive move no gate is required to run, so the close-evidence verdict is skippable — `review` detects a skip, nothing refuses one. `C-ARCHIVE-CURSOR` / P3.1 own the mandatory post-archive act. |
@@ -8604,7 +8614,7 @@ contract adoption takes the tail. **1** `C-SCOPE-AUDIT-ATTRIBUTION` (delivered a
 | 3a | **`C-SUPERSEDE-COMMAND`** | The `ngrace supersede` verb, carrying forward `C-SUPERSEDE-VERB`'s deliverable and both maintainer rulings, with the `package.json#files` → `PACK_ALLOWED_EXACT` coupling declared rather than discovered. | [F86.1](#f86.1), [F86.2](#f86.2), [F120](#f120), [F122](#f122); closes [F121](#f121)'s second half. | **Delivered** 2026-08-31, archived as [`C-SUPERSEDE-COMMAND`](../../../../.ngrace/changes/archive/C-SUPERSEDE-COMMAND/). Six tasks, reds 2/3/1/3/3/0, no write outside `ObservedWriteScope`. Closed with [F125](#f125): three defects a green 1562-test suite did not surface, found by exercising the CLI and running the validators the report omitted. `AC-CLOSE-LINT` CloseEvidence evaluated to `Exit 0 / Result pass`; post-archive lint 0/0. |
 | 4 | **`C-APPROVAL-SCOPE`** | Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20). | D19, D20 (and so F84's skill-versus-practice follow-up). | **Ordered, not deferred.** |
 | 5 | **`C-CO-DRAFT`** | `plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4). | The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95). | **Ordered, not deferred** — after position 2, whose writer mints the fingerprint it depends on, and only if ratified after the re-measure. Unratified. |
-| 6 | **`C-CI-CLAIM-PIN`** | Correct `CONTRIBUTING.md`'s claim that `validate:ci` does not run `validate:packed`, and derive the guidance table's script claims from `package.json` instead of restating them. Named here 2026-08-31. No existing name: the doc surface is unguarded — `CONTRIBUTING.md` is not a governed file (`ngrace file show` returns `not-found`) and `scripts/check-teaching-surface.ts` covers only `README.md` and `examples/`. | [F117](#f117). | **Position 5 of eight** — ratified 2026-09-04 at position 3, renumbered 2026-09-05 by [D28](#d28) and again by [D29](#d29); earlier still, "after position 3". Re-measured 2026-09-04 and still live: `CONTRIBUTING.md:46` says `validate:release` adds `validate:packed` *"which `validate:ci` does not run"*, and `package.json`'s `validate:ci` **does** run it; `CONTRIBUTING.md:45` credits five members where the chain has eleven. Doc-side fix, settled by history: the table was written in `36f8fa3` (PR #5) when it was true, and `validate:packed` entered `validate:ci` later in `0a4b1b3` (PR #32), a change that was *strengthening* CI. Nothing is removed from `validate:ci`. |
+| 6 | **`C-CI-CLAIM-PIN`** | Correct `CONTRIBUTING.md`'s claim that `validate:ci` does not run `validate:packed`, and derive the guidance table's script claims from `package.json` instead of restating them. Named here 2026-08-31. No existing name: the doc surface is unguarded — `CONTRIBUTING.md` is not a governed file (`ngrace file show` returns `not-found`) and `scripts/check-teaching-surface.ts` covers only `README.md` and `examples/`. | [F117](#f117). | **Position 6 of nine** — ratified 2026-09-04 at position 3, renumbered 2026-09-05 by [D28](#d28), [D29](#d29) and [D31](#d31); earlier still, "after position 3". Re-measured 2026-09-04 and still live: `CONTRIBUTING.md:46` says `validate:release` adds `validate:packed` *"which `validate:ci` does not run"*, and `package.json`'s `validate:ci` **does** run it; `CONTRIBUTING.md:45` credits five members where the chain has eleven. Doc-side fix, settled by history: the table was written in `36f8fa3` (PR #5) when it was true, and `validate:packed` entered `validate:ci` later in `0a4b1b3` (PR #32), a change that was *strengthening* CI. Nothing is removed from `validate:ci`. |
 | 7 | **`C-PHASE-RULE-PIN`** | Reconcile the plan skill's `MustPassCommand` restriction with the contract the linter actually enforces, and close the detector's implicit-`current` gap. Prose: `skills/ngrace/ngrace-plan/SKILL.md:102` forbids what 22 archived plans do and what lint never checks. Code: `src/artifact/assertions.ts:262` matches only an explicit `--assertions current`, though current is the default (`src/grace-lint.ts:88`). Both sides plus the packaged mirror. Named here 2026-09-01. | [F130](#f130). | **Ordered, not deferred** — after `C-BOUND-VERDICT`. The skill file and its mirror are outside that bundle's `ObservedWriteScope`, so grafting the fix would require amending an approved spec; that conflict is the [D11](#d11) condition. Safe by measurement: archived plans are exempt (`src/lint/core.ts:535-536`) and no active plan in either tree carries a lifecycle command in `TargetAssertions`. Must **not** resolve package scripts transitively — that is the rejected reading B. |
 
 **Named by this directory, not in the 2026-08-15 order.**
@@ -8618,12 +8628,13 @@ contract adoption takes the tail. **1** `C-SCOPE-AUDIT-ATTRIBUTION` (delivered a
 | **`C-APPROVE-TIME-REVIEW`** | Teach `ngrace review --change` as a step **before** `ngrace gate approve`, at both the spec and the plan stage: `ngrace-spec` approve step, `ngrace-plan` rule 15, and `ngrace-reviewer` broadened from one moment ("before judgment") to three. **Must ship the partial-review caveat, corrected by [F150.1](#f150.1)**: at **spec** approve the scope and WriteEvidence audits report `not-run` (no plan on disk) while the attempt-pair audit *runs* and reports `ran over 0 fail→pass pair(s)` — a clean line over an empty denominator, which is a **weaker** signal than `not-run` and reads as substantiation. Quote each audit's actual status string per stage; a grouping phrase is how [F147](#f147)'s manufactured-pass shape gets taught. Named here 2026-09-03 by [F149](#f149), **amended by [F150](#f150)**: the bundle must also ship what a clean approve-time review looks like, because at **plan** approve the scope audit reports the bundle's own `spec.xml` and `plan.xml` as out-of-scope writes on every bundle (`decisions.md` only when it changed *after* the recorded base — [F150.2](#f150.2)), and the `WriteEvidence` audit reports a third status there, `unable-to-determine`, distinct from its spec-stage `not-run` (at **spec** approve it does not run at all, and naming those findings as expected there teaches a not-run audit as if it had spoken — [F150.1](#f150.1)) — an instruction that produces unexplained errors on first use is a trap, not guidance. **Also carries [F152](#f152)**: show the closed approval lexicon whenever approval is requested, one approval request per message naming one artifact, and record the ratifying phrase verbatim — three concerns in this bundle now (approve-time review, F150's expected-findings guidance, F152's lexicon rules), plus the carried XML-escaping item, and its Intent must say so rather than let scope accrete. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` covers the phrase and the close acts ([D19](#d19)/[D20](#d20)), `C-REVIEW-SURFACE` created the detector surface; **none says when review runs.** | [F149](#f149), and retroactively [F136](#f136) and [F148](#f148) — both were catchable by a review the artifact was still editable for. | **Next after `C-EVIDENCE-DISCRIMINATION`.** Candidate to carry the carried item *"the XML-escaping rule's skill homes"* — same two skill files, same rule shape; the spec author decides, and says which. Collides with `C-EVIDENCE-DISCRIMINATION` on `skills/ngrace/ngrace-spec/SKILL.md` and the `skillTextLines` pins, so **sequential, never concurrent**. |
 | **`C-REVIEW-ARCHIVE-SCOPE`** | Restrict `detectZeroOrMoreSwallow` to plans under `changes/active/`, and rule on `detectSelfReferential`'s plan loop, which carries the same missing guard and fires on nothing today. `detectConfidentlyWrong` **keeps** its archive scan — its `MustExist` targets assert present-tree state — so the change must state why the two differ rather than applying one rule to all three. Named here 2026-09-03 by [F149.1](#f149.1). Searched before minting: `C-REVIEW-LANGUAGE-SCOPE` is the closest precedent (it fixed three review false positives) but by marker-scan scoping, not archive scoping; not a synonym. | [F149.1](#f149.1). | **After `C-APPROVE-TIME-REVIEW`.** Ordered, not deferred: the cost is one ack per close, recurring forever, and the fix is measured at one line with the ratchet intact. |
 | **`C-SCOPE-AUDIT-ATTRIBUTION`** | Stop `auditScopeOutsideWriteScope` attributing the approve gate's own writes to the executor: exempt the bundle's `spec.xml` and `plan.xml` in the **changed-files** audit (`src/review/core.ts:1033-1060`) through a **sibling predicate keyed on the reviewed change id, never an extension of `isCliLifecyclePath`** — that helper is shared with the WriteEvidence audit (`:1045` and `:1108`), so widening it would silence the breach signal ([F155.1](#f155.1)), and scope the base-diffing audits to bundles under `changes/active/` so a closed or superseded bundle is not re-reported present-tense. **`auditWriteEvidenceOutsideScope` (`:1093-…`) keeps raising on `spec.xml`/`plan.xml`** — there the writer is the executor's own ledger and the claim is a real breach signal. **Overturns a shipped criterion**: `AC-SCOPE-LIFECYCLE-EXCLUSION` (`.ngrace/changes/archive/C-REPORT-HONESTY/plan.xml:469,481`, red at `src/review/core.test.ts:1273-1289`) asserts the current behaviour, recorded as intentional in `brownfield-run4-findings.md:300` for approved-artifact immutability; the spec must say so and answer it with `auditApprovedArtifact` (`:1736-1773`), which enforces immutability byte-exactly via `review.approved-fingerprint-mismatch`. Named here 2026-09-04. Searched before minting: `C-REVIEW-ARCHIVE-SCOPE` scoped the plan-walking detectors and not these audits, `C-PLAN-SCOPE-PATHS` compares the spec bound to `ObservedWriteScope` (a different comparison), `C-DECLARED-WRITES` created the declared-write surface; none touches attribution. `AC-SCOPE-LIFECYCLE-EXCLUSION` is an acceptance criterion, not a bundle name. | [F137](#f137), [F150](#f150), [F155](#f155). | **Delivered** 2026-09-05 as `C-SCOPE-AUDIT-ATTRIBUTION-2` and merged in PR #71; the original was superseded ([D27](#d27), [F157](#f157)) after its approved plan proved unsatisfiable, and both are archived under `.ngrace/changes/archive/`. Ratified at **position 1 of five** 2026-09-04. [F137](#f137)'s pair at every close and again at plan-approve is paid and no longer recurs. Archive-residue counts are **conditional on tree state and expire** — see [F155.1](#f155.1) rather than quoting a number from this row. |
-| **`C-CONSTRAINT-DURABILITY`** | A rule in `skills/ngrace/ngrace-spec/SKILL.md` and its packaged mirror: `Constraints` holds durable scope facts; authoring-pass sequencing (*"spec only in this pass"*, *"status remains draft"*, *"do not author plan.xml until approved"*) belongs to the brief and the gate, never to the artifact that outlives the pass. Named here 2026-09-04 by [F156](#f156). Searched before minting: `C-EXECUTION-CONTRACT` governs the executor's contract, `C-APPROVAL-SCOPE` the phrase and close acts, `C-PLAN-QUALITY` plan-side richness; none says what `Constraints` may contain. | [F156](#f156). | **Position 4 of eight** — ratified 2026-09-04 at position 2, renumbered 2026-09-05 by [D28](#d28) and again by [D29](#d29). Zero tool findings today by measurement — 24 of 63 archived specs affected, all inside a `<Constraint>`. The archived 24 are **not** rewritten. Prose detection is out of scope (`review.regex-over-structure` is a defect code here); the enforceable half is skill text. |
-| **`C-APPROVE-TARGET-DISCOVERY`** | A bare `ngrace gate approve` targets whatever **lacks an attestation** rather than falling through to `plan`. The fallthrough is `src/gates/ledger.ts:1505-1514` (cited as `:1256-1267` in [F129.1](#f129.1), before the file moved), so on a bundle whose spec and plan are both `approved` a bare approve re-stamps `plan`, reports success, and a user who does not know `--artifact` can never attest the spec. Named here 2026-09-04; F129.1 asked for the slot and minted no name. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` owns the phrase and the close acts, `C-APPROVE-TIME-REVIEW` owns *when review runs*; none changes what a bare approve targets. | [F129.1](#f129.1). | **Position 6 of eight** — ratified 2026-09-04 at position 4, renumbered 2026-09-05 by [D28](#d28) and again by [D29](#d29). Product behaviour change with its own reds. |
-| **`C-EFFORT-DEPTH`** | Expose rework depth per bundle and across the archive, reading the durable ledger through `listAccountingEvents` (`src/grace-cursor.ts:1908`) and `computeTaskFileChurn` (`:2634`) — no new record. Bytes and lines stay out: they are not derivable from a digest ([F141](#f141)). Named here 2026-09-04. Searched before minting: `C-AMENDMENT-COUNT` set the precedent of reporting from data already held, `C-REWORK-CIRCUIT` computes churn but emits it only inside an escalation message (`:2716-2721`); neither reports per bundle or retroactively. | [F141](#f141), [F141.1](#f141.1). | **Position 7 of eight** — ratified 2026-09-04 at position 5, renumbered 2026-09-05 by [D28](#d28) and again by [D29](#d29), re-scoped to a reporting surface by [F141.1](#f141.1). Coverage measured 2026-09-04: 46 of 63 archived bundles hold attempts, all 46 carry `WriteEvidence`, 39 show depth > 0. Must apply `isProductChurnPath` and re-measure — the probe's figures are a superset. |
-| **`C-RECORD-RETIREMENT`** | Retire `decisions.md` into three genres — findings, decisions, registry — each with an observable retirement trigger and a line ratchet that refuses growth. `decisions.md` itself **survives as the citation index**: 45 archived immutable artifacts cite its path and 528 internal anchors depend on its headings, so bodies move and anchors stay. The registry becomes machine-readable and its rule is the enforcement core: a live row naming an archived bundle is an error. Content preservation is a verified criterion, not a claim. The four `scripts/skill-contracts.test.ts` teaching sites move with it, canonical plus packaged mirror. `docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md` is out of scope permanently. Named here 2026-09-05 by [D28](#d28). Searched before minting: `C-RECORDED-DEBT` records debt inside a bundle, `C-RECORD-FALSE` is about a false record, `C-TEACHING-SURFACE` covers the docs surface, `C-DRIFT-HONESTY` covered a lint workaround; none addresses record lifecycle. | [F161](#f161), and it pays the cost measured in [F155.1](#f155.1) / [F157](#f157) / [F160](#f160), where expired counts and stale citations in a 9940-line file produced three corrections in two sessions. | **Position 2 of eight, ratified 2026-09-05.** Enforcement ships with the structure, never after. |
-| **`C-MODULE-CONTRACT-GATE`** | Convert this repository's 65/65 module-markup baseline from a hand-maintained convention into a gate: a lint rule (`require-module-contract`, id namespaced to the catalog's `markup.*` family) whose predicate is that every `src/**/*.ts` outside `.test.ts`, fixtures and explicitly ignored shims begins with a valid `START_MODULE_CONTRACT` header. Closes the conditional-validator hole in [F162](#f162) — `markup.unknown-link` validates a `LINKS:` that already exists and `graph.module-without-linked-files` fires graph-to-file, so a new source file carrying no markup silently leaves the governed set while the repository stays green. **Zero remediation diff today**: the tree already satisfies the predicate, and the rule locks the baseline permanently. Named here 2026-09-05 by [D29](#d29). Searched before minting: `C-GRAPH-COVERAGE` covered graph module/Path coverage from the graph side, `C-ADOPTION-SURFACE` the lifecycle doc surface, `C-ABSENCE-VALUE` recorded the `START_MODULE_CONTRACT` NonGoal this overturns in part, and `C-CONTRACT-DEBT` / `C-EXECUTION-CONTRACT` are API-error and execution-protocol contracts; none gates markup presence. | [F162](#f162). | **Position 3 of eight, ratified 2026-09-05.** Narrow leaf-level verification fix, and it ships before any function contract is written. |
-| **`C-FUNCTION-CONTRACT-SURFACE`** | Adopt `START_CONTRACT:` on this repository's governed surface — declarations exported from the command surface and public engine facade, plus every function that writes, transitions or validates audit state, ledger records or git operations — excluding internal leaf helpers, utility transformers and purely file-scoped helpers. Block markers stay reserved for complex control flow (multi-step validations, rollback ladders, transaction scopes) and are disallowed in flat sequential logic. **The validator rule ships simultaneously with the initial target annotations**, never annotations first and enforcement later ([D28](#d28), [D29](#d29)). The command surface is `src/grace.ts`, eleven `src/grace-*.ts` modules and `src/gates/command.ts`, `src/review/command.ts`, `src/query/command.ts` — the directory `src/commands/` **does not exist** and the ruling's path is corrected in [F162](#f162). Named here 2026-09-05 by [D29](#d29). Searched before minting: as for `C-MODULE-CONTRACT-GATE`, plus `C-EXPLAIN-COVERAGE`, which covers explainer coverage rather than source annotation. | [F162](#f162). | **Position 8 of eight, ratified 2026-09-05.** Downstream of the gate. The load-bearing subset is the spec's to define and defend; roughly 433 exported declarations exist across the 65 files and the in-scope subset is much smaller — measure it, never assume it. |
+| **`C-CONSTRAINT-DURABILITY`** | A rule in `skills/ngrace/ngrace-spec/SKILL.md` and its packaged mirror: `Constraints` holds durable scope facts; authoring-pass sequencing (*"spec only in this pass"*, *"status remains draft"*, *"do not author plan.xml until approved"*) belongs to the brief and the gate, never to the artifact that outlives the pass. Named here 2026-09-04 by [F156](#f156). Searched before minting: `C-EXECUTION-CONTRACT` governs the executor's contract, `C-APPROVAL-SCOPE` the phrase and close acts, `C-PLAN-QUALITY` plan-side richness; none says what `Constraints` may contain. | [F156](#f156). | **Position 5 of nine** — ratified 2026-09-04 at position 2, renumbered 2026-09-05 by [D28](#d28), [D29](#d29) and [D31](#d31). Zero tool findings today by measurement — 24 of 63 archived specs affected, all inside a `<Constraint>`. The archived 24 are **not** rewritten. Prose detection is out of scope (`review.regex-over-structure` is a defect code here); the enforceable half is skill text. |
+| **`C-APPROVE-TARGET-DISCOVERY`** | A bare `ngrace gate approve` targets whatever **lacks an attestation** rather than falling through to `plan`. The fallthrough is `src/gates/ledger.ts:1505-1514` (cited as `:1256-1267` in [F129.1](#f129.1), before the file moved), so on a bundle whose spec and plan are both `approved` a bare approve re-stamps `plan`, reports success, and a user who does not know `--artifact` can never attest the spec. Named here 2026-09-04; F129.1 asked for the slot and minted no name. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` owns the phrase and the close acts, `C-APPROVE-TIME-REVIEW` owns *when review runs*; none changes what a bare approve targets. | [F129.1](#f129.1). | **Position 7 of nine** — ratified 2026-09-04 at position 4, renumbered 2026-09-05 by [D28](#d28), [D29](#d29) and [D31](#d31). Product behaviour change with its own reds. |
+| **`C-EFFORT-DEPTH`** | Expose rework depth per bundle and across the archive, reading the durable ledger through `listAccountingEvents` (`src/grace-cursor.ts:1908`) and `computeTaskFileChurn` (`:2634`) — no new record. Bytes and lines stay out: they are not derivable from a digest ([F141](#f141)). Named here 2026-09-04. Searched before minting: `C-AMENDMENT-COUNT` set the precedent of reporting from data already held, `C-REWORK-CIRCUIT` computes churn but emits it only inside an escalation message (`:2716-2721`); neither reports per bundle or retroactively. | [F141](#f141), [F141.1](#f141.1). | **Position 8 of nine** — ratified 2026-09-04 at position 5, renumbered 2026-09-05 by [D28](#d28), [D29](#d29) and [D31](#d31), re-scoped to a reporting surface by [F141.1](#f141.1). Coverage measured 2026-09-04: 46 of 63 archived bundles hold attempts, all 46 carry `WriteEvidence`, 39 show depth > 0. Must apply `isProductChurnPath` and re-measure — the probe's figures are a superset. |
+| **`C-CITATION-ANCHOR-REPAIR`** | Inject explicit `a id`/`name` anchors and resolve ambiguous strip-dot citations while `decisions.md` is still one document. Nothing moves. Carries the delimiter-preserving slug grammar (`F9.1 → f9.1`). Named here 2026-09-05 by [D31](#d31). Searched before minting: no prior name covered citation identity on this file; `C-RECORD-RETIREMENT` is the engine that follows. | [F164](#f164); identity half of [D31](#d31). | **Delivered** 2026-09-05 as `C-CITATION-ANCHOR-REPAIR-2` and merged in PR #72; the original was superseded after its approved plan put current-mode lint of this root in task Verification. Both archived under `.ngrace/changes/archive/`. The board is defined for names that do not exist on disk; this row stays so the D31 insertion at **position 2 of nine** is not silently dropped. The identity work is done. |
+| **`C-RECORD-RETIREMENT`** | Retire `decisions.md` into three genres — findings, decisions, registry — each with an observable retirement trigger and a line ratchet that refuses growth. `decisions.md` itself **survives as the citation index**: 45 archived immutable artifacts cite its path and 528 internal anchors depend on its headings, so bodies move and anchors stay. The registry becomes machine-readable and its rule is the enforcement core: a live row naming an archived bundle is an error. Content preservation is a verified criterion, not a claim. The four `scripts/skill-contracts.test.ts` teaching sites move with it, canonical plus packaged mirror. `docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md` is out of scope permanently. Named here 2026-09-05 by [D28](#d28). Searched before minting: `C-RECORDED-DEBT` records debt inside a bundle, `C-RECORD-FALSE` is about a false record, `C-TEACHING-SURFACE` covers the docs surface, `C-DRIFT-HONESTY` covered a lint workaround; none addresses record lifecycle. | [F161](#f161), and it pays the cost measured in [F155.1](#f155.1) / [F157](#f157) / [F160](#f160), where expired counts and stale citations in a 9940-line file produced three corrections in two sessions. | **Position 3 of nine** — ratified 2026-09-05 at position 2, renumbered by [D31](#d31). Enforcement ships with the structure, never after. |
+| **`C-MODULE-CONTRACT-GATE`** | Convert this repository's 65/65 module-markup baseline from a hand-maintained convention into a gate: a lint rule (`require-module-contract`, id namespaced to the catalog's `markup.*` family) whose predicate is that every `src/**/*.ts` outside `.test.ts`, fixtures and explicitly ignored shims begins with a valid `START_MODULE_CONTRACT` header. Closes the conditional-validator hole in [F162](#f162) — `markup.unknown-link` validates a `LINKS:` that already exists and `graph.module-without-linked-files` fires graph-to-file, so a new source file carrying no markup silently leaves the governed set while the repository stays green. **Zero remediation diff today**: the tree already satisfies the predicate, and the rule locks the baseline permanently. Named here 2026-09-05 by [D29](#d29). Searched before minting: `C-GRAPH-COVERAGE` covered graph module/Path coverage from the graph side, `C-ADOPTION-SURFACE` the lifecycle doc surface, `C-ABSENCE-VALUE` recorded the `START_MODULE_CONTRACT` NonGoal this overturns in part, and `C-CONTRACT-DEBT` / `C-EXECUTION-CONTRACT` are API-error and execution-protocol contracts; none gates markup presence. | [F162](#f162). | **Position 4 of nine** — ratified 2026-09-05 at position 3, renumbered by [D31](#d31). Narrow leaf-level verification fix, and it ships before any function contract is written. |
+| **`C-FUNCTION-CONTRACT-SURFACE`** | Adopt `START_CONTRACT:` on this repository's governed surface — declarations exported from the command surface and public engine facade, plus every function that writes, transitions or validates audit state, ledger records or git operations — excluding internal leaf helpers, utility transformers and purely file-scoped helpers. Block markers stay reserved for complex control flow (multi-step validations, rollback ladders, transaction scopes) and are disallowed in flat sequential logic. **The validator rule ships simultaneously with the initial target annotations**, never annotations first and enforcement later ([D28](#d28), [D29](#d29)). The command surface is `src/grace.ts`, eleven `src/grace-*.ts` modules and `src/gates/command.ts`, `src/review/command.ts`, `src/query/command.ts` — the directory `src/commands/` **does not exist** and the ruling's path is corrected in [F162](#f162). Named here 2026-09-05 by [D29](#d29). Searched before minting: as for `C-MODULE-CONTRACT-GATE`, plus `C-EXPLAIN-COVERAGE`, which covers explainer coverage rather than source annotation. | [F162](#f162). | **Position 9 of nine** — ratified 2026-09-05 at position 8, renumbered by [D31](#d31). Downstream of the gate. The load-bearing subset is the spec's to define and defend; roughly 433 exported declarations exist across the 65 files and the in-scope subset is much smaller — measure it, never assume it. |
 
 **Sweep remainder — mentioned, missing from disk, not a chartered bundle.** Recorded so they
 are not silently dropped. None is work.
@@ -10487,3 +10498,461 @@ never annotations first and enforcement later ([D28](#d28)'s rule, applied to th
 **Not decided here**, and left open rather than assumed: the 35 unmarked `src/*.test.ts` files, and whether
 this repository claims `rust.md:60-62`'s trace-assertion permission in place of the logging convention. Both
 want a ruling; neither is in the two bundles above.
+
+<a id="f161.1" name="f161.1"></a>
+### F161.1 — six corrections to [F161](#f161), five of them measurements F161 itself took, and one correction to the correction. **[verified]**
+
+The executor authoring `C-RECORD-RETIREMENT`'s spec re-measured every count in [F161](#f161) and returned
+six in its `WRONG` field. Each was verified independently by the authority before being recorded here.
+**Four were exact, one understated the defect, and one was itself wrong.**
+
+1. **The literal-path count carried the filename's number.** F161 wrote *"45 archived artifacts cite the
+   literal path"*. Measured under `.ngrace/changes/archive/`: the literal path
+   `docs/plans/active/RM-GOVERNED-PATH/decisions.md` appears in **22** artifacts (16 `spec.xml`, 6
+   `plan.xml`); the bare filename `decisions.md` appears in **45** (30 `spec.xml`, 15 `plan.xml`). The
+   label of one measurement was written onto the count of the other. **CONFIRMED.**
+
+2. **A two-level heading cut omits 63 entries.** F161's *"200 `### F<n>` / 20 `## D<n>`"* misses **27**
+   `#### F` findings and **36** `### D` sub-decisions. Preservation cannot be defined on the two-level cut.
+   **CONFIRMED.**
+
+3. **The anchor counts moved and the anchors do not resolve.** 465 + 63 at F161's commit; **476 + 74** at
+   `30dea04`; **568** total `(#f…)`/`(#d…)` occurrences at `b0adb69` under a wider pattern. More
+   important than the drift: of 180 distinct anchor targets, **0 resolve under GitHub heading-slug rules**
+   — the real slug of F161's own heading is `f161--what-decisionsmd-actually-is-measured-and-the-four-…`,
+   not `f161`. **179 of 180 resolve only under a first-token convention**, and `f21-correction` resolves
+   under neither. F161's *"528 internal links must be rewritten, not broken"* assumed a resolution that
+   does not exist: they are already broken, and the split's `<a id>` anchors are what will make them work
+   for the first time. **CONFIRMED, and the defect is larger than the correction said.**
+
+4. **There is no execute-skill pin.** F161 said `scripts/skill-contracts.test.ts` pins the file in *"the
+   status rules, an execute step, plan rule 15 and the reviewer skill"*. The four sites are
+   `scripts/skill-contracts.test.ts:420` (`ngrace-spec` status_rules), `:432` (`ngrace-spec` workflow step
+   6), `:511` (`ngrace-plan` must-do rule 15), `:578` (`ngrace-reviewer`). `ngrace-execute/SKILL.md` is
+   read at `:129,143,343,362` and none of those assertions names the file. **CONFIRMED.**
+
+5. **Heading-token collisions: F161 recorded none, and the correction named the wrong three.** Under the
+   first-token slug rule the spec proposed (`F108.1 → f1081`), `F9.1` and `F91` both reduce to `f91`.
+   Measured at `b0adb69`: **259 distinct first-token ids, 28 colliding groups** — `F9.1`–`F9.9` against
+   `F91`–`F99` (nine groups), `F10.1-3`×`F101-103`, `F11.1-2`×`F111-112`, `F12.1-2`×`F121-122`,
+   `F13.1-2`×`F131-132`, `F5.1`×`F51`, `F8.1-2`×`F81-82`, `F27.1`×`F271`, `F21`×`F21 correction`,
+   `D1.1`–`D1.4`×`D11`–`D14`, `D2.1`×`D21`. The executor's `WRONG` named the set as `{F21, F19, F27.1}`;
+   **`f19` does not collide with anything** (`F19.1`→`f191`, `F19's…`→`f19s`). Right instinct, sampled
+   population — the same error class as [F130.1](#f130.1) and [F157](#f157), found this time in the
+   executor's report rather than the authority's.
+
+6. **Not an error:** 9940 versus 10073 lines is the three commits after `9b27238`, not a bad measurement
+   at F161's own commit.
+
+**A seventh fact, measured here and named by neither side.** **73** anchor occurrences across **25**
+distinct ids cite a colliding token (`d11` ×8, `f95` ×7, `f93` ×7, `f82` ×6, …). These are broken today,
+so nothing regresses now — but once explicit ids exist, `(#f93)` resolves to whichever heading holds
+`f93`, and every one of those 73 that *meant* `F9.3` will land silently on `F93` instead. **A reference
+that resolves to the wrong entry is worse than one that resolves to nothing**, because nothing announces
+it. A delimiter-preserving slug rule fixes the *targets* and leaves these 73 *citations* to be resolved
+by reading each one.
+
+<a id="f163" name="f163"></a>
+### F163 — the authority mutated the record that an in-flight bundle had been dispatched to measure. **[verified]**
+
+`C-RECORD-RETIREMENT`'s brief was handed over at **14:0x** telling the executor to re-measure
+`decisions.md` itself; the spec was authored at **14:08** against `30dea04`; the authority committed
+`b0adb69` — [F162](#f162) and [D29](#d29), 134 lines into that same file — at **14:21**. Six of the
+spec's Constraints were false within thirteen minutes of being written: four line/byte counts, two
+heading counts, the four ceiling bases, and — the one that is not a stale number but an incomplete set —
+*"Live chartered names remaining (10)"*, enumerated by name, which `D29` made twelve.
+
+**The general shape:** the authority's standing duty to record findings in `decisions.md` is in direct
+conflict with any bundle that takes `decisions.md` as its subject. Every finding recorded during such a
+bundle invalidates its spec. This is not specific to this bundle — it is the reason the record needs a
+form the authority can append to without moving the measurements a spec depends on.
+
+Paid by [D30](#d30).
+
+<a id="d30" name="d30"></a>
+## D30 — the record freezes for the lifetime of a bundle that measures it, and ceilings become formulas
+
+**Decided 2026-09-05 by the maintainer** on [F163](#f163), as the only coherent stance of three offered.
+
+**Freeze, as discipline.** `decisions.md` is frozen for the lifecycle of `C-RECORD-RETIREMENT`.
+[F161.1](#f161.1), [F163](#f163), this decision, and any finding raised while the bundle is open are held
+in an untracked buffer at `.ngrace/scratch/staged-findings.md` and flush to the live record at close or
+immediately post-archive. The buffer path is `.gitignore`d so a `git add -A` cannot sweep it into a
+public repository.
+
+**Dynamic derivation, as schema invariant.** A spec may not pin scalar counts of a file it changes into
+its hard `Constraints`. Ceilings are stated as formulas over a baseline measured **at execution time** —
+`ceiling = base + headroom` — and computed by the tool during the retirement pass, never transcribed.
+Dated measurements remain legitimate as *context*; what is forbidden is a `Constraint` whose truth
+expires the next time anyone writes the file.
+
+**The freeze lifts on the schema fix, not on the archive** — ratified 2026-09-05 when the maintainer
+agreed the early lift is right. It has an observable trigger and two phases, because it was doing two
+jobs and the schema fix retires only one of them.
+
+- **Job 1, stale constants** — a `Constraint` pinning a count that a later append falsifies. This is what
+  [F163](#f163) actually recorded, and **dynamic derivation retires it entirely.** The trigger is
+  observable: the freeze's first phase ends when the approved `spec.xml` contains no pinned scalar count
+  of `decisions.md` in its hard `Constraints`, which a reader can check against the frozen artifact.
+- **Job 2, concurrent mutation** — the retirement pass is a **read-modify-write over the whole file**: it
+  reads every heading and body, writes the genre files, and rewrites the index. An append landing inside
+  that window is not merely stale, it can be **lost or duplicated**, and no schema change prevents it.
+  So a narrow freeze re-tightens for the execution window in which the split runs, and for any dispatch
+  the authority has already promised a frozen base to.
+
+**The operative rule.** After the schema fix the authority may append **between dispatches**; it may never
+append **while a dispatch that reads or rewrites the record files is in flight**, and never after
+promising a frozen base in a brief that has already been handed over. Findings raised inside a window
+stay in this buffer until it closes.
+
+**Right now the freeze holds in full**: the send-back brief for the spec revision was handed over
+promising `decisions.md` frozen at `b0adb69`, and that promise outranks the early lift.
+
+<a id="d31" name="d31"></a>
+## D31 — the record retirement is two bundles, and identity ships before the engine
+
+**Decided 2026-09-05 by the maintainer**, who proposed the two-bundle cut on [D26](#d26)'s precedent
+against overloading a complex bundle, and accepted the authority's objection that the proposed **order**
+was inverted.
+
+**The cut.** Identity first, engine second.
+
+- **`C-CITATION-ANCHOR-REPAIR`** — inject explicit `&lt;a id&gt;` anchors and resolve the ambiguous
+  citations **while `decisions.md` is still one document**. Nothing moves. Carries the dot-preserving slug
+  grammar (`F9.1 → f9.1`) as a stated rule, not as shipped code.
+- **`C-RECORD-RETIREMENT`** — the three-layer split (index / live / retired), the retirement operation
+  with **dynamic ceiling derivation** ([D30](#d30)), and the `codifiedIn` **and `taughtIn`** forward and
+  reverse resolution checks.
+
+**Why the order was inverted, measured 2026-09-05 at `a6fefc0`, corrected by
+[F164](#f164).** **431 of 568** internal `(#f…)`/`(#d…)` occurrences sit **inside F/D bodies** — the
+text the split moves — and 137 sit elsewhere (15 preamble, 22 slip register, 100 registry). The
+authority first reported 408/160 from a region rule that misclassified non-F/D subsection headings
+inside a body as leaving it. The split is therefore the very act that converts 408 same-file anchors into
+cross-file references. Shipping the engine first leaves those 408 in an undefined state for the whole
+interval between the two bundles, which is exactly the window in which `(#f93)` resolves to the wrong
+finding ([F161.1](#f161.1)'s seventh fact). With identity settled first, the engine's rewrite is mechanical
+over a set whose every member has one unambiguous target, and a preservation criterion can assert that
+every anchor resolves both before and after.
+
+**A deliverable with an empty population, removed from the cut.** The proposal asked the anchor bundle to
+*"verify inbound fragment resolution across all archived and live artifacts"*. Measured: **zero** archived
+artifacts cite a fragment — `grep -rhoE 'decisions\.md#[A-Za-z0-9._-]+' .ngrace/changes/archive/
+docs/plans/` returns nothing, and all 22 literal-path and 45 filename citations are path-only. The real
+inbound surface is the 568 internal fragments. The criterion binds those.
+
+**`taughtIn`, added here.** [D28.1](#d28.1)'s `codifiedIn` trigger reaches only decisions a machine can
+enforce. Classified at `a6fefc0`, roughly six of the 22 live H2 decisions qualify — D1, D3, D5, D7, D9 and
+D24 (implemented at `src/grace-cursor.ts:196`). The other sixteen are practice rules binding people and
+agents — D19, D20, D22, D23, D25, D26, D27, D28, D29 among them — which no lint rule can hold, leaving
+the ceiling as sole enforcement for three quarters of the genre, the shape D28.1 rejected. `taughtIn:
+&lt;skill path + section&gt;` is the parallel trigger: for a practice rule the machine is the skill text
+that carries it, already pinned by `scripts/skill-contracts.test.ts`. **The same two resolution checks
+apply unchanged** — the pointer must resolve, and removing the pinned text must fail.
+
+**Registry rows** (stage into the Named-bundle registry at flush): `C-CITATION-ANCHOR-REPAIR` at
+**position 2**, `C-RECORD-RETIREMENT` moving to **position 3**, and every later position shifting by one
+— `C-MODULE-CONTRACT-GATE` 4, `C-CONSTRAINT-DURABILITY` 5, `C-CI-CLAIM-PIN` 6,
+`C-APPROVE-TARGET-DISCOVERY` 7, `C-EFFORT-DEPTH` 8, `C-FUNCTION-CONTRACT-SURFACE` 9.
+
+<a id="f164" name="f164"></a>
+### F164 — the authority's anchor brief carried six wrong numbers, every one caught by the executor and confirmed on re-measure. **[verified]**
+
+The spec brief for `C-CITATION-ANCHOR-REPAIR` asserted six measurements. The executor returned all six in
+its `WRONG` field; the authority re-measured each independently at `a6fefc0` and **every correction
+holds.**
+
+1. **Collision groups: 28 → 29.** The authority's tokenizer stripped every non-alphanumeric from the
+   first whitespace token, turning `F19's …` into `f19s`, which hid the `F19` collision. Parsing the
+   leading `[FD]<digits>(.<digits>)*` identifier instead — the principled rule, since the id derives from
+   the F/D identifier and not from an accidental apostrophe — yields **29**.
+2. **"Keeping the dot eliminates every collision group at once" is false.** Keep-dot separates the 26
+   distinct-token pairs (`F9.1` from `F91`) and leaves **three**: `F19`/`F19's …`, `F21`/`F21 correction`,
+   `F27.1`/`F27.1 amendment`. A qualifier-suffix clause, not the dot, drives that to zero.
+3. **"Retires the hand-assigned `f21-correction` exception" is false**, as a consequence of 2: keep-dot
+   alone assigns both `F21` headings `f21`.
+4. **Cited colliding citations: 73 across 25 → 79 across 26.** Three colliding heading slugs are
+   uncited — `f97`, `f103`, `f111` — and still need unique anchors.
+5. **Distinct fragment destinations: 180 → 182**, so "0 of 180 resolve under GitHub slugs" is 0 of 182,
+   and the first-token figure is not 179/180 but **155 unique, 26 ambiguous, 1 unmatched**.
+6. **Region split: 408/160 → 431 body, 15 preamble, 22 slip register, 100 registry.**
+
+**The common cause is one thing, and it is not arithmetic.** Five of the six are a **tokenizer or region
+rule chosen without stating it**, then reported as if the number were a property of the file rather than
+of the rule. `grep`-shaped measurement invites this: the pattern silently defines the population.
+**A count over a corpus is not a fact until the rule that produced it is written down beside it** — the
+executor's report states its parser in one sentence before every number, and that is why its numbers
+survived re-measure and the authority's did not.
+
+Recorded alongside [F130.1](#f130.1), [F155.1](#f155.1) and [F157](#f157), which are the same failure with
+different instruments.
+
+<a id="f165" name="f165"></a>
+### F165 — `C-SCOPE-AUDIT-ATTRIBUTION-2` changed what a plan-approve review reports and left the skill teaching the old behaviour. **[verified]**
+
+Measured 2026-09-05 at `ed6d1b8`, on the first plan-approve review run after that bundle merged.
+
+`skills/ngrace/ngrace-plan/SKILL.md` rule 15 teaches: *"At plan-approve `review.scope-outside-write-scope`
+on the bundle's own `spec.xml`, `plan.xml`, and (when that file changed) `decisions.md` is **expected**; do
+not add those paths to `ObservedWriteScope`."* **Neither `spec.xml` nor `plan.xml` fires any more** — the
+identity-keyed sibling predicate silences them, which is precisely what that bundle shipped and what its
+close measured (67 errors → 0 on a re-review). The sentence now describes behaviour the product no longer
+has.
+
+**And the path that does still fire is not named.** `design-context.xml` is the bundle's own
+authoring-pass artifact, is not gate-stamped, and is therefore outside the sibling predicate. On
+`C-CITATION-ANCHOR-REPAIR` it raises `review.scope-outside-write-scope` as an **error** at every
+`--change` review, with no remedy the rule offers: adding it to `ObservedWriteScope` is what rule 15
+forbids, and would in any case assert that the plan writes a file it does not.
+
+**The bundle that caused it touched no skill.** `git log -- skills/ngrace/ngrace-plan/SKILL.md` ends at
+`75754a7` (PR #68, `C-APPROVE-TIME-REVIEW`); the attribution bundle merged as PR #71 and modified no
+`SKILL.md`. A behaviour change shipped without its teaching.
+
+**Size of the repair, measured rather than estimated.** The sentence is pinned at **four** assertion sites
+in `scripts/skill-contracts.test.ts` — `:417/:421` (spec `status_rules`), `:429/:433` (spec workflow step
+6), `:508/:512` (plan must_do rule 15), and the reviewer block at `:570` — and lives in the canonical
+skill plus a **byte-identical** packaged mirror (`diff -q` reports no difference), so `validate-marketplace`
+holds them together. Executor-sized, not a one-line fix.
+
+**Precedent for the disposition, checked before ruling.** Of 65 archived bundles, 7 carry a
+`design-context.xml`, and **3 of those list it inside `ObservedWriteScope`** — `C-APPROVAL-FINGERPRINT`,
+`C-CRITERION-CLOSE-EVIDENCE`, `C-SUPERSEDE-COMMAND`. That is the practice rule 15 forbids, appearing three
+times before rule 15 existed. **Precedent lost to the shipped rule**: the executor's refusal to widen the
+scope is correct, and the finding is acked at close rather than silenced.
+
+<a id="f166" name="f166"></a>
+### F166 — the readings were derivable after all: the link text names the target in 565 of 568 citations. **[verified]**
+
+Measured 2026-09-05 at the close of `C-CITATION-ANCHOR-REPAIR`'s execution, as the authority's audit of
+`AC-AMBIGUOUS-READ`.
+
+The spec's premise was that no rule derives an ambiguous citation's target — *"each `(#f93)` means either
+`F9.3` or `F93`, and only the citing sentence says which"*. **That is false for all but three of them.**
+Every in-scope citation carries its target's identifier in its own **link text**: `[F9.3](#f93)` names
+`F9.3`. Comparing the F/D token in the link text against the destination resolves **565 of 568**
+mechanically. The three exceptions are prose labels, not F/D tokens — `[P1.12](#f38)`, `[P1.13](#f39)`,
+and ``[`C-REPORT-HONESTY`](#f14)``.
+
+**The audit that proved it also proved the work correct.** Run over the post-execution file, every one of
+the 568 destinations agrees with its own link text, which is a stronger result than reading 79 sentences
+would have given, and it covers all 568 rather than the 79 the plan scoped.
+
+**Consequence, and it is a strengthening rather than a criticism.** The bundle's own declared blind spot —
+a citation repointed to a wrong-but-existing anchor, which `AC-AMBIGUOUS-READ` calls unmechanizable and
+which the authority confirmed by planting `[F9.3](#f93)` on a throwaway copy and watching
+`validate-citation-anchors.ts` exit **0** — **is mechanically catchable** by a text-versus-destination
+consistency check. The validator ships without one. Adding it would close the one class the bundle
+knowingly leaves open, and the three prose-label exceptions are a small allowlist, not an obstacle.
+
+**Not grafted.** Scope landed before approval; this belongs to a later bundle, not to a plan whose task
+population is frozen and already executed.
+
+<a id="f167" name="f167"></a>
+### F167 — two citations name a sub-decision and point at its parent, and this bundle is what makes them fixable. **[verified]**
+
+`[D1.5](#d1)` at line 5651 (*"following D1.5's precedent"*) and `[D5.2](#d5)` at line 6389 (*"Under
+D5.2"*). Both are **pre-existing** — present unchanged at `bf0d530` before execution and after — and both
+are outside `C-CITATION-ANCHOR-REPAIR`'s population: `#d1` and `#d5` are not colliding strip-dot tokens,
+they resolve correctly as ids, and they fall in the 380-occurrence already-keep class.
+
+They are wrong only in precision: the reader lands on the parent decision and must find the subsection.
+**Until this bundle ran, there was nothing better to point at** — `d1.5` and `d5.2` did not exist as
+anchors. Now they do.
+
+Found by [F166](#f166)'s text-versus-destination audit, which is the check that would have caught them
+automatically had it existed. Two links, one bundle's worth of nothing — but recorded rather than
+silently fixed, because grafting a repair onto an executed plan's frozen population is how a task list
+stops describing the work.
+
+<a id="f168" name="f168"></a>
+### F168 — the second supersede of the week, and what it is and is not worth to the pilot question. **[verified]**
+
+Measured 2026-09-05 after `C-CITATION-ANCHOR-REPAIR` was superseded by `C-CITATION-ANCHOR-REPAIR-2`.
+
+**The counter.** `supersede-depth=1` on **both** current replacements — `C-CITATION-ANCHOR-REPAIR-2` and
+`C-SCOPE-AUDIT-ATTRIBUTION-2` — confirming that the depth increments on the replacement and not on the
+abandoned bundle. **Ten** bundles on disk carry `status="superseded"` on the spec **root element**
+(`C-CITATION-ANCHOR-REPAIR`, `C-CURSOR-TASK-IDENTITY`, `C-CURSOR-TASK-SENTINEL`, `C-LEDGER-READ-ABSENCE`,
+`C-LINT-PHASE-HONESTY`, `C-PHASE-RULE-PIN`, `C-SCOPE-AUDIT-ATTRIBUTION`, `C-SUPERSEDE-RECORD`,
+`C-SUPERSEDE-VERB`, `C-VERDICT-EVIDENCE`) — matched on the root element rather than on the token
+anywhere in the file, because `status="superseded"` also appears inside Constraint prose.
+
+**[D23](#d23) decides pilot on `supersedeChainDepth`, so this entry records what this instance is worth
+to that decision — and it is worth less than it first looks.**
+
+**The case for it as pilot evidence.** The defect reached an approved plan through the full ceremony:
+authority brief, executor authoring, authority verification including an `AcceptanceCriteria` read and an
+`F136` anchor check, a clean approve-time review, and maintainer ratification on the closed lexicon. It
+became visible only when the executor ran T-006 and the command exited 1. That is the shape pilot exists
+to catch.
+
+**The case against, and it is the honest half.** It was **catchable by reading**. The plan listed
+`lint --path . --fail-on warnings` as a task verification; the execute skill's own assertion-mode table
+(`skills/ngrace/ngrace-execute/SKILL.md:11`) defines `--assertions current` as the preflight **before**
+observed writes. Checking each Verification command against that table would have caught it at plan
+review. The authority did not perform that check. So this is a **review miss**, not a demonstration that
+review is incapable — and the previous supersede was confounded the other way, by an authority error
+rather than a review miss.
+
+**What it therefore adds to the pilot file:** one unconfounded instance of the ceremony passing a defect
+that execution then exposed, weakened by the fact that a check the authority already owed would have
+found it. A pilot execution would have caught it; so would a checklist. **The cheaper remedy is named
+here so the pilot discussion has to answer it:** verify every task Verification command's assertion mode
+against the skill table at plan review, before approving.
+
+<a id="f169" name="f169"></a>
+### F169 — the `--assertions current` rule needs no teaching change; it needs the detector it already has, pointed at the element it does not inspect. **[verified]**
+
+Measured 2026-09-05 at `5f20c72`, answering whether the skills need adjusting after
+[F168](#f168)'s supersede.
+
+**The teaching is already correct, explicit, and in the right skill.**
+`skills/ngrace/ngrace-plan/SKILL.md:105`: *"Never put `--assertions current` in task verification that
+runs after writes. Use selected target/final lint externally instead."* And `:104` forbids a current-mode
+lint of this project root in `MustPassCommand`. **No skill edit is warranted** — the superseded plan
+violated a rule that was already written down in imperative form, and the authority approved it without
+checking against that line.
+
+**The detector exists and is better than the registry says.** `isCurrentModeLintOfThisProjectRoot`
+(`src/artifact/assertions.ts:279-305`) recognises the lint subcommand in both `ngrace lint` and
+`src/grace.ts lint` forms, and `isCurrentAssertionMode` (`:262-266`) returns true when **no**
+`--assertions` token is present at all — `hasCurrent || !hasAssertionsToken`. **The "implicit-`current`
+gap" that `C-PHASE-RULE-PIN`'s registry row describes is therefore already closed**; that row's claim,
+written 2026-08-31, is stale and must be re-derived before that bundle is briefed ([F123](#f123)).
+
+**The live gap is section coverage, not mode detection.** `assertions.ts:299` returns early unless
+`section === "TargetAssertions"` **and** `assertion.kind === "MustPassCommand"`. A task's `Verification`
+commands are never passed to the check. The superseded plan's T-006 carried
+`bun ./src/grace.ts lint --path . --fail-on warnings` — no `--assertions` token, so implicitly
+current-mode, on this project root — inside a task `Verification`, and lint reported **0 errors, 0
+warnings** on that plan at both approve-time reviews.
+
+**Disposition.** This belongs to `C-PHASE-RULE-PIN` (registry row 7), whose charter is exactly
+*"reconcile the plan skill's `MustPassCommand` restriction with the contract the linter actually
+enforces"*. Its charter needs two corrections before briefing: the implicit-mode half is already shipped,
+and the unenforced half is the section restriction at `:299`. Widening that check to task `Verification`
+commands would have refused the superseded plan at authoring time, before an approval, an execution and
+a supersede were spent on it.
+
+**Correction to [F168](#f168).** That finding offered "a checklist" as the cheaper remedy to a pilot
+execution. The cheaper remedy is not a checklist — it is a five-line widening of a detector this
+repository already ships, and the pilot discussion should weigh it as such.
+
+<a id="f170" name="f170"></a>
+### F170 — the replacement bundle's evidence contract carried four close-evidence commands that cannot fail, three of them inherited from the bundle it replaces. **[verified]**
+
+Measured 2026-09-06 at `5f20c72`, on the authority's verification of the `C-CITATION-ANCHOR-REPAIR-2`
+spec before approval.
+
+`gate verdict` executes `CloseEvidence` commands (`src/gates/ledger.ts:406`) and refuses to record
+`outcome="pass"` on a non-zero exit. A command that always exits 0 therefore records a pass that
+carries no information. **Four of the spec's seven criteria had one.**
+
+**The mechanism.** A bare `git diff --exit-code -- <paths>` compares the working tree against `HEAD`.
+The close ceremony commits. By the time `gate verdict` runs, the tree is clean and the command exits
+0 whatever was written. Probed on a throwaway clone: a committed edit to `decisions.md` and
+`scripts/validate-citation-anchors.ts` leaves `git diff --exit-code -- <the four production paths>` at
+**0**, while `git diff --exit-code 5f20c72 -- <the same paths>` exits **1**.
+
+- **`AC-NO-PRODUCTION-WRITE`** — prose demanded a diff *"against the tree at plan approval"*; the
+  command diffed against `HEAD`. The sentence and the command made different claims.
+- **`AC-DOCS-EXAMPLES`** — same bare form over `README.md examples/`.
+- **`AC-NO-ARCHIVE-WRITE`** — bare, **and** its prose was falsified by its own close: it forbade any
+  changed path under `.ngrace/changes/archive/`, which is exactly where `gate archive` moves the
+  bundle. Probed: base-pinned over the whole archive exits 1 at close; with a pathspec exclusion of
+  the bundle's own directory it exits 0, and still exits 1 on a planted edit to the predecessor's
+  ledger. The command as written checked only `docs/plans/archive/`, so it under-claimed the prose.
+- **`AC-VALIDATOR-CI`** — asserted *"package.json validate:ci invokes validate:citation-anchors"* with
+  `bun test scripts/validate-citation-anchors.test.ts` as its only evidence. That test never reads
+  `package.json`. Probed on a clean clone with `&& bun run validate:citation-anchors` deleted from
+  `validate:ci`: **13 pass, 0 fail**.
+
+**`change.close-evidence-undiscriminating` does not catch this class, and says so.**
+`C-EVIDENCE-DISCRIMINATION` shipped the rule with the limit written into its own explanation — *"git
+diff --exit-code over the wrong paths still exit 0. A green rule is not evidence that the harder check
+happened."* Lint reporting 0/0 on the spec is not a defence, and the authority nearly treated it as
+one. **The linter's silence is the cheap class passing, not the criterion discriminating.**
+
+**Inheritance, measured over the population.** Of 13 `git diff` close-evidence commands across the 66
+archived bundles, **11 pin an explicit base commit** and **2 are bare** — and both bare ones are in
+`C-CITATION-ANCHOR-REPAIR`, the superseded bundle this one replaces. The replacement carried its
+predecessor's weakest convention forward while fixing the defect it was cut to fix. **A supersede
+re-ratifies the parts nobody re-examined.**
+
+**Two counts of the authority's own that were wrong before the probe corrected them**, both the
+[F164](#f164) class of a pattern silently defining its population: `\[TEXT\]\(#[fd][^)]*\)` returned
+569 fragments and 4 non-F/D link texts because `#decision-candidate--…` begins with a `d`; constrained
+to `#[fd]\d`, the executor's **568** and **3** are exact. And `dest == lower(token)` reported 3
+destination mismatches by ignoring the qualifier-suffix rule that makes `[F21 correction](#f21-correction)`
+correct; the executor's **563 / 2** holds. **Every number in the spec's `Assumptions` block survived
+re-measure; both corrections were the authority's.**
+
+**Also not a defect, recorded because the absence nearly became a claim.** No archived plan has an
+empty `ObservedWriteScope` — all 64 carry at least one `File`/`Glob`, minimum 1 at `C-REASON-CONSTANTS`
+— which invited the conclusion that this bundle's `&lt;None /&gt;` scope was unbuildable. It is the
+documented idiom (`skills/ngrace/ngrace-plan/SKILL.md:60,62`; `OBSERVED_SCOPE_DIRECT_TAGS` at
+`src/artifact/grammar.ts:245`; the plan template itself). The absent precedent meant only that no
+prior bundle had zero writes. **The population count answered a different question than the one being
+asked** — [CLAUDE.md](../../../../CLAUDE.md)'s rule 2, caught before it reached a brief.
+
+Nine of the 64 archived plans do not parse as strict XML (unescaped `&lt;` or `&amp;` in prose, the
+[F43](#f43) class); the counts above cover all 64 by parsing 55 and text-scanning the remaining 9.
+
+<a id="f171" name="f171"></a>
+### F171 — the detector meant to prevent this bundle's originating defect does not recognise the house command form, and [F169](#f169) named the wrong gap. **[verified]**
+
+Measured 2026-09-06 at `d6a64a6`, while verifying `C-CITATION-ANCHOR-REPAIR-2`'s plan.
+
+`C-CITATION-ANCHOR-REPAIR` was superseded because its T-006 task `Verification` carried
+`bun ./src/grace.ts lint --path . --fail-on warnings` — a current-mode lint of this project root, after
+writes. [F169](#f169) examined the guard and ruled that *"the teaching is already correct"*, that
+`isCurrentModeLintOfThisProjectRoot` *"recognises the lint subcommand in both `ngrace lint` and
+`src/grace.ts lint` forms"*, and that the single live gap is the section restriction at
+`src/artifact/assertions.ts:299`, which never passes task `Verification` commands to the check. It
+concluded that widening that check *"would have refused the superseded plan at authoring time"*.
+
+**It would not have.** `invokesNgraceLintSubcommand` (`src/artifact/assertions.ts:257-260`) is two
+alternations, each allowing an optional `bun run ` prefix and an optional `./`. Neither admits a bare
+`bun ` before a `./`-prefixed path. Probed over six variants of the same command:
+
+| form | detected |
+|---|---|
+| `bun ./src/grace.ts lint --path . --fail-on warnings` | **no** |
+| `bun run ./src/grace.ts lint …` | yes |
+| `./src/grace.ts lint …` | yes |
+| `src/grace.ts lint …` | yes |
+| `ngrace lint …` | yes |
+| `bun run ngrace lint …` | yes |
+
+**The one form it misses is the house form.** It is what the superseded plan wrote, and it is what this
+repository's own operating instructions mandate, because `bun run ngrace <args>` re-quotes arguments.
+The guard is blind precisely where the repository is required to aim it.
+
+**Confirmed at three levels, because the regex reading alone is not evidence.** With
+`bun ./src/grace.ts lint --path . --fail-on warnings` planted inside `TargetAssertions/MustPassCommand`
+— the position [F169](#f169) says *is* covered — `lint --fail-on warnings` exits **0** with 0 errors and
+0 warnings; `gate approve --artifact plan` returns **permit**; and the exported
+`extractAssertionsWithIssues(plan, "TargetAssertions")` returns the command as an extracted value with
+**zero issues**. The section restriction at `:299` was never reached, because the predicate returned
+false first.
+
+**Consequence for the charter.** `C-PHASE-RULE-PIN` (registry row 7) now carries **two** corrections,
+not one. [F169](#f169)'s remedy — widening section coverage — is necessary and **not sufficient**:
+applied alone it would still have passed the superseded plan. The fix is two-part, command-form
+recognition **and** section coverage, and only the pair discriminates. A single-part fix would ship a
+guard that reports green on the exact defect that produced two supersedes.
+
+**Not grafted.** This bundle's approved spec forbids editing `src/`, and its `ObservedWriteScope` is
+`&lt;None /&gt;`; a production fix here would breach `AC-NO-PRODUCTION-WRITE`. The conflict is real and
+documented, which is the exception [D11](#d11) allows.
+
+**The authority's own error, recorded against the brief that carried it.** The plan brief told the
+executor that a `design-context.xml` *"raises `review.scope-outside-write-scope` as an error at every
+`--change` review"*. That is false for an empty `ObservedWriteScope`: `src/review/core.ts:1068`
+continues past every changed file when scope files and globs are both empty, and `:1541-1549` sets the
+audit to `not-run` outright. Probed — a `design-context.xml` added under this bundle's empty scope
+reviews **0 findings**. [F165](#f165) measured its claim on `C-CITATION-ANCHOR-REPAIR`, which had a
+non-empty write scope; the authority restated a context-bound measurement as a universal. The advice to
+omit the file was still right, for a different and smaller reason: it is optional, and 8 of the 66
+archived bundles carry one. Caught by the executor's `WRONG` field.
