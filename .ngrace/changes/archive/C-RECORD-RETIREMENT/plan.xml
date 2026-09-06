@@ -1,0 +1,404 @@
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-RECORD-RETIREMENT><Replacement>C-RECORD-RETIREMENT-2</Replacement>
+    <IntentSummary>
+      Split docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      into three genres across three layers, ship the
+      retirement operation with dynamic ceiling
+      derivation, and extend
+      scripts/validate-citation-anchors.ts for
+      target-relative genre-set coverage, cross-file
+      destinations, and file-local licensed qualifier
+      ids. DurableScope is &lt;None /&gt;: no graph
+      module is written. ObservedWriteScope is the
+      record files, the validator scripts and tests,
+      and package.json. Do not add spec.xml or
+      plan.xml. Do not mint M-LINT-CATALOG, M-REVIEW,
+      M-SKILLS, M-TEST-SUPPORT, or
+      M-RELEASE-AUTOMATION. No design-context.xml.
+      Ceilings are formulas computed at execution
+      after the initial eligible moves, never a
+      scalar of decisions.md. Qualifier-id
+      three-way: licensed-alone must flip 1→0;
+      unique-primary must stay 0; unlicensed must
+      stay 1. Current-mode lint of this root is not
+      a task Verification command and is not a
+      TargetAssertions MustPassCommand. Selected
+      --assertions baseline before writes;
+      --assertions target --run-commands after the
+      split. MustPassCommand holds leaf tests and
+      validator scripts. Do not require bun run
+      validate:ci. TargetAssertions MustExist
+      names only paths that already exist; new
+      paths are Baseline MustNotExist plus
+      Target MustPassCommand, because
+      review.confidently-wrong treats every
+      MustExist as a present-tense disk claim
+      (src/review/core.ts:501-536), including
+      under TargetAssertions.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>package.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.test.ts</Value>
+      </MustExist>
+      <MustNotExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.md</Value>
+      </MustNotExist>
+      <MustNotExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.md</Value>
+      </MustNotExist>
+      <MustNotExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.md</Value>
+      </MustNotExist>
+      <MustNotExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.md</Value>
+      </MustNotExist>
+      <MustNotExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustNotExist>
+      <MustNotExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustNotExist>
+      <MustNotExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Value>
+      </MustNotExist>
+      <MustNotExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustNotExist>
+      <MustNotExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustNotExist>
+      <MustNotExist>
+        <Value>scripts/prove-record-preservation.ts</Value>
+      </MustNotExist>
+      <MustNotExist>
+        <Value>scripts/prove-record-preservation.test.ts</Value>
+      </MustNotExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>validate:citation-anchors</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>package.json</File>
+        <Text>validate:record-retirement</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>package.json</File>
+        <Text>prove-record-preservation</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>&lt;a id=</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>Named-bundle registry</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>package.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.test.ts</Value>
+      </MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>validate:citation-anchors</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>validate:record-retirement</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>prove-record-preservation</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>&lt;a id=</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>Named-bundle registry</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</File>
+      <File>scripts/validate-citation-anchors.ts</File>
+      <File>scripts/validate-citation-anchors.test.ts</File>
+      <File>scripts/validate-record-retirement.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>scripts/prove-record-preservation.ts</File>
+      <File>scripts/prove-record-preservation.test.ts</File>
+      <File>package.json</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Extend citation-anchor validator:
+          target-relative genre set, cross-file
+          destinations, licensed qualifier ids
+        </Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            scripts/validate-citation-anchors.ts
+            production invocation with no argv
+            validates every existing genre-set
+            filename in DEFAULT_TARGET's
+            directory. argv naming a fixture
+            path validates that path and every
+            existing genre-set sibling in that
+            path's directory and does not read
+            the repository's record files. A
+            planted unresolved
+            ](findings.md#f9999) exits non-zero.
+            A planted findings.md with
+            unresolved ](#slug) as a sibling of
+            the target exits non-zero even when
+            argv names only decisions.md in that
+            directory. Same-file refuse paths
+            still fail.
+          </Criterion>
+          <Criterion>
+            Qualifier-id three-way, all planted
+            in scripts/validate-citation-anchors.test.ts,
+            not only the case that flips. A
+            file containing only a duplicate-token
+            member with its assigned licensed
+            qualifier id (f19s, f21-correction,
+            f27.1-amendment) exits 0. A unique
+            correction heading whose id is the
+            primary slug (f74.1) still exits 0.
+            A unique heading whose id is a
+            qualifier form the heading text does
+            not license still exits 1
+            slug-mismatch expecting the primary.
+            Unique corrections are not forced
+            onto qualifier ids. Ids are not
+            reassigned.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun ./src/grace.ts lint --path . --change C-RECORD-RETIREMENT --assertions baseline</Command>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>
+          Ship retirement and preservation
+          validators, join them to validate:ci
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-FINDING-ELIGIBILITY />
+          <AC-CEILINGS />
+          <AC-CODIFIED-IN />
+          <AC-TAUGHT-IN />
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            scripts/validate-record-retirement.ts
+            errors per live finding whose paidBy
+            names a directory under
+            .ngrace/changes/archive/, naming
+            that archive event. Errors per live
+            registry.xml row whose name equals
+            such a directory. Ceilings are
+            computed at execution as
+            ceiling = base + headroom from the
+            spec formulas after the initial
+            eligible moves; bases are not
+            transcribed. Exceeding a ceiling
+            fails; the message names move to
+            the retired sibling and does not
+            name a config key. Zero historical
+            codifiedIn or taughtIn tags.
+            Both resolution checks ship for
+            each tag: unresolvable pointer is
+            an error; removing or renaming the
+            named check or pinned skill text
+            while a live tag stands is an
+            error. Tests plant those refuse
+            paths.
+          </Criterion>
+          <Criterion>
+            scripts/prove-record-preservation.ts
+            exits 0 iff every inventory heading
+            token is present in decisions.md
+            with its assigned HTML id and every
+            body hash is present in the union
+            of the four genre body files. The
+            test file plants a missing inventory
+            body and a missing heading token.
+            package.json validate:ci invokes
+            bun ./scripts/validate-record-retirement.ts
+            and bun ./scripts/prove-record-preservation.ts
+            as named members and still invokes
+            validate:citation-anchors. Both new
+            test files read package.json and
+            fail if those members are absent.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>
+          Split the record, write inventory,
+          run the initial retirement pass
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-PATH-SURVIVES />
+          <AC-ANCHORS-KEPT />
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            decisions.md remains at
+            docs/plans/active/RM-GOVERNED-PATH/decisions.md
+            as a citation index: every pre-split
+            F/D heading token and the
+            Named-bundle registry heading remain,
+            each F/D heading keeps its assigned
+            empty &lt;a id name&gt;, heading text
+            is unchanged, ids are not reassigned.
+            Genre files exist as named in the
+            spec. Bodies move with a copy of the
+            same anchor. In-scope ](#slug)
+            destinations that move with a body
+            become ](decisions.md#slug).
+            Fragments that remain in the index
+            stay as ](#slug). record-inventory.json
+            is written from the pre-split file
+            at execution. The initial retirement
+            pass moves every currently eligible
+            live finding and chartered registry
+            row under the spec rules. Ceilings
+            are persisted as base + headroom
+            measured after those moves. Do not
+            edit docs/plans/archive/ or
+            .ngrace/changes/archive/. Do not
+            edit skills/ngrace/* or
+            plugins/ngrace/skills/ngrace/*.
+            Do not populate historical
+            codifiedIn or taughtIn tags.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>
+          Prove leaf evidence and selected
+          target assertions after the split
+        </Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            bun test of the four test files
+            named in TargetAssertions and the
+            three validator scripts all exit 0
+            against the live files. Skill-contracts
+            decisions.md pins still pass.
+            Selected target lint with
+            --run-commands exits 0. This task's
+            Verification and the plan's
+            TargetAssertions contain no
+            current-mode lint of this project
+            root, checked by the rule in the
+            spec Constraints, by hand (F171):
+            no Command text contains
+            --assertions current, and no
+            Command invokes ngrace lint or
+            bun ./src/grace.ts lint of this
+            root and omits --assertions.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-RECORD-RETIREMENT --assertions target --run-commands</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-RECORD-RETIREMENT>
+</NgraceChangePlan>

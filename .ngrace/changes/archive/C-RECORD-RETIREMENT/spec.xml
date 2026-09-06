@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-RECORD-RETIREMENT>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-RECORD-RETIREMENT><Replacement>C-RECORD-RETIREMENT-2</Replacement>
     <Summary>
       Retire docs/plans/active/RM-GOVERNED-PATH/decisions.md
       into three content genres (findings, decisions, registry)
