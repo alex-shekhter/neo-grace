@@ -1,0 +1,628 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-CITATION-ANCHOR-REPAIR-2>
+    <Summary>
+      Re-ratify the already-present
+      citation-anchor work with a
+      correct evidence contract. The
+      production writes stand: every
+      F/D heading in
+      docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      has a delimiter-preserving
+      explicit anchor, in-scope
+      fragments resolve, and
+      scripts/validate-citation-anchors.ts
+      is on package.json validate:ci.
+      This bundle does not re-do that
+      work. The defect that caused the
+      supersede is that the predecessor
+      plan put current-mode lint of
+      this root in T-006 task
+      Verification. Task verification
+      uses selected modes; current-mode
+      lint of this root appears only as
+      post-archive CloseEvidence under
+      AC-CLOSE-LINT.
+    </Summary>
+    <Problem>
+      This is a re-ratification of
+      standing writes plus a correct
+      evidence contract, not a second
+      implementation of the anchors.
+
+      `.ngrace/changes/archive/C-CITATION-ANCHOR-REPAIR/`
+      holds spec.xml and plan.xml with
+      status="superseded" and
+      &lt;Replacement&gt;C-CITATION-ANCHOR-REPAIR-2&lt;/Replacement&gt;.
+      The verb discarded that bundle's
+      governance, never the code. The
+      production files it wrote are in
+      the tree. The execution record
+      of those writes is not in this
+      bundle's ledger; it lives at
+      `.ngrace/changes/archive/C-CITATION-ANCHOR-REPAIR/run-ledger.xml`.
+      A later reader who treats this
+      bundle's thin ledger as missing
+      evidence is looking in the wrong
+      file.
+
+      The predecessor's T-006
+      Verification included
+      bun ./src/grace.ts lint --path .
+      --fail-on warnings. That command
+      omits --assertions, so it is
+      current-mode lint of this
+      project root. The execute skill
+      places current-mode as the
+      preflight before observed writes
+      (skills/ngrace/ngrace-execute/SKILL.md:12)
+      and forbids it in post-write
+      task verification (same file,
+      preflight). After writes,
+      current-mode cannot pass while
+      the bundle's own baseline
+      assertions are still active.
+      That fail is C-REPORT-HONESTY's
+      design, not a bug to route
+      around. Listing the command as
+      task verification made "run
+      each task's verification
+      immediately" and "record pass"
+      irreconcilable without either
+      lying about the exit or failing
+      a task whose writes were done.
+
+      Three decisions this spec makes,
+      because the work already exists:
+
+      1. Execution means verify and
+      close, not build. Target
+      assertions are already true at
+      the start. That is acceptable.
+      A BaselineAssertions block that
+      describes the pre-anchor tree
+      (MustNotContain &lt;a id=,
+      MustNotExist on the two scripts)
+      would be false today and would
+      look like real baseline
+      breakage. Do not author that
+      baseline. Do not revert
+      production files to manufacture
+      a red.
+
+      2. A ratification asserts two
+      distinct claims, both required.
+      "This bundle does not edit the
+      production files" is
+      AC-NO-PRODUCTION-WRITE. "The
+      standing properties still hold"
+      is AC-ANCHORS-STAND,
+      AC-FRAGMENTS-RESOLVE, and
+      AC-VALIDATOR-CI, re-verified by
+      the same probes. Either claim
+      alone is insufficient.
+
+      3. This bundle's production
+      write surface is empty. The
+      later plan's ObservedWriteScope
+      is &lt;None /&gt;. Do not invent
+      a production task to occupy a
+      slot. A verification-only task
+      that re-runs the standing probes
+      is acceptable. Do not add
+      spec.xml or plan.xml to
+      ObservedWriteScope.
+    </Problem>
+    <Goals>
+      <Goal>
+        Attach valid governance to the
+        already-present citation-anchor
+        work without rewriting it.
+        This spec is the replacement
+        named by the archived
+        predecessor. Execution of this
+        bundle verifies that the
+        standing properties still hold
+        and closes with a correct
+        evidence contract. It does not
+        re-implement the anchors, the
+        fragment rewrite, or the
+        validator.
+      </Goal>
+      <Goal>
+        Keep task verification on
+        selected assertion modes:
+        bun ./src/grace.ts lint --path .
+        --change C-CITATION-ANCHOR-REPAIR-2
+        --assertions baseline
+        before writes, and
+        --assertions target
+        --run-commands after. Do not
+        put current-mode lint of this
+        project root in any task
+        Verification or in
+        TargetAssertions. Current mode
+        means the command text contains
+        --assertions current, or it
+        invokes ngrace lint and omits
+        --assertions.
+      </Goal>
+      <Goal>
+        Keep current-mode lint of this
+        root only as post-archive
+        CloseEvidence under
+        AC-CLOSE-LINT, where the
+        predecessor's baseline is no
+        longer active and the command
+        can be true. Do not use that
+        command as a task verification
+        or as a TargetAssertions
+        MustPassCommand.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module
+        change). No graph module, no
+        skill, no lint-domain write.
+        Not T2. Not T3. Gates still
+        run.
+      </Constraint>
+      <Constraint>
+        Roadmap plan RM-GOVERNED-PATH.
+        This bundle is the replacement
+        of C-CITATION-ANCHOR-REPAIR,
+        which settled identity while
+        decisions.md is still one
+        file. It does not pay F161
+        and does not implement D28.
+      </Constraint>
+      <Constraint>
+        Production write surface,
+        empty. The later plan's
+        ObservedWriteScope is
+        &lt;None /&gt;. Do not declare
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md,
+        scripts/validate-citation-anchors.ts,
+        scripts/validate-citation-anchors.test.ts,
+        or package.json as a write.
+        Do not invent a production
+        task. Changing those files
+        would defeat the bundle's
+        purpose. spec.xml and plan.xml
+        are not added to
+        ObservedWriteScope.
+      </Constraint>
+      <Constraint>
+        Execution evidence of the
+        production writes lives in
+        `.ngrace/changes/archive/C-CITATION-ANCHOR-REPAIR/run-ledger.xml`.
+        This bundle's own ledger is
+        thin because the writes
+        already happened under the
+        superseded id. Point at that
+        path; do not copy its events
+        into this bundle.
+      </Constraint>
+      <Constraint>
+        BaselineAssertions of the
+        later plan describe the tree
+        as it is now: MustExist the
+        two scripts, MustContain
+        validate:citation-anchors in
+        package.json, MustContain
+        &lt;a id= and ](#f88.2) in
+        decisions.md, MustNotContain
+        ](#f882). Those assertions
+        are expected to pass at plan
+        approval. Do not author a
+        baseline that requires the
+        pre-anchor tree. Do not
+        revert production files to
+        manufacture a red. An
+        already-green target is
+        acceptable; a fabricated
+        failure is not.
+      </Constraint>
+      <Constraint>
+        Task Verification and
+        TargetAssertions contain no
+        current-mode lint of this
+        project root. Current mode
+        means the command text
+        contains --assertions current,
+        or it invokes ngrace lint and
+        omits --assertions. The
+        matcher is command text; it
+        does not resolve bun run
+        &lt;script&gt; through
+        package.json. Selected
+        --assertions target
+        --run-commands and the
+        baseline form are the task
+        evidence commands.
+        MustPassCommand holds leaf
+        project evidence such as
+        bun test
+        scripts/validate-citation-anchors.test.ts
+        and
+        bun ./scripts/validate-citation-anchors.ts.
+        Do not require bun run
+        validate:ci as MustPassCommand
+        or CloseEvidence.
+      </Constraint>
+      <Constraint>
+        C-REPORT-HONESTY stands.
+        Current-mode still evaluates
+        approved BaselineAssertions
+        and still reports them as
+        errors. Do not skip that
+        evaluation. Do not infer
+        writes-started from git dirty,
+        the ledger, or
+        ObservedWriteScope. Do not
+        silence current-mode baseline
+        issues to make a post-write
+        current-mode lint look green.
+      </Constraint>
+      <Constraint>
+        decisions.md body text is not
+        rewritten by this bundle.
+        The authority's pending
+        findings stay out of tree.
+        Heading text stays. Anchors
+        and fragment destinations stay.
+      </Constraint>
+      <Constraint>
+        README.md and examples/ are
+        unchanged; no user-visible
+        CLI token, config key, or
+        ngrace command. Do not edit
+        CONTRIBUTING.md
+        (C-CI-CLAIM-PIN).
+      </Constraint>
+      <Constraint>
+        Do not edit anything under
+        docs/plans/archive/ or
+        .ngrace/changes/archive/.
+        The superseded predecessor
+        is a dated record.
+      </Constraint>
+      <Constraint>
+        Do not add a ngrace lint
+        issue code. Do not edit
+        src/grace-lint.ts,
+        src/lint/core.ts,
+        src/lint/catalog.ts, or
+        src/language-registry.ts.
+        scripts/ stays in
+        .ngrace-lint.json ignoredDirs.
+      </Constraint>
+      <Constraint>
+        Do not pin a scalar count of
+        decisions.md (headings,
+        fragments, collisions, bytes,
+        lines) into a Constraint.
+        Counts expire (F123). Snapshot
+        measurements live in
+        Assumptions.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Re-inserting anchors, rewriting
+        fragment destinations, or
+        rewriting the validator and
+        its tests. Owner: the
+        superseded predecessor
+        C-CITATION-ANCHOR-REPAIR;
+        the writes stand.
+      </NonGoal>
+      <NonGoal>
+        A text-versus-destination
+        consistency check in
+        scripts/validate-citation-anchors.ts.
+        Uniqueness does not catch a
+        unique-but-wrong dest; link
+        text that is an F/D token
+        usually names the target, so
+        the class is mechanically
+        catchable. Owner: a later
+        bundle. Do not graft it.
+      </NonGoal>
+      <NonGoal>
+        Rewriting the two pre-existing
+        citations that name a
+        sub-decision and point at its
+        parent, [D1.5](#d1) and
+        [D5.2](#d5). Both predate the
+        predecessor and are outside
+        the colliding population.
+        Owner: unchanged, or the
+        later text-versus-destination
+        bundle.
+      </NonGoal>
+      <NonGoal>
+        Updating
+        skills/ngrace/ngrace-plan/SKILL.md
+        rule 15, which still teaches
+        that a bundle's own spec.xml
+        and plan.xml fire
+        review.scope-outside-write-scope
+        at plan-approve. They no
+        longer do. Owner: a later
+        teaching-surface bundle.
+      </NonGoal>
+      <NonGoal>
+        The three-genre split,
+        retirement operation,
+        registry.xml, and codifiedIn /
+        taughtIn checks. Owner:
+        C-RECORD-RETIREMENT.
+      </NonGoal>
+      <NonGoal>
+        Expanding ngrace lint to
+        markdown, adding .md to
+        CODE_EXTENSIONS, or graph
+        adoption of scripts/. Owner:
+        the deferred lint-domain and
+        scripts-adoption bundles.
+      </NonGoal>
+      <NonGoal>
+        README.md and examples/
+        unchanged; no user-visible
+        surface. Owner: unchanged.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-NO-PRODUCTION-WRITE>
+        This bundle does not edit
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md,
+        scripts/validate-citation-anchors.ts,
+        scripts/validate-citation-anchors.test.ts,
+        or package.json. Verified
+        against 5f20c72, so a staged
+        or committed edit of those
+        paths fails and an unedited
+        tree passes. A production
+        edit, including a "fix" of a
+        citation or a validator
+        refuse path, fails this
+        criterion.
+        <CloseEvidence>
+          <Command>git diff --exit-code 5f20c72 -- docs/plans/active/RM-GOVERNED-PATH/decisions.md scripts/validate-citation-anchors.ts scripts/validate-citation-anchors.test.ts package.json</Command>
+        </CloseEvidence>
+      </AC-NO-PRODUCTION-WRITE>
+      <AC-ANCHORS-STAND>
+        Already true. Every F/D
+        heading at any ATX level has,
+        on the immediately preceding
+        line, an empty
+        &lt;a id="SLUG" name="SLUG"&gt;&lt;/a&gt;
+        whose SLUG is the
+        delimiter-preserving grammar
+        the predecessor specified
+        (F9.1 is f9.1; D28.1 is
+        d28.1; F21 correction is
+        f21-correction; F27.1
+        amendment is f27.1-amendment;
+        F19's … is f19s; unique
+        correction headings keep the
+        primary). Ids are unique. id
+        equals name. Re-verify; do
+        not rewrite the file. CloseEvidence
+        is the test file, which plants
+        a missing preceding anchor and
+        also runs the live file; the
+        validator command itself is
+        not a discriminating
+        CloseEvidence shape.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+        </CloseEvidence>
+      </AC-ANCHORS-STAND>
+      <AC-FRAGMENTS-RESOLVE>
+        Already true. Every in-scope
+        ](#f…) / ](#d…) fragment
+        resolves to exactly one
+        existing anchor id. A
+        strip-dot destination left
+        against a keep-dot id fails.
+        Re-verify; do not rewrite
+        destinations.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+        </CloseEvidence>
+      </AC-FRAGMENTS-RESOLVE>
+      <AC-VALIDATOR-CI>
+        Already true. package.json
+        validate:ci invokes the named
+        script validate:citation-anchors,
+        which runs
+        bun ./scripts/validate-citation-anchors.ts.
+        A planted missing anchor,
+        duplicate id, or unresolved
+        fragment still makes that
+        script exit non-zero. The
+        test file does not read
+        package.json; the second
+        CloseEvidence command diffs
+        package.json against 5f20c72,
+        where that wiring is present.
+        Dropping
+        bun run validate:citation-anchors
+        from validate:ci fails that
+        command.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+          <Command>git diff --exit-code 5f20c72 -- package.json</Command>
+        </CloseEvidence>
+      </AC-VALIDATOR-CI>
+      <AC-EVIDENCE-CONTRACT>
+        The later plan's task
+        Verification commands and
+        TargetAssertions contain no
+        current-mode lint of this
+        project root. Failure: a
+        Command whose text contains
+        --assertions current, or that
+        invokes ngrace lint / bun
+        ./src/grace.ts lint of this
+        root and omits --assertions,
+        including the predecessor's
+        bun ./src/grace.ts lint --path .
+        --fail-on warnings as a task
+        Verification command.
+      </AC-EVIDENCE-CONTRACT>
+      <AC-NO-ARCHIVE-WRITE>
+        The archived record under
+        docs/plans/archive/ and
+        .ngrace/changes/archive/ is
+        not modified. This bundle's
+        own arrival under
+        .ngrace/changes/archive/C-CITATION-ANCHOR-REPAIR-2/
+        is not a modification.
+        Verified against 5f20c72
+        excluding that directory, so
+        a staged or committed edit of
+        any other archived path fails
+        and a close that only adds
+        this bundle passes. Failure:
+        a write to another archived
+        bundle or to
+        docs/plans/archive/,
+        including a restatement of
+        the predecessor ledger.
+        <CloseEvidence>
+          <Command>git diff --exit-code 5f20c72 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-CITATION-ANCHOR-REPAIR-2'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-WRITE>
+      <AC-DOCS-EXAMPLES>
+        README.md and examples/ are
+        byte-identical to 5f20c72. A
+        staged or committed edit of
+        those paths fails and an
+        unedited tree passes.
+        <CloseEvidence>
+          <Command>git diff --exit-code 5f20c72 -- README.md examples/</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This
+        is the only place current-mode
+        lint of this root appears.
+        Do not put
+        bun ./src/grace.ts lint --path .
+        --fail-on warnings in any task
+        Verification or in
+        TargetAssertions
+        MustPassCommand.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No graph module is written.
+      This bundle writes only this
+      spec.xml and the later plan.xml.
+      The ratified production surface
+      is
+      docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      (no LINKS header;
+      isDocsPlansPath),
+      scripts/validate-citation-anchors.ts
+      and
+      scripts/validate-citation-anchors.test.ts
+      (scripts/ is ignoredDirs;
+      M-RELEASE-AUTOMATION deferred),
+      and package.json validate:ci
+      membership (no LINKS header).
+      Those four paths are not this
+      bundle's writes. Do not mint a
+      synthetic module to fill this
+      section.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test scripts/validate-citation-anchors.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-CITATION-ANCHOR-REPAIR-2 --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes, not a
+        green suite. (1) The four
+        production paths named in
+        AC-NO-PRODUCTION-WRITE have
+        an empty git diff against
+        5f20c72. (2)
+        The validator still exits 0
+        on the live file and still
+        exits non-zero on a planted
+        missing anchor, duplicate id,
+        unresolved fragment, and
+        ](#f882) against id=f88.2.
+        (3) Selected
+        --assertions target
+        --run-commands of this change
+        exits 0. (4) The later plan's
+        task Verification list does
+        not contain current-mode lint
+        of this root. (5) Current-mode
+        lint of this root is present
+        only as AC-CLOSE-LINT
+        CloseEvidence and is evaluated
+        post-archive. bun test green
+        is a precondition, not the
+        evidence.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken 2026-09-05
+        at commit
+        5f20c72734813baca088880714e015e037cbb520,
+        after supersede. wc -l
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md
+        → 10489. Explicit
+        &lt;a id name&gt; anchors: 287.
+        bun ./scripts/validate-citation-anchors.ts
+        exits 0.
+        package.json version 6.2.0;
+        validate:citation-anchors is
+        bun ./scripts/validate-citation-anchors.ts
+        and is the last member of
+        validate:ci. In-scope f/d
+        fragments: 568. Of those, 565
+        have F/D-token link text; 563
+        of those 565 have dest equal
+        to the keep-dot (or qualifier)
+        slug of that token; the two
+        dest mismatches are
+        [D1.5](#d1) at line 5651 and
+        [D5.2](#d5) at line 6389.
+        Three in-scope fragments have
+        non-F/D link text (P1.12,
+        P1.13, C-REPORT-HONESTY).
+      </Assumption>
+      <Assumption>
+        Recovery state at execution
+        start is
+        target-already-satisfied:
+        standing properties are true
+        and ObservedWriteScope is
+        empty. That is acceptable.
+        Do not revert to manufacture
+        a clean-to-start red.
+      </Assumption>
+      <Assumption>
+        ngrace lint still does not
+        admit decisions.md. Evidence:
+        src/grace-lint.test.ts:1879
+        leaves docs markdown outside
+        the lint artifact universe;
+        src/language-registry.ts
+        CODE_EXTENSIONS has no .md;
+        .ngrace-lint.json ignoredDirs
+        includes scripts.
+      </Assumption>
+    </Assumptions>
+  </C-CITATION-ANCHOR-REPAIR-2>
+</NgraceChangeSpec>

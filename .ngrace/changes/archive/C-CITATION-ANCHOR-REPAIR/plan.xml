@@ -1,0 +1,414 @@
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-CITATION-ANCHOR-REPAIR><Replacement>C-CITATION-ANCHOR-REPAIR-2</Replacement>
+    <IntentSummary>
+      Insert delimiter-preserving HTML anchors on
+      every F/D heading in
+      docs/plans/active/RM-GOVERNED-PATH/decisions.md,
+      rewrite in-scope fragments in two classes
+      (mechanical then reading) so the reading
+      diff is one pass, and ship
+      scripts/validate-citation-anchors.ts on
+      package.json validate:ci with planted
+      refuse tests. No split, no registry write,
+      no lint-domain expansion.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>package.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-CITATION-ANCHOR-REPAIR/spec.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-CITATION-ANCHOR-REPAIR/plan.xml</Value>
+      </MustExist>
+      <MustNotExist>
+        <Value>scripts/validate-citation-anchors.ts</Value>
+      </MustNotExist>
+      <MustNotExist>
+        <Value>scripts/validate-citation-anchors.test.ts</Value>
+      </MustNotExist>
+      <MustNotContain>
+        <File>package.json</File>
+        <Text>validate:citation-anchors</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>&lt;a id=</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>](#f88.2)</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>](#f882)</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"validate:ci"</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>package.json</Value>
+      </MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>validate:citation-anchors</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>&lt;a id="f9.1" name="f9.1"&gt;&lt;/a&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>&lt;a id="d28.1" name="d28.1"&gt;&lt;/a&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>&lt;a id="f21-correction" name="f21-correction"&gt;&lt;/a&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>&lt;a id="f27.1-amendment" name="f27.1-amendment"&gt;&lt;/a&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>&lt;a id="f19s" name="f19s"&gt;&lt;/a&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>](#f88.2)</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>](#d28.1)</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>](#f882)</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>](#d281)</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+      <File>scripts/validate-citation-anchors.ts</File>
+      <File>scripts/validate-citation-anchors.test.ts</File>
+      <File>package.json</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Insert explicit anchors before every F/D heading
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Re-derive the F/D heading population at
+            execution: every ATX heading (levels 1–6)
+            whose text begins F&lt;n&gt; or D&lt;n&gt;.
+            Tokenizer: line match
+            ^#{1,6} [FD]\d. A two-level cut
+            (^### F, ^## D) is refused. At plan
+            authoring that population is 287
+            (F H3 202, F H4 27, D H2 22, D H3 36).
+            Immediately before each such heading,
+            on its own line, insert empty
+            &lt;a id="SLUG" name="SLUG"&gt;&lt;/a&gt;
+            whose SLUG is the spec grammar:
+            lowercase leading
+            [FD]&lt;digits&gt;(.&lt;digits&gt;)*
+            with dots kept; qualifier suffix only
+            on the non-canonical member of a
+            same-token duplicate (F21 correction
+            → f21-correction; F27.1 amendment →
+            f27.1-amendment; F19's … → f19s).
+            Heading text is byte-identical to
+            HEAD. No fragment destinations change
+            in this task. Failure conditions
+            (mutations T-005 plants, this task
+            must not ship): a heading with no
+            preceding anchor; HTML inside the
+            heading line; a {#id} suffix; id and
+            name disagree; a two-level cut that
+            skips H4 findings or H3 decisions; a
+            strip-dot id; a qualifier suffix on a
+            unique correction heading; two
+            headings sharing an id.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python3 -c "from pathlib import Path; import re, subprocess, sys; p='docs/plans/active/RM-GOVERNED-PATH/decisions.md'; new=Path(p).read_text().splitlines(); old=subprocess.check_output(['git','show','HEAD:'+p], text=True).splitlines(); pat=re.compile(r'^#{1,6} [FD][0-9]'); oh=[l for l in old if pat.match(l)]; nh=[l for l in new if pat.match(l)]; assert oh==nh, 'heading text changed'; missing=[]; levels=set();
+for i,l in enumerate(new):
+    m=re.match(r'^(#{1,6}) ([FD][0-9])', l)
+    if not m: continue
+    levels.add(len(m.group(1)))
+    prev=new[i-1] if i else ''
+    ok=prev.startswith('&lt;a id=') and ' name=' in prev and prev.endswith('&gt;&lt;/a&gt;')
+    if not ok: missing.append(i+1)
+print('fd_headings', len(nh), 'levels', sorted(levels), 'missing', len(missing)); sys.exit(0 if (not missing) and set((2,3,4)).issubset(levels) else 1)"</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SLUG-GRAMMAR />
+          <AC-EXPLICIT-ANCHORS />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>
+          Mechanically restore dots on unique fragment destinations
+        </Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Re-derive the mechanical population:
+            in-scope ](#f…) / ](#d…) destinations
+            (token after f/d starts with a digit)
+            whose strip-dot form matches exactly
+            one F/D heading, and that heading's
+            keep-dot slug differs from the current
+            dest. Rewrite each to that keep-dot
+            slug. At plan authoring: 38 distinct
+            ids, 108 occurrences; specimens
+            ](#f882) → ](#f88.2) and
+            ](#d281) → ](#d28.1). Do not rewrite
+            colliding-token dests (T-003) and do
+            not change heading text or anchors.
+            Failure conditions: a strip-dot
+            destination left pointing at a
+            keep-dot id it no longer names
+            (T-005 plants ](#f882) against
+            id=f88.2).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python3 -c "from pathlib import Path; t=Path('docs/plans/active/RM-GOVERNED-PATH/decisions.md').read_text(); assert '](#f882)' not in t; assert '](#f88.2)' in t; assert '](#d281)' not in t; assert '](#d28.1)' in t; print('mechanical specimens ok')"</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>
+          Resolve colliding fragment destinations by reading
+        </Title>
+        <DependsOn>
+          <T-002 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Re-derive the reading population:
+            in-scope fragments whose destination
+            token (dots stripped) matches two or
+            more F/D heading leading tokens.
+            At plan authoring: 79 occurrences
+            across 26 ids (d11 d12 d13 d14 d21
+            f101 f102 f112 f121 f122 f131 f132
+            f19 f21 f271 f51 f81 f82 f91 f92 f93
+            f94 f95 f96 f98 f99). Read each
+            citing sentence and rewrite the dest
+            to the keep-dot or qualifier slug of
+            the heading it names. Rewrite in
+            document order. This task's only
+            decisions.md edits are those
+            destination bytes, so the diff is
+            the reading record in one pass.
+            The verification listing is every
+            in-scope fragment whose dest
+            primary (leading
+            [fd]&lt;digits&gt;(.&lt;digits&gt;)*)
+            strip-dots to a colliding slug;
+            at authoring that print set is 80
+            (the 79 plus #f21-correction,
+            whose primary is f21). Re-derive.
+            Do not write a parallel
+            disambiguation table or any new
+            inventory path. Failure conditions:
+            a colliding token left as strip-dot
+            so it silently binds to the
+            un-dotted heading (uniqueness will
+            not catch this; the printed listing
+            is the check); a parallel table
+            substituted for the corrected link.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python3 -c "from pathlib import Path; import re; from collections import Counter; lines=Path('docs/plans/active/RM-GOVERNED-PATH/decisions.md').read_text().splitlines(); heads=[];
+for l in lines:
+    m=re.match(r'^#{1,6} ([FD][0-9]+(?:[.][0-9]+)*)\b', l)
+    if m: heads.append(m.group(1))
+strip=lambda s: s.lower().replace('.',''); collide={k for k,n in Counter(strip(h) for h in heads).items() if n&gt;=2}; n=0
+for i,l in enumerate(lines,1):
+    for dest in re.findall(r'\][(]#([fd][0-9][0-9a-z.-]*)[)]', l):
+        prim=re.match(r'[fd][0-9]+(?:[.][0-9]+)*', dest)
+        if prim and strip(prim.group(0)) in collide:
+            n+=1; sent=re.sub(r'\s+',' ',l).strip(); print('%s #%s %s' % (i, dest, sent))
+print('reading_rows', n); raise SystemExit(0 if n else 1)"</Command>
+        </Verification>
+        <Satisfies>
+          <AC-AMBIGUOUS-READ />
+        </Satisfies>
+      </T-003>
+      <T-004>
+        <Title>
+          Write the citation-anchor validator
+        </Title>
+        <DependsOn>
+          <T-003 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Add scripts/validate-citation-anchors.ts.
+            Production default targets exactly
+            docs/plans/active/RM-GOVERNED-PATH/decisions.md
+            and may take a path for fixtures.
+            Exit 0 only when: every F/D heading
+            at any ATX level has exactly one
+            immediately preceding empty
+            &lt;a id name&gt; whose id equals
+            the spec grammar and equals name;
+            ids are unique; every in-scope
+            fragment resolves to exactly one
+            existing id. Do not add a ngrace
+            lint issue code. Do not edit
+            src/grace-lint.ts, src/lint/core.ts,
+            src/lint/catalog.ts, or
+            src/language-registry.ts. scripts/
+            stays in ignoredDirs. Failure
+            conditions (T-005 plants each):
+            missing preceding anchor; duplicate
+            id; unresolved fragment; strip-dot
+            dest left against a keep-dot id;
+            id and name disagree; HTML inside
+            the heading line; {#id} suffix;
+            strip-dot id; qualifier suffix on a
+            unique correction heading; two-level
+            cut omitting an H4 F or H3 D
+            heading.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>
+          Plant refuse-path tests for the validator
+        </Title>
+        <DependsOn>
+          <T-004 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Add scripts/validate-citation-anchors.test.ts.
+            Each spec Failure clause that the
+            validator can observe is a planted
+            mutation that must fail, and a
+            happy fixture plus the live file
+            must pass. Plant at least: missing
+            preceding anchor; duplicate id;
+            unresolved fragment; ](#f882)
+            against id=f88.2; id and name
+            disagree; HTML inside the heading
+            line; {#id} suffix; strip-dot id
+            on F9.1; qualifier suffix on a
+            unique correction heading;
+            fixture whose only F/D anchors
+            follow a two-level cut and omit
+            an H4 F heading. Also plant a
+            unique-but-wrong fixture (#f93
+            with both F9.3 and F93 present
+            as keep-dot ids) and assert the
+            validator exits 0 — uniqueness
+            cannot catch a wrong unique
+            target (AC-AMBIGUOUS-READ). Do
+            not treat that green as
+            substantiation of the reading.
+            Failure conditions: a planted
+            refuse path that still exits 0;
+            no live-file pass; a test that
+            only prints ok.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>
+          Join the validator to validate:ci and close the surgical diffs
+        </Title>
+        <DependsOn>
+          <T-005 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Add named package.json script
+            validate:citation-anchors whose
+            command is
+            bun ./scripts/validate-citation-anchors.ts
+            and append bun run
+            validate:citation-anchors to
+            validate:ci. Do not bump
+            version. Do not edit
+            CONTRIBUTING.md (C-CI-CLAIM-PIN).
+            git diff against HEAD has no
+            changed path under
+            docs/plans/archive/,
+            .ngrace/changes/archive/,
+            README.md, or examples/, and
+            does not touch
+            src/lint/catalog.ts,
+            src/grace-lint.ts,
+            src/lint/core.ts, or
+            src/language-registry.ts.
+            Failure conditions: the script
+            exists but is not on the chain;
+            only bun test covers it; the
+            check lives in ngrace lint;
+            any write under
+            docs/plans/archive/ or
+            .ngrace/changes/archive/;
+            any README.md or examples/
+            edit; post-archive lint not
+            0/0.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>git diff --exit-code -- docs/plans/archive/</Command>
+          <Command>git diff --exit-code -- .ngrace/changes/archive/</Command>
+          <Command>git diff --exit-code -- README.md examples/</Command>
+          <Command>git diff --exit-code -- src/lint/catalog.ts src/grace-lint.ts src/lint/core.ts src/language-registry.ts</Command>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </Verification>
+      </T-006>
+    </ImplementationPlan>
+  </C-CITATION-ANCHOR-REPAIR>
+</NgraceChangePlan>
