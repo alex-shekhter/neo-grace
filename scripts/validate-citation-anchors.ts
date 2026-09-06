@@ -1,25 +1,27 @@
 #!/usr/bin/env bun
 /**
- * Citation-anchor uniqueness gate for
- * docs/plans/active/RM-GOVERNED-PATH/decisions.md.
+ * Citation-anchor identity gate for the RM-GOVERNED-PATH record.
  *
- * Exit 0 only when every F/D heading at any ATX level has exactly one
- * immediately preceding empty <a id name> whose id equals the delimiter-
- * preserving slug grammar and equals name, ids are unique, and every
- * in-scope ](#f…) / ](#d…) fragment resolves to exactly one of those ids.
+ * Production invocation with no argv validates the stub at DEFAULT_TARGET
+ * and the XML index the stub names. argv naming a fixture path validates
+ * that stub and the index it names in that directory and does not read
+ * the repository's record files.
  */
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { XMLValidator } from "fast-xml-parser";
 
 export const DEFAULT_TARGET = "docs/plans/active/RM-GOVERNED-PATH/decisions.md";
-
-const TOKENIZER_RE = /^#{1,6} [FD]\d/;
-const HEADING_RE = /^(#{1,6}) ([FD][0-9]+(?:\.[0-9]+)*)(\S*)(.*)$/;
-const ANCHOR_RE = /^<a id="([^"]+)" name="([^"]+)"><\/a>$/;
+export const INDEX_REL = "./decisions.xml";
+export const INVENTORY_NAME = "record-inventory.json";
 const FRAG_RE = /\]\(#([fd][0-9][0-9a-z.-]*)\)/g;
-const PANDOC_RE = /\{#[^}]+\}/;
-const ANCHOR_IN_HEADING_RE = /<a\b/i;
+const GENRE_FILES = [
+  "findings.xml",
+  "findings-retired.xml",
+  "rulings.xml",
+  "rulings-retired.xml",
+] as const;
 
 export type CitationAnchorFinding = {
   code: string;
@@ -27,156 +29,167 @@ export type CitationAnchorFinding = {
   message: string;
 };
 
-type Heading = {
-  line: number; // 1-based
-  index: number; // 0-based in lines
+type InventoryEntry = {
   token: string;
-  after: string;
-  rest: string;
-  primary: string;
-  expectedSlug: string;
-  text: string;
+  id: string;
+  bodyHash?: string;
 };
 
-export function splitMarkdownLines(markdown: string): string[] {
-  const lines = markdown.split("\n");
-  if (lines.length > 0 && lines[lines.length - 1] === "") {
-    lines.pop();
+type IndexEntry = {
+  id: string;
+  token: string;
+  line: number;
+};
+
+function parseAttrs(raw: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const re = /([A-Za-z][\w:-]*)="([^"]*)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(raw)) !== null) {
+    out[m[1]!] = m[2]!;
   }
-  return lines;
+  return out;
 }
 
-export function expectedSlugFor(
-  token: string,
-  after: string,
-  rest: string,
-  duplicateCount: number,
-): string {
-  const primary = token.toLowerCase();
-  if (duplicateCount === 1) {
-    return primary;
-  }
-  const headingBody = token + after + rest;
-  const firstWs = headingBody.split(/\s+/)[0] ?? "";
-  if (firstWs === `${token}'s`) {
-    return firstWs.replace(/'/g, "").toLowerCase();
-  }
-  const remainder = headingBody.slice(firstWs.length).trim();
-  const nextWord = remainder.split(/\s+/)[0] ?? "";
-  const word = nextWord.replace(/[^A-Za-z0-9]+$/g, "").toLowerCase();
-  if (word === "correction" || word === "amendment") {
-    return `${primary}-${word}`;
-  }
-  return primary;
+function xmlDecode(text: string): string {
+  return text
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&amp;", "&");
 }
 
-function parseHeadings(lines: string[]): Heading[] {
-  const parsed: Omit<Heading, "expectedSlug">[] = [];
-  for (let i = 0; i < lines.length; i++) {
-    const text = lines[i];
-    if (!TOKENIZER_RE.test(text)) {
-      continue;
-    }
-    const m = HEADING_RE.exec(text);
-    if (!m) {
-      continue;
-    }
-    const token = m[2];
-    parsed.push({
-      line: i + 1,
-      index: i,
-      token,
-      after: m[3],
-      rest: m[4],
-      primary: token.toLowerCase(),
-      text,
-    });
-  }
-  const counts = new Map<string, number>();
-  for (const h of parsed) {
-    counts.set(h.primary, (counts.get(h.primary) ?? 0) + 1);
-  }
-  return parsed.map((h) => ({
-    ...h,
-    expectedSlug: expectedSlugFor(h.token, h.after, h.rest, counts.get(h.primary) ?? 1),
-  }));
-}
-
-export function validateCitationAnchors(
-  markdown: string,
-  fileLabel = DEFAULT_TARGET,
-): CitationAnchorFinding[] {
-  const lines = splitMarkdownLines(markdown);
-  const headings = parseHeadings(lines);
+export function validateStubAndIndex(stubPath: string): CitationAnchorFinding[] {
   const findings: CitationAnchorFinding[] = [];
-  const ids = new Map<string, number>();
+  const dir = path.dirname(stubPath);
+  if (!existsSync(stubPath)) {
+    findings.push({
+      code: "missing-stub",
+      line: 0,
+      message: `citation-anchors: stub not found: ${stubPath}`,
+    });
+    return findings;
+  }
+  const stub = readFileSync(stubPath, "utf8");
+  if (!stub.includes(INDEX_REL)) {
+    findings.push({
+      code: "missing-index-pointer",
+      line: 0,
+      message: `${stubPath}: stub does not name ${INDEX_REL} as the parseable index by relative path`,
+    });
+    return findings;
+  }
+  const indexPath = path.join(dir, "decisions.xml");
+  if (!existsSync(indexPath)) {
+    findings.push({
+      code: "missing-index",
+      line: 0,
+      message: `citation-anchors: index not found: ${indexPath}`,
+    });
+    return findings;
+  }
+  const indexXml = readFileSync(indexPath, "utf8");
+  const valid = XMLValidator.validate(indexXml);
+  if (valid !== true) {
+    findings.push({
+      code: "malformed-index",
+      line: 0,
+      message: `${indexPath}: index is not well-formed RecordIndex (${valid.err.msg})`,
+    });
+    return findings;
+  }
+  if (!/<RecordIndex\b/.test(indexXml)) {
+    findings.push({
+      code: "malformed-index",
+      line: 0,
+      message: `${indexPath}: root is not RecordIndex`,
+    });
+    return findings;
+  }
 
-  for (const h of headings) {
-    if (ANCHOR_IN_HEADING_RE.test(h.text)) {
-      findings.push({
-        code: "html-in-heading",
-        line: h.line,
-        message: `${fileLabel}:${h.line}: F/D heading contains an HTML <a> tag; anchors belong on the preceding line`,
-      });
-    }
-    if (PANDOC_RE.test(h.text)) {
-      findings.push({
-        code: "pandoc-heading-id",
-        line: h.line,
-        message: `${fileLabel}:${h.line}: F/D heading has a {#id} suffix; GitHub does not honour pandoc/kramdown ids`,
-      });
-    }
-    const prev = h.index > 0 ? lines[h.index - 1] : "";
-    const am = ANCHOR_RE.exec(prev);
-    if (!am) {
-      findings.push({
-        code: "missing-anchor",
-        line: h.line,
-        message: `${fileLabel}:${h.line}: F/D heading has no immediately preceding empty <a id name> anchor`,
-      });
-      continue;
-    }
-    const id = am[1];
-    const name = am[2];
-    const anchorLine = h.line - 1;
-    if (id !== name) {
-      findings.push({
-        code: "id-name-disagree",
-        line: anchorLine,
-        message: `${fileLabel}:${anchorLine}: anchor id "${id}" disagrees with name "${name}"`,
-      });
-    }
-    if (id !== h.expectedSlug) {
-      findings.push({
-        code: "slug-mismatch",
-        line: anchorLine,
-        message: `${fileLabel}:${anchorLine}: anchor id "${id}" does not match slug grammar (expected "${h.expectedSlug}")`,
-      });
-    }
-    const seen = ids.get(id);
-    if (seen !== undefined) {
+  const entries: IndexEntry[] = [];
+  const seen = new Map<string, number>();
+  const entryRe = /<Entry\b([^>]*)\/?>/g;
+  let em: RegExpExecArray | null;
+  while ((em = entryRe.exec(indexXml)) !== null) {
+    const attrs = parseAttrs(em[1] ?? "");
+    const line = indexXml.slice(0, em.index).split("\n").length;
+    const id = attrs.id ?? "";
+    const token = attrs.token ?? "";
+    if (seen.has(id)) {
       findings.push({
         code: "duplicate-id",
-        line: anchorLine,
-        message: `${fileLabel}:${anchorLine}: duplicate anchor id "${id}" (first at line ${seen})`,
+        line,
+        message: `${indexPath}:${line}: duplicate index id "${id}" (first at line ${seen.get(id)})`,
       });
     } else {
-      ids.set(id, anchorLine);
+      seen.set(id, line);
+    }
+    entries.push({ id, token, line });
+  }
+
+  const inventoryPath = path.join(dir, INVENTORY_NAME);
+  if (!existsSync(inventoryPath)) {
+    findings.push({
+      code: "missing-inventory",
+      line: 0,
+      message: `citation-anchors: inventory not found: ${inventoryPath}`,
+    });
+    return findings;
+  }
+  let inventory: InventoryEntry[] = [];
+  try {
+    inventory = JSON.parse(readFileSync(inventoryPath, "utf8")) as InventoryEntry[];
+  } catch {
+    findings.push({
+      code: "malformed-inventory",
+      line: 0,
+      message: `${inventoryPath}: inventory is not JSON`,
+    });
+    return findings;
+  }
+  const byId = new Map(entries.map((e) => [e.id, e]));
+  for (const item of inventory) {
+    const hit = byId.get(item.id);
+    if (!hit) {
+      findings.push({
+        code: "missing-inventory-id",
+        line: 0,
+        message: `${indexPath}: index is missing inventory id "${item.id}" token "${item.token}"`,
+      });
+      continue;
+    }
+    if (hit.token !== item.token) {
+      findings.push({
+        code: "token-mismatch",
+        line: hit.line,
+        message: `${indexPath}:${hit.line}: inventory id "${item.id}" has token "${item.token}" but index token is "${hit.token}"`,
+      });
     }
   }
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    FRAG_RE.lastIndex = 0;
-    let m: RegExpExecArray | null;
-    while ((m = FRAG_RE.exec(line)) !== null) {
-      const dest = m[1];
-      if (!ids.has(dest)) {
-        findings.push({
-          code: "unresolved-fragment",
-          line: i + 1,
-          message: `${fileLabel}:${i + 1}: in-scope fragment ](#${dest}) does not resolve to an existing F/D anchor id`,
-        });
+  for (const genre of GENRE_FILES) {
+    const genrePath = path.join(dir, genre);
+    if (!existsSync(genrePath)) {
+      continue;
+    }
+    const xml = readFileSync(genrePath, "utf8");
+    const bodyRe = /<Body>([\s\S]*?)<\/Body>/g;
+    let bm: RegExpExecArray | null;
+    while ((bm = bodyRe.exec(xml)) !== null) {
+      const decoded = xmlDecode(bm[1] ?? "");
+      const lineBase = xml.slice(0, bm.index).split("\n").length;
+      FRAG_RE.lastIndex = 0;
+      let fm: RegExpExecArray | null;
+      while ((fm = FRAG_RE.exec(decoded)) !== null) {
+        const dest = fm[1]!;
+        if (!seen.has(dest)) {
+          findings.push({
+            code: "unresolved-fragment",
+            line: lineBase,
+            message: `${genrePath}: Body ](#${dest}) does not resolve to an index id`,
+          });
+        }
       }
     }
   }
@@ -184,34 +197,11 @@ export function validateCitationAnchors(
   return findings;
 }
 
-export function validateCitationAnchorsFile(filePath: string): {
-  file: string;
-  findings: CitationAnchorFinding[];
-} {
-  if (!existsSync(filePath)) {
-    return {
-      file: filePath,
-      findings: [
-        {
-          code: "missing-file",
-          line: 0,
-          message: `citation-anchors: file not found: ${filePath}`,
-        },
-      ],
-    };
-  }
-  const markdown = readFileSync(filePath, "utf8");
-  return {
-    file: filePath,
-    findings: validateCitationAnchors(markdown, filePath),
-  };
-}
-
 export function main(argv = process.argv.slice(2), cwd = process.cwd()): number {
   const target = path.resolve(cwd, argv[0] ?? DEFAULT_TARGET);
-  const { file, findings } = validateCitationAnchorsFile(target);
+  const findings = validateStubAndIndex(target);
   if (findings.length === 0) {
-    console.log(`citation-anchors: ok (${file})`);
+    console.log(`citation-anchors: ok (${target})`);
     return 0;
   }
   for (const f of findings) {
