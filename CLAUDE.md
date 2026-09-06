@@ -27,6 +27,17 @@ A plan's `status` appears in its YAML frontmatter and must agree with its direct
 (`active/` vs `archive/`). Superseding a plan means setting `status: superseded`, filling
 `supersededBy`, and moving it to `archive/` — never rewriting it in place.
 
+The RM-GOVERNED-PATH record lives under `docs/plans/active/RM-GOVERNED-PATH/`.
+`decisions.md` is a markdown stub at that path; the parseable citation index is
+`decisions.xml`. D28 genres are findings, decisions, and registry (`findings.xml`,
+`rulings.xml` because `decisions.xml` is the index, `registry.xml`). D31 layers are
+citation index, live, and retired (retired siblings `findings-retired.xml`,
+`rulings-retired.xml`, `registry-retired.xml`). Machine-read fields are XML
+attributes or elements. An entry moves when: a finding's PaidBy names an archived
+bundle; a decision carries a resolving CodifiedIn or TaughtIn; a registry row's
+name equals an archive directory. Existing markdown citations of the
+`decisions.md` path may stay — that path is the stub.
+
 ## Core Purpose
 
 The repository packages and distributes GRACE skills so coding agents can:

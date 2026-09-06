@@ -1,0 +1,1270 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-RECORD-RETIREMENT-2>
+    <Summary>
+      Retire docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      into three content genres (findings, decisions, registry)
+      across three layers (citation index, live, retired),
+      all genre bodies XML, with decisions.xml as the
+      parseable citation index and decisions.md kept at
+      its exact path as a stub. Ship the retirement
+      operation with dynamic ceiling derivation, both
+      resolution checks on codifiedIn and taughtIn, and
+      a stub-resolves check that every pre-split F/D
+      token is reachable from the stub. Retarget
+      scripts/validate-citation-anchors.ts onto the
+      stub-plus-index identity gate; keep it on
+      validate:ci. Pays F161 and D28 / D28.1 / D30 /
+      D31 / D32. Identity values are already assigned
+      by C-CITATION-ANCHOR-REPAIR-2; this bundle copies
+      them onto XML id attributes and does not re-mint.
+    </Summary>
+    <Problem>
+      Registry row C-RECORD-RETIREMENT in
+      docs/plans/active/RM-GOVERNED-PATH/decisions.md
+      (heading Named-bundle registry, named 2026-09-05
+      by D28, position 3 after D31 and D32) charters
+      this work. D28, D28.1, D30, and D31 in that file
+      are the binding rulings. D32 (ratified 2026-09-06)
+      keeps this bundle at position 3 and inserts
+      C-ROADMAP-XML at position 4; it is not yet flushed
+      into the frozen record and is not restated here
+      in place of that ruling. F161 is the paid finding.
+      This spec does not restate those records in place
+      of them. Snapshot measurements live in Assumptions
+      and were taken 2026-09-06 at
+      408f2ae07f4f5f3a00f476d7865c42a28dcba3a9; they are
+      context, not Constraints.
+
+      The predecessor
+      .ngrace/changes/archive/C-RECORD-RETIREMENT/
+      (spec and plan both status="superseded",
+      Replacement C-RECORD-RETIREMENT-2) laid the
+      engine out in markdown genre files with a fenced
+      metadata block. The maintainer ruled that
+      neo-grace language is XML, not markdown:
+      deterministically parseable. D27 makes supersede
+      the only route for an approved artifact, so that
+      bundle is archived and this one replaces it.
+
+      The file is four things at once: a findings log,
+      a decision log, a live-state registry edited in
+      place, and the citation backbone that archived
+      immutable artifacts point at. D28 retires it into
+      three genres, each with a retirement rule and a
+      size ratchet. D28.1 sets the enforcement shape:
+      eligibility is the error (no number to raise);
+      a ceiling with headroom is the backstop and its
+      failure names the retirement operation. Decisions
+      retire on codification (codifiedIn:
+      &lt;lint-rule | test-suite&gt;) and, by D31, on
+      teaching (taughtIn: &lt;skill path + section&gt;),
+      each with two resolution checks that ship with
+      the tag. D30 forbids pinning a scalar count of
+      this file into a hard Constraint; ceilings are
+      formulas over a baseline measured at execution.
+      D31 cut identity from engine; identity has
+      shipped, so every F/D heading already has an
+      explicit unique id. Those values become XML
+      id attributes; the markdown heading-slug parser
+      is not reused.
+
+      ngrace lint does not admit this tree. Evidence:
+      src/grace-lint.test.ts:1879
+      "leaves docs markdown outside the lint artifact
+      universe"; src/language-registry.ts CODE_EXTENSIONS
+      has no .md; .ngrace-lint.json ignoredDirs includes
+      scripts. Planting XML and markdown under
+      docs/plans/active/RM-GOVERNED-PATH/ at this
+      commit left Files checked: 114 and XML artifacts
+      checked: 267 unchanged. Expanding lint onto
+      markdown, or registering the record in
+      CONTEXT_ARTIFACTS (src/artifact/grammar.ts:271),
+      would overturn that test and pull src/artifact/*
+      into scope. Both are out of scope. Enforcement
+      home is scripts/ joined to package.json validate:ci,
+      precedent scripts/validate-determinism.ts.
+
+      C-CITATION-ANCHOR-REPAIR-2 shipped
+      scripts/validate-citation-anchors.ts on
+      validate:ci as the identity gate over one
+      markdown file. After bodies move to XML that
+      script's heading parser has no subject. Silently
+      deleting it overturns a shipped ruling without
+      answering the original argument. This bundle
+      retargets it onto the stub-plus-index identity
+      gate and keeps the validate:ci member.
+
+      F161 constraint 1 ("retire cannot mean delete")
+      is a convention: 15 archived bundles cite
+      docs/plans/active/RM-AGENT-RELIABILITY/plan.md,
+      which does not exist, and nothing detects it.
+      The stub therefore needs a check, not a
+      convention. The dangling-roadmap-path validator
+      that would scan archived artifacts is owned by
+      C-ROADMAP-XML (D32 position 4), not this bundle.
+    </Problem>
+    <Goals>
+      <Goal>
+        Keep the path
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md
+        as a markdown stub: the file exists, it names
+        decisions.xml as the parseable citation index
+        by relative path, and it contains no F/D body.
+        Archives that cite the path or the filename
+        keep resolving. A validator proves the stub
+        exists and that every pre-split F/D token is
+        reachable from it by walking stub to index to
+        id; deleting the stub, the pointer, or one
+        inventory id fails.
+      </Goal>
+      <Goal>
+        Split live content into three genres under
+        docs/plans/active/RM-GOVERNED-PATH/, each with
+        a live XML file and a retired sibling:
+        findings, decisions (rulings.xml, because
+        decisions.xml is the index), and a
+        machine-readable registry. D28's three genres
+        and D31's three layers (index / live / retired)
+        are orthogonal. Sweep-remainder registry names
+        (recorded as not work) are not live rows; they
+        are preserved in retired so they are not
+        dropped.
+      </Goal>
+      <Goal>
+        Ship the retirement operation alongside the
+        split, never after. An eligible-and-still-live
+        finding or registry row is an error per entry,
+        naming the event that made it eligible. Each
+        live part has a ceiling computed as
+        ceiling = base + headroom at execution, never
+        transcribed as a scalar of this file. Exceeding
+        a ceiling fails; the message names the
+        retirement operation and must not name a
+        config key as the remedy. Raising a persisted
+        ceiling is not a permitted fix for a red.
+      </Goal>
+      <Goal>
+        Registry source of truth is XML. A live row
+        whose name is a directory under
+        .ngrace/changes/archive/ is an error. The
+        initial retirement pass moves every currently
+        eligible chartered row under that rule. The
+        eligible set is derived at execution, not
+        enumerated here.
+      </Goal>
+      <Goal>
+        Ship the decisions-genre codifiedIn and
+        taughtIn tags as XML elements, each with both
+        resolution checks: an unresolvable pointer is
+        an error; deleting or renaming the named check
+        or pinned skill text is an error while the tag
+        stands. This bundle populates zero historical
+        tags.
+      </Goal>
+      <Goal>
+        Retarget scripts/validate-citation-anchors.ts
+        so the split cannot silently disable it: it
+        remains the validate:citation-anchors member
+        of validate:ci; production invocation with no
+        argv validates the stub at DEFAULT_TARGET and
+        the XML index the stub names; every inventory
+        id is present and unique on the index; a
+        planted missing stub, missing pointer, missing
+        index id, or duplicate index id fails. This
+        amends C-CITATION-ANCHOR-REPAIR-2's validator
+        surface (the markdown heading parser) and
+        keeps its invariant (unique resolving ids,
+        CI-gated) and its membership. The
+        qualifier-slug grammar, copy-the-anchor rule,
+        and markdown genre-set cross-file resolver
+        are not ported.
+      </Goal>
+      <Goal>
+        Prove content preservation with a command a
+        reviewer can re-run: every pre-split F/D
+        heading token is present after with its
+        assigned id as an XML id attribute, and no
+        body is lost. The command is on validate:ci
+        so later deletion fails CI.
+      </Goal>
+      <Goal>
+        Teach the new format where this repository's
+        agents learn it: CLAUDE.md (Where Plans Live
+        and the record references) and
+        docs/plans/README.md (the plan index). The
+        four scripts/skill-contracts.test.ts sites
+        that pin decisions.md keep that filename,
+        because the path survives as the stub and
+        the sentence is a scope-exemption example,
+        not a description of the record's format.
+        Do not teach this repository's record layout
+        as a product contract in shipped skills.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting): docs/plans
+        record files, CLAUDE.md, docs/plans/README.md,
+        scripts/ CI validators and their tests, and
+        package.json validate:ci membership.
+        No graph module is written. Not T3: no new
+        product subsystem, no lint-domain expansion,
+        and the record is not added to the artifact
+        grammar. Gates still run.
+      </Constraint>
+      <Constraint>
+        Roadmap plan RM-GOVERNED-PATH. Binding rulings
+        D28, D28.1, D30, D31, D32; paid finding F161.
+        D32 keeps this bundle at position 3 and
+        charters C-ROADMAP-XML at position 4.
+        Enforcement ships with the structure, never
+        after it. Identity values are already assigned
+        by C-CITATION-ANCHOR-REPAIR-2; this bundle
+        copies them onto XML id attributes and does
+        not re-mint ids or rewrite heading tokens.
+      </Constraint>
+      <Constraint>
+        File layout, all under
+        docs/plans/active/RM-GOVERNED-PATH/:
+        decisions.md (markdown stub only);
+        decisions.xml (citation index, root
+        RecordIndex);
+        findings.xml (live finding bodies, root
+        Findings);
+        findings-retired.xml (root Findings);
+        rulings.xml (live decision bodies; not named
+        decisions.xml; root Rulings);
+        rulings-retired.xml (root Rulings);
+        registry.xml (live registry, source of truth,
+        root Registry);
+        registry-retired.xml (root Registry);
+        record-inventory.json (preservation inventory
+        of pre-split heading tokens, assigned ids,
+        and whitespace-normalized decoded body hashes,
+        written from the frozen file at execution).
+        No other new path under docs/plans/.
+        docs/plans/archive/ is not written.
+        D28 genres (findings / decisions / registry)
+        and D31 layers (index / live / retired) are
+        two triples; do not conflate them.
+      </Constraint>
+      <Constraint>
+        XML identity scheme. Each F/D entry has
+        exactly one id attribute. For every pre-split
+        heading, that value is the delimiter-preserving
+        slug C-CITATION-ANCHOR-REPAIR-2 already
+        assigned (F9.1 is f9.1; F21 correction is
+        f21-correction; F19's is f19s). Values are
+        copied, not recomputed. Uniqueness domain is
+        the union of the index and all genre files:
+        each id appears on exactly one RecordIndex
+        Entry and on exactly one body element (live
+        or retired). Duplicate ids are an error.
+        token holds the heading token as written
+        (F161, D28.1); two members of a duplicate
+        heading token share token and differ in id.
+        New entries after the split mint id as the
+        lowercase token; if that id already exists,
+        the new entry takes a qualifier suffix
+        licensed by its title (possessive s,
+        -correction, or -amendment). That minting
+        rule is not a markdown heading parser and
+        is not applied to pre-split entries.
+        Reachability: a pre-split token T is
+        reachable from the stub iff the stub file
+        exists at the cited path, the stub names
+        decisions.xml as the index by relative path,
+        and the index contains an Entry whose id is
+        T's assigned slug and whose token is T.
+        The stub does not enumerate every token
+        (that would recreate the dump). Ids are not
+        reassigned. Heading tokens are not rewritten.
+      </Constraint>
+      <Constraint>
+        Stub contract. decisions.md exists, is
+        markdown, and is a pointer, not a fourth
+        dump: it names ./decisions.xml as the
+        parseable index, may name the live genre
+        files and the registry, and contains no
+        F/D body and no heading that matches the
+        F/D tokenizer ^#{1,6} [FD]\d. Failure to
+        exist, to name the index, or to keep every
+        inventory id reachable via the scheme above
+        is an error of the citation-anchor validator,
+        with planted refuse paths. Do not delete
+        the path. Do not put bodies in it.
+      </Constraint>
+      <Constraint>
+        Genre XML bodies. Machine-read fields are
+        XML attributes or elements. No fenced
+        metadata block anywhere. Finding carries
+        id, token, status="live|retired", optional
+        PaidBy child (a C-* directory name), Title,
+        and Body. Decision carries id, token,
+        status="live|retired", Title, Body, and
+        optional CodifiedIn / TaughtIn children.
+        CodifiedIn is kind="lint-rule" with a catalog
+        id, or kind="test-suite" with a repo-relative
+        test path. TaughtIn is path plus section
+        attributes. Status matches the file: live
+        files contain only status="live"; retired
+        files only status="retired". Body is the
+        pre-split body as XML character data
+        (entities &amp;lt; &amp;gt; &amp;amp;),
+        decoded for hashing. The immediately
+        preceding HTML &lt;a id name&gt; line is
+        not part of the body; it becomes the id
+        attribute. The ATX heading line becomes
+        Title. Bodies are moved, not rewritten,
+        except that wrap and the Title/id split.
+        In-body ](#slug) destinations stay as
+        ](#slug); the identity validator resolves
+        them against index ids, not against
+        same-file headings. Do not rewrite them
+        to a markdown path. Do not add, rewrite,
+        or delete a finding or decision body
+        beyond those allowed transforms.
+      </Constraint>
+      <Constraint>
+        Finding eligibility, D28.1's machine-checkable
+        half. Error if status="live" and PaidBy names
+        a directory under .ngrace/changes/archive/.
+        Report per finding and name that archive event.
+        The "code it describes no longer matches" half
+        is not machine-checked here; it stays a brief
+        instruction. Initial PaidBy population is the
+        registry Pays column of delivered or superseded
+        rows plus archived spec sentences that call an
+        F-id "the paid finding". Mere mention of an
+        F-id in an archived spec is not payment. The
+        initial pass moves every currently eligible
+        live finding under that rule. The eligible set
+        is derived at execution, not enumerated here.
+      </Constraint>
+      <Constraint>
+        Registry eligibility. registry.xml is the
+        source of truth. Error if a live row's name
+        equals a directory under
+        .ngrace/changes/archive/. Report per row and
+        name that archive event. The initial retirement
+        pass moves every currently eligible chartered
+        row under that rule. Successor notes (a
+        delivered-as -2) are recorded on the retired
+        predecessor row, not as a second live row.
+        Sweep-remainder names are not live rows.
+        Do not enumerate the live or eligible set
+        in this spec; it expires the same way a count
+        does.
+      </Constraint>
+      <Constraint>
+        Decision eligibility. A live decision that
+        carries a CodifiedIn or TaughtIn child whose
+        pointer resolves is eligible and still live:
+        an error per entry, naming the tag. This
+        bundle populates zero historical tags, so the
+        initial pass moves none under this rule. The
+        checks still ship, with planted refuse paths.
+      </Constraint>
+      <Constraint>
+        Ceilings, live parts only, D30 dynamic
+        derivation. The tool measures base at
+        execution during this bundle's retirement
+        pass, after the initial eligible moves, and
+        persists ceiling = base + headroom. Bases are
+        never transcribed here.
+        Live findings: base = line count of
+        findings.xml at that moment; headroom = 7 times
+        the median line-count of a live Finding
+        element at that moment.
+        Live rulings: base = line count of rulings.xml
+        at that moment; headroom = 2 times the median
+        line-count of a live Decision element whose
+        pre-split heading was H2, at that moment.
+        Live registry: base = live row count at that
+        moment; headroom = 15 additional live-row
+        slots (a policy constant, not a measurement
+        of decisions.md).
+        Citation index: base = line count of
+        decisions.xml after the split; headroom = 40
+        lines (a policy constant).
+        Failure text names retire / move to the
+        retired sibling, never a config key, and
+        says raising the persisted ceiling is not
+        the remedy.
+      </Constraint>
+      <Constraint>
+        codifiedIn resolution checks, both required,
+        D28.1. (1) A live decision whose CodifiedIn
+        names a lint rule id absent from
+        src/lint/catalog.ts, or a test path that does
+        not exist, is an error. (2) If a live tag
+        names a lint rule id or test path, removing
+        or renaming that id or path is an error while
+        the tag stands. The script may import
+        src/lint/catalog.ts for pointer resolution;
+        it does not add a lint rule. Zero historical
+        decisions are tagged in this bundle.
+      </Constraint>
+      <Constraint>
+        taughtIn resolution checks, both required,
+        D31. The same two checks apply unchanged.
+        (1) A live decision whose TaughtIn names a
+        skill path that does not exist, or a section
+        identifier that is not present in that file,
+        is an error. (2) If a live tag names a skill
+        path plus section, removing or renaming that
+        pinned text is an error while the tag stands.
+        Precedent for the pin surface is
+        scripts/skill-contracts.test.ts. Zero
+        historical decisions are tagged in this
+        bundle.
+      </Constraint>
+      <Constraint>
+        Citation-anchor validator, retargeted.
+        This amends C-CITATION-ANCHOR-REPAIR-2: that
+        bundle put scripts/validate-citation-anchors.ts
+        on validate:ci so every F/D heading has one
+        unique explicit id and every in-scope fragment
+        resolves. The invariant and the CI member
+        stand. The markdown heading parser, the
+        qualifier-slug grammar as a parser over
+        heading text, the copy-the-anchor rule, and
+        any markdown genre-set / cross-file
+        ](file#slug) resolver do not: their subject
+        was markdown heading anchors, which this
+        layout dissolves. Rejected: deleting the
+        script or dropping validate:citation-anchors
+        from validate:ci (silent overturn);
+        folding identity into the retirement
+        validator (hides the identity gate).
+        DEFAULT_TARGET stays
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md.
+        Production invocation with no argv reads that
+        stub and the index it names. argv naming a
+        fixture path validates that stub and the
+        index it names in that directory, and does
+        not read the repository's record files.
+        Checks, closed: stub exists; stub names the
+        index by relative path; index exists and is
+        well-formed RecordIndex; every id on the
+        index is unique; every inventory assigned id
+        is present on the index with matching token;
+        every ](#slug) in genre Body character data
+        whose slug matches [fd][0-9][0-9a-z.-]*
+        resolves to an index id. Refuse paths, planted:
+        missing stub; stub that does not name the
+        index; index missing one inventory id;
+        duplicate index id; Body ](#f9999) whose
+        slug is absent from the index. Same-file
+        markdown heading-anchor codes
+        (missing-anchor, slug-mismatch,
+        html-in-heading, pandoc-heading-id,
+        id-name-disagree) are not re-implemented
+        against the stub, which has no F/D headings.
+        Do not add a text-versus-destination check
+        (F166). Do not rewrite [D1.5](#d1) or
+        [D5.2](#d5) (F167).
+      </Constraint>
+      <Constraint>
+        Validator homes.
+        scripts/validate-record-retirement.ts
+        (eligibility, ceilings, codifiedIn, taughtIn,
+        registry machine-readability, status/file
+        agreement) and
+        scripts/prove-record-preservation.ts
+        (inventory vs index tokens, ids, and decoded
+        body hashes) are invoked from package.json
+        validate:ci as named members, precedent
+        validate:determinism and
+        validate:citation-anchors.
+        scripts/validate-citation-anchors.ts stays
+        the validate:citation-anchors member and
+        is retargeted as above.
+        Tests live next to each script and plant
+        the refuse paths, including a package.json
+        membership assertion so bun test of those
+        files fails if validate:ci drops a member
+        (F170: a test that never reads package.json
+        does not prove CI membership).
+        scripts/ stays in .ngrace-lint.json
+        ignoredDirs and is not added to the graph
+        (M-RELEASE-AUTOMATION remains deferred).
+        Do not add a ngrace lint issue code. Do not
+        edit src/grace-lint.ts, src/lint/core.ts,
+        src/lint/catalog.ts, src/artifact/grammar.ts,
+        or src/language-registry.ts CODE_EXTENSIONS.
+        Do not add the record files to
+        CONTEXT_ARTIFACTS. Validation of the record
+        is the new scripts/ validators' job. Say
+        so in the plan so the question is not
+        reopened.
+      </Constraint>
+      <Constraint>
+        Preservation. This bundle writes
+        record-inventory.json from the pre-split
+        decisions.md at execution (heading token,
+        assigned id, and whitespace-normalized
+        decoded body hash per F/D heading
+        occurrence, in document order, so a
+        duplicate heading token is a separate
+        entry). Body hash is over the lines after
+        the heading until the next F/D heading or
+        the Named-bundle registry heading or EOF,
+        excluding the next heading's preceding
+        HTML anchor line. scripts/prove-record-preservation.ts
+        exits 0 iff every inventory heading token
+        is present on the index with its assigned
+        id and every decoded Body hash is present
+        in the union of findings.xml,
+        findings-retired.xml, rulings.xml, and
+        rulings-retired.xml.
+      </Constraint>
+      <Constraint>
+        Teaching surface. CLAUDE.md Where Plans Live
+        and the record references describe the stub
+        at decisions.md, the parseable index at
+        decisions.xml, the three D28 genres, the
+        three D31 layers, that machine-read fields
+        are XML attributes or elements, and when an
+        entry moves (finding: PaidBy of an archived
+        bundle; decision: resolving CodifiedIn or
+        TaughtIn; registry: name equals an archive
+        directory). Existing markdown citations of
+        the decisions.md path may stay; that path
+        is the stub. docs/plans/README.md names the
+        same layout under RM-GOVERNED-PATH and keeps
+        its link to decisions.md. Do not convert
+        plan.md / review.md (C-ROADMAP-XML).
+        Do not hand-edit docs/schema-reference.md
+        (generated by scripts/generate-schema-reference.ts;
+        validate:schema-reference is on validate:ci).
+        The four expect(...).toContain("decisions.md")
+        sites in scripts/skill-contracts.test.ts
+        (ngrace-spec status_rules, ngrace-spec
+        workflow step 6, ngrace-plan must_do rule 15,
+        ngrace-reviewer expected-findings) keep that
+        filename: the sentence is a scope-exemption
+        example and stays literally true under the
+        stub. Do not rewrite it to the path class
+        docs/plans/**; that class is isDocsPlansPath
+        (src/review/core.ts:1090-1093), a different
+        mechanism (WriteEvidence exemption), and
+        mixing the two would teach the wrong audit.
+        Do not edit skills/ngrace/* or
+        plugins/ngrace/skills/ngrace/*: shipped
+        skills are a product contract for every
+        neo-grace project, and this record layout
+        is this repository's. src/test-support/token-accounting.test.ts
+        pins stay because skills do not change.
+        The retirement test file reads CLAUDE.md
+        and docs/plans/README.md and fails if
+        they do not name the stub path,
+        decisions.xml, the three genres, and the
+        three layers, so bun test of that file
+        is evidence of the teaching write (F170).
+      </Constraint>
+      <Constraint>
+        isDocsPlansPath in src/review/core.ts:1090-1093
+        exempts docs/plans/** from the WriteEvidence
+        audit (F27.1). This bundle writes there
+        heavily and relies on that exemption. Do not
+        edit src/review/core.ts. ObservedWriteScope
+        for the later plan must include the
+        RM-GOVERNED-PATH record files this bundle
+        writes (including the stub rewrite of
+        decisions.md, the XML genre files, and
+        record-inventory.json), CLAUDE.md,
+        docs/plans/README.md, the validator scripts
+        and tests it adds or extends, and
+        package.json; that is in-scope work, not the
+        F150 incidental-decisions.md case. Do not add
+        spec.xml or plan.xml to ObservedWriteScope.
+        At plan-approve, review.scope-outside-write-scope
+        on spec.xml, plan.xml, and (when that file
+        changed) decisions.md remains expected.
+      </Constraint>
+      <Constraint>
+        Task Verification and TargetAssertions
+        contain no current-mode lint of this project
+        root. Current mode means the command text
+        contains --assertions current, or it invokes
+        ngrace lint of this root and omits
+        --assertions. Check by that rule, by hand:
+        the shipped detector does not recognise the
+        house form bun ./src/grace.ts lint (F171).
+        The matcher is command text; it does not
+        resolve bun run &lt;script&gt; through
+        package.json. Selected --assertions target
+        --run-commands and the baseline form are the
+        task evidence commands. MustPassCommand holds
+        leaf project evidence such as bun test of
+        the new or extended test files and bun
+        ./scripts/validate-citation-anchors.ts.
+        Do not require bun run validate:ci as
+        MustPassCommand or CloseEvidence.
+        Current-mode lint of this root appears only
+        as post-archive CloseEvidence under
+        AC-CLOSE-LINT.
+      </Constraint>
+      <Constraint>
+        C-REPORT-HONESTY stands. Current-mode still
+        evaluates approved BaselineAssertions and
+        still reports them as errors. Do not skip
+        that evaluation. Do not infer writes-started
+        from git dirty, the ledger, or
+        ObservedWriteScope. Do not silence
+        current-mode baseline issues to make a
+        post-write current-mode lint look green.
+      </Constraint>
+      <Constraint>
+        README.md and examples/: both unchanged; no
+        user-visible CLI token, config key, or
+        ngrace command. Owner of any later
+        CONTRIBUTING.md validate:ci table edit:
+        C-CI-CLAIM-PIN. Owner of any later README
+        skillTextLines cell edit: the bundle that
+        next edits skills/ngrace/*.
+      </Constraint>
+      <Constraint>
+        Do not edit anything under docs/plans/archive/
+        or .ngrace/changes/archive/. Do not amend
+        existing finding or decision prose except as
+        the Genre XML bodies Constraint allows. Do
+        not add, rewrite, or delete a finding or
+        decision body. Do not fix the C-PHASE-RULE-PIN
+        charter row (F169, F171); registry row 7, not
+        this bundle; do not rely on its stale
+        implicit-current claim. Do not convert
+        roadmap plan.md / review.md to XML
+        (C-ROADMAP-XML). Do not graft F166 or F167.
+      </Constraint>
+      <Constraint>
+        src/review/core.test.ts path fixture
+        "docs/plans/active/RM-GOVERNED-PATH/decisions.md"
+        stays valid because the path stays. Do not
+        edit that file unless the fixture becomes
+        false, which this layout forbids.
+      </Constraint>
+      <Constraint>
+        Do not pin a scalar count of decisions.md
+        (headings, fragments, collisions, bytes,
+        lines, live chartered names) into a
+        Constraint. Counts expire (F123, D30).
+        Snapshot measurements live in Assumptions
+        and are re-derived at execution for ceiling
+        bases.
+      </Constraint>
+      <Constraint>
+        F136 anchors. Files this spec forces into
+        write scope, with LINKS headers:
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md
+        and the new XML files and
+        record-inventory.json under that directory
+        (no LINKS header; isDocsPlansPath at
+        src/review/core.ts:1090-1093);
+        CLAUDE.md (no LINKS; Agents.md is an
+        untracked symlink to it);
+        docs/plans/README.md (no LINKS);
+        scripts/validate-citation-anchors.ts and
+        scripts/validate-citation-anchors.test.ts
+        (no LINKS header; scripts/ is ignoredDirs;
+        M-RELEASE-AUTOMATION is not in
+        .ngrace/graph and remains deferred);
+        scripts/validate-record-retirement.ts,
+        scripts/validate-record-retirement.test.ts,
+        scripts/prove-record-preservation.ts,
+        scripts/prove-record-preservation.test.ts
+        (new; same scripts/ home);
+        package.json validate:ci membership
+        (no LINKS header).
+        Do not mint a synthetic module to fill
+        this section. Do not add M-SKILLS or
+        M-TEST-SUPPORT: skills and token-accounting
+        pins are unchanged. Do not add
+        M-LINT-CATALOG: the retirement script may
+        import src/lint/catalog.ts and must not
+        edit it. Do not add M-REVIEW:
+        src/review/core.ts is not edited. Do not
+        add M-GRAMMAR: src/artifact/grammar.ts is
+        not edited.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Tagging historical decisions with CodifiedIn
+        or TaughtIn and retiring them, including
+        verifying D24 against C-REWORK-CIRCUIT.
+        Owner: a later bundle. Searched 2026-09-06
+        at 408f2ae07f4f5f3a00f476d7865c42a28dcba3a9
+        for C-RECORD-CODIFY, C-CODIFY, C-CODIFIED,
+        C-DECISION-CODIFY as a bundle directory or
+        registry Name cell: zero hits. This spec
+        does not mint a registry row; the authority
+        owns governance writes to the record. This
+        bundle ships the tags and both resolution
+        checks with zero historical tags. D24
+        remains a candidate to verify, not a fact
+        to restate (D28.1, F123).
+      </NonGoal>
+      <NonGoal>
+        Re-inserting anchors, rewriting heading
+        tokens, or re-doing the original same-file
+        fragment rewrite. Owner:
+        C-CITATION-ANCHOR-REPAIR-2; the assigned
+        ids stand and are copied. Retargeting
+        scripts/validate-citation-anchors.ts is in
+        scope, above.
+      </NonGoal>
+      <NonGoal>
+        A text-versus-destination consistency check
+        (F166), and rewriting the two pre-existing
+        citations that name a sub-decision and
+        point at its parent, [D1.5](#d1) and
+        [D5.2](#d5) (F167). Owner: a later bundle.
+        Do not graft them.
+      </NonGoal>
+      <NonGoal>
+        A validator that resolves outbound
+        docs/plans/** paths written inside archived
+        artifacts (F177's dangling-roadmap-path
+        half). Owner: C-ROADMAP-XML, position 4
+        by D32, which ships that check first. The
+        stub-resolves check for this record is in
+        scope, above. Do not graft the archive-wide
+        scan.
+      </NonGoal>
+      <NonGoal>
+        Converting roadmap plan.md / review.md,
+        p0-* / brownfield-* files, or
+        docs/plans/README.md to XML. Owner:
+        C-ROADMAP-XML. This bundle updates
+        docs/plans/README.md in place as markdown
+        to describe the record layout; it does not
+        convert it.
+      </NonGoal>
+      <NonGoal>
+        Fixing the C-PHASE-RULE-PIN charter row
+        (F169, F171): the implicit-current gap it
+        names is already closed, and the live gaps
+        are command-form recognition of
+        bun ./src/grace.ts lint plus section
+        coverage of task Verification. Owner:
+        C-PHASE-RULE-PIN, registry row 7. Do not
+        fix it here; do not rely on that row.
+      </NonGoal>
+      <NonGoal>
+        Expanding ngrace lint to markdown, adding
+        .md to CODE_EXTENSIONS, registering the
+        record in CONTEXT_ARTIFACTS, or removing
+        docs markdown from the
+        "outside the lint artifact universe" test.
+        Owner: a later lint-domain bundle; this one
+        must not overturn that test.
+      </NonGoal>
+      <NonGoal>
+        Graph adoption of scripts/ or minting
+        M-RELEASE-AUTOMATION. Owner: the deferred
+        scripts-adoption C-* named in CLAUDE.md.
+      </NonGoal>
+      <NonGoal>
+        docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md
+        in any form. Owner: archived; never editable.
+      </NonGoal>
+      <NonGoal>
+        Editing skills/ngrace/* or
+        plugins/ngrace/skills/ngrace/*. The four
+        scripts/skill-contracts.test.ts
+        decisions.md pins stay true because the
+        path stays and the sentence stays. Owner:
+        unchanged; no teaching-surface edit of
+        shipped skills. Format teaching for this
+        record is CLAUDE.md and docs/plans/README.md.
+      </NonGoal>
+      <NonGoal>
+        Editing isDocsPlansPath,
+        auditWriteEvidenceOutsideScope,
+        or any src/review/* file. Owner: F27.1
+        stands; C-SCOPE-AUDIT-ATTRIBUTION-2
+        already ruled the WriteEvidence side.
+      </NonGoal>
+      <NonGoal>
+        CONTRIBUTING.md validate:ci membership
+        table. Owner: C-CI-CLAIM-PIN.
+      </NonGoal>
+      <NonGoal>
+        README.md and examples/ unchanged; no
+        user-visible CLI token, config key, or
+        ngrace command. Owner: unchanged; no
+        user-visible surface.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-PATH-SURVIVES>
+        After apply, the path
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md
+        exists, is a markdown stub rather than the
+        pre-split dump, names ./decisions.xml as
+        the parseable index, and contains no F/D
+        body. Failure: the path is renamed, deleted,
+        missing the index pointer, or carries an
+        F/D body.
+      </AC-PATH-SURVIVES>
+      <AC-STUB-RESOLVES>
+        bun ./scripts/validate-citation-anchors.ts
+        exits 0 on the production stub. Deleting
+        the stub, removing the index pointer,
+        deleting one inventory id from the index,
+        or duplicating an index id makes it exit
+        non-zero. Every pre-split F/D token is
+        reachable from the stub by the identity
+        scheme in Constraints. Failure: the stub
+        exists by convention with no refuse path;
+        reachability is inspection.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+        </CloseEvidence>
+      </AC-STUB-RESOLVES>
+      <AC-IDS-KEPT>
+        Every pre-split F/D heading's assigned id
+        is the id attribute of exactly one
+        RecordIndex Entry and exactly one body
+        element. Heading tokens are unchanged.
+        Ids are not reassigned. Failure: a missing
+        id; a rewritten token; a new id on a
+        pre-split entry; HTML &lt;a&gt; copied into
+        a Body; a {#id} suffix.
+      </AC-IDS-KEPT>
+      <AC-PRESERVATION>
+        bun ./scripts/prove-record-preservation.ts
+        exits 0 against record-inventory.json:
+        every pre-split F/D heading occurrence is
+        present on the index with its assigned id,
+        and every whitespace-normalized decoded
+        body hash is present in the union of the
+        four genre body files. A reviewer re-runs
+        this command; inspection is not evidence.
+        Failure: a missing heading token, a
+        missing or reassigned id, a missing body
+        hash, or a command that only prints ok.
+        The test file plants a missing inventory
+        body and a missing heading token.
+        <CloseEvidence>
+          <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+        </CloseEvidence>
+      </AC-PRESERVATION>
+      <AC-REGISTRY-MACHINE>
+        registry.xml is the live registry source of
+        truth. A live row whose name is a directory
+        under .ngrace/changes/archive/ makes
+        bun ./scripts/validate-record-retirement.ts
+        exit non-zero, one error per such row,
+        naming the archive event. Every chartered
+        name that is a directory under archive at
+        execution is in registry-retired.xml, not
+        in the live set. Failure: an eligible name
+        still live; the check is prose-only; a row
+        can be made to pass by raising a number.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-REGISTRY-MACHINE>
+      <AC-FINDING-ELIGIBILITY>
+        A live finding whose PaidBy names a
+        directory under .ngrace/changes/archive/
+        makes the retirement validator exit
+        non-zero, one error per finding, naming
+        that archive event. Failure: eligibility
+        is a line budget; PaidBy is inferred from
+        any F-token mention in a spec.
+      </AC-FINDING-ELIGIBILITY>
+      <AC-CEILINGS>
+        Live findings, live rulings, live registry
+        row count, and the citation index each have
+        a ceiling computed at execution as
+        ceiling = base + headroom from the formulas
+        in Constraints. Exceeding one fails the
+        retirement validator. The failure message
+        names the retirement operation (move the
+        eligible entry to the retired sibling) and
+        does not name a config key as the remedy.
+        Failure: the only enforcement is a number
+        that can be raised to pass; the message
+        says to edit the ceiling; a Constraint
+        transcribes a scalar count of
+        decisions.md.
+      </AC-CEILINGS>
+      <AC-CODIFIED-IN>
+        The retirement validator errors on a live
+        CodifiedIn that does not resolve, and
+        errors if a named lint-rule id or test
+        path is removed or renamed while a live
+        tag points at it. Zero historical
+        decisions are tagged in this bundle.
+        Failure: a tag that names a missing check
+        retires the decision; either resolution
+        check is deferred.
+      </AC-CODIFIED-IN>
+      <AC-TAUGHT-IN>
+        The retirement validator errors on a live
+        TaughtIn that does not resolve (missing
+        skill path or missing section), and errors
+        if the named pinned text is removed or
+        renamed while a live tag points at it.
+        Zero historical decisions are tagged in
+        this bundle. Failure: TaughtIn ships
+        without the reverse check; either check
+        is deferred.
+      </AC-TAUGHT-IN>
+      <AC-XML-FIELDS>
+        Every machine-read field on a finding,
+        decision, or registry row is an XML
+        attribute or element. No fenced metadata
+        block exists in the record files. Failure:
+        a triple-backtick record block; eligibility
+        parsed from prose.
+      </AC-XML-FIELDS>
+      <AC-CITATION-RETARGET>
+        After apply, scripts/validate-citation-anchors.ts
+        with no argv validates the stub at
+        DEFAULT_TARGET and the XML index it names.
+        argv naming a fixture path validates that
+        stub and index in that directory and does
+        not read the repository's record files.
+        A planted missing stub, missing pointer,
+        missing inventory id, duplicate id, or
+        Body ](#f9999) exits non-zero.
+        package.json still invokes
+        validate:citation-anchors. Failure:
+        production still parses markdown F/D
+        headings as the identity mechanism; the
+        script is dropped from validate:ci; a
+        fixture argv also reads the live record.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+        </CloseEvidence>
+      </AC-CITATION-RETARGET>
+      <AC-CI-JOINS>
+        package.json validate:ci invokes
+        bun ./scripts/validate-record-retirement.ts
+        and bun ./scripts/prove-record-preservation.ts
+        as named members, and still invokes
+        validate:citation-anchors. The retirement
+        and preservation test files read
+        package.json and fail if those members
+        are absent, so bun test of those files
+        is evidence of CI membership (F170).
+        A planted eligible-and-live registry row,
+        a planted missing inventory body, or a
+        planted over-ceiling live part makes the
+        matching script exit non-zero. Failure:
+        the scripts exist but are not on the
+        chain; only bun test covers them; the
+        test file never reads package.json.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+        </CloseEvidence>
+      </AC-CI-JOINS>
+      <AC-TEACHING>
+        CLAUDE.md and docs/plans/README.md name
+        the stub path, the decisions.xml index,
+        the three genres, and the three layers.
+        The retirement test file reads those two
+        files and fails if the names are absent.
+        The four skill-contracts.test.ts
+        decisions.md pins still pass. Canonical
+        and packaged skill trees stay
+        byte-identical because this bundle does
+        not edit them.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test scripts/skill-contracts.test.ts</Command>
+        </CloseEvidence>
+      </AC-TEACHING>
+      <AC-NO-GRAMMAR>
+        src/artifact/grammar.ts CONTEXT_ARTIFACTS
+        is unchanged: the record files are not
+        registered. Planting a record XML file
+        under docs/plans/ does not change lint's
+        XML artifact count. Failure: the record
+        is added to the grammar; src/artifact/*
+        is edited.
+        <CloseEvidence>
+          <Command>git diff --exit-code 408f2ae07f4f5f3a00f476d7865c42a28dcba3a9 -- src/artifact/grammar.ts src/lint/catalog.ts src/language-registry.ts src/review/core.ts</Command>
+        </CloseEvidence>
+      </AC-NO-GRAMMAR>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task Verification
+        commands and TargetAssertions contain no
+        current-mode lint of this project root.
+        Failure: a Command whose text contains
+        --assertions current, or that invokes
+        ngrace lint / bun ./src/grace.ts lint of
+        this root and omits --assertions,
+        including bun ./src/grace.ts lint --path .
+        --fail-on warnings as a task Verification
+        command. Check by the rule, by hand
+        (F171).
+      </AC-NO-CURRENT-MODE>
+      <AC-NO-ARCHIVE-WRITE>
+        The archived record under
+        docs/plans/archive/ and
+        .ngrace/changes/archive/ is not
+        modified on any tracked path.
+        This bundle's own later arrival under
+        .ngrace/changes/archive/C-RECORD-RETIREMENT-2/
+        is not a modification. Verified against
+        408f2ae07f4f5f3a00f476d7865c42a28dcba3a9
+        excluding that directory. A staged,
+        unstaged, or committed edit of any
+        other tracked archived path fails
+        that command, and a close that only
+        adds this bundle (or leaves those
+        tracked paths identical to the pin)
+        passes. Untracked paths under those
+        trees are outside this command and
+        are not claimed. Failure: a
+        tracked-path write to another
+        archived bundle or to
+        docs/plans/archive/, including a
+        "fix" of a stale citation.
+        <CloseEvidence>
+          <Command>git diff --exit-code 408f2ae07f4f5f3a00f476d7865c42a28dcba3a9 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-RECORD-RETIREMENT-2'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-WRITE>
+      <AC-DOCS-EXAMPLES>
+        Tracked paths README.md and
+        examples/ match
+        408f2ae07f4f5f3a00f476d7865c42a28dcba3a9
+        per git diff --exit-code. A staged,
+        unstaged, or committed edit of those
+        tracked paths fails and an unedited
+        tracked tree passes. Untracked paths
+        under examples/ are outside this
+        command and are not claimed.
+        <CloseEvidence>
+          <Command>git diff --exit-code 408f2ae07f4f5f3a00f476d7865c42a28dcba3a9 -- README.md examples/</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only
+        place current-mode lint of this root
+        appears. Do not put
+        bun ./src/grace.ts lint --path .
+        --fail-on warnings in any task
+        Verification or in TargetAssertions
+        MustPassCommand.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No graph module is written.
+      Ceremony tier T2 names the same fact:
+      no graph module is written.
+      Files this spec forces into write scope,
+      with LINKS headers, are listed in the
+      F136 anchors Constraint and are not
+      repeated as a second module list.
+      Do not mint a synthetic module to fill
+      this section. Do not add M-SKILLS,
+      M-TEST-SUPPORT, M-LINT-CATALOG, M-REVIEW,
+      or M-GRAMMAR.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/prove-record-preservation.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/validate-citation-anchors.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-RECORD-RETIREMENT-2 --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes, not a green suite.
+        (1) A live registry.xml row named after an
+        archived bundle fails the retirement
+        validator; moving it to
+        registry-retired.xml passes.
+        (2) Deleting one pre-split heading token
+        from the index fails preservation.
+        (3) Deleting one body from both live and
+        retired genre files fails preservation.
+        (4) A live finding with PaidBy of an
+        archived bundle fails; retiring it passes.
+        (5) A live CodifiedIn naming a missing
+        lint rule id fails; a live tag whose named
+        test file is renamed fails.
+        (6) A live TaughtIn naming a missing skill
+        path or section fails; deleting the pinned
+        text while the tag stands fails.
+        (7) Deleting the stub fails the citation
+        validator; a stub that does not name
+        decisions.xml fails; an index missing one
+        inventory id fails; a Body ](#f9999)
+        fails; a fixture argv of a tmpdir stub
+        does not read the repository's record
+        files.
+        (8) Dropping a named validate:ci member
+        fails the test file that reads
+        package.json.
+        (9) git diff --exit-code against
+        408f2ae07f4f5f3a00f476d7865c42a28dcba3a9
+        on tracked paths under
+        docs/plans/archive/ and
+        .ngrace/changes/archive/ excluding this
+        bundle's own directory is empty; same
+        for tracked README.md and examples/.
+        Untracked paths are outside those
+        commands and are not claimed.
+        (10) The later plan's task Verification
+        list does not contain current-mode lint
+        of this root, checked by the rule in
+        Constraints, by hand.
+        (11) CLAUDE.md and docs/plans/README.md
+        name the stub, the index, the three
+        genres, and the three layers; the four
+        skill-contracts decisions.md pins still
+        pass.
+        (12) CONTEXT_ARTIFACTS is unchanged.
+        Authority mutation probes on a throwaway
+        copy of the record files; bun test green
+        is a precondition, not the evidence.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken 2026-09-06 at commit
+        408f2ae07f4f5f3a00f476d7865c42a28dcba3a9.
+        Rule: wc -l -c of the file as committed
+        (newline count and byte count, not a
+        sample).
+        wc -l -c docs/plans/active/RM-GOVERNED-PATH/decisions.md
+        → 10958 lines, 740996 bytes. The freeze
+        held: same figures as the superseded
+        spec's Assumptions at 11e2d51.
+      </Assumption>
+      <Assumption>
+        Heading population, same commit. Rule:
+        every ATX heading (levels 1–6) whose text
+        matches ^#{1,6} [FD]&lt;digits&gt;(.&lt;digits&gt;)*
+        at any level, not a two-level cut.
+        Findings 239 (212 H3 + 27 H4); decisions
+        60 (24 H2 + 36 H3); total 299. Unique
+        finding tokens 236; unique decision
+        tokens 60. Duplicate heading tokens:
+        F19, F21, F27.1 (two each). Every one of
+        the 299 has an immediately preceding empty
+        &lt;a id name&gt; with id equal to
+        name; unique ids 299; missing-anchor 0.
+      </Assumption>
+      <Assumption>
+        In-scope same-file fragments, same commit.
+        Rule: FRAG_RE as shipped,
+        /\]\(#([fd][0-9][0-9a-z.-]*)\)/g, counted
+        as occurrences over the whole file.
+        619 occurrences, 193 unique dests.
+        All ](#…) fragments: 644, of which 1 is
+        the empty destination at decisions.md:9223
+        (F175; out of scope).
+      </Assumption>
+      <Assumption>
+        Archived inbound citations, same commit.
+        Rule: .ngrace/changes/archive/*/spec.xml
+        and */plan.xml, substring contains, not
+        a sample. 68 spec.xml, 66 plan.xml, 68
+        bundle directories.
+        Literal path
+        docs/plans/active/RM-GOVERNED-PATH/decisions.md:
+        19 spec + 9 plan = 28 (the superseded
+        spec's 18+8=26 plus this predecessor's
+        own spec.xml and plan.xml).
+        Filename decisions.md: 33 spec + 18 plan
+        = 51.
+        decisions.md# in those artifacts: only
+        C-RECORD-RETIREMENT's own spec/plan, as
+        instructional prose and one probe example,
+        not inbound navigation from earlier
+        bundles.
+        git ls-files '*decisions.md': two files,
+        the other is
+        docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md,
+        out of scope permanently.
+      </Assumption>
+      <Assumption>
+        F177, same commit. Rule: archived spec.xml
+        / plan.xml substring contains
+        docs/plans/active/RM-AGENT-RELIABILITY/plan.md.
+        15 bundles, named in the freeze-buffer
+        finding. The path does not exist; the
+        file is at
+        docs/plans/archive/RM-AGENT-RELIABILITY/plan.md.
+        Whole population of active/&lt;RM&gt;/plan.md
+        citations: 22 artifacts (15 of those plus
+        7 of RM-GOVERNED-PATH/plan.md, which
+        exists) across 21 bundles; plus 1 of
+        RM-GOVERNED-PATH/review.md.
+        rg over scripts/ and src/ for that dangling
+        path: zero hits. Planting XML/md under
+        docs/plans left lint Files checked: 114,
+        XML artifacts checked: 267.
+      </Assumption>
+      <Assumption>
+        CLAUDE.md, same commit. Rule: substring
+        count of decisions.md in the tracked file
+        (Agents.md is an untracked symlink to it,
+        same inode). 9 occurrences, 9 lines. The
+        brief's 13 is not this count.
+        docs/plans/README.md: 6 lines contain
+        decisions.md.
+        skills/ngrace/*/SKILL.md: decisions.md
+        appears only in ngrace-spec (2),
+        ngrace-plan (1), ngrace-reviewer (1), the
+        ObservedWriteScope sentence. Canonical and
+        packaged trees: diff -rq reports no
+        difference. skillTextLines: 16 skills,
+        832 lines, 64021 bytes.
+      </Assumption>
+      <Assumption>
+        D32 and F177 are not in the frozen record
+        at this commit (grep of decisions.md for
+        D32 / F177 / &lt;a id="d32"&gt;: zero).
+        They live in the D30 freeze buffer
+        .ngrace/scratch/staged-findings.md
+        (untracked). Binding content used here is
+        the ratified order (this bundle remains
+        position 3; C-ROADMAP-XML at 4) and the
+        stub-check motivation, not a citation of
+        the buffer path.
+      </Assumption>
+      <Assumption>
+        Teaching pins, same commit. Four
+        expect(...).toContain("decisions.md")
+        sites in scripts/skill-contracts.test.ts
+        at :420, :432, :511, :578. validate:ci
+        last member is
+        bun run validate:citation-anchors, which
+        is bun ./scripts/validate-citation-anchors.ts.
+        package.json version 6.2.0.
+        CONTEXT_ARTIFACTS at
+        src/artifact/grammar.ts:271-277 is the
+        five .ngrace/context files.
+        isDocsPlansPath at
+        src/review/core.ts:1090-1093.
+      </Assumption>
+      <Assumption>
+        Named-bundle registry, same commit. Rule:
+        Name column of the two chartered tables
+        under heading Named-bundle registry
+        (not Charter/Pays/Status cells; not the
+        sweep-remainder table). These sets are
+        context; Constraints do not enumerate them.
+        C-RECORD-RETIREMENT is a Name cell at
+        position 3 of nine as D31 left it.
+        C-ROADMAP-XML is not yet a Name cell in
+        the frozen file.
+      </Assumption>
+    </Assumptions>
+  </C-RECORD-RETIREMENT-2>
+</NgraceChangeSpec>
