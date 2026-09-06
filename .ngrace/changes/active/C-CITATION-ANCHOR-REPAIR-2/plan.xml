@@ -1,0 +1,156 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-CITATION-ANCHOR-REPAIR-2>
+    <IntentSummary>
+      Re-ratify the already-present
+      citation-anchor work with a
+      correct evidence contract.
+      Execution verifies that the
+      standing properties still hold
+      and closes. It does not
+      re-implement the anchors, the
+      fragment rewrite, or the
+      validator. Target assertions
+      are already true. Planned reds:
+      none. Do not revert production
+      files. ObservedWriteScope is
+      &lt;None /&gt;. Production
+      write evidence lives at
+      `.ngrace/changes/archive/C-CITATION-ANCHOR-REPAIR/run-ledger.xml`;
+      do not copy those events.
+      Current-mode lint of this root
+      is not a task Verification
+      command and is not a
+      TargetAssertions
+      MustPassCommand.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>package.json</Value>
+      </MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>validate:citation-anchors</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>&lt;a id=</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>](#f88.2)</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>](#f882)</Text>
+      </MustNotContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>package.json</Value>
+      </MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>validate:citation-anchors</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>&lt;a id=</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>](#f88.2)</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+        <Text>](#f882)</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <None />
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Re-verify standing citation-anchor
+          properties under selected assertion
+          modes
+        </Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-EVIDENCE-CONTRACT />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Already true. Re-verify; do not
+            rewrite production files. The
+            two scripts exist,
+            validate:citation-anchors is in
+            package.json, decisions.md has
+            &lt;a id= and ](#f88.2) and does
+            not contain ](#f882). bun test
+            scripts/validate-citation-anchors.test.ts
+            and
+            bun ./scripts/validate-citation-anchors.ts
+            both exit 0. Planned reds: none.
+            Do not manufacture a red.
+          </Criterion>
+          <Criterion>
+            This plan's task Verification
+            commands and TargetAssertions
+            contain no current-mode lint of
+            this project root. Failure: a
+            Command whose text contains
+            --assertions current, or that
+            invokes ngrace lint /
+            bun ./src/grace.ts lint of this
+            root and omits --assertions,
+            including the predecessor's
+            bun ./src/grace.ts lint --path .
+            --fail-on warnings. Selected
+            --assertions baseline before
+            writes and
+            --assertions target
+            --run-commands after are the
+            task evidence commands.
+            MustPassCommand holds the two
+            leaf probes named above. Do not
+            require bun run validate:ci.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun ./src/grace.ts lint --path . --change C-CITATION-ANCHOR-REPAIR-2 --assertions baseline</Command>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-CITATION-ANCHOR-REPAIR-2 --assertions target --run-commands</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-CITATION-ANCHOR-REPAIR-2>
+</NgraceChangePlan>
