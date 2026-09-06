@@ -1,0 +1,1263 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-RETIRE-AND-CODIFY>
+    <Summary>
+      Ship the ongoing record-retirement operation
+      and the first CodifiedIn / TaughtIn tagging
+      so the RM-GOVERNED-PATH record can retire as
+      fast as it grows. Extend the PaidBy derivation
+      so validation cannot exit 0 while a live
+      finding is eligible under that derivation;
+      add a --retire command that stamps PaidBy,
+      moves eligible entries to the retired sibling,
+      updates the citation-index layer, and
+      re-derives the live root's base / headroom /
+      ceiling. Correct the rulings headroom
+      multiplier from 2 to 7 (the findings cycle
+      constant) in this bundle, argued against
+      D28.1; after that one rewrite the clamp
+      forbids a later raise. Validators read
+      record XML through parseGraceXmlArtifact;
+      writes stay surgical. Pays F180 and F181.
+      Binding live rulings D28, D28.1, D30.
+      Staged charter D34 (not yet flushed).
+      Overturns C-RECORD-RETIREMENT-2's NonGoal
+      of zero historical CodifiedIn / TaughtIn
+      tags.
+    </Summary>
+    <Problem>
+      C-RECORD-RETIREMENT-2 split the record and
+      shipped the ratchet. It did not ship the
+      ongoing operation. D28 required that every
+      entry have an observable retirement trigger
+      and that enforcement ship with the structure,
+      never after. The structure and the ratchet
+      shipped; the operation shipped only as
+      --split, which refuses once decisions.md is
+      a stub (scripts/validate-record-retirement.ts:477-478).
+
+      F180, F181, and D34 live in the D30 buffer
+      .ngrace/scratch/staged-findings.md, not in
+      findings.xml / rulings.xml. This spec does
+      not flush them. D34 (ratified 2026-09-06)
+      charters this bundle at position 4, ahead of
+      C-ROADMAP-XML, and names four deliverables:
+      a PaidBy feed, detection that uses the
+      derivation, a retirement move, and the first
+      CodifiedIn / TaughtIn tagging.
+
+      Measured 2026-09-06 at
+      67bc55cbfb7e7fc6f672012801780f3db517984d,
+      reproducing collectPaidBy
+      (scripts/validate-record-retirement.ts:372-410)
+      against live plus retired chartered rows:
+      the map has 24 F-tokens, all already retired;
+      0 live findings are eligible under that
+      function as shipped. 0 of 214 live findings
+      carry a stored &lt;PaidBy&gt; child; all 25
+      retired findings do. Validation reads only
+      the stored child (:673) and
+      bun ./scripts/validate-record-retirement.ts
+      exits 0. collectPaidBy runs only in --split
+      (:489). F180's claim that the same function
+      maps 36 tokens of which 12 are live-eligible
+      is not reproduced; those twelve tokens
+      (F9.1, F100, F105, F108, F108.1, F108.2,
+      F109.1, F112, F113, F125, F155.1, F157)
+      occupy 477 lines of findings.xml but are not
+      collectPaidBy-eligible. The hole this bundle
+      closes is that detection ignores the
+      derivation, the derivation itself misses
+      archive-named Pays rows whose StatusText
+      does not match /delivered|superseded/i and
+      misses StatusText "Closed with" claims, and
+      no command can move an eligible entry.
+
+      Zero of 60 live decisions carry CodifiedIn
+      or TaughtIn (C-RECORD-RETIREMENT-2 NonGoal).
+      Decisions therefore have no reachable
+      trigger. This bundle overturns that NonGoal
+      (CLAUDE.md rule 9): the tags and both
+      resolution checks already ship; populating
+      the first real tags is this work.
+
+      D28.1: eligibility carries no number so no
+      number can be raised to pass it; a
+      ceiling-exceeded failure names the
+      retirement operation and must not name a
+      config key as the remedy; the rejected
+      shape was a line budget as sole
+      enforcement, whose cheapest way out is a
+      config edit (rulings.xml:1498-1506).
+      Re-deriving a mis-sized formula is not
+      that act. C-RECORD-RETIREMENT-2 sized
+      rulings headroom as 2 times the median
+      live H2 Decision (entry size). Staged F181
+      measured one session's arrival at four
+      decisions against that two-entry
+      headroom. The clamp
+      min(previousCeiling, newBase + newHeadroom)
+      would make that split-time ceiling
+      permanent, so the formula correction
+      ships in the same bundle as the clamp.
+      This spec answers F181 here, argued
+      against D28.1, and does not leave
+      arrival-rate sizing as a NonGoal.
+
+      The three record validators each carry a
+      regex parser and bypass
+      parseGraceXmlArtifact
+      (src/artifact/xml.ts, LINKS M-GRAMMAR).
+      Consolidating reads onto that layer is
+      in scope. serializeGraceXmlDocument
+      hoists inter-element whitespace and is
+      not a whole-file writer for this
+      corpus; writes stay surgical. No new
+      XML library.
+    </Problem>
+    <Goals>
+      <Goal>
+        A PaidBy feed. The retirement script
+        derives a payer map and writes a
+        &lt;PaidBy&gt; child onto each live
+        finding the map names, with the payer
+        equal to the archived C-* directory.
+        The feed runs as part of --retire
+        (stamp then move in one invocation) and
+        as a --stamp-paid-by mode that writes
+        the children and does not move. It does
+        not hook ngrace gate archive or
+        lifecycle finish: this record is this
+        repository's, validation stays in
+        scripts/, and src/ is not in scope.
+        After a paying bundle archives, the
+        next validate:record-retirement run
+        goes red until --retire is invoked.
+        That is the observable trigger.
+      </Goal>
+      <Goal>
+        Detection that uses the derivation.
+        bun ./scripts/validate-record-retirement.ts
+        (no mutating argv) exits non-zero when
+        a live finding is in the payer map
+        with an archive-directory payer, even
+        if that finding has no stored
+        &lt;PaidBy&gt; child. A stored
+        &lt;PaidBy&gt; that names an archive
+        directory remains an error (shipped).
+        One error per finding, naming the
+        archive event. Planted refuse: a live
+        finding, payer archived, no stored
+        child, must fail; adding the child
+        without moving must still fail; moving
+        to the retired sibling must pass.
+      </Goal>
+      <Goal>
+        A retirement move. argv --retire on
+        scripts/validate-record-retirement.ts
+        stamps PaidBy from the derivation,
+        moves every eligible live finding,
+        every live decision that carries a
+        resolving CodifiedIn or TaughtIn, and
+        every live registry row whose name
+        equals an archive directory, to the
+        matching retired sibling; sets
+        status="retired" on the moved
+        element; updates the matching
+        decisions.xml Entry layer from live
+        to retired; and re-derives the live
+        root's base, headroom, and ceiling as
+        the ceiling-ruling Constraint
+        specifies. --split remains and still
+        refuses a stub. --retire is not a
+        validate:ci member (it mutates).
+      </Goal>
+      <Goal>
+        First CodifiedIn / TaughtIn tagging.
+        This bundle populates the first real
+        tags on live Decision elements that
+        verify at execution, then --retire
+        moves them. C-RECORD-RETIREMENT-2's
+        NonGoal of zero historical tags is
+        overturned here, not silently.
+        D27.1 is the first candidate by its
+        own text once it is a live Decision;
+        it is not live at this spec's writing
+        (staged buffer only) and this bundle
+        does not flush it. The first live tag
+        this bundle writes is D24 against
+        C-REWORK-CIRCUIT, if it still verifies
+        at execution (both directions of
+        T-001 and T-003 in
+        src/grace-cursor.test.ts). D24 remains
+        a candidate to verify, not a fact to
+        restate, until that re-run (D28.1,
+        F123). Additional live decisions that
+        verify the same way in the same apply
+        may be tagged; they are not required
+        and are not enumerated.
+      </Goal>
+      <Goal>
+        Ceiling ruling, stated and argued
+        against D28.1. Re-deriving base /
+        headroom / ceiling after a successful
+        --retire is a snapshot of the new live
+        population under the formulas. The
+        forbidden act is occupancy red then
+        increasing a persisted number until
+        green, without a move; that remains
+        forbidden. The rulings multiplier 2
+        measured entry size and not cycle
+        arrival (staged F181). This bundle
+        replaces it with 7, the findings
+        cycle constant already shipped by
+        C-RECORD-RETIREMENT-2, so both
+        content genres size headroom as one
+        cycle of median entries. Findings,
+        registry, and index formulas are
+        unchanged. The clamp
+        min(previousCeiling, newBase + newHeadroom)
+        holds for every later --retire and
+        for findings / registry / index on
+        this bundle's first rewrite. For
+        rulings only, this bundle's first
+        production attribute rewrite may
+        persist the formula ceiling even
+        when it exceeds the split-time
+        ceiling, because that ceiling was
+        computed from the uncorrected
+        multiplier; after that write the
+        clamp binds. A later red is cured
+        only by a move. The failure message
+        continues to name --retire / move to
+        the retired sibling and must not
+        name a config key or the multiplier.
+      </Goal>
+      <Goal>
+        XML reads through the in-house
+        layer. The three record validators
+        parse production and fixture record
+        XML with parseGraceXmlArtifact and
+        query with walkNodes / childNodes /
+        childText. They do not add an XPath
+        engine or any XML library. Writes
+        are surgical (PaidBy stamp, status,
+        element move, live-root attributes,
+        Entry layer) and do not
+        whole-file serialize through
+        serializeGraceXmlDocument. src/ is
+        not edited.
+      </Goal>
+      <Goal>
+        Teach the operation where this
+        repository's agents learn it:
+        CLAUDE.md (the record paragraph:
+        --retire is the move; validation
+        re-derives PaidBy; ceiling attributes
+        are rewritten only by the move and
+        never raised) and docs/plans/README.md
+        (the RM-GOVERNED-PATH layout sentence
+        names the command). Do not teach this
+        record layout as a product contract in
+        shipped skills.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting):
+        docs/plans record files, CLAUDE.md,
+        docs/plans/README.md, and scripts/
+        record validators plus their tests.
+        No graph module is written. Not T3:
+        no new product subsystem, no
+        lint-domain expansion, the record is
+        not added to the artifact grammar,
+        and src/ is not edited. Gates still
+        run.
+      </Constraint>
+      <Constraint>
+        Roadmap plan RM-GOVERNED-PATH. Binding
+        live rulings D28, D28.1, D30. Staged
+        charter D34 (buffer; not flushed).
+        Paid findings F180, F181 (buffer; not
+        flushed). Enforcement of the ongoing
+        operation ships in this bundle, never
+        after it.
+      </Constraint>
+      <Constraint>
+        Payer derivation, replacing the
+        delivered|superseded filter.
+        The archive directory is the event
+        D28.1 names. A live finding's payer
+        is the first C-* name, in this order,
+        for which that name is a directory
+        under .ngrace/changes/archive/:
+        (1) an F-token in the Pays child of a
+        chartered Row in registry.xml or
+        registry-retired.xml whose name
+        equals that directory;
+        (2) an F-token in a Closed-with
+        claim in that same row's StatusText;
+        (3) an F-token in an archived
+        spec.xml sentence matching the shipped
+        /\bthe paid findings?\b/i regex
+        (scripts/validate-record-retirement.ts:33,
+        :397-407).
+        Closed-with grammar: after XML-decode
+        and whitespace-flatten of StatusText,
+        replace each markdown citation
+        wrapper [TOKEN](#slug) with TOKEN
+        so the house form
+        [F100](#f100)–[F105](#f105)
+        reduces to F100–F105; then a clause
+        matching /\bClosed with\b/i through
+        the next period; F-tokens via the
+        shipped F_TOKEN_RE; a range is two
+        F-tokens separated by U+2013, U+2014,
+        or ASCII hyphen-minus whose last
+        integer segments form an inclusive
+        numeric range and whose prefix
+        otherwise matches (so F100–F105
+        expands to F100 through F105).
+        Without that reduction the two
+        F-tokens have ](#f100) between them
+        and the spec's own range example
+        does not meet the record.
+        Mere mention of an F-token in an
+        archived spec, in a Charter, or in
+        StatusText outside a Closed-with
+        clause is not payment
+        (C-RECORD-RETIREMENT-2 stands on that
+        half). A live chartered row whose
+        name is not an archive directory does
+        not pay. Do not enumerate the
+        eligible set in this spec (D30).
+      </Constraint>
+      <Constraint>
+        --retire command.
+        bun ./scripts/validate-record-retirement.ts
+        --retire reads the production record
+        under docs/plans/active/RM-GOVERNED-PATH/
+        (or an argv directory, fixture-safe:
+        argv naming a fixture path does not
+        read the repository's record files).
+        It stamps missing &lt;PaidBy&gt;
+        children from the derivation, moves
+        eligible elements as the Goal
+        describes, writes status="retired",
+        updates decisions.xml Entry layer,
+        re-derives live-root attributes, and
+        exits 0. A second --retire with
+        nothing eligible is a no-op exit 0
+        and must not rewrite ceiling. Bodies
+        are moved, not rewritten, except the
+        status attribute, the PaidBy stamp,
+        and wrap. prove-record-preservation.ts
+        still exits 0 after a move.
+        --stamp-paid-by writes PaidBy children
+        only. --split still refuses a stub.
+        Production validate (no mutating argv)
+        never writes.
+      </Constraint>
+      <Constraint>
+        Ceiling ruling, the act this bundle
+        performs, argued against D28.1.
+        After a successful --retire that
+        moved at least one element, persist
+        on every live root (not only the
+        genre that moved, so a findings-only
+        first move still rewrites rulings
+        under the corrected multiplier):
+        base = live size at that moment
+        (line count of findings.xml /
+        rulings.xml / decisions.xml; live-row
+        count of registry.xml);
+        headroom = findings: 7 times the
+        median live Finding element line
+        count; rulings: 7 times the median
+        live H2 Decision element line count
+        (was 2; corrected this bundle);
+        registry: 15 live-row slots; index:
+        40 lines;
+        formulaCeiling = base + headroom.
+        For findings, registry, and index:
+        ceiling = min(previously persisted
+        ceiling, formulaCeiling). For
+        rulings on this bundle's first
+        production attribute rewrite:
+        ceiling = formulaCeiling, even if
+        that exceeds the split-time
+        persisted ceiling; that exception
+        is the formula correction and is
+        not available on later invocations.
+        For every later --retire, including
+        later rulings rewrites: ceiling =
+        min(previously persisted ceiling,
+        formulaCeiling). If the clamp
+        binds, persist headroom =
+        previousCeiling - base so the three
+        attributes stay a consistent
+        snapshot. This is not raising a
+        number to pass: the new rulings
+        multiplier is the findings cycle
+        constant, not a function of the
+        current occupancy, and a later red
+        cannot be cured by changing it.
+        The only permitted production
+        writer of base, headroom, and
+        ceiling is --retire after a
+        successful move (--split wrote the
+        initial snapshot and now refuses).
+        Validate continues to compare
+        occupancy to the persisted ceiling
+        only; it does not recompute
+        headroom from the current median on
+        every run. Ceiling-exceeded failure
+        text names --retire / move to the
+        retired sibling, never a config key
+        and never the multiplier, and says
+        raising the persisted ceiling is
+        not the remedy. Do not pin a scalar
+        count of a record file into this
+        Constraint (D30).
+      </Constraint>
+      <Constraint>
+        First tagging. CodifiedIn / TaughtIn
+        element shapes and both resolution
+        checks stay as shipped. This bundle
+        writes tags onto live Decision
+        elements, then --retire moves those
+        that resolve. D24: at execution, run
+        the C-REWORK-CIRCUIT T-001 and T-003
+        describes in src/grace-cursor.test.ts
+        (ceiling trips on the second breaker
+        fire; resume refuses circuit, including
+        the real-CLI probe). If both still
+        pass, write
+        &lt;CodifiedIn kind="test-suite"&gt;src/grace-cursor.test.ts&lt;/CodifiedIn&gt;
+        on the live D24 element and --retire
+        it. If either fails, do not tag D24
+        and report the failing test; do not
+        restate D24 as already-codified
+        (D28.1, F123). D27.1 is not a live
+        Decision at this spec's writing; do
+        not insert it; do not tag an element
+        that does not exist. When it is live,
+        it is a CodifiedIn kind="lint-rule"
+        candidate for
+        review.approval-never-asked
+        (isEmittableIssueCode true at the
+        measurement commit). That tagging
+        uses this bundle's operation and is
+        not this bundle's apply. childOpenAttrs
+        reads the first CodifiedIn / TaughtIn
+        only; one resolving tag is sufficient
+        to retire. Do not edit
+        src/grace-cursor.test.ts,
+        src/lint/catalog.ts, or any skill
+        file to make a tag resolve.
+      </Constraint>
+      <Constraint>
+        Validator home stays
+        scripts/validate-record-retirement.ts
+        and scripts/validate-record-retirement.test.ts,
+        and this bundle also extends
+        scripts/prove-record-preservation.ts,
+        scripts/prove-record-preservation.test.ts,
+        scripts/validate-citation-anchors.ts,
+        and
+        scripts/validate-citation-anchors.test.ts
+        so all three record validators read
+        through parseGraceXmlArtifact.
+        package.json validate:record-retirement
+        and its validate:ci membership stay
+        the validate-only invocation (no
+        mutating argv). --retire and
+        --stamp-paid-by are argv of that
+        script and are not validate:ci
+        members. The retirement test file
+        plants the new refuse paths and
+        still reads package.json so bun
+        test of that file fails if
+        validate:ci drops the validate
+        member (F170). scripts/ stays in
+        .ngrace-lint.json ignoredDirs and
+        is not added to the graph
+        (M-RELEASE-AUTOMATION remains
+        deferred). Do not add a ngrace lint
+        issue code. Do not edit
+        src/grace-lint.ts, src/lint/core.ts,
+        src/lint/catalog.ts,
+        src/artifact/grammar.ts,
+        src/artifact/xml.ts,
+        src/artifact/xml-serialize.ts,
+        src/language-registry.ts
+        CODE_EXTENSIONS, src/review/core.ts,
+        or src/grace-cursor.ts. Do not add
+        the record files to
+        CONTEXT_ARTIFACTS
+        (src/artifact/grammar.ts:271).
+        The scripts may import
+        parseGraceXmlArtifact, walkNodes,
+        childNodes, and childText from
+        src/artifact/xml.ts and
+        isEmittableIssueCode from
+        src/lint/catalog.ts, and must not
+        edit those files. Do not add
+        M-GRAMMAR or M-LINT-CATALOG.
+      </Constraint>
+      <Constraint>
+        XML layer. fast-xml-parser@^5.2.5
+        is already in package.json
+        dependencies, wrapped by
+        parseGraceXmlArtifact
+        (src/artifact/xml.ts, LINKS
+        M-GRAMMAR) and
+        serializeGraceXmlDocument
+        (src/artifact/xml-serialize.ts,
+        LINKS M-GRAMMAR). Do not add xpath,
+        @xmldom/xmldom, libxmljs, SaxonJS,
+        or any XSLT processor. Queries are
+        a filter over walkNodes, not an
+        XPath engine. All three record
+        validators read through
+        parseGraceXmlArtifact. They do not
+        call serializeGraceXmlDocument on a
+        whole genre file: that serialiser
+        concatenates inter-element
+        whitespace into one text node and
+        emits it before children, which
+        preserves line count and
+        xmlDecode(Body) hashes
+        (prove-record-preservation.ts:102)
+        but is not a reviewable normalising
+        pass. Writes are surgical: stamp
+        PaidBy, set status, move an
+        element's existing bytes, rewrite
+        live-root attributes, update Entry
+        layer. A one-off whole-file entity
+        normalisation is not this bundle.
+        The invariant that ships, in the
+        retirement test file: parse then
+        serialize of a node with no mixed
+        inter-element text is structurally
+        stable; prove-record-preservation
+        still exits 0 after a move. Do not
+        edit src/artifact/xml.ts or
+        src/artifact/xml-serialize.ts.
+      </Constraint>
+      <Constraint>
+        Task Verification and TargetAssertions
+        contain no current-mode lint of this
+        project root. Current mode means the
+        command text contains --assertions
+        current, or it invokes ngrace lint of
+        this root and omits --assertions.
+        Check by that rule, by hand: the
+        shipped detector
+        (src/artifact/assertions.ts:257-285)
+        still does not match
+        bun ./src/grace.ts lint (F171);
+        bun run ./src/grace.ts lint does
+        match. Selected --assertions target
+        --run-commands and the baseline form
+        are the task evidence commands.
+        MustPassCommand holds leaf project
+        evidence: bun test of the extended
+        test file and
+        bun ./scripts/validate-record-retirement.ts
+        (no mutating argv). Do not require
+        bun run validate:ci as
+        MustPassCommand or CloseEvidence.
+        Current-mode lint of this root
+        appears only as post-archive
+        CloseEvidence under AC-CLOSE-LINT.
+      </Constraint>
+      <Constraint>
+        C-REPORT-HONESTY stands. Current-mode
+        still evaluates approved
+        BaselineAssertions and still reports
+        them as errors. Do not skip that
+        evaluation. Do not infer
+        writes-started from git dirty, the
+        ledger, or ObservedWriteScope. Do
+        not silence current-mode baseline
+        issues to make a post-write
+        current-mode lint look green.
+      </Constraint>
+      <Constraint>
+        isDocsPlansPath in
+        src/review/core.ts:1090-1093 exempts
+        docs/plans/** from the WriteEvidence
+        audit (F27.1). This bundle writes
+        there and relies on that exemption.
+        Do not edit src/review/core.ts.
+        ObservedWriteScope for the later plan
+        must include the RM-GOVERNED-PATH
+        record files --retire may write
+        (findings.xml, findings-retired.xml,
+        rulings.xml, rulings-retired.xml,
+        registry.xml, registry-retired.xml,
+        decisions.xml), CLAUDE.md,
+        docs/plans/README.md, and the three
+        record-validator scripts and tests
+        this bundle extends. That is
+        in-scope work. Do not add
+        src/artifact/xml.ts or
+        src/artifact/xml-serialize.ts. Do not add
+        spec.xml or plan.xml to
+        ObservedWriteScope. At plan-approve,
+        review.scope-outside-write-scope on
+        spec.xml, plan.xml, and (when that
+        file changed) decisions.md remains
+        expected. F178: neither
+        change.plan-scope-exceeds-spec
+        (skipped when spec AffectedAreas
+        names no module,
+        src/artifact/grammar.ts:2028) nor
+        change.graph-anchors-miss-write-scope
+        (src/lint/core.ts:724-732, src/ only)
+        binds on this bundle; the
+        review --change scope audit against
+        ObservedWriteScope is the guard that
+        does work.
+      </Constraint>
+      <Constraint>
+        README.md and examples/: both
+        unchanged; no user-visible CLI token,
+        config key, or ngrace command. Owner
+        of any later CONTRIBUTING.md
+        validate:ci table edit: C-CI-CLAIM-PIN.
+        Owner of any later README
+        skillTextLines cell edit: the bundle
+        that next edits skills/ngrace/*.
+      </Constraint>
+      <Constraint>
+        Do not edit anything under
+        docs/plans/archive/ or
+        .ngrace/changes/archive/. Do not
+        flush .ngrace/scratch/staged-findings.md
+        into the record. Do not mint a
+        registry row for this bundle (D34's
+        staged charter row is the authority's
+        flush). Do not convert roadmap
+        plan.md / review.md (C-ROADMAP-XML).
+        Do not graft F166 or F167. Do not
+        edit skills/ngrace/* or
+        plugins/ngrace/skills/ngrace/*.
+      </Constraint>
+      <Constraint>
+        F136 anchors. Files this spec forces
+        into write scope, with LINKS headers:
+        docs/plans/active/RM-GOVERNED-PATH/findings.xml,
+        findings-retired.xml, rulings.xml,
+        rulings-retired.xml, registry.xml,
+        registry-retired.xml, decisions.xml
+        (no LINKS header; isDocsPlansPath at
+        src/review/core.ts:1090-1093);
+        CLAUDE.md (no LINKS; Agents.md is an
+        untracked symlink to it);
+        docs/plans/README.md (no LINKS);
+        scripts/validate-record-retirement.ts,
+        scripts/validate-record-retirement.test.ts,
+        scripts/prove-record-preservation.ts,
+        scripts/prove-record-preservation.test.ts,
+        scripts/validate-citation-anchors.ts,
+        and
+        scripts/validate-citation-anchors.test.ts
+        (no LINKS header; scripts/ is
+        ignoredDirs; M-RELEASE-AUTOMATION is
+        not in .ngrace/graph and remains
+        deferred).
+        src/artifact/xml.ts and
+        src/artifact/xml-serialize.ts (LINKS
+        M-GRAMMAR) are import sources, not
+        writes.
+        Do not mint a synthetic module to
+        fill this section. Do not add
+        M-SKILLS or M-TEST-SUPPORT: skills
+        and token-accounting pins are
+        unchanged. Do not add M-LINT-CATALOG:
+        the script may import
+        src/lint/catalog.ts and must not
+        edit it. Do not add M-REVIEW:
+        src/review/core.ts is not edited.
+        Do not add M-GRAMMAR:
+        src/artifact/grammar.ts,
+        src/artifact/xml.ts, and
+        src/artifact/xml-serialize.ts are
+        not edited. Do not add M-CLI or
+        M-CURSOR: src/grace.ts and
+        src/grace-cursor.ts are not edited.
+        package.json is not forced: the
+        validate:ci member already exists,
+        fast-xml-parser is already a
+        runtime dependency, and this bundle
+        does not add a mutating member or a
+        dependency.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Flushing .ngrace/scratch/staged-findings.md
+        into the live record, including D27.1,
+        D32, D33, D34, F180, and F181. Owner:
+        the authority, after this bundle
+        archives.
+      </NonGoal>
+      <NonGoal>
+        Changing the findings, registry, or
+        index headroom formulas, or sizing
+        any headroom as a line budget taken
+        from the pending flush. Owner:
+        unchanged; this bundle corrects only
+        the rulings multiplier (2 to 7) and
+        answers D28.1 rather than overturning
+        it. A later red is not cured by
+        changing 7.
+      </NonGoal>
+      <NonGoal>
+        Editing src/, adding an XML library
+        (xpath, @xmldom/xmldom, libxmljs,
+        SaxonJS, or any XSLT processor), or
+        whole-file serialising a genre file
+        through serializeGraceXmlDocument.
+        Owner: unchanged; src/ is out of
+        scope; fast-xml-parser is already
+        the runtime parser; writes stay
+        surgical.
+      </NonGoal>
+      <NonGoal>
+        Hooking ngrace gate archive,
+        lifecycle finish, or any src/ path
+        to stamp PaidBy. Owner: unchanged;
+        this record is this repository's and
+        stays out of the product grammar.
+      </NonGoal>
+      <NonGoal>
+        Converting roadmap plan.md /
+        review.md, p0-* / brownfield-* files,
+        or docs/plans/README.md to XML.
+        Owner: C-ROADMAP-XML, position 5
+        under D34. This bundle updates
+        docs/plans/README.md in place as
+        markdown to name the --retire
+        command; it does not convert it.
+      </NonGoal>
+      <NonGoal>
+        The close-order teaching clause.
+        Owner: C-APPROVAL-SCOPE under D33.
+      </NonGoal>
+      <NonGoal>
+        A text-versus-destination consistency
+        check (F166), rewriting [D1.5](#d1)
+        and [D5.2](#d5) (F167), expanding
+        ngrace lint to markdown, registering
+        the record in CONTEXT_ARTIFACTS,
+        graph adoption of scripts/, minting
+        M-RELEASE-AUTOMATION, editing
+        skills/ngrace/* or the packaged
+        mirror, or fixing the
+        C-PHASE-RULE-PIN charter row (F169,
+        F171). Owners: those named bundles
+        or a later lint-domain bundle.
+      </NonGoal>
+      <NonGoal>
+        docs/plans/archive/ and
+        .ngrace/changes/archive/ in any form
+        except this bundle's own later
+        arrival under archive. Owner:
+        archived; never editable.
+      </NonGoal>
+      <NonGoal>
+        README.md and examples/ unchanged; no
+        user-visible CLI token, config key,
+        or ngrace command. Owner: unchanged;
+        no user-visible surface.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-DETECT-DERIVATION>
+        bun ./scripts/validate-record-retirement.ts
+        exits non-zero when a live finding is
+        in the payer map with an
+        archive-directory payer and has no
+        stored &lt;PaidBy&gt; child, one
+        error per such finding, naming that
+        archive event. A stored &lt;PaidBy&gt;
+        of an archive directory still fails.
+        Failure: validation exits 0 while
+        the derivation names a live eligible
+        finding; eligibility is only the
+        stored child.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-DETECT-DERIVATION>
+      <AC-PAIDBY-FEED>
+        --stamp-paid-by writes a
+        &lt;PaidBy&gt; child onto each live
+        finding the derivation names and
+        does not move the element.
+        --retire stamps then moves.
+        argv naming a fixture directory does
+        not read or write the repository's
+        record files. Failure: PaidBy is
+        written only by --split; the feed
+        hooks src/; a fixture argv mutates
+        production.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-PAIDBY-FEED>
+      <AC-RETIRE-MOVE>
+        --retire moves every eligible live
+        finding, every live decision with a
+        resolving CodifiedIn or TaughtIn,
+        and every live registry row whose
+        name equals an archive directory, to
+        the retired sibling; sets
+        status="retired"; updates the index
+        Entry layer to retired; and exits 0.
+        A planted eligible finding ends in
+        findings-retired.xml, not
+        findings.xml. --split on the
+        production stub still exits
+        non-zero. prove-record-preservation.ts
+        still exits 0. Failure: the only
+        move is hand-editing XML; index
+        layer stays live; bodies are
+        rewritten beyond the allowed
+        transforms.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+        </CloseEvidence>
+      </AC-RETIRE-MOVE>
+      <AC-CEILING-RULING>
+        After a --retire that moved at least
+        one element, findings / registry /
+        index ceilings equal
+        min(previousCeiling,
+        newBase + newHeadroom). Rulings
+        headroom uses 7 times the median
+        live H2 Decision, not 2. A fixture
+        of this bundle's first rulings
+        rewrite persists the formula
+        ceiling even when it exceeds the
+        split-time ceiling. A second
+        --retire on that fixture whose
+        formula would raise the ceiling
+        keeps the previous ceiling.
+        Exceeding the persisted ceiling
+        still fails; the message names
+        --retire / move to the retired
+        sibling and does not name a config
+        key or the multiplier. Raising a
+        persisted ceiling by hand is not a
+        permitted fix. Failure: --retire
+        after the first rulings rewrite
+        writes a larger ceiling than it
+        read; the only enforcement is a
+        number that can be raised to pass;
+        a Constraint transcribes a scalar
+        count of a record file; the
+        rulings multiplier stays 2.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-CEILING-RULING>
+      <AC-FIRST-CODIFY>
+        After apply, if C-REWORK-CIRCUIT
+        T-001 and T-003 in
+        src/grace-cursor.test.ts both passed
+        at execution, the D24 body is in
+        rulings-retired.xml with a resolving
+        &lt;CodifiedIn kind="test-suite"&gt;src/grace-cursor.test.ts&lt;/CodifiedIn&gt;
+        child and is not in rulings.xml. If
+        either test failed, D24 is still
+        live and untagged and the report
+        names the failure. Zero is not an
+        acceptable tag count when those
+        tests passed. Failure: historical
+        tagging remains a NonGoal; a tag
+        that does not resolve; D27.1
+        inserted into the live record by
+        this bundle.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-FIRST-CODIFY>
+      <AC-CI-JOINS>
+        package.json validate:ci still
+        invokes validate:record-retirement
+        as the validate-only member.
+        --retire is not on that chain. The
+        test file still reads package.json
+        and fails if the validate member is
+        absent (F170). Failure: --retire
+        added to validate:ci; the validate
+        member dropped; the test file never
+        reads package.json.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-CI-JOINS>
+      <AC-TEACHING>
+        CLAUDE.md names --retire as the
+        move, that validation re-derives
+        PaidBy, and that ceiling attributes
+        are rewritten only by the move and
+        never raised. docs/plans/README.md
+        names the command. The retirement
+        test file reads those two files and
+        fails if those names are absent.
+        Canonical and packaged skill trees
+        stay byte-identical because this
+        bundle does not edit them.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-TEACHING>
+      <AC-NO-GRAMMAR>
+        src/artifact/grammar.ts
+        CONTEXT_ARTIFACTS is unchanged: the
+        record files are not registered. No
+        file under src/ is edited, including
+        src/artifact/xml.ts and
+        src/artifact/xml-serialize.ts.
+        <CloseEvidence>
+          <Command>git diff --exit-code 67bc55cbfb7e7fc6f672012801780f3db517984d -- src/</Command>
+        </CloseEvidence>
+      </AC-NO-GRAMMAR>
+      <AC-XML-LAYER>
+        The three record validators read
+        record XML through
+        parseGraceXmlArtifact. package.json
+        dependencies still contain
+        fast-xml-parser and do not contain
+        xpath, @xmldom/xmldom, libxmljs, or
+        saxonjs. A --retire of a fixture
+        directory preserves planted
+        inter-element layout of a Finding
+        except status, PaidBy, and wrap, and
+        does not emit the
+        serializeGraceXmlDocument
+        whitespace-hoist shape (all
+        inter-element text before the first
+        child). Failure: a new XML library;
+        a whole-file serialise as the move;
+        src/artifact/xml.ts or
+        src/artifact/xml-serialize.ts
+        edited.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+        </CloseEvidence>
+      </AC-XML-LAYER>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task Verification
+        commands and TargetAssertions
+        contain no current-mode lint of this
+        project root. Failure: a Command
+        whose text contains --assertions
+        current, or that invokes ngrace lint
+        / bun ./src/grace.ts lint of this
+        root and omits --assertions,
+        including bun ./src/grace.ts lint
+        --path . --fail-on warnings as a
+        task Verification command. Check by
+        the rule, by hand (F171).
+      </AC-NO-CURRENT-MODE>
+      <AC-NO-ARCHIVE-WRITE>
+        The archived record under
+        docs/plans/archive/ and
+        .ngrace/changes/archive/ is not
+        modified on any tracked path. This
+        bundle's own later arrival under
+        .ngrace/changes/archive/C-RETIRE-AND-CODIFY/
+        is not a modification. Verified
+        against
+        67bc55cbfb7e7fc6f672012801780f3db517984d
+        excluding that directory.
+        <CloseEvidence>
+          <Command>git diff --exit-code 67bc55cbfb7e7fc6f672012801780f3db517984d -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-RETIRE-AND-CODIFY'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-WRITE>
+      <AC-DOCS-EXAMPLES>
+        Tracked paths README.md and
+        examples/ match
+        67bc55cbfb7e7fc6f672012801780f3db517984d
+        per git diff --exit-code.
+        <CloseEvidence>
+          <Command>git diff --exit-code 67bc55cbfb7e7fc6f672012801780f3db517984d -- README.md examples/</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the
+        only place current-mode lint of this
+        root appears. Do not put
+        bun ./src/grace.ts lint --path .
+        --fail-on warnings in any task
+        Verification or in TargetAssertions
+        MustPassCommand.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No graph module is written.
+      Ceremony tier T2 names the same fact:
+      no graph module is written.
+      Files this spec forces into write
+      scope, with LINKS headers, are listed
+      in the F136 anchors Constraint and
+      are not repeated as a second module
+      list. Do not mint a synthetic module
+      to fill this section. Do not add
+      M-SKILLS, M-TEST-SUPPORT,
+      M-LINT-CATALOG, M-REVIEW, M-GRAMMAR,
+      M-CLI, or M-CURSOR.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/prove-record-preservation.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/validate-citation-anchors.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-RETIRE-AND-CODIFY --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes, not a green
+        suite. Authority mutation probes on
+        a throwaway copy of the record
+        files; bun test green is a
+        precondition, not the evidence.
+        (1) A live finding whose payer is an
+        archive directory, with no stored
+        PaidBy, fails validation; after
+        --retire it is in the retired
+        sibling and validation passes.
+        (2) --stamp-paid-by writes PaidBy
+        and leaves the finding live;
+        validation then fails on
+        eligible-still-live.
+        (3) A fixture --retire whose formula
+        would raise the ceiling keeps the
+        previous ceiling.
+        (4) --retire on a fixture directory
+        does not read or write the
+        repository's record files.
+        (5) --split on the production stub
+        still exits non-zero.
+        (6) A live CodifiedIn that resolves
+        fails validation until --retire
+        moves the decision; a CodifiedIn
+        naming a missing test path still
+        fails unresolved.
+        (7) Dropping validate:record-retirement
+        from validate:ci fails the test file
+        that reads package.json.
+        (8) git diff --exit-code against
+        67bc55cbfb7e7fc6f672012801780f3db517984d
+        on src/, on tracked
+        docs/plans/archive/ and
+        .ngrace/changes/archive/ excluding
+        this bundle's own directory, and on
+        tracked README.md and examples/, is
+        empty.
+        (9) The later plan's task
+        Verification list does not contain
+        current-mode lint of this root,
+        checked by the rule in Constraints,
+        by hand (F171).
+        (10) CLAUDE.md and
+        docs/plans/README.md name --retire
+        as specified; skills trees stay
+        byte-identical.
+        (11) A fixture --retire whose 2-times
+        rulings formula would leave the
+        pending occupancy over the split-time
+        ceiling, and whose 7-times formula
+        does not, persists the 7-times
+        formula ceiling on the first rewrite
+        and refuses to raise it on the
+        second.
+        (12) The three validators parse a
+        planted fixture through
+        parseGraceXmlArtifact; --retire does
+        not hoist inter-element whitespace
+        to the front of the file; package.json
+        dependencies contain fast-xml-parser
+        and do not contain xpath.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken 2026-09-06 at
+        commit
+        67bc55cbfb7e7fc6f672012801780f3db517984d.
+        git rev-parse HEAD;
+        wc -l docs/plans/active/RM-GOVERNED-PATH/findings.xml
+        → 8279, root
+        base="8279" headroom="252"
+        ceiling="8531";
+        wc -l .../rulings.xml → 1668, root
+        base="1668" headroom="75"
+        ceiling="1743".
+        Live findings 214, retired 25;
+        live decisions 60; archived C-*
+        directories 69; active/ contains
+        .gitkeep and this bundle directory.
+      </Assumption>
+      <Assumption>
+        collectPaidBy as shipped, same
+        commit, against chartered rows from
+        registry.xml union
+        registry-retired.xml: map size 24,
+        all 24 already retired, 0
+        live-eligible. 0 of 214 live
+        findings carry a stored PaidBy;
+        25 of 25 retired findings do.
+        bun ./scripts/validate-record-retirement.ts
+        exits 0. --split exits 1 with
+        "refusing to split a stub".
+        Zero live CodifiedIn, zero live
+        TaughtIn.
+      </Assumption>
+      <Assumption>
+        F180's twelve tokens are live and
+        occupy 477 lines of findings.xml
+        (line-scan of Finding elements:
+        F9.1 15, F100 14, F105 15, F108 31,
+        F108.1 41, F108.2 54, F109.1 47,
+        F112 34, F113 24, F125 48,
+        F155.1 85, F157 69). They are not
+        collectPaidBy-eligible as shipped.
+        StatusText Closed-with live
+        occupancy after markdown-citation
+        reduction, same scan: F100–F105
+        plus F112, F113, F125 = 192 lines
+        (F101 15, F102 15, F103 12, F104 15
+        are live and interior to that
+        range). Without reduction the
+        house form [F100](#f100)–[F105](#f105)
+        is not a range and Closed-with
+        live occupancy is 135 lines (five
+        tokens). Rule 1 Pays on
+        archive-directory rows adds F136,
+        F148, F149.1, F155.1, F157, F160
+        (361 lines). With reduction:
+        15 live-eligible, 553 lines.
+        Without: 11 live-eligible, 496
+        lines. This spec reduces, so the
+        range example meets the record.
+        C-RECORD-RETIREMENT Pays names
+        F155.1, F157, F160; F160 is live;
+        that row's StatusText does not
+        match /delivered|superseded/i.
+        Eligible set at execution is
+        derived, not this list (D30).
+      </Assumption>
+      <Assumption>
+        D24 verification, same commit.
+        bun test src/grace-cursor.test.ts
+        exits 0, 163 pass / 0 fail.
+        C-REWORK-CIRCUIT T-001 (ceiling
+        trips on second breaker fire) and
+        T-003 (resume refuses circuit,
+        including the real-CLI probe) both
+        passed. D24 element is 44 lines in
+        rulings.xml. review.approval-never-asked
+        isEmittableIssueCode true.
+        D27.1 is not in rulings.xml.
+      </Assumption>
+      <Assumption>
+        Staged buffer
+        .ngrace/scratch/staged-findings.md
+        at the same date contains F172–F181
+        and D27.1, D32, D33, D34. This spec
+        does not treat those line counts as
+        Constraints. The authority's flush
+        is out of scope.
+      </Assumption>
+      <Assumption>
+        Unblock arithmetic, same commit,
+        after this bundle then the pending
+        flush. Findings: 8279 minus 553
+        (15 eligible under the reduced
+        Closed-with grammar) plus staged
+        findings wrap 300 (F172–F181,
+        live-element wrap, body stopped at
+        --- / STAGED CHARTER, trailing
+        blanks trimmed) = 8026, ceiling
+        8531, fits. Rulings: 1668 minus 44
+        (D24) plus staged decisions wrap
+        161 (D27.1, D32, D33, D34, same
+        wrap rule) = 1785. Split-time
+        ceiling 1743, breach 42. After D24
+        removal, live H2 median 37, 7 times
+        that is 259, formula ceiling
+        1624 + 259 = 1883; 1785 fits.
+        Brief's wrap 372 / 200 is the same
+        picture: findings 8155 fits 8531;
+        rulings 1824 exceeds 1743 by 81 and
+        fits 1883. Staged findings cite
+        staged decisions 18 times in the
+        buffer (d27.1 x5, d32 x7, d33 x2,
+        d34 x4); 7 of those sit in finding
+        entries. Planting ](#d33) in a live
+        Body makes
+        bun ./scripts/validate-citation-anchors.ts
+        exit 1,
+        unresolved-fragment. Genres must
+        flush together. Do not pin these
+        scalars into Constraints (D30).
+      </Assumption>
+      <Assumption>
+        XML layer, same commit.
+        package.json dependencies are
+        citty, fast-xml-parser ^5.2.5,
+        typescript; no xpath, @xmldom/xmldom,
+        libxmljs, or saxonjs.
+        parseGraceXmlArtifact then
+        serializeGraceXmlDocument on the
+        seven record XML files: line counts
+        preserved; findings.xml &amp;quot;
+        1164 to 0, bytes minus 5820
+        (1164 times 5); second pass
+        byte-identical to the first;
+        preservation hashes use
+        xmlDecode(Body)
+        (prove-record-preservation.ts:102).
+        The serialiser hoists inter-element
+        whitespace in front of children
+        (decisions.xml first child tag at
+        byte 950; 300 prefix newlines;
+        Entry count 299 preserved). That
+        is why writes stay surgical and a
+        whole-file normalising pass is a
+        NonGoal. src/artifact/xml.ts and
+        src/artifact/xml-serialize.ts LINKS
+        M-GRAMMAR; scripts/ files have no
+        LINKS header.
+      </Assumption>
+      <Assumption>
+        Name search 2026-09-06 at 67bc55c
+        over registry.xml,
+        registry-retired.xml, and
+        .ngrace/changes/archive/ directory
+        names for retire, codif, taught,
+        ratchet, ceiling: the only bundle
+        directories are C-RECORD-RETIREMENT
+        and C-RECORD-RETIREMENT-2. No
+        existing name covers the ongoing
+        operation plus first tagging.
+        C-RETIRE-AND-CODIFY is D34's staged
+        name; this spec uses it and does
+        not mint the registry row.
+      </Assumption>
+    </Assumptions>
+  </C-RETIRE-AND-CODIFY>
+</NgraceChangeSpec>
