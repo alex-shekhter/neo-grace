@@ -1,0 +1,489 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-RETIRE-AND-CODIFY>
+    <IntentSummary>
+      Ship the ongoing record-retirement operation and the
+      first CodifiedIn / TaughtIn tagging as the approved
+      spec requires. DurableScope is &lt;None /&gt;: no
+      graph module is written. ObservedWriteScope is the
+      seven RM-GOVERNED-PATH files --retire may write,
+      CLAUDE.md, docs/plans/README.md, and the three
+      record-validator scripts and tests. Do not add
+      spec.xml, plan.xml, package.json,
+      src/artifact/xml.ts, or src/artifact/xml-serialize.ts.
+      Do not mint a synthetic module. Do not add M-GRAMMAR,
+      M-LINT-CATALOG, M-REVIEW, M-SKILLS, M-TEST-SUPPORT,
+      M-CLI, M-CURSOR, or M-RELEASE-AUTOMATION.
+      Current-mode lint of this project root is not a task
+      Verification command and is not a TargetAssertions
+      MustPassCommand. Selected --assertions baseline on
+      T-001 before first-wave writes; --assertions target
+      --run-commands on T-005 after the production move.
+      MustPassCommand holds leaf tests and the validate-only
+      validator scripts. Do not require bun run validate:ci.
+      TargetAssertions MustExist names only paths that
+      already exist (review.confidently-wrong).
+      First rulings rewrite discriminator, evaluated on
+      the rulings file as read, before this invocation's
+      moves: persisted headroom equals 2 times the median
+      live H2 Decision element line count (shipped median())
+      AND persisted ceiling is strictly less than persisted
+      base plus 7 times that same median. That is the
+      C-RECORD-RETIREMENT-2 snapshot sitting strictly below
+      the corrected formula. A successful --retire that
+      moved at least one element then writes rulings
+      headroom = 7 times the post-move median and ceiling =
+      formulaCeiling. P1 is the 2-times identity; P2 is the
+      strict inequality. At that instant both are false:
+      P1 because persisted headroom is 7 times the median,
+      not 2; P2 because ceiling equals persisted base plus
+      7 times the median. Measured at
+      26ce576e8bbcb8a977fe57cccd22e233d177e0d9, that
+      snapshot after the 44-line H2 D24 leaves live is
+      base 1624, headroom 259, ceiling 1883, median 37
+      (shipped median() of live H2 Decision element line
+      counts; heading level is the Title # prefix): P1
+      259 is not 74; P2 1883 strictly less than 1883 is
+      false. P2 is a same-instant tightener, not a durable
+      guard. The clamp holds ceiling at or below the
+      formula, so P2 re-fires whenever the clamp binds: at
+      base 1674 the formula is 1933 while ceiling is still
+      1883. A later reader who observes P2 true again must
+      not conclude the exception is live. P1 is the durable
+      guard. Re-firing needs 2 times the live H2 median
+      equal to the persisted 7-times headroom 259, a median
+      of 129.5. Measured at that commit: largest live H2
+      Decision is 61 lines; 0 of 24 are at or above 129.5.
+      Later invocations clamp. A no-op --retire (nothing eligible)
+      does not rewrite attributes, so the discriminator
+      still holds. No flag, date, bundle name, environment
+      variable, or config key: those would survive the
+      rewrite and re-create the D28.1 hatch. The writer
+      never persists the 2-times snapshot again.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>package.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>CLAUDE.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/README.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/xml.ts</Value>
+      </MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>validate:record-retirement</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>fast-xml-parser</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>package.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>CLAUDE.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/README.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/xml.ts</Value>
+      </MustExist>
+      <MustContain>
+        <File>package.json</File>
+        <Text>validate:record-retirement</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>fast-xml-parser</Text>
+      </MustContain>
+      <MustContain>
+        <File>CLAUDE.md</File>
+        <Text>--retire</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/README.md</File>
+        <Text>--retire</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>CLAUDE.md</File>
+      <File>docs/plans/README.md</File>
+      <File>scripts/validate-record-retirement.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>scripts/prove-record-preservation.ts</File>
+      <File>scripts/prove-record-preservation.test.ts</File>
+      <File>scripts/validate-citation-anchors.ts</File>
+      <File>scripts/validate-citation-anchors.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Extend the retirement validator: derivation,
+          detection, --retire, ceiling discriminator
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Amend scripts/validate-record-retirement.ts and
+            scripts/validate-record-retirement.test.ts.
+            Replace the delivered|superseded filter with the
+            spec's three-rule payer derivation (archive
+            directory is the event). Closed-with reduces
+            markdown citations [TOKEN](#slug) to TOKEN
+            before range detection. Validation (no mutating
+            argv) exits non-zero when a live finding is in
+            the payer map with an archive-directory payer,
+            one error per finding, naming that archive
+            event, even with no stored &lt;PaidBy&gt;.
+            --stamp-paid-by writes those children and does
+            not move. --retire stamps then moves eligible
+            findings, resolving CodifiedIn / TaughtIn
+            decisions, and registry rows whose name equals
+            an archive directory; sets status="retired";
+            updates the index Entry layer; re-derives every
+            live root's attributes. Writes are surgical:
+            bodies moved as existing bytes except status,
+            PaidBy, and wrap. Do not call
+            serializeGraceXmlDocument on a whole genre file.
+            Read record XML through parseGraceXmlArtifact
+            and walkNodes / childNodes / childText. Import
+            src/artifact/xml.ts and src/lint/catalog.ts;
+            do not edit them. argv naming a fixture
+            directory does not read or write the
+            repository's record files. --split still refuses
+            a stub. A second --retire with nothing eligible
+            is a no-op exit 0 and must not rewrite ceiling.
+            package.json validate:ci still invokes the
+            validate-only member; --retire is not on that
+            chain; the test file still reads package.json
+            (F170). Do not add a ngrace lint issue code.
+          </Criterion>
+          <Criterion>
+            First rulings rewrite discriminator, evaluated
+            on the rulings file as read, before this
+            invocation's moves, using the shipped median():
+            persisted headroom equals 2 times the median
+            live H2 Decision line count AND persisted
+            ceiling is strictly less than persisted base
+            plus 7 times that same median. When that holds
+            and --retire moved at least one element,
+            persist rulings ceiling = formulaCeiling even
+            if that exceeds the ceiling just read; persist
+            headroom = 7 times the post-move median.
+            Otherwise, including every later --retire,
+            persist ceiling = min(previousCeiling,
+            formulaCeiling) and if the clamp binds persist
+            headroom = previousCeiling - base. Findings,
+            registry, and index always clamp. Ceiling-exceeded
+            text names --retire / move to the retired
+            sibling, never a config key and never the
+            multiplier. Export the predicate so tests call
+            it rather than reimplement it. Planted probes:
+            (1) a split-shaped fixture (2-times identity
+            and ceiling strictly below the 7-times formula)
+            makes the predicate true; --retire persists the
+            7-times formula ceiling even when larger;
+            (2) on that written fixture the predicate is
+            false; a second --retire that moves again does
+            not persist a larger ceiling;
+            (3) a fixture already at 7-times identity whose
+            formula would raise keeps the previous ceiling;
+            (4) a no-op --retire on a split-shaped fixture
+            leaves attributes unchanged so the predicate
+            stays true. The test file does not read a flag
+            file, a date, a bundle name, an environment
+            variable, or a config key as the discriminator.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands and the plan's
+            TargetAssertions contain no current-mode lint of
+            this project root. Failure: a Command whose text
+            contains --assertions current, or that invokes
+            ngrace lint / bun ./src/grace.ts lint of this
+            root and omits --assertions, including
+            bun ./src/grace.ts lint --path . --fail-on
+            warnings. Check by that rule, by hand (F171).
+            Selected --assertions baseline is the pre-write
+            evidence command. MustPassCommand holds leaf
+            probes. Do not require bun run validate:ci.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun ./src/grace.ts lint --path . --change C-RETIRE-AND-CODIFY --assertions baseline</Command>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>
+          Read preservation and citation-anchor validators
+          through parseGraceXmlArtifact
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Amend scripts/prove-record-preservation.ts,
+            scripts/prove-record-preservation.test.ts,
+            scripts/validate-citation-anchors.ts, and
+            scripts/validate-citation-anchors.test.ts so
+            both validators parse production and fixture
+            record XML through parseGraceXmlArtifact and
+            query with walkNodes / childNodes / childText.
+            Preservation still hashes xmlDecode(Body).
+            Citation-anchor checks stay as shipped
+            (unresolved-fragment on a Body ](#slug) that
+            is not an index id). argv naming a fixture
+            path does not read the repository's record
+            files. Do not add xpath, @xmldom/xmldom,
+            libxmljs, SaxonJS, or any XSLT processor.
+            package.json dependencies still contain
+            fast-xml-parser. Do not edit
+            src/artifact/xml.ts or
+            src/artifact/xml-serialize.ts. Do not
+            whole-file serialize a genre file.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands contain no
+            current-mode lint of this project root, checked
+            by the rule in the spec Constraints, by hand
+            (F171).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+          <Command>bun test scripts/validate-citation-anchors.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>
+          Teach --retire in CLAUDE.md and docs/plans/README.md
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            CLAUDE.md names --retire as the move, that
+            validation re-derives PaidBy, and that ceiling
+            attributes are rewritten only by the move and
+            never raised. docs/plans/README.md names the
+            command. Extend
+            scripts/validate-record-retirement.test.ts so
+            bun test of that file reads those two files
+            and fails if those names are absent (F170).
+            Do not edit skills/ngrace/* or
+            plugins/ngrace/skills/ngrace/*. Canonical and
+            packaged skill trees stay byte-identical
+            because this bundle does not edit them. Do not
+            convert plan.md / review.md. Do not flush
+            .ngrace/scratch/staged-findings.md.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands contain no
+            current-mode lint of this project root, checked
+            by the rule in the spec Constraints, by hand
+            (F171).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-003>
+      <T-004>
+        <Title>
+          Tag D24 if C-REWORK-CIRCUIT T-001 and T-003 still pass
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            At execution, run the C-REWORK-CIRCUIT T-001
+            and T-003 describes in src/grace-cursor.test.ts
+            (ceiling trips on the second breaker fire;
+            resume refuses circuit, including the real-CLI
+            probe). If both pass, write
+            &lt;CodifiedIn kind="test-suite"&gt;src/grace-cursor.test.ts&lt;/CodifiedIn&gt;
+            on the live D24 element. If either fails, do
+            not tag D24 and report the failing test; do not
+            restate D24 as already-codified (D28.1, F123).
+            Do not insert D27.1. Do not edit
+            src/grace-cursor.test.ts, src/lint/catalog.ts,
+            or any skill file to make a tag resolve.
+            Moving the tagged decision is T-005.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands contain no
+            current-mode lint of this project root, checked
+            by the rule in the spec Constraints, by hand
+            (F171).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-004>
+      <T-005>
+        <Title>
+          Production --retire, then target evidence
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+          <Task>T-004</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Invoke bun ./scripts/validate-record-retirement.ts
+            --retire against the production record (no
+            fixture argv). Eligible live findings move to
+            findings-retired.xml; a resolving D24
+            CodifiedIn, if T-004 wrote it, moves to
+            rulings-retired.xml; index Entry layer updates;
+            live-root attributes rewrite under T-001's
+            discriminator (this is the production first
+            rulings rewrite). prove-record-preservation.ts
+            exits 0. validate-record-retirement.ts (no
+            mutating argv) exits 0. validate-citation-anchors.ts
+            exits 0. --split on the production stub still
+            exits non-zero. git diff --exit-code against
+            67bc55cbfb7e7fc6f672012801780f3db517984d is
+            empty on src/, on tracked docs/plans/archive/
+            and .ngrace/changes/archive/ excluding this
+            bundle's own directory, and on tracked
+            README.md and examples/. Do not flush the
+            staged buffer. Do not edit anything under
+            docs/plans/archive/ or
+            .ngrace/changes/archive/.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands contain no
+            current-mode lint of this project root, checked
+            by the rule in the spec Constraints, by hand
+            (F171). Selected --assertions target
+            --run-commands is the post-write evidence
+            command. Do not put
+            bun ./src/grace.ts lint --path . --fail-on
+            warnings here (AC-CLOSE-LINT is post-archive).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-RETIRE-AND-CODIFY --assertions target --run-commands</Command>
+          <Command>git diff --exit-code 67bc55cbfb7e7fc6f672012801780f3db517984d -- src/</Command>
+          <Command>git diff --exit-code 67bc55cbfb7e7fc6f672012801780f3db517984d -- README.md examples/</Command>
+          <Command>git diff --exit-code 67bc55cbfb7e7fc6f672012801780f3db517984d -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-RETIRE-AND-CODIFY'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-005>
+    </ImplementationPlan>
+  </C-RETIRE-AND-CODIFY>
+</NgraceChangePlan>
