@@ -38,8 +38,8 @@ stamps PaidBy, moves eligible entries to the retired sibling, and rewrites live-
 ceiling attributes; validation re-derives PaidBy and exits non-zero until that
 move. Ceiling attributes are rewritten only by the move and never raised. An
 entry moves when: a finding's PaidBy names an archived bundle; a decision
-carries a resolving CodifiedIn or TaughtIn; a registry row's name equals an
-archive directory. Existing markdown citations of the `decisions.md` path may
+carries a resolving CodifiedIn (a resolving TaughtIn does not move it); a
+registry row's name equals an archive directory. Existing markdown citations of the `decisions.md` path may
 stay — that path is the stub.
 
 ## Core Purpose

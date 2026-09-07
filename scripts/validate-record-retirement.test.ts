@@ -5,6 +5,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import {
   RULINGS_PROVENANCE_CEILING,
+  liveH2DecisionLineCounts,
   median,
   newlineCount,
 } from "./validate-record-retirement.ts";
@@ -352,6 +353,9 @@ token: F1
     }
     expect(claude).toContain("re-derives PaidBy");
     expect(claude).toContain("never raised");
+    expect(claude).toContain("resolving CodifiedIn");
+    expect(claude).toContain("a resolving TaughtIn does not move it");
+    expect(claude).not.toContain("CodifiedIn or TaughtIn");
   });
 
   it("reads package.json and fails if validate:ci drops the retirement member", () => {
@@ -823,6 +827,307 @@ ${inner}
     expect(result.stderr).not.toContain("multiplier");
   });
 
+  it("rulings window equilibrium: --retire persists min(previous, pre-move base + H_new) and window Delta_retired + H_new", () => {
+    const root = isolatedRoot();
+    plant(root, "tests/exists.test.ts", "export {}\n");
+    const stayBody = Array.from({ length: 8 }, () => "stay").join("\n");
+    const moveBody = Array.from({ length: 12 }, () => "move").join("\n");
+    const stay = `  <Decision id="d-stay" token="D-STAY" status="live">
+    <Title>## D-STAY — stay</Title>
+    <Body>${stayBody}</Body>
+  </Decision>`;
+    const move = `  <Decision id="d-move" token="D-MOVE" status="live">
+    <Title>## D-MOVE — move</Title>
+    <Body>${moveBody}</Body>
+    <CodifiedIn kind="test-suite">tests/exists.test.ts</CodifiedIn>
+  </Decision>`;
+    const inner = `${move}\n${stay}`;
+    const wrappedNoAttrs = `<Rulings>\n${inner}\n</Rulings>\n`;
+    const HOld = 7 * median(liveH2DecisionLineCounts(wrappedNoAttrs));
+    const baseLive = newlineCount(wrappedNoAttrs);
+    const parts = happyParts();
+    parts.rulings = `<Rulings base="${baseLive}" headroom="${HOld}" ceiling="${baseLive + HOld}">
+${inner}
+</Rulings>
+`;
+    parts.index = `<RecordIndex base="10" headroom="40" ceiling="1000">
+  <Entry id="f1" token="F1" genre="finding" layer="live" />
+  <Entry id="f2" token="F2" genre="finding" layer="retired" />
+  <Entry id="d-stay" token="D-STAY" genre="decision" layer="live" />
+  <Entry id="d-move" token="D-MOVE" genre="decision" layer="live" />
+</RecordIndex>
+`;
+    writeHappy(root, parts);
+    const result = runValidator(root, ["--retire"]);
+    expect(result.status).toBe(0);
+    const after = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    expect(after).not.toContain('token="D-MOVE"');
+    expect(after).toContain('token="D-STAY"');
+    const written = rootAttrs(after);
+    const HNew = 7 * median(liveH2DecisionLineCounts(after));
+    const deltaRetired = baseLive - newlineCount(after);
+    expect(deltaRetired).toBeGreaterThan(0);
+    expect(HNew).toBeLessThan(HOld);
+    expect(written.ceiling).toBe(Math.min(baseLive + HOld, baseLive + HNew));
+    expect(written.ceiling).toBe(baseLive + HNew);
+    expect(written.base).toBe(newlineCount(after));
+    expect(written.headroom).toBe(written.ceiling - written.base);
+    expect(written.headroom).toBe(deltaRetired + HNew);
+    expect(written.ceiling).toBeGreaterThan(newlineCount(after) + HNew);
+  });
+
+  it("rulings window anti-ratchet: --retire keeps the previous ceiling when Base_live + H_new exceeds it", () => {
+    const root = isolatedRoot();
+    plant(root, "tests/exists.test.ts", "export {}\n");
+    const stayBody = Array.from({ length: 8 }, () => "stay").join("\n");
+    const moveBody = Array.from({ length: 12 }, () => "move").join("\n");
+    const stay = `  <Decision id="d-stay" token="D-STAY" status="live">
+    <Title>## D-STAY — stay</Title>
+    <Body>${stayBody}</Body>
+  </Decision>`;
+    const move = `  <Decision id="d-move" token="D-MOVE" status="live">
+    <Title>## D-MOVE — move</Title>
+    <Body>${moveBody}</Body>
+    <CodifiedIn kind="test-suite">tests/exists.test.ts</CodifiedIn>
+  </Decision>`;
+    const inner = `${move}\n${stay}`;
+    const stayOnly = `<Rulings>\n${stay}\n</Rulings>\n`;
+    const HNew = 7 * median(liveH2DecisionLineCounts(stayOnly));
+    const wrappedNoAttrs = `<Rulings>\n${inner}\n</Rulings>\n`;
+    const baseLive = newlineCount(wrappedNoAttrs);
+    const formulaTerm = baseLive + HNew;
+    const ceilingLow = formulaTerm - 1;
+    const parts = happyParts();
+    parts.rulings = `<Rulings base="${baseLive}" headroom="${ceilingLow - baseLive}" ceiling="${ceilingLow}">
+${inner}
+</Rulings>
+`;
+    parts.index = `<RecordIndex base="10" headroom="40" ceiling="1000">
+  <Entry id="f1" token="F1" genre="finding" layer="live" />
+  <Entry id="f2" token="F2" genre="finding" layer="retired" />
+  <Entry id="d-stay" token="D-STAY" genre="decision" layer="live" />
+  <Entry id="d-move" token="D-MOVE" genre="decision" layer="live" />
+</RecordIndex>
+`;
+    writeHappy(root, parts);
+    const result = runValidator(root, ["--retire"]);
+    expect(result.status).toBe(0);
+    const after = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    const written = rootAttrs(after);
+    expect(written.ceiling).toBe(ceilingLow);
+    expect(written.ceiling).toBeLessThan(formulaTerm);
+  });
+
+  it("rulings window clamped: provenance ceiling binds and the window opens by Delta_retired", () => {
+    const root = isolatedRoot();
+    plant(root, "tests/exists.test.ts", "export {}\n");
+    const stayBody = Array.from({ length: 8 }, () => "stay").join("\n");
+    const moveBody = Array.from({ length: 12 }, () => "move").join("\n");
+    const stay = `  <Decision id="d-stay" token="D-STAY" status="live">
+    <Title>## D-STAY — stay</Title>
+    <Body>${stayBody}</Body>
+  </Decision>`;
+    const move = `  <Decision id="d-move" token="D-MOVE" status="live">
+    <Title>## D-MOVE — move</Title>
+    <Body>${moveBody}</Body>
+    <CodifiedIn kind="test-suite">tests/exists.test.ts</CodifiedIn>
+  </Decision>`;
+    const pad = Array.from({ length: 1800 }, () => "  <!-- pad -->").join("\n");
+    const inner = `${move}\n${stay}\n${pad}`;
+    const stayPadded = `<Rulings>\n${stay}\n${pad}\n</Rulings>\n`;
+    const HNew = 7 * median(liveH2DecisionLineCounts(stayPadded));
+    const wrappedNoAttrs = `<Rulings>\n${inner}\n</Rulings>\n`;
+    const baseLive = newlineCount(wrappedNoAttrs);
+    expect(baseLive + HNew).toBeGreaterThanOrEqual(RULINGS_PROVENANCE_CEILING);
+    const parts = happyParts();
+    parts.rulings = `<Rulings base="${baseLive}" headroom="${RULINGS_PROVENANCE_CEILING - baseLive}" ceiling="${RULINGS_PROVENANCE_CEILING}">
+${inner}
+</Rulings>
+`;
+    parts.index = `<RecordIndex base="10" headroom="40" ceiling="1000">
+  <Entry id="f1" token="F1" genre="finding" layer="live" />
+  <Entry id="f2" token="F2" genre="finding" layer="retired" />
+  <Entry id="d-stay" token="D-STAY" genre="decision" layer="live" />
+  <Entry id="d-move" token="D-MOVE" genre="decision" layer="live" />
+</RecordIndex>
+`;
+    writeHappy(root, parts);
+    const before = rootAttrs(readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8"));
+    const result = runValidator(root, ["--retire"]);
+    expect(result.status).toBe(0);
+    const afterXml = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    const after = rootAttrs(afterXml);
+    const deltaRetired = before.base - after.base;
+    expect(deltaRetired).toBeGreaterThan(0);
+    expect(after.ceiling).toBe(RULINGS_PROVENANCE_CEILING);
+    expect(after.headroom).toBe(before.headroom + deltaRetired);
+    expect(after.headroom).toBe(after.ceiling - after.base);
+  });
+
+  it("TaughtIn-only: a resolving TaughtIn does not move and does not emit decision-eligible-still-live", () => {
+    const root = isolatedRoot();
+    plant(root, "skills/ngrace/ngrace-plan/SKILL.md", "<purpose>hello</purpose>\n");
+    plant(root, "tests/exists.test.ts", "export {}\n");
+    const parts = happyParts();
+    parts.rulings = `<Rulings base="20" headroom="40" ceiling="1000">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — live</Title>
+    <Body>ruling body</Body>
+    <TaughtIn path="skills/ngrace/ngrace-plan/SKILL.md" section="purpose"></TaughtIn>
+  </Decision>
+</Rulings>
+`;
+    writeHappy(root, parts);
+    const before = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    const validated = runValidator(root);
+    expect(validated.status).toBe(0);
+    expect(validated.stderr).not.toContain("decision-eligible-still-live");
+    const retired = runValidator(root, ["--retire"]);
+    expect(retired.status).toBe(0);
+    expect(readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8")).toBe(before);
+    expect(readFileSync(path.join(root, RECORD_REL, "rulings-retired.xml"), "utf8")).not.toContain(
+      'token="D1"',
+    );
+    parts.rulings = `<Rulings base="20" headroom="40" ceiling="1000">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — live</Title>
+    <Body>ruling body</Body>
+    <CodifiedIn kind="test-suite">tests/exists.test.ts</CodifiedIn>
+  </Decision>
+</Rulings>
+`;
+    writeHappy(root, parts);
+    const moved = runValidator(root, ["--retire"]);
+    expect(moved.status).toBe(0);
+    expect(readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8")).not.toContain(
+      'token="D1"',
+    );
+    expect(readFileSync(path.join(root, RECORD_REL, "rulings-retired.xml"), "utf8")).toContain(
+      'token="D1"',
+    );
+  });
+
+  it("TaughtIn and CodifiedIn dangling pointers still error", () => {
+    const root = isolatedRoot();
+    plant(root, "skills/ngrace/ngrace-plan/SKILL.md", "<purpose>hello</purpose>\n");
+    const parts = happyParts();
+    parts.rulings = `<Rulings base="20" headroom="40" ceiling="1000">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — live</Title>
+    <Body>ruling body</Body>
+    <TaughtIn path="skills/ngrace/ngrace-plan/SKILL.md" section="purpose"></TaughtIn>
+    <TaughtIn path="skills/ngrace/ngrace-plan/SKILL.md" section="no-such-section"></TaughtIn>
+  </Decision>
+</Rulings>
+`;
+    writeHappy(root, parts);
+    const taught = runValidator(root);
+    expect(taught.status).not.toBe(0);
+    expect(taught.stderr).toContain("taught-in-unresolved");
+    expect(taught.stderr).not.toContain("decision-eligible-still-live");
+    parts.rulings = `<Rulings base="20" headroom="40" ceiling="1000">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — live</Title>
+    <Body>ruling body</Body>
+    <CodifiedIn kind="test-suite">tests/missing.test.ts</CodifiedIn>
+  </Decision>
+</Rulings>
+`;
+    writeHappy(root, parts);
+    const coded = runValidator(root);
+    expect(coded.status).not.toBe(0);
+    expect(coded.stderr).toContain("codified-in-unresolved");
+    expect(coded.stderr).not.toContain("decision-eligible-still-live");
+  });
+
+  it("all CodifiedIn children: first dangling second resolving errors and is not moved", () => {
+    const root = isolatedRoot();
+    plant(root, "tests/exists.test.ts", "export {}\n");
+    const parts = happyParts();
+    parts.rulings = `<Rulings base="20" headroom="40" ceiling="1000">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — live</Title>
+    <Body>ruling body</Body>
+    <CodifiedIn kind="test-suite">tests/missing.test.ts</CodifiedIn>
+    <CodifiedIn kind="test-suite">tests/exists.test.ts</CodifiedIn>
+  </Decision>
+</Rulings>
+`;
+    writeHappy(root, parts);
+    const validated = runValidator(root);
+    expect(validated.status).not.toBe(0);
+    expect(validated.stderr).toContain("codified-in-unresolved");
+    const before = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    const retired = runValidator(root, ["--retire"]);
+    expect(retired.status).toBe(0);
+    expect(readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8")).toBe(before);
+  });
+
+  it("all CodifiedIn children: first resolving second dangling errors and is not moved", () => {
+    const root = isolatedRoot();
+    plant(root, "tests/exists.test.ts", "export {}\n");
+    const parts = happyParts();
+    parts.rulings = `<Rulings base="20" headroom="40" ceiling="1000">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — live</Title>
+    <Body>ruling body</Body>
+    <CodifiedIn kind="test-suite">tests/exists.test.ts</CodifiedIn>
+    <CodifiedIn kind="test-suite">tests/missing.test.ts</CodifiedIn>
+  </Decision>
+</Rulings>
+`;
+    writeHappy(root, parts);
+    const validated = runValidator(root);
+    expect(validated.status).not.toBe(0);
+    expect(validated.stderr).toContain("codified-in-unresolved");
+    const before = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    const retired = runValidator(root, ["--retire"]);
+    expect(retired.status).toBe(0);
+    expect(readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8")).toBe(before);
+  });
+
+  it("all CodifiedIn children: both resolving --retire moves; one resolving child is sufficient", () => {
+    const root = isolatedRoot();
+    plant(root, "tests/exists.test.ts", "export {}\n");
+    plant(root, "tests/also.test.ts", "export {}\n");
+    const parts = happyParts();
+    parts.rulings = `<Rulings base="20" headroom="40" ceiling="1000">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — live</Title>
+    <Body>ruling body</Body>
+    <CodifiedIn kind="test-suite">tests/exists.test.ts</CodifiedIn>
+    <CodifiedIn kind="test-suite">tests/also.test.ts</CodifiedIn>
+  </Decision>
+</Rulings>
+`;
+    writeHappy(root, parts);
+    const both = runValidator(root, ["--retire"]);
+    expect(both.status).toBe(0);
+    expect(readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8")).not.toContain(
+      'token="D1"',
+    );
+    expect(readFileSync(path.join(root, RECORD_REL, "rulings-retired.xml"), "utf8")).toContain(
+      'token="D1"',
+    );
+    const root2 = isolatedRoot();
+    plant(root2, "tests/exists.test.ts", "export {}\n");
+    const parts2 = happyParts();
+    parts2.rulings = `<Rulings base="20" headroom="40" ceiling="1000">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — live</Title>
+    <Body>ruling body</Body>
+    <CodifiedIn kind="test-suite">tests/exists.test.ts</CodifiedIn>
+  </Decision>
+</Rulings>
+`;
+    writeHappy(root2, parts2);
+    const one = runValidator(root2, ["--retire"]);
+    expect(one.status).toBe(0);
+    expect(readFileSync(path.join(root2, RECORD_REL, "rulings.xml"), "utf8")).not.toContain(
+      'token="D1"',
+    );
+  });
+
   it("T-004 no-op: a --retire with nothing eligible leaves every record byte identical", () => {
     const root = isolatedRoot();
     writeHappy(root);
@@ -1170,6 +1475,64 @@ ${names
     },
     60_000,
   );
+
+  it(
+    "AC-TAG-AND-RETIRE: production D5.1 D7 D9 D18 are retired with named CodifiedIn; D24 untouched; second --retire writes no byte",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const liveRulings = readFileSync(path.join(recordDir, "rulings.xml"), "utf8");
+      const retiredRulings = readFileSync(path.join(recordDir, "rulings-retired.xml"), "utf8");
+      const index = readFileSync(path.join(recordDir, "decisions.xml"), "utf8");
+      const expected: Array<{ token: string; tags: string[] }> = [
+        { token: "D5.1", tags: ['<CodifiedIn kind="lint-rule">markup.unparsed-link-token</CodifiedIn>'] },
+        { token: "D7", tags: ['<CodifiedIn kind="lint-rule">change.task-invalid-dependency</CodifiedIn>'] },
+        { token: "D9", tags: ['<CodifiedIn kind="test-suite">src/grace-cursor.test.ts</CodifiedIn>'] },
+        {
+          token: "D18",
+          tags: [
+            '<CodifiedIn kind="lint-rule">review.approval-never-asked</CodifiedIn>',
+            '<CodifiedIn kind="lint-rule">review.approved-fingerprint-mismatch</CodifiedIn>',
+          ],
+        },
+      ];
+      for (const { token, tags } of expected) {
+        expect(liveRulings).not.toContain(`token="${token}"`);
+        const block = retiredDecision(retiredRulings, token);
+        expect(block).toBeDefined();
+        expect(block!).toContain('status="retired"');
+        for (const tag of tags) {
+          expect(block!).toContain(tag);
+        }
+        expect(index).toMatch(new RegExp(`token="${token}" genre="decision" layer="retired"`));
+      }
+      const d24 = retiredDecision(retiredRulings, "D24");
+      expect(d24).toBeDefined();
+      expect(d24!).toContain('<CodifiedIn kind="test-suite">src/grace-cursor.test.ts</CodifiedIn>');
+      expect(d24!).not.toContain("markup.unparsed-link-token");
+      expect(d24!).not.toContain("change.task-invalid-dependency");
+      expect(d24!).not.toContain("review.approval-never-asked");
+
+      const productionFiles = [
+        "findings.xml",
+        "findings-retired.xml",
+        "rulings.xml",
+        "rulings-retired.xml",
+        "registry.xml",
+        "registry-retired.xml",
+        "decisions.xml",
+      ].map((name) => path.join(recordDir, name));
+      const before = productionFiles.map((file) => readFileSync(file, "utf8"));
+      const second = runValidator(REPO_ROOT, ["--retire"]);
+      expect(second.status).toBe(0);
+      for (let i = 0; i < productionFiles.length; i++) {
+        expect(readFileSync(productionFiles[i]!, "utf8")).toBe(before[i]);
+      }
+      const validate = runValidator(REPO_ROOT);
+      expect(validate.status).toBe(0);
+      expect(validate.stdout).toContain("record-retirement: ok");
+    },
+    60_000,
+  );
 });
 
 function rootAttrs(xml: string): { base: number; headroom: number; ceiling: number } {
@@ -1208,6 +1571,11 @@ function liveRowNames(xml: string): string[] {
 
 function liveRowCount(xml: string): number {
   return liveRowNames(xml).length;
+}
+
+function retiredDecision(xml: string, token: string): string | undefined {
+  const blocks = xml.match(/<Decision\b[\s\S]*?<\/Decision>/g) ?? [];
+  return blocks.find((block) => new RegExp(`\\btoken="${token}"`).test(block));
 }
 
 function findingRecords(

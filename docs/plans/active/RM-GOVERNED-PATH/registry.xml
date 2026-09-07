@@ -1,4 +1,4 @@
-<Registry base="13" headroom="13" ceiling="26">
+<Registry base="12" headroom="14" ceiling="26">
   <Row name="C-APPROVAL-SCOPE" status="live" kind="chartered">
     <Number>4</Number>
     <Charter>Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20).</Charter>
@@ -71,10 +71,4 @@
     <Pays>[F177](#f177).</Pays>
     <StatusText>**Position 4**, ratified 2026-09-06 by the maintainer. The insertion and the six positions it shifts are recorded in [D32](#d32); read the order from there, never from [D31](#d31), which this amends.</StatusText>
   </Row>
-  <Row name="C-CODIFY-DECISIONS" status="live" kind="chartered">
-    <Number></Number>
-    <Charter>**Chartered 2026-09-07 by the maintainer**, verbatim: *&quot;option C&quot;*, on four itemized variants. The position is deferred **deliberately, and the deferral is the point**: a position decision costs the decisions genre roughly forty lines, and that genre is already forty lines over its window, while a charter row costs it nothing — staged charter rows are not `[FD]\d` entries and so are not counted in the decisions wrap at all. Ratify a position once this bundle has made room. Priority needs no stating in the meantime: this is the only chartered work that can open the rulings window, so nothing else can sensibly precede it. **Charter.** Give the decisions genre a working retirement trigger. **It is not, as this row first read, the thing blocking the flush** — that claim was a measurement artifact, corrected the same day in [F191](#f191): both genres fit their windows today. What remains true is that **no live decision carries a resolving `CodifiedIn` or `TaughtIn`** — 59 live, zero tagged, against a retired sibling holding exactly one ([D24](#d24)). The precedent is a sample of one, so the genre can still only grow, and the ceiling will bind eventually rather than now. - **Codification alone may not be enough, and the spec must prove which.** [`C-RETIREMENT-WINDOW`](#named-bundle-registry) applied its window formula to the **findings genre only**; the rulings call site still clamps against the post-move base. Whether a decisions-genre retirement opens the window, leaves it unchanged, or shrinks it is a question to derive from the code and confirm on a fixture — not to assume from the findings behaviour. - **The evidence standard is the load-bearing question.** [D28.1](#d28.1) retires a decision when its prose invariant is *permanently replaced by an automated machine check* that enforces it *unconditionally*. A tag on a decision merely **related** to a shipped test retires live governance text on a false premise, and retirement is one-way in practice. [D24](#d24)'s tag was gated on two **named tests passing at execution**, which is the pattern. - **`TaughtIn` versus `CodifiedIn` is unresolved.** Teaching a rule in skill prose is not enforcement, so a spec that uses the tag without settling what it means is deciding by accident. - **The bundle must pay for itself.** Whatever chartering and closing costs the decisions genre, the scope must retire more, with margin — every staged figure on this work has aged in the same direction.</Charter>
-    <Pays>the decisions half of [F187](#f187), and whichever live decisions the audit verifies as codified.</Pays>
-    <StatusText>**Position pending the maintainer's word.** Charter rulings: [D28](#d28), [D28.1](#d28.1), [D30](#d30), [D36](#d36).</StatusText>
-  </Row>
-      </Registry>
+        </Registry>

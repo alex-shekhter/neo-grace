@@ -26,12 +26,12 @@
   <Entry id="d3" token="D3" genre="decision" layer="live" />
   <Entry id="d4" token="D4" genre="decision" layer="live" />
   <Entry id="d5" token="D5" genre="decision" layer="live" />
-  <Entry id="d5.1" token="D5.1" genre="decision" layer="live" />
+  <Entry id="d5.1" token="D5.1" genre="decision" layer="retired" />
   <Entry id="d5.2" token="D5.2" genre="decision" layer="live" />
   <Entry id="d5.3" token="D5.3" genre="decision" layer="live" />
   <Entry id="d5.4" token="D5.4" genre="decision" layer="live" />
   <Entry id="d5.5" token="D5.5" genre="decision" layer="live" />
-  <Entry id="d7" token="D7" genre="decision" layer="live" />
+  <Entry id="d7" token="D7" genre="decision" layer="retired" />
   <Entry id="d6" token="D6" genre="decision" layer="live" />
   <Entry id="d6.1" token="D6.1" genre="decision" layer="live" />
   <Entry id="d6.2" token="D6.2" genre="decision" layer="live" />
@@ -59,7 +59,7 @@
   <Entry id="f13" token="F13" genre="finding" layer="live" />
   <Entry id="f13.1" token="F13.1" genre="finding" layer="live" />
   <Entry id="f13.2" token="F13.2" genre="finding" layer="live" />
-  <Entry id="d9" token="D9" genre="decision" layer="live" />
+  <Entry id="d9" token="D9" genre="decision" layer="retired" />
   <Entry id="d9.1" token="D9.1" genre="decision" layer="live" />
   <Entry id="f9.6" token="F9.6" genre="finding" layer="live" />
   <Entry id="f9.7" token="F9.7" genre="finding" layer="live" />
@@ -168,7 +168,7 @@
   <Entry id="f86" token="F86" genre="finding" layer="live" />
   <Entry id="f87" token="F87" genre="finding" layer="live" />
   <Entry id="f88" token="F88" genre="finding" layer="live" />
-  <Entry id="d18" token="D18" genre="decision" layer="live" />
+  <Entry id="d18" token="D18" genre="decision" layer="retired" />
   <Entry id="f87.1" token="F87.1" genre="finding" layer="live" />
   <Entry id="f88.1" token="F88.1" genre="finding" layer="live" />
   <Entry id="f89" token="F89" genre="finding" layer="live" />
