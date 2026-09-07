@@ -1,0 +1,1203 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-CODIFY-DECISIONS>
+    <Summary>
+      Give the decisions genre a working
+      retirement trigger. CodifiedIn is
+      the only move: a resolving tag
+      whose named check fails when the
+      invariant is violated, runs
+      unconditionally, and covers every
+      load-bearing clause of that
+      Decision element. TaughtIn stays
+      a resolvable annotation and does
+      not confer eligibility — D31's
+      parallel trigger is narrowed here,
+      not silently. The rulings
+      persistSnapshot call takes the
+      pre-move live size as ceilingBase,
+      the findings timing C-RETIREMENT-WINDOW
+      withheld; at equilibrium the
+      shipped post-move call erases
+      Delta_retired. This bundle writes
+      the record: it tags the live
+      decisions the audit verifies, then
+      --retire moves them in the same
+      wave. D30 is scoped, not skirted.
+      Binding live rulings D28, D28.1,
+      D30, D11. Charter row already
+      live; no position is written.
+    </Summary>
+    <Problem>
+      The decisions genre has no working
+      retirement trigger. D28.1 retires
+      a decision when its prose invariant
+      is permanently replaced by an
+      automated machine check that
+      enforces the boundary
+      unconditionally. The shipped move
+      treats a resolving CodifiedIn or
+      TaughtIn as that event
+      (scripts/validate-record-retirement.ts:1008-1012,
+      :1243-1248). D24 is the only
+      Decision ever moved this way, and
+      its tag was gated on two named
+      tests passing at execution, not
+      asserted. Zero live Decision
+      elements carry either child
+      (measured, Assumptions). Pointer
+      resolution alone is not the
+      standard: a kind=&quot;test-suite&quot;
+      path that merely exists retires
+      the element, which is F147's
+      manufactured-pass shape on
+      governance.
+
+      Codification alone may open no
+      window. C-RETIREMENT-WINDOW
+      applied the pre-move ceilingBase
+      to findings only; the rulings
+      persistSnapshot call omits the
+      fifth argument, so ceilingBase
+      defaults to the post-move base
+      (:883, :1093-1096). At
+      equilibrium that erases
+      Delta_retired (fixture A). Today's
+      production snapshot is clamped
+      under the 1883 provenance
+      ceiling, so a small move currently
+      grows the window by Delta_retired
+      as an accident of that clamp
+      (fixtures B and C), not as the
+      formula. C-RETIREMENT-WINDOW's
+      NonGoal that rulings keep
+      post-move timing is overturned
+      here (CLAUDE.md rule 9): its
+      argument was that measured
+      pressure was absent. The pressure
+      is the unreachable trigger, and
+      at equilibrium the current
+      call site cannot pay for a move.
+
+      TaughtIn versus CodifiedIn is
+      unresolved in the live text.
+      D28.1's rationale is that the
+      live reading set no longer needs
+      the prose because a machine
+      enforces the boundary.
+      Teaching a rule in skill prose
+      is not that enforcement. D31
+      added TaughtIn as a parallel
+      trigger so practice rules would
+      not leave the ceiling as sole
+      enforcement. Manufacturing
+      eligibility on a pinned paragraph
+      would convert D28.1's enforcement
+      into a formality. This spec
+      settles the tag rather than
+      using it by accident.
+
+      F187 is already retired, PaidBy
+      C-PAYMENT-RECORD. This bundle
+      does not re-pay it. The charter's
+      remaining work is the trigger,
+      the window, and the verified
+      tags.
+    </Problem>
+    <Goals>
+      <Goal>
+        Rulings window formula, the
+        findings timing. After a
+        --retire that moved at least
+        one element, persist on the
+        rulings live root: base = the
+        post-move line count of
+        rulings.xml; ceiling =
+        min(previously persisted
+        ceiling, Base_live + H), where
+        Base_live is the pre-retirement
+        line count of rulings.xml as
+        read on entry and H = 7 times
+        the median line count of the
+        live H2 Decision elements after
+        the move, via the shipped
+        median and
+        liveH2DecisionLineCounts;
+        headroom = ceiling - base.
+        Pass Base_live as persistSnapshot's
+        fifth argument, the findings
+        call site's pattern
+        (:1085-1091). The min stays.
+        RULINGS_PROVENANCE_CEILING
+        stays; this formula never
+        raises. Registry and index
+        keep their shipped timing.
+      </Goal>
+      <Goal>
+        TaughtIn does not move a
+        decision. retireRecord moves a
+        live Decision if and only if at
+        least one CodifiedIn child
+        resolves. A resolving TaughtIn
+        is not eligibility. Every
+        CodifiedIn and TaughtIn child
+        still has to resolve: a
+        dangling pointer remains an
+        error. decision-eligible-still-live
+        fires on a resolving CodifiedIn
+        only. This narrows D31's
+        parallel trigger for
+        retirement; the original
+        argument is answered in
+        Constraints. Pointer-resolution
+        shapes stay as shipped
+        (kind lint-rule via
+        isEmittableIssueCode; kind
+        test-suite as an existing path;
+        TaughtIn path + section
+        substring).
+      </Goal>
+      <Goal>
+        Every CodifiedIn child is
+        resolved, not only the first.
+        childNodes(..., &quot;CodifiedIn&quot;)[0]
+        is replaced by a walk of all
+        CodifiedIn children. One
+        resolving child is still
+        sufficient to retire; a
+        dangling sibling is still an
+        error. D18 carries two
+        lint-rule tags under this
+        rule.
+      </Goal>
+      <Goal>
+        Historical tagging of the
+        decisions the audit verifies.
+        This bundle writes CodifiedIn
+        onto the live Decision
+        elements named in the tagging
+        Constraint, then --retire
+        moves them, in one execution
+        wave so no committed tree
+        holds decision-eligible-still-live.
+        Each named witness group is
+        re-run at execution, both
+        directions where the Constraint
+        names them. A witness that
+        fails leaves that Decision
+        live and untagged; the report
+        names the failure. Do not
+        tag a Decision this spec does
+        not name. Do not restamp D24.
+      </Goal>
+      <Goal>
+        Teach the settled trigger in
+        CLAUDE.md's record paragraph:
+        a decision moves on a
+        resolving CodifiedIn; a
+        resolving TaughtIn does not
+        move it. The retirement test
+        file keeps reading CLAUDE.md
+        and docs/plans/README.md and
+        still fails if the shipped
+        names are absent; it gains
+        the CodifiedIn-only move
+        sentence. docs/plans/README.md
+        does not name the decision
+        trigger today and is not
+        edited.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2
+        (cross-cutting): scripts
+        record-retirement validator
+        and its test file, CLAUDE.md's
+        record paragraph, and the
+        record files --retire writes
+        on a successful move. No
+        graph module is written. Not
+        T3: no new product subsystem,
+        no lint-domain expansion, the
+        record is not added to the
+        artifact grammar, and src/ is
+        not edited. Gates still run.
+        Roadmap RM-GOVERNED-PATH.
+        Binding live rulings: D28,
+        D28.1, D30, D11. Charter row
+        C-CODIFY-DECISIONS is already
+        live; do not mint another; do
+        not write a position into it.
+      </Constraint>
+      <Constraint>
+        Evidence standard, mechanical.
+        A live Decision may receive a
+        CodifiedIn tag, and therefore
+        become eligible, only when
+        every clause below holds of
+        that element. (1) Fail when
+        violated: a named lint
+        emission or named test is red
+        when the invariant is broken
+        and green when it holds; both
+        directions are re-run at
+        execution. A test that
+        exercises the same area, or a
+        kind=&quot;test-suite&quot; path that
+        merely exists, is not this.
+        (2) Unconditional: the check
+        runs on the default lint,
+        review, or test path, not
+        only behind an optional flag.
+        (3) Completeness: every
+        load-bearing clause of that
+        Decision element is covered.
+        A parent is not tagged
+        because a child is. A
+        multi-clause Decision with
+        one clause enforced stays
+        live. (4) Pointer resolution
+        is necessary and not
+        sufficient: the shipped
+        kind/path/section checks
+        still run, and they do not
+        by themselves authorise a
+        tag. (5) Do not manufacture
+        eligibility. Retirement is
+        one-way in practice.
+      </Constraint>
+      <Constraint>
+        TaughtIn ruling, stated
+        against D31. TaughtIn may
+        exist as a resolvable
+        annotation. It does not
+        confer eligibility. D31
+        added the parallel trigger
+        because, classified then,
+        most live H2 decisions were
+        practice rules no lint rule
+        could hold, leaving the
+        ceiling as sole enforcement
+        for three quarters of the
+        genre — the shape D28.1
+        rejected. That argument is
+        answered, not ignored: the
+        honest count is that few
+        live decisions are
+        unconditionally machine-
+        enforced, and that is a
+        fact about D28.1's trigger,
+        not a licence to retire
+        live governance text on a
+        pinned paragraph. Skill
+        prose that states a practice
+        rule still binds the agent
+        who reads it; it does not
+        replace the live ruling.
+        scripts/skill-contracts.test.ts
+        pinning a section is
+        enforcement that the
+        teaching exists, not
+        enforcement of the
+        invariant. This Constraint
+        is the refusal to stretch
+        TaughtIn into a move.
+      </Constraint>
+      <Constraint>
+        Rulings ceiling ruling,
+        normative, overturning the
+        rulings half of
+        C-RETIREMENT-WINDOW's
+        timing NonGoal (CLAUDE.md
+        rule 9, stated). On entry
+        to the snapshot rewrite,
+        capture Base_live as the
+        newline count of
+        rulings.xml as read, before
+        any Decision spans are
+        removed. After the move:
+        base = post-move line
+        count; H = 7 times the
+        median post-move live H2
+        Decision element line count
+        via the shipped median
+        (:123) and
+        liveH2DecisionLineCounts
+        (:769); ceiling =
+        min(previous persisted
+        ceiling, Base_live + H);
+        headroom = ceiling - base.
+        Import median; do not
+        re-implement it. A Decision
+        has no heading-level
+        attribute — H2 is the #
+        prefix of the Title text.
+        The original
+        C-RETIREMENT-WINDOW
+        argument for leaving
+        rulings on post-move timing
+        was that measured pressure
+        was absent and that the
+        CodifiedIn pass was a
+        separate bundle. This is
+        that bundle, and fixture A
+        shows the post-move call
+        at equilibrium yields a
+        window of H_new, which can
+        shrink when the remaining
+        median drops. The min,
+        which forbids a raise, is
+        kept. The provenance check
+        on RULINGS_PROVENANCE_CEILING
+        stays; the failure message
+        continues to name --retire
+        / move to the retired
+        sibling and says raising
+        the persisted ceiling is
+        not the remedy; it never
+        names a config key. Do not
+        pin a scalar count of a
+        record file into this
+        Constraint (D30);
+        occupancy is in
+        Assumptions. Findings
+        already pass pre-move
+        Base_live and are not
+        re-litigated. Registry and
+        index keep their shipped
+        formulas, with
+        C-RETIREMENT-WINDOW's
+        asymmetry argument
+        standing for those two
+        genres.
+      </Constraint>
+      <Constraint>
+        Tagging set, closed, re-verified
+        at execution. Only these live
+        Decision elements may be
+        tagged, each with the tag
+        and the witness named here.
+        D5.1: write
+        &lt;CodifiedIn kind=&quot;lint-rule&quot;&gt;markup.unparsed-link-token&lt;/CodifiedIn&gt;
+        if src/project-utils.test.ts
+        still has both directions
+        (whitespace and semicolon
+        split green; colon-glued
+        M-A: and mixed TYPO-BAD
+        red, message names the
+        token and that colon is
+        not a separator). D7: write
+        &lt;CodifiedIn kind=&quot;lint-rule&quot;&gt;change.task-invalid-dependency&lt;/CodifiedIn&gt;
+        if src/artifact/grammar.test.ts
+        describe &quot;DependsOn
+        multi-value and anchor-child
+        (T-002)&quot; still accepts the
+        three authored forms and
+        still raises on the invalid
+        token only. D9: write
+        &lt;CodifiedIn kind=&quot;test-suite&quot;&gt;src/grace-cursor.test.ts&lt;/CodifiedIn&gt;
+        if the it &quot;D9 / LWW: dead
+        prior allocation is
+        superseded; no rewrite of
+        recorded events&quot; still
+        keeps the dead opened file
+        byte-identical. D18: write
+        two children,
+        &lt;CodifiedIn kind=&quot;lint-rule&quot;&gt;review.approval-never-asked&lt;/CodifiedIn&gt;
+        and
+        &lt;CodifiedIn kind=&quot;lint-rule&quot;&gt;review.approved-fingerprint-mismatch&lt;/CodifiedIn&gt;,
+        if src/review/core.test.ts
+        C-APPROVAL-FINGERPRINT
+        T-003 still fires on
+        hand-written approved and
+        on a perturbed fingerprint
+        and is silent on draft, and
+        if src/gates/core.test.ts
+        still writes status on a
+        permitting approve and
+        still records a forced
+        permit with reason. If any
+        named witness fails, do
+        not tag that Decision;
+        report the failing test;
+        do not restate it as
+        already-codified (D28.1,
+        F123). Do not tag D27.1
+        on those two review codes:
+        its draft-permission half
+        is the absence of a check,
+        and the codes belong to
+        D18. Do not tag D1: D1.3's
+        review finding for
+        hand-written applied never
+        shipped as an emittable
+        code (applied-without-gate-record
+        is a status derived state;
+        isEmittableIssueCode is
+        false). Do not tag D3: the
+        writer test is not an
+        unconditional ledger
+        check. Do not tag any
+        other live Decision. Before
+        tagging, confirm the
+        candidate tokens are unique
+        across live plus retired
+        Decision elements;
+        --retire selects by token,
+        not id. Do not edit
+        src/project-utils.test.ts,
+        src/artifact/grammar.test.ts,
+        src/grace-cursor.test.ts,
+        src/review/core.test.ts,
+        src/gates/core.test.ts,
+        src/lint/catalog.ts, or any
+        skill file to make a tag
+        resolve.
+      </Constraint>
+      <Constraint>
+        This bundle writes the
+        record, and D30 is scoped
+        not skirted. The writes
+        are: CodifiedIn children on
+        the tagged live Decision
+        elements in rulings.xml;
+        --retire moving those
+        elements to
+        rulings-retired.xml with
+        status=&quot;retired&quot;, flipping
+        the matching decisions.xml
+        Entry layer to retired, and
+        re-deriving live-root
+        attributes on findings,
+        rulings, registry, and
+        index after a successful
+        move. Tag then --retire in
+        the same wave; a commit
+        that holds resolving
+        CodifiedIn on a live
+        Decision is ineligible.
+        Do not flush
+        .ngrace/scratch/staged-findings.md.
+        Do not append a new
+        Finding, Decision, or
+        registry Row. Do not
+        rewrite bodies except the
+        CodifiedIn children, the
+        status attribute, and wrap.
+        PaidBy is a child element
+        of findings, not of
+        decisions; do not invent
+        one on a Decision. The
+        freeze holds for the
+        execution window that
+        reads or rewrites the
+        record files.
+      </Constraint>
+      <Constraint>
+        Write scope, anchors, and
+        imports. Files this spec
+        forces into write scope,
+        LINKS headers checked:
+        scripts/validate-record-retirement.ts
+        and
+        scripts/validate-record-retirement.test.ts
+        (neither has a LINKS
+        header; scripts/ is in
+        .ngrace-lint.json
+        ignoredDirs;
+        M-RELEASE-AUTOMATION is
+        not in .ngrace/graph and
+        remains deferred),
+        CLAUDE.md (no LINKS), and
+        the record files --retire
+        writes on a successful
+        move:
+        docs/plans/active/RM-GOVERNED-PATH/rulings.xml,
+        rulings-retired.xml,
+        findings.xml,
+        registry.xml,
+        decisions.xml, plus the
+        bundle's own artifacts.
+        No graph module is
+        written; do not mint a
+        synthetic module. The
+        script may keep importing
+        parseGraceXmlArtifact,
+        walkNodes, childNodes, and
+        childText from
+        src/artifact/xml.ts (LINKS
+        M-GRAMMAR) and
+        isEmittableIssueCode from
+        src/lint/catalog.ts (LINKS
+        M-LINT-CATALOG) as import
+        sources; it must not edit
+        them. Do not add a ngrace
+        lint issue code. Do not
+        register the record files
+        in CONTEXT_ARTIFACTS.
+        AffectedAreas does not
+        repeat this list (F136.1).
+      </Constraint>
+      <Constraint>
+        Teaching. CLAUDE.md's
+        record paragraph currently
+        says a decision moves when
+        it carries a resolving
+        CodifiedIn or TaughtIn.
+        Replace that sentence so
+        a decision moves on a
+        resolving CodifiedIn, and
+        so a resolving TaughtIn
+        does not move it. Keep
+        --retire as the move,
+        validation re-derives
+        PaidBy, and ceiling
+        attributes rewritten only
+        by the move and never
+        raised. The retirement
+        test that reads CLAUDE.md
+        and docs/plans/README.md
+        still fails if those
+        shipped names are absent,
+        and it fails if CLAUDE.md
+        still treats TaughtIn as a
+        move. Do not edit
+        docs/plans/README.md,
+        skills/ngrace/*, or the
+        packaged mirror.
+      </Constraint>
+      <Constraint>
+        Tests do not pin a mutable
+        production count of live
+        Decision elements, live
+        H2 count, live registry
+        rows, or any live-root
+        occupancy. Fixture
+        snapshots carry their own
+        numbers. Import median
+        from
+        scripts/validate-record-retirement.ts.
+        A --retire with nothing
+        eligible remains a
+        byte-identical no-op and
+        must not rewrite any
+        attribute.
+      </Constraint>
+      <Constraint>
+        Archive immutability. Do
+        not edit anything under
+        docs/plans/archive/ or
+        tracked paths under
+        .ngrace/changes/archive/
+        except this bundle's own
+        later arrival there. Do
+        not edit D24's retired
+        body or its CodifiedIn.
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, settled
+        lessons. Every diff-based
+        criterion's command scopes
+        to exactly the paths its
+        prose names; prose and
+        pathspec are the same set.
+        A CloseEvidence pathspec
+        covering a bundle-bearing
+        directory excludes this
+        bundle's own path,
+        including in the
+        post-close state. Archive-
+        protection prose says
+        tracked paths. Every task
+        Verification command the
+        later plan records must
+        exit 0 as written at
+        recording time.
+        --run-commands needs an
+        open cursor on a declared
+        task and exiting 1 before
+        execution is not a defect.
+        Task Verification and
+        TargetAssertions contain
+        no current-mode lint of
+        this project root — the
+        rule: the command text
+        contains --assertions
+        current, or it invokes
+        ngrace lint of this root
+        and omits --assertions;
+        checked by hand because
+        the shipped detector
+        misses bun ./src/grace.ts
+        lint (F171). Current-mode
+        lint appears only as
+        post-archive AC-CLOSE-LINT.
+        The later plan emits its
+        own execution-time cursor
+        events; do not omit them.
+      </Constraint>
+      <Constraint>
+        C-REPORT-HONESTY stands.
+        Do not silence current-mode
+        baseline issues, do not
+        infer writes-started from
+        git dirty, the ledger, or
+        ObservedWriteScope, and do
+        not treat bun test green
+        as the evidence — the
+        ExpectedEvidence probes
+        are discriminating
+        fixtures run against the
+        delivered product.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Flushing
+        .ngrace/scratch/staged-findings.md
+        into the live record, in
+        whole or in part. Owner:
+        the authority, between
+        dispatches, under D30.
+      </NonGoal>
+      <NonGoal>
+        Tagging any live Decision
+        this spec does not name,
+        including D1, D3, D27.1,
+        D28.1, scheduling-order
+        rulings (D32, D34, D35,
+        D36, D29), and practice
+        rules (D11, D19, D20,
+        D22, D23, D25, D27, D30,
+        D33). Owner: a later
+        bundle, if a later audit
+        verifies a new witness
+        against this spec's
+        evidence standard; not
+        deferred inside this
+        bundle (D11: no extras
+        without a witness).
+      </NonGoal>
+      <NonGoal>
+        Changing the headroom
+        sizing — the multiplier
+        stays 7 and stays
+        entry-sized. Owner:
+        unchanged;
+        C-RETIRE-AND-CODIFY
+        shipped it.
+      </NonGoal>
+      <NonGoal>
+        Applying the pre-move
+        timing to registry or
+        index. Owner: none;
+        C-RETIREMENT-WINDOW's
+        asymmetry argument for
+        those two genres stands.
+      </NonGoal>
+      <NonGoal>
+        Editing src/, adding a
+        lint issue code,
+        registering the record in
+        CONTEXT_ARTIFACTS, hooking
+        --retire into gate archive
+        or any lifecycle command,
+        or adding a CI member.
+        Owner: unchanged; the
+        operation stays argv of
+        scripts/validate-record-retirement.ts.
+      </NonGoal>
+      <NonGoal>
+        Editing docs/plans/README.md,
+        skills/ngrace/*, the
+        packaged mirror, or
+        anything under
+        docs/plans/archive/ or
+        .ngrace/changes/archive/
+        except this bundle's own
+        later arrival there.
+        Owners: unchanged
+        surfaces / the archive
+        rule.
+      </NonGoal>
+      <NonGoal>
+        README.md and examples/
+        unchanged; no user-visible
+        CLI token, config key, or
+        ngrace command. Owner:
+        unchanged; no user-visible
+        surface.
+      </NonGoal>
+      <NonGoal>
+        Writing a position into
+        the C-CODIFY-DECISIONS
+        registry row, or minting
+        a new decision that
+        records that position.
+        Owner: the maintainer,
+        after this bundle has
+        made room, as the charter
+        row already states.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-RULINGS-WINDOW>
+        A fixture --retire that
+        moves at least one
+        Decision from an
+        equilibrium rulings
+        snapshot (ceiling = base
+        + H) persists ceiling
+        equal to min(previous
+        ceiling, pre-move base +
+        H_new) and a window of
+        Delta_retired + H_new
+        when that term sets the
+        ceiling. The shipped
+        post-move call fails this
+        probe: fixture A at this
+        spec's writing yielded
+        window = H_new and a
+        negative window_gain. A
+        fixture whose Base_live +
+        H_new exceeds the
+        persisted ceiling keeps
+        the previous ceiling
+        (anti-ratchet). A
+        production-shaped clamped
+        fixture still opens
+        Delta_retired while the
+        provenance ceiling binds.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-RULINGS-WINDOW>
+      <AC-TAUGHTIN-NOT-ELIGIBLE>
+        A fixture live Decision
+        whose only resolving tag
+        is TaughtIn is not moved
+        by --retire and does not
+        emit
+        decision-eligible-still-live.
+        The same fixture with a
+        resolving CodifiedIn is
+        moved. A dangling TaughtIn
+        still errors. A dangling
+        CodifiedIn still errors.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-TAUGHTIN-NOT-ELIGIBLE>
+      <AC-CODIFIEDIN-ALL-CHILDREN>
+        A fixture Decision with
+        two CodifiedIn children,
+        the first dangling and
+        the second resolving,
+        errors and is not moved.
+        Both resolving, --retire
+        moves it. One resolving
+        child remains sufficient
+        when it is the only
+        child.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-CODIFIEDIN-ALL-CHILDREN>
+      <AC-TAG-AND-RETIRE>
+        After apply, each
+        enumerated Decision
+        whose named witness
+        group passed at
+        execution is in
+        rulings-retired.xml with
+        the CodifiedIn child or
+        children this spec names,
+        and is not in
+        rulings.xml. Each
+        enumerated Decision whose
+        witness failed is still
+        live and untagged and the
+        report names the failure.
+        If every named witness
+        group passed, all four
+        are retired; zero tags
+        in that case is a
+        failure. D24 remains the
+        previously retired
+        sibling and is not
+        rewritten. bun ./scripts/validate-record-retirement.ts
+        (no mutating argv) exits
+        0 afterwards. A
+        production test that
+        reads the real record
+        carries an explicit
+        generous timeout.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-TAG-AND-RETIRE>
+      <AC-TEACHING>
+        CLAUDE.md says a decision
+        moves on a resolving
+        CodifiedIn and that a
+        resolving TaughtIn does
+        not move it. It still
+        names --retire as the
+        move, that validation
+        re-derives PaidBy, and
+        that ceiling attributes
+        are rewritten only by
+        the move and never
+        raised. The retirement
+        test file reads CLAUDE.md
+        and fails if TaughtIn is
+        still taught as a move.
+        Canonical and packaged
+        skill trees stay
+        byte-identical because
+        this bundle does not
+        edit them.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-TEACHING>
+      <AC-NO-GRAMMAR>
+        src/ is unchanged. The
+        record files are not
+        registered in
+        CONTEXT_ARTIFACTS.
+        <CloseEvidence>
+          <Command>git diff --exit-code cd8500f88a53561d12704d207ef4546a03a1cfe4 -- src/</Command>
+        </CloseEvidence>
+      </AC-NO-GRAMMAR>
+      <AC-CI-JOINS>
+        package.json validate:ci
+        still invokes
+        validate:record-retirement
+        as the validate-only
+        member. --retire is not
+        on that chain. The test
+        file still reads
+        package.json and fails
+        if the validate member is
+        absent (F170).
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-CI-JOINS>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task
+        Verification commands
+        and TargetAssertions
+        contain no current-mode
+        lint of this project
+        root. Failure: a Command
+        whose text contains
+        --assertions current, or
+        that invokes ngrace lint
+        / bun ./src/grace.ts lint
+        of this root and omits
+        --assertions. Check by
+        the rule, by hand (F171).
+      </AC-NO-CURRENT-MODE>
+      <AC-NO-ARCHIVE-WRITE>
+        The archived record under
+        docs/plans/archive/ and
+        tracked paths under
+        .ngrace/changes/archive/
+        is not modified. This
+        bundle's own later
+        arrival under
+        .ngrace/changes/archive/C-CODIFY-DECISIONS/
+        is not a modification.
+        Verified against
+        cd8500f88a53561d12704d207ef4546a03a1cfe4
+        excluding that directory.
+        Probe in the post-close
+        state.
+        <CloseEvidence>
+          <Command>git diff --exit-code cd8500f88a53561d12704d207ef4546a03a1cfe4 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-CODIFY-DECISIONS'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-WRITE>
+      <AC-DOCS-EXAMPLES>
+        Tracked paths README.md
+        and examples/ match
+        cd8500f88a53561d12704d207ef4546a03a1cfe4
+        per git diff --exit-code.
+        <CloseEvidence>
+          <Command>git diff --exit-code cd8500f88a53561d12704d207ef4546a03a1cfe4 -- README.md examples/</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0.
+        This is the only place
+        current-mode lint of this
+        root appears. Do not put
+        bun ./src/grace.ts lint
+        --path . --fail-on
+        warnings in any task
+        Verification or in
+        TargetAssertions
+        MustPassCommand.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No graph module is written.
+      Ceremony tier T2 names the
+      same fact: no graph module
+      is written. Files this spec
+      forces into write scope,
+      with LINKS headers checked,
+      are enumerated once in the
+      write-scope Constraint and
+      are not repeated as a
+      second module list
+      (F136.1). Do not mint a
+      synthetic module to fill
+      this section.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-CODIFY-DECISIONS --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes
+        against the delivered
+        product, not a green
+        suite. (1) Equilibrium
+        rulings window: fixture A
+        shape, one eligible
+        Decision, --retire
+        persists min(previous,
+        pre-move + H_new); the
+        shipped post-move term
+        would persist a smaller
+        ceiling. (2) Anti-ratchet:
+        Base_live + H_new above
+        the persisted ceiling
+        keeps the previous
+        ceiling. (3) Clamped
+        production shape: window
+        grows by Delta_retired
+        while provenance binds.
+        (4) TaughtIn-only fixture
+        does not move; CodifiedIn
+        does. (5) Two CodifiedIn
+        children: dangling first
+        errors; both resolving
+        moves. (6) Production
+        validate exits 0 after
+        the tagged move; the
+        enumerated retired
+        bodies carry the named
+        tags; D24 is untouched.
+        (7) CLAUDE.md no longer
+        treats TaughtIn as a
+        move. (8) Second
+        --retire is
+        byte-identical. (9)
+        Preservation and citation
+        validators still exit 0.
+        (10) Path-scoped git
+        diffs empty at close,
+        probed in the post-close
+        state, with this bundle's
+        archive path excluded.
+        (11) The plan's task
+        Verification list
+        contains no current-mode
+        lint, checked by the
+        rule, by hand.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken
+        2026-09-07 at
+        cd8500f88a53561d12704d207ef4546a03a1cfe4
+        (git rev-parse HEAD),
+        branch main, tree clean
+        before spec new. Live
+        roots via newlineCount
+        and the shipped root
+        attributes: findings.xml
+        base=7601 headroom=370
+        ceiling=7971 window=370;
+        rulings.xml base=1834
+        headroom=49 ceiling=1883
+        window=49; registry.xml
+        base=13 headroom=13
+        ceiling=26 live-row
+        count=13; decisions.xml
+        base=327 headroom=14
+        ceiling=341. Every live
+        root satisfies base +
+        headroom = ceiling.
+        bun ./scripts/validate-record-retirement.ts
+        exits 0. Staged buffer
+        .ngrace/scratch/staged-findings.md
+        is empty as of that date
+        (header records the
+        flush of F172-F191 and
+        D27.1, D32-D36 at
+        cd8500f).
+      </Assumption>
+      <Assumption>
+        Decisions population,
+        same commit, parsed with
+        parseGraceXmlArtifact and
+        childNodes(...,
+        &quot;Decision&quot;): 65 live, 0
+        with a CodifiedIn child,
+        0 with a TaughtIn child;
+        1 retired (D24) in
+        rulings-retired.xml with
+        kind=&quot;test-suite&quot;
+        src/grace-cursor.test.ts.
+        28 live H2, median 37
+        via liveH2DecisionLineCounts,
+        formula H = 259; 37 live
+        H3. Unique tokens across
+        live plus retired: 66,
+        zero duplicate tokens,
+        zero duplicate ids.
+        Charter said 59 live
+        zero tagged; that count
+        predates the flush that
+        landed D27.1 and
+        D32-D36. Formula H 259
+        versus persisted
+        headroom 49: the
+        provenance clamp is
+        binding.
+      </Assumption>
+      <Assumption>
+        Window fixtures, same
+        commit, driving
+        bun ./scripts/validate-record-retirement.ts
+        --retire on throwaway
+        record trees. Fixture A
+        equilibrium two equal
+        H2, retire one: window
+        94.5 to 91, gain -3.5,
+        Delta_retired 14;
+        observed ceiling matched
+        post-move formula;
+        findings-timing would
+        have yielded window 105.
+        Fixture B clamped
+        persisted headroom 49:
+        window 49 to 83, gain
+        34 = Delta_retired; both
+        formulas agreed because
+        the previous ceiling
+        bound. Fixture C
+        production rulings.xml
+        with a pointer-only
+        CodifiedIn on D1 (not a
+        real-codify): window 48
+        to 70, gain 22 =
+        Delta_retired; both
+        formulas agreed because
+        1883 bound. Under
+        current production
+        numbers a modest move
+        therefore opens
+        Delta_retired even
+        without the pre-move
+        term; the term is still
+        required so a later move
+        that drops formulaCeiling
+        below 1883 opens
+        Delta_retired + H_new
+        rather than H_new.
+      </Assumption>
+      <Assumption>
+        Candidate audit, same
+        commit, whole live
+        population of 65, not a
+        sample. Honestly
+        codifiable under the
+        evidence-standard
+        Constraint: D5.1, D7,
+        D9, D18. Witnesses
+        re-run at spec writing
+        with exit 0: bun test
+        src/project-utils.test.ts
+        34 pass 0 fail;
+        src/artifact/grammar.test.ts
+        93 pass 0 fail;
+        src/grace-cursor.test.ts
+        163 pass 0 fail;
+        src/review/core.test.ts
+        172 pass 0 fail;
+        src/gates/core.test.ts
+        111 pass 0 fail.
+        isEmittableIssueCode
+        true for
+        markup.unparsed-link-token,
+        change.task-invalid-dependency,
+        review.approval-never-asked,
+        review.approved-fingerprint-mismatch;
+        false for
+        applied-without-gate-record.
+        Rejected, with the
+        reason: D1 / D1.3 (the
+        applied review finding
+        never shipped as an
+        emittable code; D18
+        overturned D1's
+        draft-to-approved stays
+        authored clause); D3
+        (writer test, no
+        unconditional ledger
+        check); D27.1 (draft
+        permission is the
+        absence of a check; the
+        two review codes are
+        D18's); D5, D6, D8
+        (index headings);
+        D11, D19, D20, D22,
+        D22.1, D23, D25, D27,
+        D30, D33 (practice
+        rules); D29, D32, D34,
+        D35, D36 (scheduling
+        orders already executed);
+        D2, D4, D10, D12-D14,
+        D16, D17, D21, D26,
+        D26.1, D28, D28.1, D31
+        (design, historical
+        correction, or the
+        trigger being specified
+        here). D31's dated
+        classification of six
+        machine-enforceable H2s
+        is not restated: of
+        those six, D24 is
+        already retired, D7 and
+        D9 hold, D1 D3 D5 do
+        not.
+      </Assumption>
+      <Assumption>
+        F187 is retired in
+        findings-retired.xml,
+        PaidBy C-PAYMENT-RECORD,
+        layer=&quot;retired&quot; in
+        decisions.xml. The
+        charter row's Pays child
+        names &quot;the decisions
+        half of F187&quot;; that
+        finding is not live to
+        pay. This bundle's
+        payment is the verified
+        tags and the working
+        trigger.
+      </Assumption>
+    </Assumptions>
+  </C-CODIFY-DECISIONS>
+</NgraceChangeSpec>
