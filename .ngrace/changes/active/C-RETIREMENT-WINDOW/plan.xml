@@ -1,0 +1,246 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-RETIREMENT-WINDOW>
+    <IntentSummary>
+      Ship the findings retirement window and remove the spent
+      rulings exception as the approved spec requires.
+      DurableScope is &lt;None /&gt;: no graph module is written.
+      ObservedWriteScope is exactly the two script files
+      scripts/validate-record-retirement.ts and
+      scripts/validate-record-retirement.test.ts. The findings
+      ceiling becomes min(previous ceiling, Base_live + H) at
+      one --retire event, where Base_live is the pre-move
+      newline count of findings.xml read on entry and H is 7
+      times the post-move median live Finding line count; the
+      persisted base is the post-move count, so headroom =
+      ceiling - base reads the open window Delta_retired + H.
+      The spent one-time rulings exception isFirstRulingsRewrite,
+      its discriminator, and the !discriminator clamp branch are
+      deleted; the rulings clamp becomes unconditional. A named
+      constant carries the rulings ceiling C-RETIRE-AND-CODIFY
+      persisted (1883, measured at this spec's commit) and the
+      non-mutating validate run errors when the rulings live
+      root persists a ceiling above it. A no-op --retire stays
+      byte-identical. Current-mode lint of this project root is
+      not a task Verification command and is not a TargetAssertions
+      MustPassCommand. MustPassCommand holds the leaf test and
+      the validate-only validator. Do not edit src/, the record
+      subtree, docs/plans/README.md, CLAUDE.md, skills/ngrace/*,
+      or anything under docs/plans/archive/ or
+      .ngrace/changes/archive/. Do not flush
+      .ngrace/scratch/staged-findings.md. Do not mint a registry
+      row. Do not require bun run validate:ci.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>scripts/validate-record-retirement.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Findings retirement window: pre-move base in the ceiling min
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Amend scripts/validate-record-retirement.ts and
+            scripts/validate-record-retirement.test.ts. On entry
+            to the snapshot rewrite in retireRecord, capture
+            Base_live as the newline count of findings.xml as
+            read, before any spans are removed. persistSnapshot
+            gains an optional ceilingBase parameter defaulting to
+            base; the formula term becomes ceilingBase +
+            computedHeadroom, and headroom is always ceiling -
+            base. The findings withRootSnapshot call passes
+            ceilingBase = Base_live and base = newlineCount of the
+            post-move findingsLive, so ceiling = min(previous
+            ceiling, Base_live + H) and headroom = ceiling - base
+            = Delta_retired + H when the formula term sets the
+            ceiling. Rulings, registry, and index call sites are
+            unchanged (ceilingBase defaults to base), so their
+            behaviour is identical: when the formula term sets the
+            ceiling, ceiling - base = computedHeadroom, and when
+            the clamp binds, headroom = ceiling - base. Fixtures
+            prove: (1) a fixture findings file grown by hand with
+            one eligible finding, --retire persists the previous
+            ceiling when Base_live + H meets or exceeds it, base =
+            the post-move count, and headroom = ceiling - base
+            (the window opened is Delta_retired + H minus the
+            growth the fixture applied); (2) anti-ratchet: a
+            fixture whose Base_live + H exceeds the persisted
+            ceiling persists the previous ceiling, and a no-min
+            recompute that raises the ceiling fails the probe;
+            (3) min not decorative: a hand-shrunk live findings
+            file persists ceiling = Base_live + H; (4) Delta = 0:
+            a --retire moving only a decision leaves an unchanged
+            findings file at window H when the snapshot sat at
+            base + H; (5) after any successful move, every live
+            root's persisted triple satisfies base + headroom =
+            ceiling. The predicate isFirstRulingsRewrite and the
+            rulings discriminator are left in place in this task;
+            the rulings clamp branch is untouched.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands and the plan's
+            TargetAssertions contain no current-mode lint of this
+            project root, checked by the rule in the spec
+            Constraints, by hand (F171).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>
+          Remove the spent one-time rulings exception
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Delete isFirstRulingsRewrite, the discriminator
+            computation, and the !discriminator clamp branch from
+            scripts/validate-record-retirement.ts; the rulings
+            persistSnapshot call passes clamp = true always.
+            Remove isFirstRulingsRewrite from the test file's
+            imports. Replace the split-shape probes of the
+            first-rewrite behaviour with fixtures proving a
+            split-shaped (uncorrected-sizing) ruling file keeps
+            its previous ceiling under a --retire whose 7-times
+            formula term exceeds it -- the discriminating
+            direction against the deleted behaviour -- and that a
+            second --retire on that fixture still never raises.
+            The already-7-times identity probe that keeps the
+            previous ceiling stays. The engine retains no branch
+            that can disable the rulings clamp.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands and the plan's
+            TargetAssertions contain no current-mode lint of this
+            project root, checked by the rule in the spec
+            Constraints, by hand (F171).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>
+          Validator-asserted provenance ceiling on the rulings genre
+        </Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Add a named constant in
+            scripts/validate-record-retirement.ts carrying the
+            ceiling value C-RETIRE-AND-CODIFY's one-time
+            correction persisted (1883, measured at this spec's
+            commit); the constant's comment carries only the
+            citation (bundle name and move commit), never the
+            number. The non-mutating validate run errors when the
+            rulings live root persists a ceiling above the
+            constant, with a message stating the provenance, that
+            no shipped operation raises it, and that raising the
+            persisted ceiling is not the remedy; it never names a
+            config key or a multiplier. Fixture probes run both
+            directions: at the constant validation passes; one
+            above it validation exits non-zero with the provenance
+            message. Production validation stays green.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands and the plan's
+            TargetAssertions contain no current-mode lint of this
+            project root, checked by the rule in the spec
+            Constraints, by hand (F171).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-003>
+      <T-004>
+        <Title>
+          No-op --retire stays byte-identical
+        </Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            A --retire with nothing eligible exits 0 and writes no
+            attribute and no byte. Fixture probe: a fixture with no
+            eligible entries, --retire leaves every live root's
+            attributes and bytes unchanged. At close, bun
+            ./scripts/validate-record-retirement.ts --retire on the
+            production record followed by git diff --exit-code over
+            the record subtree is empty. The engine requires no
+            operator gesture outside the argv it executes.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands and the plan's
+            TargetAssertions contain no current-mode lint of this
+            project root, checked by the rule in the spec
+            Constraints, by hand (F171). Selected --assertions
+            target --run-commands is the post-write evidence
+            command. Do not put bun ./src/grace.ts lint --path .
+            --fail-on warnings here (AC-CLOSE-LINT is
+            post-archive).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-RETIREMENT-WINDOW --assertions target --run-commands</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-004>
+    </ImplementationPlan>
+  </C-RETIREMENT-WINDOW>
+</NgraceChangePlan>
