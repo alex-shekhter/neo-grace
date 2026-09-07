@@ -2244,4 +2244,206 @@ audit should adopt the same filter is a question for the bundle that takes this 
 to fix in passing.
 </Body>
   </Finding>
+<Finding id="f180" token="F180" status="retired">
+    <PaidBy>C-RETIRE-AND-CODIFY</PaidBy>
+    <Title>### F180 — the retirement engine is inert in both directions: nothing annotates eligibility, and the shipped derivation would find nothing if it ran. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `67bc55c`, corrected the same day after the executor disproved the authority's
+first version.
+
+**Three separate gaps, each measured.**
+
+1. **Nothing annotates.** **0 of 214** live findings carry a `&amp;lt;PaidBy&amp;gt;` child; all **25** retired
+   ones do. Nothing writes that element when a paying bundle archives.
+2. **Validation never derives.** The validation path reads the stored child
+   (`scripts/validate-record-retirement.ts:673`); `collectPaidBy` (`:372-410`) runs **only** in the
+   `--split` path (`:489`).
+3. **The derivation is too narrow to fire even if it ran.** Constructing `RegistryRow`s from
+   `registry.xml` ∪ `registry-retired.xml` and calling the **shipped** `collectPaidBy`: 36 rows in, map
+   size **24**, and **0** live-eligible. The rule reads `row.pays` **only**, and only for rows whose
+   `statusText` matches `/delivered|superseded/i`.
+4. **No operation exists.** `--split` is the only mode and refuses once `decisions.md` is a stub
+   (`:477-478`, exit 1).
+
+**So the ratchet is the only working half.** `D28.1` calls eligibility *the enforcement* and the ceiling
+merely *the backstop*; in the shipped engine the backstop is load-bearing and the enforcement cannot
+fire at all.
+
+**The authority's first version of this finding was false, and the error is instructive.** It claimed
+*&quot;twelve live findings are eligible under the engine's own rule&quot;* — `F100`, `F105`, `F108`, `F108.1`,
+`F108.2`, `F109.1`, `F112`, `F113`, `F125`, `F155.1`, `F157`, `F9.1`, occupying **477** lines. Those
+entries are live and their registry rows do discuss paying them, but **none is in the shipped map**. The
+authority reimplemented `collectPaidBy` instead of importing it, and applied the F-token regex to each
+row's **entire text** — `Charter` and `StatusText` included — where the shipped rule reads **`Pays`
+alone**. Same tokens, wrong field: the fourth *right-string-wrong-position* error of that session.
+Disproved by the executor's `WRONG`, then re-verified by importing the real function.
+
+**What that changes.** Widening the derivation is not a refinement, it is the difference between an
+enforcement that can fire and one that cannot. Whether to widen it — for instance to rows whose `Pays`
+names an archive directory, or to a `Closed with` clause in `StatusText` — is a **spec decision** for
+[`C-RETIRE-AND-CODIFY`](#named-bundle-registry), and it must be argued against `D28.1` rather than
+assumed. **Never cite the twelve as an eligible set.**</Body>
+  </Finding>
+<Finding id="f181" token="F181" status="retired">
+    <PaidBy>C-RETIRE-AND-CODIFY</PaidBy>
+    <Title>### F181 — the rulings headroom is smaller than one session's decisions, and the decisions genre has no reachable retirement trigger. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `67bc55c`.
+
+`rulings.xml` is **1668** lines with `headroom=&quot;75&quot;` (2 × the 37.5-line median H2 decision) and
+`ceiling=&quot;1743&quot;`. The three decisions staged from this session alone — [D27.1](#d27.1), [D32](#d32),
+[D33](#d33) — are **115** lines of prose, **121** with element wrappers. Flushing them gives **1789**, a
+breach of **46**.
+
+**Partial flushes fit and are arbitrary:** `D32` alone lands at 1697; `D32` plus `D33` at 1735, eight
+lines under. Choosing which ratified decision to withhold from the record is not a decision the ratchet
+should be making.
+
+**Wrapper arithmetic corrected 2026-09-06**, after this entry first read 127 / 1795 / 52 and 1699 /
+1739. An element occupies `bodyRaw` lines **plus three** — the open tag, the `Title` line, and the
+close tag — because `&lt;Body&gt;` and `&lt;/Body&gt;` land on the blank lines that `parseFrozenMarkdown` keeps at
+the head and tail of every body (`scripts/validate-record-retirement.ts:225-243`, which trims nothing).
+Per entry that is 54 / 29 / 38, not 56 / 31 / 40. The original figures added two per entry. The
+headline of this finding is unaffected: 121 still exceeds the 75-line headroom by more than half
+again, and the breach is real.
+
+**The genre has no reachable trigger.** Decisions retire on `CodifiedIn` or `TaughtIn`
+([D28.1](#d28.1), [D31](#d31)). **Zero** live decisions carry either — by design, since
+`C-RECORD-RETIREMENT-2` made historical tagging a NonGoal owned by a later bundle. So the decisions
+genre can **only grow** until that bundle lands, while its headroom is sized at two median entries.
+
+[D27.1](#d27.1) is the sharpest case: its own text says it is *&quot;born codified&quot;* and a `CodifiedIn`
+candidate the moment the tag ships. The tag has shipped. It could be tagged and retired on arrival —
+but tagging is another bundle's scope, so the entry that documents its own retirement cannot be retired.
+
+The headroom was derived at split time as a multiple of the median entry, which measures **entry size**
+and not **arrival rate**. This session produced 8 findings and 3 decisions; the findings headroom of 252
+lines was also exceeded by the 267 lines of findings alone, and is only survivable because findings have
+a working trigger. Sizing headroom from arrival rate rather than entry size is the open design question.</Body>
+  </Finding>
+<Finding id="f183" token="F183" status="retired">
+    <PaidBy>C-RETIREMENT-WINDOW</PaidBy>
+    <Title>### F183 — the clamp makes retirement unable to create room, so the record still cannot be flushed after `C-RETIRE-AND-CODIFY`. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** on the delivered working tree, by exercising the validator against a copy of
+the post-`--retire` record.
+
+`C-RETIRE-AND-CODIFY` did what it specified: the one-time exception fired and `rulings.xml` went
+`1668/75/1743` → `1624/259/1883`. The rulings half of the flush now fits — 1624 + 161 = 1785 against
+1883, with 98 lines spare.
+
+**The findings half does not, and never could have.** `findings.xml` went `8279/252/8531` →
+`7726/252/7978`, because the ceiling is recomputed as `min(previousCeiling, newBase + newHeadroom)` on
+every move. Retiring 15 findings removed 553 lines of content **and 553 lines of ceiling**. The staged
+findings are 341 lines wrapped; 7726 + 341 = 8067 against a ceiling of 7978.
+
+**The breach is 89 lines before the bundle and 89 lines after it** — 8279 + 341 = 8620 against 8531,
+and 8067 against 7978. This is not a regression; it is the half the bundle did not address. The
+structural fact is that `ceiling = base + headroom` is re-derived at every move, so **retirement never
+creates room for growth**. The headroom is the only room there will ever be, permanently.
+
+**The named remedy is unavailable.** Probed on a copy: the untouched post-move record validates clean
+(exit 0), and adding 336 lines of well-formed findings trips
+`ceiling-exceeded: live findings line count 8062 exceeds persisted ceiling 7978; --retire / move the
+eligible entry to the retired sibling`. All 15 eligible findings were retired by this bundle, so 0
+remain, and raising the ceiling is explicitly not the remedy.
+
+**No partial flush exists.** The genres are entangled in both directions: 10 citations from staged
+finding entries to staged decisions, and 9 from staged decision entries to staged findings. Flushing
+either genre alone leaves dangling fragments, which
+`validate-citation-anchors.ts` exits 1 on.
+
+**Root cause is [F181](#f181)'s, unchanged:** headroom is sized from **entry size**, not **arrival
+rate**. `C-RETIRE-AND-CODIFY` corrected that for rulings by moving the multiplier 2 → 7. Findings has
+shipped `7 ×` since the split, and `7 × 36 = 252` is still smaller than one to two sessions of
+findings arrival — 341 lines from 11 staged entries.
+
+**The authority approved the spec on arithmetic that used the pre-clamp findings ceiling** (`8027 ≤
+8531`), never applying the clamp it had verified in the same pass. The spec's Problem section and the
+executor's unblock table carry the same error. Owner: a follow-on bundle, which depends on the
+exception and clamp machinery this bundle ships. The open design question is how to size a headroom
+against arrival rate without re-creating a budget that can be raised to pass ([D28.1](#d28.1)).</Body>
+  </Finding>
+<Finding id="f186" token="F186" status="retired">
+    <PaidBy>C-RETIREMENT-WINDOW</PaidBy>
+    <Title>### F186 — the one-time ceiling exception can fire again, because a clamped rewrite persists an arbitrary headroom. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `1896592`, by driving the shipped predicate. Raised by the executor against
+the authority's claim that the exception was spent; the authority had cleared it on a false premise
+and re-measured only when challenged.
+
+`C-RETIRE-AND-CODIFY` shipped `isFirstRulingsRewrite`
+(`scripts/validate-record-retirement.ts:504-513`): persisted headroom equals `2 ×` the median live H2
+`Decision` **and** persisted ceiling strictly below persisted base plus `7 ×` that median. It was
+accepted on the argument that after the first rewrite the persisted headroom is `7 × median`, so
+re-firing would need the median to more than triple — 129.5 against a largest live H2 of 61.
+
+**That argument assumed a headroom the code does not always write.** `persistSnapshot` (`:867`) sets
+
+```
+headroom = ceiling === formulaCeiling ? computedHeadroom : ceiling - base
+```
+
+so **whenever the clamp binds**, headroom is persisted as `ceiling − base` — an arbitrary residue, not
+`7 ×` anything. The guard then reduces to a coincidence between that residue and twice a median.
+
+**Reachable, not theoretical.** Calling the shipped predicate with the live H2 set: at persisted base
+**1809** under a ceiling pinned at **1883**, headroom is `1883 − 1809 = 74 = 2 × 37`, the predicate
+returns **true**, the clamp is disabled and the ceiling rises to **2068** — a raise with no ratified
+decision, which is the act [D28.1](#d28.1) forbids. Exactly one base in `[1600, 1883]` re-fires at
+median 37, so the target is narrow; it also moves with the median, giving roughly one live value per
+cycle. Base 1809 is **+185** lines from the 1624 that shipped, and the staged decisions alone are 157.
+
+**The authority's error, recorded against the finding that carried it.** The clearing argument was
+given to the maintainer as measured safety. It was a structural inference from one branch of a
+ternary, never checked against the other. [CLAUDE.md](../../../../CLAUDE.md)'s standard — read an
+artifact's definition before giving it a role in an argument — applies to code paths as much as to
+artifacts.
+
+Owner: `C-RETIREMENT-WINDOW`, which removes the predicate outright rather than leaving it dormant.</Body>
+  </Finding>
+<Finding id="f187" token="F187" status="retired">
+    <PaidBy>C-PAYMENT-RECORD</PaidBy>
+    <Title>### F187 — the retirement window ships with no fuel, and the findings that would fuel it are stuck in the buffer. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** on the delivered `C-RETIREMENT-WINDOW` working tree, by driving the real
+binary against a throwaway record.
+
+**The mechanism works.** A `--retire` that moved 18 lines took the findings window from **252 to 270**
+— `H + Δ_retired`, exactly as designed. Under the shipped formula the ceiling would have dropped to
+7960 and the window would have stayed 252, so retirement really did create room for the first time.
+The anti-ratchet holds: a second `--retire` moved 0 and left the file byte-identical.
+
+**It cannot act.** Production has **zero eligible findings** (`validate-record-retirement.ts` exits
+0), so `Δ_retired = 0` and the window stays at `H = 252`.
+
+**The ceiling is pinned, so the window can only be opened by retiring *before* the content arrives.**
+`ceiling = min(previousCeiling, Base_live + H)` can never exceed the 7978 already persisted: once the
+file grows, the clamp binds and holds 7978. So the window is `7978 − base`, and flushing first then
+retiring gains nothing — the clamp caps the ceiling while the base has already risen.
+
+**The arithmetic, at this date.** Staged findings wrap **494** lines (494 under the anchor-boundary
+convention, 504 under the trailing-trim one; the conclusion is identical). To flush them the base must
+fall to `7978 − 494 = 7484`, from **7726** — so **242 lines of findings must be retired first**, and
+zero are eligible.
+
+**The circularity.** The findings that would become eligible are themselves in the buffer. The staged
+charter row for `C-RETIRE-AND-CODIFY` pays [F180](#f180) and [F181](#f181) (78 lines) and that bundle
+is archived, so they become eligible **the moment they are flushed** — which is the act that is
+blocked. This bundle's own row pays [F183](#f183) and [F186](#f186) (81 lines), eligible once it
+archives.
+
+**No available sequence fits.** Flush everything and immediately retire the 78 eligible lines: base
+`8220 − 78 = 8142` against a ceiling clamped at 7978 — a breach of **164**. Add this bundle's 81 once
+it archives: **83** still over. Every intermediate state is CI-red, and `validate:ci` carries the
+validator.
+
+**What would close it:** roughly **242** lines of live findings becoming eligible, which happens only
+as future bundles archive and their registry rows name live findings in `Pays`. Eligibility remains
+the enforcement ([D28.1](#d28.1)) and that is the intent — but it means the flush waits on unrelated
+bundles, while the buffer grows by every session that records a finding. Four arrived in the session
+that measured this.
+
+Owner: a maintainer decision, not a code defect. `C-RETIREMENT-WINDOW` delivered what it specified.</Body>
+  </Finding>
 </Findings>

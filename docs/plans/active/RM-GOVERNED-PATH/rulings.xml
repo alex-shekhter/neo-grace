@@ -1,4 +1,4 @@
-<Rulings base="1624" headroom="259" ceiling="1883">
+<Rulings base="1834" headroom="49" ceiling="1883">
   <Decision id="d1" token="D1" status="live">
     <Title>## D1 — The tool is the only sanctioned writer of `approved → applied`</Title>
     <Body>
@@ -1620,5 +1620,215 @@ apply unchanged** — the pointer must resolve, and removing the pinned text mus
 — `C-MODULE-CONTRACT-GATE` 4, `C-CONSTRAINT-DURABILITY` 5, `C-CI-CLAIM-PIN` 6,
 `C-APPROVE-TARGET-DISCOVERY` 7, `C-EFFORT-DEPTH` 8, `C-FUNCTION-CONTRACT-SURFACE` 9.
 </Body>
+  </Decision>
+  <Decision id="d27.1" token="D27.1" status="live">
+    <Title>### D27.1 — supersede repairs a **ratified** artifact; an unratified draft is corrected in place. **[ratified]**</Title>
+    <Body>
+**Ratified 2026-09-06 by the maintainer**, verbatim: *&quot;i agree with B and C later&quot;*, on itemized
+variants put to him after [F176](#f176) showed the draft half was being cited as though [D27](#d27)
+said it.
+
+**The ruling.** [D27](#d27)'s route — `ngrace supersede` plus a replacement bundle — governs an
+artifact the **run ledger records as approved**. An artifact that has never been approved is
+**corrected in place**: there is no ratification to invalidate and nothing to supersede. This is a
+statement of `D27`'s boundary, not a new permission; `D27` is silent on drafts, and the silence was
+being read as a sentence.
+
+**The boundary is the ledger Decision and the fingerprint, never the `status` attribute.** The close
+ceremony hand-writes `status=&quot;applied&quot;`, so the attribute is hand-editable; approval is not. Measured
+2026-09-06 at `4bb299d`, both directions:
+
+| probe | result |
+|---|---|
+| hand-write `status=&quot;approved&quot;`, no `gate approve`, on a throwaway project | `review.approval-never-asked`, exit **1** — *&quot;approved spec.xml has no applying permitting approve Decision&quot;* |
+| perturb one byte of a properly approved `spec.xml` | `review.approved-fingerprint-mismatch`, exit **1** |
+| restore those bytes byte-identically | exit **0** |
+| edit a `draft` spec by any amount | no finding, exit **0** |
+| `ngrace status` on the hand-marked file | prints `spec=approved` and raises nothing — status **displays** the attribute, `review` **adjudicates** it |
+
+`ngrace supersede` is also bundle-level by construction: it requires `--change` plus `--replacement`
+naming a *different already-existing* `C-*`, and it moves the whole bundle into `archive/`. It cannot
+express an artifact-level fix to an unratified draft without abandoning the bundle and minting a
+replacement for something nobody ratified.
+
+**Born codified, and not intended to accumulate as live prose.** Both halves of the invariant are
+already enforced by shipped checks (`review.approval-never-asked`,
+`review.approved-fingerprint-mismatch`), so under [D28.1](#d28.1) this entry is a `codifiedIn`
+candidate the moment `C-RECORD-RETIREMENT` ships the tag. That bundle populates **zero** historical
+tags by its own NonGoal, so the tagging belongs to the follow-on codify bundle, not to it.
+
+**The teaching half is chartered, and no new name is minted.** The shipped skills scope the
+immutability rule to approved artifacts correctly and in every place — by explicit word in
+`ngrace-execute/SKILL.md:8` (*&quot;Run `ngrace supersede` instead of editing an **approved** conflict in
+place&quot;*) and `ngrace-explainer/references/contract-driven-dev.md:58`, and by enclosing element in
+`ngrace-plan/SKILL.md:29-31`, where *&quot;do not refresh ... in place&quot;* sits inside
+`&amp;lt;approved_plan_immutability&amp;gt;` beneath *&quot;if `plan.xml` already exists with status `approved`&quot;*.
+The defect is not a mis-scoped rule; it is that **the draft complement is stated nowhere**, so a
+reader who needs the permitted route finds only the forbidden one and reaches for `D27`. That complement belongs to
+[`C-CONSTRAINT-DURABILITY`](#named-bundle-registry) at **position 7** ([D34](#d34); 6 under
+[D32](#d32), 5 before that), whose charter row already names
+`skills/ngrace/ngrace-spec/SKILL.md` and its packaged mirror and already quotes *&quot;status remains
+draft&quot;* and *&quot;do not author `plan.xml` until approved&quot;*. Searched before proposing a new name:
+`C-TEACHING-SURFACE`, `C-APPROVE-TIME-REVIEW`, `C-APPROVAL-SCOPE`, `C-CO-DRAFT`, `C-SUPERSEDE-VERB`
+and `C-SUPERSEDE-COMMAND` are archived or cover other ground; `C-CONSTRAINT-DURABILITY` is the
+existing home. **[D31](#d31)'s ratified order is unchanged** — nothing is inserted and no position
+shifts. Once that skill text lands, this entry also gains a `taughtIn` trigger under `D31`.</Body>
+  </Decision>
+  <Decision id="d32" token="D32" status="live">
+    <Title>## D32 — `C-ROADMAP-XML` enters at position 4, and every later position shifts by one</Title>
+    <Body>
+**Ratified 2026-09-06 by the maintainer**, verbatim: *&quot;4 it is&quot;*, on itemized variants — insert at **4**
+against append at **10**.
+
+**The order, in full after this amendment.** **1** `C-SCOPE-AUDIT-ATTRIBUTION` (delivered as `-2`) →
+**2** `C-CITATION-ANCHOR-REPAIR` (delivered as `-2`, PR #72) → **3** `C-RECORD-RETIREMENT` (live as
+`-2`) → **4** **`C-ROADMAP-XML`** (new) → **5** `C-MODULE-CONTRACT-GATE` → **6**
+`C-CONSTRAINT-DURABILITY` → **7** `C-CI-CLAIM-PIN` → **8** `C-APPROVE-TARGET-DISCOVERY` → **9**
+`C-EFFORT-DEPTH` → **10** `C-FUNCTION-CONTRACT-SURFACE`. The insertion shifts six positions by one and
+**reorders nothing**; relative order is otherwise untouched, as in [D28](#d28), [D29](#d29) and
+[D31](#d31).
+
+**Why 4 rather than the tail, measured 2026-09-06 at `408f2ae`.** **40 of 68** archived bundles cite a
+`docs/plans/active/&lt;RM&gt;/` path (rule: `grep -rl` over archived `spec.xml` and `plan.xml`, counted by
+bundle directory). Exposure to silent citation decay therefore accrues with nearly every bundle that
+archives, and [F177](#f177) is what that decay already looks like — 15 archived bundles citing a
+`plan.md` path that does not exist, undetected. The runner-up, appending at **10**, renumbers nothing
+and loses on exactly that: six bundles' worth of new citations written before any check exists. The
+cost of waiting is not the conversion, it is the citations written while waiting.
+
+**What this amendment falsifies, swept with it rather than after it.** [D27.1](#d27.1) named
+`C-CONSTRAINT-DURABILITY` at **position 5**; it is **6** from here. Any text that names a position must
+be re-derived from this entry. An amendment that changes a numbering and does not name what it
+falsifies leaves known-false text standing elsewhere, which is the failure this paragraph exists to
+prevent.</Body>
+  </Decision>
+  <Decision id="d33" token="D33" status="live">
+    <Title>## D33 — the close-order clause is taught in `ngrace-execute`, and `C-APPROVAL-SCOPE` carries it</Title>
+    <Body>
+**Ratified 2026-09-06 by the maintainer**, verbatim: *&quot;B please&quot;*, on three itemized variants — document
+it in the authority's own artifacts only; teach it in the skill; or change the product so a
+`command-run` cannot reset a terminal state.
+
+**The ruling.** The clause is added to `skills/ngrace/ngrace-execute/SKILL.md` and its byte-identical
+packaged mirror, pinned by a `scripts/skill-contracts.test.ts` assertion, under the **existing**
+chartered name [`C-APPROVAL-SCOPE`](#named-bundle-registry). **Searched before minting**, 2026-09-06 at
+`401db34`, over `registry.xml` and `registry-retired.xml`: that row already owns *&quot;skill text for the
+per-step rule **and the authority-owned close&quot;*, named by [D19](#d19) and [D20](#d20). **No new name is
+minted and [D32](#d32)'s order does not shift.**
+
+**Why not the product change.** `command-run` → `in-progress` is a shipped, deliberate mapping under
+`C-CALIBRATION-COMMAND-EVIDENCE`, and correct for its ordinary use. Overturning it to prevent an
+operator ordering error would answer a one-clause teaching gap with a semantic change; [CLAUDE.md](../../../../CLAUDE.md)
+rule 9 requires answering the original argument, and nothing in [F179](#f179) does. If the fault
+recurs **after** the teaching ships, that recurrence is the evidence the product change would need.
+
+**Why not documentation alone.** [F179](#f179) measured the fault twice — `C-CITATION-ANCHOR-REPAIR-2`
+and `C-RECORD-RETIREMENT-2` — under a sequence that lives only in the authority's session prompt. Every
+other GRACE consumer runs the shipped skill, which is silent on the ordering, so a fix confined to this
+repository's private artifacts leaves the trap in the product.
+
+**Scope discipline.** `C-APPROVAL-SCOPE`'s charter is broader than this clause: [D19](#d19) requires the
+skills to say that **an approval covers the current step only**, and [D20](#d20) that **the authority
+owns the close** — `--assertions final`, `review`, `gate verdict`, `gate apply`, `gate archive`, the
+`applied` writes, and the archive move. The close-order clause belongs inside D20's half. Whether the
+bundle discharges its **whole** charter or only this clause is a scoping decision for its spec, and the
+brief must put that question rather than assume it.
+
+**Position.** The row is chartered and marked *&quot;Ordered, not deferred&quot;* yet appears in **no** position
+of [D31](#d31) or [D32](#d32)'s enumerated order — an inconsistency recorded here rather than resolved
+silently. It runs **unpositioned** unless the maintainer assigns it a slot; [D32](#d32)'s order shifted
+once already on 2026-09-06 and is not disturbed again for a one-clause skill edit.</Body>
+  </Decision>
+  <Decision id="d34" token="D34" status="live">
+    <Title>## D34 — `C-RETIRE-AND-CODIFY` enters at position 4, ahead of `C-ROADMAP-XML`</Title>
+    <Body>
+**Ratified 2026-09-06 by the maintainer**, verbatim: *&quot;B it is&quot;*, on three itemized variants — the
+retirement operation alone, the operation plus the first codification tagging, or a hand edit with no
+bundle.
+
+**The ruling.** One bundle ships **both** halves: the **ongoing retirement operation** that
+[F180](#f180) found missing, and the **first `CodifiedIn` / `TaughtIn` tagging** that [F181](#f181)
+found unreachable. It enters at **position 4**, ahead of [`C-ROADMAP-XML`](#named-bundle-registry).
+
+**The order, in full after this amendment.** **1** `C-SCOPE-AUDIT-ATTRIBUTION` (delivered as `-2`) →
+**2** `C-CITATION-ANCHOR-REPAIR` (delivered as `-2`, PR #72) → **3** `C-RECORD-RETIREMENT` (delivered as
+`-2`, PR #74) → **4** **`C-RETIRE-AND-CODIFY`** (new) → **5** `C-ROADMAP-XML` → **6**
+`C-MODULE-CONTRACT-GATE` → **7** `C-CONSTRAINT-DURABILITY` → **8** `C-CI-CLAIM-PIN` → **9**
+`C-APPROVE-TARGET-DISCOVERY` → **10** `C-EFFORT-DEPTH` → **11** `C-FUNCTION-CONTRACT-SURFACE`. Seven
+positions shift by one; **nothing is reordered**.
+
+**Why ahead of `C-ROADMAP-XML`.** The record cannot accept new entries until it can retire old ones.
+Measured at `67bc55c`: the flush of one session's work breaches both live ceilings, the retirement
+enforcement cannot fire in any direction — nothing annotates `&amp;lt;PaidBy&amp;gt;`, validation never derives,
+and the shipped derivation returns **0** live-eligible even when run ([F180](#f180), corrected) — and
+the decisions genre has no reachable trigger at all. **The ruling stands on the enforcement being
+inert; it does not rest on the retracted twelve-eligible count.**
+`C-ROADMAP-XML` converts markdown that **nothing parses** ([F177](#f177)); this unblocks the record
+itself. The runner-up — shipping only the retirement operation — leaves `rulings.xml` breached with no
+remedy, because tagging is the only trigger decisions have.
+
+**Name.** `C-RETIRE-AND-CODIFY`, naming both halves so the scope is legible from the registry row.
+**Searched before minting**, 2026-09-06 at `67bc55c`, over `registry.xml`, `registry-retired.xml` and
+every directory under `.ngrace/changes/archive/` for `retire`, `codif`, `taught`, `ratchet` and
+`ceiling`: the only matches are `C-RECORD-RETIREMENT` and `C-RECORD-RETIREMENT-2`, both archived and
+both the split rather than the operation. No existing name covers this ground.
+
+**What this amendment falsifies, swept with it.** [D27.1](#d27.1) named `C-CONSTRAINT-DURABILITY` at
+position 6; it is **7** from here. [F178](#f178) named `C-MODULE-CONTRACT-GATE` at position 5; it is
+**6**. [D32](#d32)'s enumerated order is superseded by this one and stands as the dated record of what
+was true before. Read positions from **this** entry.</Body>
+  </Decision>
+  <Decision id="d36" token="D36" status="live">
+    <Title>## D36 — `C-PAYMENT-RECORD` enters at position 6, and every later position shifts by one</Title>
+    <Body>
+**Ratified 2026-09-07 by the maintainer**, verbatim: *&quot;1 - 6 ok&quot;*, on the authority's recommendation
+of position 6 after an audit of the live findings.
+
+**The order from here.** **6** `C-PAYMENT-RECORD` → **7** `C-ROADMAP-XML` → **8**
+`C-MODULE-CONTRACT-GATE` → **9** `C-CONSTRAINT-DURABILITY` → **10** `C-CI-CLAIM-PIN` → **11**
+`C-APPROVE-TARGET-DISCOVERY` → **12** `C-EFFORT-DEPTH` → **13** `C-FUNCTION-CONTRACT-SURFACE`.
+Positions 1–5 are delivered. Read the order from **this** entry.
+
+**Why it goes ahead of `C-ROADMAP-XML`.** `C-RETIREMENT-WINDOW` shipped a window that opens by
+`Δ_retired`, and then could not open it: **zero** live findings are eligible, because **60 of 71**
+archived bundles have no registry row and their payments are invisible to the derivation
+([F187](#f187)). Recording those payments is now the only thing that unblocks the flush, and the same
+asymmetry that decided [D35](#d35) applies again — the roadmap defect waits without degrading, the
+buffer does not.
+
+**The scope, as recommended and accepted.** Record payments that already happened rather than fix
+findings. It is the more caloric option — `F90`, `F90.1` and `F35` alone are 249 lines against a
+242-line target, with `F27` and `F38` behind them — and the more deterministic one, since each payment
+is settled by a symbol or a named test in work already merged, with no governance question and no new
+behaviour.
+
+**What this amendment falsifies, swept with it.** [D35](#d35) placed `C-ROADMAP-XML` at 6,
+`C-MODULE-CONTRACT-GATE` at 7, `C-CONSTRAINT-DURABILITY` at 8, `C-CI-CLAIM-PIN` at 9,
+`C-APPROVE-TARGET-DISCOVERY` at 10, `C-EFFORT-DEPTH` at 11 and `C-FUNCTION-CONTRACT-SURFACE` at 12.
+Each is one later from here. [D35](#d35) stands as the dated record of what was true before.</Body>
+  </Decision>
+  <Decision id="d35" token="D35" status="live">
+    <Title>## D35 — `C-RETIREMENT-WINDOW` enters at position 5, and every later position shifts by one</Title>
+    <Body>
+**Ratified 2026-09-06 by the maintainer**, verbatim: *&quot;A. Executor is cold&quot;*, on three itemized
+variants put to him — position 5, position 6 behind [`C-ROADMAP-XML`](#named-bundle-registry), or
+unpositioned.
+
+**The order from here.** **5** `C-RETIREMENT-WINDOW` → **6** `C-ROADMAP-XML` → **7**
+`C-MODULE-CONTRACT-GATE` → **8** `C-CONSTRAINT-DURABILITY` → **9** `C-CI-CLAIM-PIN` → **10**
+`C-APPROVE-TARGET-DISCOVERY` → **11** `C-EFFORT-DEPTH` → **12** `C-FUNCTION-CONTRACT-SURFACE`.
+Positions 1–4 of [D34](#d34) are delivered and unchanged. Read the order from **this** entry.
+
+**Why ahead of `C-ROADMAP-XML`.** The record cannot be flushed until this bundle lands
+([F183](#f183)), and the staging buffer holds every unflushed entry in **exactly one copy** in an
+untracked, `.gitignore`d file. The asymmetry decided it: [F177](#f177), which `C-ROADMAP-XML` pays,
+is a stale-citation defect with no deadline and nothing degrades while it waits; the buffer degrades
+by every entry a session adds. Four arrived in the session that ratified this.
+
+**What this amendment falsifies, swept with it rather than after it.** [D34](#d34) placed
+`C-ROADMAP-XML` at 5, `C-MODULE-CONTRACT-GATE` at 6, `C-CONSTRAINT-DURABILITY` at 7,
+`C-CI-CLAIM-PIN` at 8, `C-APPROVE-TARGET-DISCOVERY` at 9, `C-EFFORT-DEPTH` at 10 and
+`C-FUNCTION-CONTRACT-SURFACE` at 11. Each is one later from here. [D34](#d34)'s enumerated order is
+superseded by this one and stands as the dated record of what was true before.</Body>
   </Decision>
 </Rulings>
