@@ -90,7 +90,7 @@
   <Entry id="f25.1" token="F25.1" genre="finding" layer="live" />
   <Entry id="f26" token="F26" genre="finding" layer="live" />
   <Entry id="d14" token="D14" genre="decision" layer="live" />
-  <Entry id="f27" token="F27" genre="finding" layer="live" />
+  <Entry id="f27" token="F27" genre="finding" layer="retired" />
   <Entry id="f28" token="F28" genre="finding" layer="live" />
   <Entry id="f29" token="F29" genre="finding" layer="live" />
   <Entry id="f30" token="F30" genre="finding" layer="live" />
@@ -99,17 +99,17 @@
   <Entry id="f32" token="F32" genre="finding" layer="live" />
   <Entry id="f9.10.1" token="F9.10.1" genre="finding" layer="live" />
   <Entry id="f33" token="F33" genre="finding" layer="live" />
-  <Entry id="f27.1" token="F27.1" genre="finding" layer="live" />
-  <Entry id="f27.2" token="F27.2" genre="finding" layer="live" />
+  <Entry id="f27.1" token="F27.1" genre="finding" layer="retired" />
+  <Entry id="f27.2" token="F27.2" genre="finding" layer="retired" />
   <Entry id="f29.1" token="F29.1" genre="finding" layer="live" />
   <Entry id="f34" token="F34" genre="finding" layer="live" />
   <Entry id="f34.1" token="F34.1" genre="finding" layer="live" />
   <Entry id="f36" token="F36" genre="finding" layer="live" />
-  <Entry id="f35" token="F35" genre="finding" layer="live" />
+  <Entry id="f35" token="F35" genre="finding" layer="retired" />
   <Entry id="f35.1" token="F35.1" genre="finding" layer="live" />
   <Entry id="f37" token="F37" genre="finding" layer="live" />
   <Entry id="d16" token="D16" genre="decision" layer="live" />
-  <Entry id="f38" token="F38" genre="finding" layer="live" />
+  <Entry id="f38" token="F38" genre="finding" layer="retired" />
   <Entry id="f39" token="F39" genre="finding" layer="live" />
   <Entry id="f39.1" token="F39.1" genre="finding" layer="live" />
   <Entry id="f40" token="F40" genre="finding" layer="live" />
@@ -177,10 +177,10 @@
   <Entry id="f89.1" token="F89.1" genre="finding" layer="live" />
   <Entry id="f86.1" token="F86.1" genre="finding" layer="retired" />
   <Entry id="f86.2" token="F86.2" genre="finding" layer="retired" />
-  <Entry id="f90" token="F90" genre="finding" layer="live" />
+  <Entry id="f90" token="F90" genre="finding" layer="retired" />
   <Entry id="f91" token="F91" genre="finding" layer="live" />
   <Entry id="f92" token="F92" genre="finding" layer="live" />
-  <Entry id="f90.1" token="F90.1" genre="finding" layer="live" />
+  <Entry id="f90.1" token="F90.1" genre="finding" layer="retired" />
   <Entry id="f93" token="F93" genre="finding" layer="live" />
   <Entry id="f88.3" token="F88.3" genre="finding" layer="live" />
   <Entry id="f94" token="F94" genre="finding" layer="live" />
@@ -218,7 +218,7 @@
   <Entry id="f119" token="F119" genre="finding" layer="live" />
   <Entry id="f120" token="F120" genre="finding" layer="retired" />
   <Entry id="f121" token="F121" genre="finding" layer="retired" />
-  <Entry id="f27.1-amendment" token="F27.1" genre="finding" layer="live" />
+  <Entry id="f27.1-amendment" token="F27.1" genre="finding" layer="retired" />
   <Entry id="f120.1" token="F120.1" genre="finding" layer="live" />
   <Entry id="f122" token="F122" genre="finding" layer="retired" />
   <Entry id="f123" token="F123" genre="finding" layer="live" />

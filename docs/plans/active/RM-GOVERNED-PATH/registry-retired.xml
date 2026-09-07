@@ -152,4 +152,28 @@
     <Pays></Pays>
     <StatusText>Abbreviation of `C-TOKEN-INTEGRITY` in the cursor derivation.</StatusText>
   </Row>
+<Row name="C-CURSOR-TASK-RESOLVER" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Stop guessed task identity on a run event: inherit a plan-declared in-scope task for command-run, or refuse before write; never invent T-000. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F90, F90.1</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: resolveDeclaredCommandRunTask at src/grace-cursor.ts:3401 (&quot;Never invent T-000&quot;) and the invalid-arguments refusal at :3422-3427; tests &quot;C-CURSOR-TASK-RESOLVER T-001: command-run inherits a declared in-scope task&quot; (src/grace-cursor.test.ts:3846) and &quot;C-CURSOR-TASK-RESOLVER T-001: command-run refuses when no declared task is in scope&quot; (:3894). Does not claim the range-hole residual or regenerate re-derivation of an undeclared last event.</StatusText>
+  </Row>
+<Row name="C-SUBSTANCE-OVER-NAME" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>One structural-clone definition in src/, verified by body rather than identifier: cloneXmlNode is the single home. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F35</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: export function cloneXmlNode at src/artifact/xml.ts:239; src/gates/ledger.ts:65 imports it and :252 calls it; no function cloneNode in src/.</StatusText>
+  </Row>
+<Row name="C-DECLARED-WRITES" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Compare each change's durable WriteEvidence paths to its plan ObservedWriteScope at review time; teach ngrace-plan that ObservedWriteScope covers what the deliverable forces. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F27, F27.1, F27.2</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: auditWriteEvidenceOutsideScope (src/review/core.ts:1112, C-DECLARED-WRITES / F27 comment at :1104-1111) raises review.write-evidence-outside-scope when a WriteEvidence path is outside ObservedWriteScope; ngrace-plan SKILL.md rule 6 (skills/ngrace/ngrace-plan/SKILL.md:61) teaches that ObservedWriteScope covers what the deliverable forces.</StatusText>
+  </Row>
+<Row name="C-GRAMMAR-SEAM" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Make Clarification authorable by moving its target to a self-closing IC-*, INV-*, or AC-* child, never a target attribute. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F38</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: Clarification takes exactly one self-closing IC-*, INV-*, or AC-* child (src/artifact/grammar.ts:1730-1731); a target attribute is rejected (:1768-1769). The element is authorable.</StatusText>
+  </Row>
 </Registry>
