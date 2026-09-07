@@ -1,1 +1,0 @@
-<NgraceRunEvent command="bun ./scripts/validate-citation-anchors.ts" exitCode="0" assertionPassed="true" assertionKind="MustPassCommand" source="lint-run-commands" graceVersion="1.0" id="6" task="T-001" kind="command-run" />
