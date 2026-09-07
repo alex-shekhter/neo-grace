@@ -1,0 +1,1060 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-RETIREMENT-WINDOW>
+    <Summary>
+      Fix the retirement clamp so that retiring
+      content opens a write window instead of
+      erasing it: on a --retire that moves at
+      least one element, the findings ceiling is
+      min(previous ceiling, pre-move base plus
+      headroom), not min(previous ceiling,
+      post-move base plus headroom). The move
+      therefore opens a window of retired lines
+      plus headroom that the next flush consumes
+      and the following --retire closes. The
+      findings genre only: rulings keeps the
+      post-move timing with the clamp now
+      unconditional, registry and index keep
+      their formulas. Remove the spent one-time
+      rulings exception (isFirstRulingsRewrite)
+      shipped by C-RETIRE-AND-CODIFY, whose
+      stop condition is content-derived and can
+      re-fire by coincidence, and replace it
+      with a validator-asserted provenance
+      ceiling on the rulings genre so the 1883
+      correction stays pinned and any later
+      raise is constructively a hand edit.
+      Pays F183 (staged buffer). Binding live
+      rulings D28, D28.1, D30; D31 layers.
+      Overturns the findings half of
+      C-RETIRE-AND-CODIFY's ceiling ruling,
+      with the original argument answered in
+      Constraints. No graph module is written;
+      src/ is not edited. Name provisional,
+      awaiting the maintainer's charter.
+    </Summary>
+    <Problem>
+      The retirement clamp is re-derived from
+      the post-move footprint at every
+      --retire, so retiring content removes an
+      equal amount of ceiling. Shipped code:
+      persistSnapshot
+      (scripts/validate-record-retirement.ts:858)
+      computes ceiling as
+      min(previous.ceiling, base + headroom)
+      and retireRecord (:933) passes the
+      post-move line count as base
+      (:1067-1081). Under D28.1 the ceiling is
+      the backstop and eligibility the
+      enforcement, but the backstop as
+      shrink-to-fit makes retirement unable to
+      create room: headroom is the only room
+      there will ever be, permanently. Staged
+      F183 (buffer, not record) measured this:
+      the findings breach of the staged buffer
+      was the same size before and after
+      C-RETIRE-AND-CODIFY's move of 15
+      eligible findings. The record cannot
+      accept the D30-staged buffer
+      (.ngrace/scratch/staged-findings.md)
+      until the window mechanism ships; the
+      genres are entangled with citations in
+      both directions, so no partial flush
+      exists (staged F183, re-measured for
+      this spec in Assumptions).
+
+      C-RETIRE-AND-CODIFY corrected the
+      rulings multiplier 2 to 7 and shipped a
+      read-time predicate
+      (isFirstRulingsRewrite,
+      scripts/validate-record-retirement.ts:504)
+      that let the rulings ceiling correct
+      itself exactly once by disabling the
+      clamp on the first ruling rewrite whose
+      persisted shape still matched the
+      uncorrected sizing. It fired in that
+      bundle (git show of the move in
+      Assumptions) and its intended purpose is
+      exhausted: the current rulings snapshot
+      is exactly what the corrected formula
+      produces. But its stop condition is not
+      structural. When a clamped rewrite binds,
+      the persisted headroom becomes
+      previousCeiling minus base
+      (persistSnapshot :858-868), an arbitrary
+      integer; if that integer later equals
+      2 times the then-live median while the
+      formula term exceeds the persisted
+      ceiling, the predicate fires again and
+      raises the ceiling as an accident of
+      arithmetic -- a raise no human decided,
+      the act D28.1 made non-negotiable. A
+      spend-once predicate that can re-fire on
+      content coincidence is not spent; this
+      bundle removes it and preserves the
+      correction's provenance as a checked
+      invariant instead of a comment.
+
+      The headroom constant H stays sourced in
+      tracked repository space (7 times the
+      median live element line count,
+      :1065). It must never be a function of
+      the untracked staged buffer: a ceiling
+      derived from a .gitignored file is
+      unreproducible from a fresh clone and
+      greenable by appending to local state
+      (D28.1, rejected explicitly). Staged
+      F182's median-rounding defect is
+      adjacent and stays with its owner; this
+      bundle does not re-size H.
+    </Problem>
+    <Goals>
+      <Goal>
+        The findings retirement window. After
+        a --retire that moved at least one
+        element, persist on the findings live
+        root: base = the post-move line count
+        of findings.xml; ceiling =
+        min(previously persisted ceiling,
+        Base_live + H), where Base_live is
+        the pre-retirement line count of
+        findings.xml as read on entry and
+        H = 7 times the median line count of
+        the live Finding elements after the
+        move (the shipped derivation
+        (:1065), population unchanged);
+        headroom = ceiling - base, so the
+        three attributes remain a consistent
+        snapshot and headroom reads as the
+        open window. The move opens
+        Delta_retired + H; the next flush
+        consumes it; the following --retire
+        closes it back toward H. With
+        Delta_retired = 0 -- a move of other
+        genres while findings is unchanged --
+        the min yields a window of exactly H
+        when the snapshot sits at base + H
+        (its steady state), and consumes the
+        window exactly as growth lands. The
+        min is required, not optional:
+        without it the ceiling rises whenever
+        growth outpaces the previous
+        retirement, which is a ratchet upward
+        and inverts the invariant (D28.1).
+      </Goal>
+      <Goal>
+        Remove the spent one-time rulings
+        exception. Delete isFirstRulingsRewrite
+        and the discriminator branch (:947-953,
+        :1071-1073): the rulings clamp becomes
+        unconditional, which is the current
+        rulings behaviour for every intended
+        future state -- the exception's
+        purpose ended with the correction it
+        shipped. The six references to the
+        predicate in the retirement test file
+        are replaced by clamp-always fixtures.
+      </Goal>
+      <Goal>
+        Provenance for the corrected rulings
+        ceiling, validator-asserted rather
+        than comment-carried. A named constant
+        in scripts/validate-record-retirement.ts
+        carries the ceiling value that
+        C-RETIRE-AND-CODIFY's one-time
+        correction persisted (the historical
+        exception belongs to that bundle, not
+        to C-RECORD-RETIREMENT-2, which set
+        the sizing it corrected); the
+        non-mutating validate run errors when
+        the rulings live root persists a
+        ceiling above it. Under the clamp an
+        upward move has no in-product
+        producer, so a larger value is
+        constructively a hand edit. The
+        failure message names the provenance
+        and says raising the persisted value
+        is not the remedy; it never names a
+        config key (D28.1). A future bundle
+        that legitimately re-sizes rulings
+        amends the constant, with its own
+        citation, inside its own spec.
+      </Goal>
+      <Goal>
+        Observable trigger, confirmed and
+        kept. Every write of base / headroom /
+        ceiling happens inside an argv the
+        engine itself executes: retireRecord
+        (:933, the four withRootSnapshot
+        calls at :1067-1081, after the
+        movedCount === 0 early return at
+        :1024) or the one-shot split
+        (splitFrozenRecord :578, which refuses
+        a stub at :583). --stamp-paid-by
+        (:909) writes PaidBy children only.
+        Validation is read-only and is the
+        validate:ci member (package.json:72,
+        :77). The window's clamp inputs are
+        the pre-move bytes of findings.xml
+        and the post-move live medians, both
+        measured at the event, plus the
+        persisted previous ceiling; no step
+        depends on an operator gesture the
+        system cannot observe.
+      </Goal>
+      <Goal>
+        No new transition machinery. The
+        findings ratchet ships with no
+        one-time predicate, kind= marker, or
+        self-erasing branch: the cutover is
+        continuous at the persisted state
+        (arithmetic in Assumptions), and the
+        only reads of persisted base and
+        headroom today are the exception
+        being deleted and the snapshot
+        rewrite itself; validation compares
+        occupancy to the persisted ceiling
+        only (checkCeilingValue, :1267).
+        Do not reinvent an exception
+        mechanism this change does not need.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module change
+        shape): a single tooling surface --
+        scripts/validate-record-retirement.ts
+        and its test file. No graph module is
+        written, no docs or README surface is
+        edited, no record file is written by
+        this bundle (measured: zero eligible
+        entries; Assumptions). Gates still
+        run. Roadmap RM-GOVERNED-PATH.
+        Binding live rulings: D28, D28.1,
+        D30; D31 layers. Paid finding: F183
+        (staged buffer under the D30 freeze,
+        like F180 / F181 before it). The
+        bundle name is provisional and
+        awaits the maintainer's charter; do
+        not mint a registry row for it (the
+        staged charter row is the
+        authority's flush).
+      </Constraint>
+      <Constraint>
+        Carried decisions -- implemented, not
+        relitigated. (1) The formula is
+        single-invocation: Base_k =
+        Base_live - Delta_retired and
+        Ceiling_k = min(Ceiling_(k-1),
+        Base_live + H) at one --retire
+        event; there is no lagged pass.
+        (2) The min is required. (3) The
+        findings genre only: rulings keeps
+        the post-move timing (below), and
+        the registry / index genres keep
+        their formulas entirely. (4) H stays
+        a constant derived in tracked
+        repository space, never a function
+        of the staged buffer or any
+        untracked state (D28.1: the rejected
+        shape makes the CI criterion
+        unreproducible from a fresh clone
+        and greenable by appending to a
+        .gitignored file). (5) The rulings
+        CodifiedIn / TaughtIn historical
+        tagging pass is not this bundle.
+      </Constraint>
+      <Constraint>
+        The findings ceiling ruling,
+        normative. On entry to the snapshot
+        rewrite, capture Base_live as the
+        newline count of findings.xml as
+        read, before any spans are removed.
+        After the move: base = post-move
+        line count; H = 7 times the median
+        post-move live Finding element line
+        count via the shipped median
+        (:118) and line-count path;
+        ceiling = min(previous persisted
+        ceiling, Base_live + H); headroom =
+        ceiling - base. This overturns the
+        findings half of C-RETIRE-AND-CODIFY's
+        ceiling ruling (CLAUDE.md rule 9,
+        stated): that bundle's argument for
+        the clamp was that a formula recompute
+        across its multiplier fix must not
+        raise the rulings ceiling past the
+        correction, and its findings half --
+        min over the post-move base -- was
+        applied without a findings-specific
+        argument. The min, which was the
+        load-bearing half of that ruling,
+        is kept; what changes is the base
+        the second term measures, which the
+        original Constraint derived as
+        live size at that moment and which
+        staged F183 measured as erasing the
+        room retirement creates. The
+        original argument's counterweight
+        -- no raise without a decision --
+        survives intact under the pre-move
+        term. The ceiling failure message
+        continues to name --retire / move to
+        the retired sibling and says raising
+        the persisted ceiling is not the
+        remedy; it never names a config key
+        or a multiplier. Do not pin a scalar
+        count of a record file into this
+        Constraint (D30); the measured
+        occupancy is in Assumptions.
+      </Constraint>
+      <Constraint>
+        Snapshot consistency across genres.
+        Every live root persists a triple
+        with headroom = ceiling - base after
+        a rewrite. For rulings, registry,
+        and index this is behaviourally the
+        shipped rule -- when the formula
+        term sets the ceiling,
+        ceiling - base is exactly the
+        computed headroom, and when the
+        clamp binds the shipped code already
+        persists ceiling - base (:866).
+        For findings it is the same
+        statement and yields headroom =
+        Delta_retired + H when the formula
+        term sets the ceiling. The current
+        production record satisfies
+        base + headroom = ceiling on all
+        four live roots (Assumptions), so
+        this codifies the existing
+        invariant, it does not introduce a
+        new state shape.
+      </Constraint>
+      <Constraint>
+        The exception removal, with the
+        reason removal beats dormancy.
+        isFirstRulingsRewrite (:504-513),
+        the discriminator computation
+        (:947-953), and the !discriminator
+        clamp branch (:1071-1073) are
+        deleted; the rulings persistSnapshot
+        call passes clamp = true always.
+        Dormant is not safe: the predicate
+        reads persisted headroom at every
+        rewrite, the clamped-rewrite rule
+        persists headroom = previousCeiling
+        - base, and that value equals
+        2 times a future live median only by
+        coincidence -- but if it does, at a
+        moment when the formula term
+        exceeds the persisted ceiling, the
+        clamp is disabled and the ceiling
+        rises with no ratified decision.
+        D28.1 forbids exactly that act, so
+        the mechanism is removed rather than
+        left armed. The retirement test
+        file's split-shape probes of the
+        first-rewrite behaviour are replaced
+        by fixtures proving a split-shaped
+        (uncorrected-sizing) ruling file
+        keeps its previous ceiling under a
+        --retire whose 7-times formula term
+        exceeds it -- the discriminating
+        direction against the deleted
+        behaviour. Archived
+        C-RETIRE-AND-CODIFY and its
+        acceptance criteria are immutable
+        history: this bundle supersedes the
+        engine, not that bundle's record.
+      </Constraint>
+      <Constraint>
+        The provenance invariant. The
+        non-mutating validate path gains one
+        check: the rulings live root's
+        persisted ceiling must not exceed
+        the named constant carrying the
+        ceiling C-RETIRE-AND-CODIFY
+        persisted at its move. The constant
+        carries the number; its comment
+        carries only the citation (bundle
+        name and move commit), so the number
+        cannot drift from a paraphrase. The
+        error's message says: the persisted
+        rulings ceiling exceeds the value
+        C-RETIRE-AND-CODIFY's one-time
+        correction persisted; no shipped
+        operation raises it; restore from
+        git; raising the persisted ceiling
+        is not the remedy. Fixture tests
+        plant both directions: at the
+        constant, validation passes; one
+        above it, validation exits non-zero
+        with the provenance message. This
+        check reads the persisted
+        attribute; it does not recompute
+        occupancy and adds no scalar count
+        of a record file to any Constraint
+        (D30).
+      </Constraint>
+      <Constraint>
+        No one-time transition for the
+        findings ratchet. Explicitly: this
+        change needs no discriminator. The
+        new formula is continuous at the
+        persisted state -- at Delta_retired
+        = 0 on the current snapshot it
+        persists min of the current ceiling
+        and the current base plus the
+        current shipped headroom, which is
+        the current ceiling (Assumptions).
+        Nothing re-reads persisted base or
+        headroom for behaviour once the
+        exception is gone. No kind=
+        attribute, no marker element, no
+        self-erasing branch ships. If a
+        plan author is tempted to mirror the
+        deleted predicate for findings, this
+        Constraint is the refusal.
+      </Constraint>
+      <Constraint>
+        Registry and index keep the current
+        timing, and the asymmetry is
+        correct. Index: a move flips an
+        Entry's layer attribute in place and
+        removes zero lines, so its pre- and
+        post-move bases coincide and the two
+        timings are identical there --
+        applying the new timing would be a
+        no-op. Registry: base is a count of
+        live rows, growth and retirement are
+        denominated in the same unit, and
+        they balance one-for-one over a
+        bundle's life -- a charter adds one
+        row and that bundle's archive event
+        later removes one -- so the genre
+        cannot accumulate retired-more-than-
+        arrived the way findings does, where
+        one bundle can pay arbitrarily many
+        entries against a single registry
+        row. Pressure measured at this
+        spec's commit is absent
+        (Assumptions). If registry pressure
+        is ever measured, the findings
+        template now exists; growing this
+        bundle to a genre with no measured
+        defect is refused (D11's mirror: no
+        scope without a dependency).
+      </Constraint>
+      <Constraint>
+        Observable trigger. The only writers
+        of the three attributes are
+        withRootSnapshot (:848), called
+        exactly four times, all in
+        retireRecord after the movedCount
+        === 0 early return, and wrapRoot's
+        split-time call (:578-583), which
+        refuses while decisions.md is a
+        stub. The plan must not add a
+        writer. The clamp evaluation happens
+        at the same --retire invocation that
+        performs the move, reading bytes the
+        invocation already holds; the flush
+        that later fills the window is a
+        hand edit the engine does not need
+        to observe, because occupancy is
+        adjudicated on every validate run
+        against the persisted ceiling. A
+        --retire with nothing eligible
+        remains a byte-identical no-op and
+        must not rewrite any attribute.
+      </Constraint>
+      <Constraint>
+        Write scope, anchors, and imports.
+        Files this spec forces into write
+        scope: scripts/validate-record-retirement.ts
+        and scripts/validate-record-retirement.test.ts
+        only, plus the bundle's own
+        artifacts. Both script files have no
+        LINKS: header (checked); scripts/
+        is in .ngrace-lint.json ignoredDirs;
+        M-RELEASE-AUTOMATION is not in
+        .ngrace/graph and remains deferred.
+        No graph module is written; do not
+        mint a synthetic module. The script
+        may keep importing
+        parseGraceXmlArtifact, walkNodes,
+        childNodes, and childText from
+        src/artifact/xml.ts (LINKS
+        M-GRAMMAR) and isEmittableIssueCode
+        from src/lint/catalog.ts (LINKS
+        M-LINT-CATALOG) as import sources;
+        it must not edit them, and no new
+        src/ import is needed. Do not add a
+        ngrace lint issue code. Do not
+        register the record files in
+        CONTEXT_ARTIFACTS. Per staged F178,
+        neither change.plan-scope-exceeds-spec
+        (skipped when a spec names no
+        module) nor
+        change.graph-anchors-miss-write-scope
+        (src/ only) binds on this class of
+        bundle; the review --change scope
+        audit against ObservedWriteScope is
+        the guard that does work, and the
+        later plan's ObservedWriteScope is
+        exactly the two script files.
+      </Constraint>
+      <Constraint>
+        Freeze and scope discipline under
+        D30 / D31. Do not flush
+        .ngrace/scratch/staged-findings.md
+        into the record; the flush is the
+        authority's act once a --retire
+        under the new formula has opened
+        enough window -- the currently
+        eligible set is zero (measured,
+        Assumptions), so this bundle opens
+        the mechanism, not the flush. Do not
+        edit any record file, including to
+        re-persist attributes under the new
+        formula: no eligibility exists at
+        this spec's writing, no --retire
+        move runs in production for this
+        bundle, and the record subtree stays
+        byte-identical. Do not mint a
+        registry row for this bundle. Do not
+        edit skills/ngrace/* or the packaged
+        mirror. Do not edit CLAUDE.md or
+        docs/plans/README.md: their record
+        sentences -- ceiling attributes are
+        rewritten only by the move and never
+        raised, and --retire is the move --
+        remain exactly true under this
+        formula, and the shipped
+        AC-TEACHING pins continue to hold.
+        Do not edit anything under
+        docs/plans/archive/ or
+        .ngrace/changes/archive/.
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, settled lessons.
+        Every diff-based criterion's command
+        scopes to exactly the paths its
+        prose names (the previous close's
+        AC-NO-GRAMMAR lesson, staged F185):
+        prose and pathspec are the same
+        set, and an incidental src/
+        fix discovered during close is
+        sequenced after the archive in its
+        own commit, the documented handling.
+        Archive-protection prose says
+        tracked paths, because git diff
+        --exit-code cannot see a new
+        untracked path (staged F174); no
+        stronger claim is made. Any test
+        this bundle's plan adds that
+        measures the real repository
+        carries an explicit generous
+        timeout (staged F185); the
+        provenance check lives in the
+        validator exercised by fixtures, so
+        none is expected. Every task
+        Verification command the later plan
+        records must exit 0 as written at
+        recording time (staged F184's
+        standing rule). Task Verification
+        and TargetAssertions contain no
+        current-mode lint of this project
+        root -- the rule: the command text
+        contains --assertions current, or it
+        invokes ngrace lint of this root and
+        omits --assertions; checked by hand
+        because the shipped detector misses
+        bun ./src/grace.ts lint (F171).
+        Current-mode lint appears only as
+        post-archive AC-CLOSE-LINT.
+      </Constraint>
+      <Constraint>
+        C-REPORT-HONESTY stands. Do not
+        silence current-mode baseline
+        issues, do not infer writes-started
+        from git dirty, the ledger, or
+        ObservedWriteScope, and do not treat
+        bun test green as the evidence --
+        the ExpectedEvidence probes are
+        discriminating fixtures run against
+        the delivered product.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Flushing .ngrace/scratch/staged-findings.md
+        into the live record, in whole or in
+        part. Owner: the authority, once a
+        production --retire under the new
+        formula has opened window enough;
+        the genres flush together because
+        the buffer's citations cross genres
+        in both directions (re-measured in
+        Assumptions).
+      </NonGoal>
+      <NonGoal>
+        The historical CodifiedIn / TaughtIn
+        tagging audit over live decisions.
+        Owner: a follow-on bundle,
+        unchartered at this spec's writing;
+        tagging is a judgement-heavy pass
+        and is not pulled in (the rulings
+        arrival it would relieve is
+        currently absorbed by the headroom
+        C-RETIRE-AND-CODIFY shipped).
+      </NonGoal>
+      <NonGoal>
+        Changing the headroom sizing -- the
+        multiplier stays 7 and stays
+        entry-sized; staged F181's open
+        question (sizing from arrival rate)
+        and staged F182's rounding defect
+        keep their owners. This bundle
+        changes when the base is measured,
+        not how H is derived.
+      </NonGoal>
+      <NonGoal>
+        Applying the new timing to the
+        rulings, registry, or index genres,
+        with the asymmetry argument in
+        Constraints. Owner: none; measured
+        pressure is absent. Deleting the
+        rulings exception is not a timing
+        change: it removes machinery whose
+        intended firing already happened,
+        and rulings behaviour is the clamp
+        it already ships.
+      </NonGoal>
+      <NonGoal>
+        Editing src/, adding a lint issue
+        code, registering the record in
+        CONTEXT_ARTIFACTS, hooking the flush
+        or --retire into gate archive or any
+        lifecycle command, or adding a CI
+        member. Owner: unchanged; the
+        operation stays argv of
+        scripts/validate-record-retirement.ts.
+      </NonGoal>
+      <NonGoal>
+        Editing CLAUDE.md, docs/plans/README.md,
+        skills/ngrace/*, the packaged
+        mirror, or anything under
+        docs/plans/archive/ or
+        .ngrace/changes/archive/ except this
+        bundle's own later arrival there.
+        Owners: unchanged surfaces / the
+        archive rule.
+      </NonGoal>
+      <NonGoal>
+        README.md and examples/ unchanged;
+        no user-visible CLI token, config
+        key, or ngrace command. Owner:
+        unchanged; no user-visible surface.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-WINDOW-FORMULA>
+        A fixture --retire that moves at
+        least one finding after the live
+        findings file was grown by hand
+        persists ceiling equal to the
+        previously persisted ceiling when
+        Base_live + H meets or exceeds it,
+        base equal to the post-move line
+        count, and headroom equal to ceiling
+        minus base -- the window opened is
+        Delta_retired + H minus the growth
+        the fixture applied. The same
+        fixture under the shipped post-move
+        term would persist a smaller
+        ceiling, so the assertion
+        discriminates the formula, and a
+        no-min recompute that raises the
+        ceiling also fails it. A fixture
+        whose findings content was
+        hand-shrunk below the snapshot
+        without a move persists
+        ceiling = Base_live + H, proving
+        the min is not decorative. After
+        any successful move, every live
+        root's persisted triple satisfies
+        base + headroom = ceiling.
+        Failure: the second term of the
+        min reads the post-move line count;
+        the ceiling ever rises; headroom
+        desynchronises from ceiling minus
+        base; registry or index gains the
+        pre-move term.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-WINDOW-FORMULA>
+      <AC-EXCEPTION-REMOVED>
+        isFirstRulingsRewrite, the
+        discriminator, and the rulings
+        clamp branch are absent from
+        scripts/validate-record-retirement.ts
+        and from the test file's imports. A
+        fixture in the split-time
+        (uncorrected-sizing) shape under a
+        --retire whose 7-times formula term
+        exceeds the persisted ceiling keeps
+        the previous ceiling; the deleted
+        engine persisted the larger formula
+        value on that shape, so the probe
+        discriminates the removal. A second
+        --retire on that fixture still
+        never raises. Failure: the engine
+        retains a branch that can disable
+        the rulings clamp; the fixture
+        suite cannot tell removal from
+        dormancy.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-EXCEPTION-REMOVED>
+      <AC-PROVENANCE-CEILING>
+        The non-mutating validate run errors
+        when the rulings live root persists
+        a ceiling above the named constant
+        carrying the value
+        C-RETIRE-AND-CODIFY's one-time
+        correction persisted, with a
+        message stating the provenance,
+        that no shipped operation raises
+        it, and that raising the persisted
+        ceiling is not the remedy. Fixture
+        probes run both directions: at the
+        constant passes, one above errors.
+        Production validation stays green,
+        as measured at this spec's commit
+        (Assumptions). Failure: the number
+        exists only in prose or a comment
+        and no check compares against it;
+        the message names a config key or
+        a multiplier.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-PROVENANCE-CEILING>
+      <AC-NOOP-RETIRE>
+        A --retire with nothing eligible
+        exits 0 and writes no attribute and
+        no byte: fixture probe plus, at
+        close, bun
+        ./scripts/validate-record-retirement.ts
+        --retire on the production record
+        followed by git diff --exit-code
+        over the record subtree, empty.
+        Failure: a no-op --retire rewrites
+        a ceiling, or the engine requires
+        an operator gesture outside the
+        argv it executes.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-NOOP-RETIRE>
+      <AC-RECORD-FROZEN>
+        The record subtree
+        docs/plans/active/RM-GOVERNED-PATH/
+        is not written by this bundle: no
+        row minted, no hand re-persist.
+        The staged buffer is not flushed;
+        it is untracked (.ngrace/scratch/
+        is ignored at .gitignore:8), so it
+        is outside what this command can
+        witness. The command sees tracked
+        edits and deletions only; a new
+        untracked write into a protected
+        path is uncovered (staged F174).
+        <CloseEvidence>
+          <Command>git diff --exit-code 18965927ff07777ef19543bc5c9a43fb7665ada4 -- docs/plans/active/RM-GOVERNED-PATH/ .ngrace/changes/</Command>
+        </CloseEvidence>
+      </AC-RECORD-FROZEN>
+      <AC-NO-SRC>
+        No file under src/ is edited,
+        including the import sources
+        src/artifact/xml.ts and
+        src/lint/catalog.ts. Prose and
+        command name the same pathset. An
+        incidental src/ fix discovered
+        during close is sequenced after the
+        archive in its own commit rather
+        than failing this criterion by
+        surprise (staged F185's documented
+        handling).
+        <CloseEvidence>
+          <Command>git diff --exit-code 18965927ff07777ef19543bc5c9a43fb7665ada4 -- src/</Command>
+        </CloseEvidence>
+      </AC-NO-SRC>
+      <AC-NO-ARCHIVE-WRITE>
+        The archived record under
+        docs/plans/archive/ and tracked
+        paths under .ngrace/changes/archive/
+        are not modified; this bundle's own
+        later arrival under
+        .ngrace/changes/archive/C-RETIREMENT-WINDOW/
+        is not a modification. The prose
+        claims tracked paths only, because
+        the command cannot see a new
+        untracked path (staged F174).
+        <CloseEvidence>
+          <Command>git diff --exit-code 18965927ff07777ef19543bc5c9a43fb7665ada4 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-RETIREMENT-WINDOW'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-WRITE>
+      <AC-DOCS-EXAMPLES>
+        README.md, examples/, CLAUDE.md,
+        and docs/plans/README.md are
+        byte-identical to this spec's base
+        commit; the record sentences they
+        carry remain true under the new
+        formula, and the shipped
+        AC-TEACHING pins on them continue
+        to pass. The command sees tracked
+        edits and deletions only; a new
+        untracked write into a protected
+        path is uncovered (staged F174).
+        Prose and command name the same
+        pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code 18965927ff07777ef19543bc5c9a43fb7665ada4 -- README.md examples/ CLAUDE.md docs/plans/README.md</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-CI-MEMBER>
+        package.json and bun.lock are
+        byte-identical to this spec's base
+        commit: validate:ci keeps the
+        validate-only
+        validate:record-retirement member,
+        and no mutating argv joins any CI
+        chain. The retirement test file's
+        package.json read (F170 pin) keeps
+        passing unmodified.
+        <CloseEvidence>
+          <Command>git diff --exit-code 18965927ff07777ef19543bc5c9a43fb7665ada4 -- package.json bun.lock</Command>
+        </CloseEvidence>
+      </AC-CI-MEMBER>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task Verification
+        commands and TargetAssertions
+        contain no current-mode lint of
+        this project root, checked by the
+        rule in Constraints, by hand
+        (F171). Failure: a Command whose
+        text contains --assertions current,
+        or that invokes ngrace lint of this
+        root and omits --assertions.
+      </AC-NO-CURRENT-MODE>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the
+        only place current-mode lint of
+        this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No graph module is written.
+      Ceremony tier T1 names the same fact:
+      no module touch. Files this spec
+      forces into write scope, with LINKS
+      headers checked, are enumerated once
+      in the write-scope Constraint and are
+      not repeated as a second module list
+      (F136.1). Do not mint a synthetic
+      module to fill this section.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-RETIREMENT-WINDOW --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes against the
+        delivered product, not a green
+        suite -- bun test green is a
+        precondition, never the evidence.
+        (1) Window opens: fixture findings
+        grown by hand, one eligible finding,
+        --retire persists the previous
+        ceiling, base drops by the moved
+        element, headroom reads the open
+        window. (2) Anti-ratchet: a fixture
+        whose Base_live + H exceeds the
+        persisted ceiling persists the
+        previous ceiling; a recompute
+        without the min fails this probe.
+        (3) Min not decorative: a
+        hand-shrunk live file persists
+        Base_live + H. (4) Delta = 0: a
+        --retire moving only a decision
+        leaves an unchanged findings file
+        at window H when the snapshot sat
+        at base + H. (5) Removal: the
+        split-time-shaped fixture keeps its
+        previous ceiling under a formula
+        term that exceeds it; the deleted
+        engine raised on that shape. (6)
+        Provenance: fixture at the named
+        constant validates, one above
+        errors with the provenance message;
+        production validate exits 0. (7)
+        No-op: --retire with nothing
+        eligible is byte-identical, in
+        fixture and in production followed
+        by an empty record-subtree diff.
+        (8) Preservation and citation
+        validators still exit 0 after a
+        fixture move. (9) The plan's task
+        Verification list contains no
+        current-mode lint, checked by the
+        rule, by hand. (10) The five
+        path-scoped git diff criteria are
+        each empty at close.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken 2026-09-06 at
+        1896592 (git rev-parse HEAD), tree
+        clean on main. Live roots, command
+        head -1 per file and
+        newline-count script importing the
+        shipped helpers: findings.xml
+        base=7726 headroom=252 ceiling=7978;
+        rulings.xml base=1624 headroom=259
+        ceiling=1883; registry.xml base=11
+        headroom=15 ceiling=26;
+        decisions.xml base=301 headroom=40
+        ceiling=341. Every live root
+        satisfies base + headroom = ceiling.
+        Live findings 199 elements, shipped
+        median 36, 7 x 36 = 252; live H2
+        decisions 23, median 37 per shipped
+        liveH2DecisionLineCounts, 7 x 37 =
+        259; live Decision elements total
+        59; registry live rows 11; archive
+        directories 70.
+      </Assumption>
+      <Assumption>
+        The exception fired and is state-
+        exhausted, same commit. git show
+        1896592 --
+        docs/plans/active/RM-GOVERNED-PATH/rulings.xml
+        shows the root moving 1668/75/1743
+        to 1624/259/1883; the pre-bundle
+        commit 67bc55c shows rulings
+        1668/75/1743 and findings
+        8279/252/8531, matching staged
+        F183's before/after. The current
+        rulings snapshot equals the
+        corrected formula's output exactly
+        (1624 + 7 x 37 = 1883), and the
+        shipped predicate evaluates false on
+        current inputs
+        (isFirstRulingsRewrite imported and
+        called with the persisted triple
+        and live counts: false). The
+        predicate's re-fire possibility is
+        structural, argued in Constraints,
+        not measured here.
+      </Assumption>
+      <Assumption>
+        Staged buffer at the same commit,
+        parsed with the shipped
+        parseFrozenMarkdown; bodies stopped
+        at a --- line or a ## STAGED
+        heading and trailing blanks
+        trimmed; wrapped lines = body lines
+        plus 3 (open tag, Title, close --
+        the staged-F181 rule, re-verified
+        on production F1: element 18 lines,
+        body 15 + 3 = 18). 18 staged
+        entries: 14 findings wrapping 425
+        lines, 4 decisions (D27.1, D32,
+        D33, D34) wrapping 157. Cross-genre
+        entanglement, flattened whitespace,
+        counted by ](#slug) occurrences:
+        staged findings cite staged
+        decisions 10 times and staged
+        decisions cite staged findings 9
+        times -- reproducing staged F183's
+        counts with F183, F184, F185 added
+        since. Staged F183's own buffer
+        measure was 341 lines of findings
+        from 11 entries at its date; the
+        buffer has grown since.
+      </Assumption>
+      <Assumption>
+        Production validation and
+        eligibility, same commit:
+        validateRecordRetirement imported
+        and run over the production record
+        returns zero findings (exit-0
+        equivalent); the payer map from the
+        shipped collectPaidBy over registry
+        union registry-retired rows maps 39
+        tokens; zero live findings are
+        eligible, matching staged F183's
+        "all 15 eligible were retired, 0
+        remain."
+      </Assumption>
+      <Assumption>
+        Name search, same commit. Archive
+        directory names matching
+        window / ratchet / timing / clamp /
+        headroom: none. registry.xml and
+        registry-retired.xml name matches
+        for C-RETIREMENT-WINDOW and the
+        near-miss list: none. Staged buffer
+        C-* tokens matching the mechanism:
+        none. The adjacent delivered names
+        are C-RECORD-RETIREMENT,
+        C-RECORD-RETIREMENT-2, and
+        C-RETIRE-AND-CODIFY -- the split,
+        the engine, and the one-time
+        correction -- none covers the
+        clamp's timing. The name is
+        provisional pending the
+        maintainer's charter.
+      </Assumption>
+      <Assumption>
+        Window arithmetic at the current
+        state, from the numbers above.
+        Findings: window now = 7978 - 7726
+        = 252; staged findings wrap 425;
+        shortfall 425 - 252 = 173. Under
+        the shipped formula a --retire
+        moving Delta lines of newly paid
+        findings would leave the window at
+        252; under this bundle's formula it
+        opens to 252 + Delta, so the staged
+        findings flush fits once cumulative
+        retired lines Delta &gt;= 173 with
+        the genres flushed together.
+        Rulings: window now = 1883 - 1624 =
+        259; staged decisions wrap 157,
+        fits without any move. Index: 301 +
+        18 = 319 &lt; 341, fits; index
+        moves remove no lines. Registry:
+        11 live rows against ceiling 26;
+        the two staged charter rows
+        (C-ROADMAP-XML, C-RETIRE-AND-CODIFY)
+        fit, and C-RETIRE-AND-CODIFY's row
+        once flushed is immediately
+        retirement-eligible because its
+        name is an archive directory --
+        the D28.1 enforcement working as
+        designed, not a defect.
+      </Assumption>
+    </Assumptions>
+  </C-RETIREMENT-WINDOW>
+</NgraceChangeSpec>
