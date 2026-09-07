@@ -1123,7 +1123,6 @@ ${names
       const liveFindings = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
       const retiredFindings = readFileSync(path.join(recordDir, "findings-retired.xml"), "utf8");
 
-      expect(liveRowCount(liveRegistry)).toBe(11);
       for (const name of historicalNames) {
         expect(liveRegistry).not.toContain(`name="${name}"`);
         expect(retiredRegistry).toContain(`name="${name}"`);

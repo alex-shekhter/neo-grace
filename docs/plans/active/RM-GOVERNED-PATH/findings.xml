@@ -1,4 +1,4 @@
-<Findings base="7155" headroom="816" ceiling="7971">
+<Findings base="7601" headroom="370" ceiling="7971">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7151,5 +7151,451 @@ reviews **0 findings**. [F165](#f165) measured its claim on `C-CITATION-ANCHOR-R
 non-empty write scope; the authority restated a context-bound measurement as a universal. The advice to
 omit the file was still right, for a different and smaller reason: it is optional, and 8 of the 66
 archived bundles carry one. Caught by the executor's `WRONG` field.</Body>
+  </Finding>
+  <Finding id="f172" token="F172" status="live">
+    <Title>### F172 — the citation validator's qualifier-suffix slug is file-local, so splitting a duplicate-token pair across live and retired makes CI red. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `11e2d51`, on the authority's verification of the `C-RECORD-RETIREMENT`
+draft spec, by probe rather than by reading.
+
+`expectedSlugFor` (`scripts/validate-citation-anchors.ts:49-71`) applies the `-correction` /
+`-amendment` / possessive qualifier **only when `duplicateCount &gt; 1`**, and that count is computed over
+**the file being read** (`parseHeadings`, `:95-102`). The record holds exactly three duplicate heading
+tokens — `F19`, `F21`, `F27.1` — whose second member carries a qualifier id.
+
+Whole population, each entry moved alone into a genre file and validated:
+
+| id | exit | message |
+|---|---|---|
+| `f19` / `f21` / `f27.1` | **0** | ok |
+| `f19s` | **1** | `anchor id &quot;f19s&quot; does not match slug grammar (expected &quot;f19&quot;)` |
+| `f21-correction` | **1** | `expected &quot;f21&quot;` |
+| `f27.1-amendment` | **1** | `expected &quot;f27.1&quot;` |
+
+Both members kept in one file: exit **0**. So the refusal discriminates on the split, not on the copy.
+
+**Why this bites the split.** The draft spec requires genre files to repeat the heading with **a copy of
+the same anchor**, requires same-file rules to apply per genre file, and forbids rewriting the slug
+grammar. A correction typically outlives the paid original, so eligibility puts one member in
+`findings.md` and the other in `findings-retired.md` — the exact case that fails. Three of the four
+available remedies are closed by the spec's own Constraints; the spec must rule between pinning
+duplicate pairs to the same layer and authorizing a file-local single-occurrence qualifier.</Body>
+  </Finding>
+  <Finding id="f173" token="F173" status="live">
+    <Title>### F173 — the genre set's resolution base is unspecified, and one reading couples the validator's unit tests to repository state. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `11e2d51`, same verification pass.
+
+The draft spec names the genre set as repository-root-relative paths, requires a planted sibling to
+fail *&quot;even when argv is omitted **or points only at `decisions.md`**&quot;*, and separately promises that
+*&quot;argv still accepts a fixture path so existing tests keep working&quot;*. It never says whether the set is
+anchored at the repository root or resolved relative to the argv target's directory.
+
+The existing suite decides the stakes: `scripts/validate-citation-anchors.test.ts:12-29` writes each
+fixture as `decisions.md` inside an `mkdtempSync` directory and spawns the script with
+`cwd: REPO_ROOT`. Under a root-anchored genre set every fixture run would also read the repository's
+real record files, so a unit test's verdict would depend on the state of `decisions.md`. Under a
+target-relative set the fixture directory has no siblings and the existing tests are unaffected.
+
+Target-relative is the only reading that satisfies both requirements at once.</Body>
+  </Finding>
+  <Finding id="f174" token="F174" status="live">
+    <Title>### F174 — a SHA-pinned `git diff --exit-code` closes [F170](#f170)'s hole but still cannot see an untracked write. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `11e2d51`, probed in both directions on the working tree.
+
+The draft spec applies [F170](#f170) correctly: both archive-protection close-evidence commands pin the
+commit rather than comparing against `HEAD`. Probed: perturbing one archived `spec.xml` exits **1**;
+restoring it exits **0**; the clean tree exits **0**. That half discriminates.
+
+The residue is `git diff`'s own blind spot. A **new untracked** path under
+`.ngrace/changes/archive/` leaves the same command at **0**, while the criterion's failure clause
+claims *&quot;a write to another archived bundle&quot;* fails. Tracked edits and deletions are caught; a
+first-time write into an archived bundle is not. Either the prose narrows to staged or committed edits
+of tracked paths, or the evidence gains untracked coverage.</Body>
+  </Finding>
+  <Finding id="f175" token="F175" status="live">
+    <Title>### F175 — one citation in the record has an empty destination, and it is outside every shipped check. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `11e2d51`. `decisions.md:9223` carries `[decisions.md:7525](#)` — a link
+whose destination is the empty fragment.
+
+It is the single difference between the two population counts of the file: `\]\(#[^)]*\)` finds **644**
+and `\]\(#([^)]+)\)` finds **643**. `FRAG_RE` requires `[fd][0-9]`, so the citation validator never sees
+it, and it resolves to nothing in a browser.
+
+Pre-existing; not introduced by `C-CITATION-ANCHOR-REPAIR-2` and not `C-RECORD-RETIREMENT`'s to fix
+under the freeze. Owner: whichever bundle next writes the record, or [F166](#f166)'s text-versus-
+destination check, which is the class that would catch it.</Body>
+  </Finding>
+  <Finding id="f176" token="F176" status="live">
+    <Title>### F176 — the &quot;a draft is corrected in place&quot; half of the supersede rule is not in [D27](#d27); it is the residual of D27's scope. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `11e2d51`, raised by the executor's `WRONG` field against the authority's
+send-back brief and confirmed by reading the ruling.
+
+[D27](#d27) (`decisions.md:10105-10110`) rules on **approved** artifacts only: *&quot;When an approved spec
+or plan is found defective, the route is `ngrace supersede` and a replacement bundle.&quot;* It says
+nothing about drafts. The authority's brief wrote *&quot;`D27` says it is corrected in place&quot;*, and the
+standing session framing carries the same pairing.
+
+**The practice is right and the citation is wrong.** A draft has no ratification to invalidate, so
+`supersede` has nothing to repair and in-place correction is what remains once `D27`'s scope is
+excluded. That is an inference from the ruling's boundary, not a sentence inside it, and it must be
+written that way: a true conclusion resting on a citation that does not carry it. Anyone checking `D27` for the draft half finds nothing and is entitled to conclude the practice is
+unfounded.
+
+Cite it as *&quot;outside `D27`'s scope&quot;*, never as *&quot;`D27` says&quot;*. If the distinction is worth binding,
+it needs its own ruling.</Body>
+  </Finding>
+  <Finding id="f177" token="F177" status="live">
+    <Title>### F177 — fifteen archived bundles already cite a roadmap `plan.md` path that does not exist, and nothing detects it. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `408f2ae`, while surveying the cost of converting roadmap markdown to XML.
+
+`docs/plans/active/RM-AGENT-RELIABILITY/plan.md` is cited by **15** archived bundles — `C-ABSENCE-VALUE`,
+`C-ADOPTION-SURFACE`, `C-ATTEMPT-LOG`, `C-CALIBRATION`, `C-CALIBRATION-CONTEXT`,
+`C-CALIBRATION-PROVENANCE`, `C-FAILURE-LOCALIZATION`, `C-GATE-RECORD-ABSENCE`, `C-GATE-SURFACE`,
+`C-GRAPH-COVERAGE`, `C-OBSERVABLE-CHECKS`, `C-PLAN-QUALITY`, `C-REVIEW-SURFACE`, `C-RUN-LEDGER`,
+`C-SELECTION`. **The path does not exist.** The file is at
+`docs/plans/archive/RM-AGENT-RELIABILITY/plan.md`; the roadmap was archived and the citations were not,
+because archives are immutable and cannot be.
+
+Whole population of roadmap citations in archived `spec.xml` / `plan.xml`: **22** to an
+`active/&lt;RM&gt;/plan.md`, of which 15 are these and 7 point at `RM-GOVERNED-PATH/plan.md`, which does
+exist; plus **1** to `RM-GOVERNED-PATH/review.md`.
+
+**Nothing detects it.** `scripts/validate-citation-anchors.ts` resolves one target
+(`DEFAULT_TARGET`, `decisions.md`) and reads no archived artifact; no lint or review rule resolves an
+outbound path written inside an archived bundle. The breakage is silent and has been for the life of
+the archive.
+
+**Why it matters beyond itself.** [F161](#f161) constraint 1 — *retire cannot mean delete*, because
+archived artifacts cite the path — is treated as the binding reason `decisions.md` must survive. That
+constraint has **already been violated** for roadmap paths, unnoticed, by an ordinary archival. So the
+argument that &quot;the path must keep resolving&quot; is not currently enforced anywhere: it is a convention
+that has failed once at scale. Any layout that leaves a stub behind needs a **check** that the stub
+still resolves, or it decays exactly this way.
+
+Owner: not `C-RECORD-RETIREMENT-2`, whose scope is the record genres. Repairing 15 immutable
+citations is impossible by construction; the tractable half is a validator that resolves outbound
+roadmap paths in archived artifacts and reports the dangling ones, which is [F166](#f166)'s
+text-versus-destination family one level out.</Body>
+  </Finding>
+  <Finding id="f178" token="F178" status="live">
+    <Title>### F178 — a bundle that writes no `src/` file has **neither** scope guard, because one is skipped and the other is `src/`-only. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `b97c0aa`, on the executor's `WRONG` against the authority's plan brief, then
+re-probed independently.
+
+**Too-much is skipped.** `change.plan-scope-exceeds-spec` iterates
+`specAnchors.size === 0 ? [] : planDurable` (`src/artifact/grammar.ts:2028`). The comment above it is
+explicit: *&quot;Legacy specs describe AffectedAreas in prose, so there is nothing to exceed.&quot;* The intent is
+backward compatibility with old prose specs.
+
+**But a spec that legitimately writes no graph module also has prose `AffectedAreas`** — that is the
+correct authoring for such a bundle, and `C-RECORD-RETIREMENT-2` is exactly it. The guard cannot tell
+the two cases apart, so a deliberate no-module spec **silently forfeits** the check. Probed: planting
+`&amp;lt;DurableScope&amp;gt;&amp;lt;GraphAnchors&amp;gt;&amp;lt;M-LINT-CATALOG /&amp;gt;&amp;lt;/GraphAnchors&amp;gt;&amp;lt;/DurableScope&amp;gt;`
+into the approved bundle's plan gives lint **exit 0, 0 errors, 0 warnings**, no finding. Restored.
+
+**Too-little cannot fire either.** `change.graph-anchors-miss-write-scope` only considers paths for
+which `isModuleOwnableWritePath` is true, and that function returns false for anything not under `src/`
+and for every test file (`src/lint/core.ts:724-732`). This bundle's `ObservedWriteScope` holds 18 files
+— `docs/plans/**`, `scripts/**`, `CLAUDE.md`, `package.json` — and **not one** is `src/` non-test.
+
+**So for this whole class of bundle — record work, documentation, `scripts/` tooling — neither
+direction binds.** Scope discipline is manual. The authority's plan brief asserted the too-much warning
+as live protection; it is not, for this spec. That claim was false and the executor's probe disproved
+it.
+
+Owner: a later bundle, **not** this one. `C-MODULE-CONTRACT-GATE` (position 6 under [D34](#d34)) is the
+plausible home; **re-derive its charter row before briefing it** rather than assuming the fit. The
+remedy is not obvious: distinguishing &quot;prose because legacy&quot; from &quot;prose because no module is written&quot;
+needs a positive marker in the spec, which is a grammar change.</Body>
+  </Finding>
+  <Finding id="f179" token="F179" status="live">
+    <Title>### F179 — the close sequence emits `terminal` too early, and it has now happened twice. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `401db34`, on the maintainer's question of whether this was a product bug or
+a sequence defect. **It is the sequence.**
+
+**The mapping is deliberate, not broken.** `KNOWN_KIND_STATE` (`src/grace-cursor.ts:330-338`) maps
+`command-run` to `in-progress` with its own comment — *&quot;Durable MustPassCommand/Budget evaluation
+evidence (C-CALIBRATION-COMMAND-EVIDENCE)&quot;* — and `terminal` to `complete`. That is correct where
+commands run **while** the task is open.
+
+**The shipped skill asks for less than the authority's sequence did.**
+`scripts/skill-contracts.test.ts:146` pins `ngrace-execute`'s sentence: *&quot;after a fold, final
+run-commands writes loose events and archive requires no-open-epoch, so terminal the declared task and
+fold before gate archive.&quot;* That constrains **fold after terminal** and **final `--run-commands` not
+after the fold**. It says nothing about terminal preceding the final assertions. The authority's `§9`
+sequence wrote `terminal` → `--assertions final --run-commands` → `fold`, adding a constraint the skill
+never asked for, so `--run-commands` appends `command-run` events after the closing event.
+
+**Population, and the instrument's limit stated with it.** **No archived `run-ledger.xml` carries a
+usable `seq` attribute** — all 51 report `seq` absent or `0` — so event order is read from **document
+order**, and that limit is part of the measurement rather than a footnote. Of 51 archived ledgers the
+last event is `terminal` in **46**; `command-run` in **2** — `C-CITATION-ANCHOR-REPAIR-2` (two
+`command-run` after terminal) and `C-RECORD-RETIREMENT-2` (seven) — `opened` in **2**
+(`C-CURSOR-TASK-RESOLVER`, `C-TOKEN-INTEGRITY`), and `discarded` in **1**
+(`C-CITATION-ANCHOR-REPAIR`, which has no terminal at all).
+
+**So this is a recurrence, not a first.** `C-CITATION-ANCHOR-REPAIR-2` closed the same way one day
+earlier under the same sequence, and nobody noticed, which is the strongest argument that the fix
+belongs in teaching rather than in operator discipline.
+
+**A precedent exists for a different remedy.** [D20](#d20)'s body records the close of
+`C-CURSOR-TASK-RESOLVER` as *terminal, fold, `--assertions final --run-commands`, terminal, fold*,
+review, verdicts — re-emitting terminal and re-folding after the assertions. It is the **only** archived
+bundle with two `terminal` events (1 of 64 checked). That remedy also ends with terminal last.
+
+**Two candidate sequences, both ending terminal-last:**
+
+1. **Swap** — `--assertions final --run-commands` → `terminal` → `fold`. Simplest; one closing event.
+   Searched for a blocker: final mode gates on `status === &quot;approved&quot;` (`src/lint/core.ts:520`), which
+   still holds at that point because the hand-write to `applied` comes later. No terminal or complete
+   precondition on final mode was found.
+2. **Re-terminal** — the `D20` precedent, `terminal` → `fold` → assertions → `terminal` → `fold`. Has
+   run in production once; costs a second fold.
+
+**Nothing blocked, which is why it survived two closes.** `gate archive` requires `no-open-epoch`,
+satisfied by an empty `run/` after the fold; it never reads the derived state. The casualty is display:
+an **applied, archived** bundle reports `State: in-progress` permanently, which reads as corruption to
+anyone running `cursor show`. Archives are never edited, so both stand as dated records.
+
+**Authority instrument failure, recorded against this finding.** The first version of this entry claimed
+&quot;50 of 51 have terminal as the last event, 0 have any event after terminal&quot;. That was produced by
+sorting on a `seq` attribute **that does not exist**, so every comparison was `0 &gt; 0` and the &quot;after&quot;
+set was empty for all 51 — vacuously true, and it hid the `C-CITATION-ANCHOR-REPAIR-2` precedent. The
+same shape as the hygiene grep that returned 0 because zsh passed 18 paths as one filename. **When a
+whole-population check returns a suspiciously clean answer, verify the attribute the check depends on
+exists before reporting the number.**
+
+Owner: the authority's `§9` sequence and handoff, corrected immediately; the teaching clause goes to
+`C-APPROVAL-SCOPE` under [D33](#d33).</Body>
+  </Finding>
+      <Finding id="f182" token="F182" status="live">
+    <Title>### F182 — a 7 × median headroom persists a fractional line ceiling whenever the live count is even. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `26ce576`.
+
+`validate-record-retirement.ts:565-566` sizes headroom as a multiple of `median()`, and `median()`
+returns the mean of the two middle values on an even population — a `.5` whenever those two differ by
+an odd number. The multiplier decides whether that half survives: `2 ×` always clears it, `7 ×` never
+does. So `headroom` and `ceiling` are written as non-integers, and the record carries a line budget
+like `ceiling=&quot;1886.5&quot;`.
+
+**Reachable in the next rewrite, not hypothetically.** After `C-RETIRE-AND-CODIFY` retires the 44-line
+`D24`, the live H2 set is 23 entries with a median of 37 and an integer headroom of 259. **One** added
+decision of 38 lines or more makes it 24 entries with a median of 37.5, and the next `--retire` would
+persist `headroom=&quot;262.5&quot;` / `ceiling=&quot;1886.5&quot;`. If `D24` does **not** leave — `AC-FIRST-CODIFY` tags it
+only if the `C-REWORK-CIRCUIT` tests still pass — the very first rewrite persists 262.5 against base
+1668.
+
+**Not a correctness defect.** The read path is `Number(attrs.ceiling)`
+(`validate-record-retirement.ts:795`), not `parseInt`, so the comparison `liveSize &gt; ceiling` is exact
+and nothing truncates. The cost is that a public methodology repository states a size budget in half
+lines, and the `ceiling-exceeded` message reads *&quot;exceeds persisted ceiling 1886.5&quot;*.
+
+**Latent in shipped code, widened by this bundle.** The findings genre has shipped `7 ×` since the
+split; it has not fired only because its median is currently the integer 36. Moving rulings from `2 ×`
+to `7 ×` puts a second, smaller, parity-flipping population on the same path.
+
+Owner: a later bundle. Not grafted into `C-RETIRE-AND-CODIFY`, whose spec is approved and
+fingerprinted. The remedy is a rounding rule at the point of derivation, and the open question is which
+direction — rounding **down** is the only direction that cannot loosen a budget.</Body>
+  </Finding>
+    <Finding id="f184" token="F184" status="live">
+    <Title>### F184 — the approved plan's `T-001` verification command exits 1 as written. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06**, raised by the executor and confirmed.
+
+`T-001`'s `Verification` is `lint --change C-RETIRE-AND-CODIFY --assertions baseline` with no
+`--run-commands`. That query exits **1** with six `assertion.command-not-evaluated`. The baseline was
+taken with `--run-commands` (exit 0) and the target ran clean after `T-005`, so nothing was actually
+unverified — but the command as recorded in an approved artifact does not pass when run as written.
+
+Harmless at close, which uses `--assertions final --run-commands`. It matters for anyone re-running a
+task's verification from the plan. The plan is approved and fingerprinted, so this is not repairable
+in place.
+
+**Refined 2026-09-06 on `C-RETIREMENT-WINDOW`, where the obvious remedy proved too strong.** The
+authority briefed the rule as *&quot;a recorded `Verification` command must be one that exits 0 as
+written&quot;*. That is wrong as stated. Probed after approving that bundle's plan:
+`lint --change &amp;lt;C&amp;gt; --assertions target --run-commands` still exits **1**, and not for the
+predicted reason — the message is *&quot;Cannot record command-run: no declared task is in scope&quot;*, not
+`change-not-approved`. `--run-commands` records a `command-run` event, which needs an open cursor on
+a declared task, so the command is **unrunnable outside execution** by design and resolves at
+execution time rather than at approval. The executor predicted approval; both of us were wrong about
+the stage, in opposite directions.
+
+The rule that survives: a recorded `Verification` command must exit 0 **at the stage it is meant to
+run**, and a plan should not be judged by running its execution-stage commands at plan time. `F184`'s
+original case is still a real defect, because `--assertions baseline` without `--run-commands` never
+resolves at any stage.</Body>
+  </Finding>
+  <Finding id="f185" token="F185" status="live">
+    <Title>### F185 — a real-repository measurement test has no explicit timeout, so archiving the 70th bundle turned the suite red after the move. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06**, during the close of `C-RETIRE-AND-CODIFY`, post-archive.
+
+`src/grace-context.test.ts:522` calls `buildTaskSlice` against the live package root for three named
+archive subjects. It carries **no explicit timeout**, so it inherits Bun's 5000 ms default. The
+`git mv` that archived this bundle took the archive from 69 to 70 directories, and the test now runs
+**~5240 ms**. Deterministic, not flaky: three consecutive isolated runs failed at 5236.80 / 5243.60 /
+5245.86 ms.
+
+**It is purely a timeout; nothing is logically wrong.** Probed in the discriminating direction:
+`bun test --timeout 20000` gives **1735 pass / 3 skip / 0 fail**, exit 0, with every assertion in that
+test holding. The product is correct and the suite is red only against the default clock.
+
+**This is exactly [F100](#f100)'s class, and the two-verdict close is what caught it.** The executor's
+`bun test` was green and honest — it ran **before** the archive move. The failure exists only after it.
+A single-verdict close would have archived this bundle with a red suite and never displayed the
+criteria whose `CloseEvidence` is `bun test`.
+
+**The defect is structural, not incidental.** A test whose purpose is to measure the *real* repository
+has a cost that necessarily grows with the repository, so a fixed default clock is the wrong
+constraint for it — and any bundle archived from here would have tripped it, independent of this one.
+The remedy is an explicit, generous timeout on that `it(...)`, not a fixture rewrite, which would
+destroy the measurement the test exists to take.
+
+**It did not block the close, and the authority's first reading that it did was wrong.** Bare
+`bun test` is **not** a `CloseEvidence` command for this bundle; the criteria run `bun test &lt;file&gt;`
+against three named `scripts/*.test.ts` files, none of which is `grace-context.test.ts`. All fifteen
+`CloseEvidence` commands were re-run after the `git mv` and exit 0.
+
+**The fix had to land after the close, not inside it.** `AC-NO-GRAMMAR`'s evidence is
+`git diff --exit-code &amp;lt;base&amp;gt; -- src/`, so any `src/` write inside the bundle fails it — the
+one-line timeout edit was applied, tripped that criterion, was reverted for the verdict, and re-applied
+as its own commit once the bundle was archived. The criterion's prose targets the grammar layer
+(`src/artifact/xml.ts`, `xml-serialize.ts`) but its command is repository-wide over `src/`; anyone
+writing a bundle that may need an incidental `src/` fix during close should scope that command to the
+files the prose actually names.</Body>
+  </Finding>
+    <Finding id="f188" token="F188" status="live">
+    <Title>### F188 — a close-evidence pathspec that covers `.ngrace/changes/` without excluding its own bundle cannot pass. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at the close of `C-RETIREMENT-WINDOW`.
+
+`AC-RECORD-FROZEN` pins `git diff --exit-code &amp;lt;base&amp;gt; -- docs/plans/active/RM-GOVERNED-PATH/
+.ngrace/changes/`. Every bundle writes its own directory under `.ngrace/changes/`, and its spec and
+plan are committed after the base commit, so that diff is **never** empty at close. The criterion is
+unsatisfiable by construction, not by anything the bundle did.
+
+**Measured, not inferred:** the diff contained exactly four files — the bundle's own `spec.xml`,
+`plan.xml`, `run.xml` and `run-ledger.xml` — and **zero** files outside its directory. The record
+subtree the criterion exists to protect is byte-identical to the base commit, so the criterion's
+**intent** was satisfied while its **command** could not be.
+
+Its sibling `AC-NO-ARCHIVE-WRITE` carries exactly the term that would have fixed it:
+`':(exclude).ngrace/changes/archive/C-RETIREMENT-WINDOW'`. The two criteria were written together and
+only one got the exclusion.
+
+**Consequence at close.** `gate verdict --outcome pass` refuses while any `CloseEvidence` command
+exits non-zero, so the second verdict was recorded as `unable-to-determine` with reason
+`close-evidence-command-unsatisfiable`. Nine of the ten close-bound criteria passed post-archive.
+
+**The authority missed it at approval.** Two of the five pinned commands were probed in both
+directions before approving; this one was not, and no probe was run in the state that matters — after
+the bundle's own artifacts exist under a pinned path. **A close-evidence pathspec must be probed in
+the post-close state, not the pre-close one**, which is the same lesson as [F100](#f100) applied to
+pathspecs rather than suites.
+
+Owner: a later bundle, as a rule that a `CloseEvidence` pathspec covering a bundle-bearing directory
+must exclude the bundle's own path.</Body>
+  </Finding>
+    <Finding id="f191" token="F191" status="live">
+    <Title>### F191 — staged charter rows have no anchor, so every wrap projection folded them into the preceding decision. **[verified]**</Title>
+    <Body>
+Measured **2026-09-07** on the staged buffer, after the authority staged a fifth charter row and the
+decisions wrap jumped 299 → 338 for an entry that added no decision.
+
+`parseFrozenMarkdown` identifies an entry by an `&lt;a id=… name=…&gt;&lt;/a&gt;` anchor followed by a heading
+matching `[FD]\d`. A staged charter row (`## STAGED CHARTER ROW — …`) has **neither**, so it is not an
+entry, and the preceding entry's `bodyRaw` runs straight through it to the next anchor.
+
+Per staged decision, parser-boundary body versus its own prose:
+
+| | D27.1 | D32 | D33 | D34 | D35 | D36 | total |
+|---|---|---|---|---|---|---|---|
+| parser | 54 | 29 | 38 | 40 | **81** | **96** | 338 |
+| own prose | 53 | 28 | 37 | 39 | **24** | **29** | 210 |
+
+The entire 128-line discrepancy sits in `D35` and `D36`, the two decisions that happen to be followed
+by charter rows. The other four differ by one line, a trailing blank.
+
+**A correct flush does not produce the parser figure.** Charter rows become `&lt;Row&gt;` elements in
+`registry.xml`; their text never enters a `&lt;Decision&gt;` body. So the honest projection of the decisions
+genre is **210**, and `1624 + 210 = 1834` against a ceiling of **1883** — it **fits, with 49 to
+spare**. Findings likewise: 607 against a window of 816.
+
+**The flush is not blocked, and was not blocked when three consecutive reports said it was.** The
+authority wrote &quot;short by 40&quot; repeatedly and the executor's report carried the same 299; both used the
+parser boundary without asking what it attributes charter-row lines to. This is the &quot;right string,
+wrong position&quot; class the record already names — a number measured by a rule nobody checked against
+the thing it was meant to project.
+
+**The parser figure is not meaningless — it is the cost of a naive automated flush**, one that takes
+`parseFrozenMarkdown`'s output directly. That such a flush would silently bury two charter rows inside
+two decision bodies is itself a defect in any future flush tooling, and the reason the two numbers
+must never be conflated again.</Body>
+  </Finding>
+  <Finding id="f189" token="F189" status="live">
+    <Title>### F189 — retiring findings lowers the median, so the window gains less than the lines removed. **[verified]**</Title>
+    <Body>
+Measured **2026-09-07** on the `C-PAYMENT-RECORD` working tree, after the production `--retire`.
+
+The window after a move is **not** `previous window + Δ_retired`. `H` is re-derived as `7 ×` the
+median of the **remaining** live findings, and retiring the largest entries pulls that median down.
+Measured: 8 elements totalling **571** lines left, the median fell **36 → 35**, so `H` fell
+**252 → 245** and the ceiling fell `min(7978, 7726 + 245)` = **7971**. The window came out at
+`7971 − 7155` = **816**, not the 823 that `252 + 571` predicts.
+
+**The rule, stated so it can be planned against:** `window_gain = Δ_retired − (H_old − H_new)`. Here
+`571 − 7 = 564`, and `252 + 564 = 816`. The loss is small when the retired set is close to the
+median and grows as the set skews large — which is exactly how fuel gets chosen, since the audit that
+picks it ranks candidates by line count.
+
+**Consequence for planning.** Any bundle sizing retirement fuel against a target must add a margin
+for the median shift, and must not quote `252 + Δ` as the resulting window. Both the authority's brief
+and the approved spec's `WINDOW ARITHMETIC` carried the naive form; the executor measured the real one
+and did not reconcile toward the brief.
+
+Related but distinct from [F182](#f182), which is about the same `7 × median` producing a fractional
+value on an even population. This one is about the median **moving**.</Body>
+  </Finding>
+  <Finding id="f190" token="F190" status="live">
+    <Title>### F190 — `--retire`'s span removal leaves its neighbours' indent behind, and the drift compounds on every move. **[verified]**</Title>
+    <Body>
+Measured **2026-09-07** on the `C-PAYMENT-RECORD` working tree, before and after the production move.
+
+`removeSpans` deletes an element's span without consuming the leading indent of the line that
+follows, so every live element that sat after a removed sibling gains two spaces. Measured on
+`findings.xml` live `&amp;lt;Finding&amp;gt;` open tags — indent width to occurrence count:
+
+| | 2 | 4 | 6 | 14 |
+|---|---|---|---|---|
+| at `82775a06` | 192 | 3 | 3 | 1 |
+| after this move | 177 | 9 | 4 | 1 |
+
+The 4-space population tripled and the 6-space grew. The same pass left the retired sibling's appends
+at column 0, matching the previous `--retire`. The record already carried some drift before this
+bundle, which is how it went unnoticed.
+
+**It compounds.** Each move shifts another cohort of survivors one level deeper, and nothing ever
+normalises them back. Over enough retirements the live genre files become progressively less legible
+in a repository whose product is methodology artifacts other people are meant to read.
+
+**Not a correctness defect.** The XML stays well-formed, every validator exits 0, and entity counts
+are conserved across the move. It also does **not** show up in a byte-identity check of the file the
+move did not touch: `registry.xml`'s close tag drifted the same way and was restored by hand, which is
+why the live registry file is byte-identical to `HEAD` while `findings.xml` is not.
+
+**Deliberately not fixed by `C-PAYMENT-RECORD`.** `removeSpans` is the shipped writer, not that
+bundle's product change, and touching it would have put the bundle outside its approved Constraints.
+Owner: a later bundle, as a normalising pass in the writer rather than a hand edit at close — a hand
+edit is what happened to the registry close tag here, and it does not scale.</Body>
   </Finding>
 </Findings>
