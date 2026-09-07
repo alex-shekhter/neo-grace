@@ -1,4 +1,4 @@
-<Findings base="7601" headroom="370" ceiling="7971">
+<Findings base="7601" headroom="245" ceiling="7846">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>

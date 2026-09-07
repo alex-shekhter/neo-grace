@@ -1,4 +1,4 @@
-<Rulings base="1834" headroom="49" ceiling="1883">
+<Rulings base="1697" headroom="186" ceiling="1883">
   <Decision id="d1" token="D1" status="live">
     <Title>## D1 — The tool is the only sanctioned writer of `approved → applied`</Title>
     <Body>
@@ -188,32 +188,7 @@ Two halves. The separator set is the immediate answer; the standing rule is what
 asking for, and it settles the rest of the track.
 </Body>
   </Decision>
-  <Decision id="d5.1" token="D5.1" status="live">
-    <Title>### D5.1 — The accepted separator set</Title>
-    <Body>
-`LINKS` and `DEPENDS` split on **`[,;\s]+`**. The colon is **excluded**. Any token matching no
-`ANCHOR_PATTERNS` family is an **error** naming the offending token, the accepted separators, and
-the accepted id families. Existing `[...]` stripping and `none` handling are preserved (F3).
-
-**The principle: accept separators that can mean nothing else.** A comma, semicolon or space between
-two ids is unambiguous — no author meant anything by it but *next item* — so accepting it discards
-no intent. That is the whole test.
-
-**Why the colon is excluded**, having been proposed and considered:
-
-1. **The error is better than the acceptance.** Without the colon in the set, `LINKS: M-A: M-B`
-   yields the token `M-A:`, which matches no family and produces exactly the error this phase
-   specifies — token named, separators listed, one edit to fix. With the colon in the set, the same
-   slip silently works. That is filtering wearing leniency's clothes, in the one phase whose purpose
-   is to stop filtering.
-2. **A colon there is ambiguous.** It is either a slip or an author reaching for structure the
-   grammar does not have. Ambiguous input is what *reject, don't filter* says to reject rather than
-   guess at.
-3. **Secondary:** the colon is the field delimiter itself (`LINKS:`). Spending a structural
-   character on value syntax is cheap now and awkward to walk back.
-</Body>
-  </Decision>
-  <Decision id="d5.2" token="D5.2" status="live">
+    <Decision id="d5.2" token="D5.2" status="live">
     <Title>### D5.2 — Standing rule: what is and is not a compatibility break</Title>
     <Body>
 Applies to the whole track, not to P0 alone.
@@ -274,44 +249,7 @@ rather than accumulating them for a phase-end entry.
 ---
 </Body>
   </Decision>
-  <Decision id="d7" token="D7" status="live">
-    <Title>## D7 — `&lt;DependsOn&gt;` accepts the anchor-child form; the fix reads the tag, it does not raise</Title>
-    <Body>
-**Raised by F5. Ratified 2026-08-09. Binds P0.3.**
-
-**Decision.** `readTaskDependencies` reads a child's **tag** when it matches `ANCHOR_PATTERNS.task`,
-its **text** when non-empty, and raises `change.task-invalid-dependency` only when it can resolve
-neither. All three authored forms below become valid and mean the same thing:
-
-```xml
-&lt;DependsOn&gt;&lt;T-001 /&gt;&lt;/DependsOn&gt;          &lt;!-- anchor child: today silently nothing --&gt;
-&lt;DependsOn&gt;&lt;Task&gt;T-001&lt;/Task&gt;&lt;/DependsOn&gt; &lt;!-- works today --&gt;
-&lt;DependsOn&gt;T-001, T-002&lt;/DependsOn&gt;       &lt;!-- multi-value text: P0.3 / D5.1 --&gt;
-```
-
-**Why accept rather than reject.** The anchor form is not a mistake to be corrected — it is the
-idiomatic GRACE shape, used by `Satisfies`, `DurableScope`, `AffectedAreas`, and every anchor list in
-the grammar. The defect is that `DependsOn` alone does not read it. Rejecting would tell authors that
-the shape the rest of the grammar teaches is wrong here; accepting fixes the one construct that
-disagrees.
-
-**Classified under D5.3 as a repair, not a break.** Under D5.2 a silent failure made loud is not a
-break — but this needs no loudness at all. Today `&lt;T-001 /&gt;` declares nothing; after D7 it declares
-what its author always meant. Nothing that worked stops working, and **archived
-`C-GATE-RECORD-ABSENCE` acquires the dependency it has always claimed** rather than lighting up red.
-
-That last point is why the direction matters: raising instead of reading would turn an applied,
-gated, archived bundle into a lint error, which is F1's sixteen-false-positives problem again. The
-permitted direction has no such cost.
-
-**Scope.** This is **site 11**, added to `C-TOKEN-INTEGRITY` T-002 — the same function P0.3 already
-opens. Not deferred, not a follow-up bundle. Fixing at the point of detection is the rule; the
-inventory's classification of `grammar.ts:2012` as justified is **corrected to silent discard**.
-
----
-</Body>
-  </Decision>
-  <Decision id="d6" token="D6" status="live">
+    <Decision id="d6" token="D6" status="live">
     <Title>## D6 — P0.8 re-derives from recorded evidence, never from the current tree</Title>
     <Body>
 **Raised by the P0 derivation pass**, open question 1. **Ratified 2026-08-09.**
@@ -491,30 +429,7 @@ cascade the standing rule exists to prevent. It ships with P0.4.
 ---
 </Body>
   </Decision>
-  <Decision id="d9" token="D9" status="live">
-    <Title>## D9 — Ledger repair is append-only; a recorded event is never rewritten</Title>
-    <Body>
-**Decision.** `recover --fix` may **append** records. It may **not** rewrite a recorded event file in
-place. Where a dead allocation must be superseded, the repair records a new, ledger-visible fact that
-supersedes it; it does not edit the old one.
-
-**Why, concretely rather than by taste.** Attempt events digest prior `run/` event files into their
-`&lt;WriteEvidence&gt;` — verified: `C-CURSOR-INTEGRITY` event 28 carries digests for
-`run/26-T-006-progress.xml` and `run/27-T-006-attempt.xml`. **Event files are attested artifacts.**
-A repair that rewrites one falsifies every attestation referencing it, silently, in exactly the
-evidence chain P0.10 was built to read.
-
-**Stated precisely, because the instance does not force the rule.** In `C-TOKEN-INTEGRITY`'s ledger
-today, `19-T-005-opened.xml` is referenced by nothing — the terminal at id 20 carries no
-`WriteEvidence`, and no attempt followed it. Rewriting it would falsify no existing digest *here*.
-The rule is principled, not compelled by this case: the fix must be correct for ledgers where the
-allocation *is* attested, which is the normal shape.
-
-It also sits on the right side of A29.2. Appending a superseding fact is recording; editing a prior
-record is authoring over history.
-</Body>
-  </Decision>
-  <Decision id="d9.1" token="D9.1" status="live">
+    <Decision id="d9.1" token="D9.1" status="live">
     <Title>### D9.1 — `extend-allocation` keeps its name, and becomes true</Title>
     <Body>
 The flag claims an operation the code does not perform (it always writes a new covering opened, never
@@ -896,59 +811,7 @@ second bundle names a criterion after a mechanism and pays for it.
 ---
 </Body>
   </Decision>
-  <Decision id="d18" token="D18" status="live">
-    <Title>### D18 — `gate approve` becomes the sanctioned writer of `draft → approved`, and records what it approved</Title>
-    <Body>
-**Decided 2026-08-14 by the maintainer**, on the evidence of [F88](#f88).
-
-**The decision.** `ngrace gate approve` writes `status=&quot;approved&quot;` onto the spec and records, on the
-approve event, a **fingerprint of the artifact it approved**. A `status=&quot;approved&quot;` that carries no
-matching approval record — or whose fingerprint no longer matches the bytes — is a reportable defect,
-the shape P3.7 already proposes for a hand-written `applied`. A non-interactive escape hatch ships
-**with** the change, not after it, following [D1.5](#d1)'s precedent: it records the approval as
-forced, with an operator-supplied reason.
-
-**Why.** Two independent models adopting GRACE on a real repository each wrote `status=&quot;approved&quot;`
-onto the spec they had just authored, in the same commit, without asking anyone (F88). Neither
-hesitated. The approved state gates `ngrace plan new` and `gate apply`, so for an autonomous agent it
-was the same actor writing both the claim and its ratification — **&quot;an authored claim of doneness
-outrunning its evidence&quot;**, which is the roadmap's own phrase for the failure this product exists to
-prevent.
-
-**What this changes about [D1](#d1), precisely.** D1 said the tool is the **only sanctioned writer of
-`approved → applied`**, and left `draft → approved` authored, reasoning that *apply has a
-machine-evaluable precondition — the gate — and approve has none.* **That reasoning was correct and is
-not overturned.** What it did not anticipate is the consequence: because approve had no
-machine-evaluable precondition, the product held **no evidence about it at all**, and printed
-`approved` with identical confidence whether a human ratified it or the authoring agent typed it. D18
-does not claim to have found a machine-evaluable precondition for human judgement. It **narrows the
-unverifiable region**: the tool now records *that* an approval was performed and *what bytes* it
-covered, leaving only *whether the human actually read them* outside the record — and says so rather
-than implying otherwise.
-
-**What this deliberately does not claim.** This is **tamper-evidence, not enforcement.** A single
-actor with write access can still author the status, the record, and the fingerprint. What changes is
-that forging approval becomes a **deliberate, visible act** rather than the default one — today,
-writing `approved` is *easier* than asking. Do not let the change be reported as
-&quot;human-in-the-loop enforced&quot;; verifiable approval needs a party the agent is not, which is recorded
-separately as [`RM-VERIFIED-APPROVAL`](../RM-VERIFIED-APPROVAL/review.md).
-
-**This decision is revisable, and here is what would revise it.** If `RM-VERIFIED-APPROVAL` ships —
-an external service issuing one-time codes bound to an artifact fingerprint — the write path and the
-attestation format both change, and D18's fingerprint record becomes the local half of a two-party
-scheme rather than the whole of it. If measurement shows approvals are frequent enough to be pasted
-unread, the correct response is to **narrow what requires ratification**, not to strengthen the
-mechanism. And if a later reader finds that requiring the CLI to write status blocks a legitimate
-workflow the escape hatch does not cover, that is evidence against this shape, not a reason to
-hand-write around it — **amend the decision instead.**
-
-**Sequencing.** The repo-local floor ships first and independently of any service: it needs no new
-trust boundary, and it is the half that would have caught both measured runs, since **neither ever
-requested an approval at all**. A future service that ships without the detection half has not fixed
-F88.
-</Body>
-  </Decision>
-  <Decision id="d19" token="D19" status="live">
+    <Decision id="d19" token="D19" status="live">
     <Title>## D19 — an approval covers the current step only</Title>
     <Body>
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield

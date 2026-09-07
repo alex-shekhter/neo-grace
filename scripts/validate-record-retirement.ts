@@ -709,7 +709,8 @@ live, retired.
 
 Machine-read fields are XML attributes or elements. An entry moves when:
 a finding's PaidBy names an archived bundle; a decision carries a resolving
-CodifiedIn or TaughtIn; a registry row's name equals an archive directory.
+CodifiedIn (a resolving TaughtIn does not move it); a registry row's name
+equals an archive directory.
 `;
   writeFileSync(paths.stub, stub);
 }
@@ -911,20 +912,26 @@ function payerMapFromRecord(repoRoot: string, registryXml: string, registryRetir
   return derivePayerMap(repoRoot, rows);
 }
 
-function nodeResolvesCodified(node: GraceXmlNode, repoRoot: string): { ok: boolean; message: string } | undefined {
-  const coded = childNodes(node, "CodifiedIn")[0];
-  if (!coded) {
-    return undefined;
-  }
-  return codifiedResolves({ attrs: coded.attributes, text: coded.text }, repoRoot);
+function resolveCodifiedChildren(
+  node: GraceXmlNode,
+  repoRoot: string,
+): Array<{ ok: boolean; message: string }> {
+  return childNodes(node, "CodifiedIn").map((coded) =>
+    codifiedResolves({ attrs: coded.attributes, text: coded.text }, repoRoot),
+  );
 }
 
-function nodeResolvesTaught(node: GraceXmlNode, repoRoot: string): { ok: boolean; message: string } | undefined {
-  const taught = childNodes(node, "TaughtIn")[0];
-  if (!taught) {
-    return undefined;
-  }
-  return taughtResolvesCheck({ attrs: taught.attributes, text: taught.text }, repoRoot);
+function resolveTaughtChildren(
+  node: GraceXmlNode,
+  repoRoot: string,
+): Array<{ ok: boolean; message: string }> {
+  return childNodes(node, "TaughtIn").map((taught) =>
+    taughtResolvesCheck({ attrs: taught.attributes, text: taught.text }, repoRoot),
+  );
+}
+
+function allResolveAndSomeOk(results: Array<{ ok: boolean; message: string }>): boolean {
+  return results.length > 0 && results.every((r) => r.ok);
 }
 
 export function stampPaidBy(options: RetirementOptions): void {
@@ -1005,9 +1012,8 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
     if (!node || node.attributes.status !== "live") {
       continue;
     }
-    const coded = nodeResolvesCodified(node, options.repoRoot);
-    const taught = nodeResolvesTaught(node, options.repoRoot);
-    if (!(coded?.ok || taught?.ok)) {
+    const coded = resolveCodifiedChildren(node, options.repoRoot);
+    if (!allResolveAndSomeOk(coded)) {
       continue;
     }
     moveDecisions.push({
@@ -1075,6 +1081,7 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   const findingsPrev = readRootSnapshot(files.findings);
   const findingsBaseRead = newlineCount(files.findings);
   const rulingsPrev = rulingsAsRead;
+  const rulingsBaseRead = newlineCount(files.rulings);
   const registryPrev = readRootSnapshot(files.registry);
   const indexPrev = readRootSnapshot(files.index);
 
@@ -1092,7 +1099,13 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   );
   rulingsLive = withRootSnapshot(
     rulingsLive,
-    persistSnapshot(rulingsPrev, newlineCount(rulingsLive), rulingsHeadroom, true),
+    persistSnapshot(
+      rulingsPrev,
+      newlineCount(rulingsLive),
+      rulingsHeadroom,
+      true,
+      rulingsBaseRead,
+    ),
   );
   registryLive = withRootSnapshot(
     registryLive,
@@ -1226,25 +1239,28 @@ export function validateRecordRetirement(options: RetirementOptions): Retirement
   if (rulingsRoot) {
     for (const node of childNodes(rulingsRoot, "Decision")) {
       if (node.attributes.status !== "live") continue;
-      const coded = nodeResolvesCodified(node, options.repoRoot);
-      const taught = nodeResolvesTaught(node, options.repoRoot);
-      if (coded && !coded.ok) {
-        findings.push({
-          code: "codified-in-unresolved",
-          message: `live decision id="${node.attributes.id}": ${coded.message}`,
-        });
+      const coded = resolveCodifiedChildren(node, options.repoRoot);
+      const taught = resolveTaughtChildren(node, options.repoRoot);
+      for (const result of coded) {
+        if (!result.ok) {
+          findings.push({
+            code: "codified-in-unresolved",
+            message: `live decision id="${node.attributes.id}": ${result.message}`,
+          });
+        }
       }
-      if (taught && !taught.ok) {
-        findings.push({
-          code: "taught-in-unresolved",
-          message: `live decision id="${node.attributes.id}": ${taught.message}`,
-        });
+      for (const result of taught) {
+        if (!result.ok) {
+          findings.push({
+            code: "taught-in-unresolved",
+            message: `live decision id="${node.attributes.id}": ${result.message}`,
+          });
+        }
       }
-      if (coded?.ok || taught?.ok) {
-        const tag = coded?.ok ? "CodifiedIn" : "TaughtIn";
+      if (allResolveAndSomeOk(coded)) {
         findings.push({
           code: "decision-eligible-still-live",
-          message: `live decision id="${node.attributes.id}" carries a resolving ${tag}; move the eligible entry to the retired sibling`,
+          message: `live decision id="${node.attributes.id}" carries a resolving CodifiedIn; move the eligible entry to the retired sibling`,
         });
       }
     }
