@@ -114,6 +114,37 @@ describe("prove-record-preservation", () => {
     expect(result.stderr).toContain("missing-body-hash");
   });
 
+  it("hashes xmlDecode of the raw Body, so &amp;lt; matches inventory &lt;", () => {
+    const dir = isolatedRoot();
+    const markdownBody = "names &lt;Replacement&gt;";
+    plant(
+      dir,
+      "record-inventory.json",
+      `${JSON.stringify([{ token: "F1", id: "f1", bodyHash: hashBody(markdownBody) }], null, 2)}\n`,
+    );
+    plant(
+      dir,
+      "decisions.xml",
+      `<RecordIndex>\n  <Entry id="f1" token="F1" genre="finding" layer="live" />\n</RecordIndex>\n`,
+    );
+    plant(
+      dir,
+      "findings.xml",
+      `<Findings>
+  <Finding id="f1" token="F1" status="live">
+    <Title>### F1</Title>
+    <Body>names &amp;lt;Replacement&amp;gt;</Body>
+  </Finding>
+</Findings>
+`,
+    );
+    plant(dir, "findings-retired.xml", `<Findings>\n</Findings>\n`);
+    plant(dir, "rulings.xml", `<Rulings>\n</Rulings>\n`);
+    plant(dir, "rulings-retired.xml", `<Rulings>\n</Rulings>\n`);
+    const result = runValidator(dir);
+    expect(result.status).toBe(0);
+  });
+
   it("reads package.json and fails if validate:ci drops the preservation member", () => {
     const pkg = JSON.parse(readFileSync(path.join(REPO_ROOT, "package.json"), "utf8")) as {
       scripts: Record<string, string>;

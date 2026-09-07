@@ -33,10 +33,14 @@ The RM-GOVERNED-PATH record lives under `docs/plans/active/RM-GOVERNED-PATH/`.
 `rulings.xml` because `decisions.xml` is the index, `registry.xml`). D31 layers are
 citation index, live, and retired (retired siblings `findings-retired.xml`,
 `rulings-retired.xml`, `registry-retired.xml`). Machine-read fields are XML
-attributes or elements. An entry moves when: a finding's PaidBy names an archived
-bundle; a decision carries a resolving CodifiedIn or TaughtIn; a registry row's
-name equals an archive directory. Existing markdown citations of the
-`decisions.md` path may stay — that path is the stub.
+attributes or elements. `--retire` is the move: `bun ./scripts/validate-record-retirement.ts --retire`
+stamps PaidBy, moves eligible entries to the retired sibling, and rewrites live-root
+ceiling attributes; validation re-derives PaidBy and exits non-zero until that
+move. Ceiling attributes are rewritten only by the move and never raised. An
+entry moves when: a finding's PaidBy names an archived bundle; a decision
+carries a resolving CodifiedIn or TaughtIn; a registry row's name equals an
+archive directory. Existing markdown citations of the `decisions.md` path may
+stay — that path is the stub.
 
 ## Core Purpose
 

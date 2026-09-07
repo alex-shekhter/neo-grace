@@ -25,8 +25,9 @@ The RM-GOVERNED-PATH record is the stub at
 [decisions.md](./active/RM-GOVERNED-PATH/decisions.md), the parseable citation
 index at `decisions.xml`, three D28 genres (findings, decisions, registry), and
 three D31 layers (index, live, retired). Machine-read fields are XML attributes
-or elements. The index row keeps its link to `decisions.md` because that path is
-the stub.
+or elements. `--retire` (`bun ./scripts/validate-record-retirement.ts --retire`)
+is the command that moves eligible entries to the retired sibling. The index
+row keeps its link to `decisions.md` because that path is the stub.
 
 `RM-AGENT-RELIABILITY` completed on
 2026-08-01 and is archived (targets `6.1.0` for Phases 2–11; product release actions remain the

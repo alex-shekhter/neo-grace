@@ -17,6 +17,13 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { XMLValidator } from "fast-xml-parser";
+import {
+  childNodes,
+  childText,
+  parseGraceXmlArtifact,
+  walkNodes,
+  type GraceXmlNode,
+} from "../src/artifact/xml.ts";
 import { isEmittableIssueCode } from "../src/lint/catalog.ts";
 
 export const DEFAULT_RECORD_DIR = "docs/plans/active/RM-GOVERNED-PATH";
@@ -369,15 +376,93 @@ function sentenceSplit(text: string): string[] {
   return text.split(/(?<=[.!?])\s+/);
 }
 
-export function collectPaidBy(repoRoot: string, chartered: RegistryRow[]): Map<string, string> {
+export function closedWithTokens(statusText: string): string[] {
+  const flat = whitespaceNormalize(xmlDecode(statusText));
+  const reduced = flat.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+  const tokens: string[] = [];
+  const seen = new Set<string>();
+  const startRe = /\bClosed with\b/gi;
+  let start: RegExpExecArray | null;
+  while ((start = startRe.exec(reduced)) !== null) {
+    const rest = reduced.slice(start.index);
+    const period = rest.search(/\./);
+    const clause = period === -1 ? rest : rest.slice(0, period + 1);
+    for (const token of expandFTokens(clause)) {
+      if (!seen.has(token)) {
+        seen.add(token);
+        tokens.push(token);
+      }
+    }
+  }
+  return tokens;
+}
+
+function expandFTokens(text: string): string[] {
+  const out: string[] = [];
+  const rangeEnds = new Set<string>();
+  const rangeRe = /\b(F[0-9]+(?:\.[0-9]+)*)\s*[\u2013\u2014-]\s*(F[0-9]+(?:\.[0-9]+)*)\b/g;
+  let range: RegExpExecArray | null;
+  while ((range = rangeRe.exec(text)) !== null) {
+    const expanded = expandFRange(range[1]!, range[2]!);
+    if (!expanded) {
+      continue;
+    }
+    rangeEnds.add(range[1]!);
+    rangeEnds.add(range[2]!);
+    for (const token of expanded) {
+      out.push(token);
+    }
+  }
+  const singles = text.match(F_TOKEN_RE) ?? [];
+  for (const token of singles) {
+    if (!rangeEnds.has(token) && !out.includes(token)) {
+      out.push(token);
+    }
+  }
+  return out;
+}
+
+function expandFRange(left: string, right: string): string[] | undefined {
+  const parse = (token: string): { prefix: string; n: number } | undefined => {
+    const m = /^(F(?:[0-9]+\.)*)([0-9]+)$/.exec(token);
+    return m ? { prefix: m[1]!, n: Number(m[2]) } : undefined;
+  };
+  const a = parse(left);
+  const b = parse(right);
+  if (!a || !b || a.prefix !== b.prefix) {
+    return undefined;
+  }
+  const start = Math.min(a.n, b.n);
+  const end = Math.max(a.n, b.n);
+  const tokens: string[] = [];
+  for (let i = start; i <= end; i++) {
+    tokens.push(`${a.prefix}${i}`);
+  }
+  return tokens;
+}
+
+export function derivePayerMap(
+  repoRoot: string,
+  chartered: Array<{ name: string; pays: string; statusText: string }>,
+): Map<string, string> {
   const paid = new Map<string, string>();
   const archive = listArchiveNames(repoRoot);
   for (const row of chartered) {
-    if (!/delivered|superseded/i.test(row.statusText)) {
+    if (!archive.has(row.name)) {
       continue;
     }
     const tokens = row.pays.match(F_TOKEN_RE) ?? [];
     for (const token of tokens) {
+      if (!paid.has(token)) {
+        paid.set(token, row.name);
+      }
+    }
+  }
+  for (const row of chartered) {
+    if (!archive.has(row.name)) {
+      continue;
+    }
+    for (const token of closedWithTokens(row.statusText)) {
       if (!paid.has(token)) {
         paid.set(token, row.name);
       }
@@ -407,6 +492,26 @@ export function collectPaidBy(repoRoot: string, chartered: RegistryRow[]): Map<s
     }
   }
   return paid;
+}
+
+export function collectPaidBy(repoRoot: string, chartered: RegistryRow[]): Map<string, string> {
+  return derivePayerMap(
+    repoRoot,
+    chartered.map((row) => ({ name: row.name, pays: row.pays, statusText: row.statusText })),
+  );
+}
+
+export function isFirstRulingsRewrite(input: {
+  persistedBase: number;
+  persistedHeadroom: number;
+  persistedCeiling: number;
+  liveH2DecisionLineCounts: number[];
+}): boolean {
+  const m = median(input.liveH2DecisionLineCounts);
+  return (
+    input.persistedHeadroom === 2 * m &&
+    input.persistedCeiling < input.persistedBase + 7 * m
+  );
 }
 
 function recordPaths(recordDir: string) {
@@ -609,6 +714,383 @@ CodifiedIn or TaughtIn; a registry row's name equals an archive directory.
   writeFileSync(paths.stub, stub);
 }
 
+function parseRecordRoot(
+  file: string,
+  xml: string,
+  findings: RetirementFinding[],
+): GraceXmlNode | null {
+  const parsed = parseGraceXmlArtifact(file, xml);
+  if (!parsed.root) {
+    const msg = parsed.issues[0]?.message ?? "XML artifact does not contain a root element.";
+    findings.push({
+      code: "malformed-xml",
+      message: `${file}: XML is not well-formed (${msg})`,
+    });
+    return null;
+  }
+  return parsed.root;
+}
+
+function charteredRowsFromRoot(root: GraceXmlNode): Array<{ name: string; pays: string; statusText: string }> {
+  return childNodes(root, "Row")
+    .filter((row) => (row.attributes.kind ?? "chartered") === "chartered")
+    .map((row) => ({
+      name: row.attributes.name ?? "",
+      pays: childText(row, "Pays") ?? "",
+      statusText: childText(row, "StatusText") ?? "",
+    }));
+}
+
+function headingLevelFromTitle(title: string): number {
+  const m = title.match(/^(#+)/);
+  return m ? m[1]!.length : 0;
+}
+
+export function liveH2DecisionLineCounts(rulingsXml: string): number[] {
+  const blocks = elementSpans(rulingsXml, "Decision");
+  const parsed = parseGraceXmlArtifact("rulings.xml", rulingsXml);
+  if (!parsed.root) {
+    return [];
+  }
+  const nodes = childNodes(parsed.root, "Decision");
+  const counts: number[] = [];
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i]!;
+    if (node.attributes.status !== "live") {
+      continue;
+    }
+    if (headingLevelFromTitle(childText(node, "Title") ?? "") !== 2) {
+      continue;
+    }
+    const block = blocks[i];
+    if (!block) {
+      continue;
+    }
+    counts.push(newlineCount(block.text) + 1);
+  }
+  return counts;
+}
+
+function elementSpans(xml: string, tag: string): Array<{ start: number; end: number; text: string }> {
+  const out: Array<{ start: number; end: number; text: string }> = [];
+  const re = new RegExp(`<${tag}\\b[\\s\\S]*?</${tag}>`, "g");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) {
+    out.push({ start: m.index, end: m.index + m[0].length, text: m[0] });
+  }
+  return out;
+}
+
+function attrOf(elementXml: string, name: string): string {
+  const m = elementXml.match(new RegExp(`\\b${name}="([^"]*)"`));
+  return m?.[1] ?? "";
+}
+
+function withStatusRetired(elementXml: string): string {
+  return elementXml.replace(/\bstatus="live"/, 'status="retired"');
+}
+
+function withPaidBy(findingXml: string, payer: string): string {
+  if (/<PaidBy>/.test(findingXml)) {
+    return findingXml;
+  }
+  return findingXml.replace(
+    /(<Finding\b[^>]*>)/,
+    `$1\n    <PaidBy>${xmlEscape(payer)}</PaidBy>`,
+  );
+}
+
+function removeSpans(xml: string, spans: Array<{ start: number; end: number }>): string {
+  const ordered = [...spans].sort((a, b) => b.start - a.start);
+  let next = xml;
+  for (const span of ordered) {
+    let end = span.end;
+    if (next[end] === "\n") {
+      end += 1;
+    }
+    next = `${next.slice(0, span.start)}${next.slice(end)}`;
+  }
+  return next;
+}
+
+function appendElements(retiredXml: string, closeTag: string, elements: string[]): string {
+  if (elements.length === 0) {
+    return retiredXml;
+  }
+  const idx = retiredXml.lastIndexOf(closeTag);
+  if (idx < 0) {
+    return retiredXml;
+  }
+  let before = retiredXml.slice(0, idx);
+  if (!before.endsWith("\n")) {
+    before += "\n";
+  }
+  const chunk = elements.map((el) => (el.endsWith("\n") ? el : `${el}\n`)).join("");
+  return `${before}${chunk}${retiredXml.slice(idx)}`;
+}
+
+function setEntryLayer(indexXml: string, id: string, layer: "retired"): string {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`<Entry\\b[^>]*\\bid="${escaped}"[^>]*/>`);
+  return indexXml.replace(re, (tag) => tag.replace(/layer="[^"]*"/, `layer="${layer}"`));
+}
+
+function readRootSnapshot(xml: string): { base: number; headroom: number; ceiling: number } {
+  const m = xml.match(/<(Findings|Rulings|Registry|RecordIndex)\b([^>]*)>/);
+  const attrs = parseAttrs(m?.[2] ?? "");
+  return {
+    base: Number(attrs.base),
+    headroom: Number(attrs.headroom),
+    ceiling: Number(attrs.ceiling),
+  };
+}
+
+function withRootSnapshot(
+  xml: string,
+  snap: { base: number; headroom: number; ceiling: number },
+): string {
+  return xml.replace(
+    /^<(Findings|Rulings|Registry|RecordIndex)\b[^>]*>/,
+    `<$1 base="${snap.base}" headroom="${snap.headroom}" ceiling="${snap.ceiling}">`,
+  );
+}
+
+function persistSnapshot(
+  previous: { base: number; headroom: number; ceiling: number },
+  base: number,
+  computedHeadroom: number,
+  clamp: boolean,
+): { base: number; headroom: number; ceiling: number } {
+  const formulaCeiling = base + computedHeadroom;
+  const ceiling = clamp ? Math.min(previous.ceiling, formulaCeiling) : formulaCeiling;
+  const headroom = ceiling === formulaCeiling ? computedHeadroom : ceiling - base;
+  return { base, headroom, ceiling };
+}
+
+function findingLineCounts(xml: string): number[] {
+  return elementSpans(xml, "Finding").map((el) => newlineCount(el.text) + 1);
+}
+
+function liveRowCount(xml: string): number {
+  const parsed = parseGraceXmlArtifact("registry.xml", xml);
+  if (!parsed.root) {
+    return 0;
+  }
+  return childNodes(parsed.root, "Row").filter((row) => row.attributes.status !== "retired").length;
+}
+
+function payerMapFromRecord(repoRoot: string, registryXml: string, registryRetiredXml: string): Map<string, string> {
+  const findings: RetirementFinding[] = [];
+  const liveRoot = parseRecordRoot("registry.xml", registryXml, findings);
+  const retiredRoot = parseRecordRoot("registry-retired.xml", registryRetiredXml, findings);
+  const rows = [
+    ...(liveRoot ? charteredRowsFromRoot(liveRoot) : []),
+    ...(retiredRoot ? charteredRowsFromRoot(retiredRoot) : []),
+  ];
+  return derivePayerMap(repoRoot, rows);
+}
+
+function nodeResolvesCodified(node: GraceXmlNode, repoRoot: string): { ok: boolean; message: string } | undefined {
+  const coded = childNodes(node, "CodifiedIn")[0];
+  if (!coded) {
+    return undefined;
+  }
+  return codifiedResolves({ attrs: coded.attributes, text: coded.text }, repoRoot);
+}
+
+function nodeResolvesTaught(node: GraceXmlNode, repoRoot: string): { ok: boolean; message: string } | undefined {
+  const taught = childNodes(node, "TaughtIn")[0];
+  if (!taught) {
+    return undefined;
+  }
+  return taughtResolvesCheck({ attrs: taught.attributes, text: taught.text }, repoRoot);
+}
+
+export function stampPaidBy(options: RetirementOptions): void {
+  const paths = recordPaths(options.recordDir);
+  const findingsXml = readFileSync(paths.findings, "utf8");
+  const registryXml = readFileSync(paths.registry, "utf8");
+  const registryRetiredXml = readFileSync(paths.registryRetired, "utf8");
+  const payers = payerMapFromRecord(options.repoRoot, registryXml, registryRetiredXml);
+  const archive = listArchiveNames(options.repoRoot);
+  const spans = elementSpans(findingsXml, "Finding");
+  let next = findingsXml;
+  for (const span of [...spans].reverse()) {
+    if (attrOf(span.text, "status") !== "live") {
+      continue;
+    }
+    const token = attrOf(span.text, "token");
+    const payer = payers.get(token);
+    if (!payer || !archive.has(payer) || /<PaidBy>/.test(span.text)) {
+      continue;
+    }
+    const stamped = withPaidBy(span.text, payer);
+    next = `${next.slice(0, span.start)}${stamped}${next.slice(span.end)}`;
+  }
+  writeFileSync(paths.findings, next);
+}
+
+export function retireRecord(options: RetirementOptions): { moved: number } {
+  const paths = recordPaths(options.recordDir);
+  const files = {
+    findings: readFileSync(paths.findings, "utf8"),
+    findingsRetired: readFileSync(paths.findingsRetired, "utf8"),
+    rulings: readFileSync(paths.rulings, "utf8"),
+    rulingsRetired: readFileSync(paths.rulingsRetired, "utf8"),
+    registry: readFileSync(paths.registry, "utf8"),
+    registryRetired: readFileSync(paths.registryRetired, "utf8"),
+    index: readFileSync(paths.index, "utf8"),
+  };
+  const archive = listArchiveNames(options.repoRoot);
+  const payers = payerMapFromRecord(options.repoRoot, files.registry, files.registryRetired);
+  const rulingsAsRead = readRootSnapshot(files.rulings);
+  const discriminator = isFirstRulingsRewrite({
+    persistedBase: rulingsAsRead.base,
+    persistedHeadroom: rulingsAsRead.headroom,
+    persistedCeiling: rulingsAsRead.ceiling,
+    liveH2DecisionLineCounts: liveH2DecisionLineCounts(files.rulings),
+  });
+
+  const findingsParse = parseGraceXmlArtifact(paths.findings, files.findings);
+  const rulingsParse = parseGraceXmlArtifact(paths.rulings, files.rulings);
+  const registryParse = parseGraceXmlArtifact(paths.registry, files.registry);
+  const findingNodes = findingsParse.root ? childNodes(findingsParse.root, "Finding") : [];
+  const decisionNodes = rulingsParse.root ? childNodes(rulingsParse.root, "Decision") : [];
+  const rowNodes = registryParse.root ? childNodes(registryParse.root, "Row") : [];
+
+  const findingSpans = elementSpans(files.findings, "Finding");
+  const decisionSpans = elementSpans(files.rulings, "Decision");
+  const rowSpans = elementSpans(files.registry, "Row");
+
+  const moveFindings: Array<{ span: (typeof findingSpans)[0]; next: string; id: string }> = [];
+  for (let i = 0; i < findingSpans.length; i++) {
+    const span = findingSpans[i]!;
+    const node = findingNodes[i];
+    if (attrOf(span.text, "status") !== "live") {
+      continue;
+    }
+    const token = attrOf(span.text, "token");
+    const derived = payers.get(token);
+    const stored = node ? childText(node, "PaidBy")?.trim() : undefined;
+    const payer = derived && archive.has(derived) ? derived : stored && archive.has(stored) ? stored : undefined;
+    if (!payer) {
+      continue;
+    }
+    moveFindings.push({
+      span,
+      next: withStatusRetired(withPaidBy(span.text, payer)),
+      id: attrOf(span.text, "id"),
+    });
+  }
+
+  const moveDecisions: Array<{ span: (typeof decisionSpans)[0]; next: string; id: string }> = [];
+  for (let i = 0; i < decisionSpans.length; i++) {
+    const span = decisionSpans[i]!;
+    const node = decisionNodes[i];
+    if (!node || node.attributes.status !== "live") {
+      continue;
+    }
+    const coded = nodeResolvesCodified(node, options.repoRoot);
+    const taught = nodeResolvesTaught(node, options.repoRoot);
+    if (!(coded?.ok || taught?.ok)) {
+      continue;
+    }
+    moveDecisions.push({
+      span,
+      next: withStatusRetired(span.text),
+      id: node.attributes.id ?? attrOf(span.text, "id"),
+    });
+  }
+
+  const moveRows: Array<{ span: (typeof rowSpans)[0]; next: string; id: string }> = [];
+  for (let i = 0; i < rowSpans.length; i++) {
+    const span = rowSpans[i]!;
+    const node = rowNodes[i];
+    const name = node?.attributes.name ?? attrOf(span.text, "name");
+    if ((node?.attributes.status ?? attrOf(span.text, "status")) === "retired") {
+      continue;
+    }
+    if (!archive.has(name)) {
+      continue;
+    }
+    moveRows.push({
+      span,
+      next: withStatusRetired(span.text),
+      id: name,
+    });
+  }
+
+  const movedCount = moveFindings.length + moveDecisions.length + moveRows.length;
+  if (movedCount === 0) {
+    return { moved: 0 };
+  }
+
+  let findingsLive = removeSpans(
+    files.findings,
+    moveFindings.map((m) => m.span),
+  );
+  let findingsRetired = appendElements(
+    files.findingsRetired,
+    "</Findings>",
+    moveFindings.map((m) => m.next),
+  );
+  let rulingsLive = removeSpans(
+    files.rulings,
+    moveDecisions.map((m) => m.span),
+  );
+  let rulingsRetired = appendElements(
+    files.rulingsRetired,
+    "</Rulings>",
+    moveDecisions.map((m) => m.next),
+  );
+  let registryLive = removeSpans(
+    files.registry,
+    moveRows.map((m) => m.span),
+  );
+  let registryRetired = appendElements(
+    files.registryRetired,
+    "</Registry>",
+    moveRows.map((m) => m.next),
+  );
+  let indexXml = files.index;
+  for (const item of [...moveFindings, ...moveDecisions]) {
+    indexXml = setEntryLayer(indexXml, item.id, "retired");
+  }
+
+  const findingsPrev = readRootSnapshot(files.findings);
+  const rulingsPrev = rulingsAsRead;
+  const registryPrev = readRootSnapshot(files.registry);
+  const indexPrev = readRootSnapshot(files.index);
+
+  const findingsHeadroom = 7 * median(findingLineCounts(findingsLive));
+  const rulingsHeadroom = 7 * median(liveH2DecisionLineCounts(rulingsLive));
+  findingsLive = withRootSnapshot(
+    findingsLive,
+    persistSnapshot(findingsPrev, newlineCount(findingsLive), findingsHeadroom, true),
+  );
+  rulingsLive = withRootSnapshot(
+    rulingsLive,
+    persistSnapshot(rulingsPrev, newlineCount(rulingsLive), rulingsHeadroom, !discriminator),
+  );
+  registryLive = withRootSnapshot(
+    registryLive,
+    persistSnapshot(registryPrev, liveRowCount(registryLive), 15, true),
+  );
+  indexXml = withRootSnapshot(
+    indexXml,
+    persistSnapshot(indexPrev, newlineCount(indexXml), 40, true),
+  );
+
+  writeFileSync(paths.findings, findingsLive);
+  writeFileSync(paths.findingsRetired, findingsRetired);
+  writeFileSync(paths.rulings, rulingsLive);
+  writeFileSync(paths.rulingsRetired, rulingsRetired);
+  writeFileSync(paths.registry, registryLive);
+  writeFileSync(paths.registryRetired, registryRetired);
+  writeFileSync(paths.index, indexXml);
+  return { moved: movedCount };
+}
+
 function wellFormed(xml: string, file: string, findings: RetirementFinding[]): boolean {
   const result = XMLValidator.validate(xml);
   if (result !== true) {
@@ -668,75 +1150,89 @@ export function validateRecordRetirement(options: RetirementOptions): Retirement
   checkStatusFile(paths.registry, files.registry!, "Row", "live", findings);
   checkStatusFile(paths.registryRetired, files.registryRetired!, "Row", "retired", findings);
 
-  for (const el of extractElements(files.findings!, "Finding")) {
-    if (el.attrs.status !== "live") continue;
-    const paid = childInner(el.inner, "PaidBy");
-    if (!paid) continue;
-    const name = xmlDecode(paid).trim();
-    if (archive.has(name)) {
+  const findingsRoot = parseRecordRoot(paths.findings, files.findings!, findings);
+  const rulingsRoot = parseRecordRoot(paths.rulings, files.rulings!, findings);
+  const registryRoot = parseRecordRoot(paths.registry, files.registry!, findings);
+  const registryRetiredRoot = parseRecordRoot(paths.registryRetired, files.registryRetired!, findings);
+  const payers = derivePayerMap(options.repoRoot, [
+    ...(registryRoot ? charteredRowsFromRoot(registryRoot) : []),
+    ...(registryRetiredRoot ? charteredRowsFromRoot(registryRetiredRoot) : []),
+  ]);
+
+  if (findingsRoot) {
+    for (const node of walkNodes(findingsRoot)) {
+      if (node.tag !== "Finding" || node.attributes.status !== "live") {
+        continue;
+      }
+      const token = node.attributes.token ?? "";
+      const derived = payers.get(token);
+      const stored = childText(node, "PaidBy")?.trim();
+      const event =
+        derived && archive.has(derived) ? derived : stored && archive.has(stored) ? stored : undefined;
+      if (!event) {
+        continue;
+      }
       findings.push({
         code: "finding-eligible-still-live",
-        message: `live finding id="${el.attrs.id}" token="${el.attrs.token}" has PaidBy ${name}, which is a directory under .ngrace/changes/archive/ (archive event ${name}); move the eligible entry to the retired sibling`,
+        message: `live finding id="${node.attributes.id}" token="${token}" is eligible (archive event ${event}); --retire / move the eligible entry to the retired sibling`,
       });
     }
   }
 
-  for (const el of extractElements(files.registry!, "Row")) {
-    if (el.attrs.status !== "live") continue;
-    const name = el.attrs.name ?? "";
-    if (!name) {
-      findings.push({
-        code: "registry-unreadable",
-        message: `live registry row is missing a name attribute; registry.xml is the machine-readable source of truth`,
-      });
-      continue;
-    }
-    if (archive.has(name)) {
-      findings.push({
-        code: "registry-eligible-still-live",
-        message: `live registry row name="${name}" equals a directory under .ngrace/changes/archive/ (archive event ${name}); move the eligible entry to the retired sibling`,
-      });
+  if (registryRoot) {
+    for (const node of childNodes(registryRoot, "Row")) {
+      if (node.attributes.status !== "live") continue;
+      const name = node.attributes.name ?? "";
+      if (!name) {
+        findings.push({
+          code: "registry-unreadable",
+          message: `live registry row is missing a name attribute; registry.xml is the machine-readable source of truth`,
+        });
+        continue;
+      }
+      if (archive.has(name)) {
+        findings.push({
+          code: "registry-eligible-still-live",
+          message: `live registry row name="${name}" equals a directory under .ngrace/changes/archive/ (archive event ${name}); move the eligible entry to the retired sibling`,
+        });
+      }
     }
   }
 
-  for (const el of extractElements(files.rulings!, "Decision")) {
-    if (el.attrs.status !== "live") continue;
-    const coded = childOpenAttrs(el.inner, "CodifiedIn");
-    const taught = childOpenAttrs(el.inner, "TaughtIn");
-    const codedResolves = coded ? codifiedResolves(coded, options.repoRoot).ok : false;
-    const taughtResolves = taught ? taughtResolvesCheck(taught, options.repoRoot).ok : false;
-    if (coded) {
-      const result = codifiedResolves(coded, options.repoRoot);
-      if (!result.ok) {
+  if (rulingsRoot) {
+    for (const node of childNodes(rulingsRoot, "Decision")) {
+      if (node.attributes.status !== "live") continue;
+      const coded = nodeResolvesCodified(node, options.repoRoot);
+      const taught = nodeResolvesTaught(node, options.repoRoot);
+      if (coded && !coded.ok) {
         findings.push({
           code: "codified-in-unresolved",
-          message: `live decision id="${el.attrs.id}": ${result.message}`,
+          message: `live decision id="${node.attributes.id}": ${coded.message}`,
         });
       }
-    }
-    if (taught) {
-      const result = taughtResolvesCheck(taught, options.repoRoot);
-      if (!result.ok) {
+      if (taught && !taught.ok) {
         findings.push({
           code: "taught-in-unresolved",
-          message: `live decision id="${el.attrs.id}": ${result.message}`,
+          message: `live decision id="${node.attributes.id}": ${taught.message}`,
         });
       }
-    }
-    if (codedResolves || taughtResolves) {
-      const tag = codedResolves ? "CodifiedIn" : "TaughtIn";
-      findings.push({
-        code: "decision-eligible-still-live",
-        message: `live decision id="${el.attrs.id}" carries a resolving ${tag}; move the eligible entry to the retired sibling`,
-      });
+      if (coded?.ok || taught?.ok) {
+        const tag = coded?.ok ? "CodifiedIn" : "TaughtIn";
+        findings.push({
+          code: "decision-eligible-still-live",
+          message: `live decision id="${node.attributes.id}" carries a resolving ${tag}; move the eligible entry to the retired sibling`,
+        });
+      }
     }
   }
 
   checkCeiling("findings", paths.findings, files.findings!, "line", findings);
   checkCeiling("rulings", paths.rulings, files.rulings!, "line", findings);
   checkCeiling("index", paths.index, files.index!, "line", findings);
-  const liveRowCount = extractElements(files.registry!, "Row").filter((r) => r.attrs.status !== "retired").length;
-  checkCeilingValue("registry", paths.registry, files.registry!, liveRowCount, "live-row", findings);
+  const registryLiveRows = registryRoot
+    ? childNodes(registryRoot, "Row").filter((row) => row.attributes.status !== "retired").length
+    : 0;
+  checkCeilingValue("registry", paths.registry, files.registry!, registryLiveRows, "live-row", findings);
 
   return findings;
 }
@@ -796,7 +1292,7 @@ function checkCeilingValue(
   if (liveSize > ceiling) {
     findings.push({
       code: "ceiling-exceeded",
-      message: `${file}: live ${part} ${unit} count ${liveSize} exceeds persisted ceiling ${ceiling}; move the eligible entry to the retired sibling. Raising the persisted ceiling is not the remedy.`,
+      message: `${file}: live ${part} ${unit} count ${liveSize} exceeds persisted ceiling ${ceiling}; --retire / move the eligible entry to the retired sibling. Raising the persisted ceiling is not the remedy.`,
     });
   }
 }
@@ -856,12 +1352,29 @@ function taughtResolvesCheck(
 }
 
 export function main(argv = process.argv.slice(2), cwd = process.cwd()): number {
-  if (argv[0] === "--split") {
-    splitFrozenRecord(cwd);
-    console.log("record-retirement: split ok");
+  const mode = argv.find((a) => a === "--split" || a === "--retire" || a === "--stamp-paid-by");
+  const positional = argv.filter((a) => !a.startsWith("--"));
+  if (mode === "--split") {
+    try {
+      splitFrozenRecord(cwd);
+      console.log("record-retirement: split ok");
+      return 0;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      return 1;
+    }
+  }
+  const recordDir = path.resolve(cwd, positional[0] ?? DEFAULT_RECORD_DIR);
+  if (mode === "--retire") {
+    const result = retireRecord({ repoRoot: cwd, recordDir });
+    console.log(`record-retirement: retire ok (${recordDir}, moved ${result.moved})`);
     return 0;
   }
-  const recordDir = path.resolve(cwd, argv[0] ?? DEFAULT_RECORD_DIR);
+  if (mode === "--stamp-paid-by") {
+    stampPaidBy({ repoRoot: cwd, recordDir });
+    console.log(`record-retirement: stamp-paid-by ok (${recordDir})`);
+    return 0;
+  }
   const findings = validateRecordRetirement({ repoRoot: cwd, recordDir });
   if (findings.length === 0) {
     console.log(`record-retirement: ok (${recordDir})`);
