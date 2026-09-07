@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-PAYMENT-RECORD>
     <IntentSummary>
       Record already-discharged payments as historical registry
